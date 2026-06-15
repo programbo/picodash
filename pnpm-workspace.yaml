@@ -23,6 +23,7 @@ catalog:
   "@playwright/test": ^1.60.0
   zustand: ^5.0.14
   zod: ^4.4.3
+  react-aria-components: 1.18.0
 overrides:
   vite: "catalog:"
   vitest: "catalog:"

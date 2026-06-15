@@ -27,6 +27,7 @@
     "@dnd-kit/dom": "catalog:",
     "@dnd-kit/react": "catalog:",
     "lucide-react": "catalog:",
+    "react-aria-components": "catalog:",
     "zod": "catalog:",
     "zustand": "catalog:"
   },
