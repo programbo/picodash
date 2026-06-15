@@ -93,8 +93,9 @@
 .tw-icon-button,
 .tw-text-button,
 .tw-grip {
-  @apply inline-flex h-6 cursor-pointer items-center justify-center bg-transparent;
+  @apply inline-flex h-6 cursor-pointer items-center justify-center;
 
+  background: transparent;
   color: var(--tw-muted);
   border: 0;
   border-radius: 5px;
