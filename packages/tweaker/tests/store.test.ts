@@ -55,6 +55,29 @@ describe("normalizeControl", () => {
       { label: "Prism", value: "prism" },
     ]);
   });
+
+  it("normalizes status metadata on object controls", () => {
+    const info = normalizeControl("demo", "Rendering", "speed", {
+      value: 0.5,
+      min: 0,
+      max: 1,
+      status: "info",
+    });
+    const alert = normalizeControl("demo", "Rendering", "exposure", {
+      type: "number",
+      value: 1,
+      status: "alert",
+    });
+    const error = normalizeControl("demo", "Rendering", "bloom", {
+      type: "checkbox",
+      value: true,
+      status: "error",
+    });
+
+    expect(info.status).toBe("info");
+    expect(alert.status).toBe("alert");
+    expect(error.status).toBe("error");
+  });
 });
 
 describe("control defaults", () => {
@@ -213,6 +236,15 @@ describe("TweakerStore", () => {
     store.getState().register({ speed: { value: 1, min: 0, max: 2 } }, { section: "Rendering" });
 
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("updates registered controls when status metadata changes", () => {
+    const store = createTweakerStore({ storeId: "status-change", stale: "ignore" });
+
+    store.getState().register({ speed: { value: 1, status: "info" } }, { section: "Rendering" });
+    store.getState().register({ speed: { value: 1, status: "error" } }, { section: "Rendering" });
+
+    expect(store.getState().controls[0]?.status).toBe("error");
   });
 
   it("preserves later-section persisted values during partial prune registration", () => {

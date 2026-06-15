@@ -61,6 +61,7 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.hoverOpacity === rightControl.hoverOpacity &&
       leftControl.backgroundBlur === rightControl.backgroundBlur &&
       leftControl.hoverBackgroundBlur === rightControl.hoverBackgroundBlur &&
+      leftControl.status === rightControl.status &&
       leftControl.kind === rightControl.kind &&
       leftControl.label === rightControl.label &&
       leftControl.value === rightControl.value &&
