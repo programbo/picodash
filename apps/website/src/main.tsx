@@ -1,4 +1,4 @@
-import { StrictMode, type CSSProperties, useMemo } from "react";
+import { StrictMode, type CSSProperties, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { TweakerPanel, TweakerProvider, useTweaker, type TweakerSchema } from "tweaker";
 import "tweaker/style.css";
@@ -36,11 +36,19 @@ const buildSchema = {
 } satisfies TweakerSchema;
 
 function Demo() {
+  const [dimmed, setDimmed] = useState(true);
   const [rendering, setRendering] = useTweaker(renderingSchema, {
     section: "Rendering",
   });
   const [material] = useTweaker(materialSchema, { section: "Material" });
-  const [build] = useTweaker(buildSchema, { section: "Build", sortable: false });
+  const [build] = useTweaker(buildSchema, {
+    section: "Build",
+    sortable: false,
+    opacity: dimmed ? 0.55 : 1,
+    hoverOpacity: dimmed ? 0.95 : 1,
+    backgroundBlur: dimmed ? 0 : 8,
+    hoverBackgroundBlur: 8,
+  });
 
   const previewStyle = useMemo<CSSProperties>(
     () =>
@@ -69,9 +77,7 @@ function Demo() {
 
           <div className="preview" style={previewStyle}>
             <div
-              className={`preview__object preview__object--${material.shape} ${
-                rendering.bloom ? "has-bloom" : ""
-              }`}
+              className={`preview__object preview__object--${material.shape} ${rendering.bloom ? "has-bloom" : ""}`}
             />
             <div className="preview__readout">
               <span>Speed {Number(rendering.speed).toFixed(2)}</span>
@@ -109,6 +115,28 @@ import "tweaker/style.css";`}</code>
               onClick={() => setRendering("speed", 1.25)}
             >
               Set speed to 1.25
+            </button>
+          </article>
+
+          <article>
+            <h2>Runtime panel effects</h2>
+            <pre>
+              <code>{`const [dimmed, setDimmed] = useState(true);
+
+useTweaker(schema, {
+  section: "Build",
+  opacity: dimmed ? 0.55 : 1,
+  hoverOpacity: dimmed ? 0.95 : 1,
+  backgroundBlur: dimmed ? 0 : 8,
+  hoverBackgroundBlur: 8,
+});`}</code>
+            </pre>
+            <button
+              className="demo-button docs-action"
+              type="button"
+              onClick={() => setDimmed((value) => !value)}
+            >
+              {dimmed ? "Disable dimming" : "Enable dimming"}
             </button>
           </article>
         </section>

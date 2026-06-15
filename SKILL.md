@@ -29,7 +29,7 @@ Wrap the app once with `TweakerProvider`. Always provide a stable `storeId`; it 
 
 ## Register Controls
 
-Call `useTweaker(schema, { section, sortable })` inside React components. It returns `[values, setValue]`. `sortable` defaults to `true`.
+Call `useTweaker(schema, { section, sortable, opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur })` inside React components. It returns `[values, setValue]`. `sortable` defaults to `true`; panel effect settings are optional and apply to panel surface colors and backdrop blur.
 
 ```tsx
 const [values, setValue] = useTweaker(
@@ -39,7 +39,14 @@ const [values, setValue] = useTweaker(
     mode: { type: "select", value: "fast", options: ["fast", "quality"] },
     enabled: { value: true },
   },
-  { section: "Rendering", sortable: true },
+  {
+    section: "Rendering",
+    sortable: true,
+    opacity: 0.4,
+    hoverOpacity: 0.85,
+    backgroundBlur: 0,
+    hoverBackgroundBlur: 4,
+  },
 );
 ```
 
@@ -49,5 +56,6 @@ const [values, setValue] = useTweaker(
 - Min/max numeric shorthand becomes a slider.
 - Use explicit `type: "number"` for bounded number inputs.
 - Pass `sortable: false` in hook options when a section registration should not be draggable.
+- Pass `opacity`, `hoverOpacity`, `backgroundBlur`, and `hoverBackgroundBlur` in hook options to animate panel surface color opacity and backdrop blur on hover or focus-within.
 - Reordering is section-local and starts from the grip handle.
 - The package ships a dark CSS-variable theme first; customize by overriding CSS variables around the panel.

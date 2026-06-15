@@ -162,7 +162,7 @@ h1 {
 
 .docs-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   max-width: 1160px;
   margin-top: 22px;
@@ -202,6 +202,10 @@ pre {
 
 .demo-button:hover {
   background: #315743;
+}
+
+.docs-action {
+  margin-top: 14px;
 }
 
 @keyframes float {

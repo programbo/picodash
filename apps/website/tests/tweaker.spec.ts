@@ -267,3 +267,60 @@ test("can disable sorting per hook registration", async ({ page }) => {
     )
     .toEqual([]);
 });
+
+test("applies hook-level panel effects with hover transitions", async ({ page }) => {
+  const panel = page.getByTestId("tweaker-panel");
+  const exposureInput = page.getByRole("textbox", { name: "Exposure" });
+
+  await expect(panel).toHaveCSS("opacity", "1");
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
+  await expect(exposureInput).toHaveCSS("background-color", "rgba(16, 17, 18, 0.55)");
+  await expect(panel).toHaveCSS("backdrop-filter", "blur(0px)");
+  await expect
+    .poll(() => panel.evaluate((element) => getComputedStyle(element).transitionProperty))
+    .toContain("background-color");
+  await expect
+    .poll(() => panel.evaluate((element) => getComputedStyle(element).transitionProperty))
+    .toContain("backdrop-filter");
+
+  await panel.hover();
+
+  await expect(panel).toHaveCSS("opacity", "1");
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.95)");
+  await expect(exposureInput).toHaveCSS("background-color", "rgba(16, 17, 18, 0.95)");
+  await expect(panel).toHaveCSS("backdrop-filter", "blur(8px)");
+});
+
+test("applies hover panel effects while keyboard focus is inside the panel", async ({ page }) => {
+  const panel = page.getByTestId("tweaker-panel");
+  const exposureInput = page.getByRole("textbox", { name: "Exposure" });
+
+  await expect(panel).toHaveCSS("opacity", "1");
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
+  await expect(exposureInput).toHaveCSS("background-color", "rgba(16, 17, 18, 0.55)");
+  await page.getByRole("slider", { name: "Speed" }).focus();
+  await expect(panel).toHaveCSS("opacity", "1");
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.95)");
+  await expect(exposureInput).toHaveCSS("background-color", "rgba(16, 17, 18, 0.95)");
+  await expect(panel).toHaveCSS("backdrop-filter", "blur(8px)");
+});
+
+test("updates hook-level panel effects from runtime state", async ({ page }) => {
+  const panel = page.getByTestId("tweaker-panel");
+  const exposureInput = page.getByRole("textbox", { name: "Exposure" });
+
+  await expect(panel).toHaveCSS("opacity", "1");
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
+  await expect(exposureInput).toHaveCSS("background-color", "rgba(16, 17, 18, 0.55)");
+  await expect(panel).toHaveCSS("backdrop-filter", "blur(0px)");
+  await page.getByRole("button", { name: "Disable dimming" }).click();
+  await expect(panel).toHaveCSS("opacity", "1");
+  await expect(panel).toHaveCSS("background-color", "rgb(21, 22, 23)");
+  await expect(exposureInput).toHaveCSS("background-color", "rgb(16, 17, 18)");
+  await expect(panel).toHaveCSS("backdrop-filter", "blur(8px)");
+  await page.getByRole("button", { name: "Enable dimming" }).click();
+  await expect(panel).toHaveCSS("opacity", "1");
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
+  await expect(exposureInput).toHaveCSS("background-color", "rgba(16, 17, 18, 0.55)");
+  await expect(panel).toHaveCSS("backdrop-filter", "blur(0px)");
+});

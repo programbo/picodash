@@ -1,8 +1,15 @@
 .tw-panel {
-  --tw-bg: #151617;
-  --tw-bg-elevated: #1d1f20;
-  --tw-border: #363a3d;
-  --tw-border-strong: #4b5155;
+  --tw-panel-color-opacity: 0.78;
+  --tw-panel-active-color-opacity: var(--tw-panel-color-opacity);
+  --tw-bg: rgb(21 22 23 / var(--tw-panel-active-color-opacity));
+  --tw-bg-elevated: rgb(29 31 32 / var(--tw-panel-active-color-opacity));
+  --tw-border: rgb(54 58 61 / var(--tw-panel-active-color-opacity));
+  --tw-border-strong: rgb(75 81 85 / var(--tw-panel-active-color-opacity));
+  --tw-control-bg: rgb(16 17 18 / var(--tw-panel-active-color-opacity));
+  --tw-row-bg: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.025));
+  --tw-row-hover-bg: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.055));
+  --tw-row-hover-border: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.04));
+  --tw-control-hover-bg: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.08));
   --tw-text: #f1f4f2;
   --tw-muted: #9aa39d;
   --tw-accent: #9bd16f;
@@ -14,8 +21,11 @@
   position: fixed;
   z-index: 1000;
   width: min(320px, calc(100vw - 16px));
+  -webkit-backdrop-filter: blur(var(--tw-panel-background-blur, 0px));
+  backdrop-filter: blur(var(--tw-panel-background-blur, 0px));
   color: var(--tw-text);
-  background: linear-gradient(180deg, rgb(255 255 255 / 0.035), transparent 32px), var(--tw-bg);
+  background-color: var(--tw-bg);
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.035), transparent 32px);
   border: 1px solid var(--tw-border);
   border-radius: var(--tw-radius);
   box-shadow: var(--tw-shadow);
@@ -23,7 +33,26 @@
   font-size: 12px;
   letter-spacing: 0;
   overflow: hidden;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    -webkit-backdrop-filter 160ms ease,
+    backdrop-filter 160ms ease;
   user-select: none;
+}
+
+.tw-panel:hover,
+.tw-panel:focus-within {
+  --tw-panel-active-color-opacity: var(
+    --tw-panel-hover-color-opacity,
+    var(--tw-panel-color-opacity)
+  );
+  -webkit-backdrop-filter: blur(
+    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
+  );
+  backdrop-filter: blur(
+    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
+  );
 }
 
 .tw-panel * {
@@ -38,8 +67,11 @@
   height: 34px;
   padding: 4px 6px;
   border-bottom: 1px solid var(--tw-border);
-  background: var(--tw-bg-elevated);
+  background-color: var(--tw-bg-elevated);
   cursor: grab;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
   touch-action: none;
 }
 
@@ -92,7 +124,7 @@
 .tw-text-button:hover,
 .tw-grip:hover {
   color: var(--tw-text);
-  background: rgb(255 255 255 / 0.08);
+  background-color: var(--tw-control-hover-bg);
 }
 
 .tw-icon-button:focus-visible,
@@ -133,14 +165,17 @@
   gap: 7px;
   min-height: 30px;
   padding: 3px 5px 3px 2px;
-  background: rgb(255 255 255 / 0.025);
+  background-color: var(--tw-row-bg);
   border: 1px solid transparent;
   border-radius: 5px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
 }
 
 .tw-row:hover {
-  background: rgb(255 255 255 / 0.055);
-  border-color: rgb(255 255 255 / 0.04);
+  background-color: var(--tw-row-hover-bg);
+  border-color: var(--tw-row-hover-border);
 }
 
 .tw-row.is-dragging {
@@ -182,10 +217,13 @@
   min-width: 0;
   height: 24px;
   color: var(--tw-text);
-  background: #101112;
+  background-color: var(--tw-control-bg);
   border: 1px solid var(--tw-border);
   border-radius: 5px;
   font: inherit;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
 }
 
 .tw-number {

@@ -1,4 +1,10 @@
-import type { ControlConfig, ControlKind, NormalizedControl, PrimitiveValue } from "./types.js";
+import type {
+  ControlConfig,
+  ControlKind,
+  NormalizedControl,
+  PrimitiveValue,
+  RegisterOptions,
+} from "./types.js";
 
 export const defaultSection = "Controls";
 
@@ -32,22 +38,77 @@ export function defaultValueForControl(config: ControlConfig): PrimitiveValue {
   return typeof config === "object" ? config.value : config;
 }
 
+function normalizeOpacity(value: number | undefined) {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  return clamp(value, 0, 1);
+}
+
+function normalizeBlur(value: number | undefined) {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  return Math.max(0, value);
+}
+
+export function normalizePanelEffects(options: RegisterOptions) {
+  return {
+    opacity: normalizeOpacity(options.opacity),
+    hoverOpacity: normalizeOpacity(options.hoverOpacity),
+    backgroundBlur: normalizeBlur(options.backgroundBlur),
+    hoverBackgroundBlur: normalizeBlur(options.hoverBackgroundBlur),
+  };
+}
+
+function controlBase(
+  storeId: string,
+  section: string,
+  key: string,
+  sortable: boolean,
+  opacity?: number,
+  hoverOpacity?: number,
+  backgroundBlur?: number,
+  hoverBackgroundBlur?: number,
+) {
+  const effects = normalizePanelEffects({
+    opacity,
+    hoverOpacity,
+    backgroundBlur,
+    hoverBackgroundBlur,
+  });
+
+  return {
+    id: createControlId(storeId, section, key),
+    key,
+    section,
+    sortable,
+    ...effects,
+  };
+}
+
 export function normalizeControl(
   storeId: string,
   section: string,
   key: string,
   config: ControlConfig,
   sortable = true,
+  opacity?: number,
+  hoverOpacity?: number,
+  backgroundBlur?: number,
+  hoverBackgroundBlur?: number,
 ): NormalizedControl {
-  const id = createControlId(storeId, section, key);
   const fallbackLabel = labelFromKey(key);
+  const base = controlBase(
+    storeId,
+    section,
+    key,
+    sortable,
+    opacity,
+    hoverOpacity,
+    backgroundBlur,
+    hoverBackgroundBlur,
+  );
 
   if (typeof config === "number") {
     return {
-      id,
-      key,
-      section,
-      sortable,
+      ...base,
       kind: "number",
       label: fallbackLabel,
       value: config,
@@ -57,10 +118,7 @@ export function normalizeControl(
 
   if (typeof config === "boolean") {
     return {
-      id,
-      key,
-      section,
-      sortable,
+      ...base,
       kind: "checkbox",
       label: fallbackLabel,
       value: config,
@@ -70,10 +128,7 @@ export function normalizeControl(
 
   if (typeof config === "string") {
     return {
-      id,
-      key,
-      section,
-      sortable,
+      ...base,
       kind: "select",
       label: fallbackLabel,
       value: config,
@@ -84,10 +139,7 @@ export function normalizeControl(
 
   if ("options" in config) {
     return {
-      id,
-      key,
-      section,
-      sortable,
+      ...base,
       kind: "select",
       label: config.label ?? fallbackLabel,
       value: config.value,
@@ -98,10 +150,7 @@ export function normalizeControl(
 
   if (typeof config.value === "boolean") {
     return {
-      id,
-      key,
-      section,
-      sortable,
+      ...base,
       kind: "checkbox",
       label: config.label ?? fallbackLabel,
       value: config.value,
@@ -115,10 +164,7 @@ export function normalizeControl(
   const kind: ControlKind = hasSliderBounds ? "slider" : "number";
 
   return {
-    id,
-    key,
-    section,
-    sortable,
+    ...base,
     kind,
     label: config.label ?? fallbackLabel,
     value: config.value,

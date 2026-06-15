@@ -12,6 +12,7 @@ export type {
   NumberControl,
   Placement,
   PrimitiveValue,
+  RegisterOptions,
   SelectControl,
   SetTweakerValue,
   SliderControl,
