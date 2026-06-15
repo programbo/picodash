@@ -8,6 +8,7 @@ const primitiveValueSchema = z.union([z.number(), z.string(), z.boolean()]);
 
 const dockStateSchema = z.object({
   edge: z.enum(["top", "right", "bottom", "left"]),
+  secondaryEdge: z.enum(["top", "right", "bottom", "left"]).optional(),
   offset: z.number().finite().nonnegative(),
 });
 

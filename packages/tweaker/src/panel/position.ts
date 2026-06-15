@@ -1,4 +1,4 @@
-import type { DockState, Placement } from "../types.js";
+import type { DockEdge, DockState, Placement } from "../types.js";
 
 export interface PanelPosition {
   x: number;
@@ -29,18 +29,38 @@ export function placementToPosition(placement: Placement, width: number, height:
 export function dockToPosition(dock: DockState, width: number, height: number) {
   const maxX = Math.max(0, width - panelWidth);
   const maxY = Math.max(0, height - 120);
+  let position: PanelPosition;
 
   switch (dock.edge) {
     case "top":
-      return { x: Math.min(Math.max(0, dock.offset), maxX), y: 0 };
+      position = { x: Math.min(Math.max(0, dock.offset), maxX), y: 0 };
+      break;
     case "bottom":
-      return { x: Math.min(Math.max(0, dock.offset), maxX), y: maxY };
+      position = { x: Math.min(Math.max(0, dock.offset), maxX), y: maxY };
+      break;
     case "left":
-      return { x: 0, y: Math.min(Math.max(0, dock.offset), maxY) };
+      position = { x: 0, y: Math.min(Math.max(0, dock.offset), maxY) };
+      break;
     case "right":
-      return { x: maxX, y: Math.min(Math.max(0, dock.offset), maxY) };
+      position = { x: maxX, y: Math.min(Math.max(0, dock.offset), maxY) };
+      break;
     default:
-      return { x: 0, y: 0 };
+      position = { x: 0, y: 0 };
+  }
+
+  return dock.secondaryEdge ? applyDockEdge(position, dock.secondaryEdge, maxX, maxY) : position;
+}
+
+function applyDockEdge(position: PanelPosition, edge: DockEdge, maxX: number, maxY: number) {
+  switch (edge) {
+    case "top":
+      return { ...position, y: 0 };
+    case "bottom":
+      return { ...position, y: maxY };
+    case "left":
+      return { ...position, x: 0 };
+    case "right":
+      return { ...position, x: maxX };
   }
 }
 
@@ -76,5 +96,20 @@ export function nearestDock(position: PanelPosition, element: HTMLElement): Dock
 
   const nearest = distances[0];
   if (!nearest || nearest.distance > edgeThreshold) return null;
-  return { edge: nearest.edge, offset: Math.max(0, nearest.offset) };
+  const secondary = distances.find(
+    (candidate) =>
+      candidate.edge !== nearest.edge &&
+      edgeAxis(candidate.edge) !== edgeAxis(nearest.edge) &&
+      candidate.distance <= edgeThreshold,
+  );
+
+  return {
+    edge: nearest.edge,
+    secondaryEdge: secondary?.edge,
+    offset: Math.max(0, nearest.offset),
+  };
+}
+
+function edgeAxis(edge: DockEdge) {
+  return edge === "top" || edge === "bottom" ? "y" : "x";
 }

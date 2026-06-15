@@ -92,10 +92,19 @@ export function TweakerPanel({
     event.currentTarget.releasePointerCapture(event.pointerId);
     if (!drag || !element) return;
 
-    const nextDock = nearestDock(position, element);
+    const nextPosition = clampPosition(
+      {
+        x: drag.origin.x + event.clientX - drag.startX,
+        y: drag.origin.y + event.clientY - drag.startY,
+      },
+      element,
+    );
+    const nextDock = nearestDock(nextPosition, element);
     setDock(nextDock);
     if (nextDock) {
       setFreePosition(null);
+    } else {
+      setFreePosition(nextPosition);
     }
   }
 
