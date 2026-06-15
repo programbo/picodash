@@ -52,13 +52,14 @@ export function useTweaker<T extends TweakerSchema>(
   const store = useTweakerStoreApi();
   const section = options.section ?? defaultSection;
   const sortable = options.sortable ?? true;
+  const { opacity, hoverOpacity } = options;
   const controls = useStore(store, (state) => state.controls);
   const valuesById = useStore(store, (state) => state.values);
   const schemaSignature = stableStringify(schema);
 
   useEffect(
-    () => store.getState().register(schema, { section, sortable }),
-    [store, schemaSignature, section, sortable],
+    () => store.getState().register(schema, { section, sortable, opacity, hoverOpacity }),
+    [store, schemaSignature, section, sortable, opacity, hoverOpacity],
   );
 
   const values = useMemo(() => {

@@ -40,7 +40,12 @@ function Demo() {
     section: "Rendering",
   });
   const [material] = useTweaker(materialSchema, { section: "Material" });
-  const [build] = useTweaker(buildSchema, { section: "Build", sortable: false });
+  const [build] = useTweaker(buildSchema, {
+    section: "Build",
+    sortable: false,
+    opacity: 0.62,
+    hoverOpacity: 1,
+  });
 
   const previewStyle = useMemo<CSSProperties>(
     () =>

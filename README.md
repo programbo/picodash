@@ -22,7 +22,7 @@ function SceneControls() {
         options: ["green", "amber", "blue"],
       },
     },
-    { section: "Rendering", sortable: true },
+    { section: "Rendering", sortable: true, opacity: 0.72, hoverOpacity: 1 },
   );
 
   return <button onClick={() => setValue("speed", 1.25)}>Boost</button>;
@@ -48,7 +48,8 @@ export function App() {
 
 Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs.
 
-Pass `sortable: false` in the hook options to keep a registration fixed in place:
+Pass `sortable: false` in the hook options to keep a registration fixed in place.
+Use `opacity` and `hoverOpacity` to dim a hook registration until the user hovers it:
 
 ```tsx
 useTweaker(
@@ -56,6 +57,8 @@ useTweaker(
   {
     section: "Build",
     sortable: false,
+    opacity: 0.6,
+    hoverOpacity: 1,
   },
 );
 ```

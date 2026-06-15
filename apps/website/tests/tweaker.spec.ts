@@ -138,3 +138,16 @@ test("can disable sorting per hook registration", async ({ page }) => {
     )
     .toEqual([]);
 });
+
+test("applies hook-level opacity with a hover transition", async ({ page }) => {
+  const channelRow = page.getByTestId("control-channel");
+
+  await expect(channelRow).toHaveCSS("opacity", "0.62");
+  await expect
+    .poll(() => channelRow.evaluate((row) => getComputedStyle(row).transitionProperty))
+    .toContain("opacity");
+
+  await channelRow.hover();
+
+  await expect(channelRow).toHaveCSS("opacity", "1");
+});

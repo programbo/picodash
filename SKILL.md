@@ -29,7 +29,7 @@ Wrap the app once with `TweakerProvider`. Always provide a stable `storeId`; it 
 
 ## Register Controls
 
-Call `useTweaker(schema, { section, sortable })` inside React components. It returns `[values, setValue]`. `sortable` defaults to `true`.
+Call `useTweaker(schema, { section, sortable, opacity, hoverOpacity })` inside React components. It returns `[values, setValue]`. `sortable` defaults to `true`; opacity settings are optional and apply to every row registered by that hook.
 
 ```tsx
 const [values, setValue] = useTweaker(
@@ -39,7 +39,7 @@ const [values, setValue] = useTweaker(
     mode: { type: "select", value: "fast", options: ["fast", "quality"] },
     enabled: { value: true },
   },
-  { section: "Rendering", sortable: true },
+  { section: "Rendering", sortable: true, opacity: 0.72, hoverOpacity: 1 },
 );
 ```
 
@@ -49,5 +49,6 @@ const [values, setValue] = useTweaker(
 - Min/max numeric shorthand becomes a slider.
 - Use explicit `type: "number"` for bounded number inputs.
 - Pass `sortable: false` in hook options when a section registration should not be draggable.
+- Pass `opacity` and `hoverOpacity` in hook options to dim a registration until hover.
 - Reordering is section-local and starts from the grip handle.
 - The package ships a dark CSS-variable theme first; customize by overriding CSS variables around the panel.

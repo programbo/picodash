@@ -74,6 +74,8 @@ export interface NormalizedControl {
   key: string;
   section: string;
   sortable: boolean;
+  opacity?: number;
+  hoverOpacity?: number;
   kind: ControlKind;
   label: string;
   value: PrimitiveValue;
@@ -104,6 +106,8 @@ export interface TweakerSnapshot extends PersistedState {
 export interface RegisterOptions {
   section?: string;
   sortable?: boolean;
+  opacity?: number;
+  hoverOpacity?: number;
 }
 
 export interface TweakerStoreOptions {

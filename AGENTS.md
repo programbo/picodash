@@ -114,6 +114,7 @@ If localStorage shape changes, update:
 - `options.section` controls the section label.
 - `options.sortable` defaults to `true`.
 - `sortable: false` disables row reordering for every control in that hook registration.
+- `options.opacity` and `options.hoverOpacity` apply row opacity to every control in that hook registration. Hover opacity changes must transition smoothly.
 - Section order is local to each section; dragging must not move controls across sections.
 - Numeric values are clamped according to their normalized control bounds.
 - Explicit `type: "number"` stays a number input even if `min` and `max` are present.

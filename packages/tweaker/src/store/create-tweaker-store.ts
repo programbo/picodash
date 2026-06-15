@@ -56,6 +56,8 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.key === rightControl.key &&
       leftControl.section === rightControl.section &&
       leftControl.sortable === rightControl.sortable &&
+      leftControl.opacity === rightControl.opacity &&
+      leftControl.hoverOpacity === rightControl.hoverOpacity &&
       leftControl.kind === rightControl.kind &&
       leftControl.label === rightControl.label &&
       leftControl.value === rightControl.value &&
@@ -90,7 +92,15 @@ export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): Twe
           const section = options.section ?? defaultSection;
           const sortable = options.sortable ?? true;
           const controls = Object.entries(schema).map(([key, config]) =>
-            normalizeControl(storeId, section, key, config, sortable),
+            normalizeControl(
+              storeId,
+              section,
+              key,
+              config,
+              sortable,
+              options.opacity,
+              options.hoverOpacity,
+            ),
           );
           const ids = new Set(controls.map((control) => control.id));
 

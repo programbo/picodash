@@ -153,6 +153,16 @@ describe("TweakerStore", () => {
     expect(store.getState().controls[0]?.sortable).toBe(false);
   });
 
+  it("stores clamped hook-level opacity metadata on registered controls", () => {
+    const store = createTweakerStore({ storeId: "opacity", stale: "ignore" });
+    store
+      .getState()
+      .register({ channel: "stable" }, { section: "Build", opacity: -1, hoverOpacity: 2 });
+
+    expect(store.getState().controls[0]?.opacity).toBe(0);
+    expect(store.getState().controls[0]?.hoverOpacity).toBe(1);
+  });
+
   it("does not notify when an equivalent schema registers again", () => {
     const store = createTweakerStore({ storeId: "stable-schema", stale: "ignore" });
     const listener = vi.fn();
