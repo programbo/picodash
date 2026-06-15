@@ -1,0 +1,20 @@
+{
+  "name": "tweaker-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ready": "vp check && vp run -r test && vp run -r build && pnpm --filter website test:e2e",
+    "dev": "vp run website#dev",
+    "test:e2e": "pnpm --filter website test:e2e",
+    "prepare": "vp config"
+  },
+  "devDependencies": {
+    "@tsdown/css": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@11.6.0"
+}
