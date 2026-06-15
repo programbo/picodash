@@ -81,9 +81,11 @@ export function SortableControl({
         "tw-row",
         isDragging && "is-dragging",
         !control.sortable && "is-not-sortable",
+        control.status && `tw-row--${control.status}`,
       )}
       data-control-id={control.id}
       data-sortable={control.sortable ? "true" : "false"}
+      data-status={control.status}
       data-testid={`control-${control.key}`}
     >
       <Button

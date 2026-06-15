@@ -38,6 +38,7 @@ const [values, setValue] = useTweaker(
       value: 0.75,
       min: 0,
       max: 2,
+      status: "info",
       tooltip: <>Higher values shorten the animation loop.</>,
     },
     exposure: { type: "number", value: 1, min: 0, max: 4 },
@@ -62,6 +63,7 @@ const [values, setValue] = useTweaker(
 - Object-shaped controls support `tooltip` as plain text or React content beside the label.
 - Min/max numeric shorthand becomes a slider.
 - Use explicit `type: "number"` for bounded number inputs.
+- Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row states.
 - Pass `sortable: false` in hook options when a section registration should not be draggable.
 - Pass `opacity`, `hoverOpacity`, `backgroundBlur`, and `hoverBackgroundBlur` in hook options to animate panel surface color opacity and backdrop blur on hover, focus-within, or open tooltip state.
 - Pass `tooltipForeground` in hook options to set the default tooltip content color.

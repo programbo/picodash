@@ -3,12 +3,14 @@ import type { StoreApi } from "zustand/vanilla";
 
 export type PrimitiveValue = number | string | boolean;
 export type ControlKind = "number" | "slider" | "select" | "checkbox";
+export type ControlStatus = "info" | "alert" | "error";
 export type StaleMode = "ignore" | "prune";
 export type Placement = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
 interface ControlMetadata {
   label?: string;
   tooltip?: ReactNode;
+  status?: ControlStatus;
 }
 
 export interface NumberControl extends ControlMetadata {
@@ -80,6 +82,7 @@ export interface NormalizedControl {
   backgroundBlur?: number;
   hoverBackgroundBlur?: number;
   tooltipForeground?: string;
+  status?: ControlStatus;
   kind: ControlKind;
   label: string;
   tooltip?: ReactNode;
@@ -129,6 +132,7 @@ export interface TweakerStoreOptions {
 export interface TweakerState extends TweakerSnapshot {
   register: (schema: TweakerSchema, options?: RegisterOptions) => () => void;
   updatePanelEffects: (schema: TweakerSchema, options?: RegisterOptions) => void;
+  updateControlStatuses: (schema: TweakerSchema, options?: RegisterOptions) => void;
   setValue: (id: string, value: PrimitiveValue) => void;
   setCollapsed: (collapsed: boolean) => void;
   setDock: (dock: DockState | null) => void;

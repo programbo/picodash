@@ -11,6 +11,7 @@ const renderingSchema = {
     max: 2,
     step: 0.01,
     label: "Speed",
+    status: "info",
     tooltip: (
       <>
         <strong>Animation speed</strong>
@@ -24,9 +25,10 @@ const renderingSchema = {
     min: 0,
     max: 4,
     step: 0.1,
+    status: "alert",
     tooltip: "Numeric controls can keep a compact helper beside the label.",
   },
-  bloom: { type: "checkbox", value: true, label: "Bloom" },
+  bloom: { type: "checkbox", value: true, label: "Bloom", status: "error" },
 } satisfies TweakerSchema;
 
 const materialSchema = {

@@ -79,6 +79,27 @@ test("keeps panel effects active while hovering tooltip content", async ({ page 
   await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.95)");
 });
 
+test("renders info, alert, and error control status states", async ({ page }) => {
+  const speed = page.getByTestId("control-speed");
+  const exposure = page.getByTestId("control-exposure");
+  const bloom = page.getByTestId("control-bloom");
+
+  await expect(speed).toHaveAttribute("data-status", "info");
+  await expect(speed).toHaveCSS("background-color", "rgba(59, 130, 246, 0.1)");
+  await expect(speed).toHaveCSS("border-left-width", "3px");
+  await expect(speed).toHaveCSS("outline-color", "rgba(96, 165, 250, 0.22)");
+
+  await expect(exposure).toHaveAttribute("data-status", "alert");
+  await expect(exposure).toHaveCSS("background-color", "rgba(245, 158, 11, 0.11)");
+  await expect(exposure).toHaveCSS("border-left-width", "3px");
+  await expect(exposure).toHaveCSS("outline-color", "rgba(251, 191, 36, 0.24)");
+
+  await expect(bloom).toHaveAttribute("data-status", "error");
+  await expect(bloom).toHaveCSS("background-color", "rgba(239, 68, 68, 0.1)");
+  await expect(bloom).toHaveCSS("border-left-width", "3px");
+  await expect(bloom).toHaveCSS("outline-color", "rgba(248, 113, 113, 0.24)");
+});
+
 test("collapses and persists panel state", async ({ page }) => {
   await page.getByRole("button", { name: "Collapse panel" }).click();
 
