@@ -30,6 +30,7 @@ catalog:
   postcss-import: ^16.1.1
   prettier: ^3.8.4
   prettier-plugin-tailwindcss: ^0.8.0
+  react-aria-components: 1.18.0
 overrides:
   vite: "catalog:"
   vitest: "catalog:"

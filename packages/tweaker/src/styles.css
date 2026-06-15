@@ -123,9 +123,9 @@
 .tw-text-button:focus-visible,
 .tw-grip:focus-visible,
 .tw-number:focus-visible,
-.tw-select:focus-visible,
-.tw-checkbox:focus-visible,
-.tw-slider input:focus-visible {
+.tw-select__button:focus-visible,
+.tw-checkbox[data-focus-visible],
+.tw-slider__thumb[data-focus-visible] {
   @apply outline-offset-1;
 
   outline: 2px solid var(--tw-accent);
@@ -197,8 +197,12 @@
   @apply cursor-grabbing;
 }
 
+.tw-number-field {
+  @apply min-w-0;
+}
+
 .tw-number,
-.tw-select {
+.tw-select__button {
   @apply h-6 w-full min-w-0;
 
   color: var(--tw-text);
@@ -216,13 +220,96 @@
 }
 
 .tw-select {
-  @apply px-1.5 py-0;
+  @apply min-w-0;
+}
+
+.tw-select__button {
+  @apply grid cursor-pointer items-center gap-1.25 px-1.5 py-0 text-left;
+
+  grid-template-columns: minmax(0, 1fr) 13px;
+}
+
+.tw-select__button [slot="value"] {
+  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
+}
+
+.tw-select__button svg {
+  color: var(--tw-muted);
+}
+
+.tw-select__popover {
+  --tw-panel-active-color-opacity: var(
+    --tw-panel-hover-color-opacity,
+    var(--tw-panel-color-opacity, 0.78)
+  );
+  --tw-bg-elevated: rgb(29 31 32 / var(--tw-panel-active-color-opacity));
+  --tw-border-strong: rgb(75 81 85 / var(--tw-panel-active-color-opacity));
+  --tw-control-hover-bg: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.08));
+  --tw-text: #f1f4f2;
+  --tw-muted: #9aa39d;
+  --tw-accent-strong: #b9ef83;
+  --tw-shadow: 0 18px 48px rgb(0 0 0 / 0.36);
+  --spacing: 0.25rem;
+
+  @apply z-1001 overflow-auto;
+
+  min-width: var(--trigger-width);
+  max-height: min(240px, var(--available-height));
+  -webkit-backdrop-filter: blur(
+    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
+  );
+  backdrop-filter: blur(
+    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
+  );
+  color: var(--tw-text);
+  background-color: var(--tw-bg-elevated);
+  border: 1px solid var(--tw-border-strong);
+  border-radius: 5px;
+  box-shadow: var(--tw-shadow);
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+  font-size: 12px;
+}
+
+.tw-select__list {
+  @apply m-0 grid gap-0.5 p-0.75 outline-none;
+}
+
+.tw-select__list [role="option"] {
+  @apply min-h-5.75 cursor-pointer rounded-sm px-1.5 py-1 outline-none;
+}
+
+.tw-select__list [role="option"][data-focused],
+.tw-select__list [role="option"][data-hovered] {
+  background-color: var(--tw-control-hover-bg);
+}
+
+.tw-select__list [role="option"][data-selected] {
+  color: var(--tw-accent-strong);
 }
 
 .tw-checkbox {
-  @apply size-4 justify-self-end;
+  @apply relative inline-flex size-4 cursor-pointer justify-self-end rounded-sm;
 
-  accent-color: var(--tw-accent);
+  background-color: var(--tw-control-bg);
+  border: 1px solid var(--tw-border-strong);
+}
+
+.tw-checkbox[data-hovered] {
+  background-color: var(--tw-control-hover-bg);
+}
+
+.tw-checkbox[data-selected] {
+  background-color: var(--tw-accent);
+  border-color: var(--tw-accent-strong);
+}
+
+.tw-checkbox[data-selected]::after {
+  @apply absolute top-0.25 left-1 h-2.25 w-1.25;
+
+  border: solid rgb(16 17 18);
+  border-width: 0 2px 2px 0;
+  content: "";
+  transform: rotate(45deg);
 }
 
 .tw-slider {
@@ -231,17 +318,44 @@
   grid-template-columns: minmax(64px, 1fr) 42px;
 }
 
-.tw-slider input {
-  @apply w-full min-w-0;
-
-  accent-color: var(--tw-accent);
+.tw-slider__track {
+  @apply relative h-4.5 w-full min-w-0;
 }
 
-.tw-slider span {
+.tw-slider__track::before {
+  @apply absolute top-1/2 right-0 left-0 h-1 rounded-full;
+
+  background-color: var(--tw-control-bg);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.tw-slider__thumb {
+  @apply absolute top-1/2 size-3.25 rounded-full outline-none;
+
+  background-color: var(--tw-accent);
+  border: 1px solid var(--tw-accent-strong);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.36);
+  transform: translateY(-50%);
+}
+
+.tw-slider__thumb[data-dragging] {
+  background-color: var(--tw-accent-strong);
+}
+
+.tw-slider__value {
   @apply text-right;
 
   color: var(--tw-text);
   font-variant-numeric: tabular-nums;
+}
+
+.tw-visually-hidden {
+  @apply absolute size-px overflow-hidden p-0 whitespace-nowrap;
+
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
 }
 
 @media (max-width: 520px) {

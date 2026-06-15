@@ -31,6 +31,7 @@
     "@dnd-kit/react": "catalog:",
     "clsx": "catalog:",
     "lucide-react": "catalog:",
+    "react-aria-components": "catalog:",
     "zod": "catalog:",
     "zustand": "catalog:"
   },

@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/react/sortable";
 import { clsx } from "clsx";
 import { GripVertical } from "lucide-react";
 import { type PointerEvent, type RefObject, useRef } from "react";
+import { Button } from "react-aria-components";
 import { useTweakerSelector } from "../react/context.js";
 import type { NormalizedControl } from "../types.js";
 import { ControlInput } from "./control-input.js";
@@ -25,6 +26,7 @@ export function SortableControl({
 }: SortableControlProps) {
   const setValue = useTweakerSelector((state) => state.setValue);
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null);
+  const labelId = `${control.id}:label`;
   const { ref, handleRef, isDragging } = useSortable({
     id: control.id,
     index,
@@ -49,7 +51,7 @@ export function SortableControl({
       data-sortable={control.sortable ? "true" : "false"}
       data-testid={`control-${control.key}`}
     >
-      <button
+      <Button
         ref={handleRef}
         className="tw-grip"
         type="button"
@@ -95,11 +97,15 @@ export function SortableControl({
         }}
       >
         <GripVertical size={14} />
-      </button>
-      <label className="tw-row__label" htmlFor={control.id}>
+      </Button>
+      <label id={labelId} className="tw-row__label" htmlFor={control.id}>
         {control.label}
       </label>
-      <ControlInput control={control} onChange={(value) => setValue(control.id, value)} />
+      <ControlInput
+        control={control}
+        labelId={labelId}
+        onChange={(value) => setValue(control.id, value)}
+      />
     </div>
   );
 }
