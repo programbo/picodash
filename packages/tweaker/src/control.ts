@@ -49,7 +49,9 @@ function normalizeBlur(value: number | undefined) {
   return Math.max(0, value);
 }
 
-function normalizeStatus(value: ControlStatus | undefined) {
+export function statusForControl(config: ControlConfig): ControlStatus | undefined {
+  if (typeof config !== "object") return undefined;
+  const value = config.status;
   return value === "info" || value === "alert" || value === "error" ? value : undefined;
 }
 
@@ -100,7 +102,7 @@ export function normalizeControl(
   hoverBackgroundBlur?: number,
 ): NormalizedControl {
   const fallbackLabel = labelFromKey(key);
-  const status = typeof config === "object" ? normalizeStatus(config.status) : undefined;
+  const status = statusForControl(config);
   const base = controlBase(
     storeId,
     section,

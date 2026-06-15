@@ -7,6 +7,7 @@ import {
   normalizeControl,
   normalizePanelEffects,
   sectionOrderFor,
+  statusForControl,
   valuesForControls,
 } from "../control.js";
 import type {
@@ -172,6 +173,31 @@ export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): Twe
 
               changed = true;
               return { ...control, ...effects };
+            });
+
+            if (!changed) return state;
+            return { controls };
+          });
+        },
+
+        updateControlStatuses(schema, options = {}) {
+          const section = options.section ?? defaultSection;
+          const statuses = new Map(
+            Object.entries(schema).map(([key, config]) => [
+              createControlId(storeId, section, key),
+              statusForControl(config),
+            ]),
+          );
+
+          set((state) => {
+            let changed = false;
+            const controls = state.controls.map((control) => {
+              if (!statuses.has(control.id)) return control;
+              const status = statuses.get(control.id);
+              if (control.status === status) return control;
+
+              changed = true;
+              return { ...control, status };
             });
 
             if (!changed) return state;

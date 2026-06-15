@@ -11,6 +11,8 @@
   },
   "devDependencies": {
     "@tsdown/css": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:",
     "vite-plus": "catalog:"
   },
   "engines": {

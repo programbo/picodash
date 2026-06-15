@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useStore } from "zustand";
-import { defaultSection, defaultValueForControl } from "../control.js";
+import { defaultSection, defaultValueForControl, statusForControl } from "../control.js";
 import type {
+  ControlConfig,
   NormalizedControl,
   PrimitiveValue,
   RegisterOptions,
@@ -45,6 +46,29 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function controlRegistrationConfig(config: ControlConfig): unknown {
+  if (!config || typeof config !== "object") return config;
+  const registrationConfig = { ...config };
+  delete registrationConfig.status;
+  return registrationConfig;
+}
+
+export function registrationSignatureForSchema(schema: TweakerSchema): string {
+  return stableStringify(
+    Object.fromEntries(
+      Object.entries(schema).map(([key, config]) => [key, controlRegistrationConfig(config)]),
+    ),
+  );
+}
+
+export function statusSignatureForSchema(schema: TweakerSchema): string {
+  return stableStringify(
+    Object.fromEntries(
+      Object.entries(schema).map(([key, config]) => [key, statusForControl(config)]),
+    ),
+  );
+}
+
 export function useTweaker<T extends TweakerSchema>(
   schema: T,
   options: RegisterOptions = {},
@@ -55,11 +79,12 @@ export function useTweaker<T extends TweakerSchema>(
   const { opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur } = options;
   const controls = useStore(store, (state) => state.controls);
   const valuesById = useStore(store, (state) => state.values);
-  const schemaSignature = stableStringify(schema);
+  const registrationSignature = registrationSignatureForSchema(schema);
+  const statusSignature = statusSignatureForSchema(schema);
 
   useEffect(
     () => store.getState().register(schema, { section, sortable }),
-    [store, schemaSignature, section, sortable],
+    [store, registrationSignature, section, sortable],
   );
 
   useEffect(
@@ -71,7 +96,20 @@ export function useTweaker<T extends TweakerSchema>(
         backgroundBlur,
         hoverBackgroundBlur,
       }),
-    [store, schemaSignature, section, opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur],
+    [
+      store,
+      registrationSignature,
+      section,
+      opacity,
+      hoverOpacity,
+      backgroundBlur,
+      hoverBackgroundBlur,
+    ],
+  );
+
+  useEffect(
+    () => store.getState().updateControlStatuses(schema, { section }),
+    [store, statusSignature, section],
   );
 
   const values = useMemo(() => {

@@ -131,6 +131,7 @@ export interface TweakerStoreOptions {
 export interface TweakerState extends TweakerSnapshot {
   register: (schema: TweakerSchema, options?: RegisterOptions) => () => void;
   updatePanelEffects: (schema: TweakerSchema, options?: RegisterOptions) => void;
+  updateControlStatuses: (schema: TweakerSchema, options?: RegisterOptions) => void;
   setValue: (id: string, value: PrimitiveValue) => void;
   setCollapsed: (collapsed: boolean) => void;
   setDock: (dock: DockState | null) => void;
