@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { isValidElement, useCallback, useEffect, useMemo } from "react";
 import { useStore } from "zustand";
 import { defaultSection, defaultValueForControl } from "../control.js";
 import type {
@@ -30,17 +30,42 @@ export function resolveTweakerValues<T extends TweakerSchema>(
   return output as TweakerValues<T>;
 }
 
-function stableStringify(value: unknown): string {
+function reactTypeName(type: unknown) {
+  if (typeof type === "string") return type;
+  if (typeof type === "function") {
+    const component = type as { displayName?: string; name?: string };
+    return component.displayName ?? component.name ?? "anonymous";
+  }
+  if (typeof type === "symbol") return String(type);
+  return stableStringify(type);
+}
+
+export function stableStringify(value: unknown): string {
+  if (isValidElement(value)) {
+    return `{${[
+      `"reactElement":${JSON.stringify(reactTypeName(value.type))}`,
+      `"key":${stableStringify(value.key)}`,
+      `"props":${stableStringify(value.props)}`,
+    ].join(",")}}`;
+  }
+
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableStringify(item)).join(",")}]`;
   }
 
   if (value && typeof value === "object") {
     return `{${Object.entries(value)
-      .filter(([key]) => key !== "tooltip")
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`)
       .join(",")}}`;
+  }
+
+  if (typeof value === "function") {
+    return JSON.stringify(`[function:${value.name || "anonymous"}]`);
+  }
+
+  if (typeof value === "symbol") {
+    return JSON.stringify(String(value));
   }
 
   return JSON.stringify(value);

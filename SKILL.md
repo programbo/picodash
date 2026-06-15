@@ -67,3 +67,4 @@ const [values, setValue] = useTweaker(
 - Pass `tooltipForeground` in hook options to set the default tooltip content color.
 - Reordering is section-local and starts from the grip handle.
 - The package ships a dark CSS-variable theme first; customize by overriding CSS variables around the panel.
+- Package styles may be authored with Tailwind internally, but consumers only import compiled plain CSS from `tweaker/style.css`.

@@ -1,6 +1,7 @@
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers";
 import { RestrictToElement } from "@dnd-kit/dom/modifiers";
 import { useSortable } from "@dnd-kit/react/sortable";
+import { clsx } from "clsx";
 import { CircleHelp, GripVertical } from "lucide-react";
 import { type PointerEvent, type RefObject, useEffect, useRef, useState } from "react";
 import { Button, OverlayArrow, Tooltip, TooltipTrigger } from "react-aria-components";
@@ -76,9 +77,11 @@ export function SortableControl({
   return (
     <div
       ref={ref}
-      className={`tw-row ${isDragging ? "is-dragging" : ""} ${
-        control.sortable ? "" : "is-not-sortable"
-      }`}
+      className={clsx(
+        "tw-row",
+        isDragging && "is-dragging",
+        !control.sortable && "is-not-sortable",
+      )}
       data-control-id={control.id}
       data-sortable={control.sortable ? "true" : "false"}
       data-testid={`control-${control.key}`}

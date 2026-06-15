@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { createElement } from "react";
 import {
   createTweakerStore,
   normalizeControl,
@@ -6,7 +7,7 @@ import {
   type TweakerSchema,
 } from "../src/index.js";
 import { defaultValueForControl } from "../src/control.js";
-import { resolveTweakerValues } from "../src/react/use-tweaker.js";
+import { resolveTweakerValues, stableStringify } from "../src/react/use-tweaker.js";
 
 class MemoryStorage {
   private values = new Map<string, string>();
@@ -130,6 +131,50 @@ describe("resolveTweakerValues", () => {
     );
 
     expect(values).toEqual({ exposure: 2 });
+  });
+});
+
+describe("stableStringify", () => {
+  it("tracks tooltip content changes in schema signatures", () => {
+    const initial = stableStringify({
+      speed: {
+        value: 0.5,
+        min: 0,
+        max: 1,
+        tooltip: createElement("span", null, "Initial tooltip"),
+      },
+    });
+    const changed = stableStringify({
+      speed: {
+        value: 0.5,
+        min: 0,
+        max: 1,
+        tooltip: createElement("span", null, "Changed tooltip"),
+      },
+    });
+
+    expect(changed).not.toBe(initial);
+  });
+
+  it("keeps equivalent tooltip elements stable across renders", () => {
+    const first = stableStringify({
+      speed: {
+        value: 0.5,
+        min: 0,
+        max: 1,
+        tooltip: createElement("span", { className: "helper" }, "Stable tooltip"),
+      },
+    });
+    const second = stableStringify({
+      speed: {
+        value: 0.5,
+        min: 0,
+        max: 1,
+        tooltip: createElement("span", { className: "helper" }, "Stable tooltip"),
+      },
+    });
+
+    expect(second).toBe(first);
   });
 });
 

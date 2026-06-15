@@ -7,6 +7,9 @@
     "dist"
   ],
   "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json",
@@ -26,18 +29,23 @@
     "@dnd-kit/abstract": "catalog:",
     "@dnd-kit/dom": "catalog:",
     "@dnd-kit/react": "catalog:",
+    "clsx": "catalog:",
     "lucide-react": "catalog:",
     "react-aria-components": "catalog:",
     "zod": "catalog:",
     "zustand": "catalog:"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
     "@tsdown/css": "catalog:",
     "@types/node": "^25.6.2",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@typescript/native-preview": "7.0.0-dev.20260509.2",
     "bumpp": "^11.1.0",
+    "postcss": "catalog:",
+    "postcss-import": "catalog:",
+    "tailwindcss": "catalog:",
     "typescript": "^6.0.3",
     "vite-plus": "catalog:"
   },
