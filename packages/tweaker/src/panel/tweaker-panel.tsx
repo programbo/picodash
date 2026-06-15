@@ -9,9 +9,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { Button } from "react-aria-components";
 import { useTweakerSelector } from "../react/context.js";
 import type { DockEdge, DockState, NormalizedControl, Placement } from "../types.js";
 import { moveItem, orderControls } from "./order.js";
+import { PanelEffectProvider, type PanelEffectStyle } from "./panel-effects-context.js";
 import {
   clampPosition,
   dockToPosition,
@@ -154,19 +156,24 @@ export function TweakerPanel({
   const hoverOpacity = firstOpacity(controls, "hoverOpacity");
   const backgroundBlur = firstOpacity(controls, "backgroundBlur");
   const hoverBackgroundBlur = firstOpacity(controls, "hoverBackgroundBlur");
+  const effectStyle: PanelEffectStyle = {};
   const style = freePosition || !dock ? positionToStyle(position) : dockToStyle(dock);
 
   if (opacity !== undefined) {
     style["--tw-panel-color-opacity"] = String(opacity);
+    effectStyle["--tw-panel-color-opacity"] = String(opacity);
   }
   if (hoverOpacity !== undefined) {
     style["--tw-panel-hover-color-opacity"] = String(hoverOpacity);
+    effectStyle["--tw-panel-hover-color-opacity"] = String(hoverOpacity);
   }
   if (backgroundBlur !== undefined) {
     style["--tw-panel-background-blur"] = `${backgroundBlur}px`;
+    effectStyle["--tw-panel-background-blur"] = `${backgroundBlur}px`;
   }
   if (hoverBackgroundBlur !== undefined) {
     style["--tw-panel-hover-background-blur"] = `${hoverBackgroundBlur}px`;
+    effectStyle["--tw-panel-hover-background-blur"] = `${hoverBackgroundBlur}px`;
   }
 
   return (
@@ -182,47 +189,48 @@ export function TweakerPanel({
         onPointerMove={handlePanelPointerMove}
         onPointerUp={handlePanelPointerUp}
       >
-        <button
+        <Button
           className="tw-icon-button"
           type="button"
           aria-label={collapsed ? "Expand panel" : "Collapse panel"}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => setCollapsed(!collapsed)}
+          onPress={() => setCollapsed(!collapsed)}
         >
           {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
-        </button>
+        </Button>
         <strong>{title}</strong>
-        <button
+        <Button
           className="tw-icon-button"
           type="button"
           aria-label="Reset values"
-          title="Reset values"
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => resetValues()}
+          onPress={() => resetValues()}
         >
           <RotateCcw size={14} />
-        </button>
-        <button
+        </Button>
+        <Button
           className="tw-text-button"
           type="button"
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => resetOrder()}
+          onPress={() => resetOrder()}
         >
           Order
-        </button>
+        </Button>
       </div>
 
       {!collapsed && (
         <DragDropProvider onDragEnd={handleDragEnd}>
-          <div className="tw-panel__body">
-            {sectionOrder.map((section) => (
-              <TweakerSection
-                key={section}
-                section={section}
-                controls={orderControls(controls, section, order)}
-              />
-            ))}
-          </div>
+          <PanelEffectProvider value={effectStyle}>
+            <div className="tw-panel__body">
+              {sectionOrder.map((section) => (
+                <TweakerSection
+                  key={section}
+                  section={section}
+                  controls={orderControls(controls, section, order)}
+                />
+              ))}
+            </div>
+          </PanelEffectProvider>
         </DragDropProvider>
       )}
     </aside>
