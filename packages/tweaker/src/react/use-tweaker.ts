@@ -52,6 +52,7 @@ export function useTweaker<T extends TweakerSchema>(
   const store = useTweakerStoreApi();
   const section = options.section ?? defaultSection;
   const sortable = options.sortable ?? true;
+  const { opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur } = options;
   const controls = useStore(store, (state) => state.controls);
   const valuesById = useStore(store, (state) => state.values);
   const schemaSignature = stableStringify(schema);
@@ -59,6 +60,18 @@ export function useTweaker<T extends TweakerSchema>(
   useEffect(
     () => store.getState().register(schema, { section, sortable }),
     [store, schemaSignature, section, sortable],
+  );
+
+  useEffect(
+    () =>
+      store.getState().updatePanelEffects(schema, {
+        section,
+        opacity,
+        hoverOpacity,
+        backgroundBlur,
+        hoverBackgroundBlur,
+      }),
+    [store, schemaSignature, section, opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur],
   );
 
   const values = useMemo(() => {

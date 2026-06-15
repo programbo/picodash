@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useTweakerSelector } from "../react/context.js";
-import type { DockEdge, DockState, Placement } from "../types.js";
+import type { DockEdge, DockState, NormalizedControl, Placement } from "../types.js";
 import { moveItem, orderControls } from "./order.js";
 import {
   clampPosition,
@@ -24,6 +24,24 @@ export interface TweakerPanelProps {
   className?: string;
   placement?: Placement;
   title?: string;
+}
+
+type PanelStyle = CSSProperties &
+  Partial<
+    Record<
+      | "--tw-panel-color-opacity"
+      | "--tw-panel-hover-color-opacity"
+      | "--tw-panel-background-blur"
+      | "--tw-panel-hover-background-blur",
+      string
+    >
+  >;
+
+function firstOpacity(
+  controls: NormalizedControl[],
+  key: "opacity" | "hoverOpacity" | "backgroundBlur" | "hoverBackgroundBlur",
+): number | undefined {
+  return controls.find((control) => control[key] !== undefined)?.[key];
 }
 
 export function TweakerPanel({
@@ -127,7 +145,24 @@ export function TweakerPanel({
     setSectionOrder(section, moveItem(ids, from, to));
   }
 
+  const opacity = firstOpacity(controls, "opacity");
+  const hoverOpacity = firstOpacity(controls, "hoverOpacity");
+  const backgroundBlur = firstOpacity(controls, "backgroundBlur");
+  const hoverBackgroundBlur = firstOpacity(controls, "hoverBackgroundBlur");
   const style = freePosition || !dock ? positionToStyle(position) : dockToStyle(dock);
+
+  if (opacity !== undefined) {
+    style["--tw-panel-color-opacity"] = String(opacity);
+  }
+  if (hoverOpacity !== undefined) {
+    style["--tw-panel-hover-color-opacity"] = String(hoverOpacity);
+  }
+  if (backgroundBlur !== undefined) {
+    style["--tw-panel-background-blur"] = `${backgroundBlur}px`;
+  }
+  if (hoverBackgroundBlur !== undefined) {
+    style["--tw-panel-hover-background-blur"] = `${hoverBackgroundBlur}px`;
+  }
 
   return (
     <aside
@@ -189,7 +224,7 @@ export function TweakerPanel({
   );
 }
 
-function positionToStyle(position: PanelPosition): CSSProperties {
+function positionToStyle(position: PanelPosition): PanelStyle {
   return {
     top: `${position.y}px`,
     right: "auto",
@@ -198,8 +233,8 @@ function positionToStyle(position: PanelPosition): CSSProperties {
   };
 }
 
-function dockToStyle(dock: DockState): CSSProperties {
-  const style: CSSProperties = {};
+function dockToStyle(dock: DockState): PanelStyle {
+  const style: PanelStyle = {};
 
   applyPrimaryDockEdgeStyle(style, dock.edge, dock.offset);
   if (dock.secondaryEdge) {
