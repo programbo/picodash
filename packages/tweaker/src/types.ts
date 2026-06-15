@@ -88,8 +88,11 @@ export interface NormalizedControl {
   options?: Array<{ label: string; value: string }>;
 }
 
+export type DockEdge = "top" | "right" | "bottom" | "left";
+
 export interface DockState {
-  edge: "top" | "right" | "bottom" | "left";
+  edge: DockEdge;
+  secondaryEdge?: DockEdge;
   offset: number;
 }
 

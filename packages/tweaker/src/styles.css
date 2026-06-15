@@ -20,8 +20,6 @@
 
   position: fixed;
   z-index: 1000;
-  top: var(--tweaker-y);
-  left: var(--tweaker-x);
   width: min(320px, calc(100vw - 16px));
   -webkit-backdrop-filter: blur(var(--tw-panel-background-blur, 0px));
   backdrop-filter: blur(var(--tw-panel-background-blur, 0px));

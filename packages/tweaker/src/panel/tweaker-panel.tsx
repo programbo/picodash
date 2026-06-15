@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useTweakerSelector } from "../react/context.js";
-import type { NormalizedControl, Placement } from "../types.js";
+import type { DockEdge, DockState, NormalizedControl, Placement } from "../types.js";
 import { moveItem, orderControls } from "./order.js";
 import {
   clampPosition,
@@ -25,6 +25,17 @@ export interface TweakerPanelProps {
   placement?: Placement;
   title?: string;
 }
+
+type PanelStyle = CSSProperties &
+  Partial<
+    Record<
+      | "--tw-panel-color-opacity"
+      | "--tw-panel-hover-color-opacity"
+      | "--tw-panel-background-blur"
+      | "--tw-panel-hover-background-blur",
+      string
+    >
+  >;
 
 function firstOpacity(
   controls: NormalizedControl[],
@@ -72,10 +83,14 @@ export function TweakerPanel({
     const element = panelRef.current;
     if (!element) return;
     event.currentTarget.setPointerCapture(event.pointerId);
+    const rect = element.getBoundingClientRect();
     dragRef.current = {
       startX: event.clientX,
       startY: event.clientY,
-      origin: position,
+      origin: {
+        x: rect.left,
+        y: rect.top,
+      },
     };
   }
 
@@ -99,10 +114,19 @@ export function TweakerPanel({
     event.currentTarget.releasePointerCapture(event.pointerId);
     if (!drag || !element) return;
 
-    const nextDock = nearestDock(position, element);
+    const nextPosition = clampPosition(
+      {
+        x: drag.origin.x + event.clientX - drag.startX,
+        y: drag.origin.y + event.clientY - drag.startY,
+      },
+      element,
+    );
+    const nextDock = nearestDock(nextPosition, element);
     setDock(nextDock);
     if (nextDock) {
       setFreePosition(null);
+    } else {
+      setFreePosition(nextPosition);
     }
   }
 
@@ -125,21 +149,7 @@ export function TweakerPanel({
   const hoverOpacity = firstOpacity(controls, "hoverOpacity");
   const backgroundBlur = firstOpacity(controls, "backgroundBlur");
   const hoverBackgroundBlur = firstOpacity(controls, "hoverBackgroundBlur");
-  const style: CSSProperties &
-    Partial<
-      Record<
-        | "--tweaker-x"
-        | "--tweaker-y"
-        | "--tw-panel-color-opacity"
-        | "--tw-panel-hover-color-opacity"
-        | "--tw-panel-background-blur"
-        | "--tw-panel-hover-background-blur",
-        string
-      >
-    > = {
-    "--tweaker-x": `${position.x}px`,
-    "--tweaker-y": `${position.y}px`,
-  };
+  const style = freePosition || !dock ? positionToStyle(position) : dockToStyle(dock);
 
   if (opacity !== undefined) {
     style["--tw-panel-color-opacity"] = String(opacity);
@@ -212,4 +222,76 @@ export function TweakerPanel({
       )}
     </aside>
   );
+}
+
+function positionToStyle(position: PanelPosition): PanelStyle {
+  return {
+    top: `${position.y}px`,
+    right: "auto",
+    bottom: "auto",
+    left: `${position.x}px`,
+  };
+}
+
+function dockToStyle(dock: DockState): PanelStyle {
+  const style: PanelStyle = {};
+
+  applyPrimaryDockEdgeStyle(style, dock.edge, dock.offset);
+  if (dock.secondaryEdge) {
+    applySecondaryDockEdgeStyle(style, dock.secondaryEdge);
+  }
+
+  return style;
+}
+
+function applyPrimaryDockEdgeStyle(style: CSSProperties, edge: DockEdge, offset: number) {
+  const value = `${Math.max(0, offset)}px`;
+
+  switch (edge) {
+    case "top":
+      style.top = "0px";
+      style.bottom = "auto";
+      style.left = value;
+      style.right = "auto";
+      break;
+    case "bottom":
+      style.top = "auto";
+      style.bottom = "0px";
+      style.left = value;
+      style.right = "auto";
+      break;
+    case "left":
+      style.right = "auto";
+      style.left = "0px";
+      style.top = value;
+      style.bottom = "auto";
+      break;
+    case "right":
+      style.right = "0px";
+      style.left = "auto";
+      style.top = value;
+      style.bottom = "auto";
+      break;
+  }
+}
+
+function applySecondaryDockEdgeStyle(style: CSSProperties, edge: DockEdge) {
+  switch (edge) {
+    case "top":
+      style.top = "0px";
+      style.bottom = "auto";
+      break;
+    case "bottom":
+      style.top = "auto";
+      style.bottom = "0px";
+      break;
+    case "left":
+      style.right = "auto";
+      style.left = "0px";
+      break;
+    case "right":
+      style.right = "0px";
+      style.left = "auto";
+      break;
+  }
 }
