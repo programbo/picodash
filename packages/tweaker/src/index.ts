@@ -10,6 +10,7 @@ export type {
   DockState,
   NormalizedControl,
   NumberControl,
+  PanelTheme,
   Placement,
   PrimitiveValue,
   RegisterOptions,

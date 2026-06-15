@@ -5,6 +5,7 @@ export type PrimitiveValue = number | string | boolean;
 export type ControlKind = "number" | "slider" | "select" | "checkbox";
 export type StaleMode = "ignore" | "prune";
 export type Placement = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+export type PanelTheme = "dark" | "light" | "system";
 
 export interface NumberControl {
   type?: "number";

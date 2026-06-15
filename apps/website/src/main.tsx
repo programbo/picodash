@@ -1,6 +1,13 @@
 import { StrictMode, type CSSProperties, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { TweakerPanel, TweakerProvider, useTweaker, type TweakerSchema } from "tweaker";
+import { Monitor, Moon, Sun } from "lucide-react";
+import {
+  TweakerPanel,
+  TweakerProvider,
+  useTweaker,
+  type PanelTheme,
+  type TweakerSchema,
+} from "tweaker";
 import "tweaker/style.css";
 import "./style.css";
 
@@ -35,8 +42,20 @@ const buildSchema = {
   telemetry: { value: true, label: "Telemetry" },
 } satisfies TweakerSchema;
 
+function themeFromLocation(): PanelTheme {
+  const theme = new URLSearchParams(window.location.search).get("theme");
+  return theme === "light" || theme === "system" ? theme : "dark";
+}
+
+const themeOptions = [
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "system", label: "System", icon: Monitor },
+] satisfies Array<{ value: PanelTheme; label: string; icon: typeof Moon }>;
+
 function Demo() {
   const [dimmed, setDimmed] = useState(true);
+  const [panelTheme, setPanelTheme] = useState<PanelTheme>(() => themeFromLocation());
   const [rendering, setRendering] = useTweaker(renderingSchema, {
     section: "Rendering",
   });
@@ -61,9 +80,20 @@ function Demo() {
     [material.roughness, material.tint, rendering.exposure, rendering.speed],
   );
 
+  function selectTheme(theme: PanelTheme) {
+    setPanelTheme(theme);
+    const url = new URL(window.location.href);
+    if (theme === "dark") {
+      url.searchParams.delete("theme");
+    } else {
+      url.searchParams.set("theme", theme);
+    }
+    window.history.replaceState(null, "", url);
+  }
+
   return (
     <>
-      <TweakerPanel placement="top-right" title="Tweaker" />
+      <TweakerPanel placement="top-right" theme={panelTheme} title="Tweaker" />
       <main className="site-shell">
         <section className="hero">
           <div className="hero__copy">
@@ -73,6 +103,20 @@ function Demo() {
               A compact Leva-inspired floating panel with typed controls, persisted values,
               section-local reordering, and magnetic docking.
             </p>
+            <div className="theme-switcher" aria-label="Panel theme">
+              {themeOptions.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  className="theme-switcher__button"
+                  type="button"
+                  aria-pressed={panelTheme === value}
+                  onClick={() => selectTheme(value)}
+                >
+                  <Icon aria-hidden size={15} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="preview" style={previewStyle}>
@@ -121,7 +165,11 @@ import "tweaker/style.css";`}</code>
           <article>
             <h2>Runtime panel effects</h2>
             <pre>
-              <code>{`const [dimmed, setDimmed] = useState(true);
+              <code>{`const [theme, setTheme] = useState("dark");
+
+<TweakerPanel theme={theme} />
+
+const [dimmed, setDimmed] = useState(true);
 
 useTweaker(schema, {
   section: "Build",
