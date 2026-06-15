@@ -13,8 +13,6 @@
 
   position: fixed;
   z-index: 1000;
-  top: var(--tweaker-y);
-  left: var(--tweaker-x);
   width: min(320px, calc(100vw - 16px));
   color: var(--tw-text);
   background: linear-gradient(180deg, rgb(255 255 255 / 0.035), transparent 32px), var(--tw-bg);

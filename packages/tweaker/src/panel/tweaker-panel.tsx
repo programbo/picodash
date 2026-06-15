@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useTweakerSelector } from "../react/context.js";
-import type { Placement } from "../types.js";
+import type { DockEdge, DockState, Placement } from "../types.js";
 import { moveItem, orderControls } from "./order.js";
 import {
   clampPosition,
@@ -65,10 +65,14 @@ export function TweakerPanel({
     const element = panelRef.current;
     if (!element) return;
     event.currentTarget.setPointerCapture(event.pointerId);
+    const rect = element.getBoundingClientRect();
     dragRef.current = {
       startX: event.clientX,
       startY: event.clientY,
-      origin: position,
+      origin: {
+        x: rect.left,
+        y: rect.top,
+      },
     };
   }
 
@@ -92,10 +96,19 @@ export function TweakerPanel({
     event.currentTarget.releasePointerCapture(event.pointerId);
     if (!drag || !element) return;
 
-    const nextDock = nearestDock(position, element);
+    const nextPosition = clampPosition(
+      {
+        x: drag.origin.x + event.clientX - drag.startX,
+        y: drag.origin.y + event.clientY - drag.startY,
+      },
+      element,
+    );
+    const nextDock = nearestDock(nextPosition, element);
     setDock(nextDock);
     if (nextDock) {
       setFreePosition(null);
+    } else {
+      setFreePosition(nextPosition);
     }
   }
 
@@ -114,10 +127,7 @@ export function TweakerPanel({
     setSectionOrder(section, moveItem(ids, from, to));
   }
 
-  const style = {
-    "--tweaker-x": `${position.x}px`,
-    "--tweaker-y": `${position.y}px`,
-  } as CSSProperties;
+  const style = freePosition || !dock ? positionToStyle(position) : dockToStyle(dock);
 
   return (
     <aside
@@ -177,4 +187,76 @@ export function TweakerPanel({
       )}
     </aside>
   );
+}
+
+function positionToStyle(position: PanelPosition): CSSProperties {
+  return {
+    top: `${position.y}px`,
+    right: "auto",
+    bottom: "auto",
+    left: `${position.x}px`,
+  };
+}
+
+function dockToStyle(dock: DockState): CSSProperties {
+  const style: CSSProperties = {};
+
+  applyPrimaryDockEdgeStyle(style, dock.edge, dock.offset);
+  if (dock.secondaryEdge) {
+    applySecondaryDockEdgeStyle(style, dock.secondaryEdge);
+  }
+
+  return style;
+}
+
+function applyPrimaryDockEdgeStyle(style: CSSProperties, edge: DockEdge, offset: number) {
+  const value = `${Math.max(0, offset)}px`;
+
+  switch (edge) {
+    case "top":
+      style.top = "0px";
+      style.bottom = "auto";
+      style.left = value;
+      style.right = "auto";
+      break;
+    case "bottom":
+      style.top = "auto";
+      style.bottom = "0px";
+      style.left = value;
+      style.right = "auto";
+      break;
+    case "left":
+      style.right = "auto";
+      style.left = "0px";
+      style.top = value;
+      style.bottom = "auto";
+      break;
+    case "right":
+      style.right = "0px";
+      style.left = "auto";
+      style.top = value;
+      style.bottom = "auto";
+      break;
+  }
+}
+
+function applySecondaryDockEdgeStyle(style: CSSProperties, edge: DockEdge) {
+  switch (edge) {
+    case "top":
+      style.top = "0px";
+      style.bottom = "auto";
+      break;
+    case "bottom":
+      style.top = "auto";
+      style.bottom = "0px";
+      break;
+    case "left":
+      style.right = "auto";
+      style.left = "0px";
+      break;
+    case "right":
+      style.right = "0px";
+      style.left = "auto";
+      break;
+  }
 }
