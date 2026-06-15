@@ -76,6 +76,8 @@ export interface NormalizedControl {
   sortable: boolean;
   opacity?: number;
   hoverOpacity?: number;
+  backgroundBlur?: number;
+  hoverBackgroundBlur?: number;
   kind: ControlKind;
   label: string;
   value: PrimitiveValue;
@@ -108,6 +110,8 @@ export interface RegisterOptions {
   sortable?: boolean;
   opacity?: number;
   hoverOpacity?: number;
+  backgroundBlur?: number;
+  hoverBackgroundBlur?: number;
 }
 
 export interface TweakerStoreOptions {
@@ -117,6 +121,7 @@ export interface TweakerStoreOptions {
 
 export interface TweakerState extends TweakerSnapshot {
   register: (schema: TweakerSchema, options?: RegisterOptions) => () => void;
+  updatePanelEffects: (schema: TweakerSchema, options?: RegisterOptions) => void;
   setValue: (id: string, value: PrimitiveValue) => void;
   setCollapsed: (collapsed: boolean) => void;
   setDock: (dock: DockState | null) => void;

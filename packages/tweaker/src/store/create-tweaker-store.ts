@@ -5,6 +5,7 @@ import {
   createControlId,
   defaultSection,
   normalizeControl,
+  normalizePanelEffects,
   sectionOrderFor,
   valuesForControls,
 } from "../control.js";
@@ -58,6 +59,8 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.sortable === rightControl.sortable &&
       leftControl.opacity === rightControl.opacity &&
       leftControl.hoverOpacity === rightControl.hoverOpacity &&
+      leftControl.backgroundBlur === rightControl.backgroundBlur &&
+      leftControl.hoverBackgroundBlur === rightControl.hoverBackgroundBlur &&
       leftControl.kind === rightControl.kind &&
       leftControl.label === rightControl.label &&
       leftControl.value === rightControl.value &&
@@ -100,6 +103,8 @@ export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): Twe
               sortable,
               options.opacity,
               options.hoverOpacity,
+              options.backgroundBlur,
+              options.hoverBackgroundBlur,
             ),
           );
           const ids = new Set(controls.map((control) => control.id));
@@ -142,6 +147,35 @@ export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): Twe
               };
             });
           };
+        },
+
+        updatePanelEffects(schema, options = {}) {
+          const section = options.section ?? defaultSection;
+          const ids = new Set(
+            Object.keys(schema).map((key) => createControlId(storeId, section, key)),
+          );
+          const effects = normalizePanelEffects(options);
+
+          set((state) => {
+            let changed = false;
+            const controls = state.controls.map((control) => {
+              if (!ids.has(control.id)) return control;
+              if (
+                control.opacity === effects.opacity &&
+                control.hoverOpacity === effects.hoverOpacity &&
+                control.backgroundBlur === effects.backgroundBlur &&
+                control.hoverBackgroundBlur === effects.hoverBackgroundBlur
+              ) {
+                return control;
+              }
+
+              changed = true;
+              return { ...control, ...effects };
+            });
+
+            if (!changed) return state;
+            return { controls };
+          });
         },
 
         setValue(id, value) {

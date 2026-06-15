@@ -22,7 +22,14 @@ function SceneControls() {
         options: ["green", "amber", "blue"],
       },
     },
-    { section: "Rendering", sortable: true, opacity: 0.72, hoverOpacity: 1 },
+    {
+      section: "Rendering",
+      sortable: true,
+      opacity: 0.4,
+      hoverOpacity: 0.85,
+      backgroundBlur: 0,
+      hoverBackgroundBlur: 4,
+    },
   );
 
   return <button onClick={() => setValue("speed", 1.25)}>Boost</button>;
@@ -49,7 +56,7 @@ export function App() {
 Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs.
 
 Pass `sortable: false` in the hook options to keep a registration fixed in place.
-Use `opacity` and `hoverOpacity` to dim a hook registration until the user hovers it:
+Use panel effect options to change panel surface color opacity and increase background blur when the user hovers it or focuses a control:
 
 ```tsx
 useTweaker(
@@ -57,8 +64,10 @@ useTweaker(
   {
     section: "Build",
     sortable: false,
-    opacity: 0.6,
-    hoverOpacity: 1,
+    opacity: 0.4,
+    hoverOpacity: 0.85,
+    backgroundBlur: 0,
+    hoverBackgroundBlur: 4,
   },
 );
 ```

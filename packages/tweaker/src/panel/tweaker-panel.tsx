@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useTweakerSelector } from "../react/context.js";
-import type { Placement } from "../types.js";
+import type { NormalizedControl, Placement } from "../types.js";
 import { moveItem, orderControls } from "./order.js";
 import {
   clampPosition,
@@ -24,6 +24,13 @@ export interface TweakerPanelProps {
   className?: string;
   placement?: Placement;
   title?: string;
+}
+
+function firstOpacity(
+  controls: NormalizedControl[],
+  key: "opacity" | "hoverOpacity" | "backgroundBlur" | "hoverBackgroundBlur",
+): number | undefined {
+  return controls.find((control) => control[key] !== undefined)?.[key];
 }
 
 export function TweakerPanel({
@@ -114,10 +121,38 @@ export function TweakerPanel({
     setSectionOrder(section, moveItem(ids, from, to));
   }
 
-  const style = {
+  const opacity = firstOpacity(controls, "opacity");
+  const hoverOpacity = firstOpacity(controls, "hoverOpacity");
+  const backgroundBlur = firstOpacity(controls, "backgroundBlur");
+  const hoverBackgroundBlur = firstOpacity(controls, "hoverBackgroundBlur");
+  const style: CSSProperties &
+    Partial<
+      Record<
+        | "--tweaker-x"
+        | "--tweaker-y"
+        | "--tw-panel-color-opacity"
+        | "--tw-panel-hover-color-opacity"
+        | "--tw-panel-background-blur"
+        | "--tw-panel-hover-background-blur",
+        string
+      >
+    > = {
     "--tweaker-x": `${position.x}px`,
     "--tweaker-y": `${position.y}px`,
-  } as CSSProperties;
+  };
+
+  if (opacity !== undefined) {
+    style["--tw-panel-color-opacity"] = String(opacity);
+  }
+  if (hoverOpacity !== undefined) {
+    style["--tw-panel-hover-color-opacity"] = String(hoverOpacity);
+  }
+  if (backgroundBlur !== undefined) {
+    style["--tw-panel-background-blur"] = `${backgroundBlur}px`;
+  }
+  if (hoverBackgroundBlur !== undefined) {
+    style["--tw-panel-hover-background-blur"] = `${hoverBackgroundBlur}px`;
+  }
 
   return (
     <aside

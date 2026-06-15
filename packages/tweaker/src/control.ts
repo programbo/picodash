@@ -1,4 +1,10 @@
-import type { ControlConfig, ControlKind, NormalizedControl, PrimitiveValue } from "./types.js";
+import type {
+  ControlConfig,
+  ControlKind,
+  NormalizedControl,
+  PrimitiveValue,
+  RegisterOptions,
+} from "./types.js";
 
 export const defaultSection = "Controls";
 
@@ -37,6 +43,20 @@ function normalizeOpacity(value: number | undefined) {
   return clamp(value, 0, 1);
 }
 
+function normalizeBlur(value: number | undefined) {
+  if (value === undefined || !Number.isFinite(value)) return undefined;
+  return Math.max(0, value);
+}
+
+export function normalizePanelEffects(options: RegisterOptions) {
+  return {
+    opacity: normalizeOpacity(options.opacity),
+    hoverOpacity: normalizeOpacity(options.hoverOpacity),
+    backgroundBlur: normalizeBlur(options.backgroundBlur),
+    hoverBackgroundBlur: normalizeBlur(options.hoverBackgroundBlur),
+  };
+}
+
 function controlBase(
   storeId: string,
   section: string,
@@ -44,14 +64,22 @@ function controlBase(
   sortable: boolean,
   opacity?: number,
   hoverOpacity?: number,
+  backgroundBlur?: number,
+  hoverBackgroundBlur?: number,
 ) {
+  const effects = normalizePanelEffects({
+    opacity,
+    hoverOpacity,
+    backgroundBlur,
+    hoverBackgroundBlur,
+  });
+
   return {
     id: createControlId(storeId, section, key),
     key,
     section,
     sortable,
-    opacity: normalizeOpacity(opacity),
-    hoverOpacity: normalizeOpacity(hoverOpacity),
+    ...effects,
   };
 }
 
@@ -63,9 +91,20 @@ export function normalizeControl(
   sortable = true,
   opacity?: number,
   hoverOpacity?: number,
+  backgroundBlur?: number,
+  hoverBackgroundBlur?: number,
 ): NormalizedControl {
   const fallbackLabel = labelFromKey(key);
-  const base = controlBase(storeId, section, key, sortable, opacity, hoverOpacity);
+  const base = controlBase(
+    storeId,
+    section,
+    key,
+    sortable,
+    opacity,
+    hoverOpacity,
+    backgroundBlur,
+    hoverBackgroundBlur,
+  );
 
   if (typeof config === "number") {
     return {

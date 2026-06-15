@@ -153,14 +153,55 @@ describe("TweakerStore", () => {
     expect(store.getState().controls[0]?.sortable).toBe(false);
   });
 
-  it("stores clamped hook-level opacity metadata on registered controls", () => {
+  it("stores clamped hook-level panel effect metadata on registered controls", () => {
     const store = createTweakerStore({ storeId: "opacity", stale: "ignore" });
-    store
-      .getState()
-      .register({ channel: "stable" }, { section: "Build", opacity: -1, hoverOpacity: 2 });
+    store.getState().register(
+      { channel: "stable" },
+      {
+        section: "Build",
+        opacity: -1,
+        hoverOpacity: 2,
+        backgroundBlur: -4,
+        hoverBackgroundBlur: 4,
+      },
+    );
 
     expect(store.getState().controls[0]?.opacity).toBe(0);
     expect(store.getState().controls[0]?.hoverOpacity).toBe(1);
+    expect(store.getState().controls[0]?.backgroundBlur).toBe(0);
+    expect(store.getState().controls[0]?.hoverBackgroundBlur).toBe(4);
+  });
+
+  it("updates panel effects without pruning values or order", () => {
+    const store = createTweakerStore({ storeId: "panel-effects", stale: "prune" });
+    const schema = { speed: { value: 1, min: 0, max: 2 }, exposure: 1 } satisfies TweakerSchema;
+
+    store.getState().register(schema, { section: "Rendering" });
+    store.getState().setValue("panel-effects:Rendering:speed", 1.5);
+    store
+      .getState()
+      .setSectionOrder("Rendering", [
+        "panel-effects:Rendering:exposure",
+        "panel-effects:Rendering:speed",
+      ]);
+
+    store.getState().updatePanelEffects(schema, {
+      section: "Rendering",
+      opacity: 0.4,
+      hoverOpacity: 0.85,
+      backgroundBlur: 0,
+      hoverBackgroundBlur: 4,
+    });
+
+    expect(store.getState().values["panel-effects:Rendering:speed"]).toBe(1.5);
+    expect(store.getState().order.Rendering).toEqual([
+      "panel-effects:Rendering:exposure",
+      "panel-effects:Rendering:speed",
+    ]);
+    expect(store.getState().controls[0]?.opacity).toBe(0.4);
+    expect(store.getState().controls[0]?.hoverOpacity).toBe(0.85);
+    expect(store.getState().controls[0]?.backgroundBlur).toBe(0);
+    expect(store.getState().controls[0]?.hoverBackgroundBlur).toBe(4);
   });
 
   it("does not notify when an equivalent schema registers again", () => {

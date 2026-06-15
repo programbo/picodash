@@ -2,7 +2,7 @@ import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers";
 import { RestrictToElement } from "@dnd-kit/dom/modifiers";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { GripVertical } from "lucide-react";
-import { type CSSProperties, type PointerEvent, type RefObject, useRef } from "react";
+import { type PointerEvent, type RefObject, useRef } from "react";
 import { useTweakerSelector } from "../react/context.js";
 import type { NormalizedControl } from "../types.js";
 import { ControlInput } from "./control-input.js";
@@ -24,8 +24,6 @@ export function SortableControl({
 }: SortableControlProps) {
   const setValue = useTweakerSelector((state) => state.setValue);
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null);
-  const rowStyle: CSSProperties &
-    Partial<Record<"--tw-row-opacity" | "--tw-row-hover-opacity", string>> = {};
   const { ref, handleRef, isDragging } = useSortable({
     id: control.id,
     index,
@@ -38,13 +36,6 @@ export function SortableControl({
     ],
   });
 
-  if (control.opacity !== undefined) {
-    rowStyle["--tw-row-opacity"] = String(control.opacity);
-  }
-  if (control.hoverOpacity !== undefined) {
-    rowStyle["--tw-row-hover-opacity"] = String(control.hoverOpacity);
-  }
-
   return (
     <div
       ref={ref}
@@ -54,7 +45,6 @@ export function SortableControl({
       data-control-id={control.id}
       data-sortable={control.sortable ? "true" : "false"}
       data-testid={`control-${control.key}`}
-      style={rowStyle}
     >
       <button
         ref={handleRef}
