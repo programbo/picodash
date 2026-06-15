@@ -1,5 +1,6 @@
 import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react";
 import { isSortableOperation } from "@dnd-kit/react/sortable";
+import { clsx } from "clsx";
 import { ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import {
   type CSSProperties,
@@ -46,7 +47,7 @@ function firstOpacity(
 }
 
 export function TweakerPanel({
-  className = "",
+  className,
   placement = "top-right",
   title = "Tweaker",
 }: TweakerPanelProps) {
@@ -172,7 +173,7 @@ export function TweakerPanel({
   return (
     <aside
       ref={panelRef}
-      className={`tw-panel ${collapsed ? "is-collapsed" : ""} ${className}`}
+      className={clsx("tw-panel", collapsed && "is-collapsed", className)}
       style={style}
       data-testid="tweaker-panel"
     >

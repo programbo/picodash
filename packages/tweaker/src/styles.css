@@ -1,3 +1,5 @@
+@reference "tailwindcss";
+
 .tw-panel {
   --tw-panel-color-opacity: 0.78;
   --tw-panel-active-color-opacity: var(--tw-panel-color-opacity);
@@ -17,9 +19,10 @@
   --tw-danger: #ff8e6e;
   --tw-shadow: 0 18px 48px rgb(0 0 0 / 0.36);
   --tw-radius: 7px;
+  --spacing: 0.25rem;
 
-  position: fixed;
-  z-index: 1000;
+  @apply fixed z-1000 overflow-hidden select-none;
+
   width: min(320px, calc(100vw - 16px));
   -webkit-backdrop-filter: blur(var(--tw-panel-background-blur, 0px));
   backdrop-filter: blur(var(--tw-panel-background-blur, 0px));
@@ -32,13 +35,11 @@
   font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
   font-size: 12px;
   letter-spacing: 0;
-  overflow: hidden;
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
     -webkit-backdrop-filter 160ms ease,
     backdrop-filter 160ms ease;
-  user-select: none;
 }
 
 .tw-panel:hover,
@@ -56,19 +57,15 @@
 }
 
 .tw-panel * {
-  box-sizing: border-box;
+  @apply box-border;
 }
 
 .tw-panel__header {
-  display: grid;
-  grid-template-columns: 26px 1fr 26px auto;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--tw-border);
+  @apply grid h-8.5 cursor-grab items-center gap-1.5 px-1.5 py-1;
+
   background-color: var(--tw-bg-elevated);
-  cursor: grab;
+  border-bottom: 1px solid var(--tw-border);
+  grid-template-columns: 26px 1fr 26px auto;
   transition:
     background-color 160ms ease,
     border-color 160ms ease;
@@ -76,48 +73,43 @@
 }
 
 .tw-panel__header:active {
-  cursor: grabbing;
+  @apply cursor-grabbing;
 }
 
 .tw-panel__header strong {
-  min-width: 0;
-  overflow: hidden;
+  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
+
   color: var(--tw-text);
   font-size: 12px;
   font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .tw-panel__body {
+  @apply overflow-auto p-1.75;
+
   max-height: min(620px, calc(100vh - 48px));
-  overflow: auto;
-  padding: 7px;
 }
 
 .tw-icon-button,
 .tw-text-button,
 .tw-grip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 24px;
+  @apply inline-flex h-6 cursor-pointer items-center justify-center bg-transparent;
+
   color: var(--tw-muted);
-  background: transparent;
   border: 0;
   border-radius: 5px;
-  cursor: pointer;
 }
 
 .tw-icon-button {
-  width: 24px;
+  @apply size-6;
 }
 
 .tw-text-button {
-  width: auto;
-  padding: 0 7px;
+  @apply w-auto py-0;
+
   font: inherit;
   font-size: 11px;
+  padding-inline: 7px;
 }
 
 .tw-icon-button:hover,
@@ -134,40 +126,37 @@
 .tw-select:focus-visible,
 .tw-checkbox:focus-visible,
 .tw-slider input:focus-visible {
+  @apply outline-offset-1;
+
   outline: 2px solid var(--tw-accent);
-  outline-offset: 1px;
+  outline-color: var(--tw-accent);
 }
 
 .tw-section + .tw-section {
-  margin-top: 9px;
-  padding-top: 7px;
+  @apply mt-2.25 pt-1.75;
+
   border-top: 1px solid var(--tw-border);
 }
 
 .tw-section__title {
-  padding: 3px 5px 6px;
+  @apply px-1.25 pt-0.75 pb-1.5 uppercase;
+
   color: var(--tw-muted);
   font-size: 10px;
   font-weight: 700;
-  text-transform: uppercase;
 }
 
 .tw-section__list {
-  display: grid;
-  gap: 3px;
-  min-height: 30px;
+  @apply grid min-h-7.5 gap-0.75;
 }
 
 .tw-row {
-  display: grid;
-  grid-template-columns: 22px minmax(70px, 0.9fr) minmax(116px, 1.2fr);
-  align-items: center;
-  gap: 7px;
-  min-height: 30px;
-  padding: 3px 5px 3px 2px;
+  @apply grid min-h-7.5 items-center gap-1.75 py-0.75 pr-1.25 pl-0.5;
+
   background-color: var(--tw-row-bg);
   border: 1px solid transparent;
   border-radius: 5px;
+  grid-template-columns: 22px minmax(70px, 0.9fr) minmax(116px, 1.2fr);
   transition:
     background-color 160ms ease,
     border-color 160ms ease;
@@ -179,13 +168,12 @@
 }
 
 .tw-row.is-dragging {
-  background: rgb(155 209 111 / 0.11);
+  background-color: rgb(155 209 111 / 0.11);
   border-color: rgb(155 209 111 / 0.32);
 }
 
 .tw-row.is-not-sortable .tw-grip {
-  cursor: default;
-  opacity: 0.36;
+  @apply cursor-default opacity-35;
 }
 
 .tw-row.is-not-sortable .tw-grip:hover {
@@ -194,28 +182,25 @@
 }
 
 .tw-row__label {
-  min-width: 0;
-  overflow: hidden;
+  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
+
   color: var(--tw-muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .tw-grip {
-  width: 22px;
-  cursor: grab;
+  @apply w-5.5 cursor-grab;
+
   touch-action: none;
 }
 
 .tw-grip:active {
-  cursor: grabbing;
+  @apply cursor-grabbing;
 }
 
 .tw-number,
 .tw-select {
-  width: 100%;
-  min-width: 0;
-  height: 24px;
+  @apply h-6 w-full min-w-0;
+
   color: var(--tw-text);
   background-color: var(--tw-control-bg);
   border: 1px solid var(--tw-border);
@@ -227,38 +212,36 @@
 }
 
 .tw-number {
-  padding: 0 7px;
-  text-align: right;
+  @apply px-1.75 py-0 text-right;
 }
 
 .tw-select {
-  padding: 0 6px;
+  @apply px-1.5 py-0;
 }
 
 .tw-checkbox {
-  justify-self: end;
-  width: 16px;
-  height: 16px;
+  @apply size-4 justify-self-end;
+
   accent-color: var(--tw-accent);
 }
 
 .tw-slider {
-  display: grid;
+  @apply grid items-center gap-2;
+
   grid-template-columns: minmax(64px, 1fr) 42px;
-  align-items: center;
-  gap: 8px;
 }
 
 .tw-slider input {
-  width: 100%;
-  min-width: 0;
+  @apply w-full min-w-0;
+
   accent-color: var(--tw-accent);
 }
 
 .tw-slider span {
+  @apply text-right;
+
   color: var(--tw-text);
   font-variant-numeric: tabular-nums;
-  text-align: right;
 }
 
 @media (max-width: 520px) {
