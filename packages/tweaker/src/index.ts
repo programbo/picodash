@@ -1,14 +1,9 @@
 import "./styles.css";
 
-export { TweakerPanel } from "./panel.js";
-export {
-  createTweakerStore,
-  normalizeControl,
-  TweakerProvider,
-  useTweaker,
-  useTweakerSnapshot,
-  useTweakerStore,
-} from "./store.js";
+export { normalizeControl } from "./control.js";
+export { TweakerPanel } from "./panel/index.js";
+export { TweakerProvider, useTweaker, useTweakerSnapshot, useTweakerStore } from "./react/index.js";
+export { createTweakerStore } from "./store/index.js";
 export type {
   CheckboxControl,
   ControlConfig,
@@ -27,4 +22,4 @@ export type {
   TweakerState,
   TweakerStore,
   TweakerValues,
-} from "./store.js";
+} from "./types.js";
