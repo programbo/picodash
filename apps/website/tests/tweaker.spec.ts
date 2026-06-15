@@ -157,6 +157,43 @@ test("keeps docked panels anchored when the viewport resizes", async ({ page }) 
     .toEqual([0, 0]);
 });
 
+test("keeps floating panels inside the viewport when the viewport resizes", async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
+  const header = page.locator(".tw-panel__header");
+  const box = await header.boundingBox();
+  expect(box).not.toBeNull();
+
+  await page.mouse.move(box!.x + 80, box!.y + 16);
+  await page.mouse.down();
+  await page.mouse.move(820, 220, { steps: 8 });
+  await page.mouse.up();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("tweaker:docs-demo");
+        return raw ? JSON.parse(raw).state?.dock : "missing";
+      }),
+    )
+    .toBeNull();
+
+  await page.setViewportSize({ width: 500, height: 400 });
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const rect = document
+          .querySelector("[data-testid='tweaker-panel']")!
+          .getBoundingClientRect();
+        return {
+          bottomOverflow: Math.max(0, Math.round(rect.bottom - window.innerHeight)),
+          rightOverflow: Math.max(0, Math.round(rect.right - window.innerWidth)),
+        };
+      }),
+    )
+    .toEqual({ bottomOverflow: 0, rightOverflow: 0 });
+});
+
 test("reorders controls within a section by pointer-dragging the grip", async ({ page }) => {
   const speedGrip = page.getByRole("button", { name: "Reorder Speed" });
   const exposureRow = page.getByTestId("control-exposure");

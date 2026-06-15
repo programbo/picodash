@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -65,6 +66,7 @@ export function TweakerPanel({
     startY: number;
     origin: PanelPosition;
   } | null>(null);
+  const viewportSize = useViewportSize();
   const [freePosition, setFreePosition] = useState<PanelPosition | null>(null);
 
   const position = useMemo(() => {
@@ -76,8 +78,11 @@ export function TweakerPanel({
         panelRef.current,
       );
     }
-    return placementToPosition(placement, window.innerWidth, window.innerHeight);
-  }, [dock, freePosition, placement]);
+    return clampPosition(
+      placementToPosition(placement, viewportSize.width, viewportSize.height),
+      panelRef.current,
+    );
+  }, [dock, freePosition, placement, viewportSize]);
 
   function handlePanelPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     const element = panelRef.current;
@@ -222,6 +227,25 @@ export function TweakerPanel({
       )}
     </aside>
   );
+}
+
+function useViewportSize() {
+  const [viewportSize, setViewportSize] = useState(() => {
+    if (typeof window === "undefined") return { width: 0, height: 0 };
+    return { width: window.innerWidth, height: window.innerHeight };
+  });
+
+  useEffect(() => {
+    function handleResize() {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    }
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return viewportSize;
 }
 
 function positionToStyle(position: PanelPosition): PanelStyle {
