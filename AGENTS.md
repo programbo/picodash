@@ -74,7 +74,7 @@ The package currently exports:
 - Components: `TweakerProvider`, `TweakerPanel`
 - Hooks: `useTweaker`, `useTweakerStore`, `useTweakerSnapshot`
 - Store utilities: `createTweakerStore`, `normalizeControl`
-- Types: `ControlConfig`, `TweakerSchema`, `TweakerValues`, `SetTweakerValue`, `NormalizedControl`, `TweakerState`, `TweakerStore`, `TweakerSnapshot`, `DockState`, `Placement`, `StaleMode`, and individual control types
+- Types: `ControlConfig`, `TweakerSchema`, `TweakerValues`, `SetTweakerValue`, `NormalizedControl`, `TweakerState`, `TweakerStore`, `TweakerSnapshot`, `DockState`, `Placement`, `PanelTheme`, `StaleMode`, and individual control types
 
 Consumers import styles with:
 
@@ -117,6 +117,7 @@ If localStorage shape changes, update:
 - `sortable: false` disables row reordering for every control in that hook registration.
 - `options.opacity`, `options.hoverOpacity`, `options.backgroundBlur`, `options.hoverBackgroundBlur`, and `options.tooltipForeground` apply panel surface effects and default tooltip foreground color. Hover, focus-within, and open tooltip effect changes must transition smoothly.
 - Object-shaped controls support `tooltip` as plain text or React content. Tooltips render with React Aria Components as focusable helper icons beside labels.
+- `TweakerPanel` accepts `theme: "dark" | "light" | "system"` and defaults to `"dark"`. Portaled controls such as select popovers and tooltips must use the same panel theme.
 - Section order is local to each section; dragging must not move controls across sections.
 - Numeric values are clamped according to their normalized control bounds.
 - Explicit `type: "number"` stays a number input even if `min` and `max` are present.

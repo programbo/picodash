@@ -13,7 +13,7 @@ import {
 } from "react";
 import { Button } from "react-aria-components";
 import { useTweakerSelector } from "../react/context.js";
-import type { DockEdge, DockState, NormalizedControl, Placement } from "../types.js";
+import type { DockEdge, DockState, NormalizedControl, PanelTheme, Placement } from "../types.js";
 import { moveItem, orderControls } from "./order.js";
 import { PanelEffectProvider, type PanelEffectStyle } from "./panel-effects-context.js";
 import {
@@ -28,6 +28,7 @@ import { TweakerSection } from "./tweaker-section.js";
 export interface TweakerPanelProps {
   className?: string;
   placement?: Placement;
+  theme?: PanelTheme;
   title?: string;
 }
 
@@ -53,6 +54,7 @@ function firstOpacity(
 export function TweakerPanel({
   className,
   placement = "top-right",
+  theme = "dark",
   title = "Tweaker",
 }: TweakerPanelProps) {
   const collapsed = useTweakerSelector((state) => state.collapsed);
@@ -196,6 +198,7 @@ export function TweakerPanel({
       className={clsx("tw-panel", collapsed && "is-collapsed", className)}
       style={style}
       data-overlay-active={overlayActiveCount > 0 ? "true" : undefined}
+      data-theme={theme}
       data-testid="tweaker-panel"
     >
       <div
@@ -236,7 +239,7 @@ export function TweakerPanel({
       {!collapsed && (
         <DragDropProvider onDragEnd={handleDragEnd}>
           <PanelEffectProvider
-            value={effectStyle}
+            value={{ style: effectStyle, theme }}
             onOverlayActiveChange={handleOverlayActiveChange}
           >
             <div className="tw-panel__body">

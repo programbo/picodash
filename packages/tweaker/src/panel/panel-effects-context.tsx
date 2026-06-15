@@ -7,6 +7,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import type { PanelTheme } from "../types.js";
 
 export type PanelEffectStyle = CSSProperties &
   Partial<
@@ -20,7 +21,15 @@ export type PanelEffectStyle = CSSProperties &
     >
   >;
 
-const PanelEffectContext = createContext<PanelEffectStyle>({});
+interface PanelEffectContextValue {
+  style: PanelEffectStyle;
+  theme: PanelTheme;
+}
+
+const PanelEffectContext = createContext<PanelEffectContextValue>({
+  style: {},
+  theme: "dark",
+});
 const PanelActivityContext = createContext<(active: boolean) => void>(() => {});
 const noopPanelActivity = () => {};
 
@@ -31,7 +40,7 @@ export function PanelEffectProvider({
 }: {
   children: ReactNode;
   onOverlayActiveChange?: (active: boolean) => void;
-  value: PanelEffectStyle;
+  value: PanelEffectContextValue;
 }) {
   return (
     <PanelEffectContext.Provider value={value}>
@@ -42,7 +51,7 @@ export function PanelEffectProvider({
   );
 }
 
-export function usePanelEffectStyle() {
+export function usePanelEffects() {
   return useContext(PanelEffectContext);
 }
 

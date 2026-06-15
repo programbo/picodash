@@ -47,7 +47,7 @@ export function App() {
   return (
     <TweakerProvider storeId="my-app">
       <SceneControls />
-      <TweakerPanel placement="top-right" />
+      <TweakerPanel placement="top-right" theme="dark" />
     </TweakerProvider>
   );
 }
@@ -67,6 +67,8 @@ Object controls can include `status: "info" | "alert" | "error"` to tint the row
 Object-shaped controls also accept `label` and `tooltip`. Tooltips render as keyboard-focusable React Aria tooltip icons to the right of the control label, and the `tooltip` value can be plain text or rich React content. Set `tooltipForeground` in hook options to change the default tooltip content color.
 
 Pass `sortable: false` in the hook options to keep a registration fixed in place.
+Pass `theme="dark"`, `theme="light"`, or `theme="system"` to `TweakerPanel` to choose the panel color theme. The default is `dark`.
+
 Use panel effect options to change panel surface color opacity and increase background blur when the user hovers it or focuses a control:
 
 ```tsx

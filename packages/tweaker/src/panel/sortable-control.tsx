@@ -8,7 +8,7 @@ import { Button, OverlayArrow, Tooltip, TooltipTrigger } from "react-aria-compon
 import { useTweakerSelector } from "../react/context.js";
 import type { NormalizedControl } from "../types.js";
 import { ControlInput } from "./control-input.js";
-import { usePanelEffectStyle, usePanelOverlayActivity } from "./panel-effects-context.js";
+import { usePanelEffects, usePanelOverlayActivity } from "./panel-effects-context.js";
 
 interface SortableControlProps {
   control: NormalizedControl;
@@ -29,7 +29,7 @@ export function SortableControl({
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null);
   const tooltipCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tooltipOpen, setTooltipOpen] = useState(false);
-  const panelEffectStyle = usePanelEffectStyle();
+  const panelEffects = usePanelEffects();
   const setPanelOverlayActive = usePanelOverlayActivity();
   const labelId = `${control.id}:label`;
   const { ref, handleRef, isDragging } = useSortable({
@@ -164,6 +164,8 @@ export function SortableControl({
             <Tooltip
               className="tw-tooltip"
               placement="right"
+              style={panelEffects.style}
+              data-theme={panelEffects.theme}
               onPointerEnter={openTooltip}
               onPointerLeave={queueTooltipClose}
             >
@@ -172,7 +174,7 @@ export function SortableControl({
                   <path d="M0 0 L4 4 L8 0" />
                 </svg>
               </OverlayArrow>
-              <div className="tw-tooltip__content" style={panelEffectStyle}>
+              <div className="tw-tooltip__content" style={panelEffects.style}>
                 {control.tooltip}
               </div>
             </Tooltip>

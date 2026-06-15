@@ -16,7 +16,7 @@ import {
 } from "react-aria-components";
 import { ChevronDown } from "lucide-react";
 import type { NormalizedControl, PrimitiveValue } from "../types.js";
-import { usePanelEffectStyle } from "./panel-effects-context.js";
+import { usePanelEffects } from "./panel-effects-context.js";
 
 interface ControlInputProps {
   control: NormalizedControl;
@@ -26,7 +26,7 @@ interface ControlInputProps {
 
 export function ControlInput({ control, labelId, onChange }: ControlInputProps) {
   const [draft, setDraft] = useState<string | null>(null);
-  const panelEffectStyle = usePanelEffectStyle();
+  const panelEffects = usePanelEffects();
 
   function commitNumber(value: string) {
     const parsed = Number(value);
@@ -59,7 +59,11 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
           <SelectValue />
           <ChevronDown aria-hidden size={13} />
         </Button>
-        <Popover className="tw-select__popover" style={panelEffectStyle}>
+        <Popover
+          className="tw-select__popover"
+          style={panelEffects.style}
+          data-theme={panelEffects.theme}
+        >
           <ListBox className="tw-select__list">
             {(control.options ?? []).map((option) => (
               <ListBoxItem key={option.value} id={option.value} textValue={option.label}>

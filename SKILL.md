@@ -23,9 +23,11 @@ Wrap the app once with `TweakerProvider`. Always provide a stable `storeId`; it 
 ```tsx
 <TweakerProvider storeId="my-app">
   <Controls />
-  <TweakerPanel placement="top-right" />
+  <TweakerPanel placement="top-right" theme="dark" />
 </TweakerProvider>
 ```
+
+`TweakerPanel` accepts `theme="dark"`, `theme="light"`, or `theme="system"` and defaults to `"dark"`.
 
 ## Register Controls
 
@@ -68,5 +70,5 @@ const [values, setValue] = useTweaker(
 - Pass `opacity`, `hoverOpacity`, `backgroundBlur`, and `hoverBackgroundBlur` in hook options to animate panel surface color opacity and backdrop blur on hover, focus-within, or open tooltip state.
 - Pass `tooltipForeground` in hook options to set the default tooltip content color.
 - Reordering is section-local and starts from the grip handle.
-- The package ships a dark CSS-variable theme first; customize by overriding CSS variables around the panel.
+- The package ships dark and light CSS-variable themes. Use `theme="system"` to follow `prefers-color-scheme`, or customize further by overriding CSS variables around the panel.
 - Package styles may be authored with Tailwind internally, but consumers only import compiled plain CSS from `tweaker/style.css`.
