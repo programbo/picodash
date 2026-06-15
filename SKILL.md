@@ -7,6 +7,8 @@ description: Use the local Tweaker React package to add a Leva-inspired floating
 
 Use `tweaker` when a React app needs a compact floating configuration panel.
 
+Internally, Tweaker uses a provider-scoped Zustand store. Persistence is handled by Zustand's `persist` middleware, and persisted localStorage data is Zod-validated before hydration.
+
 ## Required Imports
 
 ```tsx

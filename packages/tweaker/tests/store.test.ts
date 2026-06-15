@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { normalizeControl, TweakerStore, type TweakerSchema } from "../src/index.js";
+import { createTweakerStore, normalizeControl, type TweakerSchema } from "../src/index.js";
 
 class MemoryStorage {
   private values = new Map<string, string>();
@@ -55,40 +55,60 @@ describe("TweakerStore", () => {
     const schema = {
       exposure: { value: 1, min: 0, max: 4 },
     } satisfies TweakerSchema;
-    const store = new TweakerStore({ storeId: "store", stale: "ignore" });
+    const store = createTweakerStore({ storeId: "store", stale: "ignore" });
 
-    store.register(schema, { section: "Rendering" });
-    store.setValue("store:Rendering:exposure", 8);
+    store.getState().register(schema, { section: "Rendering" });
+    store.getState().setValue("store:Rendering:exposure", 8);
 
-    const next = new TweakerStore({ storeId: "store", stale: "ignore" });
-    next.register(schema, { section: "Rendering" });
+    const next = createTweakerStore({ storeId: "store", stale: "ignore" });
+    next.getState().register(schema, { section: "Rendering" });
 
-    expect(next.getSnapshot().controls[0]?.value).toBe(4);
+    expect(next.getState().controls[0]?.value).toBe(4);
   });
 
   it("stores section-local order", () => {
-    const store = new TweakerStore({ storeId: "order", stale: "ignore" });
-    store.register({ a: 1, b: 2 }, { section: "Rendering" });
-    store.setSectionOrder("Rendering", ["order:Rendering:b", "order:Rendering:a"]);
+    const store = createTweakerStore({ storeId: "order", stale: "ignore" });
+    store.getState().register({ a: 1, b: 2 }, { section: "Rendering" });
+    store.getState().setSectionOrder("Rendering", ["order:Rendering:b", "order:Rendering:a"]);
 
-    expect(store.getSnapshot().order.Rendering).toEqual(["order:Rendering:b", "order:Rendering:a"]);
+    expect(store.getState().order.Rendering).toEqual(["order:Rendering:b", "order:Rendering:a"]);
   });
 
   it("stores hook-level sortable metadata on registered controls", () => {
-    const store = new TweakerStore({ storeId: "sortable", stale: "ignore" });
-    store.register({ channel: "stable" }, { section: "Build", sortable: false });
+    const store = createTweakerStore({ storeId: "sortable", stale: "ignore" });
+    store.getState().register({ channel: "stable" }, { section: "Build", sortable: false });
 
-    expect(store.getSnapshot().controls[0]?.sortable).toBe(false);
+    expect(store.getState().controls[0]?.sortable).toBe(false);
   });
 
   it("prunes stale persisted keys when configured", () => {
-    const store = new TweakerStore({ storeId: "stale", stale: "ignore" });
-    store.register({ keep: 1, remove: 2 }, { section: "Rendering" });
-    store.setValue("stale:Rendering:remove", 9);
+    const store = createTweakerStore({ storeId: "stale", stale: "ignore" });
+    store.getState().register({ keep: 1, remove: 2 }, { section: "Rendering" });
+    store.getState().setValue("stale:Rendering:remove", 9);
 
-    const next = new TweakerStore({ storeId: "stale", stale: "prune" });
-    next.register({ keep: 1 }, { section: "Rendering" });
+    const next = createTweakerStore({ storeId: "stale", stale: "prune" });
+    next.getState().register({ keep: 1 }, { section: "Rendering" });
 
-    expect(next.getSnapshot().values["stale:Rendering:remove"]).toBeUndefined();
+    expect(next.getState().values["stale:Rendering:remove"]).toBeUndefined();
+  });
+
+  it("discards invalid localStorage data through the Zod storage boundary", () => {
+    storage.setItem(
+      "tweaker:invalid",
+      JSON.stringify({
+        state: {
+          values: { "invalid:Rendering:exposure": { nested: "not primitive" } },
+          order: [],
+          collapsed: "nope",
+          dock: { edge: "diagonal", offset: -1 },
+        },
+      }),
+    );
+
+    const store = createTweakerStore({ storeId: "invalid", stale: "ignore" });
+    store.getState().register({ exposure: 1 }, { section: "Rendering" });
+
+    expect(store.getState().values).toEqual({});
+    expect(store.getState().controls[0]?.value).toBe(1);
   });
 });

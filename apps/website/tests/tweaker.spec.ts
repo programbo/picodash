@@ -59,7 +59,7 @@ test("docks the panel near a viewport edge", async ({ page }) => {
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
-        return raw ? JSON.parse(raw).dock?.edge : null;
+        return raw ? JSON.parse(raw).state?.dock?.edge : null;
       }),
     )
     .toBe("left");
@@ -86,7 +86,7 @@ test("reorders controls within a section by pointer-dragging the grip", async ({
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
-        return raw ? (JSON.parse(raw).order?.Rendering ?? []) : [];
+        return raw ? (JSON.parse(raw).state?.order?.Rendering ?? []) : [];
       }),
     )
     .toContain("docs-demo:Rendering:speed");
@@ -101,7 +101,7 @@ test("reorders controls within a section by keyboard on the grip", async ({ page
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
-        return raw ? (JSON.parse(raw).order?.Rendering ?? []) : [];
+        return raw ? (JSON.parse(raw).state?.order?.Rendering ?? []) : [];
       }),
     )
     .toContain("docs-demo:Rendering:speed");
@@ -133,7 +133,7 @@ test("can disable sorting per hook registration", async ({ page }) => {
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
-        return raw ? (JSON.parse(raw).order?.Build ?? []) : [];
+        return raw ? (JSON.parse(raw).state?.order?.Build ?? []) : [];
       }),
     )
     .toEqual([]);

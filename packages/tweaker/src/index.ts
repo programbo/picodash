@@ -2,9 +2,9 @@ import "./styles.css";
 
 export { TweakerPanel } from "./panel.js";
 export {
+  createTweakerStore,
   normalizeControl,
   TweakerProvider,
-  TweakerStore,
   useTweaker,
   useTweakerSnapshot,
   useTweakerStore,
@@ -23,5 +23,8 @@ export type {
   StaleMode,
   TweakerProviderProps,
   TweakerSchema,
+  TweakerSnapshot,
+  TweakerState,
+  TweakerStore,
   TweakerValues,
 } from "./store.js";

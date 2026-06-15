@@ -21,6 +21,8 @@ catalog:
   "@types/react-dom": ^19.2.3
   "@tsdown/css": ^0.22.2
   "@playwright/test": ^1.60.0
+  zustand: ^5.0.14
+  zod: ^4.4.3
 overrides:
   vite: "catalog:"
   vitest: "catalog:"

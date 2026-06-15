@@ -6,8 +6,11 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useSyncExternalStore,
 } from "react";
+import { useStore } from "zustand";
+import { createStore, type StoreApi } from "zustand/vanilla";
+import { persist, type PersistStorage } from "zustand/middleware";
+import { z } from "zod";
 
 export type PrimitiveValue = number | string | boolean;
 export type ControlKind = "number" | "slider" | "select" | "checkbox";
@@ -92,39 +95,68 @@ export interface NormalizedControl {
   options?: Array<{ label: string; value: string }>;
 }
 
-interface PersistedState {
-  values?: Record<string, PrimitiveValue>;
-  order?: Record<string, string[]>;
-  collapsed?: boolean;
-  dock?: DockState;
-}
-
 export interface DockState {
   edge: "top" | "right" | "bottom" | "left";
   offset: number;
 }
 
-interface Snapshot {
-  controls: NormalizedControl[];
-  sectionOrder: string[];
+export interface PersistedState {
   values: Record<string, PrimitiveValue>;
   order: Record<string, string[]>;
   collapsed: boolean;
   dock: DockState | null;
 }
 
-interface RegisterOptions {
+export interface TweakerSnapshot extends PersistedState {
+  controls: NormalizedControl[];
+  sectionOrder: string[];
+}
+
+export interface RegisterOptions {
   section?: string;
   sortable?: boolean;
 }
 
-interface TweakerStoreOptions {
+export interface TweakerStoreOptions {
   storeId: string;
   stale: StaleMode;
 }
 
+export interface TweakerState extends TweakerSnapshot {
+  register: (schema: TweakerSchema, options?: RegisterOptions) => () => void;
+  setValue: (id: string, value: PrimitiveValue) => void;
+  setCollapsed: (collapsed: boolean) => void;
+  setDock: (dock: DockState | null) => void;
+  setSectionOrder: (section: string, ids: string[]) => void;
+  resetValues: () => void;
+  resetOrder: () => void;
+  getControlId: (section: string, key: string) => string;
+}
+
+export type TweakerStore = StoreApi<TweakerState>;
+
 const defaultSection = "Controls";
 const storagePrefix = "tweaker:";
+
+const primitiveValueSchema = z.union([z.number(), z.string(), z.boolean()]);
+const dockStateSchema = z.object({
+  edge: z.enum(["top", "right", "bottom", "left"]),
+  offset: z.number().finite().nonnegative(),
+});
+const persistedStateSchema = z.object({
+  values: z.record(z.string(), primitiveValueSchema).default({}),
+  order: z.record(z.string(), z.array(z.string())).default({}),
+  collapsed: z.boolean().default(false),
+  dock: dockStateSchema.nullable().default(null),
+});
+const persistedStorageValueSchema = z.object({
+  state: persistedStateSchema,
+  version: z.number().optional(),
+});
+
+function emptyPersistedState(): PersistedState {
+  return { values: {}, order: {}, collapsed: false, dock: null };
+}
 
 function labelFromKey(key: string) {
   return key
@@ -245,157 +277,208 @@ export function normalizeControl(
   };
 }
 
-function readPersisted(storeId: string): PersistedState {
-  if (typeof window === "undefined") return {};
+function createValidatedPersistStorage(): PersistStorage<PersistedState> {
+  return {
+    getItem(name) {
+      if (typeof window === "undefined") return null;
 
-  try {
-    const raw = window.localStorage.getItem(`${storagePrefix}${storeId}`);
-    return raw ? (JSON.parse(raw) as PersistedState) : {};
-  } catch {
-    return {};
-  }
-}
+      try {
+        const raw = window.localStorage.getItem(name);
+        if (!raw) return null;
 
-function writePersisted(storeId: string, state: PersistedState) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(`${storagePrefix}${storeId}`, JSON.stringify(state));
-}
-
-export class TweakerStore {
-  private readonly storeId: string;
-  private readonly stale: StaleMode;
-  private readonly listeners = new Set<() => void>();
-  private registrations = new Map<string, NormalizedControl>();
-  private persisted: PersistedState;
-  private snapshot: Snapshot;
-
-  constructor({ storeId, stale }: TweakerStoreOptions) {
-    this.storeId = storeId;
-    this.stale = stale;
-    this.persisted = readPersisted(storeId);
-    this.snapshot = this.createSnapshot();
-  }
-
-  subscribe = (listener: () => void) => {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  };
-
-  getSnapshot = () => this.snapshot;
-
-  register(schema: TweakerSchema, options: RegisterOptions = {}) {
-    const section = options.section ?? defaultSection;
-    const sortable = options.sortable ?? true;
-    const controls = Object.entries(schema).map(([key, config]) =>
-      normalizeControl(this.storeId, section, key, config, sortable),
-    );
-    const ids = new Set(controls.map((control) => control.id));
-
-    for (const control of controls) {
-      this.registrations.set(control.id, control);
-    }
-
-    this.rebuild();
-
-    return () => {
-      for (const id of ids) {
-        this.registrations.delete(id);
+        const parsed = persistedStorageValueSchema.safeParse(JSON.parse(raw));
+        return parsed.success ? parsed.data : null;
+      } catch {
+        return null;
       }
-      this.rebuild();
-    };
-  }
+    },
+    setItem(name, value) {
+      if (typeof window === "undefined") return;
 
-  setValue(id: string, value: PrimitiveValue) {
-    const control = this.registrations.get(id);
-    if (!control) return;
+      const parsed = persistedStorageValueSchema.safeParse(value);
+      if (!parsed.success) return;
 
-    const nextValue = typeof value === "number" ? clamp(value, control.min, control.max) : value;
-    this.persisted = {
-      ...this.persisted,
-      values: { ...this.persisted.values, [id]: nextValue },
-    };
-    this.persist();
-    this.rebuild();
-  }
+      window.localStorage.setItem(name, JSON.stringify(parsed.data));
+    },
+    removeItem(name) {
+      if (typeof window === "undefined") return;
+      window.localStorage.removeItem(name);
+    },
+  };
+}
 
-  setCollapsed(collapsed: boolean) {
-    this.persisted = { ...this.persisted, collapsed };
-    this.persist();
-    this.rebuild();
-  }
+function valuesForControls(
+  controls: NormalizedControl[],
+  values: Record<string, PrimitiveValue>,
+): NormalizedControl[] {
+  return controls.map((control) => ({
+    ...control,
+    value: values[control.id] ?? control.defaultValue,
+  }));
+}
 
-  setDock(dock: DockState | null) {
-    this.persisted = { ...this.persisted, dock: dock ?? undefined };
-    this.persist();
-    this.rebuild();
-  }
+function sectionOrderFor(controls: NormalizedControl[]) {
+  return Array.from(new Set(controls.map((control) => control.section)));
+}
 
-  setSectionOrder(section: string, ids: string[]) {
-    this.persisted = {
-      ...this.persisted,
-      order: { ...this.persisted.order, [section]: ids },
-    };
-    this.persist();
-    this.rebuild();
-  }
+function prunePersisted(
+  persisted: PersistedState,
+  controls: NormalizedControl[],
+  stale: StaleMode,
+): PersistedState {
+  if (stale !== "prune") return persisted;
 
-  resetValues() {
-    this.persisted = { ...this.persisted, values: {} };
-    this.persist();
-    this.rebuild();
-  }
+  const currentIds = new Set(controls.map((control) => control.id));
+  const values = Object.fromEntries(
+    Object.entries(persisted.values).filter(([id]) => currentIds.has(id)),
+  );
+  const order = Object.fromEntries(
+    Object.entries(persisted.order).map(([section, ids]) => [
+      section,
+      ids.filter((id) => currentIds.has(id)),
+    ]),
+  );
 
-  resetOrder() {
-    this.persisted = { ...this.persisted, order: {} };
-    this.persist();
-    this.rebuild();
-  }
+  return { ...persisted, values, order };
+}
 
-  getControlId(section: string, key: string) {
-    return `${this.storeId}:${section}:${String(key)}`;
-  }
+function createControlId(storeId: string, section: string, key: string) {
+  return `${storeId}:${section}:${String(key)}`;
+}
 
-  private persist() {
-    writePersisted(this.storeId, this.persisted);
-  }
+export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): TweakerStore {
+  return createStore<TweakerState>()(
+    persist(
+      (set, get) => ({
+        ...emptyPersistedState(),
+        controls: [],
+        sectionOrder: [],
 
-  private rebuild() {
-    if (this.stale === "prune") {
-      const currentIds = new Set(this.registrations.keys());
-      const values = Object.fromEntries(
-        Object.entries(this.persisted.values ?? {}).filter(([id]) => currentIds.has(id)),
-      );
-      const order = Object.fromEntries(
-        Object.entries(this.persisted.order ?? {}).map(([section, ids]) => [
-          section,
-          ids.filter((id) => currentIds.has(id)),
-        ]),
-      );
-      this.persisted = { ...this.persisted, values, order };
-      this.persist();
-    }
+        register(schema, options = {}) {
+          const section = options.section ?? defaultSection;
+          const sortable = options.sortable ?? true;
+          const controls = Object.entries(schema).map(([key, config]) =>
+            normalizeControl(storeId, section, key, config, sortable),
+          );
+          const ids = new Set(controls.map((control) => control.id));
 
-    this.snapshot = this.createSnapshot();
-    for (const listener of this.listeners) listener();
-  }
+          set((state) => {
+            const controlsById = new Map(state.controls.map((control) => [control.id, control]));
+            for (const control of controls) {
+              controlsById.set(control.id, {
+                ...control,
+                value: state.values[control.id] ?? control.defaultValue,
+              });
+            }
+            const nextControls = valuesForControls(Array.from(controlsById.values()), state.values);
+            const persisted = prunePersisted(
+              {
+                values: state.values,
+                order: state.order,
+                collapsed: state.collapsed,
+                dock: state.dock,
+              },
+              nextControls,
+              stale,
+            );
 
-  private createSnapshot(): Snapshot {
-    const values = this.persisted.values ?? {};
-    const controls = Array.from(this.registrations.values()).map((control) => ({
-      ...control,
-      value: values[control.id] ?? control.defaultValue,
-    }));
-    const sectionOrder = Array.from(new Set(controls.map((control) => control.section)));
+            return {
+              ...persisted,
+              controls: valuesForControls(nextControls, persisted.values),
+              sectionOrder: sectionOrderFor(nextControls),
+            };
+          });
 
-    return {
-      controls,
-      sectionOrder,
-      values,
-      order: this.persisted.order ?? {},
-      collapsed: this.persisted.collapsed ?? false,
-      dock: this.persisted.dock ?? null,
-    };
-  }
+          return () => {
+            set((state) => {
+              const nextControls = state.controls.filter((control) => !ids.has(control.id));
+              const persisted = prunePersisted(
+                {
+                  values: state.values,
+                  order: state.order,
+                  collapsed: state.collapsed,
+                  dock: state.dock,
+                },
+                nextControls,
+                stale,
+              );
+
+              return {
+                ...persisted,
+                controls: valuesForControls(nextControls, persisted.values),
+                sectionOrder: sectionOrderFor(nextControls),
+              };
+            });
+          };
+        },
+
+        setValue(id, value) {
+          const control = get().controls.find((item) => item.id === id);
+          if (!control) return;
+
+          const nextValue =
+            typeof value === "number" ? clamp(value, control.min, control.max) : value;
+
+          set((state) => {
+            const values = { ...state.values, [id]: nextValue };
+            return {
+              values,
+              controls: valuesForControls(state.controls, values),
+            };
+          });
+        },
+
+        setCollapsed(collapsed) {
+          set({ collapsed });
+        },
+
+        setDock(dock) {
+          set({ dock });
+        },
+
+        setSectionOrder(section, ids) {
+          set((state) => ({
+            order: { ...state.order, [section]: ids },
+          }));
+        },
+
+        resetValues() {
+          set((state) => ({
+            values: {},
+            controls: valuesForControls(state.controls, {}),
+          }));
+        },
+
+        resetOrder() {
+          set({ order: {} });
+        },
+
+        getControlId(section, key) {
+          return createControlId(storeId, section, key);
+        },
+      }),
+      {
+        name: `${storagePrefix}${storeId}`,
+        storage: createValidatedPersistStorage(),
+        partialize: (state) => ({
+          values: state.values,
+          order: state.order,
+          collapsed: state.collapsed,
+          dock: state.dock,
+        }),
+        merge: (persistedState, currentState) => {
+          const parsed = persistedStateSchema.safeParse(persistedState);
+          if (!parsed.success) return currentState;
+
+          return {
+            ...currentState,
+            ...parsed.data,
+            controls: valuesForControls(currentState.controls, parsed.data.values),
+          };
+        },
+      },
+    ),
+  );
 }
 
 const TweakerContext = createContext<TweakerStore | null>(null);
@@ -410,13 +493,13 @@ export function TweakerProvider({ children, storeId, stale = "ignore" }: Tweaker
   const storeRef = useRef<TweakerStore | null>(null);
 
   if (!storeRef.current) {
-    storeRef.current = new TweakerStore({ storeId, stale });
+    storeRef.current = createTweakerStore({ storeId, stale });
   }
 
   return <TweakerContext.Provider value={storeRef.current}>{children}</TweakerContext.Provider>;
 }
 
-export function useTweakerStore() {
+function useTweakerStoreApi() {
   const store = useContext(TweakerContext);
   if (!store) {
     throw new Error("Tweaker components must be rendered inside TweakerProvider.");
@@ -424,41 +507,40 @@ export function useTweakerStore() {
   return store;
 }
 
+export function useTweakerStore() {
+  return useStore(useTweakerStoreApi());
+}
+
 export function useTweakerSnapshot() {
-  const store = useTweakerStore();
-  return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  return useStore(useTweakerStoreApi()) as TweakerSnapshot;
 }
 
 export function useTweaker<T extends TweakerSchema>(
   schema: T,
   options: RegisterOptions = {},
 ): [TweakerValues<T>, SetTweakerValue<T>] {
-  const store = useTweakerStore();
+  const store = useTweakerStoreApi();
   const section = options.section ?? defaultSection;
   const sortable = options.sortable ?? true;
-  const schemaRef = useRef(schema);
-  schemaRef.current = schema;
-
+  const state = useStore(store);
   useEffect(
-    () => store.register(schema, { section, sortable }),
+    () => store.getState().register(schema, { section, sortable }),
     [store, schema, section, sortable],
   );
 
-  const snapshot = useTweakerSnapshot();
-
   const values = useMemo(() => {
     const output: Partial<TweakerValues<T>> = {};
-    for (const key of Object.keys(schemaRef.current) as Array<keyof T>) {
-      const id = store.getControlId(section, String(key));
-      const control = snapshot.controls.find((item) => item.id === id);
+    for (const key of Object.keys(schema) as Array<keyof T>) {
+      const id = store.getState().getControlId(section, String(key));
+      const control = state.controls.find((item) => item.id === id);
       output[key] = control?.value as TweakerValues<T>[keyof T];
     }
     return output as TweakerValues<T>;
-  }, [schemaRef, section, snapshot.controls, store]);
+  }, [schema, section, state.controls, store]);
 
   const setValue = useCallback<SetTweakerValue<T>>(
     (key, value) => {
-      store.setValue(store.getControlId(section, String(key)), value);
+      store.getState().setValue(store.getState().getControlId(section, String(key)), value);
     },
     [section, store],
   );
