@@ -48,6 +48,14 @@ test("shows rich control tooltips from label helper icons", async ({ page }) => 
   await expect(tooltip).toContainText("Animation speed");
   await expect(tooltip).toContainText("Higher values shorten the preview loop duration.");
   await expect(tooltip.locator(".tw-tooltip__content")).toHaveCSS("color", "rgb(213, 244, 255)");
+
+  const tooltipZIndex = await tooltip.evaluate((element) =>
+    Number(getComputedStyle(element).zIndex),
+  );
+  const panelZIndex = await page
+    .getByTestId("tweaker-panel")
+    .evaluate((element) => Number(getComputedStyle(element).zIndex));
+  expect(tooltipZIndex).toBeGreaterThan(panelZIndex);
 });
 
 test("keeps panel effects active while hovering tooltip content", async ({ page }) => {

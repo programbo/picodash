@@ -226,7 +226,8 @@
 }
 
 .tw-tooltip {
-  z-index: 1001;
+  @apply z-1001;
+
   max-width: min(240px, calc(100vw - 24px));
   padding: 8px 10px;
   color: #f1f4f2;
