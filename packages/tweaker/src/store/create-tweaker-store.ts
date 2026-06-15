@@ -61,8 +61,10 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.hoverOpacity === rightControl.hoverOpacity &&
       leftControl.backgroundBlur === rightControl.backgroundBlur &&
       leftControl.hoverBackgroundBlur === rightControl.hoverBackgroundBlur &&
+      leftControl.tooltipForeground === rightControl.tooltipForeground &&
       leftControl.kind === rightControl.kind &&
       leftControl.label === rightControl.label &&
+      leftControl.tooltip === rightControl.tooltip &&
       leftControl.value === rightControl.value &&
       leftControl.defaultValue === rightControl.defaultValue &&
       leftControl.min === rightControl.min &&
@@ -105,6 +107,7 @@ export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): Twe
               options.hoverOpacity,
               options.backgroundBlur,
               options.hoverBackgroundBlur,
+              options.tooltipForeground,
             ),
           );
           const ids = new Set(controls.map((control) => control.id));
@@ -164,7 +167,8 @@ export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): Twe
                 control.opacity === effects.opacity &&
                 control.hoverOpacity === effects.hoverOpacity &&
                 control.backgroundBlur === effects.backgroundBlur &&
-                control.hoverBackgroundBlur === effects.hoverBackgroundBlur
+                control.hoverBackgroundBlur === effects.hoverBackgroundBlur &&
+                control.tooltipForeground === effects.tooltipForeground
               ) {
                 return control;
               }

@@ -37,6 +37,7 @@ function stableStringify(value: unknown): string {
 
   if (value && typeof value === "object") {
     return `{${Object.entries(value)
+      .filter(([key]) => key !== "tooltip")
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`)
       .join(",")}}`;
@@ -52,7 +53,7 @@ export function useTweaker<T extends TweakerSchema>(
   const store = useTweakerStoreApi();
   const section = options.section ?? defaultSection;
   const sortable = options.sortable ?? true;
-  const { opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur } = options;
+  const { opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur, tooltipForeground } = options;
   const controls = useStore(store, (state) => state.controls);
   const valuesById = useStore(store, (state) => state.values);
   const schemaSignature = stableStringify(schema);
@@ -70,8 +71,18 @@ export function useTweaker<T extends TweakerSchema>(
         hoverOpacity,
         backgroundBlur,
         hoverBackgroundBlur,
+        tooltipForeground,
       }),
-    [store, schemaSignature, section, opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur],
+    [
+      store,
+      schemaSignature,
+      section,
+      opacity,
+      hoverOpacity,
+      backgroundBlur,
+      hoverBackgroundBlur,
+      tooltipForeground,
+    ],
   );
 
   const values = useMemo(() => {

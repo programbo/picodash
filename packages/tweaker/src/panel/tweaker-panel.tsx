@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -35,7 +36,8 @@ type PanelStyle = CSSProperties &
       | "--tw-panel-color-opacity"
       | "--tw-panel-hover-color-opacity"
       | "--tw-panel-background-blur"
-      | "--tw-panel-hover-background-blur",
+      | "--tw-panel-hover-background-blur"
+      | "--tw-tooltip-foreground",
       string
     >
   >;
@@ -68,8 +70,12 @@ export function TweakerPanel({
     startY: number;
     origin: PanelPosition;
   } | null>(null);
+  const [overlayActiveCount, setOverlayActiveCount] = useState(0);
   const viewportSize = useViewportSize();
   const [freePosition, setFreePosition] = useState<PanelPosition | null>(null);
+  const handleOverlayActiveChange = useCallback((active: boolean) => {
+    setOverlayActiveCount((count) => Math.max(0, count + (active ? 1 : -1)));
+  }, []);
 
   const position = useMemo(() => {
     if (typeof window === "undefined") return { x: 16, y: 16 };
@@ -156,6 +162,9 @@ export function TweakerPanel({
   const hoverOpacity = firstOpacity(controls, "hoverOpacity");
   const backgroundBlur = firstOpacity(controls, "backgroundBlur");
   const hoverBackgroundBlur = firstOpacity(controls, "hoverBackgroundBlur");
+  const tooltipForeground = controls.find(
+    (control) => control.tooltipForeground !== undefined,
+  )?.tooltipForeground;
   const effectStyle: PanelEffectStyle = {};
   const style = freePosition || !dock ? positionToStyle(position) : dockToStyle(dock);
 
@@ -175,12 +184,17 @@ export function TweakerPanel({
     style["--tw-panel-hover-background-blur"] = `${hoverBackgroundBlur}px`;
     effectStyle["--tw-panel-hover-background-blur"] = `${hoverBackgroundBlur}px`;
   }
+  if (tooltipForeground !== undefined) {
+    style["--tw-tooltip-foreground"] = tooltipForeground;
+    effectStyle["--tw-tooltip-foreground"] = tooltipForeground;
+  }
 
   return (
     <aside
       ref={panelRef}
       className={`tw-panel ${collapsed ? "is-collapsed" : ""} ${className}`}
       style={style}
+      data-overlay-active={overlayActiveCount > 0 ? "true" : undefined}
       data-testid="tweaker-panel"
     >
       <div
@@ -220,7 +234,10 @@ export function TweakerPanel({
 
       {!collapsed && (
         <DragDropProvider onDragEnd={handleDragEnd}>
-          <PanelEffectProvider value={effectStyle}>
+          <PanelEffectProvider
+            value={effectStyle}
+            onOverlayActiveChange={handleOverlayActiveChange}
+          >
             <div className="tw-panel__body">
               {sectionOrder.map((section) => (
                 <TweakerSection

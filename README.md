@@ -13,7 +13,13 @@ import "tweaker/style.css";
 function SceneControls() {
   const [values, setValue] = useTweaker(
     {
-      speed: { value: 0.72, min: 0, max: 2, step: 0.01 },
+      speed: {
+        value: 0.72,
+        min: 0,
+        max: 2,
+        step: 0.01,
+        tooltip: <>Higher values shorten the animation loop.</>,
+      },
       exposure: { type: "number", value: 1, min: 0, max: 4 },
       bloom: { value: true },
       tint: {
@@ -29,6 +35,7 @@ function SceneControls() {
       hoverOpacity: 0.85,
       backgroundBlur: 0,
       hoverBackgroundBlur: 4,
+      tooltipForeground: "#d5f4ff",
     },
   );
 
@@ -55,6 +62,8 @@ export function App() {
 
 Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs.
 
+Object-shaped controls also accept `label` and `tooltip`. Tooltips render as keyboard-focusable React Aria tooltip icons to the right of the control label, and the `tooltip` value can be plain text or rich React content. Set `tooltipForeground` in hook options to change the default tooltip content color.
+
 Pass `sortable: false` in the hook options to keep a registration fixed in place.
 Use panel effect options to change panel surface color opacity and increase background blur when the user hovers it or focuses a control:
 
@@ -68,6 +77,7 @@ useTweaker(
     hoverOpacity: 0.85,
     backgroundBlur: 0,
     hoverBackgroundBlur: 4,
+    tooltipForeground: "#d5f4ff",
   },
 );
 ```

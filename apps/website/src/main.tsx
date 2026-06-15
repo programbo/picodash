@@ -5,8 +5,27 @@ import "tweaker/style.css";
 import "./style.css";
 
 const renderingSchema = {
-  speed: { value: 0.72, min: 0, max: 2, step: 0.01, label: "Speed" },
-  exposure: { type: "number", value: 1, min: 0, max: 4, step: 0.1 },
+  speed: {
+    value: 0.72,
+    min: 0,
+    max: 2,
+    step: 0.01,
+    label: "Speed",
+    tooltip: (
+      <>
+        <strong>Animation speed</strong>
+        <span>Higher values shorten the preview loop duration.</span>
+      </>
+    ),
+  },
+  exposure: {
+    type: "number",
+    value: 1,
+    min: 0,
+    max: 4,
+    step: 0.1,
+    tooltip: "Numeric controls can keep a compact helper beside the label.",
+  },
   bloom: { type: "checkbox", value: true, label: "Bloom" },
 } satisfies TweakerSchema;
 
@@ -39,6 +58,7 @@ function Demo() {
   const [dimmed, setDimmed] = useState(true);
   const [rendering, setRendering] = useTweaker(renderingSchema, {
     section: "Rendering",
+    tooltipForeground: "#d5f4ff",
   });
   const [material] = useTweaker(materialSchema, { section: "Material" });
   const [build] = useTweaker(buildSchema, {
@@ -101,7 +121,12 @@ import "tweaker/style.css";`}</code>
             <h2>Use</h2>
             <pre>
               <code>{`const [values, setValue] = useTweaker({
-  speed: { value: 0.72, min: 0, max: 2 },
+  speed: {
+    value: 0.72,
+    min: 0,
+    max: 2,
+    tooltip: <>Higher values shorten the loop.</>,
+  },
   bloom: { value: true },
 }, { section: "Rendering" });`}</code>
             </pre>
@@ -129,6 +154,7 @@ useTweaker(schema, {
   hoverOpacity: dimmed ? 0.95 : 1,
   backgroundBlur: dimmed ? 0 : 8,
   hoverBackgroundBlur: 8,
+  tooltipForeground: "#d5f4ff",
 });`}</code>
             </pre>
             <button

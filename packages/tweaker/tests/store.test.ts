@@ -55,6 +55,17 @@ describe("normalizeControl", () => {
       { label: "Prism", value: "prism" },
     ]);
   });
+
+  it("carries tooltip metadata on object-shaped controls", () => {
+    const control = normalizeControl("demo", "Rendering", "speed", {
+      value: 0.5,
+      min: 0,
+      max: 1,
+      tooltip: "Higher values shorten the loop.",
+    });
+
+    expect(control.tooltip).toBe("Higher values shorten the loop.");
+  });
 });
 
 describe("control defaults", () => {
@@ -163,6 +174,7 @@ describe("TweakerStore", () => {
         hoverOpacity: 2,
         backgroundBlur: -4,
         hoverBackgroundBlur: 4,
+        tooltipForeground: "#d5f4ff",
       },
     );
 
@@ -170,6 +182,7 @@ describe("TweakerStore", () => {
     expect(store.getState().controls[0]?.hoverOpacity).toBe(1);
     expect(store.getState().controls[0]?.backgroundBlur).toBe(0);
     expect(store.getState().controls[0]?.hoverBackgroundBlur).toBe(4);
+    expect(store.getState().controls[0]?.tooltipForeground).toBe("#d5f4ff");
   });
 
   it("updates panel effects without pruning values or order", () => {
@@ -191,6 +204,7 @@ describe("TweakerStore", () => {
       hoverOpacity: 0.85,
       backgroundBlur: 0,
       hoverBackgroundBlur: 4,
+      tooltipForeground: "#d5f4ff",
     });
 
     expect(store.getState().values["panel-effects:Rendering:speed"]).toBe(1.5);
@@ -202,6 +216,7 @@ describe("TweakerStore", () => {
     expect(store.getState().controls[0]?.hoverOpacity).toBe(0.85);
     expect(store.getState().controls[0]?.backgroundBlur).toBe(0);
     expect(store.getState().controls[0]?.hoverBackgroundBlur).toBe(4);
+    expect(store.getState().controls[0]?.tooltipForeground).toBe("#d5f4ff");
   });
 
   it("does not notify when an equivalent schema registers again", () => {

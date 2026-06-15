@@ -11,7 +11,8 @@
   },
   "devDependencies": {
     "@tsdown/css": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "zustand": "catalog:"
   },
   "engines": {
     "node": ">=22.12.0"

@@ -42,7 +42,8 @@
 }
 
 .tw-panel:hover,
-.tw-panel:focus-within {
+.tw-panel:focus-within,
+.tw-panel[data-overlay-active="true"] {
   --tw-panel-active-color-opacity: var(
     --tw-panel-hover-color-opacity,
     var(--tw-panel-color-opacity)
@@ -193,12 +194,94 @@
   background: transparent;
 }
 
+.tw-row__label-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .tw-row__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--tw-muted);
+}
+
+.tw-row__label-text {
   min-width: 0;
   overflow: hidden;
-  color: var(--tw-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tw-tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  color: var(--tw-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: help;
+}
+
+.tw-tooltip-trigger:hover,
+.tw-tooltip-trigger[data-hovered] {
+  color: var(--tw-text);
+  background-color: var(--tw-control-hover-bg);
+}
+
+.tw-tooltip-trigger[data-focus-visible] {
+  outline: 2px solid var(--tw-accent);
+  outline-offset: 1px;
+}
+
+.tw-tooltip {
+  max-width: min(240px, calc(100vw - 24px));
+  padding: 8px 10px;
+  color: #f1f4f2;
+  background-color: rgb(24 26 27 / 0.96);
+  border: 1px solid var(--tw-border-strong);
+  border-radius: 6px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.34);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+  outline: none;
+  transform: translate3d(0, 0, 0);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.tw-tooltip[data-entering],
+.tw-tooltip[data-exiting] {
+  opacity: 0;
+  transform: translateX(-3px);
+}
+
+.tw-tooltip .react-aria-OverlayArrow svg {
+  display: block;
+  fill: rgb(24 26 27 / 0.96);
+  stroke: var(--tw-border-strong);
+  transform: rotate(90deg);
+}
+
+.tw-tooltip__content {
+  display: grid;
+  gap: 5px;
+  color: var(--tw-tooltip-foreground, inherit);
+}
+
+.tw-tooltip__content strong {
+  color: var(--tw-accent-strong);
+  font-weight: 700;
 }
 
 .tw-grip {

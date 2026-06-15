@@ -32,6 +32,45 @@ test("programmatic setter updates the panel and preview", async ({ page }) => {
   await expect(page.getByRole("group", { name: "Speed" }).getByRole("slider")).toHaveValue("1.25");
 });
 
+test("shows rich control tooltips from label helper icons", async ({ page }) => {
+  const inlineGap = await page.getByTestId("control-speed").evaluate((row) => {
+    const text = row.querySelector(".tw-row__label-text");
+    const trigger = row.querySelector(".tw-tooltip-trigger");
+    if (!text || !trigger) return null;
+    return Math.round(trigger.getBoundingClientRect().left - text.getBoundingClientRect().right);
+  });
+  expect(inlineGap).not.toBeNull();
+  expect(inlineGap).toBeLessThanOrEqual(5);
+
+  await page.getByRole("button", { name: "About Speed" }).focus();
+
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toContainText("Animation speed");
+  await expect(tooltip).toContainText("Higher values shorten the preview loop duration.");
+  await expect(tooltip.locator(".tw-tooltip__content")).toHaveCSS("color", "rgb(213, 244, 255)");
+});
+
+test("keeps panel effects active while hovering tooltip content", async ({ page }) => {
+  const panel = page.getByTestId("tweaker-panel");
+  const trigger = page.getByRole("button", { name: "About Speed" });
+  const tooltip = page.getByRole("tooltip");
+
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
+  await trigger.hover();
+  await expect(tooltip).toBeVisible();
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.95)");
+
+  const tooltipBox = await tooltip.boundingBox();
+  expect(tooltipBox).not.toBeNull();
+  await page.mouse.move(
+    tooltipBox!.x + tooltipBox!.width / 2,
+    tooltipBox!.y + tooltipBox!.height / 2,
+  );
+
+  await expect(tooltip).toBeVisible();
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.95)");
+});
+
 test("collapses and persists panel state", async ({ page }) => {
   await page.getByRole("button", { name: "Collapse panel" }).click();
 

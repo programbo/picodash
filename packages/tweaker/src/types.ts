@@ -6,35 +6,36 @@ export type ControlKind = "number" | "slider" | "select" | "checkbox";
 export type StaleMode = "ignore" | "prune";
 export type Placement = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
-export interface NumberControl {
+interface ControlMetadata {
+  label?: string;
+  tooltip?: ReactNode;
+}
+
+export interface NumberControl extends ControlMetadata {
   type?: "number";
   value: number;
   min?: number;
   max?: number;
   step?: number;
-  label?: string;
 }
 
-export interface SliderControl {
+export interface SliderControl extends ControlMetadata {
   type: "slider";
   value: number;
   min: number;
   max: number;
   step?: number;
-  label?: string;
 }
 
-export interface SelectControl<T extends string = string> {
+export interface SelectControl<T extends string = string> extends ControlMetadata {
   type: "select";
   value: T;
   options: readonly T[] | Record<string, T>;
-  label?: string;
 }
 
-export interface CheckboxControl {
+export interface CheckboxControl extends ControlMetadata {
   type?: "checkbox";
   value: boolean;
-  label?: string;
 }
 
 export type ControlConfig =
@@ -78,8 +79,10 @@ export interface NormalizedControl {
   hoverOpacity?: number;
   backgroundBlur?: number;
   hoverBackgroundBlur?: number;
+  tooltipForeground?: string;
   kind: ControlKind;
   label: string;
+  tooltip?: ReactNode;
   value: PrimitiveValue;
   defaultValue: PrimitiveValue;
   min?: number;
@@ -115,6 +118,7 @@ export interface RegisterOptions {
   hoverOpacity?: number;
   backgroundBlur?: number;
   hoverBackgroundBlur?: number;
+  tooltipForeground?: string;
 }
 
 export interface TweakerStoreOptions {

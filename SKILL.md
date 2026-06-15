@@ -29,12 +29,17 @@ Wrap the app once with `TweakerProvider`. Always provide a stable `storeId`; it 
 
 ## Register Controls
 
-Call `useTweaker(schema, { section, sortable, opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur })` inside React components. It returns `[values, setValue]`. `sortable` defaults to `true`; panel effect settings are optional and apply to panel surface colors and backdrop blur.
+Call `useTweaker(schema, { section, sortable, opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur, tooltipForeground })` inside React components. It returns `[values, setValue]`. `sortable` defaults to `true`; panel effect settings are optional and apply to panel surface colors, backdrop blur, and default tooltip foreground color.
 
 ```tsx
 const [values, setValue] = useTweaker(
   {
-    speed: { value: 0.75, min: 0, max: 2 },
+    speed: {
+      value: 0.75,
+      min: 0,
+      max: 2,
+      tooltip: <>Higher values shorten the animation loop.</>,
+    },
     exposure: { type: "number", value: 1, min: 0, max: 4 },
     mode: { type: "select", value: "fast", options: ["fast", "quality"] },
     enabled: { value: true },
@@ -46,6 +51,7 @@ const [values, setValue] = useTweaker(
     hoverOpacity: 0.85,
     backgroundBlur: 0,
     hoverBackgroundBlur: 4,
+    tooltipForeground: "#d5f4ff",
   },
 );
 ```
@@ -53,9 +59,11 @@ const [values, setValue] = useTweaker(
 ## Constraints
 
 - Supported controls are numbers, sliders, selects, and checkboxes.
+- Object-shaped controls support `tooltip` as plain text or React content beside the label.
 - Min/max numeric shorthand becomes a slider.
 - Use explicit `type: "number"` for bounded number inputs.
 - Pass `sortable: false` in hook options when a section registration should not be draggable.
-- Pass `opacity`, `hoverOpacity`, `backgroundBlur`, and `hoverBackgroundBlur` in hook options to animate panel surface color opacity and backdrop blur on hover or focus-within.
+- Pass `opacity`, `hoverOpacity`, `backgroundBlur`, and `hoverBackgroundBlur` in hook options to animate panel surface color opacity and backdrop blur on hover, focus-within, or open tooltip state.
+- Pass `tooltipForeground` in hook options to set the default tooltip content color.
 - Reordering is section-local and starts from the grip handle.
 - The package ships a dark CSS-variable theme first; customize by overriding CSS variables around the panel.

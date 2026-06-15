@@ -54,6 +54,7 @@ export function normalizePanelEffects(options: RegisterOptions) {
     hoverOpacity: normalizeOpacity(options.hoverOpacity),
     backgroundBlur: normalizeBlur(options.backgroundBlur),
     hoverBackgroundBlur: normalizeBlur(options.hoverBackgroundBlur),
+    tooltipForeground: options.tooltipForeground,
   };
 }
 
@@ -66,12 +67,14 @@ function controlBase(
   hoverOpacity?: number,
   backgroundBlur?: number,
   hoverBackgroundBlur?: number,
+  tooltipForeground?: string,
 ) {
   const effects = normalizePanelEffects({
     opacity,
     hoverOpacity,
     backgroundBlur,
     hoverBackgroundBlur,
+    tooltipForeground,
   });
 
   return {
@@ -93,6 +96,7 @@ export function normalizeControl(
   hoverOpacity?: number,
   backgroundBlur?: number,
   hoverBackgroundBlur?: number,
+  tooltipForeground?: string,
 ): NormalizedControl {
   const fallbackLabel = labelFromKey(key);
   const base = controlBase(
@@ -104,6 +108,7 @@ export function normalizeControl(
     hoverOpacity,
     backgroundBlur,
     hoverBackgroundBlur,
+    tooltipForeground,
   );
 
   if (typeof config === "number") {
@@ -142,6 +147,7 @@ export function normalizeControl(
       ...base,
       kind: "select",
       label: config.label ?? fallbackLabel,
+      tooltip: config.tooltip,
       value: config.value,
       defaultValue: config.value,
       options: normalizeOptions(config.options),
@@ -153,6 +159,7 @@ export function normalizeControl(
       ...base,
       kind: "checkbox",
       label: config.label ?? fallbackLabel,
+      tooltip: config.tooltip,
       value: config.value,
       defaultValue: config.value,
     };
@@ -167,6 +174,7 @@ export function normalizeControl(
     ...base,
     kind,
     label: config.label ?? fallbackLabel,
+    tooltip: config.tooltip,
     value: config.value,
     defaultValue: config.value,
     min: config.min,

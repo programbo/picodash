@@ -1,12 +1,13 @@
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers";
 import { RestrictToElement } from "@dnd-kit/dom/modifiers";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { GripVertical } from "lucide-react";
-import { type PointerEvent, type RefObject, useRef } from "react";
-import { Button } from "react-aria-components";
+import { CircleHelp, GripVertical } from "lucide-react";
+import { type PointerEvent, type RefObject, useEffect, useRef, useState } from "react";
+import { Button, OverlayArrow, Tooltip, TooltipTrigger } from "react-aria-components";
 import { useTweakerSelector } from "../react/context.js";
 import type { NormalizedControl } from "../types.js";
 import { ControlInput } from "./control-input.js";
+import { usePanelEffectStyle, usePanelOverlayActivity } from "./panel-effects-context.js";
 
 interface SortableControlProps {
   control: NormalizedControl;
@@ -25,6 +26,10 @@ export function SortableControl({
 }: SortableControlProps) {
   const setValue = useTweakerSelector((state) => state.setValue);
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null);
+  const tooltipCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const panelEffectStyle = usePanelEffectStyle();
+  const setPanelOverlayActive = usePanelOverlayActivity();
   const labelId = `${control.id}:label`;
   const { ref, handleRef, isDragging } = useSortable({
     id: control.id,
@@ -37,6 +42,36 @@ export function SortableControl({
       RestrictToElement.configure({ element: () => listRef.current }),
     ],
   });
+
+  function clearTooltipCloseTimer() {
+    if (!tooltipCloseTimerRef.current) return;
+    clearTimeout(tooltipCloseTimerRef.current);
+    tooltipCloseTimerRef.current = null;
+  }
+
+  function openTooltip() {
+    clearTooltipCloseTimer();
+    setTooltipOpen(true);
+    setPanelOverlayActive(true);
+  }
+
+  function closeTooltip() {
+    clearTooltipCloseTimer();
+    setTooltipOpen(false);
+    setPanelOverlayActive(false);
+  }
+
+  function queueTooltipClose() {
+    clearTooltipCloseTimer();
+    tooltipCloseTimerRef.current = setTimeout(closeTooltip, 180);
+  }
+
+  useEffect(() => {
+    return () => {
+      clearTooltipCloseTimer();
+      setPanelOverlayActive(false);
+    };
+  }, [setPanelOverlayActive]);
 
   return (
     <div
@@ -95,9 +130,50 @@ export function SortableControl({
       >
         <GripVertical size={14} />
       </Button>
-      <label id={labelId} className="tw-row__label" htmlFor={control.id}>
-        {control.label}
-      </label>
+      <div className="tw-row__label-cell">
+        <label id={labelId} className="tw-row__label" htmlFor={control.id}>
+          <span className="tw-row__label-text">{control.label}</span>
+        </label>
+        {control.tooltip ? (
+          <TooltipTrigger
+            delay={0}
+            closeDelay={250}
+            isOpen={tooltipOpen}
+            onOpenChange={(open) => {
+              if (open) {
+                openTooltip();
+              } else {
+                queueTooltipClose();
+              }
+            }}
+          >
+            <Button
+              className="tw-tooltip-trigger"
+              type="button"
+              aria-label={`About ${control.label}`}
+              onPointerEnter={openTooltip}
+              onPointerLeave={queueTooltipClose}
+            >
+              <CircleHelp size={12} />
+            </Button>
+            <Tooltip
+              className="tw-tooltip"
+              placement="right"
+              onPointerEnter={openTooltip}
+              onPointerLeave={queueTooltipClose}
+            >
+              <OverlayArrow>
+                <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden>
+                  <path d="M0 0 L4 4 L8 0" />
+                </svg>
+              </OverlayArrow>
+              <div className="tw-tooltip__content" style={panelEffectStyle}>
+                {control.tooltip}
+              </div>
+            </Tooltip>
+          </TooltipTrigger>
+        ) : null}
+      </div>
       <ControlInput
         control={control}
         labelId={labelId}
