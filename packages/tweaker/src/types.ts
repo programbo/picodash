@@ -86,6 +86,7 @@ export interface NormalizedControl {
   max?: number;
   step?: number;
   options?: Array<{ label: string; value: string }>;
+  renderControlFooter?: (control: NormalizedControl) => ReactNode;
 }
 
 export type DockEdge = "top" | "right" | "bottom" | "left";
@@ -115,6 +116,7 @@ export interface RegisterOptions {
   hoverOpacity?: number;
   backgroundBlur?: number;
   hoverBackgroundBlur?: number;
+  renderControlFooter?: (control: NormalizedControl) => ReactNode;
 }
 
 export interface TweakerStoreOptions {

@@ -39,6 +39,10 @@ function Demo() {
   const [dimmed, setDimmed] = useState(true);
   const [rendering, setRendering] = useTweaker(renderingSchema, {
     section: "Rendering",
+    renderControlFooter: (control) =>
+      control.key === "exposure" ? (
+        <span data-testid="exposure-footer">EV {Number(control.value).toFixed(1)}</span>
+      ) : null,
   });
   const [material] = useTweaker(materialSchema, { section: "Material" });
   const [build] = useTweaker(buildSchema, {

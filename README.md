@@ -29,6 +29,8 @@ function SceneControls() {
       hoverOpacity: 0.85,
       backgroundBlur: 0,
       hoverBackgroundBlur: 4,
+      renderControlFooter: (control) =>
+        control.key === "exposure" ? <span>EV {Number(control.value).toFixed(1)}</span> : null,
     },
   );
 
@@ -56,6 +58,17 @@ export function App() {
 Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs.
 
 Pass `sortable: false` in the hook options to keep a registration fixed in place.
+Use `renderControlFooter` to render additional React content under any registered control. The
+render prop receives the live normalized control and is not persisted:
+
+```tsx
+useTweaker(schema, {
+  section: "Rendering",
+  renderControlFooter: (control) =>
+    control.key === "exposure" ? <span>EV {Number(control.value).toFixed(1)}</span> : null,
+});
+```
+
 Use panel effect options to change panel surface color opacity and increase background blur when the user hovers it or focuses a control:
 
 ```tsx

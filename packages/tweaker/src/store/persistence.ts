@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { PersistStorage } from "zustand/middleware";
+import type { PersistStorage } from "zustand/middleware/persist";
 import type { PersistedState } from "../types.js";
 
 export const storagePrefix = "tweaker:";

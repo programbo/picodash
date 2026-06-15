@@ -7,5 +7,6 @@ import { TweakerPanel, TweakerProvider, useTweaker } from "tweaker";
 import "tweaker/style.css";
 ```
 
-Hook options support `section`, `sortable`, `opacity`, `hoverOpacity`, `backgroundBlur`, and `hoverBackgroundBlur`.
+Hook options support `section`, `sortable`, `opacity`, `hoverOpacity`, `backgroundBlur`,
+`hoverBackgroundBlur`, and `renderControlFooter`.
 See the root README and `apps/website` demo for full usage.

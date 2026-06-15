@@ -201,6 +201,12 @@
   white-space: nowrap;
 }
 
+.tw-row__footer {
+  grid-column: 2 / -1;
+  min-width: 0;
+  color: var(--tw-muted);
+}
+
 .tw-grip {
   width: 22px;
   cursor: grab;

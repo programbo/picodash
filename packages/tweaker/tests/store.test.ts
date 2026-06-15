@@ -153,6 +153,30 @@ describe("TweakerStore", () => {
     expect(store.getState().controls[0]?.sortable).toBe(false);
   });
 
+  it("updates hook-level control footer renderers without changing values or order", () => {
+    const store = createTweakerStore({ storeId: "footer", stale: "ignore" });
+    const schema = { exposure: 1, bloom: true } satisfies TweakerSchema;
+    const renderControlFooter = vi.fn(() => null);
+
+    store.getState().register(schema, { section: "Rendering" });
+    store.getState().setValue("footer:Rendering:exposure", 2);
+    store
+      .getState()
+      .setSectionOrder("Rendering", ["footer:Rendering:bloom", "footer:Rendering:exposure"]);
+    store.getState().updatePanelEffects(schema, {
+      section: "Rendering",
+      renderControlFooter,
+    });
+
+    expect(store.getState().values["footer:Rendering:exposure"]).toBe(2);
+    expect(store.getState().order.Rendering).toEqual([
+      "footer:Rendering:bloom",
+      "footer:Rendering:exposure",
+    ]);
+    expect(store.getState().controls[0]?.renderControlFooter).toBe(renderControlFooter);
+    expect(store.getState().controls[1]?.renderControlFooter).toBe(renderControlFooter);
+  });
+
   it("stores clamped hook-level panel effect metadata on registered controls", () => {
     const store = createTweakerStore({ storeId: "opacity", stale: "ignore" });
     store.getState().register(

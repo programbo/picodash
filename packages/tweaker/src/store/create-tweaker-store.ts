@@ -61,6 +61,7 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.hoverOpacity === rightControl.hoverOpacity &&
       leftControl.backgroundBlur === rightControl.backgroundBlur &&
       leftControl.hoverBackgroundBlur === rightControl.hoverBackgroundBlur &&
+      leftControl.renderControlFooter === rightControl.renderControlFooter &&
       leftControl.kind === rightControl.kind &&
       leftControl.label === rightControl.label &&
       leftControl.value === rightControl.value &&
@@ -155,6 +156,7 @@ export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): Twe
             Object.keys(schema).map((key) => createControlId(storeId, section, key)),
           );
           const effects = normalizePanelEffects(options);
+          const { renderControlFooter } = options;
 
           set((state) => {
             let changed = false;
@@ -164,13 +166,14 @@ export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): Twe
                 control.opacity === effects.opacity &&
                 control.hoverOpacity === effects.hoverOpacity &&
                 control.backgroundBlur === effects.backgroundBlur &&
-                control.hoverBackgroundBlur === effects.hoverBackgroundBlur
+                control.hoverBackgroundBlur === effects.hoverBackgroundBlur &&
+                control.renderControlFooter === renderControlFooter
               ) {
                 return control;
               }
 
               changed = true;
-              return { ...control, ...effects };
+              return { ...control, ...effects, renderControlFooter };
             });
 
             if (!changed) return state;

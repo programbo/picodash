@@ -32,6 +32,15 @@ test("programmatic setter updates the panel and preview", async ({ page }) => {
   await expect(page.getByRole("group", { name: "Speed" }).getByRole("slider")).toHaveValue("1.25");
 });
 
+test("renders control footers from hook config with live control values", async ({ page }) => {
+  await expect(page.getByTestId("exposure-footer")).toHaveText("EV 1.0");
+
+  await page.getByRole("textbox", { name: "Exposure" }).fill("2.5");
+  await page.getByRole("textbox", { name: "Exposure" }).press("Enter");
+
+  await expect(page.getByTestId("exposure-footer")).toHaveText("EV 2.5");
+});
+
 test("collapses and persists panel state", async ({ page }) => {
   await page.getByRole("button", { name: "Collapse panel" }).click();
 

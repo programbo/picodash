@@ -29,7 +29,7 @@ Wrap the app once with `TweakerProvider`. Always provide a stable `storeId`; it 
 
 ## Register Controls
 
-Call `useTweaker(schema, { section, sortable, opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur })` inside React components. It returns `[values, setValue]`. `sortable` defaults to `true`; panel effect settings are optional and apply to panel surface colors and backdrop blur.
+Call `useTweaker(schema, { section, sortable, opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur, renderControlFooter })` inside React components. It returns `[values, setValue]`. `sortable` defaults to `true`; panel effect settings are optional and apply to panel surface colors and backdrop blur. `renderControlFooter` can render non-persisted React content under each live control.
 
 ```tsx
 const [values, setValue] = useTweaker(
@@ -46,6 +46,8 @@ const [values, setValue] = useTweaker(
     hoverOpacity: 0.85,
     backgroundBlur: 0,
     hoverBackgroundBlur: 4,
+    renderControlFooter: (control) =>
+      control.key === "exposure" ? <span>EV {Number(control.value).toFixed(1)}</span> : null,
   },
 );
 ```
@@ -57,5 +59,6 @@ const [values, setValue] = useTweaker(
 - Use explicit `type: "number"` for bounded number inputs.
 - Pass `sortable: false` in hook options when a section registration should not be draggable.
 - Pass `opacity`, `hoverOpacity`, `backgroundBlur`, and `hoverBackgroundBlur` in hook options to animate panel surface color opacity and backdrop blur on hover or focus-within.
+- Pass `renderControlFooter` in hook options to render non-persisted React content below each registered control.
 - Reordering is section-local and starts from the grip handle.
 - The package ships a dark CSS-variable theme first; customize by overriding CSS variables around the panel.

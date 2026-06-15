@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { defaultSection, defaultValueForControl } from "../control.js";
 import type {
@@ -52,10 +52,18 @@ export function useTweaker<T extends TweakerSchema>(
   const store = useTweakerStoreApi();
   const section = options.section ?? defaultSection;
   const sortable = options.sortable ?? true;
-  const { opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur } = options;
+  const { opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur, renderControlFooter } =
+    options;
+  const renderControlFooterRef = useRef(renderControlFooter);
   const controls = useStore(store, (state) => state.controls);
   const valuesById = useStore(store, (state) => state.values);
   const schemaSignature = stableStringify(schema);
+  renderControlFooterRef.current = renderControlFooter;
+  const stableRenderControlFooter = useCallback(
+    (control: NormalizedControl) => renderControlFooterRef.current?.(control),
+    [],
+  );
+  const controlFooterRenderer = renderControlFooter ? stableRenderControlFooter : undefined;
 
   useEffect(
     () => store.getState().register(schema, { section, sortable }),
@@ -70,8 +78,18 @@ export function useTweaker<T extends TweakerSchema>(
         hoverOpacity,
         backgroundBlur,
         hoverBackgroundBlur,
+        renderControlFooter: controlFooterRenderer,
       }),
-    [store, schemaSignature, section, opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur],
+    [
+      store,
+      schemaSignature,
+      section,
+      opacity,
+      hoverOpacity,
+      backgroundBlur,
+      hoverBackgroundBlur,
+      controlFooterRenderer,
+    ],
   );
 
   const values = useMemo(() => {

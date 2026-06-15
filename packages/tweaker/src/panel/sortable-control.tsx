@@ -26,6 +26,7 @@ export function SortableControl({
   const setValue = useTweakerSelector((state) => state.setValue);
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null);
   const labelId = `${control.id}:label`;
+  const footer = control.renderControlFooter?.(control);
   const { ref, handleRef, isDragging } = useSortable({
     id: control.id,
     index,
@@ -103,6 +104,7 @@ export function SortableControl({
         labelId={labelId}
         onChange={(value) => setValue(control.id, value)}
       />
+      {footer ? <div className="tw-row__footer">{footer}</div> : null}
     </div>
   );
 }
