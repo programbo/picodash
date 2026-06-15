@@ -5,9 +5,9 @@ import "tweaker/style.css";
 import "./style.css";
 
 const renderingSchema = {
-  speed: { value: 0.72, min: 0, max: 2, step: 0.01, label: "Speed" },
-  exposure: { type: "number", value: 1, min: 0, max: 4, step: 0.1 },
-  bloom: { type: "checkbox", value: true, label: "Bloom" },
+  speed: { value: 0.72, min: 0, max: 2, step: 0.01, label: "Speed", status: "info" },
+  exposure: { type: "number", value: 1, min: 0, max: 4, step: 0.1, status: "alert" },
+  bloom: { type: "checkbox", value: true, label: "Bloom", status: "error" },
 } satisfies TweakerSchema;
 
 const materialSchema = {

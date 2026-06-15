@@ -34,7 +34,7 @@ Call `useTweaker(schema, { section, sortable, opacity, hoverOpacity, backgroundB
 ```tsx
 const [values, setValue] = useTweaker(
   {
-    speed: { value: 0.75, min: 0, max: 2 },
+    speed: { value: 0.75, min: 0, max: 2, status: "info" },
     exposure: { type: "number", value: 1, min: 0, max: 4 },
     mode: { type: "select", value: "fast", options: ["fast", "quality"] },
     enabled: { value: true },
@@ -55,6 +55,7 @@ const [values, setValue] = useTweaker(
 - Supported controls are numbers, sliders, selects, and checkboxes.
 - Min/max numeric shorthand becomes a slider.
 - Use explicit `type: "number"` for bounded number inputs.
+- Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row states.
 - Pass `sortable: false` in hook options when a section registration should not be draggable.
 - Pass `opacity`, `hoverOpacity`, `backgroundBlur`, and `hoverBackgroundBlur` in hook options to animate panel surface color opacity and backdrop blur on hover or focus-within.
 - Reordering is section-local and starts from the grip handle.

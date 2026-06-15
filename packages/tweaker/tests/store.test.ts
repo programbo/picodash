@@ -6,7 +6,11 @@ import {
   type TweakerSchema,
 } from "../src/index.js";
 import { defaultValueForControl } from "../src/control.js";
-import { resolveTweakerValues } from "../src/react/use-tweaker.js";
+import {
+  registrationSignatureForSchema,
+  resolveTweakerValues,
+  statusSignatureForSchema,
+} from "../src/react/use-tweaker.js";
 
 class MemoryStorage {
   private values = new Map<string, string>();
@@ -54,6 +58,29 @@ describe("normalizeControl", () => {
       { label: "Orb", value: "orb" },
       { label: "Prism", value: "prism" },
     ]);
+  });
+
+  it("normalizes status metadata on object controls", () => {
+    const info = normalizeControl("demo", "Rendering", "speed", {
+      value: 0.5,
+      min: 0,
+      max: 1,
+      status: "info",
+    });
+    const alert = normalizeControl("demo", "Rendering", "exposure", {
+      type: "number",
+      value: 1,
+      status: "alert",
+    });
+    const error = normalizeControl("demo", "Rendering", "bloom", {
+      type: "checkbox",
+      value: true,
+      status: "error",
+    });
+
+    expect(info.status).toBe("info");
+    expect(alert.status).toBe("alert");
+    expect(error.status).toBe("error");
   });
 });
 
@@ -119,6 +146,20 @@ describe("resolveTweakerValues", () => {
     );
 
     expect(values).toEqual({ exposure: 2 });
+  });
+});
+
+describe("schema signatures", () => {
+  it("keeps status changes out of the registration signature", () => {
+    const base = {
+      speed: { value: 1, min: 0, max: 2, status: "info" },
+    } satisfies TweakerSchema;
+    const next = {
+      speed: { value: 1, min: 0, max: 2, status: "error" },
+    } satisfies TweakerSchema;
+
+    expect(registrationSignatureForSchema(base)).toBe(registrationSignatureForSchema(next));
+    expect(statusSignatureForSchema(base)).not.toBe(statusSignatureForSchema(next));
   });
 });
 
@@ -213,6 +254,21 @@ describe("TweakerStore", () => {
     store.getState().register({ speed: { value: 1, min: 0, max: 2 } }, { section: "Rendering" });
 
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("updates control status without pruning values or order", () => {
+    const store = createTweakerStore({ storeId: "status-change", stale: "prune" });
+
+    store.getState().register({ speed: { value: 1, status: "info" } }, { section: "Rendering" });
+    store.getState().setValue("status-change:Rendering:speed", 1.5);
+    store.getState().setSectionOrder("Rendering", ["status-change:Rendering:speed"]);
+    store
+      .getState()
+      .updateControlStatuses({ speed: { value: 1, status: "error" } }, { section: "Rendering" });
+
+    expect(store.getState().values["status-change:Rendering:speed"]).toBe(1.5);
+    expect(store.getState().order.Rendering).toEqual(["status-change:Rendering:speed"]);
+    expect(store.getState().controls[0]?.status).toBe("error");
   });
 
   it("preserves later-section persisted values during partial prune registration", () => {

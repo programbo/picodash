@@ -11,6 +11,11 @@
   --tw-row-bg: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.025));
   --tw-row-hover-bg: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.055));
   --tw-row-hover-border: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.04));
+  --tw-row-status-bg: var(--tw-row-bg);
+  --tw-row-status-hover-bg: var(--tw-row-hover-bg);
+  --tw-row-status-border: var(--tw-row-hover-border);
+  --tw-row-status-outline: transparent;
+  --tw-row-status-accent: transparent;
   --tw-control-hover-bg: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.08));
   --tw-text: #f1f4f2;
   --tw-muted: #9aa39d;
@@ -154,23 +159,61 @@
 .tw-row {
   @apply grid min-h-7.5 items-center gap-1.75 py-0.75 pr-1.25 pl-0.5;
 
-  background-color: var(--tw-row-bg);
+  background-color: var(--tw-row-status-bg);
   border: 1px solid transparent;
+  border-left-color: var(--tw-row-status-accent);
   border-radius: 5px;
   grid-template-columns: 22px minmax(70px, 0.9fr) minmax(116px, 1.2fr);
+  outline: 1px solid var(--tw-row-status-outline);
+  outline-offset: -1px;
   transition:
     background-color 160ms ease,
-    border-color 160ms ease;
+    border-color 160ms ease,
+    outline-color 160ms ease;
 }
 
 .tw-row:hover {
-  background-color: var(--tw-row-hover-bg);
-  border-color: var(--tw-row-hover-border);
+  background-color: var(--tw-row-status-hover-bg);
+  border-color: var(--tw-row-status-border, var(--tw-row-hover-border));
+  border-left-color: var(--tw-row-status-accent);
 }
 
 .tw-row.is-dragging {
   background-color: rgb(155 209 111 / 0.11);
   border-color: rgb(155 209 111 / 0.32);
+}
+
+.tw-row--info {
+  --tw-row-status-bg: rgb(59 130 246 / 0.1);
+  --tw-row-status-hover-bg: rgb(59 130 246 / 0.16);
+  --tw-row-status-border: rgb(96 165 250 / 0.28);
+  --tw-row-status-outline: rgb(96 165 250 / 0.22);
+  --tw-row-status-accent: rgb(96 165 250 / 0.8);
+
+  border-color: var(--tw-row-status-border);
+  border-left-width: 3px;
+}
+
+.tw-row--alert {
+  --tw-row-status-bg: rgb(245 158 11 / 0.11);
+  --tw-row-status-hover-bg: rgb(245 158 11 / 0.17);
+  --tw-row-status-border: rgb(251 191 36 / 0.3);
+  --tw-row-status-outline: rgb(251 191 36 / 0.24);
+  --tw-row-status-accent: rgb(251 191 36 / 0.85);
+
+  border-color: var(--tw-row-status-border);
+  border-left-width: 3px;
+}
+
+.tw-row--error {
+  --tw-row-status-bg: rgb(239 68 68 / 0.1);
+  --tw-row-status-hover-bg: rgb(239 68 68 / 0.16);
+  --tw-row-status-border: rgb(248 113 113 / 0.3);
+  --tw-row-status-outline: rgb(248 113 113 / 0.24);
+  --tw-row-status-accent: rgb(248 113 113 / 0.85);
+
+  border-color: var(--tw-row-status-border);
+  border-left-width: 3px;
 }
 
 .tw-row.is-not-sortable .tw-grip {
