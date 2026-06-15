@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import { dockToPosition, nearestDock } from "../src/panel/position.js";
+import {
+  clampPosition,
+  dockToPosition,
+  nearestDock,
+  placementToPosition,
+} from "../src/panel/position.js";
 
 function panel(width: number, height: number) {
   return {
@@ -32,6 +37,15 @@ describe("panel docking position", () => {
     ).toEqual({
       x: 480,
       y: 480,
+    });
+  });
+
+  it("clamps placement positions to the viewport", () => {
+    vi.stubGlobal("window", { innerWidth: 280, innerHeight: 180 });
+
+    expect(clampPosition(placementToPosition("top-right", 280, 180), null)).toEqual({
+      x: 0,
+      y: 16,
     });
   });
 });
