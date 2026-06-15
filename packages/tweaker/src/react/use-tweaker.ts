@@ -37,7 +37,8 @@ export function useTweaker<T extends TweakerSchema>(
   const store = useTweakerStoreApi();
   const section = options.section ?? defaultSection;
   const sortable = options.sortable ?? true;
-  const state = useStore(store);
+  const controls = useStore(store, (state) => state.controls);
+  const valuesById = useStore(store, (state) => state.values);
 
   useEffect(
     () => store.getState().register(schema, { section, sortable }),
@@ -48,11 +49,11 @@ export function useTweaker<T extends TweakerSchema>(
     return resolveTweakerValues(
       schema,
       section,
-      state.controls,
-      state.values,
+      controls,
+      valuesById,
       store.getState().getControlId,
     );
-  }, [schema, section, state.controls, state.values, store]);
+  }, [schema, section, controls, valuesById, store]);
 
   const setValue = useCallback<SetTweakerValue<T>>(
     (key, value) => {

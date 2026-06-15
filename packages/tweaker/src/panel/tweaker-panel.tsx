@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useTweakerSnapshot, useTweakerStore } from "../react/context.js";
+import { useTweakerSelector } from "../react/context.js";
 import type { Placement } from "../types.js";
 import { moveItem, orderControls } from "./order.js";
 import {
@@ -31,8 +31,16 @@ export function TweakerPanel({
   placement = "top-right",
   title = "Tweaker",
 }: TweakerPanelProps) {
-  const store = useTweakerStore();
-  const snapshot = useTweakerSnapshot();
+  const collapsed = useTweakerSelector((state) => state.collapsed);
+  const controls = useTweakerSelector((state) => state.controls);
+  const dock = useTweakerSelector((state) => state.dock);
+  const order = useTweakerSelector((state) => state.order);
+  const sectionOrder = useTweakerSelector((state) => state.sectionOrder);
+  const resetOrder = useTweakerSelector((state) => state.resetOrder);
+  const resetValues = useTweakerSelector((state) => state.resetValues);
+  const setCollapsed = useTweakerSelector((state) => state.setCollapsed);
+  const setDock = useTweakerSelector((state) => state.setDock);
+  const setSectionOrder = useTweakerSelector((state) => state.setSectionOrder);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
     startX: number;
@@ -44,14 +52,14 @@ export function TweakerPanel({
   const position = useMemo(() => {
     if (typeof window === "undefined") return { x: 16, y: 16 };
     if (freePosition) return clampPosition(freePosition, panelRef.current);
-    if (snapshot.dock) {
+    if (dock) {
       return clampPosition(
-        dockToPosition(snapshot.dock, window.innerWidth, window.innerHeight),
+        dockToPosition(dock, window.innerWidth, window.innerHeight),
         panelRef.current,
       );
     }
     return placementToPosition(placement, window.innerWidth, window.innerHeight);
-  }, [freePosition, placement, snapshot.dock]);
+  }, [dock, freePosition, placement]);
 
   function handlePanelPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     const element = panelRef.current;
@@ -84,9 +92,9 @@ export function TweakerPanel({
     event.currentTarget.releasePointerCapture(event.pointerId);
     if (!drag || !element) return;
 
-    const dock = nearestDock(position, element);
-    store.setDock(dock);
-    if (dock) {
+    const nextDock = nearestDock(position, element);
+    setDock(nextDock);
+    if (nextDock) {
       setFreePosition(null);
     }
   }
@@ -98,12 +106,12 @@ export function TweakerPanel({
     if (!source || !target || source.group !== target.group) return;
 
     const section = String(source.group);
-    const controls = orderControls(snapshot.controls, section, snapshot.order);
-    const ids = controls.map((control) => control.id);
+    const sectionControls = orderControls(controls, section, order);
+    const ids = sectionControls.map((control) => control.id);
     const from = ids.indexOf(String(source.id));
     const to = ids.indexOf(String(target.id));
     if (from < 0 || to < 0 || from === to) return;
-    store.setSectionOrder(section, moveItem(ids, from, to));
+    setSectionOrder(section, moveItem(ids, from, to));
   }
 
   const style = {
@@ -114,7 +122,7 @@ export function TweakerPanel({
   return (
     <aside
       ref={panelRef}
-      className={`tw-panel ${snapshot.collapsed ? "is-collapsed" : ""} ${className}`}
+      className={`tw-panel ${collapsed ? "is-collapsed" : ""} ${className}`}
       style={style}
       data-testid="tweaker-panel"
     >
@@ -127,11 +135,11 @@ export function TweakerPanel({
         <button
           className="tw-icon-button"
           type="button"
-          aria-label={snapshot.collapsed ? "Expand panel" : "Collapse panel"}
+          aria-label={collapsed ? "Expand panel" : "Collapse panel"}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => store.setCollapsed(!snapshot.collapsed)}
+          onClick={() => setCollapsed(!collapsed)}
         >
-          {snapshot.collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+          {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
         </button>
         <strong>{title}</strong>
         <button
@@ -140,7 +148,7 @@ export function TweakerPanel({
           aria-label="Reset values"
           title="Reset values"
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => store.resetValues()}
+          onClick={() => resetValues()}
         >
           <RotateCcw size={14} />
         </button>
@@ -148,20 +156,20 @@ export function TweakerPanel({
           className="tw-text-button"
           type="button"
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => store.resetOrder()}
+          onClick={() => resetOrder()}
         >
           Order
         </button>
       </div>
 
-      {!snapshot.collapsed && (
+      {!collapsed && (
         <DragDropProvider onDragEnd={handleDragEnd}>
           <div className="tw-panel__body">
-            {snapshot.sectionOrder.map((section) => (
+            {sectionOrder.map((section) => (
               <TweakerSection
                 key={section}
                 section={section}
-                controls={orderControls(snapshot.controls, section, snapshot.order)}
+                controls={orderControls(controls, section, order)}
               />
             ))}
           </div>

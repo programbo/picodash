@@ -3,7 +3,7 @@ import { RestrictToElement } from "@dnd-kit/dom/modifiers";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { GripVertical } from "lucide-react";
 import { type PointerEvent, type RefObject, useRef } from "react";
-import { useTweakerStore } from "../react/context.js";
+import { useTweakerSelector } from "../react/context.js";
 import type { NormalizedControl } from "../types.js";
 import { ControlInput } from "./control-input.js";
 
@@ -22,7 +22,7 @@ export function SortableControl({
   onKeyboardMove,
   onPointerMove,
 }: SortableControlProps) {
-  const store = useTweakerStore();
+  const setValue = useTweakerSelector((state) => state.setValue);
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null);
   const { ref, handleRef, isDragging } = useSortable({
     id: control.id,
@@ -96,7 +96,7 @@ export function SortableControl({
       <label className="tw-row__label" htmlFor={control.id}>
         {control.label}
       </label>
-      <ControlInput control={control} onChange={(value) => store.setValue(control.id, value)} />
+      <ControlInput control={control} onChange={(value) => setValue(control.id, value)} />
     </div>
   );
 }

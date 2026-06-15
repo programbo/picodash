@@ -27,6 +27,7 @@ Tweaker is a pnpm workspace managed with Vite+. It contains a reusable React pac
 - `apps/website`: the demo/docs app and Playwright coverage for the package behavior.
 - `pnpm-workspace.yaml`: workspace package globs and dependency catalog.
 - `vite.config.ts`: root Vite+ formatting, linting, staged checks, and cached task config.
+- `apps/website/vercel.json`: production security headers for static Vercel deployments.
 
 Use pnpm workspace commands and Vite+ commands. Do not replace the toolchain with plain Vite, npm, yarn, or ad hoc scripts.
 
@@ -153,5 +154,7 @@ If an API, command, import path, architecture boundary, or verification step cha
 ## Git And Generated Files
 
 The package and website build outputs may exist locally under `dist/`. Do not edit generated files by hand. Let `vp pack`, `vp build`, or `pnpm ready` regenerate them.
+
+Keep `apps/website/vercel.json` security headers aligned with app behavior. The current CSP allows inline styles because the demo and package use React style attributes for CSS custom properties; do not remove that exception without replacing the inline-style behavior.
 
 Before broad edits, check `git status -sb` and preserve unrelated user changes. Keep commits and PR descriptions focused on the actual behavior or structure change.

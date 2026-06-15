@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useTweakerStore } from "../react/context.js";
+import { useTweakerSelector } from "../react/context.js";
 import type { NormalizedControl } from "../types.js";
 import { moveItem } from "./order.js";
 import { SortableControl } from "./sortable-control.js";
@@ -10,7 +10,7 @@ interface TweakerSectionProps {
 }
 
 export function TweakerSection({ section, controls }: TweakerSectionProps) {
-  const store = useTweakerStore();
+  const setSectionOrder = useTweakerSelector((state) => state.setSectionOrder);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   function moveControl(id: string, direction: -1 | 1) {
@@ -19,7 +19,7 @@ export function TweakerSection({ section, controls }: TweakerSectionProps) {
     const from = ids.indexOf(id);
     const to = from + direction;
     if (from < 0 || to < 0 || to >= ids.length) return;
-    store.setSectionOrder(section, moveItem(ids, from, to));
+    setSectionOrder(section, moveItem(ids, from, to));
   }
 
   function moveControlToPointer(id: string, clientY: number) {
@@ -38,7 +38,7 @@ export function TweakerSection({ section, controls }: TweakerSectionProps) {
     });
     const to = targetIndex === -1 ? ids.length - 1 : targetIndex;
     if (from === to) return;
-    store.setSectionOrder(section, moveItem(ids, from, to));
+    setSectionOrder(section, moveItem(ids, from, to));
   }
 
   return (

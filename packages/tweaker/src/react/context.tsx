@@ -1,7 +1,12 @@
 import { createContext, useContext, useRef } from "react";
 import { useStore } from "zustand";
 import { createTweakerStore } from "../store/create-tweaker-store.js";
-import type { TweakerProviderProps, TweakerSnapshot, TweakerStore } from "../types.js";
+import type {
+  TweakerProviderProps,
+  TweakerSnapshot,
+  TweakerState,
+  TweakerStore,
+} from "../types.js";
 
 const TweakerContext = createContext<TweakerStore | null>(null);
 
@@ -25,6 +30,10 @@ export function useTweakerStoreApi() {
 
 export function useTweakerStore() {
   return useStore(useTweakerStoreApi());
+}
+
+export function useTweakerSelector<T>(selector: (state: TweakerState) => T) {
+  return useStore(useTweakerStoreApi(), selector);
 }
 
 export function useTweakerSnapshot() {
