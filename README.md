@@ -40,7 +40,7 @@ export function App() {
   return (
     <TweakerProvider storeId="my-app">
       <SceneControls />
-      <TweakerPanel placement="top-right" />
+      <TweakerPanel placement="top-right" theme="dark" />
     </TweakerProvider>
   );
 }
@@ -58,6 +58,8 @@ Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs 
 Object controls can include `status: "info" | "alert" | "error"` to tint the row blue, amber, or red with an outline and thicker left border.
 
 Pass `sortable: false` in the hook options to keep a registration fixed in place.
+Pass `theme="dark"`, `theme="light"`, or `theme="system"` to `TweakerPanel` to choose the panel color theme. The default is `dark`.
+
 Use panel effect options to change panel surface color opacity and increase background blur when the user hovers it or focuses a control:
 
 ```tsx

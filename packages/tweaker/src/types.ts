@@ -6,6 +6,7 @@ export type ControlKind = "number" | "slider" | "select" | "checkbox";
 export type ControlStatus = "info" | "alert" | "error";
 export type StaleMode = "ignore" | "prune";
 export type Placement = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+export type PanelTheme = "dark" | "light" | "system";
 
 interface ControlStatusMetadata {
   status?: ControlStatus;

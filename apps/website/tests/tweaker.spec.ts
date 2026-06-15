@@ -319,8 +319,65 @@ test("applies hook-level panel effects to portaled select popovers", async ({ pa
   await page.getByTestId("control-tint").locator(".tw-select__button").click();
 
   const popover = page.locator(".tw-select__popover");
+  await expect(popover).toHaveAttribute("data-theme", "dark");
   await expect(popover).toHaveCSS("background-color", "rgba(29, 31, 32, 0.95)");
   await expect(popover).toHaveCSS("backdrop-filter", "blur(8px)");
+});
+
+test("applies light panel theme to controls and portaled select popovers", async ({ page }) => {
+  await page.goto("/?theme=light");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  const panel = page.getByTestId("tweaker-panel");
+  const exposureInput = page.getByRole("textbox", { name: "Exposure" });
+
+  await expect(panel).toHaveAttribute("data-theme", "light");
+  await expect(panel).toHaveCSS("background-color", "rgba(248, 250, 246, 0.55)");
+  await expect(exposureInput).toHaveCSS("background-color", "rgba(237, 242, 235, 0.55)");
+
+  await panel.hover();
+  await page.getByTestId("control-tint").locator(".tw-select__button").click();
+
+  const popover = page.locator(".tw-select__popover");
+  await expect(popover).toHaveAttribute("data-theme", "light");
+  await expect(popover).toHaveCSS("background-color", "rgba(255, 255, 252, 0.95)");
+});
+
+test("switches panel themes from the docs page", async ({ page }) => {
+  const panel = page.getByTestId("tweaker-panel");
+  const lightButton = page.getByRole("button", { name: "Light" });
+  const darkButton = page.getByRole("button", { name: "Dark" });
+  const systemButton = page.getByRole("button", { name: "System" });
+
+  await expect(darkButton).toHaveAttribute("aria-pressed", "true");
+  await lightButton.click();
+  await expect(lightButton).toHaveAttribute("aria-pressed", "true");
+  await expect(panel).toHaveAttribute("data-theme", "light");
+  await expect(panel).toHaveCSS("background-color", "rgba(248, 250, 246, 0.55)");
+  await expect(page).toHaveURL(/theme=light/);
+
+  await systemButton.click();
+  await expect(systemButton).toHaveAttribute("aria-pressed", "true");
+  await expect(panel).toHaveAttribute("data-theme", "system");
+  await expect(page).toHaveURL(/theme=system/);
+
+  await darkButton.click();
+  await expect(darkButton).toHaveAttribute("aria-pressed", "true");
+  await expect(panel).toHaveAttribute("data-theme", "dark");
+  await expect(page).not.toHaveURL(/theme=/);
+});
+
+test("uses light colors for system theme when the OS preference is light", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/?theme=system");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  const panel = page.getByTestId("tweaker-panel");
+
+  await expect(panel).toHaveAttribute("data-theme", "system");
+  await expect(panel).toHaveCSS("background-color", "rgba(248, 250, 246, 0.55)");
 });
 
 test("applies hover panel effects while keyboard focus is inside the panel", async ({ page }) => {

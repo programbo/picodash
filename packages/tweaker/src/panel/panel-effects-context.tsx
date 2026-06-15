@@ -1,4 +1,5 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
+import type { PanelTheme } from "../types.js";
 
 export type PanelEffectStyle = CSSProperties &
   Partial<
@@ -11,18 +12,26 @@ export type PanelEffectStyle = CSSProperties &
     >
   >;
 
-const PanelEffectContext = createContext<PanelEffectStyle>({});
+interface PanelEffectContextValue {
+  style: PanelEffectStyle;
+  theme: PanelTheme;
+}
+
+const PanelEffectContext = createContext<PanelEffectContextValue>({
+  style: {},
+  theme: "dark",
+});
 
 export function PanelEffectProvider({
   children,
   value,
 }: {
   children: ReactNode;
-  value: PanelEffectStyle;
+  value: PanelEffectContextValue;
 }) {
   return <PanelEffectContext.Provider value={value}>{children}</PanelEffectContext.Provider>;
 }
 
-export function usePanelEffectStyle() {
+export function usePanelEffects() {
   return useContext(PanelEffectContext);
 }
