@@ -59,3 +59,4 @@ const [values, setValue] = useTweaker(
 - Pass `opacity`, `hoverOpacity`, `backgroundBlur`, and `hoverBackgroundBlur` in hook options to animate panel surface color opacity and backdrop blur on hover or focus-within.
 - Reordering is section-local and starts from the grip handle.
 - The package ships a dark CSS-variable theme first; customize by overriding CSS variables around the panel.
+- Package styles may be authored with Tailwind internally, but consumers only import compiled plain CSS from `tweaker/style.css`.

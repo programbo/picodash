@@ -1,7 +1,14 @@
+import tailwindcss from "@tailwindcss/postcss";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   pack: {
+    css: {
+      transformer: "postcss",
+      postcss: {
+        plugins: [tailwindcss()],
+      },
+    },
     dts: {
       tsgo: true,
     },
@@ -13,5 +20,9 @@ export default defineConfig({
       typeCheck: true,
     },
   },
-  fmt: {},
+  fmt: {
+    sortTailwindcss: {
+      functions: ["clsx"],
+    },
+  },
 });
