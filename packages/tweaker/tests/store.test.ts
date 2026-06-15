@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { createTweakerStore, normalizeControl, type TweakerSchema } from "../src/index.js";
+import {
+  createTweakerStore,
+  normalizeControl,
+  type NormalizedControl,
+  type TweakerSchema,
+} from "../src/index.js";
+import { defaultValueForControl } from "../src/control.js";
+import { resolveTweakerValues } from "../src/react/use-tweaker.js";
 
 class MemoryStorage {
   private values = new Map<string, string>();
@@ -47,6 +54,71 @@ describe("normalizeControl", () => {
       { label: "Orb", value: "orb" },
       { label: "Prism", value: "prism" },
     ]);
+  });
+});
+
+describe("control defaults", () => {
+  it("extracts default values from every supported control shape", () => {
+    expect(defaultValueForControl(1)).toBe(1);
+    expect(defaultValueForControl(true)).toBe(true);
+    expect(defaultValueForControl("green")).toBe("green");
+    expect(defaultValueForControl({ type: "number", value: 2 })).toBe(2);
+    expect(defaultValueForControl({ type: "slider", value: 0.5, min: 0, max: 1 })).toBe(0.5);
+    expect(defaultValueForControl({ type: "select", value: "orb", options: ["orb"] })).toBe("orb");
+    expect(defaultValueForControl({ type: "checkbox", value: false })).toBe(false);
+  });
+});
+
+describe("resolveTweakerValues", () => {
+  const getControlId = (section: string, key: string) => `hook:${section}:${key}`;
+
+  it("returns schema defaults before controls are registered", () => {
+    const values = resolveTweakerValues(
+      {
+        exposure: { value: 1, min: 0, max: 4 },
+        bloom: false,
+        tint: { type: "select", value: "green", options: ["green", "amber"] },
+      },
+      "Rendering",
+      [],
+      {},
+      getControlId,
+    );
+
+    expect(values).toEqual({ exposure: 1, bloom: false, tint: "green" });
+  });
+
+  it("prefers persisted values over schema defaults before controls are registered", () => {
+    const values = resolveTweakerValues(
+      {
+        exposure: { value: 1, min: 0, max: 4 },
+        bloom: true,
+      },
+      "Rendering",
+      [],
+      {
+        "hook:Rendering:exposure": 3,
+        "hook:Rendering:bloom": false,
+      },
+      getControlId,
+    );
+
+    expect(values).toEqual({ exposure: 3, bloom: false });
+  });
+
+  it("prefers live control values over persisted values", () => {
+    const controls = [
+      normalizeControl("hook", "Rendering", "exposure", { value: 2, min: 0, max: 4 }),
+    ] satisfies NormalizedControl[];
+    const values = resolveTweakerValues(
+      { exposure: { value: 1, min: 0, max: 4 } },
+      "Rendering",
+      controls,
+      { "hook:Rendering:exposure": 3 },
+      getControlId,
+    );
+
+    expect(values).toEqual({ exposure: 2 });
   });
 });
 

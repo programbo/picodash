@@ -1,8 +1,34 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useStore } from "zustand";
-import { defaultSection } from "../control.js";
-import type { RegisterOptions, SetTweakerValue, TweakerSchema, TweakerValues } from "../types.js";
+import { defaultSection, defaultValueForControl } from "../control.js";
+import type {
+  NormalizedControl,
+  PrimitiveValue,
+  RegisterOptions,
+  SetTweakerValue,
+  TweakerSchema,
+  TweakerValues,
+} from "../types.js";
 import { useTweakerStoreApi } from "./context.js";
+
+export function resolveTweakerValues<T extends TweakerSchema>(
+  schema: T,
+  section: string,
+  controls: NormalizedControl[],
+  values: Record<string, PrimitiveValue>,
+  getControlId: (section: string, key: string) => string,
+): TweakerValues<T> {
+  const controlsById = new Map(controls.map((control) => [control.id, control]));
+  const output: Partial<TweakerValues<T>> = {};
+
+  for (const key of Object.keys(schema) as Array<keyof T>) {
+    const id = getControlId(section, String(key));
+    const value = controlsById.get(id)?.value ?? values[id] ?? defaultValueForControl(schema[key]);
+    output[key] = value as TweakerValues<T>[typeof key];
+  }
+
+  return output as TweakerValues<T>;
+}
 
 export function useTweaker<T extends TweakerSchema>(
   schema: T,
@@ -19,14 +45,14 @@ export function useTweaker<T extends TweakerSchema>(
   );
 
   const values = useMemo(() => {
-    const output: Partial<TweakerValues<T>> = {};
-    for (const key of Object.keys(schema) as Array<keyof T>) {
-      const id = store.getState().getControlId(section, String(key));
-      const control = state.controls.find((item) => item.id === id);
-      output[key] = control?.value as TweakerValues<T>[keyof T];
-    }
-    return output as TweakerValues<T>;
-  }, [schema, section, state.controls, store]);
+    return resolveTweakerValues(
+      schema,
+      section,
+      state.controls,
+      state.values,
+      store.getState().getControlId,
+    );
+  }, [schema, section, state.controls, state.values, store]);
 
   const setValue = useCallback<SetTweakerValue<T>>(
     (key, value) => {

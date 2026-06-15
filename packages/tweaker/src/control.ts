@@ -28,6 +28,10 @@ export function createControlId(storeId: string, section: string, key: string) {
   return `${storeId}:${section}:${String(key)}`;
 }
 
+export function defaultValueForControl(config: ControlConfig): PrimitiveValue {
+  return typeof config === "object" ? config.value : config;
+}
+
 export function normalizeControl(
   storeId: string,
   section: string,
