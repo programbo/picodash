@@ -1,0 +1,236 @@
+.tw-panel {
+  --tw-bg: #151617;
+  --tw-bg-elevated: #1d1f20;
+  --tw-border: #363a3d;
+  --tw-border-strong: #4b5155;
+  --tw-text: #f1f4f2;
+  --tw-muted: #9aa39d;
+  --tw-accent: #9bd16f;
+  --tw-accent-strong: #b9ef83;
+  --tw-danger: #ff8e6e;
+  --tw-shadow: 0 18px 48px rgb(0 0 0 / 0.36);
+  --tw-radius: 7px;
+
+  position: fixed;
+  z-index: 1000;
+  top: var(--tweaker-y);
+  left: var(--tweaker-x);
+  width: min(320px, calc(100vw - 16px));
+  color: var(--tw-text);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.035), transparent 32px), var(--tw-bg);
+  border: 1px solid var(--tw-border);
+  border-radius: var(--tw-radius);
+  box-shadow: var(--tw-shadow);
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0;
+  overflow: hidden;
+  user-select: none;
+}
+
+.tw-panel * {
+  box-sizing: border-box;
+}
+
+.tw-panel__header {
+  display: grid;
+  grid-template-columns: 26px 1fr 26px auto;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--tw-border);
+  background: var(--tw-bg-elevated);
+  cursor: grab;
+  touch-action: none;
+}
+
+.tw-panel__header:active {
+  cursor: grabbing;
+}
+
+.tw-panel__header strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tw-text);
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tw-panel__body {
+  max-height: min(620px, calc(100vh - 48px));
+  overflow: auto;
+  padding: 7px;
+}
+
+.tw-icon-button,
+.tw-text-button,
+.tw-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  color: var(--tw-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.tw-icon-button {
+  width: 24px;
+}
+
+.tw-text-button {
+  width: auto;
+  padding: 0 7px;
+  font: inherit;
+  font-size: 11px;
+}
+
+.tw-icon-button:hover,
+.tw-text-button:hover,
+.tw-grip:hover {
+  color: var(--tw-text);
+  background: rgb(255 255 255 / 0.08);
+}
+
+.tw-icon-button:focus-visible,
+.tw-text-button:focus-visible,
+.tw-grip:focus-visible,
+.tw-number:focus-visible,
+.tw-select:focus-visible,
+.tw-checkbox:focus-visible,
+.tw-slider input:focus-visible {
+  outline: 2px solid var(--tw-accent);
+  outline-offset: 1px;
+}
+
+.tw-section + .tw-section {
+  margin-top: 9px;
+  padding-top: 7px;
+  border-top: 1px solid var(--tw-border);
+}
+
+.tw-section__title {
+  padding: 3px 5px 6px;
+  color: var(--tw-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.tw-section__list {
+  display: grid;
+  gap: 3px;
+  min-height: 30px;
+}
+
+.tw-row {
+  display: grid;
+  grid-template-columns: 22px minmax(70px, 0.9fr) minmax(116px, 1.2fr);
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 3px 5px 3px 2px;
+  background: rgb(255 255 255 / 0.025);
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+
+.tw-row:hover {
+  background: rgb(255 255 255 / 0.055);
+  border-color: rgb(255 255 255 / 0.04);
+}
+
+.tw-row.is-dragging {
+  background: rgb(155 209 111 / 0.11);
+  border-color: rgb(155 209 111 / 0.32);
+}
+
+.tw-row.is-not-sortable .tw-grip {
+  cursor: default;
+  opacity: 0.36;
+}
+
+.tw-row.is-not-sortable .tw-grip:hover {
+  color: var(--tw-muted);
+  background: transparent;
+}
+
+.tw-row__label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tw-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tw-grip {
+  width: 22px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tw-grip:active {
+  cursor: grabbing;
+}
+
+.tw-number,
+.tw-select {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  color: var(--tw-text);
+  background: #101112;
+  border: 1px solid var(--tw-border);
+  border-radius: 5px;
+  font: inherit;
+}
+
+.tw-number {
+  padding: 0 7px;
+  text-align: right;
+}
+
+.tw-select {
+  padding: 0 6px;
+}
+
+.tw-checkbox {
+  justify-self: end;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--tw-accent);
+}
+
+.tw-slider {
+  display: grid;
+  grid-template-columns: minmax(64px, 1fr) 42px;
+  align-items: center;
+  gap: 8px;
+}
+
+.tw-slider input {
+  width: 100%;
+  min-width: 0;
+  accent-color: var(--tw-accent);
+}
+
+.tw-slider span {
+  color: var(--tw-text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 520px) {
+  .tw-panel {
+    width: calc(100vw - 12px);
+  }
+
+  .tw-row {
+    grid-template-columns: 22px minmax(54px, 0.85fr) minmax(104px, 1.15fr);
+  }
+}
