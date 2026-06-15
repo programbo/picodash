@@ -20,6 +20,7 @@ function SceneControls() {
         type: "select",
         value: "green",
         options: ["green", "amber", "blue"],
+        status: "info",
       },
     },
     {
@@ -54,6 +55,7 @@ export function App() {
 - Checkbox: `{ value: true }` or `{ type: "checkbox", value: true }`
 
 Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs.
+Object controls can include `status: "info" | "alert" | "error"` to tint the row blue, amber, or red with an outline and thicker left border.
 
 Pass `sortable: false` in the hook options to keep a registration fixed in place.
 Pass `theme="dark"`, `theme="light"`, or `theme="system"` to `TweakerPanel` to choose the panel color theme. The default is `dark`.

@@ -1,6 +1,7 @@
 import type {
   ControlConfig,
   ControlKind,
+  ControlStatus,
   NormalizedControl,
   PrimitiveValue,
   RegisterOptions,
@@ -46,6 +47,12 @@ function normalizeOpacity(value: number | undefined) {
 function normalizeBlur(value: number | undefined) {
   if (value === undefined || !Number.isFinite(value)) return undefined;
   return Math.max(0, value);
+}
+
+export function statusForControl(config: ControlConfig): ControlStatus | undefined {
+  if (typeof config !== "object") return undefined;
+  const value = config.status;
+  return value === "info" || value === "alert" || value === "error" ? value : undefined;
 }
 
 export function normalizePanelEffects(options: RegisterOptions) {
@@ -95,6 +102,7 @@ export function normalizeControl(
   hoverBackgroundBlur?: number,
 ): NormalizedControl {
   const fallbackLabel = labelFromKey(key);
+  const status = statusForControl(config);
   const base = controlBase(
     storeId,
     section,
@@ -140,6 +148,7 @@ export function normalizeControl(
   if ("options" in config) {
     return {
       ...base,
+      status,
       kind: "select",
       label: config.label ?? fallbackLabel,
       value: config.value,
@@ -151,6 +160,7 @@ export function normalizeControl(
   if (typeof config.value === "boolean") {
     return {
       ...base,
+      status,
       kind: "checkbox",
       label: config.label ?? fallbackLabel,
       value: config.value,
@@ -165,6 +175,7 @@ export function normalizeControl(
 
   return {
     ...base,
+    status,
     kind,
     label: config.label ?? fallbackLabel,
     value: config.value,

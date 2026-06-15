@@ -120,6 +120,7 @@ If localStorage shape changes, update:
 - Section order is local to each section; dragging must not move controls across sections.
 - Numeric values are clamped according to their normalized control bounds.
 - Explicit `type: "number"` stays a number input even if `min` and `max` are present.
+- Object control configs can set `status: "info" | "alert" | "error"` for blue, amber, or red row tinting with an outline and thicker left border.
 
 When adding control kinds, update normalization, types, input rendering, tests, docs, and demo usage together.
 

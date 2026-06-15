@@ -3,11 +3,16 @@ import type { StoreApi } from "zustand/vanilla";
 
 export type PrimitiveValue = number | string | boolean;
 export type ControlKind = "number" | "slider" | "select" | "checkbox";
+export type ControlStatus = "info" | "alert" | "error";
 export type StaleMode = "ignore" | "prune";
 export type Placement = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type PanelTheme = "dark" | "light" | "system";
 
-export interface NumberControl {
+interface ControlStatusMetadata {
+  status?: ControlStatus;
+}
+
+export interface NumberControl extends ControlStatusMetadata {
   type?: "number";
   value: number;
   min?: number;
@@ -16,7 +21,7 @@ export interface NumberControl {
   label?: string;
 }
 
-export interface SliderControl {
+export interface SliderControl extends ControlStatusMetadata {
   type: "slider";
   value: number;
   min: number;
@@ -25,14 +30,14 @@ export interface SliderControl {
   label?: string;
 }
 
-export interface SelectControl<T extends string = string> {
+export interface SelectControl<T extends string = string> extends ControlStatusMetadata {
   type: "select";
   value: T;
   options: readonly T[] | Record<string, T>;
   label?: string;
 }
 
-export interface CheckboxControl {
+export interface CheckboxControl extends ControlStatusMetadata {
   type?: "checkbox";
   value: boolean;
   label?: string;
@@ -79,6 +84,7 @@ export interface NormalizedControl {
   hoverOpacity?: number;
   backgroundBlur?: number;
   hoverBackgroundBlur?: number;
+  status?: ControlStatus;
   kind: ControlKind;
   label: string;
   value: PrimitiveValue;
@@ -126,6 +132,7 @@ export interface TweakerStoreOptions {
 export interface TweakerState extends TweakerSnapshot {
   register: (schema: TweakerSchema, options?: RegisterOptions) => () => void;
   updatePanelEffects: (schema: TweakerSchema, options?: RegisterOptions) => void;
+  updateControlStatuses: (schema: TweakerSchema, options?: RegisterOptions) => void;
   setValue: (id: string, value: PrimitiveValue) => void;
   setCollapsed: (collapsed: boolean) => void;
   setDock: (dock: DockState | null) => void;
