@@ -30,6 +30,21 @@ export function resolveTweakerValues<T extends TweakerSchema>(
   return output as TweakerValues<T>;
 }
 
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  }
+
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`)
+      .join(",")}}`;
+  }
+
+  return JSON.stringify(value);
+}
+
 export function useTweaker<T extends TweakerSchema>(
   schema: T,
   options: RegisterOptions = {},
@@ -39,10 +54,11 @@ export function useTweaker<T extends TweakerSchema>(
   const sortable = options.sortable ?? true;
   const controls = useStore(store, (state) => state.controls);
   const valuesById = useStore(store, (state) => state.values);
+  const schemaSignature = stableStringify(schema);
 
   useEffect(
     () => store.getState().register(schema, { section, sortable }),
-    [store, schema, section, sortable],
+    [store, schemaSignature, section, sortable],
   );
 
   const values = useMemo(() => {

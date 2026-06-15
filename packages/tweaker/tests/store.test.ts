@@ -153,15 +153,59 @@ describe("TweakerStore", () => {
     expect(store.getState().controls[0]?.sortable).toBe(false);
   });
 
-  it("prunes stale persisted keys when configured", () => {
-    const store = createTweakerStore({ storeId: "stale", stale: "ignore" });
-    store.getState().register({ keep: 1, remove: 2 }, { section: "Rendering" });
-    store.getState().setValue("stale:Rendering:remove", 9);
+  it("does not notify when an equivalent schema registers again", () => {
+    const store = createTweakerStore({ storeId: "stable-schema", stale: "ignore" });
+    const listener = vi.fn();
 
-    const next = createTweakerStore({ storeId: "stale", stale: "prune" });
-    next.getState().register({ keep: 1 }, { section: "Rendering" });
+    store.getState().register({ speed: { value: 1, min: 0, max: 2 } }, { section: "Rendering" });
+    store.subscribe(listener);
+    store.getState().register({ speed: { value: 1, min: 0, max: 2 } }, { section: "Rendering" });
 
-    expect(next.getState().values["stale:Rendering:remove"]).toBeUndefined();
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("preserves later-section persisted values during partial prune registration", () => {
+    storage.setItem(
+      "tweaker:partial-prune",
+      JSON.stringify({
+        state: {
+          values: {
+            "partial-prune:Rendering:exposure": 2,
+            "partial-prune:Material:roughness": 0.7,
+          },
+          order: {},
+          collapsed: false,
+          dock: null,
+        },
+      }),
+    );
+    const store = createTweakerStore({ storeId: "partial-prune", stale: "prune" });
+
+    store.getState().register({ exposure: 1 }, { section: "Rendering" });
+
+    expect(store.getState().values["partial-prune:Material:roughness"]).toBe(0.7);
+  });
+
+  it("prunes stale persisted keys on unregister when configured", () => {
+    storage.setItem(
+      "tweaker:stale",
+      JSON.stringify({
+        state: {
+          values: { "stale:Rendering:remove": 9 },
+          order: {},
+          collapsed: false,
+          dock: null,
+        },
+      }),
+    );
+    const store = createTweakerStore({ storeId: "stale", stale: "prune" });
+    const unregister = store.getState().register({ remove: 2 }, { section: "Rendering" });
+
+    expect(store.getState().values["stale:Rendering:remove"]).toBe(9);
+
+    unregister();
+
+    expect(store.getState().values["stale:Rendering:remove"]).toBeUndefined();
   });
 
   it("discards invalid localStorage data through the Zod storage boundary", () => {

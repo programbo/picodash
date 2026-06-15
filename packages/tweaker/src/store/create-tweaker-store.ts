@@ -44,6 +44,40 @@ function prunePersisted(
   return { ...persisted, values, order };
 }
 
+function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
+  if (left.length !== right.length) return false;
+
+  return left.every((leftControl, index) => {
+    const rightControl = right[index];
+    if (!rightControl) return false;
+
+    return (
+      leftControl.id === rightControl.id &&
+      leftControl.key === rightControl.key &&
+      leftControl.section === rightControl.section &&
+      leftControl.sortable === rightControl.sortable &&
+      leftControl.kind === rightControl.kind &&
+      leftControl.label === rightControl.label &&
+      leftControl.value === rightControl.value &&
+      leftControl.defaultValue === rightControl.defaultValue &&
+      leftControl.min === rightControl.min &&
+      leftControl.max === rightControl.max &&
+      leftControl.step === rightControl.step &&
+      optionsEqual(leftControl.options, rightControl.options)
+    );
+  });
+}
+
+function optionsEqual(left: NormalizedControl["options"], right: NormalizedControl["options"]) {
+  if (left === right) return true;
+  if (!left || !right || left.length !== right.length) return false;
+
+  return left.every((leftOption, index) => {
+    const rightOption = right[index];
+    return rightOption?.label === leftOption.label && rightOption.value === leftOption.value;
+  });
+}
+
 export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): TweakerStore {
   return createStore<TweakerState>()(
     persist(
@@ -69,20 +103,10 @@ export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): Twe
               });
             }
             const nextControls = valuesForControls(Array.from(controlsById.values()), state.values);
-            const persisted = prunePersisted(
-              {
-                values: state.values,
-                order: state.order,
-                collapsed: state.collapsed,
-                dock: state.dock,
-              },
-              nextControls,
-              stale,
-            );
+            if (controlsEqual(state.controls, nextControls)) return state;
 
             return {
-              ...persisted,
-              controls: valuesForControls(nextControls, persisted.values),
+              controls: nextControls,
               sectionOrder: sectionOrderFor(nextControls),
             };
           });
