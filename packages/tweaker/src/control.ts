@@ -1,12 +1,29 @@
-import type {
-  ControlConfig,
-  ControlKind,
-  NormalizedControl,
-  PrimitiveValue,
-  RegisterOptions,
+import {
+  defaultPanelId,
+  defaultSectionId,
+  defaultSectionLabel,
+  type ControlConfig,
+  type ControlKind,
+  type JsonValue,
+  type NormalizedControl,
+  type PanelAppearance,
+  type RegisterOptions,
+  type SectionConfig,
 } from "./types.js";
 
-export const defaultSection = "Controls";
+const standardControlKeys = new Set([
+  "id",
+  "type",
+  "value",
+  "defaultValue",
+  "label",
+  "min",
+  "max",
+  "step",
+  "options",
+]);
+
+export const defaultSection = defaultSectionLabel;
 
 export function labelFromKey(key: string) {
   return key
@@ -30,12 +47,62 @@ function normalizeOptions(options: readonly string[] | Record<string, string>) {
   return Object.entries(options).map(([label, value]) => ({ label, value }));
 }
 
-export function createControlId(storeId: string, section: string, key: string) {
-  return `${storeId}:${section}:${String(key)}`;
+function safeId(value: string) {
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "control"
+  );
 }
 
-export function defaultValueForControl(config: ControlConfig): PrimitiveValue {
-  return typeof config === "object" ? config.value : config;
+export function normalizePanelId(panel?: string) {
+  return panel?.trim() || defaultPanelId;
+}
+
+export function normalizeSection(section?: string | SectionConfig): SectionConfig {
+  if (!section) return { id: defaultSectionId, label: defaultSectionLabel };
+  if (typeof section === "string") return { id: section, label: section };
+  return {
+    id: section.id.trim() || defaultSectionId,
+    label: section.label.trim() || labelFromKey(section.id),
+  };
+}
+
+export function createControlPersistId(
+  storeId: string,
+  panelId: string,
+  section: SectionConfig,
+  key: string,
+  explicitControlId?: string,
+) {
+  const controlId = explicitControlId ?? key;
+  if (!explicitControlId && panelId === defaultPanelId && section.id === section.label) {
+    return `${storeId}:${section.label}:${key}`;
+  }
+
+  return `${storeId}:${panelId}:${section.id}:${controlId}`;
+}
+
+export function createControlId(storeId: string, section: string, key: string) {
+  return createControlPersistId(storeId, defaultPanelId, { id: section, label: section }, key);
+}
+
+export function createControlDomId(
+  storeId: string,
+  panelId: string,
+  sectionId: string,
+  controlId: string,
+) {
+  return `tw-${safeId(storeId)}-${safeId(panelId)}-${safeId(sectionId)}-${safeId(controlId)}`;
+}
+
+export function defaultValueForControl(config: ControlConfig): JsonValue {
+  if (typeof config !== "object" || config === null) return config;
+  if ("defaultValue" in config && config.defaultValue !== undefined) return config.defaultValue;
+  if ("value" in config && config.value !== undefined) return config.value;
+  return null;
 }
 
 function normalizeOpacity(value: number | undefined) {
@@ -48,68 +115,87 @@ function normalizeBlur(value: number | undefined) {
   return Math.max(0, value);
 }
 
-export function normalizePanelEffects(options: RegisterOptions) {
+export function normalizePanelEffects(options: RegisterOptions): PanelAppearance {
   return {
-    opacity: normalizeOpacity(options.opacity),
-    hoverOpacity: normalizeOpacity(options.hoverOpacity),
-    backgroundBlur: normalizeBlur(options.backgroundBlur),
-    hoverBackgroundBlur: normalizeBlur(options.hoverBackgroundBlur),
+    surfaceOpacity: normalizeOpacity(options.opacity),
+    activeSurfaceOpacity: normalizeOpacity(options.hoverOpacity),
+    backdropBlur: normalizeBlur(options.backgroundBlur),
+    activeBackdropBlur: normalizeBlur(options.hoverBackgroundBlur),
   };
 }
 
-function controlBase(
-  storeId: string,
-  section: string,
-  key: string,
-  sortable: boolean,
-  opacity?: number,
-  hoverOpacity?: number,
-  backgroundBlur?: number,
-  hoverBackgroundBlur?: number,
-) {
-  const effects = normalizePanelEffects({
-    opacity,
-    hoverOpacity,
-    backgroundBlur,
-    hoverBackgroundBlur,
-  });
-
-  return {
-    id: createControlId(storeId, section, key),
-    key,
-    section,
-    sortable,
-    ...effects,
-  };
-}
-
-export function normalizeControl(
-  storeId: string,
-  section: string,
-  key: string,
-  config: ControlConfig,
-  sortable = true,
-  opacity?: number,
-  hoverOpacity?: number,
-  backgroundBlur?: number,
-  hoverBackgroundBlur?: number,
-): NormalizedControl {
-  const fallbackLabel = labelFromKey(key);
-  const base = controlBase(
-    storeId,
-    section,
-    key,
-    sortable,
-    opacity,
-    hoverOpacity,
-    backgroundBlur,
-    hoverBackgroundBlur,
+export function hasPanelEffects(options: RegisterOptions) {
+  return (
+    options.opacity !== undefined ||
+    options.hoverOpacity !== undefined ||
+    options.backgroundBlur !== undefined ||
+    options.hoverBackgroundBlur !== undefined
   );
+}
+
+export function normalizePanelAppearance(appearance: PanelAppearance = {}): PanelAppearance {
+  return {
+    surfaceOpacity: normalizeOpacity(appearance.surfaceOpacity),
+    activeSurfaceOpacity: normalizeOpacity(appearance.activeSurfaceOpacity),
+    backdropBlur: normalizeBlur(appearance.backdropBlur),
+    activeBackdropBlur: normalizeBlur(appearance.activeBackdropBlur),
+  };
+}
+
+function customSettings(config: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(config).filter(([key]) => !standardControlKeys.has(key)),
+  );
+}
+
+function numberProperty(config: ControlConfig, key: "min" | "max" | "step") {
+  if (typeof config !== "object" || config === null) return undefined;
+  const value = (config as Record<string, unknown>)[key];
+  return typeof value === "number" ? value : undefined;
+}
+
+interface NormalizeControlEntryOptions {
+  storeId: string;
+  panelId: string;
+  section: SectionConfig;
+  key: string;
+  config: ControlConfig;
+  reorderable?: boolean;
+}
+
+export function normalizeControlEntry({
+  storeId,
+  panelId,
+  section,
+  key,
+  config,
+  reorderable = true,
+}: NormalizeControlEntryOptions): NormalizedControl {
+  const fallbackLabel = labelFromKey(key);
+  const objectConfig = typeof config === "object" && config !== null ? config : null;
+  const explicitControlId =
+    objectConfig && typeof objectConfig.id === "string" ? objectConfig.id : undefined;
+  const controlId = explicitControlId ?? key;
+  const persistId = createControlPersistId(storeId, panelId, section, key, explicitControlId);
+  const base = {
+    id: persistId,
+    persistId,
+    domId: createControlDomId(storeId, panelId, section.id, controlId),
+    key,
+    controlId,
+    panelId,
+    sectionId: section.id,
+    sectionLabel: section.label,
+    section: section.label,
+    reorderable,
+    sortable: reorderable,
+  };
 
   if (typeof config === "number") {
     return {
       ...base,
       kind: "number",
+      type: "number",
       label: fallbackLabel,
       value: config,
       defaultValue: config,
@@ -120,6 +206,7 @@ export function normalizeControl(
     return {
       ...base,
       kind: "checkbox",
+      type: "checkbox",
       label: fallbackLabel,
       value: config,
       defaultValue: config,
@@ -130,6 +217,7 @@ export function normalizeControl(
     return {
       ...base,
       kind: "select",
+      type: "select",
       label: fallbackLabel,
       value: config,
       defaultValue: config,
@@ -137,54 +225,109 @@ export function normalizeControl(
     };
   }
 
+  const defaultValue = defaultValueForControl(config);
+
   if ("options" in config) {
+    const options = (config as { options: readonly string[] | Record<string, string> }).options;
+    const value = typeof defaultValue === "string" ? defaultValue : "";
     return {
       ...base,
       kind: "select",
+      type: "select",
       label: config.label ?? fallbackLabel,
-      value: config.value,
-      defaultValue: config.value,
-      options: normalizeOptions(config.options),
+      value,
+      defaultValue: value,
+      options: normalizeOptions(options),
     };
   }
 
-  if (typeof config.value === "boolean") {
+  if (config.type && !["number", "slider", "checkbox"].includes(config.type)) {
+    return {
+      ...base,
+      kind: "custom",
+      type: config.type,
+      label: config.label ?? fallbackLabel,
+      value: defaultValue,
+      defaultValue,
+      settings: customSettings(config as Record<string, unknown>),
+    };
+  }
+
+  if (typeof defaultValue === "boolean") {
     return {
       ...base,
       kind: "checkbox",
+      type: "checkbox",
       label: config.label ?? fallbackLabel,
-      value: config.value,
-      defaultValue: config.value,
+      value: defaultValue,
+      defaultValue,
     };
   }
 
+  const min = numberProperty(config, "min");
+  const max = numberProperty(config, "max");
+  const step = numberProperty(config, "step");
+  const numericValue = typeof defaultValue === "number" ? defaultValue : 0;
   const hasSliderBounds =
     config.type === "slider" ||
-    (config.type !== "number" && typeof config.min === "number" && typeof config.max === "number");
+    (config.type !== "number" && min !== undefined && max !== undefined);
   const kind: ControlKind = hasSliderBounds ? "slider" : "number";
 
   return {
     ...base,
     kind,
+    type: kind,
     label: config.label ?? fallbackLabel,
-    value: config.value,
-    defaultValue: config.value,
-    min: config.min,
-    max: config.max,
-    step: config.step,
+    value: numericValue,
+    defaultValue: numericValue,
+    min,
+    max,
+    step,
   };
+}
+
+export function normalizeControl(
+  storeId: string,
+  section: string,
+  key: string,
+  config: ControlConfig,
+  reorderable = true,
+): NormalizedControl {
+  return normalizeControlEntry({
+    storeId,
+    panelId: defaultPanelId,
+    section: { id: section, label: section },
+    key,
+    config,
+    reorderable,
+  });
+}
+
+function hasValue(values: Record<string, JsonValue>, id: string) {
+  return Object.prototype.hasOwnProperty.call(values, id);
 }
 
 export function valuesForControls(
   controls: NormalizedControl[],
-  values: Record<string, PrimitiveValue>,
+  values: Record<string, JsonValue>,
 ): NormalizedControl[] {
   return controls.map((control) => ({
     ...control,
-    value: values[control.id] ?? control.defaultValue,
+    value: hasValue(values, control.persistId) ? values[control.persistId]! : control.defaultValue,
   }));
 }
 
 export function sectionOrderFor(controls: NormalizedControl[]) {
-  return Array.from(new Set(controls.map((control) => control.section)));
+  return Array.from(new Set(controls.map((control) => control.sectionId)));
+}
+
+export function sectionOrderByPanel(controls: NormalizedControl[]) {
+  const order: Record<string, string[]> = {};
+  for (const control of controls) {
+    order[control.panelId] ??= [];
+    if (!order[control.panelId]!.includes(control.sectionId)) {
+      order[control.panelId]!.push(control.sectionId);
+    }
+  }
+  return order;
 }

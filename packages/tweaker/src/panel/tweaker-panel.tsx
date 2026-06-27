@@ -9,8 +9,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { normalizePanelAppearance, normalizePanelId } from "../control.js";
 import { useTweakerSelector } from "../react/context.js";
-import type { DockEdge, DockState, NormalizedControl, Placement } from "../types.js";
+import type { DockState, PanelAppearance, Placement } from "../types.js";
 import { moveItem, orderControls } from "./order.js";
 import {
   clampPosition,
@@ -21,10 +22,16 @@ import {
 } from "./position.js";
 import { TweakerSection } from "./tweaker-section.js";
 
+const emptyOrder: Record<string, string[]> = {};
+const emptySectionOrder: string[] = [];
+
 export interface TweakerPanelProps {
+  id?: string;
   className?: string;
+  defaultPlacement?: Placement;
   placement?: Placement;
   title?: string;
+  appearance?: PanelAppearance;
 }
 
 type PanelStyle = CSSProperties &
@@ -38,27 +45,48 @@ type PanelStyle = CSSProperties &
     >
   >;
 
-function firstOpacity(
-  controls: NormalizedControl[],
-  key: "opacity" | "hoverOpacity" | "backgroundBlur" | "hoverBackgroundBlur",
-): number | undefined {
-  return controls.find((control) => control[key] !== undefined)?.[key];
+function applyAppearance(style: PanelStyle, appearance: PanelAppearance) {
+  const normalized = normalizePanelAppearance(appearance);
+  if (normalized.surfaceOpacity !== undefined) {
+    style["--tw-panel-color-opacity"] = String(normalized.surfaceOpacity);
+  }
+  if (normalized.activeSurfaceOpacity !== undefined) {
+    style["--tw-panel-hover-color-opacity"] = String(normalized.activeSurfaceOpacity);
+  }
+  if (normalized.backdropBlur !== undefined) {
+    style["--tw-panel-background-blur"] = `${normalized.backdropBlur}px`;
+  }
+  if (normalized.activeBackdropBlur !== undefined) {
+    style["--tw-panel-hover-background-blur"] = `${normalized.activeBackdropBlur}px`;
+  }
 }
 
 export function TweakerPanel({
+  id,
   className = "",
-  placement = "top-right",
+  defaultPlacement,
+  placement,
   title = "Tweaker",
+  appearance,
 }: TweakerPanelProps) {
-  const collapsed = useTweakerSelector((state) => state.collapsed);
-  const controls = useTweakerSelector((state) => state.controls);
-  const dock = useTweakerSelector((state) => state.dock);
-  const order = useTweakerSelector((state) => state.order);
-  const sectionOrder = useTweakerSelector((state) => state.sectionOrder);
+  const panelId = normalizePanelId(id);
+  const resolvedPlacement = defaultPlacement ?? placement ?? "top-right";
+  const allControls = useTweakerSelector((state) => state.controls);
+  const controls = useMemo(
+    () => allControls.filter((control) => control.panelId === panelId),
+    [allControls, panelId],
+  );
+  const dock = useTweakerSelector((state) => state.panels[panelId]?.dock ?? null);
+  const collapsed = useTweakerSelector((state) => state.panels[panelId]?.collapsed ?? false);
+  const order = useTweakerSelector((state) => state.order[panelId] ?? emptyOrder);
+  const sectionOrder = useTweakerSelector(
+    (state) => state.sectionOrder[panelId] ?? emptySectionOrder,
+  );
+  const legacyAppearance = useTweakerSelector((state) => state.panelAppearances[panelId]);
   const resetOrder = useTweakerSelector((state) => state.resetOrder);
   const resetValues = useTweakerSelector((state) => state.resetValues);
-  const setCollapsed = useTweakerSelector((state) => state.setCollapsed);
-  const setDock = useTweakerSelector((state) => state.setDock);
+  const setCollapsed = useTweakerSelector((state) => state.setPanelCollapsed);
+  const setDock = useTweakerSelector((state) => state.setPanelDock);
   const setSectionOrder = useTweakerSelector((state) => state.setSectionOrder);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
@@ -79,10 +107,10 @@ export function TweakerPanel({
       );
     }
     return clampPosition(
-      placementToPosition(placement, viewportSize.width, viewportSize.height),
+      placementToPosition(resolvedPlacement, viewportSize.width, viewportSize.height),
       panelRef.current,
     );
-  }, [dock, freePosition, placement, viewportSize]);
+  }, [dock, freePosition, resolvedPlacement, viewportSize]);
 
   function handlePanelPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     const element = panelRef.current;
@@ -127,7 +155,7 @@ export function TweakerPanel({
       element,
     );
     const nextDock = nearestDock(nextPosition, element);
-    setDock(nextDock);
+    setDock(panelId, nextDock);
     if (nextDock) {
       setFreePosition(null);
     } else {
@@ -141,40 +169,25 @@ export function TweakerPanel({
     const target = event.operation.target;
     if (!source || !target || source.group !== target.group) return;
 
-    const section = String(source.group);
-    const sectionControls = orderControls(controls, section, order);
-    const ids = sectionControls.map((control) => control.id);
+    const sectionId = String(source.data.sectionId);
+    const sectionControls = orderControls(controls, sectionId, order);
+    const ids = sectionControls.map((control) => control.persistId);
     const from = ids.indexOf(String(source.id));
     const to = ids.indexOf(String(target.id));
     if (from < 0 || to < 0 || from === to) return;
-    setSectionOrder(section, moveItem(ids, from, to));
+    setSectionOrder(panelId, sectionId, moveItem(ids, from, to));
   }
 
-  const opacity = firstOpacity(controls, "opacity");
-  const hoverOpacity = firstOpacity(controls, "hoverOpacity");
-  const backgroundBlur = firstOpacity(controls, "backgroundBlur");
-  const hoverBackgroundBlur = firstOpacity(controls, "hoverBackgroundBlur");
   const style = freePosition || !dock ? positionToStyle(position) : dockToStyle(dock);
-
-  if (opacity !== undefined) {
-    style["--tw-panel-color-opacity"] = String(opacity);
-  }
-  if (hoverOpacity !== undefined) {
-    style["--tw-panel-hover-color-opacity"] = String(hoverOpacity);
-  }
-  if (backgroundBlur !== undefined) {
-    style["--tw-panel-background-blur"] = `${backgroundBlur}px`;
-  }
-  if (hoverBackgroundBlur !== undefined) {
-    style["--tw-panel-hover-background-blur"] = `${hoverBackgroundBlur}px`;
-  }
+  applyAppearance(style, { ...legacyAppearance, ...appearance });
 
   return (
     <aside
       ref={panelRef}
       className={`tw-panel ${collapsed ? "is-collapsed" : ""} ${className}`}
       style={style}
-      data-testid="tweaker-panel"
+      data-panel-id={panelId}
+      data-testid={panelId === "default" ? "tweaker-panel" : `tweaker-panel-${panelId}`}
     >
       <div
         className="tw-panel__header"
@@ -185,9 +198,9 @@ export function TweakerPanel({
         <button
           className="tw-icon-button"
           type="button"
-          aria-label={collapsed ? "Expand panel" : "Collapse panel"}
+          aria-label={collapsed ? `Expand ${title}` : `Collapse ${title}`}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => setCollapsed(panelId, !collapsed)}
         >
           {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
         </button>
@@ -195,10 +208,10 @@ export function TweakerPanel({
         <button
           className="tw-icon-button"
           type="button"
-          aria-label="Reset values"
-          title="Reset values"
+          aria-label={`Reset ${title} values`}
+          title={`Reset ${title} values`}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => resetValues()}
+          onClick={() => resetValues(panelId)}
         >
           <RotateCcw size={14} />
         </button>
@@ -206,7 +219,7 @@ export function TweakerPanel({
           className="tw-text-button"
           type="button"
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => resetOrder()}
+          onClick={() => resetOrder(panelId)}
         >
           Order
         </button>
@@ -215,13 +228,19 @@ export function TweakerPanel({
       {!collapsed && (
         <DragDropProvider onDragEnd={handleDragEnd}>
           <div className="tw-panel__body">
-            {sectionOrder.map((section) => (
-              <TweakerSection
-                key={section}
-                section={section}
-                controls={orderControls(controls, section, order)}
-              />
-            ))}
+            {sectionOrder.map((sectionId) => {
+              const sectionControls = orderControls(controls, sectionId, order);
+              const sectionLabel = sectionControls[0]?.sectionLabel ?? sectionId;
+              return (
+                <TweakerSection
+                  key={sectionId}
+                  panelId={panelId}
+                  sectionId={sectionId}
+                  title={sectionLabel}
+                  controls={sectionControls}
+                />
+              );
+            })}
           </div>
         </DragDropProvider>
       )}
@@ -250,72 +269,43 @@ function useViewportSize() {
 
 function positionToStyle(position: PanelPosition): PanelStyle {
   return {
-    top: `${position.y}px`,
-    right: "auto",
-    bottom: "auto",
     left: `${position.x}px`,
+    top: `${position.y}px`,
   };
 }
 
 function dockToStyle(dock: DockState): PanelStyle {
   const style: PanelStyle = {};
+  if (dock.edge === "left") {
+    style.left = 0;
+    style.top = `${dock.offset}px`;
+  } else if (dock.edge === "right") {
+    style.right = 0;
+    style.top = `${dock.offset}px`;
+  } else if (dock.edge === "bottom") {
+    style.left = `${dock.offset}px`;
+    style.bottom = 0;
+  } else {
+    style.left = `${dock.offset}px`;
+    style.top = 0;
+  }
 
-  applyPrimaryDockEdgeStyle(style, dock.edge, dock.offset);
-  if (dock.secondaryEdge) {
-    applySecondaryDockEdgeStyle(style, dock.secondaryEdge);
+  if (dock.secondaryEdge === "top") {
+    delete style.bottom;
+    style.top = 0;
+  }
+  if (dock.secondaryEdge === "bottom") {
+    delete style.top;
+    style.bottom = 0;
+  }
+  if (dock.secondaryEdge === "left") {
+    delete style.right;
+    style.left = 0;
+  }
+  if (dock.secondaryEdge === "right") {
+    delete style.left;
+    style.right = 0;
   }
 
   return style;
-}
-
-function applyPrimaryDockEdgeStyle(style: CSSProperties, edge: DockEdge, offset: number) {
-  const value = `${Math.max(0, offset)}px`;
-
-  switch (edge) {
-    case "top":
-      style.top = "0px";
-      style.bottom = "auto";
-      style.left = value;
-      style.right = "auto";
-      break;
-    case "bottom":
-      style.top = "auto";
-      style.bottom = "0px";
-      style.left = value;
-      style.right = "auto";
-      break;
-    case "left":
-      style.right = "auto";
-      style.left = "0px";
-      style.top = value;
-      style.bottom = "auto";
-      break;
-    case "right":
-      style.right = "0px";
-      style.left = "auto";
-      style.top = value;
-      style.bottom = "auto";
-      break;
-  }
-}
-
-function applySecondaryDockEdgeStyle(style: CSSProperties, edge: DockEdge) {
-  switch (edge) {
-    case "top":
-      style.top = "0px";
-      style.bottom = "auto";
-      break;
-    case "bottom":
-      style.top = "auto";
-      style.bottom = "0px";
-      break;
-    case "left":
-      style.right = "auto";
-      style.left = "0px";
-      break;
-    case "right":
-      style.right = "0px";
-      style.left = "auto";
-      break;
-  }
 }

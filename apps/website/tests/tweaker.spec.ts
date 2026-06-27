@@ -22,6 +22,46 @@ test("updates controls and persists values", async ({ page }) => {
   await expect(page.getByRole("combobox", { name: "Tint" })).toHaveValue("amber");
 });
 
+test("renders concurrent panels without duplicate input ids", async ({ page }) => {
+  await expect(page.getByTestId("tweaker-panel")).toBeVisible();
+  await expect(page.getByTestId("tweaker-panel-build")).toBeVisible();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const ids = Array.from(document.querySelectorAll<HTMLElement>(".tw-panel [id]")).map(
+          (element) => element.id,
+        );
+        return ids.length === new Set(ids).size;
+      }),
+    )
+    .toBe(true);
+});
+
+test("keeps panel collapse state independent", async ({ page }) => {
+  await page.getByRole("button", { name: "Collapse Build" }).click();
+
+  await expect(page.getByRole("combobox", { name: "Channel" })).toBeHidden();
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeVisible();
+
+  await page.reload();
+
+  await expect(page.getByRole("button", { name: "Expand Build" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeVisible();
+});
+
+test("updates and persists a custom color control", async ({ page }) => {
+  const color = page.locator("input[type='color']");
+
+  await color.fill("#ff0000");
+  await expect(page.getByText("Accent #ff0000")).toBeVisible();
+
+  await page.reload();
+
+  await expect(page.locator("input[type='color']")).toHaveValue("#ff0000");
+  await expect(page.getByText("Accent #ff0000")).toBeVisible();
+});
+
 test("programmatic setter updates the panel and preview", async ({ page }) => {
   await page.getByRole("button", { name: "Set speed to 1.25" }).click();
 
@@ -30,23 +70,26 @@ test("programmatic setter updates the panel and preview", async ({ page }) => {
 });
 
 test("collapses and persists panel state", async ({ page }) => {
-  await page.getByRole("button", { name: "Collapse panel" }).click();
+  await page.getByRole("button", { name: "Collapse Scene" }).click();
 
   await expect(page.getByRole("slider", { name: "Speed" })).toBeHidden();
   await page.reload();
-  await expect(page.getByRole("button", { name: "Expand panel" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Expand Scene" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Channel" })).toBeVisible();
 });
 
 test("resets values separately from order", async ({ page }) => {
   await page.getByRole("textbox", { name: "Exposure" }).fill("3");
   await page.getByRole("textbox", { name: "Exposure" }).press("Enter");
-  await page.getByRole("button", { name: "Reset values" }).click();
+  await page.getByRole("combobox", { name: "Channel" }).selectOption("canary");
+  await page.getByRole("button", { name: "Reset Scene values" }).click();
 
   await expect(page.getByRole("textbox", { name: "Exposure" })).toHaveValue("1");
+  await expect(page.getByRole("combobox", { name: "Channel" })).toHaveValue("canary");
 });
 
 test("docks the panel near a viewport edge", async ({ page }) => {
-  const header = page.locator(".tw-panel__header");
+  const header = page.getByTestId("tweaker-panel").locator(".tw-panel__header");
   const box = await header.boundingBox();
   expect(box).not.toBeNull();
 
@@ -59,14 +102,14 @@ test("docks the panel near a viewport edge", async ({ page }) => {
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
-        return raw ? JSON.parse(raw).state?.dock?.edge : null;
+        return raw ? JSON.parse(raw).state?.panels?.default?.dock?.edge : null;
       }),
     )
     .toBe("left");
 });
 
 test("docks the panel to a corner when two viewport edges are near", async ({ page }) => {
-  const header = page.locator(".tw-panel__header");
+  const header = page.getByTestId("tweaker-panel").locator(".tw-panel__header");
   const box = await header.boundingBox();
   expect(box).not.toBeNull();
 
@@ -79,7 +122,7 @@ test("docks the panel to a corner when two viewport edges are near", async ({ pa
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
-        const dock = raw ? JSON.parse(raw).state?.dock : null;
+        const dock = raw ? JSON.parse(raw).state?.panels?.default?.dock : null;
         return dock ? [dock.edge, dock.secondaryEdge] : null;
       }),
     )
@@ -159,7 +202,7 @@ test("keeps docked panels anchored when the viewport resizes", async ({ page }) 
 
 test("keeps floating panels inside the viewport when the viewport resizes", async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 800 });
-  const header = page.locator(".tw-panel__header");
+  const header = page.getByTestId("tweaker-panel").locator(".tw-panel__header");
   const box = await header.boundingBox();
   expect(box).not.toBeNull();
 
@@ -172,7 +215,7 @@ test("keeps floating panels inside the viewport when the viewport resizes", asyn
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
-        return raw ? JSON.parse(raw).state?.dock : "missing";
+        return raw ? (JSON.parse(raw).state?.panels?.default?.dock ?? null) : "missing";
       }),
     )
     .toBeNull();
@@ -215,30 +258,28 @@ test("reorders controls within a section by pointer-dragging the grip", async ({
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
-        return raw ? (JSON.parse(raw).state?.order?.Rendering ?? []) : [];
+        return raw ? (JSON.parse(raw).state?.order?.default?.rendering ?? []) : [];
       }),
     )
-    .toContain("docs-demo:Rendering:speed");
+    .toContain("docs-demo:default:rendering:speed");
 });
 
 test("does not move controls between sections by pointer-dragging the grip", async ({ page }) => {
   const roughnessGrip = page.getByRole("button", { name: "Reorder Roughness" });
-  const telemetryRow = page.getByTestId("control-telemetry");
+  const speedRow = page.getByTestId("control-speed");
   const roughnessBox = await roughnessGrip.boundingBox();
-  const telemetryBox = await telemetryRow.boundingBox();
+  const speedBox = await speedRow.boundingBox();
   expect(roughnessBox).not.toBeNull();
-  expect(telemetryBox).not.toBeNull();
+  expect(speedBox).not.toBeNull();
 
   await page.mouse.move(
     roughnessBox!.x + roughnessBox!.width / 2,
     roughnessBox!.y + roughnessBox!.height / 2,
   );
   await page.mouse.down();
-  await page.mouse.move(
-    telemetryBox!.x + telemetryBox!.width / 2,
-    telemetryBox!.y + telemetryBox!.height / 2,
-    { steps: 12 },
-  );
+  await page.mouse.move(speedBox!.x + speedBox!.width / 2, speedBox!.y + speedBox!.height / 2, {
+    steps: 12,
+  });
   await page.mouse.up();
 
   await expect
@@ -250,19 +291,24 @@ test("does not move controls between sections by pointer-dragging the grip", asy
       ),
     )
     .toEqual([
-      "docs-demo:Material:shape",
-      "docs-demo:Material:tint",
-      "docs-demo:Material:roughness",
+      "docs-demo:default:material:shape",
+      "docs-demo:default:material:tint",
+      "docs-demo:default:material:roughness",
+      "docs-demo:default:material:accent",
     ]);
   await expect
     .poll(async () =>
       page.evaluate(() =>
         Array.from(
-          document.querySelectorAll("[data-testid='section-Build'] [data-control-id]"),
+          document.querySelectorAll("[data-testid='section-Rendering'] [data-control-id]"),
         ).map((row) => row.getAttribute("data-control-id")),
       ),
     )
-    .toEqual(["docs-demo:Build:channel", "docs-demo:Build:telemetry"]);
+    .toEqual([
+      "docs-demo:default:rendering:speed",
+      "docs-demo:default:rendering:exposure",
+      "docs-demo:default:rendering:bloom",
+    ]);
 });
 
 test("reorders controls within a section by keyboard on the grip", async ({ page }) => {
@@ -274,10 +320,10 @@ test("reorders controls within a section by keyboard on the grip", async ({ page
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
-        return raw ? (JSON.parse(raw).state?.order?.Rendering ?? []) : [];
+        return raw ? (JSON.parse(raw).state?.order?.default?.rendering ?? []) : [];
       }),
     )
-    .toContain("docs-demo:Rendering:speed");
+    .toContain("docs-demo:default:rendering:speed");
 });
 
 test("can disable sorting per hook registration", async ({ page }) => {
@@ -306,13 +352,13 @@ test("can disable sorting per hook registration", async ({ page }) => {
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
-        return raw ? (JSON.parse(raw).state?.order?.Build ?? []) : [];
+        return raw ? (JSON.parse(raw).state?.order?.build?.build ?? []) : [];
       }),
     )
     .toEqual([]);
 });
 
-test("applies hook-level panel effects with hover transitions", async ({ page }) => {
+test("applies panel appearance with hover transitions", async ({ page }) => {
   const panel = page.getByTestId("tweaker-panel");
   const exposureInput = page.getByRole("textbox", { name: "Exposure" });
 
@@ -349,7 +395,7 @@ test("applies hover panel effects while keyboard focus is inside the panel", asy
   await expect(panel).toHaveCSS("backdrop-filter", "blur(8px)");
 });
 
-test("updates hook-level panel effects from runtime state", async ({ page }) => {
+test("updates panel appearance from runtime state", async ({ page }) => {
   const panel = page.getByTestId("tweaker-panel");
   const exposureInput = page.getByRole("textbox", { name: "Exposure" });
 

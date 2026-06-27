@@ -2,20 +2,24 @@ import { createStore } from "zustand/vanilla";
 import { persist } from "zustand/middleware";
 import {
   clamp,
-  createControlId,
-  defaultSection,
-  normalizeControl,
+  createControlPersistId,
+  hasPanelEffects,
   normalizePanelEffects,
-  sectionOrderFor,
+  normalizePanelId,
+  normalizeControlEntry,
+  normalizeSection,
+  sectionOrderByPanel,
   valuesForControls,
 } from "../control.js";
-import type {
-  NormalizedControl,
-  PersistedState,
-  StaleMode,
-  TweakerState,
-  TweakerStore,
-  TweakerStoreOptions,
+import {
+  defaultPanelId,
+  type JsonValue,
+  type NormalizedControl,
+  type PanelLayoutState,
+  type PersistedState,
+  type TweakerState,
+  type TweakerStore,
+  type TweakerStoreOptions,
 } from "../types.js";
 import {
   createValidatedPersistStorage,
@@ -23,27 +27,6 @@ import {
   persistedStateSchema,
   storagePrefix,
 } from "./persistence.js";
-
-function prunePersisted(
-  persisted: PersistedState,
-  controls: NormalizedControl[],
-  stale: StaleMode,
-): PersistedState {
-  if (stale !== "prune") return persisted;
-
-  const currentIds = new Set(controls.map((control) => control.id));
-  const values = Object.fromEntries(
-    Object.entries(persisted.values).filter(([id]) => currentIds.has(id)),
-  );
-  const order = Object.fromEntries(
-    Object.entries(persisted.order).map(([section, ids]) => [
-      section,
-      ids.filter((id) => currentIds.has(id)),
-    ]),
-  );
-
-  return { ...persisted, values, order };
-}
 
 function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
   if (left.length !== right.length) return false;
@@ -54,23 +37,34 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
 
     return (
       leftControl.id === rightControl.id &&
+      leftControl.persistId === rightControl.persistId &&
+      leftControl.domId === rightControl.domId &&
       leftControl.key === rightControl.key &&
-      leftControl.section === rightControl.section &&
-      leftControl.sortable === rightControl.sortable &&
-      leftControl.opacity === rightControl.opacity &&
-      leftControl.hoverOpacity === rightControl.hoverOpacity &&
-      leftControl.backgroundBlur === rightControl.backgroundBlur &&
-      leftControl.hoverBackgroundBlur === rightControl.hoverBackgroundBlur &&
+      leftControl.controlId === rightControl.controlId &&
+      leftControl.panelId === rightControl.panelId &&
+      leftControl.sectionId === rightControl.sectionId &&
+      leftControl.sectionLabel === rightControl.sectionLabel &&
+      leftControl.reorderable === rightControl.reorderable &&
       leftControl.kind === rightControl.kind &&
+      leftControl.type === rightControl.type &&
       leftControl.label === rightControl.label &&
-      leftControl.value === rightControl.value &&
-      leftControl.defaultValue === rightControl.defaultValue &&
+      valuesEqual(leftControl.value, rightControl.value) &&
+      valuesEqual(leftControl.defaultValue, rightControl.defaultValue) &&
       leftControl.min === rightControl.min &&
       leftControl.max === rightControl.max &&
       leftControl.step === rightControl.step &&
-      optionsEqual(leftControl.options, rightControl.options)
+      optionsEqual(leftControl.options, rightControl.options) &&
+      settingsEqual(leftControl.settings, rightControl.settings)
     );
   });
+}
+
+function valuesEqual(left: JsonValue, right: JsonValue) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function settingsEqual(left: NormalizedControl["settings"], right: NormalizedControl["settings"]) {
+  return JSON.stringify(left ?? {}) === JSON.stringify(right ?? {});
 }
 
 function optionsEqual(left: NormalizedControl["options"], right: NormalizedControl["options"]) {
@@ -83,166 +77,223 @@ function optionsEqual(left: NormalizedControl["options"], right: NormalizedContr
   });
 }
 
-export function createTweakerStore({ storeId, stale }: TweakerStoreOptions): TweakerStore {
-  return createStore<TweakerState>()(
-    persist(
-      (set, get) => ({
-        ...emptyPersistedState(),
-        controls: [],
-        sectionOrder: [],
+function defaultPanelState(): PanelLayoutState {
+  return { collapsed: false, dock: null };
+}
 
-        register(schema, options = {}) {
-          const section = options.section ?? defaultSection;
-          const sortable = options.sortable ?? true;
-          const controls = Object.entries(schema).map(([key, config]) =>
-            normalizeControl(
-              storeId,
-              section,
-              key,
-              config,
-              sortable,
-              options.opacity,
-              options.hoverOpacity,
-              options.backgroundBlur,
-              options.hoverBackgroundBlur,
-            ),
-          );
-          const ids = new Set(controls.map((control) => control.id));
+function panelStateFor(state: Pick<TweakerState, "panels">, panelId: string): PanelLayoutState {
+  return state.panels[panelId] ?? defaultPanelState();
+}
 
-          set((state) => {
-            const controlsById = new Map(state.controls.map((control) => [control.id, control]));
-            for (const control of controls) {
-              controlsById.set(control.id, {
-                ...control,
-                value: state.values[control.id] ?? control.defaultValue,
-              });
-            }
-            const nextControls = valuesForControls(Array.from(controlsById.values()), state.values);
-            if (controlsEqual(state.controls, nextControls)) return state;
+function panelOrderFor(state: Pick<TweakerState, "order">, panelId: string) {
+  return state.order[panelId] ?? {};
+}
 
-            return {
-              controls: nextControls,
-              sectionOrder: sectionOrderFor(nextControls),
-            };
+function createBaseState(storeId: string) {
+  return (
+    set: (
+      partial:
+        | TweakerState
+        | Partial<TweakerState>
+        | ((state: TweakerState) => TweakerState | Partial<TweakerState>),
+      replace?: false,
+    ) => void,
+    get: () => TweakerState,
+  ): TweakerState => ({
+    ...emptyPersistedState(),
+    storeId,
+    controls: [],
+    sectionOrder: {},
+    panelAppearances: {},
+
+    register(schema, options = {}) {
+      const panelId = normalizePanelId(options.panel);
+      const section = normalizeSection(options.section);
+      const reorderable = options.reorderable ?? options.sortable ?? true;
+      const controls = Object.entries(schema).map(([key, config]) =>
+        normalizeControlEntry({
+          storeId,
+          panelId,
+          section,
+          key,
+          config,
+          reorderable,
+        }),
+      );
+      const ids = new Set(controls.map((control) => control.persistId));
+
+      set((state) => {
+        const controlsById = new Map(state.controls.map((control) => [control.persistId, control]));
+        for (const control of controls) {
+          controlsById.set(control.persistId, {
+            ...control,
+            value: Object.prototype.hasOwnProperty.call(state.values, control.persistId)
+              ? state.values[control.persistId]!
+              : control.defaultValue,
           });
+        }
 
-          return () => {
-            set((state) => {
-              const nextControls = state.controls.filter((control) => !ids.has(control.id));
-              const persisted = prunePersisted(
-                {
-                  values: state.values,
-                  order: state.order,
-                  collapsed: state.collapsed,
-                  dock: state.dock,
-                },
-                nextControls,
-                stale,
+        const nextControls = valuesForControls(Array.from(controlsById.values()), state.values);
+        if (controlsEqual(state.controls, nextControls)) return state;
+
+        return {
+          controls: nextControls,
+          sectionOrder: sectionOrderByPanel(nextControls),
+        };
+      });
+
+      return () => {
+        set((state) => {
+          const nextControls = state.controls.filter((control) => !ids.has(control.persistId));
+          return {
+            controls: valuesForControls(nextControls, state.values),
+            sectionOrder: sectionOrderByPanel(nextControls),
+          };
+        });
+      };
+    },
+
+    updatePanelEffects(_schema, options = {}) {
+      if (!hasPanelEffects(options)) return;
+      const panelId = normalizePanelId(options.panel);
+      const appearance = normalizePanelEffects(options);
+
+      set((state) => ({
+        panelAppearances: {
+          ...state.panelAppearances,
+          [panelId]: {
+            ...state.panelAppearances[panelId],
+            ...appearance,
+          },
+        },
+      }));
+    },
+
+    setValue(persistId, value) {
+      const control = get().controls.find((item) => item.persistId === persistId);
+      if (!control) return;
+
+      const nextValue = typeof value === "number" ? clamp(value, control.min, control.max) : value;
+
+      set((state) => {
+        const values = { ...state.values, [persistId]: nextValue };
+        return {
+          values,
+          controls: valuesForControls(state.controls, values),
+        };
+      });
+    },
+
+    setPanelCollapsed(panelId, collapsed) {
+      set((state) => ({
+        panels: {
+          ...state.panels,
+          [panelId]: { ...panelStateFor(state, panelId), collapsed },
+        },
+      }));
+    },
+
+    setPanelDock(panelId, dock) {
+      set((state) => ({
+        panels: {
+          ...state.panels,
+          [panelId]: { ...panelStateFor(state, panelId), dock },
+        },
+      }));
+    },
+
+    setSectionOrder(panelId, sectionId, ids) {
+      set((state) => ({
+        order: {
+          ...state.order,
+          [panelId]: {
+            ...panelOrderFor(state, panelId),
+            [sectionId]: ids,
+          },
+        },
+      }));
+    },
+
+    resetValues(panelId) {
+      set((state) => {
+        const values =
+          panelId === undefined
+            ? {}
+            : Object.fromEntries(
+                Object.entries(state.values).filter(([id]) => {
+                  const control = state.controls.find((item) => item.persistId === id);
+                  return control?.panelId !== panelId;
+                }),
               );
 
-              return {
-                ...persisted,
-                controls: valuesForControls(nextControls, persisted.values),
-                sectionOrder: sectionOrderFor(nextControls),
-              };
-            });
-          };
-        },
+        return {
+          values,
+          controls: valuesForControls(state.controls, values),
+        };
+      });
+    },
 
-        updatePanelEffects(schema, options = {}) {
-          const section = options.section ?? defaultSection;
-          const ids = new Set(
-            Object.keys(schema).map((key) => createControlId(storeId, section, key)),
-          );
-          const effects = normalizePanelEffects(options);
+    resetOrder(panelId) {
+      if (panelId === undefined) {
+        set({ order: {} });
+        return;
+      }
 
-          set((state) => {
-            let changed = false;
-            const controls = state.controls.map((control) => {
-              if (!ids.has(control.id)) return control;
-              if (
-                control.opacity === effects.opacity &&
-                control.hoverOpacity === effects.hoverOpacity &&
-                control.backgroundBlur === effects.backgroundBlur &&
-                control.hoverBackgroundBlur === effects.hoverBackgroundBlur
-              ) {
-                return control;
-              }
+      set((state) => {
+        const { [panelId]: _removed, ...order } = state.order;
+        return { order };
+      });
+    },
 
-              changed = true;
-              return { ...control, ...effects };
-            });
+    getControlId(panelId, sectionId, key, explicitControlId) {
+      return createControlPersistId(
+        storeId,
+        normalizePanelId(panelId),
+        { id: sectionId, label: sectionId },
+        key,
+        explicitControlId,
+      );
+    },
 
-            if (!changed) return state;
-            return { controls };
-          });
-        },
+    getPanelState(panelId) {
+      return panelStateFor(get(), panelId);
+    },
+  });
+}
 
-        setValue(id, value) {
-          const control = get().controls.find((item) => item.id === id);
-          if (!control) return;
+function createMemoryStore(storeId: string): TweakerStore {
+  return createStore<TweakerState>()(createBaseState(storeId));
+}
 
-          const nextValue =
-            typeof value === "number" ? clamp(value, control.min, control.max) : value;
-
-          set((state) => {
-            const values = { ...state.values, [id]: nextValue };
-            return {
-              values,
-              controls: valuesForControls(state.controls, values),
-            };
-          });
-        },
-
-        setCollapsed(collapsed) {
-          set({ collapsed });
-        },
-
-        setDock(dock) {
-          set({ dock });
-        },
-
-        setSectionOrder(section, ids) {
-          set((state) => ({
-            order: { ...state.order, [section]: ids },
-          }));
-        },
-
-        resetValues() {
-          set((state) => ({
-            values: {},
-            controls: valuesForControls(state.controls, {}),
-          }));
-        },
-
-        resetOrder() {
-          set({ order: {} });
-        },
-
-        getControlId(section, key) {
-          return createControlId(storeId, section, key);
-        },
+function createPersistedStore(storeId: string, storageKey: string): TweakerStore {
+  return createStore<TweakerState>()(
+    persist(createBaseState(storeId), {
+      name: storageKey,
+      storage: createValidatedPersistStorage(),
+      partialize: (state): PersistedState => ({
+        values: state.values,
+        order: state.order,
+        panels: state.panels,
       }),
-      {
-        name: `${storagePrefix}${storeId}`,
-        storage: createValidatedPersistStorage(),
-        partialize: (state) => ({
-          values: state.values,
-          order: state.order,
-          collapsed: state.collapsed,
-          dock: state.dock,
-        }),
-        merge: (persistedState, currentState) => {
-          const parsed = persistedStateSchema.safeParse(persistedState);
-          if (!parsed.success) return currentState;
+      merge: (persistedState, currentState) => {
+        const parsed = persistedStateSchema.safeParse(persistedState);
+        if (!parsed.success) return currentState;
+        const persisted = parsed.data as PersistedState;
 
-          return {
-            ...currentState,
-            ...parsed.data,
-            controls: valuesForControls(currentState.controls, parsed.data.values),
-          };
-        },
+        return {
+          ...currentState,
+          ...persisted,
+          controls: valuesForControls(currentState.controls, persisted.values),
+        };
       },
-    ),
+    }),
   );
+}
+
+export function createTweakerStore(options: TweakerStoreOptions): TweakerStore {
+  const storeId = options.id ?? options.storeId ?? defaultPanelId;
+  if (options.persistence === false) return createMemoryStore(storeId);
+
+  const storageKey = options.persistence?.key ?? `${storagePrefix}${storeId}`;
+  return createPersistedStore(storeId, storageKey);
 }

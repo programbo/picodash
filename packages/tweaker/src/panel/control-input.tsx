@@ -1,12 +1,14 @@
 import { useState } from "react";
-import type { NormalizedControl, PrimitiveValue } from "../types.js";
+import { useTweakerCustomControls } from "../react/context.js";
+import type { JsonValue, NormalizedControl } from "../types.js";
 
 interface ControlInputProps {
   control: NormalizedControl;
-  onChange: (value: PrimitiveValue) => void;
+  onChange: (value: JsonValue) => void;
 }
 
 export function ControlInput({ control, onChange }: ControlInputProps) {
+  const customControls = useTweakerCustomControls();
   const [draft, setDraft] = useState<string | null>(null);
 
   function commitNumber(value: string) {
@@ -15,10 +17,28 @@ export function ControlInput({ control, onChange }: ControlInputProps) {
     if (Number.isFinite(parsed)) onChange(parsed);
   }
 
+  if (control.kind === "custom") {
+    const CustomControl = customControls[control.type];
+    if (!CustomControl) {
+      return <span className="tw-custom-missing">Missing control: {control.type}</span>;
+    }
+
+    return (
+      <CustomControl
+        id={control.domId}
+        label={control.label}
+        value={control.value}
+        defaultValue={control.defaultValue}
+        setValue={onChange}
+        control={control}
+      />
+    );
+  }
+
   if (control.kind === "checkbox") {
     return (
       <input
-        id={control.id}
+        id={control.domId}
         className="tw-checkbox"
         type="checkbox"
         checked={Boolean(control.value)}
@@ -30,9 +50,9 @@ export function ControlInput({ control, onChange }: ControlInputProps) {
   if (control.kind === "select") {
     return (
       <select
-        id={control.id}
+        id={control.domId}
         className="tw-select"
-        value={String(control.value)}
+        value={typeof control.value === "string" ? control.value : ""}
         onChange={(event) => onChange(event.target.value)}
       >
         {(control.options ?? []).map((option) => (
@@ -48,7 +68,7 @@ export function ControlInput({ control, onChange }: ControlInputProps) {
     return (
       <div className="tw-slider">
         <input
-          id={control.id}
+          id={control.domId}
           type="range"
           min={control.min}
           max={control.max}
@@ -63,11 +83,11 @@ export function ControlInput({ control, onChange }: ControlInputProps) {
 
   return (
     <input
-      id={control.id}
+      id={control.domId}
       className="tw-number"
       type="text"
       inputMode="decimal"
-      value={draft ?? String(control.value)}
+      value={draft ?? (typeof control.value === "number" ? String(control.value) : "")}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={(event) => commitNumber(event.target.value)}
       onKeyDown={(event) => {

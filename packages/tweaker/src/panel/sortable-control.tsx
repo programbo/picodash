@@ -25,12 +25,13 @@ export function SortableControl({
   const setValue = useTweakerSelector((state) => state.setValue);
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null);
   const { ref, handleRef, isDragging } = useSortable({
-    id: control.id,
+    id: control.persistId,
     index,
-    group: control.section,
-    data: { controlId: control.id, section: control.section },
-    accept: (source) => source.data.section === control.section,
-    disabled: { draggable: !control.sortable },
+    group: `${control.panelId}:${control.sectionId}`,
+    data: { controlId: control.persistId, panelId: control.panelId, sectionId: control.sectionId },
+    accept: (source) =>
+      source.data.panelId === control.panelId && source.data.sectionId === control.sectionId,
+    disabled: { draggable: !control.reorderable },
     modifiers: [
       RestrictToVerticalAxis,
       RestrictToElement.configure({ element: () => listRef.current }),
@@ -41,10 +42,10 @@ export function SortableControl({
     <div
       ref={ref}
       className={`tw-row ${isDragging ? "is-dragging" : ""} ${
-        control.sortable ? "" : "is-not-sortable"
+        control.reorderable ? "" : "is-not-sortable"
       }`}
-      data-control-id={control.id}
-      data-sortable={control.sortable ? "true" : "false"}
+      data-control-id={control.persistId}
+      data-sortable={control.reorderable ? "true" : "false"}
       data-testid={`control-${control.key}`}
     >
       <button
@@ -52,16 +53,18 @@ export function SortableControl({
         className="tw-grip"
         type="button"
         aria-label={
-          control.sortable ? `Reorder ${control.label}` : `Reordering disabled for ${control.label}`
+          control.reorderable
+            ? `Reorder ${control.label}`
+            : `Reordering disabled for ${control.label}`
         }
-        aria-disabled={!control.sortable}
+        aria-disabled={!control.reorderable}
         onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
-          if (!control.sortable) return;
+          if (!control.reorderable) return;
           pointerDragRef.current = { startY: event.clientY, moved: false };
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event: PointerEvent<HTMLButtonElement>) => {
-          if (!control.sortable) return;
+          if (!control.reorderable) return;
           const drag = pointerDragRef.current;
           if (!drag) return;
           if (Math.abs(event.clientY - drag.startY) < 4) return;
@@ -69,19 +72,19 @@ export function SortableControl({
           onPointerMove(control.id, event.clientY);
         }}
         onPointerUp={(event: PointerEvent<HTMLButtonElement>) => {
-          if (!control.sortable) return;
+          if (!control.reorderable) return;
           const drag = pointerDragRef.current;
           pointerDragRef.current = null;
           event.currentTarget.releasePointerCapture(event.pointerId);
           if (drag?.moved) event.preventDefault();
         }}
         onPointerCancel={(event: PointerEvent<HTMLButtonElement>) => {
-          if (!control.sortable) return;
+          if (!control.reorderable) return;
           pointerDragRef.current = null;
           event.currentTarget.releasePointerCapture(event.pointerId);
         }}
         onKeyDown={(event) => {
-          if (!control.sortable) return;
+          if (!control.reorderable) return;
           if (event.key === "ArrowUp") {
             event.preventDefault();
             onKeyboardMove(control.id, -1);
@@ -94,10 +97,10 @@ export function SortableControl({
       >
         <GripVertical size={14} />
       </button>
-      <label className="tw-row__label" htmlFor={control.id}>
+      <label className="tw-row__label" htmlFor={control.domId}>
         {control.label}
       </label>
-      <ControlInput control={control} onChange={(value) => setValue(control.id, value)} />
+      <ControlInput control={control} onChange={(value) => setValue(control.persistId, value)} />
     </div>
   );
 }

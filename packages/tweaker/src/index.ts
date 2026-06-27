@@ -1,22 +1,33 @@
 import "./styles.css";
 
 export { normalizeControl } from "./control.js";
-export { TweakerPanel } from "./panel/index.js";
+export { TweakerPanel, type TweakerPanelProps } from "./panel/index.js";
 export { TweakerProvider, useTweaker, useTweakerSnapshot, useTweakerStore } from "./react/index.js";
 export { createTweakerStore } from "./store/index.js";
 export type {
+  BuiltInControlKind,
   CheckboxControl,
   ControlConfig,
+  ControlKind,
+  CustomControl,
+  DockEdge,
   DockState,
+  JsonValue,
   NormalizedControl,
   NumberControl,
+  PanelAppearance,
+  PanelLayoutState,
   Placement,
   PrimitiveValue,
   RegisterOptions,
+  SectionConfig,
   SelectControl,
   SetTweakerValue,
   SliderControl,
   StaleMode,
+  TweakerCustomControlComponent,
+  TweakerCustomControlProps,
+  TweakerPersistenceOptions,
   TweakerProviderProps,
   TweakerSchema,
   TweakerSnapshot,

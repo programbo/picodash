@@ -1,10 +1,19 @@
 import { z } from "zod";
 import type { PersistStorage } from "zustand/middleware";
-import type { PersistedState } from "../types.js";
+import { defaultPanelId, type PersistedState } from "../types.js";
 
 export const storagePrefix = "tweaker:";
 
-const primitiveValueSchema = z.union([z.number(), z.string(), z.boolean()]);
+const jsonValueSchema: z.ZodType = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
+  ]),
+);
 
 const dockStateSchema = z.object({
   edge: z.enum(["top", "right", "bottom", "left"]),
@@ -12,20 +21,66 @@ const dockStateSchema = z.object({
   offset: z.number().finite().nonnegative(),
 });
 
+const panelLayoutStateSchema = z.object({
+  collapsed: z.boolean().default(false),
+  dock: dockStateSchema.nullable().default(null),
+});
+
 export const persistedStateSchema = z.object({
-  values: z.record(z.string(), primitiveValueSchema).default({}),
+  values: z.record(z.string(), jsonValueSchema).default({}),
+  order: z.record(z.string(), z.record(z.string(), z.array(z.string()))).default({}),
+  panels: z.record(z.string(), panelLayoutStateSchema).default({}),
+});
+
+const legacyPersistedStateSchema = z.object({
+  values: z.record(z.string(), jsonValueSchema).default({}),
   order: z.record(z.string(), z.array(z.string())).default({}),
   collapsed: z.boolean().default(false),
   dock: dockStateSchema.nullable().default(null),
 });
 
 const persistedStorageValueSchema = z.object({
-  state: persistedStateSchema,
+  state: z.unknown(),
   version: z.number().optional(),
 });
 
 export function emptyPersistedState(): PersistedState {
-  return { values: {}, order: {}, collapsed: false, dock: null };
+  return { values: {}, order: {}, panels: {} };
+}
+
+function parsePersistedState(state: unknown): PersistedState | null {
+  if (state && typeof state === "object" && ("collapsed" in state || "dock" in state)) {
+    const legacy = legacyPersistedStateSchema.safeParse(state);
+    if (!legacy.success) return null;
+
+    return {
+      values: legacy.data.values as PersistedState["values"],
+      order: { [defaultPanelId]: legacy.data.order },
+      panels: {
+        [defaultPanelId]: {
+          collapsed: legacy.data.collapsed,
+          dock: legacy.data.dock,
+        },
+      },
+    };
+  }
+
+  const parsed = persistedStateSchema.safeParse(state);
+  if (parsed.success) return parsed.data as PersistedState;
+
+  const legacy = legacyPersistedStateSchema.safeParse(state);
+  if (!legacy.success) return null;
+
+  return {
+    values: legacy.data.values as PersistedState["values"],
+    order: { [defaultPanelId]: legacy.data.order },
+    panels: {
+      [defaultPanelId]: {
+        collapsed: legacy.data.collapsed,
+        dock: legacy.data.dock,
+      },
+    },
+  };
 }
 
 export function createValidatedPersistStorage(): PersistStorage<PersistedState> {
@@ -38,7 +93,10 @@ export function createValidatedPersistStorage(): PersistStorage<PersistedState> 
         if (!raw) return null;
 
         const parsed = persistedStorageValueSchema.safeParse(JSON.parse(raw));
-        return parsed.success ? parsed.data : null;
+        if (!parsed.success) return null;
+
+        const state = parsePersistedState(parsed.data.state);
+        return state ? { state, version: parsed.data.version } : null;
       } catch {
         return null;
       }
@@ -46,10 +104,13 @@ export function createValidatedPersistStorage(): PersistStorage<PersistedState> 
     setItem(name, value) {
       if (typeof window === "undefined") return;
 
-      const parsed = persistedStorageValueSchema.safeParse(value);
+      const parsed = persistedStateSchema.safeParse(value.state);
       if (!parsed.success) return;
 
-      window.localStorage.setItem(name, JSON.stringify(parsed.data));
+      window.localStorage.setItem(
+        name,
+        JSON.stringify({ state: parsed.data, version: value.version }),
+      );
     },
     removeItem(name) {
       if (typeof window === "undefined") return;
