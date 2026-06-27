@@ -33,6 +33,28 @@ test("updates controls and persists values", async ({ page }) => {
   );
 });
 
+test("ignores empty number field commits", async ({ page }) => {
+  const exposure = page.getByRole("textbox", { name: "Exposure" });
+
+  await exposure.fill("");
+  await exposure.press("Enter");
+
+  await expect(page.getByText("Exposure NaN")).toHaveCount(0);
+  await expect(page.getByText("Exposure 1.0")).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("tweaker:docs-demo");
+        const values = raw ? JSON.parse(raw).state?.values : undefined;
+        return Object.prototype.hasOwnProperty.call(
+          values ?? {},
+          "docs-demo:default:rendering:exposure",
+        );
+      }),
+    )
+    .toBe(false);
+});
+
 test("renders concurrent panels without duplicate input ids", async ({ page }) => {
   await expect(page.getByTestId("tweaker-panel")).toBeVisible();
   await expect(page.getByTestId("tweaker-panel-build")).toBeVisible();

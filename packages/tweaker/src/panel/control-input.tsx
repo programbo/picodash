@@ -126,7 +126,9 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
       step={control.step}
       formatOptions={control.formatOptions}
       value={numberValue}
-      onChange={(value) => onChange(value)}
+      onChange={(value) => {
+        if (Number.isFinite(value)) onChange(value);
+      }}
     >
       <Group>
         <Input id={control.domId} className="tw-number" inputMode="decimal" />
