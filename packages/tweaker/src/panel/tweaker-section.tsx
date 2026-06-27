@@ -26,6 +26,8 @@ export function TweakerSection({ section, controls }: TweakerSectionProps) {
     if (!controls.find((control) => control.id === id)?.sortable) return;
     const list = listRef.current;
     if (!list) return;
+    const listRect = list.getBoundingClientRect();
+    if (clientY < listRect.top || clientY > listRect.bottom) return;
 
     const rows = Array.from(list.querySelectorAll<HTMLElement>("[data-control-id]"));
     const ids = controls.map((control) => control.id);

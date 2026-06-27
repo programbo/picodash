@@ -28,7 +28,8 @@ export function SortableControl({
     id: control.id,
     index,
     group: control.section,
-    data: { controlId: control.id },
+    data: { controlId: control.id, section: control.section },
+    accept: (source) => source.data.section === control.section,
     disabled: { draggable: !control.sortable },
     modifiers: [
       RestrictToVerticalAxis,

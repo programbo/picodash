@@ -221,6 +221,50 @@ test("reorders controls within a section by pointer-dragging the grip", async ({
     .toContain("docs-demo:Rendering:speed");
 });
 
+test("does not move controls between sections by pointer-dragging the grip", async ({ page }) => {
+  const roughnessGrip = page.getByRole("button", { name: "Reorder Roughness" });
+  const telemetryRow = page.getByTestId("control-telemetry");
+  const roughnessBox = await roughnessGrip.boundingBox();
+  const telemetryBox = await telemetryRow.boundingBox();
+  expect(roughnessBox).not.toBeNull();
+  expect(telemetryBox).not.toBeNull();
+
+  await page.mouse.move(
+    roughnessBox!.x + roughnessBox!.width / 2,
+    roughnessBox!.y + roughnessBox!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    telemetryBox!.x + telemetryBox!.width / 2,
+    telemetryBox!.y + telemetryBox!.height / 2,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() =>
+        Array.from(
+          document.querySelectorAll("[data-testid='section-Material'] [data-control-id]"),
+        ).map((row) => row.getAttribute("data-control-id")),
+      ),
+    )
+    .toEqual([
+      "docs-demo:Material:shape",
+      "docs-demo:Material:tint",
+      "docs-demo:Material:roughness",
+    ]);
+  await expect
+    .poll(async () =>
+      page.evaluate(() =>
+        Array.from(
+          document.querySelectorAll("[data-testid='section-Build'] [data-control-id]"),
+        ).map((row) => row.getAttribute("data-control-id")),
+      ),
+    )
+    .toEqual(["docs-demo:Build:channel", "docs-demo:Build:telemetry"]);
+});
+
 test("reorders controls within a section by keyboard on the grip", async ({ page }) => {
   const speedGrip = page.getByRole("button", { name: "Reorder Speed" });
   await speedGrip.focus();
