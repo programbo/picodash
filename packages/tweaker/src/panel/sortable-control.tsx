@@ -2,12 +2,13 @@ import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers";
 import { RestrictToElement } from "@dnd-kit/dom/modifiers";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { clsx } from "clsx";
-import { GripVertical } from "lucide-react";
+import { GripVertical, HelpCircle } from "lucide-react";
 import { type PointerEvent, type RefObject, useRef } from "react";
-import { Button } from "react-aria-components";
+import { Button, OverlayArrow, Tooltip, TooltipTrigger } from "react-aria-components";
 import { useTweakerSelector } from "../react/context.js";
 import type { NormalizedControl } from "../types.js";
 import { ControlInput } from "./control-input.js";
+import { usePanelEffects } from "./panel-effects-context.js";
 
 interface SortableControlProps {
   control: NormalizedControl;
@@ -31,6 +32,7 @@ export function SortableControl({
   onPointerCancel,
 }: SortableControlProps) {
   const setValue = useTweakerSelector((state) => state.setValue);
+  const panelEffects = usePanelEffects();
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null);
   const labelId = `${control.domId}:label`;
   const { ref, handleRef, isDragging } = useSortable({
@@ -123,9 +125,37 @@ export function SortableControl({
       >
         <GripVertical size={14} />
       </Button>
-      <label id={labelId} className="tw-row__label" htmlFor={control.domId}>
-        {control.label}
-      </label>
+      <div className="tw-row__label-wrap">
+        <label id={labelId} className="tw-row__label" htmlFor={control.domId}>
+          {control.label}
+        </label>
+        {control.help ? (
+          <TooltipTrigger delay={0} closeDelay={100}>
+            <Button
+              className="tw-help"
+              type="button"
+              aria-label={`Help for ${control.label}`}
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <HelpCircle aria-hidden size={13} />
+            </Button>
+            <Tooltip
+              className="tw-tooltip"
+              data-theme={panelEffects.theme}
+              style={panelEffects.style}
+              offset={6}
+              placement="top"
+            >
+              <OverlayArrow className="tw-tooltip__arrow">
+                <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden>
+                  <path d="M0 0L4 4L8 0" />
+                </svg>
+              </OverlayArrow>
+              {control.help}
+            </Tooltip>
+          </TooltipTrigger>
+        ) : null}
+      </div>
       <ControlInput
         control={control}
         labelId={labelId}

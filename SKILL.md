@@ -1,6 +1,6 @@
 ---
 name: tweaker
-description: Use the local Tweaker React package to add a Leva-inspired floating config system with named panels, built-in controls, custom controls, persisted values, themes, status states, and reorderable sections.
+description: Use the local Tweaker React package to add a Leva-inspired floating config system with named panels, built-in controls, custom controls, persisted values, themes, status states, help tooltips, and reorderable sections.
 ---
 
 # Tweaker Package Usage
@@ -38,7 +38,13 @@ Call `useTweaker(schema, { panel, section, reorderable })` inside React componen
 ```tsx
 const [values, setValue] = useTweaker(
   {
-    speed: { defaultValue: 0.75, min: 0, max: 2, status: "info" },
+    speed: {
+      defaultValue: 0.75,
+      min: 0,
+      max: 2,
+      status: "info",
+      help: "Adjusts preview animation speed.",
+    },
     exposure: { type: "number", defaultValue: 1, min: 0, max: 4 },
     mode: { type: "select", defaultValue: "fast", options: ["fast", "quality"] },
     enabled: { defaultValue: true },
@@ -70,6 +76,7 @@ Custom control values must be JSON-serializable. Use control-level `id` when a s
 - Min/max numeric shorthand becomes a slider.
 - Use explicit `type: "number"` for bounded number inputs.
 - Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row states.
+- Use `help: string` on object controls for row help tooltips; keep this string-only and do not put render props in schemas.
 - Pass `reorderable: false` in hook options when a hook registration should not be draggable.
 - Put panel opacity and backdrop blur on `TweakerPanel.appearance`, not hook options.
 - Reordering is panel-local and section-local and starts from the grip handle.
