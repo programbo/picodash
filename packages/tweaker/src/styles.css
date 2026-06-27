@@ -1,6 +1,6 @@
 @reference "tailwindcss";
 
-:where(.tw-panel, .tw-select__popover) {
+:where(.tw-panel, .tw-select__popover, .tw-tooltip) {
   --tw-panel-color-opacity: 0.78;
   --tw-panel-active-color-opacity: var(--tw-panel-color-opacity);
   --tw-bg: rgb(21 22 23 / var(--tw-panel-active-color-opacity));
@@ -31,7 +31,7 @@
   --spacing: 0.25rem;
 }
 
-:where(.tw-panel, .tw-select__popover)[data-theme="light"] {
+:where(.tw-panel, .tw-select__popover, .tw-tooltip)[data-theme="light"] {
   --tw-bg: rgb(248 250 246 / var(--tw-panel-active-color-opacity));
   --tw-bg-elevated: rgb(255 255 252 / var(--tw-panel-active-color-opacity));
   --tw-border: rgb(198 207 197 / var(--tw-panel-active-color-opacity));
@@ -54,7 +54,7 @@
 }
 
 @media (prefers-color-scheme: light) {
-  :where(.tw-panel, .tw-select__popover)[data-theme="system"] {
+  :where(.tw-panel, .tw-select__popover, .tw-tooltip)[data-theme="system"] {
     --tw-bg: rgb(248 250 246 / var(--tw-panel-active-color-opacity));
     --tw-bg-elevated: rgb(255 255 252 / var(--tw-panel-active-color-opacity));
     --tw-border: rgb(198 207 197 / var(--tw-panel-active-color-opacity));
@@ -149,7 +149,8 @@
 
 .tw-icon-button,
 .tw-text-button,
-.tw-grip {
+.tw-grip,
+.tw-help {
   @apply inline-flex h-6 cursor-pointer items-center justify-center;
 
   background: transparent;
@@ -172,7 +173,8 @@
 
 .tw-icon-button:hover,
 .tw-text-button:hover,
-.tw-grip:hover {
+.tw-grip:hover,
+.tw-help:hover {
   color: var(--tw-text);
   background-color: var(--tw-control-hover-bg);
 }
@@ -180,6 +182,7 @@
 .tw-icon-button:focus-visible,
 .tw-text-button:focus-visible,
 .tw-grip:focus-visible,
+.tw-help:focus-visible,
 .tw-number:focus-visible,
 .tw-select__button:focus-visible,
 .tw-checkbox[data-focus-visible],
@@ -277,10 +280,24 @@
   background: transparent;
 }
 
+.tw-row__label-wrap {
+  @apply grid min-w-0 items-center gap-1.25;
+
+  grid-template-columns: minmax(0, auto) min-content;
+}
+
 .tw-row__label {
   @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
 
   color: var(--tw-muted);
+}
+
+.tw-help {
+  @apply size-4 cursor-help p-0;
+}
+
+.tw-help svg {
+  @apply shrink-0;
 }
 
 .tw-grip {
@@ -356,6 +373,50 @@
   box-shadow: var(--tw-shadow);
   font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
   font-size: 12px;
+}
+
+.tw-tooltip {
+  --tw-panel-active-color-opacity: var(
+    --tw-panel-hover-color-opacity,
+    var(--tw-panel-color-opacity, 0.78)
+  );
+
+  @apply z-1002 max-w-64 px-2 py-1.5;
+
+  -webkit-backdrop-filter: blur(
+    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
+  );
+  backdrop-filter: blur(
+    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
+  );
+  color: var(--tw-text);
+  background-color: var(--tw-bg-elevated);
+  border: 1px solid var(--tw-border-strong);
+  border-radius: 5px;
+  box-shadow: var(--tw-shadow);
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.tw-tooltip__arrow svg {
+  display: block;
+  fill: var(--tw-bg-elevated);
+  stroke: var(--tw-border-strong);
+  stroke-width: 1px;
+}
+
+.tw-tooltip[data-placement="bottom"] .tw-tooltip__arrow svg {
+  transform: rotate(180deg);
+}
+
+.tw-tooltip[data-placement="left"] .tw-tooltip__arrow svg {
+  transform: rotate(90deg);
+}
+
+.tw-tooltip[data-placement="right"] .tw-tooltip__arrow svg {
+  transform: rotate(-90deg);
 }
 
 .tw-select__list {

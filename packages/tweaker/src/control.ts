@@ -23,6 +23,7 @@ const standardControlKeys = new Set([
   "step",
   "options",
   "status",
+  "help",
 ]);
 
 export const defaultSection = defaultSectionLabel;
@@ -123,6 +124,12 @@ export function statusForControl(config: ControlConfig): ControlStatus | undefin
   return value === "info" || value === "alert" || value === "error" ? value : undefined;
 }
 
+function helpForControl(config: ControlConfig) {
+  if (typeof config !== "object" || config === null) return undefined;
+  const value = config.help;
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
 export function normalizePanelEffects(options: RegisterOptions): PanelAppearance {
   return {
     surfaceOpacity: normalizeOpacity(options.opacity),
@@ -186,6 +193,7 @@ export function normalizeControlEntry({
   const controlId = explicitControlId ?? key;
   const persistId = createControlPersistId(storeId, panelId, section, key, explicitControlId);
   const status = statusForControl(config);
+  const help = helpForControl(config);
   const base = {
     id: persistId,
     persistId,
@@ -199,6 +207,7 @@ export function normalizeControlEntry({
     reorderable,
     sortable: reorderable,
     status,
+    help,
   };
 
   if (typeof config === "number") {

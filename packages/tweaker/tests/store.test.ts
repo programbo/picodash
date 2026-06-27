@@ -81,6 +81,17 @@ describe("normalizeControl", () => {
     expect(error.status).toBe("error");
   });
 
+  it("normalizes help metadata on object controls", () => {
+    const control = normalizeControl("demo", "Rendering", "speed", {
+      defaultValue: 0.5,
+      min: 0,
+      max: 1,
+      help: "Adjusts the preview animation speed.",
+    });
+
+    expect(control.help).toBe("Adjusts the preview animation speed.");
+  });
+
   it("normalizes custom controls with JSON defaults", () => {
     const store = createTweakerStore({ id: "custom", persistence: false });
     store.getState().register(
@@ -102,6 +113,7 @@ describe("normalizeControl", () => {
       persistId: "custom:scene:transform:position",
       value: [0, 1, 0],
       settings: { size: "compact" },
+      help: undefined,
     });
   });
 });
@@ -188,6 +200,17 @@ describe("schema signatures", () => {
     } satisfies TweakerSchema;
     const next = {
       speed: { defaultValue: 1, min: 0, max: 2, status: "error" },
+    } satisfies TweakerSchema;
+
+    expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next));
+  });
+
+  it("tracks help metadata changes", () => {
+    const base = {
+      speed: { defaultValue: 1, min: 0, max: 2, help: "Old help" },
+    } satisfies TweakerSchema;
+    const next = {
+      speed: { defaultValue: 1, min: 0, max: 2, help: "New help" },
     } satisfies TweakerSchema;
 
     expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next));

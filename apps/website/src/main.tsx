@@ -20,6 +20,7 @@ const renderingSchema = {
     step: 0.01,
     label: "Speed",
     status: "info",
+    help: "Adjusts the preview animation speed.",
   },
   exposure: {
     type: "number",
@@ -43,6 +44,7 @@ const materialSchema = {
     defaultValue: "green",
     options: ["green", "amber", "blue"],
     label: "Tint",
+    help: "Changes the material color palette.",
   },
   roughness: { type: "slider", defaultValue: 0.34, min: 0, max: 1, step: 0.01 },
   accent: { type: "color", id: "accent", defaultValue: "#9bd16f", label: "Accent" },

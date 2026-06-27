@@ -25,6 +25,7 @@ export type PanelTheme = "dark" | "light" | "system";
 interface ControlIdentity {
   id?: string;
   label?: string;
+  help?: string;
 }
 
 interface ControlStatusMetadata {
@@ -126,6 +127,7 @@ export interface NormalizedControl {
   reorderable: boolean;
   sortable: boolean;
   status?: ControlStatus;
+  help?: string;
   kind: ControlKind;
   type: string;
   label: string;

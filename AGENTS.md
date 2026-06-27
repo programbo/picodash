@@ -128,6 +128,7 @@ If localStorage shape changes, update:
 - Custom controls are registered on `TweakerProvider.controls` and referenced by `type`; their values must be JSON-serializable.
 - `TweakerPanel` accepts `theme: "dark" | "light" | "system"` and defaults to `"dark"`. Portaled controls such as select popovers must use the same panel theme.
 - Object control configs can set `status: "info" | "alert" | "error"` for blue, amber, or red row tinting with an outline and thicker left border.
+- Object control configs can set `help: string` for row help tooltips. Keep help string-only metadata; do not add render props or deep tooltip styling props to schemas.
 
 When adding control kinds, update normalization, types, input rendering, tests, docs, and demo usage together.
 
@@ -147,7 +148,7 @@ The panel header is independently draggable for floating placement and magnetic 
 
 `apps/website` is the demo/docs app and the end-to-end test surface. It imports `tweaker` via `workspace:*`, so package changes should be validated through the app as well as package unit tests.
 
-Use Playwright tests in `apps/website/tests/tweaker.spec.ts` for user-visible behavior such as persistence, reset, docking, pointer reorder, keyboard reorder, multiple panels, custom controls, and non-reorderable registrations.
+Use Playwright tests in `apps/website/tests/tweaker.spec.ts` for user-visible behavior such as persistence, reset, docking, pointer reorder, keyboard reorder, multiple panels, custom controls, control help tooltips, and non-reorderable registrations.
 
 When changing UI behavior, prefer verifying with Playwright or the in-app browser in addition to unit tests.
 

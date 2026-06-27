@@ -1,4 +1,12 @@
 import { expect, test } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
+
+async function hoverCenter(page: Page, locator: Locator) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2, { steps: 5 });
+  await page.waitForTimeout(100);
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -91,6 +99,31 @@ test("renders info, alert, and error control status states", async ({ page }) =>
   await expect(bloom).toHaveCSS("background-color", "rgba(239, 68, 68, 0.1)");
   await expect(bloom).toHaveCSS("border-left-width", "3px");
   await expect(bloom).toHaveCSS("outline-color", "rgba(248, 113, 113, 0.24)");
+});
+
+test("shows control help tooltips with panel styling", async ({ page }) => {
+  const help = page.getByRole("button", { name: "Help for Speed" });
+
+  await hoverCenter(page, help);
+
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toContainText("Adjusts the preview animation speed.");
+  await expect(tooltip).toHaveAttribute("data-theme", "dark");
+  await expect(tooltip).toHaveCSS("background-color", "rgba(29, 31, 32, 0.95)");
+  await expect(tooltip).toHaveCSS("backdrop-filter", "blur(8px)");
+});
+
+test("applies light panel theme to control help tooltips", async ({ page }) => {
+  await page.goto("/?theme=light");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  await hoverCenter(page, page.getByRole("button", { name: "Help for Tint" }));
+
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toContainText("Changes the material color palette.");
+  await expect(tooltip).toHaveAttribute("data-theme", "light");
+  await expect(tooltip).toHaveCSS("background-color", "rgba(255, 255, 252, 0.95)");
 });
 
 test("collapses and persists panel state", async ({ page }) => {

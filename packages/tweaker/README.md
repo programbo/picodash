@@ -17,6 +17,7 @@ Preferred API:
 - Put panel opacity and backdrop blur on `TweakerPanel.appearance`; use CSS variables for deeper theming.
 - Use `theme="dark"`, `theme="light"`, or `theme="system"` on `TweakerPanel` for color theme.
 - Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row treatment.
+- Use `help: "..."` on object controls for string-only row tooltip copy that inherits panel styling.
 
 Compatibility aliases still work for existing consumers: `storeId`, `placement`, `sortable`, hook-level panel effects, and `value`.
 

@@ -46,6 +46,7 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.sectionLabel === rightControl.sectionLabel &&
       leftControl.reorderable === rightControl.reorderable &&
       leftControl.status === rightControl.status &&
+      leftControl.help === rightControl.help &&
       leftControl.kind === rightControl.kind &&
       leftControl.type === rightControl.type &&
       leftControl.label === rightControl.label &&
