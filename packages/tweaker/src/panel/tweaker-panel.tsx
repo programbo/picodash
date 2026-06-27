@@ -14,7 +14,7 @@ import { Button } from "react-aria-components";
 import { normalizePanelAppearance, normalizePanelId } from "../control.js";
 import { useTweakerSelector } from "../react/context.js";
 import type { DockState, PanelAppearance, PanelTheme, Placement } from "../types.js";
-import { moveItem, orderControls } from "./order.js";
+import { orderControls } from "./order.js";
 import { PanelEffectProvider, type PanelEffectStyle } from "./panel-effects-context.js";
 import {
   clampPosition,
@@ -108,7 +108,6 @@ export function TweakerPanel({
   const resetValues = useTweakerSelector((state) => state.resetValues);
   const setCollapsed = useTweakerSelector((state) => state.setPanelCollapsed);
   const setDock = useTweakerSelector((state) => state.setPanelDock);
-  const setSectionOrder = useTweakerSelector((state) => state.setSectionOrder);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
     startX: number;
@@ -116,12 +115,10 @@ export function TweakerPanel({
     origin: PanelPosition;
   } | null>(null);
   const rowDragInteractionIdRef = useRef<string | null>(null);
-  const rowDragRef = useRef<{ sectionId: string; ids: string[]; rect: DOMRect | null } | null>(
-    null,
-  );
+  const rowDragInteractionTokenRef = useRef(0);
+  const rowDragSettleTimeoutRef = useRef<number | null>(null);
   const viewportSize = useViewportSize();
   const [freePosition, setFreePosition] = useState<PanelPosition | null>(null);
-  const [rowDragRevision, setRowDragRevision] = useState(0);
   const [activeInteractionIds, setActiveInteractionIds] = useState<Set<string>>(() => new Set());
   const setInteractionActive = useCallback((interactionId: string, active: boolean) => {
     setActiveInteractionIds((ids) => {
@@ -151,6 +148,14 @@ export function TweakerPanel({
       panelRef.current,
     );
   }, [dock, freePosition, resolvedPlacement, viewportSize]);
+
+  useEffect(() => {
+    return () => {
+      if (rowDragSettleTimeoutRef.current !== null) {
+        window.clearTimeout(rowDragSettleTimeoutRef.current);
+      }
+    };
+  }, []);
 
   function handlePanelPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     const element = panelRef.current;
@@ -218,99 +223,49 @@ export function TweakerPanel({
   }
 
   function clearRowDragInteraction() {
+    if (rowDragSettleTimeoutRef.current !== null) {
+      window.clearTimeout(rowDragSettleTimeoutRef.current);
+      rowDragSettleTimeoutRef.current = null;
+    }
     const interactionId = rowDragInteractionIdRef.current;
     if (!interactionId) return;
     rowDragInteractionIdRef.current = null;
     setInteractionActive(interactionId, false);
   }
 
+  function settleRowDragInteraction() {
+    const token = rowDragInteractionTokenRef.current;
+    if (rowDragSettleTimeoutRef.current !== null) {
+      window.clearTimeout(rowDragSettleTimeoutRef.current);
+    }
+    rowDragSettleTimeoutRef.current = window.setTimeout(() => {
+      if (rowDragInteractionTokenRef.current === token) {
+        clearRowDragInteraction();
+      }
+    }, 180);
+  }
+
   function handleDragStart(event: DragStartEvent) {
     const source = event.operation.source;
     if (!source || source.data.panelId !== panelId) return;
 
+    if (rowDragSettleTimeoutRef.current !== null) {
+      window.clearTimeout(rowDragSettleTimeoutRef.current);
+      rowDragSettleTimeoutRef.current = null;
+    }
+    rowDragInteractionTokenRef.current += 1;
     const interactionId = `dnd:${String(source.id)}`;
     rowDragInteractionIdRef.current = interactionId;
     setInteractionActive(interactionId, true);
-
-    const sectionId = String(source.data.sectionId);
-    const section = Array.from(
-      panelRef.current?.querySelectorAll<HTMLElement>(".tw-section") ?? [],
-    ).find((element) => element.dataset.sectionId === sectionId);
-    const list = section?.querySelector<HTMLElement>(".tw-section__list");
-    rowDragRef.current = {
-      sectionId,
-      ids: orderControls(controls, sectionId, order).map((control) => control.persistId),
-      rect: list?.getBoundingClientRect() ?? null,
-    };
-  }
-
-  function pointerFromEvent(nativeEvent: Event | undefined) {
-    if (nativeEvent && "clientX" in nativeEvent && "clientY" in nativeEvent) {
-      const pointerEvent = nativeEvent as PointerEvent;
-      return { x: pointerEvent.clientX, y: pointerEvent.clientY };
-    }
-    return null;
-  }
-
-  function restoreRowDrag(sectionId: string) {
-    const initial = rowDragRef.current;
-    rowDragRef.current = null;
-    if (initial && initial.sectionId === sectionId) {
-      setSectionOrder(panelId, sectionId, initial.ids);
-    }
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    clearRowDragInteraction();
     const source = event.operation.source;
-    const target = event.operation.target;
-    if (!source || source.data.panelId !== panelId) return;
-    setRowDragRevision((value) => value + 1);
-
-    const sectionId = String(source.data.sectionId);
-    if (
-      !target ||
-      target.data.panelId !== source.data.panelId ||
-      target.data.sectionId !== source.data.sectionId
-    ) {
-      restoreRowDrag(sectionId);
+    if (!source || source.data.panelId !== panelId) {
+      clearRowDragInteraction();
       return;
     }
-    if (String(source.id) === String(target.id)) {
-      restoreRowDrag(sectionId);
-      return;
-    }
-
-    const pointer = pointerFromEvent(event.nativeEvent);
-    if (!pointer) {
-      restoreRowDrag(sectionId);
-      return;
-    }
-
-    const section = Array.from(
-      panelRef.current?.querySelectorAll<HTMLElement>(".tw-section") ?? [],
-    ).find((element) => element.dataset.sectionId === sectionId);
-    const list = section?.querySelector<HTMLElement>(".tw-section__list");
-    const listRect = rowDragRef.current?.rect ?? list?.getBoundingClientRect();
-    const insideList =
-      listRect &&
-      pointer.x >= listRect.left &&
-      pointer.x <= listRect.right &&
-      pointer.y >= listRect.top &&
-      pointer.y <= listRect.bottom;
-    if (!insideList) {
-      restoreRowDrag(sectionId);
-      return;
-    }
-
-    rowDragRef.current = null;
-
-    const sectionControls = orderControls(controls, sectionId, order);
-    const ids = sectionControls.map((control) => control.persistId);
-    const from = ids.indexOf(String(source.id));
-    const to = ids.indexOf(String(target.id));
-    if (from < 0 || to < 0 || from === to) return;
-    setSectionOrder(panelId, sectionId, moveItem(ids, from, to));
+    settleRowDragInteraction();
   }
 
   const effectStyle: PanelEffectStyle = {};
@@ -369,7 +324,7 @@ export function TweakerPanel({
       {!collapsed && (
         <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <PanelEffectProvider value={{ style: effectStyle, theme, setInteractionActive }}>
-            <div key={rowDragRevision} className="tw-panel__body">
+            <div className="tw-panel__body">
               {sectionOrder.map((sectionId) => {
                 const sectionControls = orderControls(controls, sectionId, order);
                 const sectionLabel = sectionControls[0]?.sectionLabel ?? sectionId;

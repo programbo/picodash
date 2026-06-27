@@ -339,6 +339,279 @@ test("reorders controls within a section by pointer-dragging the grip", async ({
     .toContain("docs-demo:default:rendering:speed");
 });
 
+test("opens the target slot while pointer-dragging a control", async ({ page }) => {
+  const speedGrip = page.getByRole("button", { name: "Reorder Speed" });
+  const exposureRow = page.getByTestId("control-exposure");
+  const bloomRow = page.getByTestId("control-bloom");
+  const speedBox = await speedGrip.boundingBox();
+  const exposureBox = await exposureRow.boundingBox();
+  const bloomBox = await bloomRow.boundingBox();
+  expect(speedBox).not.toBeNull();
+  expect(exposureBox).not.toBeNull();
+  expect(bloomBox).not.toBeNull();
+
+  await page.mouse.move(speedBox!.x + speedBox!.width / 2, speedBox!.y + speedBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    exposureBox!.x + exposureBox!.width / 2,
+    exposureBox!.y + exposureBox!.height - 3,
+    { steps: 12 },
+  );
+
+  await expect
+    .poll(async () => {
+      const exposure = await exposureRow.boundingBox();
+      const bloom = await bloomRow.boundingBox();
+      const dragged = await page
+        .locator("[data-control-id='docs-demo:default:rendering:speed'][data-dnd-dragging]")
+        .count();
+      const dragState = await page.evaluate(() => {
+        const draggedRow = document.querySelector<HTMLElement>(
+          "[data-control-id='docs-demo:default:rendering:speed'][data-dnd-dragging]",
+        );
+        const placeholder = document.querySelector<HTMLElement>(
+          "[data-control-id='docs-demo:default:rendering:speed'][data-dnd-placeholder]",
+        );
+        return {
+          draggedVisible:
+            !!draggedRow &&
+            getComputedStyle(draggedRow).visibility !== "hidden" &&
+            draggedRow.getBoundingClientRect().height > 0,
+          placeholderSpace:
+            !!placeholder &&
+            getComputedStyle(placeholder).visibility === "hidden" &&
+            placeholder.getBoundingClientRect().height > 0,
+        };
+      });
+      return {
+        bloomMovedUp: bloom ? bloom.y < bloomBox!.y - 4 : false,
+        dragged,
+        ...dragState,
+        exposureMovedUp: exposure ? exposure.y < exposureBox!.y - 4 : false,
+      };
+    })
+    .toEqual({
+      bloomMovedUp: false,
+      dragged: 1,
+      draggedVisible: true,
+      exposureMovedUp: true,
+      placeholderSpace: true,
+    });
+
+  await page.mouse.up();
+});
+
+test("keeps the target slot correct when drag direction reverses", async ({ page }) => {
+  const speedGrip = page.getByRole("button", { name: "Reorder Speed" });
+  const exposureRow = page.getByTestId("control-exposure");
+  const bloomRow = page.getByTestId("control-bloom");
+  const speedBox = await speedGrip.boundingBox();
+  const exposureBox = await exposureRow.boundingBox();
+  const bloomBox = await bloomRow.boundingBox();
+  expect(speedBox).not.toBeNull();
+  expect(exposureBox).not.toBeNull();
+  expect(bloomBox).not.toBeNull();
+
+  await page.mouse.move(speedBox!.x + speedBox!.width / 2, speedBox!.y + speedBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bloomBox!.x + bloomBox!.width / 2, bloomBox!.y + bloomBox!.height - 3, {
+    steps: 18,
+  });
+  await page.mouse.move(
+    exposureBox!.x + exposureBox!.width / 2,
+    exposureBox!.y + exposureBox!.height - 3,
+    { steps: 18 },
+  );
+
+  await expect
+    .poll(async () => {
+      const exposure = await exposureRow.boundingBox();
+      const bloom = await bloomRow.boundingBox();
+      const dragState = await page.evaluate(() => {
+        const draggedRow = document.querySelector<HTMLElement>(
+          "[data-control-id='docs-demo:default:rendering:speed'][data-dnd-dragging]",
+        );
+        const placeholder = document.querySelector<HTMLElement>(
+          "[data-control-id='docs-demo:default:rendering:speed'][data-dnd-placeholder]",
+        );
+        return {
+          draggedVisible:
+            !!draggedRow &&
+            getComputedStyle(draggedRow).visibility !== "hidden" &&
+            draggedRow.getBoundingClientRect().height > 0,
+          placeholderSpace:
+            !!placeholder &&
+            getComputedStyle(placeholder).visibility === "hidden" &&
+            placeholder.getBoundingClientRect().height > 0,
+        };
+      });
+      return {
+        bloomStayedInPlace: bloom ? Math.abs(bloom.y - bloomBox!.y) < 4 : false,
+        exposureMovedUp: exposure ? exposure.y < exposureBox!.y - 4 : false,
+        ...dragState,
+      };
+    })
+    .toEqual({
+      bloomStayedInPlace: true,
+      draggedVisible: true,
+      exposureMovedUp: true,
+      placeholderSpace: true,
+    });
+
+  await page.mouse.up();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("tweaker:docs-demo");
+        return raw ? (JSON.parse(raw).state?.order?.default?.rendering ?? []) : [];
+      }),
+    )
+    .toEqual([
+      "docs-demo:default:rendering:exposure",
+      "docs-demo:default:rendering:speed",
+      "docs-demo:default:rendering:bloom",
+    ]);
+});
+
+test("places a dragged control between rows after crossing multiple controls", async ({ page }) => {
+  const shapeGrip = page.getByRole("button", { name: "Reorder Shape" });
+  const accentRow = page.getByTestId("control-accent");
+  const shapeBox = await shapeGrip.boundingBox();
+  const accentBox = await accentRow.boundingBox();
+  expect(shapeBox).not.toBeNull();
+  expect(accentBox).not.toBeNull();
+
+  await page.mouse.move(shapeBox!.x + shapeBox!.width / 2, shapeBox!.y + shapeBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(accentBox!.x + accentBox!.width / 2, accentBox!.y + 3, { steps: 18 });
+  await page.mouse.up();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("tweaker:docs-demo");
+        return raw ? (JSON.parse(raw).state?.order?.default?.material ?? []) : [];
+      }),
+    )
+    .toEqual([
+      "docs-demo:default:material:tint",
+      "docs-demo:default:material:roughness",
+      "docs-demo:default:material:shape",
+      "docs-demo:default:material:accent",
+    ]);
+});
+
+test("moves the material spacer through every row while dragging shape", async ({ page }) => {
+  const shapeGrip = page.getByRole("button", { name: "Reorder Shape" });
+  const tintRow = page.getByTestId("control-tint");
+  const roughnessRow = page.getByTestId("control-roughness");
+  const accentRow = page.getByTestId("control-accent");
+  const shapeBox = await shapeGrip.boundingBox();
+  const tintBox = await tintRow.boundingBox();
+  const roughnessBox = await roughnessRow.boundingBox();
+  const accentBox = await accentRow.boundingBox();
+  expect(shapeBox).not.toBeNull();
+  expect(tintBox).not.toBeNull();
+  expect(roughnessBox).not.toBeNull();
+  expect(accentBox).not.toBeNull();
+
+  async function materialDragState() {
+    const tint = await tintRow.boundingBox();
+    const roughness = await roughnessRow.boundingBox();
+    const accent = await accentRow.boundingBox();
+    const dragState = await page.evaluate(() => {
+      const draggedRow = document.querySelector<HTMLElement>(
+        "[data-control-id='docs-demo:default:material:shape'][data-dnd-dragging]",
+      );
+      const placeholder = document.querySelector<HTMLElement>(
+        "[data-control-id='docs-demo:default:material:shape'][data-dnd-placeholder]",
+      );
+      return {
+        draggedVisible:
+          !!draggedRow &&
+          getComputedStyle(draggedRow).visibility !== "hidden" &&
+          draggedRow.getBoundingClientRect().height > 0,
+        placeholderSpace:
+          !!placeholder &&
+          getComputedStyle(placeholder).visibility === "hidden" &&
+          placeholder.getBoundingClientRect().height > 0,
+      };
+    });
+
+    return {
+      accentMovedUp: accent ? accent.y < accentBox!.y - 4 : false,
+      accentStayedInPlace: accent ? Math.abs(accent.y - accentBox!.y) < 4 : false,
+      roughnessMovedUp: roughness ? roughness.y < roughnessBox!.y - 4 : false,
+      roughnessStayedInPlace: roughness ? Math.abs(roughness.y - roughnessBox!.y) < 4 : false,
+      tintMovedUp: tint ? tint.y < tintBox!.y - 4 : false,
+      ...dragState,
+    };
+  }
+
+  await page.mouse.move(shapeBox!.x + shapeBox!.width / 2, shapeBox!.y + shapeBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(tintBox!.x + tintBox!.width / 2, tintBox!.y + tintBox!.height - 3, {
+    steps: 12,
+  });
+
+  await expect.poll(materialDragState).toEqual({
+    accentMovedUp: false,
+    accentStayedInPlace: true,
+    draggedVisible: true,
+    placeholderSpace: true,
+    roughnessMovedUp: false,
+    roughnessStayedInPlace: true,
+    tintMovedUp: true,
+  });
+
+  await page.mouse.move(
+    roughnessBox!.x + roughnessBox!.width / 2,
+    roughnessBox!.y + roughnessBox!.height - 3,
+    { steps: 12 },
+  );
+
+  await expect.poll(materialDragState).toEqual({
+    accentMovedUp: false,
+    accentStayedInPlace: true,
+    draggedVisible: true,
+    placeholderSpace: true,
+    roughnessMovedUp: true,
+    roughnessStayedInPlace: false,
+    tintMovedUp: true,
+  });
+
+  await page.mouse.move(accentBox!.x + accentBox!.width / 2, accentBox!.y + accentBox!.height - 3, {
+    steps: 12,
+  });
+
+  await expect.poll(materialDragState).toEqual({
+    accentMovedUp: true,
+    accentStayedInPlace: false,
+    draggedVisible: true,
+    placeholderSpace: true,
+    roughnessMovedUp: true,
+    roughnessStayedInPlace: false,
+    tintMovedUp: true,
+  });
+
+  await page.mouse.up();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("tweaker:docs-demo");
+        return raw ? (JSON.parse(raw).state?.order?.default?.material ?? []) : [];
+      }),
+    )
+    .toEqual([
+      "docs-demo:default:material:tint",
+      "docs-demo:default:material:roughness",
+      "docs-demo:default:material:accent",
+      "docs-demo:default:material:shape",
+    ]);
+});
+
 test("keeps panel appearance active during row pointer interaction without hover or focus", async ({
   page,
 }) => {
@@ -409,7 +682,41 @@ test("keeps panel appearance active during row pointer interaction without hover
   await expect
     .poll(() => panel.evaluate((element) => element.getAttribute("data-active")))
     .toBeNull();
-  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
+});
+
+test("keeps active panel appearance while a row drop settles", async ({ page }) => {
+  const panel = page.getByTestId("tweaker-panel");
+  const speedGrip = page.getByRole("button", { name: "Reorder Speed" });
+  const exposureRow = page.getByTestId("control-exposure");
+  const speedBox = await speedGrip.boundingBox();
+  const exposureBox = await exposureRow.boundingBox();
+  expect(speedBox).not.toBeNull();
+  expect(exposureBox).not.toBeNull();
+
+  await page.mouse.move(speedBox!.x + speedBox!.width / 2, speedBox!.y + speedBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    exposureBox!.x + exposureBox!.width / 2,
+    exposureBox!.y + exposureBox!.height - 3,
+    { steps: 12 },
+  );
+
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.95)");
+  await page.mouse.up();
+
+  await expect
+    .poll(() =>
+      panel.evaluate((element) => ({
+        active: element.getAttribute("data-active"),
+        background: getComputedStyle(element).backgroundColor,
+        hovered: element.matches(":hover"),
+      })),
+    )
+    .toEqual({
+      active: null,
+      background: "rgba(21, 22, 23, 0.95)",
+      hovered: true,
+    });
 });
 
 test("does not move controls between sections by pointer-dragging the grip", async ({ page }) => {

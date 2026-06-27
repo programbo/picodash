@@ -1,5 +1,6 @@
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers";
 import { RestrictToElement } from "@dnd-kit/dom/modifiers";
+import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { clsx } from "clsx";
 import { GripVertical, HelpCircle } from "lucide-react";
@@ -19,6 +20,10 @@ interface SortableControlProps {
   onPointerMove: (id: string, clientX: number, clientY: number) => void;
   onPointerEnd: (id: string, clientX: number, clientY: number) => void;
   onPointerCancel: (id: string) => void;
+}
+
+function settleInteraction(callback: () => void) {
+  requestAnimationFrame(callback);
 }
 
 export function SortableControl({
@@ -50,7 +55,7 @@ export function SortableControl({
       RestrictToVerticalAxis,
       RestrictToElement.configure({ element: () => listRef.current }),
     ],
-    plugins: [],
+    plugins: [SortableKeyboardPlugin],
   });
 
   return (
@@ -96,9 +101,9 @@ export function SortableControl({
           if (!control.reorderable) return;
           const drag = pointerDragRef.current;
           pointerDragRef.current = null;
-          setPointerDragActive(false);
           tryReleasePointerCapture(event.currentTarget, event.pointerId);
           onPointerEnd(control.persistId, event.clientX, event.clientY);
+          settleInteraction(() => setPointerDragActive(false));
           if (drag?.moved) event.preventDefault();
         }}
         onPointerCancel={(event: PointerEvent<HTMLButtonElement>) => {
@@ -107,14 +112,6 @@ export function SortableControl({
           setPointerDragActive(false);
           tryReleasePointerCapture(event.currentTarget, event.pointerId);
           onPointerCancel(control.persistId);
-        }}
-        onLostPointerCapture={(event: PointerEvent<HTMLButtonElement>) => {
-          if (!control.reorderable) return;
-          const drag = pointerDragRef.current;
-          if (!drag) return;
-          pointerDragRef.current = null;
-          setPointerDragActive(false);
-          onPointerEnd(control.persistId, event.clientX, event.clientY);
         }}
         onKeyDown={(event) => {
           if (!control.reorderable) return;
