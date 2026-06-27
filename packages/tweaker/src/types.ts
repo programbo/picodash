@@ -26,6 +26,8 @@ interface ControlIdentity {
   id?: string;
   label?: string;
   help?: string;
+  /** Renders the control faded/greyscale and blocks value writes. */
+  readOnly?: boolean;
 }
 
 interface ControlStatusMetadata {
@@ -42,6 +44,8 @@ export interface NumberControl extends ValueControl<number> {
   min?: number;
   max?: number;
   step?: number;
+  /** Intl.NumberFormatOptions applied to the number field's display/parsing. */
+  formatOptions?: Intl.NumberFormatOptions;
 }
 
 export interface SliderControl extends ValueControl<number> {
@@ -128,6 +132,7 @@ export interface NormalizedControl {
   sortable: boolean;
   status?: ControlStatus;
   help?: string;
+  readOnly?: boolean;
   kind: ControlKind;
   type: string;
   label: string;
@@ -136,6 +141,7 @@ export interface NormalizedControl {
   min?: number;
   max?: number;
   step?: number;
+  formatOptions?: Intl.NumberFormatOptions;
   options?: Array<{ label: string; value: string }>;
   settings?: Record<string, unknown>;
 }
@@ -216,6 +222,7 @@ export interface TweakerCustomControlProps<T extends JsonValue = JsonValue> {
   setValue: (value: T) => void;
   control: NormalizedControl;
   disabled?: boolean;
+  readOnly?: boolean;
 }
 
 export type TweakerCustomControlComponent<T extends JsonValue = JsonValue> = ComponentType<

@@ -56,7 +56,9 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.max === rightControl.max &&
       leftControl.step === rightControl.step &&
       optionsEqual(leftControl.options, rightControl.options) &&
-      settingsEqual(leftControl.settings, rightControl.settings)
+      settingsEqual(leftControl.settings, rightControl.settings) &&
+      formatOptionsEqual(leftControl.formatOptions, rightControl.formatOptions) &&
+      leftControl.readOnly === rightControl.readOnly
     );
   });
 }
@@ -77,6 +79,13 @@ function optionsEqual(left: NormalizedControl["options"], right: NormalizedContr
     const rightOption = right[index];
     return rightOption?.label === leftOption.label && rightOption.value === leftOption.value;
   });
+}
+
+function formatOptionsEqual(
+  left: NormalizedControl["formatOptions"],
+  right: NormalizedControl["formatOptions"],
+) {
+  return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
 }
 
 function defaultPanelState(): PanelLayoutState {
@@ -178,6 +187,7 @@ function createBaseState(storeId: string) {
     setValue(persistId, value) {
       const control = get().controls.find((item) => item.persistId === persistId);
       if (!control) return;
+      if (control.readOnly) return;
 
       const nextValue = typeof value === "number" ? clamp(value, control.min, control.max) : value;
 

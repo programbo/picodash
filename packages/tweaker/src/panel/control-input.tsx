@@ -1,10 +1,11 @@
-import { useState } from "react";
 import {
   Button,
   Checkbox,
+  Group,
   Input,
   ListBox,
   ListBoxItem,
+  NumberField,
   Popover,
   Select,
   SelectValue,
@@ -12,7 +13,6 @@ import {
   SliderOutput,
   SliderThumb,
   SliderTrack,
-  TextField,
 } from "react-aria-components";
 import { ChevronDown } from "lucide-react";
 import { useTweakerCustomControls } from "../react/context.js";
@@ -27,15 +27,8 @@ interface ControlInputProps {
 
 export function ControlInput({ control, labelId, onChange }: ControlInputProps) {
   const customControls = useTweakerCustomControls();
-  const [draft, setDraft] = useState<string | null>(null);
   const panelEffects = usePanelEffects();
   const setSelectOpenActive = usePanelInteraction(`select:${control.persistId}`);
-
-  function commitNumber(value: string) {
-    const parsed = Number(value);
-    setDraft(null);
-    if (Number.isFinite(parsed)) onChange(parsed);
-  }
 
   if (control.kind === "custom") {
     const CustomControl = customControls[control.type];
@@ -51,6 +44,7 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         defaultValue={control.defaultValue}
         setValue={onChange}
         control={control}
+        readOnly={control.readOnly}
       />
     );
   }
@@ -61,6 +55,7 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         id={control.domId}
         className="tw-checkbox"
         aria-labelledby={labelId}
+        isReadOnly={control.readOnly}
         isSelected={Boolean(control.value)}
         onChange={(selected) => onChange(selected)}
       />
@@ -119,27 +114,25 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
     );
   }
 
-  const numberValue = typeof control.value === "number" ? String(control.value) : "";
+  const numberValue = typeof control.value === "number" ? control.value : 0;
 
   return (
-    <TextField
+    <NumberField
       className="tw-number-field"
       aria-labelledby={labelId}
-      value={draft ?? numberValue}
-      onChange={(value) => setDraft(value)}
+      isReadOnly={control.readOnly}
+      minValue={control.min}
+      maxValue={control.max}
+      step={control.step}
+      formatOptions={control.formatOptions}
+      value={numberValue}
+      onChange={(value) => {
+        if (Number.isFinite(value)) onChange(value);
+      }}
     >
-      <Input
-        id={control.domId}
-        className="tw-number"
-        inputMode="decimal"
-        onBlur={(event) => commitNumber(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            commitNumber(event.currentTarget.value);
-            event.currentTarget.blur();
-          }
-        }}
-      />
-    </TextField>
+      <Group>
+        <Input id={control.domId} className="tw-number" inputMode="decimal" />
+      </Group>
+    </NumberField>
   );
 }

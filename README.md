@@ -68,16 +68,16 @@ export function App() {
 
 ## Controls
 
-- Number: `{ type: "number", defaultValue: 1, min?: 0, max?: 10, step?: 0.1 }`
+- Number: `{ type: "number", defaultValue: 1, min?: 0, max?: 10, step?: 0.1, formatOptions?: Intl.NumberFormatOptions }`
 - Slider shorthand: `{ defaultValue: 0.5, min: 0, max: 1 }`
 - Slider explicit: `{ type: "slider", defaultValue: 0.5, min: 0, max: 1 }`
 - Select: `{ type: "select", defaultValue: "green", options: ["green", "amber"] }`
 - Checkbox: `{ defaultValue: true }` or `{ type: "checkbox", defaultValue: true }`
 - Custom: register a component on `TweakerProvider.controls`, then use its `type` in a schema.
 
-Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs.
+Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs. The number input is a React Aria `NumberField`; pass `formatOptions` (`Intl.NumberFormatOptions`) to format the value with units, fraction-digit limits, currency, and more, e.g. `{ style: "unit", unit: "millimeter", unitDisplay: "short", minimumFractionDigits: 1, maximumFractionDigits: 2 }`.
 
-Object controls can include `status: "info" | "alert" | "error"` to tint the row blue, amber, or red with an outline and thicker left border. Add `help: "..."` to object controls to show a small row tooltip; help text is string metadata and uses the panel theme/appearance.
+Object controls can include `status: "info" | "alert" | "error"` to tint the row blue, amber, or red with an outline and thicker left border. Add `help: "..."` to object controls to show a small row tooltip; help text is string metadata and uses the panel theme/appearance. Set `readOnly: true` to render a control faded and greyscale and block value writes (enforced in the store); the value stays visible but non-editable.
 
 Use `{ id, label }` sections when labels may change; `id` is the stable persistence identity. Use a control-level `id` when a schema key may change. Primitive string shorthand and the old `value` spelling still work for compatibility, but new code should use explicit selects and `defaultValue`.
 

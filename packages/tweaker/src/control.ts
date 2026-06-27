@@ -24,6 +24,8 @@ const standardControlKeys = new Set([
   "options",
   "status",
   "help",
+  "formatOptions",
+  "readOnly",
 ]);
 
 export const defaultSection = defaultSectionLabel;
@@ -130,6 +132,11 @@ function helpForControl(config: ControlConfig) {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
+function readOnlyForControl(config: ControlConfig) {
+  if (typeof config !== "object" || config === null) return undefined;
+  return config.readOnly === true ? true : undefined;
+}
+
 export function normalizePanelEffects(options: RegisterOptions): PanelAppearance {
   return {
     surfaceOpacity: normalizeOpacity(options.opacity),
@@ -169,6 +176,13 @@ function numberProperty(config: ControlConfig, key: "min" | "max" | "step") {
   return typeof value === "number" ? value : undefined;
 }
 
+function formatOptionsProperty(config: ControlConfig): Intl.NumberFormatOptions | undefined {
+  if (typeof config !== "object" || config === null) return undefined;
+  const value = (config as Record<string, unknown>).formatOptions;
+  if (!value || typeof value !== "object") return undefined;
+  return value as Intl.NumberFormatOptions;
+}
+
 interface NormalizeControlEntryOptions {
   storeId: string;
   panelId: string;
@@ -194,6 +208,7 @@ export function normalizeControlEntry({
   const persistId = createControlPersistId(storeId, panelId, section, key, explicitControlId);
   const status = statusForControl(config);
   const help = helpForControl(config);
+  const readOnly = readOnlyForControl(config);
   const base = {
     id: persistId,
     persistId,
@@ -208,6 +223,7 @@ export function normalizeControlEntry({
     sortable: reorderable,
     status,
     help,
+    readOnly,
   };
 
   if (typeof config === "number") {
@@ -286,6 +302,7 @@ export function normalizeControlEntry({
   const min = numberProperty(config, "min");
   const max = numberProperty(config, "max");
   const step = numberProperty(config, "step");
+  const formatOptions = formatOptionsProperty(config);
   const numericValue = typeof defaultValue === "number" ? defaultValue : 0;
   const hasSliderBounds =
     config.type === "slider" ||
@@ -302,6 +319,7 @@ export function normalizeControlEntry({
     min,
     max,
     step,
+    formatOptions,
   };
 }
 

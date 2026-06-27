@@ -70,6 +70,7 @@ export function SortableControl({
       data-control-id={control.persistId}
       data-sortable={control.reorderable ? "true" : "false"}
       data-status={control.status}
+      data-readonly={control.readOnly ? "true" : "false"}
       data-testid={`control-${control.key}`}
     >
       <Button

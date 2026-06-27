@@ -33,6 +33,28 @@ test("updates controls and persists values", async ({ page }) => {
   );
 });
 
+test("ignores empty number field commits", async ({ page }) => {
+  const exposure = page.getByRole("textbox", { name: "Exposure" });
+
+  await exposure.fill("");
+  await exposure.press("Enter");
+
+  await expect(page.getByText("Exposure NaN")).toHaveCount(0);
+  await expect(page.getByText("Exposure 1.0")).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("tweaker:docs-demo");
+        const values = raw ? JSON.parse(raw).state?.values : undefined;
+        return Object.prototype.hasOwnProperty.call(
+          values ?? {},
+          "docs-demo:default:rendering:exposure",
+        );
+      }),
+    )
+    .toBe(false);
+});
+
 test("renders concurrent panels without duplicate input ids", async ({ page }) => {
   await expect(page.getByTestId("tweaker-panel")).toBeVisible();
   await expect(page.getByTestId("tweaker-panel-build")).toBeVisible();
@@ -71,6 +93,29 @@ test("updates and persists a custom color control", async ({ page }) => {
 
   await expect(page.locator("input[type='color']")).toHaveValue("#ff0000");
   await expect(page.getByText("Accent #ff0000")).toBeVisible();
+});
+
+test("renders number controls with formatOptions", async ({ page }) => {
+  // Unit formatting (millimeter), prefix formatting (f/), and percent formatting
+  // are all rendered through React Aria's NumberField.
+  await expect(page.getByRole("textbox", { name: "Focal length" })).toHaveValue("35 mm");
+  await expect(page.getByRole("textbox", { name: "Aperture" })).toHaveValue("2.8");
+  await expect(page.getByRole("textbox", { name: "Zoom" })).toHaveValue("100%");
+  await expect(page.getByRole("textbox", { name: "Rotation" })).toHaveValue("0\u00B0");
+});
+
+test("renders read-only controls as faded and non-editable", async ({ page }) => {
+  const row = page.getByTestId("control-rotation");
+  const field = row.locator(".tw-number-field");
+  const input = page.getByRole("textbox", { name: "Rotation" });
+
+  await expect(row).toHaveAttribute("data-readonly", "true");
+  // Faded and greyscale via CSS on the field wrapper.
+  await expect(field).toHaveCSS("opacity", "0.5");
+  await expect(field).toHaveCSS("filter", "grayscale(1)");
+  // The underlying input is marked read-only and keeps its value.
+  await expect(input).toHaveAttribute("readonly");
+  await expect(input).toHaveValue("0\u00B0");
 });
 
 test("programmatic setter updates the panel and preview", async ({ page }) => {

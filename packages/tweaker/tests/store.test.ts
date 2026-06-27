@@ -92,6 +92,28 @@ describe("normalizeControl", () => {
     expect(control.help).toBe("Adjusts the preview animation speed.");
   });
 
+  it("normalizes readOnly metadata on object controls", () => {
+    const number = normalizeControl("demo", "Rendering", "exposure", {
+      type: "number",
+      defaultValue: 1,
+      readOnly: true,
+    });
+    const checkbox = normalizeControl("demo", "Rendering", "bloom", {
+      type: "checkbox",
+      defaultValue: true,
+      readOnly: true,
+    });
+    const unset = normalizeControl("demo", "Rendering", "speed", {
+      defaultValue: 0.5,
+      min: 0,
+      max: 1,
+    });
+
+    expect(number.readOnly).toBe(true);
+    expect(checkbox.readOnly).toBe(true);
+    expect(unset.readOnly).toBeUndefined();
+  });
+
   it("normalizes custom controls with JSON defaults", () => {
     const store = createTweakerStore({ id: "custom", persistence: false });
     store.getState().register(
@@ -215,6 +237,40 @@ describe("schema signatures", () => {
 
     expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next));
   });
+
+  it("tracks formatOptions metadata changes", () => {
+    const base = {
+      speed: {
+        type: "number",
+        defaultValue: 1,
+        min: 0,
+        max: 2,
+        formatOptions: { maximumFractionDigits: 1 },
+      },
+    } satisfies TweakerSchema;
+    const next = {
+      speed: {
+        type: "number",
+        defaultValue: 1,
+        min: 0,
+        max: 2,
+        formatOptions: { style: "percent" },
+      },
+    } satisfies TweakerSchema;
+
+    expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next));
+  });
+
+  it("tracks readOnly metadata changes", () => {
+    const base = {
+      speed: { type: "number", defaultValue: 1, min: 0, max: 2, readOnly: false },
+    } satisfies TweakerSchema;
+    const next = {
+      speed: { type: "number", defaultValue: 1, min: 0, max: 2, readOnly: true },
+    } satisfies TweakerSchema;
+
+    expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next));
+  });
 });
 
 describe("TweakerStore", () => {
@@ -332,6 +388,50 @@ describe("TweakerStore", () => {
     expect(store.getState().values["status-change:Rendering:speed"]).toBe(1.5);
     expect(store.getState().order.default?.Rendering).toEqual(["status-change:Rendering:speed"]);
     expect(store.getState().controls[0]?.status).toBe("error");
+  });
+
+  it("updates formatOptions and readOnly metadata on re-registration", () => {
+    const store = createTweakerStore({ id: "meta-change", persistence: false });
+    const persistId = "meta-change:Rendering:speed";
+
+    store.getState().register(
+      {
+        speed: {
+          type: "number",
+          defaultValue: 1,
+          min: 0,
+          max: 2,
+          formatOptions: { maximumFractionDigits: 1 },
+          readOnly: false,
+        },
+      },
+      { section: "Rendering" },
+    );
+    expect(store.getState().controls[0]?.formatOptions).toEqual({ maximumFractionDigits: 1 });
+    expect(store.getState().controls[0]?.readOnly).toBeUndefined();
+
+    store.getState().setValue(persistId, 1.5);
+    store.getState().register(
+      {
+        speed: {
+          type: "number",
+          defaultValue: 1,
+          min: 0,
+          max: 2,
+          formatOptions: { style: "percent" },
+          readOnly: true,
+        },
+      },
+      { section: "Rendering" },
+    );
+
+    expect(store.getState().values[persistId]).toBe(1.5);
+    expect(store.getState().controls[0]?.formatOptions).toEqual({ style: "percent" });
+    expect(store.getState().controls[0]?.readOnly).toBe(true);
+
+    // A read-only control refuses writes after the re-registration takes effect.
+    store.getState().setValue(persistId, 2);
+    expect(store.getState().values[persistId]).toBe(1.5);
   });
 
   it("does not notify when an equivalent schema registers again", () => {
