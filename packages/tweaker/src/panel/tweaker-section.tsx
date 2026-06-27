@@ -1,10 +1,17 @@
 import { clsx } from "clsx";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "react-aria-components";
 import { useTweakerSelector } from "../react/context.js";
 import type { NormalizedControl } from "../types.js";
-import { moveItem } from "./order.js";
+import {
+  type ControlOrderSnapshot,
+  captureControlOrderSnapshot,
+  controlOrderFromPointer,
+  controlOrderFromPointerSnapshot,
+  moveItem,
+  orderControls,
+} from "./order.js";
 import { SortableControl } from "./sortable-control.js";
 
 interface TweakerSectionProps {
@@ -14,6 +21,12 @@ interface TweakerSectionProps {
   controls: NormalizedControl[];
 }
 
+function orderChanged(left: string[] | null, right: string[]) {
+  return (
+    !left || left.length !== right.length || left.some((value, index) => value !== right[index])
+  );
+}
+
 export function TweakerSection({ panelId, sectionId, title, controls }: TweakerSectionProps) {
   const collapsed = useTweakerSelector((state) => state.sections[panelId]?.[sectionId] ?? false);
   const setSectionCollapsed = useTweakerSelector((state) => state.setSectionCollapsed);
@@ -21,9 +34,15 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
   const listRef = useRef<HTMLDivElement | null>(null);
   const pointerDragIdRef = useRef<string | null>(null);
   const pointerDragInitialOrderRef = useRef<string[] | null>(null);
+  const pointerDragOrderSnapshotRef = useRef<ControlOrderSnapshot[] | null>(null);
   const pointerDragNextOrderRef = useRef<string[] | null>(null);
   const pointerDragListRectRef = useRef<DOMRect | null>(null);
-  const [listRevision, setListRevision] = useState(0);
+  const [dragPreviewOrder, setDragPreviewOrder] = useState<string[] | null>(null);
+
+  const displayedControls = useMemo(() => {
+    if (!dragPreviewOrder) return controls;
+    return orderControls(controls, sectionId, { [sectionId]: dragPreviewOrder });
+  }, [controls, dragPreviewOrder, sectionId]);
 
   function moveControl(id: string, direction: -1 | 1) {
     if (!controls.find((control) => control.persistId === id)?.reorderable) return;
@@ -49,35 +68,51 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
   function startPointerMove(id: string) {
     if (!controls.find((control) => control.persistId === id)?.reorderable) return;
     pointerDragIdRef.current = id;
-    pointerDragInitialOrderRef.current = controls.map((control) => control.persistId);
+    const initialOrder = controls.map((control) => control.persistId);
+    pointerDragInitialOrderRef.current = initialOrder;
+    pointerDragOrderSnapshotRef.current = captureControlOrderSnapshot(
+      listRef.current,
+      initialOrder,
+    );
     pointerDragNextOrderRef.current = null;
     pointerDragListRectRef.current = listRef.current?.getBoundingClientRect() ?? null;
+    setDragPreviewOrder(null);
   }
 
   function endPointerMove(id: string, clientX: number, clientY: number) {
     if (pointerDragIdRef.current !== id) return;
     if (!controls.find((control) => control.persistId === id)?.reorderable) return;
     const initialOrder = pointerDragInitialOrderRef.current;
-    const nextOrder = pointerDragNextOrderRef.current;
+    const hasPointerDragOrder = pointerDragNextOrderRef.current !== null;
+    const list = listRef.current;
+    const nextOrder =
+      hasPointerDragOrder && initialOrder && list
+        ? (controlOrderFromPointerSnapshot(pointerDragOrderSnapshotRef.current, id, clientY) ??
+          controlOrderFromPointer(list, initialOrder, id, clientY) ??
+          pointerDragNextOrderRef.current)
+        : pointerDragNextOrderRef.current;
     pointerDragIdRef.current = null;
     pointerDragInitialOrderRef.current = null;
+    pointerDragOrderSnapshotRef.current = null;
     pointerDragNextOrderRef.current = null;
     const insideList = isPointerInsideList(clientX, clientY);
     pointerDragListRectRef.current = null;
-    if (nextOrder && insideList) {
+    if (nextOrder && insideList && orderChanged(initialOrder, nextOrder)) {
+      setDragPreviewOrder(nextOrder);
       setSectionOrder(panelId, sectionId, nextOrder);
     } else if (initialOrder && !insideList) {
-      setSectionOrder(panelId, sectionId, initialOrder);
+      setDragPreviewOrder(initialOrder);
     }
-    setListRevision((value) => value + 1);
+    requestAnimationFrame(() => setDragPreviewOrder(null));
   }
 
   function cancelPointerMove() {
     pointerDragIdRef.current = null;
     pointerDragInitialOrderRef.current = null;
+    pointerDragOrderSnapshotRef.current = null;
     pointerDragNextOrderRef.current = null;
     pointerDragListRectRef.current = null;
-    setListRevision((value) => value + 1);
+    setDragPreviewOrder(null);
   }
 
   function moveControlToPointer(id: string, clientX: number, clientY: number) {
@@ -90,6 +125,14 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
     const ids = pointerDragInitialOrderRef.current ?? controls.map((control) => control.persistId);
     const from = ids.indexOf(id);
     if (from < 0) return;
+    const pointerOrder =
+      controlOrderFromPointerSnapshot(pointerDragOrderSnapshotRef.current, id, clientY) ??
+      controlOrderFromPointer(list, ids, id, clientY);
+    if (pointerOrder) {
+      pointerDragNextOrderRef.current = pointerOrder;
+      setDragPreviewOrder(pointerOrder);
+      return;
+    }
 
     const targetIndex = rows.findIndex((row) => {
       const rect = row.getBoundingClientRect();
@@ -97,11 +140,19 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
     });
     const to = targetIndex === -1 ? ids.length - 1 : targetIndex;
     if (from === to) return;
-    pointerDragNextOrderRef.current = moveItem(ids, from, to);
+    const nextOrder = moveItem(ids, from, to);
+    pointerDragNextOrderRef.current = nextOrder;
+    setDragPreviewOrder(nextOrder);
   }
 
   useEffect(() => {
     const ownerDocument = listRef.current?.ownerDocument ?? document;
+
+    function handlePointerMove(event: globalThis.PointerEvent) {
+      const activeId = pointerDragIdRef.current;
+      if (!activeId) return;
+      moveControlToPointer(activeId, event.clientX, event.clientY);
+    }
 
     function handlePointerUp(event: globalThis.PointerEvent) {
       const activeId = pointerDragIdRef.current;
@@ -114,9 +165,11 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
       cancelPointerMove();
     }
 
+    ownerDocument.addEventListener("pointermove", handlePointerMove, true);
     ownerDocument.addEventListener("pointerup", handlePointerUp, true);
     ownerDocument.addEventListener("pointercancel", handlePointerCancel, true);
     return () => {
+      ownerDocument.removeEventListener("pointermove", handlePointerMove, true);
       ownerDocument.removeEventListener("pointerup", handlePointerUp, true);
       ownerDocument.removeEventListener("pointercancel", handlePointerCancel, true);
     };
@@ -135,13 +188,17 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
           aria-label={collapsed ? `Expand section ${title}` : `Collapse section ${title}`}
           onPress={() => setSectionCollapsed(panelId, sectionId, !collapsed)}
         >
-          {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+          {collapsed ? (
+            <ChevronRight size={18} strokeWidth={2.4} />
+          ) : (
+            <ChevronDown size={18} strokeWidth={2.4} />
+          )}
         </Button>
         <div className="tw-section__title">{title}</div>
       </div>
       {!collapsed && (
-        <div key={listRevision} ref={listRef} className="tw-section__list">
-          {controls.map((control, index) => (
+        <div ref={listRef} className="tw-section__list">
+          {displayedControls.map((control, index) => (
             <SortableControl
               key={control.persistId}
               control={control}
