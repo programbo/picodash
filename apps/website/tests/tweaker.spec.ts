@@ -339,6 +339,25 @@ test("reorders controls within a section by pointer-dragging the grip", async ({
     .toContain("docs-demo:default:rendering:speed");
 });
 
+test("does not persist section order when clicking the reorder grip", async ({ page }) => {
+  const speedGrip = page.getByRole("button", { name: "Reorder Speed" });
+  const speedBox = await speedGrip.boundingBox();
+  expect(speedBox).not.toBeNull();
+
+  await page.mouse.move(speedBox!.x + speedBox!.width / 2, speedBox!.y + speedBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.up();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("tweaker:docs-demo");
+        return raw ? (JSON.parse(raw).state?.order?.default?.rendering ?? null) : null;
+      }),
+    )
+    .toBeNull();
+});
+
 test("opens the target slot while pointer-dragging a control", async ({ page }) => {
   const speedGrip = page.getByRole("button", { name: "Reorder Speed" });
   const exposureRow = page.getByTestId("control-exposure");

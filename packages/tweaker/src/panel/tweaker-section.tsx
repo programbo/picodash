@@ -21,6 +21,12 @@ interface TweakerSectionProps {
   controls: NormalizedControl[];
 }
 
+function orderChanged(left: string[] | null, right: string[]) {
+  return (
+    !left || left.length !== right.length || left.some((value, index) => value !== right[index])
+  );
+}
+
 export function TweakerSection({ panelId, sectionId, title, controls }: TweakerSectionProps) {
   const collapsed = useTweakerSelector((state) => state.sections[panelId]?.[sectionId] ?? false);
   const setSectionCollapsed = useTweakerSelector((state) => state.setSectionCollapsed);
@@ -77,9 +83,10 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
     if (pointerDragIdRef.current !== id) return;
     if (!controls.find((control) => control.persistId === id)?.reorderable) return;
     const initialOrder = pointerDragInitialOrderRef.current;
+    const hasPointerDragOrder = pointerDragNextOrderRef.current !== null;
     const list = listRef.current;
     const nextOrder =
-      initialOrder && list
+      hasPointerDragOrder && initialOrder && list
         ? (controlOrderFromPointerSnapshot(pointerDragOrderSnapshotRef.current, id, clientY) ??
           controlOrderFromPointer(list, initialOrder, id, clientY) ??
           pointerDragNextOrderRef.current)
@@ -90,7 +97,7 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
     pointerDragNextOrderRef.current = null;
     const insideList = isPointerInsideList(clientX, clientY);
     pointerDragListRectRef.current = null;
-    if (nextOrder && insideList) {
+    if (nextOrder && insideList && orderChanged(initialOrder, nextOrder)) {
       setDragPreviewOrder(nextOrder);
       setSectionOrder(panelId, sectionId, nextOrder);
     } else if (initialOrder && !insideList) {
