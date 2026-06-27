@@ -8,7 +8,7 @@ import { Button, OverlayArrow, Tooltip, TooltipTrigger } from "react-aria-compon
 import { useTweakerSelector } from "../react/context.js";
 import type { NormalizedControl } from "../types.js";
 import { ControlInput } from "./control-input.js";
-import { usePanelEffects } from "./panel-effects-context.js";
+import { usePanelEffects, usePanelInteraction } from "./panel-effects-context.js";
 
 interface SortableControlProps {
   control: NormalizedControl;
@@ -34,6 +34,7 @@ export function SortableControl({
   const setValue = useTweakerSelector((state) => state.setValue);
   const panelEffects = usePanelEffects();
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null);
+  const setPointerDragActive = usePanelInteraction(`row-pointer:${control.persistId}`);
   const labelId = `${control.domId}:label`;
   const { ref, handleRef, isDragging } = useSortable({
     id: control.persistId,
@@ -79,8 +80,9 @@ export function SortableControl({
         onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
           if (!control.reorderable) return;
           pointerDragRef.current = { startY: event.clientY, moved: false };
+          setPointerDragActive(true);
           onPointerStart(control.persistId);
-          event.currentTarget.setPointerCapture(event.pointerId);
+          trySetPointerCapture(event.currentTarget, event.pointerId);
         }}
         onPointerMove={(event: PointerEvent<HTMLButtonElement>) => {
           if (!control.reorderable) return;
@@ -94,14 +96,16 @@ export function SortableControl({
           if (!control.reorderable) return;
           const drag = pointerDragRef.current;
           pointerDragRef.current = null;
-          event.currentTarget.releasePointerCapture(event.pointerId);
+          setPointerDragActive(false);
+          tryReleasePointerCapture(event.currentTarget, event.pointerId);
           onPointerEnd(control.persistId, event.clientX, event.clientY);
           if (drag?.moved) event.preventDefault();
         }}
         onPointerCancel={(event: PointerEvent<HTMLButtonElement>) => {
           if (!control.reorderable) return;
           pointerDragRef.current = null;
-          event.currentTarget.releasePointerCapture(event.pointerId);
+          setPointerDragActive(false);
+          tryReleasePointerCapture(event.currentTarget, event.pointerId);
           onPointerCancel(control.persistId);
         }}
         onLostPointerCapture={(event: PointerEvent<HTMLButtonElement>) => {
@@ -109,6 +113,7 @@ export function SortableControl({
           const drag = pointerDragRef.current;
           if (!drag) return;
           pointerDragRef.current = null;
+          setPointerDragActive(false);
           onPointerEnd(control.persistId, event.clientX, event.clientY);
         }}
         onKeyDown={(event) => {
@@ -163,4 +168,20 @@ export function SortableControl({
       />
     </div>
   );
+}
+
+function trySetPointerCapture(element: Element, pointerId: number) {
+  try {
+    element.setPointerCapture(pointerId);
+  } catch {
+    return;
+  }
+}
+
+function tryReleasePointerCapture(element: Element, pointerId: number) {
+  try {
+    if (element.hasPointerCapture(pointerId)) element.releasePointerCapture(pointerId);
+  } catch {
+    return;
+  }
 }

@@ -137,6 +137,19 @@ test("collapses and persists panel state", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("collapses and persists section state", async ({ page }) => {
+  await page.getByRole("button", { name: "Collapse section Rendering" }).click();
+
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeHidden();
+  await expect(page.getByTestId("control-shape")).toBeVisible();
+
+  await page.reload();
+
+  await expect(page.getByRole("button", { name: "Expand section Rendering" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeHidden();
+  await expect(page.getByTestId("control-shape")).toBeVisible();
+});
+
 test("resets values separately from order", async ({ page }) => {
   await page.getByRole("textbox", { name: "Exposure" }).fill("3");
   await page.getByRole("textbox", { name: "Exposure" }).press("Enter");
@@ -326,6 +339,79 @@ test("reorders controls within a section by pointer-dragging the grip", async ({
     .toContain("docs-demo:default:rendering:speed");
 });
 
+test("keeps panel appearance active during row pointer interaction without hover or focus", async ({
+  page,
+}) => {
+  const panel = page.getByTestId("tweaker-panel");
+  const speedGrip = page.getByRole("button", { name: "Reorder Speed" });
+  const outsideButton = page.getByRole("button", { name: "Set speed to 1.25" });
+  const speedBox = await speedGrip.boundingBox();
+  expect(speedBox).not.toBeNull();
+
+  await outsideButton.focus();
+  await page.mouse.move(20, 20);
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
+  await expect
+    .poll(() =>
+      panel.evaluate((element) => ({
+        focusedWithin: element.matches(":focus-within"),
+        hovered: element.matches(":hover"),
+      })),
+    )
+    .toEqual({ focusedWithin: false, hovered: false });
+
+  await speedGrip.dispatchEvent("pointerdown", {
+    bubbles: true,
+    button: 0,
+    buttons: 1,
+    cancelable: true,
+    clientX: speedBox!.x + speedBox!.width / 2,
+    clientY: speedBox!.y + speedBox!.height / 2,
+    isPrimary: true,
+    pointerId: 41,
+    pointerType: "touch",
+  });
+  await speedGrip.dispatchEvent("pointermove", {
+    bubbles: true,
+    button: 0,
+    buttons: 1,
+    cancelable: true,
+    clientX: 20,
+    clientY: 20,
+    isPrimary: true,
+    pointerId: 41,
+    pointerType: "touch",
+  });
+
+  await expect
+    .poll(() =>
+      panel.evaluate((element) => ({
+        active: element.getAttribute("data-active"),
+        focusedWithin: element.matches(":focus-within"),
+        hovered: element.matches(":hover"),
+      })),
+    )
+    .toEqual({ active: "true", focusedWithin: false, hovered: false });
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.95)");
+
+  await speedGrip.dispatchEvent("pointerup", {
+    bubbles: true,
+    button: 0,
+    buttons: 0,
+    cancelable: true,
+    clientX: 20,
+    clientY: 20,
+    isPrimary: true,
+    pointerId: 41,
+    pointerType: "touch",
+  });
+
+  await expect
+    .poll(() => panel.evaluate((element) => element.getAttribute("data-active")))
+    .toBeNull();
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
+});
+
 test("does not move controls between sections by pointer-dragging the grip", async ({ page }) => {
   const tintGrip = page.getByRole("button", { name: "Reorder Tint" });
   const speedRow = page.getByTestId("control-speed");
@@ -445,6 +531,42 @@ test("applies hook-level panel effects to portaled select popovers", async ({ pa
   await expect(popover).toHaveAttribute("data-theme", "dark");
   await expect(popover).toHaveCSS("background-color", "rgba(29, 31, 32, 0.95)");
   await expect(popover).toHaveCSS("backdrop-filter", "blur(8px)");
+});
+
+test("keeps panel appearance active while a portaled select is open", async ({ page }) => {
+  const panel = page.getByTestId("tweaker-panel");
+
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
+  await page.getByTestId("control-tint").locator(".tw-select__button").click();
+
+  const popover = page.locator(".tw-select__popover");
+  await expect(popover).toBeVisible();
+  const popoverBox = await popover.boundingBox();
+  expect(popoverBox).not.toBeNull();
+
+  await page.mouse.move(
+    popoverBox!.x + popoverBox!.width / 2,
+    popoverBox!.y + Math.min(16, popoverBox!.height / 2),
+  );
+
+  await expect
+    .poll(() =>
+      panel.evaluate((element) => ({
+        active: element.getAttribute("data-active"),
+        focusedWithin: element.matches(":focus-within"),
+        hovered: element.matches(":hover"),
+      })),
+    )
+    .toEqual({ active: "true", focusedWithin: false, hovered: false });
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.95)");
+  await expect(panel).toHaveCSS("backdrop-filter", "blur(8px)");
+
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Set speed to 1.25" }).click();
+
+  await expect(popover).toBeHidden();
+  await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
+  await expect(panel).toHaveCSS("backdrop-filter", "blur(0px)");
 });
 
 test("applies light panel theme to controls and portaled select popovers", async ({ page }) => {

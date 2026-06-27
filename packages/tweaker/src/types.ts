@@ -155,6 +155,7 @@ export interface PersistedState {
   values: Record<string, JsonValue>;
   order: Record<string, Record<string, string[]>>;
   panels: Record<string, PanelLayoutState>;
+  sections: Record<string, Record<string, boolean>>;
 }
 
 export interface TweakerSnapshot extends PersistedState {
@@ -191,6 +192,7 @@ export interface TweakerState extends TweakerSnapshot {
   updatePanelEffects: (schema: TweakerSchema, options?: RegisterOptions) => void;
   setValue: (persistId: string, value: JsonValue) => void;
   setPanelCollapsed: (panelId: string, collapsed: boolean) => void;
+  setSectionCollapsed: (panelId: string, sectionId: string, collapsed: boolean) => void;
   setPanelDock: (panelId: string, dock: DockState | null) => void;
   setSectionOrder: (panelId: string, sectionId: string, ids: string[]) => void;
   resetValues: (panelId?: string) => void;

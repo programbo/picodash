@@ -53,6 +53,18 @@ vp check && vp run -r test && vp run -r build && pnpm --filter website test:e2e
 
 Use `vp check --fix` for formatter/linter autofixes. Vite+ may cache some `vp run` tasks; treat successful replay as valid unless you changed test/build inputs that are not tracked by Vite+.
 
+## Port Allocation
+
+This repo is registered with the `ports` CLI as `tweaker` and owns the fixed local port range `6030-6039`.
+
+Assign dev, preview, e2e, test, mock API, and other local servers only from `6030-6039`.
+
+- `6030`: `apps/website` dev server and Playwright e2e web server.
+- `6031`: `apps/website` preview server.
+- `6032-6039`: available for future local servers.
+
+When adding a new app or local server, use the next available port from `6032-6039` and update this section plus `README.md`.
+
 ## Package Boundaries
 
 The package source is intentionally split by responsibility:
@@ -95,7 +107,7 @@ Persisted state includes:
 
 - control values
 - panel-local, section-local order
-- panel-local collapsed state
+- panel-local and section-local collapsed state
 - panel-local dock state
 
 Non-persisted state includes registered controls, custom control registry components, panel appearance props/fallbacks, and section order derived from live registrations.

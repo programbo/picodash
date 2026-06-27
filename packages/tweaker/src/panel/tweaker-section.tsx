@@ -1,4 +1,7 @@
+import { clsx } from "clsx";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "react-aria-components";
 import { useTweakerSelector } from "../react/context.js";
 import type { NormalizedControl } from "../types.js";
 import { moveItem } from "./order.js";
@@ -12,6 +15,8 @@ interface TweakerSectionProps {
 }
 
 export function TweakerSection({ panelId, sectionId, title, controls }: TweakerSectionProps) {
+  const collapsed = useTweakerSelector((state) => state.sections[panelId]?.[sectionId] ?? false);
+  const setSectionCollapsed = useTweakerSelector((state) => state.setSectionCollapsed);
   const setSectionOrder = useTweakerSelector((state) => state.setSectionOrder);
   const listRef = useRef<HTMLDivElement | null>(null);
   const pointerDragIdRef = useRef<string | null>(null);
@@ -118,23 +123,39 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
   });
 
   return (
-    <section className="tw-section" data-section-id={sectionId} data-testid={`section-${title}`}>
-      <div className="tw-section__title">{title}</div>
-      <div key={listRevision} ref={listRef} className="tw-section__list">
-        {controls.map((control, index) => (
-          <SortableControl
-            key={control.persistId}
-            control={control}
-            index={index}
-            listRef={listRef}
-            onKeyboardMove={moveControl}
-            onPointerStart={startPointerMove}
-            onPointerMove={moveControlToPointer}
-            onPointerEnd={endPointerMove}
-            onPointerCancel={cancelPointerMove}
-          />
-        ))}
+    <section
+      className={clsx("tw-section", collapsed && "is-collapsed")}
+      data-section-id={sectionId}
+      data-testid={`section-${title}`}
+    >
+      <div className="tw-section__header">
+        <Button
+          className="tw-icon-button tw-section__toggle"
+          type="button"
+          aria-label={collapsed ? `Expand section ${title}` : `Collapse section ${title}`}
+          onPress={() => setSectionCollapsed(panelId, sectionId, !collapsed)}
+        >
+          {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+        </Button>
+        <div className="tw-section__title">{title}</div>
       </div>
+      {!collapsed && (
+        <div key={listRevision} ref={listRef} className="tw-section__list">
+          {controls.map((control, index) => (
+            <SortableControl
+              key={control.persistId}
+              control={control}
+              index={index}
+              listRef={listRef}
+              onKeyboardMove={moveControl}
+              onPointerStart={startPointerMove}
+              onPointerMove={moveControlToPointer}
+              onPointerEnd={endPointerMove}
+              onPointerCancel={cancelPointerMove}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

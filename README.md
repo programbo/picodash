@@ -1,8 +1,8 @@
 # Tweaker
 
-A compact Leva-inspired floating config panel for React. It supports named panels, number inputs, sliders, selects, checkboxes, registry-backed custom controls, section-local reordering, row status states, control help tooltips, panel themes, persisted values/order, collapse state, and magnetic panel docking.
+A compact Leva-inspired floating config panel for React. It supports named panels, number inputs, sliders, selects, checkboxes, registry-backed custom controls, section-local reordering, collapsible sections, row status states, control help tooltips, panel themes, persisted values/order, collapse state, and magnetic panel docking.
 
-Tweaker uses a provider-scoped Zustand store. Persisted values, panel-local row order, collapsed state, and dock position are written through Zustand's `persist` middleware, and data read from localStorage is validated with Zod before it reaches the store.
+Tweaker uses a provider-scoped Zustand store. Persisted values, panel-local row order, panel and section collapsed state, and dock position are written through Zustand's `persist` middleware, and data read from localStorage is validated with Zod before it reaches the store.
 
 ## Usage
 
@@ -112,3 +112,15 @@ pnpm ready
 ```
 
 The demo/docs page lives in `apps/website`. The reusable package lives in `packages/tweaker`.
+
+## Port Allocation
+
+This workspace is registered in the `ports` registry as `tweaker` and owns the fixed local port range `6030-6039`.
+
+Use only ports from this range for dev, preview, e2e, and testing servers:
+
+- `6030`: `apps/website` development server and Playwright e2e web server.
+- `6031`: `apps/website` preview server.
+- `6032-6039`: available for future apps, e2e harnesses, API mocks, and test servers.
+
+When adding a new app or local server, assign it the next available port from `6032-6039` and document the assignment here.

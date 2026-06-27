@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -64,6 +65,22 @@ function applyAppearance(style: PanelStyle, appearance: PanelAppearance) {
   }
 }
 
+function trySetPointerCapture(element: Element, pointerId: number) {
+  try {
+    element.setPointerCapture(pointerId);
+  } catch {
+    return;
+  }
+}
+
+function tryReleasePointerCapture(element: Element, pointerId: number) {
+  try {
+    if (element.hasPointerCapture(pointerId)) element.releasePointerCapture(pointerId);
+  } catch {
+    return;
+  }
+}
+
 export function TweakerPanel({
   id,
   className,
@@ -98,12 +115,27 @@ export function TweakerPanel({
     startY: number;
     origin: PanelPosition;
   } | null>(null);
+  const rowDragInteractionIdRef = useRef<string | null>(null);
   const rowDragRef = useRef<{ sectionId: string; ids: string[]; rect: DOMRect | null } | null>(
     null,
   );
   const viewportSize = useViewportSize();
   const [freePosition, setFreePosition] = useState<PanelPosition | null>(null);
   const [rowDragRevision, setRowDragRevision] = useState(0);
+  const [activeInteractionIds, setActiveInteractionIds] = useState<Set<string>>(() => new Set());
+  const setInteractionActive = useCallback((interactionId: string, active: boolean) => {
+    setActiveInteractionIds((ids) => {
+      if (ids.has(interactionId) === active) return ids;
+
+      const next = new Set(ids);
+      if (active) {
+        next.add(interactionId);
+      } else {
+        next.delete(interactionId);
+      }
+      return next;
+    });
+  }, []);
 
   const position = useMemo(() => {
     if (typeof window === "undefined") return { x: 16, y: 16 };
@@ -123,7 +155,7 @@ export function TweakerPanel({
   function handlePanelPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     const element = panelRef.current;
     if (!element) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    trySetPointerCapture(event.currentTarget, event.pointerId);
     const rect = element.getBoundingClientRect();
     dragRef.current = {
       startX: event.clientX,
@@ -133,6 +165,7 @@ export function TweakerPanel({
         y: rect.top,
       },
     };
+    setInteractionActive("panel-drag", true);
   }
 
   function handlePanelPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -152,7 +185,8 @@ export function TweakerPanel({
     const drag = dragRef.current;
     const element = panelRef.current;
     dragRef.current = null;
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    setInteractionActive("panel-drag", false);
+    tryReleasePointerCapture(event.currentTarget, event.pointerId);
     if (!drag || !element) return;
 
     const nextPosition = clampPosition(
@@ -171,9 +205,32 @@ export function TweakerPanel({
     }
   }
 
+  function handlePanelPointerCancel(event: ReactPointerEvent<HTMLDivElement>) {
+    dragRef.current = null;
+    setInteractionActive("panel-drag", false);
+    tryReleasePointerCapture(event.currentTarget, event.pointerId);
+  }
+
+  function handlePanelLostPointerCapture() {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    setInteractionActive("panel-drag", false);
+  }
+
+  function clearRowDragInteraction() {
+    const interactionId = rowDragInteractionIdRef.current;
+    if (!interactionId) return;
+    rowDragInteractionIdRef.current = null;
+    setInteractionActive(interactionId, false);
+  }
+
   function handleDragStart(event: DragStartEvent) {
     const source = event.operation.source;
     if (!source || source.data.panelId !== panelId) return;
+
+    const interactionId = `dnd:${String(source.id)}`;
+    rowDragInteractionIdRef.current = interactionId;
+    setInteractionActive(interactionId, true);
 
     const sectionId = String(source.data.sectionId);
     const section = Array.from(
@@ -204,6 +261,7 @@ export function TweakerPanel({
   }
 
   function handleDragEnd(event: DragEndEvent) {
+    clearRowDragInteraction();
     const source = event.operation.source;
     const target = event.operation.target;
     if (!source || source.data.panelId !== panelId) return;
@@ -266,6 +324,7 @@ export function TweakerPanel({
       ref={panelRef}
       className={clsx("tw-panel", collapsed && "is-collapsed", className)}
       style={style}
+      data-active={activeInteractionIds.size > 0 ? "true" : undefined}
       data-panel-id={panelId}
       data-theme={theme}
       data-testid={panelId === "default" ? "tweaker-panel" : `tweaker-panel-${panelId}`}
@@ -275,6 +334,8 @@ export function TweakerPanel({
         onPointerDown={handlePanelPointerDown}
         onPointerMove={handlePanelPointerMove}
         onPointerUp={handlePanelPointerUp}
+        onPointerCancel={handlePanelPointerCancel}
+        onLostPointerCapture={handlePanelLostPointerCapture}
       >
         <Button
           className="tw-icon-button"
@@ -307,7 +368,7 @@ export function TweakerPanel({
 
       {!collapsed && (
         <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <PanelEffectProvider value={{ style: effectStyle, theme }}>
+          <PanelEffectProvider value={{ style: effectStyle, theme, setInteractionActive }}>
             <div key={rowDragRevision} className="tw-panel__body">
               {sectionOrder.map((sectionId) => {
                 const sectionControls = orderControls(controls, sectionId, order);
