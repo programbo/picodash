@@ -58,6 +58,7 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       optionsEqual(leftControl.options, rightControl.options) &&
       settingsEqual(leftControl.settings, rightControl.settings) &&
       formatOptionsEqual(leftControl.formatOptions, rightControl.formatOptions) &&
+      leftControl.format === rightControl.format &&
       leftControl.readOnly === rightControl.readOnly &&
       leftControl.hidden === rightControl.hidden
     );
@@ -183,9 +184,33 @@ function createBaseState(storeId: string) {
       return () => {
         set((state) => {
           const nextControls = state.controls.filter((control) => !ids.has(control.persistId));
+          const sectionStillRegistered = nextControls.some(
+            (control) => control.panelId === panelId && control.sectionId === section.id,
+          );
+          let hiddenSections = state.hiddenSections;
+
+          if (
+            !sectionStillRegistered &&
+            state.hiddenSections[panelId]?.[section.id] !== undefined
+          ) {
+            const panelHiddenSections = { ...state.hiddenSections[panelId] };
+            delete panelHiddenSections[section.id];
+
+            if (Object.keys(panelHiddenSections).length === 0) {
+              const { [panelId]: _removedPanel, ...remainingHiddenSections } = state.hiddenSections;
+              hiddenSections = remainingHiddenSections;
+            } else {
+              hiddenSections = {
+                ...state.hiddenSections,
+                [panelId]: panelHiddenSections,
+              };
+            }
+          }
+
           return {
             controls: valuesForControls(nextControls, state.values),
             sectionOrder: sectionOrderByPanel(nextControls),
+            hiddenSections,
           };
         });
       };

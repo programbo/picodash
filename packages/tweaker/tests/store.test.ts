@@ -23,6 +23,10 @@ class MemoryStorage {
     this.values.set(key, value);
   }
 
+  removeItem(key: string) {
+    this.values.delete(key);
+  }
+
   clear() {
     this.values.clear();
   }
@@ -298,8 +302,9 @@ describe("formatDisplayValue", () => {
   });
 
   it("applies Intl formatOptions to numbers", () => {
-    const mm = displayControl(35, { formatOptions: { style: "unit", unit: "millimeter" } });
-    expect(formatDisplayValue(mm)).toBe("35 mm");
+    const formatOptions = { style: "unit", unit: "millimeter" } satisfies Intl.NumberFormatOptions;
+    const mm = displayControl(35, { formatOptions });
+    expect(formatDisplayValue(mm)).toBe(new Intl.NumberFormat(undefined, formatOptions).format(35));
   });
 
   it("applies a format template after number formatting", () => {
@@ -501,23 +506,30 @@ describe("TweakerStore", () => {
   });
 
   it("does not persist section hidden state", () => {
-    const store = createTweakerStore({ id: "section-hidden-persist", persistence: false });
+    const store = createTweakerStore({ id: "section-hidden-persist" });
     store
       .getState()
       .register({ speed: 1 }, { section: { id: "rendering", label: "Rendering", hidden: true } });
 
-    // hiddenSections is runtime-only; reconstructing a PersistedState from the
-    // snapshot must not include it (mirrors the partialize boundary).
-    const state = store.getState();
-    const persisted = {
-      values: state.values,
-      order: state.order,
-      panels: state.panels,
-      sections: state.sections,
-    };
+    const raw = storage.getItem("tweaker:section-hidden-persist");
+    expect(raw).not.toBeNull();
+    const persisted = JSON.parse(raw!).state;
     expect(Object.keys(persisted)).not.toContain("hiddenSections");
     // The runtime map is still populated for the panel to read.
-    expect(state.hiddenSections.default?.rendering).toBe(true);
+    expect(store.getState().hiddenSections.default?.rendering).toBe(true);
+  });
+
+  it("cleans up section hidden state when the section unregisters", () => {
+    const store = createTweakerStore({ id: "section-hidden-cleanup", persistence: false });
+    const unregister = store
+      .getState()
+      .register({ speed: 1 }, { section: { id: "rendering", label: "Rendering", hidden: true } });
+
+    expect(store.getState().hiddenSections.default?.rendering).toBe(true);
+
+    unregister();
+
+    expect(store.getState().hiddenSections.default?.rendering).toBeUndefined();
   });
 
   it("stores hook-level reorderable metadata and supports deprecated sortable", () => {
@@ -725,6 +737,54 @@ describe("TweakerStore", () => {
       .register({ total: { type: "display", defaultValue: 25 } }, { section: "Rendering" });
     expect(store.getState().controls[0]?.value).toBe(25);
     expect(store.getState().values[persistId]).toBeUndefined();
+  });
+
+  it("ignores stale persisted values when display controls register", () => {
+    const persistId = "display-stale:Rendering:total";
+    storage.setItem(
+      "tweaker:display-stale",
+      JSON.stringify({
+        state: {
+          values: { [persistId]: 999 },
+          order: {},
+          panels: {},
+          sections: {},
+        },
+      }),
+    );
+
+    const store = createTweakerStore({ id: "display-stale" });
+    store
+      .getState()
+      .register({ total: { type: "display", defaultValue: 10 } }, { section: "Rendering" });
+
+    expect(store.getState().controls[0]?.value).toBe(10);
+    // Stale values are intentionally retained, but display controls derive from
+    // registration defaults instead of persisted entries.
+    expect(store.getState().values[persistId]).toBe(999);
+  });
+
+  it("updates display format metadata on re-registration", () => {
+    const store = createTweakerStore({ id: "display-format", persistence: false });
+
+    store
+      .getState()
+      .register(
+        { total: { type: "display", defaultValue: 10, format: "Total: {value}" } },
+        { section: "Rendering" },
+      );
+    expect(formatDisplayValue(store.getState().controls[0]!)).toBe("Total: 10");
+
+    store
+      .getState()
+      .register(
+        { total: { type: "display", defaultValue: 10, format: "Now: {value}" } },
+        { section: "Rendering" },
+      );
+
+    const control = store.getState().controls[0]!;
+    expect(control.format).toBe("Now: {value}");
+    expect(formatDisplayValue(control)).toBe("Now: 10");
   });
 
   it("does not notify when an equivalent schema registers again", () => {

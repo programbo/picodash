@@ -86,7 +86,7 @@ The package currently exports:
 - Components: `TweakerProvider`, `TweakerPanel`
 - Hooks: `useTweaker`, `useTweakerStore`, `useTweakerSnapshot`
 - Store utilities: `createTweakerStore`, `normalizeControl`
-- Types: `ControlConfig`, `TweakerSchema`, `TweakerValues`, `SetTweakerValue`, `NormalizedControl`, `TweakerState`, `TweakerStore`, `TweakerSnapshot`, `DockState`, `Placement`, `PanelAppearance`, `PanelTheme`, `SectionConfig`, `JsonValue`, `TweakerCustomControlProps`, `TweakerCustomControlComponent`, and individual control types
+- Types: `ControlConfig`, `TweakerSchema`, `TweakerValues`, `SetTweakerValue`, `NormalizedControl`, `TweakerState`, `TweakerStore`, `TweakerSnapshot`, `DockState`, `Placement`, `PanelAppearance`, `PanelTheme`, `SectionConfig`, `JsonValue`, `TweakerCustomControlProps`, `TweakerCustomControlComponent`, and individual control types including `DisplayControl`
 
 Consumers import styles with:
 
@@ -137,6 +137,12 @@ If localStorage shape changes, update:
 - Explicit `type: "number"` stays a number input even if `min` and `max` are present.
 - Use schema `defaultValue` for defaults. Deprecated `value` remains compatibility-only.
 - Use control-level `id` for stable persistence when schema keys may change.
+- Schemas may be dynamic. Re-registration must update normalized metadata such as labels, bounds, options, `formatOptions`, `format`, `readOnly`, `hidden`, status, and help.
+- When dynamic bounds or options narrow, persisted/current values must be sanitized: clamp numeric values and fall back invalid selects to a valid option.
+- Use `type: "display"` for derived readouts. Display controls render from the latest `defaultValue`, ignore persisted values, and refuse `setValue` writes.
+- Object control configs can set `readOnly: true` to render a faded, non-editable control while preserving its value.
+- Object control configs can set `hidden: true` to hide a row while preserving its value and order slot.
+- `SectionConfig.hidden` hides an entire section while preserving its controls' values and order; it is runtime metadata, not persisted state.
 - Custom controls are registered on `TweakerProvider.controls` and referenced by `type`; their values must be JSON-serializable.
 - `TweakerPanel` accepts `theme: "dark" | "light" | "system"` and defaults to `"dark"`. Portaled controls such as select popovers must use the same panel theme.
 - Object control configs can set `status: "info" | "alert" | "error"` for blue, amber, or red row tinting with an outline and thicker left border.

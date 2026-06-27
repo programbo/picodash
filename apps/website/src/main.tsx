@@ -5,7 +5,6 @@ import {
   TweakerPanel,
   TweakerProvider,
   useTweaker,
-  useTweakerSnapshot,
   type PanelTheme,
   type TweakerCustomControlProps,
   type TweakerSchema,
@@ -180,18 +179,17 @@ function Demo() {
     },
     { section: { id: "camera", label: "Camera" } },
   );
-  const snapshot = useTweakerSnapshot();
-  const advancedPersistId = "docs-demo:default:dynamic:advanced";
-  const advanced = Boolean(snapshot.values[advancedPersistId]);
+  const [dynamic] = useTweaker(dynamicBaseSchema, {
+    section: { id: "dynamic", label: "Dynamic" },
+  });
+  const advanced = Boolean(dynamic.advanced);
   const dependentSchema = useDynamicDependentSchema(advanced);
-  useTweaker(dynamicBaseSchema, { section: { id: "dynamic", label: "Dynamic" } });
   // The Advanced section is shown/hidden as a whole via its SectionConfig,
   // independent of the controls it contains.
-  useTweaker(dependentSchema, {
+  const [advancedValues] = useTweaker(dependentSchema, {
     section: { id: "advanced", label: "Advanced", hidden: !advanced },
   });
-  const intensityPersistId = "docs-demo:default:advanced:intensity";
-  const intensity = Number(snapshot.values[intensityPersistId] ?? 50);
+  const intensity = Number(advancedValues.intensity ?? 50);
   const [build] = useTweaker(buildSchema, {
     panel: "build",
     section: { id: "build", label: "Build" },

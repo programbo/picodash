@@ -27,6 +27,7 @@ import { TweakerSection } from "./tweaker-section.js";
 
 const emptyOrder: Record<string, string[]> = {};
 const emptySectionOrder: string[] = [];
+const emptyHiddenSections: Record<string, boolean> = {};
 
 export interface TweakerPanelProps {
   id?: string;
@@ -104,7 +105,7 @@ export function TweakerPanel({
     (state) => state.sectionOrder[panelId] ?? emptySectionOrder,
   );
   const hiddenSections = useTweakerSelector(
-    (state) => state.hiddenSections[panelId] ?? emptySectionOrder,
+    (state) => state.hiddenSections[panelId] ?? emptyHiddenSections,
   );
   const legacyAppearance = useTweakerSelector((state) => state.panelAppearances[panelId]);
   const resetOrder = useTweakerSelector((state) => state.resetOrder);
