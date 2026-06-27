@@ -14,7 +14,7 @@ export type JsonValue =
   | { [key: string]: JsonValue };
 
 export type PrimitiveValue = number | string | boolean;
-export type ControlKind = "number" | "slider" | "select" | "checkbox" | "custom";
+export type ControlKind = "number" | "slider" | "select" | "checkbox" | "display" | "custom";
 export type BuiltInControlKind = Exclude<ControlKind, "custom">;
 export type ControlStatus = "info" | "alert" | "error";
 export type StaleMode = "ignore" | "prune";
@@ -66,6 +66,14 @@ export interface CheckboxControl extends ValueControl<boolean> {
   type?: "checkbox";
 }
 
+export interface DisplayControl extends ValueControl<string | number> {
+  type: "display";
+  /** Intl.NumberFormatOptions applied when the value is a number. */
+  formatOptions?: Intl.NumberFormatOptions;
+  /** Template string; `{value}` is replaced with the (formatted) value. */
+  format?: string;
+}
+
 export interface CustomControl<T extends JsonValue = JsonValue> extends ValueControl<T> {
   type: string;
   [key: string]: unknown;
@@ -79,6 +87,7 @@ export type ControlConfig =
   | SliderControl
   | SelectControl
   | CheckboxControl
+  | DisplayControl
   | CustomControl;
 
 export type TweakerSchema = Record<string, ControlConfig>;
@@ -147,6 +156,8 @@ export interface NormalizedControl {
   max?: number;
   step?: number;
   formatOptions?: Intl.NumberFormatOptions;
+  /** Template string for display controls; `{value}` is replaced post-format. */
+  format?: string;
   options?: Array<{ label: string; value: string }>;
   settings?: Record<string, unknown>;
 }

@@ -370,6 +370,17 @@
   @apply px-1.75 py-0 text-right;
 }
 
+/* Display controls: non-interactive derived values rendered as text, aligned
+   with the other inputs in the row. */
+.tw-display {
+  @apply flex h-6 w-full min-w-0 items-center justify-end px-1.75;
+
+  color: var(--tw-text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+
 .tw-select {
   @apply min-w-0;
 }

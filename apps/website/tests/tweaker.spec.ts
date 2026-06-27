@@ -104,6 +104,17 @@ test("renders number controls with formatOptions", async ({ page }) => {
   await expect(page.getByRole("textbox", { name: "Rotation" })).toHaveValue("0\u00B0");
 });
 
+test("renders display controls and updates them from derived values", async ({ page }) => {
+  // The 35mm-equivalent display is derived from focal length (crop x1.5).
+  const display = page.getByTestId("control-equivalent").locator(".tw-display");
+  await expect(display).toHaveText("53 mm");
+
+  // Editing focal length re-derives the display value reactively.
+  await page.getByRole("textbox", { name: "Focal length" }).fill("50");
+  await page.getByRole("textbox", { name: "Focal length" }).press("Enter");
+  await expect(display).toHaveText("75 mm");
+});
+
 test("renders read-only controls as faded and non-editable", async ({ page }) => {
   const row = page.getByTestId("control-rotation");
   const field = row.locator(".tw-number-field");

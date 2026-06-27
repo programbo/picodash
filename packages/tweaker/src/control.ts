@@ -27,6 +27,7 @@ const standardControlKeys = new Set([
   "formatOptions",
   "readOnly",
   "hidden",
+  "format",
 ]);
 
 export const defaultSection = defaultSectionLabel;
@@ -142,6 +143,12 @@ function readOnlyForControl(config: ControlConfig) {
 function hiddenForControl(config: ControlConfig) {
   if (typeof config !== "object" || config === null) return undefined;
   return config.hidden === true ? true : undefined;
+}
+
+function formatForControl(config: ControlConfig) {
+  if (typeof config !== "object" || config === null) return undefined;
+  const value = (config as Record<string, unknown>).format;
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 export function normalizePanelEffects(options: RegisterOptions): PanelAppearance {
@@ -271,6 +278,21 @@ export function normalizeControlEntry({
 
   const defaultValue = defaultValueForControl(config);
 
+  if (config.type === "display") {
+    const rawValue =
+      typeof defaultValue === "number" || typeof defaultValue === "string" ? defaultValue : "";
+    return {
+      ...base,
+      kind: "display",
+      type: "display",
+      label: config.label ?? fallbackLabel,
+      value: rawValue,
+      defaultValue: rawValue,
+      formatOptions: formatOptionsProperty(config),
+      format: formatForControl(config),
+    };
+  }
+
   if ("options" in config) {
     const options = (config as { options: readonly string[] | Record<string, string> }).options;
     const value = typeof defaultValue === "string" ? defaultValue : "";
@@ -382,6 +404,13 @@ export function sanitizeValueForControl(control: NormalizedControl, value: JsonV
     return typeof value === "boolean" ? value : Boolean(control.defaultValue);
   }
 
+  if (control.kind === "display") {
+    if (typeof value === "number" || typeof value === "string") return value;
+    return typeof control.defaultValue === "number" || typeof control.defaultValue === "string"
+      ? control.defaultValue
+      : "";
+  }
+
   return value;
 }
 
@@ -389,10 +418,35 @@ export function valuesForControls(
   controls: NormalizedControl[],
   values: Record<string, JsonValue>,
 ): NormalizedControl[] {
-  return controls.map((control) => ({
-    ...control,
-    value: hasValue(values, control.persistId) ? values[control.persistId]! : control.defaultValue,
-  }));
+  return controls.map((control) => {
+    // Display values are derived: always reflect the latest defaultValue from
+    // registration and ignore any stale persisted entry.
+    const value =
+      control.kind === "display"
+        ? control.defaultValue
+        : hasValue(values, control.persistId)
+          ? values[control.persistId]!
+          : control.defaultValue;
+    return { ...control, value };
+  });
+}
+
+/**
+ * Formats a display control's value for rendering. Numbers honor the control's
+ * `formatOptions` (Intl.NumberFormatOptions); strings are used verbatim. A
+ * `format` template (e.g. "Total: {value}") then wraps the result if present.
+ */
+export function formatDisplayValue(control: NormalizedControl): string {
+  const value = control.value;
+  let formatted: string;
+  if (typeof value === "number") {
+    formatted = control.formatOptions
+      ? new Intl.NumberFormat(undefined, control.formatOptions).format(value)
+      : String(value);
+  } else {
+    formatted = typeof value === "string" ? value : "";
+  }
+  return control.format ? control.format.replace("{value}", formatted) : formatted;
 }
 
 export function sectionOrderFor(controls: NormalizedControl[]) {

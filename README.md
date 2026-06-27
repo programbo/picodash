@@ -73,6 +73,7 @@ export function App() {
 - Slider explicit: `{ type: "slider", defaultValue: 0.5, min: 0, max: 1 }`
 - Select: `{ type: "select", defaultValue: "green", options: ["green", "amber"] }`
 - Checkbox: `{ defaultValue: true }` or `{ type: "checkbox", defaultValue: true }`
+- Display: `{ type: "display", defaultValue: 42, formatOptions?: Intl.NumberFormatOptions, format?: "Total: {value}" }` — a non-interactive, non-editable row that reflects a computed/derived value. Derive it from other panel values; the display updates on re-registration. `formatOptions` formats numbers (Intl); `format` wraps the result with `{value}` substituted.
 - Custom: register a component on `TweakerProvider.controls`, then use its `type` in a schema.
 
 Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs. The number input is a React Aria `NumberField`; pass `formatOptions` (`Intl.NumberFormatOptions`) to format the value with units, fraction-digit limits, currency, and more, e.g. `{ style: "unit", unit: "millimeter", unitDisplay: "short", minimumFractionDigits: 1, maximumFractionDigits: 2 }`.

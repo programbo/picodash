@@ -211,6 +211,7 @@ function createBaseState(storeId: string) {
       const control = get().controls.find((item) => item.persistId === persistId);
       if (!control) return;
       if (control.readOnly) return;
+      if (control.kind === "display") return;
 
       const nextValue = sanitizeValueForControl(control, value);
 

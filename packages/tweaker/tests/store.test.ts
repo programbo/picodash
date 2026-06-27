@@ -5,7 +5,11 @@ import {
   type NormalizedControl,
   type TweakerSchema,
 } from "../src/index.js";
-import { defaultValueForControl, sanitizeValueForControl } from "../src/control.js";
+import {
+  defaultValueForControl,
+  formatDisplayValue,
+  sanitizeValueForControl,
+} from "../src/control.js";
 import { registrationSignatureForSchema, resolveTweakerValues } from "../src/react/use-tweaker.js";
 
 class MemoryStorage {
@@ -138,6 +142,32 @@ describe("normalizeControl", () => {
       help: undefined,
     });
   });
+
+  it("normalizes display controls with number and string defaults", () => {
+    const numberDisplay = normalizeControl("demo", "Rendering", "total", {
+      type: "display",
+      defaultValue: 42,
+      label: "Total",
+      formatOptions: { maximumFractionDigits: 1 },
+      format: "Total: {value}",
+    });
+    expect(numberDisplay).toMatchObject({
+      kind: "display",
+      type: "display",
+      label: "Total",
+      value: 42,
+      defaultValue: 42,
+      formatOptions: { maximumFractionDigits: 1 },
+      format: "Total: {value}",
+    });
+
+    const stringDisplay = normalizeControl("demo", "Rendering", "status", {
+      type: "display",
+      defaultValue: "ready",
+    });
+    expect(stringDisplay.value).toBe("ready");
+    expect(stringDisplay.formatOptions).toBeUndefined();
+  });
 });
 
 describe("sanitizeValueForControl", () => {
@@ -219,6 +249,70 @@ describe("sanitizeValueForControl", () => {
     const custom = control({ kind: "custom", defaultValue: [1, 2, 3] });
     const value = [1, 2, 3];
     expect(sanitizeValueForControl(custom, value)).toBe(value);
+  });
+
+  it("keeps number/string display values and falls back for invalid types", () => {
+    const numeric = control({ kind: "display", defaultValue: 42 });
+    expect(sanitizeValueForControl(numeric, 42)).toBe(42);
+    // A string is a valid display value even on a numeric-default control.
+    expect(sanitizeValueForControl(numeric, "oops" as never)).toBe("oops");
+    // Non-number/string values fall back to the default.
+    expect(sanitizeValueForControl(numeric, [1, 2] as never)).toBe(42);
+
+    const textual = control({ kind: "display", defaultValue: "hello" });
+    expect(sanitizeValueForControl(textual, "hello")).toBe("hello");
+    expect(sanitizeValueForControl(textual, 7)).toBe(7);
+    expect(sanitizeValueForControl(textual, { x: 1 } as never)).toBe("hello");
+  });
+});
+
+describe("formatDisplayValue", () => {
+  function displayControl(
+    value: number | string,
+    overrides: Partial<NormalizedControl> = {},
+  ): NormalizedControl {
+    return {
+      id: "x",
+      persistId: "x",
+      domId: "x",
+      key: "x",
+      controlId: "x",
+      panelId: "default",
+      sectionId: "s",
+      sectionLabel: "s",
+      section: "s",
+      reorderable: true,
+      sortable: true,
+      kind: "display",
+      type: "display",
+      label: "x",
+      value,
+      defaultValue: value,
+      ...overrides,
+    };
+  }
+
+  it("renders plain numbers and strings", () => {
+    expect(formatDisplayValue(displayControl(42))).toBe("42");
+    expect(formatDisplayValue(displayControl("ready"))).toBe("ready");
+  });
+
+  it("applies Intl formatOptions to numbers", () => {
+    const mm = displayControl(35, { formatOptions: { style: "unit", unit: "millimeter" } });
+    expect(formatDisplayValue(mm)).toBe("35 mm");
+  });
+
+  it("applies a format template after number formatting", () => {
+    const total = displayControl(12.5, {
+      formatOptions: { maximumFractionDigits: 1 },
+      format: "Total: {value}",
+    });
+    expect(formatDisplayValue(total)).toBe("Total: 12.5");
+  });
+
+  it("applies a format template to strings", () => {
+    const labeled = displayControl("on", { format: "Status: {value}" });
+    expect(formatDisplayValue(labeled)).toBe("Status: on");
   });
 });
 
@@ -609,6 +703,28 @@ describe("TweakerStore", () => {
         { section: "Rendering" },
       );
     expect(store.getState().values[persistId]).toBe("blue");
+  });
+
+  it("treats display controls as derived: ignores stored values and refuses writes", () => {
+    const store = createTweakerStore({ id: "display", persistence: false });
+    const persistId = "display:Rendering:total";
+
+    // Seed a stale stored value; registration must ignore it in favor of the
+    // derived defaultValue.
+    store
+      .getState()
+      .register({ total: { type: "display", defaultValue: 10 } }, { section: "Rendering" });
+    store.getState().setValue(persistId, 999);
+    // setValue is refused for display controls.
+    expect(store.getState().values[persistId]).toBeUndefined();
+    expect(store.getState().controls[0]?.value).toBe(10);
+
+    // Re-registering with a new derived value updates the display without writes.
+    store
+      .getState()
+      .register({ total: { type: "display", defaultValue: 25 } }, { section: "Rendering" });
+    expect(store.getState().controls[0]?.value).toBe(25);
+    expect(store.getState().values[persistId]).toBeUndefined();
   });
 
   it("does not notify when an equivalent schema registers again", () => {
