@@ -25,6 +25,7 @@ const standardControlKeys = new Set([
   "status",
   "help",
   "formatOptions",
+  "readOnly",
 ]);
 
 export const defaultSection = defaultSectionLabel;
@@ -131,6 +132,11 @@ function helpForControl(config: ControlConfig) {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
+function readOnlyForControl(config: ControlConfig) {
+  if (typeof config !== "object" || config === null) return undefined;
+  return config.readOnly === true ? true : undefined;
+}
+
 export function normalizePanelEffects(options: RegisterOptions): PanelAppearance {
   return {
     surfaceOpacity: normalizeOpacity(options.opacity),
@@ -202,6 +208,7 @@ export function normalizeControlEntry({
   const persistId = createControlPersistId(storeId, panelId, section, key, explicitControlId);
   const status = statusForControl(config);
   const help = helpForControl(config);
+  const readOnly = readOnlyForControl(config);
   const base = {
     id: persistId,
     persistId,
@@ -216,6 +223,7 @@ export function normalizeControlEntry({
     sortable: reorderable,
     status,
     help,
+    readOnly,
   };
 
   if (typeof config === "number") {

@@ -77,7 +77,7 @@ export function App() {
 
 Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs. The number input is a React Aria `NumberField`; pass `formatOptions` (`Intl.NumberFormatOptions`) to format the value with units, fraction-digit limits, currency, and more, e.g. `{ style: "unit", unit: "millimeter", unitDisplay: "short", minimumFractionDigits: 1, maximumFractionDigits: 2 }`.
 
-Object controls can include `status: "info" | "alert" | "error"` to tint the row blue, amber, or red with an outline and thicker left border. Add `help: "..."` to object controls to show a small row tooltip; help text is string metadata and uses the panel theme/appearance.
+Object controls can include `status: "info" | "alert" | "error"` to tint the row blue, amber, or red with an outline and thicker left border. Add `help: "..."` to object controls to show a small row tooltip; help text is string metadata and uses the panel theme/appearance. Set `readOnly: true` to render a control faded and greyscale and block value writes (enforced in the store); the value stays visible but non-editable.
 
 Use `{ id, label }` sections when labels may change; `id` is the stable persistence identity. Use a control-level `id` when a schema key may change. Primitive string shorthand and the old `value` spelling still work for compatibility, but new code should use explicit selects and `defaultValue`.
 

@@ -291,6 +291,17 @@
   background: transparent;
 }
 
+/* Read-only controls: inputs are faded and rendered in greyscale so they read
+   as non-editable while still displaying their value. The label stays legible. */
+.tw-row[data-readonly="true"] .tw-number-field,
+.tw-row[data-readonly="true"] .tw-select,
+.tw-row[data-readonly="true"] .tw-checkbox,
+.tw-row[data-readonly="true"] .tw-slider {
+  opacity: 0.5;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+
 .tw-row__label-wrap {
   @apply grid min-w-0 items-center gap-1.25;
 

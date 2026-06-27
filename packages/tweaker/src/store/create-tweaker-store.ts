@@ -178,6 +178,7 @@ function createBaseState(storeId: string) {
     setValue(persistId, value) {
       const control = get().controls.find((item) => item.persistId === persistId);
       if (!control) return;
+      if (control.readOnly) return;
 
       const nextValue = typeof value === "number" ? clamp(value, control.min, control.max) : value;
 

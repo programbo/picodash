@@ -82,6 +82,20 @@ test("renders number controls with formatOptions", async ({ page }) => {
   await expect(page.getByRole("textbox", { name: "Rotation" })).toHaveValue("0\u00B0");
 });
 
+test("renders read-only controls as faded and non-editable", async ({ page }) => {
+  const row = page.getByTestId("control-rotation");
+  const field = row.locator(".tw-number-field");
+  const input = page.getByRole("textbox", { name: "Rotation" });
+
+  await expect(row).toHaveAttribute("data-readonly", "true");
+  // Faded and greyscale via CSS on the field wrapper.
+  await expect(field).toHaveCSS("opacity", "0.5");
+  await expect(field).toHaveCSS("filter", "grayscale(1)");
+  // The underlying input is marked read-only and keeps its value.
+  await expect(input).toHaveAttribute("readonly");
+  await expect(input).toHaveValue("0\u00B0");
+});
+
 test("programmatic setter updates the panel and preview", async ({ page }) => {
   await page.getByRole("button", { name: "Set speed to 1.25" }).click();
 

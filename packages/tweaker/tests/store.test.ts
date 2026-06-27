@@ -92,6 +92,28 @@ describe("normalizeControl", () => {
     expect(control.help).toBe("Adjusts the preview animation speed.");
   });
 
+  it("normalizes readOnly metadata on object controls", () => {
+    const number = normalizeControl("demo", "Rendering", "exposure", {
+      type: "number",
+      defaultValue: 1,
+      readOnly: true,
+    });
+    const checkbox = normalizeControl("demo", "Rendering", "bloom", {
+      type: "checkbox",
+      defaultValue: true,
+      readOnly: true,
+    });
+    const unset = normalizeControl("demo", "Rendering", "speed", {
+      defaultValue: 0.5,
+      min: 0,
+      max: 1,
+    });
+
+    expect(number.readOnly).toBe(true);
+    expect(checkbox.readOnly).toBe(true);
+    expect(unset.readOnly).toBeUndefined();
+  });
+
   it("normalizes custom controls with JSON defaults", () => {
     const store = createTweakerStore({ id: "custom", persistence: false });
     store.getState().register(

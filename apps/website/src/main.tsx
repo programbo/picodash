@@ -73,6 +73,7 @@ const cameraSchema = {
     max: 180,
     step: 1,
     label: "Rotation",
+    readOnly: true,
     formatOptions: {
       style: "unit",
       unit: "degree",

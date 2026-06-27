@@ -44,6 +44,7 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         defaultValue={control.defaultValue}
         setValue={onChange}
         control={control}
+        readOnly={control.readOnly}
       />
     );
   }
@@ -54,6 +55,7 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         id={control.domId}
         className="tw-checkbox"
         aria-labelledby={labelId}
+        isReadOnly={control.readOnly}
         isSelected={Boolean(control.value)}
         onChange={(selected) => onChange(selected)}
       />
@@ -118,6 +120,7 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
     <NumberField
       className="tw-number-field"
       aria-labelledby={labelId}
+      isReadOnly={control.readOnly}
       minValue={control.min}
       maxValue={control.max}
       step={control.step}
