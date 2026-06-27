@@ -5,7 +5,7 @@ import {
   type NormalizedControl,
   type TweakerSchema,
 } from "../src/index.js";
-import { defaultValueForControl } from "../src/control.js";
+import { defaultValueForControl, sanitizeValueForControl } from "../src/control.js";
 import { registrationSignatureForSchema, resolveTweakerValues } from "../src/react/use-tweaker.js";
 
 class MemoryStorage {
@@ -137,6 +137,88 @@ describe("normalizeControl", () => {
       settings: { size: "compact" },
       help: undefined,
     });
+  });
+});
+
+describe("sanitizeValueForControl", () => {
+  function control(overrides: Partial<NormalizedControl> = {}): NormalizedControl {
+    return {
+      id: "x",
+      persistId: "x",
+      domId: "x",
+      key: "x",
+      controlId: "x",
+      panelId: "default",
+      sectionId: "s",
+      sectionLabel: "s",
+      section: "s",
+      reorderable: true,
+      sortable: true,
+      kind: "number",
+      type: "number",
+      label: "x",
+      value: 0,
+      defaultValue: 0,
+      ...overrides,
+    };
+  }
+
+  it("clamps numbers and sliders within min/max", () => {
+    const numeric = control({ kind: "number", defaultValue: 1, min: 0, max: 10 });
+    expect(sanitizeValueForControl(numeric, 15)).toBe(10);
+    expect(sanitizeValueForControl(numeric, -3)).toBe(0);
+    expect(sanitizeValueForControl(numeric, 5)).toBe(5);
+
+    const slider = control({ kind: "slider", defaultValue: 0.5, min: 0, max: 1 });
+    expect(sanitizeValueForControl(slider, 5)).toBe(1);
+  });
+
+  it("falls back to the default when a number value is non-numeric", () => {
+    const numeric = control({ kind: "number", defaultValue: 2, min: 0, max: 10 });
+    expect(sanitizeValueForControl(numeric, "oops" as never)).toBe(2);
+  });
+
+  it("keeps select values that are still in options", () => {
+    const select = control({
+      kind: "select",
+      defaultValue: "a",
+      options: [
+        { label: "A", value: "a" },
+        { label: "B", value: "b" },
+      ],
+    });
+    expect(sanitizeValueForControl(select, "b")).toBe("b");
+  });
+
+  it("falls back to the default, else the first option, when a value leaves options", () => {
+    const withValidDefault = control({
+      kind: "select",
+      defaultValue: "a",
+      options: [{ label: "A", value: "a" }],
+    });
+    expect(sanitizeValueForControl(withValidDefault, "removed")).toBe("a");
+
+    const withStaleDefault = control({
+      kind: "select",
+      defaultValue: "gone",
+      options: [
+        { label: "First", value: "first" },
+        { label: "Second", value: "second" },
+      ],
+    });
+    expect(sanitizeValueForControl(withStaleDefault, "removed")).toBe("first");
+  });
+
+  it("coerces checkbox values to boolean", () => {
+    const checkbox = control({ kind: "checkbox", defaultValue: true });
+    expect(sanitizeValueForControl(checkbox, true)).toBe(true);
+    expect(sanitizeValueForControl(checkbox, "yes" as never)).toBe(true);
+  });
+
+  it("leaves custom JSON values untouched", () => {
+    const custom = control({ kind: "custom", defaultValue: [1, 2, 3] });
+    const value = [1, 2, 3];
+    expect(sanitizeValueForControl(custom, value)).toBe(value);
   });
 });
 
@@ -432,6 +514,62 @@ describe("TweakerStore", () => {
     // A read-only control refuses writes after the re-registration takes effect.
     store.getState().setValue(persistId, 2);
     expect(store.getState().values[persistId]).toBe(1.5);
+  });
+
+  it("re-clamps values when numeric bounds narrow on re-registration", () => {
+    const store = createTweakerStore({ id: "bounds-change", persistence: false });
+    const persistId = "bounds-change:Rendering:speed";
+
+    store
+      .getState()
+      .register(
+        { speed: { type: "number", defaultValue: 1, min: 0, max: 10 } },
+        { section: "Rendering" },
+      );
+    store.getState().setValue(persistId, 8);
+    expect(store.getState().values[persistId]).toBe(8);
+
+    // Narrowing max to 5 pulls the out-of-range value back in range.
+    store
+      .getState()
+      .register(
+        { speed: { type: "number", defaultValue: 1, min: 0, max: 5 } },
+        { section: "Rendering" },
+      );
+    expect(store.getState().values[persistId]).toBe(5);
+    expect(store.getState().controls[0]?.value).toBe(5);
+  });
+
+  it("invalidates select values that leave the options list on re-registration", () => {
+    const store = createTweakerStore({ id: "options-change", persistence: false });
+    const persistId = "options-change:Rendering:tint";
+
+    store
+      .getState()
+      .register(
+        { tint: { type: "select", defaultValue: "green", options: ["green", "amber"] } },
+        { section: "Rendering" },
+      );
+    store.getState().setValue(persistId, "amber");
+    expect(store.getState().values[persistId]).toBe("amber");
+
+    // "amber" is removed; the default "green" is still valid so it wins.
+    store
+      .getState()
+      .register(
+        { tint: { type: "select", defaultValue: "green", options: ["green"] } },
+        { section: "Rendering" },
+      );
+    expect(store.getState().values[persistId]).toBe("green");
+
+    // Default is also stale, so it falls back to the first option.
+    store
+      .getState()
+      .register(
+        { tint: { type: "select", defaultValue: "gone", options: ["blue"] } },
+        { section: "Rendering" },
+      );
+    expect(store.getState().values[persistId]).toBe("blue");
   });
 
   it("does not notify when an equivalent schema registers again", () => {

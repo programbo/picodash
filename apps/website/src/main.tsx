@@ -5,6 +5,7 @@ import {
   TweakerPanel,
   TweakerProvider,
   useTweaker,
+  useTweakerSnapshot,
   type PanelTheme,
   type TweakerCustomControlProps,
   type TweakerSchema,
@@ -110,6 +111,28 @@ const buildSchema = {
   telemetry: { defaultValue: true, label: "Telemetry" },
 } satisfies TweakerSchema;
 
+const dynamicBaseSchema = {
+  advanced: { type: "checkbox", defaultValue: false, label: "Advanced" },
+} satisfies TweakerSchema;
+
+function useDynamicDependentSchema(advanced: boolean) {
+  return useMemo<TweakerSchema>(
+    () => ({
+      intensity: {
+        type: "number",
+        defaultValue: 50,
+        min: 0,
+        max: advanced ? 200 : 50,
+        step: 1,
+        label: "Intensity",
+        readOnly: !advanced,
+        hidden: !advanced,
+      },
+    }),
+    [advanced],
+  );
+}
+
 function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
   return (
     <input
@@ -145,6 +168,14 @@ function Demo() {
   const [camera] = useTweaker(cameraSchema, {
     section: { id: "camera", label: "Camera" },
   });
+  const snapshot = useTweakerSnapshot();
+  const advancedPersistId = "docs-demo:default:dynamic:advanced";
+  const advanced = Boolean(snapshot.values[advancedPersistId]);
+  const dependentSchema = useDynamicDependentSchema(advanced);
+  useTweaker(dynamicBaseSchema, { section: { id: "dynamic", label: "Dynamic" } });
+  useTweaker(dependentSchema, { section: { id: "dynamic", label: "Dynamic" } });
+  const intensityPersistId = "docs-demo:default:dynamic:intensity";
+  const intensity = Number(snapshot.values[intensityPersistId] ?? 50);
   const [build] = useTweaker(buildSchema, {
     panel: "build",
     section: { id: "build", label: "Build" },
@@ -224,6 +255,10 @@ function Demo() {
               <span>Accent {String(material.accent)}</span>
               <span>Focal {camera.focalLength}mm</span>
               <span>Channel {build.channel}</span>
+              <span>
+                Intensity {intensity}
+                {advanced ? " (advanced)" : ""}
+              </span>
             </div>
           </div>
         </section>

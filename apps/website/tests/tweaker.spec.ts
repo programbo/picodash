@@ -118,6 +118,33 @@ test("renders read-only controls as faded and non-editable", async ({ page }) =>
   await expect(input).toHaveValue("0\u00B0");
 });
 
+test("drives dynamic control visibility, locking, and bounds clamping", async ({ page }) => {
+  const advanced = page.getByTestId("control-advanced").locator(".tw-checkbox");
+  const intensity = page.getByTestId("control-intensity");
+  const intensityInput = page.getByRole("textbox", { name: "Intensity" });
+
+  // With Advanced off, Intensity is hidden, read-only, and bounded at 50.
+  await expect(intensity).toHaveAttribute("data-hidden", "true");
+  await expect(intensity).toHaveAttribute("data-readonly", "true");
+  await expect(intensityInput).toBeHidden();
+
+  // Enable Advanced: the row appears and the bound widens to 200.
+  await advanced.click();
+  await expect(intensity).toHaveAttribute("data-hidden", "false");
+  await expect(intensity).toHaveAttribute("data-readonly", "false");
+  await expect(intensityInput).toBeVisible();
+  await expect(intensityInput).toHaveValue("50");
+
+  // Push to the new ceiling, then disable Advanced: the field locks and the
+  // value is clamped back down to the narrowed max of 50.
+  await intensityInput.fill("150");
+  await intensityInput.press("Enter");
+  await expect(page.getByText("Intensity 150 (advanced)")).toBeVisible();
+  await advanced.click();
+  await expect(intensity).toHaveAttribute("data-hidden", "true");
+  await expect(page.getByText(/Intensity \d+/)).toContainText("Intensity 50");
+});
+
 test("programmatic setter updates the panel and preview", async ({ page }) => {
   await page.getByRole("button", { name: "Set speed to 1.25" }).click();
 
@@ -328,7 +355,10 @@ test("keeps floating panels inside the viewport when the viewport resizes", asyn
 
   await page.mouse.move(box!.x + 80, box!.y + 16);
   await page.mouse.down();
-  await page.mouse.move(820, 220, { steps: 8 });
+  // Drop the panel in the upper-left quadrant so it lands in floating space
+  // regardless of how tall the panel is (away from every docking edge).
+  const dropY = 120;
+  await page.mouse.move(200, dropY, { steps: 8 });
   await page.mouse.up();
 
   await expect

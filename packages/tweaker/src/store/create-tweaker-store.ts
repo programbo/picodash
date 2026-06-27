@@ -1,13 +1,13 @@
 import { createStore } from "zustand";
 import { persist } from "zustand/middleware";
 import {
-  clamp,
   createControlPersistId,
   hasPanelEffects,
   normalizeControlEntry,
   normalizePanelEffects,
   normalizePanelId,
   normalizeSection,
+  sanitizeValueForControl,
   sectionOrderByPanel,
   valuesForControls,
 } from "../control.js";
@@ -58,7 +58,8 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       optionsEqual(leftControl.options, rightControl.options) &&
       settingsEqual(leftControl.settings, rightControl.settings) &&
       formatOptionsEqual(leftControl.formatOptions, rightControl.formatOptions) &&
-      leftControl.readOnly === rightControl.readOnly
+      leftControl.readOnly === rightControl.readOnly &&
+      leftControl.hidden === rightControl.hidden
     );
   });
 }
@@ -138,20 +139,30 @@ function createBaseState(storeId: string) {
       const ids = new Set(controls.map((control) => control.persistId));
 
       set((state) => {
+        const values = { ...state.values };
+        let valuesChanged = false;
         const controlsById = new Map(state.controls.map((control) => [control.persistId, control]));
         for (const control of controls) {
-          controlsById.set(control.persistId, {
-            ...control,
-            value: Object.prototype.hasOwnProperty.call(state.values, control.persistId)
-              ? state.values[control.persistId]!
-              : control.defaultValue,
-          });
+          // Sanitize restored values against the (possibly updated) control
+          // configuration so dynamic bounds/options changes never leave a
+          // control holding an out-of-range or invalid value. Unstored
+          // controls are left alone so their default flows through naturally.
+          if (Object.prototype.hasOwnProperty.call(values, control.persistId)) {
+            const stored = values[control.persistId]!;
+            const sanitized = sanitizeValueForControl(control, stored);
+            if (sanitized !== stored) {
+              values[control.persistId] = sanitized;
+              valuesChanged = true;
+            }
+          }
+          controlsById.set(control.persistId, control);
         }
 
-        const nextControls = valuesForControls(Array.from(controlsById.values()), state.values);
-        if (controlsEqual(state.controls, nextControls)) return state;
+        const nextControls = valuesForControls(Array.from(controlsById.values()), values);
+        if (controlsEqual(state.controls, nextControls) && !valuesChanged) return state;
 
         return {
+          values,
           controls: nextControls,
           sectionOrder: sectionOrderByPanel(nextControls),
         };
@@ -189,7 +200,7 @@ function createBaseState(storeId: string) {
       if (!control) return;
       if (control.readOnly) return;
 
-      const nextValue = typeof value === "number" ? clamp(value, control.min, control.max) : value;
+      const nextValue = sanitizeValueForControl(control, value);
 
       set((state) => {
         const values = { ...state.values, [persistId]: nextValue };

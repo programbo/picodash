@@ -302,6 +302,12 @@
   pointer-events: none;
 }
 
+/* Hidden controls: the row is removed from the layout but stays registered so
+   its value and order slot are preserved when it is shown again. */
+.tw-row[data-hidden="true"] {
+  display: none;
+}
+
 .tw-row__label-wrap {
   @apply grid min-w-0 items-center gap-1.25;
 

@@ -28,6 +28,8 @@ interface ControlIdentity {
   help?: string;
   /** Renders the control faded/greyscale and blocks value writes. */
   readOnly?: boolean;
+  /** Hides the control row while preserving its value and order slot. */
+  hidden?: boolean;
 }
 
 interface ControlStatusMetadata {
@@ -133,6 +135,7 @@ export interface NormalizedControl {
   status?: ControlStatus;
   help?: string;
   readOnly?: boolean;
+  hidden?: boolean;
   kind: ControlKind;
   type: string;
   label: string;
