@@ -15,16 +15,18 @@ import {
   TextField,
 } from "react-aria-components";
 import { ChevronDown } from "lucide-react";
-import type { NormalizedControl, PrimitiveValue } from "../types.js";
+import { useTweakerCustomControls } from "../react/context.js";
+import type { JsonValue, NormalizedControl } from "../types.js";
 import { usePanelEffects } from "./panel-effects-context.js";
 
 interface ControlInputProps {
   control: NormalizedControl;
   labelId: string;
-  onChange: (value: PrimitiveValue) => void;
+  onChange: (value: JsonValue) => void;
 }
 
 export function ControlInput({ control, labelId, onChange }: ControlInputProps) {
+  const customControls = useTweakerCustomControls();
   const [draft, setDraft] = useState<string | null>(null);
   const panelEffects = usePanelEffects();
 
@@ -34,10 +36,28 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
     if (Number.isFinite(parsed)) onChange(parsed);
   }
 
+  if (control.kind === "custom") {
+    const CustomControl = customControls[control.type];
+    if (!CustomControl) {
+      return <span className="tw-custom-missing">Missing control: {control.type}</span>;
+    }
+
+    return (
+      <CustomControl
+        id={control.domId}
+        label={control.label}
+        value={control.value}
+        defaultValue={control.defaultValue}
+        setValue={onChange}
+        control={control}
+      />
+    );
+  }
+
   if (control.kind === "checkbox") {
     return (
       <Checkbox
-        id={control.id}
+        id={control.domId}
         className="tw-checkbox"
         aria-labelledby={labelId}
         isSelected={Boolean(control.value)}
@@ -47,12 +67,14 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
   }
 
   if (control.kind === "select") {
+    const selectedKey = typeof control.value === "string" ? control.value : "";
+
     return (
       <Select
-        id={control.id}
+        id={control.domId}
         className="tw-select"
         aria-labelledby={labelId}
-        selectedKey={String(control.value)}
+        selectedKey={selectedKey}
         onSelectionChange={(key) => onChange(String(key))}
       >
         <Button className="tw-select__button">
@@ -88,22 +110,24 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         onChange={(value) => onChange(value)}
       >
         <SliderTrack className="tw-slider__track">
-          <SliderThumb id={control.id} className="tw-slider__thumb" />
+          <SliderThumb id={control.domId} className="tw-slider__thumb" />
         </SliderTrack>
         <SliderOutput className="tw-slider__value">{Number(control.value).toFixed(2)}</SliderOutput>
       </Slider>
     );
   }
 
+  const numberValue = typeof control.value === "number" ? String(control.value) : "";
+
   return (
     <TextField
       className="tw-number-field"
       aria-labelledby={labelId}
-      value={draft ?? String(control.value)}
+      value={draft ?? numberValue}
       onChange={(value) => setDraft(value)}
     >
       <Input
-        id={control.id}
+        id={control.domId}
         className="tw-number"
         inputMode="decimal"
         onBlur={(event) => commitNumber(event.target.value)}

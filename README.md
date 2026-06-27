@@ -1,35 +1,38 @@
 # Tweaker
 
-A compact Leva-inspired floating config panel for React. It supports number inputs, sliders, selects, checkboxes, section-local reordering, persisted values/order, collapse state, and magnetic panel docking.
+A compact Leva-inspired floating config panel for React. It supports named panels, number inputs, sliders, selects, checkboxes, registry-backed custom controls, section-local reordering, row status states, panel themes, persisted values/order, collapse state, and magnetic panel docking.
 
-Tweaker uses a provider-scoped Zustand store. Persisted values, row order, collapse state, and dock position are written through Zustand's `persist` middleware, and data read from localStorage is validated with Zod before it reaches the store.
+Tweaker uses a provider-scoped Zustand store. Persisted values, panel-local row order, collapsed state, and dock position are written through Zustand's `persist` middleware, and data read from localStorage is validated with Zod before it reaches the store.
 
 ## Usage
 
 ```tsx
-import { TweakerPanel, TweakerProvider, useTweaker } from "tweaker";
+import { TweakerPanel, TweakerProvider, useTweaker, type TweakerCustomControlProps } from "tweaker";
 import "tweaker/style.css";
+
+function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
+  return (
+    <input
+      id={id}
+      type="color"
+      value={typeof value === "string" ? value : "#9bd16f"}
+      onChange={(event) => setValue(event.target.value)}
+    />
+  );
+}
 
 function SceneControls() {
   const [values, setValue] = useTweaker(
     {
-      speed: { value: 0.72, min: 0, max: 2, step: 0.01 },
-      exposure: { type: "number", value: 1, min: 0, max: 4 },
-      bloom: { value: true },
-      tint: {
-        type: "select",
-        value: "green",
-        options: ["green", "amber", "blue"],
-        status: "info",
-      },
+      speed: { defaultValue: 0.72, min: 0, max: 2, step: 0.01, status: "info" },
+      exposure: { type: "number", defaultValue: 1, min: 0, max: 4 },
+      bloom: { defaultValue: true },
+      accent: { type: "color", id: "accent", defaultValue: "#9bd16f" },
     },
     {
-      section: "Rendering",
-      sortable: true,
-      opacity: 0.4,
-      hoverOpacity: 0.85,
-      backgroundBlur: 0,
-      hoverBackgroundBlur: 4,
+      panel: "scene",
+      section: { id: "rendering", label: "Rendering" },
+      reorderable: true,
     },
   );
 
@@ -38,9 +41,19 @@ function SceneControls() {
 
 export function App() {
   return (
-    <TweakerProvider storeId="my-app">
+    <TweakerProvider id="my-app" controls={{ color: ColorControl }}>
       <SceneControls />
-      <TweakerPanel placement="top-right" theme="dark" />
+      <TweakerPanel
+        id="scene"
+        defaultPlacement="top-right"
+        theme="dark"
+        appearance={{
+          surfaceOpacity: 0.72,
+          activeSurfaceOpacity: 0.95,
+          backdropBlur: 0,
+          activeBackdropBlur: 8,
+        }}
+      />
     </TweakerProvider>
   );
 }
@@ -48,33 +61,38 @@ export function App() {
 
 ## Controls
 
-- Number: `{ type: "number", value: 1, min?: 0, max?: 10, step?: 0.1 }`
-- Slider shorthand: `{ value: 0.5, min: 0, max: 1 }`
-- Slider explicit: `{ type: "slider", value: 0.5, min: 0, max: 1 }`
-- Select: `{ type: "select", value: "green", options: ["green", "amber"] }`
-- Checkbox: `{ value: true }` or `{ type: "checkbox", value: true }`
+- Number: `{ type: "number", defaultValue: 1, min?: 0, max?: 10, step?: 0.1 }`
+- Slider shorthand: `{ defaultValue: 0.5, min: 0, max: 1 }`
+- Slider explicit: `{ type: "slider", defaultValue: 0.5, min: 0, max: 1 }`
+- Select: `{ type: "select", defaultValue: "green", options: ["green", "amber"] }`
+- Checkbox: `{ defaultValue: true }` or `{ type: "checkbox", defaultValue: true }`
+- Custom: register a component on `TweakerProvider.controls`, then use its `type` in a schema.
 
 Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs.
+
 Object controls can include `status: "info" | "alert" | "error"` to tint the row blue, amber, or red with an outline and thicker left border.
 
-Pass `sortable: false` in the hook options to keep a registration fixed in place.
-Pass `theme="dark"`, `theme="light"`, or `theme="system"` to `TweakerPanel` to choose the panel color theme. The default is `dark`.
+Use `{ id, label }` sections when labels may change; `id` is the stable persistence identity. Use a control-level `id` when a schema key may change. Primitive string shorthand and the old `value` spelling still work for compatibility, but new code should use explicit selects and `defaultValue`.
 
-Use panel effect options to change panel surface color opacity and increase background blur when the user hovers it or focuses a control:
+## Panels
+
+One provider can host multiple named panels. `useTweaker(..., { panel: "build" })` routes controls to `<TweakerPanel id="build" />`; omitted panel IDs use `"default"`.
+
+Panel appearance and layout belong on `TweakerPanel`:
 
 ```tsx
-useTweaker(
-  { channel: { type: "select", value: "stable", options: ["stable"] } },
-  {
-    section: "Build",
-    sortable: false,
-    opacity: 0.4,
-    hoverOpacity: 0.85,
-    backgroundBlur: 0,
-    hoverBackgroundBlur: 4,
-  },
-);
+<TweakerPanel
+  id="build"
+  title="Build"
+  defaultPlacement="bottom-right"
+  theme="system"
+  appearance={{ surfaceOpacity: 0.8, activeBackdropBlur: 8 }}
+/>
 ```
+
+`theme` accepts `"dark"`, `"light"`, or `"system"` and defaults to `"dark"`. Portaled controls such as select popovers use the same panel theme.
+
+`storeId`, `placement`, `sortable`, hook-level panel effects, and `value` remain compatibility aliases, but primary docs use `id`, `defaultPlacement`, `reorderable`, panel `appearance`, and `defaultValue`.
 
 ## Development
 

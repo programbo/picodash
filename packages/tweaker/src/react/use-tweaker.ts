@@ -1,30 +1,50 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useStore } from "zustand";
-import { defaultSection, defaultValueForControl, statusForControl } from "../control.js";
+import {
+  createControlPersistId,
+  defaultValueForControl,
+  normalizePanelId,
+  normalizeSection,
+} from "../control.js";
 import type {
   ControlConfig,
+  JsonValue,
   NormalizedControl,
-  PrimitiveValue,
   RegisterOptions,
+  SectionConfig,
   SetTweakerValue,
   TweakerSchema,
   TweakerValues,
 } from "../types.js";
 import { useTweakerStoreApi } from "./context.js";
 
+function explicitControlId(config: TweakerSchema[string]) {
+  return typeof config === "object" && config !== null && typeof config.id === "string"
+    ? config.id
+    : undefined;
+}
+
 export function resolveTweakerValues<T extends TweakerSchema>(
   schema: T,
-  section: string,
+  storeId: string,
+  panelId: string,
+  section: SectionConfig,
   controls: NormalizedControl[],
-  values: Record<string, PrimitiveValue>,
-  getControlId: (section: string, key: string) => string,
+  values: Record<string, JsonValue>,
 ): TweakerValues<T> {
-  const controlsById = new Map(controls.map((control) => [control.id, control]));
+  const controlsById = new Map(controls.map((control) => [control.persistId, control]));
   const output: Partial<TweakerValues<T>> = {};
 
   for (const key of Object.keys(schema) as Array<keyof T>) {
-    const id = getControlId(section, String(key));
-    const value = controlsById.get(id)?.value ?? values[id] ?? defaultValueForControl(schema[key]);
+    const config = schema[key];
+    const id = createControlPersistId(
+      storeId,
+      panelId,
+      section,
+      String(key),
+      explicitControlId(config),
+    );
+    const value = controlsById.get(id)?.value ?? values[id] ?? defaultValueForControl(config);
     output[key] = value as TweakerValues<T>[typeof key];
   }
 
@@ -46,27 +66,8 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value);
 }
 
-function controlRegistrationConfig(config: ControlConfig): unknown {
-  if (!config || typeof config !== "object") return config;
-  const registrationConfig = { ...config };
-  delete registrationConfig.status;
-  return registrationConfig;
-}
-
 export function registrationSignatureForSchema(schema: TweakerSchema): string {
-  return stableStringify(
-    Object.fromEntries(
-      Object.entries(schema).map(([key, config]) => [key, controlRegistrationConfig(config)]),
-    ),
-  );
-}
-
-export function statusSignatureForSchema(schema: TweakerSchema): string {
-  return stableStringify(
-    Object.fromEntries(
-      Object.entries(schema).map(([key, config]) => [key, statusForControl(config)]),
-    ),
-  );
+  return stableStringify(schema);
 }
 
 export function useTweaker<T extends TweakerSchema>(
@@ -74,59 +75,59 @@ export function useTweaker<T extends TweakerSchema>(
   options: RegisterOptions = {},
 ): [TweakerValues<T>, SetTweakerValue<T>] {
   const store = useTweakerStoreApi();
-  const section = options.section ?? defaultSection;
-  const sortable = options.sortable ?? true;
-  const { opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur } = options;
+  const panelId = normalizePanelId(options.panel);
+  const section = normalizeSection(options.section);
+  const reorderable = options.reorderable ?? options.sortable ?? true;
   const controls = useStore(store, (state) => state.controls);
   const valuesById = useStore(store, (state) => state.values);
-  const registrationSignature = registrationSignatureForSchema(schema);
-  const statusSignature = statusSignatureForSchema(schema);
+  const schemaSignature = registrationSignatureForSchema(schema);
+  const storeId = store.getState().storeId;
 
   useEffect(
-    () => store.getState().register(schema, { section, sortable }),
-    [store, registrationSignature, section, sortable],
+    () => store.getState().register(schema, { panel: panelId, section, reorderable }),
+    [store, schemaSignature, panelId, section.id, section.label, reorderable],
   );
 
   useEffect(
     () =>
       store.getState().updatePanelEffects(schema, {
+        panel: panelId,
         section,
-        opacity,
-        hoverOpacity,
-        backgroundBlur,
-        hoverBackgroundBlur,
+        opacity: options.opacity,
+        hoverOpacity: options.hoverOpacity,
+        backgroundBlur: options.backgroundBlur,
+        hoverBackgroundBlur: options.hoverBackgroundBlur,
       }),
     [
       store,
-      registrationSignature,
-      section,
-      opacity,
-      hoverOpacity,
-      backgroundBlur,
-      hoverBackgroundBlur,
+      schemaSignature,
+      panelId,
+      section.id,
+      section.label,
+      options.opacity,
+      options.hoverOpacity,
+      options.backgroundBlur,
+      options.hoverBackgroundBlur,
     ],
   );
 
-  useEffect(
-    () => store.getState().updateControlStatuses(schema, { section }),
-    [store, statusSignature, section],
-  );
-
   const values = useMemo(() => {
-    return resolveTweakerValues(
-      schema,
-      section,
-      controls,
-      valuesById,
-      store.getState().getControlId,
-    );
-  }, [schema, section, controls, valuesById, store]);
+    return resolveTweakerValues(schema, storeId, panelId, section, controls, valuesById);
+  }, [schema, storeId, panelId, section, controls, valuesById]);
 
   const setValue = useCallback<SetTweakerValue<T>>(
     (key, value) => {
-      store.getState().setValue(store.getState().getControlId(section, String(key)), value);
+      const config = schema[key] as ControlConfig;
+      const id = createControlPersistId(
+        storeId,
+        panelId,
+        section,
+        String(key),
+        explicitControlId(config),
+      );
+      store.getState().setValue(id, value);
     },
-    [section, store],
+    [panelId, schema, section, store, storeId],
   );
 
   return [values, setValue];

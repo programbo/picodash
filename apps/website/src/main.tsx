@@ -6,41 +6,69 @@ import {
   TweakerProvider,
   useTweaker,
   type PanelTheme,
+  type TweakerCustomControlProps,
   type TweakerSchema,
 } from "tweaker";
 import "tweaker/style.css";
 import "./style.css";
 
 const renderingSchema = {
-  speed: { value: 0.72, min: 0, max: 2, step: 0.01, label: "Speed", status: "info" },
-  exposure: { type: "number", value: 1, min: 0, max: 4, step: 0.1, status: "alert" },
-  bloom: { type: "checkbox", value: true, label: "Bloom", status: "error" },
+  speed: {
+    defaultValue: 0.72,
+    min: 0,
+    max: 2,
+    step: 0.01,
+    label: "Speed",
+    status: "info",
+  },
+  exposure: {
+    type: "number",
+    defaultValue: 1,
+    min: 0,
+    max: 4,
+    step: 0.1,
+    status: "alert",
+  },
+  bloom: { type: "checkbox", defaultValue: true, label: "Bloom", status: "error" },
 } satisfies TweakerSchema;
 
 const materialSchema = {
   shape: {
     type: "select",
-    value: "orb",
+    defaultValue: "orb",
     options: { Orb: "orb", Prism: "prism", Plate: "plate" },
   },
   tint: {
     type: "select",
-    value: "green",
+    defaultValue: "green",
     options: ["green", "amber", "blue"],
     label: "Tint",
   },
-  roughness: { type: "slider", value: 0.34, min: 0, max: 1, step: 0.01 },
+  roughness: { type: "slider", defaultValue: 0.34, min: 0, max: 1, step: 0.01 },
+  accent: { type: "color", id: "accent", defaultValue: "#9bd16f", label: "Accent" },
 } satisfies TweakerSchema;
 
 const buildSchema = {
   channel: {
     type: "select",
-    value: "stable",
+    defaultValue: "stable",
     options: ["stable", "canary"],
     label: "Channel",
   },
-  telemetry: { value: true, label: "Telemetry" },
+  telemetry: { defaultValue: true, label: "Telemetry" },
 } satisfies TweakerSchema;
+
+function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
+  return (
+    <input
+      id={id}
+      className="color-control"
+      type="color"
+      value={typeof value === "string" ? value : "#9bd16f"}
+      onChange={(event) => setValue(event.target.value)}
+    />
+  );
+}
 
 function themeFromLocation(): PanelTheme {
   const theme = new URLSearchParams(window.location.search).get("theme");
@@ -57,16 +85,15 @@ function Demo() {
   const [dimmed, setDimmed] = useState(true);
   const [panelTheme, setPanelTheme] = useState<PanelTheme>(() => themeFromLocation());
   const [rendering, setRendering] = useTweaker(renderingSchema, {
-    section: "Rendering",
+    section: { id: "rendering", label: "Rendering" },
   });
-  const [material] = useTweaker(materialSchema, { section: "Material" });
+  const [material] = useTweaker(materialSchema, {
+    section: { id: "material", label: "Material" },
+  });
   const [build] = useTweaker(buildSchema, {
-    section: "Build",
-    sortable: false,
-    opacity: dimmed ? 0.55 : 1,
-    hoverOpacity: dimmed ? 0.95 : 1,
-    backgroundBlur: dimmed ? 0 : 8,
-    hoverBackgroundBlur: 8,
+    panel: "build",
+    section: { id: "build", label: "Build" },
+    reorderable: false,
   });
 
   const previewStyle = useMemo<CSSProperties>(
@@ -76,8 +103,9 @@ function Demo() {
         "--demo-exposure": String(rendering.exposure),
         "--demo-roughness": String(material.roughness),
         "--demo-tint": `var(--tint-${material.tint})`,
+        "--demo-accent": String(material.accent),
       }) as CSSProperties,
-    [material.roughness, material.tint, rendering.exposure, rendering.speed],
+    [material.accent, material.roughness, material.tint, rendering.exposure, rendering.speed],
   );
 
   function selectTheme(theme: PanelTheme) {
@@ -93,7 +121,18 @@ function Demo() {
 
   return (
     <>
-      <TweakerPanel placement="top-right" theme={panelTheme} title="Tweaker" />
+      <TweakerPanel
+        defaultPlacement="top-right"
+        theme={panelTheme}
+        title="Scene"
+        appearance={{
+          surfaceOpacity: dimmed ? 0.55 : 1,
+          activeSurfaceOpacity: dimmed ? 0.95 : 1,
+          backdropBlur: dimmed ? 0 : 8,
+          activeBackdropBlur: 8,
+        }}
+      />
+      <TweakerPanel id="build" defaultPlacement="bottom-right" theme={panelTheme} title="Build" />
       <main className="site-shell">
         <section className="hero">
           <div className="hero__copy">
@@ -101,7 +140,7 @@ function Demo() {
             <h1>Tweaker</h1>
             <p>
               A compact Leva-inspired floating panel with typed controls, persisted values,
-              section-local reordering, and magnetic docking.
+              section-local reordering, magnetic docking, and named panels.
             </p>
             <div className="theme-switcher" aria-label="Panel theme">
               {themeOptions.map(({ value, label, icon: Icon }) => (
@@ -127,6 +166,7 @@ function Demo() {
               <span>Speed {Number(rendering.speed).toFixed(2)}</span>
               <span>Exposure {Number(rendering.exposure).toFixed(1)}</span>
               <span>Roughness {Number(material.roughness).toFixed(2)}</span>
+              <span>Accent {String(material.accent)}</span>
               <span>Channel {build.channel}</span>
             </div>
           </div>
@@ -145,9 +185,11 @@ import "tweaker/style.css";`}</code>
             <h2>Use</h2>
             <pre>
               <code>{`const [values, setValue] = useTweaker({
-  speed: { value: 0.72, min: 0, max: 2 },
-  bloom: { value: true },
-}, { section: "Rendering" });`}</code>
+  speed: { defaultValue: 0.72, min: 0, max: 2 },
+  bloom: { defaultValue: true },
+}, {
+  section: { id: "rendering", label: "Rendering" },
+});`}</code>
             </pre>
           </article>
 
@@ -163,7 +205,7 @@ import "tweaker/style.css";`}</code>
           </article>
 
           <article>
-            <h2>Runtime panel effects</h2>
+            <h2>Panel appearance</h2>
             <pre>
               <code>{`const [theme, setTheme] = useState("dark");
 
@@ -171,13 +213,14 @@ import "tweaker/style.css";`}</code>
 
 const [dimmed, setDimmed] = useState(true);
 
-useTweaker(schema, {
-  section: "Build",
-  opacity: dimmed ? 0.55 : 1,
-  hoverOpacity: dimmed ? 0.95 : 1,
-  backgroundBlur: dimmed ? 0 : 8,
-  hoverBackgroundBlur: 8,
-});`}</code>
+<TweakerPanel
+  appearance={{
+    surfaceOpacity: dimmed ? 0.55 : 1,
+    activeSurfaceOpacity: dimmed ? 0.95 : 1,
+    backdropBlur: dimmed ? 0 : 8,
+    activeBackdropBlur: 8,
+  }}
+/>`}</code>
             </pre>
             <button
               className="demo-button docs-action"
@@ -195,7 +238,7 @@ useTweaker(schema, {
 
 createRoot(document.getElementById("app")!).render(
   <StrictMode>
-    <TweakerProvider storeId="docs-demo">
+    <TweakerProvider id="docs-demo" controls={{ color: ColorControl }}>
       <Demo />
     </TweakerProvider>
   </StrictMode>,

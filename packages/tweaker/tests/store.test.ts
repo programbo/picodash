@@ -6,11 +6,7 @@ import {
   type TweakerSchema,
 } from "../src/index.js";
 import { defaultValueForControl } from "../src/control.js";
-import {
-  registrationSignatureForSchema,
-  resolveTweakerValues,
-  statusSignatureForSchema,
-} from "../src/react/use-tweaker.js";
+import { registrationSignatureForSchema, resolveTweakerValues } from "../src/react/use-tweaker.js";
 
 class MemoryStorage {
   private values = new Map<string, string>();
@@ -36,21 +32,23 @@ beforeEach(() => {
 });
 
 describe("normalizeControl", () => {
-  it("infers sliders from numeric shorthand with min and max", () => {
+  it("keeps legacy default-panel ids for section string registrations", () => {
     const control = normalizeControl("demo", "Rendering", "speed", {
-      value: 0.5,
+      defaultValue: 0.5,
       min: 0,
       max: 1,
     });
 
     expect(control.kind).toBe("slider");
     expect(control.id).toBe("demo:Rendering:speed");
+    expect(control.panelId).toBe("default");
+    expect(control.sectionId).toBe("Rendering");
   });
 
   it("normalizes select records into label/value options", () => {
     const control = normalizeControl("demo", "Material", "shape", {
       type: "select",
-      value: "orb",
+      defaultValue: "orb",
       options: { Orb: "orb", Prism: "prism" },
     });
 
@@ -62,25 +60,49 @@ describe("normalizeControl", () => {
 
   it("normalizes status metadata on object controls", () => {
     const info = normalizeControl("demo", "Rendering", "speed", {
-      value: 0.5,
+      defaultValue: 0.5,
       min: 0,
       max: 1,
       status: "info",
     });
     const alert = normalizeControl("demo", "Rendering", "exposure", {
       type: "number",
-      value: 1,
+      defaultValue: 1,
       status: "alert",
     });
     const error = normalizeControl("demo", "Rendering", "bloom", {
       type: "checkbox",
-      value: true,
+      defaultValue: true,
       status: "error",
     });
 
     expect(info.status).toBe("info");
     expect(alert.status).toBe("alert");
     expect(error.status).toBe("error");
+  });
+
+  it("normalizes custom controls with JSON defaults", () => {
+    const store = createTweakerStore({ id: "custom", persistence: false });
+    store.getState().register(
+      {
+        position: {
+          type: "vector3",
+          id: "position",
+          defaultValue: [0, 1, 0],
+          label: "Position",
+          size: "compact",
+        },
+      },
+      { panel: "scene", section: { id: "transform", label: "Transform" } },
+    );
+
+    expect(store.getState().controls[0]).toMatchObject({
+      kind: "custom",
+      type: "vector3",
+      persistId: "custom:scene:transform:position",
+      value: [0, 1, 0],
+      settings: { size: "compact" },
+    });
   });
 });
 
@@ -89,27 +111,31 @@ describe("control defaults", () => {
     expect(defaultValueForControl(1)).toBe(1);
     expect(defaultValueForControl(true)).toBe(true);
     expect(defaultValueForControl("green")).toBe("green");
-    expect(defaultValueForControl({ type: "number", value: 2 })).toBe(2);
-    expect(defaultValueForControl({ type: "slider", value: 0.5, min: 0, max: 1 })).toBe(0.5);
-    expect(defaultValueForControl({ type: "select", value: "orb", options: ["orb"] })).toBe("orb");
-    expect(defaultValueForControl({ type: "checkbox", value: false })).toBe(false);
+    expect(defaultValueForControl({ type: "number", defaultValue: 2 })).toBe(2);
+    expect(defaultValueForControl({ type: "number", value: 3 })).toBe(3);
+    expect(defaultValueForControl({ type: "slider", defaultValue: 0.5, min: 0, max: 1 })).toBe(0.5);
+    expect(defaultValueForControl({ type: "select", defaultValue: "orb", options: ["orb"] })).toBe(
+      "orb",
+    );
+    expect(defaultValueForControl({ type: "checkbox", defaultValue: false })).toBe(false);
   });
 });
 
 describe("resolveTweakerValues", () => {
-  const getControlId = (section: string, key: string) => `hook:${section}:${key}`;
+  const section = { id: "Rendering", label: "Rendering" };
 
   it("returns schema defaults before controls are registered", () => {
     const values = resolveTweakerValues(
       {
-        exposure: { value: 1, min: 0, max: 4 },
+        exposure: { defaultValue: 1, min: 0, max: 4 },
         bloom: false,
-        tint: { type: "select", value: "green", options: ["green", "amber"] },
+        tint: { type: "select", defaultValue: "green", options: ["green", "amber"] },
       },
-      "Rendering",
+      "hook",
+      "default",
+      section,
       [],
       {},
-      getControlId,
     );
 
     expect(values).toEqual({ exposure: 1, bloom: false, tint: "green" });
@@ -118,16 +144,17 @@ describe("resolveTweakerValues", () => {
   it("prefers persisted values over schema defaults before controls are registered", () => {
     const values = resolveTweakerValues(
       {
-        exposure: { value: 1, min: 0, max: 4 },
+        exposure: { defaultValue: 1, min: 0, max: 4 },
         bloom: true,
       },
-      "Rendering",
+      "hook",
+      "default",
+      section,
       [],
       {
         "hook:Rendering:exposure": 3,
         "hook:Rendering:bloom": false,
       },
-      getControlId,
     );
 
     expect(values).toEqual({ exposure: 3, bloom: false });
@@ -135,14 +162,19 @@ describe("resolveTweakerValues", () => {
 
   it("prefers live control values over persisted values", () => {
     const controls = [
-      normalizeControl("hook", "Rendering", "exposure", { value: 2, min: 0, max: 4 }),
+      normalizeControl("hook", "Rendering", "exposure", {
+        defaultValue: 2,
+        min: 0,
+        max: 4,
+      }),
     ] satisfies NormalizedControl[];
     const values = resolveTweakerValues(
-      { exposure: { value: 1, min: 0, max: 4 } },
-      "Rendering",
+      { exposure: { defaultValue: 1, min: 0, max: 4 } },
+      "hook",
+      "default",
+      section,
       controls,
       { "hook:Rendering:exposure": 3 },
-      getControlId,
     );
 
     expect(values).toEqual({ exposure: 2 });
@@ -150,55 +182,65 @@ describe("resolveTweakerValues", () => {
 });
 
 describe("schema signatures", () => {
-  it("keeps status changes out of the registration signature", () => {
+  it("tracks status metadata changes", () => {
     const base = {
-      speed: { value: 1, min: 0, max: 2, status: "info" },
+      speed: { defaultValue: 1, min: 0, max: 2, status: "info" },
     } satisfies TweakerSchema;
     const next = {
-      speed: { value: 1, min: 0, max: 2, status: "error" },
+      speed: { defaultValue: 1, min: 0, max: 2, status: "error" },
     } satisfies TweakerSchema;
 
-    expect(registrationSignatureForSchema(base)).toBe(registrationSignatureForSchema(next));
-    expect(statusSignatureForSchema(base)).not.toBe(statusSignatureForSchema(next));
+    expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next));
   });
 });
 
 describe("TweakerStore", () => {
   it("persists values and clamps numeric updates", () => {
     const schema = {
-      exposure: { value: 1, min: 0, max: 4 },
+      exposure: { defaultValue: 1, min: 0, max: 4 },
     } satisfies TweakerSchema;
-    const store = createTweakerStore({ storeId: "store", stale: "ignore" });
+    const store = createTweakerStore({ id: "store" });
 
     store.getState().register(schema, { section: "Rendering" });
     store.getState().setValue("store:Rendering:exposure", 8);
 
-    const next = createTweakerStore({ storeId: "store", stale: "ignore" });
+    const next = createTweakerStore({ id: "store" });
     next.getState().register(schema, { section: "Rendering" });
 
     expect(next.getState().controls[0]?.value).toBe(4);
   });
 
-  it("stores section-local order", () => {
-    const store = createTweakerStore({ storeId: "order", stale: "ignore" });
-    store.getState().register({ a: 1, b: 2 }, { section: "Rendering" });
-    store.getState().setSectionOrder("Rendering", ["order:Rendering:b", "order:Rendering:a"]);
+  it("stores panel and section-local order", () => {
+    const store = createTweakerStore({ id: "order", persistence: false });
+    store.getState().register({ a: 1, b: 2 }, { panel: "scene", section: "Rendering" });
+    store
+      .getState()
+      .setSectionOrder("scene", "Rendering", [
+        "order:scene:Rendering:b",
+        "order:scene:Rendering:a",
+      ]);
 
-    expect(store.getState().order.Rendering).toEqual(["order:Rendering:b", "order:Rendering:a"]);
+    expect(store.getState().order.scene?.Rendering).toEqual([
+      "order:scene:Rendering:b",
+      "order:scene:Rendering:a",
+    ]);
   });
 
-  it("stores hook-level sortable metadata on registered controls", () => {
-    const store = createTweakerStore({ storeId: "sortable", stale: "ignore" });
+  it("stores hook-level reorderable metadata and supports deprecated sortable", () => {
+    const store = createTweakerStore({ id: "sortable", persistence: false });
     store.getState().register({ channel: "stable" }, { section: "Build", sortable: false });
 
+    expect(store.getState().controls[0]?.reorderable).toBe(false);
     expect(store.getState().controls[0]?.sortable).toBe(false);
   });
 
-  it("stores clamped hook-level panel effect metadata on registered controls", () => {
-    const store = createTweakerStore({ storeId: "opacity", stale: "ignore" });
-    store.getState().register(
+  it("maps deprecated hook-level panel effects to panel appearance", () => {
+    const store = createTweakerStore({ id: "opacity", persistence: false });
+    store.getState().register({ channel: "stable" }, { panel: "build", section: "Build" });
+    store.getState().updatePanelEffects(
       { channel: "stable" },
       {
+        panel: "build",
         section: "Build",
         opacity: -1,
         hoverOpacity: 2,
@@ -207,21 +249,26 @@ describe("TweakerStore", () => {
       },
     );
 
-    expect(store.getState().controls[0]?.opacity).toBe(0);
-    expect(store.getState().controls[0]?.hoverOpacity).toBe(1);
-    expect(store.getState().controls[0]?.backgroundBlur).toBe(0);
-    expect(store.getState().controls[0]?.hoverBackgroundBlur).toBe(4);
+    expect(store.getState().panelAppearances.build).toEqual({
+      surfaceOpacity: 0,
+      activeSurfaceOpacity: 1,
+      backdropBlur: 0,
+      activeBackdropBlur: 4,
+    });
   });
 
   it("updates panel effects without pruning values or order", () => {
-    const store = createTweakerStore({ storeId: "panel-effects", stale: "prune" });
-    const schema = { speed: { value: 1, min: 0, max: 2 }, exposure: 1 } satisfies TweakerSchema;
+    const store = createTweakerStore({ id: "panel-effects", persistence: false });
+    const schema = {
+      speed: { defaultValue: 1, min: 0, max: 2 },
+      exposure: 1,
+    } satisfies TweakerSchema;
 
     store.getState().register(schema, { section: "Rendering" });
     store.getState().setValue("panel-effects:Rendering:speed", 1.5);
     store
       .getState()
-      .setSectionOrder("Rendering", [
+      .setSectionOrder("default", "Rendering", [
         "panel-effects:Rendering:exposure",
         "panel-effects:Rendering:speed",
       ]);
@@ -235,84 +282,168 @@ describe("TweakerStore", () => {
     });
 
     expect(store.getState().values["panel-effects:Rendering:speed"]).toBe(1.5);
-    expect(store.getState().order.Rendering).toEqual([
+    expect(store.getState().order.default?.Rendering).toEqual([
       "panel-effects:Rendering:exposure",
       "panel-effects:Rendering:speed",
     ]);
-    expect(store.getState().controls[0]?.opacity).toBe(0.4);
-    expect(store.getState().controls[0]?.hoverOpacity).toBe(0.85);
-    expect(store.getState().controls[0]?.backgroundBlur).toBe(0);
-    expect(store.getState().controls[0]?.hoverBackgroundBlur).toBe(4);
+    expect(store.getState().panelAppearances.default).toEqual({
+      surfaceOpacity: 0.4,
+      activeSurfaceOpacity: 0.85,
+      backdropBlur: 0,
+      activeBackdropBlur: 4,
+    });
+  });
+
+  it("updates status metadata without pruning values or order", () => {
+    const store = createTweakerStore({ id: "status-change", persistence: false });
+
+    store
+      .getState()
+      .register({ speed: { defaultValue: 1, status: "info" } }, { section: "Rendering" });
+    store.getState().setValue("status-change:Rendering:speed", 1.5);
+    store.getState().setSectionOrder("default", "Rendering", ["status-change:Rendering:speed"]);
+    store
+      .getState()
+      .register({ speed: { defaultValue: 1, status: "error" } }, { section: "Rendering" });
+
+    expect(store.getState().values["status-change:Rendering:speed"]).toBe(1.5);
+    expect(store.getState().order.default?.Rendering).toEqual(["status-change:Rendering:speed"]);
+    expect(store.getState().controls[0]?.status).toBe("error");
   });
 
   it("does not notify when an equivalent schema registers again", () => {
-    const store = createTweakerStore({ storeId: "stable-schema", stale: "ignore" });
+    const store = createTweakerStore({ id: "stable-schema", persistence: false });
     const listener = vi.fn();
 
-    store.getState().register({ speed: { value: 1, min: 0, max: 2 } }, { section: "Rendering" });
+    store
+      .getState()
+      .register({ speed: { defaultValue: 1, min: 0, max: 2 } }, { section: "Rendering" });
     store.subscribe(listener);
-    store.getState().register({ speed: { value: 1, min: 0, max: 2 } }, { section: "Rendering" });
+    store
+      .getState()
+      .register({ speed: { defaultValue: 1, min: 0, max: 2 } }, { section: "Rendering" });
 
     expect(listener).not.toHaveBeenCalled();
   });
 
-  it("updates control status without pruning values or order", () => {
-    const store = createTweakerStore({ storeId: "status-change", stale: "prune" });
-
-    store.getState().register({ speed: { value: 1, status: "info" } }, { section: "Rendering" });
-    store.getState().setValue("status-change:Rendering:speed", 1.5);
-    store.getState().setSectionOrder("Rendering", ["status-change:Rendering:speed"]);
-    store
-      .getState()
-      .updateControlStatuses({ speed: { value: 1, status: "error" } }, { section: "Rendering" });
-
-    expect(store.getState().values["status-change:Rendering:speed"]).toBe(1.5);
-    expect(store.getState().order.Rendering).toEqual(["status-change:Rendering:speed"]);
-    expect(store.getState().controls[0]?.status).toBe("error");
-  });
-
-  it("preserves later-section persisted values during partial prune registration", () => {
-    storage.setItem(
-      "tweaker:partial-prune",
-      JSON.stringify({
-        state: {
-          values: {
-            "partial-prune:Rendering:exposure": 2,
-            "partial-prune:Material:roughness": 0.7,
-          },
-          order: {},
-          collapsed: false,
-          dock: null,
-        },
-      }),
-    );
-    const store = createTweakerStore({ storeId: "partial-prune", stale: "prune" });
-
-    store.getState().register({ exposure: 1 }, { section: "Rendering" });
-
-    expect(store.getState().values["partial-prune:Material:roughness"]).toBe(0.7);
-  });
-
-  it("prunes stale persisted keys on unregister when configured", () => {
+  it("does not prune stale persisted keys on unregister", () => {
     storage.setItem(
       "tweaker:stale",
       JSON.stringify({
         state: {
           values: { "stale:Rendering:remove": 9 },
           order: {},
-          collapsed: false,
-          dock: null,
+          panels: {},
         },
       }),
     );
-    const store = createTweakerStore({ storeId: "stale", stale: "prune" });
+    const store = createTweakerStore({ id: "stale" });
     const unregister = store.getState().register({ remove: 2 }, { section: "Rendering" });
 
     expect(store.getState().values["stale:Rendering:remove"]).toBe(9);
 
     unregister();
 
-    expect(store.getState().values["stale:Rendering:remove"]).toBeUndefined();
+    expect(store.getState().values["stale:Rendering:remove"]).toBe(9);
+  });
+
+  it("migrates legacy persisted panel layout into the default panel", () => {
+    storage.setItem(
+      "tweaker:legacy",
+      JSON.stringify({
+        state: {
+          values: { "legacy:Rendering:exposure": 2 },
+          order: { Rendering: ["legacy:Rendering:exposure"] },
+          collapsed: true,
+          dock: { edge: "left", offset: 16 },
+        },
+      }),
+    );
+    const store = createTweakerStore({ id: "legacy" });
+    store.getState().register({ exposure: 1 }, { section: "Rendering" });
+
+    expect(store.getState().values["legacy:Rendering:exposure"]).toBe(2);
+    expect(store.getState().order.default?.Rendering).toEqual(["legacy:Rendering:exposure"]);
+    expect(store.getState().panels.default).toEqual({
+      collapsed: true,
+      dock: { edge: "left", offset: 16 },
+    });
+  });
+
+  it("migrates legacy dock state even when legacy order is empty", () => {
+    storage.setItem(
+      "tweaker:legacy-empty-order",
+      JSON.stringify({
+        state: {
+          values: {},
+          order: {},
+          collapsed: false,
+          dock: { edge: "right", offset: 80 },
+        },
+      }),
+    );
+    const store = createTweakerStore({ id: "legacy-empty-order" });
+
+    expect(store.getState().panels.default).toEqual({
+      collapsed: false,
+      dock: { edge: "right", offset: 80 },
+    });
+  });
+
+  it("keeps panel layout state independent", () => {
+    const store = createTweakerStore({ id: "panels", persistence: false });
+
+    store.getState().setPanelCollapsed("scene", true);
+    store.getState().setPanelDock("build", { edge: "right", offset: 48 });
+
+    expect(store.getState().getPanelState("scene")).toEqual({ collapsed: true, dock: null });
+    expect(store.getState().getPanelState("build")).toEqual({
+      collapsed: false,
+      dock: { edge: "right", offset: 48 },
+    });
+  });
+
+  it("preserves values when section labels and object keys change with stable ids", () => {
+    const store = createTweakerStore({ id: "stable", persistence: false });
+    store.getState().register(
+      {
+        speed: { id: "speed", defaultValue: 1, min: 0, max: 2 },
+      },
+      { panel: "scene", section: { id: "rendering", label: "Rendering" } },
+    );
+    store.getState().setValue("stable:scene:rendering:speed", 1.5);
+
+    store.getState().register(
+      {
+        velocity: { id: "speed", defaultValue: 1, min: 0, max: 2 },
+      },
+      { panel: "scene", section: { id: "rendering", label: "Render Settings" } },
+    );
+
+    expect(store.getState().controls.find((control) => control.key === "velocity")?.value).toBe(
+      1.5,
+    );
+  });
+
+  it("persists custom JSON control values", () => {
+    const schema = {
+      position: { type: "vector3", id: "position", defaultValue: [0, 1, 0] },
+    } satisfies TweakerSchema;
+    const store = createTweakerStore({ id: "json" });
+
+    store.getState().register(schema, {
+      panel: "scene",
+      section: { id: "transform", label: "Transform" },
+    });
+    store.getState().setValue("json:scene:transform:position", [2, 3, 4]);
+
+    const next = createTweakerStore({ id: "json" });
+    next.getState().register(schema, {
+      panel: "scene",
+      section: { id: "transform", label: "Transform" },
+    });
+
+    expect(next.getState().controls[0]?.value).toEqual([2, 3, 4]);
   });
 
   it("discards invalid localStorage data through the Zod storage boundary", () => {
@@ -320,15 +451,14 @@ describe("TweakerStore", () => {
       "tweaker:invalid",
       JSON.stringify({
         state: {
-          values: { "invalid:Rendering:exposure": { nested: "not primitive" } },
+          values: { "invalid:Rendering:exposure": 2 },
           order: [],
-          collapsed: "nope",
-          dock: { edge: "diagonal", offset: -1 },
+          panels: { default: { collapsed: "nope", dock: { edge: "diagonal", offset: -1 } } },
         },
       }),
     );
 
-    const store = createTweakerStore({ storeId: "invalid", stale: "ignore" });
+    const store = createTweakerStore({ id: "invalid" });
     store.getState().register({ exposure: 1 }, { section: "Rendering" });
 
     expect(store.getState().values).toEqual({});

@@ -8,6 +8,7 @@
   --tint-green: #9bd16f;
   --tint-amber: #f0b95e;
   --tint-blue: #79b9e6;
+  --demo-accent: #9bd16f;
   color: var(--ink);
   background: #d9d0bb;
   font-family:
@@ -164,7 +165,11 @@ h1 {
   aspect-ratio: 1;
   background:
     radial-gradient(circle at 30% 26%, #ffffff, transparent 22%),
-    linear-gradient(145deg, color-mix(in srgb, var(--demo-tint), white 24%), #20251f);
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--demo-tint), white 24%),
+      color-mix(in srgb, var(--demo-accent), #20251f 58%)
+    );
   filter: brightness(var(--demo-exposure));
   animation: float calc(5s / max(var(--demo-speed), 0.2)) ease-in-out infinite;
 }
@@ -186,7 +191,18 @@ h1 {
 .preview__object.has-bloom {
   box-shadow:
     0 0 38px color-mix(in srgb, var(--demo-tint), transparent 34%),
-    0 0 90px color-mix(in srgb, var(--demo-tint), transparent 62%);
+    0 0 90px color-mix(in srgb, var(--demo-accent), transparent 62%);
+}
+
+.color-control {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  padding: 2px;
+  background: var(--tw-control-bg);
+  border: 1px solid var(--tw-border);
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 .preview__readout {

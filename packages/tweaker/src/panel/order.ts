@@ -2,16 +2,16 @@ import type { NormalizedControl } from "../types.js";
 
 export function orderControls(
   controls: NormalizedControl[],
-  section: string,
+  sectionId: string,
   order: Record<string, string[]>,
 ) {
-  const sectionControls = controls.filter((control) => control.section === section);
-  const persisted = order[section] ?? [];
-  const byId = new Map(sectionControls.map((control) => [control.id, control]));
+  const sectionControls = controls.filter((control) => control.sectionId === sectionId);
+  const persisted = order[sectionId] ?? [];
+  const byId = new Map(sectionControls.map((control) => [control.persistId, control]));
   const ordered = persisted
     .map((id) => byId.get(id))
     .filter((control): control is NormalizedControl => Boolean(control));
-  const missing = sectionControls.filter((control) => !persisted.includes(control.id));
+  const missing = sectionControls.filter((control) => !persisted.includes(control.persistId));
   return [...ordered, ...missing];
 }
 

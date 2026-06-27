@@ -1,6 +1,6 @@
 ---
 name: tweaker
-description: Use the local Tweaker React package to add a Leva-inspired floating config panel with numbers, sliders, selects, checkboxes, persisted values, and reorderable sections.
+description: Use the local Tweaker React package to add a Leva-inspired floating config system with named panels, built-in controls, custom controls, persisted values, themes, status states, and reorderable sections.
 ---
 
 # Tweaker Package Usage
@@ -16,50 +16,63 @@ import { TweakerPanel, TweakerProvider, useTweaker } from "tweaker";
 import "tweaker/style.css";
 ```
 
-## Provider and Panel
+## Provider and Panels
 
-Wrap the app once with `TweakerProvider`. Always provide a stable `storeId`; it is used for localStorage persistence.
+Wrap the app once with `TweakerProvider`. Always provide a stable `id`; it is used for localStorage persistence.
 
 ```tsx
-<TweakerProvider storeId="my-app">
-  <Controls />
-  <TweakerPanel placement="top-right" theme="dark" />
+<TweakerProvider id="my-app">
+  <SceneControls />
+  <BuildControls />
+  <TweakerPanel id="scene" defaultPlacement="top-right" theme="dark" />
+  <TweakerPanel id="build" defaultPlacement="bottom-right" theme="system" />
 </TweakerProvider>
 ```
 
-`TweakerPanel` accepts `theme="dark"`, `theme="light"`, or `theme="system"` and defaults to `"dark"`.
+Omitted panel IDs default to `"default"`, so existing single-panel usage remains straightforward.
 
 ## Register Controls
 
-Call `useTweaker(schema, { section, sortable, opacity, hoverOpacity, backgroundBlur, hoverBackgroundBlur })` inside React components. It returns `[values, setValue]`. `sortable` defaults to `true`; panel effect settings are optional and apply to panel surface colors and backdrop blur.
+Call `useTweaker(schema, { panel, section, reorderable })` inside React components. It returns `[values, setValue]`. `reorderable` defaults to `true`.
 
 ```tsx
 const [values, setValue] = useTweaker(
   {
-    speed: { value: 0.75, min: 0, max: 2, status: "info" },
-    exposure: { type: "number", value: 1, min: 0, max: 4 },
-    mode: { type: "select", value: "fast", options: ["fast", "quality"] },
-    enabled: { value: true },
+    speed: { defaultValue: 0.75, min: 0, max: 2, status: "info" },
+    exposure: { type: "number", defaultValue: 1, min: 0, max: 4 },
+    mode: { type: "select", defaultValue: "fast", options: ["fast", "quality"] },
+    enabled: { defaultValue: true },
   },
   {
-    section: "Rendering",
-    sortable: true,
-    opacity: 0.4,
-    hoverOpacity: 0.85,
-    backgroundBlur: 0,
-    hoverBackgroundBlur: 4,
+    panel: "scene",
+    section: { id: "rendering", label: "Rendering" },
+    reorderable: true,
   },
 );
 ```
 
+## Custom Controls
+
+Register custom components once on the provider, then reference them by `type` in schemas.
+
+```tsx
+<TweakerProvider id="my-app" controls={{ color: ColorControl }}>
+  <Controls />
+  <TweakerPanel />
+</TweakerProvider>
+```
+
+Custom control values must be JSON-serializable. Use control-level `id` when a schema key may change.
+
 ## Constraints
 
-- Supported controls are numbers, sliders, selects, and checkboxes.
+- Supported built-ins are numbers, sliders, selects, and checkboxes.
 - Min/max numeric shorthand becomes a slider.
 - Use explicit `type: "number"` for bounded number inputs.
 - Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row states.
-- Pass `sortable: false` in hook options when a section registration should not be draggable.
-- Pass `opacity`, `hoverOpacity`, `backgroundBlur`, and `hoverBackgroundBlur` in hook options to animate panel surface color opacity and backdrop blur on hover or focus-within.
-- Reordering is section-local and starts from the grip handle.
+- Pass `reorderable: false` in hook options when a hook registration should not be draggable.
+- Put panel opacity and backdrop blur on `TweakerPanel.appearance`, not hook options.
+- Reordering is panel-local and section-local and starts from the grip handle.
 - The package ships dark and light CSS-variable themes. Use `theme="system"` to follow `prefers-color-scheme`, or customize further by overriding CSS variables around the panel.
 - Package styles may be authored with Tailwind internally, but consumers only import compiled plain CSS from `tweaker/style.css`.
+- Compatibility aliases still work: `storeId`, `placement`, `sortable`, hook-level panel effects, and `value`.

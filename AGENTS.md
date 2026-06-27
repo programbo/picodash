@@ -74,7 +74,7 @@ The package currently exports:
 - Components: `TweakerProvider`, `TweakerPanel`
 - Hooks: `useTweaker`, `useTweakerStore`, `useTweakerSnapshot`
 - Store utilities: `createTweakerStore`, `normalizeControl`
-- Types: `ControlConfig`, `TweakerSchema`, `TweakerValues`, `SetTweakerValue`, `NormalizedControl`, `TweakerState`, `TweakerStore`, `TweakerSnapshot`, `DockState`, `Placement`, `PanelTheme`, `StaleMode`, and individual control types
+- Types: `ControlConfig`, `TweakerSchema`, `TweakerValues`, `SetTweakerValue`, `NormalizedControl`, `TweakerState`, `TweakerStore`, `TweakerSnapshot`, `DockState`, `Placement`, `PanelAppearance`, `PanelTheme`, `SectionConfig`, `JsonValue`, `TweakerCustomControlProps`, `TweakerCustomControlComponent`, and individual control types
 
 Consumers import styles with:
 
@@ -87,18 +87,20 @@ Tailwind is an internal authoring/build dependency only. Use `@reference "tailwi
 
 ## State And Persistence
 
-State is provider-scoped. `TweakerProvider` creates one Zustand vanilla store per provider instance and exposes it through React context.
+State is provider-scoped. `TweakerProvider` creates one Zustand vanilla store per provider instance and exposes it through React context. One provider can host multiple named panels.
 
 Persisted data is managed through Zustand `persist` middleware. Values read from `localStorage` must pass the Zod schemas in `packages/tweaker/src/store/persistence.ts` before entering the store. Keep Zod at this trust boundary; do not add broad runtime parsing inside normal render paths unless the data crosses a trust boundary.
 
 Persisted state includes:
 
 - control values
-- section-local order
-- panel collapsed state
-- panel dock state
+- panel-local, section-local order
+- panel-local collapsed state
+- panel-local dock state
 
-Non-persisted state includes registered controls and section order derived from live registrations.
+Non-persisted state includes registered controls, custom control registry components, panel appearance props/fallbacks, and section order derived from live registrations.
+
+Do not reintroduce automatic pruning of stale persisted values during React registration/unregistration. Stale values are harmless; accidental deletion from transient unmounts is worse. Cleanup should be explicit if it is ever added.
 
 If localStorage shape changes, update:
 
@@ -111,15 +113,20 @@ If localStorage shape changes, update:
 
 `useTweaker(schema, options)` registers a schema into the nearest provider.
 
-- Default section is `Controls`.
-- `options.section` controls the section label.
-- `options.sortable` defaults to `true`.
-- `sortable: false` disables row reordering for every control in that hook registration.
-- `options.opacity`, `options.hoverOpacity`, `options.backgroundBlur`, and `options.hoverBackgroundBlur` apply panel surface color opacity and backdrop blur. Hover and focus-within effect changes must transition smoothly.
-- `TweakerPanel` accepts `theme: "dark" | "light" | "system"` and defaults to `"dark"`. Portaled controls such as select popovers must use the same panel theme.
-- Section order is local to each section; dragging must not move controls across sections.
+- Default panel is `"default"`.
+- Default section is `{ id: "controls", label: "Controls" }`.
+- `options.panel` routes controls to a named `TweakerPanel`.
+- `options.section` accepts a string label or `{ id, label }`; use object form when labels may change.
+- `options.reorderable` defaults to `true`.
+- `reorderable: false` disables row reordering for every control in that hook registration.
+- Panel surface opacity and backdrop blur belong on `TweakerPanel.appearance`; deprecated hook-level effect options are compatibility-only.
+- Section order is local to each panel and section; dragging must not move controls across sections or panels.
 - Numeric values are clamped according to their normalized control bounds.
 - Explicit `type: "number"` stays a number input even if `min` and `max` are present.
+- Use schema `defaultValue` for defaults. Deprecated `value` remains compatibility-only.
+- Use control-level `id` for stable persistence when schema keys may change.
+- Custom controls are registered on `TweakerProvider.controls` and referenced by `type`; their values must be JSON-serializable.
+- `TweakerPanel` accepts `theme: "dark" | "light" | "system"` and defaults to `"dark"`. Portaled controls such as select popovers must use the same panel theme.
 - Object control configs can set `status: "info" | "alert" | "error"` for blue, amber, or red row tinting with an outline and thicker left border.
 
 When adding control kinds, update normalization, types, input rendering, tests, docs, and demo usage together.
@@ -140,7 +147,7 @@ The panel header is independently draggable for floating placement and magnetic 
 
 `apps/website` is the demo/docs app and the end-to-end test surface. It imports `tweaker` via `workspace:*`, so package changes should be validated through the app as well as package unit tests.
 
-Use Playwright tests in `apps/website/tests/tweaker.spec.ts` for user-visible behavior such as persistence, reset, docking, pointer reorder, keyboard reorder, and non-sortable registrations.
+Use Playwright tests in `apps/website/tests/tweaker.spec.ts` for user-visible behavior such as persistence, reset, docking, pointer reorder, keyboard reorder, multiple panels, custom controls, and non-reorderable registrations.
 
 When changing UI behavior, prefer verifying with Playwright or the in-app browser in addition to unit tests.
 
