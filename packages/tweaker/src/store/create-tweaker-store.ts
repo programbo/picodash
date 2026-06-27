@@ -91,6 +91,10 @@ function panelOrderFor(state: Pick<TweakerState, "order">, panelId: string) {
   return state.order[panelId] ?? {};
 }
 
+function panelSectionsFor(state: Pick<TweakerState, "sections">, panelId: string) {
+  return state.sections[panelId] ?? {};
+}
+
 function createBaseState(storeId: string) {
   return (
     set: (
@@ -195,6 +199,18 @@ function createBaseState(storeId: string) {
       }));
     },
 
+    setSectionCollapsed(panelId, sectionId, collapsed) {
+      set((state) => ({
+        sections: {
+          ...state.sections,
+          [panelId]: {
+            ...panelSectionsFor(state, panelId),
+            [sectionId]: collapsed,
+          },
+        },
+      }));
+    },
+
     setPanelDock(panelId, dock) {
       set((state) => ({
         panels: {
@@ -276,6 +292,7 @@ function createPersistedStore(storeId: string, storageKey: string): TweakerStore
         values: state.values,
         order: state.order,
         panels: state.panels,
+        sections: state.sections,
       }),
       merge: (persistedState, currentState) => {
         const parsed = persistedStateSchema.safeParse(persistedState);

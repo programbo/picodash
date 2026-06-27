@@ -30,6 +30,7 @@ export const persistedStateSchema = z.object({
   values: z.record(z.string(), jsonValueSchema).default({}),
   order: z.record(z.string(), z.record(z.string(), z.array(z.string()))).default({}),
   panels: z.record(z.string(), panelLayoutStateSchema).default({}),
+  sections: z.record(z.string(), z.record(z.string(), z.boolean())).default({}),
 });
 
 const legacyPersistedStateSchema = z.object({
@@ -45,7 +46,7 @@ const persistedStorageValueSchema = z.object({
 });
 
 export function emptyPersistedState(): PersistedState {
-  return { values: {}, order: {}, panels: {} };
+  return { values: {}, order: {}, panels: {}, sections: {} };
 }
 
 function parsePersistedState(state: unknown): PersistedState | null {
@@ -62,6 +63,7 @@ function parsePersistedState(state: unknown): PersistedState | null {
           dock: legacy.data.dock,
         },
       },
+      sections: {},
     };
   }
 
@@ -80,6 +82,7 @@ function parsePersistedState(state: unknown): PersistedState | null {
         dock: legacy.data.dock,
       },
     },
+    sections: {},
   };
 }
 

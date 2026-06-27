@@ -137,6 +137,19 @@ test("collapses and persists panel state", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("collapses and persists section state", async ({ page }) => {
+  await page.getByRole("button", { name: "Collapse section Rendering" }).click();
+
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeHidden();
+  await expect(page.getByTestId("control-shape")).toBeVisible();
+
+  await page.reload();
+
+  await expect(page.getByRole("button", { name: "Expand section Rendering" })).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeHidden();
+  await expect(page.getByTestId("control-shape")).toBeVisible();
+});
+
 test("resets values separately from order", async ({ page }) => {
   await page.getByRole("textbox", { name: "Exposure" }).fill("3");
   await page.getByRole("textbox", { name: "Exposure" }).press("Enter");

@@ -1,6 +1,6 @@
 ---
 name: tweaker
-description: Use the local Tweaker React package to add a Leva-inspired floating config system with named panels, built-in controls, custom controls, persisted values, themes, status states, help tooltips, and reorderable sections.
+description: Use the local Tweaker React package to add a Leva-inspired floating config system with named panels, built-in controls, custom controls, persisted values, themes, status states, help tooltips, collapsible sections, and reorderable sections.
 ---
 
 # Tweaker Package Usage
@@ -79,6 +79,7 @@ Custom control values must be JSON-serializable. Use control-level `id` when a s
 - Use `help: string` on object controls for row help tooltips; keep this string-only and do not put render props in schemas.
 - Pass `reorderable: false` in hook options when a hook registration should not be draggable.
 - Put panel opacity and backdrop blur on `TweakerPanel.appearance`, not hook options.
+- Section collapse state is persisted per panel and section.
 - Reordering is panel-local and section-local and starts from the grip handle.
 - The package ships dark and light CSS-variable themes. Use `theme="system"` to follow `prefers-color-scheme`, or customize further by overriding CSS variables around the panel.
 - Package styles may be authored with Tailwind internally, but consumers only import compiled plain CSS from `tweaker/style.css`.

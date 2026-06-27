@@ -200,12 +200,22 @@
   border-top: 1px solid var(--tw-border);
 }
 
+.tw-section__header {
+  @apply grid min-h-6 items-center gap-0.75 pb-1.5;
+
+  grid-template-columns: 22px minmax(0, 1fr);
+}
+
 .tw-section__title {
-  @apply px-1.25 pt-0.75 pb-1.5 uppercase;
+  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap uppercase;
 
   color: var(--tw-muted);
   font-size: 10px;
   font-weight: 700;
+}
+
+.tw-section__toggle {
+  @apply size-5;
 }
 
 .tw-section__list {

@@ -426,6 +426,20 @@ describe("TweakerStore", () => {
     });
   });
 
+  it("persists section collapse state by panel and section", () => {
+    const store = createTweakerStore({ id: "sections" });
+
+    store.getState().setSectionCollapsed("scene", "rendering", true);
+    store.getState().setSectionCollapsed("scene", "material", false);
+    store.getState().setSectionCollapsed("build", "rendering", true);
+
+    const next = createTweakerStore({ id: "sections" });
+
+    expect(next.getState().sections.scene?.rendering).toBe(true);
+    expect(next.getState().sections.scene?.material).toBe(false);
+    expect(next.getState().sections.build?.rendering).toBe(true);
+  });
+
   it("preserves values when section labels and object keys change with stable ids", () => {
     const store = createTweakerStore({ id: "stable", persistence: false });
     store.getState().register(

@@ -1,8 +1,8 @@
 # Tweaker
 
-A compact Leva-inspired floating config panel for React. It supports named panels, number inputs, sliders, selects, checkboxes, registry-backed custom controls, section-local reordering, row status states, control help tooltips, panel themes, persisted values/order, collapse state, and magnetic panel docking.
+A compact Leva-inspired floating config panel for React. It supports named panels, number inputs, sliders, selects, checkboxes, registry-backed custom controls, section-local reordering, collapsible sections, row status states, control help tooltips, panel themes, persisted values/order, collapse state, and magnetic panel docking.
 
-Tweaker uses a provider-scoped Zustand store. Persisted values, panel-local row order, collapsed state, and dock position are written through Zustand's `persist` middleware, and data read from localStorage is validated with Zod before it reaches the store.
+Tweaker uses a provider-scoped Zustand store. Persisted values, panel-local row order, panel and section collapsed state, and dock position are written through Zustand's `persist` middleware, and data read from localStorage is validated with Zod before it reaches the store.
 
 ## Usage
 

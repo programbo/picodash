@@ -16,6 +16,7 @@ Preferred API:
 - Register custom control components with `TweakerProvider controls={{ color: ColorControl }}` and reference them by `type`.
 - Put panel opacity and backdrop blur on `TweakerPanel.appearance`; use CSS variables for deeper theming.
 - Use `theme="dark"`, `theme="light"`, or `theme="system"` on `TweakerPanel` for color theme.
+- Section collapse state is persisted per panel and section.
 - Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row treatment.
 - Use `help: "..."` on object controls for string-only row tooltip copy that inherits panel styling.
 

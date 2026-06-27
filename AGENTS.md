@@ -107,7 +107,7 @@ Persisted state includes:
 
 - control values
 - panel-local, section-local order
-- panel-local collapsed state
+- panel-local and section-local collapsed state
 - panel-local dock state
 
 Non-persisted state includes registered controls, custom control registry components, panel appearance props/fallbacks, and section order derived from live registrations.
