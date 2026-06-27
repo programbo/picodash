@@ -42,6 +42,8 @@ export interface NumberControl extends ValueControl<number> {
   min?: number;
   max?: number;
   step?: number;
+  /** Intl.NumberFormatOptions applied to the number field's display/parsing. */
+  formatOptions?: Intl.NumberFormatOptions;
 }
 
 export interface SliderControl extends ValueControl<number> {
@@ -136,6 +138,7 @@ export interface NormalizedControl {
   min?: number;
   max?: number;
   step?: number;
+  formatOptions?: Intl.NumberFormatOptions;
   options?: Array<{ label: string; value: string }>;
   settings?: Record<string, unknown>;
 }

@@ -73,6 +73,15 @@ test("updates and persists a custom color control", async ({ page }) => {
   await expect(page.getByText("Accent #ff0000")).toBeVisible();
 });
 
+test("renders number controls with formatOptions", async ({ page }) => {
+  // Unit formatting (millimeter), prefix formatting (f/), and percent formatting
+  // are all rendered through React Aria's NumberField.
+  await expect(page.getByRole("textbox", { name: "Focal length" })).toHaveValue("35 mm");
+  await expect(page.getByRole("textbox", { name: "Aperture" })).toHaveValue("2.8");
+  await expect(page.getByRole("textbox", { name: "Zoom" })).toHaveValue("100%");
+  await expect(page.getByRole("textbox", { name: "Rotation" })).toHaveValue("0\u00B0");
+});
+
 test("programmatic setter updates the panel and preview", async ({ page }) => {
   await page.getByRole("button", { name: "Set speed to 1.25" }).click();
 

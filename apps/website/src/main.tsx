@@ -33,6 +33,55 @@ const renderingSchema = {
   bloom: { type: "checkbox", defaultValue: true, label: "Bloom", status: "error" },
 } satisfies TweakerSchema;
 
+const cameraSchema = {
+  focalLength: {
+    type: "number",
+    defaultValue: 35,
+    min: 14,
+    max: 200,
+    step: 1,
+    label: "Focal length",
+    formatOptions: {
+      style: "unit",
+      unit: "millimeter",
+      unitDisplay: "short",
+      maximumFractionDigits: 0,
+    },
+  },
+  aperture: {
+    type: "number",
+    defaultValue: 2.8,
+    min: 1.4,
+    max: 22,
+    step: 0.1,
+    label: "Aperture",
+    formatOptions: { maximumFractionDigits: 1, minimumFractionDigits: 1 },
+  },
+  zoom: {
+    type: "number",
+    defaultValue: 1,
+    min: 0,
+    max: 1,
+    step: 0.05,
+    label: "Zoom",
+    formatOptions: { style: "percent", maximumFractionDigits: 0 },
+  },
+  rotation: {
+    type: "number",
+    defaultValue: 0,
+    min: -180,
+    max: 180,
+    step: 1,
+    label: "Rotation",
+    formatOptions: {
+      style: "unit",
+      unit: "degree",
+      unitDisplay: "narrow",
+      maximumFractionDigits: 0,
+    },
+  },
+} satisfies TweakerSchema;
+
 const materialSchema = {
   shape: {
     type: "select",
@@ -92,6 +141,9 @@ function Demo() {
   const [material] = useTweaker(materialSchema, {
     section: { id: "material", label: "Material" },
   });
+  const [camera] = useTweaker(cameraSchema, {
+    section: { id: "camera", label: "Camera" },
+  });
   const [build] = useTweaker(buildSchema, {
     panel: "build",
     section: { id: "build", label: "Build" },
@@ -134,7 +186,7 @@ function Demo() {
           activeBackdropBlur: 8,
         }}
       />
-      <TweakerPanel id="build" defaultPlacement="bottom-right" theme={panelTheme} title="Build" />
+      <TweakerPanel id="build" defaultPlacement="bottom-left" theme={panelTheme} title="Build" />
       <main className="site-shell">
         <section className="hero">
           <div className="hero__copy">
@@ -169,6 +221,7 @@ function Demo() {
               <span>Exposure {Number(rendering.exposure).toFixed(1)}</span>
               <span>Roughness {Number(material.roughness).toFixed(2)}</span>
               <span>Accent {String(material.accent)}</span>
+              <span>Focal {camera.focalLength}mm</span>
               <span>Channel {build.channel}</span>
             </div>
           </div>

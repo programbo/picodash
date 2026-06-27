@@ -24,6 +24,7 @@ const standardControlKeys = new Set([
   "options",
   "status",
   "help",
+  "formatOptions",
 ]);
 
 export const defaultSection = defaultSectionLabel;
@@ -169,6 +170,13 @@ function numberProperty(config: ControlConfig, key: "min" | "max" | "step") {
   return typeof value === "number" ? value : undefined;
 }
 
+function formatOptionsProperty(config: ControlConfig): Intl.NumberFormatOptions | undefined {
+  if (typeof config !== "object" || config === null) return undefined;
+  const value = (config as Record<string, unknown>).formatOptions;
+  if (!value || typeof value !== "object") return undefined;
+  return value as Intl.NumberFormatOptions;
+}
+
 interface NormalizeControlEntryOptions {
   storeId: string;
   panelId: string;
@@ -286,6 +294,7 @@ export function normalizeControlEntry({
   const min = numberProperty(config, "min");
   const max = numberProperty(config, "max");
   const step = numberProperty(config, "step");
+  const formatOptions = formatOptionsProperty(config);
   const numericValue = typeof defaultValue === "number" ? defaultValue : 0;
   const hasSliderBounds =
     config.type === "slider" ||
@@ -302,6 +311,7 @@ export function normalizeControlEntry({
     min,
     max,
     step,
+    formatOptions,
   };
 }
 

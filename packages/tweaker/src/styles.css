@@ -325,6 +325,16 @@
   @apply min-w-0;
 }
 
+.tw-number-field .react-aria-Group {
+  @apply flex min-w-0 flex-1;
+}
+
+/* Tweaker renders NumberField without stepper buttons; keep the layout compact
+   even if a consumer's CSS resets reintroduce them. */
+.tw-number-field .react-aria-Button {
+  display: none;
+}
+
 .tw-number,
 .tw-select__button {
   @apply h-6 w-full min-w-0;
