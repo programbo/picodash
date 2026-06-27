@@ -121,6 +121,7 @@ function createBaseState(storeId: string) {
     controls: [],
     sectionOrder: {},
     panelAppearances: {},
+    hiddenSections: {},
 
     register(schema, options = {}) {
       const panelId = normalizePanelId(options.panel);
@@ -159,12 +160,23 @@ function createBaseState(storeId: string) {
         }
 
         const nextControls = valuesForControls(Array.from(controlsById.values()), values);
-        if (controlsEqual(state.controls, nextControls) && !valuesChanged) return state;
+        const nextHiddenSections = {
+          ...state.hiddenSections,
+          [panelId]: {
+            ...state.hiddenSections[panelId],
+            [section.id]: section.hidden === true,
+          },
+        };
+        const hiddenChanged =
+          state.hiddenSections[panelId]?.[section.id] !== nextHiddenSections[panelId]?.[section.id];
+        if (controlsEqual(state.controls, nextControls) && !valuesChanged && !hiddenChanged)
+          return state;
 
         return {
           values,
           controls: nextControls,
           sectionOrder: sectionOrderByPanel(nextControls),
+          hiddenSections: nextHiddenSections,
         };
       });
 

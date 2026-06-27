@@ -126,7 +126,6 @@ function useDynamicDependentSchema(advanced: boolean) {
         step: 1,
         label: "Intensity",
         readOnly: !advanced,
-        hidden: !advanced,
       },
     }),
     [advanced],
@@ -173,8 +172,12 @@ function Demo() {
   const advanced = Boolean(snapshot.values[advancedPersistId]);
   const dependentSchema = useDynamicDependentSchema(advanced);
   useTweaker(dynamicBaseSchema, { section: { id: "dynamic", label: "Dynamic" } });
-  useTweaker(dependentSchema, { section: { id: "dynamic", label: "Dynamic" } });
-  const intensityPersistId = "docs-demo:default:dynamic:intensity";
+  // The Advanced section is shown/hidden as a whole via its SectionConfig,
+  // independent of the controls it contains.
+  useTweaker(dependentSchema, {
+    section: { id: "advanced", label: "Advanced", hidden: !advanced },
+  });
+  const intensityPersistId = "docs-demo:default:advanced:intensity";
   const intensity = Number(snapshot.values[intensityPersistId] ?? 50);
   const [build] = useTweaker(buildSchema, {
     panel: "build",

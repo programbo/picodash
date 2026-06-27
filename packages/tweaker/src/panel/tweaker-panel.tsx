@@ -103,6 +103,9 @@ export function TweakerPanel({
   const sectionOrder = useTweakerSelector(
     (state) => state.sectionOrder[panelId] ?? emptySectionOrder,
   );
+  const hiddenSections = useTweakerSelector(
+    (state) => state.hiddenSections[panelId] ?? emptySectionOrder,
+  );
   const legacyAppearance = useTweakerSelector((state) => state.panelAppearances[panelId]);
   const resetOrder = useTweakerSelector((state) => state.resetOrder);
   const resetValues = useTweakerSelector((state) => state.resetValues);
@@ -325,19 +328,21 @@ export function TweakerPanel({
         <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <PanelEffectProvider value={{ style: effectStyle, theme, setInteractionActive }}>
             <div className="tw-panel__body">
-              {sectionOrder.map((sectionId) => {
-                const sectionControls = orderControls(controls, sectionId, order);
-                const sectionLabel = sectionControls[0]?.sectionLabel ?? sectionId;
-                return (
-                  <TweakerSection
-                    key={sectionId}
-                    panelId={panelId}
-                    sectionId={sectionId}
-                    title={sectionLabel}
-                    controls={sectionControls}
-                  />
-                );
-              })}
+              {sectionOrder
+                .filter((sectionId) => !hiddenSections[sectionId])
+                .map((sectionId) => {
+                  const sectionControls = orderControls(controls, sectionId, order);
+                  const sectionLabel = sectionControls[0]?.sectionLabel ?? sectionId;
+                  return (
+                    <TweakerSection
+                      key={sectionId}
+                      panelId={panelId}
+                      sectionId={sectionId}
+                      title={sectionLabel}
+                      controls={sectionControls}
+                    />
+                  );
+                })}
             </div>
           </PanelEffectProvider>
         </DragDropProvider>

@@ -387,6 +387,45 @@ describe("TweakerStore", () => {
     ]);
   });
 
+  it("records section hidden state from registration and updates it on re-registration", () => {
+    const store = createTweakerStore({ id: "section-hidden", persistence: false });
+
+    store
+      .getState()
+      .register({ speed: 1 }, { section: { id: "rendering", label: "Rendering", hidden: true } });
+    expect(store.getState().hiddenSections.default?.rendering).toBe(true);
+
+    // Re-registration flips it visible.
+    store
+      .getState()
+      .register({ speed: 1 }, { section: { id: "rendering", label: "Rendering", hidden: false } });
+    expect(store.getState().hiddenSections.default?.rendering).toBe(false);
+
+    // Omitting hidden defaults to visible (false).
+    store.getState().register({ speed: 1 }, { section: { id: "rendering", label: "Rendering" } });
+    expect(store.getState().hiddenSections.default?.rendering).toBe(false);
+  });
+
+  it("does not persist section hidden state", () => {
+    const store = createTweakerStore({ id: "section-hidden-persist", persistence: false });
+    store
+      .getState()
+      .register({ speed: 1 }, { section: { id: "rendering", label: "Rendering", hidden: true } });
+
+    // hiddenSections is runtime-only; reconstructing a PersistedState from the
+    // snapshot must not include it (mirrors the partialize boundary).
+    const state = store.getState();
+    const persisted = {
+      values: state.values,
+      order: state.order,
+      panels: state.panels,
+      sections: state.sections,
+    };
+    expect(Object.keys(persisted)).not.toContain("hiddenSections");
+    // The runtime map is still populated for the panel to read.
+    expect(state.hiddenSections.default?.rendering).toBe(true);
+  });
+
   it("stores hook-level reorderable metadata and supports deprecated sortable", () => {
     const store = createTweakerStore({ id: "sortable", persistence: false });
     store.getState().register({ channel: "stable" }, { section: "Build", sortable: false });

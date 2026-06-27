@@ -73,6 +73,7 @@ export function normalizeSection(section?: string | SectionConfig): SectionConfi
   return {
     id: section.id.trim() || defaultSectionId,
     label: section.label.trim() || labelFromKey(section.id),
+    hidden: section.hidden === true ? true : undefined,
   };
 }
 

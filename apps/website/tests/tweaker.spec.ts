@@ -118,30 +118,33 @@ test("renders read-only controls as faded and non-editable", async ({ page }) =>
   await expect(input).toHaveValue("0\u00B0");
 });
 
-test("drives dynamic control visibility, locking, and bounds clamping", async ({ page }) => {
+test("drives dynamic section visibility, control locking, and bounds clamping", async ({
+  page,
+}) => {
   const advanced = page.getByTestId("control-advanced").locator(".tw-checkbox");
+
+  // With Advanced off, the whole Advanced section is hidden, so its Intensity
+  // control is not rendered at all.
+  await expect(page.getByTestId("section-Advanced")).toBeHidden();
+  await expect(page.getByTestId("control-intensity")).toHaveCount(0);
+
+  // Enable Advanced: the section appears, the control unlocks, and the bound
+  // widens to 200.
+  await advanced.click();
+  await expect(page.getByTestId("section-Advanced")).toBeVisible();
   const intensity = page.getByTestId("control-intensity");
   const intensityInput = page.getByRole("textbox", { name: "Intensity" });
-
-  // With Advanced off, Intensity is hidden, read-only, and bounded at 50.
-  await expect(intensity).toHaveAttribute("data-hidden", "true");
-  await expect(intensity).toHaveAttribute("data-readonly", "true");
-  await expect(intensityInput).toBeHidden();
-
-  // Enable Advanced: the row appears and the bound widens to 200.
-  await advanced.click();
-  await expect(intensity).toHaveAttribute("data-hidden", "false");
   await expect(intensity).toHaveAttribute("data-readonly", "false");
   await expect(intensityInput).toBeVisible();
   await expect(intensityInput).toHaveValue("50");
 
-  // Push to the new ceiling, then disable Advanced: the field locks and the
-  // value is clamped back down to the narrowed max of 50.
+  // Push to the new ceiling, then disable Advanced: the section hides again and
+  // the value is clamped back down to the narrowed max of 50.
   await intensityInput.fill("150");
   await intensityInput.press("Enter");
   await expect(page.getByText("Intensity 150 (advanced)")).toBeVisible();
   await advanced.click();
-  await expect(intensity).toHaveAttribute("data-hidden", "true");
+  await expect(page.getByTestId("section-Advanced")).toBeHidden();
   await expect(page.getByText(/Intensity \d+/)).toContainText("Intensity 50");
 });
 

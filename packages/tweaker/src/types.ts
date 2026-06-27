@@ -111,6 +111,8 @@ export type SetTweakerValue<T extends TweakerSchema> = <K extends keyof T>(
 export interface SectionConfig {
   id: string;
   label: string;
+  /** Hides the section while preserving its controls' values and order. */
+  hidden?: boolean;
 }
 
 export interface PanelAppearance {
@@ -172,6 +174,7 @@ export interface TweakerSnapshot extends PersistedState {
   controls: NormalizedControl[];
   sectionOrder: Record<string, string[]>;
   panelAppearances: Record<string, PanelAppearance>;
+  hiddenSections: Record<string, Record<string, boolean>>;
 }
 
 export interface RegisterOptions {
