@@ -1,9 +1,11 @@
 import { StrictMode, type CSSProperties, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { Monitor, Moon, Sun } from "lucide-react";
 import {
   TweakerPanel,
   TweakerProvider,
   useTweaker,
+  type PanelTheme,
   type TweakerCustomControlProps,
   type TweakerSchema,
 } from "tweaker";
@@ -11,9 +13,23 @@ import "tweaker/style.css";
 import "./style.css";
 
 const renderingSchema = {
-  speed: { defaultValue: 0.72, min: 0, max: 2, step: 0.01, label: "Speed" },
-  exposure: { type: "number", defaultValue: 1, min: 0, max: 4, step: 0.1 },
-  bloom: { type: "checkbox", defaultValue: true, label: "Bloom" },
+  speed: {
+    defaultValue: 0.72,
+    min: 0,
+    max: 2,
+    step: 0.01,
+    label: "Speed",
+    status: "info",
+  },
+  exposure: {
+    type: "number",
+    defaultValue: 1,
+    min: 0,
+    max: 4,
+    step: 0.1,
+    status: "alert",
+  },
+  bloom: { type: "checkbox", defaultValue: true, label: "Bloom", status: "error" },
 } satisfies TweakerSchema;
 
 const materialSchema = {
@@ -54,8 +70,20 @@ function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
   );
 }
 
+function themeFromLocation(): PanelTheme {
+  const theme = new URLSearchParams(window.location.search).get("theme");
+  return theme === "light" || theme === "system" ? theme : "dark";
+}
+
+const themeOptions = [
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "system", label: "System", icon: Monitor },
+] satisfies Array<{ value: PanelTheme; label: string; icon: typeof Moon }>;
+
 function Demo() {
   const [dimmed, setDimmed] = useState(true);
+  const [panelTheme, setPanelTheme] = useState<PanelTheme>(() => themeFromLocation());
   const [rendering, setRendering] = useTweaker(renderingSchema, {
     section: { id: "rendering", label: "Rendering" },
   });
@@ -80,10 +108,22 @@ function Demo() {
     [material.accent, material.roughness, material.tint, rendering.exposure, rendering.speed],
   );
 
+  function selectTheme(theme: PanelTheme) {
+    setPanelTheme(theme);
+    const url = new URL(window.location.href);
+    if (theme === "dark") {
+      url.searchParams.delete("theme");
+    } else {
+      url.searchParams.set("theme", theme);
+    }
+    window.history.replaceState(null, "", url);
+  }
+
   return (
     <>
       <TweakerPanel
         defaultPlacement="top-right"
+        theme={panelTheme}
         title="Scene"
         appearance={{
           surfaceOpacity: dimmed ? 0.55 : 1,
@@ -92,7 +132,7 @@ function Demo() {
           activeBackdropBlur: 8,
         }}
       />
-      <TweakerPanel id="build" defaultPlacement="bottom-right" title="Build" />
+      <TweakerPanel id="build" defaultPlacement="bottom-right" theme={panelTheme} title="Build" />
       <main className="site-shell">
         <section className="hero">
           <div className="hero__copy">
@@ -100,8 +140,22 @@ function Demo() {
             <h1>Tweaker</h1>
             <p>
               A compact Leva-inspired floating panel with typed controls, persisted values,
-              section-local reordering, and magnetic docking.
+              section-local reordering, magnetic docking, and named panels.
             </p>
+            <div className="theme-switcher" aria-label="Panel theme">
+              {themeOptions.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  className="theme-switcher__button"
+                  type="button"
+                  aria-pressed={panelTheme === value}
+                  onClick={() => selectTheme(value)}
+                >
+                  <Icon aria-hidden size={15} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="preview" style={previewStyle}>
@@ -153,7 +207,11 @@ import "tweaker/style.css";`}</code>
           <article>
             <h2>Panel appearance</h2>
             <pre>
-              <code>{`const [dimmed, setDimmed] = useState(true);
+              <code>{`const [theme, setTheme] = useState("dark");
+
+<TweakerPanel theme={theme} />
+
+const [dimmed, setDimmed] = useState(true);
 
 <TweakerPanel
   appearance={{

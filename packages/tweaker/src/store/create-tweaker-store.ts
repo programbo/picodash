@@ -1,12 +1,12 @@
-import { createStore } from "zustand/vanilla";
+import { createStore } from "zustand";
 import { persist } from "zustand/middleware";
 import {
   clamp,
   createControlPersistId,
   hasPanelEffects,
+  normalizeControlEntry,
   normalizePanelEffects,
   normalizePanelId,
-  normalizeControlEntry,
   normalizeSection,
   sectionOrderByPanel,
   valuesForControls,
@@ -45,6 +45,7 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.sectionId === rightControl.sectionId &&
       leftControl.sectionLabel === rightControl.sectionLabel &&
       leftControl.reorderable === rightControl.reorderable &&
+      leftControl.status === rightControl.status &&
       leftControl.kind === rightControl.kind &&
       leftControl.type === rightControl.type &&
       leftControl.label === rightControl.label &&

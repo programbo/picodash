@@ -1,6 +1,6 @@
 # Tweaker
 
-A compact Leva-inspired floating config panel for React. It supports named panels, number inputs, sliders, selects, checkboxes, registry-backed custom controls, section-local reordering, persisted values/order, collapse state, and magnetic panel docking.
+A compact Leva-inspired floating config panel for React. It supports named panels, number inputs, sliders, selects, checkboxes, registry-backed custom controls, section-local reordering, row status states, panel themes, persisted values/order, collapse state, and magnetic panel docking.
 
 Tweaker uses a provider-scoped Zustand store. Persisted values, panel-local row order, collapsed state, and dock position are written through Zustand's `persist` middleware, and data read from localStorage is validated with Zod before it reaches the store.
 
@@ -24,7 +24,7 @@ function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
 function SceneControls() {
   const [values, setValue] = useTweaker(
     {
-      speed: { defaultValue: 0.72, min: 0, max: 2, step: 0.01 },
+      speed: { defaultValue: 0.72, min: 0, max: 2, step: 0.01, status: "info" },
       exposure: { type: "number", defaultValue: 1, min: 0, max: 4 },
       bloom: { defaultValue: true },
       accent: { type: "color", id: "accent", defaultValue: "#9bd16f" },
@@ -46,6 +46,7 @@ export function App() {
       <TweakerPanel
         id="scene"
         defaultPlacement="top-right"
+        theme="dark"
         appearance={{
           surfaceOpacity: 0.72,
           activeSurfaceOpacity: 0.95,
@@ -69,6 +70,8 @@ export function App() {
 
 Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs.
 
+Object controls can include `status: "info" | "alert" | "error"` to tint the row blue, amber, or red with an outline and thicker left border.
+
 Use `{ id, label }` sections when labels may change; `id` is the stable persistence identity. Use a control-level `id` when a schema key may change. Primitive string shorthand and the old `value` spelling still work for compatibility, but new code should use explicit selects and `defaultValue`.
 
 ## Panels
@@ -82,9 +85,12 @@ Panel appearance and layout belong on `TweakerPanel`:
   id="build"
   title="Build"
   defaultPlacement="bottom-right"
+  theme="system"
   appearance={{ surfaceOpacity: 0.8, activeBackdropBlur: 8 }}
 />
 ```
+
+`theme` accepts `"dark"`, `"light"`, or `"system"` and defaults to `"dark"`. Portaled controls such as select popovers use the same panel theme.
 
 `storeId`, `placement`, `sortable`, hook-level panel effects, and `value` remain compatibility aliases, but primary docs use `id`, `defaultPlacement`, `reorderable`, panel `appearance`, and `defaultValue`.
 

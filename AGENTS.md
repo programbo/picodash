@@ -62,7 +62,7 @@ The package source is intentionally split by responsibility:
 - `packages/tweaker/src/store/`: Zustand vanilla store creation and Zod-validated persistence.
 - `packages/tweaker/src/react/`: React provider, context accessors, snapshots, and `useTweaker`.
 - `packages/tweaker/src/panel/`: panel composition, docking math, ordering helpers, row DnD, sections, and control inputs.
-- `packages/tweaker/src/styles.css`: package CSS exported as `tweaker/style.css`.
+- `packages/tweaker/src/styles.css`: Tailwind-authored package CSS exported as compiled plain CSS through `tweaker/style.css`.
 - `packages/tweaker/src/index.ts`: public entrypoint. Keep public exports stable unless intentionally changing the API.
 
 Avoid recreating monolithic `panel.tsx` or `store.tsx` files. Add new behavior to the module that owns the concept.
@@ -74,7 +74,7 @@ The package currently exports:
 - Components: `TweakerProvider`, `TweakerPanel`
 - Hooks: `useTweaker`, `useTweakerStore`, `useTweakerSnapshot`
 - Store utilities: `createTweakerStore`, `normalizeControl`
-- Types: `ControlConfig`, `TweakerSchema`, `TweakerValues`, `SetTweakerValue`, `NormalizedControl`, `TweakerState`, `TweakerStore`, `TweakerSnapshot`, `DockState`, `Placement`, `PanelAppearance`, `SectionConfig`, `JsonValue`, `TweakerCustomControlProps`, `TweakerCustomControlComponent`, and individual control types
+- Types: `ControlConfig`, `TweakerSchema`, `TweakerValues`, `SetTweakerValue`, `NormalizedControl`, `TweakerState`, `TweakerStore`, `TweakerSnapshot`, `DockState`, `Placement`, `PanelAppearance`, `PanelTheme`, `SectionConfig`, `JsonValue`, `TweakerCustomControlProps`, `TweakerCustomControlComponent`, and individual control types
 
 Consumers import styles with:
 
@@ -83,6 +83,7 @@ import "tweaker/style.css";
 ```
 
 The package export path maps that to `dist/style.css`; do not document or depend on `dist/index.css`.
+Tailwind is an internal authoring/build dependency only. Use `@reference "tailwindcss"` and `@apply` in package source when useful, but verify `vp pack` emits plain scoped CSS with no Tailwind directives, preflight, or utility layers for consumers.
 
 ## State And Persistence
 
@@ -125,6 +126,8 @@ If localStorage shape changes, update:
 - Use schema `defaultValue` for defaults. Deprecated `value` remains compatibility-only.
 - Use control-level `id` for stable persistence when schema keys may change.
 - Custom controls are registered on `TweakerProvider.controls` and referenced by `type`; their values must be JSON-serializable.
+- `TweakerPanel` accepts `theme: "dark" | "light" | "system"` and defaults to `"dark"`. Portaled controls such as select popovers must use the same panel theme.
+- Object control configs can set `status: "info" | "alert" | "error"` for blue, amber, or red row tinting with an outline and thicker left border.
 
 When adding control kinds, update normalization, types, input rendering, tests, docs, and demo usage together.
 

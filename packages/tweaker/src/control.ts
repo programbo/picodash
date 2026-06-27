@@ -4,6 +4,7 @@ import {
   defaultSectionLabel,
   type ControlConfig,
   type ControlKind,
+  type ControlStatus,
   type JsonValue,
   type NormalizedControl,
   type PanelAppearance,
@@ -21,6 +22,7 @@ const standardControlKeys = new Set([
   "max",
   "step",
   "options",
+  "status",
 ]);
 
 export const defaultSection = defaultSectionLabel;
@@ -115,6 +117,12 @@ function normalizeBlur(value: number | undefined) {
   return Math.max(0, value);
 }
 
+export function statusForControl(config: ControlConfig): ControlStatus | undefined {
+  if (typeof config !== "object" || config === null) return undefined;
+  const value = config.status;
+  return value === "info" || value === "alert" || value === "error" ? value : undefined;
+}
+
 export function normalizePanelEffects(options: RegisterOptions): PanelAppearance {
   return {
     surfaceOpacity: normalizeOpacity(options.opacity),
@@ -177,6 +185,7 @@ export function normalizeControlEntry({
     objectConfig && typeof objectConfig.id === "string" ? objectConfig.id : undefined;
   const controlId = explicitControlId ?? key;
   const persistId = createControlPersistId(storeId, panelId, section, key, explicitControlId);
+  const status = statusForControl(config);
   const base = {
     id: persistId,
     persistId,
@@ -189,6 +198,7 @@ export function normalizeControlEntry({
     section: section.label,
     reorderable,
     sortable: reorderable,
+    status,
   };
 
   if (typeof config === "number") {

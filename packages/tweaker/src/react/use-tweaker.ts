@@ -7,6 +7,7 @@ import {
   normalizeSection,
 } from "../control.js";
 import type {
+  ControlConfig,
   JsonValue,
   NormalizedControl,
   RegisterOptions,
@@ -65,6 +66,10 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value);
 }
 
+export function registrationSignatureForSchema(schema: TweakerSchema): string {
+  return stableStringify(schema);
+}
+
 export function useTweaker<T extends TweakerSchema>(
   schema: T,
   options: RegisterOptions = {},
@@ -75,7 +80,7 @@ export function useTweaker<T extends TweakerSchema>(
   const reorderable = options.reorderable ?? options.sortable ?? true;
   const controls = useStore(store, (state) => state.controls);
   const valuesById = useStore(store, (state) => state.values);
-  const schemaSignature = stableStringify(schema);
+  const schemaSignature = registrationSignatureForSchema(schema);
   const storeId = store.getState().storeId;
 
   useEffect(
@@ -112,7 +117,7 @@ export function useTweaker<T extends TweakerSchema>(
 
   const setValue = useCallback<SetTweakerValue<T>>(
     (key, value) => {
-      const config = schema[key];
+      const config = schema[key] as ControlConfig;
       const id = createControlPersistId(
         storeId,
         panelId,

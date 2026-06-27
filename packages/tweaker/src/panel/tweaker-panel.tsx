@@ -1,5 +1,5 @@
-import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react";
-import { isSortableOperation } from "@dnd-kit/react/sortable";
+import { DragDropProvider, type DragEndEvent, type DragStartEvent } from "@dnd-kit/react";
+import { clsx } from "clsx";
 import { ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import {
   type CSSProperties,
@@ -9,10 +9,12 @@ import {
   useRef,
   useState,
 } from "react";
+import { Button } from "react-aria-components";
 import { normalizePanelAppearance, normalizePanelId } from "../control.js";
 import { useTweakerSelector } from "../react/context.js";
-import type { DockState, PanelAppearance, Placement } from "../types.js";
+import type { DockState, PanelAppearance, PanelTheme, Placement } from "../types.js";
 import { moveItem, orderControls } from "./order.js";
+import { PanelEffectProvider, type PanelEffectStyle } from "./panel-effects-context.js";
 import {
   clampPosition,
   dockToPosition,
@@ -30,6 +32,7 @@ export interface TweakerPanelProps {
   className?: string;
   defaultPlacement?: Placement;
   placement?: Placement;
+  theme?: PanelTheme;
   title?: string;
   appearance?: PanelAppearance;
 }
@@ -63,9 +66,10 @@ function applyAppearance(style: PanelStyle, appearance: PanelAppearance) {
 
 export function TweakerPanel({
   id,
-  className = "",
+  className,
   defaultPlacement,
   placement,
+  theme = "dark",
   title = "Tweaker",
   appearance,
 }: TweakerPanelProps) {
@@ -94,8 +98,12 @@ export function TweakerPanel({
     startY: number;
     origin: PanelPosition;
   } | null>(null);
+  const rowDragRef = useRef<{ sectionId: string; ids: string[]; rect: DOMRect | null } | null>(
+    null,
+  );
   const viewportSize = useViewportSize();
   const [freePosition, setFreePosition] = useState<PanelPosition | null>(null);
+  const [rowDragRevision, setRowDragRevision] = useState(0);
 
   const position = useMemo(() => {
     if (typeof window === "undefined") return { x: 16, y: 16 };
@@ -163,13 +171,82 @@ export function TweakerPanel({
     }
   }
 
-  function handleDragEnd(event: DragEndEvent) {
-    if (!isSortableOperation(event.operation)) return;
+  function handleDragStart(event: DragStartEvent) {
     const source = event.operation.source;
-    const target = event.operation.target;
-    if (!source || !target || source.group !== target.group) return;
+    if (!source || source.data.panelId !== panelId) return;
 
     const sectionId = String(source.data.sectionId);
+    const section = Array.from(
+      panelRef.current?.querySelectorAll<HTMLElement>(".tw-section") ?? [],
+    ).find((element) => element.dataset.sectionId === sectionId);
+    const list = section?.querySelector<HTMLElement>(".tw-section__list");
+    rowDragRef.current = {
+      sectionId,
+      ids: orderControls(controls, sectionId, order).map((control) => control.persistId),
+      rect: list?.getBoundingClientRect() ?? null,
+    };
+  }
+
+  function pointerFromEvent(nativeEvent: Event | undefined) {
+    if (nativeEvent && "clientX" in nativeEvent && "clientY" in nativeEvent) {
+      const pointerEvent = nativeEvent as PointerEvent;
+      return { x: pointerEvent.clientX, y: pointerEvent.clientY };
+    }
+    return null;
+  }
+
+  function restoreRowDrag(sectionId: string) {
+    const initial = rowDragRef.current;
+    rowDragRef.current = null;
+    if (initial && initial.sectionId === sectionId) {
+      setSectionOrder(panelId, sectionId, initial.ids);
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const source = event.operation.source;
+    const target = event.operation.target;
+    if (!source || source.data.panelId !== panelId) return;
+    setRowDragRevision((value) => value + 1);
+
+    const sectionId = String(source.data.sectionId);
+    if (
+      !target ||
+      target.data.panelId !== source.data.panelId ||
+      target.data.sectionId !== source.data.sectionId
+    ) {
+      restoreRowDrag(sectionId);
+      return;
+    }
+    if (String(source.id) === String(target.id)) {
+      restoreRowDrag(sectionId);
+      return;
+    }
+
+    const pointer = pointerFromEvent(event.nativeEvent);
+    if (!pointer) {
+      restoreRowDrag(sectionId);
+      return;
+    }
+
+    const section = Array.from(
+      panelRef.current?.querySelectorAll<HTMLElement>(".tw-section") ?? [],
+    ).find((element) => element.dataset.sectionId === sectionId);
+    const list = section?.querySelector<HTMLElement>(".tw-section__list");
+    const listRect = rowDragRef.current?.rect ?? list?.getBoundingClientRect();
+    const insideList =
+      listRect &&
+      pointer.x >= listRect.left &&
+      pointer.x <= listRect.right &&
+      pointer.y >= listRect.top &&
+      pointer.y <= listRect.bottom;
+    if (!insideList) {
+      restoreRowDrag(sectionId);
+      return;
+    }
+
+    rowDragRef.current = null;
+
     const sectionControls = orderControls(controls, sectionId, order);
     const ids = sectionControls.map((control) => control.persistId);
     const from = ids.indexOf(String(source.id));
@@ -178,15 +255,19 @@ export function TweakerPanel({
     setSectionOrder(panelId, sectionId, moveItem(ids, from, to));
   }
 
+  const effectStyle: PanelEffectStyle = {};
   const style = freePosition || !dock ? positionToStyle(position) : dockToStyle(dock);
-  applyAppearance(style, { ...legacyAppearance, ...appearance });
+  const resolvedAppearance = { ...legacyAppearance, ...appearance };
+  applyAppearance(style, resolvedAppearance);
+  applyAppearance(effectStyle, resolvedAppearance);
 
   return (
     <aside
       ref={panelRef}
-      className={`tw-panel ${collapsed ? "is-collapsed" : ""} ${className}`}
+      className={clsx("tw-panel", collapsed && "is-collapsed", className)}
       style={style}
       data-panel-id={panelId}
+      data-theme={theme}
       data-testid={panelId === "default" ? "tweaker-panel" : `tweaker-panel-${panelId}`}
     >
       <div
@@ -195,53 +276,54 @@ export function TweakerPanel({
         onPointerMove={handlePanelPointerMove}
         onPointerUp={handlePanelPointerUp}
       >
-        <button
+        <Button
           className="tw-icon-button"
           type="button"
           aria-label={collapsed ? `Expand ${title}` : `Collapse ${title}`}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => setCollapsed(panelId, !collapsed)}
+          onPress={() => setCollapsed(panelId, !collapsed)}
         >
           {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
-        </button>
+        </Button>
         <strong>{title}</strong>
-        <button
+        <Button
           className="tw-icon-button"
           type="button"
           aria-label={`Reset ${title} values`}
-          title={`Reset ${title} values`}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => resetValues(panelId)}
+          onPress={() => resetValues(panelId)}
         >
           <RotateCcw size={14} />
-        </button>
-        <button
+        </Button>
+        <Button
           className="tw-text-button"
           type="button"
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => resetOrder(panelId)}
+          onPress={() => resetOrder(panelId)}
         >
           Order
-        </button>
+        </Button>
       </div>
 
       {!collapsed && (
-        <DragDropProvider onDragEnd={handleDragEnd}>
-          <div className="tw-panel__body">
-            {sectionOrder.map((sectionId) => {
-              const sectionControls = orderControls(controls, sectionId, order);
-              const sectionLabel = sectionControls[0]?.sectionLabel ?? sectionId;
-              return (
-                <TweakerSection
-                  key={sectionId}
-                  panelId={panelId}
-                  sectionId={sectionId}
-                  title={sectionLabel}
-                  controls={sectionControls}
-                />
-              );
-            })}
-          </div>
+        <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <PanelEffectProvider value={{ style: effectStyle, theme }}>
+            <div key={rowDragRevision} className="tw-panel__body">
+              {sectionOrder.map((sectionId) => {
+                const sectionControls = orderControls(controls, sectionId, order);
+                const sectionLabel = sectionControls[0]?.sectionLabel ?? sectionId;
+                return (
+                  <TweakerSection
+                    key={sectionId}
+                    panelId={panelId}
+                    sectionId={sectionId}
+                    title={sectionLabel}
+                    controls={sectionControls}
+                  />
+                );
+              })}
+            </div>
+          </PanelEffectProvider>
         </DragDropProvider>
       )}
     </aside>

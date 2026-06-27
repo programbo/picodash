@@ -6,7 +6,7 @@ import {
   type TweakerSchema,
 } from "../src/index.js";
 import { defaultValueForControl } from "../src/control.js";
-import { resolveTweakerValues } from "../src/react/use-tweaker.js";
+import { registrationSignatureForSchema, resolveTweakerValues } from "../src/react/use-tweaker.js";
 
 class MemoryStorage {
   private values = new Map<string, string>();
@@ -56,6 +56,29 @@ describe("normalizeControl", () => {
       { label: "Orb", value: "orb" },
       { label: "Prism", value: "prism" },
     ]);
+  });
+
+  it("normalizes status metadata on object controls", () => {
+    const info = normalizeControl("demo", "Rendering", "speed", {
+      defaultValue: 0.5,
+      min: 0,
+      max: 1,
+      status: "info",
+    });
+    const alert = normalizeControl("demo", "Rendering", "exposure", {
+      type: "number",
+      defaultValue: 1,
+      status: "alert",
+    });
+    const error = normalizeControl("demo", "Rendering", "bloom", {
+      type: "checkbox",
+      defaultValue: true,
+      status: "error",
+    });
+
+    expect(info.status).toBe("info");
+    expect(alert.status).toBe("alert");
+    expect(error.status).toBe("error");
   });
 
   it("normalizes custom controls with JSON defaults", () => {
@@ -158,6 +181,19 @@ describe("resolveTweakerValues", () => {
   });
 });
 
+describe("schema signatures", () => {
+  it("tracks status metadata changes", () => {
+    const base = {
+      speed: { defaultValue: 1, min: 0, max: 2, status: "info" },
+    } satisfies TweakerSchema;
+    const next = {
+      speed: { defaultValue: 1, min: 0, max: 2, status: "error" },
+    } satisfies TweakerSchema;
+
+    expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next));
+  });
+});
+
 describe("TweakerStore", () => {
   it("persists values and clamps numeric updates", () => {
     const schema = {
@@ -256,6 +292,23 @@ describe("TweakerStore", () => {
       backdropBlur: 0,
       activeBackdropBlur: 4,
     });
+  });
+
+  it("updates status metadata without pruning values or order", () => {
+    const store = createTweakerStore({ id: "status-change", persistence: false });
+
+    store
+      .getState()
+      .register({ speed: { defaultValue: 1, status: "info" } }, { section: "Rendering" });
+    store.getState().setValue("status-change:Rendering:speed", 1.5);
+    store.getState().setSectionOrder("default", "Rendering", ["status-change:Rendering:speed"]);
+    store
+      .getState()
+      .register({ speed: { defaultValue: 1, status: "error" } }, { section: "Rendering" });
+
+    expect(store.getState().values["status-change:Rendering:speed"]).toBe(1.5);
+    expect(store.getState().order.default?.Rendering).toEqual(["status-change:Rendering:speed"]);
+    expect(store.getState().controls[0]?.status).toBe("error");
   });
 
   it("does not notify when an equivalent schema registers again", () => {

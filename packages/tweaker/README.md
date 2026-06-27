@@ -14,7 +14,9 @@ Preferred API:
 - Register controls with `useTweaker(schema, { panel, section, reorderable })`.
 - Use `defaultValue` for schema defaults and optional control `id` for stable persistence.
 - Register custom control components with `TweakerProvider controls={{ color: ColorControl }}` and reference them by `type`.
-- Put panel visuals on `TweakerPanel.appearance`; use CSS variables for deeper theming.
+- Put panel opacity and backdrop blur on `TweakerPanel.appearance`; use CSS variables for deeper theming.
+- Use `theme="dark"`, `theme="light"`, or `theme="system"` on `TweakerPanel` for color theme.
+- Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row treatment.
 
 Compatibility aliases still work for existing consumers: `storeId`, `placement`, `sortable`, hook-level panel effects, and `value`.
 

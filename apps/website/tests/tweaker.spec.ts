@@ -9,8 +9,9 @@ test.beforeEach(async ({ page }) => {
 test("updates controls and persists values", async ({ page }) => {
   await page.getByRole("textbox", { name: "Exposure" }).fill("2.5");
   await page.getByRole("textbox", { name: "Exposure" }).press("Enter");
-  await page.getByRole("checkbox", { name: "Bloom" }).uncheck();
-  await page.getByRole("combobox", { name: "Tint" }).selectOption("amber");
+  await page.getByTestId("control-bloom").locator(".tw-checkbox").click();
+  await page.getByTestId("control-tint").locator(".tw-select__button").click();
+  await page.getByRole("option", { name: "Amber" }).click();
 
   await expect(page.getByText("Exposure 2.5")).toBeVisible();
   await expect(page.locator(".preview__object")).not.toHaveClass(/has-bloom/);
@@ -19,7 +20,9 @@ test("updates controls and persists values", async ({ page }) => {
 
   await expect(page.getByRole("textbox", { name: "Exposure" })).toHaveValue("2.5");
   await expect(page.getByRole("checkbox", { name: "Bloom" })).not.toBeChecked();
-  await expect(page.getByRole("combobox", { name: "Tint" })).toHaveValue("amber");
+  await expect(page.getByTestId("control-tint").locator(".tw-select__button")).toContainText(
+    "Amber",
+  );
 });
 
 test("renders concurrent panels without duplicate input ids", async ({ page }) => {
@@ -66,7 +69,28 @@ test("programmatic setter updates the panel and preview", async ({ page }) => {
   await page.getByRole("button", { name: "Set speed to 1.25" }).click();
 
   await expect(page.getByText("Speed 1.25")).toBeVisible();
-  await expect(page.getByRole("slider", { name: "Speed" })).toHaveValue("1.25");
+  await expect(page.getByRole("group", { name: "Speed" }).getByRole("slider")).toHaveValue("1.25");
+});
+
+test("renders info, alert, and error control status states", async ({ page }) => {
+  const speed = page.getByTestId("control-speed");
+  const exposure = page.getByTestId("control-exposure");
+  const bloom = page.getByTestId("control-bloom");
+
+  await expect(speed).toHaveAttribute("data-status", "info");
+  await expect(speed).toHaveCSS("background-color", "rgba(59, 130, 246, 0.1)");
+  await expect(speed).toHaveCSS("border-left-width", "3px");
+  await expect(speed).toHaveCSS("outline-color", "rgba(96, 165, 250, 0.22)");
+
+  await expect(exposure).toHaveAttribute("data-status", "alert");
+  await expect(exposure).toHaveCSS("background-color", "rgba(245, 158, 11, 0.11)");
+  await expect(exposure).toHaveCSS("border-left-width", "3px");
+  await expect(exposure).toHaveCSS("outline-color", "rgba(251, 191, 36, 0.24)");
+
+  await expect(bloom).toHaveAttribute("data-status", "error");
+  await expect(bloom).toHaveCSS("background-color", "rgba(239, 68, 68, 0.1)");
+  await expect(bloom).toHaveCSS("border-left-width", "3px");
+  await expect(bloom).toHaveCSS("outline-color", "rgba(248, 113, 113, 0.24)");
 });
 
 test("collapses and persists panel state", async ({ page }) => {
@@ -75,17 +99,22 @@ test("collapses and persists panel state", async ({ page }) => {
   await expect(page.getByRole("slider", { name: "Speed" })).toBeHidden();
   await page.reload();
   await expect(page.getByRole("button", { name: "Expand Scene" })).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Channel" })).toBeVisible();
+  await expect(
+    page.getByTestId("tweaker-panel-build").getByTestId("control-channel"),
+  ).toBeVisible();
 });
 
 test("resets values separately from order", async ({ page }) => {
   await page.getByRole("textbox", { name: "Exposure" }).fill("3");
   await page.getByRole("textbox", { name: "Exposure" }).press("Enter");
-  await page.getByRole("combobox", { name: "Channel" }).selectOption("canary");
+  await page.getByTestId("control-channel").locator(".tw-select__button").click();
+  await page.getByRole("option", { name: "Canary" }).click();
   await page.getByRole("button", { name: "Reset Scene values" }).click();
 
   await expect(page.getByRole("textbox", { name: "Exposure" })).toHaveValue("1");
-  await expect(page.getByRole("combobox", { name: "Channel" })).toHaveValue("canary");
+  await expect(page.getByTestId("control-channel").locator(".tw-select__button")).toContainText(
+    "Canary",
+  );
 });
 
 test("docks the panel near a viewport edge", async ({ page }) => {
@@ -265,21 +294,16 @@ test("reorders controls within a section by pointer-dragging the grip", async ({
 });
 
 test("does not move controls between sections by pointer-dragging the grip", async ({ page }) => {
-  const roughnessGrip = page.getByRole("button", { name: "Reorder Roughness" });
+  const tintGrip = page.getByRole("button", { name: "Reorder Tint" });
   const speedRow = page.getByTestId("control-speed");
-  const roughnessBox = await roughnessGrip.boundingBox();
+  const tintBox = await tintGrip.boundingBox();
   const speedBox = await speedRow.boundingBox();
-  expect(roughnessBox).not.toBeNull();
+  expect(tintBox).not.toBeNull();
   expect(speedBox).not.toBeNull();
 
-  await page.mouse.move(
-    roughnessBox!.x + roughnessBox!.width / 2,
-    roughnessBox!.y + roughnessBox!.height / 2,
-  );
+  await page.mouse.move(tintBox!.x + tintBox!.width / 2, tintBox!.y + tintBox!.height / 2);
   await page.mouse.down();
-  await page.mouse.move(speedBox!.x + speedBox!.width / 2, speedBox!.y + speedBox!.height / 2, {
-    steps: 12,
-  });
+  await page.mouse.move(Math.max(4, speedBox!.x - 32), 8, { steps: 12 });
   await page.mouse.up();
 
   await expect
@@ -381,6 +405,71 @@ test("applies panel appearance with hover transitions", async ({ page }) => {
   await expect(panel).toHaveCSS("backdrop-filter", "blur(8px)");
 });
 
+test("applies hook-level panel effects to portaled select popovers", async ({ page }) => {
+  await page.getByTestId("control-tint").locator(".tw-select__button").click();
+
+  const popover = page.locator(".tw-select__popover");
+  await expect(popover).toHaveAttribute("data-theme", "dark");
+  await expect(popover).toHaveCSS("background-color", "rgba(29, 31, 32, 0.95)");
+  await expect(popover).toHaveCSS("backdrop-filter", "blur(8px)");
+});
+
+test("applies light panel theme to controls and portaled select popovers", async ({ page }) => {
+  await page.goto("/?theme=light");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  const panel = page.getByTestId("tweaker-panel");
+  const exposureInput = page.getByRole("textbox", { name: "Exposure" });
+
+  await expect(panel).toHaveAttribute("data-theme", "light");
+  await expect(panel).toHaveCSS("background-color", "rgba(248, 250, 246, 0.55)");
+  await expect(exposureInput).toHaveCSS("background-color", "rgba(237, 242, 235, 0.55)");
+
+  await panel.hover();
+  await page.getByTestId("control-tint").locator(".tw-select__button").click();
+
+  const popover = page.locator(".tw-select__popover");
+  await expect(popover).toHaveAttribute("data-theme", "light");
+  await expect(popover).toHaveCSS("background-color", "rgba(255, 255, 252, 0.95)");
+});
+
+test("switches panel themes from the docs page", async ({ page }) => {
+  const panel = page.getByTestId("tweaker-panel");
+  const lightButton = page.getByRole("button", { name: "Light" });
+  const darkButton = page.getByRole("button", { name: "Dark" });
+  const systemButton = page.getByRole("button", { name: "System" });
+
+  await expect(darkButton).toHaveAttribute("aria-pressed", "true");
+  await lightButton.click();
+  await expect(lightButton).toHaveAttribute("aria-pressed", "true");
+  await expect(panel).toHaveAttribute("data-theme", "light");
+  await expect(panel).toHaveCSS("background-color", "rgba(248, 250, 246, 0.55)");
+  await expect(page).toHaveURL(/theme=light/);
+
+  await systemButton.click();
+  await expect(systemButton).toHaveAttribute("aria-pressed", "true");
+  await expect(panel).toHaveAttribute("data-theme", "system");
+  await expect(page).toHaveURL(/theme=system/);
+
+  await darkButton.click();
+  await expect(darkButton).toHaveAttribute("aria-pressed", "true");
+  await expect(panel).toHaveAttribute("data-theme", "dark");
+  await expect(page).not.toHaveURL(/theme=/);
+});
+
+test("uses light colors for system theme when the OS preference is light", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/?theme=system");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+
+  const panel = page.getByTestId("tweaker-panel");
+
+  await expect(panel).toHaveAttribute("data-theme", "system");
+  await expect(panel).toHaveCSS("background-color", "rgba(248, 250, 246, 0.55)");
+});
+
 test("applies hover panel effects while keyboard focus is inside the panel", async ({ page }) => {
   const panel = page.getByTestId("tweaker-panel");
   const exposureInput = page.getByRole("textbox", { name: "Exposure" });
@@ -388,7 +477,7 @@ test("applies hover panel effects while keyboard focus is inside the panel", asy
   await expect(panel).toHaveCSS("opacity", "1");
   await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
   await expect(exposureInput).toHaveCSS("background-color", "rgba(16, 17, 18, 0.55)");
-  await page.getByRole("slider", { name: "Speed" }).focus();
+  await page.getByRole("group", { name: "Speed" }).getByRole("slider").focus();
   await expect(panel).toHaveCSS("opacity", "1");
   await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.95)");
   await expect(exposureInput).toHaveCSS("background-color", "rgba(16, 17, 18, 0.95)");

@@ -1,5 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
-import type { StoreApi } from "zustand/vanilla";
+import type { StoreApi } from "zustand";
 
 export const defaultPanelId = "default";
 export const defaultSectionId = "controls";
@@ -16,16 +16,22 @@ export type JsonValue =
 export type PrimitiveValue = number | string | boolean;
 export type ControlKind = "number" | "slider" | "select" | "checkbox" | "custom";
 export type BuiltInControlKind = Exclude<ControlKind, "custom">;
+export type ControlStatus = "info" | "alert" | "error";
 export type StaleMode = "ignore" | "prune";
 export type Placement = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type DockEdge = "top" | "right" | "bottom" | "left";
+export type PanelTheme = "dark" | "light" | "system";
 
 interface ControlIdentity {
   id?: string;
   label?: string;
 }
 
-interface ValueControl<T extends JsonValue> extends ControlIdentity {
+interface ControlStatusMetadata {
+  status?: ControlStatus;
+}
+
+interface ValueControl<T extends JsonValue> extends ControlIdentity, ControlStatusMetadata {
   defaultValue?: T;
   value?: T;
 }
@@ -119,6 +125,7 @@ export interface NormalizedControl {
   section: string;
   reorderable: boolean;
   sortable: boolean;
+  status?: ControlStatus;
   kind: ControlKind;
   type: string;
   label: string;
