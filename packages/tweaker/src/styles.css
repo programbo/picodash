@@ -100,7 +100,8 @@
 }
 
 .tw-panel:hover,
-.tw-panel:focus-within {
+.tw-panel:focus-within,
+.tw-panel[data-active="true"] {
   --tw-panel-active-color-opacity: var(
     --tw-panel-hover-color-opacity,
     var(--tw-panel-color-opacity)

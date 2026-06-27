@@ -1,4 +1,11 @@
-import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import type { PanelTheme } from "../types.js";
 
 export type PanelEffectStyle = CSSProperties &
@@ -15,11 +22,13 @@ export type PanelEffectStyle = CSSProperties &
 interface PanelEffectContextValue {
   style: PanelEffectStyle;
   theme: PanelTheme;
+  setInteractionActive: (id: string, active: boolean) => void;
 }
 
 const PanelEffectContext = createContext<PanelEffectContextValue>({
   style: {},
   theme: "dark",
+  setInteractionActive: () => {},
 });
 
 export function PanelEffectProvider({
@@ -34,4 +43,17 @@ export function PanelEffectProvider({
 
 export function usePanelEffects() {
   return useContext(PanelEffectContext);
+}
+
+export function usePanelInteraction(id: string) {
+  const { setInteractionActive } = usePanelEffects();
+
+  useEffect(() => {
+    return () => setInteractionActive(id, false);
+  }, [id, setInteractionActive]);
+
+  return useCallback(
+    (active: boolean) => setInteractionActive(id, active),
+    [id, setInteractionActive],
+  );
 }

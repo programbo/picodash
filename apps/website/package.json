@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vp dev",
+    "dev": "vp dev --host 127.0.0.1 --port 6030 --strictPort",
     "test:e2e": "playwright test",
     "build": "tsc && vp build",
-    "preview": "vp preview"
+    "preview": "vp preview --host 127.0.0.1 --port 6031 --strictPort"
   },
   "dependencies": {
     "@dnd-kit/abstract": "catalog:",

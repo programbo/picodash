@@ -17,7 +17,7 @@ import {
 import { ChevronDown } from "lucide-react";
 import { useTweakerCustomControls } from "../react/context.js";
 import type { JsonValue, NormalizedControl } from "../types.js";
-import { usePanelEffects } from "./panel-effects-context.js";
+import { usePanelEffects, usePanelInteraction } from "./panel-effects-context.js";
 
 interface ControlInputProps {
   control: NormalizedControl;
@@ -29,6 +29,7 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
   const customControls = useTweakerCustomControls();
   const [draft, setDraft] = useState<string | null>(null);
   const panelEffects = usePanelEffects();
+  const setSelectOpenActive = usePanelInteraction(`select:${control.persistId}`);
 
   function commitNumber(value: string) {
     const parsed = Number(value);
@@ -75,6 +76,7 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         className="tw-select"
         aria-labelledby={labelId}
         selectedKey={selectedKey}
+        onOpenChange={setSelectOpenActive}
         onSelectionChange={(key) => onChange(String(key))}
       >
         <Button className="tw-select__button">

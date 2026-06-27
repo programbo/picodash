@@ -112,3 +112,15 @@ pnpm ready
 ```
 
 The demo/docs page lives in `apps/website`. The reusable package lives in `packages/tweaker`.
+
+## Port Allocation
+
+This workspace is registered in the `ports` registry as `tweaker` and owns the fixed local port range `6030-6039`.
+
+Use only ports from this range for dev, preview, e2e, and testing servers:
+
+- `6030`: `apps/website` development server and Playwright e2e web server.
+- `6031`: `apps/website` preview server.
+- `6032-6039`: available for future apps, e2e harnesses, API mocks, and test servers.
+
+When adding a new app or local server, assign it the next available port from `6032-6039` and document the assignment here.
