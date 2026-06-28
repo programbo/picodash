@@ -200,6 +200,13 @@
   border-top: 1px solid var(--tw-border);
 }
 
+/* A headerless section has no toggle/title row, so it skips the top divider
+   and spacing that belong to a section header. */
+.tw-section.is-headerless + .tw-section,
+.tw-section + .tw-section.is-headerless {
+  @apply mt-1.5 pt-1.5;
+}
+
 .tw-section__header {
   @apply grid min-h-6 items-center gap-0.75 pb-1.5;
 

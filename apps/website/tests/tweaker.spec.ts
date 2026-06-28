@@ -226,6 +226,19 @@ test("collapses and persists panel state", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("renders headerless sections without a collapse toggle", async ({ page }) => {
+  // The Camera section is registered with an empty label, so it renders
+  // headerless: no toggle button, no title, and its controls stay visible.
+  const camera = page.getByTestId("section-camera");
+  await expect(camera).toHaveAttribute("data-headerless", "true");
+  await expect(camera).toHaveClass(/is-headerless/);
+  await expect(camera.locator(".tw-section__header")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Collapse section Camera/i })).toHaveCount(0);
+
+  // Headerless sections are always expanded: their controls are visible.
+  await expect(page.getByRole("textbox", { name: "Focal length" })).toBeVisible();
+});
+
 test("collapses and persists section state", async ({ page }) => {
   await page.getByRole("button", { name: "Collapse section Rendering" }).click();
 
