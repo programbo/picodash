@@ -137,12 +137,14 @@ test("drives dynamic section visibility, control locking, and bounds clamping", 
   // With Advanced off, the whole Advanced section is hidden, so its Intensity
   // control is not rendered at all.
   await expect(page.getByTestId("section-Advanced")).toBeHidden();
+  await expect(page.getByTestId("section-Advanced summary")).toBeHidden();
   await expect(page.getByTestId("control-intensity")).toHaveCount(0);
 
   // Enable Advanced: the section appears, the control unlocks, and the bound
   // widens to 200.
   await advanced.click();
   await expect(page.getByTestId("section-Advanced")).toBeVisible();
+  await expect(page.getByTestId("section-Advanced summary")).toBeVisible();
   const intensity = page.getByTestId("control-intensity");
   const intensityInput = page.getByRole("textbox", { name: "Intensity" });
   await expect(intensity).toHaveAttribute("data-readonly", "false");
@@ -156,6 +158,7 @@ test("drives dynamic section visibility, control locking, and bounds clamping", 
   await expect(page.getByText("Intensity 150 (advanced)")).toBeVisible();
   await advanced.click();
   await expect(page.getByTestId("section-Advanced")).toBeHidden();
+  await expect(page.getByTestId("section-Advanced summary")).toBeHidden();
   await expect(page.getByText(/Intensity \d+/)).toContainText("Intensity 50");
 });
 

@@ -131,6 +131,7 @@ describe("normalizeControl", () => {
           id: "position",
           defaultValue: [0, 1, 0],
           label: "Position",
+          format: "cartesian",
           size: "compact",
         },
       },
@@ -142,7 +143,7 @@ describe("normalizeControl", () => {
       type: "vector3",
       persistId: "custom:scene:transform:position",
       value: [0, 1, 0],
-      settings: { size: "compact" },
+      settings: { format: "cartesian", size: "compact" },
       help: undefined,
     });
   });

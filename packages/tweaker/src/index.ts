@@ -13,6 +13,7 @@ export type {
   CustomControl,
   DockEdge,
   DockState,
+  DisplayControl,
   JsonValue,
   NormalizedControl,
   NumberControl,

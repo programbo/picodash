@@ -85,7 +85,7 @@ export function useTweaker<T extends TweakerSchema>(
 
   useEffect(
     () => store.getState().register(schema, { panel: panelId, section, reorderable }),
-    [store, schemaSignature, panelId, section.id, section.label, reorderable],
+    [store, schemaSignature, panelId, section.id, section.label, section.hidden, reorderable],
   );
 
   useEffect(
@@ -108,6 +108,7 @@ export function useTweaker<T extends TweakerSchema>(
       options.hoverOpacity,
       options.backgroundBlur,
       options.hoverBackgroundBlur,
+      section.hidden,
     ],
   );
 

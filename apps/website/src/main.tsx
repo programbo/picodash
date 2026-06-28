@@ -114,6 +114,10 @@ const dynamicBaseSchema = {
   advanced: { type: "checkbox", defaultValue: false, label: "Advanced" },
 } satisfies TweakerSchema;
 
+const advancedSummarySchema = {
+  summary: { type: "display", defaultValue: "Ready", label: "Summary" },
+} satisfies TweakerSchema;
+
 function useDynamicDependentSchema(advanced: boolean) {
   return useMemo<TweakerSchema>(
     () => ({
@@ -188,6 +192,9 @@ function Demo() {
   // independent of the controls it contains.
   const [advancedValues] = useTweaker(dependentSchema, {
     section: { id: "advanced", label: "Advanced", hidden: !advanced },
+  });
+  useTweaker(advancedSummarySchema, {
+    section: { id: "advanced-summary", label: "Advanced summary", hidden: !advanced },
   });
   const intensity = Number(advancedValues.intensity ?? 50);
   const [build] = useTweaker(buildSchema, {

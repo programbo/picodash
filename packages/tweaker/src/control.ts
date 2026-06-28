@@ -27,7 +27,6 @@ const standardControlKeys = new Set([
   "formatOptions",
   "readOnly",
   "hidden",
-  "format",
 ]);
 
 export const defaultSection = defaultSectionLabel;
