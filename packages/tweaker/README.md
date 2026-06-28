@@ -19,6 +19,9 @@ Preferred API:
 - Section collapse state is persisted per panel and section.
 - Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row treatment.
 - Use `help: "..."` on object controls for string-only row tooltip copy that inherits panel styling.
+- Use `readOnly: true` to show a value without allowing writes.
+- Use `hidden: true` on controls or sections to hide rows while preserving values and order.
+- Use `type: "display"` for derived non-interactive values that update on re-registration.
 
 Compatibility aliases still work for existing consumers: `storeId`, `placement`, `sortable`, hook-level panel effects, and `value`.
 

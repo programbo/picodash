@@ -1,13 +1,13 @@
 import { createStore } from "zustand";
 import { persist } from "zustand/middleware";
 import {
-  clamp,
   createControlPersistId,
   hasPanelEffects,
   normalizeControlEntry,
   normalizePanelEffects,
   normalizePanelId,
   normalizeSection,
+  sanitizeValueForControl,
   sectionOrderByPanel,
   valuesForControls,
 } from "../control.js";
@@ -58,7 +58,9 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       optionsEqual(leftControl.options, rightControl.options) &&
       settingsEqual(leftControl.settings, rightControl.settings) &&
       formatOptionsEqual(leftControl.formatOptions, rightControl.formatOptions) &&
-      leftControl.readOnly === rightControl.readOnly
+      leftControl.format === rightControl.format &&
+      leftControl.readOnly === rightControl.readOnly &&
+      leftControl.hidden === rightControl.hidden
     );
   });
 }
@@ -120,6 +122,7 @@ function createBaseState(storeId: string) {
     controls: [],
     sectionOrder: {},
     panelAppearances: {},
+    hiddenSections: {},
 
     register(schema, options = {}) {
       const panelId = normalizePanelId(options.panel);
@@ -138,31 +141,76 @@ function createBaseState(storeId: string) {
       const ids = new Set(controls.map((control) => control.persistId));
 
       set((state) => {
+        const values = { ...state.values };
+        let valuesChanged = false;
         const controlsById = new Map(state.controls.map((control) => [control.persistId, control]));
         for (const control of controls) {
-          controlsById.set(control.persistId, {
-            ...control,
-            value: Object.prototype.hasOwnProperty.call(state.values, control.persistId)
-              ? state.values[control.persistId]!
-              : control.defaultValue,
-          });
+          // Sanitize restored values against the (possibly updated) control
+          // configuration so dynamic bounds/options changes never leave a
+          // control holding an out-of-range or invalid value. Unstored
+          // controls are left alone so their default flows through naturally.
+          if (Object.prototype.hasOwnProperty.call(values, control.persistId)) {
+            const stored = values[control.persistId]!;
+            const sanitized = sanitizeValueForControl(control, stored);
+            if (sanitized !== stored) {
+              values[control.persistId] = sanitized;
+              valuesChanged = true;
+            }
+          }
+          controlsById.set(control.persistId, control);
         }
 
-        const nextControls = valuesForControls(Array.from(controlsById.values()), state.values);
-        if (controlsEqual(state.controls, nextControls)) return state;
+        const nextControls = valuesForControls(Array.from(controlsById.values()), values);
+        const nextHiddenSections = {
+          ...state.hiddenSections,
+          [panelId]: {
+            ...state.hiddenSections[panelId],
+            [section.id]: section.hidden === true,
+          },
+        };
+        const hiddenChanged =
+          state.hiddenSections[panelId]?.[section.id] !== nextHiddenSections[panelId]?.[section.id];
+        if (controlsEqual(state.controls, nextControls) && !valuesChanged && !hiddenChanged)
+          return state;
 
         return {
+          values,
           controls: nextControls,
           sectionOrder: sectionOrderByPanel(nextControls),
+          hiddenSections: nextHiddenSections,
         };
       });
 
       return () => {
         set((state) => {
           const nextControls = state.controls.filter((control) => !ids.has(control.persistId));
+          const sectionStillRegistered = nextControls.some(
+            (control) => control.panelId === panelId && control.sectionId === section.id,
+          );
+          let hiddenSections = state.hiddenSections;
+
+          if (
+            !sectionStillRegistered &&
+            state.hiddenSections[panelId]?.[section.id] !== undefined
+          ) {
+            const panelHiddenSections = { ...state.hiddenSections[panelId] };
+            delete panelHiddenSections[section.id];
+
+            if (Object.keys(panelHiddenSections).length === 0) {
+              const { [panelId]: _removedPanel, ...remainingHiddenSections } = state.hiddenSections;
+              hiddenSections = remainingHiddenSections;
+            } else {
+              hiddenSections = {
+                ...state.hiddenSections,
+                [panelId]: panelHiddenSections,
+              };
+            }
+          }
+
           return {
             controls: valuesForControls(nextControls, state.values),
             sectionOrder: sectionOrderByPanel(nextControls),
+            hiddenSections,
           };
         });
       };
@@ -188,8 +236,9 @@ function createBaseState(storeId: string) {
       const control = get().controls.find((item) => item.persistId === persistId);
       if (!control) return;
       if (control.readOnly) return;
+      if (control.kind === "display") return;
 
-      const nextValue = typeof value === "number" ? clamp(value, control.min, control.max) : value;
+      const nextValue = sanitizeValueForControl(control, value);
 
       set((state) => {
         const values = { ...state.values, [persistId]: nextValue };

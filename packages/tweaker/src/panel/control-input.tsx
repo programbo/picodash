@@ -16,6 +16,7 @@ import {
 } from "react-aria-components";
 import { ChevronDown } from "lucide-react";
 import { useTweakerCustomControls } from "../react/context.js";
+import { formatDisplayValue } from "../control.js";
 import type { JsonValue, NormalizedControl } from "../types.js";
 import { usePanelEffects, usePanelInteraction } from "./panel-effects-context.js";
 
@@ -46,6 +47,14 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         control={control}
         readOnly={control.readOnly}
       />
+    );
+  }
+
+  if (control.kind === "display") {
+    return (
+      <output id={control.domId} className="tw-display" htmlFor={labelId}>
+        {formatDisplayValue(control)}
+      </output>
     );
   }
 

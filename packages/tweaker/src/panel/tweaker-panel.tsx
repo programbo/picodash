@@ -27,6 +27,7 @@ import { TweakerSection } from "./tweaker-section.js";
 
 const emptyOrder: Record<string, string[]> = {};
 const emptySectionOrder: string[] = [];
+const emptyHiddenSections: Record<string, boolean> = {};
 
 export interface TweakerPanelProps {
   id?: string;
@@ -102,6 +103,9 @@ export function TweakerPanel({
   const order = useTweakerSelector((state) => state.order[panelId] ?? emptyOrder);
   const sectionOrder = useTweakerSelector(
     (state) => state.sectionOrder[panelId] ?? emptySectionOrder,
+  );
+  const hiddenSections = useTweakerSelector(
+    (state) => state.hiddenSections[panelId] ?? emptyHiddenSections,
   );
   const legacyAppearance = useTweakerSelector((state) => state.panelAppearances[panelId]);
   const resetOrder = useTweakerSelector((state) => state.resetOrder);
@@ -325,19 +329,21 @@ export function TweakerPanel({
         <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <PanelEffectProvider value={{ style: effectStyle, theme, setInteractionActive }}>
             <div className="tw-panel__body">
-              {sectionOrder.map((sectionId) => {
-                const sectionControls = orderControls(controls, sectionId, order);
-                const sectionLabel = sectionControls[0]?.sectionLabel ?? sectionId;
-                return (
-                  <TweakerSection
-                    key={sectionId}
-                    panelId={panelId}
-                    sectionId={sectionId}
-                    title={sectionLabel}
-                    controls={sectionControls}
-                  />
-                );
-              })}
+              {sectionOrder
+                .filter((sectionId) => !hiddenSections[sectionId])
+                .map((sectionId) => {
+                  const sectionControls = orderControls(controls, sectionId, order);
+                  const sectionLabel = sectionControls[0]?.sectionLabel ?? sectionId;
+                  return (
+                    <TweakerSection
+                      key={sectionId}
+                      panelId={panelId}
+                      sectionId={sectionId}
+                      title={sectionLabel}
+                      controls={sectionControls}
+                    />
+                  );
+                })}
             </div>
           </PanelEffectProvider>
         </DragDropProvider>

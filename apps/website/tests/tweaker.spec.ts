@@ -104,6 +104,17 @@ test("renders number controls with formatOptions", async ({ page }) => {
   await expect(page.getByRole("textbox", { name: "Rotation" })).toHaveValue("0\u00B0");
 });
 
+test("renders display controls and updates them from derived values", async ({ page }) => {
+  // The 35mm-equivalent display is derived from focal length (crop x1.5).
+  const display = page.getByTestId("control-equivalent").locator(".tw-display");
+  await expect(display).toHaveText("53 mm");
+
+  // Editing focal length re-derives the display value reactively.
+  await page.getByRole("textbox", { name: "Focal length" }).fill("50");
+  await page.getByRole("textbox", { name: "Focal length" }).press("Enter");
+  await expect(display).toHaveText("75 mm");
+});
+
 test("renders read-only controls as faded and non-editable", async ({ page }) => {
   const row = page.getByTestId("control-rotation");
   const field = row.locator(".tw-number-field");
@@ -116,6 +127,39 @@ test("renders read-only controls as faded and non-editable", async ({ page }) =>
   // The underlying input is marked read-only and keeps its value.
   await expect(input).toHaveAttribute("readonly");
   await expect(input).toHaveValue("0\u00B0");
+});
+
+test("drives dynamic section visibility, control locking, and bounds clamping", async ({
+  page,
+}) => {
+  const advanced = page.getByTestId("control-advanced").locator(".tw-checkbox");
+
+  // With Advanced off, the whole Advanced section is hidden, so its Intensity
+  // control is not rendered at all.
+  await expect(page.getByTestId("section-Advanced")).toBeHidden();
+  await expect(page.getByTestId("section-Advanced summary")).toBeHidden();
+  await expect(page.getByTestId("control-intensity")).toHaveCount(0);
+
+  // Enable Advanced: the section appears, the control unlocks, and the bound
+  // widens to 200.
+  await advanced.click();
+  await expect(page.getByTestId("section-Advanced")).toBeVisible();
+  await expect(page.getByTestId("section-Advanced summary")).toBeVisible();
+  const intensity = page.getByTestId("control-intensity");
+  const intensityInput = page.getByRole("textbox", { name: "Intensity" });
+  await expect(intensity).toHaveAttribute("data-readonly", "false");
+  await expect(intensityInput).toBeVisible();
+  await expect(intensityInput).toHaveValue("50");
+
+  // Push to the new ceiling, then disable Advanced: the section hides again and
+  // the value is clamped back down to the narrowed max of 50.
+  await intensityInput.fill("150");
+  await intensityInput.press("Enter");
+  await expect(page.getByText("Intensity 150 (advanced)")).toBeVisible();
+  await advanced.click();
+  await expect(page.getByTestId("section-Advanced")).toBeHidden();
+  await expect(page.getByTestId("section-Advanced summary")).toBeHidden();
+  await expect(page.getByText(/Intensity \d+/)).toContainText("Intensity 50");
 });
 
 test("programmatic setter updates the panel and preview", async ({ page }) => {
@@ -328,7 +372,10 @@ test("keeps floating panels inside the viewport when the viewport resizes", asyn
 
   await page.mouse.move(box!.x + 80, box!.y + 16);
   await page.mouse.down();
-  await page.mouse.move(820, 220, { steps: 8 });
+  // Drop the panel in the upper-left quadrant so it lands in floating space
+  // regardless of how tall the panel is (away from every docking edge).
+  const dropY = 120;
+  await page.mouse.move(200, dropY, { steps: 8 });
   await page.mouse.up();
 
   await expect

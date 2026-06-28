@@ -14,7 +14,7 @@ export type JsonValue =
   | { [key: string]: JsonValue };
 
 export type PrimitiveValue = number | string | boolean;
-export type ControlKind = "number" | "slider" | "select" | "checkbox" | "custom";
+export type ControlKind = "number" | "slider" | "select" | "checkbox" | "display" | "custom";
 export type BuiltInControlKind = Exclude<ControlKind, "custom">;
 export type ControlStatus = "info" | "alert" | "error";
 export type StaleMode = "ignore" | "prune";
@@ -28,6 +28,8 @@ interface ControlIdentity {
   help?: string;
   /** Renders the control faded/greyscale and blocks value writes. */
   readOnly?: boolean;
+  /** Hides the control row while preserving its value and order slot. */
+  hidden?: boolean;
 }
 
 interface ControlStatusMetadata {
@@ -64,6 +66,14 @@ export interface CheckboxControl extends ValueControl<boolean> {
   type?: "checkbox";
 }
 
+export interface DisplayControl extends ValueControl<string | number> {
+  type: "display";
+  /** Intl.NumberFormatOptions applied when the value is a number. */
+  formatOptions?: Intl.NumberFormatOptions;
+  /** Template string; `{value}` is replaced with the (formatted) value. */
+  format?: string;
+}
+
 export interface CustomControl<T extends JsonValue = JsonValue> extends ValueControl<T> {
   type: string;
   [key: string]: unknown;
@@ -77,6 +87,7 @@ export type ControlConfig =
   | SliderControl
   | SelectControl
   | CheckboxControl
+  | DisplayControl
   | CustomControl;
 
 export type TweakerSchema = Record<string, ControlConfig>;
@@ -109,6 +120,8 @@ export type SetTweakerValue<T extends TweakerSchema> = <K extends keyof T>(
 export interface SectionConfig {
   id: string;
   label: string;
+  /** Hides the section while preserving its controls' values and order. */
+  hidden?: boolean;
 }
 
 export interface PanelAppearance {
@@ -133,6 +146,7 @@ export interface NormalizedControl {
   status?: ControlStatus;
   help?: string;
   readOnly?: boolean;
+  hidden?: boolean;
   kind: ControlKind;
   type: string;
   label: string;
@@ -142,6 +156,8 @@ export interface NormalizedControl {
   max?: number;
   step?: number;
   formatOptions?: Intl.NumberFormatOptions;
+  /** Template string for display controls; `{value}` is replaced post-format. */
+  format?: string;
   options?: Array<{ label: string; value: string }>;
   settings?: Record<string, unknown>;
 }
@@ -169,6 +185,7 @@ export interface TweakerSnapshot extends PersistedState {
   controls: NormalizedControl[];
   sectionOrder: Record<string, string[]>;
   panelAppearances: Record<string, PanelAppearance>;
+  hiddenSections: Record<string, Record<string, boolean>>;
 }
 
 export interface RegisterOptions {

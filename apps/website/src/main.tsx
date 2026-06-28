@@ -110,6 +110,31 @@ const buildSchema = {
   telemetry: { defaultValue: true, label: "Telemetry" },
 } satisfies TweakerSchema;
 
+const dynamicBaseSchema = {
+  advanced: { type: "checkbox", defaultValue: false, label: "Advanced" },
+} satisfies TweakerSchema;
+
+const advancedSummarySchema = {
+  summary: { type: "display", defaultValue: "Ready", label: "Summary" },
+} satisfies TweakerSchema;
+
+function useDynamicDependentSchema(advanced: boolean) {
+  return useMemo<TweakerSchema>(
+    () => ({
+      intensity: {
+        type: "number",
+        defaultValue: 50,
+        min: 0,
+        max: advanced ? 200 : 50,
+        step: 1,
+        label: "Intensity",
+        readOnly: !advanced,
+      },
+    }),
+    [advanced],
+  );
+}
+
 function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
   return (
     <input
@@ -145,6 +170,33 @@ function Demo() {
   const [camera] = useTweaker(cameraSchema, {
     section: { id: "camera", label: "Camera" },
   });
+  // Derived display: a 35mm-equivalent focal length computed from focalLength.
+  const equivalent = Math.round(Number(camera.focalLength) * 1.5);
+  useTweaker(
+    {
+      equivalent: {
+        type: "display",
+        defaultValue: equivalent,
+        label: "35mm equiv.",
+        formatOptions: { style: "unit", unit: "millimeter", maximumFractionDigits: 0 },
+      },
+    },
+    { section: { id: "camera", label: "Camera" } },
+  );
+  const [dynamic] = useTweaker(dynamicBaseSchema, {
+    section: { id: "dynamic", label: "Dynamic" },
+  });
+  const advanced = Boolean(dynamic.advanced);
+  const dependentSchema = useDynamicDependentSchema(advanced);
+  // The Advanced section is shown/hidden as a whole via its SectionConfig,
+  // independent of the controls it contains.
+  const [advancedValues] = useTweaker(dependentSchema, {
+    section: { id: "advanced", label: "Advanced", hidden: !advanced },
+  });
+  useTweaker(advancedSummarySchema, {
+    section: { id: "advanced-summary", label: "Advanced summary", hidden: !advanced },
+  });
+  const intensity = Number(advancedValues.intensity ?? 50);
   const [build] = useTweaker(buildSchema, {
     panel: "build",
     section: { id: "build", label: "Build" },
@@ -224,6 +276,10 @@ function Demo() {
               <span>Accent {String(material.accent)}</span>
               <span>Focal {camera.focalLength}mm</span>
               <span>Channel {build.channel}</span>
+              <span>
+                Intensity {intensity}
+                {advanced ? " (advanced)" : ""}
+              </span>
             </div>
           </div>
         </section>

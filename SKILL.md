@@ -1,6 +1,6 @@
 ---
 name: tweaker
-description: Use the local Tweaker React package to add a Leva-inspired floating config system with named panels, built-in controls, custom controls, persisted values, themes, status states, help tooltips, collapsible sections, and reorderable sections.
+description: Use the local Tweaker React package to add a Leva-inspired floating config system with named panels, built-in controls, display readouts, custom controls, dynamic schemas, persisted values, themes, status states, help tooltips, collapsible sections, and reorderable sections.
 ---
 
 # Tweaker Package Usage
@@ -46,6 +46,7 @@ const [values, setValue] = useTweaker(
       help: "Adjusts preview animation speed.",
     },
     exposure: { type: "number", defaultValue: 1, min: 0, max: 4 },
+    fps: { type: "display", defaultValue: 60, format: "{value} fps" },
     mode: { type: "select", defaultValue: "fast", options: ["fast", "quality"] },
     enabled: { defaultValue: true },
   },
@@ -72,11 +73,15 @@ Custom control values must be JSON-serializable. Use control-level `id` when a s
 
 ## Constraints
 
-- Supported built-ins are numbers, sliders, selects, and checkboxes.
+- Supported built-ins are numbers, sliders, selects, checkboxes, and display rows.
 - Min/max numeric shorthand becomes a slider.
 - Use explicit `type: "number"` for bounded number inputs.
+- Use `type: "display"` for derived non-interactive readouts; they update from `defaultValue` on re-registration and ignore writes.
 - Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row states.
 - Use `help: string` on object controls for row help tooltips; keep this string-only and do not put render props in schemas.
+- Use `readOnly: true` to show a value while blocking writes.
+- Use `hidden: true` on controls or sections to hide rows while preserving values and order.
+- Dynamic schemas are supported; re-registration updates labels, bounds, options, formatting, read-only/hidden state, and display metadata, and it sanitizes values when numeric bounds or select options narrow.
 - Pass `reorderable: false` in hook options when a hook registration should not be draggable.
 - Put panel opacity and backdrop blur on `TweakerPanel.appearance`, not hook options.
 - Section collapse state is persisted per panel and section.

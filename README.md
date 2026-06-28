@@ -73,11 +73,16 @@ export function App() {
 - Slider explicit: `{ type: "slider", defaultValue: 0.5, min: 0, max: 1 }`
 - Select: `{ type: "select", defaultValue: "green", options: ["green", "amber"] }`
 - Checkbox: `{ defaultValue: true }` or `{ type: "checkbox", defaultValue: true }`
+- Display: `{ type: "display", defaultValue: 42, formatOptions?: Intl.NumberFormatOptions, format?: "Total: {value}" }` — a non-interactive, non-editable row that reflects a computed/derived value. Derive it from other panel values; the display updates on re-registration. `formatOptions` formats numbers (Intl); `format` wraps the result with `{value}` substituted.
 - Custom: register a component on `TweakerProvider.controls`, then use its `type` in a schema.
 
 Explicit `type: "number"` wins over min/max shorthand, so bounded number inputs stay number inputs. The number input is a React Aria `NumberField`; pass `formatOptions` (`Intl.NumberFormatOptions`) to format the value with units, fraction-digit limits, currency, and more, e.g. `{ style: "unit", unit: "millimeter", unitDisplay: "short", minimumFractionDigits: 1, maximumFractionDigits: 2 }`.
 
-Object controls can include `status: "info" | "alert" | "error"` to tint the row blue, amber, or red with an outline and thicker left border. Add `help: "..."` to object controls to show a small row tooltip; help text is string metadata and uses the panel theme/appearance. Set `readOnly: true` to render a control faded and greyscale and block value writes (enforced in the store); the value stays visible but non-editable.
+Object controls can include `status: "info" | "alert" | "error"` to tint the row blue, amber, or red with an outline and thicker left border. Add `help: "..."` to object controls to show a small row tooltip; help text is string metadata and uses the panel theme/appearance. Set `readOnly: true` to render a control faded and greyscale and block value writes (enforced in the store); the value stays visible but non-editable. Set `hidden: true` to hide a control row while preserving its value and order slot (reversible).
+
+Sections accept `hidden: true` on their `SectionConfig` (`useTweaker(schema, { section: { id, label, hidden } })`) to hide an entire section while preserving its controls' values and order. Like control `hidden`, it is runtime metadata (not persisted) and updates on re-registration.
+
+Controls are fully dynamic: derive the schema from other values/state and `useTweaker` re-registers whenever it changes, propagating new `min`/`max`/`step`/`options`/`readOnly`/`hidden`/`formatOptions`/`label`/`status`/`help` to the store and UI. When bounds or options narrow, existing values are sanitized automatically on re-registration \u2014 numbers are clamped to the new range, and select values that are no longer in `options` fall back to the default (if still valid) or the first option \u2014 so cross-control side effects (locking, hiding, re-bounding) never leave a control holding an out-of-range or invalid value.
 
 Use `{ id, label }` sections when labels may change; `id` is the stable persistence identity. Use a control-level `id` when a schema key may change. Primitive string shorthand and the old `value` spelling still work for compatibility, but new code should use explicit selects and `defaultValue`.
 

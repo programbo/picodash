@@ -71,6 +71,7 @@ export function SortableControl({
       data-sortable={control.reorderable ? "true" : "false"}
       data-status={control.status}
       data-readonly={control.readOnly ? "true" : "false"}
+      data-hidden={control.hidden ? "true" : "false"}
       data-testid={`control-${control.key}`}
     >
       <Button

@@ -5,7 +5,11 @@ import {
   type NormalizedControl,
   type TweakerSchema,
 } from "../src/index.js";
-import { defaultValueForControl } from "../src/control.js";
+import {
+  defaultValueForControl,
+  formatDisplayValue,
+  sanitizeValueForControl,
+} from "../src/control.js";
 import { registrationSignatureForSchema, resolveTweakerValues } from "../src/react/use-tweaker.js";
 
 class MemoryStorage {
@@ -17,6 +21,10 @@ class MemoryStorage {
 
   setItem(key: string, value: string) {
     this.values.set(key, value);
+  }
+
+  removeItem(key: string) {
+    this.values.delete(key);
   }
 
   clear() {
@@ -123,6 +131,7 @@ describe("normalizeControl", () => {
           id: "position",
           defaultValue: [0, 1, 0],
           label: "Position",
+          format: "cartesian",
           size: "compact",
         },
       },
@@ -134,9 +143,182 @@ describe("normalizeControl", () => {
       type: "vector3",
       persistId: "custom:scene:transform:position",
       value: [0, 1, 0],
-      settings: { size: "compact" },
+      settings: { format: "cartesian", size: "compact" },
       help: undefined,
     });
+  });
+
+  it("normalizes display controls with number and string defaults", () => {
+    const numberDisplay = normalizeControl("demo", "Rendering", "total", {
+      type: "display",
+      defaultValue: 42,
+      label: "Total",
+      formatOptions: { maximumFractionDigits: 1 },
+      format: "Total: {value}",
+    });
+    expect(numberDisplay).toMatchObject({
+      kind: "display",
+      type: "display",
+      label: "Total",
+      value: 42,
+      defaultValue: 42,
+      formatOptions: { maximumFractionDigits: 1 },
+      format: "Total: {value}",
+    });
+
+    const stringDisplay = normalizeControl("demo", "Rendering", "status", {
+      type: "display",
+      defaultValue: "ready",
+    });
+    expect(stringDisplay.value).toBe("ready");
+    expect(stringDisplay.formatOptions).toBeUndefined();
+  });
+});
+
+describe("sanitizeValueForControl", () => {
+  function control(overrides: Partial<NormalizedControl> = {}): NormalizedControl {
+    return {
+      id: "x",
+      persistId: "x",
+      domId: "x",
+      key: "x",
+      controlId: "x",
+      panelId: "default",
+      sectionId: "s",
+      sectionLabel: "s",
+      section: "s",
+      reorderable: true,
+      sortable: true,
+      kind: "number",
+      type: "number",
+      label: "x",
+      value: 0,
+      defaultValue: 0,
+      ...overrides,
+    };
+  }
+
+  it("clamps numbers and sliders within min/max", () => {
+    const numeric = control({ kind: "number", defaultValue: 1, min: 0, max: 10 });
+    expect(sanitizeValueForControl(numeric, 15)).toBe(10);
+    expect(sanitizeValueForControl(numeric, -3)).toBe(0);
+    expect(sanitizeValueForControl(numeric, 5)).toBe(5);
+
+    const slider = control({ kind: "slider", defaultValue: 0.5, min: 0, max: 1 });
+    expect(sanitizeValueForControl(slider, 5)).toBe(1);
+  });
+
+  it("falls back to the default when a number value is non-numeric", () => {
+    const numeric = control({ kind: "number", defaultValue: 2, min: 0, max: 10 });
+    expect(sanitizeValueForControl(numeric, "oops" as never)).toBe(2);
+  });
+
+  it("keeps select values that are still in options", () => {
+    const select = control({
+      kind: "select",
+      defaultValue: "a",
+      options: [
+        { label: "A", value: "a" },
+        { label: "B", value: "b" },
+      ],
+    });
+    expect(sanitizeValueForControl(select, "b")).toBe("b");
+  });
+
+  it("falls back to the default, else the first option, when a value leaves options", () => {
+    const withValidDefault = control({
+      kind: "select",
+      defaultValue: "a",
+      options: [{ label: "A", value: "a" }],
+    });
+    expect(sanitizeValueForControl(withValidDefault, "removed")).toBe("a");
+
+    const withStaleDefault = control({
+      kind: "select",
+      defaultValue: "gone",
+      options: [
+        { label: "First", value: "first" },
+        { label: "Second", value: "second" },
+      ],
+    });
+    expect(sanitizeValueForControl(withStaleDefault, "removed")).toBe("first");
+  });
+
+  it("coerces checkbox values to boolean", () => {
+    const checkbox = control({ kind: "checkbox", defaultValue: true });
+    expect(sanitizeValueForControl(checkbox, true)).toBe(true);
+    expect(sanitizeValueForControl(checkbox, "yes" as never)).toBe(true);
+  });
+
+  it("leaves custom JSON values untouched", () => {
+    const custom = control({ kind: "custom", defaultValue: [1, 2, 3] });
+    const value = [1, 2, 3];
+    expect(sanitizeValueForControl(custom, value)).toBe(value);
+  });
+
+  it("keeps number/string display values and falls back for invalid types", () => {
+    const numeric = control({ kind: "display", defaultValue: 42 });
+    expect(sanitizeValueForControl(numeric, 42)).toBe(42);
+    // A string is a valid display value even on a numeric-default control.
+    expect(sanitizeValueForControl(numeric, "oops" as never)).toBe("oops");
+    // Non-number/string values fall back to the default.
+    expect(sanitizeValueForControl(numeric, [1, 2] as never)).toBe(42);
+
+    const textual = control({ kind: "display", defaultValue: "hello" });
+    expect(sanitizeValueForControl(textual, "hello")).toBe("hello");
+    expect(sanitizeValueForControl(textual, 7)).toBe(7);
+    expect(sanitizeValueForControl(textual, { x: 1 } as never)).toBe("hello");
+  });
+});
+
+describe("formatDisplayValue", () => {
+  function displayControl(
+    value: number | string,
+    overrides: Partial<NormalizedControl> = {},
+  ): NormalizedControl {
+    return {
+      id: "x",
+      persistId: "x",
+      domId: "x",
+      key: "x",
+      controlId: "x",
+      panelId: "default",
+      sectionId: "s",
+      sectionLabel: "s",
+      section: "s",
+      reorderable: true,
+      sortable: true,
+      kind: "display",
+      type: "display",
+      label: "x",
+      value,
+      defaultValue: value,
+      ...overrides,
+    };
+  }
+
+  it("renders plain numbers and strings", () => {
+    expect(formatDisplayValue(displayControl(42))).toBe("42");
+    expect(formatDisplayValue(displayControl("ready"))).toBe("ready");
+  });
+
+  it("applies Intl formatOptions to numbers", () => {
+    const formatOptions = { style: "unit", unit: "millimeter" } satisfies Intl.NumberFormatOptions;
+    const mm = displayControl(35, { formatOptions });
+    expect(formatDisplayValue(mm)).toBe(new Intl.NumberFormat(undefined, formatOptions).format(35));
+  });
+
+  it("applies a format template after number formatting", () => {
+    const total = displayControl(12.5, {
+      formatOptions: { maximumFractionDigits: 1 },
+      format: "Total: {value}",
+    });
+    expect(formatDisplayValue(total)).toBe("Total: 12.5");
+  });
+
+  it("applies a format template to strings", () => {
+    const labeled = displayControl("on", { format: "Status: {value}" });
+    expect(formatDisplayValue(labeled)).toBe("Status: on");
   });
 });
 
@@ -305,6 +487,52 @@ describe("TweakerStore", () => {
     ]);
   });
 
+  it("records section hidden state from registration and updates it on re-registration", () => {
+    const store = createTweakerStore({ id: "section-hidden", persistence: false });
+
+    store
+      .getState()
+      .register({ speed: 1 }, { section: { id: "rendering", label: "Rendering", hidden: true } });
+    expect(store.getState().hiddenSections.default?.rendering).toBe(true);
+
+    // Re-registration flips it visible.
+    store
+      .getState()
+      .register({ speed: 1 }, { section: { id: "rendering", label: "Rendering", hidden: false } });
+    expect(store.getState().hiddenSections.default?.rendering).toBe(false);
+
+    // Omitting hidden defaults to visible (false).
+    store.getState().register({ speed: 1 }, { section: { id: "rendering", label: "Rendering" } });
+    expect(store.getState().hiddenSections.default?.rendering).toBe(false);
+  });
+
+  it("does not persist section hidden state", () => {
+    const store = createTweakerStore({ id: "section-hidden-persist" });
+    store
+      .getState()
+      .register({ speed: 1 }, { section: { id: "rendering", label: "Rendering", hidden: true } });
+
+    const raw = storage.getItem("tweaker:section-hidden-persist");
+    expect(raw).not.toBeNull();
+    const persisted = JSON.parse(raw!).state;
+    expect(Object.keys(persisted)).not.toContain("hiddenSections");
+    // The runtime map is still populated for the panel to read.
+    expect(store.getState().hiddenSections.default?.rendering).toBe(true);
+  });
+
+  it("cleans up section hidden state when the section unregisters", () => {
+    const store = createTweakerStore({ id: "section-hidden-cleanup", persistence: false });
+    const unregister = store
+      .getState()
+      .register({ speed: 1 }, { section: { id: "rendering", label: "Rendering", hidden: true } });
+
+    expect(store.getState().hiddenSections.default?.rendering).toBe(true);
+
+    unregister();
+
+    expect(store.getState().hiddenSections.default?.rendering).toBeUndefined();
+  });
+
   it("stores hook-level reorderable metadata and supports deprecated sortable", () => {
     const store = createTweakerStore({ id: "sortable", persistence: false });
     store.getState().register({ channel: "stable" }, { section: "Build", sortable: false });
@@ -432,6 +660,132 @@ describe("TweakerStore", () => {
     // A read-only control refuses writes after the re-registration takes effect.
     store.getState().setValue(persistId, 2);
     expect(store.getState().values[persistId]).toBe(1.5);
+  });
+
+  it("re-clamps values when numeric bounds narrow on re-registration", () => {
+    const store = createTweakerStore({ id: "bounds-change", persistence: false });
+    const persistId = "bounds-change:Rendering:speed";
+
+    store
+      .getState()
+      .register(
+        { speed: { type: "number", defaultValue: 1, min: 0, max: 10 } },
+        { section: "Rendering" },
+      );
+    store.getState().setValue(persistId, 8);
+    expect(store.getState().values[persistId]).toBe(8);
+
+    // Narrowing max to 5 pulls the out-of-range value back in range.
+    store
+      .getState()
+      .register(
+        { speed: { type: "number", defaultValue: 1, min: 0, max: 5 } },
+        { section: "Rendering" },
+      );
+    expect(store.getState().values[persistId]).toBe(5);
+    expect(store.getState().controls[0]?.value).toBe(5);
+  });
+
+  it("invalidates select values that leave the options list on re-registration", () => {
+    const store = createTweakerStore({ id: "options-change", persistence: false });
+    const persistId = "options-change:Rendering:tint";
+
+    store
+      .getState()
+      .register(
+        { tint: { type: "select", defaultValue: "green", options: ["green", "amber"] } },
+        { section: "Rendering" },
+      );
+    store.getState().setValue(persistId, "amber");
+    expect(store.getState().values[persistId]).toBe("amber");
+
+    // "amber" is removed; the default "green" is still valid so it wins.
+    store
+      .getState()
+      .register(
+        { tint: { type: "select", defaultValue: "green", options: ["green"] } },
+        { section: "Rendering" },
+      );
+    expect(store.getState().values[persistId]).toBe("green");
+
+    // Default is also stale, so it falls back to the first option.
+    store
+      .getState()
+      .register(
+        { tint: { type: "select", defaultValue: "gone", options: ["blue"] } },
+        { section: "Rendering" },
+      );
+    expect(store.getState().values[persistId]).toBe("blue");
+  });
+
+  it("treats display controls as derived: ignores stored values and refuses writes", () => {
+    const store = createTweakerStore({ id: "display", persistence: false });
+    const persistId = "display:Rendering:total";
+
+    // Seed a stale stored value; registration must ignore it in favor of the
+    // derived defaultValue.
+    store
+      .getState()
+      .register({ total: { type: "display", defaultValue: 10 } }, { section: "Rendering" });
+    store.getState().setValue(persistId, 999);
+    // setValue is refused for display controls.
+    expect(store.getState().values[persistId]).toBeUndefined();
+    expect(store.getState().controls[0]?.value).toBe(10);
+
+    // Re-registering with a new derived value updates the display without writes.
+    store
+      .getState()
+      .register({ total: { type: "display", defaultValue: 25 } }, { section: "Rendering" });
+    expect(store.getState().controls[0]?.value).toBe(25);
+    expect(store.getState().values[persistId]).toBeUndefined();
+  });
+
+  it("ignores stale persisted values when display controls register", () => {
+    const persistId = "display-stale:Rendering:total";
+    storage.setItem(
+      "tweaker:display-stale",
+      JSON.stringify({
+        state: {
+          values: { [persistId]: 999 },
+          order: {},
+          panels: {},
+          sections: {},
+        },
+      }),
+    );
+
+    const store = createTweakerStore({ id: "display-stale" });
+    store
+      .getState()
+      .register({ total: { type: "display", defaultValue: 10 } }, { section: "Rendering" });
+
+    expect(store.getState().controls[0]?.value).toBe(10);
+    // Stale values are intentionally retained, but display controls derive from
+    // registration defaults instead of persisted entries.
+    expect(store.getState().values[persistId]).toBe(999);
+  });
+
+  it("updates display format metadata on re-registration", () => {
+    const store = createTweakerStore({ id: "display-format", persistence: false });
+
+    store
+      .getState()
+      .register(
+        { total: { type: "display", defaultValue: 10, format: "Total: {value}" } },
+        { section: "Rendering" },
+      );
+    expect(formatDisplayValue(store.getState().controls[0]!)).toBe("Total: 10");
+
+    store
+      .getState()
+      .register(
+        { total: { type: "display", defaultValue: 10, format: "Now: {value}" } },
+        { section: "Rendering" },
+      );
+
+    const control = store.getState().controls[0]!;
+    expect(control.format).toBe("Now: {value}");
+    expect(formatDisplayValue(control)).toBe("Now: 10");
   });
 
   it("does not notify when an equivalent schema registers again", () => {
