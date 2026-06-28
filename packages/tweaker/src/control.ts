@@ -64,6 +64,28 @@ export function sliderKeyboardIncrement(step: number | undefined): SliderKeyboar
   return isDecimal ? { step: 0.1, shiftStep: 1 } : { step: 1, shiftStep: 10 };
 }
 
+function decimalPlaces(value: number): number {
+  const match = String(value).match(/(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/);
+  if (!match) return 0;
+  const fraction = match[1] ?? "";
+  const exponent = Number(match[2] ?? 0);
+  return Math.max(0, fraction.length - exponent);
+}
+
+/**
+ * Rounds a computed slider-keyboard value to the slider's configured step
+ * precision, eliminating floating-point artifacts (e.g. 0.52 - 0.1 yields
+ * 0.41999999999999998) before the value reaches the store. The precision is
+ * derived from the slider's `step` (defaulting to 0.01), since that is the
+ * precision the slider is configured and displayed at; keyboard nudges may be
+ * coarser than `step`, but their results still belong on the step grid.
+ */
+export function roundToSliderStepPrecision(value: number, step: number | undefined): number {
+  const resolvedStep = step ?? 0.01;
+  const decimals = decimalPlaces(resolvedStep);
+  return Number(value.toFixed(decimals));
+}
+
 function normalizeOptions(options: readonly string[] | Record<string, string>) {
   if (Array.isArray(options)) {
     return options.map((value) => ({ label: labelFromKey(value), value }));

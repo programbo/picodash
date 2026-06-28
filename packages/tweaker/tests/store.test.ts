@@ -10,6 +10,7 @@ import {
   formatDisplayValue,
   sanitizeValueForControl,
   sliderKeyboardIncrement,
+  roundToSliderStepPrecision,
 } from "../src/control.js";
 import { registrationSignatureForSchema, resolveTweakerValues } from "../src/react/use-tweaker.js";
 
@@ -338,6 +339,33 @@ describe("sliderKeyboardIncrement", () => {
     expect(sliderKeyboardIncrement(1)).toEqual({ step: 1, shiftStep: 10 });
     expect(sliderKeyboardIncrement(2)).toEqual({ step: 1, shiftStep: 10 });
     expect(sliderKeyboardIncrement(5)).toEqual({ step: 1, shiftStep: 10 });
+  });
+});
+
+describe("roundToSliderStepPrecision", () => {
+  it("eliminates floating-point artifacts at the slider step precision", () => {
+    // Raw arithmetic: 0.52 - 0.1 = 0.41999999999999998; step 0.01 keeps 2 dp.
+    expect(roundToSliderStepPrecision(0.52 - 0.1, 0.01)).toBe(0.42);
+    // 0.2 + 0.1 = 0.30000000000000004.
+    expect(roundToSliderStepPrecision(0.2 + 0.1, 0.01)).toBe(0.3);
+    expect(roundToSliderStepPrecision(0.1 - 0.1, 0.01)).toBe(0);
+  });
+
+  it("defaults to 2 decimals when step is unset", () => {
+    expect(roundToSliderStepPrecision(0.41999999999999998, undefined)).toBe(0.42);
+  });
+
+  it("rounds to 0 decimals for integer steps", () => {
+    expect(roundToSliderStepPrecision(2.9999999, 1)).toBe(3);
+    expect(roundToSliderStepPrecision(30.0000001, 2)).toBe(30);
+  });
+
+  it("respects finer step precision", () => {
+    expect(roundToSliderStepPrecision(0.123456, 0.001)).toBe(0.123);
+  });
+
+  it("handles negative results", () => {
+    expect(roundToSliderStepPrecision(-0.2 - 0.1, 0.01)).toBe(-0.3);
   });
 });
 

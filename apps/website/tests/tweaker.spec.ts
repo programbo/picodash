@@ -131,6 +131,23 @@ test("slider keyboard nudges use fixed decimal increments", async ({ page }) => 
   await expect(speed).toHaveValue("1.72");
 });
 
+test("slider keyboard nudges write clean values without float artifacts", async ({ page }) => {
+  // Repeated 0.1 nudges accumulate float error in raw arithmetic
+  // (0.72 -> 0.62 -> 0.52 -> 0.42000000000000004). The keyboard path rounds to
+  // the nudge magnitude's precision so the store and persisted state never
+  // receive the artifact, even though the range input's DOM value is snapped
+  // to the slider step by the browser. Assert against the persisted value.
+  const speed = page.getByRole("group", { name: "Speed" }).getByRole("slider");
+  await speed.focus();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+
+  const persisted = await page.evaluate(() => localStorage.getItem("tweaker:docs-demo"));
+  const parsed = JSON.parse(persisted ?? "{}");
+  expect(parsed.state.values["docs-demo:default:rendering:speed"]).toBe(0.42);
+});
+
 test("renders read-only controls as faded and non-editable", async ({ page }) => {
   const row = page.getByTestId("control-rotation");
   const field = row.locator(".tw-number-field");

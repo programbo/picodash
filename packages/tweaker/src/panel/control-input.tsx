@@ -17,7 +17,12 @@ import {
 } from "react-aria-components";
 import { ChevronDown } from "lucide-react";
 import { useTweakerCustomControls } from "../react/context.js";
-import { clamp, formatDisplayValue, sliderKeyboardIncrement } from "../control.js";
+import {
+  clamp,
+  formatDisplayValue,
+  roundToSliderStepPrecision,
+  sliderKeyboardIncrement,
+} from "../control.js";
 import type { JsonValue, NormalizedControl } from "../types.js";
 import { usePanelEffects, usePanelInteraction } from "./panel-effects-context.js";
 
@@ -163,7 +168,10 @@ function SliderInput({ control, onChange }: SliderInputProps) {
       const magnitude = event.shiftKey ? increments.shiftStep : increments.step;
       const current = typeof valueRef.current === "number" ? valueRef.current : 0;
       const next = clamp(
-        current + (decrementsDown ? -magnitude : magnitude),
+        roundToSliderStepPrecision(
+          current + (decrementsDown ? -magnitude : magnitude),
+          control.step,
+        ),
         control.min,
         control.max,
       );
