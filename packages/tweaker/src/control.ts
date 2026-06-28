@@ -45,6 +45,25 @@ export function clamp(value: number, min?: number, max?: number) {
   return next;
 }
 
+export interface SliderKeyboardIncrement {
+  /** Magnitude applied on a plain Arrow key press. */
+  step: number;
+  /** Magnitude applied on Shift + Arrow. */
+  shiftStep: number;
+}
+
+/**
+ * Returns the keyboard nudge magnitudes for a slider. Sliders whose step is
+ * fractional (or unset, defaulting to a fractional step) are treated as
+ * "decimal": plain arrows move 0.1 and Shift arrows move 1. Integer-step
+ * sliders move 1 and 10 respectively. These magnitudes are independent of the
+ * slider's drag/precision step.
+ */
+export function sliderKeyboardIncrement(step: number | undefined): SliderKeyboardIncrement {
+  const isDecimal = step === undefined || !Number.isInteger(step);
+  return isDecimal ? { step: 0.1, shiftStep: 1 } : { step: 1, shiftStep: 10 };
+}
+
 function normalizeOptions(options: readonly string[] | Record<string, string>) {
   if (Array.isArray(options)) {
     return options.map((value) => ({ label: labelFromKey(value), value }));

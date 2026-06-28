@@ -115,6 +115,22 @@ test("renders display controls and updates them from derived values", async ({ p
   await expect(display).toHaveText("75 mm");
 });
 
+test("slider keyboard nudges use fixed decimal increments", async ({ page }) => {
+  // Speed is a decimal slider (step 0.01): plain arrows move 0.1, Shift moves 1.
+  const speed = page.getByRole("group", { name: "Speed" }).getByRole("slider");
+  await expect(speed).toHaveValue("0.72");
+
+  await speed.focus();
+  await page.keyboard.press("ArrowUp");
+  await expect(speed).toHaveValue("0.82");
+
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(speed).toHaveValue("1.82");
+
+  await page.keyboard.press("ArrowDown");
+  await expect(speed).toHaveValue("1.72");
+});
+
 test("renders read-only controls as faded and non-editable", async ({ page }) => {
   const row = page.getByTestId("control-rotation");
   const field = row.locator(".tw-number-field");

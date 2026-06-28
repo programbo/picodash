@@ -9,6 +9,7 @@ import {
   defaultValueForControl,
   formatDisplayValue,
   sanitizeValueForControl,
+  sliderKeyboardIncrement,
 } from "../src/control.js";
 import { registrationSignatureForSchema, resolveTweakerValues } from "../src/react/use-tweaker.js";
 
@@ -319,6 +320,24 @@ describe("formatDisplayValue", () => {
   it("applies a format template to strings", () => {
     const labeled = displayControl("on", { format: "Status: {value}" });
     expect(formatDisplayValue(labeled)).toBe("Status: on");
+  });
+});
+
+describe("sliderKeyboardIncrement", () => {
+  it("uses 0.1 / 1 for fractional-step sliders", () => {
+    expect(sliderKeyboardIncrement(0.01)).toEqual({ step: 0.1, shiftStep: 1 });
+    expect(sliderKeyboardIncrement(0.1)).toEqual({ step: 0.1, shiftStep: 1 });
+    expect(sliderKeyboardIncrement(0.5)).toEqual({ step: 0.1, shiftStep: 1 });
+  });
+
+  it("uses 0.1 / 1 when step is unset", () => {
+    expect(sliderKeyboardIncrement(undefined)).toEqual({ step: 0.1, shiftStep: 1 });
+  });
+
+  it("uses 1 / 10 for integer-step sliders", () => {
+    expect(sliderKeyboardIncrement(1)).toEqual({ step: 1, shiftStep: 10 });
+    expect(sliderKeyboardIncrement(2)).toEqual({ step: 1, shiftStep: 10 });
+    expect(sliderKeyboardIncrement(5)).toEqual({ step: 1, shiftStep: 10 });
   });
 });
 

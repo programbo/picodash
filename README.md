@@ -71,6 +71,7 @@ export function App() {
 - Number: `{ type: "number", defaultValue: 1, min?: 0, max?: 10, step?: 0.1, formatOptions?: Intl.NumberFormatOptions }`
 - Slider shorthand: `{ defaultValue: 0.5, min: 0, max: 1 }`
 - Slider explicit: `{ type: "slider", defaultValue: 0.5, min: 0, max: 1 }`
+  - Keyboard: arrow keys nudge by a fixed amount independent of `step` \u2014 decimal sliders (fractional/absent `step`) move 0.1 (Shift moves 1); integer sliders move 1 (Shift moves 10). Up/Right increments, Down/Left decrements.
 - Select: `{ type: "select", defaultValue: "green", options: ["green", "amber"] }`
 - Checkbox: `{ defaultValue: true }` or `{ type: "checkbox", defaultValue: true }`
 - Display: `{ type: "display", defaultValue: 42, formatOptions?: Intl.NumberFormatOptions, format?: "Total: {value}" }` — a non-interactive, non-editable row that reflects a computed/derived value. Derive it from other panel values; the display updates on re-registration. `formatOptions` formats numbers (Intl); `format` wraps the result with `{value}` substituted.

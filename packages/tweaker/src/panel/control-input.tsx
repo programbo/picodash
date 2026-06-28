@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   Button,
   Checkbox,
@@ -16,7 +17,7 @@ import {
 } from "react-aria-components";
 import { ChevronDown } from "lucide-react";
 import { useTweakerCustomControls } from "../react/context.js";
-import { formatDisplayValue } from "../control.js";
+import { clamp, formatDisplayValue, sliderKeyboardIncrement } from "../control.js";
 import type { JsonValue, NormalizedControl } from "../types.js";
 import { usePanelEffects, usePanelInteraction } from "./panel-effects-context.js";
 
@@ -105,22 +106,7 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
   }
 
   if (control.kind === "slider") {
-    return (
-      <Slider
-        className="tw-slider"
-        aria-label={control.label}
-        minValue={control.min}
-        maxValue={control.max}
-        step={control.step ?? 0.01}
-        value={Number(control.value)}
-        onChange={(value) => onChange(value)}
-      >
-        <SliderTrack className="tw-slider__track">
-          <SliderThumb id={control.domId} className="tw-slider__thumb" />
-        </SliderTrack>
-        <SliderOutput className="tw-slider__value">{Number(control.value).toFixed(2)}</SliderOutput>
-      </Slider>
-    );
+    return <SliderInput control={control} onChange={onChange} />;
   }
 
   const numberValue = typeof control.value === "number" ? control.value : 0;
@@ -143,5 +129,67 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         <Input id={control.domId} className="tw-number" inputMode="decimal" />
       </Group>
     </NumberField>
+  );
+}
+
+interface SliderInputProps {
+  control: NormalizedControl;
+  onChange: (value: JsonValue) => void;
+}
+
+function SliderInput({ control, onChange }: SliderInputProps) {
+  const thumbRef = useRef<HTMLDivElement | null>(null);
+  // Keep live values in refs so the keydown listener stays stable and doesn't
+  // re-attach on every value change (which could drop key-repeat events).
+  const valueRef = useRef(control.value);
+  const onChangeRef = useRef(onChange);
+  valueRef.current = control.value;
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    const thumb = thumbRef.current;
+    if (!thumb) return;
+    const increments = sliderKeyboardIncrement(control.step);
+
+    function handleKeyDown(event: KeyboardEvent) {
+      // ArrowUp/ArrowRight increment, ArrowDown/ArrowLeft decrement. Left/right
+      // are mapped to the same magnitudes as up/down so nudging feels consistent
+      // regardless of slider orientation. Captured in the capture phase and
+      // stopped so React Aria's default step/pageSize arrow handling is skipped.
+      const incrementsUp = event.key === "ArrowUp" || event.key === "ArrowRight";
+      const decrementsDown = event.key === "ArrowDown" || event.key === "ArrowLeft";
+      if (!incrementsUp && !decrementsDown) return;
+
+      const magnitude = event.shiftKey ? increments.shiftStep : increments.step;
+      const current = typeof valueRef.current === "number" ? valueRef.current : 0;
+      const next = clamp(
+        current + (decrementsDown ? -magnitude : magnitude),
+        control.min,
+        control.max,
+      );
+      onChangeRef.current(next);
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    thumb.addEventListener("keydown", handleKeyDown, true);
+    return () => thumb.removeEventListener("keydown", handleKeyDown, true);
+  }, [control.step, control.min, control.max]);
+
+  return (
+    <Slider
+      className="tw-slider"
+      aria-label={control.label}
+      minValue={control.min}
+      maxValue={control.max}
+      step={control.step ?? 0.01}
+      value={Number(control.value)}
+      onChange={(value) => onChange(value)}
+    >
+      <SliderTrack className="tw-slider__track">
+        <SliderThumb ref={thumbRef} id={control.domId} className="tw-slider__thumb" />
+      </SliderTrack>
+      <SliderOutput className="tw-slider__value">{Number(control.value).toFixed(2)}</SliderOutput>
+    </Slider>
   );
 }
