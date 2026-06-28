@@ -28,9 +28,15 @@ function orderChanged(left: string[] | null, right: string[]) {
 }
 
 export function TweakerSection({ panelId, sectionId, title, controls }: TweakerSectionProps) {
-  const collapsed = useTweakerSelector((state) => state.sections[panelId]?.[sectionId] ?? false);
+  const storedCollapsed = useTweakerSelector(
+    (state) => state.sections[panelId]?.[sectionId] ?? false,
+  );
   const setSectionCollapsed = useTweakerSelector((state) => state.setSectionCollapsed);
   const setSectionOrder = useTweakerSelector((state) => state.setSectionOrder);
+  // A headerless section (empty label) cannot be collapsed: there is no toggle
+  // to expand it again, so it stays expanded regardless of stored state.
+  const headerless = title === "";
+  const collapsed = headerless ? false : storedCollapsed;
   const listRef = useRef<HTMLDivElement | null>(null);
   const pointerDragIdRef = useRef<string | null>(null);
   const pointerDragInitialOrderRef = useRef<string[] | null>(null);
@@ -177,25 +183,28 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
 
   return (
     <section
-      className={clsx("tw-section", collapsed && "is-collapsed")}
+      className={clsx("tw-section", collapsed && "is-collapsed", headerless && "is-headerless")}
       data-section-id={sectionId}
-      data-testid={`section-${title}`}
+      data-headerless={headerless ? "true" : "false"}
+      data-testid={`section-${title || sectionId}`}
     >
-      <div className="tw-section__header">
-        <Button
-          className="tw-icon-button tw-section__toggle"
-          type="button"
-          aria-label={collapsed ? `Expand section ${title}` : `Collapse section ${title}`}
-          onPress={() => setSectionCollapsed(panelId, sectionId, !collapsed)}
-        >
-          {collapsed ? (
-            <ChevronRight size={18} strokeWidth={2.4} />
-          ) : (
-            <ChevronDown size={18} strokeWidth={2.4} />
-          )}
-        </Button>
-        <div className="tw-section__title">{title}</div>
-      </div>
+      {!headerless && (
+        <div className="tw-section__header">
+          <Button
+            className="tw-icon-button tw-section__toggle"
+            type="button"
+            aria-label={collapsed ? `Expand section ${title}` : `Collapse section ${title}`}
+            onPress={() => setSectionCollapsed(panelId, sectionId, !collapsed)}
+          >
+            {collapsed ? (
+              <ChevronRight size={18} strokeWidth={2.4} />
+            ) : (
+              <ChevronDown size={18} strokeWidth={2.4} />
+            )}
+          </Button>
+          <div className="tw-section__title">{title}</div>
+        </div>
+      )}
       {!collapsed && (
         <div ref={listRef} className="tw-section__list">
           {displayedControls.map((control, index) => (

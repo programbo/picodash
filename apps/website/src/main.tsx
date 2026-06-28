@@ -168,7 +168,7 @@ function Demo() {
     section: { id: "material", label: "Material" },
   });
   const [camera] = useTweaker(cameraSchema, {
-    section: { id: "camera", label: "Camera" },
+    section: { id: "camera", label: "" },
   });
   // Derived display: a 35mm-equivalent focal length computed from focalLength.
   const equivalent = Math.round(Number(camera.focalLength) * 1.5);
@@ -181,7 +181,7 @@ function Demo() {
         formatOptions: { style: "unit", unit: "millimeter", maximumFractionDigits: 0 },
       },
     },
-    { section: { id: "camera", label: "Camera" } },
+    { section: { id: "camera", label: "" } },
   );
   const [dynamic] = useTweaker(dynamicBaseSchema, {
     section: { id: "dynamic", label: "Dynamic" },

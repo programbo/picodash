@@ -70,9 +70,12 @@ export function normalizePanelId(panel?: string) {
 export function normalizeSection(section?: string | SectionConfig): SectionConfig {
   if (!section) return { id: defaultSectionId, label: defaultSectionLabel };
   if (typeof section === "string") return { id: section, label: section };
+  // An explicitly empty label marks the section as headerless: keep it as ""
+  // rather than generating a label from the id. Only an absent label falls back.
+  const label = typeof section.label === "string" ? section.label.trim() : labelFromKey(section.id);
   return {
     id: section.id.trim() || defaultSectionId,
-    label: section.label.trim() || labelFromKey(section.id),
+    label,
     hidden: section.hidden === true ? true : undefined,
   };
 }

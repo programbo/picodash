@@ -506,6 +506,15 @@ describe("TweakerStore", () => {
     expect(store.getState().hiddenSections.default?.rendering).toBe(false);
   });
 
+  it("preserves an empty section label as a headerless signal", () => {
+    const store = createTweakerStore({ id: "section-headerless", persistence: false });
+    store.getState().register({ speed: 1 }, { section: { id: "rendering", label: "" } });
+    // The empty label propagates to the control's section metadata, where the
+    // panel reads it to render the section without a header.
+    expect(store.getState().controls[0]?.sectionLabel).toBe("");
+    expect(store.getState().controls[0]?.section).toBe("");
+  });
+
   it("does not persist section hidden state", () => {
     const store = createTweakerStore({ id: "section-hidden-persist" });
     store
