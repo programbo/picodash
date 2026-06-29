@@ -12,8 +12,8 @@ Internally, Tweaker uses a provider-scoped Zustand store. Persistence is handled
 ## Required Imports
 
 ```tsx
-import { TweakerPanel, TweakerProvider, useTweaker } from "tweaker";
-import "tweaker/style.css";
+import { TweakerPanel, TweakerProvider, useTweaker } from 'tweaker'
+import 'tweaker/style.css'
 ```
 
 ## Provider and Panels
@@ -42,20 +42,20 @@ const [values, setValue] = useTweaker(
       defaultValue: 0.75,
       min: 0,
       max: 2,
-      status: "info",
-      help: "Adjusts preview animation speed.",
+      status: 'info',
+      help: 'Adjusts preview animation speed.',
     },
-    exposure: { type: "number", defaultValue: 1, min: 0, max: 4 },
-    fps: { type: "display", defaultValue: 60, format: "{value} fps" },
-    mode: { type: "select", defaultValue: "fast", options: ["fast", "quality"] },
+    exposure: { type: 'number', defaultValue: 1, min: 0, max: 4 },
+    fps: { type: 'display', defaultValue: 60, format: '{value} fps' },
+    mode: { type: 'select', defaultValue: 'fast', options: ['fast', 'quality'] },
     enabled: { defaultValue: true },
   },
   {
-    panel: "scene",
-    section: { id: "rendering", label: "Rendering" },
+    panel: 'scene',
+    section: { id: 'rendering', label: 'Rendering' },
     reorderable: true,
   },
-);
+)
 ```
 
 ## Custom Controls

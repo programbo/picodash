@@ -1,5 +1,5 @@
-import { createStore } from "zustand";
-import { persist } from "zustand/middleware";
+import { createStore } from 'zustand'
+import { persist } from 'zustand/middleware'
 import {
   createControlPersistId,
   hasPanelEffects,
@@ -10,7 +10,7 @@ import {
   preserveSectionOrderByPanel,
   sanitizeValueForControl,
   valuesForControls,
-} from "../control.js";
+} from '../control.js'
 import {
   defaultPanelId,
   type JsonValue,
@@ -20,20 +20,20 @@ import {
   type TweakerState,
   type TweakerStore,
   type TweakerStoreOptions,
-} from "../types.js";
+} from '../types.js'
 import {
   createValidatedPersistStorage,
   emptyPersistedState,
   persistedStateSchema,
   storagePrefix,
-} from "./persistence.js";
+} from './persistence.js'
 
 function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
-  if (left.length !== right.length) return false;
+  if (left.length !== right.length) return false
 
   return left.every((leftControl, index) => {
-    const rightControl = right[index];
-    if (!rightControl) return false;
+    const rightControl = right[index]
+    if (!rightControl) return false
 
     return (
       leftControl.id === rightControl.id &&
@@ -62,56 +62,56 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.format === rightControl.format &&
       leftControl.readOnly === rightControl.readOnly &&
       leftControl.hidden === rightControl.hidden
-    );
-  });
+    )
+  })
 }
 
 function valuesEqual(left: JsonValue, right: JsonValue) {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return JSON.stringify(left) === JSON.stringify(right)
 }
 
-function settingsEqual(left: NormalizedControl["settings"], right: NormalizedControl["settings"]) {
-  return JSON.stringify(left ?? {}) === JSON.stringify(right ?? {});
+function settingsEqual(left: NormalizedControl['settings'], right: NormalizedControl['settings']) {
+  return JSON.stringify(left ?? {}) === JSON.stringify(right ?? {})
 }
 
 function reactNodeEqual(
-  left: NormalizedControl["description"],
-  right: NormalizedControl["description"],
+  left: NormalizedControl['description'],
+  right: NormalizedControl['description'],
 ) {
-  return Object.is(left, right);
+  return Object.is(left, right)
 }
 
-function optionsEqual(left: NormalizedControl["options"], right: NormalizedControl["options"]) {
-  if (left === right) return true;
-  if (!left || !right || left.length !== right.length) return false;
+function optionsEqual(left: NormalizedControl['options'], right: NormalizedControl['options']) {
+  if (left === right) return true
+  if (!left || !right || left.length !== right.length) return false
 
   return left.every((leftOption, index) => {
-    const rightOption = right[index];
-    return rightOption?.label === leftOption.label && rightOption.value === leftOption.value;
-  });
+    const rightOption = right[index]
+    return rightOption?.label === leftOption.label && rightOption.value === leftOption.value
+  })
 }
 
 function formatOptionsEqual(
-  left: NormalizedControl["formatOptions"],
-  right: NormalizedControl["formatOptions"],
+  left: NormalizedControl['formatOptions'],
+  right: NormalizedControl['formatOptions'],
 ) {
-  return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+  return JSON.stringify(left ?? null) === JSON.stringify(right ?? null)
 }
 
 function defaultPanelState(): PanelLayoutState {
-  return { collapsed: false, dock: null };
+  return { collapsed: false, dock: null }
 }
 
-function panelStateFor(state: Pick<TweakerState, "panels">, panelId: string): PanelLayoutState {
-  return state.panels[panelId] ?? defaultPanelState();
+function panelStateFor(state: Pick<TweakerState, 'panels'>, panelId: string): PanelLayoutState {
+  return state.panels[panelId] ?? defaultPanelState()
 }
 
-function panelOrderFor(state: Pick<TweakerState, "order">, panelId: string) {
-  return state.order[panelId] ?? {};
+function panelOrderFor(state: Pick<TweakerState, 'order'>, panelId: string) {
+  return state.order[panelId] ?? {}
 }
 
-function panelSectionsFor(state: Pick<TweakerState, "sections">, panelId: string) {
-  return state.sections[panelId] ?? {};
+function panelSectionsFor(state: Pick<TweakerState, 'sections'>, panelId: string) {
+  return state.sections[panelId] ?? {}
 }
 
 function createBaseState(storeId: string) {
@@ -133,9 +133,9 @@ function createBaseState(storeId: string) {
     hiddenSections: {},
 
     register(schema, options = {}) {
-      const panelId = normalizePanelId(options.panel);
-      const section = normalizeSection(options.section);
-      const reorderable = options.reorderable ?? options.sortable ?? true;
+      const panelId = normalizePanelId(options.panel)
+      const section = normalizeSection(options.section)
+      const reorderable = options.reorderable ?? options.sortable ?? true
       const controls = Object.entries(schema).map(([key, config]) =>
         normalizeControlEntry({
           storeId,
@@ -145,73 +145,73 @@ function createBaseState(storeId: string) {
           config,
           reorderable,
         }),
-      );
-      const ids = new Set(controls.map((control) => control.persistId));
+      )
+      const ids = new Set(controls.map((control) => control.persistId))
 
       set((state) => {
-        const values = { ...state.values };
-        let valuesChanged = false;
-        const controlsById = new Map(state.controls.map((control) => [control.persistId, control]));
+        const values = { ...state.values }
+        let valuesChanged = false
+        const controlsById = new Map(state.controls.map((control) => [control.persistId, control]))
         for (const control of controls) {
           // Sanitize restored values against the (possibly updated) control
           // configuration so dynamic bounds/options changes never leave a
           // control holding an out-of-range or invalid value. Unstored
           // controls are left alone so their default flows through naturally.
           if (Object.prototype.hasOwnProperty.call(values, control.persistId)) {
-            const stored = values[control.persistId]!;
-            const sanitized = sanitizeValueForControl(control, stored);
+            const stored = values[control.persistId]!
+            const sanitized = sanitizeValueForControl(control, stored)
             if (sanitized !== stored) {
-              values[control.persistId] = sanitized;
-              valuesChanged = true;
+              values[control.persistId] = sanitized
+              valuesChanged = true
             }
           }
-          controlsById.set(control.persistId, control);
+          controlsById.set(control.persistId, control)
         }
 
-        const nextControls = valuesForControls(Array.from(controlsById.values()), values);
+        const nextControls = valuesForControls(Array.from(controlsById.values()), values)
         const nextHiddenSections = {
           ...state.hiddenSections,
           [panelId]: {
             ...state.hiddenSections[panelId],
             [section.id]: section.hidden === true,
           },
-        };
+        }
         const hiddenChanged =
-          state.hiddenSections[panelId]?.[section.id] !== nextHiddenSections[panelId]?.[section.id];
+          state.hiddenSections[panelId]?.[section.id] !== nextHiddenSections[panelId]?.[section.id]
         if (controlsEqual(state.controls, nextControls) && !valuesChanged && !hiddenChanged)
-          return state;
+          return state
 
         return {
           values,
           controls: nextControls,
           sectionOrder: preserveSectionOrderByPanel(state.sectionOrder, nextControls),
           hiddenSections: nextHiddenSections,
-        };
-      });
+        }
+      })
 
       return () => {
         set((state) => {
-          const nextControls = state.controls.filter((control) => !ids.has(control.persistId));
+          const nextControls = state.controls.filter((control) => !ids.has(control.persistId))
           const sectionStillRegistered = nextControls.some(
             (control) => control.panelId === panelId && control.sectionId === section.id,
-          );
-          let hiddenSections = state.hiddenSections;
+          )
+          let hiddenSections = state.hiddenSections
 
           if (
             !sectionStillRegistered &&
             state.hiddenSections[panelId]?.[section.id] !== undefined
           ) {
-            const panelHiddenSections = { ...state.hiddenSections[panelId] };
-            delete panelHiddenSections[section.id];
+            const panelHiddenSections = { ...state.hiddenSections[panelId] }
+            delete panelHiddenSections[section.id]
 
             if (Object.keys(panelHiddenSections).length === 0) {
-              const { [panelId]: _removedPanel, ...remainingHiddenSections } = state.hiddenSections;
-              hiddenSections = remainingHiddenSections;
+              const { [panelId]: _removedPanel, ...remainingHiddenSections } = state.hiddenSections
+              hiddenSections = remainingHiddenSections
             } else {
               hiddenSections = {
                 ...state.hiddenSections,
                 [panelId]: panelHiddenSections,
-              };
+              }
             }
           }
 
@@ -219,15 +219,15 @@ function createBaseState(storeId: string) {
             controls: valuesForControls(nextControls, state.values),
             sectionOrder: preserveSectionOrderByPanel(state.sectionOrder, nextControls),
             hiddenSections,
-          };
-        });
-      };
+          }
+        })
+      }
     },
 
     updatePanelEffects(_schema, options = {}) {
-      if (!hasPanelEffects(options)) return;
-      const panelId = normalizePanelId(options.panel);
-      const appearance = normalizePanelEffects(options);
+      if (!hasPanelEffects(options)) return
+      const panelId = normalizePanelId(options.panel)
+      const appearance = normalizePanelEffects(options)
 
       set((state) => ({
         panelAppearances: {
@@ -237,24 +237,24 @@ function createBaseState(storeId: string) {
             ...appearance,
           },
         },
-      }));
+      }))
     },
 
     setValue(persistId, value) {
-      const control = get().controls.find((item) => item.persistId === persistId);
-      if (!control) return;
-      if (control.readOnly) return;
-      if (control.kind === "display") return;
+      const control = get().controls.find((item) => item.persistId === persistId)
+      if (!control) return
+      if (control.readOnly) return
+      if (control.kind === 'display') return
 
-      const nextValue = sanitizeValueForControl(control, value);
+      const nextValue = sanitizeValueForControl(control, value)
 
       set((state) => {
-        const values = { ...state.values, [persistId]: nextValue };
+        const values = { ...state.values, [persistId]: nextValue }
         return {
           values,
           controls: valuesForControls(state.controls, values),
-        };
-      });
+        }
+      })
     },
 
     setPanelCollapsed(panelId, collapsed) {
@@ -263,7 +263,7 @@ function createBaseState(storeId: string) {
           ...state.panels,
           [panelId]: { ...panelStateFor(state, panelId), collapsed },
         },
-      }));
+      }))
     },
 
     setSectionCollapsed(panelId, sectionId, collapsed) {
@@ -275,21 +275,21 @@ function createBaseState(storeId: string) {
             [sectionId]: collapsed,
           },
         },
-      }));
+      }))
     },
 
     setAllSectionsCollapsed(panelId, collapsed) {
       set((state) => {
-        const ids = state.sectionOrder[panelId] ?? [];
-        const next = { ...panelSectionsFor(state, panelId) };
-        for (const sectionId of ids) next[sectionId] = collapsed;
+        const ids = state.sectionOrder[panelId] ?? []
+        const next = { ...panelSectionsFor(state, panelId) }
+        for (const sectionId of ids) next[sectionId] = collapsed
         return {
           sections: {
             ...state.sections,
             [panelId]: next,
           },
-        };
-      });
+        }
+      })
     },
 
     setPanelDock(panelId, dock) {
@@ -298,7 +298,7 @@ function createBaseState(storeId: string) {
           ...state.panels,
           [panelId]: { ...panelStateFor(state, panelId), dock },
         },
-      }));
+      }))
     },
 
     setSectionOrder(panelId, sectionId, ids) {
@@ -310,7 +310,7 @@ function createBaseState(storeId: string) {
             [sectionId]: ids,
           },
         },
-      }));
+      }))
     },
 
     resetValues(panelId) {
@@ -320,28 +320,28 @@ function createBaseState(storeId: string) {
             ? {}
             : Object.fromEntries(
                 Object.entries(state.values).filter(([id]) => {
-                  const control = state.controls.find((item) => item.persistId === id);
-                  return control?.panelId !== panelId;
+                  const control = state.controls.find((item) => item.persistId === id)
+                  return control?.panelId !== panelId
                 }),
-              );
+              )
 
         return {
           values,
           controls: valuesForControls(state.controls, values),
-        };
-      });
+        }
+      })
     },
 
     resetOrder(panelId) {
       if (panelId === undefined) {
-        set({ order: {} });
-        return;
+        set({ order: {} })
+        return
       }
 
       set((state) => {
-        const { [panelId]: _removed, ...order } = state.order;
-        return { order };
-      });
+        const { [panelId]: _removed, ...order } = state.order
+        return { order }
+      })
     },
 
     getControlId(panelId, sectionId, key, explicitControlId) {
@@ -351,17 +351,17 @@ function createBaseState(storeId: string) {
         { id: sectionId, label: sectionId },
         key,
         explicitControlId,
-      );
+      )
     },
 
     getPanelState(panelId) {
-      return panelStateFor(get(), panelId);
+      return panelStateFor(get(), panelId)
     },
-  });
+  })
 }
 
 function createMemoryStore(storeId: string): TweakerStore {
-  return createStore<TweakerState>()(createBaseState(storeId));
+  return createStore<TweakerState>()(createBaseState(storeId))
 }
 
 function createPersistedStore(storeId: string, storageKey: string): TweakerStore {
@@ -376,24 +376,24 @@ function createPersistedStore(storeId: string, storageKey: string): TweakerStore
         sections: state.sections,
       }),
       merge: (persistedState, currentState) => {
-        const parsed = persistedStateSchema.safeParse(persistedState);
-        if (!parsed.success) return currentState;
-        const persisted = parsed.data as PersistedState;
+        const parsed = persistedStateSchema.safeParse(persistedState)
+        if (!parsed.success) return currentState
+        const persisted = parsed.data as PersistedState
 
         return {
           ...currentState,
           ...persisted,
           controls: valuesForControls(currentState.controls, persisted.values),
-        };
+        }
       },
     }),
-  );
+  )
 }
 
 export function createTweakerStore(options: TweakerStoreOptions): TweakerStore {
-  const storeId = options.id ?? options.storeId ?? defaultPanelId;
-  if (options.persistence === false) return createMemoryStore(storeId);
+  const storeId = options.id ?? options.storeId ?? defaultPanelId
+  if (options.persistence === false) return createMemoryStore(storeId)
 
-  const storageKey = options.persistence?.key ?? `${storagePrefix}${storeId}`;
-  return createPersistedStore(storeId, storageKey);
+  const storageKey = options.persistence?.key ?? `${storagePrefix}${storeId}`
+  return createPersistedStore(storeId, storageKey)
 }

@@ -91,7 +91,7 @@ The package currently exports:
 Consumers import styles with:
 
 ```ts
-import "tweaker/style.css";
+import 'tweaker/style.css'
 ```
 
 The package export path maps that to `dist/style.css`; do not document or depend on `dist/index.css`.
@@ -157,7 +157,7 @@ When adding control kinds, update normalization, types, input rendering, tests, 
 Control rows use dnd-kit and must keep the `RestrictToElement` modifier on sortable rows:
 
 ```ts
-RestrictToElement.configure({ element: () => listRef.current });
+RestrictToElement.configure({ element: () => listRef.current })
 ```
 
 Rows also support a pointer-drag fallback and keyboard ArrowUp/ArrowDown reordering on the grip. Preserve all three paths unless a change explicitly replaces them and updates tests.

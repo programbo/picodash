@@ -1,6 +1,6 @@
-import { StrictMode, type CSSProperties, useMemo, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { StrictMode, type CSSProperties, useMemo, useState } from 'react'
+import { createRoot } from 'react-dom/client'
+import { Monitor, Moon, Sun } from 'lucide-react'
 import {
   TweakerPanel,
   TweakerProvider,
@@ -8,9 +8,9 @@ import {
   type PanelTheme,
   type TweakerCustomControlProps,
   type TweakerSchema,
-} from "tweaker";
-import "tweaker/style.css";
-import "./style.css";
+} from 'tweaker'
+import 'tweaker/style.css'
+import './style.css'
 
 const renderingSchema = {
   speed: {
@@ -18,129 +18,129 @@ const renderingSchema = {
     min: 0,
     max: 2,
     step: 0.01,
-    label: "Speed",
-    status: "info",
-    help: "Adjusts the preview animation speed.",
+    label: 'Speed',
+    status: 'info',
+    help: 'Adjusts the preview animation speed.',
   },
   exposure: {
-    type: "number",
+    type: 'number',
     defaultValue: 1,
     min: 0,
     max: 4,
     step: 0.1,
-    status: "alert",
+    status: 'alert',
   },
-  bloom: { type: "checkbox", defaultValue: true, label: "Bloom", status: "error" },
-} satisfies TweakerSchema;
+  bloom: { type: 'checkbox', defaultValue: true, label: 'Bloom', status: 'error' },
+} satisfies TweakerSchema
 
 const cameraSchema = {
   focalLength: {
-    type: "number",
+    type: 'number',
     defaultValue: 35,
     min: 14,
     max: 200,
     step: 1,
-    label: "Focal length",
+    label: 'Focal length',
     formatOptions: {
-      style: "unit",
-      unit: "millimeter",
-      unitDisplay: "short",
+      style: 'unit',
+      unit: 'millimeter',
+      unitDisplay: 'short',
       maximumFractionDigits: 0,
     },
   },
   aperture: {
-    type: "number",
+    type: 'number',
     defaultValue: 2.8,
     min: 1.4,
     max: 22,
     step: 0.1,
-    label: "Aperture",
+    label: 'Aperture',
     formatOptions: { maximumFractionDigits: 1, minimumFractionDigits: 1 },
   },
   zoom: {
-    type: "number",
+    type: 'number',
     defaultValue: 1,
     min: 0,
     max: 1,
     step: 0.05,
-    label: "Zoom",
-    formatOptions: { style: "percent", maximumFractionDigits: 0 },
+    label: 'Zoom',
+    formatOptions: { style: 'percent', maximumFractionDigits: 0 },
   },
   rotation: {
-    type: "number",
+    type: 'number',
     defaultValue: 0,
     min: -180,
     max: 180,
     step: 1,
-    label: "Rotation",
+    label: 'Rotation',
     readOnly: true,
     formatOptions: {
-      style: "unit",
-      unit: "degree",
-      unitDisplay: "narrow",
+      style: 'unit',
+      unit: 'degree',
+      unitDisplay: 'narrow',
       maximumFractionDigits: 0,
     },
   },
-} satisfies TweakerSchema;
+} satisfies TweakerSchema
 
 const materialSchema = {
   shape: {
-    type: "select",
-    defaultValue: "orb",
-    options: { Orb: "orb", Prism: "prism", Plate: "plate" },
+    type: 'select',
+    defaultValue: 'orb',
+    options: { Orb: 'orb', Prism: 'prism', Plate: 'plate' },
   },
   tint: {
-    type: "select",
-    defaultValue: "green",
-    options: ["green", "amber", "blue"],
-    label: "Tint",
-    help: "Changes the material color palette.",
+    type: 'select',
+    defaultValue: 'green',
+    options: ['green', 'amber', 'blue'],
+    label: 'Tint',
+    help: 'Changes the material color palette.',
   },
-  roughness: { type: "slider", defaultValue: 0.34, min: 0, max: 1, step: 0.01 },
+  roughness: { type: 'slider', defaultValue: 0.34, min: 0, max: 1, step: 0.01 },
   sheen: {
-    type: "slider",
+    type: 'slider',
     defaultValue: 0.42,
     min: 0,
     max: 1,
     step: 0.001,
-    formatOptions: { style: "percent", maximumFractionDigits: 1 },
+    formatOptions: { style: 'percent', maximumFractionDigits: 1 },
   },
-  accent: { type: "color", id: "accent", defaultValue: "#9bd16f", label: "Accent" },
-} satisfies TweakerSchema;
+  accent: { type: 'color', id: 'accent', defaultValue: '#9bd16f', label: 'Accent' },
+} satisfies TweakerSchema
 
 const buildSchema = {
   channel: {
-    type: "select",
-    defaultValue: "stable",
-    options: ["stable", "canary"],
-    label: "Channel",
+    type: 'select',
+    defaultValue: 'stable',
+    options: ['stable', 'canary'],
+    label: 'Channel',
   },
-  telemetry: { defaultValue: true, label: "Telemetry" },
-} satisfies TweakerSchema;
+  telemetry: { defaultValue: true, label: 'Telemetry' },
+} satisfies TweakerSchema
 
 const dynamicBaseSchema = {
-  advanced: { type: "checkbox", defaultValue: false, label: "Advanced" },
-} satisfies TweakerSchema;
+  advanced: { type: 'checkbox', defaultValue: false, label: 'Advanced' },
+} satisfies TweakerSchema
 
 const advancedSummarySchema = {
-  summary: { type: "display", defaultValue: "Ready", label: "Summary" },
-} satisfies TweakerSchema;
+  summary: { type: 'display', defaultValue: 'Ready', label: 'Summary' },
+} satisfies TweakerSchema
 
 function useDynamicDependentSchema(advanced: boolean) {
   return useMemo<TweakerSchema>(
     () => ({
       intensity: {
-        type: "number",
+        type: 'number',
         defaultValue: 50,
         min: 0,
         max: advanced ? 200 : 50,
         step: 1,
-        label: "Intensity",
+        label: 'Intensity',
         readOnly: !advanced,
       },
     }),
     [advanced],
-  );
+  )
 }
 
 function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
@@ -149,32 +149,32 @@ function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
       id={id}
       className="color-control"
       type="color"
-      value={typeof value === "string" ? value : "#9bd16f"}
+      value={typeof value === 'string' ? value : '#9bd16f'}
       onChange={(event) => setValue(event.target.value)}
     />
-  );
+  )
 }
 
 function themeFromLocation(): PanelTheme {
-  const theme = new URLSearchParams(window.location.search).get("theme");
-  return theme === "light" || theme === "system" ? theme : "dark";
+  const theme = new URLSearchParams(window.location.search).get('theme')
+  return theme === 'light' || theme === 'system' ? theme : 'dark'
 }
 
 const themeOptions = [
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "light", label: "Light", icon: Sun },
-  { value: "system", label: "System", icon: Monitor },
-] satisfies Array<{ value: PanelTheme; label: string; icon: typeof Moon }>;
+  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'system', label: 'System', icon: Monitor },
+] satisfies Array<{ value: PanelTheme; label: string; icon: typeof Moon }>
 
 function Demo() {
-  const [dimmed, setDimmed] = useState(true);
-  const [panelTheme, setPanelTheme] = useState<PanelTheme>(() => themeFromLocation());
+  const [dimmed, setDimmed] = useState(true)
+  const [panelTheme, setPanelTheme] = useState<PanelTheme>(() => themeFromLocation())
   const [rendering, setRendering] = useTweaker(renderingSchema, {
-    section: { id: "rendering", label: "Rendering" },
-  });
+    section: { id: 'rendering', label: 'Rendering' },
+  })
   const [material] = useTweaker(materialSchema, {
-    section: { id: "material", label: "Material" },
-  });
+    section: { id: 'material', label: 'Material' },
+  })
   const cameraSchemaWithDescription = useMemo<TweakerSchema>(
     () => ({
       ...cameraSchema,
@@ -188,64 +188,64 @@ function Demo() {
       },
     }),
     [rendering.speed],
-  );
+  )
   const [camera] = useTweaker(cameraSchemaWithDescription, {
-    section: { id: "camera", label: "" },
-  });
+    section: { id: 'camera', label: '' },
+  })
   // Derived display: a 35mm-equivalent focal length computed from focalLength.
-  const equivalent = Math.round(Number(camera.focalLength) * 1.5);
+  const equivalent = Math.round(Number(camera.focalLength) * 1.5)
   useTweaker(
     {
       equivalent: {
-        type: "display",
+        type: 'display',
         defaultValue: equivalent,
-        label: "35mm equiv.",
-        formatOptions: { style: "unit", unit: "millimeter", maximumFractionDigits: 0 },
+        label: '35mm equiv.',
+        formatOptions: { style: 'unit', unit: 'millimeter', maximumFractionDigits: 0 },
       },
     },
-    { section: { id: "camera", label: "" } },
-  );
+    { section: { id: 'camera', label: '' } },
+  )
   const [dynamic] = useTweaker(dynamicBaseSchema, {
-    section: { id: "dynamic", label: "Dynamic" },
-  });
-  const advanced = Boolean(dynamic.advanced);
-  const dependentSchema = useDynamicDependentSchema(advanced);
+    section: { id: 'dynamic', label: 'Dynamic' },
+  })
+  const advanced = Boolean(dynamic.advanced)
+  const dependentSchema = useDynamicDependentSchema(advanced)
   // The Advanced section is shown/hidden as a whole via its SectionConfig,
   // independent of the controls it contains.
   const [advancedValues] = useTweaker(dependentSchema, {
-    section: { id: "advanced", label: "Advanced", hidden: !advanced },
-  });
+    section: { id: 'advanced', label: 'Advanced', hidden: !advanced },
+  })
   useTweaker(advancedSummarySchema, {
-    section: { id: "advanced-summary", label: "Advanced summary", hidden: !advanced },
-  });
-  const intensity = Number(advancedValues.intensity ?? 50);
+    section: { id: 'advanced-summary', label: 'Advanced summary', hidden: !advanced },
+  })
+  const intensity = Number(advancedValues.intensity ?? 50)
   const [build] = useTweaker(buildSchema, {
-    panel: "build",
-    section: { id: "build", label: "Build" },
+    panel: 'build',
+    section: { id: 'build', label: 'Build' },
     reorderable: false,
-  });
+  })
 
   const previewStyle = useMemo<CSSProperties>(
     () =>
       ({
-        "--demo-speed": `${rendering.speed}s`,
-        "--demo-exposure": String(rendering.exposure),
-        "--demo-roughness": String(material.roughness),
-        "--demo-tint": `var(--tint-${material.tint})`,
-        "--demo-accent": String(material.accent),
+        '--demo-speed': `${rendering.speed}s`,
+        '--demo-exposure': String(rendering.exposure),
+        '--demo-roughness': String(material.roughness),
+        '--demo-tint': `var(--tint-${material.tint})`,
+        '--demo-accent': String(material.accent),
       }) as CSSProperties,
     [material.accent, material.roughness, material.tint, rendering.exposure, rendering.speed],
-  );
+  )
 
   function selectTheme(theme: PanelTheme) {
-    setPanelTheme(theme);
-    const url = new URL(window.location.href);
-    if (theme === "dark") {
-      url.searchParams.delete("theme");
+    setPanelTheme(theme)
+    const url = new URL(window.location.href)
+    if (theme === 'dark') {
+      url.searchParams.delete('theme')
     } else {
-      url.searchParams.set("theme", theme);
+      url.searchParams.set('theme', theme)
     }
-    window.history.replaceState(null, "", url);
+    window.history.replaceState(null, '', url)
   }
 
   return (
@@ -290,7 +290,7 @@ function Demo() {
 
           <div className="preview" style={previewStyle}>
             <div
-              className={`preview__object preview__object--${material.shape} ${rendering.bloom ? "has-bloom" : ""}`}
+              className={`preview__object preview__object--${material.shape} ${rendering.bloom ? 'has-bloom' : ''}`}
             />
             <div className="preview__readout">
               <span>Speed {Number(rendering.speed).toFixed(2)}</span>
@@ -301,7 +301,7 @@ function Demo() {
               <span>Channel {build.channel}</span>
               <span>
                 Intensity {intensity}
-                {advanced ? " (advanced)" : ""}
+                {advanced ? ' (advanced)' : ''}
               </span>
             </div>
           </div>
@@ -333,7 +333,7 @@ import "tweaker/style.css";`}</code>
             <button
               className="demo-button"
               type="button"
-              onClick={() => setRendering("speed", 1.25)}
+              onClick={() => setRendering('speed', 1.25)}
             >
               Set speed to 1.25
             </button>
@@ -363,19 +363,19 @@ const [dimmed, setDimmed] = useState(true);
               type="button"
               onClick={() => setDimmed((value) => !value)}
             >
-              {dimmed ? "Disable dimming" : "Enable dimming"}
+              {dimmed ? 'Disable dimming' : 'Enable dimming'}
             </button>
           </article>
         </section>
       </main>
     </>
-  );
+  )
 }
 
-createRoot(document.getElementById("app")!).render(
+createRoot(document.getElementById('app')!).render(
   <StrictMode>
     <TweakerProvider id="docs-demo" controls={{ color: ColorControl }}>
       <Demo />
     </TweakerProvider>
   </StrictMode>,
-);
+)

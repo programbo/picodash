@@ -1,11 +1,11 @@
-import { isValidElement, useCallback, useEffect, useMemo } from "react";
-import { useStore } from "zustand";
+import { isValidElement, useCallback, useEffect, useMemo } from 'react'
+import { useStore } from 'zustand'
 import {
   createControlPersistId,
   defaultValueForControl,
   normalizePanelId,
   normalizeSection,
-} from "../control.js";
+} from '../control.js'
 import type {
   ControlConfig,
   JsonValue,
@@ -15,13 +15,13 @@ import type {
   SetTweakerValue,
   TweakerSchema,
   TweakerValues,
-} from "../types.js";
-import { useTweakerStoreApi } from "./context.js";
+} from '../types.js'
+import { useTweakerStoreApi } from './context.js'
 
 function explicitControlId(config: TweakerSchema[string]) {
-  return typeof config === "object" && config !== null && typeof config.id === "string"
+  return typeof config === 'object' && config !== null && typeof config.id === 'string'
     ? config.id
-    : undefined;
+    : undefined
 }
 
 export function resolveTweakerValues<T extends TweakerSchema>(
@@ -32,76 +32,76 @@ export function resolveTweakerValues<T extends TweakerSchema>(
   controls: NormalizedControl[],
   values: Record<string, JsonValue>,
 ): TweakerValues<T> {
-  const controlsById = new Map(controls.map((control) => [control.persistId, control]));
-  const output: Partial<TweakerValues<T>> = {};
+  const controlsById = new Map(controls.map((control) => [control.persistId, control]))
+  const output: Partial<TweakerValues<T>> = {}
 
   for (const key of Object.keys(schema) as Array<keyof T>) {
-    const config = schema[key];
+    const config = schema[key]
     const id = createControlPersistId(
       storeId,
       panelId,
       section,
       String(key),
       explicitControlId(config),
-    );
-    const value = controlsById.get(id)?.value ?? values[id] ?? defaultValueForControl(config);
-    output[key] = value as TweakerValues<T>[typeof key];
+    )
+    const value = controlsById.get(id)?.value ?? values[id] ?? defaultValueForControl(config)
+    output[key] = value as TweakerValues<T>[typeof key]
   }
 
-  return output as TweakerValues<T>;
+  return output as TweakerValues<T>
 }
 
 function stableStringify(value: unknown, seen = new WeakSet<object>()): string {
   if (Array.isArray(value)) {
-    return `[${value.map((item) => stableStringify(item, seen)).join(",")}]`;
+    return `[${value.map((item) => stableStringify(item, seen)).join(',')}]`
   }
 
   if (isValidElement(value)) {
-    const element = value as { type: unknown; key: unknown; props: unknown };
+    const element = value as { type: unknown; key: unknown; props: unknown }
     return `{${[
       `"$$react":true`,
       `"type":${stableStringify(element.type, seen)}`,
       `"key":${stableStringify(element.key, seen)}`,
       `"props":${stableStringify(element.props, seen)}`,
-    ].join(",")}}`;
+    ].join(',')}}`
   }
 
-  if (value && typeof value === "object") {
-    if (seen.has(value)) return '"[Circular]"';
-    seen.add(value);
+  if (value && typeof value === 'object') {
+    if (seen.has(value)) return '"[Circular]"'
+    seen.add(value)
     return `{${Object.entries(value)
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item, seen)}`)
-      .join(",")}}`;
+      .join(',')}}`
   }
 
-  if (typeof value === "function") return `"[Function:${value.name || "anonymous"}]"`;
-  if (typeof value === "symbol") return JSON.stringify(String(value));
-  if (value === undefined) return '"[Undefined]"';
-  return JSON.stringify(value);
+  if (typeof value === 'function') return `"[Function:${value.name || 'anonymous'}]"`
+  if (typeof value === 'symbol') return JSON.stringify(String(value))
+  if (value === undefined) return '"[Undefined]"'
+  return JSON.stringify(value)
 }
 
 export function registrationSignatureForSchema(schema: TweakerSchema): string {
-  return stableStringify(schema);
+  return stableStringify(schema)
 }
 
 export function useTweaker<T extends TweakerSchema>(
   schema: T,
   options: RegisterOptions = {},
 ): [TweakerValues<T>, SetTweakerValue<T>] {
-  const store = useTweakerStoreApi();
-  const panelId = normalizePanelId(options.panel);
-  const section = normalizeSection(options.section);
-  const reorderable = options.reorderable ?? options.sortable ?? true;
-  const controls = useStore(store, (state) => state.controls);
-  const valuesById = useStore(store, (state) => state.values);
-  const schemaSignature = registrationSignatureForSchema(schema);
-  const storeId = store.getState().storeId;
+  const store = useTweakerStoreApi()
+  const panelId = normalizePanelId(options.panel)
+  const section = normalizeSection(options.section)
+  const reorderable = options.reorderable ?? options.sortable ?? true
+  const controls = useStore(store, (state) => state.controls)
+  const valuesById = useStore(store, (state) => state.values)
+  const schemaSignature = registrationSignatureForSchema(schema)
+  const storeId = store.getState().storeId
 
   useEffect(
     () => store.getState().register(schema, { panel: panelId, section, reorderable }),
     [store, schemaSignature, panelId, section.id, section.label, section.hidden, reorderable],
-  );
+  )
 
   useEffect(
     () =>
@@ -125,26 +125,26 @@ export function useTweaker<T extends TweakerSchema>(
       options.hoverBackgroundBlur,
       section.hidden,
     ],
-  );
+  )
 
   const values = useMemo(() => {
-    return resolveTweakerValues(schema, storeId, panelId, section, controls, valuesById);
-  }, [schema, storeId, panelId, section, controls, valuesById]);
+    return resolveTweakerValues(schema, storeId, panelId, section, controls, valuesById)
+  }, [schema, storeId, panelId, section, controls, valuesById])
 
   const setValue = useCallback<SetTweakerValue<T>>(
     (key, value) => {
-      const config = schema[key] as ControlConfig;
+      const config = schema[key] as ControlConfig
       const id = createControlPersistId(
         storeId,
         panelId,
         section,
         String(key),
         explicitControlId(config),
-      );
-      store.getState().setValue(id, value);
+      )
+      store.getState().setValue(id, value)
     },
     [panelId, schema, section, store, storeId],
-  );
+  )
 
-  return [values, setValue];
+  return [values, setValue]
 }

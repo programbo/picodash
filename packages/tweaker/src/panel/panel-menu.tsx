@@ -1,5 +1,5 @@
-import { type RefObject } from "react";
-import { ChevronRight, Ellipsis } from "lucide-react";
+import { type RefObject } from 'react'
+import { ChevronRight, Ellipsis } from 'lucide-react'
 import {
   Button,
   Header,
@@ -9,40 +9,40 @@ import {
   MenuTrigger,
   Popover,
   SubmenuTrigger,
-} from "react-aria-components";
-import type { DockEdge, DockState, JsonValue } from "../types.js";
-import { usePanelEffects } from "./panel-effects-context.js";
+} from 'react-aria-components'
+import type { DockEdge, DockState, JsonValue } from '../types.js'
+import { usePanelEffects } from './panel-effects-context.js'
 
 interface PanelMenuProps {
-  panelId: string;
-  panelRef: RefObject<HTMLElement | null>;
-  title: string;
-  dock: DockState | null;
-  valuesById: Record<string, JsonValue>;
-  resetValues: (panelId?: string) => void;
-  resetOrder: (panelId?: string) => void;
-  setDock: (panelId: string, dock: DockState | null) => void;
-  setAllSectionsCollapsed: (panelId: string, collapsed: boolean) => void;
+  panelId: string
+  panelRef: RefObject<HTMLElement | null>
+  title: string
+  dock: DockState | null
+  valuesById: Record<string, JsonValue>
+  resetValues: (panelId?: string) => void
+  resetOrder: (panelId?: string) => void
+  setDock: (panelId: string, dock: DockState | null) => void
+  setAllSectionsCollapsed: (panelId: string, collapsed: boolean) => void
   /** Report open/close so the panel can keep its hover/active surface while the menu is open. */
-  onOpenChange: (interactionId: string, active: boolean) => void;
+  onOpenChange: (interactionId: string, active: boolean) => void
 }
 
 const DOCK_EDGES: Array<{ edge: DockEdge; id: string; label: string }> = [
-  { edge: "top", id: "dock-top", label: "Dock to top" },
-  { edge: "right", id: "dock-right", label: "Dock to right" },
-  { edge: "bottom", id: "dock-bottom", label: "Dock to bottom" },
-  { edge: "left", id: "dock-left", label: "Dock to left" },
-];
+  { edge: 'top', id: 'dock-top', label: 'Dock to top' },
+  { edge: 'right', id: 'dock-right', label: 'Dock to right' },
+  { edge: 'bottom', id: 'dock-bottom', label: 'Dock to bottom' },
+  { edge: 'left', id: 'dock-left', label: 'Dock to left' },
+]
 
 function CheckableMenuLabel({ active, children }: { active: boolean; children: string }) {
   return (
     <>
       <span className="tw-menu__check" aria-hidden="true">
-        {active ? "\u2713" : ""}
+        {active ? '\u2713' : ''}
       </span>
       <span className="tw-menu__label">{children}</span>
     </>
-  );
+  )
 }
 
 export function PanelMenu({
@@ -56,27 +56,27 @@ export function PanelMenu({
   setAllSectionsCollapsed,
   onOpenChange,
 }: PanelMenuProps) {
-  const panelEffects = usePanelEffects();
+  const panelEffects = usePanelEffects()
 
   function dockToEdge(edge: DockEdge) {
     // Synthesize a DockState using the panel's current cross-axis position as
     // the offset, so docking from the menu keeps the panel roughly where it is
     // instead of jumping to offset 0.
-    const rect = panelRef.current?.getBoundingClientRect();
-    const offset = edge === "top" || edge === "bottom" ? (rect?.x ?? 0) : (rect?.y ?? 0);
-    setDock(panelId, { edge, offset });
+    const rect = panelRef.current?.getBoundingClientRect()
+    const offset = edge === 'top' || edge === 'bottom' ? (rect?.x ?? 0) : (rect?.y ?? 0)
+    setDock(panelId, { edge, offset })
   }
 
   async function copyValues() {
     try {
-      await navigator.clipboard.writeText(JSON.stringify(valuesById));
+      await navigator.clipboard.writeText(JSON.stringify(valuesById))
     } catch {
       // Clipboard may be unavailable (permissions, non-secure context); no-op.
     }
   }
 
   return (
-    <MenuTrigger onOpenChange={(open) => onOpenChange("panel-menu", open)}>
+    <MenuTrigger onOpenChange={(open) => onOpenChange('panel-menu', open)}>
       <Button
         className="tw-icon-button tw-panel__menu-trigger"
         type="button"
@@ -154,8 +154,8 @@ export function PanelMenu({
                     className="tw-menu__item tw-menu__item--danger"
                     id="reset-all"
                     onAction={() => {
-                      resetValues(panelId);
-                      resetOrder(panelId);
+                      resetValues(panelId)
+                      resetOrder(panelId)
                     }}
                   >
                     Reset all
@@ -168,23 +168,23 @@ export function PanelMenu({
           <MenuSection className="tw-menu__section">
             <Header className="tw-menu__section-header">Sticky edges</Header>
             {DOCK_EDGES.map(({ edge, id, label }) => {
-              const active = dock?.edge === edge && !dock?.secondaryEdge;
+              const active = dock?.edge === edge && !dock?.secondaryEdge
               return (
                 <MenuItem
                   key={id}
                   id={id}
                   className="tw-menu__item tw-menu__item--checkable"
-                  data-active={active ? "true" : undefined}
+                  data-active={active ? 'true' : undefined}
                   onAction={() => dockToEdge(edge)}
                 >
                   <CheckableMenuLabel active={active}>{label}</CheckableMenuLabel>
                 </MenuItem>
-              );
+              )
             })}
             <MenuItem
               id="float"
               className="tw-menu__item tw-menu__item--checkable"
-              data-active={dock === null ? "true" : undefined}
+              data-active={dock === null ? 'true' : undefined}
               onAction={() => setDock(panelId, null)}
             >
               <CheckableMenuLabel active={dock === null}>Float (unpin)</CheckableMenuLabel>
@@ -193,5 +193,5 @@ export function PanelMenu({
         </Menu>
       </Popover>
     </MenuTrigger>
-  );
+  )
 }

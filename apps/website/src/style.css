@@ -12,8 +12,8 @@
   color: var(--ink);
   background: #d9d0bb;
   font-family:
-    "Avenir Next",
-    "Segoe UI",
+    'Avenir Next',
+    'Segoe UI',
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -132,7 +132,7 @@ h1 {
   background: rgb(255 255 255 / 0.3);
 }
 
-.theme-switcher__button[aria-pressed="true"] {
+.theme-switcher__button[aria-pressed='true'] {
   color: #f7f2e8;
   background: var(--accent);
 }
@@ -154,7 +154,7 @@ h1 {
 .preview::before {
   position: absolute;
   inset: 10%;
-  content: "";
+  content: '';
   border: 1px dashed rgb(22 24 19 / 0.18);
   border-radius: 999px;
   transform: scale(calc(1 + var(--demo-roughness) * 0.2));
@@ -219,7 +219,7 @@ h1 {
   color: #f7f2e8;
   background: rgb(22 24 19 / 0.78);
   border-radius: 5px;
-  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+  font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', monospace;
   font-size: 11px;
 }
 

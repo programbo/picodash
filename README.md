@@ -7,18 +7,18 @@ Tweaker uses a provider-scoped Zustand store. Persisted values, panel-local row 
 ## Usage
 
 ```tsx
-import { TweakerPanel, TweakerProvider, useTweaker, type TweakerCustomControlProps } from "tweaker";
-import "tweaker/style.css";
+import { TweakerPanel, TweakerProvider, useTweaker, type TweakerCustomControlProps } from 'tweaker'
+import 'tweaker/style.css'
 
 function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
   return (
     <input
       id={id}
       type="color"
-      value={typeof value === "string" ? value : "#9bd16f"}
+      value={typeof value === 'string' ? value : '#9bd16f'}
       onChange={(event) => setValue(event.target.value)}
     />
-  );
+  )
 }
 
 function SceneControls() {
@@ -29,21 +29,21 @@ function SceneControls() {
         min: 0,
         max: 2,
         step: 0.01,
-        status: "info",
-        help: "Adjusts the preview animation speed.",
+        status: 'info',
+        help: 'Adjusts the preview animation speed.',
       },
-      exposure: { type: "number", defaultValue: 1, min: 0, max: 4 },
+      exposure: { type: 'number', defaultValue: 1, min: 0, max: 4 },
       bloom: { defaultValue: true },
-      accent: { type: "color", id: "accent", defaultValue: "#9bd16f" },
+      accent: { type: 'color', id: 'accent', defaultValue: '#9bd16f' },
     },
     {
-      panel: "scene",
-      section: { id: "rendering", label: "Rendering" },
+      panel: 'scene',
+      section: { id: 'rendering', label: 'Rendering' },
       reorderable: true,
     },
-  );
+  )
 
-  return <button onClick={() => setValue("speed", 1.25)}>Boost</button>;
+  return <button onClick={() => setValue('speed', 1.25)}>Boost</button>
 }
 
 export function App() {
@@ -63,7 +63,7 @@ export function App() {
         }}
       />
     </TweakerProvider>
-  );
+  )
 }
 ```
 

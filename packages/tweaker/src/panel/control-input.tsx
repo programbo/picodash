@@ -14,28 +14,28 @@ import {
   SliderOutput,
   SliderThumb,
   SliderTrack,
-} from "react-aria-components";
-import { ChevronDown } from "lucide-react";
-import { useTweakerCustomControls } from "../react/context.js";
-import { formatDisplayValue, formatSliderValue } from "../control.js";
-import type { JsonValue, NormalizedControl } from "../types.js";
-import { usePanelEffects, usePanelInteraction } from "./panel-effects-context.js";
+} from 'react-aria-components'
+import { ChevronDown } from 'lucide-react'
+import { useTweakerCustomControls } from '../react/context.js'
+import { formatDisplayValue, formatSliderValue } from '../control.js'
+import type { JsonValue, NormalizedControl } from '../types.js'
+import { usePanelEffects, usePanelInteraction } from './panel-effects-context.js'
 
 interface ControlInputProps {
-  control: NormalizedControl;
-  labelId: string;
-  onChange: (value: JsonValue) => void;
+  control: NormalizedControl
+  labelId: string
+  onChange: (value: JsonValue) => void
 }
 
 export function ControlInput({ control, labelId, onChange }: ControlInputProps) {
-  const customControls = useTweakerCustomControls();
-  const panelEffects = usePanelEffects();
-  const setSelectOpenActive = usePanelInteraction(`select:${control.persistId}`);
+  const customControls = useTweakerCustomControls()
+  const panelEffects = usePanelEffects()
+  const setSelectOpenActive = usePanelInteraction(`select:${control.persistId}`)
 
-  if (control.kind === "custom") {
-    const CustomControl = customControls[control.type];
+  if (control.kind === 'custom') {
+    const CustomControl = customControls[control.type]
     if (!CustomControl) {
-      return <span className="tw-custom-missing">Missing control: {control.type}</span>;
+      return <span className="tw-custom-missing">Missing control: {control.type}</span>
     }
 
     return (
@@ -48,18 +48,18 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         control={control}
         readOnly={control.readOnly}
       />
-    );
+    )
   }
 
-  if (control.kind === "display") {
+  if (control.kind === 'display') {
     return (
       <output id={control.domId} className="tw-display" htmlFor={labelId}>
         {formatDisplayValue(control)}
       </output>
-    );
+    )
   }
 
-  if (control.kind === "checkbox") {
+  if (control.kind === 'checkbox') {
     return (
       <CheckboxField
         id={control.domId}
@@ -71,11 +71,11 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
       >
         <CheckboxButton className="tw-checkbox" />
       </CheckboxField>
-    );
+    )
   }
 
-  if (control.kind === "select") {
-    const selectedKey = typeof control.value === "string" ? control.value : "";
+  if (control.kind === 'select') {
+    const selectedKey = typeof control.value === 'string' ? control.value : ''
 
     return (
       <Select
@@ -104,10 +104,10 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
           </ListBox>
         </Popover>
       </Select>
-    );
+    )
   }
 
-  if (control.kind === "slider") {
+  if (control.kind === 'slider') {
     return (
       <Slider
         className="tw-slider"
@@ -123,10 +123,10 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         </SliderTrack>
         <SliderOutput className="tw-slider__value">{formatSliderValue(control)}</SliderOutput>
       </Slider>
-    );
+    )
   }
 
-  const numberValue = typeof control.value === "number" ? control.value : 0;
+  const numberValue = typeof control.value === 'number' ? control.value : 0
 
   return (
     <NumberField
@@ -139,12 +139,12 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
       formatOptions={control.formatOptions}
       value={numberValue}
       onChange={(value) => {
-        if (Number.isFinite(value)) onChange(value);
+        if (Number.isFinite(value)) onChange(value)
       }}
     >
       <Group>
         <Input id={control.domId} className="tw-number" inputMode="decimal" />
       </Group>
     </NumberField>
-  );
+  )
 }

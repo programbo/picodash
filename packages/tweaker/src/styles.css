@@ -34,7 +34,7 @@
   --spacing: 0.25rem;
 }
 
-:where(.tw-panel, .tw-select__popover, .tw-tooltip, .tw-menu__popover)[data-theme="light"] {
+:where(.tw-panel, .tw-select__popover, .tw-tooltip, .tw-menu__popover)[data-theme='light'] {
   --tw-bg: rgb(248 250 246 / var(--tw-panel-active-color-opacity));
   --tw-bg-elevated: rgb(255 255 252 / var(--tw-panel-active-color-opacity));
   --tw-row-drag-bg: rgb(255 255 252 / calc(var(--tw-panel-active-color-opacity) * 0.82));
@@ -60,7 +60,7 @@
 }
 
 @media (prefers-color-scheme: light) {
-  :where(.tw-panel, .tw-select__popover, .tw-tooltip, .tw-menu__popover)[data-theme="system"] {
+  :where(.tw-panel, .tw-select__popover, .tw-tooltip, .tw-menu__popover)[data-theme='system'] {
     --tw-bg: rgb(248 250 246 / var(--tw-panel-active-color-opacity));
     --tw-bg-elevated: rgb(255 255 252 / var(--tw-panel-active-color-opacity));
     --tw-row-drag-bg: rgb(255 255 252 / calc(var(--tw-panel-active-color-opacity) * 0.82));
@@ -99,7 +99,7 @@
   border: 1px solid var(--tw-border);
   border-radius: var(--tw-radius);
   box-shadow: var(--tw-shadow);
-  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+  font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', monospace;
   font-size: 12px;
   letter-spacing: 0;
   transition:
@@ -111,7 +111,7 @@
 
 .tw-panel:hover,
 .tw-panel:focus-within,
-.tw-panel[data-active="true"] {
+.tw-panel[data-active='true'] {
   --tw-panel-active-color-opacity: var(
     --tw-panel-hover-color-opacity,
     var(--tw-panel-color-opacity)
@@ -128,7 +128,7 @@
    background snapped: a momentary :hover flicker (e.g. the cursor crossing a
    gap as reordered rows animate) must not start a visible dim-then-brighten
    transition. The transition is restored once the interaction settles. */
-.tw-panel[data-active="true"] {
+.tw-panel[data-active='true'] {
   transition: none;
 }
 
@@ -332,10 +332,10 @@
 
 /* Read-only controls: inputs are faded and rendered in greyscale so they read
    as non-editable while still displaying their value. The label stays legible. */
-.tw-row[data-readonly="true"] .tw-number-field,
-.tw-row[data-readonly="true"] .tw-select,
-.tw-row[data-readonly="true"] .tw-checkbox-field,
-.tw-row[data-readonly="true"] .tw-slider {
+.tw-row[data-readonly='true'] .tw-number-field,
+.tw-row[data-readonly='true'] .tw-select,
+.tw-row[data-readonly='true'] .tw-checkbox-field,
+.tw-row[data-readonly='true'] .tw-slider {
   opacity: 0.5;
   filter: grayscale(1);
   pointer-events: none;
@@ -343,7 +343,7 @@
 
 /* Hidden controls: the row is removed from the layout but stays registered so
    its value and order slot are preserved when it is shown again. */
-.tw-row[data-hidden="true"] {
+.tw-row[data-hidden='true'] {
   display: none;
 }
 
@@ -443,7 +443,7 @@
   grid-template-columns: minmax(0, 1fr) 13px;
 }
 
-.tw-select__button [slot="value"] {
+.tw-select__button [slot='value'] {
   @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
 }
 
@@ -472,7 +472,7 @@
   border: 1px solid var(--tw-border-strong);
   border-radius: 5px;
   box-shadow: var(--tw-shadow);
-  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+  font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', monospace;
   font-size: 12px;
 }
 
@@ -495,7 +495,7 @@
   border: 1px solid var(--tw-border-strong);
   border-radius: 5px;
   box-shadow: var(--tw-shadow);
-  font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+  font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', monospace;
   font-size: 11px;
   line-height: 1.35;
   pointer-events: none;
@@ -508,15 +508,15 @@
   stroke-width: 1px;
 }
 
-.tw-tooltip[data-placement="bottom"] .tw-tooltip__arrow svg {
+.tw-tooltip[data-placement='bottom'] .tw-tooltip__arrow svg {
   transform: rotate(180deg);
 }
 
-.tw-tooltip[data-placement="left"] .tw-tooltip__arrow svg {
+.tw-tooltip[data-placement='left'] .tw-tooltip__arrow svg {
   transform: rotate(90deg);
 }
 
-.tw-tooltip[data-placement="right"] .tw-tooltip__arrow svg {
+.tw-tooltip[data-placement='right'] .tw-tooltip__arrow svg {
   transform: rotate(-90deg);
 }
 
@@ -524,16 +524,16 @@
   @apply m-0 grid gap-0.5 p-0.75 outline-none;
 }
 
-.tw-select__list [role="option"] {
+.tw-select__list [role='option'] {
   @apply min-h-5.75 cursor-pointer rounded-sm px-1.5 py-1 outline-none;
 }
 
-.tw-select__list [role="option"][data-focused],
-.tw-select__list [role="option"][data-hovered] {
+.tw-select__list [role='option'][data-focused],
+.tw-select__list [role='option'][data-hovered] {
   background-color: var(--tw-control-hover-bg);
 }
 
-.tw-select__list [role="option"][data-selected] {
+.tw-select__list [role='option'][data-selected] {
   color: var(--tw-accent-strong);
 }
 
@@ -558,7 +558,7 @@
 
   border: solid var(--tw-check);
   border-width: 0 2px 2px 0;
-  content: "";
+  content: '';
   transform: rotate(45deg);
 }
 
@@ -576,7 +576,7 @@
   @apply absolute top-1/2 right-0 left-0 h-1 rounded-full;
 
   background-color: var(--tw-control-bg);
-  content: "";
+  content: '';
   transform: translateY(-50%);
 }
 

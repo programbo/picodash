@@ -10,48 +10,48 @@ import {
   type PanelAppearance,
   type RegisterOptions,
   type SectionConfig,
-} from "./types.js";
+} from './types.js'
 
 const standardControlKeys = new Set([
-  "id",
-  "type",
-  "value",
-  "defaultValue",
-  "label",
-  "min",
-  "max",
-  "step",
-  "options",
-  "status",
-  "help",
-  "description",
-  "formatOptions",
-  "readOnly",
-  "hidden",
-]);
+  'id',
+  'type',
+  'value',
+  'defaultValue',
+  'label',
+  'min',
+  'max',
+  'step',
+  'options',
+  'status',
+  'help',
+  'description',
+  'formatOptions',
+  'readOnly',
+  'hidden',
+])
 
-export const defaultSection = defaultSectionLabel;
+export const defaultSection = defaultSectionLabel
 
 export function labelFromKey(key: string) {
   return key
-    .replace(/[-_]+/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/^./, (char) => char.toUpperCase());
+    .replace(/[-_]+/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/^./, (char) => char.toUpperCase())
 }
 
 export function clamp(value: number, min?: number, max?: number) {
-  let next = value;
-  if (typeof min === "number") next = Math.max(min, next);
-  if (typeof max === "number") next = Math.min(max, next);
-  return next;
+  let next = value
+  if (typeof min === 'number') next = Math.max(min, next)
+  if (typeof max === 'number') next = Math.min(max, next)
+  return next
 }
 
 function normalizeOptions(options: readonly string[] | Record<string, string>) {
   if (Array.isArray(options)) {
-    return options.map((value) => ({ label: labelFromKey(value), value }));
+    return options.map((value) => ({ label: labelFromKey(value), value }))
   }
 
-  return Object.entries(options).map(([label, value]) => ({ label, value }));
+  return Object.entries(options).map(([label, value]) => ({ label, value }))
 }
 
 function safeId(value: string) {
@@ -59,26 +59,26 @@ function safeId(value: string) {
     value
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "control"
-  );
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'control'
+  )
 }
 
 export function normalizePanelId(panel?: string) {
-  return panel?.trim() || defaultPanelId;
+  return panel?.trim() || defaultPanelId
 }
 
 export function normalizeSection(section?: string | SectionConfig): SectionConfig {
-  if (!section) return { id: defaultSectionId, label: defaultSectionLabel };
-  if (typeof section === "string") return { id: section, label: section };
+  if (!section) return { id: defaultSectionId, label: defaultSectionLabel }
+  if (typeof section === 'string') return { id: section, label: section }
   // An explicitly empty label marks the section as headerless: keep it as ""
   // rather than generating a label from the id. Only an absent label falls back.
-  const label = typeof section.label === "string" ? section.label.trim() : labelFromKey(section.id);
+  const label = typeof section.label === 'string' ? section.label.trim() : labelFromKey(section.id)
   return {
     id: section.id.trim() || defaultSectionId,
     label,
     hidden: section.hidden === true ? true : undefined,
-  };
+  }
 }
 
 export function createControlPersistId(
@@ -88,16 +88,16 @@ export function createControlPersistId(
   key: string,
   explicitControlId?: string,
 ) {
-  const controlId = explicitControlId ?? key;
+  const controlId = explicitControlId ?? key
   if (!explicitControlId && panelId === defaultPanelId && section.id === section.label) {
-    return `${storeId}:${section.label}:${key}`;
+    return `${storeId}:${section.label}:${key}`
   }
 
-  return `${storeId}:${panelId}:${section.id}:${controlId}`;
+  return `${storeId}:${panelId}:${section.id}:${controlId}`
 }
 
 export function createControlId(storeId: string, section: string, key: string) {
-  return createControlPersistId(storeId, defaultPanelId, { id: section, label: section }, key);
+  return createControlPersistId(storeId, defaultPanelId, { id: section, label: section }, key)
 }
 
 export function createControlDomId(
@@ -106,57 +106,57 @@ export function createControlDomId(
   sectionId: string,
   controlId: string,
 ) {
-  return `tw-${safeId(storeId)}-${safeId(panelId)}-${safeId(sectionId)}-${safeId(controlId)}`;
+  return `tw-${safeId(storeId)}-${safeId(panelId)}-${safeId(sectionId)}-${safeId(controlId)}`
 }
 
 export function defaultValueForControl(config: ControlConfig): JsonValue {
-  if (typeof config !== "object" || config === null) return config;
-  if ("defaultValue" in config && config.defaultValue !== undefined) return config.defaultValue;
-  if ("value" in config && config.value !== undefined) return config.value;
-  return null;
+  if (typeof config !== 'object' || config === null) return config
+  if ('defaultValue' in config && config.defaultValue !== undefined) return config.defaultValue
+  if ('value' in config && config.value !== undefined) return config.value
+  return null
 }
 
 function normalizeOpacity(value: number | undefined) {
-  if (value === undefined || !Number.isFinite(value)) return undefined;
-  return clamp(value, 0, 1);
+  if (value === undefined || !Number.isFinite(value)) return undefined
+  return clamp(value, 0, 1)
 }
 
 function normalizeBlur(value: number | undefined) {
-  if (value === undefined || !Number.isFinite(value)) return undefined;
-  return Math.max(0, value);
+  if (value === undefined || !Number.isFinite(value)) return undefined
+  return Math.max(0, value)
 }
 
 export function statusForControl(config: ControlConfig): ControlStatus | undefined {
-  if (typeof config !== "object" || config === null) return undefined;
-  const value = config.status;
-  return value === "info" || value === "alert" || value === "error" ? value : undefined;
+  if (typeof config !== 'object' || config === null) return undefined
+  const value = config.status
+  return value === 'info' || value === 'alert' || value === 'error' ? value : undefined
 }
 
 function helpForControl(config: ControlConfig) {
-  if (typeof config !== "object" || config === null) return undefined;
-  const value = config.help;
-  return typeof value === "string" && value.trim() ? value : undefined;
+  if (typeof config !== 'object' || config === null) return undefined
+  const value = config.help
+  return typeof value === 'string' && value.trim() ? value : undefined
 }
 
 function descriptionForControl(config: ControlConfig) {
-  if (typeof config !== "object" || config === null) return undefined;
-  return config.description;
+  if (typeof config !== 'object' || config === null) return undefined
+  return config.description
 }
 
 function readOnlyForControl(config: ControlConfig) {
-  if (typeof config !== "object" || config === null) return undefined;
-  return config.readOnly === true ? true : undefined;
+  if (typeof config !== 'object' || config === null) return undefined
+  return config.readOnly === true ? true : undefined
 }
 
 function hiddenForControl(config: ControlConfig) {
-  if (typeof config !== "object" || config === null) return undefined;
-  return config.hidden === true ? true : undefined;
+  if (typeof config !== 'object' || config === null) return undefined
+  return config.hidden === true ? true : undefined
 }
 
 function formatForControl(config: ControlConfig) {
-  if (typeof config !== "object" || config === null) return undefined;
-  const value = (config as Record<string, unknown>).format;
-  return typeof value === "string" && value.length > 0 ? value : undefined;
+  if (typeof config !== 'object' || config === null) return undefined
+  const value = (config as Record<string, unknown>).format
+  return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
 export function normalizePanelEffects(options: RegisterOptions): PanelAppearance {
@@ -165,7 +165,7 @@ export function normalizePanelEffects(options: RegisterOptions): PanelAppearance
     activeSurfaceOpacity: normalizeOpacity(options.hoverOpacity),
     backdropBlur: normalizeBlur(options.backgroundBlur),
     activeBackdropBlur: normalizeBlur(options.hoverBackgroundBlur),
-  };
+  }
 }
 
 export function hasPanelEffects(options: RegisterOptions) {
@@ -174,7 +174,7 @@ export function hasPanelEffects(options: RegisterOptions) {
     options.hoverOpacity !== undefined ||
     options.backgroundBlur !== undefined ||
     options.hoverBackgroundBlur !== undefined
-  );
+  )
 }
 
 export function normalizePanelAppearance(appearance: PanelAppearance = {}): PanelAppearance {
@@ -183,35 +183,33 @@ export function normalizePanelAppearance(appearance: PanelAppearance = {}): Pane
     activeSurfaceOpacity: normalizeOpacity(appearance.activeSurfaceOpacity),
     backdropBlur: normalizeBlur(appearance.backdropBlur),
     activeBackdropBlur: normalizeBlur(appearance.activeBackdropBlur),
-  };
+  }
 }
 
 function customSettings(config: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(config).filter(([key]) => !standardControlKeys.has(key)),
-  );
+  return Object.fromEntries(Object.entries(config).filter(([key]) => !standardControlKeys.has(key)))
 }
 
-function numberProperty(config: ControlConfig, key: "min" | "max" | "step") {
-  if (typeof config !== "object" || config === null) return undefined;
-  const value = (config as Record<string, unknown>)[key];
-  return typeof value === "number" ? value : undefined;
+function numberProperty(config: ControlConfig, key: 'min' | 'max' | 'step') {
+  if (typeof config !== 'object' || config === null) return undefined
+  const value = (config as Record<string, unknown>)[key]
+  return typeof value === 'number' ? value : undefined
 }
 
 function formatOptionsProperty(config: ControlConfig): Intl.NumberFormatOptions | undefined {
-  if (typeof config !== "object" || config === null) return undefined;
-  const value = (config as Record<string, unknown>).formatOptions;
-  if (!value || typeof value !== "object") return undefined;
-  return value as Intl.NumberFormatOptions;
+  if (typeof config !== 'object' || config === null) return undefined
+  const value = (config as Record<string, unknown>).formatOptions
+  if (!value || typeof value !== 'object') return undefined
+  return value as Intl.NumberFormatOptions
 }
 
 interface NormalizeControlEntryOptions {
-  storeId: string;
-  panelId: string;
-  section: SectionConfig;
-  key: string;
-  config: ControlConfig;
-  reorderable?: boolean;
+  storeId: string
+  panelId: string
+  section: SectionConfig
+  key: string
+  config: ControlConfig
+  reorderable?: boolean
 }
 
 export function normalizeControlEntry({
@@ -222,17 +220,17 @@ export function normalizeControlEntry({
   config,
   reorderable = true,
 }: NormalizeControlEntryOptions): NormalizedControl {
-  const fallbackLabel = labelFromKey(key);
-  const objectConfig = typeof config === "object" && config !== null ? config : null;
+  const fallbackLabel = labelFromKey(key)
+  const objectConfig = typeof config === 'object' && config !== null ? config : null
   const explicitControlId =
-    objectConfig && typeof objectConfig.id === "string" ? objectConfig.id : undefined;
-  const controlId = explicitControlId ?? key;
-  const persistId = createControlPersistId(storeId, panelId, section, key, explicitControlId);
-  const status = statusForControl(config);
-  const help = helpForControl(config);
-  const description = descriptionForControl(config);
-  const readOnly = readOnlyForControl(config);
-  const hidden = hiddenForControl(config);
+    objectConfig && typeof objectConfig.id === 'string' ? objectConfig.id : undefined
+  const controlId = explicitControlId ?? key
+  const persistId = createControlPersistId(storeId, panelId, section, key, explicitControlId)
+  const status = statusForControl(config)
+  const help = helpForControl(config)
+  const description = descriptionForControl(config)
+  const readOnly = readOnlyForControl(config)
+  const hidden = hiddenForControl(config)
   const base = {
     id: persistId,
     persistId,
@@ -250,105 +248,104 @@ export function normalizeControlEntry({
     description,
     readOnly,
     hidden,
-  };
+  }
 
-  if (typeof config === "number") {
+  if (typeof config === 'number') {
     return {
       ...base,
-      kind: "number",
-      type: "number",
+      kind: 'number',
+      type: 'number',
       label: fallbackLabel,
       value: config,
       defaultValue: config,
-    };
+    }
   }
 
-  if (typeof config === "boolean") {
+  if (typeof config === 'boolean') {
     return {
       ...base,
-      kind: "checkbox",
-      type: "checkbox",
+      kind: 'checkbox',
+      type: 'checkbox',
       label: fallbackLabel,
       value: config,
       defaultValue: config,
-    };
+    }
   }
 
-  if (typeof config === "string") {
+  if (typeof config === 'string') {
     return {
       ...base,
-      kind: "select",
-      type: "select",
+      kind: 'select',
+      type: 'select',
       label: fallbackLabel,
       value: config,
       defaultValue: config,
       options: [{ label: labelFromKey(config), value: config }],
-    };
+    }
   }
 
-  const defaultValue = defaultValueForControl(config);
+  const defaultValue = defaultValueForControl(config)
 
-  if (config.type === "display") {
+  if (config.type === 'display') {
     const rawValue =
-      typeof defaultValue === "number" || typeof defaultValue === "string" ? defaultValue : "";
+      typeof defaultValue === 'number' || typeof defaultValue === 'string' ? defaultValue : ''
     return {
       ...base,
-      kind: "display",
-      type: "display",
+      kind: 'display',
+      type: 'display',
       label: config.label ?? fallbackLabel,
       value: rawValue,
       defaultValue: rawValue,
       formatOptions: formatOptionsProperty(config),
       format: formatForControl(config),
-    };
+    }
   }
 
-  if ("options" in config) {
-    const options = (config as { options: readonly string[] | Record<string, string> }).options;
-    const value = typeof defaultValue === "string" ? defaultValue : "";
+  if ('options' in config) {
+    const options = (config as { options: readonly string[] | Record<string, string> }).options
+    const value = typeof defaultValue === 'string' ? defaultValue : ''
     return {
       ...base,
-      kind: "select",
-      type: "select",
+      kind: 'select',
+      type: 'select',
       label: config.label ?? fallbackLabel,
       value,
       defaultValue: value,
       options: normalizeOptions(options),
-    };
+    }
   }
 
-  if (config.type && !["number", "slider", "checkbox"].includes(config.type)) {
+  if (config.type && !['number', 'slider', 'checkbox'].includes(config.type)) {
     return {
       ...base,
-      kind: "custom",
+      kind: 'custom',
       type: config.type,
       label: config.label ?? fallbackLabel,
       value: defaultValue,
       defaultValue,
       settings: customSettings(config as Record<string, unknown>),
-    };
+    }
   }
 
-  if (typeof defaultValue === "boolean") {
+  if (typeof defaultValue === 'boolean') {
     return {
       ...base,
-      kind: "checkbox",
-      type: "checkbox",
+      kind: 'checkbox',
+      type: 'checkbox',
       label: config.label ?? fallbackLabel,
       value: defaultValue,
       defaultValue,
-    };
+    }
   }
 
-  const min = numberProperty(config, "min");
-  const max = numberProperty(config, "max");
-  const step = numberProperty(config, "step");
-  const formatOptions = formatOptionsProperty(config);
-  const numericValue = typeof defaultValue === "number" ? defaultValue : 0;
+  const min = numberProperty(config, 'min')
+  const max = numberProperty(config, 'max')
+  const step = numberProperty(config, 'step')
+  const formatOptions = formatOptionsProperty(config)
+  const numericValue = typeof defaultValue === 'number' ? defaultValue : 0
   const hasSliderBounds =
-    config.type === "slider" ||
-    (config.type !== "number" && min !== undefined && max !== undefined);
-  const kind: ControlKind = hasSliderBounds ? "slider" : "number";
+    config.type === 'slider' || (config.type !== 'number' && min !== undefined && max !== undefined)
+  const kind: ControlKind = hasSliderBounds ? 'slider' : 'number'
 
   return {
     ...base,
@@ -361,7 +358,7 @@ export function normalizeControlEntry({
     max,
     step,
     formatOptions,
-  };
+  }
 }
 
 export function normalizeControl(
@@ -378,11 +375,11 @@ export function normalizeControl(
     key,
     config,
     reorderable,
-  });
+  })
 }
 
 function hasValue(values: Record<string, JsonValue>, id: string) {
-  return Object.prototype.hasOwnProperty.call(values, id);
+  return Object.prototype.hasOwnProperty.call(values, id)
 }
 
 /**
@@ -395,33 +392,33 @@ function hasValue(values: Record<string, JsonValue>, id: string) {
  * JSON-opaque and returned unchanged.
  */
 export function sanitizeValueForControl(control: NormalizedControl, value: JsonValue): JsonValue {
-  if (control.kind === "number" || control.kind === "slider") {
-    const fallback = typeof control.defaultValue === "number" ? control.defaultValue : 0;
-    const numeric = typeof value === "number" && Number.isFinite(value) ? value : fallback;
-    return clamp(numeric, control.min, control.max);
+  if (control.kind === 'number' || control.kind === 'slider') {
+    const fallback = typeof control.defaultValue === 'number' ? control.defaultValue : 0
+    const numeric = typeof value === 'number' && Number.isFinite(value) ? value : fallback
+    return clamp(numeric, control.min, control.max)
   }
 
-  if (control.kind === "select") {
-    const options = control.options ?? [];
+  if (control.kind === 'select') {
+    const options = control.options ?? []
     const isValid = (candidate: unknown): candidate is string =>
-      typeof candidate === "string" && options.some((option) => option.value === candidate);
-    if (isValid(value)) return value;
-    if (isValid(control.defaultValue)) return control.defaultValue;
-    return options[0]?.value ?? "";
+      typeof candidate === 'string' && options.some((option) => option.value === candidate)
+    if (isValid(value)) return value
+    if (isValid(control.defaultValue)) return control.defaultValue
+    return options[0]?.value ?? ''
   }
 
-  if (control.kind === "checkbox") {
-    return typeof value === "boolean" ? value : Boolean(control.defaultValue);
+  if (control.kind === 'checkbox') {
+    return typeof value === 'boolean' ? value : Boolean(control.defaultValue)
   }
 
-  if (control.kind === "display") {
-    if (typeof value === "number" || typeof value === "string") return value;
-    return typeof control.defaultValue === "number" || typeof control.defaultValue === "string"
+  if (control.kind === 'display') {
+    if (typeof value === 'number' || typeof value === 'string') return value
+    return typeof control.defaultValue === 'number' || typeof control.defaultValue === 'string'
       ? control.defaultValue
-      : "";
+      : ''
   }
 
-  return value;
+  return value
 }
 
 export function valuesForControls(
@@ -432,13 +429,13 @@ export function valuesForControls(
     // Display values are derived: always reflect the latest defaultValue from
     // registration and ignore any stale persisted entry.
     const value =
-      control.kind === "display"
+      control.kind === 'display'
         ? control.defaultValue
         : hasValue(values, control.persistId)
           ? values[control.persistId]!
-          : control.defaultValue;
-    return { ...control, value };
-  });
+          : control.defaultValue
+    return { ...control, value }
+  })
 }
 
 /**
@@ -447,86 +444,86 @@ export function valuesForControls(
  * `format` template (e.g. "Total: {value}") then wraps the result if present.
  */
 export function formatDisplayValue(control: NormalizedControl): string {
-  const value = control.value;
-  let formatted: string;
-  if (typeof value === "number") {
+  const value = control.value
+  let formatted: string
+  if (typeof value === 'number') {
     formatted = control.formatOptions
       ? new Intl.NumberFormat(undefined, control.formatOptions).format(value)
-      : String(value);
+      : String(value)
   } else {
-    formatted = typeof value === "string" ? value : "";
+    formatted = typeof value === 'string' ? value : ''
   }
-  return control.format ? control.format.replace("{value}", formatted) : formatted;
+  return control.format ? control.format.replace('{value}', formatted) : formatted
 }
 
 export function formatSliderValue(control: NormalizedControl): string {
-  const value = typeof control.value === "number" ? control.value : Number(control.value);
-  const digits = fractionDigitsForStep(control.step ?? 0.01);
-  const formatOptions = sliderFormatOptions(control.formatOptions, digits);
+  const value = typeof control.value === 'number' ? control.value : Number(control.value)
+  const digits = fractionDigitsForStep(control.step ?? 0.01)
+  const formatOptions = sliderFormatOptions(control.formatOptions, digits)
 
-  return new Intl.NumberFormat(undefined, formatOptions).format(Number.isFinite(value) ? value : 0);
+  return new Intl.NumberFormat(undefined, formatOptions).format(Number.isFinite(value) ? value : 0)
 }
 
 function sliderFormatOptions(
   formatOptions: Intl.NumberFormatOptions | undefined,
   inferredFractionDigits: number,
 ) {
-  const next = { ...formatOptions };
+  const next = { ...formatOptions }
   if (next.minimumFractionDigits === undefined && next.maximumFractionDigits === undefined) {
-    next.minimumFractionDigits = inferredFractionDigits;
-    next.maximumFractionDigits = inferredFractionDigits;
+    next.minimumFractionDigits = inferredFractionDigits
+    next.maximumFractionDigits = inferredFractionDigits
   } else if (next.minimumFractionDigits !== undefined && next.maximumFractionDigits === undefined) {
-    next.maximumFractionDigits = Math.max(next.minimumFractionDigits, inferredFractionDigits);
+    next.maximumFractionDigits = Math.max(next.minimumFractionDigits, inferredFractionDigits)
   }
-  return next;
+  return next
 }
 
 function fractionDigitsForStep(step: number) {
-  if (!Number.isFinite(step) || step <= 0) return 2;
+  if (!Number.isFinite(step) || step <= 0) return 2
 
-  const text = String(step).toLowerCase();
-  const [coefficient, exponentPart] = text.split("e-");
+  const text = String(step).toLowerCase()
+  const [coefficient, exponentPart] = text.split('e-')
   if (exponentPart) {
-    const exponent = Number(exponentPart);
-    const coefficientDigits = coefficient.includes(".") ? coefficient.split(".")[1]!.length : 0;
-    return Math.min(20, Math.max(0, exponent + coefficientDigits));
+    const exponent = Number(exponentPart)
+    const coefficientDigits = coefficient.includes('.') ? coefficient.split('.')[1]!.length : 0
+    return Math.min(20, Math.max(0, exponent + coefficientDigits))
   }
 
-  if (!text.includes(".")) return 0;
-  return Math.min(20, text.split(".")[1]!.length);
+  if (!text.includes('.')) return 0
+  return Math.min(20, text.split('.')[1]!.length)
 }
 
 export function sectionOrderFor(controls: NormalizedControl[]) {
-  return Array.from(new Set(controls.map((control) => control.sectionId)));
+  return Array.from(new Set(controls.map((control) => control.sectionId)))
 }
 
 export function sectionOrderByPanel(controls: NormalizedControl[]) {
-  const order: Record<string, string[]> = {};
+  const order: Record<string, string[]> = {}
   for (const control of controls) {
-    order[control.panelId] ??= [];
+    order[control.panelId] ??= []
     if (!order[control.panelId]!.includes(control.sectionId)) {
-      order[control.panelId]!.push(control.sectionId);
+      order[control.panelId]!.push(control.sectionId)
     }
   }
-  return order;
+  return order
 }
 
 export function preserveSectionOrderByPanel(
   currentOrder: Record<string, string[]>,
   controls: NormalizedControl[],
 ) {
-  const liveOrder = sectionOrderByPanel(controls);
-  const panelIds = new Set([...Object.keys(currentOrder), ...Object.keys(liveOrder)]);
-  const nextOrder: Record<string, string[]> = {};
+  const liveOrder = sectionOrderByPanel(controls)
+  const panelIds = new Set([...Object.keys(currentOrder), ...Object.keys(liveOrder)])
+  const nextOrder: Record<string, string[]> = {}
 
   for (const panelId of panelIds) {
-    const liveSectionIds = liveOrder[panelId] ?? [];
-    const next = [...(currentOrder[panelId] ?? [])];
+    const liveSectionIds = liveOrder[panelId] ?? []
+    const next = [...(currentOrder[panelId] ?? [])]
     for (const sectionId of liveSectionIds) {
-      if (!next.includes(sectionId)) next.push(sectionId);
+      if (!next.includes(sectionId)) next.push(sectionId)
     }
-    if (next.length > 0) nextOrder[panelId] = next;
+    if (next.length > 0) nextOrder[panelId] = next
   }
 
-  return nextOrder;
+  return nextOrder
 }

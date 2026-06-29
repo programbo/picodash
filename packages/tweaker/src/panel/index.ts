@@ -1,1 +1,1 @@
-export { TweakerPanel, type TweakerPanelProps } from "./tweaker-panel.js";
+export { TweakerPanel, type TweakerPanelProps } from './tweaker-panel.js'

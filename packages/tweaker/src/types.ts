@@ -1,9 +1,9 @@
-import type { ComponentType, ReactNode } from "react";
-import type { StoreApi } from "zustand";
+import type { ComponentType, ReactNode } from 'react'
+import type { StoreApi } from 'zustand'
 
-export const defaultPanelId = "default";
-export const defaultSectionId = "controls";
-export const defaultSectionLabel = "Controls";
+export const defaultPanelId = 'default'
+export const defaultSectionId = 'controls'
+export const defaultSectionLabel = 'Controls'
 
 export type JsonValue =
   | string
@@ -11,76 +11,76 @@ export type JsonValue =
   | boolean
   | null
   | JsonValue[]
-  | { [key: string]: JsonValue };
+  | { [key: string]: JsonValue }
 
-export type PrimitiveValue = number | string | boolean;
-export type ControlKind = "number" | "slider" | "select" | "checkbox" | "display" | "custom";
-export type BuiltInControlKind = Exclude<ControlKind, "custom">;
-export type ControlStatus = "info" | "alert" | "error";
-export type StaleMode = "ignore" | "prune";
-export type Placement = "top-left" | "top-right" | "bottom-left" | "bottom-right";
-export type DockEdge = "top" | "right" | "bottom" | "left";
-export type PanelTheme = "dark" | "light" | "system";
+export type PrimitiveValue = number | string | boolean
+export type ControlKind = 'number' | 'slider' | 'select' | 'checkbox' | 'display' | 'custom'
+export type BuiltInControlKind = Exclude<ControlKind, 'custom'>
+export type ControlStatus = 'info' | 'alert' | 'error'
+export type StaleMode = 'ignore' | 'prune'
+export type Placement = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+export type DockEdge = 'top' | 'right' | 'bottom' | 'left'
+export type PanelTheme = 'dark' | 'light' | 'system'
 
 interface ControlIdentity {
-  id?: string;
-  label?: string;
-  help?: string;
+  id?: string
+  label?: string
+  help?: string
   /** Footer content rendered below the control. Re-register to update dynamic content. */
-  description?: ReactNode;
+  description?: ReactNode
   /** Renders the control faded/greyscale and blocks value writes. */
-  readOnly?: boolean;
+  readOnly?: boolean
   /** Hides the control row while preserving its value and order slot. */
-  hidden?: boolean;
+  hidden?: boolean
 }
 
 interface ControlStatusMetadata {
-  status?: ControlStatus;
+  status?: ControlStatus
 }
 
 interface ValueControl<T extends JsonValue> extends ControlIdentity, ControlStatusMetadata {
-  defaultValue?: T;
-  value?: T;
+  defaultValue?: T
+  value?: T
 }
 
 export interface NumberControl extends ValueControl<number> {
-  type?: "number";
-  min?: number;
-  max?: number;
-  step?: number;
+  type?: 'number'
+  min?: number
+  max?: number
+  step?: number
   /** Intl.NumberFormatOptions applied to the number field's display/parsing. */
-  formatOptions?: Intl.NumberFormatOptions;
+  formatOptions?: Intl.NumberFormatOptions
 }
 
 export interface SliderControl extends ValueControl<number> {
-  type: "slider";
-  min: number;
-  max: number;
-  step?: number;
+  type: 'slider'
+  min: number
+  max: number
+  step?: number
   /** Intl.NumberFormatOptions applied to the slider output. */
-  formatOptions?: Intl.NumberFormatOptions;
+  formatOptions?: Intl.NumberFormatOptions
 }
 
 export interface SelectControl<T extends string = string> extends ValueControl<T> {
-  type: "select";
-  options: readonly T[] | Record<string, T>;
+  type: 'select'
+  options: readonly T[] | Record<string, T>
 }
 
 export interface CheckboxControl extends ValueControl<boolean> {
-  type?: "checkbox";
+  type?: 'checkbox'
 }
 
 export interface DisplayControl extends ValueControl<string | number> {
-  type: "display";
+  type: 'display'
   /** Intl.NumberFormatOptions applied when the value is a number. */
-  formatOptions?: Intl.NumberFormatOptions;
+  formatOptions?: Intl.NumberFormatOptions
   /** Template string; `{value}` is replaced with the (formatted) value. */
-  format?: string;
+  format?: string
 }
 
 export interface CustomControl<T extends JsonValue = JsonValue> extends ValueControl<T> {
-  type: string;
-  [key: string]: unknown;
+  type: string
+  [key: string]: unknown
 }
 
 export type ControlConfig =
@@ -92,9 +92,9 @@ export type ControlConfig =
   | SelectControl
   | CheckboxControl
   | DisplayControl
-  | CustomControl;
+  | CustomControl
 
-export type TweakerSchema = Record<string, ControlConfig>;
+export type TweakerSchema = Record<string, ControlConfig>
 
 export type InferControlValue<T> = T extends number
   ? number
@@ -110,153 +110,153 @@ export type InferControlValue<T> = T extends number
           ? V extends JsonValue
             ? V
             : never
-          : never;
+          : never
 
 export type TweakerValues<T extends TweakerSchema> = {
-  [K in keyof T]: InferControlValue<T[K]>;
-};
+  [K in keyof T]: InferControlValue<T[K]>
+}
 
 export type SetTweakerValue<T extends TweakerSchema> = <K extends keyof T>(
   key: K,
   value: InferControlValue<T[K]>,
-) => void;
+) => void
 
 export interface SectionConfig {
-  id: string;
-  label: string;
+  id: string
+  label: string
   /** Hides the section while preserving its controls' values and order. */
-  hidden?: boolean;
+  hidden?: boolean
 }
 
 export interface PanelAppearance {
-  surfaceOpacity?: number;
-  activeSurfaceOpacity?: number;
-  backdropBlur?: number;
-  activeBackdropBlur?: number;
+  surfaceOpacity?: number
+  activeSurfaceOpacity?: number
+  backdropBlur?: number
+  activeBackdropBlur?: number
 }
 
 export interface NormalizedControl {
-  id: string;
-  persistId: string;
-  domId: string;
-  key: string;
-  controlId: string;
-  panelId: string;
-  sectionId: string;
-  sectionLabel: string;
-  section: string;
-  reorderable: boolean;
-  sortable: boolean;
-  status?: ControlStatus;
-  help?: string;
-  description?: ReactNode;
-  readOnly?: boolean;
-  hidden?: boolean;
-  kind: ControlKind;
-  type: string;
-  label: string;
-  value: JsonValue;
-  defaultValue: JsonValue;
-  min?: number;
-  max?: number;
-  step?: number;
-  formatOptions?: Intl.NumberFormatOptions;
+  id: string
+  persistId: string
+  domId: string
+  key: string
+  controlId: string
+  panelId: string
+  sectionId: string
+  sectionLabel: string
+  section: string
+  reorderable: boolean
+  sortable: boolean
+  status?: ControlStatus
+  help?: string
+  description?: ReactNode
+  readOnly?: boolean
+  hidden?: boolean
+  kind: ControlKind
+  type: string
+  label: string
+  value: JsonValue
+  defaultValue: JsonValue
+  min?: number
+  max?: number
+  step?: number
+  formatOptions?: Intl.NumberFormatOptions
   /** Template string for display controls; `{value}` is replaced post-format. */
-  format?: string;
-  options?: Array<{ label: string; value: string }>;
-  settings?: Record<string, unknown>;
+  format?: string
+  options?: Array<{ label: string; value: string }>
+  settings?: Record<string, unknown>
 }
 
 export interface DockState {
-  edge: DockEdge;
-  secondaryEdge?: DockEdge;
-  offset: number;
+  edge: DockEdge
+  secondaryEdge?: DockEdge
+  offset: number
 }
 
 export interface PanelLayoutState {
-  collapsed: boolean;
-  dock: DockState | null;
+  collapsed: boolean
+  dock: DockState | null
 }
 
 export interface PersistedState {
-  values: Record<string, JsonValue>;
-  order: Record<string, Record<string, string[]>>;
-  panels: Record<string, PanelLayoutState>;
-  sections: Record<string, Record<string, boolean>>;
+  values: Record<string, JsonValue>
+  order: Record<string, Record<string, string[]>>
+  panels: Record<string, PanelLayoutState>
+  sections: Record<string, Record<string, boolean>>
 }
 
 export interface TweakerSnapshot extends PersistedState {
-  storeId: string;
-  controls: NormalizedControl[];
-  sectionOrder: Record<string, string[]>;
-  panelAppearances: Record<string, PanelAppearance>;
-  hiddenSections: Record<string, Record<string, boolean>>;
+  storeId: string
+  controls: NormalizedControl[]
+  sectionOrder: Record<string, string[]>
+  panelAppearances: Record<string, PanelAppearance>
+  hiddenSections: Record<string, Record<string, boolean>>
 }
 
 export interface RegisterOptions {
-  panel?: string;
-  section?: string | SectionConfig;
-  reorderable?: boolean;
-  sortable?: boolean;
-  opacity?: number;
-  hoverOpacity?: number;
-  backgroundBlur?: number;
-  hoverBackgroundBlur?: number;
+  panel?: string
+  section?: string | SectionConfig
+  reorderable?: boolean
+  sortable?: boolean
+  opacity?: number
+  hoverOpacity?: number
+  backgroundBlur?: number
+  hoverBackgroundBlur?: number
 }
 
 export interface TweakerPersistenceOptions {
-  key?: string;
+  key?: string
 }
 
 export interface TweakerStoreOptions {
-  id?: string;
-  storeId?: string;
-  persistence?: false | TweakerPersistenceOptions;
-  stale?: StaleMode;
+  id?: string
+  storeId?: string
+  persistence?: false | TweakerPersistenceOptions
+  stale?: StaleMode
 }
 
 export interface TweakerState extends TweakerSnapshot {
-  register: (schema: TweakerSchema, options?: RegisterOptions) => () => void;
-  updatePanelEffects: (schema: TweakerSchema, options?: RegisterOptions) => void;
-  setValue: (persistId: string, value: JsonValue) => void;
-  setPanelCollapsed: (panelId: string, collapsed: boolean) => void;
-  setSectionCollapsed: (panelId: string, sectionId: string, collapsed: boolean) => void;
-  setAllSectionsCollapsed: (panelId: string, collapsed: boolean) => void;
-  setPanelDock: (panelId: string, dock: DockState | null) => void;
-  setSectionOrder: (panelId: string, sectionId: string, ids: string[]) => void;
-  resetValues: (panelId?: string) => void;
-  resetOrder: (panelId?: string) => void;
+  register: (schema: TweakerSchema, options?: RegisterOptions) => () => void
+  updatePanelEffects: (schema: TweakerSchema, options?: RegisterOptions) => void
+  setValue: (persistId: string, value: JsonValue) => void
+  setPanelCollapsed: (panelId: string, collapsed: boolean) => void
+  setSectionCollapsed: (panelId: string, sectionId: string, collapsed: boolean) => void
+  setAllSectionsCollapsed: (panelId: string, collapsed: boolean) => void
+  setPanelDock: (panelId: string, dock: DockState | null) => void
+  setSectionOrder: (panelId: string, sectionId: string, ids: string[]) => void
+  resetValues: (panelId?: string) => void
+  resetOrder: (panelId?: string) => void
   getControlId: (
     panelId: string,
     sectionId: string,
     key: string,
     explicitControlId?: string,
-  ) => string;
-  getPanelState: (panelId: string) => PanelLayoutState;
+  ) => string
+  getPanelState: (panelId: string) => PanelLayoutState
 }
 
-export type TweakerStore = StoreApi<TweakerState>;
+export type TweakerStore = StoreApi<TweakerState>
 
 export interface TweakerCustomControlProps<T extends JsonValue = JsonValue> {
-  id: string;
-  label: string;
-  value: T;
-  defaultValue: T;
-  setValue: (value: T) => void;
-  control: NormalizedControl;
-  disabled?: boolean;
-  readOnly?: boolean;
+  id: string
+  label: string
+  value: T
+  defaultValue: T
+  setValue: (value: T) => void
+  control: NormalizedControl
+  disabled?: boolean
+  readOnly?: boolean
 }
 
 export type TweakerCustomControlComponent<T extends JsonValue = JsonValue> = ComponentType<
   TweakerCustomControlProps<T>
->;
+>
 
 export interface TweakerProviderProps {
-  children: ReactNode;
-  id?: string;
-  storeId?: string;
-  persistence?: false | TweakerPersistenceOptions;
-  stale?: StaleMode;
-  controls?: Record<string, TweakerCustomControlComponent>;
+  children: ReactNode
+  id?: string
+  storeId?: string
+  persistence?: false | TweakerPersistenceOptions
+  stale?: StaleMode
+  controls?: Record<string, TweakerCustomControlComponent>
 }
