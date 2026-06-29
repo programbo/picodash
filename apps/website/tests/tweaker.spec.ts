@@ -71,6 +71,36 @@ test('renders concurrent panels without duplicate input ids', async ({ page }) =
     .toBe(true)
 })
 
+test('marks the panel body while more content is available below', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 460 })
+  await page.reload()
+
+  const body = page.getByTestId('tweaker-panel').locator('.tw-panel__body')
+  await expect(body.locator('.bottom-sentinel')).toHaveCount(1)
+  await expect
+    .poll(() =>
+      body.evaluate(
+        (element) =>
+          element.scrollHeight > element.clientHeight && element.hasAttribute('data-overflowing'),
+      ),
+    )
+    .toBe(true)
+
+  await body.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  await expect
+    .poll(() => body.evaluate((element) => element.hasAttribute('data-overflowing')))
+    .toBe(false)
+
+  await body.evaluate((element) => {
+    element.scrollTop = 0
+  })
+  await expect
+    .poll(() => body.evaluate((element) => element.hasAttribute('data-overflowing')))
+    .toBe(true)
+})
+
 test('keeps panel collapse state independent', async ({ page }) => {
   await page.getByRole('button', { name: 'Collapse Build' }).click()
 

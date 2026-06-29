@@ -166,6 +166,32 @@
   max-height: min(90vh, calc(100vh - 3rem));
 }
 
+.tw-panel__bottom-sentinel {
+  --bg: var(--tw-bg);
+  --text: var(--tw-text);
+
+  @apply sticky bottom-[calc(-1.75*var(--spacing,0.25rem))] z-1 hidden items-center justify-center;
+
+  height: 32px;
+  margin: -32px -7px 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, var(--bg) 74%);
+}
+
+.tw-panel__body[data-overflowing] .tw-panel__bottom-sentinel {
+  @apply flex;
+}
+
+.tw-panel__bottom-sentinel::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-right: 1.5px solid var(--text);
+  border-bottom: 1.5px solid var(--text);
+  opacity: 0.78;
+  transform: translateY(1px) rotate(45deg);
+}
+
 .tw-icon-button,
 .tw-text-button,
 .tw-grip,
