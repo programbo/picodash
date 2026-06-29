@@ -46,7 +46,7 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.sectionLabel === rightControl.sectionLabel &&
       leftControl.reorderable === rightControl.reorderable &&
       leftControl.status === rightControl.status &&
-      leftControl.help === rightControl.help &&
+      reactNodeEqual(leftControl.help, rightControl.help) &&
       reactNodeEqual(leftControl.description, rightControl.description) &&
       leftControl.kind === rightControl.kind &&
       leftControl.type === rightControl.type &&
@@ -74,10 +74,7 @@ function settingsEqual(left: NormalizedControl['settings'], right: NormalizedCon
   return JSON.stringify(left ?? {}) === JSON.stringify(right ?? {})
 }
 
-function reactNodeEqual(
-  left: NormalizedControl['description'],
-  right: NormalizedControl['description'],
-) {
+function reactNodeEqual(left: NormalizedControl['help'], right: NormalizedControl['help']) {
   return Object.is(left, right)
 }
 

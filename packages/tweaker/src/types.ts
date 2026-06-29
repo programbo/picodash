@@ -25,7 +25,7 @@ export type PanelTheme = 'dark' | 'light' | 'system'
 interface ControlIdentity {
   id?: string
   label?: string
-  help?: string
+  help?: ReactNode
   /** Footer content rendered below the control. Re-register to update dynamic content. */
   description?: ReactNode
   /** Renders the control faded/greyscale and blocks value writes. */
@@ -148,7 +148,7 @@ export interface NormalizedControl {
   reorderable: boolean
   sortable: boolean
   status?: ControlStatus
-  help?: string
+  help?: ReactNode
   description?: ReactNode
   readOnly?: boolean
   hidden?: boolean

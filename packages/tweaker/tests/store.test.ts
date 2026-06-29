@@ -102,6 +102,34 @@ describe('normalizeControl', () => {
     expect(control.help).toBe('Adjusts the preview animation speed.')
   })
 
+  it('normalizes formatted help content on object controls', () => {
+    const help = createElement(
+      'span',
+      null,
+      createElement('strong', null, 'Speed'),
+      ' affects motion.',
+    )
+    const control = normalizeControl('demo', 'Rendering', 'speed', {
+      defaultValue: 0.5,
+      min: 0,
+      max: 1,
+      help,
+    })
+
+    expect(control.help).toEqual(help)
+  })
+
+  it('omits empty string help metadata on object controls', () => {
+    const control = normalizeControl('demo', 'Rendering', 'speed', {
+      defaultValue: 0.5,
+      min: 0,
+      max: 1,
+      help: '   ',
+    })
+
+    expect(control.help).toBeUndefined()
+  })
+
   it('normalizes description metadata on object controls', () => {
     const control = normalizeControl('demo', 'Rendering', 'speed', {
       defaultValue: 0.5,
@@ -476,6 +504,27 @@ describe('schema signatures', () => {
     } satisfies TweakerSchema
     const next = {
       speed: { defaultValue: 1, min: 0, max: 2, help: 'New help' },
+    } satisfies TweakerSchema
+
+    expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next))
+  })
+
+  it('tracks formatted help metadata changes', () => {
+    const base = {
+      speed: {
+        defaultValue: 1,
+        min: 0,
+        max: 2,
+        help: createElement('span', null, 'Old help'),
+      },
+    } satisfies TweakerSchema
+    const next = {
+      speed: {
+        defaultValue: 1,
+        min: 0,
+        max: 2,
+        help: createElement('span', null, 'New help'),
+      },
     } satisfies TweakerSchema
 
     expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next))

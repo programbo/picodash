@@ -147,7 +147,7 @@ If localStorage shape changes, update:
 - Custom controls are registered on `TweakerProvider.controls` and referenced by `type`; their values must be JSON-serializable.
 - `TweakerPanel` accepts `theme: "dark" | "light" | "system"` and defaults to `"dark"`. It also accepts `width?: number | string`, applied as `--tw-panel-width` while still clamping to the viewport. Portaled controls such as select popovers must use the same panel theme.
 - Object control configs can set `status: "info" | "alert" | "error"` for blue, amber, or red row tinting with an outline and thicker left border.
-- Object control configs can set `help: string` for row help tooltips. Keep help string-only metadata; do not add render props or deep tooltip styling props to schemas.
+- Object control configs can set `help: React.ReactNode` for row help tooltips. Keep tooltip styling owned by the panel; do not add deep tooltip styling props to schemas.
 - Object control configs can set `description: React.ReactNode` for row footer content. It is runtime metadata, not persisted state, and schemas must re-register when dynamic description content changes.
 
 When adding control kinds, update normalization, types, input rendering, tests, docs, and demo usage together.

@@ -79,7 +79,7 @@ Custom control values must be JSON-serializable. Use control-level `id` when a s
 - Use `formatOptions` on sliders when their output needs Intl formatting; default fraction digits are inferred from `step`.
 - Use `type: "display"` for derived non-interactive readouts; they update from `defaultValue` on re-registration and ignore writes.
 - Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row states.
-- Use `help: string` on object controls for row help tooltips; keep this string-only and do not put render props in schemas.
+- Use `help: React.ReactNode` on object controls for row help tooltips; keep tooltip styling owned by the panel.
 - Use `description: React.ReactNode` on object controls for dynamic row footer content; derive it from live values and re-register when it changes.
 - Use `readOnly: true` to show a value while blocking writes.
 - Use `hidden: true` on controls or sections to hide rows while preserving values and order.

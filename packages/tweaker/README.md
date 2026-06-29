@@ -19,7 +19,7 @@ Preferred API:
 - Use `width={360}` or another CSS length string on `TweakerPanel` to set `--tw-panel-width`.
 - Section collapse state is persisted per panel and section.
 - Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row treatment.
-- Use `help: "..."` on object controls for string-only row tooltip copy that inherits panel styling.
+- Use `help: React.ReactNode` on object controls for row tooltip content that inherits panel styling.
 - Use `description: React.ReactNode` on object controls for dynamic footer content below the row.
 - Use `readOnly: true` to show a value without allowing writes.
 - Use `hidden: true` on controls or sections to hide rows while preserving values and order.

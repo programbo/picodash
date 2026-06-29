@@ -135,7 +135,9 @@ export function statusForControl(config: ControlConfig): ControlStatus | undefin
 function helpForControl(config: ControlConfig) {
   if (typeof config !== 'object' || config === null) return undefined
   const value = config.help
-  return typeof value === 'string' && value.trim() ? value : undefined
+  if (typeof value === 'string') return value.trim() ? value : undefined
+  if (value === null || value === undefined || typeof value === 'boolean') return undefined
+  return value
 }
 
 function descriptionForControl(config: ControlConfig) {
