@@ -24,6 +24,7 @@ const standardControlKeys = new Set([
   "options",
   "status",
   "help",
+  "description",
   "formatOptions",
   "readOnly",
   "hidden",
@@ -137,6 +138,11 @@ function helpForControl(config: ControlConfig) {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
+function descriptionForControl(config: ControlConfig) {
+  if (typeof config !== "object" || config === null) return undefined;
+  return config.description;
+}
+
 function readOnlyForControl(config: ControlConfig) {
   if (typeof config !== "object" || config === null) return undefined;
   return config.readOnly === true ? true : undefined;
@@ -224,6 +230,7 @@ export function normalizeControlEntry({
   const persistId = createControlPersistId(storeId, panelId, section, key, explicitControlId);
   const status = statusForControl(config);
   const help = helpForControl(config);
+  const description = descriptionForControl(config);
   const readOnly = readOnlyForControl(config);
   const hidden = hiddenForControl(config);
   const base = {
@@ -240,6 +247,7 @@ export function normalizeControlEntry({
     sortable: reorderable,
     status,
     help,
+    description,
     readOnly,
     hidden,
   };
@@ -451,6 +459,43 @@ export function formatDisplayValue(control: NormalizedControl): string {
   return control.format ? control.format.replace("{value}", formatted) : formatted;
 }
 
+export function formatSliderValue(control: NormalizedControl): string {
+  const value = typeof control.value === "number" ? control.value : Number(control.value);
+  const digits = fractionDigitsForStep(control.step ?? 0.01);
+  const formatOptions = sliderFormatOptions(control.formatOptions, digits);
+
+  return new Intl.NumberFormat(undefined, formatOptions).format(Number.isFinite(value) ? value : 0);
+}
+
+function sliderFormatOptions(
+  formatOptions: Intl.NumberFormatOptions | undefined,
+  inferredFractionDigits: number,
+) {
+  const next = { ...formatOptions };
+  if (next.minimumFractionDigits === undefined && next.maximumFractionDigits === undefined) {
+    next.minimumFractionDigits = inferredFractionDigits;
+    next.maximumFractionDigits = inferredFractionDigits;
+  } else if (next.minimumFractionDigits !== undefined && next.maximumFractionDigits === undefined) {
+    next.maximumFractionDigits = Math.max(next.minimumFractionDigits, inferredFractionDigits);
+  }
+  return next;
+}
+
+function fractionDigitsForStep(step: number) {
+  if (!Number.isFinite(step) || step <= 0) return 2;
+
+  const text = String(step).toLowerCase();
+  const [coefficient, exponentPart] = text.split("e-");
+  if (exponentPart) {
+    const exponent = Number(exponentPart);
+    const coefficientDigits = coefficient.includes(".") ? coefficient.split(".")[1]!.length : 0;
+    return Math.min(20, Math.max(0, exponent + coefficientDigits));
+  }
+
+  if (!text.includes(".")) return 0;
+  return Math.min(20, text.split(".")[1]!.length);
+}
+
 export function sectionOrderFor(controls: NormalizedControl[]) {
   return Array.from(new Set(controls.map((control) => control.sectionId)));
 }
@@ -464,4 +509,24 @@ export function sectionOrderByPanel(controls: NormalizedControl[]) {
     }
   }
   return order;
+}
+
+export function preserveSectionOrderByPanel(
+  currentOrder: Record<string, string[]>,
+  controls: NormalizedControl[],
+) {
+  const liveOrder = sectionOrderByPanel(controls);
+  const panelIds = new Set([...Object.keys(currentOrder), ...Object.keys(liveOrder)]);
+  const nextOrder: Record<string, string[]> = {};
+
+  for (const panelId of panelIds) {
+    const liveSectionIds = liveOrder[panelId] ?? [];
+    const next = [...(currentOrder[panelId] ?? [])];
+    for (const sectionId of liveSectionIds) {
+      if (!next.includes(sectionId)) next.push(sectionId);
+    }
+    if (next.length > 0) nextOrder[panelId] = next;
+  }
+
+  return nextOrder;
 }

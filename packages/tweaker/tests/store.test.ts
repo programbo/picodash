@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { createElement } from "react";
 import {
   createTweakerStore,
   normalizeControl,
@@ -8,6 +9,7 @@ import {
 import {
   defaultValueForControl,
   formatDisplayValue,
+  formatSliderValue,
   sanitizeValueForControl,
 } from "../src/control.js";
 import { registrationSignatureForSchema, resolveTweakerValues } from "../src/react/use-tweaker.js";
@@ -98,6 +100,17 @@ describe("normalizeControl", () => {
     });
 
     expect(control.help).toBe("Adjusts the preview animation speed.");
+  });
+
+  it("normalizes description metadata on object controls", () => {
+    const control = normalizeControl("demo", "Rendering", "speed", {
+      defaultValue: 0.5,
+      min: 0,
+      max: 1,
+      description: createElement("span", null, "Current speed"),
+    });
+
+    expect(control.description).toEqual(createElement("span", null, "Current speed"));
   });
 
   it("normalizes readOnly metadata on object controls", () => {
@@ -322,6 +335,54 @@ describe("formatDisplayValue", () => {
   });
 });
 
+describe("formatSliderValue", () => {
+  function sliderControl(
+    value: number,
+    overrides: Partial<NormalizedControl> = {},
+  ): NormalizedControl {
+    return {
+      id: "x",
+      persistId: "x",
+      domId: "x",
+      key: "x",
+      controlId: "x",
+      panelId: "default",
+      sectionId: "s",
+      sectionLabel: "s",
+      section: "s",
+      reorderable: true,
+      sortable: true,
+      kind: "slider",
+      type: "slider",
+      label: "x",
+      value,
+      defaultValue: value,
+      min: 0,
+      max: 1,
+      step: 0.01,
+      ...overrides,
+    };
+  }
+
+  it("infers output fraction digits from step", () => {
+    expect(formatSliderValue(sliderControl(1, { step: 1 }))).toBe("1");
+    expect(formatSliderValue(sliderControl(0.5, { step: 0.1 }))).toBe("0.5");
+    expect(formatSliderValue(sliderControl(0.5, { step: 0.01 }))).toBe("0.50");
+    expect(formatSliderValue(sliderControl(0.005, { step: 0.001 }))).toBe("0.005");
+  });
+
+  it("applies Intl formatOptions to slider output", () => {
+    expect(
+      formatSliderValue(
+        sliderControl(0.345, {
+          step: 0.01,
+          formatOptions: { style: "percent", maximumFractionDigits: 1 },
+        }),
+      ),
+    ).toBe("34.5%");
+  });
+});
+
 describe("control defaults", () => {
   it("extracts default values from every supported control shape", () => {
     expect(defaultValueForControl(1)).toBe(1);
@@ -420,6 +481,27 @@ describe("schema signatures", () => {
     expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next));
   });
 
+  it("tracks description metadata changes", () => {
+    const base = {
+      speed: {
+        defaultValue: 1,
+        min: 0,
+        max: 2,
+        description: createElement("span", null, "Speed 1"),
+      },
+    } satisfies TweakerSchema;
+    const next = {
+      speed: {
+        defaultValue: 1,
+        min: 0,
+        max: 2,
+        description: createElement("span", null, "Speed 2"),
+      },
+    } satisfies TweakerSchema;
+
+    expect(registrationSignatureForSchema(base)).not.toBe(registrationSignatureForSchema(next));
+  });
+
   it("tracks formatOptions metadata changes", () => {
     const base = {
       speed: {
@@ -485,6 +567,29 @@ describe("TweakerStore", () => {
       "order:scene:Rendering:b",
       "order:scene:Rendering:a",
     ]);
+  });
+
+  it("preserves section order across unregister and re-register", () => {
+    const store = createTweakerStore({ id: "section-order", persistence: false });
+    const unregisterRendering = store
+      .getState()
+      .register({ speed: 1 }, { section: { id: "rendering", label: "Rendering" } });
+    store.getState().register({ shape: "orb" }, { section: { id: "material", label: "Material" } });
+    store.getState().register({ zoom: 1 }, { section: { id: "camera", label: "Camera" } });
+
+    expect(store.getState().sectionOrder.default).toEqual(["rendering", "material", "camera"]);
+
+    unregisterRendering();
+    expect(store.getState().sectionOrder.default).toEqual(["rendering", "material", "camera"]);
+
+    store
+      .getState()
+      .register(
+        { speed: { defaultValue: 1, min: 0, max: 2, label: "Speed" } },
+        { section: { id: "rendering", label: "Rendering" } },
+      );
+
+    expect(store.getState().sectionOrder.default).toEqual(["rendering", "material", "camera"]);
   });
 
   it("records section hidden state from registration and updates it on re-registration", () => {
@@ -625,6 +730,39 @@ describe("TweakerStore", () => {
     expect(store.getState().values["status-change:Rendering:speed"]).toBe(1.5);
     expect(store.getState().order.default?.Rendering).toEqual(["status-change:Rendering:speed"]);
     expect(store.getState().controls[0]?.status).toBe("error");
+  });
+
+  it("updates description metadata on re-registration", () => {
+    const store = createTweakerStore({ id: "description-change", persistence: false });
+    const persistId = "description-change:Rendering:speed";
+
+    store.getState().register(
+      {
+        speed: {
+          defaultValue: 1,
+          min: 0,
+          max: 2,
+          description: "Speed is 1",
+        },
+      },
+      { section: "Rendering" },
+    );
+    store.getState().setValue(persistId, 1.5);
+
+    store.getState().register(
+      {
+        speed: {
+          defaultValue: 1,
+          min: 0,
+          max: 2,
+          description: "Speed is 2",
+        },
+      },
+      { section: "Rendering" },
+    );
+
+    expect(store.getState().values[persistId]).toBe(1.5);
+    expect(store.getState().controls[0]?.description).toBe("Speed is 2");
   });
 
   it("updates formatOptions and readOnly metadata on re-registration", () => {

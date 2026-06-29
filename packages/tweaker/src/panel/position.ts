@@ -8,9 +8,14 @@ export interface PanelPosition {
 const edgeThreshold = 24;
 const panelWidth = 320;
 
-export function placementToPosition(placement: Placement, width: number, height: number) {
+export function placementToPosition(
+  placement: Placement,
+  width: number,
+  height: number,
+  fallbackPanelWidth = panelWidth,
+) {
   const margin = 16;
-  const right = Math.max(margin, width - panelWidth - margin);
+  const right = Math.max(margin, width - fallbackPanelWidth - margin);
   const bottom = Math.max(margin, height - 420);
 
   switch (placement) {
@@ -26,8 +31,13 @@ export function placementToPosition(placement: Placement, width: number, height:
   }
 }
 
-export function dockToPosition(dock: DockState, width: number, height: number) {
-  const maxX = Math.max(0, width - panelWidth);
+export function dockToPosition(
+  dock: DockState,
+  width: number,
+  height: number,
+  fallbackPanelWidth = panelWidth,
+) {
+  const maxX = Math.max(0, width - fallbackPanelWidth);
   const maxY = Math.max(0, height - 120);
   let position: PanelPosition;
 
@@ -64,11 +74,15 @@ function applyDockEdge(position: PanelPosition, edge: DockEdge, maxX: number, ma
   }
 }
 
-export function clampPosition(position: PanelPosition, element: HTMLElement | null) {
+export function clampPosition(
+  position: PanelPosition,
+  element: HTMLElement | null,
+  fallbackPanelWidth = panelWidth,
+) {
   const width = window.innerWidth;
   const height = window.innerHeight;
   const rect = element?.getBoundingClientRect();
-  const maxX = Math.max(0, width - (rect?.width ?? panelWidth));
+  const maxX = Math.max(0, width - (rect?.width ?? fallbackPanelWidth));
   const maxY = Math.max(0, height - (rect?.height ?? 120));
 
   return {
@@ -79,20 +93,46 @@ export function clampPosition(position: PanelPosition, element: HTMLElement | nu
 
 export function nearestDock(position: PanelPosition, element: HTMLElement): DockState | null {
   const rect = element.getBoundingClientRect();
-  const distances = [
-    { edge: "top" as const, distance: position.y, offset: position.x },
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  // Distance from each panel edge to its matching viewport edge, computed
+  // against the user's intended (pre-clamp) position:
+  // - Near edges (top/left): distance of the panel's origin from 0.
+  // - Far edges (bottom/right): distance of the panel's origin from its maximum
+  //   clamped position (maxX/maxY).
+  // Vertical auto-docking is only offered when the panel is short enough that
+  // its vertical position is a meaningful signal of intent. When a panel
+  // occupies most of the viewport it is always clamped into a tiny range, so
+  // dragging it reads as "flush with a vertical edge" regardless of where the
+  // user aimed; in that case vertical docking is left to the explicit menu
+  // actions. Half the viewport is the cutoff.
+  const verticalDockingEligible = rect.height * 2 <= viewportHeight;
+  const maxY = Math.max(0, viewportHeight - rect.height);
+  const maxX = Math.max(0, viewportWidth - rect.width);
+  const candidates = [
+    {
+      edge: "top" as const,
+      distance: position.y,
+      offset: position.x,
+      eligible: verticalDockingEligible,
+    },
     {
       edge: "right" as const,
-      distance: window.innerWidth - (position.x + rect.width),
+      distance: maxX - position.x,
       offset: position.y,
+      eligible: true,
     },
     {
       edge: "bottom" as const,
-      distance: window.innerHeight - (position.y + rect.height),
+      distance: maxY - position.y,
       offset: position.x,
+      eligible: verticalDockingEligible,
     },
-    { edge: "left" as const, distance: position.x, offset: position.y },
-  ].sort((a, b) => a.distance - b.distance);
+    { edge: "left" as const, distance: position.x, offset: position.y, eligible: true },
+  ];
+  const distances = candidates
+    .filter((entry) => entry.eligible)
+    .sort((a, b) => a.distance - b.distance);
 
   const nearest = distances[0];
   if (!nearest || nearest.distance > edgeThreshold) return null;

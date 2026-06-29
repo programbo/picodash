@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { isValidElement, useCallback, useEffect, useMemo } from "react";
 import { useStore } from "zustand";
 import {
   createControlPersistId,
@@ -51,18 +51,33 @@ export function resolveTweakerValues<T extends TweakerSchema>(
   return output as TweakerValues<T>;
 }
 
-function stableStringify(value: unknown): string {
+function stableStringify(value: unknown, seen = new WeakSet<object>()): string {
   if (Array.isArray(value)) {
-    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+    return `[${value.map((item) => stableStringify(item, seen)).join(",")}]`;
+  }
+
+  if (isValidElement(value)) {
+    const element = value as { type: unknown; key: unknown; props: unknown };
+    return `{${[
+      `"$$react":true`,
+      `"type":${stableStringify(element.type, seen)}`,
+      `"key":${stableStringify(element.key, seen)}`,
+      `"props":${stableStringify(element.props, seen)}`,
+    ].join(",")}}`;
   }
 
   if (value && typeof value === "object") {
+    if (seen.has(value)) return '"[Circular]"';
+    seen.add(value);
     return `{${Object.entries(value)
       .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`)
+      .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item, seen)}`)
       .join(",")}}`;
   }
 
+  if (typeof value === "function") return `"[Function:${value.name || "anonymous"}]"`;
+  if (typeof value === "symbol") return JSON.stringify(String(value));
+  if (value === undefined) return '"[Undefined]"';
   return JSON.stringify(value);
 }
 

@@ -135,6 +135,7 @@ If localStorage shape changes, update:
 - Section order is local to each panel and section; dragging must not move controls across sections or panels.
 - Numeric values are clamped according to their normalized control bounds.
 - Explicit `type: "number"` stays a number input even if `min` and `max` are present.
+- Slider controls can set `formatOptions?: Intl.NumberFormatOptions`; slider output fraction digits are inferred from `step` unless explicit fraction digit options override them.
 - Use schema `defaultValue` for defaults. Deprecated `value` remains compatibility-only.
 - Use control-level `id` for stable persistence when schema keys may change.
 - Schemas may be dynamic. Re-registration must update normalized metadata such as labels, bounds, options, `formatOptions`, `format`, `readOnly`, `hidden`, status, and help.
@@ -144,9 +145,10 @@ If localStorage shape changes, update:
 - Object control configs can set `hidden: true` to hide a row while preserving its value and order slot.
 - `SectionConfig.hidden` hides an entire section while preserving its controls' values and order; it is runtime metadata, not persisted state.
 - Custom controls are registered on `TweakerProvider.controls` and referenced by `type`; their values must be JSON-serializable.
-- `TweakerPanel` accepts `theme: "dark" | "light" | "system"` and defaults to `"dark"`. Portaled controls such as select popovers must use the same panel theme.
+- `TweakerPanel` accepts `theme: "dark" | "light" | "system"` and defaults to `"dark"`. It also accepts `width?: number | string`, applied as `--tw-panel-width` while still clamping to the viewport. Portaled controls such as select popovers must use the same panel theme.
 - Object control configs can set `status: "info" | "alert" | "error"` for blue, amber, or red row tinting with an outline and thicker left border.
 - Object control configs can set `help: string` for row help tooltips. Keep help string-only metadata; do not add render props or deep tooltip styling props to schemas.
+- Object control configs can set `description: React.ReactNode` for row footer content. It is runtime metadata, not persisted state, and schemas must re-register when dynamic description content changes.
 
 When adding control kinds, update normalization, types, input rendering, tests, docs, and demo usage together.
 

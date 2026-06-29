@@ -1,10 +1,11 @@
 @reference "tailwindcss";
 
-:where(.tw-panel, .tw-select__popover, .tw-tooltip) {
+:where(.tw-panel, .tw-select__popover, .tw-tooltip, .tw-menu__popover) {
   --tw-panel-color-opacity: 0.78;
   --tw-panel-active-color-opacity: var(--tw-panel-color-opacity);
   --tw-bg: rgb(21 22 23 / var(--tw-panel-active-color-opacity));
   --tw-bg-elevated: rgb(29 31 32 / var(--tw-panel-active-color-opacity));
+  --tw-row-drag-bg: rgb(29 31 32 / calc(var(--tw-panel-active-color-opacity) * 0.42));
   --tw-border: rgb(54 58 61 / var(--tw-panel-active-color-opacity));
   --tw-border-strong: rgb(75 81 85 / var(--tw-panel-active-color-opacity));
   --tw-control-bg: rgb(16 17 18 / var(--tw-panel-active-color-opacity));
@@ -26,14 +27,17 @@
   --tw-check: rgb(16 17 18);
   --tw-danger: #ff8e6e;
   --tw-shadow: 0 18px 48px rgb(0 0 0 / 0.36);
+  --tw-drag-shadow:
+    0 22px 46px rgb(0 0 0 / 0.48), 0 8px 18px rgb(0 0 0 / 0.32), 0 0 0 1px rgb(255 255 255 / 0.12);
   --tw-thumb-shadow: 0 1px 4px rgb(0 0 0 / 0.36);
   --tw-radius: 7px;
   --spacing: 0.25rem;
 }
 
-:where(.tw-panel, .tw-select__popover, .tw-tooltip)[data-theme="light"] {
+:where(.tw-panel, .tw-select__popover, .tw-tooltip, .tw-menu__popover)[data-theme="light"] {
   --tw-bg: rgb(248 250 246 / var(--tw-panel-active-color-opacity));
   --tw-bg-elevated: rgb(255 255 252 / var(--tw-panel-active-color-opacity));
+  --tw-row-drag-bg: rgb(255 255 252 / calc(var(--tw-panel-active-color-opacity) * 0.82));
   --tw-border: rgb(198 207 197 / var(--tw-panel-active-color-opacity));
   --tw-border-strong: rgb(144 158 146 / var(--tw-panel-active-color-opacity));
   --tw-control-bg: rgb(237 242 235 / var(--tw-panel-active-color-opacity));
@@ -50,13 +54,16 @@
   --tw-check: rgb(255 255 252);
   --tw-danger: #b8492f;
   --tw-shadow: 0 18px 46px rgb(47 64 50 / 0.18);
+  --tw-drag-shadow:
+    0 22px 44px rgb(47 64 50 / 0.28), 0 8px 18px rgb(47 64 50 / 0.2), 0 0 0 1px rgb(26 48 34 / 0.12);
   --tw-thumb-shadow: 0 1px 4px rgb(47 64 50 / 0.24);
 }
 
 @media (prefers-color-scheme: light) {
-  :where(.tw-panel, .tw-select__popover, .tw-tooltip)[data-theme="system"] {
+  :where(.tw-panel, .tw-select__popover, .tw-tooltip, .tw-menu__popover)[data-theme="system"] {
     --tw-bg: rgb(248 250 246 / var(--tw-panel-active-color-opacity));
     --tw-bg-elevated: rgb(255 255 252 / var(--tw-panel-active-color-opacity));
+    --tw-row-drag-bg: rgb(255 255 252 / calc(var(--tw-panel-active-color-opacity) * 0.82));
     --tw-border: rgb(198 207 197 / var(--tw-panel-active-color-opacity));
     --tw-border-strong: rgb(144 158 146 / var(--tw-panel-active-color-opacity));
     --tw-control-bg: rgb(237 242 235 / var(--tw-panel-active-color-opacity));
@@ -73,6 +80,9 @@
     --tw-check: rgb(255 255 252);
     --tw-danger: #b8492f;
     --tw-shadow: 0 18px 46px rgb(47 64 50 / 0.18);
+    --tw-drag-shadow:
+      0 22px 44px rgb(47 64 50 / 0.28), 0 8px 18px rgb(47 64 50 / 0.2),
+      0 0 0 1px rgb(26 48 34 / 0.12);
     --tw-thumb-shadow: 0 1px 4px rgb(47 64 50 / 0.24);
   }
 }
@@ -80,7 +90,7 @@
 .tw-panel {
   @apply fixed z-1000 overflow-hidden select-none;
 
-  width: min(320px, calc(100vw - 16px));
+  width: min(var(--tw-panel-width, 320px), calc(100vw - 16px));
   -webkit-backdrop-filter: blur(var(--tw-panel-background-blur, 0px));
   backdrop-filter: blur(var(--tw-panel-background-blur, 0px));
   color: var(--tw-text);
@@ -114,6 +124,14 @@
   );
 }
 
+/* While a drag/menu interaction is in progress (or settling), keep the active
+   background snapped: a momentary :hover flicker (e.g. the cursor crossing a
+   gap as reordered rows animate) must not start a visible dim-then-brighten
+   transition. The transition is restored once the interaction settles. */
+.tw-panel[data-active="true"] {
+  transition: none;
+}
+
 .tw-panel * {
   @apply box-border;
 }
@@ -145,7 +163,7 @@
 .tw-panel__body {
   @apply overflow-auto p-1.75;
 
-  max-height: min(620px, calc(100vh - 48px));
+  max-height: min(90vh, calc(100vh - 3rem));
 }
 
 .tw-icon-button,
@@ -208,9 +226,14 @@
 }
 
 .tw-section__header {
-  @apply grid min-h-6 items-center gap-0.75 pb-1.5;
+  @apply grid min-h-6 w-full cursor-pointer items-center gap-0.75 border-0 bg-transparent pb-1.5 text-left;
 
   grid-template-columns: 22px minmax(0, 1fr);
+  border-radius: 5px;
+  color: var(--tw-muted);
+}
+.tw-section__header:hover {
+  color: var(--tw-text);
 }
 
 .tw-section__title {
@@ -242,7 +265,10 @@
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
-    outline-color 160ms ease;
+    outline-color 160ms ease,
+    box-shadow 160ms ease,
+    -webkit-backdrop-filter 160ms ease,
+    backdrop-filter 160ms ease;
 }
 
 .tw-row:hover {
@@ -251,9 +277,15 @@
   border-left-color: var(--tw-row-status-accent);
 }
 
-.tw-row.is-dragging {
-  background: var(--tw-accent-soft);
+.tw-row.is-dragging,
+.tw-row[data-dnd-dragging] {
+  position: relative;
+  z-index: 2;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  background-color: var(--tw-row-drag-bg);
   border-color: var(--tw-accent-border);
+  box-shadow: var(--tw-drag-shadow);
 }
 
 .tw-row--info {
@@ -302,7 +334,7 @@
    as non-editable while still displaying their value. The label stays legible. */
 .tw-row[data-readonly="true"] .tw-number-field,
 .tw-row[data-readonly="true"] .tw-select,
-.tw-row[data-readonly="true"] .tw-checkbox,
+.tw-row[data-readonly="true"] .tw-checkbox-field,
 .tw-row[data-readonly="true"] .tw-slider {
   opacity: 0.5;
   filter: grayscale(1);
@@ -316,9 +348,10 @@
 }
 
 .tw-row__label-wrap {
-  @apply grid min-w-0 items-center gap-1.25;
+  @apply inline-flex min-w-0 items-center gap-1.25;
 
-  grid-template-columns: minmax(0, auto) min-content;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .tw-row__label {
@@ -327,8 +360,20 @@
   color: var(--tw-muted);
 }
 
+.tw-row__description {
+  @apply min-w-0 pt-0.5;
+
+  grid-column: 2 / -1;
+  color: var(--tw-muted);
+  font-size: 10px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
 .tw-help {
   @apply size-4 cursor-help p-0;
+
+  transform: translateX(1px);
 }
 
 .tw-help svg {
@@ -565,10 +610,86 @@
 
 @media (max-width: 520px) {
   .tw-panel {
-    width: calc(100vw - 12px);
+    width: min(var(--tw-panel-width, calc(100vw - 12px)), calc(100vw - 12px));
   }
 
   .tw-row {
     grid-template-columns: 22px minmax(54px, 0.85fr) minmax(104px, 1.15fr);
   }
+}
+
+/* Panel action / sticky-edge menu. Mirrors the select popover surface so it
+   inherits the panel's opacity, blur, and theme. */
+.tw-menu__popover {
+  --tw-panel-active-color-opacity: var(
+    --tw-panel-hover-color-opacity,
+    var(--tw-panel-color-opacity, 0.78)
+  );
+
+  @apply z-1001 min-w-44 overflow-auto;
+
+  -webkit-backdrop-filter: blur(
+    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
+  );
+  backdrop-filter: blur(
+    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
+  );
+  color: var(--tw-text);
+  background-color: var(--tw-bg-elevated);
+  border: 1px solid var(--tw-border-strong);
+  border-radius: 5px;
+  box-shadow: var(--tw-shadow);
+}
+
+.tw-menu {
+  @apply m-0 grid gap-0.5 p-0.75 outline-none;
+}
+
+.tw-menu__section {
+  @apply grid gap-0.5;
+}
+
+.tw-menu__section-header {
+  @apply px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase;
+
+  color: var(--tw-muted);
+}
+
+.tw-menu__item {
+  @apply flex min-h-5.75 cursor-pointer items-center gap-1 rounded-sm px-1.5 py-1 text-[11px] outline-none;
+
+  color: var(--tw-text);
+}
+
+.tw-menu__item[data-focused],
+.tw-menu__item[data-hovered] {
+  background-color: var(--tw-control-hover-bg);
+}
+
+/* Checkable items reserve space for the leading tick so labels align whether
+   or not the current item is the active one. */
+.tw-menu__item--checkable {
+  @apply grid gap-1;
+
+  grid-template-columns: 0.75rem minmax(0, 1fr);
+}
+
+.tw-menu__check {
+  @apply text-center;
+
+  color: var(--tw-accent-strong);
+}
+
+.tw-menu__label {
+  @apply min-w-0;
+}
+
+/* Submenu trigger chevron, pushed to the right edge of the item. */
+.tw-menu__chevron {
+  @apply ml-auto opacity-70;
+}
+
+/* The destructive "Reset all" item is tinted with the danger token. */
+.tw-menu__item--danger {
+  color: var(--tw-danger);
 }

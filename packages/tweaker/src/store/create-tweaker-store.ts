@@ -7,8 +7,8 @@ import {
   normalizePanelEffects,
   normalizePanelId,
   normalizeSection,
+  preserveSectionOrderByPanel,
   sanitizeValueForControl,
-  sectionOrderByPanel,
   valuesForControls,
 } from "../control.js";
 import {
@@ -47,6 +47,7 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.reorderable === rightControl.reorderable &&
       leftControl.status === rightControl.status &&
       leftControl.help === rightControl.help &&
+      reactNodeEqual(leftControl.description, rightControl.description) &&
       leftControl.kind === rightControl.kind &&
       leftControl.type === rightControl.type &&
       leftControl.label === rightControl.label &&
@@ -71,6 +72,13 @@ function valuesEqual(left: JsonValue, right: JsonValue) {
 
 function settingsEqual(left: NormalizedControl["settings"], right: NormalizedControl["settings"]) {
   return JSON.stringify(left ?? {}) === JSON.stringify(right ?? {});
+}
+
+function reactNodeEqual(
+  left: NormalizedControl["description"],
+  right: NormalizedControl["description"],
+) {
+  return Object.is(left, right);
 }
 
 function optionsEqual(left: NormalizedControl["options"], right: NormalizedControl["options"]) {
@@ -176,7 +184,7 @@ function createBaseState(storeId: string) {
         return {
           values,
           controls: nextControls,
-          sectionOrder: sectionOrderByPanel(nextControls),
+          sectionOrder: preserveSectionOrderByPanel(state.sectionOrder, nextControls),
           hiddenSections: nextHiddenSections,
         };
       });
@@ -209,7 +217,7 @@ function createBaseState(storeId: string) {
 
           return {
             controls: valuesForControls(nextControls, state.values),
-            sectionOrder: sectionOrderByPanel(nextControls),
+            sectionOrder: preserveSectionOrderByPanel(state.sectionOrder, nextControls),
             hiddenSections,
           };
         });
@@ -268,6 +276,20 @@ function createBaseState(storeId: string) {
           },
         },
       }));
+    },
+
+    setAllSectionsCollapsed(panelId, collapsed) {
+      set((state) => {
+        const ids = state.sectionOrder[panelId] ?? [];
+        const next = { ...panelSectionsFor(state, panelId) };
+        for (const sectionId of ids) next[sectionId] = collapsed;
+        return {
+          sections: {
+            ...state.sections,
+            [panelId]: next,
+          },
+        };
+      });
     },
 
     setPanelDock(panelId, dock) {

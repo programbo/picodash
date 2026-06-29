@@ -3,7 +3,7 @@ import { RestrictToElement } from "@dnd-kit/dom/modifiers";
 import { SortableKeyboardPlugin } from "@dnd-kit/dom/sortable";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { clsx } from "clsx";
-import { GripVertical, HelpCircle } from "lucide-react";
+import { GripVertical, Info } from "lucide-react";
 import { type PointerEvent, type RefObject, useRef } from "react";
 import { Button, OverlayArrow, Tooltip, TooltipTrigger } from "react-aria-components";
 import { useTweakerSelector } from "../react/context.js";
@@ -23,7 +23,12 @@ interface SortableControlProps {
 }
 
 function settleInteraction(callback: () => void) {
-  requestAnimationFrame(callback);
+  // Defer clearing the drag interaction slightly so the panel keeps its active
+  // (hovered) appearance through the end of the drag, even when the pointer has
+  // already left the panel bounds (common when dragging a row downward toward
+  // the panel edge). One animation frame is too short to cover this; match the
+  // dnd-kit drag-settle grace used by the panel.
+  window.setTimeout(callback, 180);
 }
 
 export function SortableControl({
@@ -41,6 +46,10 @@ export function SortableControl({
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null);
   const setPointerDragActive = usePanelInteraction(`row-pointer:${control.persistId}`);
   const labelId = `${control.domId}:label`;
+  const hasDescription =
+    control.description !== undefined &&
+    control.description !== null &&
+    control.description !== false;
   const { ref, handleRef, isDragging } = useSortable({
     id: control.persistId,
     index,
@@ -141,7 +150,7 @@ export function SortableControl({
               aria-label={`Help for ${control.label}`}
               onPointerDown={(event) => event.stopPropagation()}
             >
-              <HelpCircle aria-hidden size={13} />
+              <Info aria-hidden size={13} />
             </Button>
             <Tooltip
               className="tw-tooltip"
@@ -165,6 +174,7 @@ export function SortableControl({
         labelId={labelId}
         onChange={(value) => setValue(control.persistId, value)}
       />
+      {hasDescription ? <div className="tw-row__description">{control.description}</div> : null}
     </div>
   );
 }

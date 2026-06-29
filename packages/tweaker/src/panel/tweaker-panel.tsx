@@ -1,6 +1,6 @@
 import { DragDropProvider, type DragEndEvent, type DragStartEvent } from "@dnd-kit/react";
 import { clsx } from "clsx";
-import { ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
@@ -24,6 +24,7 @@ import {
   placementToPosition,
 } from "./position.js";
 import { TweakerSection } from "./tweaker-section.js";
+import { PanelMenu } from "./panel-menu.js";
 
 const emptyOrder: Record<string, string[]> = {};
 const emptySectionOrder: string[] = [];
@@ -36,6 +37,7 @@ export interface TweakerPanelProps {
   placement?: Placement;
   theme?: PanelTheme;
   title?: string;
+  width?: number | string;
   appearance?: PanelAppearance;
 }
 
@@ -45,7 +47,8 @@ type PanelStyle = CSSProperties &
       | "--tw-panel-color-opacity"
       | "--tw-panel-hover-color-opacity"
       | "--tw-panel-background-blur"
-      | "--tw-panel-hover-background-blur",
+      | "--tw-panel-hover-background-blur"
+      | "--tw-panel-width",
       string
     >
   >;
@@ -89,6 +92,7 @@ export function TweakerPanel({
   placement,
   theme = "dark",
   title = "Tweaker",
+  width,
   appearance,
 }: TweakerPanelProps) {
   const panelId = normalizePanelId(id);
@@ -107,11 +111,17 @@ export function TweakerPanel({
   const hiddenSections = useTweakerSelector(
     (state) => state.hiddenSections[panelId] ?? emptyHiddenSections,
   );
+  const liveSectionIds = useMemo(
+    () => new Set(controls.map((control) => control.sectionId)),
+    [controls],
+  );
   const legacyAppearance = useTweakerSelector((state) => state.panelAppearances[panelId]);
   const resetOrder = useTweakerSelector((state) => state.resetOrder);
   const resetValues = useTweakerSelector((state) => state.resetValues);
   const setCollapsed = useTweakerSelector((state) => state.setPanelCollapsed);
   const setDock = useTweakerSelector((state) => state.setPanelDock);
+  const setAllSectionsCollapsed = useTweakerSelector((state) => state.setAllSectionsCollapsed);
+  const valuesById = useTweakerSelector((state) => state.values);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
     startX: number;
@@ -122,6 +132,8 @@ export function TweakerPanel({
   const rowDragInteractionTokenRef = useRef(0);
   const rowDragSettleTimeoutRef = useRef<number | null>(null);
   const viewportSize = useViewportSize();
+  const panelWidthStyle = panelWidthToCss(width);
+  const fallbackPanelWidth = panelWidthToPixels(width);
   const [freePosition, setFreePosition] = useState<PanelPosition | null>(null);
   const [activeInteractionIds, setActiveInteractionIds] = useState<Set<string>>(() => new Set());
   const setInteractionActive = useCallback((interactionId: string, active: boolean) => {
@@ -140,18 +152,25 @@ export function TweakerPanel({
 
   const position = useMemo(() => {
     if (typeof window === "undefined") return { x: 16, y: 16 };
-    if (freePosition) return clampPosition(freePosition, panelRef.current);
+    if (freePosition) return clampPosition(freePosition, panelRef.current, fallbackPanelWidth);
     if (dock) {
       return clampPosition(
-        dockToPosition(dock, window.innerWidth, window.innerHeight),
+        dockToPosition(dock, window.innerWidth, window.innerHeight, fallbackPanelWidth),
         panelRef.current,
+        fallbackPanelWidth,
       );
     }
     return clampPosition(
-      placementToPosition(resolvedPlacement, viewportSize.width, viewportSize.height),
+      placementToPosition(
+        resolvedPlacement,
+        viewportSize.width,
+        viewportSize.height,
+        fallbackPanelWidth,
+      ),
       panelRef.current,
+      fallbackPanelWidth,
     );
-  }, [dock, freePosition, resolvedPlacement, viewportSize]);
+  }, [dock, fallbackPanelWidth, freePosition, resolvedPlacement, viewportSize]);
 
   useEffect(() => {
     return () => {
@@ -162,6 +181,12 @@ export function TweakerPanel({
   }, []);
 
   function handlePanelPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    // Never start a panel drag from a press on an interactive control inside
+    // the header (collapse toggle, menu trigger) or from portaled overlays
+    // (menu items). This guards against any propagation path that could arm
+    // the drag from a click meant for a control.
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('button, [role="menuitem"], input, select, [data-no-drag]')) return;
     const element = panelRef.current;
     if (!element) return;
     trySetPointerCapture(event.currentTarget, event.pointerId);
@@ -186,6 +211,7 @@ export function TweakerPanel({
         y: drag.origin.y + event.clientY - drag.startY,
       },
       panelRef.current,
+      fallbackPanelWidth,
     );
     setFreePosition(next);
   }
@@ -198,14 +224,16 @@ export function TweakerPanel({
     tryReleasePointerCapture(event.currentTarget, event.pointerId);
     if (!drag || !element) return;
 
-    const nextPosition = clampPosition(
-      {
-        x: drag.origin.x + event.clientX - drag.startX,
-        y: drag.origin.y + event.clientY - drag.startY,
-      },
-      element,
-    );
-    const nextDock = nearestDock(nextPosition, element);
+    // Pass the user's intended (unclamped) drop position to nearestDock. With a
+    // tall panel the clamped position can sit at an edge purely from clamping,
+    // which would otherwise read as dock intent; the intended position reflects
+    // where the user actually aimed.
+    const intendedPosition = {
+      x: drag.origin.x + event.clientX - drag.startX,
+      y: drag.origin.y + event.clientY - drag.startY,
+    };
+    const nextPosition = clampPosition(intendedPosition, element, fallbackPanelWidth);
+    const nextDock = nearestDock(intendedPosition, element);
     setDock(panelId, nextDock);
     if (nextDock) {
       setFreePosition(null);
@@ -274,6 +302,7 @@ export function TweakerPanel({
 
   const effectStyle: PanelEffectStyle = {};
   const style = freePosition || !dock ? positionToStyle(position) : dockToStyle(dock);
+  if (panelWidthStyle) style["--tw-panel-width"] = panelWidthStyle;
   const resolvedAppearance = { ...legacyAppearance, ...appearance };
   applyAppearance(style, resolvedAppearance);
   applyAppearance(effectStyle, resolvedAppearance);
@@ -306,23 +335,18 @@ export function TweakerPanel({
           {collapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
         </Button>
         <strong>{title}</strong>
-        <Button
-          className="tw-icon-button"
-          type="button"
-          aria-label={`Reset ${title} values`}
-          onPointerDown={(event) => event.stopPropagation()}
-          onPress={() => resetValues(panelId)}
-        >
-          <RotateCcw size={14} />
-        </Button>
-        <Button
-          className="tw-text-button"
-          type="button"
-          onPointerDown={(event) => event.stopPropagation()}
-          onPress={() => resetOrder(panelId)}
-        >
-          Order
-        </Button>
+        <PanelMenu
+          panelId={panelId}
+          panelRef={panelRef}
+          title={title}
+          dock={dock}
+          valuesById={valuesById}
+          resetValues={resetValues}
+          resetOrder={resetOrder}
+          setDock={setDock}
+          setAllSectionsCollapsed={setAllSectionsCollapsed}
+          onOpenChange={setInteractionActive}
+        />
       </div>
 
       {!collapsed && (
@@ -330,7 +354,7 @@ export function TweakerPanel({
           <PanelEffectProvider value={{ style: effectStyle, theme, setInteractionActive }}>
             <div className="tw-panel__body">
               {sectionOrder
-                .filter((sectionId) => !hiddenSections[sectionId])
+                .filter((sectionId) => liveSectionIds.has(sectionId) && !hiddenSections[sectionId])
                 .map((sectionId) => {
                   const sectionControls = orderControls(controls, sectionId, order);
                   const sectionLabel = sectionControls[0]?.sectionLabel ?? sectionId;
@@ -376,6 +400,20 @@ function positionToStyle(position: PanelPosition): PanelStyle {
     left: `${position.x}px`,
     top: `${position.y}px`,
   };
+}
+
+function panelWidthToCss(width: number | string | undefined) {
+  if (typeof width === "number") {
+    return Number.isFinite(width) && width > 0 ? `${width}px` : undefined;
+  }
+  const value = width?.trim();
+  return value ? value : undefined;
+}
+
+function panelWidthToPixels(width: number | string | undefined) {
+  if (typeof width === "number") return Number.isFinite(width) && width > 0 ? width : undefined;
+  const match = width?.trim().match(/^(\d+(?:\.\d+)?)px$/);
+  return match ? Number(match[1]) : undefined;
 }
 
 function dockToStyle(dock: DockState): PanelStyle {

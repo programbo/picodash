@@ -24,7 +24,7 @@ Wrap the app once with `TweakerProvider`. Always provide a stable `id`; it is us
 <TweakerProvider id="my-app">
   <SceneControls />
   <BuildControls />
-  <TweakerPanel id="scene" defaultPlacement="top-right" theme="dark" />
+  <TweakerPanel id="scene" defaultPlacement="top-right" theme="dark" width={360} />
   <TweakerPanel id="build" defaultPlacement="bottom-right" theme="system" />
 </TweakerProvider>
 ```
@@ -76,14 +76,17 @@ Custom control values must be JSON-serializable. Use control-level `id` when a s
 - Supported built-ins are numbers, sliders, selects, checkboxes, and display rows.
 - Min/max numeric shorthand becomes a slider.
 - Use explicit `type: "number"` for bounded number inputs.
+- Use `formatOptions` on sliders when their output needs Intl formatting; default fraction digits are inferred from `step`.
 - Use `type: "display"` for derived non-interactive readouts; they update from `defaultValue` on re-registration and ignore writes.
 - Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row states.
 - Use `help: string` on object controls for row help tooltips; keep this string-only and do not put render props in schemas.
+- Use `description: React.ReactNode` on object controls for dynamic row footer content; derive it from live values and re-register when it changes.
 - Use `readOnly: true` to show a value while blocking writes.
 - Use `hidden: true` on controls or sections to hide rows while preserving values and order.
 - Dynamic schemas are supported; re-registration updates labels, bounds, options, formatting, read-only/hidden state, and display metadata, and it sanitizes values when numeric bounds or select options narrow.
 - Pass `reorderable: false` in hook options when a hook registration should not be draggable.
 - Put panel opacity and backdrop blur on `TweakerPanel.appearance`, not hook options.
+- Use `width={360}` or another CSS length string on `TweakerPanel` to set `--tw-panel-width`.
 - Section collapse state is persisted per panel and section.
 - Reordering is panel-local and section-local and starts from the grip handle.
 - The package ships dark and light CSS-variable themes. Use `theme="system"` to follow `prefers-color-scheme`, or customize further by overriding CSS variables around the panel.

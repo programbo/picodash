@@ -189,21 +189,20 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
       data-testid={`section-${title || sectionId}`}
     >
       {!headerless && (
-        <div className="tw-section__header">
-          <Button
-            className="tw-icon-button tw-section__toggle"
-            type="button"
-            aria-label={collapsed ? `Expand section ${title}` : `Collapse section ${title}`}
-            onPress={() => setSectionCollapsed(panelId, sectionId, !collapsed)}
-          >
-            {collapsed ? (
-              <ChevronRight size={18} strokeWidth={2.4} />
-            ) : (
-              <ChevronDown size={18} strokeWidth={2.4} />
-            )}
-          </Button>
+        <Button
+          className="tw-section__header"
+          type="button"
+          aria-label={collapsed ? `Expand section ${title}` : `Collapse section ${title}`}
+          aria-expanded={!collapsed}
+          onPress={() => setSectionCollapsed(panelId, sectionId, !collapsed)}
+        >
+          {collapsed ? (
+            <ChevronRight size={18} strokeWidth={2.4} />
+          ) : (
+            <ChevronDown size={18} strokeWidth={2.4} />
+          )}
           <div className="tw-section__title">{title}</div>
-        </div>
+        </Button>
       )}
       {!collapsed && (
         <div ref={listRef} className="tw-section__list">

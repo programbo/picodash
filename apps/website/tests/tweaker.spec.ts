@@ -104,6 +104,21 @@ test("renders number controls with formatOptions", async ({ page }) => {
   await expect(page.getByRole("textbox", { name: "Rotation" })).toHaveValue("0\u00B0");
 });
 
+test("renders slider outputs with formatOptions and step precision", async ({ page }) => {
+  await expect(page.getByTestId("control-roughness").locator(".tw-slider__value")).toHaveText(
+    "0.34",
+  );
+  await expect(page.getByTestId("control-sheen").locator(".tw-slider__value")).toHaveText("42%");
+});
+
+test("renders dynamic control descriptions as row footers", async ({ page }) => {
+  const description = page.getByTestId("control-focalLength").locator(".tw-row__description");
+
+  await expect(description).toHaveText("Linked to speed 0.72");
+  await page.getByRole("button", { name: "Set speed to 1.25" }).click();
+  await expect(description).toHaveText("Linked to speed 1.25");
+});
+
 test("renders display controls and updates them from derived values", async ({ page }) => {
   // The 35mm-equivalent display is derived from focal length (crop x1.5).
   const display = page.getByTestId("control-equivalent").locator(".tw-display");
@@ -165,7 +180,7 @@ test("drives dynamic section visibility, control locking, and bounds clamping", 
 test("programmatic setter updates the panel and preview", async ({ page }) => {
   await page.getByRole("button", { name: "Set speed to 1.25" }).click();
 
-  await expect(page.getByText("Speed 1.25")).toBeVisible();
+  await expect(page.locator(".preview__readout").getByText("Speed 1.25")).toBeVisible();
   await expect(page.getByRole("group", { name: "Speed" }).getByRole("slider")).toHaveValue("1.25");
 });
 
@@ -192,6 +207,18 @@ test("renders info, alert, and error control status states", async ({ page }) =>
 
 test("shows control help tooltips with panel styling", async ({ page }) => {
   const help = page.getByRole("button", { name: "Help for Speed" });
+  const label = page.getByTestId("control-speed").locator(".tw-row__label");
+
+  await expect(help.locator("svg")).toHaveClass(/lucide-info/);
+  await expect
+    .poll(async () => {
+      const [helpBox, labelBox] = await Promise.all([help.boundingBox(), label.boundingBox()]);
+      if (!helpBox || !labelBox) return false;
+      const helpCenter = helpBox.y + helpBox.height / 2;
+      const labelCenter = labelBox.y + labelBox.height / 2;
+      return Math.abs(helpCenter - labelCenter) <= 2;
+    })
+    .toBe(true);
 
   await hoverCenter(page, help);
 
@@ -252,17 +279,108 @@ test("collapses and persists section state", async ({ page }) => {
   await expect(page.getByTestId("control-shape")).toBeVisible();
 });
 
+test("clicking the section title toggles collapse", async ({ page }) => {
+  // The title text is part of the same toggle button as the chevron, so clicking
+  // the title (not just the chevron) collapses and expands the section.
+  const header = page.getByRole("button", { name: "Collapse section Rendering" });
+  await header.locator(".tw-section__title", { hasText: "Rendering" }).click();
+
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Expand section Rendering" })).toBeVisible();
+
+  // Clicking the title again expands it.
+  await page
+    .getByRole("button", { name: "Expand section Rendering" })
+    .locator(".tw-section__title", { hasText: "Rendering" })
+    .click();
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeVisible();
+});
+
 test("resets values separately from order", async ({ page }) => {
   await page.getByRole("textbox", { name: "Exposure" }).fill("3");
   await page.getByRole("textbox", { name: "Exposure" }).press("Enter");
   await page.getByTestId("control-channel").locator(".tw-select__button").click();
   await page.getByRole("option", { name: "Canary" }).click();
-  await page.getByRole("button", { name: "Reset Scene values" }).click();
+
+  await page.getByTestId("tweaker-panel").getByRole("button", { name: "Panel menu" }).click();
+  // Reset lives behind a submenu to prevent accidental resets.
+  await page.getByRole("menuitem", { name: "Reset…" }).click();
+  await page.getByRole("menuitem", { name: "Reset values" }).click();
 
   await expect(page.getByRole("textbox", { name: "Exposure" })).toHaveValue("1");
   await expect(page.getByTestId("control-channel").locator(".tw-select__button")).toContainText(
     "Canary",
   );
+});
+
+test("panel menu docks, floats, and runs actions", async ({ page }) => {
+  const panel = page.getByTestId("tweaker-panel");
+  const menuButton = panel.getByRole("button", { name: "Panel menu" });
+
+  // Dock to the right edge via the menu, then float it back.
+  await menuButton.click();
+  await page.getByRole("menuitem", { name: "Dock to right" }).click();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("tweaker:docs-demo");
+        return raw ? JSON.parse(raw).state?.panels?.default?.dock?.edge : null;
+      }),
+    )
+    .toBe("right");
+
+  await menuButton.click();
+  const activeDockItem = page.getByRole("menuitem", { name: "Dock to right" });
+  const inactiveDockItem = page.getByRole("menuitem", { name: "Dock to bottom" });
+  await expect(activeDockItem.locator(".tw-menu__check")).toHaveText("\u2713");
+  await expect(inactiveDockItem.locator(".tw-menu__check")).toBeEmpty();
+  await expect
+    .poll(async () => {
+      const [activeCheckBox, activeLabelBox, inactiveLabelBox] = await Promise.all([
+        activeDockItem.locator(".tw-menu__check").boundingBox(),
+        activeDockItem.locator(".tw-menu__label").boundingBox(),
+        inactiveDockItem.locator(".tw-menu__label").boundingBox(),
+      ]);
+      if (!activeCheckBox || !activeLabelBox || !inactiveLabelBox) {
+        return false;
+      }
+      return (
+        Math.round(activeLabelBox.x) > Math.round(activeCheckBox.x) &&
+        Math.round(activeLabelBox.x) === Math.round(inactiveLabelBox.x)
+      );
+    })
+    .toBe(true);
+
+  await page.keyboard.press("Escape");
+
+  await menuButton.click();
+  await page.getByRole("menuitem", { name: "Float (unpin)" }).click();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("tweaker:docs-demo");
+        return raw ? JSON.parse(raw).state?.panels?.default?.dock : null;
+      }),
+    )
+    .toBeNull();
+
+  // Collapse all sections hides section contents.
+  await menuButton.click();
+  await page.getByRole("menuitem", { name: "Collapse all sections" }).click();
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeHidden();
+
+  // Expand all brings them back.
+  await menuButton.click();
+  await page.getByRole("menuitem", { name: "Expand all sections" }).click();
+  await expect(page.getByRole("slider", { name: "Speed" })).toBeVisible();
+
+  // Reset values restores defaults (behind the Reset submenu).
+  await page.getByRole("textbox", { name: "Exposure" }).fill("3");
+  await page.getByRole("textbox", { name: "Exposure" }).press("Enter");
+  await menuButton.click();
+  await page.getByRole("menuitem", { name: "Reset…" }).click();
+  await page.getByRole("menuitem", { name: "Reset values" }).click();
+  await expect(page.getByRole("textbox", { name: "Exposure" })).toHaveValue("1");
 });
 
 test("docks the panel near a viewport edge", async ({ page }) => {
@@ -285,6 +403,30 @@ test("docks the panel near a viewport edge", async ({ page }) => {
     .toBe("left");
 });
 
+test("does not auto-dock a tall panel dragged to the center", async ({ page }) => {
+  // Regression: after docking via the menu and dragging away to the center, the
+  // panel must float. A tall panel clamped to the viewport used to read as flush
+  // with the bottom edge and get trapped in a bottom dock.
+  await page.getByTestId("tweaker-panel").getByRole("button", { name: "Panel menu" }).click();
+  await page.getByRole("menuitem", { name: "Dock to left" }).click();
+
+  const header = page.getByTestId("tweaker-panel").locator(".tw-panel__header");
+  const box = await header.boundingBox();
+  await page.mouse.move(box!.x + 80, box!.y + 16);
+  await page.mouse.down();
+  await page.mouse.move(500, 350, { steps: 6 });
+  await page.mouse.up();
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("tweaker:docs-demo");
+        return raw ? JSON.parse(raw).state?.panels?.default?.dock : null;
+      }),
+    )
+    .toBeNull();
+});
+
 test("docks the panel to a corner when two viewport edges are near", async ({ page }) => {
   const header = page.getByTestId("tweaker-panel").locator(".tw-panel__header");
   const box = await header.boundingBox();
@@ -295,15 +437,17 @@ test("docks the panel to a corner when two viewport edges are near", async ({ pa
   await page.mouse.move(83, 20, { steps: 8 });
   await page.mouse.up();
 
+  // The demo panel is tall, so vertical (top/bottom) auto-docking is disabled
+  // and only the left edge engages here.
   await expect
     .poll(async () =>
       page.evaluate(() => {
         const raw = localStorage.getItem("tweaker:docs-demo");
         const dock = raw ? JSON.parse(raw).state?.panels?.default?.dock : null;
-        return dock ? [dock.edge, dock.secondaryEdge] : null;
+        return dock ? dock.edge : null;
       }),
     )
-    .toEqual(["left", "top"]);
+    .toBe("left");
 });
 
 test("keeps docked panels anchored when the viewport resizes", async ({ page }) => {
@@ -501,6 +645,10 @@ test("opens the target slot while pointer-dragging a control", async ({ page }) 
             !!draggedRow &&
             getComputedStyle(draggedRow).visibility !== "hidden" &&
             draggedRow.getBoundingClientRect().height > 0,
+          dragBackdrop: draggedRow ? getComputedStyle(draggedRow).backdropFilter : "",
+          dragShadowStrong: draggedRow
+            ? getComputedStyle(draggedRow).boxShadow.includes("46px")
+            : false,
           placeholderSpace:
             !!placeholder &&
             getComputedStyle(placeholder).visibility === "hidden" &&
@@ -516,6 +664,8 @@ test("opens the target slot while pointer-dragging a control", async ({ page }) 
     })
     .toEqual({
       bloomMovedUp: false,
+      dragBackdrop: "blur(8px)",
+      dragShadowStrong: true,
       dragged: 1,
       draggedVisible: true,
       exposureMovedUp: true,
@@ -621,6 +771,7 @@ test("places a dragged control between rows after crossing multiple controls", a
     .toEqual([
       "docs-demo:default:material:tint",
       "docs-demo:default:material:roughness",
+      "docs-demo:default:material:sheen",
       "docs-demo:default:material:shape",
       "docs-demo:default:material:accent",
     ]);
@@ -731,6 +882,7 @@ test("moves the material spacer through every row while dragging shape", async (
     .toEqual([
       "docs-demo:default:material:tint",
       "docs-demo:default:material:roughness",
+      "docs-demo:default:material:sheen",
       "docs-demo:default:material:accent",
       "docs-demo:default:material:shape",
     ]);
@@ -808,6 +960,38 @@ test("keeps panel appearance active during row pointer interaction without hover
     .toBeNull();
 });
 
+test("does not flicker panel opacity while a downward row drag settles", async ({ page }) => {
+  // Regression: dragging a row downward can leave the cursor over a gap as the
+  // reordered rows animate into place, flickering :hover off. The panel must
+  // keep its active background without a visible dim-then-brighten during the
+  // drag-settle window.
+  const panel = page.getByTestId("tweaker-panel");
+  const speedGrip = page.getByRole("button", { name: "Reorder Speed" });
+  const exposureRow = page.getByTestId("control-exposure");
+  const speedBox = await speedGrip.boundingBox();
+  const exposureBox = await exposureRow.boundingBox();
+
+  await page.mouse.move(speedBox!.x + speedBox!.width / 2, speedBox!.y + speedBox!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    exposureBox!.x + exposureBox!.width / 2,
+    exposureBox!.y + exposureBox!.height / 2,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+
+  // Sample the background every ~20ms through the settle window. It must never
+  // drop below the active opacity.
+  const samples: string[] = [];
+  for (let i = 0; i < 8; i++) {
+    samples.push(await panel.evaluate((el) => getComputedStyle(el).backgroundColor));
+    await page.waitForTimeout(20);
+  }
+  for (const bg of samples) {
+    expect(bg).toBe("rgba(21, 22, 23, 0.95)");
+  }
+});
+
 test("keeps active panel appearance while a row drop settles", async ({ page }) => {
   const panel = page.getByTestId("tweaker-panel");
   const speedGrip = page.getByRole("button", { name: "Reorder Speed" });
@@ -868,6 +1052,7 @@ test("does not move controls between sections by pointer-dragging the grip", asy
       "docs-demo:default:material:shape",
       "docs-demo:default:material:tint",
       "docs-demo:default:material:roughness",
+      "docs-demo:default:material:sheen",
       "docs-demo:default:material:accent",
     ]);
   await expect
@@ -936,6 +1121,7 @@ test("applies panel appearance with hover transitions", async ({ page }) => {
   const panel = page.getByTestId("tweaker-panel");
   const exposureInput = page.getByRole("textbox", { name: "Exposure" });
 
+  await expect(panel).toHaveCSS("width", "360px");
   await expect(panel).toHaveCSS("opacity", "1");
   await expect(panel).toHaveCSS("background-color", "rgba(21, 22, 23, 0.55)");
   await expect(exposureInput).toHaveCSS("background-color", "rgba(16, 17, 18, 0.55)");

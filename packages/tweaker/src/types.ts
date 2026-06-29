@@ -26,6 +26,8 @@ interface ControlIdentity {
   id?: string;
   label?: string;
   help?: string;
+  /** Footer content rendered below the control. Re-register to update dynamic content. */
+  description?: ReactNode;
   /** Renders the control faded/greyscale and blocks value writes. */
   readOnly?: boolean;
   /** Hides the control row while preserving its value and order slot. */
@@ -55,6 +57,8 @@ export interface SliderControl extends ValueControl<number> {
   min: number;
   max: number;
   step?: number;
+  /** Intl.NumberFormatOptions applied to the slider output. */
+  formatOptions?: Intl.NumberFormatOptions;
 }
 
 export interface SelectControl<T extends string = string> extends ValueControl<T> {
@@ -145,6 +149,7 @@ export interface NormalizedControl {
   sortable: boolean;
   status?: ControlStatus;
   help?: string;
+  description?: ReactNode;
   readOnly?: boolean;
   hidden?: boolean;
   kind: ControlKind;
@@ -216,6 +221,7 @@ export interface TweakerState extends TweakerSnapshot {
   setValue: (persistId: string, value: JsonValue) => void;
   setPanelCollapsed: (panelId: string, collapsed: boolean) => void;
   setSectionCollapsed: (panelId: string, sectionId: string, collapsed: boolean) => void;
+  setAllSectionsCollapsed: (panelId: string, collapsed: boolean) => void;
   setPanelDock: (panelId: string, dock: DockState | null) => void;
   setSectionOrder: (panelId: string, sectionId: string, ids: string[]) => void;
   resetValues: (panelId?: string) => void;

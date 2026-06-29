@@ -97,6 +97,14 @@ const materialSchema = {
     help: "Changes the material color palette.",
   },
   roughness: { type: "slider", defaultValue: 0.34, min: 0, max: 1, step: 0.01 },
+  sheen: {
+    type: "slider",
+    defaultValue: 0.42,
+    min: 0,
+    max: 1,
+    step: 0.001,
+    formatOptions: { style: "percent", maximumFractionDigits: 1 },
+  },
   accent: { type: "color", id: "accent", defaultValue: "#9bd16f", label: "Accent" },
 } satisfies TweakerSchema;
 
@@ -167,7 +175,21 @@ function Demo() {
   const [material] = useTweaker(materialSchema, {
     section: { id: "material", label: "Material" },
   });
-  const [camera] = useTweaker(cameraSchema, {
+  const cameraSchemaWithDescription = useMemo<TweakerSchema>(
+    () => ({
+      ...cameraSchema,
+      focalLength: {
+        ...cameraSchema.focalLength,
+        description: (
+          <span>
+            Linked to speed <strong>{Number(rendering.speed).toFixed(2)}</strong>
+          </span>
+        ),
+      },
+    }),
+    [rendering.speed],
+  );
+  const [camera] = useTweaker(cameraSchemaWithDescription, {
     section: { id: "camera", label: "" },
   });
   // Derived display: a 35mm-equivalent focal length computed from focalLength.
@@ -232,6 +254,7 @@ function Demo() {
         defaultPlacement="top-right"
         theme={panelTheme}
         title="Scene"
+        width={360}
         appearance={{
           surfaceOpacity: dimmed ? 0.55 : 1,
           activeSurfaceOpacity: dimmed ? 0.95 : 1,
@@ -326,6 +349,7 @@ import "tweaker/style.css";`}</code>
 const [dimmed, setDimmed] = useState(true);
 
 <TweakerPanel
+  width={360}
   appearance={{
     surfaceOpacity: dimmed ? 0.55 : 1,
     activeSurfaceOpacity: dimmed ? 0.95 : 1,

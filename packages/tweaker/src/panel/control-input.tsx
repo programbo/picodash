@@ -1,6 +1,7 @@
 import {
   Button,
-  Checkbox,
+  CheckboxButton,
+  CheckboxField,
   Group,
   Input,
   ListBox,
@@ -16,7 +17,7 @@ import {
 } from "react-aria-components";
 import { ChevronDown } from "lucide-react";
 import { useTweakerCustomControls } from "../react/context.js";
-import { formatDisplayValue } from "../control.js";
+import { formatDisplayValue, formatSliderValue } from "../control.js";
 import type { JsonValue, NormalizedControl } from "../types.js";
 import { usePanelEffects, usePanelInteraction } from "./panel-effects-context.js";
 
@@ -60,14 +61,16 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
 
   if (control.kind === "checkbox") {
     return (
-      <Checkbox
+      <CheckboxField
         id={control.domId}
-        className="tw-checkbox"
+        className="tw-checkbox-field"
         aria-labelledby={labelId}
         isReadOnly={control.readOnly}
         isSelected={Boolean(control.value)}
         onChange={(selected) => onChange(selected)}
-      />
+      >
+        <CheckboxButton className="tw-checkbox" />
+      </CheckboxField>
     );
   }
 
@@ -79,9 +82,9 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         id={control.domId}
         className="tw-select"
         aria-labelledby={labelId}
-        selectedKey={selectedKey}
+        value={selectedKey}
         onOpenChange={setSelectOpenActive}
-        onSelectionChange={(key) => onChange(String(key))}
+        onChange={(key) => onChange(String(key))}
       >
         <Button className="tw-select__button">
           <SelectValue />
@@ -118,7 +121,7 @@ export function ControlInput({ control, labelId, onChange }: ControlInputProps) 
         <SliderTrack className="tw-slider__track">
           <SliderThumb id={control.domId} className="tw-slider__thumb" />
         </SliderTrack>
-        <SliderOutput className="tw-slider__value">{Number(control.value).toFixed(2)}</SliderOutput>
+        <SliderOutput className="tw-slider__value">{formatSliderValue(control)}</SliderOutput>
       </Slider>
     );
   }
