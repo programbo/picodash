@@ -205,6 +205,48 @@ h1 {
   cursor: pointer;
 }
 
+.svg-control,
+.telemetry-graph {
+  display: block;
+  height: var(--tw-control-height, auto);
+  min-height: var(--tw-control-min-height, 0);
+  color: var(--tw-text);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, currentColor 8%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in srgb, currentColor 8%, transparent) 1px, transparent 1px),
+    var(--tw-control-bg);
+  background-size:
+    16px 16px,
+    16px 16px,
+    auto;
+  border: 1px solid var(--tw-border);
+  border-radius: 5px;
+}
+
+.svg-control {
+  padding: 8px;
+}
+
+.telemetry-graph {
+  padding: 6px;
+}
+
+.telemetry-graph__midline {
+  fill: none;
+  stroke: color-mix(in srgb, currentColor 18%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.telemetry-graph__line {
+  fill: none;
+  stroke: #79b9e6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
 .preview__readout {
   position: absolute;
   right: 16px;

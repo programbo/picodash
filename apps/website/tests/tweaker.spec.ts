@@ -160,6 +160,35 @@ test('renders display controls and updates them from derived values', async ({ p
   await expect(display).toHaveText('75 mm')
 })
 
+test('renders SVG and transient graph extension controls without persisting values', async ({
+  page,
+}) => {
+  const profile = page.getByTestId('control-profileSvg')
+  const graph = page.getByTestId('control-forceGraph')
+
+  await expect(profile).toHaveAttribute('data-control-type', '@tweaker-demo/svg')
+  await expect(profile).toHaveAttribute('data-control-layout', 'block')
+  await expect(profile).toHaveAttribute('data-value-mode', 'display')
+  await expect(profile.locator('.svg-control path')).toHaveCount(4)
+
+  await expect(graph).toHaveAttribute('data-control-type', '@tweaker-demo/telemetryGraph')
+  await expect(graph).toHaveAttribute('data-control-layout', 'block')
+  await expect(graph).toHaveAttribute('data-value-mode', 'transient')
+  await expect(graph.locator('.telemetry-graph__line')).toHaveAttribute('d', /L/)
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem('tweaker:docs-demo')
+        const values = raw ? JSON.parse(raw).state?.values : {}
+        return Object.keys(values ?? {}).filter(
+          (key) => key.includes('profileSvg') || key.includes('forceGraph'),
+        )
+      }),
+    )
+    .toEqual([])
+})
+
 test('renders read-only controls as faded and non-editable', async ({ page }) => {
   const row = page.getByTestId('control-rotation')
   const field = row.locator('.tw-number-field')
@@ -1113,7 +1142,7 @@ test('reorders controls within a section by keyboard on the grip', async ({ page
     .toContain('docs-demo:default:rendering:speed')
 })
 
-test('can disable sorting per hook registration', async ({ page }) => {
+test('can disable reordering per hook registration', async ({ page }) => {
   const channelGrip = page.getByRole('button', {
     name: 'Reordering disabled for Channel',
   })
@@ -1169,7 +1198,7 @@ test('applies panel appearance with hover transitions', async ({ page }) => {
   await expect(panel).toHaveCSS('backdrop-filter', 'blur(8px)')
 })
 
-test('applies hook-level panel effects to portaled select popovers', async ({ page }) => {
+test('applies panel appearance to portaled select popovers', async ({ page }) => {
   await page.getByTestId('control-tint').locator('.tw-select__button').click()
 
   const popover = page.locator('.tw-select__popover')

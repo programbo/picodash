@@ -9,7 +9,7 @@ import {
   normalizePanelId,
   normalizeSection,
   preserveSectionOrderByPanel,
-  sanitizeValueForControl,
+  sanitizeValueWithRegistry,
   valueForControl,
   valuesForControls,
 } from '../control.js'
@@ -21,6 +21,8 @@ import {
   type PanelAppearance,
   type PanelLayoutState,
   type PersistedState,
+  type RegisterOptions,
+  type TweakerControlRegistry,
   type TweakerState,
   type TweakerStore,
   type TweakerStoreOptions,
@@ -32,7 +34,20 @@ import {
   storagePrefix,
 } from './persistence.js'
 
-function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
+function controlValueEqual(
+  control: NormalizedControl,
+  left: JsonValue,
+  right: JsonValue,
+  registry?: TweakerControlRegistry,
+) {
+  return registry?.[control.rendererType]?.equals?.(left, right) ?? jsonValuesEqual(left, right)
+}
+
+function controlsEqual(
+  left: NormalizedControl[],
+  right: NormalizedControl[],
+  registry?: TweakerControlRegistry,
+) {
   if (left.length !== right.length) return false
 
   return left.every((leftControl, index) => {
@@ -49,14 +64,25 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.sectionId === rightControl.sectionId &&
       leftControl.sectionLabel === rightControl.sectionLabel &&
       leftControl.reorderable === rightControl.reorderable &&
+      leftControl.sortable === rightControl.sortable &&
+      leftControl.rendererType === rightControl.rendererType &&
+      leftControl.valueMode === rightControl.valueMode &&
+      leftControl.layout === rightControl.layout &&
+      leftControl.height === rightControl.height &&
+      leftControl.minHeight === rightControl.minHeight &&
       leftControl.status === rightControl.status &&
       reactNodeEqual(leftControl.help, rightControl.help) &&
       reactNodeEqual(leftControl.description, rightControl.description) &&
       leftControl.kind === rightControl.kind &&
       leftControl.type === rightControl.type &&
       leftControl.label === rightControl.label &&
-      valuesEqual(leftControl.value, rightControl.value) &&
-      valuesEqual(leftControl.defaultValue, rightControl.defaultValue) &&
+      controlValueEqual(leftControl, leftControl.value, rightControl.value, registry) &&
+      controlValueEqual(
+        leftControl,
+        leftControl.defaultValue,
+        rightControl.defaultValue,
+        registry,
+      ) &&
       leftControl.min === rightControl.min &&
       leftControl.max === rightControl.max &&
       leftControl.step === rightControl.step &&
@@ -68,10 +94,6 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
       leftControl.hidden === rightControl.hidden
     )
   })
-}
-
-function valuesEqual(left: JsonValue, right: JsonValue) {
-  return jsonValuesEqual(left, right)
 }
 
 function settingsEqual(left: NormalizedControl['settings'], right: NormalizedControl['settings']) {
@@ -115,18 +137,6 @@ function panelSectionsFor(state: Pick<TweakerState, 'sections'>, panelId: string
   return state.sections[panelId] ?? {}
 }
 
-function panelAppearanceEqual(
-  left: PanelAppearance | undefined,
-  right: PanelAppearance | undefined,
-) {
-  return (
-    left?.surfaceOpacity === right?.surfaceOpacity &&
-    left?.activeSurfaceOpacity === right?.activeSurfaceOpacity &&
-    left?.backdropBlur === right?.backdropBlur &&
-    left?.activeBackdropBlur === right?.activeBackdropBlur
-  )
-}
-
 function dockEqual(left: DockState | null, right: DockState | null) {
   if (left === right) return true
   if (!left || !right) return false
@@ -141,7 +151,21 @@ function orderEqual(left: string[] | undefined, right: string[]) {
   return left?.length === right.length && right.every((id, index) => left[index] === id)
 }
 
+function panelAppearanceEqual(
+  left: PanelAppearance | undefined,
+  right: PanelAppearance | undefined,
+) {
+  return (
+    left?.surfaceOpacity === right?.surfaceOpacity &&
+    left?.activeSurfaceOpacity === right?.activeSurfaceOpacity &&
+    left?.backdropBlur === right?.backdropBlur &&
+    left?.activeBackdropBlur === right?.activeBackdropBlur
+  )
+}
+
 function createBaseState(storeId: string) {
+  let controlRegistry: TweakerControlRegistry | undefined
+
   return (
     set: (
       partial:
@@ -153,6 +177,7 @@ function createBaseState(storeId: string) {
     get: () => TweakerState,
   ): TweakerState => ({
     ...emptyPersistedState(),
+    id: storeId,
     storeId,
     controls: [],
     sectionOrder: {},
@@ -160,6 +185,9 @@ function createBaseState(storeId: string) {
     hiddenSections: {},
 
     register(schema, options = {}) {
+      const registry = (options as RegisterOptions & { registry?: TweakerControlRegistry }).registry
+      if (registry) controlRegistry = registry
+
       const panelId = normalizePanelId(options.panel)
       const section = normalizeSection(options.section)
       const reorderable = options.reorderable ?? options.sortable ?? true
@@ -171,6 +199,7 @@ function createBaseState(storeId: string) {
           key,
           config,
           reorderable,
+          registry: controlRegistry,
         }),
       )
       const ids = new Set(controls.map((control) => control.persistId))
@@ -186,7 +215,7 @@ function createBaseState(storeId: string) {
           // controls are left alone so their default flows through naturally.
           if (Object.prototype.hasOwnProperty.call(values, control.persistId)) {
             const stored = values[control.persistId]!
-            const sanitized = sanitizeValueForControl(control, stored)
+            const sanitized = sanitizeValueWithRegistry(control, stored, controlRegistry)
             if (!jsonValuesEqual(sanitized, stored)) {
               values[control.persistId] = sanitized
               valuesChanged = true
@@ -205,7 +234,11 @@ function createBaseState(storeId: string) {
         }
         const hiddenChanged =
           state.hiddenSections[panelId]?.[section.id] !== nextHiddenSections[panelId]?.[section.id]
-        if (controlsEqual(state.controls, nextControls) && !valuesChanged && !hiddenChanged)
+        if (
+          controlsEqual(state.controls, nextControls, controlRegistry) &&
+          !valuesChanged &&
+          !hiddenChanged
+        )
           return state
 
         return {
@@ -276,21 +309,26 @@ function createBaseState(storeId: string) {
       const control = get().controls.find((item) => item.persistId === persistId)
       if (!control) return
       if (control.readOnly) return
-      if (control.kind === 'display') return
+      if (control.valueMode === 'display') return
 
-      const nextValue = sanitizeValueForControl(control, value)
-      if (jsonValuesEqual(control.value, nextValue)) return
+      const nextValue = sanitizeValueWithRegistry(control, value, controlRegistry)
+      if (controlValueEqual(control, control.value, nextValue, controlRegistry)) return
 
       set((state) => {
         const controlIndex = state.controls.findIndex((item) => item.persistId === persistId)
         const control = state.controls[controlIndex]
-        if (!control || control.readOnly || control.kind === 'display') return state
+        if (!control || control.readOnly || control.valueMode === 'display') return state
 
-        const sanitized = sanitizeValueForControl(control, value)
-        if (jsonValuesEqual(control.value, sanitized)) return state
+        const sanitized = sanitizeValueWithRegistry(control, value, controlRegistry)
+        if (controlValueEqual(control, control.value, sanitized, controlRegistry)) return state
+
+        const controls = state.controls.slice()
+        if (control.valueMode === 'transient') {
+          controls[controlIndex] = { ...control, value: sanitized }
+          return { controls }
+        }
 
         const values = { ...state.values, [persistId]: sanitized }
-        const controls = state.controls.slice()
         controls[controlIndex] = { ...control, value: valueForControl(control, values) }
 
         return {

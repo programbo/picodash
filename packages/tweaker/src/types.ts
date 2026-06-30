@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from 'react'
+import type { ComponentType, CSSProperties, ReactNode } from 'react'
 import type { StoreApi } from 'zustand'
 
 export const defaultPanelId = 'default'
@@ -17,6 +17,8 @@ export type PrimitiveValue = number | string | boolean
 export type ControlKind = 'number' | 'slider' | 'select' | 'checkbox' | 'display' | 'custom'
 export type BuiltInControlKind = Exclude<ControlKind, 'custom'>
 export type ControlStatus = 'info' | 'alert' | 'error'
+export type ControlValueMode = 'input' | 'display' | 'transient'
+export type ControlLayout = 'inline' | 'block' | 'full'
 export type StaleMode = 'ignore' | 'prune'
 export type Placement = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 export type DockEdge = 'top' | 'right' | 'bottom' | 'left'
@@ -38,9 +40,15 @@ interface ControlStatusMetadata {
   status?: ControlStatus
 }
 
-interface ValueControl<T extends JsonValue> extends ControlIdentity, ControlStatusMetadata {
+export interface ValueControl<T extends JsonValue> extends ControlIdentity, ControlStatusMetadata {
   defaultValue?: T
+  /** @deprecated Use defaultValue instead. */
   value?: T
+  valueMode?: ControlValueMode
+  layout?: ControlLayout
+  height?: number | string
+  minHeight?: number | string
+  settings?: Record<string, unknown>
 }
 
 export interface NumberControl extends ValueControl<number> {
@@ -146,6 +154,7 @@ export interface NormalizedControl {
   sectionLabel: string
   section: string
   reorderable: boolean
+  /** @deprecated Use reorderable instead. */
   sortable: boolean
   status?: ControlStatus
   help?: ReactNode
@@ -154,9 +163,14 @@ export interface NormalizedControl {
   hidden?: boolean
   kind: ControlKind
   type: string
+  rendererType: string
+  valueMode: ControlValueMode
+  layout: ControlLayout
   label: string
   value: JsonValue
   defaultValue: JsonValue
+  height?: number | string
+  minHeight?: number | string
   min?: number
   max?: number
   step?: number
@@ -186,9 +200,12 @@ export interface PersistedState {
 }
 
 export interface TweakerSnapshot extends PersistedState {
+  id: string
+  /** @deprecated Use id instead. */
   storeId: string
   controls: NormalizedControl[]
   sectionOrder: Record<string, string[]>
+  /** @deprecated Put panel effects on TweakerPanel.appearance instead. */
   panelAppearances: Record<string, PanelAppearance>
   hiddenSections: Record<string, Record<string, boolean>>
 }
@@ -197,10 +214,15 @@ export interface RegisterOptions {
   panel?: string
   section?: string | SectionConfig
   reorderable?: boolean
+  /** @deprecated Use reorderable instead. */
   sortable?: boolean
+  /** @deprecated Use TweakerPanel.appearance.surfaceOpacity instead. */
   opacity?: number
+  /** @deprecated Use TweakerPanel.appearance.activeSurfaceOpacity instead. */
   hoverOpacity?: number
+  /** @deprecated Use TweakerPanel.appearance.backdropBlur instead. */
   backgroundBlur?: number
+  /** @deprecated Use TweakerPanel.appearance.activeBackdropBlur instead. */
   hoverBackgroundBlur?: number
 }
 
@@ -210,6 +232,7 @@ export interface TweakerPersistenceOptions {
 
 export interface TweakerStoreOptions {
   id?: string
+  /** @deprecated Use id instead. */
   storeId?: string
   persistence?: false | TweakerPersistenceOptions
   stale?: StaleMode
@@ -217,6 +240,7 @@ export interface TweakerStoreOptions {
 
 export interface TweakerState extends TweakerSnapshot {
   register: (schema: TweakerSchema, options?: RegisterOptions) => () => void
+  /** @deprecated Put panel effects on TweakerPanel.appearance instead. */
   updatePanelEffects: (schema: TweakerSchema, options?: RegisterOptions) => void
   setValue: (persistId: string, value: JsonValue) => void
   setPanelCollapsed: (panelId: string, collapsed: boolean) => void
@@ -237,26 +261,68 @@ export interface TweakerState extends TweakerSnapshot {
 
 export type TweakerStore = StoreApi<TweakerState>
 
-export interface TweakerCustomControlProps<T extends JsonValue = JsonValue> {
+export interface TweakerControlPanelContext {
+  theme: PanelTheme
+  style: CSSProperties
+  setInteractionActive: (interactionId: string, active: boolean) => void
+}
+
+export interface TweakerControlProps<T extends JsonValue = JsonValue> {
   id: string
   label: string
+  labelId: string
+  descriptionId?: string
   value: T
   defaultValue: T
   setValue: (value: T) => void
   control: NormalizedControl
   disabled?: boolean
   readOnly?: boolean
+  valueMode: ControlValueMode
+  layout: ControlLayout
+  settings: Record<string, unknown>
+  panel: TweakerControlPanelContext
 }
 
-export type TweakerCustomControlComponent<T extends JsonValue = JsonValue> = ComponentType<
-  TweakerCustomControlProps<T>
+export type TweakerControlComponent<T extends JsonValue = JsonValue> = ComponentType<
+  TweakerControlProps<T>
 >
+
+export type TweakerCustomControlProps<T extends JsonValue = JsonValue> = TweakerControlProps<T>
+export type TweakerCustomControlComponent<T extends JsonValue = JsonValue> =
+  TweakerControlComponent<T>
+
+export interface TweakerControlNormalizeContext {
+  key: string
+  fallbackLabel: string
+}
+
+export interface TweakerControlDefinition<
+  TValue extends JsonValue = JsonValue,
+  TConfig extends CustomControl<TValue> = CustomControl<TValue>,
+> {
+  type: string
+  component: TweakerControlComponent<TValue>
+  valueMode?: ControlValueMode
+  layout?: ControlLayout
+  normalize?: (
+    config: TConfig,
+    context: TweakerControlNormalizeContext,
+  ) => Partial<NormalizedControl>
+  sanitize?: (value: JsonValue, control: NormalizedControl) => JsonValue
+  equals?: (left: JsonValue, right: JsonValue) => boolean
+  config?: (config: Omit<TConfig, 'type'>) => TConfig
+}
+
+export type TweakerControlRegistry = Record<string, TweakerControlDefinition<any, any>>
 
 export interface TweakerProviderProps {
   children: ReactNode
   id?: string
+  /** @deprecated Use id instead. */
   storeId?: string
   persistence?: false | TweakerPersistenceOptions
   stale?: StaleMode
-  controls?: Record<string, TweakerCustomControlComponent>
+  controls?: TweakerControlRegistry | Record<string, TweakerCustomControlComponent>
+  overrideBuiltIns?: boolean
 }

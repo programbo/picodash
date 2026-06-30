@@ -4,9 +4,12 @@ import { Monitor, Moon, Sun } from 'lucide-react'
 import {
   TweakerPanel,
   TweakerProvider,
+  defineTweakerControl,
+  mergeTweakerControls,
   useTweaker,
+  type JsonValue,
   type PanelTheme,
-  type TweakerCustomControlProps,
+  type TweakerControlProps,
   type TweakerSchema,
 } from 'tweaker'
 import 'tweaker/style.css'
@@ -143,7 +146,7 @@ function useDynamicDependentSchema(advanced: boolean) {
   )
 }
 
-function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
+function ColorControl({ id, value, setValue }: TweakerControlProps<string>) {
   return (
     <input
       id={id}
@@ -153,6 +156,166 @@ function ColorControl({ id, value, setValue }: TweakerCustomControlProps) {
       onChange={(event) => setValue(event.target.value)}
     />
   )
+}
+
+export const colorControl = defineTweakerControl<string>({
+  type: 'color',
+  component: ColorControl,
+  sanitize: (value, control) => {
+    const isHexColor = (candidate: unknown): candidate is string =>
+      typeof candidate === 'string' && /^#[0-9a-fA-F]{6}$/.test(candidate)
+    if (isHexColor(value)) return value
+    return isHexColor(control.defaultValue) ? control.defaultValue : '#9bd16f'
+  },
+})
+
+export const color = colorControl.config
+
+function recordValue(value: JsonValue): Record<string, JsonValue> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : null
+}
+
+function numberValue(value: JsonValue | undefined, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+function stringValue(value: JsonValue | undefined, fallback: string) {
+  return typeof value === 'string' && value.trim() ? value : fallback
+}
+
+function svgPaths(value: JsonValue) {
+  const svg = recordValue(value)
+  const paths = Array.isArray(svg?.paths) ? svg.paths : []
+
+  return paths.flatMap((path, index) => {
+    const record = recordValue(path)
+    const d = stringValue(record?.d, '')
+    if (!d) return []
+
+    return {
+      key: `${index}:${d}`,
+      d,
+      fill: stringValue(record?.fill, 'none'),
+      stroke: stringValue(record?.stroke, 'currentColor'),
+      strokeWidth: numberValue(record?.strokeWidth, 1),
+    }
+  })
+}
+
+function SvgControl({ value, control, labelId }: TweakerControlProps) {
+  const svg = recordValue(value)
+  const viewBox = stringValue(svg?.viewBox, '0 0 100 100')
+
+  return (
+    <svg
+      id={control.domId}
+      className="svg-control"
+      viewBox={viewBox}
+      role="img"
+      aria-labelledby={labelId}
+    >
+      {svgPaths(value).map((path) => (
+        <path
+          key={path.key}
+          d={path.d}
+          fill={path.fill}
+          stroke={path.stroke}
+          strokeWidth={path.strokeWidth}
+          vectorEffect="non-scaling-stroke"
+        />
+      ))}
+    </svg>
+  )
+}
+
+function telemetrySamples(value: JsonValue) {
+  return Array.isArray(value)
+    ? value.filter(
+        (sample): sample is number => typeof sample === 'number' && Number.isFinite(sample),
+      )
+    : []
+}
+
+function telemetryPath(samples: number[]) {
+  if (samples.length === 0) return ''
+  const max = Math.max(1, ...samples.map((sample) => Math.abs(sample)))
+  return samples
+    .map((sample, index) => {
+      const x = samples.length === 1 ? 0 : (index / (samples.length - 1)) * 100
+      const y = 24 - (sample / max) * 20
+      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
+    })
+    .join(' ')
+}
+
+function TelemetryGraphControl({ value, control, labelId }: TweakerControlProps) {
+  const samples = telemetrySamples(value)
+
+  return (
+    <svg
+      id={control.domId}
+      className="telemetry-graph"
+      viewBox="0 0 100 48"
+      role="img"
+      aria-labelledby={labelId}
+      preserveAspectRatio="none"
+    >
+      <path className="telemetry-graph__midline" d="M 0 24 L 100 24" />
+      <path className="telemetry-graph__line" d={telemetryPath(samples)} />
+    </svg>
+  )
+}
+
+const svgControl = defineTweakerControl<JsonValue>({
+  type: '@tweaker-demo/svg',
+  valueMode: 'display',
+  layout: 'block',
+  component: SvgControl,
+})
+
+const telemetryGraphControl = defineTweakerControl<JsonValue>({
+  type: '@tweaker-demo/telemetryGraph',
+  valueMode: 'transient',
+  layout: 'block',
+  component: TelemetryGraphControl,
+  sanitize: (value) => telemetrySamples(value).slice(-48),
+})
+
+const demoControls = mergeTweakerControls(colorControl, svgControl, telemetryGraphControl)
+
+function createProfileSvg(shape: string, roughness: number): JsonValue {
+  const wobble = 1 + roughness * 0.08
+  const outer =
+    shape === 'prism'
+      ? `M 0 -44 L 40 24 L -32 38 Z`
+      : shape === 'plate'
+        ? `M -46 0 C -46 -18 -24 -30 0 -30 C 24 -30 46 -18 46 0 C 46 18 24 30 0 30 C -24 30 -46 18 -46 0 Z`
+        : `M 0 -42 C 24 -42 42 -24 42 0 C 42 24 24 42 0 42 C -24 42 -42 24 -42 0 C -42 -24 -24 -42 0 -42 Z`
+
+  return {
+    viewBox: '-56 -56 112 112',
+    paths: [
+      { d: 'M -52 0 L 52 0 M 0 -52 L 0 52', stroke: '#647066', strokeWidth: 0.6 },
+      { d: outer, stroke: '#9bd16f', strokeWidth: 2, fill: 'rgba(155, 209, 111, 0.1)' },
+      {
+        d: `M ${(-18 * wobble).toFixed(1)} -14 C -8 -26 8 -26 ${(18 * wobble).toFixed(1)} -14`,
+        stroke: '#79b9e6',
+        strokeWidth: 1.2,
+      },
+      {
+        d: `M ${(-18 * wobble).toFixed(1)} 14 C -8 26 8 26 ${(18 * wobble).toFixed(1)} 14`,
+        stroke: '#f0b95e',
+        strokeWidth: 1.2,
+      },
+    ],
+  }
+}
+
+function createTelemetrySamples(speed: number, exposure: number): JsonValue {
+  return Array.from({ length: 36 }, (_, index) => {
+    const phase = index / 5
+    return Math.sin(phase * speed * 1.6) * exposure + Math.cos(phase * 0.7) * 0.2
+  })
 }
 
 function themeFromLocation(): PanelTheme {
@@ -224,6 +387,31 @@ function Demo() {
     section: { id: 'build', label: 'Build' },
     reorderable: false,
   })
+  const profileSvg = useMemo(
+    () => createProfileSvg(String(material.shape), Number(material.roughness)),
+    [material.roughness, material.shape],
+  )
+  const telemetryGraph = useMemo(
+    () => createTelemetrySamples(Number(rendering.speed), Number(rendering.exposure)),
+    [rendering.exposure, rendering.speed],
+  )
+  useTweaker(
+    {
+      profileSvg: {
+        type: '@tweaker-demo/svg',
+        defaultValue: profileSvg,
+        label: 'Profile SVG',
+        height: 104,
+      },
+      forceGraph: {
+        type: '@tweaker-demo/telemetryGraph',
+        defaultValue: telemetryGraph,
+        label: 'Force graph',
+        height: 74,
+      },
+    },
+    { section: { id: 'extensions', label: 'Extensions' }, reorderable: false },
+  )
 
   const previewStyle = useMemo<CSSProperties>(
     () =>
@@ -374,7 +562,7 @@ const [dimmed, setDimmed] = useState(true);
 
 createRoot(document.getElementById('app')!).render(
   <StrictMode>
-    <TweakerProvider id="docs-demo" controls={{ color: ColorControl }}>
+    <TweakerProvider id="docs-demo" controls={demoControls}>
       <Demo />
     </TweakerProvider>
   </StrictMode>,

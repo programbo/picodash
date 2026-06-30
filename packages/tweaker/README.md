@@ -13,7 +13,7 @@ Preferred API:
 - Render one or more panels with `<TweakerPanel id="scene" defaultPlacement="top-right" />`.
 - Register controls with `useTweaker(schema, { panel, section, reorderable })`.
 - Use `defaultValue` for schema defaults and optional control `id` for stable persistence.
-- Register custom control components with `TweakerProvider controls={{ color: ColorControl }}` and reference them by `type`.
+- Register custom control definitions with `defineTweakerControl` and `TweakerProvider controls={controls}`.
 - Put panel opacity and backdrop blur on `TweakerPanel.appearance`; use CSS variables for deeper theming.
 - Use `theme="dark"`, `theme="light"`, or `theme="system"` on `TweakerPanel` for color theme.
 - Use `width={360}` or another CSS length string on `TweakerPanel` to set `--tw-panel-width`.
@@ -25,6 +25,20 @@ Preferred API:
 - Use `hidden: true` on controls or sections to hide rows while preserving values and order.
 - Use `type: "display"` for derived non-interactive values that update on re-registration.
 - Use `formatOptions` on number, slider, and display controls for Intl number formatting.
+- Use `valueMode: "input" | "display" | "transient"` for persistence semantics.
+- Use `layout: "inline" | "block" | "full"` plus `height`/`minHeight` for visual controls.
+
+Extension helpers exported by the package:
+
+- `defineTweakerControl(definition)`
+- `mergeTweakerControls(...controls)`
+- `builtinControls`
+- `TweakerControlDefinition`
+- `TweakerControlRegistry`
+- `TweakerControlComponent`
+- `TweakerControlProps`
+
+Extensions are trusted React components registered explicitly by the app. Tweaker is not a plugin loader, sandboxed remote-code runtime, marketplace runtime, DSL, or global registry.
 
 Compatibility aliases still work for existing consumers: `storeId`, `placement`, `sortable`, hook-level panel effects, and `value`.
 

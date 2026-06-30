@@ -1,6 +1,8 @@
 import './styles.css'
 
 export { normalizeControl } from './control.js'
+export { builtinControls } from './extensions/builtin-controls.js'
+export { defineTweakerControl, mergeTweakerControls } from './extensions/registry.js'
 export { TweakerPanel, type TweakerPanelProps } from './panel/index.js'
 export { TweakerProvider, useTweaker, useTweakerSnapshot, useTweakerStore } from './react/index.js'
 export { createTweakerStore } from './store/index.js'
@@ -9,7 +11,9 @@ export type {
   CheckboxControl,
   ControlConfig,
   ControlKind,
+  ControlLayout,
   ControlStatus,
+  ControlValueMode,
   CustomControl,
   DockEdge,
   DockState,
@@ -30,6 +34,12 @@ export type {
   StaleMode,
   TweakerCustomControlComponent,
   TweakerCustomControlProps,
+  TweakerControlComponent,
+  TweakerControlDefinition,
+  TweakerControlNormalizeContext,
+  TweakerControlPanelContext,
+  TweakerControlProps,
+  TweakerControlRegistry,
   TweakerPersistenceOptions,
   TweakerProviderProps,
   TweakerSchema,
@@ -37,4 +47,5 @@ export type {
   TweakerState,
   TweakerStore,
   TweakerValues,
+  ValueControl,
 } from './types.js'

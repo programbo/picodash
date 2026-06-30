@@ -2,14 +2,19 @@ import {
   defaultPanelId,
   defaultSectionId,
   defaultSectionLabel,
+  type ControlLayout,
   type ControlConfig,
   type ControlKind,
   type ControlStatus,
+  type ControlValueMode,
   type JsonValue,
   type NormalizedControl,
   type PanelAppearance,
   type RegisterOptions,
   type SectionConfig,
+  type TweakerControlDefinition,
+  type TweakerControlNormalizeContext,
+  type TweakerControlRegistry,
 } from './types.js'
 
 const standardControlKeys = new Set([
@@ -28,6 +33,11 @@ const standardControlKeys = new Set([
   'formatOptions',
   'readOnly',
   'hidden',
+  'valueMode',
+  'layout',
+  'height',
+  'minHeight',
+  'settings',
 ])
 
 export const defaultSection = defaultSectionLabel
@@ -161,6 +171,15 @@ function formatForControl(config: ControlConfig) {
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
+export function normalizePanelAppearance(appearance: PanelAppearance = {}): PanelAppearance {
+  return {
+    surfaceOpacity: normalizeOpacity(appearance.surfaceOpacity),
+    activeSurfaceOpacity: normalizeOpacity(appearance.activeSurfaceOpacity),
+    backdropBlur: normalizeBlur(appearance.backdropBlur),
+    activeBackdropBlur: normalizeBlur(appearance.activeBackdropBlur),
+  }
+}
+
 export function normalizePanelEffects(options: RegisterOptions): PanelAppearance {
   return {
     surfaceOpacity: normalizeOpacity(options.opacity),
@@ -179,17 +198,13 @@ export function hasPanelEffects(options: RegisterOptions) {
   )
 }
 
-export function normalizePanelAppearance(appearance: PanelAppearance = {}): PanelAppearance {
-  return {
-    surfaceOpacity: normalizeOpacity(appearance.surfaceOpacity),
-    activeSurfaceOpacity: normalizeOpacity(appearance.activeSurfaceOpacity),
-    backdropBlur: normalizeBlur(appearance.backdropBlur),
-    activeBackdropBlur: normalizeBlur(appearance.activeBackdropBlur),
-  }
-}
-
 function customSettings(config: Record<string, unknown>) {
-  return Object.fromEntries(Object.entries(config).filter(([key]) => !standardControlKeys.has(key)))
+  const inlineSettings = Object.fromEntries(
+    Object.entries(config).filter(([key]) => !standardControlKeys.has(key)),
+  )
+  const settings = config.settings
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return inlineSettings
+  return { ...inlineSettings, ...(settings as Record<string, unknown>) }
 }
 
 function numberProperty(config: ControlConfig, key: 'min' | 'max' | 'step') {
@@ -205,6 +220,32 @@ function formatOptionsProperty(config: ControlConfig): Intl.NumberFormatOptions 
   return value as Intl.NumberFormatOptions
 }
 
+function valueModeForControl(
+  config: ControlConfig,
+  fallback: ControlValueMode = 'input',
+): ControlValueMode {
+  if (typeof config !== 'object' || config === null) return fallback
+  const value = (config as Record<string, unknown>).valueMode
+  return value === 'input' || value === 'display' || value === 'transient' ? value : fallback
+}
+
+function layoutForControl(
+  config: ControlConfig,
+  fallback: ControlLayout = 'inline',
+): ControlLayout {
+  if (typeof config !== 'object' || config === null) return fallback
+  const value = (config as Record<string, unknown>).layout
+  return value === 'inline' || value === 'block' || value === 'full' ? value : fallback
+}
+
+function dimensionProperty(config: ControlConfig, key: 'height' | 'minHeight') {
+  if (typeof config !== 'object' || config === null) return undefined
+  const value = (config as Record<string, unknown>)[key]
+  if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? value : undefined
+  if (typeof value === 'string') return value.trim() || undefined
+  return undefined
+}
+
 interface NormalizeControlEntryOptions {
   storeId: string
   panelId: string
@@ -212,6 +253,41 @@ interface NormalizeControlEntryOptions {
   key: string
   config: ControlConfig
   reorderable?: boolean
+  registry?: TweakerControlRegistry
+}
+
+function definitionForControl(
+  control: NormalizedControl,
+  registry: TweakerControlRegistry | undefined,
+): TweakerControlDefinition | undefined {
+  return registry?.[control.rendererType] ?? registry?.[control.type]
+}
+
+function applyDefinition(
+  control: NormalizedControl,
+  config: ControlConfig,
+  registry: TweakerControlRegistry | undefined,
+  context: TweakerControlNormalizeContext,
+): NormalizedControl {
+  const definition = definitionForControl(control, registry)
+  if (!definition) return control
+
+  const normalized = definition.normalize?.(config as never, context) ?? {}
+  const settings =
+    control.settings || normalized.settings
+      ? { ...control.settings, ...normalized.settings }
+      : undefined
+  const merged = {
+    ...control,
+    ...normalized,
+    settings,
+  }
+
+  return {
+    ...merged,
+    valueMode: valueModeForControl(config, definition.valueMode ?? merged.valueMode),
+    layout: layoutForControl(config, definition.layout ?? merged.layout),
+  }
 }
 
 export function normalizeControlEntry({
@@ -221,8 +297,10 @@ export function normalizeControlEntry({
   key,
   config,
   reorderable = true,
+  registry,
 }: NormalizeControlEntryOptions): NormalizedControl {
   const fallbackLabel = labelFromKey(key)
+  const normalizeContext = { key, fallbackLabel }
   const objectConfig = typeof config === 'object' && config !== null ? config : null
   const explicitControlId =
     objectConfig && typeof objectConfig.id === 'string' ? objectConfig.id : undefined
@@ -233,6 +311,9 @@ export function normalizeControlEntry({
   const description = descriptionForControl(config)
   const readOnly = readOnlyForControl(config)
   const hidden = hiddenForControl(config)
+  const layout = layoutForControl(config)
+  const height = dimensionProperty(config, 'height')
+  const minHeight = dimensionProperty(config, 'minHeight')
   const base = {
     id: persistId,
     persistId,
@@ -250,40 +331,64 @@ export function normalizeControlEntry({
     description,
     readOnly,
     hidden,
+    layout,
+    height,
+    minHeight,
   }
 
   if (typeof config === 'number') {
-    return {
-      ...base,
-      kind: 'number',
-      type: 'number',
-      label: fallbackLabel,
-      value: config,
-      defaultValue: config,
-    }
+    return applyDefinition(
+      {
+        ...base,
+        kind: 'number',
+        type: 'number',
+        rendererType: 'number',
+        valueMode: 'input',
+        label: fallbackLabel,
+        value: config,
+        defaultValue: config,
+      },
+      config,
+      registry,
+      normalizeContext,
+    )
   }
 
   if (typeof config === 'boolean') {
-    return {
-      ...base,
-      kind: 'checkbox',
-      type: 'checkbox',
-      label: fallbackLabel,
-      value: config,
-      defaultValue: config,
-    }
+    return applyDefinition(
+      {
+        ...base,
+        kind: 'checkbox',
+        type: 'checkbox',
+        rendererType: 'checkbox',
+        valueMode: 'input',
+        label: fallbackLabel,
+        value: config,
+        defaultValue: config,
+      },
+      config,
+      registry,
+      normalizeContext,
+    )
   }
 
   if (typeof config === 'string') {
-    return {
-      ...base,
-      kind: 'select',
-      type: 'select',
-      label: fallbackLabel,
-      value: config,
-      defaultValue: config,
-      options: [{ label: labelFromKey(config), value: config }],
-    }
+    return applyDefinition(
+      {
+        ...base,
+        kind: 'select',
+        type: 'select',
+        rendererType: 'select',
+        valueMode: 'input',
+        label: fallbackLabel,
+        value: config,
+        defaultValue: config,
+        options: [{ label: labelFromKey(config), value: config }],
+      },
+      config,
+      registry,
+      normalizeContext,
+    )
   }
 
   const defaultValue = defaultValueForControl(config)
@@ -291,53 +396,81 @@ export function normalizeControlEntry({
   if (config.type === 'display') {
     const rawValue =
       typeof defaultValue === 'number' || typeof defaultValue === 'string' ? defaultValue : ''
-    return {
-      ...base,
-      kind: 'display',
-      type: 'display',
-      label: config.label ?? fallbackLabel,
-      value: rawValue,
-      defaultValue: rawValue,
-      formatOptions: formatOptionsProperty(config),
-      format: formatForControl(config),
-    }
+    return applyDefinition(
+      {
+        ...base,
+        kind: 'display',
+        type: 'display',
+        rendererType: 'display',
+        valueMode: valueModeForControl(config, 'display'),
+        label: config.label ?? fallbackLabel,
+        value: rawValue,
+        defaultValue: rawValue,
+        formatOptions: formatOptionsProperty(config),
+        format: formatForControl(config),
+      },
+      config,
+      registry,
+      normalizeContext,
+    )
   }
 
   if ('options' in config) {
     const options = (config as { options: readonly string[] | Record<string, string> }).options
     const value = typeof defaultValue === 'string' ? defaultValue : ''
-    return {
-      ...base,
-      kind: 'select',
-      type: 'select',
-      label: config.label ?? fallbackLabel,
-      value,
-      defaultValue: value,
-      options: normalizeOptions(options),
-    }
+    return applyDefinition(
+      {
+        ...base,
+        kind: 'select',
+        type: 'select',
+        rendererType: 'select',
+        valueMode: valueModeForControl(config),
+        label: config.label ?? fallbackLabel,
+        value,
+        defaultValue: value,
+        options: normalizeOptions(options),
+      },
+      config,
+      registry,
+      normalizeContext,
+    )
   }
 
   if (config.type && !['number', 'slider', 'checkbox'].includes(config.type)) {
-    return {
-      ...base,
-      kind: 'custom',
-      type: config.type,
-      label: config.label ?? fallbackLabel,
-      value: defaultValue,
-      defaultValue,
-      settings: customSettings(config as Record<string, unknown>),
-    }
+    return applyDefinition(
+      {
+        ...base,
+        kind: 'custom',
+        type: config.type,
+        rendererType: config.type,
+        valueMode: valueModeForControl(config),
+        label: config.label ?? fallbackLabel,
+        value: defaultValue,
+        defaultValue,
+        settings: customSettings(config as Record<string, unknown>),
+      },
+      config,
+      registry,
+      normalizeContext,
+    )
   }
 
   if (typeof defaultValue === 'boolean') {
-    return {
-      ...base,
-      kind: 'checkbox',
-      type: 'checkbox',
-      label: config.label ?? fallbackLabel,
-      value: defaultValue,
-      defaultValue,
-    }
+    return applyDefinition(
+      {
+        ...base,
+        kind: 'checkbox',
+        type: 'checkbox',
+        rendererType: 'checkbox',
+        valueMode: valueModeForControl(config),
+        label: config.label ?? fallbackLabel,
+        value: defaultValue,
+        defaultValue,
+      },
+      config,
+      registry,
+      normalizeContext,
+    )
   }
 
   const min = numberProperty(config, 'min')
@@ -349,18 +482,25 @@ export function normalizeControlEntry({
     config.type === 'slider' || (config.type !== 'number' && min !== undefined && max !== undefined)
   const kind: ControlKind = hasSliderBounds ? 'slider' : 'number'
 
-  return {
-    ...base,
-    kind,
-    type: kind,
-    label: config.label ?? fallbackLabel,
-    value: numericValue,
-    defaultValue: numericValue,
-    min,
-    max,
-    step,
-    formatOptions,
-  }
+  return applyDefinition(
+    {
+      ...base,
+      kind,
+      type: kind,
+      rendererType: kind,
+      valueMode: valueModeForControl(config),
+      label: config.label ?? fallbackLabel,
+      value: numericValue,
+      defaultValue: numericValue,
+      min,
+      max,
+      step,
+      formatOptions,
+    },
+    config,
+    registry,
+    normalizeContext,
+  )
 }
 
 export function normalizeControl(
@@ -398,6 +538,17 @@ export function jsonValuesEqual(left: JsonValue, right: JsonValue) {
  * JSON-opaque and returned unchanged.
  */
 export function sanitizeValueForControl(control: NormalizedControl, value: JsonValue): JsonValue {
+  return sanitizeValueWithRegistry(control, value)
+}
+
+export function sanitizeValueWithRegistry(
+  control: NormalizedControl,
+  value: JsonValue,
+  registry?: TweakerControlRegistry,
+): JsonValue {
+  const definition = definitionForControl(control, registry)
+  if (definition?.sanitize) return definition.sanitize(value, control)
+
   if (control.kind === 'number' || control.kind === 'slider') {
     const fallback = typeof control.defaultValue === 'number' ? control.defaultValue : 0
     const numeric = typeof value === 'number' && Number.isFinite(value) ? value : fallback
@@ -441,9 +592,12 @@ export function valueForControl(
   control: NormalizedControl,
   values: Record<string, JsonValue>,
 ): JsonValue {
-  // Display values are derived: always reflect the latest defaultValue from
-  // registration and ignore any stale persisted entry.
-  if (control.kind === 'display') return control.defaultValue
+  // Display and transient values ignore stale persisted entries. Display values
+  // derive from registration; transient values keep their in-memory state.
+  if (control.valueMode === 'display') {
+    return control.defaultValue
+  }
+  if (control.valueMode === 'transient') return control.value
   return hasValue(values, control.persistId) ? values[control.persistId]! : control.defaultValue
 }
 

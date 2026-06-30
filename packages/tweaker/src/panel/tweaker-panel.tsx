@@ -35,6 +35,7 @@ export interface TweakerPanelProps {
   id?: string
   className?: string
   defaultPlacement?: Placement
+  /** @deprecated Use defaultPlacement instead. */
   placement?: Placement
   theme?: PanelTheme
   title?: string
@@ -54,7 +55,7 @@ type PanelStyle = CSSProperties &
     >
   >
 
-function applyAppearance(style: PanelStyle, appearance: PanelAppearance) {
+function applyAppearance(style: PanelStyle, appearance: PanelAppearance = {}) {
   const normalized = normalizePanelAppearance(appearance)
   if (normalized.surfaceOpacity !== undefined) {
     style['--tw-panel-color-opacity'] = String(normalized.surfaceOpacity)

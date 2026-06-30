@@ -2,8 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { createElement } from 'react'
 import {
   createTweakerStore,
+  defineTweakerControl,
+  mergeTweakerControls,
   normalizeControl,
+  type JsonValue,
   type NormalizedControl,
+  type RegisterOptions,
+  type TweakerControlRegistry,
   type TweakerSchema,
 } from '../src/index.js'
 import {
@@ -40,6 +45,17 @@ beforeEach(() => {
   storage.clear()
   vi.stubGlobal('window', { localStorage: storage })
 })
+
+function registerWithRegistry(
+  store: ReturnType<typeof createTweakerStore>,
+  schema: TweakerSchema,
+  options: RegisterOptions,
+  registry: TweakerControlRegistry,
+) {
+  store.getState().register(schema, { ...options, registry } as RegisterOptions & {
+    registry: TweakerControlRegistry
+  })
+}
 
 describe('normalizeControl', () => {
   it('keeps legacy default-panel ids for section string registrations', () => {
@@ -214,6 +230,111 @@ describe('normalizeControl', () => {
     expect(stringDisplay.value).toBe('ready')
     expect(stringDisplay.formatOptions).toBeUndefined()
   })
+
+  it('normalizes extension metadata through control definitions', () => {
+    function GraphControl() {
+      return null
+    }
+
+    const telemetryGraph = defineTweakerControl<JsonValue>({
+      type: '@demo/telemetry-graph',
+      valueMode: 'transient',
+      layout: 'block',
+      component: GraphControl,
+      normalize: () => ({
+        valueMode: 'display',
+        layout: 'full',
+        height: 96,
+        minHeight: 72,
+        settings: { stroke: '#8bd5ff' },
+      }),
+      sanitize: (value) =>
+        Array.isArray(value) ? value.filter((item) => typeof item === 'number') : [],
+      equals: (left, right) => {
+        if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length)
+          return false
+        return left.every(
+          (value, index) =>
+            typeof value === 'number' &&
+            typeof right[index] === 'number' &&
+            Math.abs(value - right[index]) < 0.01,
+        )
+      },
+    })
+    const registry = mergeTweakerControls(telemetryGraph)
+    const store = createTweakerStore({ id: 'extensions', persistence: false })
+
+    expect(telemetryGraph.config({ type: '@demo/other', defaultValue: [] } as never).type).toBe(
+      '@demo/telemetry-graph',
+    )
+
+    registerWithRegistry(
+      store,
+      {
+        graph: {
+          type: '@demo/telemetry-graph',
+          defaultValue: [0, 1, 0],
+          settings: { sampleRate: 60 },
+        },
+        graphOverride: {
+          type: '@demo/telemetry-graph',
+          defaultValue: [1],
+          valueMode: 'input',
+          layout: 'inline',
+        },
+      },
+      { section: 'Telemetry' },
+      registry,
+    )
+
+    const control = store.getState().controls.find((item) => item.key === 'graph')
+    expect(control).toMatchObject({
+      kind: 'custom',
+      rendererType: '@demo/telemetry-graph',
+      valueMode: 'transient',
+      layout: 'block',
+      height: 96,
+      minHeight: 72,
+      settings: { sampleRate: 60, stroke: '#8bd5ff' },
+    })
+    expect(store.getState().controls.find((item) => item.key === 'graphOverride')).toMatchObject({
+      valueMode: 'input',
+      layout: 'inline',
+    })
+
+    store.getState().setValue('extensions:Telemetry:graph', [2, 'bad', 4] as never)
+    expect(store.getState().controls.find((item) => item.key === 'graph')?.value).toEqual([2, 4])
+    expect(store.getState().values['extensions:Telemetry:graph']).toBeUndefined()
+
+    store.getState().resetValues()
+    expect(store.getState().controls.find((item) => item.key === 'graph')?.value).toEqual([2, 4])
+
+    const listener = vi.fn()
+    store.subscribe(listener)
+    store.getState().setValue('extensions:Telemetry:graph', [2.001, 4.001])
+    expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('warns when duplicate extension type ids are merged', () => {
+    function FirstControl() {
+      return null
+    }
+    function SecondControl() {
+      return null
+    }
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    try {
+      mergeTweakerControls(
+        defineTweakerControl({ type: '@demo/duplicate', component: FirstControl }),
+        defineTweakerControl({ type: '@demo/duplicate', component: SecondControl }),
+      )
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('@demo/duplicate'))
+    } finally {
+      warn.mockRestore()
+    }
+  })
 })
 
 describe('sanitizeValueForControl', () => {
@@ -232,6 +353,9 @@ describe('sanitizeValueForControl', () => {
       sortable: true,
       kind: 'number',
       type: 'number',
+      rendererType: 'number',
+      valueMode: 'input',
+      layout: 'inline',
       label: 'x',
       value: 0,
       defaultValue: 0,
@@ -331,6 +455,9 @@ describe('formatDisplayValue', () => {
       sortable: true,
       kind: 'display',
       type: 'display',
+      rendererType: 'display',
+      valueMode: 'display',
+      layout: 'inline',
       label: 'x',
       value,
       defaultValue: value,
@@ -382,6 +509,9 @@ describe('formatSliderValue', () => {
       sortable: true,
       kind: 'slider',
       type: 'slider',
+      rendererType: 'slider',
+      valueMode: 'input',
+      layout: 'inline',
       label: 'x',
       value,
       defaultValue: value,

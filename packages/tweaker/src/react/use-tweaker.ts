@@ -14,10 +14,11 @@ import type {
   RegisterOptions,
   SectionConfig,
   SetTweakerValue,
+  TweakerControlRegistry,
   TweakerSchema,
   TweakerValues,
 } from '../types.js'
-import { useTweakerStoreApi } from './context.js'
+import { useTweakerCustomControls, useTweakerStoreApi } from './context.js'
 
 function explicitControlId(config: TweakerSchema[string]) {
   return typeof config === 'object' && config !== null && typeof config.id === 'string'
@@ -95,11 +96,12 @@ export function useTweaker<T extends TweakerSchema>(
   options: RegisterOptions = {},
 ): [TweakerValues<T>, SetTweakerValue<T>] {
   const store = useTweakerStoreApi()
+  const registry = useTweakerCustomControls()
   const panelId = normalizePanelId(options.panel)
   const section = normalizeSection(options.section)
   const reorderable = options.reorderable ?? options.sortable ?? true
   const schemaSignature = useMemo(() => registrationSignatureForSchema(schema), [schema])
-  const storeId = store.getState().storeId
+  const storeId = store.getState().id
   const controlIds = useMemo(
     () =>
       (Object.keys(schema) as Array<keyof T>).map((key) =>
@@ -130,8 +132,25 @@ export function useTweaker<T extends TweakerSchema>(
   )
 
   useEffect(
-    () => store.getState().register(schema, { panel: panelId, section, reorderable }),
-    [store, schemaSignature, panelId, section.id, section.label, section.hidden, reorderable],
+    () =>
+      store.getState().register(schema, {
+        panel: panelId,
+        section,
+        reorderable,
+        registry,
+      } as RegisterOptions & {
+        registry: TweakerControlRegistry
+      }),
+    [
+      store,
+      schemaSignature,
+      panelId,
+      section.id,
+      section.label,
+      section.hidden,
+      reorderable,
+      registry,
+    ],
   )
 
   useEffect(
@@ -150,11 +169,11 @@ export function useTweaker<T extends TweakerSchema>(
       panelId,
       section.id,
       section.label,
+      section.hidden,
       options.opacity,
       options.hoverOpacity,
       options.backgroundBlur,
       options.hoverBackgroundBlur,
-      section.hidden,
     ],
   )
 

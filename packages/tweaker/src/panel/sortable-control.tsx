@@ -4,7 +4,7 @@ import { SortableKeyboardPlugin } from '@dnd-kit/dom/sortable'
 import { useSortable } from '@dnd-kit/react/sortable'
 import { clsx } from 'clsx'
 import { GripVertical, Info } from 'lucide-react'
-import { memo, type PointerEvent, type RefObject, useRef } from 'react'
+import { memo, type CSSProperties, type PointerEvent, type RefObject, useRef } from 'react'
 import { Button, OverlayArrow, Tooltip, TooltipTrigger } from 'react-aria-components'
 import { useTweakerSelector } from '../react/context.js'
 import type { NormalizedControl } from '../types.js'
@@ -46,10 +46,14 @@ function SortableControlComponent({
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null)
   const setPointerDragActive = usePanelInteraction(`row-pointer:${control.persistId}`)
   const labelId = `${control.domId}:label`
+  const descriptionId = `${control.domId}:description`
   const hasDescription =
     control.description !== undefined &&
     control.description !== null &&
-    control.description !== false
+    control.description !== false &&
+    control.description !== true &&
+    control.description !== ''
+  const style = controlSizeStyle(control)
   const { ref, handleRef, isDragging } = useSortable({
     id: control.persistId,
     index,
@@ -73,15 +77,19 @@ function SortableControlComponent({
       className={clsx(
         'tw-row',
         isDragging && 'is-dragging',
-        !control.reorderable && 'is-not-sortable',
+        !control.reorderable && 'is-not-reorderable',
         control.status && `tw-row--${control.status}`,
       )}
       data-control-id={control.persistId}
-      data-sortable={control.reorderable ? 'true' : 'false'}
+      data-control-type={control.rendererType}
+      data-control-layout={control.layout}
+      data-value-mode={control.valueMode}
+      data-reorderable={control.reorderable ? 'true' : 'false'}
       data-status={control.status}
       data-readonly={control.readOnly ? 'true' : 'false'}
       data-hidden={control.hidden ? 'true' : 'false'}
       data-testid={`control-${control.key}`}
+      style={style}
     >
       <Button
         ref={handleRef}
@@ -169,17 +177,44 @@ function SortableControlComponent({
           </TooltipTrigger>
         ) : null}
       </div>
-      <ControlInput
-        control={control}
-        labelId={labelId}
-        onChange={(value) => setValue(control.persistId, value)}
-      />
-      {hasDescription ? <div className="tw-row__description">{control.description}</div> : null}
+      <div className="tw-row__control">
+        <ControlInput
+          control={control}
+          labelId={labelId}
+          descriptionId={hasDescription ? descriptionId : undefined}
+          onChange={(value) => setValue(control.persistId, value)}
+        />
+      </div>
+      {hasDescription ? (
+        <div id={descriptionId} className="tw-row__description">
+          {control.description}
+        </div>
+      ) : null}
     </div>
   )
 }
 
 export const SortableControl = memo(SortableControlComponent)
+
+function controlSizeStyle(control: NormalizedControl) {
+  const style: CSSProperties & {
+    '--tw-control-height'?: string
+    '--tw-control-min-height'?: string
+  } = {}
+
+  const height = dimensionToCss(control.height)
+  const minHeight = dimensionToCss(control.minHeight)
+  if (height) style['--tw-control-height'] = height
+  if (minHeight) style['--tw-control-min-height'] = minHeight
+  return Object.keys(style).length > 0 ? style : undefined
+}
+
+function dimensionToCss(value: number | string | undefined) {
+  if (typeof value === 'number')
+    return Number.isFinite(value) && value >= 0 ? `${value}px` : undefined
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : undefined
+}
 
 function trySetPointerCapture(element: Element, pointerId: number) {
   try {
