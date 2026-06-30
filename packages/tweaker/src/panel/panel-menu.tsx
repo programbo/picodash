@@ -16,9 +16,8 @@ import { usePanelEffects } from './panel-effects-context.js'
 interface PanelMenuProps {
   panelId: string
   panelRef: RefObject<HTMLElement | null>
-  title: string
   dock: DockState | null
-  valuesById: Record<string, JsonValue>
+  getValuesById: () => Record<string, JsonValue>
   resetValues: (panelId?: string) => void
   resetOrder: (panelId?: string) => void
   setDock: (panelId: string, dock: DockState | null) => void
@@ -49,7 +48,7 @@ export function PanelMenu({
   panelId,
   panelRef,
   dock,
-  valuesById,
+  getValuesById,
   resetValues,
   resetOrder,
   setDock,
@@ -69,7 +68,7 @@ export function PanelMenu({
 
   async function copyValues() {
     try {
-      await navigator.clipboard.writeText(JSON.stringify(valuesById))
+      await navigator.clipboard.writeText(JSON.stringify(getValuesById()))
     } catch {
       // Clipboard may be unavailable (permissions, non-secure context); no-op.
     }

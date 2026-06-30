@@ -384,6 +384,10 @@ function hasValue(values: Record<string, JsonValue>, id: string) {
   return Object.prototype.hasOwnProperty.call(values, id)
 }
 
+export function jsonValuesEqual(left: JsonValue, right: JsonValue) {
+  return Object.is(left, right) || JSON.stringify(left) === JSON.stringify(right)
+}
+
 /**
  * Returns a value that is valid for the control's current configuration.
  *
@@ -428,16 +432,44 @@ export function valuesForControls(
   values: Record<string, JsonValue>,
 ): NormalizedControl[] {
   return controls.map((control) => {
-    // Display values are derived: always reflect the latest defaultValue from
-    // registration and ignore any stale persisted entry.
-    const value =
-      control.kind === 'display'
-        ? control.defaultValue
-        : hasValue(values, control.persistId)
-          ? values[control.persistId]!
-          : control.defaultValue
-    return { ...control, value }
+    const value = valueForControl(control, values)
+    return jsonValuesEqual(control.value, value) ? control : { ...control, value }
   })
+}
+
+export function valueForControl(
+  control: NormalizedControl,
+  values: Record<string, JsonValue>,
+): JsonValue {
+  // Display values are derived: always reflect the latest defaultValue from
+  // registration and ignore any stale persisted entry.
+  if (control.kind === 'display') return control.defaultValue
+  return hasValue(values, control.persistId) ? values[control.persistId]! : control.defaultValue
+}
+
+const numberFormatCache = new Map<string, Intl.NumberFormat>()
+const maxNumberFormatCacheSize = 64
+
+function numberFormatKey(formatOptions: Intl.NumberFormatOptions) {
+  return Object.entries(formatOptions)
+    .filter(([, value]) => value !== undefined)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}:${String(value)}`)
+    .join('|')
+}
+
+function formatNumber(value: number, formatOptions: Intl.NumberFormatOptions) {
+  const key = numberFormatKey(formatOptions)
+  let formatter = numberFormatCache.get(key)
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(undefined, formatOptions)
+    if (numberFormatCache.size >= maxNumberFormatCacheSize) {
+      const oldestKey = numberFormatCache.keys().next().value
+      if (oldestKey !== undefined) numberFormatCache.delete(oldestKey)
+    }
+    numberFormatCache.set(key, formatter)
+  }
+  return formatter.format(value)
 }
 
 /**
@@ -449,9 +481,7 @@ export function formatDisplayValue(control: NormalizedControl): string {
   const value = control.value
   let formatted: string
   if (typeof value === 'number') {
-    formatted = control.formatOptions
-      ? new Intl.NumberFormat(undefined, control.formatOptions).format(value)
-      : String(value)
+    formatted = control.formatOptions ? formatNumber(value, control.formatOptions) : String(value)
   } else {
     formatted = typeof value === 'string' ? value : ''
   }
@@ -463,7 +493,7 @@ export function formatSliderValue(control: NormalizedControl): string {
   const digits = fractionDigitsForStep(control.step ?? 0.01)
   const formatOptions = sliderFormatOptions(control.formatOptions, digits)
 
-  return new Intl.NumberFormat(undefined, formatOptions).format(Number.isFinite(value) ? value : 0)
+  return formatNumber(Number.isFinite(value) ? value : 0, formatOptions)
 }
 
 function sliderFormatOptions(

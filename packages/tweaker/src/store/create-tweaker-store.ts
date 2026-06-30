@@ -3,18 +3,22 @@ import { persist } from 'zustand/middleware'
 import {
   createControlPersistId,
   hasPanelEffects,
+  jsonValuesEqual,
   normalizeControlEntry,
   normalizePanelEffects,
   normalizePanelId,
   normalizeSection,
   preserveSectionOrderByPanel,
   sanitizeValueForControl,
+  valueForControl,
   valuesForControls,
 } from '../control.js'
 import {
   defaultPanelId,
+  type DockState,
   type JsonValue,
   type NormalizedControl,
+  type PanelAppearance,
   type PanelLayoutState,
   type PersistedState,
   type TweakerState,
@@ -67,7 +71,7 @@ function controlsEqual(left: NormalizedControl[], right: NormalizedControl[]) {
 }
 
 function valuesEqual(left: JsonValue, right: JsonValue) {
-  return JSON.stringify(left) === JSON.stringify(right)
+  return jsonValuesEqual(left, right)
 }
 
 function settingsEqual(left: NormalizedControl['settings'], right: NormalizedControl['settings']) {
@@ -109,6 +113,32 @@ function panelOrderFor(state: Pick<TweakerState, 'order'>, panelId: string) {
 
 function panelSectionsFor(state: Pick<TweakerState, 'sections'>, panelId: string) {
   return state.sections[panelId] ?? {}
+}
+
+function panelAppearanceEqual(
+  left: PanelAppearance | undefined,
+  right: PanelAppearance | undefined,
+) {
+  return (
+    left?.surfaceOpacity === right?.surfaceOpacity &&
+    left?.activeSurfaceOpacity === right?.activeSurfaceOpacity &&
+    left?.backdropBlur === right?.backdropBlur &&
+    left?.activeBackdropBlur === right?.activeBackdropBlur
+  )
+}
+
+function dockEqual(left: DockState | null, right: DockState | null) {
+  if (left === right) return true
+  if (!left || !right) return false
+  return (
+    left.edge === right.edge &&
+    left.secondaryEdge === right.secondaryEdge &&
+    left.offset === right.offset
+  )
+}
+
+function orderEqual(left: string[] | undefined, right: string[]) {
+  return left?.length === right.length && right.every((id, index) => left[index] === id)
 }
 
 function createBaseState(storeId: string) {
@@ -157,7 +187,7 @@ function createBaseState(storeId: string) {
           if (Object.prototype.hasOwnProperty.call(values, control.persistId)) {
             const stored = values[control.persistId]!
             const sanitized = sanitizeValueForControl(control, stored)
-            if (sanitized !== stored) {
+            if (!jsonValuesEqual(sanitized, stored)) {
               values[control.persistId] = sanitized
               valuesChanged = true
             }
@@ -226,15 +256,20 @@ function createBaseState(storeId: string) {
       const panelId = normalizePanelId(options.panel)
       const appearance = normalizePanelEffects(options)
 
-      set((state) => ({
-        panelAppearances: {
-          ...state.panelAppearances,
-          [panelId]: {
-            ...state.panelAppearances[panelId],
-            ...appearance,
+      set((state) => {
+        const nextAppearance = {
+          ...state.panelAppearances[panelId],
+          ...appearance,
+        }
+        if (panelAppearanceEqual(state.panelAppearances[panelId], nextAppearance)) return state
+
+        return {
+          panelAppearances: {
+            ...state.panelAppearances,
+            [panelId]: nextAppearance,
           },
-        },
-      }))
+        }
+      })
     },
 
     setValue(persistId, value) {
@@ -244,42 +279,73 @@ function createBaseState(storeId: string) {
       if (control.kind === 'display') return
 
       const nextValue = sanitizeValueForControl(control, value)
+      if (jsonValuesEqual(control.value, nextValue)) return
 
       set((state) => {
-        const values = { ...state.values, [persistId]: nextValue }
+        const controlIndex = state.controls.findIndex((item) => item.persistId === persistId)
+        const control = state.controls[controlIndex]
+        if (!control || control.readOnly || control.kind === 'display') return state
+
+        const sanitized = sanitizeValueForControl(control, value)
+        if (jsonValuesEqual(control.value, sanitized)) return state
+
+        const values = { ...state.values, [persistId]: sanitized }
+        const controls = state.controls.slice()
+        controls[controlIndex] = { ...control, value: valueForControl(control, values) }
+
         return {
           values,
-          controls: valuesForControls(state.controls, values),
+          controls,
         }
       })
     },
 
     setPanelCollapsed(panelId, collapsed) {
-      set((state) => ({
-        panels: {
-          ...state.panels,
-          [panelId]: { ...panelStateFor(state, panelId), collapsed },
-        },
-      }))
+      set((state) => {
+        const current = panelStateFor(state, panelId)
+        if (current.collapsed === collapsed) return state
+
+        return {
+          panels: {
+            ...state.panels,
+            [panelId]: { ...current, collapsed },
+          },
+        }
+      })
     },
 
     setSectionCollapsed(panelId, sectionId, collapsed) {
-      set((state) => ({
-        sections: {
-          ...state.sections,
-          [panelId]: {
-            ...panelSectionsFor(state, panelId),
-            [sectionId]: collapsed,
+      set((state) => {
+        const panelSections = panelSectionsFor(state, panelId)
+        if ((panelSections[sectionId] ?? false) === collapsed) return state
+
+        return {
+          sections: {
+            ...state.sections,
+            [panelId]: {
+              ...panelSections,
+              [sectionId]: collapsed,
+            },
           },
-        },
-      }))
+        }
+      })
     },
 
     setAllSectionsCollapsed(panelId, collapsed) {
       set((state) => {
         const ids = state.sectionOrder[panelId] ?? []
-        const next = { ...panelSectionsFor(state, panelId) }
+        const panelSections = panelSectionsFor(state, panelId)
+        const next = { ...panelSections }
+        let changed = false
         for (const sectionId of ids) next[sectionId] = collapsed
+        for (const sectionId of ids) {
+          if ((panelSections[sectionId] ?? false) !== collapsed) {
+            changed = true
+            break
+          }
+        }
+        if (!changed) return state
+
         return {
           sections: {
             ...state.sections,
@@ -290,37 +356,51 @@ function createBaseState(storeId: string) {
     },
 
     setPanelDock(panelId, dock) {
-      set((state) => ({
-        panels: {
-          ...state.panels,
-          [panelId]: { ...panelStateFor(state, panelId), dock },
-        },
-      }))
+      set((state) => {
+        const current = panelStateFor(state, panelId)
+        if (dockEqual(current.dock, dock)) return state
+
+        return {
+          panels: {
+            ...state.panels,
+            [panelId]: { ...current, dock },
+          },
+        }
+      })
     },
 
     setSectionOrder(panelId, sectionId, ids) {
-      set((state) => ({
-        order: {
-          ...state.order,
-          [panelId]: {
-            ...panelOrderFor(state, panelId),
-            [sectionId]: ids,
+      set((state) => {
+        const panelOrder = panelOrderFor(state, panelId)
+        if (orderEqual(panelOrder[sectionId], ids)) return state
+
+        return {
+          order: {
+            ...state.order,
+            [panelId]: {
+              ...panelOrder,
+              [sectionId]: ids,
+            },
           },
-        },
-      }))
+        }
+      })
     },
 
     resetValues(panelId) {
       set((state) => {
-        const values =
-          panelId === undefined
-            ? {}
-            : Object.fromEntries(
-                Object.entries(state.values).filter(([id]) => {
-                  const control = state.controls.find((item) => item.persistId === id)
-                  return control?.panelId !== panelId
-                }),
-              )
+        let values: Record<string, JsonValue>
+        if (panelId === undefined) {
+          values = {}
+        } else {
+          const panelControlIds = new Set(
+            state.controls
+              .filter((control) => control.panelId === panelId)
+              .map((control) => control.persistId),
+          )
+          values = Object.fromEntries(
+            Object.entries(state.values).filter(([id]) => !panelControlIds.has(id)),
+          )
+        }
 
         return {
           values,

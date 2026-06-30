@@ -602,6 +602,44 @@ describe('TweakerStore', () => {
     expect(next.getState().controls[0]?.value).toBe(4)
   })
 
+  it('does not notify when setValue resolves to the current value', () => {
+    const store = createTweakerStore({ id: 'stable-value', persistence: false })
+    const listener = vi.fn()
+
+    store.getState().register({ speed: { defaultValue: 1, min: 0, max: 2 } }, { section: 'Tuning' })
+    store.subscribe(listener)
+
+    store.getState().setValue('stable-value:Tuning:speed', 1)
+    store.getState().setValue('stable-value:Tuning:speed', 99)
+    store.getState().setValue('stable-value:Tuning:speed', 2)
+    expect(listener).toHaveBeenCalledTimes(1)
+
+    listener.mockClear()
+    store.getState().setValue('stable-value:Tuning:speed', 99)
+
+    expect(listener).not.toHaveBeenCalled()
+  })
+
+  it('only replaces the changed control object during value writes', () => {
+    const store = createTweakerStore({ id: 'targeted-value', persistence: false })
+
+    store.getState().register(
+      {
+        speed: { defaultValue: 1, min: 0, max: 2 },
+        exposure: { type: 'number', defaultValue: 1, min: 0, max: 4 },
+      },
+      { section: 'Tuning' },
+    )
+
+    const before = store.getState().controls
+    store.getState().setValue('targeted-value:Tuning:speed', 1.5)
+    const after = store.getState().controls
+
+    expect(after).not.toBe(before)
+    expect(after[0]).not.toBe(before[0])
+    expect(after[1]).toBe(before[1])
+  })
+
   it('stores panel and section-local order', () => {
     const store = createTweakerStore({ id: 'order', persistence: false })
     store.getState().register({ a: 1, b: 2 }, { panel: 'scene', section: 'Rendering' })
@@ -759,6 +797,42 @@ describe('TweakerStore', () => {
       backdropBlur: 0,
       activeBackdropBlur: 4,
     })
+  })
+
+  it('does not notify for equivalent panel, section, order, or effect updates', () => {
+    const store = createTweakerStore({ id: 'stable-layout', persistence: false })
+    const listener = vi.fn()
+
+    store.getState().register({ speed: 1 }, { section: { id: 'rendering', label: 'Rendering' } })
+    store.getState().setPanelCollapsed('default', true)
+    store.getState().setSectionCollapsed('default', 'rendering', true)
+    store.getState().setPanelDock('default', { edge: 'right', offset: 24 })
+    store
+      .getState()
+      .setSectionOrder('default', 'rendering', ['stable-layout:default:rendering:speed'])
+    store
+      .getState()
+      .updatePanelEffects(
+        { speed: 1 },
+        { section: { id: 'rendering', label: 'Rendering' }, opacity: 0.6 },
+      )
+
+    store.subscribe(listener)
+
+    store.getState().setPanelCollapsed('default', true)
+    store.getState().setSectionCollapsed('default', 'rendering', true)
+    store.getState().setPanelDock('default', { edge: 'right', offset: 24 })
+    store
+      .getState()
+      .setSectionOrder('default', 'rendering', ['stable-layout:default:rendering:speed'])
+    store
+      .getState()
+      .updatePanelEffects(
+        { speed: 1 },
+        { section: { id: 'rendering', label: 'Rendering' }, opacity: 0.6 },
+      )
+
+    expect(listener).not.toHaveBeenCalled()
   })
 
   it('updates status metadata without pruning values or order', () => {
@@ -1077,6 +1151,7 @@ describe('TweakerStore', () => {
     const store = createTweakerStore({ id: 'sections' })
 
     store.getState().setSectionCollapsed('scene', 'rendering', true)
+    store.getState().setSectionCollapsed('scene', 'material', true)
     store.getState().setSectionCollapsed('scene', 'material', false)
     store.getState().setSectionCollapsed('build', 'rendering', true)
 

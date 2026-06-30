@@ -1,5 +1,6 @@
 import { isValidElement, useCallback, useEffect, useMemo } from 'react'
 import { useStore } from 'zustand'
+import { useShallow } from 'zustand/react/shallow'
 import {
   createControlPersistId,
   defaultValueForControl,
@@ -22,6 +23,10 @@ function explicitControlId(config: TweakerSchema[string]) {
   return typeof config === 'object' && config !== null && typeof config.id === 'string'
     ? config.id
     : undefined
+}
+
+function hasValue(values: Record<string, JsonValue>, id: string) {
+  return Object.prototype.hasOwnProperty.call(values, id)
 }
 
 export function resolveTweakerValues<T extends TweakerSchema>(
@@ -93,10 +98,36 @@ export function useTweaker<T extends TweakerSchema>(
   const panelId = normalizePanelId(options.panel)
   const section = normalizeSection(options.section)
   const reorderable = options.reorderable ?? options.sortable ?? true
-  const controls = useStore(store, (state) => state.controls)
-  const valuesById = useStore(store, (state) => state.values)
-  const schemaSignature = registrationSignatureForSchema(schema)
+  const schemaSignature = useMemo(() => registrationSignatureForSchema(schema), [schema])
   const storeId = store.getState().storeId
+  const controlIds = useMemo(
+    () =>
+      (Object.keys(schema) as Array<keyof T>).map((key) =>
+        createControlPersistId(
+          storeId,
+          panelId,
+          section,
+          String(key),
+          explicitControlId(schema[key]),
+        ),
+      ),
+    [schema, storeId, panelId, section.id, section.label],
+  )
+  const controlIdSet = useMemo(() => new Set(controlIds), [controlIds])
+  const controls = useStore(
+    store,
+    useShallow((state) => state.controls.filter((control) => controlIdSet.has(control.persistId))),
+  )
+  const valuesById = useStore(
+    store,
+    useShallow((state) => {
+      const selectedValues: Record<string, JsonValue> = {}
+      for (const id of controlIds) {
+        if (hasValue(state.values, id)) selectedValues[id] = state.values[id]!
+      }
+      return selectedValues
+    }),
+  )
 
   useEffect(
     () => store.getState().register(schema, { panel: panelId, section, reorderable }),

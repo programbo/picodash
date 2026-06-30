@@ -4,7 +4,7 @@ import { SortableKeyboardPlugin } from '@dnd-kit/dom/sortable'
 import { useSortable } from '@dnd-kit/react/sortable'
 import { clsx } from 'clsx'
 import { GripVertical, Info } from 'lucide-react'
-import { type PointerEvent, type RefObject, useRef } from 'react'
+import { memo, type PointerEvent, type RefObject, useRef } from 'react'
 import { Button, OverlayArrow, Tooltip, TooltipTrigger } from 'react-aria-components'
 import { useTweakerSelector } from '../react/context.js'
 import type { NormalizedControl } from '../types.js'
@@ -31,7 +31,7 @@ function settleInteraction(callback: () => void) {
   window.setTimeout(callback, 180)
 }
 
-export function SortableControl({
+function SortableControlComponent({
   control,
   index,
   listRef,
@@ -178,6 +178,8 @@ export function SortableControl({
     </div>
   )
 }
+
+export const SortableControl = memo(SortableControlComponent)
 
 function trySetPointerCapture(element: Element, pointerId: number) {
   try {

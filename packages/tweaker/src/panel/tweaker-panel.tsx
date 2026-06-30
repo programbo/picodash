@@ -11,8 +11,9 @@ import {
   useState,
 } from 'react'
 import { Button } from 'react-aria-components'
+import { useShallow } from 'zustand/react/shallow'
 import { normalizePanelAppearance, normalizePanelId } from '../control.js'
-import { useTweakerSelector } from '../react/context.js'
+import { useTweakerSelector, useTweakerStoreApi } from '../react/context.js'
 import type { DockState, PanelAppearance, PanelTheme, Placement } from '../types.js'
 import { orderControls } from './order.js'
 import { PanelEffectProvider, type PanelEffectStyle } from './panel-effects-context.js'
@@ -97,10 +98,9 @@ export function TweakerPanel({
 }: TweakerPanelProps) {
   const panelId = normalizePanelId(id)
   const resolvedPlacement = defaultPlacement ?? placement ?? 'top-right'
-  const allControls = useTweakerSelector((state) => state.controls)
-  const controls = useMemo(
-    () => allControls.filter((control) => control.panelId === panelId),
-    [allControls, panelId],
+  const store = useTweakerStoreApi()
+  const controls = useTweakerSelector(
+    useShallow((state) => state.controls.filter((control) => control.panelId === panelId)),
   )
   const dock = useTweakerSelector((state) => state.panels[panelId]?.dock ?? null)
   const collapsed = useTweakerSelector((state) => state.panels[panelId]?.collapsed ?? false)
@@ -121,7 +121,7 @@ export function TweakerPanel({
   const setCollapsed = useTweakerSelector((state) => state.setPanelCollapsed)
   const setDock = useTweakerSelector((state) => state.setPanelDock)
   const setAllSectionsCollapsed = useTweakerSelector((state) => state.setAllSectionsCollapsed)
-  const valuesById = useTweakerSelector((state) => state.values)
+  const getValuesById = useCallback(() => store.getState().values, [store])
   const panelRef = useRef<HTMLDivElement | null>(null)
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{
@@ -367,9 +367,8 @@ export function TweakerPanel({
         <PanelMenu
           panelId={panelId}
           panelRef={panelRef}
-          title={title}
           dock={dock}
-          valuesById={valuesById}
+          getValuesById={getValuesById}
           resetValues={resetValues}
           resetOrder={resetOrder}
           setDock={setDock}

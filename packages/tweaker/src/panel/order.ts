@@ -13,11 +13,12 @@ export function orderControls(
 ) {
   const sectionControls = controls.filter((control) => control.sectionId === sectionId)
   const persisted = order[sectionId] ?? []
+  const persistedIds = new Set(persisted)
   const byId = new Map(sectionControls.map((control) => [control.persistId, control]))
   const ordered = persisted
     .map((id) => byId.get(id))
     .filter((control): control is NormalizedControl => Boolean(control))
-  const missing = sectionControls.filter((control) => !persisted.includes(control.persistId))
+  const missing = sectionControls.filter((control) => !persistedIds.has(control.persistId))
   return [...ordered, ...missing]
 }
 
