@@ -16,6 +16,13 @@ import { TweakerPanel, TweakerProvider, useTweaker } from 'tweaker'
 import 'tweaker/style.css'
 ```
 
+## Repo Workspaces
+
+- `packages/tweaker`: the main reusable Tweaker React package.
+- `apps/website`: the Tweaker demo/docs and Playwright e2e surface.
+- `packages/panel`: a Vite+ React component library that exports typed components from `src/index.ts`.
+- `apps/demo`: a Vite+ React TypeScript Tailwind app that imports `panel` through `workspace:*`.
+
 ## Provider and Panels
 
 Wrap the app once with `TweakerProvider`. Always provide a stable `id`; it is used for localStorage persistence.

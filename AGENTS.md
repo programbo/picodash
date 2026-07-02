@@ -21,10 +21,12 @@ Keep this file current whenever the repo structure, scripts, architecture, packa
 
 ## What This Repo Is
 
-Tweaker is a pnpm workspace managed with Vite+. It contains a reusable React package plus a local demo/docs app.
+Tweaker is a pnpm workspace managed with Vite+. It contains reusable React packages plus local demo apps.
 
 - `packages/tweaker`: the publishable `tweaker` React package.
+- `packages/panel`: a Vite+ React component library consumed by `apps/demo`.
 - `apps/website`: the demo/docs app and Playwright coverage for the package behavior.
+- `apps/demo`: a Vite+ React TypeScript demo app with Tailwind CSS that imports `panel` via `workspace:*`.
 - `pnpm-workspace.yaml`: workspace package globs and dependency catalog.
 - `vite.config.ts`: root Vite+ formatting, linting, staged checks, and cached task config.
 - `apps/website/vercel.json`: production security headers for static Vercel deployments.
@@ -41,6 +43,9 @@ pnpm dev
 pnpm --filter tweaker check
 pnpm --filter tweaker test
 pnpm --filter tweaker build
+pnpm --filter panel test
+pnpm --filter panel build
+pnpm --filter demo build
 pnpm --filter website test:e2e
 pnpm ready
 ```
@@ -61,11 +66,15 @@ Assign dev, preview, e2e, test, mock API, and other local servers only from `603
 
 - `6030`: `apps/website` dev server and Playwright e2e web server.
 - `6031`: `apps/website` preview server.
-- `6032-6039`: available for future local servers.
+- `6032`: `apps/demo` dev server.
+- `6033`: `apps/demo` preview server.
+- `6034-6039`: available for future local servers.
 
-When adding a new app or local server, use the next available port from `6032-6039` and update this section plus `README.md`.
+When adding a new app or local server, use the next available port from `6034-6039` and update this section plus `README.md`.
 
 ## Package Boundaries
+
+The `packages/panel` package is a small Vite+ React component library. Keep it self-contained, export typed React components from `src/index.ts`, and consume it from `apps/demo` through `workspace:*`.
 
 The package source is intentionally split by responsibility:
 
@@ -172,12 +181,17 @@ Use Playwright tests in `apps/website/tests/tweaker.spec.ts` for user-visible be
 
 When changing UI behavior, prefer verifying with Playwright or the in-app browser in addition to unit tests.
 
+## Demo App
+
+`apps/demo` is the Vite+ React TypeScript Tailwind app for the local `panel` component package. It imports `panel` through `workspace:*`, uses `6032` for `vp dev`, and uses `6033` for `vp preview`.
+
 ## Documentation
 
 Keep these files aligned:
 
 - `README.md`: root usage and development overview.
 - `packages/tweaker/README.md`: package-specific quick reference.
+- `packages/panel/README.md`: panel package quick reference.
 - `SKILL.md`: local skill/instruction artifact for this project.
 - `AGENTS.md`: agent operating guide.
 

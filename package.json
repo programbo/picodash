@@ -6,6 +6,8 @@
   "scripts": {
     "ready": "vp check && vp run -r test && vp run -r build && pnpm --filter website test:e2e",
     "dev": "vp run website#dev",
+    "demo": "vp run demo#dev",
+    "panel": "vp run panel#dev",
     "test:e2e": "pnpm --filter website test:e2e",
     "prepare": "vp config"
   },

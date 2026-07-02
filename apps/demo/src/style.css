@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+@source '../../../packages/panel/src';
+
+@layer base {
+  html {
+    @apply bg-zinc-950;
+  }
+
+  body {
+    @apply m-0 min-w-80;
+  }
+
+  button {
+    font: inherit;
+  }
+}
