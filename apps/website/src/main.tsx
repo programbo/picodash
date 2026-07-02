@@ -171,63 +171,6 @@ export const colorControl = defineTweakerControl<string>({
 
 export const color = colorControl.config
 
-function recordValue(value: JsonValue): Record<string, JsonValue> | null {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value : null
-}
-
-function numberValue(value: JsonValue | undefined, fallback: number) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
-}
-
-function stringValue(value: JsonValue | undefined, fallback: string) {
-  return typeof value === 'string' && value.trim() ? value : fallback
-}
-
-function svgPaths(value: JsonValue) {
-  const svg = recordValue(value)
-  const paths = Array.isArray(svg?.paths) ? svg.paths : []
-
-  return paths.flatMap((path, index) => {
-    const record = recordValue(path)
-    const d = stringValue(record?.d, '')
-    if (!d) return []
-
-    return {
-      key: `${index}:${d}`,
-      d,
-      fill: stringValue(record?.fill, 'none'),
-      stroke: stringValue(record?.stroke, 'currentColor'),
-      strokeWidth: numberValue(record?.strokeWidth, 1),
-    }
-  })
-}
-
-function SvgControl({ value, control, labelId }: TweakerControlProps) {
-  const svg = recordValue(value)
-  const viewBox = stringValue(svg?.viewBox, '0 0 100 100')
-
-  return (
-    <svg
-      id={control.domId}
-      className="svg-control"
-      viewBox={viewBox}
-      role="img"
-      aria-labelledby={labelId}
-    >
-      {svgPaths(value).map((path) => (
-        <path
-          key={path.key}
-          d={path.d}
-          fill={path.fill}
-          stroke={path.stroke}
-          strokeWidth={path.strokeWidth}
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-    </svg>
-  )
-}
-
 function telemetrySamples(value: JsonValue) {
   return Array.isArray(value)
     ? value.filter(
@@ -266,13 +209,6 @@ function TelemetryGraphControl({ value, control, labelId }: TweakerControlProps)
   )
 }
 
-const svgControl = defineTweakerControl<JsonValue>({
-  type: '@tweaker-demo/svg',
-  valueMode: 'display',
-  layout: 'block',
-  component: SvgControl,
-})
-
 const telemetryGraphControl = defineTweakerControl<JsonValue>({
   type: '@tweaker-demo/telemetryGraph',
   valueMode: 'transient',
@@ -281,35 +217,7 @@ const telemetryGraphControl = defineTweakerControl<JsonValue>({
   sanitize: (value) => telemetrySamples(value).slice(-48),
 })
 
-const demoControls = mergeTweakerControls(colorControl, svgControl, telemetryGraphControl)
-
-function createProfileSvg(shape: string, roughness: number): JsonValue {
-  const wobble = 1 + roughness * 0.08
-  const outer =
-    shape === 'prism'
-      ? `M 0 -44 L 40 24 L -32 38 Z`
-      : shape === 'plate'
-        ? `M -46 0 C -46 -18 -24 -30 0 -30 C 24 -30 46 -18 46 0 C 46 18 24 30 0 30 C -24 30 -46 18 -46 0 Z`
-        : `M 0 -42 C 24 -42 42 -24 42 0 C 42 24 24 42 0 42 C -24 42 -42 24 -42 0 C -42 -24 -24 -42 0 -42 Z`
-
-  return {
-    viewBox: '-56 -56 112 112',
-    paths: [
-      { d: 'M -52 0 L 52 0 M 0 -52 L 0 52', stroke: '#647066', strokeWidth: 0.6 },
-      { d: outer, stroke: '#9bd16f', strokeWidth: 2, fill: 'rgba(155, 209, 111, 0.1)' },
-      {
-        d: `M ${(-18 * wobble).toFixed(1)} -14 C -8 -26 8 -26 ${(18 * wobble).toFixed(1)} -14`,
-        stroke: '#79b9e6',
-        strokeWidth: 1.2,
-      },
-      {
-        d: `M ${(-18 * wobble).toFixed(1)} 14 C -8 26 8 26 ${(18 * wobble).toFixed(1)} 14`,
-        stroke: '#f0b95e',
-        strokeWidth: 1.2,
-      },
-    ],
-  }
-}
+const demoControls = mergeTweakerControls(colorControl, telemetryGraphControl)
 
 function createTelemetrySamples(speed: number, exposure: number): JsonValue {
   return Array.from({ length: 36 }, (_, index) => {
@@ -387,22 +295,12 @@ function Demo() {
     section: { id: 'build', label: 'Build' },
     reorderable: false,
   })
-  const profileSvg = useMemo(
-    () => createProfileSvg(String(material.shape), Number(material.roughness)),
-    [material.roughness, material.shape],
-  )
   const telemetryGraph = useMemo(
     () => createTelemetrySamples(Number(rendering.speed), Number(rendering.exposure)),
     [rendering.exposure, rendering.speed],
   )
   useTweaker(
     {
-      profileSvg: {
-        type: '@tweaker-demo/svg',
-        defaultValue: profileSvg,
-        label: 'Profile SVG',
-        height: 104,
-      },
       forceGraph: {
         type: '@tweaker-demo/telemetryGraph',
         defaultValue: telemetryGraph,

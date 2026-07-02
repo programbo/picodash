@@ -319,6 +319,23 @@
   box-shadow: var(--tw-drag-shadow);
 }
 
+.tw-row[data-dnd-dragging][data-control-layout='inline'] {
+  column-gap: var(--tw-drag-column-gap, 2px);
+  grid-template-columns:
+    var(--tw-drag-grip-width, 22px)
+    var(--tw-drag-label-width, minmax(70px, 0.9fr))
+    var(--tw-drag-control-width, minmax(64px, 1.2fr));
+}
+
+.tw-row[data-dnd-dragging][data-control-layout='inline'] .tw-row__control {
+  display: block;
+  grid-column: 3;
+}
+
+.tw-row[data-dnd-dragging][data-control-layout='inline'] .tw-slider {
+  grid-template-columns: minmax(0, 1fr) var(--tw-drag-slider-value-width, max-content);
+}
+
 .tw-row--info {
   --tw-row-status-bg: rgb(59 130 246 / 0.1);
   --tw-row-status-hover-bg: rgb(59 130 246 / 0.16);
@@ -392,14 +409,16 @@
 }
 
 .tw-row__control {
-  @apply min-w-0;
+  @apply grid min-w-0;
 
   grid-column: 3 / -1;
+  grid-template-columns: subgrid;
   height: var(--tw-control-height, auto);
   min-height: var(--tw-control-min-height);
 }
 
 .tw-row__control > * {
+  grid-column: 1 / -1;
   width: 100%;
 }
 
@@ -639,7 +658,8 @@
 .tw-slider {
   @apply grid items-center gap-2;
 
-  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
 }
 
 .tw-slider__track {

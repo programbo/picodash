@@ -8,6 +8,53 @@ async function hoverCenter(page: Page, locator: Locator) {
   await page.waitForTimeout(100)
 }
 
+interface LayoutRect {
+  x: number
+  width: number
+}
+
+interface MaterialSliderMetrics {
+  control: LayoutRect | null
+  isDragged: boolean
+  roughnessTrack: LayoutRect | null
+  track: LayoutRect | null
+  value: LayoutRect | null
+}
+
+function rectsMatch(left: LayoutRect | null, right: LayoutRect | null, tolerance = 0.5) {
+  if (!left || !right) return false
+  return Math.abs(left.x - right.x) <= tolerance && Math.abs(left.width - right.width) <= tolerance
+}
+
+async function materialSliderMetrics(
+  page: Page,
+  controlKey: 'roughness' | 'sheen',
+): Promise<MaterialSliderMetrics> {
+  return page.evaluate((key) => {
+    function rectFor(element: Element | null): LayoutRect | null {
+      if (!element) return null
+      const rect = element.getBoundingClientRect()
+      return { x: rect.x, width: rect.width }
+    }
+
+    const row =
+      document.querySelector(
+        `[data-control-id="docs-demo:default:material:${key}"][data-dnd-dragging]`,
+      ) ?? document.querySelector(`[data-testid="control-${key}"]:not([data-dnd-placeholder])`)
+    const roughnessRow = document.querySelector(
+      '[data-testid="control-roughness"]:not([data-dnd-placeholder])',
+    )
+
+    return {
+      control: rectFor(row?.querySelector('.tw-row__control') ?? null),
+      isDragged: row?.hasAttribute('data-dnd-dragging') ?? false,
+      roughnessTrack: rectFor(roughnessRow?.querySelector('.tw-slider__track') ?? null),
+      track: rectFor(row?.querySelector('.tw-slider__track') ?? null),
+      value: rectFor(row?.querySelector('.tw-slider__value') ?? null),
+    }
+  }, controlKey)
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await page.evaluate(() => localStorage.clear())
@@ -139,6 +186,55 @@ test('renders slider outputs with formatOptions and step precision', async ({ pa
     '0.34',
   )
   await expect(page.getByTestId('control-sheen').locator('.tw-slider__value')).toHaveText('42%')
+
+  const roughnessTrack = await page
+    .getByTestId('control-roughness')
+    .locator('.tw-slider__track')
+    .boundingBox()
+  const sheenTrack = await page
+    .getByTestId('control-sheen')
+    .locator('.tw-slider__track')
+    .boundingBox()
+  expect(roughnessTrack).not.toBeNull()
+  expect(sheenTrack).not.toBeNull()
+  expect(Math.abs(roughnessTrack!.width - sheenTrack!.width)).toBeLessThanOrEqual(0.5)
+})
+
+test('keeps inline slider columns stable while dragging a control', async ({ page }) => {
+  const before = await materialSliderMetrics(page, 'sheen')
+  const sheenGrip = page.getByRole('button', { name: 'Reorder Sheen' })
+  const accentRow = page.getByTestId('control-accent')
+  const sheenBox = await sheenGrip.boundingBox()
+  const accentBox = await accentRow.boundingBox()
+  expect(sheenBox).not.toBeNull()
+  expect(accentBox).not.toBeNull()
+
+  await page.mouse.move(sheenBox!.x + sheenBox!.width / 2, sheenBox!.y + sheenBox!.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(accentBox!.x + accentBox!.width / 2, accentBox!.y + accentBox!.height - 3, {
+    steps: 12,
+  })
+
+  await expect
+    .poll(async () => {
+      const during = await materialSliderMetrics(page, 'sheen')
+      return {
+        controlStable: rectsMatch(before.control, during.control),
+        isDragged: during.isDragged,
+        roughnessTrackStable: rectsMatch(before.roughnessTrack, during.roughnessTrack),
+        trackStable: rectsMatch(before.track, during.track),
+        valueStable: rectsMatch(before.value, during.value),
+      }
+    })
+    .toEqual({
+      controlStable: true,
+      isDragged: true,
+      roughnessTrackStable: true,
+      trackStable: true,
+      valueStable: true,
+    })
+
+  await page.mouse.up()
 })
 
 test('renders dynamic control descriptions as row footers', async ({ page }) => {
@@ -160,20 +256,13 @@ test('renders display controls and updates them from derived values', async ({ p
   await expect(display).toHaveText('75 mm')
 })
 
-test('renders SVG and transient graph extension controls without persisting values', async ({
-  page,
-}) => {
-  const profile = page.getByTestId('control-profileSvg')
+test('renders transient graph extension controls without persisting values', async ({ page }) => {
   const graph = page.getByTestId('control-forceGraph')
-
-  await expect(profile).toHaveAttribute('data-control-type', '@tweaker-demo/svg')
-  await expect(profile).toHaveAttribute('data-control-layout', 'block')
-  await expect(profile).toHaveAttribute('data-value-mode', 'display')
-  await expect(profile.locator('.svg-control path')).toHaveCount(4)
 
   await expect(graph).toHaveAttribute('data-control-type', '@tweaker-demo/telemetryGraph')
   await expect(graph).toHaveAttribute('data-control-layout', 'block')
   await expect(graph).toHaveAttribute('data-value-mode', 'transient')
+  await expect(page.getByTestId('control-profileSvg')).toHaveCount(0)
   await expect(graph.locator('.telemetry-graph__line')).toHaveAttribute('d', /L/)
 
   await expect
@@ -181,9 +270,7 @@ test('renders SVG and transient graph extension controls without persisting valu
       page.evaluate(() => {
         const raw = localStorage.getItem('tweaker:docs-demo')
         const values = raw ? JSON.parse(raw).state?.values : {}
-        return Object.keys(values ?? {}).filter(
-          (key) => key.includes('profileSvg') || key.includes('forceGraph'),
-        )
+        return Object.keys(values ?? {}).filter((key) => key.includes('forceGraph'))
       }),
     )
     .toEqual([])

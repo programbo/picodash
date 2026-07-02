@@ -4,7 +4,14 @@ import { SortableKeyboardPlugin } from '@dnd-kit/dom/sortable'
 import { useSortable } from '@dnd-kit/react/sortable'
 import { clsx } from 'clsx'
 import { GripVertical, Info } from 'lucide-react'
-import { memo, type CSSProperties, type PointerEvent, type RefObject, useRef } from 'react'
+import {
+  memo,
+  type CSSProperties,
+  type PointerEvent,
+  type RefObject,
+  useCallback,
+  useRef,
+} from 'react'
 import { Button, OverlayArrow, Tooltip, TooltipTrigger } from 'react-aria-components'
 import { useTweakerSelector } from '../react/context.js'
 import type { NormalizedControl } from '../types.js'
@@ -43,6 +50,7 @@ function SortableControlComponent({
 }: SortableControlProps) {
   const setValue = useTweakerSelector((state) => state.setValue)
   const panelEffects = usePanelEffects()
+  const rowRef = useRef<HTMLDivElement | null>(null)
   const pointerDragRef = useRef<{ startY: number; moved: boolean } | null>(null)
   const setPointerDragActive = usePanelInteraction(`row-pointer:${control.persistId}`)
   const labelId = `${control.domId}:label`
@@ -70,10 +78,17 @@ function SortableControlComponent({
     ],
     plugins: [SortableKeyboardPlugin],
   })
+  const setRowRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      rowRef.current = element
+      ref(element)
+    },
+    [ref],
+  )
 
   return (
     <div
-      ref={ref}
+      ref={setRowRef}
       className={clsx(
         'tw-row',
         isDragging && 'is-dragging',
@@ -101,6 +116,10 @@ function SortableControlComponent({
             : `Reordering disabled for ${control.label}`
         }
         aria-disabled={!control.reorderable}
+        onPointerDownCapture={() => {
+          if (!control.reorderable) return
+          captureInlineDragLayout(rowRef.current)
+        }}
         onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
           if (!control.reorderable) return
           pointerDragRef.current = { startY: event.clientY, moved: false }
@@ -214,6 +233,36 @@ function dimensionToCss(value: number | string | undefined) {
     return Number.isFinite(value) && value >= 0 ? `${value}px` : undefined
   const trimmed = value?.trim()
   return trimmed ? trimmed : undefined
+}
+
+function captureInlineDragLayout(row: HTMLDivElement | null) {
+  if (!row || row.dataset.controlLayout !== 'inline') return
+
+  const grip = row.querySelector<HTMLElement>('.tw-grip')
+  const label = row.querySelector<HTMLElement>('.tw-row__label-wrap')
+  const control = row.querySelector<HTMLElement>('.tw-row__control')
+  if (!grip || !label || !control) return
+
+  const gripRect = grip.getBoundingClientRect()
+  const labelRect = label.getBoundingClientRect()
+  const controlRect = control.getBoundingClientRect()
+  const columnGap = Math.max(0, labelRect.left - gripRect.right)
+  const labelWidth = Math.max(0, controlRect.left - labelRect.left - columnGap)
+
+  row.style.setProperty('--tw-drag-grip-width', `${gripRect.width}px`)
+  row.style.setProperty('--tw-drag-column-gap', `${columnGap}px`)
+  row.style.setProperty('--tw-drag-label-width', `${labelWidth}px`)
+  row.style.setProperty('--tw-drag-control-width', `${controlRect.width}px`)
+
+  const sliderValue = row.querySelector<HTMLElement>('.tw-slider__value')
+  if (sliderValue) {
+    row.style.setProperty(
+      '--tw-drag-slider-value-width',
+      `${sliderValue.getBoundingClientRect().width}px`,
+    )
+  } else {
+    row.style.removeProperty('--tw-drag-slider-value-width')
+  }
 }
 
 function trySetPointerCapture(element: Element, pointerId: number) {

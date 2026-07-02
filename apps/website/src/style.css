@@ -205,7 +205,6 @@ h1 {
   cursor: pointer;
 }
 
-.svg-control,
 .telemetry-graph {
   display: block;
   height: var(--tw-control-height, auto);
@@ -221,10 +220,6 @@ h1 {
     auto;
   border: 1px solid var(--tw-border);
   border-radius: 5px;
-}
-
-.svg-control {
-  padding: 8px;
 }
 
 .telemetry-graph {
