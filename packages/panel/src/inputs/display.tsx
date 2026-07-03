@@ -1,0 +1,46 @@
+import type { ReactNode } from 'react'
+import {
+  TweakerControl,
+  useResolvedPanelProp,
+  type ReactiveProp,
+  type TweakerControlProps,
+} from '../tweaker-control.js'
+import type { TweakerValue } from '../tweaker-panel.js'
+import { cn } from '../utils.js'
+
+export interface TweakerDisplayProps extends Omit<
+  TweakerControlProps<TweakerValue>,
+  'children' | 'defaultValue' | 'onValueChange'
+> {
+  fallback?: ReactNode
+  value?: ReactiveProp<ReactNode>
+}
+
+export function TweakerDisplay({
+  fallback = 'Unset',
+  value: valueProp,
+  ...controlProps
+}: TweakerDisplayProps) {
+  const value = useResolvedPanelProp(valueProp)
+
+  return (
+    <TweakerControl<TweakerValue> {...controlProps} readOnly>
+      {(control) => (
+        <div
+          className={cn(
+            'min-h-8 rounded-md border border-input bg-background px-2.5 py-1.5 text-sm text-foreground',
+            control.value === undefined && value === undefined && 'text-muted-foreground',
+          )}
+        >
+          {value ?? valueToDisplay(control.value) ?? fallback}
+        </div>
+      )}
+    </TweakerControl>
+  )
+}
+
+function valueToDisplay(value: TweakerValue | undefined): ReactNode {
+  if (value === undefined || value === null) return undefined
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}

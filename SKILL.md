@@ -20,7 +20,7 @@ import 'tweaker/style.css'
 
 - `packages/tweaker`: the main reusable Tweaker React package.
 - `apps/website`: the Tweaker demo/docs and Playwright e2e surface.
-- `packages/panel`: a Vite+ React component library that exports typed components from `src/index.ts`.
+- `packages/panel`: a Vite+ React component library that exports typed components from `src/index.ts` and compiled Tailwind-authored CSS from `panel/style.css`.
 - `apps/demo`: a Vite+ React TypeScript Tailwind app that imports `panel` through `workspace:*`.
 
 ## Provider and Panels

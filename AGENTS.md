@@ -74,7 +74,7 @@ When adding a new app or local server, use the next available port from `6034-60
 
 ## Package Boundaries
 
-The `packages/panel` package is a small Vite+ React component library. Keep it self-contained, export typed React components from `src/index.ts`, and consume it from `apps/demo` through `workspace:*`.
+The `packages/panel` package is a small Vite+ React component library. Keep it self-contained, export typed React components from `src/index.ts`, and consume it from `apps/demo` through `workspace:*`. Panel styles are authored through Tailwind v4 in `packages/panel/src/styles.css`, packed with PostCSS, and consumed from `panel/style.css`.
 
 The package source is intentionally split by responsibility:
 

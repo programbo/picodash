@@ -9,12 +9,20 @@
     "preview": "vp preview --host 127.0.0.1 --port 6033 --strictPort"
   },
   "dependencies": {
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "lucide-react": "catalog:",
     "panel": "workspace:*",
+    "radix-ui": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "shadcn": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tw-animate-css": "catalog:"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "catalog:",
+    "@tailwindcss/typography": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "postcss": "catalog:",
