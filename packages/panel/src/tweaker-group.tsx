@@ -40,7 +40,17 @@ export interface TweakerGroupProps extends Omit<
 
 const emptyStates: TweakerControlStates = {}
 const reorderTransition: HTMLMotionProps<'section'>['transition'] = {
-  layout: { duration: 0.14, ease: 'easeOut' },
+  layout: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
+  x: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
+  y: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
+}
+const dragTransition: HTMLMotionProps<'section'>['dragTransition'] = {
+  bounceDamping: 28,
+  bounceStiffness: 700,
+  power: 0.08,
+  restDelta: 0.5,
+  restSpeed: 12,
+  timeConstant: 120,
 }
 
 export function TweakerGroup({
@@ -107,7 +117,7 @@ export function TweakerGroup({
       {...stateAttributes}
       as="section"
       className={cn(
-        'group/tweaker-section select-none rounded-md border border-border/80 bg-secondary/30 transition-colors data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[focused=true]:border-ring/60 data-[hovered=true]:bg-secondary/55 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
+        'group/tweaker-section select-none rounded-md border border-border/80 bg-secondary/30 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[dragging=true]:bg-secondary/80 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[hovered=true]:bg-secondary/55 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
         status && 'border-l-2',
         className,
       )}
@@ -125,6 +135,7 @@ export function TweakerGroup({
       data-status={status}
       dragControls={dragControls}
       dragListener={false}
+      dragTransition={props.dragTransition ?? dragTransition}
       style={props.style}
       transition={props.transition ?? reorderTransition}
       value={id}

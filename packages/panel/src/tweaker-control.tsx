@@ -55,7 +55,17 @@ export interface TweakerControlProps<TValue extends TweakerValue = TweakerValue>
 const emptyStates: TweakerControlStates = {}
 const TweakerControlContext = createContext<TweakerControlContextValue | null>(null)
 const reorderTransition: HTMLMotionProps<'div'>['transition'] = {
-  layout: { duration: 0.14, ease: 'easeOut' },
+  layout: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
+  x: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
+  y: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
+}
+const dragTransition: HTMLMotionProps<'div'>['dragTransition'] = {
+  bounceDamping: 28,
+  bounceStiffness: 700,
+  power: 0.08,
+  restDelta: 0.5,
+  restSpeed: 12,
+  timeConstant: 120,
 }
 
 export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
@@ -184,7 +194,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         aria-describedby={description ? descriptionId : undefined}
         aria-labelledby={label ? labelId : undefined}
         className={cn(
-          'group/control relative flex min-h-12 select-none gap-2 rounded-md border border-transparent bg-transparent px-2 py-2 text-foreground outline-none transition-colors data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[dragging=true]:bg-accent data-[focused=true]:border-ring/60 data-[hovered=true]:bg-accent/65 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
+          'group/control relative flex min-h-12 select-none gap-2 rounded-md border border-transparent bg-transparent px-2 py-2 text-foreground outline-none transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[dragging=true]:bg-accent/90 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[hovered=true]:bg-accent/65 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
           status && 'border-l-2',
           className,
         )}
@@ -203,6 +213,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         data-status={status}
         dragControls={dragControls}
         dragListener={false}
+        dragTransition={props.dragTransition ?? dragTransition}
         style={props.style}
         transition={props.transition ?? reorderTransition}
         value={controlId}

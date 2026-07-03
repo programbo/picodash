@@ -670,17 +670,6 @@ export function TweakerReorderList({
     store,
     useShallow((state) => orderedItemsForParent(state, parentId).map((entry) => entry.item.id)),
   )
-  const itemLabels = useStore(
-    store,
-    useShallow((state) =>
-      Object.fromEntries(
-        orderedItemsForParent(state, parentId).map((entry) => [
-          entry.item.id,
-          entry.item.label ?? entry.item.id,
-        ]),
-      ),
-    ),
-  )
   const [values, setValues] = useState(registeredValues)
   const valuesRef = useRef(values)
   const pendingStoreOrderRef = useRef<string[] | null>(null)
@@ -700,20 +689,14 @@ export function TweakerReorderList({
     valuesRef.current = values
   }, [values])
 
-  const reorder = useCallback(
-    (nextVisibleOrder: string[]) => {
-      const currentValues = valuesRef.current
-      if (arraysEqual(currentValues, nextVisibleOrder)) return
+  const reorder = useCallback((nextVisibleOrder: string[]) => {
+    const currentValues = valuesRef.current
+    if (arraysEqual(currentValues, nextVisibleOrder)) return
 
-      valuesRef.current = nextVisibleOrder
-      pendingStoreOrderRef.current = nextVisibleOrder
-      setValues(nextVisibleOrder)
-
-      const nextItemNames = nextVisibleOrder.map((id) => itemLabels[id] ?? id)
-      console.log('[TweakerPanel] item order changed', nextItemNames)
-    },
-    [itemLabels],
-  )
+    valuesRef.current = nextVisibleOrder
+    pendingStoreOrderRef.current = nextVisibleOrder
+    setValues(nextVisibleOrder)
+  }, [])
   const commitPendingOrder = useCallback(() => {
     const pendingStoreOrder = pendingStoreOrderRef.current
     if (!pendingStoreOrder) return
