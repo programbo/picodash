@@ -102,7 +102,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   const descriptionId = `${controlId}:description`
   const store = useTweakerPanelStoreApi()
   const dragControls = useDragControls()
-  const { commitPendingOrder, listRef, parentId } = useTweakerGroupContext()
+  const { commitPendingOrder, dragConstraintsRef, parentId } = useTweakerGroupContext()
   const value = useTweakerPanelSelector((state) =>
     field === undefined ? undefined : (state.values[field] as TValue | undefined),
   )
@@ -210,7 +210,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         data-readonly={readOnly ? 'true' : 'false'}
         data-reorderable={reorderable ? 'true' : 'false'}
         data-status={status}
-        dragConstraints={listRef}
+        dragConstraints={dragConstraintsRef}
         dragControls={dragControls}
         dragElastic={0.01}
         dragListener={false}

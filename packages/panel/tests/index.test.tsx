@@ -4,8 +4,15 @@ import {
   createTweakerPanelStore,
   createTweakerStore,
   FeaturePanel,
+  panelLayoutStorageKey,
   panelZIndexForState,
 } from '../src/index.ts'
+import {
+  clampPanelPosition,
+  positionForPanelLayout,
+  snapPanelPosition,
+  type PanelRect,
+} from '../src/panel-snapping.ts'
 import { orderIndexForItem } from '../src/tweaker-panel.tsx'
 
 test('creates feature panel elements', () => {
@@ -55,6 +62,164 @@ test('raises the most recently interacted panel above earlier panels', () => {
   expect(panelZIndexForState(store.getState(), 'scene')).toBeGreaterThan(
     panelZIndexForState(store.getState(), 'output'),
   )
+})
+
+test('hydrates valid persisted panel layouts', () => {
+  const storage = installFakeLocalStorage()
+  storage.setItem(
+    panelLayoutStorageKey,
+    JSON.stringify({
+      state: { panelLayouts: { inspect: { x: 42, y: -12 } } },
+      version: 0,
+    }),
+  )
+
+  const store = createTweakerStore()
+
+  expect(store.getState().panelLayouts.inspect).toEqual({ dock: null, x: 42, y: -12 })
+})
+
+test('ignores invalid persisted panel layouts', () => {
+  const storage = installFakeLocalStorage()
+  storage.setItem(
+    panelLayoutStorageKey,
+    JSON.stringify({
+      state: { panelLayouts: { inspect: { x: Number.NaN, y: 'bad' } } },
+      version: 0,
+    }),
+  )
+
+  const store = createTweakerStore()
+
+  expect(store.getState().panelLayouts).toEqual({})
+})
+
+test('persists manual panel layout without persisting measured rect changes', () => {
+  const storage = installFakeLocalStorage()
+  const store = createTweakerStore()
+
+  store.getState().setPanelLayout('inspect', { x: 24, y: 32 })
+  store.getState().setPanelRect('inspect', rect(24, 32, 100, 80))
+
+  expect(readPersistedPanelLayouts(storage)).toEqual({ inspect: { dock: null, x: 24, y: 32 } })
+})
+
+test('persists docked panel layout edges', () => {
+  const storage = installFakeLocalStorage()
+  const store = createTweakerStore()
+
+  store.getState().setPanelLayout('inspect', {
+    dock: { horizontal: 'right', vertical: 'top' },
+    x: 700,
+    y: 8,
+  })
+
+  expect(readPersistedPanelLayouts(storage)).toEqual({
+    inspect: { dock: { horizontal: 'right', vertical: 'top' }, x: 700, y: 8 },
+  })
+})
+
+test('snaps panel position to viewport edges and corners', () => {
+  const baseRect = rect(100, 100, 100, 80)
+  const containerRect = rect(0, 0, 400, 300)
+
+  expect(
+    snapPanelPosition({
+      baseRect,
+      containerRect,
+      position: { x: -94, y: -92 },
+    }),
+  ).toMatchObject({
+    dock: { horizontal: 'left', vertical: 'top' },
+    position: { x: -92, y: -92 },
+    snappedX: true,
+    snappedY: true,
+  })
+  expect(
+    snapPanelPosition({
+      baseRect,
+      containerRect,
+      position: { x: 180, y: 110 },
+    }),
+  ).toMatchObject({
+    dock: { horizontal: 'right', vertical: 'bottom' },
+    position: { x: 192, y: 112 },
+    snappedX: true,
+    snappedY: true,
+  })
+})
+
+test('does not snap outside the snap threshold', () => {
+  const baseRect = rect(100, 100, 100, 80)
+  const containerRect = rect(0, 0, 400, 300)
+
+  expect(
+    snapPanelPosition({
+      baseRect,
+      containerRect,
+      position: { x: -75, y: -70 },
+    }),
+  ).toMatchObject({
+    dock: null,
+    position: { x: -75, y: -70 },
+    snappedX: false,
+    snappedY: false,
+  })
+})
+
+test('snaps panel position to peer panel edges', () => {
+  const baseRect = rect(100, 100, 100, 80)
+  const containerRect = rect(0, 0, 500, 400)
+  const peerRects = [rect(250, 200, 120, 90)]
+
+  expect(
+    snapPanelPosition({
+      baseRect,
+      containerRect,
+      peerRects,
+      position: { x: 144, y: 18 },
+    }),
+  ).toMatchObject({
+    dock: null,
+    position: { x: 150, y: 20 },
+    snappedX: true,
+    snappedY: true,
+  })
+})
+
+test('docked edge overrides saved coordinates for panel layout position', () => {
+  expect(
+    positionForPanelLayout({
+      baseRect: rect(200, 100, 100, 80),
+      containerRect: rect(0, 0, 500, 400),
+      layout: {
+        dock: { horizontal: 'right', vertical: 'top' },
+        x: 240,
+        y: 260,
+      },
+    }),
+  ).toEqual({ x: 192, y: -92 })
+})
+
+test('chooses the nearest snap candidate on each axis', () => {
+  const baseRect = rect(100, 100, 100, 80)
+  const containerRect = rect(0, 0, 500, 400)
+  const peerRects = [rect(246, 210, 120, 90), rect(252, 214, 120, 90)]
+
+  expect(
+    snapPanelPosition({
+      baseRect,
+      containerRect,
+      peerRects,
+      position: { x: 149, y: 111 },
+    }).position,
+  ).toEqual({ x: 146, y: 110 })
+})
+
+test('clamps panel position inside the container', () => {
+  expect(
+    clampPanelPosition({ x: 400, y: -200 }, rect(100, 100, 100, 80), rect(0, 0, 300, 240)),
+  ).toEqual({ x: 100, y: -100 })
 })
 
 test('stores panel-local field values', () => {
@@ -231,3 +396,52 @@ test('drag commit logs the same label order React will render when the last item
     'Camera height',
   ])
 })
+
+function rect(left: number, top: number, width: number, height: number): PanelRect {
+  return {
+    bottom: top + height,
+    height,
+    left,
+    right: left + width,
+    top,
+    width,
+  }
+}
+
+function installFakeLocalStorage() {
+  const values = new Map<string, string>()
+  const storage = {
+    clear() {
+      values.clear()
+    },
+    getItem(key: string) {
+      return values.get(key) ?? null
+    },
+    key(index: number) {
+      return Array.from(values.keys())[index] ?? null
+    },
+    get length() {
+      return values.size
+    },
+    removeItem(key: string) {
+      values.delete(key)
+    },
+    setItem(key: string, value: string) {
+      values.set(key, value)
+    },
+  }
+
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: { localStorage: storage },
+  })
+
+  return storage
+}
+
+function readPersistedPanelLayouts(storage: ReturnType<typeof installFakeLocalStorage>) {
+  const raw = storage.getItem(panelLayoutStorageKey)
+  expect(raw).toBeTruthy()
+
+  return JSON.parse(raw!).state.panelLayouts as unknown
+}

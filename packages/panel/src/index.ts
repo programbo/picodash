@@ -1,6 +1,7 @@
 import './styles.css'
 
 export { FeaturePanel } from './feature-panel.js'
+export { panelLayoutStorageKey } from './panel-persistence.js'
 export type {
   FeaturePanelItem,
   FeaturePanelItemStatus,
@@ -18,6 +19,7 @@ export {
   useTweakerStoreApi,
 } from './tweaker-provider.js'
 export type {
+  TweakerPersistedState,
   TweakerPanelRegistration,
   TweakerProviderContextValue,
   TweakerProviderProps,

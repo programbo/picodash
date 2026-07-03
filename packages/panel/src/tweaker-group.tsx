@@ -75,7 +75,7 @@ export function TweakerGroup({
   ...props
 }: TweakerGroupProps) {
   const store = useTweakerPanelStoreApi()
-  const { commitPendingOrder, listRef, parentId } = useTweakerGroupContext()
+  const { commitPendingOrder, dragConstraintsRef, parentId } = useTweakerGroupContext()
   const childListRef = useRef<HTMLDivElement | null>(null)
   const dragControls = useDragControls()
   const orderedChildren = useOrderedTweakerChildren(store, children, id)
@@ -93,7 +93,12 @@ export function TweakerGroup({
   const labelText = typeof label === 'string' ? label : id
   const active = Object.keys(interaction.activeIds).some((activeId) => activeId.endsWith(`:${id}`))
   const groupContext = useMemo<TweakerGroupContextValue>(
-    () => ({ commitPendingOrder: () => {}, listRef: childListRef, parentId: id }),
+    () => ({
+      commitPendingOrder: () => {},
+      dragConstraintsRef: childListRef,
+      listRef: childListRef,
+      parentId: id,
+    }),
     [id],
   )
 
@@ -133,7 +138,7 @@ export function TweakerGroup({
       data-placement={placement}
       data-reorderable={reorderable ? 'true' : 'false'}
       data-status={status}
-      dragConstraints={listRef}
+      dragConstraints={dragConstraintsRef}
       dragControls={dragControls}
       dragElastic={0.01}
       dragListener={false}

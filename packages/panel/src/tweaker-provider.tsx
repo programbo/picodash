@@ -9,16 +9,32 @@ import {
   type ReactNode,
 } from 'react'
 import { createStore, useStore, type StoreApi } from 'zustand'
+import { persist } from 'zustand/middleware'
+import {
+  createValidatedPanelPersistStorage,
+  emptyTweakerPersistedState,
+  panelLayoutStorageKey,
+  tweakerPersistedStateSchema,
+} from './panel-persistence.js'
+import type { PanelLayout, PanelRect } from './panel-snapping.js'
 
 export interface TweakerPanelRegistration {
   id: string
 }
 
+export interface TweakerPersistedState {
+  panelLayouts: Record<string, PanelLayout>
+}
+
 export interface TweakerState {
+  panelLayouts: Record<string, PanelLayout>
   panelOrder: string[]
+  panelRects: Record<string, PanelRect>
   panels: Record<string, TweakerPanelRegistration>
   activatePanel: (panelId: string) => void
   registerPanel: (panel: TweakerPanelRegistration) => void
+  setPanelLayout: (panelId: string, layout: PanelLayout) => void
+  setPanelRect: (panelId: string, rect: PanelRect | null) => void
   unregisterPanel: (panelId: string) => void
 }
 
@@ -37,46 +53,118 @@ const TweakerContext = createContext<TweakerProviderContextValue | null>(null)
 const panelZIndexBase = 1000
 
 export function createTweakerStore(): TweakerStore {
-  return createStore<TweakerState>()((set) => ({
-    panelOrder: [],
-    panels: {},
-    activatePanel(panelId) {
-      set((state) => {
-        if (!state.panels[panelId]) return state
+  return createStore<TweakerState>()(
+    persist(
+      (set) => ({
+        ...emptyTweakerPersistedState(),
+        panelOrder: [],
+        panelRects: {},
+        panels: {},
+        activatePanel(panelId) {
+          set((state) => {
+            if (!state.panels[panelId]) return state
 
-        const previousIndex = state.panelOrder.indexOf(panelId)
-        if (previousIndex === state.panelOrder.length - 1) return state
+            const previousIndex = state.panelOrder.indexOf(panelId)
+            if (previousIndex === state.panelOrder.length - 1) return state
 
-        return {
-          panelOrder: [...state.panelOrder.filter((id) => id !== panelId), panelId],
-        }
-      })
-    },
-    registerPanel(panel) {
-      set((state) => {
-        const panelOrder = state.panelOrder.includes(panel.id)
-          ? state.panelOrder
-          : [...state.panelOrder, panel.id]
+            return {
+              panelOrder: [...state.panelOrder.filter((id) => id !== panelId), panelId],
+            }
+          })
+        },
+        registerPanel(panel) {
+          set((state) => {
+            const panelOrder = state.panelOrder.includes(panel.id)
+              ? state.panelOrder
+              : [...state.panelOrder, panel.id]
 
-        return {
-          panelOrder,
-          panels: {
-            ...state.panels,
-            [panel.id]: panel,
-          },
-        }
-      })
-    },
-    unregisterPanel(panelId) {
-      set((state) => {
-        if (!state.panels[panelId]) return state
+            return {
+              panelOrder,
+              panels: {
+                ...state.panels,
+                [panel.id]: panel,
+              },
+            }
+          })
+        },
+        setPanelLayout(panelId, layout) {
+          set((state) => {
+            const current = state.panelLayouts[panelId]
+            if (
+              current?.dock?.horizontal === layout.dock?.horizontal &&
+              current?.dock?.vertical === layout.dock?.vertical &&
+              current?.x === layout.x &&
+              current.y === layout.y
+            ) {
+              return state
+            }
 
-        const panels = { ...state.panels }
-        delete panels[panelId]
-        return { panelOrder: state.panelOrder.filter((id) => id !== panelId), panels }
-      })
-    },
-  }))
+            return {
+              panelLayouts: {
+                ...state.panelLayouts,
+                [panelId]: layout,
+              },
+            }
+          })
+        },
+        setPanelRect(panelId, rect) {
+          set((state) => {
+            if (rect === null) {
+              if (!state.panelRects[panelId]) return state
+              const panelRects = { ...state.panelRects }
+              delete panelRects[panelId]
+              return { panelRects }
+            }
+
+            const current = state.panelRects[panelId]
+            if (
+              current?.bottom === rect.bottom &&
+              current.height === rect.height &&
+              current.left === rect.left &&
+              current.right === rect.right &&
+              current.top === rect.top &&
+              current.width === rect.width
+            ) {
+              return state
+            }
+
+            return {
+              panelRects: {
+                ...state.panelRects,
+                [panelId]: rect,
+              },
+            }
+          })
+        },
+        unregisterPanel(panelId) {
+          set((state) => {
+            if (!state.panels[panelId]) return state
+
+            const panels = { ...state.panels }
+            const panelRects = { ...state.panelRects }
+            delete panels[panelId]
+            delete panelRects[panelId]
+            return {
+              panelOrder: state.panelOrder.filter((id) => id !== panelId),
+              panelRects,
+              panels,
+            }
+          })
+        },
+      }),
+      {
+        name: panelLayoutStorageKey,
+        storage: createValidatedPanelPersistStorage(),
+        partialize: (state): TweakerPersistedState => ({
+          panelLayouts: state.panelLayouts,
+        }),
+        merge: (persistedState, currentState) => {
+          const parsed = tweakerPersistedStateSchema.safeParse(persistedState)
+          return parsed.success ? { ...currentState, ...parsed.data } : currentState
+        },
+      },
+    ),
+  )
 }
 
 export function panelZIndexForState(state: Pick<TweakerState, 'panelOrder'>, panelId: string) {

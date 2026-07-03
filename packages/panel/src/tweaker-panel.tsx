@@ -1,4 +1,10 @@
-import { motion, Reorder, useDragControls, type HTMLMotionProps } from 'motion/react'
+import {
+  motion,
+  Reorder,
+  useDragControls,
+  useMotionValue,
+  type HTMLMotionProps,
+} from 'motion/react'
 import {
   Children,
   cloneElement,
@@ -8,6 +14,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -23,6 +30,16 @@ import {
   useTweakerProviderContext,
 } from './tweaker-provider.js'
 import { cn } from './utils.js'
+import {
+  baseRectFromDisplayedRect,
+  clampPanelPosition,
+  positionForPanelLayout,
+  rectFromElement,
+  snapPanelPosition,
+  type PanelDock,
+  type PanelPosition,
+  type PanelRect,
+} from './panel-snapping.js'
 
 export type TweakerValue =
   | string
@@ -106,6 +123,7 @@ export interface TweakerPanelProps extends Omit<
 
 export interface TweakerGroupContextValue {
   commitPendingOrder: () => void
+  dragConstraintsRef: RefObject<HTMLDivElement | null>
   listRef: RefObject<HTMLDivElement | null>
   parentId: string
 }
@@ -459,10 +477,18 @@ export function TweakerPanel({
   const panelId = id ?? `tweaker-panel-${reactId.replaceAll(':', '')}`
   const { containerElement, store } = useTweakerProviderContext()
   const panelDragControls = useDragControls()
-  const dragConstraintsRef = useRef<HTMLDivElement | null>(null)
+  const panelElementRef = useRef<HTMLElement | null>(null)
   const panelStoreRef = useRef<TweakerPanelStore | null>(null)
   const bodyRef = useRef<HTMLDivElement | null>(null)
-  dragConstraintsRef.current = containerElement
+  const dragStateRef = useRef<{
+    baseRect: PanelRect
+    containerRect: PanelRect
+    dock: PanelDock | null
+    peerRects: PanelRect[]
+    startPosition: PanelPosition
+  } | null>(null)
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
 
   if (!panelStoreRef.current) {
     panelStoreRef.current = createTweakerPanelStore({ defaultValues, initialMeta, panelId })
@@ -470,12 +496,75 @@ export function TweakerPanel({
 
   const panelStore = panelStoreRef.current
   const zIndex = useStore(store, (state) => panelZIndexForState(state, panelId))
+  const savedLayout = useStore(store, (state) => state.panelLayouts[panelId])
   const rootGroupContext = useMemo<TweakerGroupContextValue>(
-    () => ({ commitPendingOrder: () => {}, listRef: bodyRef, parentId: rootGroupId }),
+    () => ({
+      commitPendingOrder: () => {},
+      dragConstraintsRef: bodyRef,
+      listRef: bodyRef,
+      parentId: rootGroupId,
+    }),
     [],
   )
   const orderedChildren = useOrderedTweakerChildren(panelStore, children, rootGroupId)
   useRegisterTweakerPanel({ id: panelId })
+
+  const updatePanelRect = useCallback(() => {
+    const panelElement = panelElementRef.current
+    if (!panelElement) return
+
+    store.getState().setPanelRect(panelId, rectFromElement(panelElement))
+  }, [panelId, store])
+
+  const syncDisplayedPositionToSavedLayout = useCallback(() => {
+    const panelElement = panelElementRef.current
+    if (!containerElement || !panelElement) return
+
+    const displayedPosition = { x: x.get(), y: y.get() }
+    const baseRect = baseRectFromDisplayedRect(rectFromElement(panelElement), displayedPosition)
+    const savedPosition = store.getState().panelLayouts[panelId]
+    const containerRect = rectFromElement(containerElement)
+    const targetPosition = positionForPanelLayout({
+      baseRect,
+      containerRect,
+      layout: savedPosition,
+    })
+    const displayPosition = clampPanelPosition(targetPosition, baseRect, containerRect)
+    if (displayPosition.x === displayedPosition.x && displayPosition.y === displayedPosition.y) {
+      updatePanelRect()
+      return
+    }
+
+    x.set(displayPosition.x)
+    y.set(displayPosition.y)
+    requestAnimationFrame(updatePanelRect)
+  }, [containerElement, panelId, store, updatePanelRect, x, y])
+
+  useEffect(() => {
+    syncDisplayedPositionToSavedLayout()
+  }, [
+    savedLayout?.dock?.horizontal,
+    savedLayout?.dock?.vertical,
+    savedLayout?.x,
+    savedLayout?.y,
+    syncDisplayedPositionToSavedLayout,
+  ])
+
+  useEffect(() => {
+    if (!containerElement) return
+
+    syncDisplayedPositionToSavedLayout()
+
+    const resizeObserver = new ResizeObserver(syncDisplayedPositionToSavedLayout)
+    resizeObserver.observe(containerElement)
+    window.addEventListener('resize', syncDisplayedPositionToSavedLayout)
+
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', syncDisplayedPositionToSavedLayout)
+      store.getState().setPanelRect(panelId, null)
+    }
+  }, [containerElement, panelId, store, syncDisplayedPositionToSavedLayout])
 
   if (!containerElement) return null
 
@@ -486,17 +575,86 @@ export function TweakerPanel({
         id={id}
         data-tweaker-panel
         data-tweaker-panel-id={panelId}
+        ref={panelElementRef}
         className={cn(
           'pointer-events-auto absolute top-8 right-8 flex min-h-0 max-h-[calc(100dvh-1rem)] w-[min(24rem,calc(100dvw-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-2xl shadow-black/30 ring-1 ring-white/5',
           className,
         )}
         drag={drag}
         dragControls={panelDragControls}
-        dragConstraints={dragConstraintsRef}
         dragElastic={dragElastic}
         dragListener={false}
         dragMomentum={dragMomentum}
-        style={{ ...style, zIndex }}
+        style={{ ...style, x, y, zIndex }}
+        onDrag={(event, info) => {
+          const dragState = dragStateRef.current
+          if (!dragState) {
+            props.onDrag?.(event, info)
+            return
+          }
+
+          const snapped = snapPanelPosition({
+            baseRect: dragState.baseRect,
+            containerRect: dragState.containerRect,
+            peerRects: dragState.peerRects,
+            position: {
+              x: dragState.startPosition.x + info.offset.x,
+              y: dragState.startPosition.y + info.offset.y,
+            },
+          })
+
+          x.set(snapped.position.x)
+          y.set(snapped.position.y)
+          dragState.dock = snapped.dock
+          panelElementRef.current?.toggleAttribute(
+            'data-tweaker-panel-snapping',
+            snapped.snappedX || snapped.snappedY,
+          )
+          updatePanelRect()
+          props.onDrag?.(event, info)
+        }}
+        onDragEnd={(event, info) => {
+          const dock = dragStateRef.current?.dock ?? null
+          dragStateRef.current = null
+          panelElementRef.current?.removeAttribute('data-tweaker-panel-snapping')
+
+          const panelElement = panelElementRef.current
+          const displayedPosition = { x: Math.round(x.get()), y: Math.round(y.get()) }
+          x.set(displayedPosition.x)
+          y.set(displayedPosition.y)
+
+          if (panelElement) {
+            const baseRect = baseRectFromDisplayedRect(
+              rectFromElement(panelElement),
+              displayedPosition,
+            )
+            store.getState().setPanelLayout(panelId, {
+              dock,
+              x: Math.round(baseRect.left + displayedPosition.x),
+              y: Math.round(baseRect.top + displayedPosition.y),
+            })
+          }
+          updatePanelRect()
+          props.onDragEnd?.(event, info)
+        }}
+        onDragStart={(event, info) => {
+          const panelElement = panelElementRef.current
+          if (panelElement) {
+            const displayedPosition = { x: x.get(), y: y.get() }
+            dragStateRef.current = {
+              baseRect: baseRectFromDisplayedRect(rectFromElement(panelElement), displayedPosition),
+              containerRect: rectFromElement(containerElement),
+              dock: null,
+              peerRects: Object.entries(store.getState().panelRects)
+                .filter(([peerPanelId]) => peerPanelId !== panelId)
+                .map(([, rect]) => rect),
+              startPosition: displayedPosition,
+            }
+          }
+
+          store.getState().activatePanel(panelId)
+          props.onDragStart?.(event, info)
+        }}
         onFocusCapture={(event) => {
           store.getState().activatePanel(panelId)
           onFocusCapture?.(event)
@@ -666,12 +824,15 @@ export function TweakerReorderList({
   const store = useTweakerPanelStoreApi()
   const fallbackRef = useRef<HTMLDivElement | null>(null)
   const listRef = ref ?? fallbackRef
+  const dragConstraintsRef = useRef<HTMLDivElement | null>(null)
   const registeredValues = useStore(
     store,
     useShallow((state) => orderedItemsForParent(state, parentId).map((entry) => entry.item.id)),
   )
   const [values, setValues] = useState(registeredValues)
+  const [layoutVersion, setLayoutVersion] = useState(0)
   const valuesRef = useRef(values)
+  const listSizeRef = useRef<{ height: number; width: number } | null>(null)
   const pendingStoreOrderRef = useRef<string[] | null>(null)
 
   useEffect(() => {
@@ -689,6 +850,35 @@ export function TweakerReorderList({
     valuesRef.current = values
   }, [values])
 
+  useLayoutEffect(() => {
+    const listElement = listRef.current
+    if (!listElement) return
+
+    const updateListSize = () => {
+      const nextSize = {
+        height: listElement.clientHeight,
+        width: listElement.clientWidth,
+      }
+      const previousSize = listSizeRef.current
+      listSizeRef.current = nextSize
+
+      if (!previousSize) return
+      if (previousSize.height === nextSize.height && previousSize.width === nextSize.width) return
+      if (store.getState().interaction.draggingId) return
+
+      setLayoutVersion((version) => version + 1)
+    }
+
+    updateListSize()
+    const resizeObserver = new ResizeObserver(updateListSize)
+    resizeObserver.observe(listElement)
+
+    return () => {
+      resizeObserver.disconnect()
+      listSizeRef.current = null
+    }
+  }, [listRef, store])
+
   const reorder = useCallback((nextVisibleOrder: string[]) => {
     const currentValues = valuesRef.current
     if (arraysEqual(currentValues, nextVisibleOrder)) return
@@ -705,8 +895,8 @@ export function TweakerReorderList({
     commitVisibleOrderToStore(store, parentId, pendingStoreOrder)
   }, [parentId, store])
   const groupContext = useMemo<TweakerGroupContextValue>(
-    () => ({ commitPendingOrder, listRef, parentId }),
-    [commitPendingOrder, listRef, parentId],
+    () => ({ commitPendingOrder, dragConstraintsRef, listRef, parentId }),
+    [commitPendingOrder, dragConstraintsRef, listRef, parentId],
   )
   const orderedChildren = useMemo(() => orderTweakerChildren(children, values), [children, values])
 
@@ -719,9 +909,11 @@ export function TweakerReorderList({
       layoutScroll
     >
       <Reorder.Group<string[], 'div'>
+        ref={dragConstraintsRef}
         as="div"
         axis="y"
         className="flex h-auto min-h-max flex-col gap-1"
+        key={layoutVersion}
         values={values}
         onReorder={reorder}
       >

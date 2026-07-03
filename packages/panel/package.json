@@ -34,6 +34,7 @@
     "lucide-react": "catalog:",
     "motion": "catalog:",
     "tailwind-merge": "catalog:",
+    "zod": "catalog:",
     "zustand": "catalog:"
   },
   "devDependencies": {
