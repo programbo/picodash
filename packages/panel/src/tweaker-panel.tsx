@@ -487,7 +487,7 @@ export function TweakerPanel({
         data-tweaker-panel
         data-tweaker-panel-id={panelId}
         className={cn(
-          'pointer-events-auto absolute top-8 right-8 flex max-h-[calc(100dvh-4rem)] w-[min(24rem,calc(100dvw-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-2xl shadow-black/30 ring-1 ring-white/5',
+          'pointer-events-auto absolute top-8 right-8 flex min-h-0 max-h-[calc(100dvh-1rem)] w-[min(24rem,calc(100dvw-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-2xl shadow-black/30 ring-1 ring-white/5',
           className,
         )}
         drag={drag}
@@ -508,7 +508,7 @@ export function TweakerPanel({
       >
         {title ? (
           <div
-            className="border-border flex cursor-grab items-center justify-between border-b px-3 py-2 select-none active:cursor-grabbing"
+            className="border-border flex shrink-0 cursor-grab items-center justify-between border-b px-3 py-2 select-none active:cursor-grabbing"
             onPointerDown={(event) => {
               if (drag) {
                 event.preventDefault()
@@ -523,7 +523,7 @@ export function TweakerPanel({
         <TweakerGroupContext.Provider value={rootGroupContext}>
           <TweakerReorderList
             ref={bodyRef}
-            className="flex min-h-0 flex-1 flex-col gap-1 overflow-auto p-2"
+            className="min-h-0 flex-1 overflow-auto p-2"
             parentId={rootGroupId}
           >
             {orderedChildren}
@@ -711,19 +711,25 @@ export function TweakerReorderList({
   const orderedChildren = useMemo(() => orderTweakerChildren(children, values), [children, values])
 
   return (
-    <Reorder.Group<string[], 'div'>
+    <motion.div
       ref={listRef}
-      as="div"
-      axis="y"
       className={className}
+      data-tweaker-reorder-list={parentId}
       hidden={hidden}
-      values={values}
-      onReorder={reorder}
+      layoutScroll
     >
-      <TweakerGroupContext.Provider value={groupContext}>
-        {orderedChildren}
-      </TweakerGroupContext.Provider>
-    </Reorder.Group>
+      <Reorder.Group<string[], 'div'>
+        as="div"
+        axis="y"
+        className="flex h-auto min-h-max flex-col gap-1"
+        values={values}
+        onReorder={reorder}
+      >
+        <TweakerGroupContext.Provider value={groupContext}>
+          {orderedChildren}
+        </TweakerGroupContext.Provider>
+      </Reorder.Group>
+    </motion.div>
   )
 }
 

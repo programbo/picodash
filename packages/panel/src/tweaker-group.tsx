@@ -75,7 +75,7 @@ export function TweakerGroup({
   ...props
 }: TweakerGroupProps) {
   const store = useTweakerPanelStoreApi()
-  const { commitPendingOrder, parentId } = useTweakerGroupContext()
+  const { commitPendingOrder, listRef, parentId } = useTweakerGroupContext()
   const childListRef = useRef<HTMLDivElement | null>(null)
   const dragControls = useDragControls()
   const orderedChildren = useOrderedTweakerChildren(store, children, id)
@@ -117,7 +117,7 @@ export function TweakerGroup({
       {...stateAttributes}
       as="section"
       className={cn(
-        'group/tweaker-section select-none rounded-md border border-border/80 bg-secondary/30 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[dragging=true]:bg-secondary/80 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[hovered=true]:bg-secondary/55 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
+        'group/tweaker-section shrink-0 select-none rounded-md border border-border/80 bg-secondary/30 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[dragging=true]:bg-secondary/80 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[hovered=true]:bg-secondary/55 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
         status && 'border-l-2',
         className,
       )}
@@ -133,9 +133,12 @@ export function TweakerGroup({
       data-placement={placement}
       data-reorderable={reorderable ? 'true' : 'false'}
       data-status={status}
+      dragConstraints={listRef}
       dragControls={dragControls}
+      dragElastic={0.01}
       dragListener={false}
       dragTransition={props.dragTransition ?? dragTransition}
+      layout="position"
       style={props.style}
       transition={props.transition ?? reorderTransition}
       value={id}
@@ -227,7 +230,7 @@ export function TweakerGroup({
       <TweakerGroupContextProvider value={groupContext}>
         <TweakerReorderList
           ref={childListRef}
-          className="flex flex-col gap-1 px-1.5 pb-1.5"
+          className="px-1.5 pb-1.5"
           hidden={collapsed}
           parentId={id}
         >
