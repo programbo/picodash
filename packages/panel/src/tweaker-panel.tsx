@@ -685,7 +685,7 @@ export function TweakerPanel({
       >
         {title ? (
           <div
-            className="border-border flex shrink-0 cursor-grab items-center gap-1 border-b px-3 py-2 select-none active:cursor-grabbing"
+            className="border-border flex shrink-0 cursor-grab items-center gap-1 border-b py-2 pr-3 pl-1 select-none active:cursor-grabbing"
             onPointerDown={(event) => {
               if (drag) {
                 event.preventDefault()

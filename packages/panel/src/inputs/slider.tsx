@@ -110,7 +110,7 @@ export function TweakerSlider({
                 </div>
               ) : null}
             </div>
-            <output className="text-foreground col-start-2 min-w-max justify-self-end text-right text-xs leading-none font-normal tabular-nums">
+            <output className="text-foreground col-start-2 ml-2 min-w-max justify-self-end text-right text-xs leading-none font-normal tabular-nums">
               {formattedValue}
             </output>
           </div>
