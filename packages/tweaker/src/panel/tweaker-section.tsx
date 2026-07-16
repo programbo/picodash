@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Button } from 'react-aria-components'
 import { useTweakerSelector } from '../react/context.js'
 import type { NormalizedControl } from '../types.js'
@@ -13,6 +13,7 @@ import {
   orderControls,
 } from './order.js'
 import { SortableControl } from './sortable-control.js'
+import { useSectionPointerReorder } from './use-section-pointer-reorder.js'
 
 interface TweakerSectionProps {
   panelId: string
@@ -163,35 +164,13 @@ export function TweakerSection({ panelId, sectionId, title, controls }: TweakerS
     [isPointerInsideList],
   )
 
-  useEffect(() => {
-    const ownerDocument = listRef.current?.ownerDocument ?? document
-
-    function handlePointerMove(event: globalThis.PointerEvent) {
-      const activeId = pointerDragIdRef.current
-      if (!activeId) return
-      moveControlToPointer(activeId, event.clientX, event.clientY)
-    }
-
-    function handlePointerUp(event: globalThis.PointerEvent) {
-      const activeId = pointerDragIdRef.current
-      if (!activeId) return
-      endPointerMove(activeId, event.clientX, event.clientY)
-    }
-
-    function handlePointerCancel() {
-      if (!pointerDragIdRef.current) return
-      cancelPointerMove()
-    }
-
-    ownerDocument.addEventListener('pointermove', handlePointerMove, true)
-    ownerDocument.addEventListener('pointerup', handlePointerUp, true)
-    ownerDocument.addEventListener('pointercancel', handlePointerCancel, true)
-    return () => {
-      ownerDocument.removeEventListener('pointermove', handlePointerMove, true)
-      ownerDocument.removeEventListener('pointerup', handlePointerUp, true)
-      ownerDocument.removeEventListener('pointercancel', handlePointerCancel, true)
-    }
-  }, [cancelPointerMove, endPointerMove, moveControlToPointer])
+  useSectionPointerReorder({
+    listRef,
+    pointerDragIdRef,
+    moveControlToPointer,
+    endPointerMove,
+    cancelPointerMove,
+  })
 
   return (
     <section

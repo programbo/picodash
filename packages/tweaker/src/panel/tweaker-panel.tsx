@@ -1,4 +1,4 @@
-import { DragDropProvider, type DragEndEvent, type DragStartEvent } from '@dnd-kit/react'
+import { DragDropProvider } from '@dnd-kit/react'
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import {
@@ -26,6 +26,8 @@ import {
 } from './position.js'
 import { TweakerSection } from './tweaker-section.js'
 import { PanelMenu } from './panel-menu.js'
+import { usePanelBodyOverflow } from './use-panel-body-overflow.js'
+import { useRowDragInteraction } from './use-row-drag-interaction.js'
 
 const emptyOrder: Record<string, string[]> = {}
 const emptySectionOrder: string[] = []
@@ -130,9 +132,6 @@ export function TweakerPanel({
     startY: number
     origin: PanelPosition
   } | null>(null)
-  const rowDragInteractionIdRef = useRef<string | null>(null)
-  const rowDragInteractionTokenRef = useRef(0)
-  const rowDragSettleTimeoutRef = useRef<number | null>(null)
   const viewportSize = useViewportSize()
   const panelWidthStyle = panelWidthToCss(width)
   const fallbackPanelWidth = panelWidthToPixels(width)
@@ -151,6 +150,7 @@ export function TweakerPanel({
       return next
     })
   }, [])
+  const { handleDragStart, handleDragEnd } = useRowDragInteraction(panelId, setInteractionActive)
 
   const position = useMemo(() => {
     if (typeof window === 'undefined') return { x: 16, y: 16 }
@@ -174,41 +174,7 @@ export function TweakerPanel({
     )
   }, [dock, fallbackPanelWidth, freePosition, resolvedPlacement, viewportSize])
 
-  useEffect(() => {
-    return () => {
-      if (rowDragSettleTimeoutRef.current !== null) {
-        window.clearTimeout(rowDragSettleTimeoutRef.current)
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    const bodyElement = bodyRef.current
-    if (!bodyElement || collapsed) return
-    const scrollContainer: HTMLDivElement = bodyElement
-
-    function updateOverflowState() {
-      const overflowing =
-        scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight > 1
-      scrollContainer.toggleAttribute('data-overflowing', overflowing)
-    }
-
-    updateOverflowState()
-    scrollContainer.addEventListener('scroll', updateOverflowState, { passive: true })
-    window.addEventListener('resize', updateOverflowState)
-
-    const resizeObserver =
-      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateOverflowState)
-    resizeObserver?.observe(scrollContainer)
-    for (const child of scrollContainer.children) resizeObserver?.observe(child)
-
-    return () => {
-      scrollContainer.removeEventListener('scroll', updateOverflowState)
-      window.removeEventListener('resize', updateOverflowState)
-      resizeObserver?.disconnect()
-      scrollContainer.removeAttribute('data-overflowing')
-    }
-  }, [collapsed, controls.length, sectionOrder, hiddenSections])
+  usePanelBodyOverflow(bodyRef, collapsed, controls.length, sectionOrder, hiddenSections)
 
   function handlePanelPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     // Never start a panel drag from a press on an interactive control inside
@@ -282,52 +248,6 @@ export function TweakerPanel({
     if (!dragRef.current) return
     dragRef.current = null
     setInteractionActive('panel-drag', false)
-  }
-
-  function clearRowDragInteraction() {
-    if (rowDragSettleTimeoutRef.current !== null) {
-      window.clearTimeout(rowDragSettleTimeoutRef.current)
-      rowDragSettleTimeoutRef.current = null
-    }
-    const interactionId = rowDragInteractionIdRef.current
-    if (!interactionId) return
-    rowDragInteractionIdRef.current = null
-    setInteractionActive(interactionId, false)
-  }
-
-  function settleRowDragInteraction() {
-    const token = rowDragInteractionTokenRef.current
-    if (rowDragSettleTimeoutRef.current !== null) {
-      window.clearTimeout(rowDragSettleTimeoutRef.current)
-    }
-    rowDragSettleTimeoutRef.current = window.setTimeout(() => {
-      if (rowDragInteractionTokenRef.current === token) {
-        clearRowDragInteraction()
-      }
-    }, 180)
-  }
-
-  function handleDragStart(event: DragStartEvent) {
-    const source = event.operation.source
-    if (!source || source.data.panelId !== panelId) return
-
-    if (rowDragSettleTimeoutRef.current !== null) {
-      window.clearTimeout(rowDragSettleTimeoutRef.current)
-      rowDragSettleTimeoutRef.current = null
-    }
-    rowDragInteractionTokenRef.current += 1
-    const interactionId = `dnd:${String(source.id)}`
-    rowDragInteractionIdRef.current = interactionId
-    setInteractionActive(interactionId, true)
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    const source = event.operation.source
-    if (!source || source.data.panelId !== panelId) {
-      clearRowDragInteraction()
-      return
-    }
-    settleRowDragInteraction()
   }
 
   const effectStyle: PanelEffectStyle = {}
