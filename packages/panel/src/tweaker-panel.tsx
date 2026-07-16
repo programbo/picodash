@@ -5,6 +5,7 @@ import {
   useMotionValue,
   type HTMLMotionProps,
 } from 'motion/react'
+import { ChevronRight } from 'lucide-react'
 import {
   Children,
   cloneElement,
@@ -29,6 +30,8 @@ import {
   useRegisterTweakerPanel,
   useTweakerProviderContext,
 } from './tweaker-provider.js'
+import { TooltipProvider } from './tooltip.js'
+import { buttonVariants } from './ui.js'
 import { cn } from './utils.js'
 import {
   baseRectFromDisplayedRect,
@@ -115,6 +118,8 @@ export interface TweakerPanelProps extends Omit<
   'children' | 'dragConstraints' | 'id' | 'title'
 > {
   children?: ReactNode
+  collapsible?: boolean
+  defaultCollapsed?: boolean
   defaultValues?: Record<string, TweakerValue>
   id?: string
   initialMeta?: Record<string, TweakerValue>
@@ -468,6 +473,8 @@ export function createTweakerPanelStore({
 export function TweakerPanel({
   children,
   className,
+  collapsible = false,
+  defaultCollapsed = false,
   defaultValues,
   drag = true,
   dragElastic = false,
@@ -484,6 +491,7 @@ export function TweakerPanel({
   const panelId = id ?? `tweaker-panel-${reactId.replaceAll(':', '')}`
   const { containerElement, store } = useTweakerProviderContext()
   const panelDragControls = useDragControls()
+  const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const panelElementRef = useRef<HTMLElement | null>(null)
   const panelStoreRef = useRef<TweakerPanelStore | null>(null)
   const bodyRef = useRef<HTMLDivElement | null>(null)
@@ -502,6 +510,8 @@ export function TweakerPanel({
   }
 
   const panelStore = panelStoreRef.current
+  const panelCollapsed = collapsible && collapsed
+  const titleText = typeof title === 'string' ? title : 'panel'
   const zIndex = useStore(store, (state) => panelZIndexForState(state, panelId))
   const savedLayout = useStore(store, (state) => state.panelLayouts[panelId])
   const rootGroupContext = useMemo<TweakerGroupContextValue>(
@@ -582,6 +592,7 @@ export function TweakerPanel({
         {...props}
         id={id}
         data-tweaker-panel
+        data-collapsed={panelCollapsed ? 'true' : 'false'}
         data-tweaker-panel-id={panelId}
         ref={panelElementRef}
         className={cn(
@@ -674,7 +685,7 @@ export function TweakerPanel({
       >
         {title ? (
           <div
-            className="border-border flex shrink-0 cursor-grab items-center justify-between border-b px-3 py-2 select-none active:cursor-grabbing"
+            className="border-border flex shrink-0 cursor-grab items-center gap-1 border-b px-3 py-2 select-none active:cursor-grabbing"
             onPointerDown={(event) => {
               if (drag) {
                 event.preventDefault()
@@ -683,18 +694,52 @@ export function TweakerPanel({
               }
             }}
           >
+            {collapsible ? (
+              <button
+                aria-expanded={!panelCollapsed}
+                aria-label={`${panelCollapsed ? 'Expand' : 'Collapse'} panel ${titleText}`}
+                className={cn(
+                  buttonVariants({ size: 'icon', variant: 'ghost' }),
+                  'size-5 shrink-0 text-muted-foreground',
+                )}
+                type="button"
+                onClick={() => setCollapsed((current) => !current)}
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                <ChevronRight
+                  className={cn(
+                    'size-3.5 transition-transform duration-150 ease-out motion-reduce:transition-none',
+                    !panelCollapsed && 'rotate-90',
+                  )}
+                  aria-hidden="true"
+                />
+              </button>
+            ) : null}
             <h2 className="text-sm font-semibold tracking-normal">{title}</h2>
           </div>
         ) : null}
-        <TweakerGroupContext.Provider value={rootGroupContext}>
-          <TweakerReorderList
-            ref={bodyRef}
-            className="min-h-0 flex-1 overflow-auto py-2"
-            parentId={rootGroupId}
-          >
-            {orderedChildren}
-          </TweakerReorderList>
-        </TweakerGroupContext.Provider>
+        <div
+          aria-hidden={panelCollapsed}
+          className={cn(
+            'grid min-h-0 flex-1 transition-[grid-template-rows] duration-150 ease-out motion-reduce:transition-none',
+            panelCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
+          )}
+          inert={panelCollapsed}
+        >
+          <div className="min-h-0 overflow-hidden">
+            <TweakerGroupContext.Provider value={rootGroupContext}>
+              <TooltipProvider>
+                <TweakerReorderList
+                  ref={bodyRef}
+                  className="h-full min-h-0 overflow-auto"
+                  parentId={rootGroupId}
+                >
+                  {orderedChildren}
+                </TweakerReorderList>
+              </TooltipProvider>
+            </TweakerGroupContext.Provider>
+          </div>
+        </div>
       </motion.aside>
     </TweakerPanelContext.Provider>
   )

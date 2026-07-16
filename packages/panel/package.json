@@ -33,6 +33,7 @@
     "clsx": "catalog:",
     "lucide-react": "catalog:",
     "motion": "catalog:",
+    "radix-ui": "catalog:",
     "tailwind-merge": "catalog:",
     "zod": "catalog:",
     "zustand": "catalog:"

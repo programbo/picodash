@@ -59,9 +59,26 @@ export function TweakerSlider({
         return (
           <div className="col-span-2 grid min-w-0 grid-cols-subgrid items-center">
             <div className="relative col-start-1 h-4 min-w-0">
+              <div
+                aria-hidden="true"
+                className="bg-input absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full"
+              >
+                {marks.map((mark, index) => {
+                  const value = markValue(mark)
+                  const position = markPosition(value, min, max)
+
+                  return (
+                    <span
+                      key={`${value}:${index}`}
+                      className={`bg-foreground absolute inset-y-0 w-px ${markTranslateClass(position)}`}
+                      style={{ left: `${position}%` }}
+                    />
+                  )
+                })}
+              </div>
               <input
                 id={control.inputId}
-                className="bg-input accent-primary [&::-moz-range-thumb]:bg-primary [&::-webkit-slider-thumb]:bg-primary absolute inset-x-0 top-1/2 h-1 w-full min-w-0 -translate-y-1/2 cursor-pointer appearance-none rounded-full disabled:cursor-not-allowed disabled:opacity-50 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full"
+                className="accent-primary [&::-moz-range-thumb]:border-primary [&::-moz-range-thumb]:bg-primary/60 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:bg-primary/60 absolute top-1/2 -left-2 z-10 h-4 w-[calc(100%+1rem)] min-w-0 -translate-y-1/2 cursor-pointer appearance-none bg-transparent outline-none disabled:cursor-not-allowed disabled:opacity-50 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:-mt-1.5 [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border"
                 disabled={control.disabled || control.readOnly}
                 max={max}
                 min={min}
@@ -71,9 +88,9 @@ export function TweakerSlider({
                 onChange={(event) => control.setValue(event.currentTarget.valueAsNumber)}
               />
               {marks.length > 0 ? (
-                <div className="text-muted-foreground pointer-events-none absolute inset-x-0 top-3 h-3 text-[10px] leading-none">
+                <div className="text-muted-foreground pointer-events-none absolute inset-x-0 top-4.5 h-3 text-[10px] leading-none">
                   {marks.map((mark, index) => {
-                    const value = typeof mark === 'number' ? mark : mark.value
+                    const value = markValue(mark)
                     const label =
                       typeof mark === 'number'
                         ? formatNumericValue(mark, { formatOptions, step })
@@ -84,9 +101,7 @@ export function TweakerSlider({
                       <span
                         key={`${value}:${index}`}
                         className={`absolute top-0 whitespace-nowrap ${markTranslateClass(position)}`}
-                        style={{
-                          left: `${position}%`,
-                        }}
+                        style={{ left: `${position}%` }}
                       >
                         {label}
                       </span>
@@ -95,7 +110,7 @@ export function TweakerSlider({
                 </div>
               ) : null}
             </div>
-            <output className="text-foreground col-start-2 min-w-max justify-self-end text-right text-xs tabular-nums">
+            <output className="text-foreground col-start-2 min-w-max justify-self-end text-right text-xs leading-none font-normal tabular-nums">
               {formattedValue}
             </output>
           </div>

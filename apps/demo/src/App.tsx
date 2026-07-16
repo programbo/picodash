@@ -192,6 +192,7 @@ function DemoExperience() {
       <TweakerPanel
         id={scenePanelId}
         title="Scene Controls"
+        collapsible
         className="top-4 right-4 lg:top-8 lg:right-8"
         defaultValues={sceneDefaults}
         initialMeta={{
@@ -300,6 +301,7 @@ function DemoExperience() {
       <TweakerPanel
         id={outputPanelId}
         title="Output Monitor"
+        collapsible
         className="top-136 right-4 lg:top-8 lg:right-108"
         defaultValues={outputDefaults}
         initialMeta={{ gpuBudget: 24, warnings: 1 }}
@@ -309,7 +311,14 @@ function DemoExperience() {
           <TweakerSelect
             field="channel"
             label="Channel"
-            help="Choose the render pass shown in the preview."
+            help={
+              <div className="grid gap-1">
+                <span className="text-foreground font-medium">Preview channel</span>
+                <span className="text-muted-foreground">
+                  Choose the render pass shown in the preview.
+                </span>
+              </div>
+            }
             options={['beauty', 'normal', 'depth', 'mask']}
           />
           <TweakerSwitch

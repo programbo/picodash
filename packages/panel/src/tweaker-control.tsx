@@ -2,6 +2,7 @@ import { GripVertical, Info, RotateCcw } from 'lucide-react'
 import { Reorder, useDragControls, type HTMLMotionProps } from 'motion/react'
 import { createContext, useCallback, useContext, useId, useMemo, type ReactNode } from 'react'
 import { Button, Label, buttonVariants } from './ui.js'
+import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip.js'
 import {
   useRegisterTweakerItem,
   useTweakerGroupContext,
@@ -301,25 +302,34 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
             </Label>
           ) : null}
           {help ? (
-            <span
-              className="text-muted-foreground inline-flex"
-              title={typeof help === 'string' ? help : undefined}
-            >
-              <Info className="size-3.5" aria-hidden="true" />
-              <span className="sr-only">{help}</span>
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  aria-label={labelText ? `Help for ${labelText}` : 'Control help'}
+                  className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-5 shrink-0 items-center justify-center rounded-sm transition-colors outline-none focus-visible:ring-2"
+                  type="button"
+                >
+                  <Info className="size-3" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{help}</TooltipContent>
+            </Tooltip>
           ) : null}
-          {field && fieldState?.dirty ? (
-            <Button
-              aria-label={labelText ? `Reset ${labelText}` : 'Reset control'}
-              className="size-5"
-              disabled={disabled || readOnly}
-              size="icon"
-              variant="ghost"
-              onClick={resetValue}
-            >
-              <RotateCcw className="size-3" aria-hidden="true" />
-            </Button>
+          {field ? (
+            fieldState?.dirty ? (
+              <Button
+                aria-label={labelText ? `Reset ${labelText}` : 'Reset control'}
+                className="size-5"
+                disabled={disabled || readOnly}
+                size="icon"
+                variant="ghost"
+                onClick={resetValue}
+              >
+                <RotateCcw className="size-3" aria-hidden="true" />
+              </Button>
+            ) : (
+              <span className="size-5 shrink-0" aria-hidden="true" />
+            )
           ) : null}
         </div>
 
@@ -335,7 +345,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         {description ? (
           <div
             id={descriptionId}
-            className="text-muted-foreground col-span-2 col-start-3 text-xs leading-5"
+            className="text-muted-foreground col-span-2 col-start-3 text-xs leading-4 font-light"
           >
             {description}
           </div>

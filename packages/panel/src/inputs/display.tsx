@@ -28,7 +28,7 @@ export function TweakerDisplay({
       {(control) => (
         <div
           className={cn(
-            'col-span-2 min-h-8 rounded-md border border-input bg-background px-2.5 py-1.5 text-sm text-foreground',
+            'col-span-2 min-h-0 px-1 py-0.5 text-xs leading-5 text-foreground',
             control.value === undefined && value === undefined && 'text-muted-foreground',
           )}
         >

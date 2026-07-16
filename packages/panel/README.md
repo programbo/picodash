@@ -25,11 +25,16 @@ import 'panel/style.css'
 export function App() {
   return (
     <TweakerProvider>
-      <TweakerPanel id="scene">Panel content</TweakerPanel>
+      <TweakerPanel id="scene" title="Scene" collapsible>
+        Panel content
+      </TweakerPanel>
     </TweakerProvider>
   )
 }
 ```
+
+Set `collapsible` to add an accessible disclosure control to the panel header. Use
+`defaultCollapsed` when an opt-in panel should start closed.
 
 `TweakerSlider` accepts `marks` for labels below the slider track:
 
