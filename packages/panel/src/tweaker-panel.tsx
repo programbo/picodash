@@ -39,6 +39,7 @@ import {
   positionForPanelLayout,
   rectFromElement,
   snapPanelPosition,
+  translationFromTransform,
   type PanelDock,
   type PanelPosition,
   type PanelRect,
@@ -539,7 +540,8 @@ export function TweakerPanel({
     if (!containerElement || !panelElement) return
 
     const displayedPosition = { x: x.get(), y: y.get() }
-    const baseRect = baseRectFromDisplayedRect(rectFromElement(panelElement), displayedPosition)
+    const appliedPosition = translationFromTransform(getComputedStyle(panelElement).transform)
+    const baseRect = baseRectFromDisplayedRect(rectFromElement(panelElement), appliedPosition)
     const savedPosition = store.getState().panelLayouts[panelId]
     const containerRect = rectFromElement(containerElement)
     const targetPosition = positionForPanelLayout({
@@ -549,7 +551,11 @@ export function TweakerPanel({
     })
     const displayPosition = clampPanelPosition(targetPosition, baseRect, containerRect)
     if (displayPosition.x === displayedPosition.x && displayPosition.y === displayedPosition.y) {
-      updatePanelRect()
+      if (appliedPosition.x === displayedPosition.x && appliedPosition.y === displayedPosition.y) {
+        updatePanelRect()
+      } else {
+        requestAnimationFrame(updatePanelRect)
+      }
       return
     }
 
@@ -570,8 +576,6 @@ export function TweakerPanel({
 
   useEffect(() => {
     if (!containerElement) return
-
-    syncDisplayedPositionToSavedLayout()
 
     const resizeObserver = new ResizeObserver(syncDisplayedPositionToSavedLayout)
     resizeObserver.observe(containerElement)

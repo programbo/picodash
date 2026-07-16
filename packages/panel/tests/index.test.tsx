@@ -11,6 +11,7 @@ import {
   clampPanelPosition,
   positionForPanelLayout,
   snapPanelPosition,
+  translationFromTransform,
   type PanelRect,
 } from '../src/panel-snapping.ts'
 import { orderIndexForItem, reorderValuesForPointer } from '../src/tweaker-panel.tsx'
@@ -220,6 +221,15 @@ test('clamps panel position inside the container', () => {
   expect(
     clampPanelPosition({ x: 400, y: -200 }, rect(100, 100, 100, 80), rect(0, 0, 300, 240)),
   ).toEqual({ x: 100, y: -100 })
+})
+
+test('reads the translation actually applied by computed transform matrices', () => {
+  expect(translationFromTransform('none')).toEqual({ x: 0, y: 0 })
+  expect(translationFromTransform('matrix(1, 0, 0, 1, 216, 168)')).toEqual({ x: 216, y: 168 })
+  expect(
+    translationFromTransform('matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -120.5, 48.25, 0, 1)'),
+  ).toEqual({ x: -120.5, y: 48.25 })
+  expect(translationFromTransform('matrix(1, 0, 0, 1, NaN, 12)')).toEqual({ x: 0, y: 0 })
 })
 
 test('stores panel-local field values', () => {

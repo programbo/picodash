@@ -66,6 +66,24 @@ export function baseRectFromDisplayedRect(
   return offsetRect(displayedRect, { x: -displayedPosition.x, y: -displayedPosition.y })
 }
 
+export function translationFromTransform(transform: string): PanelPosition {
+  if (transform === 'none') return { x: 0, y: 0 }
+
+  const matrix3d = /^matrix3d\((.+)\)$/.exec(transform)
+  if (matrix3d) {
+    const values = matrixValues(matrix3d[1])
+    if (values.length === 16) return finitePosition(values[12], values[13])
+  }
+
+  const matrix = /^matrix\((.+)\)$/.exec(transform)
+  if (matrix) {
+    const values = matrixValues(matrix[1])
+    if (values.length === 6) return finitePosition(values[4], values[5])
+  }
+
+  return { x: 0, y: 0 }
+}
+
 export function clampPanelPosition(
   position: PanelPosition,
   baseRect: PanelRect,
@@ -222,4 +240,12 @@ function clamp(value: number, min: number, max: number) {
 
 function almostEqual(left: number, right: number) {
   return Math.abs(left - right) < 0.5
+}
+
+function matrixValues(serializedValues: string) {
+  return serializedValues.split(',').map((value) => Number(value.trim()))
+}
+
+function finitePosition(x: number, y: number): PanelPosition {
+  return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : { x: 0, y: 0 }
 }
