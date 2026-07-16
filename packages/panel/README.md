@@ -31,6 +31,16 @@ export function App() {
 }
 ```
 
+`TweakerSlider` accepts `marks` for labels below the slider track:
+
+- `marks={true}` renders min and max.
+- `marks={2}` renders min, max, and two evenly distributed intermediate labels.
+- `marks={[0, 0.9, 1]}` renders explicit labels at proportional positions.
+- `marks={[{ value: 0.5, label: 'Mid' }]}` renders custom labels.
+
+`TweakerSlider` and `TweakerNumber` accept `formatOptions` with
+`Intl.NumberFormatOptions` for formatted display values such as units and percentages.
+
 ## Development
 
 ```bash

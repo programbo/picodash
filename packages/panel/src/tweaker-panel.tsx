@@ -912,7 +912,7 @@ export function TweakerReorderList({
         ref={dragConstraintsRef}
         as="div"
         axis="y"
-        className="flex h-auto min-h-max flex-col gap-1"
+        className="grid h-auto min-h-max grid-cols-[auto_minmax(4.5rem,max-content)_minmax(0,1fr)_max-content] gap-y-1"
         key={layoutVersion}
         values={values}
         onReorder={reorder}

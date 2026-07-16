@@ -36,6 +36,7 @@ export function TweakerSelect({
       {(control) => (
         <Select
           id={control.inputId}
+          className="col-span-2"
           disabled={control.disabled || control.readOnly}
           value={
             typeof control.value === 'string' ? control.value : (defaultValue ?? firstValue ?? '')

@@ -14,6 +14,7 @@ export function TweakerSwitch({ defaultValue = false, ...controlProps }: Tweaker
       {(control) => (
         <Switch
           aria-labelledby={`${control.id}:label`}
+          className="col-span-2"
           checked={typeof control.value === 'boolean' ? control.value : defaultValue}
           disabled={control.disabled || control.readOnly}
           onCheckedChange={control.setValue}

@@ -92,7 +92,7 @@ function DemoExperience() {
 
   return (
     <>
-      <div className="min-h-svh px-4 py-5 sm:px-6 lg:pr-[52rem]">
+      <div className="min-h-svh px-4 py-5 sm:px-6 lg:pr-208">
         <div className="mx-auto grid max-w-7xl gap-5">
           <header className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div className="grid gap-2">
@@ -216,7 +216,7 @@ function DemoExperience() {
               highlighted: Number(state.values.opacity ?? 0) > 0.85,
             })}
             status={(state) => (Number(state.values.opacity ?? 0) > 0.9 ? 'warning' : undefined)}
-            formatValue={(value) => `${Math.round(value * 100)}%`}
+            formatOptions={{ style: 'percent' }}
           />
           <TweakerSlider
             field="exposure"
@@ -224,7 +224,7 @@ function DemoExperience() {
             min={-2}
             max={2}
             step={0.05}
-            marks={[-2, 0, 2]}
+            marks={1}
             status={(state) =>
               Math.abs(Number(state.values.exposure ?? 0)) > 1.5 ? 'alert' : undefined
             }
@@ -246,14 +246,21 @@ function DemoExperience() {
               { label: 'Final', value: 'final' },
             ]}
           />
-          <TweakerNumber field="cameraHeight" label="Camera height" min={8} max={120} step={1} />
+          <TweakerNumber
+            field="cameraHeight"
+            label="Camera height"
+            min={8}
+            max={120}
+            step={1}
+            formatOptions={{ style: 'unit', unit: 'meter', unitDisplay: 'short' }}
+          />
           <TweakerSlider
             field="shadowSoftness"
             label="Shadow softness"
             min={0}
             max={1}
             step={0.01}
-            marks={[0, 0.5, 1]}
+            marks={1}
             formatValue={(value) => value.toFixed(2)}
           />
           <TweakerNumber field="maxBounces" label="Max bounces" min={0} max={16} step={1} />
@@ -274,6 +281,7 @@ function DemoExperience() {
             min={0.5}
             max={2}
             step={0.05}
+            marks
             visible={(state) => state.values.quality !== 'draft'}
             formatValue={(value) => `${value.toFixed(2)}x`}
           />
@@ -292,7 +300,7 @@ function DemoExperience() {
       <TweakerPanel
         id={outputPanelId}
         title="Output Monitor"
-        className="top-[34rem] right-4 lg:top-8 lg:right-[27rem]"
+        className="top-136 right-4 lg:top-8 lg:right-108"
         defaultValues={outputDefaults}
         initialMeta={{ gpuBudget: 24, warnings: 1 }}
       >

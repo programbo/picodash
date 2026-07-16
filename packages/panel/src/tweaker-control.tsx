@@ -193,8 +193,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         aria-describedby={description ? descriptionId : undefined}
         aria-labelledby={label ? labelId : undefined}
         className={cn(
-          'group/control relative flex min-h-12 shrink-0 select-none gap-2 rounded-md border border-transparent bg-transparent px-2 py-2 text-foreground outline-none transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[dragging=true]:bg-accent/90 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[hovered=true]:bg-accent/65 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
-          status && 'border-l-2',
+          'group/control relative col-span-full grid min-h-12 shrink-0 grid-cols-subgrid items-start gap-x-2 gap-y-1 select-none rounded-md border border-l-2 border-transparent bg-transparent px-2 py-2 text-foreground outline-none transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[dragging=true]:bg-accent/90 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[hovered=true]:bg-accent/65 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
           className,
         )}
         data-active={active ? 'true' : 'false'}
@@ -261,7 +260,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
           aria-label={labelText ? `Reorder ${labelText}` : 'Reorder control'}
           className={cn(
             buttonVariants({ size: 'icon', variant: 'ghost' }),
-            'mt-0.5 size-6 shrink-0 cursor-grab text-muted-foreground opacity-70 active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-30',
+            'col-start-1 size-6 shrink-0 cursor-grab self-center text-muted-foreground opacity-70 active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-30',
           )}
           type="button"
           onPointerCancel={() => {
@@ -279,55 +278,56 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
           <GripVertical className="size-3.5" aria-hidden="true" />
         </button>
 
-        <div className={cn('grid min-w-0 flex-1 gap-1.5', controlClassName)}>
-          {label || help ? (
-            <div className="flex min-w-0 items-center gap-1.5">
-              {label ? (
-                <Label
-                  className={cn(
-                    'min-w-0 truncate text-xs text-muted-foreground',
-                    disabledOrReadOnly && 'opacity-70',
-                  )}
-                  htmlFor={field ? inputId : undefined}
-                  id={labelId}
-                >
-                  {label}
-                </Label>
-              ) : null}
-              {help ? (
-                <span
-                  className="text-muted-foreground inline-flex"
-                  title={typeof help === 'string' ? help : undefined}
-                >
-                  <Info className="size-3.5" aria-hidden="true" />
-                  <span className="sr-only">{help}</span>
-                </span>
-              ) : null}
-              {field ? (
-                <Button
-                  aria-label={labelText ? `Reset ${labelText}` : 'Reset control'}
-                  className="ml-auto size-6 opacity-0 transition-opacity group-hover/control:opacity-100 group-data-[dirty=true]/control:opacity-100"
-                  disabled={disabled}
-                  size="icon"
-                  variant="ghost"
-                  onClick={resetValue}
-                >
-                  <RotateCcw className="size-3.5" aria-hidden="true" />
-                </Button>
-              ) : null}
-            </div>
+        <div className="col-start-2 flex min-w-0 items-center gap-1.5 self-center">
+          {label ? (
+            <Label
+              className={cn(
+                'min-w-0 truncate text-xs text-muted-foreground',
+                disabledOrReadOnly && 'opacity-70',
+              )}
+              htmlFor={field ? inputId : undefined}
+              id={labelId}
+            >
+              {label}
+            </Label>
           ) : null}
-
-          <div className="min-w-0">
-            {typeof children === 'function' ? children(controlContext) : children}
-          </div>
-
-          {description ? (
-            <div id={descriptionId} className="text-muted-foreground text-xs leading-5">
-              {description}
-            </div>
+          {help ? (
+            <span
+              className="text-muted-foreground inline-flex"
+              title={typeof help === 'string' ? help : undefined}
+            >
+              <Info className="size-3.5" aria-hidden="true" />
+              <span className="sr-only">{help}</span>
+            </span>
+          ) : null}
+          {field ? (
+            <Button
+              aria-label={labelText ? `Reset ${labelText}` : 'Reset control'}
+              className="size-6 opacity-0 transition-opacity group-hover/control:opacity-100 group-data-[dirty=true]/control:opacity-100"
+              disabled={disabled}
+              size="icon"
+              variant="ghost"
+              onClick={resetValue}
+            >
+              <RotateCcw className="size-3.5" aria-hidden="true" />
+            </Button>
           ) : null}
         </div>
+
+        <div
+          className={cn('col-span-2 col-start-3 grid min-w-0 grid-cols-subgrid', controlClassName)}
+        >
+          {typeof children === 'function' ? children(controlContext) : children}
+        </div>
+
+        {description ? (
+          <div
+            id={descriptionId}
+            className="text-muted-foreground col-span-2 col-start-3 text-xs leading-5"
+          >
+            {description}
+          </div>
+        ) : null}
       </Reorder.Item>
     </TweakerControlContext.Provider>
   )

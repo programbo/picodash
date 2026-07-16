@@ -76,6 +76,7 @@ export type {
   TweakerSelectOption,
   TweakerSelectProps,
   TweakerSliderMark,
+  TweakerSliderMarks,
   TweakerSliderProps,
   TweakerSwitchProps,
 } from './inputs/index.js'
