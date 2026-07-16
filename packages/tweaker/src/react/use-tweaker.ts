@@ -1,4 +1,4 @@
-import { isValidElement, useCallback, useEffect, useMemo } from 'react'
+import { isValidElement, useCallback, useMemo } from 'react'
 import { useStore } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import {
@@ -14,11 +14,11 @@ import type {
   RegisterOptions,
   SectionConfig,
   SetTweakerValue,
-  TweakerControlRegistry,
   TweakerSchema,
   TweakerValues,
 } from '../types.js'
 import { useTweakerCustomControls, useTweakerStoreApi } from './context.js'
+import { useControlRegistration, useLegacyPanelEffects } from './use-control-registration.js'
 
 function explicitControlId(config: TweakerSchema[string]) {
   return typeof config === 'object' && config !== null && typeof config.id === 'string'
@@ -131,50 +131,17 @@ export function useTweaker<T extends TweakerSchema>(
     }),
   )
 
-  useEffect(
-    () =>
-      store.getState().register(schema, {
-        panel: panelId,
-        section,
-        reorderable,
-        registry,
-      } as RegisterOptions & {
-        registry: TweakerControlRegistry
-      }),
-    [
-      store,
-      schemaSignature,
-      panelId,
-      section.id,
-      section.label,
-      section.hidden,
-      reorderable,
-      registry,
-    ],
-  )
-
-  useEffect(
-    () =>
-      store.getState().updatePanelEffects(schema, {
-        panel: panelId,
-        section,
-        opacity: options.opacity,
-        hoverOpacity: options.hoverOpacity,
-        backgroundBlur: options.backgroundBlur,
-        hoverBackgroundBlur: options.hoverBackgroundBlur,
-      }),
-    [
-      store,
-      schemaSignature,
-      panelId,
-      section.id,
-      section.label,
-      section.hidden,
-      options.opacity,
-      options.hoverOpacity,
-      options.backgroundBlur,
-      options.hoverBackgroundBlur,
-    ],
+  useControlRegistration(store, schema, schemaSignature, panelId, section, reorderable, registry)
+  useLegacyPanelEffects(
+    store,
+    schema,
+    schemaSignature,
+    panelId,
+    section,
+    options.opacity,
+    options.hoverOpacity,
+    options.backgroundBlur,
+    options.hoverBackgroundBlur,
   )
 
   const values = useMemo(() => {

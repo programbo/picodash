@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority'
-import type { ComponentProps, ReactNode } from 'react'
+import type { ComponentProps } from 'react'
 import { cn } from './utils.js'
 
 export const buttonVariants = cva(
@@ -65,36 +65,6 @@ export function Select({ className, ...props }: ComponentProps<'select'>) {
       )}
       {...props}
     />
-  )
-}
-
-export function Badge({
-  children,
-  className,
-  tone = 'default',
-}: {
-  children: ReactNode
-  className?: string
-  tone?: 'default' | 'info' | 'warning' | 'alert' | 'error'
-}) {
-  const toneClass = {
-    default: 'border-border bg-secondary text-secondary-foreground',
-    info: 'border-sky-400/30 bg-sky-400/10 text-sky-200',
-    warning: 'border-amber-400/30 bg-amber-400/10 text-amber-200',
-    alert: 'border-orange-400/30 bg-orange-400/10 text-orange-200',
-    error: 'border-red-400/30 bg-red-400/10 text-red-200',
-  }[tone]
-
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-md border px-1.5 py-0.5 text-[11px] font-medium',
-        toneClass,
-        className,
-      )}
-    >
-      {children}
-    </span>
   )
 }
 

@@ -1,25 +1,26 @@
 import { ChevronRight, GripVertical } from 'lucide-react'
-import { Reorder, useDragControls, type HTMLMotionProps } from 'motion/react'
-import { useMemo, useRef, type ReactNode } from 'react'
+import { Reorder, type HTMLMotionProps } from 'motion/react'
+import { useRef, type ReactNode } from 'react'
 import {
   dataAttributesForStates,
   useResolvedPanelProp,
   type ReactiveProp,
 } from './tweaker-control.js'
 import {
-  TweakerGroupContextProvider,
   TweakerReorderList,
   useRegisterTweakerItem,
-  useTweakerGroupContext,
-  useOrderedTweakerChildren,
   useTweakerPanelSelector,
   useTweakerPanelStoreApi,
   useTweakerReorderTransformTemplate,
   type TweakerControlStates,
-  type TweakerGroupContextValue,
   type TweakerPlacement,
   type TweakerStatus,
 } from './tweaker-panel.js'
+import {
+  reorderDragTransition,
+  reorderTransition,
+  useTweakerReorderItem,
+} from './tweaker-reorder-item.js'
 import { buttonVariants } from './ui.js'
 import { cn } from './utils.js'
 
@@ -40,19 +41,6 @@ export interface TweakerGroupProps extends Omit<
 }
 
 const emptyStates: TweakerControlStates = {}
-const reorderTransition: HTMLMotionProps<'section'>['transition'] = {
-  layout: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
-  x: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
-  y: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
-}
-const dragTransition: HTMLMotionProps<'section'>['dragTransition'] = {
-  bounceDamping: 28,
-  bounceStiffness: 700,
-  power: 0.08,
-  restDelta: 0.5,
-  restSpeed: 12,
-  timeConstant: 120,
-}
 
 export function TweakerGroup({
   children,
@@ -77,11 +65,7 @@ export function TweakerGroup({
   ...props
 }: TweakerGroupProps) {
   const store = useTweakerPanelStoreApi()
-  const { beginItemReorder, commitPendingOrder, dragConstraintsRef, parentId } =
-    useTweakerGroupContext()
   const childListRef = useRef<HTMLDivElement | null>(null)
-  const dragControls = useDragControls()
-  const orderedChildren = useOrderedTweakerChildren(store, children, id)
   const interaction = useTweakerPanelSelector((state) => state.interaction)
   const collapsed = useTweakerPanelSelector(
     (state) => state.collapsedGroups[id] ?? defaultCollapsed,
@@ -96,16 +80,8 @@ export function TweakerGroup({
   const labelText = typeof label === 'string' ? label : id
   const active = Object.keys(interaction.activeIds).some((activeId) => activeId.endsWith(`:${id}`))
   const transformTemplate = useTweakerReorderTransformTemplate(store, transformTemplateProp)
-  const groupContext = useMemo<TweakerGroupContextValue>(
-    () => ({
-      beginItemReorder: () => {},
-      commitPendingOrder: () => {},
-      dragConstraintsRef: childListRef,
-      listRef: childListRef,
-      parentId: id,
-    }),
-    [id],
-  )
+  const { beginReorder, cancelReorder, commitReorder, dragConstraintsRef, dragControls, parentId } =
+    useTweakerReorderItem(id, reorderable)
 
   useRegisterTweakerItem({
     hidden: !visible,
@@ -148,7 +124,7 @@ export function TweakerGroup({
       dragControls={dragControls}
       dragElastic={0.01}
       dragListener={false}
-      dragTransition={props.dragTransition ?? dragTransition}
+      dragTransition={props.dragTransition ?? reorderDragTransition}
       layout
       style={props.style}
       transformTemplate={transformTemplate}
@@ -156,8 +132,7 @@ export function TweakerGroup({
       value={id}
       onDrag={props.onDrag}
       onDragEnd={(event, info) => {
-        commitPendingOrder()
-        store.getState().setDraggingItem(null)
+        commitReorder()
         props.onDragEnd?.(event, info)
       }}
       onBlurCapture={(event) => {
@@ -201,18 +176,9 @@ export function TweakerGroup({
             'size-6 shrink-0 cursor-grab text-muted-foreground opacity-70 active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-30',
           )}
           type="button"
-          onPointerCancel={() => {
-            store.getState().setDraggingItem(null)
-          }}
-          onPointerDown={(event) => {
-            if (!reorderable) return
-            beginItemReorder(id, event.pageY, event.pointerId)
-            store.getState().setDraggingItem(id)
-            dragControls.start(event)
-          }}
-          onPointerUp={() => {
-            store.getState().setDraggingItem(null)
-          }}
+          onPointerCancel={cancelReorder}
+          onPointerDown={beginReorder}
+          onPointerUp={cancelReorder}
         >
           <GripVertical className="size-3.5" aria-hidden="true" />
         </button>
@@ -243,22 +209,20 @@ export function TweakerGroup({
         </button>
       </div>
 
-      <TweakerGroupContextProvider value={groupContext}>
-        <div
-          aria-hidden={collapsed}
-          className={cn(
-            'grid transition-[grid-template-rows] duration-150 ease-out motion-reduce:transition-none',
-            collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
-          )}
-          inert={collapsed}
-        >
-          <div className="min-h-0 overflow-hidden">
-            <TweakerReorderList ref={childListRef} className="-ml-0.5 pb-1" parentId={id}>
-              {orderedChildren}
-            </TweakerReorderList>
-          </div>
+      <div
+        aria-hidden={collapsed}
+        className={cn(
+          'grid transition-[grid-template-rows] duration-150 ease-out motion-reduce:transition-none',
+          collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
+        )}
+        inert={collapsed}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <TweakerReorderList ref={childListRef} className="-ml-0.5 pb-1" parentId={id}>
+            {children}
+          </TweakerReorderList>
         </div>
-      </TweakerGroupContextProvider>
+      </div>
     </Reorder.Item>
   )
 }

@@ -1,11 +1,10 @@
 import { GripVertical, Info, RotateCcw } from 'lucide-react'
-import { Reorder, useDragControls, type HTMLMotionProps } from 'motion/react'
+import { Reorder, type HTMLMotionProps } from 'motion/react'
 import { createContext, useCallback, useContext, useId, useMemo, type ReactNode } from 'react'
 import { Button, Label, buttonVariants } from './ui.js'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip.js'
 import {
   useRegisterTweakerItem,
-  useTweakerGroupContext,
   useTweakerPanelSelector,
   useTweakerPanelState,
   useTweakerPanelStoreApi,
@@ -16,6 +15,11 @@ import {
   type TweakerStatus,
   type TweakerValue,
 } from './tweaker-panel.js'
+import {
+  reorderDragTransition,
+  reorderTransition,
+  useTweakerReorderItem,
+} from './tweaker-reorder-item.js'
 import { cn, toDataValue, toKebabCase } from './utils.js'
 
 export type ReactiveProp<T> = T | ((state: TweakerPanelState) => T)
@@ -56,19 +60,6 @@ export interface TweakerControlProps<TValue extends TweakerValue = TweakerValue>
 
 const emptyStates: TweakerControlStates = {}
 const TweakerControlContext = createContext<TweakerControlContextValue | null>(null)
-const reorderTransition: HTMLMotionProps<'div'>['transition'] = {
-  layout: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
-  x: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
-  y: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
-}
-const dragTransition: HTMLMotionProps<'div'>['dragTransition'] = {
-  bounceDamping: 28,
-  bounceStiffness: 700,
-  power: 0.08,
-  restDelta: 0.5,
-  restSpeed: 12,
-  timeConstant: 120,
-}
 
 export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   children,
@@ -104,9 +95,6 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   const labelId = `${controlId}:label`
   const descriptionId = `${controlId}:description`
   const store = useTweakerPanelStoreApi()
-  const dragControls = useDragControls()
-  const { beginItemReorder, commitPendingOrder, dragConstraintsRef, parentId } =
-    useTweakerGroupContext()
   const value = useTweakerPanelSelector((state) =>
     field === undefined ? undefined : (state.values[field] as TValue | undefined),
   )
@@ -129,6 +117,8 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
     activeId.endsWith(`:${controlId}`),
   )
   const transformTemplate = useTweakerReorderTransformTemplate(store, transformTemplateProp)
+  const { beginReorder, cancelReorder, commitReorder, dragConstraintsRef, dragControls, parentId } =
+    useTweakerReorderItem(controlId, reorderable)
 
   const resetValue = useCallback(() => {
     if (field !== undefined) {
@@ -220,7 +210,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         dragControls={dragControls}
         dragElastic={0.01}
         dragListener={false}
-        dragTransition={props.dragTransition ?? dragTransition}
+        dragTransition={props.dragTransition ?? reorderDragTransition}
         layout
         style={props.style}
         transformTemplate={transformTemplate}
@@ -228,8 +218,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         value={controlId}
         onDrag={props.onDrag}
         onDragEnd={(event, info) => {
-          commitPendingOrder()
-          store.getState().setDraggingItem(null)
+          commitReorder()
           props.onDragEnd?.(event, info)
         }}
         onBlurCapture={(event) => {
@@ -272,18 +261,9 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
             'col-start-1 size-6 shrink-0 cursor-grab self-center text-muted-foreground opacity-70 active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-30',
           )}
           type="button"
-          onPointerCancel={() => {
-            store.getState().setDraggingItem(null)
-          }}
-          onPointerDown={(event) => {
-            if (!reorderable) return
-            beginItemReorder(controlId, event.pageY, event.pointerId)
-            store.getState().setDraggingItem(controlId)
-            dragControls.start(event)
-          }}
-          onPointerUp={() => {
-            store.getState().setDraggingItem(null)
-          }}
+          onPointerCancel={cancelReorder}
+          onPointerDown={beginReorder}
+          onPointerUp={cancelReorder}
         >
           <GripVertical className="size-3.5" aria-hidden="true" />
         </button>
@@ -369,10 +349,7 @@ export function useResolvedPanelProp<T>(
 ): T | undefined {
   const state = useTweakerPanelState()
   const value = prop === undefined ? fallback : prop
-  if (typeof value === 'function') {
-    return (value as (state: TweakerPanelState) => T)(state)
-  }
-  return value
+  return typeof value === 'function' ? (value as (state: TweakerPanelState) => T)(state) : value
 }
 
 export function dataAttributesForStates(states: TweakerControlStates) {
