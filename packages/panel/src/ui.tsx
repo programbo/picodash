@@ -48,7 +48,7 @@ export function Input({ className, ...props }: ComponentProps<'input'>) {
   return (
     <input
       className={cn(
-        'flex h-8 w-full rounded-md border border-input bg-background px-2.5 py-1 text-sm text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+        'flex h-8 w-full rounded-none border-0 border-b border-input bg-transparent px-2.5 py-1 text-sm text-foreground shadow-none outline-none transition-colors placeholder:text-muted-foreground focus:bg-background focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}
@@ -60,7 +60,7 @@ export function Select({ className, ...props }: ComponentProps<'select'>) {
   return (
     <select
       className={cn(
-        'h-8 w-full rounded-md border border-input bg-background px-2.5 py-1 text-sm text-foreground shadow-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+        'h-8 w-full rounded-none border-0 border-b border-input bg-transparent px-2.5 py-1 text-sm text-foreground shadow-none outline-none transition-colors focus:bg-background focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}

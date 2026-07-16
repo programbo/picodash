@@ -309,6 +309,7 @@ function DemoExperience() {
           <TweakerSelect
             field="channel"
             label="Channel"
+            help="Choose the render pass shown in the preview."
             options={['beauty', 'normal', 'depth', 'mask']}
           />
           <TweakerSwitch
@@ -322,6 +323,7 @@ function DemoExperience() {
           <TweakerNumber
             field="frameBudget"
             label="Frame budget"
+            description="Maximum render time allowed for each preview frame."
             min={8}
             max={(state) => Number(state.meta.gpuBudget ?? 24)}
             step={1}

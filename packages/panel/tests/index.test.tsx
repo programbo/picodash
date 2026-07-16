@@ -13,7 +13,7 @@ import {
   snapPanelPosition,
   type PanelRect,
 } from '../src/panel-snapping.ts'
-import { orderIndexForItem } from '../src/tweaker-panel.tsx'
+import { orderIndexForItem, reorderValuesForPointer } from '../src/tweaker-panel.tsx'
 
 test('creates feature panel elements', () => {
   const element = (
@@ -235,6 +235,24 @@ test('stores panel-local field values', () => {
   expect(store.getState().values.exposure).toBeUndefined()
 })
 
+test('preserves collapsed group state across reorder layout remounts', () => {
+  const store = createTweakerPanelStore({ panelId: 'inspect' })
+  const group = {
+    id: 'preview',
+    kind: 'group' as const,
+    parentId: 'root',
+    placement: 'auto' as const,
+    reorderable: true,
+  }
+
+  store.getState().registerItem(group)
+  store.getState().setGroupCollapsed(group.id, true)
+  store.getState().unregisterItem(group.id)
+  store.getState().registerItem(group)
+
+  expect(store.getState().collapsedGroups.preview).toBe(true)
+})
+
 test('normalizes panel item order into start, auto, and end bands', () => {
   const store = createTweakerPanelStore({ panelId: 'inspect' })
   const register = (id: string, placement: 'auto' | 'start' | 'end') => {
@@ -366,6 +384,53 @@ test('pointer reorder can reverse from past two rows back between them', () => {
 
   store.getState().moveItemRelativeTo('quality', 'render-scale', 'before')
   expect(store.getState().order.root).toEqual(['camera-height', 'quality', 'render-scale'])
+})
+
+test('pointer reorder moves an adjacent item down and back up from fixed drag geometry', () => {
+  expect(
+    reorderValuesForPointer(
+      ['channel', 'lock-preview'],
+      'channel',
+      [
+        { id: 'channel', min: 0, max: 42 },
+        { id: 'lock-preview', min: 46, max: 86 },
+      ],
+      25,
+    ),
+  ).toEqual(['lock-preview', 'channel'])
+
+  expect(
+    reorderValuesForPointer(
+      ['lock-preview', 'channel'],
+      'channel',
+      [
+        { id: 'lock-preview', min: 0, max: 40 },
+        { id: 'channel', min: 44, max: 86 },
+      ],
+      -25,
+    ),
+  ).toEqual(['channel', 'lock-preview'])
+})
+
+test('pointer reorder targets the second row without requiring a third-row crossover', () => {
+  const order = ['quality', 'camera-height', 'shadow-softness']
+  const layouts = [
+    { id: 'quality', min: 0, max: 42 },
+    { id: 'camera-height', min: 46, max: 88 },
+    { id: 'shadow-softness', min: 92, max: 132 },
+  ]
+
+  expect(reorderValuesForPointer(order, 'quality', layouts, 26)).toEqual([
+    'camera-height',
+    'quality',
+    'shadow-softness',
+  ])
+  expect(reorderValuesForPointer(order, 'quality', layouts, 71)).toEqual([
+    'camera-height',
+    'shadow-softness',
+    'quality',
+  ])
+  expect(reorderValuesForPointer(order, 'quality', layouts, 10)).toEqual(order)
 })
 
 test('drag commit logs the same label order React will render when the last item moves first', () => {

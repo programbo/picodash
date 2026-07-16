@@ -57,45 +57,47 @@ export function TweakerSlider({
         const value = typeof control.value === 'number' ? control.value : (defaultValue ?? min)
 
         return (
-          <div className="col-span-2 grid min-w-0 grid-cols-subgrid gap-y-1.5">
-            <input
-              id={control.inputId}
-              className="bg-input accent-primary [&::-moz-range-thumb]:bg-primary [&::-webkit-slider-thumb]:bg-primary col-start-1 h-2 min-w-0 cursor-pointer appearance-none self-center rounded-full disabled:cursor-not-allowed disabled:opacity-50 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full"
-              disabled={control.disabled || control.readOnly}
-              max={max}
-              min={min}
-              step={step}
-              type="range"
-              value={value}
-              onChange={(event) => control.setValue(event.currentTarget.valueAsNumber)}
-            />
+          <div className="col-span-2 grid min-w-0 grid-cols-subgrid items-center">
+            <div className="relative col-start-1 h-4 min-w-0">
+              <input
+                id={control.inputId}
+                className="bg-input accent-primary [&::-moz-range-thumb]:bg-primary [&::-webkit-slider-thumb]:bg-primary absolute inset-x-0 top-1/2 h-1 w-full min-w-0 -translate-y-1/2 cursor-pointer appearance-none rounded-full disabled:cursor-not-allowed disabled:opacity-50 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full"
+                disabled={control.disabled || control.readOnly}
+                max={max}
+                min={min}
+                step={step}
+                type="range"
+                value={value}
+                onChange={(event) => control.setValue(event.currentTarget.valueAsNumber)}
+              />
+              {marks.length > 0 ? (
+                <div className="text-muted-foreground pointer-events-none absolute inset-x-0 top-3 h-3 text-[10px] leading-none">
+                  {marks.map((mark, index) => {
+                    const value = typeof mark === 'number' ? mark : mark.value
+                    const label =
+                      typeof mark === 'number'
+                        ? formatNumericValue(mark, { formatOptions, step })
+                        : (mark.label ?? value)
+                    const position = markPosition(value, min, max)
+
+                    return (
+                      <span
+                        key={`${value}:${index}`}
+                        className={`absolute top-0 whitespace-nowrap ${markTranslateClass(position)}`}
+                        style={{
+                          left: `${position}%`,
+                        }}
+                      >
+                        {label}
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : null}
+            </div>
             <output className="text-foreground col-start-2 min-w-max justify-self-end text-right text-xs tabular-nums">
               {formattedValue}
             </output>
-            {marks.length > 0 ? (
-              <div className="text-muted-foreground relative col-start-1 h-3 text-[10px] leading-none">
-                {marks.map((mark, index) => {
-                  const value = typeof mark === 'number' ? mark : mark.value
-                  const label =
-                    typeof mark === 'number'
-                      ? formatNumericValue(mark, { formatOptions, step })
-                      : (mark.label ?? value)
-                  const position = markPosition(value, min, max)
-
-                  return (
-                    <span
-                      key={`${value}:${index}`}
-                      className={`absolute top-0 whitespace-nowrap ${markTranslateClass(position)}`}
-                      style={{
-                        left: `${position}%`,
-                      }}
-                    >
-                      {label}
-                    </span>
-                  )
-                })}
-              </div>
-            ) : null}
           </div>
         )
       }}

@@ -122,10 +122,17 @@ export interface TweakerPanelProps extends Omit<
 }
 
 export interface TweakerGroupContextValue {
+  beginItemReorder: (itemId: string, pointerY: number, pointerId: number) => void
   commitPendingOrder: () => void
   dragConstraintsRef: RefObject<HTMLDivElement | null>
   listRef: RefObject<HTMLDivElement | null>
   parentId: string
+}
+
+export interface TweakerReorderItemLayout {
+  id: string
+  max: number
+  min: number
 }
 
 const rootGroupId = 'root'
@@ -450,9 +457,9 @@ export function createTweakerPanelStore({
             .filter(([parentId]) => parentId !== itemId)
             .map(([parentId, ids]) => [parentId, ids.filter((id) => id !== itemId)]),
         )
-        const collapsedGroups = { ...state.collapsedGroups }
-        delete collapsedGroups[itemId]
-        return { collapsedGroups, items, order: normalizeAllOrders(order, items) }
+        // Reorder groups remount when list geometry changes. Keep collapse state
+        // keyed by group identity so that internal remount cannot undo a toggle.
+        return { items, order: normalizeAllOrders(order, items) }
       })
     },
   }))
@@ -499,6 +506,7 @@ export function TweakerPanel({
   const savedLayout = useStore(store, (state) => state.panelLayouts[panelId])
   const rootGroupContext = useMemo<TweakerGroupContextValue>(
     () => ({
+      beginItemReorder: () => {},
       commitPendingOrder: () => {},
       dragConstraintsRef: bodyRef,
       listRef: bodyRef,
@@ -681,7 +689,7 @@ export function TweakerPanel({
         <TweakerGroupContext.Provider value={rootGroupContext}>
           <TweakerReorderList
             ref={bodyRef}
-            className="min-h-0 flex-1 overflow-auto p-2"
+            className="min-h-0 flex-1 overflow-auto py-2"
             parentId={rootGroupId}
           >
             {orderedChildren}
@@ -722,6 +730,24 @@ export function TweakerGroupContextProvider({
 
 export function useTweakerPanelSelector<T>(selector: (state: TweakerPanelState) => T) {
   return useStore(useTweakerPanelStoreApi(), selector)
+}
+
+type TweakerTransformTemplate = NonNullable<HTMLMotionProps<'div'>['transformTemplate']>
+
+export function useTweakerReorderTransformTemplate(
+  store: TweakerPanelStore,
+  transformTemplate?: TweakerTransformTemplate,
+) {
+  return useMemo<TweakerTransformTemplate>(
+    () => (latest, generated) => {
+      const isReordering = Boolean(store.getState().interaction.draggingId)
+      if (transformTemplate) {
+        return transformTemplate(latest, isReordering ? generated : '')
+      }
+      return isReordering ? generated : 'none'
+    },
+    [store, transformTemplate],
+  )
 }
 
 export function useTweakerPanelState() {
@@ -795,6 +821,39 @@ export function orderIndexForItem(state: TweakerPanelState, itemId: string) {
   return index < 0 ? 0 : index
 }
 
+export function reorderValuesForPointer(
+  initialValues: string[],
+  itemId: string,
+  layouts: TweakerReorderItemLayout[],
+  pointerOffset: number,
+) {
+  const initialIndex = initialValues.indexOf(itemId)
+  const draggedLayout = layouts.find((layout) => layout.id === itemId)
+  if (initialIndex < 0 || !draggedLayout || pointerOffset === 0) return initialValues
+
+  let targetIndex = initialIndex
+  if (pointerOffset > 0) {
+    for (let index = initialIndex + 1; index < initialValues.length; index += 1) {
+      const layout = layouts.find((entry) => entry.id === initialValues[index])
+      if (!layout || draggedLayout.max + pointerOffset <= (layout.min + layout.max) / 2) break
+      targetIndex = index
+    }
+  } else {
+    for (let index = initialIndex - 1; index >= 0; index -= 1) {
+      const layout = layouts.find((entry) => entry.id === initialValues[index])
+      if (!layout || draggedLayout.min + pointerOffset >= (layout.min + layout.max) / 2) break
+      targetIndex = index
+    }
+  }
+
+  if (targetIndex === initialIndex) return initialValues
+
+  const nextValues = [...initialValues]
+  const [draggedValue] = nextValues.splice(initialIndex, 1)
+  nextValues.splice(targetIndex, 0, draggedValue!)
+  return nextValues
+}
+
 export function useOrderedTweakerChildren(
   store: TweakerPanelStore,
   children: ReactNode,
@@ -811,13 +870,11 @@ export function useOrderedTweakerChildren(
 export function TweakerReorderList({
   children,
   className,
-  hidden,
   parentId,
   ref,
 }: {
   children: ReactNode
   className?: string
-  hidden?: boolean
   parentId: string
   ref?: RefObject<HTMLDivElement | null>
 }) {
@@ -829,11 +886,22 @@ export function TweakerReorderList({
     store,
     useShallow((state) => orderedItemsForParent(state, parentId).map((entry) => entry.item.id)),
   )
+  const draggingId = useStore(store, (state) => state.interaction.draggingId)
   const [values, setValues] = useState(registeredValues)
   const [layoutVersion, setLayoutVersion] = useState(0)
   const valuesRef = useRef(values)
-  const listSizeRef = useRef<{ height: number; width: number } | null>(null)
+  const listWidthRef = useRef<number | null>(null)
+  const layoutWidthRef = useRef<number | null>(null)
   const pendingStoreOrderRef = useRef<string[] | null>(null)
+  const removePointerTrackingRef = useRef<(() => void) | null>(null)
+  const reorderSessionRef = useRef<{
+    initialOrder: string[]
+    itemId: string
+    layouts: TweakerReorderItemLayout[]
+    scrollContainer: HTMLElement | null
+    startPointerY: number
+    startScrollTop: number
+  } | null>(null)
 
   useEffect(() => {
     setValues((currentValues) => {
@@ -854,32 +922,44 @@ export function TweakerReorderList({
     const listElement = listRef.current
     if (!listElement) return
 
-    const updateListSize = () => {
-      const nextSize = {
-        height: listElement.clientHeight,
-        width: listElement.clientWidth,
+    const updateListWidth = () => {
+      const nextWidth = listElement.clientWidth
+      listWidthRef.current = nextWidth
+
+      if (layoutWidthRef.current === null) {
+        layoutWidthRef.current = nextWidth
+        return
       }
-      const previousSize = listSizeRef.current
-      listSizeRef.current = nextSize
-
-      if (!previousSize) return
-      if (previousSize.height === nextSize.height && previousSize.width === nextSize.width) return
       if (store.getState().interaction.draggingId) return
+      if (layoutWidthRef.current === nextWidth) return
 
+      layoutWidthRef.current = nextWidth
       setLayoutVersion((version) => version + 1)
     }
 
-    updateListSize()
-    const resizeObserver = new ResizeObserver(updateListSize)
+    updateListWidth()
+    const resizeObserver = new ResizeObserver(updateListWidth)
     resizeObserver.observe(listElement)
 
     return () => {
       resizeObserver.disconnect()
-      listSizeRef.current = null
+      listWidthRef.current = null
+      layoutWidthRef.current = null
     }
   }, [listRef, store])
 
-  const reorder = useCallback((nextVisibleOrder: string[]) => {
+  useLayoutEffect(() => {
+    if (draggingId) return
+
+    const currentWidth = listRef.current?.clientWidth ?? listWidthRef.current
+    if (currentWidth === null || layoutWidthRef.current === currentWidth) return
+
+    listWidthRef.current = currentWidth
+    layoutWidthRef.current = currentWidth
+    setLayoutVersion((version) => version + 1)
+  }, [draggingId, listRef])
+
+  const previewOrder = useCallback((nextVisibleOrder: string[]) => {
     const currentValues = valuesRef.current
     if (arraysEqual(currentValues, nextVisibleOrder)) return
 
@@ -887,16 +967,98 @@ export function TweakerReorderList({
     pendingStoreOrderRef.current = nextVisibleOrder
     setValues(nextVisibleOrder)
   }, [])
+  const previewItemReorder = useCallback(
+    (itemId: string, pointerY: number) => {
+      const session = reorderSessionRef.current
+      if (!session || session.itemId !== itemId) return
+
+      const scrollOffset = (session.scrollContainer?.scrollTop ?? 0) - session.startScrollTop
+      previewOrder(
+        reorderValuesForPointer(
+          session.initialOrder,
+          itemId,
+          session.layouts,
+          pointerY - session.startPointerY + scrollOffset,
+        ),
+      )
+    },
+    [previewOrder],
+  )
+  const stopPointerTracking = useCallback(() => {
+    removePointerTrackingRef.current?.()
+    removePointerTrackingRef.current = null
+  }, [])
+
+  useEffect(() => stopPointerTracking, [stopPointerTracking])
+
+  const beginItemReorder = useCallback(
+    (itemId: string, pointerY: number, pointerId: number) => {
+      const groupElement = dragConstraintsRef.current
+      if (!groupElement) return
+
+      stopPointerTracking()
+
+      const layouts = Array.from(groupElement.children)
+        .map((element) => {
+          if (!(element instanceof HTMLElement)) return null
+          const id = element.dataset.controlId ?? element.dataset.groupId
+          if (!id) return null
+          const rect = element.getBoundingClientRect()
+          return { id, max: rect.bottom, min: rect.top }
+        })
+        .filter((layout): layout is TweakerReorderItemLayout => layout !== null)
+      const scrollContainer =
+        listRef.current?.closest<HTMLElement>('[data-tweaker-reorder-list="root"]') ?? null
+
+      reorderSessionRef.current = {
+        initialOrder: valuesRef.current,
+        itemId,
+        layouts,
+        scrollContainer,
+        startPointerY: pointerY,
+        startScrollTop: scrollContainer?.scrollTop ?? 0,
+      }
+
+      const trackPointer = (event: PointerEvent) => {
+        if (event.pointerId === pointerId) {
+          previewItemReorder(itemId, event.pageY)
+        }
+      }
+      const stopTrackingPointer = (event: PointerEvent) => {
+        if (event.pointerId === pointerId) {
+          stopPointerTracking()
+        }
+      }
+
+      window.addEventListener('pointermove', trackPointer, true)
+      window.addEventListener('pointercancel', stopTrackingPointer, true)
+      window.addEventListener('pointerup', stopTrackingPointer, true)
+      removePointerTrackingRef.current = () => {
+        window.removeEventListener('pointermove', trackPointer, true)
+        window.removeEventListener('pointercancel', stopTrackingPointer, true)
+        window.removeEventListener('pointerup', stopTrackingPointer, true)
+      }
+    },
+    [dragConstraintsRef, listRef, previewItemReorder, stopPointerTracking],
+  )
   const commitPendingOrder = useCallback(() => {
+    stopPointerTracking()
+    reorderSessionRef.current = null
     const pendingStoreOrder = pendingStoreOrderRef.current
     if (!pendingStoreOrder) return
 
     pendingStoreOrderRef.current = null
     commitVisibleOrderToStore(store, parentId, pendingStoreOrder)
-  }, [parentId, store])
+  }, [parentId, stopPointerTracking, store])
   const groupContext = useMemo<TweakerGroupContextValue>(
-    () => ({ commitPendingOrder, dragConstraintsRef, listRef, parentId }),
-    [commitPendingOrder, dragConstraintsRef, listRef, parentId],
+    () => ({
+      beginItemReorder,
+      commitPendingOrder,
+      dragConstraintsRef,
+      listRef,
+      parentId,
+    }),
+    [beginItemReorder, commitPendingOrder, dragConstraintsRef, listRef, parentId],
   )
   const orderedChildren = useMemo(() => orderTweakerChildren(children, values), [children, values])
 
@@ -905,7 +1067,6 @@ export function TweakerReorderList({
       ref={listRef}
       className={className}
       data-tweaker-reorder-list={parentId}
-      hidden={hidden}
       layoutScroll
     >
       <Reorder.Group<string[], 'div'>
@@ -915,7 +1076,7 @@ export function TweakerReorderList({
         className="grid h-auto min-h-max grid-cols-[auto_minmax(4.5rem,max-content)_minmax(0,1fr)_max-content] gap-y-1"
         key={layoutVersion}
         values={values}
-        onReorder={reorder}
+        onReorder={() => {}}
       >
         <TweakerGroupContext.Provider value={groupContext}>
           {orderedChildren}
