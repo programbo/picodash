@@ -12,6 +12,7 @@ export type TweakerSegmentedOption =
   | string
   | {
       disabled?: boolean
+      icon?: ReactNode
       label?: ReactNode
       value: string
     }
@@ -41,7 +42,7 @@ export function TweakerSegmented({
           <ToggleGroup.Root
             id={control.inputId}
             aria-label="Options"
-            className="border-input bg-muted/35 col-span-2 inline-flex min-w-0 justify-self-end overflow-hidden rounded-md border p-0.5 shadow-sm"
+            className="border-input bg-muted/35 col-span-2 inline-flex min-w-0 justify-self-start overflow-hidden rounded-md border p-0.5 shadow-sm"
             disabled={control.disabled || control.readOnly}
             type="single"
             value={value}
@@ -54,6 +55,7 @@ export function TweakerSegmented({
             {options.map((option, index) => {
               const optionValue = segmentedOptionValue(option)
               const optionLabel = segmentedOptionLabel(option)
+              const optionIcon = segmentedOptionIcon(option)
 
               return (
                 <ToggleGroup.Item
@@ -61,13 +63,21 @@ export function TweakerSegmented({
                   id={`${control.inputId}:option-${index}`}
                   aria-label={typeof optionLabel === 'string' ? optionLabel : optionValue}
                   className={cn(
-                    'inline-flex h-6 min-w-7 items-center justify-center border-l border-input px-2 text-[11px] leading-none font-medium text-muted-foreground outline-none transition-colors first:border-l-0 hover:bg-accent hover:text-accent-foreground focus-visible:relative focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring data-[state=on]:bg-primary data-[state=on]:text-primary-foreground disabled:pointer-events-none disabled:opacity-45',
+                    'inline-flex h-6 min-w-7 items-center justify-center gap-1 border-l border-input px-2 text-[11px] leading-none font-medium text-muted-foreground outline-none transition-colors first:border-l-0 hover:bg-accent hover:text-accent-foreground focus-visible:relative focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring data-[state=on]:bg-primary data-[state=on]:text-primary-foreground disabled:pointer-events-none disabled:opacity-45',
                   )}
                   disabled={segmentedOptionDisabled(option)}
                   title={typeof optionLabel === 'string' ? optionLabel : undefined}
                   value={optionValue}
                 >
-                  {optionLabel}
+                  {optionIcon ? (
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex size-3.5 shrink-0 items-center justify-center [&>svg]:size-3.5"
+                    >
+                      {optionIcon}
+                    </span>
+                  ) : null}
+                  <span>{optionLabel}</span>
                 </ToggleGroup.Item>
               )
             })}
@@ -110,6 +120,10 @@ export function segmentedOptionValue(option: TweakerSegmentedOption) {
 
 export function segmentedOptionLabel(option: TweakerSegmentedOption) {
   return typeof option === 'string' ? option : (option.label ?? option.value)
+}
+
+export function segmentedOptionIcon(option: TweakerSegmentedOption) {
+  return typeof option === 'string' ? undefined : option.icon
 }
 
 export function segmentedOptionDisabled(option: TweakerSegmentedOption) {

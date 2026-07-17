@@ -1,5 +1,6 @@
 import { isValidElement } from 'react'
 import { expect, test } from 'vite-plus/test'
+import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
 import {
   gradientCssValue,
   isTweakerAlignmentValue,
@@ -20,9 +21,11 @@ import {
   partitionTweakerFilesByCapacity,
   projectTweakerFileMetadata,
   projectTweakerGradientPosition,
+  projectTweakerXYLabelPosition,
   projectTweakerXYPointer,
   projectTweakerXYValue,
   segmentedOptionDisabled,
+  segmentedOptionIcon,
   segmentedOptionLabel,
   segmentedOptionValue,
   TweakerAlignment,
@@ -54,15 +57,18 @@ test('exports valid elements for every custom input', () => {
 })
 
 test('normalizes segmented options to an enabled selection', () => {
+  const icon = <span data-icon="spacing" />
   const options = [
     { disabled: true, label: 'Unavailable', value: 'disabled' },
-    { label: 'Ready', value: 'ready' },
+    { icon, label: 'Ready', value: 'ready' },
   ]
 
   expect(normalizeSegmentedValue('disabled', options)).toBe('ready')
   expect(normalizeSegmentedValue('missing', options, 'disabled')).toBe('ready')
   expect(segmentedOptionValue(options[1]!)).toBe('ready')
   expect(segmentedOptionLabel(options[1]!)).toBe('Ready')
+  expect(segmentedOptionIcon(options[1]!)).toBe(icon)
+  expect(segmentedOptionIcon('plain')).toBeUndefined()
   expect(segmentedOptionDisabled(options[0]!)).toBe(true)
 })
 
@@ -103,6 +109,16 @@ test('normalizes and projects XY values', () => {
   expect(
     projectTweakerXYPointer(50, 25, { height: 100, left: 0, top: 0, width: 100 }, bounds),
   ).toEqual({ x: 0, y: 1 })
+  const labelMetrics = {
+    gap: 5,
+    labelHeight: 18,
+    labelWidth: 60,
+    padWidth: 200,
+    pointWidth: 12,
+  }
+  expect(projectTweakerXYLabelPosition(150, 60, labelMetrics)).toEqual({ x: 91, y: 37 })
+  expect(projectTweakerXYLabelPosition(10, 4, labelMetrics)).toEqual({ x: 21, y: 0 })
+  expect(projectTweakerXYLabelPosition(198, 60, labelMetrics)).toEqual({ x: 139, y: 37 })
 })
 
 test('normalizes gradient stops, colors, and pointer projection', () => {
@@ -207,4 +223,26 @@ test('normalizes malformed dropzone values and appends only within remaining cap
     acceptedFiles: ['one', 'two'],
     overflowFiles: [],
   })
+})
+
+test('restores dropzone viewer focus only to a connected thumbnail trigger', () => {
+  const focusOptions: FocusOptions[] = []
+  const connectedTrigger = {
+    focus: (options?: FocusOptions) => {
+      if (options) focusOptions.push(options)
+    },
+    isConnected: true,
+  }
+
+  expect(restoreDropzoneViewerFocus(connectedTrigger)).toBe(true)
+  expect(focusOptions).toEqual([{ preventScroll: true }])
+  expect(
+    restoreDropzoneViewerFocus({
+      focus: () => {
+        throw new Error('Disconnected triggers must not receive focus')
+      },
+      isConnected: false,
+    }),
+  ).toBe(false)
+  expect(restoreDropzoneViewerFocus(null)).toBe(false)
 })

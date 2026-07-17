@@ -1,4 +1,12 @@
-import { File, UploadCloud, X } from 'lucide-react'
+import { Expand, File, UploadCloud, X } from 'lucide-react'
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+  useReducedMotion,
+  type Transition,
+} from 'motion/react'
+import { Dialog } from 'radix-ui'
 import { useDropzone, type Accept, type FileRejection } from 'react-dropzone'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -17,6 +25,10 @@ export type TweakerDroppedFileMetadata = {
   type: string
 }
 export type TweakerDropzoneValue = TweakerDroppedFileMetadata[]
+
+type TweakerDropzonePreview = TweakerDroppedFileMetadata & {
+  url: string
+}
 
 export interface TweakerDropzoneProps extends Omit<
   TweakerControlProps<TweakerDropzoneValue>,
@@ -101,8 +113,14 @@ function DropzoneSurface({
   const value = normalizeTweakerDropzoneValue(control.value ?? fallbackValue)
   const unavailable = control.disabled || control.readOnly
   const previewUrlsRef = useRef(new Map<string, string>())
+  const viewerTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const valueRef = useRef(value)
+  valueRef.current = value
   const [previewVersion, setPreviewVersion] = useState(0)
   const [capacityRejections, setCapacityRejections] = useState<FileRejection[]>([])
+  const [viewerPreview, setViewerPreview] = useState<TweakerDropzonePreview | null>(null)
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const prefersReducedMotion = useReducedMotion()
   const atCapacity = multiple && maxFiles > 0 && value.length >= maxFiles
 
   const { fileRejections, getInputProps, getRootProps, isDragAccept, isDragActive, isDragReject } =
@@ -133,12 +151,10 @@ function DropzoneSurface({
         const nextValue = projectTweakerFileMetadata(partition.acceptedFiles, multiple ? value : [])
 
         if (showPreviews && typeof URL !== 'undefined' && URL.createObjectURL) {
-          const metadataBySignature = new Map(
-            nextValue.map((metadata) => [fileSignature(metadata), metadata]),
-          )
-          for (const file of partition.acceptedFiles) {
+          const addedMetadata = nextValue.slice(multiple ? value.length : 0)
+          for (const [index, file] of partition.acceptedFiles.entries()) {
             if (!file.type.startsWith('image/')) continue
-            const metadata = metadataBySignature.get(fileSignature(file))
+            const metadata = addedMetadata[index]
             if (!metadata || previewUrlsRef.current.has(metadata.id)) continue
             previewUrlsRef.current.set(metadata.id, URL.createObjectURL(file))
           }
@@ -153,13 +169,14 @@ function DropzoneSurface({
     const retainedIds = new Set(value.map((metadata) => metadata.id))
     let changed = false
     for (const [id, url] of previewUrlsRef.current) {
-      if (retainedIds.has(id)) continue
+      if (retainedIds.has(id) || viewerPreview?.id === id) continue
       URL.revokeObjectURL(url)
       previewUrlsRef.current.delete(id)
       changed = true
     }
+    if (viewerPreview && !retainedIds.has(viewerPreview.id)) setViewerOpen(false)
     if (changed) setPreviewVersion((version) => version + 1)
-  }, [value])
+  }, [value, viewerPreview])
 
   useEffect(() => {
     const previewUrls = previewUrlsRef.current
@@ -170,94 +187,254 @@ function DropzoneSurface({
   }, [])
 
   const rejectionMessage = rejectionSummary([...fileRejections, ...capacityRejections])
+  const viewerLayoutId = viewerPreview ? `dropzone-preview-${viewerPreview.id}` : undefined
   void previewVersion
 
   return (
-    <div className="col-span-full grid gap-1.5">
-      <div
-        {...getRootProps({
-          'aria-label': multiple
-            ? 'Choose files or drop them here'
-            : 'Choose a file or drop it here',
-          className: cn(
-            'focus-visible:ring-ring flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-input bg-muted/30 px-3 py-4 text-center text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-            isDragActive && 'border-ring bg-accent/60 text-foreground',
-            isDragAccept && 'border-emerald-500/80 bg-emerald-500/10',
-            (isDragReject || (isDragActive && atCapacity)) &&
-              'border-destructive bg-destructive/10 text-destructive',
-            unavailable && 'cursor-not-allowed opacity-50',
-            className,
-          ),
-          id: control.inputId,
-          role: 'button',
-        })}
-      >
-        <input {...getInputProps()} />
-        <UploadCloud className="size-5" aria-hidden="true" />
-        <span className="text-foreground font-medium">
-          {isDragActive ? 'Drop files here' : 'Drop files or click to browse'}
-        </span>
-        <span>
-          {multiple && maxFiles > 0
-            ? `${value.length} of ${maxFiles} files selected`
-            : multiple
-              ? 'Select one or more files'
-              : 'Select one file'}
-        </span>
-      </div>
-
-      <div className="min-h-4 text-[10px] leading-4" aria-live="polite">
-        {rejectionMessage ? <p className="text-destructive">{rejectionMessage}</p> : null}
-      </div>
-
-      {value.length > 0 ? (
-        <ul className="grid gap-1" aria-label="Selected files">
-          {value.map((metadata) => {
-            const previewUrl = previewUrlsRef.current.get(metadata.id)
-            return (
-              <li
-                key={metadata.id}
-                className="border-input bg-background/60 grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded border p-1"
-              >
-                {previewUrl ? (
-                  <img
-                    alt=""
-                    className="size-8 rounded object-cover"
-                    draggable={false}
-                    src={previewUrl}
-                  />
-                ) : (
-                  <span className="bg-muted flex size-8 items-center justify-center rounded">
-                    <File className="text-muted-foreground size-4" aria-hidden="true" />
-                  </span>
-                )}
-                <span className="min-w-0">
-                  <span className="text-foreground block truncate text-xs">{metadata.name}</span>
-                  <span className="text-muted-foreground block text-[10px]">
-                    {formatFileSize(metadata.size)}
-                  </span>
-                </span>
-                <Button
-                  aria-label={`Remove ${metadata.name}`}
-                  className="size-6"
-                  disabled={unavailable}
-                  size="icon"
-                  variant="ghost"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setCapacityRejections([])
-                    control.setValue(value.filter((candidate) => candidate.id !== metadata.id))
-                  }}
-                >
-                  <X className="size-3.5" aria-hidden="true" />
-                </Button>
-              </li>
-            )
+    <LayoutGroup id={`dropzone-${control.id}`}>
+      <div className="col-span-full grid gap-1.5">
+        <div
+          {...getRootProps({
+            'aria-label': multiple
+              ? 'Choose files or drop them here'
+              : 'Choose a file or drop it here',
+            className: cn(
+              'focus-visible:ring-ring flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-input bg-muted/30 px-3 py-4 text-center text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+              isDragActive && 'border-ring bg-accent/60 text-foreground',
+              isDragAccept && 'border-emerald-500/80 bg-emerald-500/10',
+              (isDragReject || (isDragActive && atCapacity)) &&
+                'border-destructive bg-destructive/10 text-destructive',
+              unavailable && 'cursor-not-allowed opacity-50',
+              className,
+            ),
+            id: control.inputId,
+            role: 'button',
           })}
-        </ul>
-      ) : null}
-    </div>
+        >
+          <input {...getInputProps()} />
+          <UploadCloud className="size-5" aria-hidden="true" />
+          <span className="text-foreground font-medium">
+            {isDragActive ? 'Drop files here' : 'Drop files or click to browse'}
+          </span>
+          <span>
+            {multiple && maxFiles > 0
+              ? `${value.length} of ${maxFiles} files selected`
+              : multiple
+                ? 'Select one or more files'
+                : 'Select one file'}
+          </span>
+        </div>
+
+        <div className="min-h-4 text-[10px] leading-4" aria-live="polite">
+          {rejectionMessage ? <p className="text-destructive">{rejectionMessage}</p> : null}
+        </div>
+
+        {value.length > 0 ? (
+          <ul className="grid gap-1" aria-label="Selected files">
+            {value.map((metadata) => {
+              const previewUrl = previewUrlsRef.current.get(metadata.id)
+              const layoutId = `dropzone-preview-${metadata.id}`
+              return (
+                <li
+                  key={metadata.id}
+                  className="border-input bg-background/60 grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded border p-1"
+                >
+                  {previewUrl ? (
+                    <motion.button
+                      aria-label={`View ${metadata.name}`}
+                      className="focus-visible:ring-ring group/preview relative size-8 overflow-hidden rounded outline-none focus-visible:ring-2"
+                      type="button"
+                      whileHover={prefersReducedMotion ? undefined : { scale: 1.04 }}
+                      whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
+                      onClick={(event) => {
+                        viewerTriggerRef.current = event.currentTarget
+                        setViewerPreview({ ...metadata, url: previewUrl })
+                        setViewerOpen(true)
+                      }}
+                    >
+                      <motion.img
+                        alt=""
+                        className="size-full object-cover"
+                        draggable={false}
+                        layoutId={prefersReducedMotion ? undefined : layoutId}
+                        src={previewUrl}
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition-opacity group-hover/preview:opacity-100 group-focus-visible/preview:opacity-100 motion-reduce:transition-none">
+                        <Expand className="size-3.5" aria-hidden="true" />
+                      </span>
+                    </motion.button>
+                  ) : (
+                    <span className="bg-muted flex size-8 items-center justify-center rounded">
+                      <File className="text-muted-foreground size-4" aria-hidden="true" />
+                    </span>
+                  )}
+                  <span className="min-w-0">
+                    <span className="text-foreground block truncate text-xs">{metadata.name}</span>
+                    <span className="text-muted-foreground block text-[10px]">
+                      {formatFileSize(metadata.size)}
+                    </span>
+                  </span>
+                  <Button
+                    aria-label={`Remove ${metadata.name}`}
+                    className="size-6"
+                    disabled={unavailable}
+                    size="icon"
+                    variant="ghost"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setCapacityRejections([])
+                      control.setValue(value.filter((candidate) => candidate.id !== metadata.id))
+                    }}
+                  >
+                    <X className="size-3.5" aria-hidden="true" />
+                  </Button>
+                </li>
+              )
+            })}
+          </ul>
+        ) : null}
+      </div>
+
+      <DropzoneImageViewer
+        layoutId={viewerLayoutId}
+        open={viewerOpen}
+        preview={viewerPreview}
+        onExitComplete={() => {
+          const preview = viewerPreview
+          if (preview && !valueRef.current.some((metadata) => metadata.id === preview.id)) {
+            URL.revokeObjectURL(preview.url)
+            previewUrlsRef.current.delete(preview.id)
+            setPreviewVersion((version) => version + 1)
+          }
+          setViewerPreview(null)
+        }}
+        onOpenChange={setViewerOpen}
+        onRestoreFocus={() => {
+          restoreDropzoneViewerFocus(viewerTriggerRef.current)
+        }}
+      />
+    </LayoutGroup>
   )
+}
+
+function DropzoneImageViewer({
+  layoutId,
+  onExitComplete,
+  onOpenChange,
+  onRestoreFocus,
+  open,
+  preview,
+}: {
+  layoutId: string | undefined
+  onExitComplete: () => void
+  onOpenChange: (open: boolean) => void
+  onRestoreFocus: () => void
+  open: boolean
+  preview: TweakerDropzonePreview | null
+}) {
+  const prefersReducedMotion = useReducedMotion()
+  const present = open && preview
+  const enterTransition: Transition = prefersReducedMotion
+    ? { duration: 0 }
+    : { bounce: 0.12, duration: 0.42, type: 'spring' }
+  const fadeTransition: Transition = {
+    duration: prefersReducedMotion ? 0 : 0.2,
+    ease: [0.16, 1, 0.3, 1],
+  }
+
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        onOpenChange(nextOpen)
+      }}
+    >
+      <Dialog.Portal forceMount>
+        <AnimatePresence initial={false} onExitComplete={onExitComplete}>
+          {present ? (
+            <motion.div
+              key="dropzone-image-viewer"
+              className="pointer-events-none fixed inset-0 z-[2147483647]"
+            >
+              <Dialog.Overlay forceMount asChild>
+                <motion.div
+                  className="pointer-events-auto absolute inset-0 bg-black/85 backdrop-blur-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={fadeTransition}
+                />
+              </Dialog.Overlay>
+              <Dialog.Content
+                forceMount
+                asChild
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault()
+                  onRestoreFocus()
+                }}
+              >
+                <motion.figure
+                  className="pointer-events-auto fixed top-1/2 left-1/2 m-0 grid w-[min(92vw,80rem)] max-w-none gap-0 overflow-hidden rounded-xl border border-white/15 bg-black/75 text-white shadow-2xl shadow-black/70 outline-none"
+                  initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.94 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={
+                    prefersReducedMotion
+                      ? { opacity: 0 }
+                      : {
+                          opacity: 0,
+                          scale: 0.97,
+                          transition: { duration: 0.16, ease: [0.4, 0, 1, 1] },
+                        }
+                  }
+                  style={{ x: '-50%', y: '-50%' }}
+                  transition={enterTransition}
+                >
+                  <div className="relative flex max-h-[82vh] min-h-48 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.12),transparent_65%)] p-3 sm:p-5">
+                    <motion.img
+                      alt={preview.name}
+                      className="max-h-[74vh] max-w-full rounded-md object-contain shadow-2xl shadow-black/60"
+                      draggable={false}
+                      layoutId={prefersReducedMotion ? undefined : layoutId}
+                      src={preview.url}
+                      transition={enterTransition}
+                    />
+                  </div>
+                  <figcaption className="flex min-w-0 items-center justify-between gap-3 border-t border-white/10 bg-black/70 px-4 py-2.5">
+                    <span className="min-w-0">
+                      <Dialog.Title className="block truncate text-sm font-medium text-white">
+                        {preview.name}
+                      </Dialog.Title>
+                      <Dialog.Description className="text-[11px] text-white/55">
+                        {formatFileSize(preview.size)}
+                      </Dialog.Description>
+                    </span>
+                    <Dialog.Close asChild>
+                      <Button
+                        aria-label="Close image viewer"
+                        className="size-8 shrink-0 text-white/70 hover:bg-white/10 hover:text-white"
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <X className="size-4" aria-hidden="true" />
+                      </Button>
+                    </Dialog.Close>
+                  </figcaption>
+                </motion.figure>
+              </Dialog.Content>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
+
+export function restoreDropzoneViewerFocus(
+  trigger: Pick<HTMLButtonElement, 'focus' | 'isConnected'> | null,
+) {
+  if (!trigger?.isConnected) return false
+  trigger.focus({ preventScroll: true })
+  return true
 }
 
 export function projectTweakerFileMetadata(
@@ -344,10 +521,6 @@ function capacityErrorMessage(maxFiles: number) {
 
 function fileId(file: Pick<File, 'lastModified' | 'name' | 'size'>) {
   return cleanId(`${file.name}-${file.size}-${file.lastModified}`) || 'file'
-}
-
-function fileSignature(file: Pick<File, 'lastModified' | 'name' | 'size' | 'type'>) {
-  return `${file.name}\u0000${file.size}\u0000${file.lastModified}\u0000${file.type}`
 }
 
 function cleanId(value: string | undefined) {

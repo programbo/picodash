@@ -45,6 +45,7 @@ export type { TweakerSelectOption, TweakerSelectProps } from './select.js'
 export {
   normalizeSegmentedValue,
   segmentedOptionDisabled,
+  segmentedOptionIcon,
   segmentedOptionLabel,
   segmentedOptionValue,
   TweakerSegmented,
@@ -65,7 +66,13 @@ export {
   normalizeTweakerXYBounds,
   normalizeTweakerXYValue,
   projectTweakerXYPointer,
+  projectTweakerXYLabelPosition,
   projectTweakerXYValue,
   TweakerXYPad,
 } from './xy-pad.js'
-export type { TweakerXYBounds, TweakerXYPadProps, TweakerXYValue } from './xy-pad.js'
+export type {
+  TweakerXYBounds,
+  TweakerXYLabelMetrics,
+  TweakerXYPadProps,
+  TweakerXYValue,
+} from './xy-pad.js'

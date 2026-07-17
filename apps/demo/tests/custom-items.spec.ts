@@ -9,6 +9,7 @@ test('updates common, spatial, and gradient values through accessible controls',
   page,
 }) => {
   const density = page.locator('[data-control-id="density"]')
+  await expect(density.getByRole('radiogroup').locator('svg')).toHaveCount(3)
   await density.getByRole('radio', { name: 'Open' }).click()
   await expect(density.getByRole('radio', { name: 'Open' })).toHaveAttribute('data-state', 'on')
 
@@ -86,35 +87,67 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
   await expect(dropzone.getByText('overflow.png')).toHaveCount(0)
   await expect(dropzone.getByRole('listitem')).toHaveCount(3)
   await expect(dropzone.getByText('Only 3 files can be selected')).toBeVisible()
+  await dropzone.getByRole('button', { name: 'View sample.png' }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.getByRole('img', { name: 'sample.png' })).toBeVisible()
+  await page.getByRole('button', { name: 'Close image viewer' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
 
   const chart = page.locator('[data-control-id="shadcn-frame-chart"]')
   await expect(chart.locator('svg.recharts-surface')).toBeVisible()
   await expect(chart.locator('.recharts-line-curve')).toHaveCount(2)
+  const yAxisTicks = chart.locator(
+    '.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value',
+  )
+  await expect(yAxisTicks).toHaveText(['0', '5', '10', '15', '20'])
+  const chartBox = await chart.locator('svg.recharts-surface').boundingBox()
+  expect(chartBox).not.toBeNull()
+  if (chartBox) {
+    const tickBoxes = await yAxisTicks.evaluateAll((ticks) =>
+      ticks.map((tick) => {
+        const box = tick.getBoundingClientRect()
+        return { left: box.left, right: box.right }
+      }),
+    )
+    for (const tickBox of tickBoxes) {
+      expect(tickBox.left).toBeGreaterThanOrEqual(chartBox.x)
+      expect(tickBox.right).toBeLessThanOrEqual(chartBox.x + chartBox.width)
+    }
+  }
 })
 
 test('animates transient visual paths and switches deterministic signal mode', async ({ page }) => {
   const velocity = page.locator('[data-control-id="mouse-velocity"]')
-  const surface = velocity.getByRole('region', { name: 'Pointer velocity sampling surface' })
-  const description = velocity.getByText('Move across the plot.', { exact: false })
+  const display = velocity.locator('[data-pointer-velocity-display]')
+  const description = velocity.getByText('Move anywhere in the full viewport.', { exact: false })
   const velocityXPath = velocity.locator('path.stroke-chart-1')
   const velocityYPath = velocity.locator('path.stroke-chart-3')
-  await surface.scrollIntoViewIfNeeded()
-  await expect(surface).toBeVisible()
-  const surfaceBox = await surface.boundingBox()
+  await display.scrollIntoViewIfNeeded()
+  await expect(display).toBeVisible()
+  await expect(display).toHaveCSS('pointer-events', 'none')
+  const displayBox = await display.boundingBox()
   const descriptionBox = await description.boundingBox()
-  expect(surfaceBox).not.toBeNull()
+  expect(displayBox).not.toBeNull()
   expect(descriptionBox).not.toBeNull()
-  if (surfaceBox && descriptionBox) {
-    expect(descriptionBox.y).toBeGreaterThanOrEqual(surfaceBox.y + surfaceBox.height)
+  if (displayBox && descriptionBox) {
+    expect(descriptionBox.y).toBeGreaterThanOrEqual(displayBox.y + displayBox.height)
   }
   const initialVelocityXPath = await velocityXPath.getAttribute('d')
   const initialVelocityYPath = await velocityYPath.getAttribute('d')
-  const box = await surface.boundingBox()
-  expect(box).not.toBeNull()
-  if (!box) return
+  const headingBox = await page.getByRole('heading', { name: 'Tweaker State Lab' }).boundingBox()
+  expect(headingBox).not.toBeNull()
+  if (!headingBox) return
 
-  await page.mouse.move(box.x + 8, box.y + 8)
-  await page.mouse.move(box.x + box.width - 8, box.y + box.height - 8, { steps: 8 })
+  // The listener targets the full viewport, so motion over unrelated page content
+  // updates the display without the chart needing to capture pointer events.
+  await page.mouse.move(headingBox.x + 4, headingBox.y + 4)
+  await page.mouse.move(
+    headingBox.x + headingBox.width - 4,
+    headingBox.y + headingBox.height + 80,
+    {
+      steps: 8,
+    },
+  )
   await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(initialVelocityXPath)
   await expect.poll(() => velocityYPath.getAttribute('d')).not.toBe(initialVelocityYPath)
 

@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useReducedMotion, useSpring } from 'motion/react'
+import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react'
 import { useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import {
   TweakerControl,
@@ -17,6 +17,14 @@ export interface TweakerXYBounds {
   xMin: number
   yMax: number
   yMin: number
+}
+
+export interface TweakerXYLabelMetrics {
+  gap: number
+  labelHeight: number
+  labelWidth: number
+  padWidth: number
+  pointWidth: number
 }
 
 export interface TweakerXYPadProps extends Omit<
@@ -101,7 +109,9 @@ function XYPadSurface({
 }) {
   const padRef = useRef<HTMLDivElement | null>(null)
   const thumbRef = useRef<HTMLSpanElement | null>(null)
+  const coordinateRef = useRef<HTMLOutputElement | null>(null)
   const activePointerRef = useRef<number | null>(null)
+  const pointerRectRef = useRef<Pick<DOMRect, 'height' | 'left' | 'top' | 'width'> | null>(null)
   const travelRef = useRef({ x: 0, y: 0 })
   const prefersReducedMotion = useReducedMotion()
   const value = normalizeTweakerXYValue(control.value ?? fallbackValue, bounds)
@@ -110,10 +120,34 @@ function XYPadSurface({
   projectedRef.current = projected
   const cursorX = useMotionValue(0)
   const cursorY = useMotionValue(0)
+  const coordinateWidth = useMotionValue(0)
+  const coordinateHeight = useMotionValue(0)
+  const padWidth = useMotionValue(0)
+  const pointWidth = useMotionValue(0)
   const springX = useSpring(cursorX, { damping: 28, mass: 0.35, stiffness: 380 })
   const springY = useSpring(cursorY, { damping: 28, mass: 0.35, stiffness: 380 })
   const visualX = prefersReducedMotion ? cursorX : springX
   const visualY = prefersReducedMotion ? cursorY : springY
+  const coordinateX = useTransform(
+    () =>
+      projectTweakerXYLabelPosition(visualX.get(), visualY.get(), {
+        gap: 5,
+        labelHeight: coordinateHeight.get(),
+        labelWidth: coordinateWidth.get(),
+        padWidth: padWidth.get(),
+        pointWidth: pointWidth.get(),
+      }).x,
+  )
+  const coordinateY = useTransform(
+    () =>
+      projectTweakerXYLabelPosition(visualX.get(), visualY.get(), {
+        gap: 5,
+        labelHeight: coordinateHeight.get(),
+        labelWidth: coordinateWidth.get(),
+        padWidth: padWidth.get(),
+        pointWidth: pointWidth.get(),
+      }).y,
+  )
   const unavailable = control.disabled || control.readOnly
   const padId = `${control.inputId}:pad`
   const instructionsId = `${control.inputId}:instructions`
@@ -122,7 +156,12 @@ function XYPadSurface({
     const measure = () => {
       const pad = padRef.current
       const thumb = thumbRef.current
-      if (!pad || !thumb) return
+      const coordinate = coordinateRef.current
+      if (!pad || !thumb || !coordinate) return
+      padWidth.set(pad.clientWidth)
+      pointWidth.set(thumb.offsetWidth)
+      coordinateWidth.set(coordinate.offsetWidth)
+      coordinateHeight.set(coordinate.offsetHeight)
       travelRef.current = {
         x: Math.max(0, pad.clientWidth - thumb.offsetWidth),
         y: Math.max(0, pad.clientHeight - thumb.offsetHeight),
@@ -136,8 +175,9 @@ function XYPadSurface({
     const observer = new ResizeObserver(measure)
     if (padRef.current) observer.observe(padRef.current)
     if (thumbRef.current) observer.observe(thumbRef.current)
+    if (coordinateRef.current) observer.observe(coordinateRef.current)
     return () => observer.disconnect()
-  }, [cursorX, cursorY])
+  }, [coordinateHeight, coordinateWidth, cursorX, cursorY, padWidth, pointWidth])
 
   useEffect(() => {
     cursorX.set(projected.x * travelRef.current.x)
@@ -146,7 +186,7 @@ function XYPadSurface({
 
   const updateFromPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (unavailable || activePointerRef.current !== event.pointerId) return
-    const rect = padRef.current?.getBoundingClientRect()
+    const rect = pointerRectRef.current
     if (!rect) return
 
     const nextValue = projectTweakerXYPointer(event.clientX, event.clientY, rect, bounds)
@@ -173,11 +213,15 @@ function XYPadSurface({
           id={padId}
           role="group"
           onPointerCancel={(event) => {
-            if (activePointerRef.current === event.pointerId) activePointerRef.current = null
+            if (activePointerRef.current === event.pointerId) {
+              activePointerRef.current = null
+              pointerRectRef.current = null
+            }
           }}
           onPointerDown={(event) => {
             if (unavailable || event.button !== 0) return
             activePointerRef.current = event.pointerId
+            pointerRectRef.current = event.currentTarget.getBoundingClientRect()
             event.currentTarget.setPointerCapture(event.pointerId)
             updateFromPointer(event)
           }}
@@ -186,6 +230,7 @@ function XYPadSurface({
             if (activePointerRef.current !== event.pointerId) return
             updateFromPointer(event)
             activePointerRef.current = null
+            pointerRectRef.current = null
             if (event.currentTarget.hasPointerCapture(event.pointerId)) {
               event.currentTarget.releasePointerCapture(event.pointerId)
             }
@@ -197,6 +242,14 @@ function XYPadSurface({
             className="border-primary-foreground bg-primary pointer-events-none absolute top-0 left-0 size-3 rounded-full border-2 shadow-sm"
             style={{ x: visualX, y: visualY, willChange: 'transform' }}
           />
+          <motion.output
+            ref={coordinateRef}
+            aria-hidden="true"
+            className="bg-foreground/90 text-background pointer-events-none absolute top-0 left-0 z-10 rounded px-1.5 py-1 text-[9px] leading-none font-medium whitespace-nowrap tabular-nums shadow-lg shadow-black/20"
+            style={{ x: coordinateX, y: coordinateY, willChange: 'transform' }}
+          >
+            X {formatXYValue(value.x, bounds.step)} · Y {formatXYValue(value.y, bounds.step)}
+          </motion.output>
         </div>
         <input
           aria-controls={padId}
@@ -235,13 +288,6 @@ function XYPadSurface({
           }}
         />
       </div>
-      <output
-        aria-live="polite"
-        className="text-muted-foreground flex justify-between text-[10px] leading-none tabular-nums"
-      >
-        <span>X {formatXYValue(value.x, bounds.step)}</span>
-        <span>Y {formatXYValue(value.y, bounds.step)}</span>
-      </output>
       <p id={instructionsId} className="text-muted-foreground text-[10px] leading-4">
         Drag the pad, or focus the X or Y slider and use arrow keys.
       </p>
@@ -281,6 +327,21 @@ export function projectTweakerXYValue(value: TweakerXYValue, bounds: TweakerXYBo
   return {
     x: rangeProgress(value.x, bounds.xMin, bounds.xMax),
     y: 1 - rangeProgress(value.y, bounds.yMin, bounds.yMax),
+  }
+}
+
+export function projectTweakerXYLabelPosition(
+  pointX: number,
+  pointY: number,
+  metrics: TweakerXYLabelMetrics,
+) {
+  const maxX = Math.max(0, metrics.padWidth - metrics.labelWidth)
+  const anchorX = pointX + metrics.pointWidth / 2
+  const left = anchorX - metrics.labelWidth - metrics.gap
+  const right = anchorX + metrics.gap
+  return {
+    x: clamp(left >= 0 ? left : right, 0, maxX),
+    y: Math.max(0, pointY - metrics.labelHeight - metrics.gap),
   }
 }
 

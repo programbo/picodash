@@ -1,5 +1,5 @@
 import { motion, useMotionValue, useMotionValueEvent, useReducedMotion } from 'motion/react'
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 import { TweakerControl } from 'panel'
 
 const sampleCount = 56
@@ -8,7 +8,21 @@ const viewBoxHeight = 88
 const baseline = viewBoxHeight / 2
 const velocityCeiling = 1400
 
-export function MouseVelocitySparklineItem() {
+export type PointerVelocityTarget =
+  | EventTarget
+  | null
+  | RefObject<EventTarget | null>
+  | (() => EventTarget | null)
+
+export interface MouseVelocitySparklineItemProps {
+  target?: PointerVelocityTarget
+  targetLabel?: string
+}
+
+export function MouseVelocitySparklineItem({
+  target = viewportPointerTarget,
+  targetLabel = 'the full viewport',
+}: MouseVelocitySparklineItemProps) {
   const velocityX = useMotionValue(0)
   const velocityY = useMotionValue(0)
   const pathX = useMotionValue(emptySparklinePath())
@@ -26,6 +40,51 @@ export function MouseVelocitySparklineItem() {
   useMotionValueEvent(velocityY, 'change', (latest) => {
     velocityYRef.current = latest
   })
+
+  useEffect(() => {
+    const eventTarget = resolvePointerVelocityTarget(target)
+    if (!eventTarget) return
+
+    const resetPointer = () => {
+      previousPointerRef.current = null
+      velocityX.set(0)
+      velocityY.set(0)
+    }
+    const updatePointer = (event: Event) => {
+      if (!isPointerPositionEvent(event)) return
+      const now = performance.now()
+      const previous = previousPointerRef.current
+      if (previous) {
+        const elapsedSeconds = Math.max(1, now - previous.time) / 1000
+        velocityX.set((event.clientX - previous.x) / elapsedSeconds)
+        velocityY.set((event.clientY - previous.y) / elapsedSeconds)
+      }
+      previousPointerRef.current = { time: now, x: event.clientX, y: event.clientY }
+    }
+    const resetWhenLeavingViewport = (event: Event) => {
+      if (!('relatedTarget' in event) || event.relatedTarget === null) resetPointer()
+    }
+    const resetWhenHidden = () => {
+      if (document.visibilityState !== 'visible') resetPointer()
+    }
+
+    eventTarget.addEventListener('pointermove', updatePointer, { passive: true })
+    eventTarget.addEventListener('pointercancel', resetPointer)
+    eventTarget.addEventListener('pointerleave', resetPointer)
+    eventTarget.addEventListener('pointerout', resetWhenLeavingViewport)
+    window.addEventListener('blur', resetPointer)
+    document.addEventListener('visibilitychange', resetWhenHidden)
+
+    return () => {
+      eventTarget.removeEventListener('pointermove', updatePointer)
+      eventTarget.removeEventListener('pointercancel', resetPointer)
+      eventTarget.removeEventListener('pointerleave', resetPointer)
+      eventTarget.removeEventListener('pointerout', resetWhenLeavingViewport)
+      window.removeEventListener('blur', resetPointer)
+      document.removeEventListener('visibilitychange', resetWhenHidden)
+      resetPointer()
+    }
+  }, [target, velocityX, velocityY])
 
   useEffect(() => {
     let frameId = 0
@@ -49,36 +108,18 @@ export function MouseVelocitySparklineItem() {
     return () => cancelAnimationFrame(frameId)
   }, [pathX, pathY, prefersReducedMotion])
 
-  const updatePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const now = performance.now()
-    const previous = previousPointerRef.current
-    if (previous) {
-      const elapsedSeconds = Math.max(1, now - previous.time) / 1000
-      velocityX.set((event.clientX - previous.x) / elapsedSeconds)
-      velocityY.set((event.clientY - previous.y) / elapsedSeconds)
-    }
-    previousPointerRef.current = { time: now, x: event.clientX, y: event.clientY }
-  }
-
   return (
     <TweakerControl
       id="mouse-velocity"
       contentLayout="block"
-      description="Move across the plot. MotionValues sample velocity without updating React or the panel store."
+      description={`Move anywhere in ${targetLabel}. MotionValues sample velocity without updating React or the panel store.`}
       label="Pointer velocity"
       reorderable={false}
     >
       <div className="col-span-full grid gap-1.5">
         <div
-          aria-label="Pointer velocity sampling surface"
-          className="bg-muted/25 focus-visible:ring-ring border-input relative h-24 touch-none overflow-hidden rounded-md border outline-none focus-visible:ring-2"
-          role="region"
-          tabIndex={0}
-          onPointerEnter={updatePointer}
-          onPointerLeave={() => {
-            previousPointerRef.current = null
-          }}
-          onPointerMove={updatePointer}
+          className="bg-muted/25 border-input pointer-events-none relative h-24 overflow-hidden rounded-md border"
+          data-pointer-velocity-display
         >
           <svg
             aria-label="Recent horizontal and vertical pointer velocity"
@@ -122,6 +163,27 @@ export function MouseVelocitySparklineItem() {
         </div>
       </div>
     </TweakerControl>
+  )
+}
+
+export function viewportPointerTarget() {
+  return typeof document === 'undefined' ? null : document.documentElement
+}
+
+function resolvePointerVelocityTarget(target: PointerVelocityTarget) {
+  if (typeof target === 'function') return target()
+  if (target && typeof target === 'object' && 'current' in target) return target.current
+  return target
+}
+
+function isPointerPositionEvent(
+  event: Event,
+): event is Event & { clientX: number; clientY: number } {
+  return (
+    'clientX' in event &&
+    typeof event.clientX === 'number' &&
+    'clientY' in event &&
+    typeof event.clientY === 'number'
   )
 }
 

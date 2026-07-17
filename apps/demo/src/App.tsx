@@ -1,4 +1,13 @@
-import { Activity, Braces, Layers3, ListTree, MousePointer2 } from 'lucide-react'
+import {
+  Activity,
+  BetweenHorizontalEnd,
+  BetweenHorizontalStart,
+  Braces,
+  Layers3,
+  ListTree,
+  MousePointer2,
+  Space,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   TweakerAlignment,
@@ -29,7 +38,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MouseVelocitySparklineItem } from '@/custom-items/mouse-velocity-sparkline'
+import {
+  MouseVelocitySparklineItem,
+  viewportPointerTarget,
+} from '@/custom-items/mouse-velocity-sparkline'
 import { ShadcnChartItem } from '@/custom-items/shadcn-chart'
 import { WaveformSpectrumItem } from '@/custom-items/waveform-spectrum'
 
@@ -318,7 +330,7 @@ function DemoExperience() {
         id={outputPanelId}
         title="Custom Items"
         collapsible
-        className="top-136 right-4 w-80 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-8"
+        className="top-136 right-4 w-96 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-8"
         defaultValues={customItemDefaults}
       >
         <PanelStateObserver panelId={outputPanelId} onSnapshot={handlePanelSnapshot} />
@@ -327,9 +339,9 @@ function DemoExperience() {
             field="density"
             label="Density"
             options={[
-              { label: 'Tight', value: 'compact' },
-              { label: 'Balanced', value: 'balanced' },
-              { label: 'Open', value: 'comfortable' },
+              { icon: <BetweenHorizontalStart />, label: 'Tight', value: 'compact' },
+              { icon: <Space />, label: 'Balanced', value: 'balanced' },
+              { icon: <BetweenHorizontalEnd />, label: 'Open', value: 'comfortable' },
             ]}
           />
           <TweakerAlignment
@@ -377,7 +389,10 @@ function DemoExperience() {
 
         <TweakerGroup id="visualization-items" label="Live visualizations">
           <ShadcnChartItem />
-          <MouseVelocitySparklineItem />
+          <MouseVelocitySparklineItem
+            target={viewportPointerTarget}
+            targetLabel="the full viewport"
+          />
           <WaveformSpectrumItem />
         </TweakerGroup>
 

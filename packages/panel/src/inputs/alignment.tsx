@@ -1,6 +1,8 @@
+import { TextAlignCenter, TextAlignEnd, TextAlignStart, type LucideIcon } from 'lucide-react'
 import { ToggleGroup } from 'radix-ui'
 import type { KeyboardEvent } from 'react'
 import { TweakerControl, type TweakerControlProps } from '../tweaker-control.js'
+import { cn } from '../utils.js'
 
 export type TweakerAlignmentValue =
   | 'top-left'
@@ -32,6 +34,15 @@ export const tweakerAlignmentOptions = [
   { label: 'Bottom right', value: 'bottom-right' },
 ] as const satisfies readonly { label: string; value: TweakerAlignmentValue }[]
 
+const alignmentColumnIcons = [
+  TextAlignStart,
+  TextAlignCenter,
+  TextAlignEnd,
+] as const satisfies readonly [LucideIcon, LucideIcon, LucideIcon]
+
+const alignmentRowClasses = ['items-start pt-1.5', 'items-center', 'items-end pb-1.5'] as const
+const alignmentColumnClasses = ['justify-start', 'justify-center', 'justify-end'] as const
+
 export function TweakerAlignment({
   defaultValue = 'center',
   ...controlProps
@@ -45,7 +56,7 @@ export function TweakerAlignment({
           <ToggleGroup.Root
             id={control.inputId}
             aria-label="Alignment"
-            className="border-input bg-border col-span-2 grid grid-cols-3 gap-px justify-self-end overflow-hidden rounded-md border p-px shadow-sm"
+            className="border-input bg-border col-span-2 grid grid-cols-3 gap-px justify-self-start overflow-hidden rounded-md border p-px shadow-sm"
             disabled={control.disabled || control.readOnly}
             type="single"
             value={value}
@@ -53,23 +64,35 @@ export function TweakerAlignment({
               if (isTweakerAlignmentValue(nextValue)) control.setValue(nextValue)
             }}
           >
-            {tweakerAlignmentOptions.map((option, index) => (
-              <ToggleGroup.Item
-                key={option.value}
-                id={`${control.inputId}:${option.value}`}
-                aria-label={option.label}
-                className="group/alignment bg-background text-muted-foreground hover:bg-accent focus-visible:ring-ring data-[state=on]:bg-primary/20 data-[state=on]:text-primary relative flex size-5 items-center justify-center transition-colors outline-none focus-visible:z-10 focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-45"
-                data-alignment-index={index}
-                title={option.label}
-                value={option.value}
-                onKeyDown={moveAlignmentFocusVertically}
-              >
-                <span
-                  aria-hidden="true"
-                  className="size-1 rounded-full bg-current transition-transform group-data-[state=on]/alignment:scale-125"
-                />
-              </ToggleGroup.Item>
-            ))}
+            {tweakerAlignmentOptions.map((option, index) => {
+              const AlignmentIcon = alignmentColumnIcons[index % 3] ?? TextAlignCenter
+              const rowClassName = alignmentRowClasses[Math.floor(index / 3)] ?? 'items-center'
+              const columnClassName =
+                alignmentColumnClasses[Math.floor(index % 3)] ?? 'justify-center'
+
+              return (
+                <ToggleGroup.Item
+                  key={option.value}
+                  id={`${control.inputId}:${option.value}`}
+                  aria-label={option.label}
+                  className={cn(
+                    'group/alignment bg-background text-muted-foreground hover:bg-accent focus-visible:ring-ring data-[state=on]:bg-primary/20 data-[state=on]:text-primary relative flex size-8 px-1.5 transition-colors outline-none focus-visible:z-10 focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-45',
+                    rowClassName,
+                    columnClassName,
+                  )}
+                  data-alignment-index={index}
+                  title={option.label}
+                  value={option.value}
+                  onKeyDown={moveAlignmentFocusVertically}
+                >
+                  <AlignmentIcon
+                    aria-hidden="true"
+                    className="size-3.5 transition-transform group-data-[state=on]/alignment:scale-110"
+                    strokeWidth={2}
+                  />
+                </ToggleGroup.Item>
+              )
+            })}
           </ToggleGroup.Root>
         )
       }}

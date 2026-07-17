@@ -23,7 +23,7 @@ export interface TweakerMediaPreviewProps extends Omit<
 
 export function TweakerMediaPreview({
   alt,
-  contentLayout = 'full',
+  contentLayout = 'block',
   fallback,
   imageClassName,
   objectFit = 'contain',

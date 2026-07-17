@@ -38,10 +38,18 @@ export function ShadcnChartItem() {
         config={chartConfig}
         initialDimension={{ height: 144, width: 384 }}
       >
-        <LineChart accessibilityLayer data={frameData} margin={{ left: -18, right: 6, top: 8 }}>
+        <LineChart accessibilityLayer data={frameData} margin={{ left: 12, right: 8, top: 8 }}>
           <CartesianGrid strokeDasharray="2 4" vertical={false} />
           <XAxis axisLine={false} dataKey="frame" tickLine={false} tickMargin={8} />
-          <YAxis axisLine={false} domain={[0, 20]} tickLine={false} width={34} />
+          <YAxis
+            allowDecimals={false}
+            axisLine={false}
+            domain={[0, 20]}
+            tickMargin={6}
+            tickLine={false}
+            ticks={[0, 5, 10, 15, 20]}
+            width={36}
+          />
           <ChartTooltip content={<ChartTooltipContent indicator="line" />} cursor={false} />
           <Line
             dataKey="target"

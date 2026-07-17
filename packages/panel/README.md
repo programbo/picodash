@@ -51,17 +51,19 @@ Set `collapsible` to add an accessible disclosure control to the panel header. U
 The panel package also exports richer controls that compose the same `TweakerControl`
 registration, state, reset, status, help, ordering, and accessibility behavior:
 
-- `TweakerSegmented`: a string-valued Radix segmented selector.
-- `TweakerAlignment`: a fixed 3×3 alignment selector whose values range from
+- `TweakerSegmented`: a string-valued Radix segmented selector whose object options accept
+  an optional `icon: ReactNode` alongside their accessible label.
+- `TweakerAlignment`: a fixed 3×3 visual alignment selector whose values range from
   `"top-left"` through `"bottom-right"`.
 - `TweakerVector3`: a JSON-compatible `{ x, y, z }` numeric value.
 - `TweakerRange`: an ordered `[low, high]` Radix range slider.
-- `TweakerXYPad`: an `{ x, y }` direct-manipulation surface with keyboard support and
-  reduced-motion-aware Motion spring smoothing.
+- `TweakerXYPad`: an `{ x, y }` direct-manipulation surface with keyboard support,
+  point-attached coordinates, and reduced-motion-aware Motion spring smoothing.
 - `TweakerGradient`: a JSON-compatible array of `{ id, color, position }` stops.
 - `TweakerMediaPreview`: a read-only image/SVG URL preview; it never injects SVG markup.
 - `TweakerDropzone`: a `react-dropzone` surface that stores serializable file metadata,
-  never browser `File` objects.
+  never browser `File` objects; optional image previews open in a portaled, accessible
+  Motion viewer.
 
 ```tsx
 import {
