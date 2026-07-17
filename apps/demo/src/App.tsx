@@ -1,14 +1,22 @@
 import { Activity, Braces, Layers3, ListTree, MousePointer2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
+  TweakerAlignment,
   TweakerDisplay,
+  TweakerDropzone,
+  TweakerGradient,
   TweakerGroup,
+  TweakerMediaPreview,
   TweakerNumber,
   TweakerPanel,
   TweakerProvider,
+  TweakerRange,
+  TweakerSegmented,
   TweakerSelect,
   TweakerSlider,
   TweakerSwitch,
+  TweakerVector3,
+  TweakerXYPad,
   useTweakerPanelSelector,
   useTweakerSelector,
   type TweakerPanelRegistration,
@@ -21,9 +29,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { MouseVelocitySparklineItem } from '@/custom-items/mouse-velocity-sparkline'
+import { ShadcnChartItem } from '@/custom-items/shadcn-chart'
+import { WaveformSpectrumItem } from '@/custom-items/waveform-spectrum'
 
 const scenePanelId = 'scene-controls'
-const outputPanelId = 'output-monitor'
+const outputPanelId = 'custom-items'
 
 const sceneDefaults = {
   bloom: true,
@@ -38,15 +49,20 @@ const sceneDefaults = {
   renderScale: 1,
 }
 
-const outputDefaults = {
-  channel: 'beauty',
-  denoise: true,
-  frameBudget: 16,
-  lockPreview: false,
-  previewScale: 0.75,
-  samples: 64,
-  threshold: 0.35,
-  tonemapping: 'filmic',
+const customItemDefaults = {
+  alignment: 'center',
+  density: 'balanced',
+  droppedFiles: [],
+  gradient: [
+    { color: '#22d3ee', id: 'cyan', position: 0 },
+    { color: '#facc15', id: 'amber', position: 0.58 },
+    { color: '#fb7185', id: 'rose', position: 1 },
+  ],
+  previewAsset: '/favicon.svg',
+  signalMode: 'waveform',
+  thresholdRange: [24, 76],
+  vector: { x: 1.25, y: -0.5, z: 3 },
+  xy: { x: 0.68, y: 0.32 },
 }
 
 type PanelSnapshot = Pick<
@@ -106,8 +122,8 @@ function DemoExperience() {
                 </h1>
                 <div className="prose prose-invert prose-p:my-0 prose-code:bg-muted prose-code:text-foreground text-muted-foreground prose-code:rounded-md prose-code:px-1.5 prose-code:py-0.5 mt-2 max-w-2xl">
                   <p>
-                    Adjust the floating panels to inspect provider-level <code>TweakerState</code>{' '}
-                    and each panel-local <code>TweakerPanelState</code> as they update.
+                    Inspect the panel store while trying common, spatial, media, and live-data{' '}
+                    <code>TweakerControl</code> compositions.
                   </p>
                 </div>
               </div>
@@ -153,7 +169,7 @@ function DemoExperience() {
             <TabsList className="grid w-full grid-cols-3 lg:w-fit">
               <TabsTrigger value="provider">TweakerState</TabsTrigger>
               <TabsTrigger value={scenePanelId}>Scene</TabsTrigger>
-              <TabsTrigger value={outputPanelId}>Output</TabsTrigger>
+              <TabsTrigger value={outputPanelId}>Custom Items</TabsTrigger>
             </TabsList>
 
             <TabsContent value="provider">
@@ -183,7 +199,7 @@ function DemoExperience() {
             </TabsContent>
 
             <TabsContent value={outputPanelId}>
-              <PanelStatePanel snapshot={panelSnapshots[outputPanelId]} title="Output Monitor" />
+              <PanelStatePanel snapshot={panelSnapshots[outputPanelId]} title="Custom Items" />
             </TabsContent>
           </Tabs>
         </div>
@@ -193,7 +209,7 @@ function DemoExperience() {
         id={scenePanelId}
         title="Scene Controls"
         collapsible
-        className="top-4 right-4 lg:top-8 lg:right-8"
+        className="top-4 right-4 lg:top-8 lg:right-120"
         defaultValues={sceneDefaults}
         initialMeta={{
           canEdit: true,
@@ -300,96 +316,77 @@ function DemoExperience() {
 
       <TweakerPanel
         id={outputPanelId}
-        title="Output Monitor"
+        title="Custom Items"
         collapsible
-        className="top-136 right-4 lg:top-8 lg:right-108"
-        defaultValues={outputDefaults}
-        initialMeta={{ gpuBudget: 24, warnings: 1 }}
+        className="top-136 right-4 w-112 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-8"
+        defaultValues={customItemDefaults}
       >
         <PanelStateObserver panelId={outputPanelId} onSnapshot={handlePanelSnapshot} />
-        <TweakerGroup id="preview" label="Preview" placement="start">
-          <TweakerSelect
-            field="channel"
-            label="Channel"
-            help={
-              <div className="grid gap-1">
-                <span className="text-foreground font-medium">Preview channel</span>
-                <span className="text-muted-foreground">
-                  Choose the render pass shown in the preview.
-                </span>
-              </div>
-            }
-            options={['beauty', 'normal', 'depth', 'mask']}
+        <TweakerGroup id="common-items" label="Common inputs" placement="start">
+          <TweakerSegmented
+            field="density"
+            label="Density"
+            options={[
+              { label: 'Tight', value: 'compact' },
+              { label: 'Balanced', value: 'balanced' },
+              { label: 'Open', value: 'comfortable' },
+            ]}
           />
-          <TweakerSwitch
-            field="lockPreview"
-            label="Lock preview"
-            status={(state) => (state.values.lockPreview ? 'info' : undefined)}
+          <TweakerAlignment
+            field="alignment"
+            label="Alignment"
+            help="A 3×3 option grid with roving keyboard focus and spatial arrow-key navigation."
+          />
+          <TweakerVector3 field="vector" label="Position" max={10} min={-10} step={0.25} />
+          <TweakerRange field="thresholdRange" label="Thresholds" max={100} min={0} step={1} />
+        </TweakerGroup>
+
+        <TweakerGroup id="spatial-items" label="Direct manipulation">
+          <TweakerXYPad
+            field="xy"
+            label="Light position"
+            step={0.01}
+            xMax={1}
+            xMin={0}
+            yMax={1}
+            yMin={0}
+          />
+          <TweakerGradient
+            field="gradient"
+            label="Ramp"
+            help="Double-click to add a stop; drag or use the arrow keys to position it."
           />
         </TweakerGroup>
 
-        <TweakerGroup id="diagnostics" label="Diagnostics">
-          <TweakerNumber
-            field="frameBudget"
-            label="Frame budget"
-            description="Maximum render time allowed for each preview frame."
-            min={8}
-            max={(state) => Number(state.meta.gpuBudget ?? 24)}
-            step={1}
-            status={(state) =>
-              Number(state.values.frameBudget ?? 0) > Number(state.meta.gpuBudget ?? 24)
-                ? 'error'
-                : undefined
-            }
+        <TweakerGroup id="media-items" label="Media and files">
+          <TweakerMediaPreview
+            alt="Tweaker mark"
+            field="previewAsset"
+            label="SVG preview"
+            src={(state) => stringFromValue(state.values.previewAsset, '/favicon.svg')}
           />
-          <TweakerSlider
-            field="samples"
-            label="Samples"
-            min={16}
-            max={256}
-            step={16}
-            marks={[16, 128, 256]}
+          <TweakerDropzone
+            accept={{ 'image/*': ['.avif', '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp'] }}
+            field="droppedFiles"
+            label="Asset dropzone"
+            maxFiles={3}
+            maxSize={5_000_000}
+            showPreviews
           />
-          <TweakerSwitch field="denoise" label="Denoise" />
-          <TweakerSlider
-            field="previewScale"
-            label="Preview scale"
-            min={0.25}
-            max={1}
-            step={0.05}
-            marks={[0.25, 0.5, 1]}
-            formatValue={(value) => `${Math.round(value * 100)}%`}
-          />
-          <TweakerSelect
-            field="tonemapping"
-            label="Tonemapping"
-            options={[
-              { label: 'Linear', value: 'linear' },
-              { label: 'Filmic', value: 'filmic' },
-              { label: 'ACES', value: 'aces' },
-              { label: 'Reinhard', value: 'reinhard' },
-            ]}
-          />
-          <TweakerSlider
-            field="threshold"
-            label="Alert threshold"
-            min={0}
-            max={1}
-            step={0.01}
-            states={(state) => ({
-              highlighted: Number(state.values.threshold ?? 0) < 0.25,
-            })}
-            formatValue={(value) => value.toFixed(2)}
-          />
+        </TweakerGroup>
+
+        <TweakerGroup id="visualization-items" label="Live visualizations">
+          <ShadcnChartItem />
+          <MouseVelocitySparklineItem />
+          <WaveformSpectrumItem />
         </TweakerGroup>
 
         <TweakerDisplay
-          id="output-status"
+          id="custom-items-summary"
           placement="end"
-          label="Status"
-          status={(state) => (Number(state.meta.warnings ?? 0) > 0 ? 'warning' : 'info')}
+          label="Selection"
           value={(state) =>
-            `${stringFromValue(state.values.channel, 'beauty')} / ${numberFromValue(state.values.samples, 64)} samples`
+            `${stringFromValue(state.values.density, 'balanced')} / ${stringFromValue(state.values.alignment, 'center')}`
           }
         />
       </TweakerPanel>

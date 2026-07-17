@@ -46,6 +46,7 @@ pnpm --filter tweaker build
 pnpm --filter panel test
 pnpm --filter panel build
 pnpm --filter demo build
+pnpm --filter demo test:e2e
 pnpm --filter website test:e2e
 pnpm ready
 ```
@@ -53,7 +54,7 @@ pnpm ready
 `pnpm ready` is the full verification gate. It runs formatting, linting, type checks, package tests, builds, website build, and Playwright e2e tests:
 
 ```bash
-vp check && vp run -r test && vp run -r build && pnpm --filter website test:e2e
+vp check && vp run -r test && vp run -r build && pnpm --filter website test:e2e && pnpm --filter demo test:e2e
 ```
 
 Use `vp check --fix` for formatter/linter autofixes. Vite+ may cache some `vp run` tasks; treat successful replay as valid unless you changed test/build inputs that are not tracked by Vite+.
@@ -75,6 +76,12 @@ When adding a new app or local server, use the next available port from `6034-60
 ## Package Boundaries
 
 The `packages/panel` package is a small Vite+ React component library. Keep it self-contained, export typed React components from `src/index.ts`, and consume it from `apps/demo` through `workspace:*`. Panel styles are authored through Tailwind v4 in `packages/panel/src/styles.css`, packed with PostCSS, and consumed from `panel/style.css`.
+
+Panel inputs live in `packages/panel/src/inputs/`. Common primitives use the unified `radix-ui` package, direct-manipulation visuals use Motion, and file selection uses `react-dropzone`. Keep Recharts and the official shadcn chart source demo-local; they are examples of composing `TweakerControl`, not dependencies of the publishable panel package.
+
+The panel package exports `TweakerSegmented`, `TweakerAlignment`, `TweakerVector3`, `TweakerRange`, `TweakerXYPad`, `TweakerGradient`, `TweakerMediaPreview`, and `TweakerDropzone`, their public value/props types, and their pure normalization/projection helpers. `TweakerControl.contentLayout` accepts `"inline"`, `"block"`, or `"full"`; block/full descriptions must remain in a separate row after their content.
+
+Composite control values must remain JSON-compatible. Dropzones store file metadata rather than `File` objects, media previews use safe image URLs rather than raw SVG HTML, and temporary object URLs must be revoked when removed or unmounted. Use MotionValues for high-frequency visuals and optional smoothing only; Zustand remains authoritative for persisted/user-editable values, and animated examples must respect reduced-motion.
 
 The package source is intentionally split by responsibility:
 
@@ -183,7 +190,7 @@ When changing UI behavior, prefer verifying with Playwright or the in-app browse
 
 ## Demo App
 
-`apps/demo` is the Vite+ React TypeScript Tailwind app for the local `panel` component package. It imports `panel` through `workspace:*`, uses `6032` for `vp dev`, and uses `6033` for `vp preview`.
+`apps/demo` is the Vite+ React TypeScript Tailwind app for the local `panel` component package. It imports `panel` through `workspace:*`, uses `6032` for `vp dev` and Playwright e2e, and uses `6033` for `vp preview`. Its Custom Items panel is the integration gallery for the public composite inputs plus demo-local shadcn/Recharts, pointer-velocity, and waveform/spectrum examples. Keep representative browser coverage in `apps/demo/tests/custom-items.spec.ts` and run it through `pnpm --filter demo test:e2e`.
 
 ## Documentation
 

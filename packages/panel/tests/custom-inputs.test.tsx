@@ -1,0 +1,210 @@
+import { isValidElement } from 'react'
+import { expect, test } from 'vite-plus/test'
+import {
+  gradientCssValue,
+  isTweakerAlignmentValue,
+  normalizeAlignmentValue,
+  normalizeRangeBounds,
+  normalizeRangeValue,
+  normalizeSegmentedValue,
+  normalizeTweakerDropzoneValue,
+  normalizeTweakerGradient,
+  normalizeTweakerHexColor,
+  normalizeTweakerMediaUrl,
+  normalizeTweakerXYBounds,
+  normalizeTweakerXYValue,
+  normalizeVector3Value,
+  normalizeVectorBounds,
+  normalizeVectorStep,
+  objectFitClassName,
+  partitionTweakerFilesByCapacity,
+  projectTweakerFileMetadata,
+  projectTweakerGradientPosition,
+  projectTweakerXYPointer,
+  projectTweakerXYValue,
+  segmentedOptionDisabled,
+  segmentedOptionLabel,
+  segmentedOptionValue,
+  TweakerAlignment,
+  TweakerDropzone,
+  TweakerGradient,
+  TweakerMediaPreview,
+  TweakerRange,
+  TweakerSegmented,
+  TweakerVector3,
+  TweakerXYPad,
+  tweakerAlignmentOptions,
+  type TweakerControlContentLayout,
+} from '../src/index.ts'
+
+test('exports valid elements for every custom input', () => {
+  const layout: TweakerControlContentLayout = 'block'
+  const elements = [
+    <TweakerSegmented key="segmented" options={['one', 'two']} />,
+    <TweakerAlignment key="alignment" />,
+    <TweakerVector3 key="vector" />,
+    <TweakerRange key="range" />,
+    <TweakerXYPad key="xy" contentLayout={layout} />,
+    <TweakerGradient key="gradient" />,
+    <TweakerMediaPreview key="media" alt="Preview" />,
+    <TweakerDropzone key="dropzone" />,
+  ]
+
+  expect(elements.every(isValidElement)).toBe(true)
+})
+
+test('normalizes segmented options to an enabled selection', () => {
+  const options = [
+    { disabled: true, label: 'Unavailable', value: 'disabled' },
+    { label: 'Ready', value: 'ready' },
+  ]
+
+  expect(normalizeSegmentedValue('disabled', options)).toBe('ready')
+  expect(normalizeSegmentedValue('missing', options, 'disabled')).toBe('ready')
+  expect(segmentedOptionValue(options[1]!)).toBe('ready')
+  expect(segmentedOptionLabel(options[1]!)).toBe('Ready')
+  expect(segmentedOptionDisabled(options[0]!)).toBe(true)
+})
+
+test('validates every alignment and falls back to centre', () => {
+  expect(tweakerAlignmentOptions).toHaveLength(9)
+  expect(tweakerAlignmentOptions.every(({ value }) => isTweakerAlignmentValue(value))).toBe(true)
+  expect(normalizeAlignmentValue('bottom-right')).toBe('bottom-right')
+  expect(normalizeAlignmentValue('baseline')).toBe('center')
+})
+
+test('normalizes vector bounds, finite coordinates, and step', () => {
+  expect(normalizeVectorBounds(8, -4)).toEqual({ min: -4, max: 8 })
+  expect(
+    normalizeVector3Value({ x: Number.NaN, y: -12, z: 20 }, { x: 2, y: 2, z: 2 }, -5, 10),
+  ).toEqual({ x: 2, y: -5, z: 10 })
+  expect(normalizeVectorStep(0)).toBe(1)
+  expect(normalizeVectorStep(0.25)).toBe(0.25)
+})
+
+test('normalizes range bounds and snaps an ordered tuple', () => {
+  expect(normalizeRangeBounds(10, -10, -1)).toEqual({ min: -10, max: 10, step: 1 })
+  expect(normalizeRangeValue([8.8, -4.2], { min: -10, max: 10, step: 2 })).toEqual([-4, 8])
+  expect(
+    normalizeRangeValue([Number.NaN, Number.POSITIVE_INFINITY], {
+      fallback: [2, 6],
+      min: 0,
+      max: 10,
+      step: 1,
+    }),
+  ).toEqual([2, 6])
+})
+
+test('normalizes and projects XY values', () => {
+  const bounds = normalizeTweakerXYBounds({ step: 0.25, xMax: -1, xMin: 1, yMax: 2, yMin: -2 })
+  expect(bounds).toEqual({ step: 0.25, xMax: 1, xMin: -1, yMax: 2, yMin: -2 })
+  expect(normalizeTweakerXYValue({ x: 0.63, y: 4 }, bounds)).toEqual({ x: 0.75, y: 2 })
+  expect(projectTweakerXYValue({ x: 0, y: 0 }, bounds)).toEqual({ x: 0.5, y: 0.5 })
+  expect(
+    projectTweakerXYPointer(50, 25, { height: 100, left: 0, top: 0, width: 100 }, bounds),
+  ).toEqual({ x: 0, y: 1 })
+})
+
+test('normalizes gradient stops, colors, and pointer projection', () => {
+  const gradient = normalizeTweakerGradient([
+    { color: '#fff', id: 'end', position: 1.5 },
+    { color: 'invalid', id: 'end', position: -1 },
+  ])
+  expect(gradient).toEqual([
+    { color: '#000000', id: 'end-2', position: 0 },
+    { color: '#ffffff', id: 'end', position: 1 },
+  ])
+  expect(normalizeTweakerHexColor('#0Af')).toBe('#00aaff')
+  expect(projectTweakerGradientPosition(75, { left: 25, width: 100 })).toBe(0.5)
+  expect(gradientCssValue(gradient)).toContain('#000000 0%')
+})
+
+test('normalizes malformed gradient values without projecting unknown records', () => {
+  const fallback = [
+    { color: '#111827', id: 'start', position: 0 },
+    { color: '#f9fafb', id: 'end', position: 1 },
+  ]
+
+  expect(normalizeTweakerGradient('not-a-gradient')).toEqual(fallback)
+  expect(normalizeTweakerGradient({ color: '#ffffff' })).toEqual(fallback)
+  expect(normalizeTweakerGradient(null)).toEqual(fallback)
+  expect(normalizeTweakerGradient([null, 'invalid', { color: '#0af', position: 0.25 }])).toEqual([
+    { color: '#00aaff', id: 'stop-1', position: 0.25 },
+    { color: '#00aaff', id: 'end', position: 1 },
+  ])
+})
+
+test('accepts safe media URLs without interpreting SVG markup', () => {
+  expect(normalizeTweakerMediaUrl('/preview.svg')).toBe('/preview.svg')
+  expect(normalizeTweakerMediaUrl('data:image/svg+xml,%3Csvg%3E%3C/svg%3E')).toContain(
+    'data:image/svg+xml',
+  )
+  expect(normalizeTweakerMediaUrl('javascript:alert(1)')).toBeUndefined()
+  expect(normalizeTweakerMediaUrl('<svg onload="alert(1)">')).toBeUndefined()
+  expect(objectFitClassName('scale-down')).toBe('object-scale-down')
+})
+
+test('projects files to JSON-compatible metadata with stable unique IDs', () => {
+  const files = [
+    { lastModified: 123, name: 'Scene.PNG', size: 2048, type: 'image/png' },
+    { lastModified: 123, name: 'Scene.PNG', size: 2048, type: 'image/png' },
+  ]
+  const metadata = projectTweakerFileMetadata(files)
+
+  expect(metadata).toEqual([
+    {
+      id: 'scene-png-2048-123',
+      lastModified: 123,
+      name: 'Scene.PNG',
+      size: 2048,
+      type: 'image/png',
+    },
+    {
+      id: 'scene-png-2048-123-2',
+      lastModified: 123,
+      name: 'Scene.PNG',
+      size: 2048,
+      type: 'image/png',
+    },
+  ])
+  expect(normalizeTweakerDropzoneValue([{ name: '  ', size: -5 }])).toEqual([
+    {
+      id: 'file-1',
+      lastModified: 0,
+      name: 'Unnamed file',
+      size: 0,
+      type: 'application/octet-stream',
+    },
+  ])
+  expect(
+    metadata.every((item) => Object.values(item).every((value) => typeof value !== 'object')),
+  ).toBe(true)
+})
+
+test('normalizes malformed dropzone values and appends only within remaining capacity', () => {
+  expect(normalizeTweakerDropzoneValue('not-a-file-list')).toEqual([])
+  expect(normalizeTweakerDropzoneValue({ name: 'scene.png' })).toEqual([])
+  expect(normalizeTweakerDropzoneValue(null)).toEqual([])
+  expect(
+    normalizeTweakerDropzoneValue([null, 'invalid', { name: ' scene.png ', size: 4 }]),
+  ).toEqual([
+    {
+      id: 'file-3',
+      lastModified: 0,
+      name: 'scene.png',
+      size: 4,
+      type: 'application/octet-stream',
+    },
+  ])
+
+  const partition = partitionTweakerFilesByCapacity(['third', 'overflow'], 2, 3, true)
+  expect(partition).toEqual({ acceptedFiles: ['third'], overflowFiles: ['overflow'] })
+  expect(partitionTweakerFilesByCapacity(['overflow'], 3, 3, true)).toEqual({
+    acceptedFiles: [],
+    overflowFiles: ['overflow'],
+  })
+  expect(partitionTweakerFilesByCapacity(['one', 'two'], 20, 0, true)).toEqual({
+    acceptedFiles: ['one', 'two'],
+    overflowFiles: [],
+  })
+})

@@ -23,6 +23,7 @@ import {
 import { cn, toDataValue, toKebabCase } from './utils.js'
 
 export type ReactiveProp<T> = T | ((state: TweakerPanelState) => T)
+export type TweakerControlContentLayout = 'inline' | 'block' | 'full'
 
 export interface TweakerControlContextValue<TValue extends TweakerValue = TweakerValue> {
   disabled: boolean
@@ -42,6 +43,7 @@ export interface TweakerControlProps<TValue extends TweakerValue = TweakerValue>
 > {
   children?: ReactNode | ((control: TweakerControlContextValue<TValue>) => ReactNode)
   controlClassName?: string
+  contentLayout?: TweakerControlContentLayout
   defaultValue?: TValue
   description?: ReactiveProp<ReactNode>
   disabled?: ReactiveProp<boolean>
@@ -65,6 +67,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   children,
   className,
   controlClassName,
+  contentLayout = 'inline',
   defaultValue,
   description: descriptionProp,
   disabled: disabledProp,
@@ -195,6 +198,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         )}
         data-active={active ? 'true' : 'false'}
         data-control-id={controlId}
+        data-content-layout={contentLayout}
         data-dirty={fieldState?.dirty ? 'true' : 'false'}
         data-dragging={interaction.draggingId === controlId ? 'true' : 'false'}
         data-focused={interaction.focusedId === controlId ? 'true' : 'false'}
@@ -315,7 +319,10 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
 
         <div
           className={cn(
-            'col-span-2 col-start-3 grid min-w-0 grid-cols-subgrid self-center',
+            'grid min-w-0 grid-cols-subgrid self-center',
+            contentLayout === 'inline' && 'col-span-2 col-start-3',
+            contentLayout === 'block' && 'col-span-3 col-start-2 row-start-2',
+            contentLayout === 'full' && 'col-span-4 col-start-1 row-start-2',
             controlClassName,
           )}
         >
@@ -325,7 +332,12 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         {description ? (
           <div
             id={descriptionId}
-            className="text-muted-foreground col-span-2 col-start-3 text-xs leading-4 font-light"
+            className={cn(
+              'text-muted-foreground text-xs leading-4 font-light',
+              contentLayout === 'inline' && 'col-span-2 col-start-3 row-start-2',
+              contentLayout === 'block' && 'col-span-3 col-start-2 row-start-3',
+              contentLayout === 'full' && 'col-span-4 col-start-1 row-start-3',
+            )}
           >
             {description}
           </div>

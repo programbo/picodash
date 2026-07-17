@@ -1,10 +1,71 @@
+export {
+  isTweakerAlignmentValue,
+  normalizeAlignmentValue,
+  TweakerAlignment,
+  tweakerAlignmentOptions,
+} from './alignment.js'
+export type { TweakerAlignmentProps, TweakerAlignmentValue } from './alignment.js'
 export { TweakerDisplay } from './display.js'
 export type { TweakerDisplayProps } from './display.js'
+export {
+  normalizeTweakerDropzoneValue,
+  partitionTweakerFilesByCapacity,
+  projectTweakerFileMetadata,
+  TweakerDropzone,
+} from './dropzone.js'
+export type {
+  TweakerDroppedFileMetadata,
+  TweakerDropzoneProps,
+  TweakerDropzoneValue,
+} from './dropzone.js'
+export {
+  gradientCssValue,
+  normalizeTweakerGradient,
+  normalizeTweakerHexColor,
+  projectTweakerGradientPosition,
+  TweakerGradient,
+} from './gradient.js'
+export type { TweakerGradientProps, TweakerGradientStop, TweakerGradientValue } from './gradient.js'
+export {
+  normalizeTweakerMediaUrl,
+  objectFitClassName,
+  TweakerMediaPreview,
+} from './media-preview.js'
+export type { TweakerMediaObjectFit, TweakerMediaPreviewProps } from './media-preview.js'
 export { TweakerNumber } from './number.js'
 export type { TweakerNumberProps } from './number.js'
+export { normalizeRangeBounds, normalizeRangeValue, TweakerRange } from './range.js'
+export type {
+  TweakerRangeNormalizationOptions,
+  TweakerRangeProps,
+  TweakerRangeValue,
+} from './range.js'
 export { TweakerSelect } from './select.js'
 export type { TweakerSelectOption, TweakerSelectProps } from './select.js'
+export {
+  normalizeSegmentedValue,
+  segmentedOptionDisabled,
+  segmentedOptionLabel,
+  segmentedOptionValue,
+  TweakerSegmented,
+} from './segmented.js'
+export type { TweakerSegmentedOption, TweakerSegmentedProps } from './segmented.js'
 export { TweakerSlider } from './slider.js'
 export type { TweakerSliderMark, TweakerSliderMarks, TweakerSliderProps } from './slider.js'
 export { TweakerSwitch } from './switch.js'
 export type { TweakerSwitchProps } from './switch.js'
+export {
+  normalizeVector3Value,
+  normalizeVectorBounds,
+  normalizeVectorStep,
+  TweakerVector3,
+} from './vector3.js'
+export type { TweakerVector3Props, TweakerVector3Value } from './vector3.js'
+export {
+  normalizeTweakerXYBounds,
+  normalizeTweakerXYValue,
+  projectTweakerXYPointer,
+  projectTweakerXYValue,
+  TweakerXYPad,
+} from './xy-pad.js'
+export type { TweakerXYBounds, TweakerXYPadProps, TweakerXYValue } from './xy-pad.js'
