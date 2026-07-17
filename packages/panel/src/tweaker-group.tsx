@@ -105,7 +105,7 @@ export function TweakerGroup({
       {...stateAttributes}
       as="section"
       className={cn(
-        'group/tweaker-section col-span-full shrink-0 select-none rounded-md border border-l-2 border-border/80 border-l-transparent bg-secondary/30 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[dragging=true]:bg-secondary/80 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
+        'group/tweaker-section isolate col-span-full shrink-0 select-none rounded-md border border-l-2 border-border/80 border-l-transparent bg-secondary/30 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-20! data-[dragging=true]:border-ring data-[dragging=true]:bg-secondary/80 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
         className,
       )}
       data-active={active ? 'true' : 'false'}
@@ -167,7 +167,10 @@ export function TweakerGroup({
         onPointerUpCapture?.(event)
       }}
     >
-      <div className="group-data-[hovered=true]/tweaker-section:bg-accent/80 flex min-h-8 items-center gap-0 rounded-t-sm py-1 pr-1.5 transition-colors duration-150 group-data-[collapsed=true]/tweaker-section:rounded-b-sm">
+      <div
+        className="group-data-[hovered=true]/tweaker-section:bg-accent/80 flex min-h-8 items-center gap-0 rounded-t-sm py-1 pr-1.5 transition-colors duration-150 group-data-[collapsed=true]/tweaker-section:rounded-b-sm"
+        onPointerEnter={() => store.getState().setHoveredItem(id)}
+      >
         <button
           aria-disabled={!reorderable}
           aria-label={`Reorder ${labelText}`}

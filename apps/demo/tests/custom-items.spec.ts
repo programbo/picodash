@@ -5,6 +5,64 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toBeVisible()
 })
 
+test('transfers hover ownership between a group header and its child', async ({ page }) => {
+  const group = page.locator('[data-group-id="scene-rendering"]')
+  const child = page.locator('[data-control-id="quality"]')
+  const groupGrip = group.getByRole('button', { name: 'Reorder Rendering', exact: true })
+  const childGrip = child.getByRole('button', { name: 'Reorder Quality', exact: true })
+
+  await childGrip.hover()
+  await expect(child).toHaveAttribute('data-hovered', 'true')
+  await expect(group).toHaveAttribute('data-hovered', 'false')
+
+  await groupGrip.hover()
+  await expect(group).toHaveAttribute('data-hovered', 'true')
+  await expect(child).toHaveAttribute('data-hovered', 'false')
+
+  await childGrip.hover()
+  await expect(child).toHaveAttribute('data-hovered', 'true')
+  await expect(group).toHaveAttribute('data-hovered', 'false')
+})
+
+test('contains grip layers within their reorder items', async ({ page }) => {
+  const group = page.locator('[data-group-id="scene-rendering"]')
+  const draggedControl = page.locator('[data-control-id="quality"]')
+  const idleControl = page.locator('[data-control-id="cameraHeight"]')
+  const draggedGrip = draggedControl.getByRole('button', {
+    name: 'Reorder Quality',
+    exact: true,
+  })
+  const idleGrip = idleControl.getByRole('button', {
+    name: 'Reorder Camera height',
+    exact: true,
+  })
+
+  await expect(group).toHaveCSS('isolation', 'isolate')
+  await expect(draggedControl).toHaveCSS('isolation', 'isolate')
+  await expect(idleControl).toHaveCSS('isolation', 'isolate')
+
+  const draggedGripBox = await draggedGrip.boundingBox()
+  expect(draggedGripBox).not.toBeNull()
+  if (!draggedGripBox) return
+
+  await page.mouse.move(
+    draggedGripBox.x + draggedGripBox.width / 2,
+    draggedGripBox.y + draggedGripBox.height / 2,
+  )
+  await page.mouse.down()
+  await page.mouse.move(
+    draggedGripBox.x + draggedGripBox.width / 2,
+    draggedGripBox.y + draggedGripBox.height / 2 + 20,
+    { steps: 4 },
+  )
+  await expect(draggedControl).toHaveAttribute('data-dragging', 'true')
+  await expect(draggedControl).toHaveCSS('z-index', '20')
+  await expect(idleControl).toHaveCSS('z-index', 'auto')
+  await expect(idleGrip).toHaveCSS('z-index', '10')
+
+  await page.mouse.up()
+})
+
 test('updates common, spatial, and gradient values through accessible controls', async ({
   page,
 }) => {
