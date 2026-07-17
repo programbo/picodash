@@ -85,7 +85,12 @@ export interface TweakerPanelProps extends Omit<
 }
 
 export interface TweakerGroupContextValue {
-  beginItemReorder: (itemId: string, pointerY: number, pointerId: number) => void
+  beginItemReorder: (
+    itemId: string,
+    pointerY: number,
+    pointerId: number,
+    setVisualOffset: (offset: number) => void,
+  ) => void
   commitPendingOrder: () => void
   dragConstraintsRef: RefObject<HTMLDivElement | null>
   listRef: RefObject<HTMLDivElement | null>

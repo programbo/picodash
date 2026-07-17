@@ -45,6 +45,7 @@ export function createTweakerPanelStore({
         }
 
         const parentOrder = order[item.parentId] ?? []
+        const reclaimsOrderSlot = previous === undefined && parentOrder.includes(item.id)
         if (!parentOrder.includes(item.id)) {
           order = { ...order, [item.parentId]: [...parentOrder, item.id] }
         } else if (order === state.order) {
@@ -73,7 +74,12 @@ export function createTweakerPanelStore({
             ? state.values
             : { ...state.values, [item.fieldId]: item.defaultValue }
 
-        return { fields, items, order: normalizeAllOrders(order, items), values }
+        return {
+          fields,
+          items,
+          order: reclaimsOrderSlot ? order : normalizeAllOrders(order, items),
+          values,
+        }
       })
     },
     moveItemToIndex(itemId, index) {
@@ -295,14 +301,9 @@ export function createTweakerPanelStore({
 
         const items = { ...state.items }
         delete items[itemId]
-        const order = Object.fromEntries(
-          Object.entries(state.order)
-            .filter(([parentId]) => parentId !== itemId)
-            .map(([parentId, ids]) => [parentId, ids.filter((id) => id !== itemId)]),
-        )
-        // Reorder groups remount when list geometry changes. Keep collapse state
-        // keyed by group identity so that internal remount cannot undo a toggle.
-        return { items, order: normalizeAllOrders(order, items) }
+        // Registrations can unmount transiently while Reorder rebuilds its layout.
+        // Keep parent and nested order slots so the same id reclaims its position.
+        return { items }
       })
     },
   }))

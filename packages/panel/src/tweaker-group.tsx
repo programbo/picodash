@@ -1,6 +1,6 @@
 import { ChevronRight, GripVertical } from 'lucide-react'
-import { Reorder, type HTMLMotionProps } from 'motion/react'
-import { useRef, type ReactNode } from 'react'
+import { Reorder, useTransform, type HTMLMotionProps } from 'motion/react'
+import { useMemo, useRef, type ReactNode } from 'react'
 import {
   dataAttributesForStates,
   useResolvedPanelProp,
@@ -11,13 +11,14 @@ import {
   useRegisterTweakerItem,
   useTweakerPanelSelector,
   useTweakerPanelStoreApi,
-  useTweakerReorderTransformTemplate,
   type TweakerControlStates,
   type TweakerPlacement,
   type TweakerStatus,
 } from './tweaker-panel.js'
 import {
+  disabledReorderItemLayout,
   reorderDragTransition,
+  reorderTopWithOffset,
   reorderTransition,
   useTweakerReorderItem,
 } from './tweaker-reorder-item.js'
@@ -79,9 +80,22 @@ export function TweakerGroup({
   const visible = useResolvedPanelProp(visibleProp, true) ?? true
   const labelText = typeof label === 'string' ? label : id
   const active = Object.keys(interaction.activeIds).some((activeId) => activeId.endsWith(`:${id}`))
-  const transformTemplate = useTweakerReorderTransformTemplate(store, transformTemplateProp)
-  const { beginReorder, cancelReorder, commitReorder, dragConstraintsRef, dragControls, parentId } =
-    useTweakerReorderItem(id, reorderable)
+  const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'section'>['transformTemplate']>>(
+    () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
+    [transformTemplateProp],
+  )
+  const {
+    beginReorder,
+    cancelReorder,
+    commitReorder,
+    dragConstraintsRef,
+    dragControls,
+    parentId,
+    visualDragOffsetY,
+  } = useTweakerReorderItem(id, reorderable)
+  const visualTop = useTransform(() =>
+    reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
+  )
 
   useRegisterTweakerItem({
     hidden: !visible,
@@ -97,15 +111,13 @@ export function TweakerGroup({
 
   const stateAttributes = dataAttributesForStates(states)
 
-  // Read drag state inside a stable template so Motion can expose sibling projection
-  // synchronously, while idle disclosure changes remain owned by the grid transition.
   return (
     <Reorder.Item<string, 'section'>
       {...props}
       {...stateAttributes}
       as="section"
       className={cn(
-        'group/tweaker-section isolate col-span-full shrink-0 select-none rounded-md border border-l-2 border-border/80 border-l-transparent bg-secondary/30 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-20! data-[dragging=true]:border-ring data-[dragging=true]:bg-secondary/80 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
+        'group/tweaker-section relative isolate col-span-full shrink-0 select-none rounded-md border border-l-2 border-border/80 border-l-transparent bg-secondary/30 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-20! data-[dragging=true]:border-ring data-[dragging=true]:bg-secondary/80 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
         className,
       )}
       data-active={active ? 'true' : 'false'}
@@ -125,8 +137,8 @@ export function TweakerGroup({
       dragElastic={0.01}
       dragListener={false}
       dragTransition={props.dragTransition ?? reorderDragTransition}
-      layout
-      style={props.style}
+      layout={disabledReorderItemLayout}
+      style={{ ...props.style, top: visualTop }}
       transformTemplate={transformTemplate}
       transition={props.transition ?? reorderTransition}
       value={id}
@@ -181,7 +193,6 @@ export function TweakerGroup({
           type="button"
           onPointerCancel={cancelReorder}
           onPointerDown={beginReorder}
-          onPointerUp={cancelReorder}
         >
           <GripVertical className="size-3.5" aria-hidden="true" />
         </button>

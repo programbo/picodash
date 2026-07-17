@@ -1,8 +1,106 @@
 import { expect, test } from '@playwright/test'
 
+const customGroupLabels = {
+  'common-items': 'Common inputs',
+  'media-items': 'Media and files',
+  'spatial-items': 'Direct manipulation',
+  'visualization-items': 'Live visualizations',
+} as const
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toBeVisible()
+})
+
+test('previews a collapsed group reorder before pointer release', async ({ page }) => {
+  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+
+  await collapseCustomGroups(panel, Object.keys(customGroupLabels) as CustomGroupId[])
+  await expect(rootList).toBeVisible()
+
+  const initialOrder = await rootItemOrder(rootList)
+  expect(initialOrder).toEqual([
+    'common-items',
+    'spatial-items',
+    'media-items',
+    'visualization-items',
+    'custom-items-summary',
+  ])
+
+  await exerciseLivePreviewGroupDrag({
+    page,
+    panel,
+    rootList,
+    sourceId: 'media-items',
+    targetId: 'visualization-items',
+    verifyCancellation: true,
+    expectedOrder: [
+      'common-items',
+      'spatial-items',
+      'visualization-items',
+      'media-items',
+      'custom-items-summary',
+    ],
+  })
+})
+
+test('previews a mixed-height group reorder without shifting the pointer target', async ({
+  page,
+}) => {
+  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+
+  await collapseCustomGroups(panel, ['common-items', 'media-items', 'visualization-items'])
+  await expect(panel.locator('[data-group-id="spatial-items"]')).toHaveAttribute(
+    'data-collapsed',
+    'false',
+  )
+  await rootList.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+
+  await exerciseLivePreviewGroupDrag({
+    page,
+    panel,
+    rootList,
+    sourceId: 'media-items',
+    targetId: 'visualization-items',
+    expectedOrder: [
+      'common-items',
+      'spatial-items',
+      'visualization-items',
+      'media-items',
+      'custom-items-summary',
+    ],
+  })
+})
+
+test('does not overshoot the next slot after crossing an expanded group', async ({ page }) => {
+  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+
+  await collapseCustomGroups(panel, ['common-items', 'spatial-items', 'visualization-items'])
+  await expect(panel.locator('[data-group-id="media-items"]')).toHaveAttribute(
+    'data-collapsed',
+    'false',
+  )
+
+  await exerciseLivePreviewGroupDrag({
+    page,
+    panel,
+    rootList,
+    sourceId: 'spatial-items',
+    targetId: 'media-items',
+    releaseAfterTarget: true,
+    expectedOrder: [
+      'common-items',
+      'media-items',
+      'spatial-items',
+      'visualization-items',
+      'custom-items-summary',
+    ],
+  })
 })
 
 test('transfers hover ownership between a group header and its child', async ({ page }) => {
@@ -221,3 +319,237 @@ test('animates transient visual paths and switches deterministic signal mode', a
   await expect.poll(() => signalPath.getAttribute('d')).not.toBe(initialSignalPath)
   await expect(signalPath).toHaveAttribute('fill-opacity', '0.18')
 })
+
+type CustomGroupId = keyof typeof customGroupLabels
+
+async function collapseCustomGroups(
+  panel: import('@playwright/test').Locator,
+  groupIds: CustomGroupId[],
+) {
+  for (const groupId of groupIds) {
+    const group = panel.locator(`[data-group-id="${groupId}"]`)
+    await group
+      .getByRole('button', { name: customGroupLabels[groupId], exact: true })
+      .evaluate((button: HTMLButtonElement) => button.click())
+    await expect(group).toHaveAttribute('data-collapsed', 'true')
+  }
+
+  // Disclosure rows animate for 150ms. Reorder sessions must capture the settled
+  // geometry rather than a frame from the collapse transition.
+  await panel.page().waitForTimeout(200)
+}
+
+async function exerciseLivePreviewGroupDrag({
+  expectedOrder,
+  page,
+  panel,
+  releaseAfterTarget = false,
+  rootList,
+  sourceId,
+  targetId,
+  verifyCancellation = false,
+}: {
+  expectedOrder: string[]
+  page: import('@playwright/test').Page
+  panel: import('@playwright/test').Locator
+  releaseAfterTarget?: boolean
+  rootList: import('@playwright/test').Locator
+  sourceId: CustomGroupId
+  targetId: CustomGroupId
+  verifyCancellation?: boolean
+}) {
+  const source = panel.locator(`[data-group-id="${sourceId}"]`)
+  const grip = source.getByRole('button', {
+    name: `Reorder ${customGroupLabels[sourceId]}`,
+    exact: true,
+  })
+  await grip.scrollIntoViewIfNeeded()
+  await expect.poll(() => rootTransformsAreNone(rootList)).toBe(true)
+  await expectContiguousRootItems(rootList)
+
+  const initialOrder = await rootItemOrder(rootList)
+  const initialRects = await rootItemRects(rootList)
+  const initialSlots = await rootItemSlots(rootList)
+  const sourceRect = initialRects[sourceId]
+  const targetRect = initialRects[targetId]
+  const sourceSlot = initialSlots[sourceId]
+  const gripBox = await grip.boundingBox()
+  expect(sourceRect).toBeDefined()
+  expect(targetRect).toBeDefined()
+  expect(sourceSlot).toBeDefined()
+  expect(gripBox).not.toBeNull()
+  if (!sourceRect || !targetRect || !sourceSlot || !gripBox) return
+
+  const pointerX = gripBox.x + gripBox.width / 2
+  const pointerY = gripBox.y + gripBox.height / 2
+  const initialScrollTop = await rootList.evaluate((element) => element.scrollTop)
+
+  await page.mouse.move(pointerX, pointerY)
+  await page.mouse.down()
+  await expect
+    .poll(async () => Math.abs((await requiredBox(source)).y - sourceRect.y))
+    .toBeLessThanOrEqual(1)
+  await expectSiblingRects(rootList, initialRects, sourceId)
+
+  await page.mouse.move(pointerX, pointerY + 4)
+  await expect
+    .poll(async () => (await requiredBox(source)).y - sourceRect.y)
+    .toBeGreaterThanOrEqual(3)
+  await expect.poll(async () => (await requiredBox(source)).y - sourceRect.y).toBeLessThanOrEqual(5)
+  await expectSiblingRects(rootList, initialRects, sourceId)
+
+  const sourceCenter = sourceRect.y + sourceRect.height / 2
+  const targetThreshold = targetRect.y + targetRect.height / 2 - sourceCenter
+  const targetIndex = initialOrder.indexOf(targetId)
+  const nextId = initialOrder[targetIndex + 1]
+  const nextRect = nextId ? initialRects[nextId] : undefined
+  const nextThreshold = nextRect
+    ? nextRect.y + nextRect.height / 2 - sourceCenter
+    : Number.POSITIVE_INFINITY
+  const crossingOffset = releaseAfterTarget
+    ? targetRect.y + targetRect.height - (sourceRect.y + sourceRect.height) + 1
+    : Math.min(targetThreshold + 2, nextThreshold - 2)
+  await page.mouse.move(pointerX, pointerY + crossingOffset)
+  await expect.poll(() => rootItemOrder(rootList)).toEqual(expectedOrder)
+  await expectPointerOffset(source, sourceRect.y, crossingOffset)
+  await expect
+    .poll(async () => Math.abs((await rootItemSlots(rootList))[targetId]!.y - sourceSlot.y))
+    .toBeLessThanOrEqual(1)
+  await expectContiguousRootSlots(rootList)
+  await expect.poll(() => rootTransformsAreNone(rootList)).toBe(true)
+  await expect.poll(() => rootList.evaluate((element) => element.scrollTop)).toBe(initialScrollTop)
+
+  await page.mouse.move(pointerX, pointerY + 4)
+  await expect.poll(() => rootItemOrder(rootList)).toEqual(initialOrder)
+  await expectPointerOffset(source, sourceRect.y, 4)
+  await expectSiblingRects(rootList, initialRects, sourceId)
+  await expectContiguousRootSlots(rootList)
+
+  await page.mouse.move(pointerX, pointerY + crossingOffset)
+  await expect.poll(() => rootItemOrder(rootList)).toEqual(expectedOrder)
+  await expectPointerOffset(source, sourceRect.y, crossingOffset)
+  await expectContiguousRootSlots(rootList)
+
+  if (verifyCancellation) {
+    await grip.dispatchEvent('pointercancel', {
+      bubbles: true,
+      pointerId: 1,
+      pointerType: 'mouse',
+    })
+    await page.mouse.up()
+    await expect.poll(() => rootItemOrder(rootList)).toEqual(initialOrder)
+    await expectPointerOffset(source, sourceRect.y, 0)
+    await expect(source).toHaveAttribute('data-dragging', 'false')
+    await expectContiguousRootItems(rootList)
+
+    await page.mouse.move(pointerX, pointerY)
+    await page.mouse.down()
+    await page.mouse.move(pointerX, pointerY + crossingOffset)
+    await expect.poll(() => rootItemOrder(rootList)).toEqual(expectedOrder)
+    await expectPointerOffset(source, sourceRect.y, crossingOffset)
+  }
+
+  await page.mouse.up()
+  await expect.poll(() => rootItemOrder(rootList)).toEqual(expectedOrder)
+  await expect.poll(() => rootList.evaluate((element) => element.scrollTop)).toBe(initialScrollTop)
+  await expect(source).toHaveAttribute('data-dragging', 'false')
+  await expect.poll(() => rootTransformsAreNone(rootList)).toBe(true)
+  await expectContiguousRootItems(rootList)
+}
+
+async function expectPointerOffset(
+  source: import('@playwright/test').Locator,
+  initialY: number,
+  pointerOffset: number,
+) {
+  await expect
+    .poll(async () => Math.abs((await requiredBox(source)).y - (initialY + pointerOffset)))
+    .toBeLessThanOrEqual(1)
+}
+
+async function expectSiblingRects(
+  rootList: import('@playwright/test').Locator,
+  initialRects: Record<string, ItemRect>,
+  sourceId: string,
+) {
+  await expect
+    .poll(async () => {
+      const currentRects = await rootItemRects(rootList)
+      return Object.entries(initialRects)
+        .filter(([id]) => id !== sourceId)
+        .every(([id, rect]) => Math.abs((currentRects[id]?.y ?? Number.NaN) - rect.y) <= 1)
+    })
+    .toBe(true)
+}
+
+async function expectContiguousRootItems(rootList: import('@playwright/test').Locator) {
+  const slots = Object.values(await rootItemRects(rootList))
+  expect(
+    slots.every(
+      (slot, index) =>
+        index === 0 || slot.y + 0.5 >= slots[index - 1]!.y + slots[index - 1]!.height,
+    ),
+  ).toBe(true)
+}
+
+async function expectContiguousRootSlots(rootList: import('@playwright/test').Locator) {
+  const slots = Object.values(await rootItemSlots(rootList))
+  expect(
+    slots.every(
+      (slot, index) =>
+        index === 0 || slot.y + 0.5 >= slots[index - 1]!.y + slots[index - 1]!.height,
+    ),
+  ).toBe(true)
+}
+
+async function rootItemOrder(rootList: import('@playwright/test').Locator) {
+  return rootList.locator(':scope > div > [data-parent-id="root"]').evaluateAll((items) =>
+    items.map((item) => {
+      if (!(item instanceof HTMLElement)) return ''
+      return item.dataset.groupId ?? item.dataset.controlId ?? ''
+    }),
+  )
+}
+
+type ItemRect = { height: number; y: number }
+
+async function rootItemSlots(rootList: import('@playwright/test').Locator) {
+  return rootList.locator(':scope > div > [data-parent-id="root"]').evaluateAll((items) =>
+    Object.fromEntries(
+      items.map((item) => {
+        const element = item as HTMLElement
+        return [
+          element.dataset.groupId ?? element.dataset.controlId ?? '',
+          { height: element.offsetHeight, y: element.offsetTop },
+        ]
+      }),
+    ),
+  ) as Promise<Record<string, ItemRect>>
+}
+
+async function rootItemRects(rootList: import('@playwright/test').Locator) {
+  return rootList.locator(':scope > div > [data-parent-id="root"]').evaluateAll((items) =>
+    Object.fromEntries(
+      items.map((item) => {
+        const element = item as HTMLElement
+        const rect = element.getBoundingClientRect()
+        return [
+          element.dataset.groupId ?? element.dataset.controlId ?? '',
+          { height: rect.height, y: rect.y },
+        ]
+      }),
+    ),
+  ) as Promise<Record<string, ItemRect>>
+}
+
+async function requiredBox(locator: import('@playwright/test').Locator) {
+  const box = await locator.boundingBox()
+  expect(box).not.toBeNull()
+  return box!
+}
+
+async function rootTransformsAreNone(rootList: import('@playwright/test').Locator) {
+  return rootList
+    .locator(':scope > div > [data-parent-id="root"]')
+    .evaluateAll((items) => items.every((item) => getComputedStyle(item).transform === 'none'))
+}

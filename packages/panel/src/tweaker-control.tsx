@@ -1,5 +1,5 @@
 import { GripVertical, Info, RotateCcw } from 'lucide-react'
-import { Reorder, type HTMLMotionProps } from 'motion/react'
+import { Reorder, useTransform, type HTMLMotionProps } from 'motion/react'
 import { createContext, useCallback, useContext, useId, useMemo, type ReactNode } from 'react'
 import { Button, Label, buttonVariants } from './ui.js'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip.js'
@@ -8,7 +8,6 @@ import {
   useTweakerPanelSelector,
   useTweakerPanelState,
   useTweakerPanelStoreApi,
-  useTweakerReorderTransformTemplate,
   type TweakerControlStates,
   type TweakerPanelState,
   type TweakerPlacement,
@@ -16,7 +15,9 @@ import {
   type TweakerValue,
 } from './tweaker-panel.js'
 import {
+  disabledReorderItemLayout,
   reorderDragTransition,
+  reorderTopWithOffset,
   reorderTransition,
   useTweakerReorderItem,
 } from './tweaker-reorder-item.js'
@@ -119,9 +120,22 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   const active = Object.keys(interaction.activeIds).some((activeId) =>
     activeId.endsWith(`:${controlId}`),
   )
-  const transformTemplate = useTweakerReorderTransformTemplate(store, transformTemplateProp)
-  const { beginReorder, cancelReorder, commitReorder, dragConstraintsRef, dragControls, parentId } =
-    useTweakerReorderItem(controlId, reorderable)
+  const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'div'>['transformTemplate']>>(
+    () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
+    [transformTemplateProp],
+  )
+  const {
+    beginReorder,
+    cancelReorder,
+    commitReorder,
+    dragConstraintsRef,
+    dragControls,
+    parentId,
+    visualDragOffsetY,
+  } = useTweakerReorderItem(controlId, reorderable)
+  const visualTop = useTransform(() =>
+    reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
+  )
 
   const resetValue = useCallback(() => {
     if (field !== undefined) {
@@ -182,8 +196,6 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   const stateAttributes = dataAttributesForStates(states)
   const disabledOrReadOnly = disabled || readOnly
 
-  // Read drag state inside a stable template so Motion can expose sibling projection
-  // synchronously, without waiting for React after a pointer drag has already started.
   return (
     <TweakerControlContext.Provider value={controlContext as unknown as TweakerControlContextValue}>
       <Reorder.Item<string, 'div'>
@@ -215,8 +227,8 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         dragElastic={0.01}
         dragListener={false}
         dragTransition={props.dragTransition ?? reorderDragTransition}
-        layout
-        style={props.style}
+        layout={disabledReorderItemLayout}
+        style={{ ...props.style, top: visualTop }}
         transformTemplate={transformTemplate}
         transition={props.transition ?? reorderTransition}
         value={controlId}
@@ -271,7 +283,6 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
           type="button"
           onPointerCancel={cancelReorder}
           onPointerDown={beginReorder}
-          onPointerUp={cancelReorder}
         >
           <GripVertical className="size-3.5" aria-hidden="true" />
         </button>

@@ -54,17 +54,18 @@ export function reorderValuesForPointer(
   const draggedLayout = layouts.find((layout) => layout.id === itemId)
   if (initialIndex < 0 || !draggedLayout || pointerOffset === 0) return initialValues
 
+  const draggedCenter = (draggedLayout.min + draggedLayout.max) / 2
   let targetIndex = initialIndex
   if (pointerOffset > 0) {
     for (let index = initialIndex + 1; index < initialValues.length; index += 1) {
       const layout = layouts.find((entry) => entry.id === initialValues[index])
-      if (!layout || draggedLayout.max + pointerOffset <= (layout.min + layout.max) / 2) break
+      if (!layout || draggedCenter + pointerOffset <= (layout.min + layout.max) / 2) break
       targetIndex = index
     }
   } else {
     for (let index = initialIndex - 1; index >= 0; index -= 1) {
       const layout = layouts.find((entry) => entry.id === initialValues[index])
-      if (!layout || draggedLayout.min + pointerOffset >= (layout.min + layout.max) / 2) break
+      if (!layout || draggedCenter + pointerOffset >= (layout.min + layout.max) / 2) break
       targetIndex = index
     }
   }
