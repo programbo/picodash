@@ -330,7 +330,7 @@ function DemoExperience() {
         id={outputPanelId}
         title="Custom Items"
         collapsible
-        className="top-136 right-4 w-96 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-8"
+        className="top-136 right-4 w-92 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-8"
         defaultValues={customItemDefaults}
       >
         <PanelStateObserver panelId={outputPanelId} onSnapshot={handlePanelSnapshot} />

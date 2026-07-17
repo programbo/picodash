@@ -1,11 +1,5 @@
 import { Expand, File, UploadCloud, X } from 'lucide-react'
-import {
-  AnimatePresence,
-  LayoutGroup,
-  motion,
-  useReducedMotion,
-  type Transition,
-} from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react'
 import { Dialog } from 'radix-ui'
 import { useDropzone, type Accept, type FileRejection } from 'react-dropzone'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -120,7 +114,6 @@ function DropzoneSurface({
   const [capacityRejections, setCapacityRejections] = useState<FileRejection[]>([])
   const [viewerPreview, setViewerPreview] = useState<TweakerDropzonePreview | null>(null)
   const [viewerOpen, setViewerOpen] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
   const atCapacity = multiple && maxFiles > 0 && value.length >= maxFiles
 
   const { fileRejections, getInputProps, getRootProps, isDragAccept, isDragActive, isDragReject } =
@@ -187,11 +180,10 @@ function DropzoneSurface({
   }, [])
 
   const rejectionMessage = rejectionSummary([...fileRejections, ...capacityRejections])
-  const viewerLayoutId = viewerPreview ? `dropzone-preview-${viewerPreview.id}` : undefined
   void previewVersion
 
   return (
-    <LayoutGroup id={`dropzone-${control.id}`}>
+    <>
       <div className="col-span-full grid gap-1.5">
         <div
           {...getRootProps({
@@ -233,36 +225,32 @@ function DropzoneSurface({
           <ul className="grid gap-1" aria-label="Selected files">
             {value.map((metadata) => {
               const previewUrl = previewUrlsRef.current.get(metadata.id)
-              const layoutId = `dropzone-preview-${metadata.id}`
               return (
                 <li
                   key={metadata.id}
                   className="border-input bg-background/60 grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded border p-1"
                 >
                   {previewUrl ? (
-                    <motion.button
+                    <button
                       aria-label={`View ${metadata.name}`}
                       className="focus-visible:ring-ring group/preview relative size-8 overflow-hidden rounded outline-none focus-visible:ring-2"
                       type="button"
-                      whileHover={prefersReducedMotion ? undefined : { scale: 1.04 }}
-                      whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
                       onClick={(event) => {
                         viewerTriggerRef.current = event.currentTarget
                         setViewerPreview({ ...metadata, url: previewUrl })
                         setViewerOpen(true)
                       }}
                     >
-                      <motion.img
+                      <img
                         alt=""
                         className="size-full object-cover"
                         draggable={false}
-                        layoutId={prefersReducedMotion ? undefined : layoutId}
                         src={previewUrl}
                       />
                       <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition-opacity group-hover/preview:opacity-100 group-focus-visible/preview:opacity-100 motion-reduce:transition-none">
                         <Expand className="size-3.5" aria-hidden="true" />
                       </span>
-                    </motion.button>
+                    </button>
                   ) : (
                     <span className="bg-muted flex size-8 items-center justify-center rounded">
                       <File className="text-muted-foreground size-4" aria-hidden="true" />
@@ -296,7 +284,6 @@ function DropzoneSurface({
       </div>
 
       <DropzoneImageViewer
-        layoutId={viewerLayoutId}
         open={viewerOpen}
         preview={viewerPreview}
         onExitComplete={() => {
@@ -313,19 +300,17 @@ function DropzoneSurface({
           restoreDropzoneViewerFocus(viewerTriggerRef.current)
         }}
       />
-    </LayoutGroup>
+    </>
   )
 }
 
 function DropzoneImageViewer({
-  layoutId,
   onExitComplete,
   onOpenChange,
   onRestoreFocus,
   open,
   preview,
 }: {
-  layoutId: string | undefined
   onExitComplete: () => void
   onOpenChange: (open: boolean) => void
   onRestoreFocus: () => void
@@ -390,13 +375,11 @@ function DropzoneImageViewer({
                   transition={enterTransition}
                 >
                   <div className="relative flex max-h-[82vh] min-h-48 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.12),transparent_65%)] p-3 sm:p-5">
-                    <motion.img
+                    <img
                       alt={preview.name}
                       className="max-h-[74vh] max-w-full rounded-md object-contain shadow-2xl shadow-black/60"
                       draggable={false}
-                      layoutId={prefersReducedMotion ? undefined : layoutId}
                       src={preview.url}
-                      transition={enterTransition}
                     />
                   </div>
                   <figcaption className="flex min-w-0 items-center justify-between gap-3 border-t border-white/10 bg-black/70 px-4 py-2.5">

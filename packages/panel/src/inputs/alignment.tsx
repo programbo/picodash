@@ -40,7 +40,7 @@ const alignmentColumnIcons = [
   TextAlignEnd,
 ] as const satisfies readonly [LucideIcon, LucideIcon, LucideIcon]
 
-const alignmentRowClasses = ['items-start pt-1.5', 'items-center', 'items-end pb-1.5'] as const
+const alignmentRowClasses = ['items-start', 'items-center', 'items-end'] as const
 const alignmentColumnClasses = ['justify-start', 'justify-center', 'justify-end'] as const
 
 export function TweakerAlignment({
@@ -56,7 +56,7 @@ export function TweakerAlignment({
           <ToggleGroup.Root
             id={control.inputId}
             aria-label="Alignment"
-            className="border-input bg-border col-span-2 grid grid-cols-3 gap-px justify-self-start overflow-hidden rounded-md border p-px shadow-sm"
+            className="border-input bg-muted/35 col-span-2 grid grid-cols-3 justify-self-start overflow-hidden rounded-md border p-0.5 shadow-sm"
             disabled={control.disabled || control.readOnly}
             type="single"
             value={value}
@@ -76,7 +76,9 @@ export function TweakerAlignment({
                   id={`${control.inputId}:${option.value}`}
                   aria-label={option.label}
                   className={cn(
-                    'group/alignment bg-background text-muted-foreground hover:bg-accent focus-visible:ring-ring data-[state=on]:bg-primary/20 data-[state=on]:text-primary relative flex size-8 px-1.5 transition-colors outline-none focus-visible:z-10 focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-45',
+                    'text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring data-[state=on]:bg-primary data-[state=on]:text-primary-foreground relative flex size-8 p-1 transition-colors outline-none focus-visible:z-10 focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-45',
+                    index % 3 !== 0 && 'border-input border-l',
+                    index >= 3 && 'border-input border-t',
                     rowClassName,
                     columnClassName,
                   )}
@@ -85,11 +87,7 @@ export function TweakerAlignment({
                   value={option.value}
                   onKeyDown={moveAlignmentFocusVertically}
                 >
-                  <AlignmentIcon
-                    aria-hidden="true"
-                    className="size-3.5 transition-transform group-data-[state=on]/alignment:scale-110"
-                    strokeWidth={2}
-                  />
+                  <AlignmentIcon aria-hidden="true" className="size-3.5" strokeWidth={2} />
                 </ToggleGroup.Item>
               )
             })}

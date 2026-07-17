@@ -257,12 +257,16 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
           onPointerUpCapture?.(event)
         }}
       >
+        <span
+          className="group-data-[hovered=true]/tweaker-section:bg-accent/65 pointer-events-none absolute inset-y-0 left-0.5 z-0 w-6 rounded-l-sm transition-colors duration-150"
+          aria-hidden="true"
+        />
         <button
           aria-disabled={!reorderable}
           aria-label={labelText ? `Reorder ${labelText}` : 'Reorder control'}
           className={cn(
             buttonVariants({ size: 'icon', variant: 'ghost' }),
-            'col-start-1 size-6 shrink-0 cursor-grab self-center text-muted-foreground opacity-70 active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-30',
+            'relative z-10 col-start-1 size-6 shrink-0 cursor-grab self-center text-muted-foreground opacity-70 active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-30',
           )}
           type="button"
           onPointerCancel={cancelReorder}
