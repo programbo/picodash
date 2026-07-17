@@ -28,6 +28,16 @@ export interface TweakerRangeNormalizationOptions {
   step?: number
 }
 
+export interface TweakerRangeFillGeometry {
+  highPercent: number
+  insetInlineEnd: string
+  insetInlineStart: string
+  lowPercent: number
+  midpointPercent: number
+}
+
+const rangeThumbRadius = 7
+
 export function TweakerRange({
   defaultValue,
   formatOptions: formatOptionsProp,
@@ -63,6 +73,7 @@ export function TweakerRange({
         })
         const formattedLow = formatNumericValue(value[0], { formatOptions, step })
         const formattedHigh = formatNumericValue(value[1], { formatOptions, step })
+        const fillGeometry = projectTweakerRangeFill(value, min, max)
 
         return (
           <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
@@ -88,19 +99,26 @@ export function TweakerRange({
               }}
             >
               <Slider.Track className="bg-input relative h-1 grow overflow-hidden rounded-full">
-                <Slider.Range className="bg-primary absolute h-full" />
+                <span
+                  aria-hidden="true"
+                  className="bg-primary absolute h-full"
+                  style={{
+                    insetInlineEnd: fillGeometry.insetInlineEnd,
+                    insetInlineStart: fillGeometry.insetInlineStart,
+                  }}
+                />
               </Slider.Track>
               <Slider.Thumb
                 id={`${control.inputId}:low`}
                 aria-label="Lower value"
                 aria-valuetext={formattedLow}
-                className="border-primary bg-background focus-visible:ring-ring focus-visible:ring-offset-background block size-3.5 rounded-full border shadow transition-[box-shadow,transform] outline-none hover:scale-110 focus-visible:ring-2 focus-visible:ring-offset-1 disabled:pointer-events-none"
+                className="focus-visible:before:ring-ring focus-visible:before:ring-offset-background before:border-primary before:bg-primary/60 relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-3.5 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:shadow before:transition-[box-shadow,scale] before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
               />
               <Slider.Thumb
                 id={`${control.inputId}:high`}
                 aria-label="Upper value"
                 aria-valuetext={formattedHigh}
-                className="border-primary bg-background focus-visible:ring-ring focus-visible:ring-offset-background block size-3.5 rounded-full border shadow transition-[box-shadow,transform] outline-none hover:scale-110 focus-visible:ring-2 focus-visible:ring-offset-1 disabled:pointer-events-none"
+                className="focus-visible:before:ring-ring focus-visible:before:ring-offset-background before:border-primary before:bg-primary/60 relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-3.5 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:shadow before:transition-[box-shadow,scale] before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
               />
             </Slider.Root>
             <output
@@ -116,6 +134,30 @@ export function TweakerRange({
   )
 }
 
+export function projectTweakerRangeFill(
+  value: TweakerRangeValue,
+  min = 0,
+  max = 100,
+): TweakerRangeFillGeometry {
+  const bounds = normalizeRangeBounds(min, max, 1)
+  const span = bounds.max - bounds.min
+  const first = clampRangeProjectionValue(value[0], bounds.min, bounds.max, bounds.min)
+  const second = clampRangeProjectionValue(value[1], bounds.min, bounds.max, bounds.max)
+  const low = Math.min(first, second)
+  const high = Math.max(first, second)
+  const lowPercent = span === 0 ? 0 : ((low - bounds.min) / span) * 100
+  const highPercent = span === 0 ? 0 : ((high - bounds.min) / span) * 100
+  const midpointPercent = (lowPercent + highPercent) / 2
+
+  return {
+    highPercent,
+    insetInlineEnd: rangeFillInset(100 - highPercent, 100 - midpointPercent),
+    insetInlineStart: rangeFillInset(lowPercent, midpointPercent),
+    lowPercent,
+    midpointPercent,
+  }
+}
+
 export function normalizeRangeValue(
   value: unknown,
   { fallback, max = 100, min = 0, step = 1 }: TweakerRangeNormalizationOptions = {},
@@ -126,6 +168,19 @@ export function normalizeRangeValue(
   const low = normalizeRangeNumber(candidate[0], safeFallback[0], bounds)
   const high = normalizeRangeNumber(candidate[1], safeFallback[1], bounds)
   return low <= high ? [low, high] : [high, low]
+}
+
+function clampRangeProjectionValue(value: number, min: number, max: number, fallback: number) {
+  const finiteValue = Number.isFinite(value) ? value : fallback
+  return Math.min(max, Math.max(min, finiteValue))
+}
+
+function rangeFillInset(edgePercent: number, midpointPercent: number) {
+  return `min(calc(${formatRangePercent(edgePercent)}% + ${rangeThumbRadius}px), ${formatRangePercent(midpointPercent)}%)`
+}
+
+function formatRangePercent(value: number) {
+  return Number(value.toFixed(6))
 }
 
 export function normalizeRangeBounds(min?: number, max?: number, step?: number) {

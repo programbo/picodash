@@ -1,6 +1,7 @@
 import { isValidElement } from 'react'
 import { expect, test } from 'vite-plus/test'
 import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
+import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
 import {
   gradientCssValue,
   isTweakerAlignmentValue,
@@ -99,6 +100,54 @@ test('normalizes range bounds and snaps an ordered tuple', () => {
       step: 1,
     }),
   ).toEqual([2, 6])
+})
+
+test('projects the range fill between the thumbs inner edges', () => {
+  expect(projectTweakerRangeFill([24, 76], 0, 100)).toEqual({
+    highPercent: 76,
+    insetInlineEnd: 'min(calc(24% + 7px), 50%)',
+    insetInlineStart: 'min(calc(24% + 7px), 50%)',
+    lowPercent: 24,
+    midpointPercent: 50,
+  })
+
+  expect(projectTweakerRangeFill([-5, 5], -10, 10)).toMatchObject({
+    highPercent: 75,
+    insetInlineEnd: 'min(calc(25% + 7px), 50%)',
+    insetInlineStart: 'min(calc(25% + 7px), 50%)',
+    lowPercent: 25,
+  })
+
+  expect(projectTweakerRangeFill([8, 2], 0, 10)).toMatchObject({
+    highPercent: 80,
+    insetInlineEnd: 'min(calc(20% + 7px), 50%)',
+    insetInlineStart: 'min(calc(20% + 7px), 50%)',
+    lowPercent: 20,
+  })
+})
+
+test('collapses the range fill cleanly for close or coincident thumbs', () => {
+  expect(projectTweakerRangeFill([49, 51])).toMatchObject({
+    insetInlineEnd: 'min(calc(49% + 7px), 50%)',
+    insetInlineStart: 'min(calc(49% + 7px), 50%)',
+    midpointPercent: 50,
+  })
+
+  expect(projectTweakerRangeFill([50, 50])).toMatchObject({
+    highPercent: 50,
+    insetInlineEnd: 'min(calc(50% + 7px), 50%)',
+    insetInlineStart: 'min(calc(50% + 7px), 50%)',
+    lowPercent: 50,
+    midpointPercent: 50,
+  })
+
+  expect(projectTweakerRangeFill([3, 3], 3, 3)).toEqual({
+    highPercent: 0,
+    insetInlineEnd: 'min(calc(100% + 7px), 100%)',
+    insetInlineStart: 'min(calc(0% + 7px), 0%)',
+    lowPercent: 0,
+    midpointPercent: 0,
+  })
 })
 
 test('normalizes and projects XY values', () => {

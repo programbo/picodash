@@ -167,7 +167,7 @@ export function TweakerGroup({
         onPointerUpCapture?.(event)
       }}
     >
-      <div className="group-data-[hovered=true]/tweaker-section:bg-accent/65 flex min-h-8 items-center gap-0 rounded-t-sm py-1 pr-1.5 transition-colors duration-150 group-data-[collapsed=true]/tweaker-section:rounded-b-sm">
+      <div className="group-data-[hovered=true]/tweaker-section:bg-accent/80 flex min-h-8 items-center gap-0 rounded-t-sm py-1 pr-1.5 transition-colors duration-150 group-data-[collapsed=true]/tweaker-section:rounded-b-sm">
         <button
           aria-disabled={!reorderable}
           aria-label={`Reorder ${labelText}`}

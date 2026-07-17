@@ -258,7 +258,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         }}
       >
         <span
-          className="group-data-[hovered=true]/tweaker-section:bg-accent/65 pointer-events-none absolute inset-y-0 left-0.5 z-0 w-6 rounded-l-sm transition-colors duration-150"
+          className="group-data-[hovered=true]/tweaker-section:bg-accent/80 pointer-events-none absolute -inset-y-0.75 left-0.5 z-0 w-6 transition-colors duration-150"
           aria-hidden="true"
         />
         <button
