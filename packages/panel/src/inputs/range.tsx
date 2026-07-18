@@ -8,7 +8,8 @@ import {
   type TweakerControlContextValue,
   type TweakerControlProps,
 } from '../tweaker-control.js'
-import { useTweakerPanelStoreApi, type TweakerPanelStore } from '../tweaker-panel.js'
+import { exactTweakerTupleValue, synchronizeTweakerFieldValue } from '../tweaker-control-value.js'
+import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { tweakerGeometryTokens } from '../theme.js'
 
 export type TweakerRangeValue = [low: number, high: number]
@@ -159,50 +160,21 @@ function TweakerRangeValueSynchronizer({
   const [fallbackLow, fallbackHigh] = fallbackValue
 
   useEffect(() => {
-    synchronizeTweakerRangeValue(
+    synchronizeTweakerFieldValue(
       control,
-      { fallback: [fallbackLow, fallbackHigh], max, min, step },
+      (currentValue) =>
+        normalizeRangeValue(currentValue, {
+          fallback: [fallbackLow, fallbackHigh],
+          max,
+          min,
+          step,
+        }),
+      exactTweakerTupleValue,
       store,
     )
   }, [control, fallbackHigh, fallbackLow, max, min, step, store])
 
   return null
-}
-
-export function synchronizeTweakerRangeValue(
-  control: Pick<
-    TweakerControlContextValue<TweakerRangeValue>,
-    'disabled' | 'field' | 'readOnly' | 'setValue'
-  > & { value?: unknown },
-  normalization: TweakerRangeNormalizationOptions,
-  store: TweakerPanelStore,
-) {
-  const field = control.field
-  if (field === undefined) {
-    if (control.value === undefined) return
-    const normalizedValue = normalizeRangeValue(control.value, normalization)
-    if (!isExactTweakerRangeValue(control.value, normalizedValue)) {
-      control.setValue(normalizedValue)
-    }
-    return
-  }
-
-  store.setState((state) => {
-    const currentValue = state.values[field]
-    if (currentValue === undefined) return state
-    const normalizedValue = normalizeRangeValue(currentValue, normalization)
-    if (isExactTweakerRangeValue(currentValue, normalizedValue)) return state
-    return { values: { ...state.values, [field]: normalizedValue } }
-  })
-}
-
-function isExactTweakerRangeValue(value: unknown, normalizedValue: TweakerRangeValue) {
-  return (
-    Array.isArray(value) &&
-    value.length === 2 &&
-    value[0] === normalizedValue[0] &&
-    value[1] === normalizedValue[1]
-  )
 }
 
 export function projectTweakerRangeFill(

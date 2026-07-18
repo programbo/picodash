@@ -1,7 +1,12 @@
 import { isValidElement } from 'react'
 import { expect, test, vi } from 'vite-plus/test'
 import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
-import { projectTweakerRangeFill, synchronizeTweakerRangeValue } from '../src/inputs/range.tsx'
+import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
+import {
+  exactTweakerObjectValue,
+  exactTweakerTupleValue,
+  synchronizeTweakerFieldValue,
+} from '../src/tweaker-control-value.ts'
 import { createTweakerPanelStore } from '../src/tweaker-panel-store.ts'
 import {
   gradientCssValue,
@@ -72,6 +77,81 @@ test('normalizes segmented options to an enabled selection', () => {
   expect(segmentedOptionIcon(options[1]!)).toBe(icon)
   expect(segmentedOptionIcon('plain')).toBeUndefined()
   expect(segmentedOptionDisabled(options[0]!)).toBe(true)
+  expect(
+    normalizeSegmentedValue('missing', [{ disabled: true, value: 'disabled' }]),
+  ).toBeUndefined()
+})
+
+test('persists a valid segmented fallback from the latest stored value', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: { mode: 'initial' },
+    panelId: 'segmented',
+  })
+  const options = ['rendered-stale', 'fallback']
+  const fields = store.getState().fields
+  const guardedSetValue = vi.fn()
+  const control = {
+    disabled: true,
+    field: 'mode',
+    readOnly: true,
+    setValue: guardedSetValue,
+    value: 'rendered-stale',
+  }
+
+  store.setState((state) => ({ values: { ...state.values, mode: 'latest-removed' } }))
+  synchronizeTweakerFieldValue(
+    control,
+    (currentValue) => normalizeSegmentedValue(currentValue, options, 'fallback'),
+    (currentValue, normalizedValue) => currentValue === normalizedValue,
+    store,
+  )
+  expect(store.getState().values.mode).toBe('fallback')
+  expect(store.getState().fields).toBe(fields)
+  expect(guardedSetValue).not.toHaveBeenCalled()
+
+  const canonicalValues = store.getState().values
+  synchronizeTweakerFieldValue(
+    control,
+    (currentValue) => normalizeSegmentedValue(currentValue, options, 'fallback'),
+    (currentValue, normalizedValue) => currentValue === normalizedValue,
+    store,
+  )
+  expect(store.getState().values).toBe(canonicalValues)
+
+  store.setState((state) => ({ values: { ...state.values, mode: 'removed-again' } }))
+  synchronizeTweakerFieldValue(
+    control,
+    (currentValue) =>
+      normalizeSegmentedValue(
+        currentValue,
+        [{ disabled: true, value: 'disabled' }, 'ready'],
+        'missing',
+      ),
+    (currentValue, normalizedValue) => currentValue === normalizedValue,
+    store,
+  )
+  expect(store.getState().values.mode).toBe('ready')
+
+  store.setState((state) => ({ values: { ...state.values, mode: 'unchanged' } }))
+  const unchangedValues = store.getState().values
+  synchronizeTweakerFieldValue(
+    control,
+    (currentValue) => normalizeSegmentedValue(currentValue, []),
+    (currentValue, normalizedValue) => currentValue === normalizedValue,
+    store,
+  )
+  expect(store.getState().values).toBe(unchangedValues)
+
+  const fieldlessSetValue = vi.fn()
+  const fieldlessControl = { setValue: fieldlessSetValue, value: 'fieldless-invalid' }
+  synchronizeTweakerFieldValue(
+    fieldlessControl,
+    () => 'phantom',
+    () => false,
+    store,
+  )
+  expect(store.getState().values).toBe(unchangedValues)
+  expect(fieldlessSetValue).not.toHaveBeenCalled()
 })
 
 test('validates every alignment and falls back to centre', () => {
@@ -88,6 +168,45 @@ test('normalizes vector bounds, finite coordinates, and step', () => {
   ).toEqual({ x: 2, y: -5, z: 10 })
   expect(normalizeVectorStep(0)).toBe(1)
   expect(normalizeVectorStep(0.25)).toBe(0.25)
+})
+
+test('persists a canonical Vector3 from the latest stored value without changing metadata', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: { vector: { x: 0, y: 0, z: 0 } },
+    panelId: 'vectors',
+  })
+  const control = {
+    disabled: true,
+    field: 'vector',
+    readOnly: true,
+    value: { x: 1, y: 1, z: 1 },
+  }
+  const fallback = { x: 0, y: 0, z: 0 }
+  const synchronize = () =>
+    synchronizeTweakerFieldValue(
+      control,
+      (currentValue) => normalizeVector3Value(currentValue, fallback, -5, 5),
+      (currentValue, normalizedValue) =>
+        exactTweakerObjectValue(currentValue, normalizedValue, ['x', 'y', 'z']),
+      store,
+    )
+
+  store.setState((state) => ({
+    values: { ...state.values, vector: { extra: 99, x: 9, y: -9, z: 2 } },
+  }))
+  const fields = store.getState().fields
+  synchronize()
+  expect(store.getState().values.vector).toEqual({ x: 5, y: -5, z: 2 })
+  expect(store.getState().fields).toBe(fields)
+
+  const values = store.getState().values
+  synchronize()
+  expect(store.getState().values).toBe(values)
+
+  store.setState((state) => ({ values: { ...state.values, vector: null } }))
+  synchronize()
+  expect(store.getState().values.vector).toEqual(fallback)
+  expect(store.getState().fields).toBe(fields)
 })
 
 test('normalizes range bounds and snaps an ordered tuple', () => {
@@ -117,10 +236,17 @@ test('persists a dynamically normalized field range despite a guarded control se
     setValue: guardedSetValue,
     value: [2, 9],
   }
+  const synchronize = () =>
+    synchronizeTweakerFieldValue(
+      control,
+      (currentValue) => normalizeRangeValue(currentValue, normalization),
+      exactTweakerTupleValue,
+      store,
+    )
 
   store.setState((state) => ({ values: { ...state.values, range: [3, 8] } }))
   const cleanFields = store.getState().fields
-  synchronizeTweakerRangeValue(control, normalization, store)
+  synchronize()
   expect(store.getState().values.range).toEqual([3, 6])
   expect(store.getState().fields).toBe(cleanFields)
   expect(store.getState().fields.range).toEqual({
@@ -132,7 +258,7 @@ test('persists a dynamically normalized field range despite a guarded control se
   expect(guardedSetValue).not.toHaveBeenCalled()
 
   const values = store.getState().values
-  synchronizeTweakerRangeValue(control, normalization, store)
+  synchronize()
   expect(store.getState().values).toBe(values)
 
   store.getState().setFieldValue('range', [4, 9])
@@ -143,7 +269,7 @@ test('persists a dynamically normalized field range despite a guarded control se
     },
   }))
   const dirtyFields = store.getState().fields
-  synchronizeTweakerRangeValue(control, normalization, store)
+  synchronize()
   expect(store.getState().values.range).toEqual([4, 6])
   expect(store.getState().fields).toBe(dirtyFields)
   expect(store.getState().fields.range).toEqual({
@@ -154,12 +280,12 @@ test('persists a dynamically normalized field range despite a guarded control se
   })
 
   store.setState((state) => ({ values: { ...state.values, range: [2, 6, 99] } }))
-  synchronizeTweakerRangeValue(control, normalization, store)
+  synchronize()
   expect(store.getState().values.range).toEqual([2, 6])
   expect(store.getState().fields).toBe(dirtyFields)
 
   store.setState((state) => ({ values: { ...state.values, range: null } }))
-  synchronizeTweakerRangeValue(control, normalization, store)
+  synchronize()
   expect(store.getState().values.range).toEqual([0, 6])
   expect(store.getState().fields).toBe(dirtyFields)
 })
@@ -230,6 +356,52 @@ test('normalizes and projects XY values', () => {
   expect(projectTweakerXYLabelPosition(150, 60, labelMetrics)).toEqual({ x: 91, y: 37 })
   expect(projectTweakerXYLabelPosition(10, 4, labelMetrics)).toEqual({ x: 21, y: 0 })
   expect(projectTweakerXYLabelPosition(198, 60, labelMetrics)).toEqual({ x: 139, y: 37 })
+})
+
+test('persists a canonical XY value from reactive bounds and repairs malformed shapes', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: { xy: { x: 0.25, y: 0.75 } },
+    panelId: 'xy',
+  })
+  const bounds = normalizeTweakerXYBounds({
+    step: 0.25,
+    xMax: 1,
+    xMin: 0,
+    yMax: 1,
+    yMin: 0,
+  })
+  const fallback = { x: 0.25, y: 0.75 }
+  const control = {
+    disabled: true,
+    field: 'xy',
+    readOnly: true,
+    value: { x: 0.5, y: 0.5 },
+  }
+  const synchronize = () =>
+    synchronizeTweakerFieldValue(
+      control,
+      (currentValue) => normalizeTweakerXYValue(currentValue, bounds, fallback),
+      (currentValue, normalizedValue) =>
+        exactTweakerObjectValue(currentValue, normalizedValue, ['x', 'y']),
+      store,
+    )
+
+  store.setState((state) => ({
+    values: { ...state.values, xy: { extra: 99, x: 1.6, y: -0.2 } },
+  }))
+  const fields = store.getState().fields
+  synchronize()
+  expect(store.getState().values.xy).toEqual({ x: 1, y: 0 })
+  expect(store.getState().fields).toBe(fields)
+
+  const values = store.getState().values
+  synchronize()
+  expect(store.getState().values).toBe(values)
+
+  store.setState((state) => ({ values: { ...state.values, xy: 'malformed' } }))
+  synchronize()
+  expect(store.getState().values.xy).toEqual(fallback)
+  expect(store.getState().fields).toBe(fields)
 })
 
 test('normalizes gradient stops, colors, and pointer projection', () => {

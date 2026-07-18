@@ -8,6 +8,8 @@ import {
   type TweakerControlContextValue,
   type TweakerControlProps,
 } from '../tweaker-control.js'
+import { exactTweakerObjectValue, synchronizeTweakerFieldValue } from '../tweaker-control-value.js'
+import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { cn } from '../utils.js'
 
 export type TweakerXYValue = { x: number; y: number }
@@ -49,6 +51,7 @@ const defaultBounds: TweakerXYBounds = {
   yMax: 1,
   yMin: 0,
 }
+const xyAxes = ['x', 'y'] as const
 
 export function TweakerXYPad({
   ariaLabel = 'Two-dimensional value',
@@ -115,7 +118,8 @@ function XYPadSurface({
   const pointerRectRef = useRef<Pick<DOMRect, 'height' | 'left' | 'top' | 'width'> | null>(null)
   const travelRef = useRef({ x: 0, y: 0 })
   const prefersReducedMotion = useReducedMotion()
-  const value = normalizeTweakerXYValue(control.value ?? fallbackValue, bounds)
+  const store = useTweakerPanelStoreApi()
+  const value = normalizeTweakerXYValue(control.value, bounds, fallbackValue)
   const projected = projectTweakerXYValue(value, bounds)
   const projectedRef = useRef(projected)
   projectedRef.current = projected
@@ -152,6 +156,18 @@ function XYPadSurface({
   const unavailable = control.disabled || control.readOnly
   const padId = `${control.inputId}:pad`
   const instructionsId = `${control.inputId}:instructions`
+  const { x: fallbackX, y: fallbackY } = fallbackValue
+
+  useEffect(() => {
+    synchronizeTweakerFieldValue(
+      control,
+      (currentValue) =>
+        normalizeTweakerXYValue(currentValue, bounds, { x: fallbackX, y: fallbackY }),
+      (currentValue, normalizedValue) =>
+        exactTweakerObjectValue(currentValue, normalizedValue, xyAxes),
+      store,
+    )
+  }, [bounds, control, fallbackX, fallbackY, store])
 
   useEffect(() => {
     const measure = () => {
@@ -318,15 +334,23 @@ export function normalizeTweakerXYBounds(
 }
 
 export function normalizeTweakerXYValue(
-  value: TweakerXYValue | undefined,
+  value: unknown,
   bounds: TweakerXYBounds,
+  fallback: TweakerXYValue = { x: bounds.xMin, y: bounds.yMin },
 ): TweakerXYValue {
-  const x = finiteOr(value?.x, bounds.xMin)
-  const y = finiteOr(value?.y, bounds.yMin)
+  const fallbackX = finiteOr(fallback.x, bounds.xMin)
+  const fallbackY = finiteOr(fallback.y, bounds.yMin)
+  const candidate = isTweakerXYRecord(value) ? value : { x: fallbackX, y: fallbackY }
+  const x = finiteOr(candidate.x, fallbackX)
+  const y = finiteOr(candidate.y, fallbackY)
   return {
     x: snapAndClamp(x, bounds.xMin, bounds.xMax, bounds.step),
     y: snapAndClamp(y, bounds.yMin, bounds.yMax, bounds.step),
   }
+}
+
+function isTweakerXYRecord(value: unknown): value is Partial<TweakerXYValue> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export function projectTweakerXYValue(value: TweakerXYValue, bounds: TweakerXYBounds) {

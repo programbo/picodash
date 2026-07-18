@@ -6,6 +6,8 @@ import {
   type TweakerControlContextValue,
   type TweakerControlProps,
 } from '../tweaker-control.js'
+import { exactTweakerObjectValue, synchronizeTweakerFieldValue } from '../tweaker-control-value.js'
+import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { Input } from '../ui.js'
 
 export type TweakerVector3Value = {
@@ -55,6 +57,12 @@ export function TweakerVector3({
 
         return (
           <div className="col-span-2 grid min-w-0 grid-cols-3 gap-(--tweaker-space-1)">
+            <TweakerVector3ValueSynchronizer
+              control={control}
+              fallback={normalizedDefaultValue}
+              max={bounds.max}
+              min={bounds.min}
+            />
             {axes.map((axis) => (
               <VectorAxisInput
                 key={axis}
@@ -81,6 +89,33 @@ export function TweakerVector3({
       }}
     </TweakerControl>
   )
+}
+
+function TweakerVector3ValueSynchronizer({
+  control,
+  fallback,
+  max,
+  min,
+}: {
+  control: TweakerControlContextValue<TweakerVector3Value>
+  fallback: TweakerVector3Value
+  max?: number
+  min?: number
+}) {
+  const store = useTweakerPanelStoreApi()
+  const { x, y, z } = fallback
+
+  useEffect(() => {
+    synchronizeTweakerFieldValue(
+      control,
+      (currentValue) => normalizeVector3Value(currentValue, { x, y, z }, min, max),
+      (currentValue, normalizedValue) =>
+        exactTweakerObjectValue(currentValue, normalizedValue, axes),
+      store,
+    )
+  }, [control, max, min, store, x, y, z])
+
+  return null
 }
 
 function VectorAxisInput({
