@@ -444,35 +444,27 @@ for (const collapsed of [false, true]) {
 
     const initialOrder = ['scene-essentials', 'scene-rendering', 'scene-summary']
     expect(await itemOrder(list, 'root')).toEqual(initialOrder)
-    const initialSlots = await itemSlots(list, 'root')
     const staticItems = [
-      { item: essentials, label: 'Essentials' },
-      { item: rendering, label: 'Rendering' },
-      { item: summary, label: 'Summary' },
+      {
+        item: essentials,
+        label: 'Essentials',
+        surface: essentials.locator(':scope > div').first(),
+      },
+      { item: rendering, label: 'Rendering', surface: rendering.locator(':scope > div').first() },
+      { item: summary, label: 'Summary', surface: summary },
     ]
 
-    for (const { item, label } of staticItems) {
+    for (const { item, label, surface } of staticItems) {
       const slot = item.getByRole('button', { name: `Reorder ${label}`, exact: true })
       await expect(item).toHaveAttribute('data-reorderable', 'false')
-      await expect(slot).toHaveAttribute('aria-disabled', 'true')
-      await expect(slot.locator('[data-tweaker-reorder-indicator="static"]')).toHaveCount(1)
-      await expect(slot.locator('[data-tweaker-reorder-indicator="grip"]')).toHaveCount(0)
-      await expect(slot.locator('svg')).toHaveCount(0)
-
-      await slot.scrollIntoViewIfNeeded()
-      const slotRect = await requiredBox(slot)
-      const pointerX = slotRect.x + slotRect.width / 2
-      const pointerY = slotRect.y + slotRect.height / 2
-      await page.mouse.move(pointerX, pointerY)
-      await page.mouse.down()
-      await page.mouse.move(pointerX, pointerY - 120)
-      await page.mouse.up()
-
+      await expect(slot).toHaveCount(0)
+      await expect(surface).toHaveCSS('padding-left', '6px')
       await expect(item).toHaveAttribute('data-dragging', 'false')
       expect(await itemOrder(list, 'root')).toEqual(initialOrder)
     }
 
-    expect(await itemSlots(list, 'root')).toEqual(initialSlots)
+    const customRootGroup = page.locator('[data-group-id="common-items"]')
+    await expect(customRootGroup.locator(':scope > div').first()).toHaveCSS('padding-left', '0px')
     await expect.poll(() => listTransformsAreNone(list, 'root')).toBe(true)
     await expectContiguousItems(list, 'root')
   })
@@ -481,14 +473,14 @@ for (const collapsed of [false, true]) {
 test('transfers hover ownership between a group header and its child', async ({ page }) => {
   const group = page.locator('[data-group-id="scene-rendering"]')
   const child = page.locator('[data-control-id="quality"]')
-  const groupGrip = group.getByRole('button', { name: 'Reorder Rendering', exact: true })
+  const groupHeader = group.getByRole('button', { name: 'Rendering', exact: true })
   const childGrip = child.getByRole('button', { name: 'Reorder Quality', exact: true })
 
   await childGrip.hover()
   await expect(child).toHaveAttribute('data-hovered', 'true')
   await expect(group).toHaveAttribute('data-hovered', 'false')
 
-  await groupGrip.hover()
+  await groupHeader.hover()
   await expect(group).toHaveAttribute('data-hovered', 'true')
   await expect(child).toHaveAttribute('data-hovered', 'false')
 
@@ -549,6 +541,7 @@ test('renders static square slots for non-reorderable items', async ({ page }) =
   })
 
   await expect(fixedControl).toHaveAttribute('data-reorderable', 'false')
+  await expect(fixedControl).toHaveCSS('padding-left', '0px')
   await expect(fixedSlot).toHaveAttribute('aria-disabled', 'true')
   await expect(fixedSlot.locator('[data-tweaker-reorder-indicator="static"]')).toHaveCount(1)
   await expect(fixedSlot.locator('svg')).toHaveCount(0)

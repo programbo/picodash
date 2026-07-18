@@ -118,8 +118,9 @@ following grid row.
 
 Controls and groups are draggable only when `reorderable` is enabled and another visible,
 reorderable item exists in the same parent and `placement` band. A singleton band, or a
-band whose remaining items are hidden or explicitly non-reorderable, renders a static
-marker instead of a drag grip and rejects pointer and store reorder attempts.
+band whose remaining items are hidden or explicitly non-reorderable, rejects pointer and
+store reorder attempts. Static top-level items omit the reorder column entirely; nested
+static items retain a marker so sibling row columns remain aligned.
 
 Pure normalization and projection helpers are exported alongside the controls for custom
 composition and focused testing. Keep the panel store authoritative for user values. Use

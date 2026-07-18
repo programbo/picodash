@@ -22,6 +22,7 @@ import {
   reorderTransition,
   useTweakerReorderItem,
 } from './tweaker-reorder-item.js'
+import { rootGroupId } from './tweaker-order.js'
 import { TweakerReorderIndicator } from './tweaker-reorder-indicator.js'
 import { tweakerMotionTokens } from './theme.js'
 import { cn, toDataValue, toKebabCase } from './utils.js'
@@ -141,6 +142,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   const visualTop = useTransform(() =>
     reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
   )
+  const showReorderSlot = reorderable || parentId !== rootGroupId
 
   const resetValue = useCallback(() => {
     if (field !== undefined) {
@@ -211,6 +213,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         aria-labelledby={label ? labelId : undefined}
         className={cn(
           'group/control relative isolate col-span-full grid min-h-(--tweaker-row-min-height) shrink-0 grid-cols-subgrid items-start gap-x-(--tweaker-space-1) gap-y-(--tweaker-space-0-5) select-none rounded-(--tweaker-row-radius) border border-l-2 border-transparent bg-transparent py-(--tweaker-space-1) pr-(--tweaker-space-1-5) text-tweaker-text outline-none transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--tweaker-duration-fast) data-[dragging=true]:z-(--tweaker-layer-drag)! data-[dragging=true]:border-tweaker-focus data-[dragging=true]:bg-(--tweaker-row-drag) data-[dragging=true]:shadow-tweaker-panel data-[dragging=true]:backdrop-blur-(--tweaker-blur-surface) data-[focused=true]:border-tweaker-focus/60 data-[hovered=true]:bg-(--tweaker-row-hover) data-[status=alert]:border-l-(--tweaker-color-alert-border) data-[status=alert]:bg-tweaker-alert-subtle data-[status=error]:border-l-(--tweaker-color-danger-border) data-[status=error]:bg-tweaker-danger-subtle data-[status=info]:border-l-(--tweaker-color-info-border) data-[status=info]:bg-tweaker-info-subtle data-[status=warning]:border-l-(--tweaker-color-warning-border) data-[status=warning]:bg-tweaker-warning-subtle',
+          !showReorderSlot && 'pl-(--tweaker-space-1-5)',
           className,
         )}
         data-active={active ? 'true' : 'false'}
@@ -282,19 +285,21 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
           className="group-data-[hovered=true]/tweaker-section:bg-tweaker-surface-muted/80 pointer-events-none absolute inset-y-(--tweaker-control-hover-rail-inset-block) left-(--tweaker-control-hover-rail-left) z-0 w-(--tweaker-control-hover-rail-width) transition-colors duration-(--tweaker-duration-fast)"
           aria-hidden="true"
         />
-        <button
-          aria-disabled={!reorderable}
-          aria-label={labelText ? `Reorder ${labelText}` : 'Reorder control'}
-          className={cn(
-            buttonVariants({ size: 'icon', variant: 'ghost' }),
-            'relative z-10 col-start-1 size-(--tweaker-chrome-button-size) shrink-0 cursor-grab self-center text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
-          )}
-          type="button"
-          onPointerCancel={cancelReorder}
-          onPointerDown={beginReorder}
-        >
-          <TweakerReorderIndicator reorderable={reorderable} />
-        </button>
+        {showReorderSlot ? (
+          <button
+            aria-disabled={!reorderable}
+            aria-label={labelText ? `Reorder ${labelText}` : 'Reorder control'}
+            className={cn(
+              buttonVariants({ size: 'icon', variant: 'ghost' }),
+              'relative z-10 col-start-1 size-(--tweaker-chrome-button-size) shrink-0 cursor-grab self-center text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
+            )}
+            type="button"
+            onPointerCancel={cancelReorder}
+            onPointerDown={beginReorder}
+          >
+            <TweakerReorderIndicator reorderable={reorderable} />
+          </button>
+        ) : null}
 
         <div className="col-start-2 flex min-w-0 items-center gap-1 self-center">
           {label ? (

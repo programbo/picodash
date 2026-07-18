@@ -23,6 +23,7 @@ import {
   reorderTransition,
   useTweakerReorderItem,
 } from './tweaker-reorder-item.js'
+import { rootGroupId } from './tweaker-order.js'
 import { TweakerReorderIndicator } from './tweaker-reorder-indicator.js'
 import { tweakerMotionTokens } from './theme.js'
 import { buttonVariants } from './ui.js'
@@ -101,6 +102,7 @@ export function TweakerGroup({
   const visualTop = useTransform(() =>
     reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
   )
+  const showReorderSlot = reorderable || parentId !== rootGroupId
 
   useRegisterTweakerItem({
     collapsible,
@@ -191,22 +193,27 @@ export function TweakerGroup({
       }}
     >
       <div
-        className="group-data-[hovered=true]/tweaker-section:bg-tweaker-surface-muted/80 flex min-h-(--tweaker-group-header-min-height) items-center gap-0 rounded-t-(--tweaker-row-radius) py-(--tweaker-space-1) pr-(--tweaker-space-1-5) transition-colors duration-(--tweaker-duration-fast) group-data-[collapsed=true]/tweaker-section:rounded-b-(--tweaker-row-radius)"
+        className={cn(
+          'group-data-[hovered=true]/tweaker-section:bg-tweaker-surface-muted/80 flex min-h-(--tweaker-group-header-min-height) items-center gap-0 rounded-t-(--tweaker-row-radius) py-(--tweaker-space-1) pr-(--tweaker-space-1-5) transition-colors duration-(--tweaker-duration-fast) group-data-[collapsed=true]/tweaker-section:rounded-b-(--tweaker-row-radius)',
+          !showReorderSlot && 'pl-(--tweaker-space-1-5)',
+        )}
         onPointerEnter={() => store.getState().setHoveredItem(id)}
       >
-        <button
-          aria-disabled={!reorderable}
-          aria-label={`Reorder ${labelText}`}
-          className={cn(
-            buttonVariants({ size: 'icon', variant: 'ghost' }),
-            'size-(--tweaker-chrome-button-size) shrink-0 cursor-grab text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
-          )}
-          type="button"
-          onPointerCancel={cancelReorder}
-          onPointerDown={beginReorder}
-        >
-          <TweakerReorderIndicator reorderable={reorderable} />
-        </button>
+        {showReorderSlot ? (
+          <button
+            aria-disabled={!reorderable}
+            aria-label={`Reorder ${labelText}`}
+            className={cn(
+              buttonVariants({ size: 'icon', variant: 'ghost' }),
+              'size-(--tweaker-chrome-button-size) shrink-0 cursor-grab text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
+            )}
+            type="button"
+            onPointerCancel={cancelReorder}
+            onPointerDown={beginReorder}
+          >
+            <TweakerReorderIndicator reorderable={reorderable} />
+          </button>
+        ) : null}
         <button
           aria-expanded={!collapsed}
           className={cn(
