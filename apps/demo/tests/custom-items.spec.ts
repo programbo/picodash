@@ -1,6 +1,10 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
 import { tweakerMotionTokens } from '../../../packages/panel/src/theme.ts'
+import {
+  advanceSparklineSamplingClock,
+  decayPointerVelocity,
+} from '../src/custom-items/pointer-velocity-sampling.ts'
 
 const customGroupLabels = {
   'common-items': 'Common inputs',
@@ -36,6 +40,26 @@ async function changeDemoThemes(
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toBeVisible()
+})
+
+test('drops delayed pointer velocity intervals instead of backfilling history', () => {
+  const sampleInterval = 1000 / 60
+  const clock = advanceSparklineSamplingClock(4, 4, 100, sampleInterval)
+
+  expect(clock.shouldCommit).toBe(true)
+  expect(clock.accumulatedTime).toBeCloseTo(104 % sampleInterval)
+  expect(clock.accumulatedTime).toBeLessThan(sampleInterval)
+  expect(clock.decayElapsed).toBe(104)
+  expect(clock.elapsedSinceCommit).toBe(0)
+
+  const nextFrame = advanceSparklineSamplingClock(
+    clock.accumulatedTime,
+    clock.elapsedSinceCommit,
+    0,
+    sampleInterval,
+  )
+  expect(nextFrame.shouldCommit).toBe(false)
+  expect(decayPointerVelocity(1000, 84)).toBeCloseTo(1000 * 0.72 ** 2)
 })
 
 for (const scenario of [
@@ -882,15 +906,28 @@ test('animates transient visual paths and switches deterministic signal mode', a
   const description = velocity.getByText('Move anywhere in the full viewport.', { exact: false })
   const velocityXPath = velocity.locator('path.stroke-chart-1')
   const velocityYPath = velocity.locator('path.stroke-chart-3')
+  const fps = velocity.locator('[data-pointer-velocity-fps]')
   await display.scrollIntoViewIfNeeded()
   await expect(display).toBeVisible()
   await expect(display).toHaveCSS('pointer-events', 'none')
+  await expect(fps).toHaveText(/^\d+ FPS$/)
   const displayBox = await display.boundingBox()
   const descriptionBox = await description.boundingBox()
+  const fpsBox = await fps.boundingBox()
   expect(displayBox).not.toBeNull()
   expect(descriptionBox).not.toBeNull()
+  expect(fpsBox).not.toBeNull()
   if (displayBox && descriptionBox) {
     expect(descriptionBox.y).toBeGreaterThanOrEqual(displayBox.y + displayBox.height)
+  }
+  if (displayBox && fpsBox) {
+    const rightGap = displayBox.x + displayBox.width - (fpsBox.x + fpsBox.width)
+    const bottomGap = displayBox.y + displayBox.height - (fpsBox.y + fpsBox.height)
+    expect(fpsBox.x).toBeGreaterThan(displayBox.x + displayBox.width / 2)
+    expect(rightGap).toBeGreaterThanOrEqual(0)
+    expect(rightGap).toBeLessThanOrEqual(12)
+    expect(bottomGap).toBeGreaterThanOrEqual(0)
+    expect(bottomGap).toBeLessThanOrEqual(12)
   }
   const initialVelocityXPath = await velocityXPath.getAttribute('d')
   const initialVelocityYPath = await velocityYPath.getAttribute('d')
@@ -911,6 +948,24 @@ test('animates transient visual paths and switches deterministic signal mode', a
   await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(initialVelocityXPath)
   await expect.poll(() => velocityYPath.getAttribute('d')).not.toBe(initialVelocityYPath)
 
+  await display.evaluate((element: HTMLElement) => (element.style.display = 'none'))
+  await expect(display).toBeHidden()
+  await page.waitForTimeout(100)
+  await expect(fps).toHaveText('0 FPS')
+  const pausedVelocityXPath = await velocityXPath.getAttribute('d')
+
+  // Restoring the observed surface avoids producing another pointer sample.
+  // Re-entry should resume the retained trace until it naturally settles again.
+  await display.evaluate((element: HTMLElement) => element.style.removeProperty('display'))
+  await expect(display).toBeVisible()
+  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(pausedVelocityXPath)
+  await expect
+    .poll(async () => Number.parseInt((await fps.textContent()) ?? '0', 10), {
+      intervals: [50],
+    })
+    .toBeGreaterThan(0)
+  await expect(fps).toHaveText('0 FPS')
+
   const signal = page.locator('[data-control-id="signal-visualizer"]')
   const signalPath = signal.locator('path.stroke-chart-2')
   const initialSignalPath = await signalPath.getAttribute('d')
@@ -922,6 +977,44 @@ test('animates transient visual paths and switches deterministic signal mode', a
   await expect(signal.getByRole('img', { name: 'Synthetic signal spectrum' })).toBeVisible()
   await expect.poll(() => signalPath.getAttribute('d')).not.toBe(initialSignalPath)
   await expect(signalPath).toHaveAttribute('fill-opacity', '0.18')
+})
+
+test('resumes pointer velocity decay when document visibility returns', async ({ page }) => {
+  const velocity = page.locator('[data-control-id="mouse-velocity"]')
+  const display = velocity.locator('[data-pointer-velocity-display]')
+  const velocityXPath = velocity.locator('path.stroke-chart-1')
+  const fps = velocity.locator('[data-pointer-velocity-fps]')
+  await display.scrollIntoViewIfNeeded()
+  await expect(display).toBeVisible()
+
+  const initialVelocityXPath = await velocityXPath.getAttribute('d')
+  const headingBox = await page.getByRole('heading', { name: 'Tweaker State Lab' }).boundingBox()
+  expect(headingBox).not.toBeNull()
+  if (!headingBox) return
+
+  await page.mouse.move(headingBox.x + 4, headingBox.y + 4)
+  await page.mouse.move(
+    headingBox.x + headingBox.width - 4,
+    headingBox.y + headingBox.height + 80,
+    { steps: 8 },
+  )
+  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(initialVelocityXPath)
+
+  await setDocumentVisibility(page, 'hidden')
+  await expect(fps).toHaveText('0 FPS')
+  await page.waitForTimeout(100)
+  const pausedVelocityXPath = await velocityXPath.getAttribute('d')
+  await page.waitForTimeout(100)
+  expect(await velocityXPath.getAttribute('d')).toBe(pausedVelocityXPath)
+
+  await setDocumentVisibility(page, 'visible')
+  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(pausedVelocityXPath)
+  await expect
+    .poll(async () => Number.parseInt((await fps.textContent()) ?? '0', 10), {
+      intervals: [50],
+    })
+    .toBeGreaterThan(0)
+  await expect(fps).toHaveText('0 FPS')
 })
 
 test('keeps the panel action menu contained and manages collapsible groups', async ({ page }) => {
@@ -1153,6 +1246,19 @@ async function collapseCustomGroups(
   if (settle) {
     await panel.page().waitForTimeout(200)
   }
+}
+
+async function setDocumentVisibility(
+  page: import('@playwright/test').Page,
+  visibilityState: DocumentVisibilityState,
+) {
+  await page.evaluate((state) => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: state,
+    })
+    document.dispatchEvent(new Event('visibilitychange'))
+  }, visibilityState)
 }
 
 async function exerciseLivePreviewDrag({
