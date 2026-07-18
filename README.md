@@ -219,6 +219,53 @@ Panel appearance and layout belong on `TweakerPanel`:
 
 `storeId`, `placement`, `sortable`, hook-level panel effects, and `value` remain compatibility aliases, but primary docs use `id`, `defaultPlacement`, `reorderable`, panel `appearance`, and `defaultValue`.
 
+## Standalone panel package
+
+`packages/panel` is a separate experimental composition API used by `apps/demo`. It
+supports application-owned stores and custom field items:
+
+```tsx
+import { createTweakerPanelStore, TweakerItem, TweakerPanel, TweakerProvider } from 'panel'
+import 'panel/style.css'
+
+const store = createTweakerPanelStore({
+  panelId: 'scene',
+  initialValues: { name: 'Studio' },
+})
+
+export function Inspector() {
+  return (
+    <TweakerProvider theme="system" storageKey="my-app:panel-layout">
+      <TweakerPanel store={store} title="Scene" defaultPlacement="top-right" width={360}>
+        <TweakerItem field="name" defaultValue="Studio" label="Name">
+          {(item) => (
+            <input
+              value={
+                typeof item.fieldState?.draftValue === 'string'
+                  ? item.fieldState.draftValue
+                  : String(item.value ?? '')
+              }
+              onChange={(event) => item.setInput(event.target.value)}
+            />
+          )}
+        </TweakerItem>
+      </TweakerPanel>
+    </TweakerProvider>
+  )
+}
+```
+
+Application writes use `store.getState().setFieldValue` or atomic `setFieldValues`.
+Field items accept library-neutral synchronous `parse`/`validate` contracts, including
+Standard Schema-compatible validators such as Zod. Invalid interactive candidates remain
+as field drafts with errors; programmatic writes reject without mutation; imports and
+reactive constraint repairs are reviewed and applied atomically.
+
+The root `panel` entry exposes consumer components and contracts. Import low-level state
+types, hooks, ordering utilities, theme constants, and normalization helpers from
+`panel/advanced`. See [`packages/panel/README.md`](packages/panel/README.md) for the full
+API.
+
 ## Development
 
 ```bash
@@ -241,8 +288,9 @@ Use only ports from this range for dev, preview, e2e, and testing servers:
 
 - `6030`: `apps/website` development server and Playwright e2e web server.
 - `6031`: `apps/website` preview server.
-- `6032`: `apps/demo` development server.
+- `6032`: canonical `apps/demo` development server; override it with `DEMO_PORT` for concurrent worktrees.
 - `6033`: `apps/demo` preview server.
-- `6034-6039`: available for future apps, e2e harnesses, API mocks, and test servers.
+- `6034`: dedicated `DEMO_PORT=6034` override for the `feature/panel-api-dx` worktree; this does not replace the canonical `6032` default.
+- `6035-6039`: available for future apps, e2e harnesses, API mocks, and test servers.
 
-When adding a new app or local server, assign it the next available port from `6034-6039` and document the assignment here.
+When adding a new app or local server, assign it the next available port from `6035-6039` and document the assignment here.
