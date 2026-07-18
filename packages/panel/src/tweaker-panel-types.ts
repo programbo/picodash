@@ -24,6 +24,8 @@ export interface TweakerFieldState {
 }
 
 export interface TweakerItemRegistration {
+  collapsible?: boolean
+  defaultCollapsed?: boolean
   defaultValue?: TweakerValue
   fieldId?: string
   hidden?: boolean
@@ -57,10 +59,13 @@ export interface TweakerPanelState {
   reorderItem: (activeId: string, overId: string) => void
   resetFieldValue: (fieldId: string) => void
   resetFields: () => void
+  resetRegisteredFields: () => void
+  replaceRegisteredFieldValues: (values: Record<string, TweakerValue>) => void
   setFieldDefault: (fieldId: string, value: TweakerValue | undefined) => void
   setFieldValue: (fieldId: string, value: TweakerValue) => void
   setFocusedItem: (itemId: string | null) => void
   setGroupCollapsed: (groupId: string, collapsed: boolean) => void
+  setAllCollapsibleGroupsCollapsed: (collapsed: boolean) => void
   setHoveredItem: (itemId: string | null) => void
   setInteractionActive: (interactionId: string, active: boolean) => void
   setDraggingItem: (itemId: string | null) => void

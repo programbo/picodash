@@ -7,6 +7,7 @@ import {
   type ReactiveProp,
   type TweakerControlProps,
 } from '../tweaker-control.js'
+import { tweakerGeometryTokens } from '../theme.js'
 
 export type TweakerRangeValue = [low: number, high: number]
 
@@ -35,8 +36,6 @@ export interface TweakerRangeFillGeometry {
   lowPercent: number
   midpointPercent: number
 }
-
-const rangeThumbRadius = 7
 
 export function TweakerRange({
   defaultValue,
@@ -76,11 +75,11 @@ export function TweakerRange({
         const fillGeometry = projectTweakerRangeFill(value, min, max)
 
         return (
-          <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-(--tweaker-space-2)">
             <Slider.Root
               id={control.inputId}
               aria-label="Range"
-              className="relative flex h-6 min-w-0 touch-none items-center select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
+              className="relative flex h-(--tweaker-range-root-height) min-w-0 touch-none items-center select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-(--tweaker-opacity-disabled)"
               disabled={control.disabled || control.readOnly || min === max}
               max={max}
               min={min}
@@ -98,10 +97,10 @@ export function TweakerRange({
                 )
               }}
             >
-              <Slider.Track className="bg-input relative h-1 grow overflow-hidden rounded-full">
+              <Slider.Track className="relative h-(--tweaker-slider-track-height) grow overflow-hidden rounded-full bg-(--tweaker-range-track)">
                 <span
                   aria-hidden="true"
-                  className="bg-primary absolute h-full"
+                  className="absolute h-full bg-(--tweaker-range-fill)"
                   style={{
                     insetInlineEnd: fillGeometry.insetInlineEnd,
                     insetInlineStart: fillGeometry.insetInlineStart,
@@ -112,18 +111,18 @@ export function TweakerRange({
                 id={`${control.inputId}:low`}
                 aria-label="Lower value"
                 aria-valuetext={formattedLow}
-                className="focus-visible:before:ring-ring focus-visible:before:ring-offset-background before:border-primary before:bg-primary/60 relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-3.5 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:shadow before:transition-[box-shadow,scale] before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
+                className="before:shadow-tweaker-sm focus-visible:before:ring-tweaker-focus focus-visible:before:ring-offset-tweaker-canvas relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--tweaker-range-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:border-(--tweaker-range-fill) before:bg-(--tweaker-range-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
               />
               <Slider.Thumb
                 id={`${control.inputId}:high`}
                 aria-label="Upper value"
                 aria-valuetext={formattedHigh}
-                className="focus-visible:before:ring-ring focus-visible:before:ring-offset-background before:border-primary before:bg-primary/60 relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-3.5 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:shadow before:transition-[box-shadow,scale] before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
+                className="before:shadow-tweaker-sm focus-visible:before:ring-tweaker-focus focus-visible:before:ring-offset-tweaker-canvas relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--tweaker-range-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:border-(--tweaker-range-fill) before:bg-(--tweaker-range-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
               />
             </Slider.Root>
             <output
               aria-live="off"
-              className="text-foreground min-w-[9ch] justify-self-end text-right text-[11px] leading-none tabular-nums"
+              className="text-tweaker-text min-w-(--tweaker-range-output-width) justify-self-end text-right text-(length:--tweaker-font-size-md) leading-none tabular-nums"
             >
               {formattedLow}–{formattedHigh}
             </output>
@@ -176,7 +175,7 @@ function clampRangeProjectionValue(value: number, min: number, max: number, fall
 }
 
 function rangeFillInset(edgePercent: number, midpointPercent: number) {
-  return `min(calc(${formatRangePercent(edgePercent)}% + ${rangeThumbRadius}px), ${formatRangePercent(midpointPercent)}%)`
+  return `min(calc(${formatRangePercent(edgePercent)}% + ${tweakerGeometryTokens.rangeThumbRadius}px), ${formatRangePercent(midpointPercent)}%)`
 }
 
 function formatRangePercent(value: number) {

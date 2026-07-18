@@ -5,7 +5,7 @@ import {
   type ReactiveProp,
   type TweakerControlProps,
 } from '../tweaker-control.js'
-import { Select } from '../ui.js'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui.js'
 
 export type TweakerSelectOption =
   | string
@@ -35,24 +35,32 @@ export function TweakerSelect({
     <TweakerControl<string> {...controlProps} defaultValue={defaultValue ?? firstValue}>
       {(control) => (
         <Select
-          id={control.inputId}
-          className="col-span-2"
           disabled={control.disabled || control.readOnly}
           value={
             typeof control.value === 'string' ? control.value : (defaultValue ?? firstValue ?? '')
           }
-          onChange={(event) => control.setValue(event.currentTarget.value)}
+          onValueChange={control.setValue}
         >
-          {options.map((option) => {
-            const value = optionValue(option)
-            if (value === undefined) return null
+          <SelectTrigger id={control.inputId} className="col-span-2">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((option) => {
+              const value = optionValue(option)
+              if (value === undefined) return null
 
-            return (
-              <option key={value} disabled={optionDisabled(option)} value={value}>
-                {optionLabel(option)}
-              </option>
-            )
-          })}
+              return (
+                <SelectItem
+                  key={value}
+                  disabled={optionDisabled(option)}
+                  textValue={optionTextValue(option)}
+                  value={value}
+                >
+                  {optionLabel(option)}
+                </SelectItem>
+              )
+            })}
+          </SelectContent>
         </Select>
       )}
     </TweakerControl>
@@ -65,6 +73,11 @@ function optionValue(option: TweakerSelectOption | undefined) {
 
 function optionLabel(option: TweakerSelectOption) {
   return typeof option === 'string' ? option : (option.label ?? option.value)
+}
+
+function optionTextValue(option: TweakerSelectOption) {
+  const label = optionLabel(option)
+  return typeof label === 'string' ? label : optionValue(option)
 }
 
 function optionDisabled(option: TweakerSelectOption) {

@@ -262,6 +262,8 @@ function usePointerReorderSession({
       const itemElements = Array.from(groupElement.children).filter(
         (element): element is HTMLElement => element instanceof HTMLElement,
       )
+      finishSiblingDisclosureTransitions(itemElements)
+      groupElement.getBoundingClientRect()
       const itemElement = itemElements.find(
         (element) => (element.dataset.controlId ?? element.dataset.groupId) === itemId,
       )
@@ -355,4 +357,22 @@ function usePointerReorderSession({
 
 function arraysEqual(left: string[], right: string[]) {
   return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function finishSiblingDisclosureTransitions(itemElements: HTMLElement[]) {
+  for (const itemElement of itemElements) {
+    if (itemElement.dataset.itemKind !== 'group') continue
+
+    const disclosure = itemElement.querySelector<HTMLElement>(
+      ':scope > [data-tweaker-group-disclosure]',
+    )
+    for (const animation of disclosure?.getAnimations() ?? []) {
+      if (
+        'transitionProperty' in animation &&
+        animation.transitionProperty === 'grid-template-rows'
+      ) {
+        animation.finish()
+      }
+    }
+  }
 }

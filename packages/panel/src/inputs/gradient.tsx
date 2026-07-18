@@ -114,10 +114,10 @@ function GradientEditor({
   }
 
   return (
-    <div className={cn('col-span-full grid gap-2', className)}>
+    <div className={cn('col-span-full grid gap-(--tweaker-space-2)', className)}>
       <div
         ref={trackRef}
-        className="border-input relative mt-2 h-9 rounded-md border shadow-inner"
+        className="border-tweaker-control relative mt-(--tweaker-space-2) h-(--tweaker-gradient-track-height) rounded-(--tweaker-gradient-radius) border shadow-(--tweaker-shadow-inner)"
         id={control.inputId}
         style={{ backgroundImage: gradientCssValue(stops) }}
         onDoubleClick={(event) => {
@@ -134,9 +134,11 @@ function GradientEditor({
             aria-valuemin={0}
             aria-valuenow={Math.round(stop.position * 100)}
             className={cn(
-              'focus-visible:ring-ring absolute top-full z-10 mt-1 size-4 -translate-x-1/2 touch-none rounded-full border-2 border-background shadow ring-1 ring-border outline-none focus-visible:ring-2',
-              selectedStop?.id === stop.id && 'ring-2 ring-primary',
-              unavailable ? 'cursor-not-allowed opacity-60' : 'cursor-ew-resize',
+              'absolute top-full z-(--tweaker-layer-raised) mt-(--tweaker-space-1) size-(--tweaker-gradient-stop-size) -translate-x-1/2 touch-none rounded-full border-2 border-tweaker-canvas shadow-tweaker-sm ring-1 ring-tweaker-border outline-none focus-visible:ring-2 focus-visible:ring-tweaker-focus',
+              selectedStop?.id === stop.id && 'ring-2 ring-tweaker-accent',
+              unavailable
+                ? 'cursor-not-allowed opacity-(--tweaker-opacity-muted)'
+                : 'cursor-ew-resize',
             )}
             disabled={control.disabled}
             role="slider"
@@ -168,10 +170,10 @@ function GradientEditor({
         ))}
       </div>
 
-      <div className="mt-4 grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-1.5">
+      <div className="mt-(--tweaker-space-4) grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-(--tweaker-space-1-5)">
         <input
           aria-label="Selected stop color"
-          className="border-input size-7 cursor-pointer rounded border bg-transparent p-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="border-tweaker-control size-(--tweaker-button-icon-size) cursor-pointer rounded-(--tweaker-field-radius) border bg-transparent p-(--tweaker-space-0-5) disabled:cursor-not-allowed disabled:opacity-(--tweaker-opacity-disabled)"
           disabled={unavailable || !selectedStop}
           type="color"
           value={selectedStop?.color ?? '#000000'}
@@ -183,7 +185,7 @@ function GradientEditor({
         />
         <Input
           aria-label="Selected stop position"
-          className="h-7 min-w-0"
+          className="h-(--tweaker-input-compact-height) min-w-0"
           disabled={control.disabled || !selectedStop}
           max={100}
           min={0}
@@ -201,17 +203,17 @@ function GradientEditor({
         />
         <Button
           aria-label="Add gradient stop"
-          className="size-7"
+          className="size-(--tweaker-button-icon-size)"
           disabled={unavailable}
           size="icon"
           variant="outline"
           onClick={() => addStop(selectedStop?.position ?? 0.5)}
         >
-          <Plus className="size-3.5" aria-hidden="true" />
+          <Plus className="size-(--tweaker-icon-sm)" aria-hidden="true" />
         </Button>
         <Button
           aria-label="Remove selected gradient stop"
-          className="size-7"
+          className="size-(--tweaker-button-icon-size)"
           disabled={unavailable || !selectedStop || stops.length <= 2}
           size="icon"
           variant="ghost"
@@ -219,10 +221,10 @@ function GradientEditor({
             if (selectedStop) removeStop(selectedStop.id)
           }}
         >
-          <Trash2 className="size-3.5" aria-hidden="true" />
+          <Trash2 className="size-(--tweaker-icon-sm)" aria-hidden="true" />
         </Button>
       </div>
-      <p className="text-muted-foreground text-[10px] leading-4">
+      <p className="text-tweaker-muted text-(length:--tweaker-font-size-sm) leading-(--tweaker-line-tight)">
         Drag stops or use arrow keys. Double-click the gradient to add a stop.
       </p>
     </div>

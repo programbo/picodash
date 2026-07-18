@@ -54,7 +54,7 @@ export function TweakerVector3({
         )
 
         return (
-          <div className="col-span-2 grid min-w-0 grid-cols-3 gap-1">
+          <div className="col-span-2 grid min-w-0 grid-cols-3 gap-(--tweaker-space-1)">
             {axes.map((axis) => (
               <VectorAxisInput
                 key={axis}
@@ -111,13 +111,13 @@ function VectorAxisInput({
 
   return (
     <label className="relative min-w-0" htmlFor={inputId}>
-      <span className="text-muted-foreground pointer-events-none absolute bottom-2 left-0.5 z-10 text-[8px] leading-none font-semibold uppercase">
+      <span className="text-tweaker-muted pointer-events-none absolute bottom-(--tweaker-vector-axis-bottom) left-(--tweaker-vector-axis-left) z-(--tweaker-layer-raised) text-(length:--tweaker-font-size-2xs) leading-none font-(--tweaker-font-semibold) uppercase">
         {axis}
       </span>
       <Input
         id={inputId}
         aria-label={`${axis.toUpperCase()} axis`}
-        className="h-7 min-w-0 px-0 pr-0 pl-0 text-center tabular-nums"
+        className="h-(--tweaker-input-compact-height) min-w-0 px-0 pr-0 pl-0 text-center tabular-nums"
         disabled={control.disabled}
         inputMode="decimal"
         max={max}

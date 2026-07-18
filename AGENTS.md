@@ -79,6 +79,22 @@ The `packages/panel` package is a small Vite+ React component library. Keep it s
 
 Panel inputs live in `packages/panel/src/inputs/`. Common primitives use the unified `radix-ui` package, direct-manipulation visuals use Motion, and file selection uses `react-dropzone`. Keep Recharts and the official shadcn chart source demo-local; they are examples of composing `TweakerControl`, not dependencies of the publishable panel package.
 
+Titled panel header actions live in `packages/panel/src/tweaker-panel-actions.tsx`;
+JSON/YAML parsing, serialization, filenames, and validation live in the pure
+`tweaker-panel-documents.ts` helper. Keep the action component internal. Bulk group and
+field changes belong in the panel store and must use one Zustand transaction. Import,
+export, copy, and reset operate on currently registered field IDs, including hidden
+fields, while excluding display-only and stale unregistered values.
+
+Panel theming is package-owned and namespaced. Keep foundation, semantic, and component
+contract variables in `packages/panel/src/styles.css`; never reintroduce generic global
+`--color-*` or `--radius-*` definitions. Components must consume tokens through Tailwind
+classes (namespaced utilities or v4 CSS-variable shorthand), not bespoke component CSS
+rules. Keep `data-tweaker-theme="dark"` on the provider carrier and every portaled panel,
+tooltip, overlay, and viewer surface. CSS variables are the public override API;
+`theme.ts` is only for JS-only Motion, projection geometry, and numeric panel-layer values;
+CSS-editable layers such as the viewer remain CSS variables.
+
 The panel package exports `TweakerSegmented`, `TweakerAlignment`, `TweakerVector3`, `TweakerRange`, `TweakerXYPad`, `TweakerGradient`, `TweakerMediaPreview`, and `TweakerDropzone`, their public value/props types, and their pure normalization/projection helpers. `TweakerControl.contentLayout` accepts `"inline"`, `"block"`, or `"full"`; block/full descriptions must remain in a separate row after their content.
 
 Composite control values must remain JSON-compatible. Dropzones store file metadata rather than `File` objects, media previews use safe image URLs rather than raw SVG HTML, and temporary object URLs must be revoked when removed or unmounted. Use MotionValues for high-frequency visuals and optional smoothing only; Zustand remains authoritative for persisted/user-editable values, and animated examples must respect reduced-motion.

@@ -1,4 +1,5 @@
 import { isValidElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vite-plus/test'
 import {
   createTweakerPanelStore,
@@ -6,6 +7,11 @@ import {
   FeaturePanel,
   panelLayoutStorageKey,
   panelZIndexForState,
+  tweakerDefaultTheme,
+  tweakerGeometryTokens,
+  tweakerLayerTokens,
+  tweakerMotionTokens,
+  tweakerThemeAttribute,
 } from '../src/index.ts'
 import {
   clampPanelPosition,
@@ -19,6 +25,7 @@ import {
   orderIndexForItem,
   reorderValuesForPointer,
 } from '../src/tweaker-panel.tsx'
+import { TweakerReorderIndicator } from '../src/tweaker-reorder-indicator.tsx'
 
 test('creates feature panel elements', () => {
   const element = (
@@ -35,6 +42,69 @@ test('creates feature panel elements', () => {
   expect(element.props.items).toEqual([
     { label: 'Build health', value: 'Passing', status: 'success' },
   ])
+})
+
+test('exports the package theme carrier, motion, and layer contracts', () => {
+  expect(tweakerThemeAttribute).toBe('data-tweaker-theme')
+  expect(tweakerDefaultTheme).toBe('dark')
+  expect(tweakerLayerTokens).toEqual({
+    panelBase: 1000,
+  })
+  expect(tweakerGeometryTokens).toEqual({
+    menuCollisionPadding: 8,
+    menuSideOffset: 4,
+    menuSubmenuOffset: 4,
+    rangeThumbRadius: 7,
+    selectCollisionPadding: 8,
+    selectSideOffset: 4,
+    xyLabelGap: 5,
+  })
+  expect(tweakerMotionTokens.dragElastic).toBe(0.01)
+  expect(tweakerMotionTokens.reorder).toEqual({
+    damping: 30,
+    mass: 0.55,
+    stiffness: 650,
+    type: 'spring',
+  })
+  expect(tweakerMotionTokens.reorderDrag).toEqual({
+    bounceDamping: 28,
+    bounceStiffness: 700,
+    power: 0.08,
+    restDelta: 0.5,
+    restSpeed: 12,
+    timeConstant: 120,
+  })
+  expect(tweakerMotionTokens.featureRowAnimate).toEqual({
+    height: 'auto',
+    opacity: 1,
+  })
+  expect(tweakerMotionTokens.viewerOverlayAnimate).toEqual({ opacity: 1 })
+  expect(tweakerMotionTokens.viewerSurfaceExit).toEqual({
+    opacity: 0,
+    scale: 0.97,
+    transition: {
+      duration: 0.16,
+      ease: [0.4, 0, 1, 1],
+    },
+  })
+  expect(tweakerMotionTokens.xySpring).toEqual({
+    damping: 28,
+    mass: 0.35,
+    stiffness: 380,
+  })
+})
+
+test('renders a static square instead of a grip for non-reorderable item slots', () => {
+  const staticIndicator = renderToStaticMarkup(<TweakerReorderIndicator reorderable={false} />)
+  const reorderGrip = renderToStaticMarkup(<TweakerReorderIndicator reorderable />)
+
+  expect(staticIndicator).toContain('data-tweaker-reorder-indicator="static"')
+  expect(staticIndicator).toContain('size-(--tweaker-reorder-static-marker-size)')
+  expect(staticIndicator).toContain('bg-(--tweaker-reorder-static-marker-color)')
+  expect(staticIndicator).toContain('opacity-(--tweaker-reorder-static-marker-opacity)')
+  expect(staticIndicator).not.toContain('<svg')
+  expect(reorderGrip).toContain('data-tweaker-reorder-indicator="grip"')
+  expect(reorderGrip).toContain('<svg')
 })
 
 test('tracks registered panels in the global tweaker store', () => {

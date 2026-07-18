@@ -334,7 +334,7 @@ function DemoExperience() {
         defaultValues={customItemDefaults}
       >
         <PanelStateObserver panelId={outputPanelId} onSnapshot={handlePanelSnapshot} />
-        <TweakerGroup id="common-items" label="Common inputs" placement="start">
+        <TweakerGroup id="common-items" label="Common inputs">
           <TweakerSegmented
             field="density"
             label="Density"
@@ -398,7 +398,6 @@ function DemoExperience() {
 
         <TweakerDisplay
           id="custom-items-summary"
-          placement="end"
           label="Selection"
           value={(state) =>
             `${stringFromValue(state.values.density, 'balanced')} / ${stringFromValue(state.values.alignment, 'center')}`

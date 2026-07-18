@@ -67,12 +67,12 @@ function MediaPreviewSurface({
   if (!src || failed) {
     return (
       <div
-        className="text-muted-foreground border-input bg-muted/30 col-span-full flex aspect-video min-h-24 items-center justify-center gap-2 rounded-md border border-dashed px-3 text-center text-xs"
+        className="border-tweaker-control text-tweaker-muted col-span-full flex aspect-(--tweaker-media-aspect-ratio) min-h-(--tweaker-media-min-height) items-center justify-center gap-(--tweaker-space-2) rounded-(--tweaker-media-radius) border border-dashed bg-(--tweaker-media-background) px-(--tweaker-space-3) text-center text-(length:--tweaker-font-size-lg)"
         role="status"
       >
         {fallback ?? (
           <>
-            <ImageOff className="size-4 shrink-0" aria-hidden="true" />
+            <ImageOff className="size-(--tweaker-icon-md) shrink-0" aria-hidden="true" />
             <span>{failed ? 'Preview could not be loaded' : 'No preview available'}</span>
           </>
         )}
@@ -81,7 +81,7 @@ function MediaPreviewSurface({
   }
 
   return (
-    <div className="border-input bg-muted/30 col-span-full aspect-video min-h-24 overflow-hidden rounded-md border">
+    <div className="border-tweaker-control col-span-full aspect-(--tweaker-media-aspect-ratio) min-h-(--tweaker-media-min-height) overflow-hidden rounded-(--tweaker-media-radius) border bg-(--tweaker-media-background)">
       <img
         alt={alt}
         className={cn('size-full', objectFitClassName(objectFit), className)}

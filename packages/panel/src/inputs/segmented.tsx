@@ -42,7 +42,7 @@ export function TweakerSegmented({
           <ToggleGroup.Root
             id={control.inputId}
             aria-label="Options"
-            className="border-input bg-muted/35 col-span-2 inline-flex min-w-0 justify-self-start overflow-hidden rounded-md border p-0.5 shadow-sm"
+            className="border-tweaker-control shadow-tweaker-sm col-span-2 inline-flex min-w-0 justify-self-start overflow-hidden rounded-(--tweaker-segmented-radius) border bg-(--tweaker-segmented-background) p-(--tweaker-space-0-5)"
             disabled={control.disabled || control.readOnly}
             type="single"
             value={value}
@@ -63,7 +63,7 @@ export function TweakerSegmented({
                   id={`${control.inputId}:option-${index}`}
                   aria-label={typeof optionLabel === 'string' ? optionLabel : optionValue}
                   className={cn(
-                    'inline-flex h-6 min-w-7 items-center justify-center gap-1 border-l border-input px-2 text-[11px] leading-none font-medium text-muted-foreground outline-none transition-colors first:border-l-0 hover:bg-accent hover:text-accent-foreground focus-visible:relative focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring data-[state=on]:bg-primary data-[state=on]:text-primary-foreground disabled:pointer-events-none disabled:opacity-45',
+                    'inline-flex h-(--tweaker-segmented-item-height) min-w-(--tweaker-segmented-item-min-width) items-center justify-center gap-(--tweaker-space-1) border-l border-tweaker-control px-(--tweaker-space-2) text-(length:--tweaker-font-size-md) leading-none font-(--tweaker-font-medium) text-tweaker-muted outline-none transition-colors duration-(--tweaker-duration-fast) first:border-l-0 hover:bg-tweaker-surface-muted hover:text-tweaker-text focus-visible:relative focus-visible:z-(--tweaker-layer-raised) focus-visible:ring-2 focus-visible:ring-tweaker-focus data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text disabled:pointer-events-none disabled:opacity-(--tweaker-opacity-disabled-soft)',
                   )}
                   disabled={segmentedOptionDisabled(option)}
                   title={typeof optionLabel === 'string' ? optionLabel : undefined}
@@ -72,7 +72,7 @@ export function TweakerSegmented({
                   {optionIcon ? (
                     <span
                       aria-hidden="true"
-                      className="inline-flex size-3.5 shrink-0 items-center justify-center [&>svg]:size-3.5"
+                      className="inline-flex size-(--tweaker-icon-sm) shrink-0 items-center justify-center [&>svg]:size-(--tweaker-icon-sm)"
                     >
                       {optionIcon}
                     </span>

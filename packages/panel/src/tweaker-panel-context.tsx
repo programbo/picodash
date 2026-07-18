@@ -50,6 +50,8 @@ export function useTweakerReorderTransformTemplate(
 }
 
 export function useRegisterTweakerItem({
+  collapsible,
+  defaultCollapsed,
   defaultValue,
   fieldId,
   hidden,
@@ -64,6 +66,8 @@ export function useRegisterTweakerItem({
 
   useEffect(() => {
     store.getState().registerItem({
+      collapsible,
+      defaultCollapsed,
       defaultValue,
       fieldId,
       hidden,
@@ -74,7 +78,20 @@ export function useRegisterTweakerItem({
       placement,
       reorderable,
     })
-  }, [defaultValue, fieldId, hidden, id, kind, label, parentId, placement, reorderable, store])
+  }, [
+    collapsible,
+    defaultCollapsed,
+    defaultValue,
+    fieldId,
+    hidden,
+    id,
+    kind,
+    label,
+    parentId,
+    placement,
+    reorderable,
+    store,
+  ])
 
   useEffect(() => {
     return () => store.getState().unregisterItem(id)

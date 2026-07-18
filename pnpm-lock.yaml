@@ -90,6 +90,9 @@ catalogs:
     vite-plus:
       specifier: 0.1.24
       version: 0.1.24
+    yaml:
+      specifier: ^2.9.0
+      version: 2.9.0
     zod:
       specifier: ^4.4.3
       version: 4.4.3
@@ -266,6 +269,9 @@ importers:
       tailwind-merge:
         specifier: 'catalog:'
         version: 3.6.0
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.0
       zod:
         specifier: 'catalog:'
         version: 4.4.3

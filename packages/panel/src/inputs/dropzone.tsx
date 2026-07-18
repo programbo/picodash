@@ -10,6 +10,7 @@ import {
 } from '../tweaker-control.js'
 import { Button } from '../ui.js'
 import { cn } from '../utils.js'
+import { tweakerDefaultTheme, tweakerMotionTokens } from '../theme.js'
 
 export type TweakerDroppedFileMetadata = {
   id: string
@@ -184,19 +185,19 @@ function DropzoneSurface({
 
   return (
     <>
-      <div className="col-span-full grid gap-1.5">
+      <div className="col-span-full grid gap-(--tweaker-space-1-5)">
         <div
           {...getRootProps({
             'aria-label': multiple
               ? 'Choose files or drop them here'
               : 'Choose a file or drop it here',
             className: cn(
-              'focus-visible:ring-ring flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-input bg-muted/30 px-3 py-4 text-center text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-              isDragActive && 'border-ring bg-accent/60 text-foreground',
-              isDragAccept && 'border-emerald-500/80 bg-emerald-500/10',
+              'box-border flex min-h-(--tweaker-dropzone-min-height) cursor-pointer flex-col items-center justify-center gap-(--tweaker-space-1) rounded-(--tweaker-dropzone-radius) border border-dashed border-tweaker-control bg-(--tweaker-dropzone-background) px-(--tweaker-space-3) py-(--tweaker-space-4) text-center text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) text-tweaker-muted outline-none focus-visible:ring-2 focus-visible:ring-tweaker-focus focus-visible:ring-offset-1 focus-visible:ring-offset-tweaker-canvas',
+              isDragActive && 'border-tweaker-focus bg-tweaker-surface-muted/60 text-tweaker-text',
+              isDragAccept && 'border-(--tweaker-dropzone-success)/80 bg-tweaker-success-subtle',
               (isDragReject || (isDragActive && atCapacity)) &&
-                'border-destructive bg-destructive/10 text-destructive',
-              unavailable && 'cursor-not-allowed opacity-50',
+                'border-tweaker-danger bg-tweaker-danger-subtle text-tweaker-danger',
+              unavailable && 'cursor-not-allowed opacity-(--tweaker-opacity-disabled)',
               className,
             ),
             id: control.inputId,
@@ -204,8 +205,8 @@ function DropzoneSurface({
           })}
         >
           <input {...getInputProps()} />
-          <UploadCloud className="size-5" aria-hidden="true" />
-          <span className="text-foreground font-medium">
+          <UploadCloud className="size-(--tweaker-icon-lg)" aria-hidden="true" />
+          <span className="text-tweaker-text font-(--tweaker-font-medium)">
             {isDragActive ? 'Drop files here' : 'Drop files or click to browse'}
           </span>
           <span>
@@ -217,23 +218,26 @@ function DropzoneSurface({
           </span>
         </div>
 
-        <div className="min-h-4 text-[10px] leading-4" aria-live="polite">
-          {rejectionMessage ? <p className="text-destructive">{rejectionMessage}</p> : null}
+        <div
+          className="min-h-4 text-(length:--tweaker-font-size-sm) leading-(--tweaker-line-tight)"
+          aria-live="polite"
+        >
+          {rejectionMessage ? <p className="text-tweaker-danger">{rejectionMessage}</p> : null}
         </div>
 
         {value.length > 0 ? (
-          <ul className="grid gap-1" aria-label="Selected files">
+          <ul className="grid gap-(--tweaker-space-1)" aria-label="Selected files">
             {value.map((metadata) => {
               const previewUrl = previewUrlsRef.current.get(metadata.id)
               return (
                 <li
                   key={metadata.id}
-                  className="border-input bg-background/60 grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded border p-1"
+                  className="border-tweaker-control bg-tweaker-canvas/60 grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-(--tweaker-space-2) rounded-(--tweaker-field-radius) border p-(--tweaker-space-1)"
                 >
                   {previewUrl ? (
                     <button
                       aria-label={`View ${metadata.name}`}
-                      className="focus-visible:ring-ring group/preview relative size-8 overflow-hidden rounded outline-none focus-visible:ring-2"
+                      className="group/preview focus-visible:ring-tweaker-focus relative size-(--tweaker-dropzone-preview-size) overflow-hidden rounded-(--tweaker-dropzone-radius) outline-none focus-visible:ring-2"
                       type="button"
                       onClick={(event) => {
                         viewerTriggerRef.current = event.currentTarget
@@ -247,24 +251,29 @@ function DropzoneSurface({
                         draggable={false}
                         src={previewUrl}
                       />
-                      <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition-opacity group-hover/preview:opacity-100 group-focus-visible/preview:opacity-100 motion-reduce:transition-none">
-                        <Expand className="size-3.5" aria-hidden="true" />
+                      <span className="absolute inset-0 flex items-center justify-center bg-(--tweaker-viewer-preview-scrim) text-(--tweaker-viewer-foreground) opacity-0 transition-opacity duration-(--tweaker-duration-fast) group-hover/preview:opacity-100 group-focus-visible/preview:opacity-100 motion-reduce:transition-none">
+                        <Expand className="size-(--tweaker-icon-sm)" aria-hidden="true" />
                       </span>
                     </button>
                   ) : (
-                    <span className="bg-muted flex size-8 items-center justify-center rounded">
-                      <File className="text-muted-foreground size-4" aria-hidden="true" />
+                    <span className="bg-tweaker-surface-muted flex size-(--tweaker-dropzone-preview-size) items-center justify-center rounded-(--tweaker-dropzone-radius)">
+                      <File
+                        className="text-tweaker-muted size-(--tweaker-icon-md)"
+                        aria-hidden="true"
+                      />
                     </span>
                   )}
                   <span className="min-w-0">
-                    <span className="text-foreground block truncate text-xs">{metadata.name}</span>
-                    <span className="text-muted-foreground block text-[10px]">
+                    <span className="text-tweaker-text block truncate text-(length:--tweaker-font-size-lg)">
+                      {metadata.name}
+                    </span>
+                    <span className="text-tweaker-muted block text-(length:--tweaker-font-size-sm)">
                       {formatFileSize(metadata.size)}
                     </span>
                   </span>
                   <Button
                     aria-label={`Remove ${metadata.name}`}
-                    className="size-6"
+                    className="size-(--tweaker-chrome-button-size)"
                     disabled={unavailable}
                     size="icon"
                     variant="ghost"
@@ -274,7 +283,7 @@ function DropzoneSurface({
                       control.setValue(value.filter((candidate) => candidate.id !== metadata.id))
                     }}
                   >
-                    <X className="size-3.5" aria-hidden="true" />
+                    <X className="size-(--tweaker-icon-sm)" aria-hidden="true" />
                   </Button>
                 </li>
               )
@@ -321,10 +330,10 @@ function DropzoneImageViewer({
   const present = open && preview
   const enterTransition: Transition = prefersReducedMotion
     ? { duration: 0 }
-    : { bounce: 0.12, duration: 0.42, type: 'spring' }
+    : tweakerMotionTokens.viewerEnter
   const fadeTransition: Transition = {
-    duration: prefersReducedMotion ? 0 : 0.2,
-    ease: [0.16, 1, 0.3, 1],
+    ...tweakerMotionTokens.viewerFade,
+    duration: prefersReducedMotion ? 0 : tweakerMotionTokens.viewerFade.duration,
   }
 
   return (
@@ -339,14 +348,16 @@ function DropzoneImageViewer({
           {present ? (
             <motion.div
               key="dropzone-image-viewer"
-              className="pointer-events-none fixed inset-0 z-[2147483647]"
+              data-tweaker-theme={tweakerDefaultTheme}
+              className="pointer-events-none fixed inset-0 z-(--tweaker-layer-viewer)"
             >
               <Dialog.Overlay forceMount asChild>
                 <motion.div
-                  className="pointer-events-auto absolute inset-0 bg-black/85 backdrop-blur-sm"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  data-tweaker-theme={tweakerDefaultTheme}
+                  className="pointer-events-auto absolute inset-0 bg-(--tweaker-viewer-overlay) backdrop-blur-(--tweaker-blur-overlay)"
+                  initial={tweakerMotionTokens.viewerOverlayInitial}
+                  animate={tweakerMotionTokens.viewerOverlayAnimate}
+                  exit={tweakerMotionTokens.viewerOverlayExit}
                   transition={fadeTransition}
                 />
               </Dialog.Overlay>
@@ -359,46 +370,43 @@ function DropzoneImageViewer({
                 }}
               >
                 <motion.figure
-                  className="pointer-events-auto fixed top-1/2 left-1/2 m-0 grid w-[min(92vw,80rem)] max-w-none gap-0 overflow-hidden rounded-xl border border-white/15 bg-black/75 text-white shadow-2xl shadow-black/70 outline-none"
-                  initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.94 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  data-tweaker-theme={tweakerDefaultTheme}
+                  className="shadow-tweaker-viewer pointer-events-auto fixed top-1/2 left-1/2 m-0 grid w-(--tweaker-viewer-width) max-w-none gap-0 overflow-hidden rounded-(--tweaker-viewer-radius) border border-(--tweaker-viewer-border) bg-(--tweaker-viewer-background) text-(--tweaker-viewer-foreground) outline-none"
+                  initial={prefersReducedMotion ? false : tweakerMotionTokens.viewerSurfaceInitial}
+                  animate={tweakerMotionTokens.viewerSurfaceAnimate}
                   exit={
                     prefersReducedMotion
-                      ? { opacity: 0 }
-                      : {
-                          opacity: 0,
-                          scale: 0.97,
-                          transition: { duration: 0.16, ease: [0.4, 0, 1, 1] },
-                        }
+                      ? tweakerMotionTokens.viewerSurfaceReducedExit
+                      : tweakerMotionTokens.viewerSurfaceExit
                   }
                   style={{ x: '-50%', y: '-50%' }}
                   transition={enterTransition}
                 >
-                  <div className="relative flex max-h-[82vh] min-h-48 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.12),transparent_65%)] p-3 sm:p-5">
+                  <div className="relative flex max-h-(--tweaker-viewer-surface-max-height) min-h-(--tweaker-viewer-content-min-height) items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_35%,var(--tweaker-viewer-spotlight),transparent_65%)] p-(--tweaker-space-3) sm:p-(--tweaker-space-5)">
                     <img
                       alt={preview.name}
-                      className="max-h-[74vh] max-w-full rounded-md object-contain shadow-2xl shadow-black/60"
+                      className="shadow-tweaker-viewer max-h-(--tweaker-viewer-image-max-height) max-w-full rounded-(--tweaker-viewer-image-radius) object-contain"
                       draggable={false}
                       src={preview.url}
                     />
                   </div>
-                  <figcaption className="flex min-w-0 items-center justify-between gap-3 border-t border-white/10 bg-black/70 px-4 py-2.5">
+                  <figcaption className="border-tweaker-border flex min-w-0 items-center justify-between gap-(--tweaker-space-3) border-t bg-(--tweaker-viewer-caption-background) px-(--tweaker-space-4) py-(--tweaker-space-2-5)">
                     <span className="min-w-0">
-                      <Dialog.Title className="block truncate text-sm font-medium text-white">
+                      <Dialog.Title className="block truncate text-(length:--tweaker-font-size-xl) font-(--tweaker-font-medium) text-(--tweaker-viewer-foreground)">
                         {preview.name}
                       </Dialog.Title>
-                      <Dialog.Description className="text-[11px] text-white/55">
+                      <Dialog.Description className="text-(length:--tweaker-font-size-md) text-(--tweaker-viewer-muted)">
                         {formatFileSize(preview.size)}
                       </Dialog.Description>
                     </span>
                     <Dialog.Close asChild>
                       <Button
                         aria-label="Close image viewer"
-                        className="size-8 shrink-0 text-white/70 hover:bg-white/10 hover:text-white"
+                        className="size-(--tweaker-viewer-close-size) shrink-0 text-(--tweaker-viewer-foreground)/70 hover:bg-(--tweaker-viewer-foreground)/10 hover:text-(--tweaker-viewer-foreground)"
                         size="icon"
                         variant="ghost"
                       >
-                        <X className="size-4" aria-hidden="true" />
+                        <X className="size-(--tweaker-icon-md)" aria-hidden="true" />
                       </Button>
                     </Dialog.Close>
                   </figcaption>

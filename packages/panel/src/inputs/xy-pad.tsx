@@ -1,5 +1,6 @@
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react'
 import { useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import { tweakerGeometryTokens, tweakerMotionTokens } from '../theme.js'
 import {
   TweakerControl,
   useResolvedPanelProp,
@@ -124,14 +125,14 @@ function XYPadSurface({
   const coordinateHeight = useMotionValue(0)
   const padWidth = useMotionValue(0)
   const pointWidth = useMotionValue(0)
-  const springX = useSpring(cursorX, { damping: 28, mass: 0.35, stiffness: 380 })
-  const springY = useSpring(cursorY, { damping: 28, mass: 0.35, stiffness: 380 })
+  const springX = useSpring(cursorX, tweakerMotionTokens.xySpring)
+  const springY = useSpring(cursorY, tweakerMotionTokens.xySpring)
   const visualX = prefersReducedMotion ? cursorX : springX
   const visualY = prefersReducedMotion ? cursorY : springY
   const coordinateX = useTransform(
     () =>
       projectTweakerXYLabelPosition(visualX.get(), visualY.get(), {
-        gap: 5,
+        gap: tweakerGeometryTokens.xyLabelGap,
         labelHeight: coordinateHeight.get(),
         labelWidth: coordinateWidth.get(),
         padWidth: padWidth.get(),
@@ -141,7 +142,7 @@ function XYPadSurface({
   const coordinateY = useTransform(
     () =>
       projectTweakerXYLabelPosition(visualX.get(), visualY.get(), {
-        gap: 5,
+        gap: tweakerGeometryTokens.xyLabelGap,
         labelHeight: coordinateHeight.get(),
         labelWidth: coordinateWidth.get(),
         padWidth: padWidth.get(),
@@ -197,17 +198,19 @@ function XYPadSurface({
   }
 
   return (
-    <div className="col-span-full grid gap-1.5">
-      <div className="focus-within:ring-ring focus-within:ring-offset-background rounded-md focus-within:ring-2 focus-within:ring-offset-1">
+    <div className="col-span-full grid gap-(--tweaker-space-1-5)">
+      <div className="focus-within:ring-tweaker-focus focus-within:ring-offset-tweaker-canvas rounded-(--tweaker-xy-radius) focus-within:ring-2 focus-within:ring-offset-1">
         <div
           ref={padRef}
           aria-describedby={instructionsId}
           aria-disabled={unavailable || undefined}
           aria-label={ariaLabel}
           className={cn(
-            'bg-muted/50 relative aspect-[2/1] min-h-24 touch-none overflow-hidden rounded-md border border-input outline-none',
-            'before:bg-border/70 before:absolute before:inset-y-0 before:left-1/2 before:w-px after:bg-border/70 after:absolute after:inset-x-0 after:top-1/2 after:h-px',
-            unavailable ? 'cursor-not-allowed opacity-50' : 'cursor-crosshair',
+            'relative aspect-[2/1] min-h-(--tweaker-xy-min-height) touch-none overflow-hidden rounded-(--tweaker-xy-radius) border border-tweaker-control bg-(--tweaker-xy-background) outline-none',
+            'before:absolute before:inset-y-0 before:left-1/2 before:w-(--tweaker-border-thin) before:bg-(--tweaker-xy-grid) after:absolute after:inset-x-0 after:top-1/2 after:h-(--tweaker-border-thin) after:bg-(--tweaker-xy-grid)',
+            unavailable
+              ? 'cursor-not-allowed opacity-(--tweaker-opacity-disabled)'
+              : 'cursor-crosshair',
             className,
           )}
           id={padId}
@@ -239,13 +242,13 @@ function XYPadSurface({
           <motion.span
             ref={thumbRef}
             aria-hidden="true"
-            className="border-primary-foreground bg-primary pointer-events-none absolute top-0 left-0 size-3 rounded-full border-2 shadow-sm"
+            className="border-tweaker-accent-text bg-tweaker-accent shadow-tweaker-sm pointer-events-none absolute top-0 left-0 size-(--tweaker-xy-point-size) rounded-full border-2"
             style={{ x: visualX, y: visualY, willChange: 'transform' }}
           />
           <motion.output
             ref={coordinateRef}
             aria-hidden="true"
-            className="bg-foreground/90 text-background pointer-events-none absolute top-0 left-0 z-10 rounded px-1.5 py-1 text-[9px] leading-none font-medium whitespace-nowrap tabular-nums shadow-lg shadow-black/20"
+            className="bg-tweaker-text/90 text-tweaker-canvas pointer-events-none absolute top-0 left-0 z-(--tweaker-layer-raised) rounded-(--tweaker-field-radius) px-(--tweaker-space-1-5) py-(--tweaker-space-1) text-(length:--tweaker-font-size-xs) leading-none font-(--tweaker-font-medium) whitespace-nowrap tabular-nums shadow-(--tweaker-shadow-md)"
             style={{ x: coordinateX, y: coordinateY, willChange: 'transform' }}
           >
             X {formatXYValue(value.x, bounds.step)} · Y {formatXYValue(value.y, bounds.step)}
@@ -288,7 +291,10 @@ function XYPadSurface({
           }}
         />
       </div>
-      <p id={instructionsId} className="text-muted-foreground text-[10px] leading-4">
+      <p
+        id={instructionsId}
+        className="text-tweaker-muted text-(length:--tweaker-font-size-sm) leading-(--tweaker-line-tight)"
+      >
         Drag the pad, or focus the X or Y slider and use arrow keys.
       </p>
     </div>

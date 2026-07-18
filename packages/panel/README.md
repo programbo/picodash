@@ -36,6 +36,19 @@ export function App() {
 Set `collapsible` to add an accessible disclosure control to the panel header. Use
 `defaultCollapsed` when an opt-in panel should start closed.
 
+Every titled `TweakerPanel` also includes an actions menu at the far end of its header.
+The menu can expand or collapse all visible collapsible groups, reset registered fields,
+and copy, export, or import panel values as JSON or YAML. Reset and import only change
+currently registered fields: order, group disclosure, panel layout, metadata, and stale
+unregistered values remain untouched.
+
+Imported documents must be a bare object keyed by registered field ID. Unknown keys,
+non-JSON-compatible values, and values whose JSON kind differs from the current/default
+field value reject the whole document without a partial update. Missing registered keys
+reset to their defaults (or are removed when no default exists). Successful imported
+values become dirty and touched. Hidden registered fields participate; display-only and
+unregistered fields do not.
+
 `TweakerSlider` accepts `marks` for labels below the slider track:
 
 - `marks={true}` renders min and max.
@@ -107,6 +120,56 @@ Pure normalization and projection helpers are exported alongside the controls fo
 composition and focused testing. Keep the panel store authoritative for user values. Use
 MotionValues only for high-frequency visual sampling or smoothing, respect reduced-motion,
 and commit meaningful values through `control.setValue`.
+
+## Design tokens and themes
+
+`panel/style.css` owns a three-level token hierarchy:
+
+1. Foundation tokens (`--tweaker-palette-*`, `--tweaker-space-*`,
+   `--tweaker-radius-*`, typography, opacity, borders, shadows, timing, blur, and layers)
+   are the raw scales.
+2. Semantic tokens (`--tweaker-color-*`) describe canvas, surfaces, text, borders,
+   controls, focus, accent, and success/info/warning/alert/danger states.
+3. Component contracts (`--tweaker-panel-*`, `--tweaker-row-*`,
+   `--tweaker-slider-*`, `--tweaker-dropzone-*`, and related families) are the
+   narrowest overrides.
+
+Override semantic tokens for a cohesive theme, or a component token for a focused change.
+Load overrides after `panel/style.css`:
+
+```css
+[data-tweaker-theme='dark'] {
+  --tweaker-color-accent: oklch(0.78 0.15 172);
+  --tweaker-color-accent-text: oklch(0.16 0.02 172);
+  --tweaker-panel-background: oklch(0.19 0.015 250);
+  --tweaker-row-hover: oklch(0.3 0.025 250 / 70%);
+  --tweaker-tooltip-background: oklch(0.24 0.018 250);
+  --tweaker-viewer-overlay: oklch(0 0 0 / 90%);
+}
+```
+
+`TweakerProvider` carries `data-tweaker-theme="dark"` on its portal container.
+Portaled panels, menus, alert dialogs, tooltips, and the dropzone image viewer repeat the
+carrier so the same selector themes content even when Radix mounts it outside the provider
+DOM subtree. The package never adds a host `.dark` class.
+
+The stylesheet also exposes namespaced Tailwind utilities such as
+`bg-tweaker-surface`, `text-tweaker-muted`, `border-tweaker-control`,
+`ring-tweaker-focus`, `rounded-tweaker-sm`, and `shadow-tweaker-panel`. These are
+convenient for custom items when the consumer's Tailwind build scans the package source.
+Raw `--tweaker-*` variables are the reliable public theming surface in every setup:
+
+```tsx
+<div className="bg-(--tweaker-color-surface-muted) text-(--tweaker-color-text)">
+  Custom panel item
+</div>
+```
+
+CSS remains the source of truth for editable visual values, including the viewer layer
+through `--tweaker-layer-viewer`. The exported `tweakerMotionTokens` object centralizes
+JS-only Motion springs and visual states, `tweakerGeometryTokens` holds numeric geometry
+needed by projection math, and `tweakerLayerTokens` holds the JS-only panel layer base.
+`tweakerThemeAttribute` and `tweakerDefaultTheme` expose the carrier contract.
 
 The official shadcn/Recharts and live MotionValue examples live in `apps/demo` rather than
 the publishable package. The chart style generator receives application-authored trusted

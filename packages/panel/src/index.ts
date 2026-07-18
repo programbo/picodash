@@ -1,5 +1,12 @@
 import './styles.css'
 
+export {
+  tweakerDefaultTheme,
+  tweakerGeometryTokens,
+  tweakerLayerTokens,
+  tweakerMotionTokens,
+  tweakerThemeAttribute,
+} from './theme.js'
 export { FeaturePanel } from './feature-panel.js'
 export { panelLayoutStorageKey } from './panel-persistence.js'
 export type {

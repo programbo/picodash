@@ -2,21 +2,16 @@ import { isMotionValue, useDragControls, useMotionValue, type HTMLMotionProps } 
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useTweakerGroupContext } from './tweaker-group-context.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
+import { tweakerMotionTokens } from './theme.js'
 
 export const reorderTransition: HTMLMotionProps<'div'>['transition'] = {
-  layout: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
-  x: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
-  y: { type: 'spring', stiffness: 650, damping: 30, mass: 0.55 },
+  layout: tweakerMotionTokens.reorder,
+  x: tweakerMotionTokens.reorder,
+  y: tweakerMotionTokens.reorder,
 }
 
-export const reorderDragTransition: HTMLMotionProps<'div'>['dragTransition'] = {
-  bounceDamping: 28,
-  bounceStiffness: 700,
-  power: 0.08,
-  restDelta: 0.5,
-  restSpeed: 12,
-  timeConstant: 120,
-}
+export const reorderDragTransition: HTMLMotionProps<'div'>['dragTransition'] =
+  tweakerMotionTokens.reorderDrag
 
 type ReorderItemLayoutProp = true | 'position'
 

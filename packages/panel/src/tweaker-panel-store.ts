@@ -1,4 +1,8 @@
 import { createStore } from 'zustand'
+import {
+  collapsibleGroupsForState,
+  registeredFieldIdsForState,
+} from './tweaker-panel-action-state.js'
 import { bandForItem, normalizeAllOrders, rootGroupId } from './tweaker-order.js'
 import type {
   TweakerFieldState,
@@ -57,6 +61,16 @@ export function createTweakerPanelStore({
         }
 
         const fieldState = item.fieldId === undefined ? undefined : state.fields[item.fieldId]
+        const declaredDefaultChanged =
+          previous !== undefined &&
+          previous.fieldId === item.fieldId &&
+          !Object.is(previous.defaultValue, item.defaultValue)
+        const registeredDefaultValue =
+          item.fieldId === undefined
+            ? undefined
+            : fieldState === undefined || declaredDefaultChanged
+              ? item.defaultValue
+              : fieldState.defaultValue
         const fields =
           item.fieldId === undefined
             ? state.fields
@@ -64,15 +78,15 @@ export function createTweakerPanelStore({
                 ...state.fields,
                 [item.fieldId]: {
                   ...(fieldState ?? emptyField()),
-                  defaultValue: item.defaultValue,
+                  defaultValue: registeredDefaultValue,
                 },
               }
         const values =
           item.fieldId === undefined ||
           Object.prototype.hasOwnProperty.call(state.values, item.fieldId) ||
-          item.defaultValue === undefined
+          registeredDefaultValue === undefined
             ? state.values
-            : { ...state.values, [item.fieldId]: item.defaultValue }
+            : { ...state.values, [item.fieldId]: registeredDefaultValue }
 
         return {
           fields,
@@ -223,6 +237,12 @@ export function createTweakerPanelStore({
         }
       })
     },
+    resetRegisteredFields() {
+      set((state) => resetRegisteredFieldsState(state))
+    },
+    replaceRegisteredFieldValues(importedValues) {
+      set((state) => replaceRegisteredFieldValuesState(state, importedValues))
+    },
     setFieldDefault(fieldId, value) {
       set((state) => ({
         fields: {
@@ -256,6 +276,21 @@ export function createTweakerPanelStore({
       set((state) => ({
         collapsedGroups: { ...state.collapsedGroups, [groupId]: collapsed },
       }))
+    },
+    setAllCollapsibleGroupsCollapsed(collapsed) {
+      set((state) => {
+        const groups = collapsibleGroupsForState(state)
+        if (groups.every((group) => group.collapsed === collapsed)) {
+          return state
+        }
+
+        return {
+          collapsedGroups: {
+            ...state.collapsedGroups,
+            ...Object.fromEntries(groups.map((group) => [group.id, collapsed])),
+          },
+        }
+      })
     },
     setHoveredItem(itemId) {
       set((state) =>
@@ -307,6 +342,44 @@ export function createTweakerPanelStore({
       })
     },
   }))
+}
+
+function resetRegisteredFieldsState(state: TweakerPanelState) {
+  const fieldIds = registeredFieldIdsForState(state)
+  if (fieldIds.length === 0) return state
+
+  const fields = { ...state.fields }
+  const values = { ...state.values }
+  for (const fieldId of fieldIds) {
+    const field = fields[fieldId] ?? emptyField()
+    fields[fieldId] = { ...field, dirty: false, touched: false }
+    if (field.defaultValue === undefined) delete values[fieldId]
+    else values[fieldId] = field.defaultValue
+  }
+  return { fields, values }
+}
+
+function replaceRegisteredFieldValuesState(
+  state: TweakerPanelState,
+  importedValues: Record<string, TweakerValue>,
+) {
+  const fieldIds = registeredFieldIdsForState(state)
+  if (fieldIds.length === 0) return state
+
+  const fields = { ...state.fields }
+  const values = { ...state.values }
+  for (const fieldId of fieldIds) {
+    const field = fields[fieldId] ?? emptyField()
+    if (Object.prototype.hasOwnProperty.call(importedValues, fieldId)) {
+      fields[fieldId] = { ...field, dirty: true, touched: true }
+      values[fieldId] = importedValues[fieldId]!
+    } else {
+      fields[fieldId] = { ...field, dirty: false, touched: false }
+      if (field.defaultValue === undefined) delete values[fieldId]
+      else values[fieldId] = field.defaultValue
+    }
+  }
+  return { fields, values }
 }
 
 function replaceVisibleBandOrder(

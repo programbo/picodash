@@ -36,6 +36,7 @@
     "radix-ui": "catalog:",
     "react-dropzone": "catalog:",
     "tailwind-merge": "catalog:",
+    "yaml": "catalog:",
     "zod": "catalog:",
     "zustand": "catalog:"
   },
