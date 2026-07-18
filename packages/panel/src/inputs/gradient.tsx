@@ -45,6 +45,7 @@ export function TweakerGradient({
   rotationField,
   ...controlProps
 }: TweakerGradientProps) {
+  const gradientItemId = controlProps.id ?? controlProps.field
   const normalizedDefault = useMemo(() => normalizeTweakerGradient(defaultValue), [defaultValue])
   const normalizedDefaultRotation = normalizeGradientRotation(defaultRotation)
   const store = useTweakerPanelStoreApi()
@@ -82,7 +83,7 @@ export function TweakerGradient({
     <>
       {rotationField ? (
         <TweakerItem<number>
-          id={`${rotationField}-registration`}
+          id={gradientRotationRegistrationId(gradientItemId, rotationField)}
           field={rotationField}
           defaultValue={normalizedDefaultRotation}
           parse={rotationParse}
@@ -455,6 +456,10 @@ export function gradientCssValue(stops: TweakerGradientValue, rotation?: number)
   return `linear-gradient(${direction}, ${normalized
     .map((stop) => `${stop.color} ${stop.position * 100}%`)
     .join(', ')})`
+}
+
+export function gradientRotationRegistrationId(itemId: string, rotationField: string) {
+  return `${itemId}:${rotationField}:registration`
 }
 
 function normalizeGradientRotation(value: number) {

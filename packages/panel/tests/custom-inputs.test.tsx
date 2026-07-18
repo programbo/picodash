@@ -3,6 +3,7 @@ import { expect, test } from 'vite-plus/test'
 import { tweakerAlignmentValues } from '../src/inputs/alignment.tsx'
 import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
 import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
+import { gradientRotationRegistrationId } from '../src/inputs/gradient.tsx'
 import { normalizeSelectValue } from '../src/inputs/select.tsx'
 import {
   gradientCssValue,
@@ -204,6 +205,9 @@ test('normalizes gradient stops, colors, and pointer projection', () => {
   expect(projectTweakerGradientPosition(75, { left: 25, width: 100 })).toBe(0.5)
   expect(gradientCssValue(gradient)).toContain('#000000 0%')
   expect(gradientCssValue(gradient, 135)).toContain('linear-gradient(135deg')
+  expect(gradientRotationRegistrationId('gradient-a', 'rotation')).not.toBe(
+    gradientRotationRegistrationId('gradient-b', 'rotation'),
+  )
 })
 
 test('normalizes malformed gradient values without projecting unknown records', () => {
