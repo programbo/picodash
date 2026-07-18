@@ -489,6 +489,48 @@ test('transfers hover ownership between a group header and its child', async ({ 
   await expect(group).toHaveAttribute('data-hovered', 'false')
 })
 
+test('pins the group hover band to the left and bottom edges while preserving its label gap', async ({
+  page,
+}) => {
+  const group = page.locator('[data-group-id="scene-essentials"]')
+  const firstRow = group.locator('[data-control-id="opacity"]')
+  const lastRow = group.locator('[data-control-id="bloom"]')
+  const firstRail = firstRow.locator(':scope > span').first()
+  const lastRail = lastRow.locator(':scope > span').first()
+  const label = firstRow.locator('label').first()
+
+  await group.getByRole('button', { name: 'Essentials', exact: true }).hover()
+  await expect(group).toHaveAttribute('data-hovered', 'true')
+
+  const groupRect = await requiredBox(group)
+  const firstRailRect = await requiredBox(firstRail)
+  const lastRailRect = await requiredBox(lastRail)
+  const labelRect = await requiredBox(label)
+  const borderBottomWidth = await group.evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element).borderBottomWidth),
+  )
+
+  expect(Math.abs(firstRailRect.x - groupRect.x)).toBeLessThanOrEqual(0.5)
+  expect(firstRailRect.width).toBe(24)
+  await expect
+    .poll(async () => {
+      const [groupBorderColor, railColor] = await Promise.all([
+        group.evaluate((element) => getComputedStyle(element).borderLeftColor),
+        firstRail.evaluate((element) => getComputedStyle(element).backgroundColor),
+      ])
+      return groupBorderColor === railColor
+    })
+    .toBe(true)
+  expect(Math.abs(labelRect.x - (firstRailRect.x + firstRailRect.width) - 6)).toBeLessThanOrEqual(
+    0.5,
+  )
+  expect(
+    Math.abs(
+      lastRailRect.y + lastRailRect.height - (groupRect.y + groupRect.height - borderBottomWidth),
+    ),
+  ).toBeLessThanOrEqual(0.5)
+})
+
 test('contains grip layers within their reorder items', async ({ page }) => {
   const group = page.locator('[data-group-id="scene-rendering"]')
   const draggedControl = page.locator('[data-control-id="quality"]')
