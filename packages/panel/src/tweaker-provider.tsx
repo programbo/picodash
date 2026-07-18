@@ -17,6 +17,7 @@ import {
   tweakerPersistedStateSchema,
 } from './panel-persistence.js'
 import type { PanelLayout, PanelRect } from './panel-snapping.js'
+import { tweakerDefaultTheme, tweakerLayerTokens } from './theme.js'
 
 export interface TweakerPanelRegistration {
   id: string
@@ -50,7 +51,7 @@ export interface TweakerProviderProps {
 }
 
 const TweakerContext = createContext<TweakerProviderContextValue | null>(null)
-const panelZIndexBase = 1000
+const panelZIndexBase = tweakerLayerTokens.panelBase
 
 export function createTweakerStore(): TweakerStore {
   return createStore<TweakerState>()(
@@ -210,6 +211,7 @@ export function TweakerProvider({ children }: TweakerProviderProps) {
       {children}
       <div
         data-tweaker-container
+        data-tweaker-theme={tweakerDefaultTheme}
         ref={handleContainerRef}
         className="pointer-events-none fixed inset-0 h-dvh w-dvw"
       ></div>

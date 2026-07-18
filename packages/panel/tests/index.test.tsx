@@ -1,4 +1,5 @@
 import { isValidElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vite-plus/test'
 import {
   createTweakerPanelStore,
@@ -6,6 +7,11 @@ import {
   FeaturePanel,
   panelLayoutStorageKey,
   panelZIndexForState,
+  tweakerDefaultTheme,
+  tweakerGeometryTokens,
+  tweakerLayerTokens,
+  tweakerMotionTokens,
+  tweakerThemeAttribute,
 } from '../src/index.ts'
 import {
   clampPanelPosition,
@@ -14,7 +20,15 @@ import {
   translationFromTransform,
   type PanelRect,
 } from '../src/panel-snapping.ts'
-import { orderIndexForItem, reorderValuesForPointer } from '../src/tweaker-panel.tsx'
+import {
+  hasVisibleReorderableSibling,
+  itemCanReorder,
+  orderedItemIdsForParent,
+  orderIndexForItem,
+  reorderValuesForPointer,
+} from '../src/tweaker-panel.tsx'
+import { constrainReorderPointerOffset } from '../src/tweaker-reorder-list.tsx'
+import { TweakerReorderIndicator } from '../src/tweaker-reorder-indicator.tsx'
 
 test('creates feature panel elements', () => {
   const element = (
@@ -31,6 +45,69 @@ test('creates feature panel elements', () => {
   expect(element.props.items).toEqual([
     { label: 'Build health', value: 'Passing', status: 'success' },
   ])
+})
+
+test('exports the package theme carrier, motion, and layer contracts', () => {
+  expect(tweakerThemeAttribute).toBe('data-tweaker-theme')
+  expect(tweakerDefaultTheme).toBe('dark')
+  expect(tweakerLayerTokens).toEqual({
+    panelBase: 1000,
+  })
+  expect(tweakerGeometryTokens).toEqual({
+    menuCollisionPadding: 8,
+    menuSideOffset: 4,
+    menuSubmenuOffset: 4,
+    rangeThumbRadius: 7,
+    selectCollisionPadding: 8,
+    selectSideOffset: 4,
+    xyLabelGap: 5,
+  })
+  expect(tweakerMotionTokens.dragElastic).toBe(0.01)
+  expect(tweakerMotionTokens.reorder).toEqual({
+    damping: 30,
+    mass: 0.55,
+    stiffness: 650,
+    type: 'spring',
+  })
+  expect(tweakerMotionTokens.reorderDrag).toEqual({
+    bounceDamping: 28,
+    bounceStiffness: 700,
+    power: 0.08,
+    restDelta: 0.5,
+    restSpeed: 12,
+    timeConstant: 120,
+  })
+  expect(tweakerMotionTokens.featureRowAnimate).toEqual({
+    height: 'auto',
+    opacity: 1,
+  })
+  expect(tweakerMotionTokens.viewerOverlayAnimate).toEqual({ opacity: 1 })
+  expect(tweakerMotionTokens.viewerSurfaceExit).toEqual({
+    opacity: 0,
+    scale: 0.97,
+    transition: {
+      duration: 0.16,
+      ease: [0.4, 0, 1, 1],
+    },
+  })
+  expect(tweakerMotionTokens.xySpring).toEqual({
+    damping: 28,
+    mass: 0.35,
+    stiffness: 380,
+  })
+})
+
+test('renders a static square instead of a grip for non-reorderable item slots', () => {
+  const staticIndicator = renderToStaticMarkup(<TweakerReorderIndicator reorderable={false} />)
+  const reorderGrip = renderToStaticMarkup(<TweakerReorderIndicator reorderable />)
+
+  expect(staticIndicator).toContain('data-tweaker-reorder-indicator="static"')
+  expect(staticIndicator).toContain('size-(--tweaker-reorder-static-marker-size)')
+  expect(staticIndicator).toContain('bg-(--tweaker-reorder-static-marker-color)')
+  expect(staticIndicator).toContain('opacity-(--tweaker-reorder-static-marker-opacity)')
+  expect(staticIndicator).not.toContain('<svg')
+  expect(reorderGrip).toContain('data-tweaker-reorder-indicator="grip"')
+  expect(reorderGrip).toContain('<svg')
 })
 
 test('tracks registered panels in the global tweaker store', () => {
@@ -263,6 +340,104 @@ test('preserves collapsed group state across reorder layout remounts', () => {
   expect(store.getState().collapsedGroups.preview).toBe(true)
 })
 
+test('preserves control order slots across transient registration remounts', () => {
+  const store = createTweakerPanelStore({ panelId: 'inspect' })
+  const register = (id: string) =>
+    store.getState().registerItem({
+      id,
+      kind: 'control',
+      parentId: 'root',
+      placement: 'auto',
+      reorderable: true,
+    })
+
+  register('alpha')
+  register('beta')
+  register('gamma')
+  store.getState().setOrder('root', ['gamma', 'alpha', 'beta'])
+
+  store.getState().unregisterItem('alpha')
+
+  expect(store.getState().order.root).toEqual(['gamma', 'alpha', 'beta'])
+  expect(orderedItemIdsForParent(store.getState(), 'root')).toEqual(['gamma', 'beta'])
+
+  register('alpha')
+
+  expect(orderedItemIdsForParent(store.getState(), 'root')).toEqual(['gamma', 'alpha', 'beta'])
+})
+
+test('preserves stale slots while multiple controls re-register out of order', () => {
+  const store = createTweakerPanelStore({ panelId: 'inspect' })
+  const register = (id: string) =>
+    store.getState().registerItem({
+      id,
+      kind: 'control',
+      parentId: 'root',
+      placement: 'auto',
+      reorderable: true,
+    })
+
+  register('alpha')
+  register('beta')
+  register('gamma')
+  store.getState().setOrder('root', ['gamma', 'alpha', 'beta'])
+  store.getState().unregisterItem('alpha')
+  store.getState().unregisterItem('beta')
+
+  register('beta')
+  expect(store.getState().order.root).toEqual(['gamma', 'alpha', 'beta'])
+  expect(orderedItemIdsForParent(store.getState(), 'root')).toEqual(['gamma', 'beta'])
+
+  register('alpha')
+  expect(orderedItemIdsForParent(store.getState(), 'root')).toEqual(['gamma', 'alpha', 'beta'])
+})
+
+test('preserves group and nested order slots across transient registration remounts', () => {
+  const store = createTweakerPanelStore({ panelId: 'inspect' })
+  store.getState().registerItem({
+    id: 'preview',
+    kind: 'group',
+    parentId: 'root',
+    placement: 'auto',
+    reorderable: true,
+  })
+  store.getState().registerItem({
+    id: 'output',
+    kind: 'group',
+    parentId: 'root',
+    placement: 'auto',
+    reorderable: true,
+  })
+  for (const id of ['exposure', 'quality']) {
+    store.getState().registerItem({
+      id,
+      kind: 'control',
+      parentId: 'preview',
+      placement: 'auto',
+      reorderable: true,
+    })
+  }
+  store.getState().setOrder('root', ['output', 'preview'])
+  store.getState().setOrder('preview', ['quality', 'exposure'])
+
+  store.getState().unregisterItem('preview')
+
+  expect(store.getState().order.root).toEqual(['output', 'preview'])
+  expect(store.getState().order.preview).toEqual(['quality', 'exposure'])
+  expect(orderedItemIdsForParent(store.getState(), 'root')).toEqual(['output'])
+
+  store.getState().registerItem({
+    id: 'preview',
+    kind: 'group',
+    parentId: 'root',
+    placement: 'auto',
+    reorderable: true,
+  })
+
+  expect(orderedItemIdsForParent(store.getState(), 'root')).toEqual(['output', 'preview'])
+  expect(orderedItemIdsForParent(store.getState(), 'preview')).toEqual(['quality', 'exposure'])
+})
+
 test('normalizes panel item order into start, auto, and end bands', () => {
   const store = createTweakerPanelStore({ panelId: 'inspect' })
   const register = (id: string, placement: 'auto' | 'start' | 'end') => {
@@ -313,6 +488,86 @@ test('programmatic reorder stays within parent and placement band', () => {
 
   store.getState().reorderItem('nested', 'quality')
   expect(store.getState().order.root).toEqual(['header', 'exposure', 'quality', 'summary'])
+})
+
+test('requires a visible reorderable sibling in the same parent and placement band', () => {
+  const store = createTweakerPanelStore({ panelId: 'inspect' })
+  const register = ({
+    hidden = false,
+    id,
+    parentId = 'root',
+    placement = 'auto',
+    reorderable = true,
+  }: {
+    hidden?: boolean
+    id: string
+    parentId?: string
+    placement?: 'auto' | 'start' | 'end'
+    reorderable?: boolean
+  }) => {
+    store.getState().registerItem({
+      hidden,
+      id,
+      kind: 'control',
+      parentId,
+      placement,
+      reorderable,
+    })
+  }
+
+  register({ id: 'quality' })
+  register({ id: 'header', placement: 'start' })
+  register({ id: 'fixed', reorderable: false })
+  register({ hidden: true, id: 'hidden' })
+  register({ id: 'nested', parentId: 'group-a' })
+
+  expect(itemCanReorder(store.getState(), 'quality')).toBe(false)
+  expect(itemCanReorder(store.getState(), 'header')).toBe(false)
+  expect(itemCanReorder(store.getState(), 'fixed')).toBe(false)
+  expect(itemCanReorder(store.getState(), 'hidden')).toBe(false)
+  expect(itemCanReorder(store.getState(), 'nested')).toBe(false)
+  expect(
+    hasVisibleReorderableSibling(store.getState(), {
+      id: 'quality',
+      parentId: 'root',
+      placement: 'auto',
+    }),
+  ).toBe(false)
+
+  register({ id: 'exposure' })
+
+  expect(itemCanReorder(store.getState(), 'quality')).toBe(true)
+  expect(itemCanReorder(store.getState(), 'exposure')).toBe(true)
+  expect(itemCanReorder(store.getState(), 'fixed')).toBe(false)
+})
+
+test('reorder mutations reject an item whose only visible band sibling is fixed', () => {
+  const store = createTweakerPanelStore({ panelId: 'inspect' })
+  const register = (id: string, reorderable: boolean) => {
+    store.getState().registerItem({
+      id,
+      kind: 'control',
+      parentId: 'root',
+      placement: 'auto',
+      reorderable,
+    })
+  }
+
+  register('quality', true)
+  register('fixed', false)
+
+  store.getState().moveItemToIndex('quality', 1)
+  store.getState().moveItemRelativeTo('quality', 'fixed', 'after')
+  store.getState().reorderItem('quality', 'fixed')
+  store.getState().setDraggingItem('quality')
+
+  expect(store.getState().order.root).toEqual(['quality', 'fixed'])
+  expect(store.getState().interaction.draggingId).toBeNull()
+
+  register('exposure', true)
+  store.getState().moveItemToIndex('quality', 2)
+
+  expect(store.getState().order.root).toEqual(['fixed', 'exposure', 'quality'])
 })
 
 test('drag commit moves items by visible placement-local index', () => {
@@ -396,7 +651,19 @@ test('pointer reorder can reverse from past two rows back between them', () => {
   expect(store.getState().order.root).toEqual(['camera-height', 'quality', 'render-scale'])
 })
 
-test('pointer reorder moves an adjacent item down and back up from fixed drag geometry', () => {
+test('pointer reorder swaps only after the dragged leading edge passes an adjacent midpoint', () => {
+  expect(
+    reorderValuesForPointer(
+      ['channel', 'lock-preview'],
+      'channel',
+      [
+        { id: 'channel', min: 0, max: 42 },
+        { id: 'lock-preview', min: 46, max: 86 },
+      ],
+      24,
+    ),
+  ).toEqual(['channel', 'lock-preview'])
+
   expect(
     reorderValuesForPointer(
       ['channel', 'lock-preview'],
@@ -406,6 +673,18 @@ test('pointer reorder moves an adjacent item down and back up from fixed drag ge
         { id: 'lock-preview', min: 46, max: 86 },
       ],
       25,
+    ),
+  ).toEqual(['lock-preview', 'channel'])
+
+  expect(
+    reorderValuesForPointer(
+      ['lock-preview', 'channel'],
+      'channel',
+      [
+        { id: 'lock-preview', min: 0, max: 40 },
+        { id: 'channel', min: 44, max: 86 },
+      ],
+      -24,
     ),
   ).toEqual(['lock-preview', 'channel'])
 
@@ -440,7 +719,94 @@ test('pointer reorder targets the second row without requiring a third-row cross
     'shadow-softness',
     'quality',
   ])
-  expect(reorderValuesForPointer(order, 'quality', layouts, 10)).toEqual(order)
+  expect(reorderValuesForPointer(order, 'quality', layouts, 25)).toEqual(order)
+  expect(reorderValuesForPointer(order, 'quality', layouts, 70)).toEqual([
+    'camera-height',
+    'quality',
+    'shadow-softness',
+  ])
+})
+
+test('pointer reorder uses the leading edge when a tall item moves above shorter siblings', () => {
+  const order = ['first', 'second', 'tall']
+  const layouts = [
+    { id: 'first', min: 0, max: 40 },
+    { id: 'second', min: 44, max: 86 },
+    { id: 'tall', min: 90, max: 332 },
+  ]
+
+  expect(reorderValuesForPointer(order, 'tall', layouts, -25)).toEqual(order)
+  expect(reorderValuesForPointer(order, 'tall', layouts, -26)).toEqual(['first', 'tall', 'second'])
+  expect(reorderValuesForPointer(order, 'tall', layouts, -71)).toEqual(['tall', 'first', 'second'])
+})
+
+test('pointer reorder uses the leading edge when a tall item moves below shorter siblings', () => {
+  const order = ['tall', 'second', 'third']
+  const layouts = [
+    { id: 'tall', min: 0, max: 242 },
+    { id: 'second', min: 246, max: 286 },
+    { id: 'third', min: 290, max: 330 },
+  ]
+
+  expect(reorderValuesForPointer(order, 'tall', layouts, 24)).toEqual(order)
+  expect(reorderValuesForPointer(order, 'tall', layouts, 25)).toEqual(['second', 'tall', 'third'])
+  expect(reorderValuesForPointer(order, 'tall', layouts, 68)).toEqual(['second', 'tall', 'third'])
+  expect(reorderValuesForPointer(order, 'tall', layouts, 69)).toEqual(['second', 'third', 'tall'])
+})
+
+test('pointer reorder recalculates from fixed geometry after reversing across multiple items', () => {
+  const order = ['first', 'second', 'source', 'fourth', 'fifth']
+  const layouts = [
+    { id: 'first', min: 0, max: 40 },
+    { id: 'second', min: 44, max: 92 },
+    { id: 'source', min: 96, max: 138 },
+    { id: 'fourth', min: 142, max: 182 },
+    { id: 'fifth', min: 186, max: 238 },
+  ]
+
+  expect(reorderValuesForPointer(order, 'source', layouts, 24)).toEqual(order)
+  expect(reorderValuesForPointer(order, 'source', layouts, 25)).toEqual([
+    'first',
+    'second',
+    'fourth',
+    'source',
+    'fifth',
+  ])
+  expect(reorderValuesForPointer(order, 'source', layouts, 75)).toEqual([
+    'first',
+    'second',
+    'fourth',
+    'fifth',
+    'source',
+  ])
+  expect(reorderValuesForPointer(order, 'source', layouts, -29)).toEqual([
+    'first',
+    'source',
+    'second',
+    'fourth',
+    'fifth',
+  ])
+  expect(reorderValuesForPointer(order, 'source', layouts, -77)).toEqual([
+    'source',
+    'first',
+    'second',
+    'fourth',
+    'fifth',
+  ])
+})
+
+test('pointer reorder constraints preserve in-bounds offsets and apply symmetric elastic overshoot', () => {
+  expect(constrainReorderPointerOffset(-40, -100, 200)).toBe(-40)
+  expect(constrainReorderPointerOffset(125, -100, 200)).toBe(125)
+
+  const below = constrainReorderPointerOffset(-125, -100, 200)
+  const above = constrainReorderPointerOffset(225, -100, 200)
+  expect(below).toBe(-100.25)
+  expect(above).toBe(200.25)
+  expect(-100 - below).toBe(above - 200)
+
+  expect(constrainReorderPointerOffset(-1_000, -100, 200)).toBe(-101)
+  expect(constrainReorderPointerOffset(1_000, -100, 200)).toBe(201)
 })
 
 test('drag commit logs the same label order React will render when the last item moves first', () => {

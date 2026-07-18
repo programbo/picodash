@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, type HTMLMotionProps, type Transition } from 'motion/react'
 import type { ReactNode } from 'react'
+import { tweakerDefaultTheme, tweakerMotionTokens } from './theme.js'
 
 export type FeaturePanelItemStatus = 'neutral' | 'success' | 'warning' | 'info'
 
@@ -25,14 +26,14 @@ export interface FeaturePanelProps extends Omit<HTMLMotionProps<'section'>, 'tit
 }
 
 const statusClasses: Record<FeaturePanelItemStatus, string> = {
-  neutral: 'bg-zinc-400',
-  success: 'bg-emerald-400',
-  warning: 'bg-amber-300',
-  info: 'bg-sky-300',
+  neutral: 'bg-tweaker-muted',
+  success: 'bg-tweaker-success',
+  warning: 'bg-tweaker-warning',
+  info: 'bg-tweaker-info',
 }
 
-const panelTransition: Transition = { duration: 0.32, ease: [0.22, 1, 0.36, 1] }
-const rowTransition: Transition = { type: 'spring', stiffness: 420, damping: 34 }
+const panelTransition: Transition = tweakerMotionTokens.featurePanelEnter
+const rowTransition: Transition = tweakerMotionTokens.featureRow
 
 export function FeaturePanel({
   eyebrow,
@@ -46,48 +47,59 @@ export function FeaturePanel({
 }: FeaturePanelProps) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 16, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={tweakerMotionTokens.featurePanelInitial}
+      animate={tweakerMotionTokens.featurePanelAnimate}
       transition={panelTransition}
+      data-tweaker-theme={tweakerDefaultTheme}
       className={joinClassNames(
-        'overflow-hidden rounded-lg border border-white/12 bg-zinc-900/90 text-zinc-100 shadow-2xl shadow-black/30 ring-1 ring-white/5 backdrop-blur',
+        'overflow-hidden rounded-(--tweaker-feature-radius) border border-(--tweaker-feature-border) bg-(--tweaker-feature-background) text-(--tweaker-feature-foreground) shadow-tweaker-panel ring-1 ring-(--tweaker-panel-ring) backdrop-blur-(--tweaker-blur-surface)',
         className,
       )}
       {...props}
     >
-      <div className="border-b border-white/10 px-5 py-4">
+      <div className="border-tweaker-border border-b px-(--tweaker-space-5) py-(--tweaker-space-4)">
         {eyebrow ? (
-          <p className="text-xs font-semibold tracking-wide text-emerald-200 uppercase">
+          <p className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-wide) text-(--tweaker-feature-eyebrow) uppercase">
             {eyebrow}
           </p>
         ) : null}
-        <div className="mt-2 flex items-start justify-between gap-4">
+        <div className="mt-(--tweaker-space-2) flex items-start justify-between gap-(--tweaker-space-4)">
           <div>
-            <h2 className="text-xl font-semibold tracking-normal text-white">{title}</h2>
-            {summary ? <p className="mt-1 text-sm leading-6 text-zinc-300">{summary}</p> : null}
+            <h2 className="text-(length:--tweaker-font-size-2xl) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-normal) text-(--tweaker-color-text-strong)">
+              {title}
+            </h2>
+            {summary ? (
+              <p className="mt-(--tweaker-space-1) text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-relaxed) text-(--tweaker-feature-muted)">
+                {summary}
+              </p>
+            ) : null}
           </div>
           {metric ? (
             <motion.div
               layout
-              whileHover={{ y: -2 }}
+              whileHover={tweakerMotionTokens.featureMetricHover}
               transition={rowTransition}
-              className="shrink-0 rounded-md bg-white px-3 py-2 text-right text-zinc-950"
+              className="shrink-0 rounded-(--tweaker-button-radius) bg-(--tweaker-feature-metric-background) px-(--tweaker-space-3) py-(--tweaker-space-2) text-right text-(--tweaker-feature-metric-foreground)"
             >
-              <p className="text-xs font-medium text-zinc-500">{metric.label}</p>
+              <p className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-medium) text-(--tweaker-feature-metric-label)">
+                {metric.label}
+              </p>
               <AnimatePresence mode="wait" initial={false}>
                 <motion.p
                   key={metric.value}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.16 }}
-                  className="text-2xl font-semibold tracking-normal"
+                  initial={tweakerMotionTokens.featureMetricEnter}
+                  animate={tweakerMotionTokens.featureMetricAnimate}
+                  exit={tweakerMotionTokens.featureMetricExit}
+                  transition={tweakerMotionTokens.quickFade}
+                  className="text-(length:--tweaker-font-size-3xl) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-normal)"
                 >
                   {metric.value}
                 </motion.p>
               </AnimatePresence>
               {metric.trend ? (
-                <p className="text-xs font-medium text-emerald-700">{metric.trend}</p>
+                <p className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-medium) text-(--tweaker-feature-trend)">
+                  {metric.trend}
+                </p>
               ) : null}
             </motion.div>
           ) : null}
@@ -95,29 +107,33 @@ export function FeaturePanel({
       </div>
 
       {items.length > 0 ? (
-        <ul className="divide-y divide-white/10 overflow-hidden">
+        <ul className="divide-tweaker-border divide-y overflow-hidden">
           <AnimatePresence initial={false}>
             {items.map((item) => (
               <motion.li
                 key={item.label}
                 layout
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={tweakerMotionTokens.featureRowInitial}
+                animate={tweakerMotionTokens.featureRowAnimate}
+                exit={tweakerMotionTokens.featureRowExit}
                 transition={rowTransition}
-                className="flex items-center justify-between gap-4 px-5 py-4"
+                className="flex items-center justify-between gap-(--tweaker-space-4) px-(--tweaker-space-5) py-(--tweaker-space-4)"
               >
-                <span className="flex min-w-0 items-center gap-3">
+                <span className="flex min-w-0 items-center gap-(--tweaker-space-3)">
                   <motion.span
                     layout
                     className={joinClassNames(
-                      'size-2.5 shrink-0 rounded-full',
+                      'size-(--tweaker-space-2-5) shrink-0 rounded-full',
                       statusClasses[item.status ?? 'neutral'],
                     )}
                   />
-                  <span className="truncate text-sm font-medium text-zinc-200">{item.label}</span>
+                  <span className="truncate text-(length:--tweaker-font-size-xl) font-(--tweaker-font-medium) text-(--tweaker-feature-foreground)">
+                    {item.label}
+                  </span>
                 </span>
-                <span className="text-sm text-zinc-400">{item.value}</span>
+                <span className="text-(length:--tweaker-font-size-xl) text-(--tweaker-feature-subtle)">
+                  {item.value}
+                </span>
               </motion.li>
             ))}
           </AnimatePresence>
@@ -125,7 +141,9 @@ export function FeaturePanel({
       ) : null}
 
       {footer ? (
-        <div className="border-t border-white/10 px-5 py-3 text-sm text-zinc-400">{footer}</div>
+        <div className="border-tweaker-border border-t px-(--tweaker-space-5) py-(--tweaker-space-3) text-(length:--tweaker-font-size-xl) text-(--tweaker-feature-subtle)">
+          {footer}
+        </div>
       ) : null}
     </motion.section>
   )

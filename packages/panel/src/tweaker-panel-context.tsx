@@ -1,11 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useStore } from 'zustand'
-import type { HTMLMotionProps } from 'motion/react'
 import type {
   TweakerItemRegistration,
   TweakerPanelState,
   TweakerPanelStore,
 } from './tweaker-panel-types.js'
+import { tweakerItemImportAllowedStringValues } from './tweaker-panel-types.js'
 
 const TweakerPanelContext = createContext<TweakerPanelStore | null>(null)
 
@@ -33,38 +33,31 @@ export function useTweakerPanelState() {
   return useTweakerPanelSelector((state) => state)
 }
 
-type TweakerTransformTemplate = NonNullable<HTMLMotionProps<'div'>['transformTemplate']>
-
-export function useTweakerReorderTransformTemplate(
-  store: TweakerPanelStore,
-  transformTemplate?: TweakerTransformTemplate,
-) {
-  return useMemo<TweakerTransformTemplate>(
-    () => (latest, generated) => {
-      const isReordering = Boolean(store.getState().interaction.draggingId)
-      if (transformTemplate) return transformTemplate(latest, isReordering ? generated : '')
-      return isReordering ? generated : 'none'
-    },
-    [store, transformTemplate],
-  )
-}
-
-export function useRegisterTweakerItem({
-  defaultValue,
-  fieldId,
-  hidden,
-  id,
-  kind,
-  label,
-  parentId,
-  placement,
-  reorderable,
-}: TweakerItemRegistration) {
+export function useRegisterTweakerItem(item: TweakerItemRegistration) {
+  const {
+    collapsible,
+    defaultCollapsed,
+    defaultValue,
+    displayOnly,
+    fieldId,
+    hidden,
+    id,
+    kind,
+    label,
+    parentId,
+    placement,
+    reorderable,
+  } = item
+  const importAllowedStringValues = item[tweakerItemImportAllowedStringValues]
   const store = useTweakerPanelStoreApi()
 
   useEffect(() => {
     store.getState().registerItem({
+      [tweakerItemImportAllowedStringValues]: importAllowedStringValues,
+      collapsible,
+      defaultCollapsed,
       defaultValue,
+      displayOnly,
       fieldId,
       hidden,
       id,
@@ -74,7 +67,22 @@ export function useRegisterTweakerItem({
       placement,
       reorderable,
     })
-  }, [defaultValue, fieldId, hidden, id, kind, label, parentId, placement, reorderable, store])
+  }, [
+    collapsible,
+    defaultCollapsed,
+    defaultValue,
+    displayOnly,
+    fieldId,
+    hidden,
+    id,
+    importAllowedStringValues,
+    kind,
+    label,
+    parentId,
+    placement,
+    reorderable,
+    store,
+  ])
 
   useEffect(() => {
     return () => store.getState().unregisterItem(id)

@@ -1,6 +1,6 @@
-import { ChevronRight, GripVertical } from 'lucide-react'
-import { Reorder, type HTMLMotionProps } from 'motion/react'
-import { useRef, type ReactNode } from 'react'
+import { ChevronRight } from 'lucide-react'
+import { Reorder, useReducedMotion, useTransform, type HTMLMotionProps } from 'motion/react'
+import { useMemo, useRef, type ReactNode } from 'react'
 import {
   dataAttributesForStates,
   useResolvedPanelProp,
@@ -11,16 +11,21 @@ import {
   useRegisterTweakerItem,
   useTweakerPanelSelector,
   useTweakerPanelStoreApi,
-  useTweakerReorderTransformTemplate,
   type TweakerControlStates,
   type TweakerPlacement,
   type TweakerStatus,
 } from './tweaker-panel.js'
 import {
+  disabledReorderItemLayout,
+  reducedMotionReorderTransition,
   reorderDragTransition,
+  reorderTopWithOffset,
   reorderTransition,
   useTweakerReorderItem,
 } from './tweaker-reorder-item.js'
+import { rootGroupId } from './tweaker-order.js'
+import { TweakerReorderIndicator } from './tweaker-reorder-indicator.js'
+import { tweakerMotionTokens } from './theme.js'
 import { buttonVariants } from './ui.js'
 import { cn } from './utils.js'
 
@@ -73,39 +78,55 @@ export function TweakerGroup({
   const label = useResolvedPanelProp(labelProp, id)
   const collapsible = useResolvedPanelProp(collapsibleProp, true) ?? true
   const placement = useResolvedPanelProp(placementProp, 'auto') ?? 'auto'
-  const reorderable = useResolvedPanelProp(reorderableProp, true) ?? true
+  const configuredReorderable = useResolvedPanelProp(reorderableProp, true) ?? true
   const states = useResolvedPanelProp(statesProp, emptyStates) ?? emptyStates
   const status = useResolvedPanelProp(statusProp)
   const visible = useResolvedPanelProp(visibleProp, true) ?? true
   const labelText = typeof label === 'string' ? label : id
   const active = Object.keys(interaction.activeIds).some((activeId) => activeId.endsWith(`:${id}`))
-  const transformTemplate = useTweakerReorderTransformTemplate(store, transformTemplateProp)
-  const { beginReorder, cancelReorder, commitReorder, dragConstraintsRef, dragControls, parentId } =
-    useTweakerReorderItem(id, reorderable)
+  const prefersReducedMotion = useReducedMotion()
+  const {
+    beginReorder,
+    cancelReorder,
+    commitReorder,
+    dragConstraintsRef,
+    dragControls,
+    parentId,
+    reorderable,
+    visualDragOffsetY,
+  } = useTweakerReorderItem(id, configuredReorderable, placement)
+  const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'section'>['transformTemplate']>>(
+    () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
+    [transformTemplateProp],
+  )
+  const visualTop = useTransform(() =>
+    reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
+  )
+  const showReorderSlot = reorderable || parentId !== rootGroupId
 
   useRegisterTweakerItem({
+    collapsible,
+    defaultCollapsed,
     hidden: !visible,
     id,
     kind: 'group',
     label: labelText,
     parentId,
     placement,
-    reorderable,
+    reorderable: configuredReorderable,
   })
 
   if (!visible) return null
 
   const stateAttributes = dataAttributesForStates(states)
 
-  // Read drag state inside a stable template so Motion can expose sibling projection
-  // synchronously, while idle disclosure changes remain owned by the grid transition.
   return (
     <Reorder.Item<string, 'section'>
       {...props}
       {...stateAttributes}
       as="section"
       className={cn(
-        'group/tweaker-section col-span-full shrink-0 select-none rounded-md border border-l-2 border-border/80 border-l-transparent bg-secondary/30 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[dragging=true]:bg-secondary/80 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[hovered=true]:bg-secondary/55 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
+        'group/tweaker-section relative isolate col-span-full shrink-0 select-none rounded-(--tweaker-row-radius) border border-l-2 border-tweaker-border/80 border-l-transparent bg-(--tweaker-group-background) transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--tweaker-duration-fast) data-[dragging=true]:z-(--tweaker-layer-drag)! data-[dragging=true]:border-tweaker-focus data-[dragging=true]:bg-(--tweaker-group-drag) data-[dragging=true]:shadow-tweaker-panel data-[dragging=true]:backdrop-blur-(--tweaker-blur-surface) data-[focused=true]:border-tweaker-focus/60 data-[hovered=true]:border-l-tweaker-surface-muted/80 data-[status=alert]:border-l-(--tweaker-color-alert-border) data-[status=alert]:bg-tweaker-alert-subtle data-[status=error]:border-l-(--tweaker-color-danger-border) data-[status=error]:bg-tweaker-danger-subtle data-[status=info]:border-l-(--tweaker-color-info-border) data-[status=info]:bg-tweaker-info-subtle data-[status=warning]:border-l-(--tweaker-color-warning-border) data-[status=warning]:bg-tweaker-warning-subtle',
         className,
       )}
       data-active={active ? 'true' : 'false'}
@@ -122,13 +143,17 @@ export function TweakerGroup({
       data-status={status}
       dragConstraints={dragConstraintsRef}
       dragControls={dragControls}
-      dragElastic={0.01}
+      dragElastic={tweakerMotionTokens.dragElastic}
       dragListener={false}
       dragTransition={props.dragTransition ?? reorderDragTransition}
-      layout
-      style={props.style}
+      layout={disabledReorderItemLayout}
+      style={{ ...props.style, top: visualTop }}
       transformTemplate={transformTemplate}
-      transition={props.transition ?? reorderTransition}
+      transition={
+        prefersReducedMotion
+          ? reducedMotionReorderTransition
+          : (props.transition ?? reorderTransition)
+      }
       value={id}
       onDrag={props.onDrag}
       onDragEnd={(event, info) => {
@@ -167,26 +192,33 @@ export function TweakerGroup({
         onPointerUpCapture?.(event)
       }}
     >
-      <div className="flex min-h-8 items-center gap-0 py-1 pr-1.5">
-        <button
-          aria-disabled={!reorderable}
-          aria-label={`Reorder ${labelText}`}
-          className={cn(
-            buttonVariants({ size: 'icon', variant: 'ghost' }),
-            'size-6 shrink-0 cursor-grab text-muted-foreground opacity-70 active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-30',
-          )}
-          type="button"
-          onPointerCancel={cancelReorder}
-          onPointerDown={beginReorder}
-          onPointerUp={cancelReorder}
-        >
-          <GripVertical className="size-3.5" aria-hidden="true" />
-        </button>
+      <div
+        className={cn(
+          'group-data-[hovered=true]/tweaker-section:bg-tweaker-surface-muted/80 flex min-h-(--tweaker-group-header-min-height) items-center gap-0 rounded-t-(--tweaker-row-radius) py-(--tweaker-space-1) pr-(--tweaker-space-1-5) transition-colors duration-(--tweaker-duration-fast) group-data-[collapsed=true]/tweaker-section:rounded-b-(--tweaker-row-radius)',
+          !showReorderSlot && 'pl-(--tweaker-space-1-5)',
+        )}
+        onPointerEnter={() => store.getState().setHoveredItem(id)}
+      >
+        {showReorderSlot ? (
+          <button
+            aria-disabled={!reorderable}
+            aria-label={`Reorder ${labelText}`}
+            className={cn(
+              buttonVariants({ size: 'icon', variant: 'ghost' }),
+              'size-(--tweaker-chrome-button-size) shrink-0 cursor-grab text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
+            )}
+            type="button"
+            onPointerCancel={cancelReorder}
+            onPointerDown={beginReorder}
+          >
+            <TweakerReorderIndicator reorderable={reorderable} />
+          </button>
+        ) : null}
         <button
           aria-expanded={!collapsed}
           className={cn(
             buttonVariants({ size: 'sm', variant: 'ghost' }),
-            'min-w-0 flex-1 justify-start pr-1 pl-0 text-xs text-muted-foreground',
+            'min-w-0 flex-1 justify-start pr-(--tweaker-space-1) pl-0 text-(length:--tweaker-font-size-lg) text-tweaker-muted',
             !collapsible && 'pointer-events-none',
           )}
           type="button"
@@ -199,7 +231,7 @@ export function TweakerGroup({
           {collapsible ? (
             <ChevronRight
               className={cn(
-                'size-3.5 transition-transform duration-150 ease-out motion-reduce:transition-none',
+                'size-(--tweaker-chrome-icon-size) transition-transform duration-(--tweaker-duration-fast) ease-(--tweaker-ease-out) motion-reduce:transition-none',
                 !collapsed && 'rotate-90',
               )}
               aria-hidden="true"
@@ -212,13 +244,18 @@ export function TweakerGroup({
       <div
         aria-hidden={collapsed}
         className={cn(
-          'grid transition-[grid-template-rows] duration-150 ease-out motion-reduce:transition-none',
+          'grid transition-[grid-template-rows] duration-(--tweaker-duration-fast) ease-(--tweaker-ease-out) motion-reduce:transition-none',
           collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
         )}
+        data-tweaker-group-disclosure=""
         inert={collapsed}
       >
         <div className="min-h-0 overflow-hidden">
-          <TweakerReorderList ref={childListRef} className="-ml-0.5 pb-1" parentId={id}>
+          <TweakerReorderList
+            ref={childListRef}
+            className="ml-(--tweaker-group-child-inset-inline) pb-(--tweaker-group-child-padding-bottom)"
+            parentId={id}
+          >
             {children}
           </TweakerReorderList>
         </div>

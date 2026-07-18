@@ -1,5 +1,5 @@
-import { GripVertical, Info, RotateCcw } from 'lucide-react'
-import { Reorder, type HTMLMotionProps } from 'motion/react'
+import { Info, RotateCcw } from 'lucide-react'
+import { Reorder, useReducedMotion, useTransform, type HTMLMotionProps } from 'motion/react'
 import { createContext, useCallback, useContext, useId, useMemo, type ReactNode } from 'react'
 import { Button, Label, buttonVariants } from './ui.js'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip.js'
@@ -8,7 +8,6 @@ import {
   useTweakerPanelSelector,
   useTweakerPanelState,
   useTweakerPanelStoreApi,
-  useTweakerReorderTransformTemplate,
   type TweakerControlStates,
   type TweakerPanelState,
   type TweakerPlacement,
@@ -16,13 +15,21 @@ import {
   type TweakerValue,
 } from './tweaker-panel.js'
 import {
+  disabledReorderItemLayout,
+  reducedMotionReorderTransition,
   reorderDragTransition,
+  reorderTopWithOffset,
   reorderTransition,
   useTweakerReorderItem,
 } from './tweaker-reorder-item.js'
+import { rootGroupId } from './tweaker-order.js'
+import { TweakerReorderIndicator } from './tweaker-reorder-indicator.js'
+import { tweakerMotionTokens } from './theme.js'
+import { tweakerItemImportAllowedStringValues } from './tweaker-panel-types.js'
 import { cn, toDataValue, toKebabCase } from './utils.js'
 
 export type ReactiveProp<T> = T | ((state: TweakerPanelState) => T)
+export type TweakerControlContentLayout = 'inline' | 'block' | 'full'
 
 export interface TweakerControlContextValue<TValue extends TweakerValue = TweakerValue> {
   disabled: boolean
@@ -42,6 +49,7 @@ export interface TweakerControlProps<TValue extends TweakerValue = TweakerValue>
 > {
   children?: ReactNode | ((control: TweakerControlContextValue<TValue>) => ReactNode)
   controlClassName?: string
+  contentLayout?: TweakerControlContentLayout
   defaultValue?: TValue
   description?: ReactiveProp<ReactNode>
   disabled?: ReactiveProp<boolean>
@@ -60,11 +68,34 @@ export interface TweakerControlProps<TValue extends TweakerValue = TweakerValue>
 
 const emptyStates: TweakerControlStates = {}
 const TweakerControlContext = createContext<TweakerControlContextValue | null>(null)
+const TweakerDisplayOnlyContext = createContext(false)
+const TweakerImportAllowedStringValuesContext = createContext<readonly string[] | undefined>(
+  undefined,
+)
+
+export function TweakerImportAllowedStringValuesProvider({
+  children,
+  values,
+}: {
+  children: ReactNode
+  values: readonly string[]
+}) {
+  return (
+    <TweakerImportAllowedStringValuesContext.Provider value={values}>
+      {children}
+    </TweakerImportAllowedStringValuesContext.Provider>
+  )
+}
+
+export function TweakerDisplayOnlyProvider({ children }: { children: ReactNode }) {
+  return <TweakerDisplayOnlyContext.Provider value>{children}</TweakerDisplayOnlyContext.Provider>
+}
 
 export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   children,
   className,
   controlClassName,
+  contentLayout = 'inline',
   defaultValue,
   description: descriptionProp,
   disabled: disabledProp,
@@ -90,6 +121,8 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   ...props
 }: TweakerControlProps<TValue>) {
   const reactId = useId()
+  const displayOnly = useContext(TweakerDisplayOnlyContext)
+  const importAllowedStringValues = useContext(TweakerImportAllowedStringValuesContext)
   const controlId = id ?? field ?? `tweaker-control-${reactId.replaceAll(':', '')}`
   const inputId = `${controlId}:input`
   const labelId = `${controlId}:label`
@@ -108,7 +141,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   const disabled = useResolvedPanelProp(disabledProp, false) ?? false
   const readOnly = useResolvedPanelProp(readOnlyProp, false) ?? false
   const placement = useResolvedPanelProp(placementProp, 'auto') ?? 'auto'
-  const reorderable = useResolvedPanelProp(reorderableProp, true) ?? true
+  const configuredReorderable = useResolvedPanelProp(reorderableProp, true) ?? true
   const states = useResolvedPanelProp(statesProp, emptyStates) ?? emptyStates
   const status = useResolvedPanelProp(statusProp)
   const visible = useResolvedPanelProp(visibleProp, true) ?? true
@@ -116,9 +149,25 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   const active = Object.keys(interaction.activeIds).some((activeId) =>
     activeId.endsWith(`:${controlId}`),
   )
-  const transformTemplate = useTweakerReorderTransformTemplate(store, transformTemplateProp)
-  const { beginReorder, cancelReorder, commitReorder, dragConstraintsRef, dragControls, parentId } =
-    useTweakerReorderItem(controlId, reorderable)
+  const prefersReducedMotion = useReducedMotion()
+  const {
+    beginReorder,
+    cancelReorder,
+    commitReorder,
+    dragConstraintsRef,
+    dragControls,
+    parentId,
+    reorderable,
+    visualDragOffsetY,
+  } = useTweakerReorderItem(controlId, configuredReorderable, placement)
+  const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'div'>['transformTemplate']>>(
+    () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
+    [transformTemplateProp],
+  )
+  const visualTop = useTransform(() =>
+    reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
+  )
+  const showReorderSlot = reorderable || parentId !== rootGroupId
 
   const resetValue = useCallback(() => {
     if (field !== undefined) {
@@ -163,7 +212,9 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   )
 
   useRegisterTweakerItem({
+    [tweakerItemImportAllowedStringValues]: importAllowedStringValues,
     defaultValue,
+    displayOnly,
     fieldId: field,
     hidden: !visible,
     id: controlId,
@@ -171,7 +222,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
     label: labelText,
     parentId,
     placement,
-    reorderable,
+    reorderable: configuredReorderable,
   })
 
   if (!visible) return null
@@ -179,8 +230,6 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   const stateAttributes = dataAttributesForStates(states)
   const disabledOrReadOnly = disabled || readOnly
 
-  // Read drag state inside a stable template so Motion can expose sibling projection
-  // synchronously, without waiting for React after a pointer drag has already started.
   return (
     <TweakerControlContext.Provider value={controlContext as unknown as TweakerControlContextValue}>
       <Reorder.Item<string, 'div'>
@@ -190,11 +239,13 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         aria-describedby={description ? descriptionId : undefined}
         aria-labelledby={label ? labelId : undefined}
         className={cn(
-          'group/control relative col-span-full grid min-h-10 shrink-0 grid-cols-subgrid items-start gap-x-1 gap-y-0.5 select-none rounded-md border border-l-2 border-transparent bg-transparent py-1 pr-1.5 text-foreground outline-none transition-[background-color,border-color,box-shadow,backdrop-filter] duration-150 data-[dragging=true]:z-10 data-[dragging=true]:border-ring data-[dragging=true]:bg-accent/90 data-[dragging=true]:shadow-2xl data-[dragging=true]:shadow-black/35 data-[dragging=true]:backdrop-blur-md data-[focused=true]:border-ring/60 data-[hovered=true]:bg-accent/65 data-[status=alert]:border-l-orange-400/80 data-[status=alert]:bg-orange-500/10 data-[status=error]:border-l-red-400/80 data-[status=error]:bg-red-500/10 data-[status=info]:border-l-sky-400/80 data-[status=info]:bg-sky-500/10 data-[status=warning]:border-l-amber-400/80 data-[status=warning]:bg-amber-500/10',
+          'group/control relative isolate col-span-full grid min-h-(--tweaker-row-min-height) shrink-0 grid-cols-subgrid items-start gap-x-(--tweaker-space-1) gap-y-(--tweaker-space-0-5) select-none rounded-(--tweaker-row-radius) border border-l-2 border-transparent bg-transparent py-(--tweaker-space-1) pr-(--tweaker-space-1-5) text-tweaker-text outline-none transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--tweaker-duration-fast) data-[dragging=true]:z-(--tweaker-layer-drag)! data-[dragging=true]:border-tweaker-focus data-[dragging=true]:bg-(--tweaker-row-drag) data-[dragging=true]:shadow-tweaker-panel data-[dragging=true]:backdrop-blur-(--tweaker-blur-surface) data-[focused=true]:border-tweaker-focus/60 data-[hovered=true]:bg-(--tweaker-row-hover) data-[status=alert]:border-l-(--tweaker-color-alert-border) data-[status=alert]:bg-tweaker-alert-subtle data-[status=error]:border-l-(--tweaker-color-danger-border) data-[status=error]:bg-tweaker-danger-subtle data-[status=info]:border-l-(--tweaker-color-info-border) data-[status=info]:bg-tweaker-info-subtle data-[status=warning]:border-l-(--tweaker-color-warning-border) data-[status=warning]:bg-tweaker-warning-subtle',
+          !showReorderSlot && 'pl-(--tweaker-space-1-5)',
           className,
         )}
         data-active={active ? 'true' : 'false'}
         data-control-id={controlId}
+        data-content-layout={contentLayout}
         data-dirty={fieldState?.dirty ? 'true' : 'false'}
         data-dragging={interaction.draggingId === controlId ? 'true' : 'false'}
         data-focused={interaction.focusedId === controlId ? 'true' : 'false'}
@@ -208,13 +259,17 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         data-status={status}
         dragConstraints={dragConstraintsRef}
         dragControls={dragControls}
-        dragElastic={0.01}
+        dragElastic={tweakerMotionTokens.dragElastic}
         dragListener={false}
         dragTransition={props.dragTransition ?? reorderDragTransition}
-        layout
-        style={props.style}
+        layout={disabledReorderItemLayout}
+        style={{ ...props.style, top: visualTop }}
         transformTemplate={transformTemplate}
-        transition={props.transition ?? reorderTransition}
+        transition={
+          prefersReducedMotion
+            ? reducedMotionReorderTransition
+            : (props.transition ?? reorderTransition)
+        }
         value={controlId}
         onDrag={props.onDrag}
         onDragEnd={(event, info) => {
@@ -253,27 +308,32 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
           onPointerUpCapture?.(event)
         }}
       >
-        <button
-          aria-disabled={!reorderable}
-          aria-label={labelText ? `Reorder ${labelText}` : 'Reorder control'}
-          className={cn(
-            buttonVariants({ size: 'icon', variant: 'ghost' }),
-            'col-start-1 size-6 shrink-0 cursor-grab self-center text-muted-foreground opacity-70 active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-30',
-          )}
-          type="button"
-          onPointerCancel={cancelReorder}
-          onPointerDown={beginReorder}
-          onPointerUp={cancelReorder}
-        >
-          <GripVertical className="size-3.5" aria-hidden="true" />
-        </button>
+        <span
+          className="group-data-[hovered=true]/tweaker-section:bg-tweaker-surface-muted/80 pointer-events-none absolute inset-y-(--tweaker-control-hover-rail-inset-block) left-(--tweaker-control-hover-rail-left) z-0 w-(--tweaker-control-hover-rail-width) transition-colors duration-(--tweaker-duration-fast)"
+          aria-hidden="true"
+        />
+        {showReorderSlot ? (
+          <button
+            aria-disabled={!reorderable}
+            aria-label={labelText ? `Reorder ${labelText}` : 'Reorder control'}
+            className={cn(
+              buttonVariants({ size: 'icon', variant: 'ghost' }),
+              'relative z-10 col-start-1 size-(--tweaker-chrome-button-size) shrink-0 cursor-grab self-center text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
+            )}
+            type="button"
+            onPointerCancel={cancelReorder}
+            onPointerDown={beginReorder}
+          >
+            <TweakerReorderIndicator reorderable={reorderable} />
+          </button>
+        ) : null}
 
         <div className="col-start-2 flex min-w-0 items-center gap-1 self-center">
           {label ? (
             <Label
               className={cn(
-                'min-w-0 truncate text-xs text-muted-foreground',
-                disabledOrReadOnly && 'opacity-70',
+                'min-w-0 truncate text-tweaker-muted',
+                disabledOrReadOnly && 'opacity-(--tweaker-opacity-muted)',
               )}
               htmlFor={field ? inputId : undefined}
               id={labelId}
@@ -286,10 +346,10 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
               <TooltipTrigger asChild>
                 <button
                   aria-label={labelText ? `Help for ${labelText}` : 'Control help'}
-                  className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex size-5 shrink-0 items-center justify-center rounded-sm transition-colors outline-none focus-visible:ring-2"
+                  className="text-tweaker-muted hover:text-tweaker-text focus-visible:ring-tweaker-focus inline-flex size-(--tweaker-chrome-action-size) shrink-0 items-center justify-center rounded-(--tweaker-button-radius) text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-normal) transition-colors duration-(--tweaker-duration-fast) outline-none focus-visible:ring-2"
                   type="button"
                 >
-                  <Info className="size-3" aria-hidden="true" />
+                  <Info className="size-(--tweaker-chrome-icon-small-size)" aria-hidden="true" />
                 </button>
               </TooltipTrigger>
               <TooltipContent>{help}</TooltipContent>
@@ -299,23 +359,26 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
             fieldState?.dirty ? (
               <Button
                 aria-label={labelText ? `Reset ${labelText}` : 'Reset control'}
-                className="size-5"
+                className="size-(--tweaker-chrome-action-size)"
                 disabled={disabled || readOnly}
                 size="icon"
                 variant="ghost"
                 onClick={resetValue}
               >
-                <RotateCcw className="size-3" aria-hidden="true" />
+                <RotateCcw className="size-(--tweaker-chrome-icon-small-size)" aria-hidden="true" />
               </Button>
             ) : (
-              <span className="size-5 shrink-0" aria-hidden="true" />
+              <span className="size-(--tweaker-chrome-action-size) shrink-0" aria-hidden="true" />
             )
           ) : null}
         </div>
 
         <div
           className={cn(
-            'col-span-2 col-start-3 grid min-w-0 grid-cols-subgrid self-center',
+            'grid min-w-0 grid-cols-subgrid self-center',
+            contentLayout === 'inline' && 'col-span-2 col-start-3',
+            contentLayout === 'block' && 'col-span-3 col-start-2 row-start-2',
+            contentLayout === 'full' && 'col-span-4 col-start-1 row-start-2',
             controlClassName,
           )}
         >
@@ -325,7 +388,12 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         {description ? (
           <div
             id={descriptionId}
-            className="text-muted-foreground col-span-2 col-start-3 text-xs leading-4 font-light"
+            className={cn(
+              'text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) font-(--tweaker-font-light) text-tweaker-muted',
+              contentLayout === 'inline' && 'col-span-2 col-start-3 row-start-2',
+              contentLayout === 'block' && 'col-span-3 col-start-2 row-start-3',
+              contentLayout === 'full' && 'col-span-4 col-start-1 row-start-3',
+            )}
           >
             {description}
           </div>

@@ -15,6 +15,25 @@ export function bandForItem(item: Pick<TweakerItemRegistration, 'placement'>): T
   return item.placement
 }
 
+export function hasVisibleReorderableSibling(
+  state: Pick<TweakerPanelState, 'items'>,
+  item: Pick<TweakerItemRegistration, 'id' | 'parentId' | 'placement'>,
+) {
+  return Object.values(state.items).some(
+    (sibling) =>
+      sibling.id !== item.id &&
+      sibling.parentId === item.parentId &&
+      sibling.placement === item.placement &&
+      sibling.reorderable &&
+      !sibling.hidden,
+  )
+}
+
+export function itemCanReorder(state: Pick<TweakerPanelState, 'items'>, itemId: string) {
+  const item = state.items[itemId]
+  return Boolean(item?.reorderable && !item.hidden && hasVisibleReorderableSibling(state, item))
+}
+
 export function orderedItemsForParent(
   state: Pick<TweakerPanelState, 'items' | 'order'>,
   parentId: string,
@@ -56,15 +75,17 @@ export function reorderValuesForPointer(
 
   let targetIndex = initialIndex
   if (pointerOffset > 0) {
+    const draggedLeadingEdge = draggedLayout.max + pointerOffset
     for (let index = initialIndex + 1; index < initialValues.length; index += 1) {
       const layout = layouts.find((entry) => entry.id === initialValues[index])
-      if (!layout || draggedLayout.max + pointerOffset <= (layout.min + layout.max) / 2) break
+      if (!layout || draggedLeadingEdge <= (layout.min + layout.max) / 2) break
       targetIndex = index
     }
   } else {
+    const draggedLeadingEdge = draggedLayout.min + pointerOffset
     for (let index = initialIndex - 1; index >= 0; index -= 1) {
       const layout = layouts.find((entry) => entry.id === initialValues[index])
-      if (!layout || draggedLayout.min + pointerOffset >= (layout.min + layout.max) / 2) break
+      if (!layout || draggedLeadingEdge >= (layout.min + layout.max) / 2) break
       targetIndex = index
     }
   }

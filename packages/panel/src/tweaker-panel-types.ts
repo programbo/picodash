@@ -16,6 +16,8 @@ export type TweakerStatus = 'info' | 'warning' | 'alert' | 'error'
 export type TweakerControlStateValue = boolean | string | number | null | undefined
 export type TweakerControlStates = Record<string, TweakerControlStateValue>
 
+export const tweakerItemImportAllowedStringValues = Symbol('tweakerItemImportAllowedStringValues')
+
 export interface TweakerFieldState {
   defaultValue?: TweakerValue
   dirty: boolean
@@ -24,7 +26,11 @@ export interface TweakerFieldState {
 }
 
 export interface TweakerItemRegistration {
+  [tweakerItemImportAllowedStringValues]?: readonly string[]
+  collapsible?: boolean
+  defaultCollapsed?: boolean
   defaultValue?: TweakerValue
+  displayOnly?: boolean
   fieldId?: string
   hidden?: boolean
   id: string
@@ -57,10 +63,13 @@ export interface TweakerPanelState {
   reorderItem: (activeId: string, overId: string) => void
   resetFieldValue: (fieldId: string) => void
   resetFields: () => void
+  resetRegisteredFields: () => void
+  replaceRegisteredFieldValues: (values: Record<string, TweakerValue>) => void
   setFieldDefault: (fieldId: string, value: TweakerValue | undefined) => void
   setFieldValue: (fieldId: string, value: TweakerValue) => void
   setFocusedItem: (itemId: string | null) => void
   setGroupCollapsed: (groupId: string, collapsed: boolean) => void
+  setAllCollapsibleGroupsCollapsed: (collapsed: boolean) => void
   setHoveredItem: (itemId: string | null) => void
   setInteractionActive: (interactionId: string, active: boolean) => void
   setDraggingItem: (itemId: string | null) => void
@@ -85,15 +94,26 @@ export interface TweakerPanelProps extends Omit<
 }
 
 export interface TweakerGroupContextValue {
-  beginItemReorder: (itemId: string, pointerY: number, pointerId: number) => void
+  beginItemReorder: (
+    itemId: string,
+    pointerY: number,
+    pointerId: number,
+    setVisualOffset: (offset: number) => void,
+  ) => void
   commitPendingOrder: () => void
   dragConstraintsRef: RefObject<HTMLDivElement | null>
   listRef: RefObject<HTMLDivElement | null>
   parentId: string
+  registerItemMotion: (itemId: string, motion: TweakerReorderItemMotion) => () => void
 }
 
 export interface TweakerReorderItemLayout {
   id: string
   max: number
   min: number
+}
+
+export interface TweakerReorderItemMotion {
+  animateFrom: (offset: number) => void
+  getOffset: () => number
 }

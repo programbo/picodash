@@ -1,7 +1,12 @@
 import { createStore } from 'zustand'
-import { bandForItem, normalizeAllOrders, rootGroupId } from './tweaker-order.js'
+import {
+  collapsibleGroupsForState,
+  registeredWritableFieldIdsForState,
+} from './tweaker-panel-action-state.js'
+import { bandForItem, itemCanReorder, normalizeAllOrders, rootGroupId } from './tweaker-order.js'
 import type {
   TweakerFieldState,
+  TweakerItemRegistration,
   TweakerPanelState,
   TweakerPanelStore,
   TweakerPlacement,
@@ -20,6 +25,11 @@ export function createTweakerPanelStore({
   initialMeta?: Record<string, TweakerValue>
   panelId: string
 }): TweakerPanelStore {
+  const registrationHistory = new Map<
+    string,
+    Pick<TweakerItemRegistration, 'defaultValue' | 'fieldId' | 'parentId'>
+  >()
+
   return createStore<TweakerPanelState>()((set) => ({
     collapsedGroups: {},
     fields: Object.fromEntries(
@@ -35,8 +45,16 @@ export function createTweakerPanelStore({
     panelId,
     values: defaultValues,
     registerItem(item) {
+      const historicalRegistration = registrationHistory.get(item.id)
+      registrationHistory.set(item.id, {
+        defaultValue: item.defaultValue,
+        fieldId: item.fieldId,
+        parentId: item.parentId,
+      })
+
       set((state) => {
-        const previous = state.items[item.id]
+        const mountedRegistration = state.items[item.id]
+        const previous = mountedRegistration ?? historicalRegistration
         const items = { ...state.items, [item.id]: item }
         let order = state.order
 
@@ -45,6 +63,7 @@ export function createTweakerPanelStore({
         }
 
         const parentOrder = order[item.parentId] ?? []
+        const reclaimsOrderSlot = mountedRegistration === undefined && parentOrder.includes(item.id)
         if (!parentOrder.includes(item.id)) {
           order = { ...order, [item.parentId]: [...parentOrder, item.id] }
         } else if (order === state.order) {
@@ -56,6 +75,24 @@ export function createTweakerPanelStore({
         }
 
         const fieldState = item.fieldId === undefined ? undefined : state.fields[item.fieldId]
+        const declaredDefaultChanged =
+          previous !== undefined &&
+          previous.fieldId === item.fieldId &&
+          !Object.is(previous.defaultValue, item.defaultValue)
+        const remountingWithSharedField =
+          mountedRegistration === undefined &&
+          historicalRegistration !== undefined &&
+          item.fieldId !== undefined &&
+          Object.values(state.items).some(
+            (registeredItem) =>
+              registeredItem.id !== item.id && registeredItem.fieldId === item.fieldId,
+          )
+        const registeredDefaultValue =
+          item.fieldId === undefined
+            ? undefined
+            : fieldState === undefined || (declaredDefaultChanged && !remountingWithSharedField)
+              ? item.defaultValue
+              : fieldState.defaultValue
         const fields =
           item.fieldId === undefined
             ? state.fields
@@ -63,23 +100,28 @@ export function createTweakerPanelStore({
                 ...state.fields,
                 [item.fieldId]: {
                   ...(fieldState ?? emptyField()),
-                  defaultValue: item.defaultValue,
+                  defaultValue: registeredDefaultValue,
                 },
               }
         const values =
           item.fieldId === undefined ||
           Object.prototype.hasOwnProperty.call(state.values, item.fieldId) ||
-          item.defaultValue === undefined
+          registeredDefaultValue === undefined
             ? state.values
-            : { ...state.values, [item.fieldId]: item.defaultValue }
+            : { ...state.values, [item.fieldId]: registeredDefaultValue }
 
-        return { fields, items, order: normalizeAllOrders(order, items), values }
+        return {
+          fields,
+          items,
+          order: reclaimsOrderSlot ? order : normalizeAllOrders(order, items),
+          values,
+        }
       })
     },
     moveItemToIndex(itemId, index) {
       set((state) => {
         const item = state.items[itemId]
-        if (!item?.reorderable) return state
+        if (!item || !itemCanReorder(state, itemId)) return state
 
         const parentOrder = state.order[item.parentId] ?? []
         const visibleBandOrder = parentOrder.filter((id) => {
@@ -122,7 +164,7 @@ export function createTweakerPanelStore({
       set((state) => {
         const item = state.items[itemId]
         const over = state.items[overId]
-        if (!item?.reorderable || !over) return state
+        if (!item || !over || !itemCanReorder(state, itemId)) return state
         if (item.parentId !== over.parentId || item.placement !== over.placement) return state
 
         const parentOrder = state.order[item.parentId] ?? []
@@ -169,7 +211,7 @@ export function createTweakerPanelStore({
         const active = state.items[activeId]
         const over = state.items[overId]
         if (!active || !over) return state
-        if (!active.reorderable || active.parentId !== over.parentId) return state
+        if (!itemCanReorder(state, activeId) || active.parentId !== over.parentId) return state
         if (bandForItem(active) !== bandForItem(over)) return state
 
         const parentOrder = state.order[active.parentId] ?? []
@@ -217,6 +259,12 @@ export function createTweakerPanelStore({
         }
       })
     },
+    resetRegisteredFields() {
+      set((state) => resetRegisteredFieldsState(state))
+    },
+    replaceRegisteredFieldValues(importedValues) {
+      set((state) => replaceRegisteredFieldValuesState(state, importedValues))
+    },
     setFieldDefault(fieldId, value) {
       set((state) => ({
         fields: {
@@ -251,6 +299,21 @@ export function createTweakerPanelStore({
         collapsedGroups: { ...state.collapsedGroups, [groupId]: collapsed },
       }))
     },
+    setAllCollapsibleGroupsCollapsed(collapsed) {
+      set((state) => {
+        const groups = collapsibleGroupsForState(state)
+        if (groups.every((group) => group.collapsed === collapsed)) {
+          return state
+        }
+
+        return {
+          collapsedGroups: {
+            ...state.collapsedGroups,
+            ...Object.fromEntries(groups.map((group) => [group.id, collapsed])),
+          },
+        }
+      })
+    },
     setHoveredItem(itemId) {
       set((state) =>
         state.interaction.draggingId || state.interaction.hoveredId === itemId
@@ -270,6 +333,8 @@ export function createTweakerPanelStore({
     },
     setDraggingItem(itemId) {
       set((state) => {
+        if (itemId !== null && !itemCanReorder(state, itemId)) return state
+
         const activeIds =
           itemId === null
             ? Object.fromEntries(
@@ -295,17 +360,50 @@ export function createTweakerPanelStore({
 
         const items = { ...state.items }
         delete items[itemId]
-        const order = Object.fromEntries(
-          Object.entries(state.order)
-            .filter(([parentId]) => parentId !== itemId)
-            .map(([parentId, ids]) => [parentId, ids.filter((id) => id !== itemId)]),
-        )
-        // Reorder groups remount when list geometry changes. Keep collapse state
-        // keyed by group identity so that internal remount cannot undo a toggle.
-        return { items, order: normalizeAllOrders(order, items) }
+        // Registrations can unmount transiently while Reorder rebuilds its layout.
+        // Keep parent and nested order slots so the same id reclaims its position.
+        return { items }
       })
     },
   }))
+}
+
+function resetRegisteredFieldsState(state: TweakerPanelState) {
+  const fieldIds = registeredWritableFieldIdsForState(state)
+  if (fieldIds.length === 0) return state
+
+  const fields = { ...state.fields }
+  const values = { ...state.values }
+  for (const fieldId of fieldIds) {
+    const field = fields[fieldId] ?? emptyField()
+    fields[fieldId] = { ...field, dirty: false, touched: false }
+    if (field.defaultValue === undefined) delete values[fieldId]
+    else values[fieldId] = field.defaultValue
+  }
+  return { fields, values }
+}
+
+function replaceRegisteredFieldValuesState(
+  state: TweakerPanelState,
+  importedValues: Record<string, TweakerValue>,
+) {
+  const fieldIds = registeredWritableFieldIdsForState(state)
+  if (fieldIds.length === 0) return state
+
+  const fields = { ...state.fields }
+  const values = { ...state.values }
+  for (const fieldId of fieldIds) {
+    const field = fields[fieldId] ?? emptyField()
+    if (Object.prototype.hasOwnProperty.call(importedValues, fieldId)) {
+      fields[fieldId] = { ...field, dirty: true, touched: true }
+      values[fieldId] = importedValues[fieldId]!
+    } else {
+      fields[fieldId] = { ...field, dirty: false, touched: false }
+      if (field.defaultValue === undefined) delete values[fieldId]
+      else values[fieldId] = field.defaultValue
+    }
+  }
+  return { fields, values }
 }
 
 function replaceVisibleBandOrder(

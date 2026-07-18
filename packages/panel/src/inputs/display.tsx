@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   TweakerControl,
+  TweakerDisplayOnlyProvider,
   useResolvedPanelProp,
   type ReactiveProp,
   type TweakerControlProps,
@@ -24,18 +25,20 @@ export function TweakerDisplay({
   const value = useResolvedPanelProp(valueProp)
 
   return (
-    <TweakerControl<TweakerValue> {...controlProps} readOnly>
-      {(control) => (
-        <div
-          className={cn(
-            'col-span-2 min-h-0 px-1 py-0.5 text-xs leading-5 text-foreground',
-            control.value === undefined && value === undefined && 'text-muted-foreground',
-          )}
-        >
-          {value ?? valueToDisplay(control.value) ?? fallback}
-        </div>
-      )}
-    </TweakerControl>
+    <TweakerDisplayOnlyProvider>
+      <TweakerControl<TweakerValue> {...controlProps} readOnly>
+        {(control) => (
+          <div
+            className={cn(
+              'col-span-2 min-h-0 px-(--tweaker-space-1) py-(--tweaker-space-0-5) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-normal) text-tweaker-text',
+              control.value === undefined && value === undefined && 'text-tweaker-muted',
+            )}
+          >
+            {value ?? valueToDisplay(control.value) ?? fallback}
+          </div>
+        )}
+      </TweakerControl>
+    </TweakerDisplayOnlyProvider>
   )
 }
 

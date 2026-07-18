@@ -46,6 +46,7 @@ pnpm --filter tweaker build
 pnpm --filter panel test
 pnpm --filter panel build
 pnpm --filter demo build
+pnpm --filter demo test:e2e
 pnpm --filter website test:e2e
 pnpm ready
 ```
@@ -53,7 +54,7 @@ pnpm ready
 `pnpm ready` is the full verification gate. It runs formatting, linting, type checks, package tests, builds, website build, and Playwright e2e tests:
 
 ```bash
-vp check && vp run -r test && vp run -r build && pnpm --filter website test:e2e
+vp check && vp run -r test && vp run -r build && pnpm --filter website test:e2e && pnpm --filter demo test:e2e
 ```
 
 Use `vp check --fix` for formatter/linter autofixes. Vite+ may cache some `vp run` tasks; treat successful replay as valid unless you changed test/build inputs that are not tracked by Vite+.
@@ -75,6 +76,29 @@ When adding a new app or local server, use the next available port from `6034-60
 ## Package Boundaries
 
 The `packages/panel` package is a small Vite+ React component library. Keep it self-contained, export typed React components from `src/index.ts`, and consume it from `apps/demo` through `workspace:*`. Panel styles are authored through Tailwind v4 in `packages/panel/src/styles.css`, packed with PostCSS, and consumed from `panel/style.css`.
+
+Panel inputs live in `packages/panel/src/inputs/`. Common primitives use the unified `radix-ui` package, direct-manipulation visuals use Motion, and file selection uses `react-dropzone`. Keep Recharts and the official shadcn chart source demo-local; they are examples of composing `TweakerControl`, not dependencies of the publishable panel package.
+
+Titled panel header actions live in `packages/panel/src/tweaker-panel-actions.tsx`;
+JSON/YAML parsing, serialization, filenames, and validation live in the pure
+`tweaker-panel-documents.ts` helper. Keep the action component internal. Bulk group and
+field changes belong in the panel store and must use one Zustand transaction. Copy and
+export include all currently registered field IDs, including hidden and display-only
+fields. Import and reset operate only on currently registered writable fields, including
+hidden fields. All actions exclude stale unregistered values.
+
+Panel theming is package-owned and namespaced. Keep foundation, semantic, and component
+contract variables in `packages/panel/src/styles.css`; never reintroduce generic global
+`--color-*` or `--radius-*` definitions. Components must consume tokens through Tailwind
+classes (namespaced utilities or v4 CSS-variable shorthand), not bespoke component CSS
+rules. Keep `data-tweaker-theme="dark"` on the provider carrier and every portaled panel,
+tooltip, overlay, and viewer surface. CSS variables are the public override API;
+`theme.ts` is only for JS-only Motion, projection geometry, and numeric panel-layer values;
+CSS-editable layers such as the viewer remain CSS variables.
+
+The panel package exports `TweakerSegmented`, `TweakerAlignment`, `TweakerVector3`, `TweakerRange`, `TweakerXYPad`, `TweakerGradient`, `TweakerMediaPreview`, and `TweakerDropzone`, their public value/props types, and their pure normalization/projection helpers. `TweakerControl.contentLayout` accepts `"inline"`, `"block"`, or `"full"`; block/full descriptions must remain in a separate row after their content.
+
+Composite control values must remain JSON-compatible. Dropzones store file metadata rather than `File` objects, media previews use safe image URLs rather than raw SVG HTML, and temporary object URLs must be revoked when removed or unmounted. Use MotionValues for high-frequency visuals and optional smoothing only; Zustand remains authoritative for persisted/user-editable values, and animated examples must respect reduced-motion.
 
 The package source is intentionally split by responsibility:
 
@@ -171,6 +195,11 @@ RestrictToElement.configure({ element: () => listRef.current })
 
 Rows also support a pointer-drag fallback and keyboard ArrowUp/ArrowDown reordering on the grip. Preserve all three paths unless a change explicitly replaces them and updates tests.
 
+Panel controls and groups expose an active drag grip only when the item is configured as
+reorderable and has another visible, configured-reorderable sibling in the same parent and
+placement band. Static top-level items omit the reorder slot; nested static items retain
+the marker for row alignment. Both must reject reorder attempts.
+
 The panel header is independently draggable for floating placement and magnetic docking. Keep row drag and panel drag event handling separate.
 
 ## Website App
@@ -183,7 +212,7 @@ When changing UI behavior, prefer verifying with Playwright or the in-app browse
 
 ## Demo App
 
-`apps/demo` is the Vite+ React TypeScript Tailwind app for the local `panel` component package. It imports `panel` through `workspace:*`, uses `6032` for `vp dev`, and uses `6033` for `vp preview`.
+`apps/demo` is the Vite+ React TypeScript Tailwind app for the local `panel` component package. It imports `panel` through `workspace:*`, uses `6032` for `vp dev` and Playwright e2e, and uses `6033` for `vp preview`. Its Custom Items panel is the integration gallery for the public composite inputs plus demo-local shadcn/Recharts, pointer-velocity, and waveform/spectrum examples. Keep representative browser coverage in `apps/demo/tests/custom-items.spec.ts` and run it through `pnpm --filter demo test:e2e`.
 
 ## Documentation
 

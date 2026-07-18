@@ -58,10 +58,10 @@ export function TweakerSlider({
 
         return (
           <div className="col-span-2 grid min-w-0 grid-cols-subgrid items-center">
-            <div className="relative col-start-1 h-4 min-w-0">
+            <div className="relative col-start-1 h-(--tweaker-slider-control-height) min-w-0">
               <div
                 aria-hidden="true"
-                className="bg-input absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full"
+                className="absolute inset-x-0 top-1/2 h-(--tweaker-slider-track-height) -translate-y-1/2 overflow-hidden rounded-full bg-(--tweaker-slider-track)"
               >
                 {marks.map((mark, index) => {
                   const value = markValue(mark)
@@ -70,7 +70,7 @@ export function TweakerSlider({
                   return (
                     <span
                       key={`${value}:${index}`}
-                      className={`bg-foreground absolute inset-y-0 w-px ${markTranslateClass(position)}`}
+                      className={`bg-tweaker-text absolute inset-y-0 w-(--tweaker-border-thin) ${markTranslateClass(position)}`}
                       style={{ left: `${position}%` }}
                     />
                   )
@@ -78,7 +78,7 @@ export function TweakerSlider({
               </div>
               <input
                 id={control.inputId}
-                className="accent-primary [&::-moz-range-thumb]:border-primary [&::-moz-range-thumb]:bg-primary/60 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:bg-primary/60 absolute top-1/2 -left-2 z-10 h-4 w-[calc(100%+1rem)] min-w-0 -translate-y-1/2 cursor-pointer appearance-none bg-transparent outline-none disabled:cursor-not-allowed disabled:opacity-50 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:-mt-1.5 [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border"
+                className="absolute top-1/2 left-(--tweaker-slider-hit-offset-inline) z-(--tweaker-layer-raised) h-(--tweaker-slider-control-height) w-(--tweaker-slider-hit-width) min-w-0 -translate-y-1/2 cursor-pointer appearance-none bg-transparent accent-(--tweaker-slider-fill) outline-none disabled:cursor-not-allowed disabled:opacity-(--tweaker-opacity-disabled) [&::-moz-range-thumb]:size-(--tweaker-slider-thumb-size) [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-(--tweaker-slider-fill) [&::-moz-range-thumb]:bg-(--tweaker-slider-thumb) [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-(--tweaker-duration-fast) hover:[&::-moz-range-thumb]:scale-110 [&::-moz-range-track]:h-(--tweaker-slider-track-height) [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:h-(--tweaker-slider-track-height) [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:mt-(--tweaker-slider-webkit-thumb-offset) [&::-webkit-slider-thumb]:size-(--tweaker-slider-thumb-size) [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-(--tweaker-slider-fill) [&::-webkit-slider-thumb]:bg-(--tweaker-slider-thumb) [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-(--tweaker-duration-fast) hover:[&::-webkit-slider-thumb]:scale-110"
                 disabled={control.disabled || control.readOnly}
                 max={max}
                 min={min}
@@ -88,7 +88,7 @@ export function TweakerSlider({
                 onChange={(event) => control.setValue(event.currentTarget.valueAsNumber)}
               />
               {marks.length > 0 ? (
-                <div className="text-muted-foreground pointer-events-none absolute inset-x-0 top-4.5 h-3 text-[10px] leading-none">
+                <div className="text-tweaker-muted pointer-events-none absolute inset-x-0 top-(--tweaker-slider-marks-top) h-(--tweaker-slider-marks-height) text-(length:--tweaker-font-size-sm) leading-none">
                   {marks.map((mark, index) => {
                     const value = markValue(mark)
                     const label =
@@ -110,7 +110,7 @@ export function TweakerSlider({
                 </div>
               ) : null}
             </div>
-            <output className="text-foreground col-start-2 ml-2 min-w-[5ch] justify-self-end text-right text-xs leading-none font-normal tabular-nums">
+            <output className="text-tweaker-text col-start-2 ml-(--tweaker-space-2) min-w-(--tweaker-slider-output-min-width) justify-self-end text-right text-(length:--tweaker-font-size-lg) leading-none font-(--tweaker-font-normal) tabular-nums">
               {formattedValue}
             </output>
           </div>

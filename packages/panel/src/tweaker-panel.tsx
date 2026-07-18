@@ -17,10 +17,12 @@ import {
   useTweakerProviderContext,
 } from './tweaker-provider.js'
 import { TweakerPanelContextProvider } from './tweaker-panel-context.js'
+import { TweakerPanelActions } from './tweaker-panel-actions.js'
 import { createTweakerPanelStore } from './tweaker-panel-store.js'
 import { rootGroupId } from './tweaker-order.js'
 import { TweakerReorderList } from './tweaker-reorder-list.js'
 import { TooltipProvider } from './tooltip.js'
+import { tweakerDefaultTheme } from './theme.js'
 import { buttonVariants } from './ui.js'
 import { usePanelLayoutSynchronization } from './use-panel-layout.js'
 import { cn } from './utils.js'
@@ -32,11 +34,12 @@ export {
   useTweakerPanelSelector,
   useTweakerPanelState,
   useTweakerPanelStoreApi,
-  useTweakerReorderTransformTemplate,
 } from './tweaker-panel-context.js'
 export { TweakerGroupContextProvider, useTweakerGroupContext } from './tweaker-group-context.js'
 export {
   bandForItem,
+  hasVisibleReorderableSibling,
+  itemCanReorder,
   orderedItemIdsForParent,
   orderedItemsForParent,
   orderIndexForItem,
@@ -57,6 +60,7 @@ export type {
   TweakerPanelState,
   TweakerPanelStore,
   TweakerReorderItemLayout,
+  TweakerReorderItemMotion,
   TweakerStatus,
   TweakerValue,
 } from './tweaker-panel-types.js'
@@ -123,10 +127,11 @@ export function TweakerPanel({
         id={id}
         data-tweaker-panel
         data-collapsed={panelCollapsed ? 'true' : 'false'}
+        data-tweaker-theme={tweakerDefaultTheme}
         data-tweaker-panel-id={panelId}
         ref={panelElementRef}
         className={cn(
-          'pointer-events-auto absolute top-8 right-8 flex min-h-0 max-h-[calc(100dvh-1rem)] w-[min(20rem,calc(100dvw-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-2xl shadow-black/30 ring-1 ring-white/5',
+          'pointer-events-auto absolute top-(--tweaker-panel-inset) right-(--tweaker-panel-inset) flex min-h-0 max-h-(--tweaker-panel-max-height) w-(--tweaker-panel-width) flex-col overflow-hidden rounded-(--tweaker-panel-radius) border border-(--tweaker-panel-border) bg-(--tweaker-panel-background) text-(--tweaker-panel-foreground) shadow-tweaker-panel ring-1 ring-(--tweaker-panel-ring)',
           className,
         )}
         drag={drag}
@@ -214,7 +219,7 @@ export function TweakerPanel({
       >
         {title ? (
           <div
-            className="border-border flex shrink-0 cursor-grab items-center gap-1 border-b py-2 pr-3 pl-1 select-none active:cursor-grabbing"
+            className="border-tweaker-border flex h-(--tweaker-panel-header-height) shrink-0 cursor-grab items-center gap-(--tweaker-space-1) border-b py-(--tweaker-space-2) pr-(--tweaker-space-3) pl-(--tweaker-space-1) select-none active:cursor-grabbing"
             onPointerDown={(event) => {
               if (drag) {
                 event.preventDefault()
@@ -229,7 +234,7 @@ export function TweakerPanel({
                 aria-label={`${panelCollapsed ? 'Expand' : 'Collapse'} panel ${titleText}`}
                 className={cn(
                   buttonVariants({ size: 'icon', variant: 'ghost' }),
-                  'size-5 shrink-0 text-muted-foreground',
+                  'size-(--tweaker-chrome-action-size) shrink-0 text-tweaker-muted',
                 )}
                 type="button"
                 onClick={() => setCollapsed((current) => !current)}
@@ -237,20 +242,23 @@ export function TweakerPanel({
               >
                 <ChevronRight
                   className={cn(
-                    'size-3.5 transition-transform duration-150 ease-out motion-reduce:transition-none',
+                    'size-(--tweaker-chrome-icon-size) transition-transform duration-(--tweaker-duration-fast) ease-(--tweaker-ease-out) motion-reduce:transition-none',
                     !panelCollapsed && 'rotate-90',
                   )}
                   aria-hidden="true"
                 />
               </button>
             ) : null}
-            <h2 className="text-sm font-semibold tracking-normal">{title}</h2>
+            <h2 className="min-w-0 flex-1 truncate text-(length:--tweaker-panel-title-size) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-normal)">
+              {title}
+            </h2>
+            <TweakerPanelActions panelId={panelId} panelTitle={titleText} />
           </div>
         ) : null}
         <div
           aria-hidden={panelCollapsed}
           className={cn(
-            'grid min-h-0 flex-1 transition-[grid-template-rows] duration-150 ease-out motion-reduce:transition-none',
+            'grid min-h-0 flex-1 transition-[grid-template-rows] duration-(--tweaker-duration-fast) ease-(--tweaker-ease-out) motion-reduce:transition-none',
             panelCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
           )}
           inert={panelCollapsed}
