@@ -40,6 +40,7 @@ async function changeDemoThemes(
 test.beforeEach(async ({ page }) => {
   await page.goto('/state-lab')
   await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toBeVisible()
+  await expect(page.locator('[data-state-lab]')).toHaveCSS('position', 'relative')
 })
 
 test('keeps the root route blank apart from the existing panels', async ({ page }) => {
@@ -47,6 +48,7 @@ test('keeps the root route blank apart from the existing panels', async ({ page 
 
   await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toHaveCount(0)
   await expect(page.locator('[data-tweaker-panel-id="scene-controls"]')).toBeVisible()
+  await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
   await expect(page.locator('[data-tweaker-panel-id="custom-items"]')).toBeVisible()
 })
 
@@ -970,6 +972,7 @@ test('updates common, spatial, and gradient values through accessible controls',
   const gradient = page.locator('[data-item-id="gradient"]')
   const gradientTrack = gradient.locator('[id="gradient:input"]')
   await expect(gradient).toContainText('Background Gradient')
+  await expect(gradientTrack).toHaveAttribute('style', /linear-gradient\(to right/)
   await expect(gradient).not.toContainText('Rotation')
   await expect(
     gradient.getByText('Drag stops or use arrow keys. Double-click the gradient to add a stop.', {
@@ -990,6 +993,7 @@ test('updates common, spatial, and gradient values through accessible controls',
     'style',
     /linear-gradient\(136deg/,
   )
+  await expect(gradientTrack).toHaveAttribute('style', /linear-gradient\(to right/)
   await gradientTrack.dblclick({ position: { x: 120, y: 18 } })
   await expect(gradientStops).toHaveCount(4)
 })

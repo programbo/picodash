@@ -14,7 +14,7 @@ const builtInItems = [
   { component: 'TweakerMatrix2D', id: 'matrix2d', label: 'Matrix2D' },
   { component: 'TweakerAlignment', id: 'alignment', label: 'Alignment' },
   { component: 'TweakerXYPad', id: 'xyPad', label: 'XYPad' },
-  { component: 'TweakerGradient', id: 'gradient', label: 'Gradient' },
+  { component: 'TweakerGradient', id: 'gradient', label: 'Background Gradient' },
   { component: 'TweakerMediaPreview', id: 'previewAsset', label: 'MediaPreview' },
   { component: 'TweakerDropzone', id: 'droppedFiles', label: 'Dropzone' },
   { component: 'TweakerDisplay', id: 'displayFallback', label: 'Display' },

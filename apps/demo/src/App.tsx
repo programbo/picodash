@@ -198,7 +198,7 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
       />
       <span data-demo-provider-theme={resolvedProviderTheme} hidden />
       {showStateLab ? (
-        <div className="min-h-svh px-4 py-5 sm:px-6 lg:pr-208">
+        <div className="relative min-h-svh px-4 py-5 sm:px-6 lg:pr-208" data-state-lab>
           <div className="mx-auto grid max-w-7xl gap-5">
             <header className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
               <div className="grid gap-2">

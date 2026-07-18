@@ -175,6 +175,7 @@ function GradientEditor({
     setStops(nextStops)
   }
 
+  // Keep the editable ramp horizontal so each stop stays aligned with its handle.
   const gradientPreview = (
     <div
       ref={trackRef}
