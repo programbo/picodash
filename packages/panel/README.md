@@ -192,6 +192,9 @@ constraint changes.
 `TweakerSlider.marks` accepts `true`, a count of intermediate marks, explicit numbers, or
 `{ value, label }` objects. Number and slider items accept
 `Intl.NumberFormatOptions` through `formatOptions`.
+`TweakerGradient.rotationField` adds a registered 0–359 degree rotation slider beside
+the color-stop editor; set its initial angle with `defaultRotation`. The editable stop
+preview remains horizontal so its handles stay aligned with their positions.
 
 `TweakerText.minRows` defaults to `1`. A value greater than `1` renders the package
 auto-growing textarea primitive with the normalized minimum row count; otherwise it

@@ -38,8 +38,18 @@ async function changeDemoThemes(
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/state-lab')
   await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toBeVisible()
+  await expect(page.locator('[data-state-lab]')).toHaveCSS('position', 'relative')
+})
+
+test('keeps the root route blank apart from the existing panels', async ({ page }) => {
+  await page.goto('/')
+
+  await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toHaveCount(0)
+  await expect(page.locator('[data-tweaker-panel-id="scene-controls"]')).toBeVisible()
+  await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
+  await expect(page.locator('[data-tweaker-panel-id="custom-items"]')).toBeVisible()
 })
 
 test('retains invalid custom-item drafts and validates through a Zod Standard Schema', async ({
@@ -960,10 +970,32 @@ test('updates common, spatial, and gradient values through accessible controls',
   await expect(xy.locator('output')).toContainText('Y 0.26')
 
   const gradient = page.locator('[data-item-id="gradient"]')
-  const gradientTrack = gradient.locator('div[style*="linear-gradient"]')
-  await expect(gradient.getByRole('slider')).toHaveCount(3)
+  const gradientTrack = gradient.locator('[id="gradient:input"]')
+  await expect(gradient).toContainText('Background Gradient')
+  await expect(gradientTrack).toHaveAttribute('style', /linear-gradient\(to right/)
+  await expect(gradient).not.toContainText('Rotation')
+  await expect(
+    gradient.getByText('Drag stops or use arrow keys. Double-click the gradient to add a stop.', {
+      exact: true,
+    }),
+  ).toBeVisible()
+  const gradientStops = gradient.getByRole('slider', { name: /Gradient stop at/ })
+  const rotation = gradient.getByRole('slider', { name: 'Gradient rotation' })
+  await expect(gradientStops).toHaveCount(3)
+  await expect(rotation).toHaveValue('135')
+  await expect(rotation).toHaveAttribute('max', '359')
+  await expect(gradient.getByText('0', { exact: true })).toBeVisible()
+  await expect(gradient.getByText('359', { exact: true })).toBeVisible()
+  await rotation.focus()
+  await rotation.press('ArrowRight')
+  await expect(rotation).toHaveValue('136')
+  await expect(page.locator('[data-demo-background]')).toHaveAttribute(
+    'style',
+    /linear-gradient\(136deg/,
+  )
+  await expect(gradientTrack).toHaveAttribute('style', /linear-gradient\(to right/)
   await gradientTrack.dblclick({ position: { x: 120, y: 18 } })
-  await expect(gradient.getByRole('slider')).toHaveCount(4)
+  await expect(gradientStops).toHaveCount(4)
 })
 
 test('renders safe media, serializable drop metadata, and a Recharts SVG', async ({ page }) => {
@@ -1025,7 +1057,7 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
 })
 
 test('applies simultaneous named themes to panels and every portaled surface', async ({ page }) => {
-  await page.goto('/?providerTheme=ocean&customTheme=plum')
+  await page.goto('/state-lab?providerTheme=ocean&customTheme=plum')
 
   const scenePanel = page.locator('[data-tweaker-panel-id="scene-controls"]')
   const customPanel = page.locator('[data-tweaker-panel-id="custom-items"]')
