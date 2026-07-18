@@ -70,6 +70,18 @@ export function Input({ className, ...props }: ComponentProps<'input'>) {
   )
 }
 
+export function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
+  return (
+    <textarea
+      className={cn(
+        'field-sizing-content flex min-h-(--tweaker-control-height-lg) w-full resize-y rounded-tweaker-control border-0 border-b border-tweaker-control bg-transparent px-(--tweaker-space-2-5) py-(--tweaker-space-1-5) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-normal) text-tweaker-text shadow-none outline-none transition-colors duration-(--tweaker-duration-fast) placeholder:text-tweaker-muted focus:bg-tweaker-canvas focus-visible:ring-2 focus-visible:ring-tweaker-focus disabled:cursor-not-allowed disabled:opacity-(--tweaker-opacity-disabled)',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
 export function Select(props: ComponentProps<typeof SelectPrimitive.Root>) {
   return <SelectPrimitive.Root {...props} />
 }

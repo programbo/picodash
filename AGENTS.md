@@ -70,9 +70,10 @@ Assign dev, preview, e2e, test, mock API, and other local servers only from `603
 - `6032`: canonical `apps/demo` dev server; override it with `DEMO_PORT` for concurrent worktrees.
 - `6033`: `apps/demo` preview server.
 - `6034`: dedicated `DEMO_PORT=6034` override for the `feature/panel-api-dx` worktree; this does not replace the canonical `6032` default.
-- `6035-6039`: available for future local servers.
+- `6035`: dedicated `DEMO_PORT=6035` override for this worktree; this does not replace the canonical `6032` default.
+- `6036-6039`: available for future local servers.
 
-When adding a new app or local server, use the next available port from `6035-6039` and update this section plus `README.md`.
+When adding a new app or local server, use the next available port from `6036-6039` and update this section plus `README.md`.
 
 ## Package Boundaries
 
@@ -263,13 +264,16 @@ When changing UI behavior, prefer verifying with Playwright or the in-app browse
 
 `apps/demo` is the Vite+ React TypeScript Tailwind app for the local `panel` component
 package. It imports `panel` through `workspace:*`, defaults to `6032` for `vp dev` and
-Playwright e2e, and uses `6033` for `vp preview`. Set `DEMO_PORT=6034` for the
-`feature/panel-api-dx` worktree; do not replace the canonical default. Its Custom Items
-panel is the integration gallery for the public composite inputs, an application-owned
-store, a Standard Schema/Zod custom item, plus demo-local shadcn/Recharts,
-pointer-velocity, and waveform/spectrum examples. Keep representative browser coverage in
-`apps/demo/tests/custom-items.spec.ts` and run it through
-`DEMO_PORT=6034 pnpm --filter demo test:e2e` in this worktree.
+Playwright e2e, and uses `6033` for `vp preview`. Set `DEMO_PORT=6035` in this worktree;
+do not replace the canonical default. Its application-owned Built-in Items panel is the
+canonical gallery for every public package input. Keep those rows ordered from common to
+specialized, label them by item type, identify component names and meaningful props in
+`help`, and reserve `description` for optional-feature variants. The separate Custom
+Items panel contains only demo-local `TweakerItem` compositions such as the Standard
+Schema/Zod, shadcn/Recharts, pointer-velocity, and waveform/spectrum examples. Keep
+representative browser coverage in `apps/demo/tests/built-in-items.spec.ts` and
+`apps/demo/tests/custom-items.spec.ts`, and run it through
+`DEMO_PORT=6035 pnpm --filter demo test:e2e` in this worktree.
 
 ## Documentation
 

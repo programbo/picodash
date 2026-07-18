@@ -34,6 +34,23 @@ export {
 export type { TweakerMediaObjectFit, TweakerMediaPreviewProps } from './media-preview.js'
 export { TweakerNumber } from './number.js'
 export type { TweakerNumberProps } from './number.js'
+export {
+  enabledMatrix2DOptions,
+  findFirstEnabledMatrix2DPosition,
+  findMatrix2DValuePosition,
+  findNextMatrix2DPosition,
+  normalizeMatrix2DValue,
+  TweakerMatrix2D,
+} from './matrix-2d.js'
+export type {
+  TweakerMatrix2DContainerProps,
+  TweakerMatrix2DDataAttributes,
+  TweakerMatrix2DDirection,
+  TweakerMatrix2DOption,
+  TweakerMatrix2DPosition,
+  TweakerMatrix2DProps,
+  TweakerMatrix2DSelectionRole,
+} from './matrix-2d.js'
 export { normalizeRangeBounds, normalizeRangeValue, TweakerRange } from './range.js'
 export type {
   TweakerRangeNormalizationOptions,
@@ -55,6 +72,8 @@ export { TweakerSlider } from './slider.js'
 export type { TweakerSliderMark, TweakerSliderMarks, TweakerSliderProps } from './slider.js'
 export { TweakerSwitch } from './switch.js'
 export type { TweakerSwitchProps } from './switch.js'
+export { normalizeTextMinRows, TweakerText, tweakerTextControlKind } from './text.js'
+export type { TweakerTextProps } from './text.js'
 export {
   normalizeVector3Value,
   normalizeVectorBounds,

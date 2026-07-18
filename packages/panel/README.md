@@ -176,8 +176,8 @@ but cannot be changed by import, reset, or writes.
 
 ## Built-in items
 
-- `TweakerNumber`, `TweakerSlider`, `TweakerSwitch`, and `TweakerSelect`
-- `TweakerSegmented` and the fixed 3x3 `TweakerAlignment`
+- `TweakerText`, `TweakerNumber`, `TweakerSlider`, `TweakerSwitch`, and `TweakerSelect`
+- `TweakerSegmented`, generic `TweakerMatrix2D`, and the 3x3 `TweakerAlignment` matrix preset
 - `TweakerVector3`, `TweakerRange`, and `TweakerXYPad`
 - `TweakerGradient`
 - `TweakerMediaPreview` and `TweakerDropzone`
@@ -192,6 +192,43 @@ constraint changes.
 `TweakerSlider.marks` accepts `true`, a count of intermediate marks, explicit numbers, or
 `{ value, label }` objects. Number and slider items accept
 `Intl.NumberFormatOptions` through `formatOptions`.
+
+`TweakerText.minRows` defaults to `1`. A value greater than `1` renders the package
+auto-growing textarea primitive with the normalized minimum row count; otherwise it
+renders the single-line input.
+
+`TweakerMatrix2D` is a controlled, generic single-selection grid. Rows and columns come
+from a two-dimensional option array. Each option accepts button content, disabled state,
+class/style overrides, and native title, ARIA, data, and event attributes. Container
+layout and attributes are configured through `containerProps`:
+
+```tsx
+<TweakerMatrix2D
+  field="origin"
+  defaultValue={{ x: 0, y: 0 }}
+  containerProps={{ 'aria-label': 'Origin', className: 'gap-1' }}
+  options={[
+    [
+      {
+        'aria-label': 'Top left',
+        children: <TopLeftIcon />,
+        className: 'rounded-tweaker-control',
+        value: { x: 0, y: 0 },
+      },
+      {
+        'aria-label': 'Top right',
+        children: <TopRightIcon />,
+        value: { x: 1, y: 0 },
+      },
+    ],
+  ]}
+/>
+```
+
+Arrow keys move focus spatially through the matrix and skip disabled options.
+The default `selectionRole="toggle"` exposes pressed-button semantics. Set
+`selectionRole="radio"` for `radiogroup`/`radio` semantics with `aria-checked`;
+`TweakerAlignment` uses this mode to preserve its established accessibility contract.
 
 ## Provider and panel configuration
 

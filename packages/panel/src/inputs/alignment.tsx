@@ -1,10 +1,7 @@
 import { TextAlignCenter, TextAlignEnd, TextAlignStart, type LucideIcon } from 'lucide-react'
-import { ToggleGroup } from 'radix-ui'
-import { useMemo, type KeyboardEvent } from 'react'
-import { TweakerItem, type TweakerInputItemProps } from '../tweaker-control.js'
-import type { TweakerParser } from '../tweaker-validation.js'
-import { canonicalTweakerValue, invalidTweakerValue } from './built-in-validation.js'
+import type { TweakerInputItemProps } from '../tweaker-control.js'
 import { cn } from '../utils.js'
+import { TweakerMatrix2D, type TweakerMatrix2DOption } from './matrix-2d.js'
 
 export type TweakerAlignmentValue =
   | 'top-left'
@@ -52,75 +49,20 @@ export function TweakerAlignment({
   ...controlProps
 }: TweakerAlignmentProps) {
   const normalizedDefault = normalizeAlignmentValue(defaultValue)
-  const parse = useMemo<TweakerParser<TweakerAlignmentValue>>(
-    () => (input, context) => {
-      if (isTweakerAlignmentValue(input)) {
-        return { output: { value: input }, success: true }
-      }
-      const error = 'Alignment must be one of the nine supported positions.'
-      return context.source === 'import'
-        ? invalidTweakerValue(error)
-        : canonicalTweakerValue(input, normalizedDefault, error)
-    },
-    [normalizedDefault],
-  )
 
   return (
-    <TweakerItem<TweakerAlignmentValue>
+    <TweakerMatrix2D<TweakerAlignmentValue>
       {...controlProps}
-      defaultValue={normalizedDefault}
-      parse={parse}
-    >
-      {(control) => {
-        const value = normalizeAlignmentValue(control.value, normalizedDefault)
-
-        return (
-          <ToggleGroup.Root
-            id={control.inputId}
-            aria-label="Alignment"
-            className="border-tweaker-control shadow-tweaker-sm rounded-tweaker-control col-span-2 grid grid-cols-3 justify-self-start overflow-hidden border bg-(--_tweaker-choice-background) p-(--tweaker-space-0-5)"
-            disabled={control.disabled || control.readOnly}
-            type="single"
-            value={value}
-            onValueChange={(nextValue) => {
-              if (isTweakerAlignmentValue(nextValue)) control.setInput(nextValue)
-            }}
-          >
-            {tweakerAlignmentOptions.map((option, index) => {
-              const AlignmentIcon = alignmentColumnIcons[index % 3] ?? TextAlignCenter
-              const rowClassName = alignmentRowClasses[Math.floor(index / 3)] ?? 'items-center'
-              const columnClassName =
-                alignmentColumnClasses[Math.floor(index % 3)] ?? 'justify-center'
-
-              return (
-                <ToggleGroup.Item
-                  key={option.value}
-                  id={`${control.inputId}:${option.value}`}
-                  aria-label={option.label}
-                  className={cn(
-                    'relative flex size-(--tweaker-control-height-md) p-(--tweaker-space-1) text-tweaker-muted transition-colors duration-(--tweaker-duration-fast) outline-none hover:bg-tweaker-surface-muted hover:text-tweaker-text focus-visible:z-(--tweaker-layer-raised) focus-visible:ring-2 focus-visible:ring-tweaker-focus data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text disabled:pointer-events-none disabled:opacity-(--tweaker-opacity-disabled-soft)',
-                    index % 3 !== 0 && 'border-l border-tweaker-control',
-                    index >= 3 && 'border-t border-tweaker-control',
-                    rowClassName,
-                    columnClassName,
-                  )}
-                  data-alignment-index={index}
-                  title={option.label}
-                  value={option.value}
-                  onKeyDown={moveAlignmentFocusVertically}
-                >
-                  <AlignmentIcon
-                    aria-hidden="true"
-                    className="size-(--tweaker-icon-sm)"
-                    strokeWidth={2}
-                  />
-                </ToggleGroup.Item>
-              )
-            })}
-          </ToggleGroup.Root>
-        )
+      containerProps={{
+        'aria-label': 'Alignment',
+        className:
+          'border-tweaker-control shadow-tweaker-sm rounded-tweaker-control overflow-hidden border bg-(--_tweaker-choice-background) p-(--tweaker-space-0-5)',
       }}
-    </TweakerItem>
+      defaultValue={normalizedDefault}
+      options={tweakerAlignmentMatrixOptions}
+      selectionRole="radio"
+      validationMessage="Alignment must be one of the nine supported positions."
+    />
   )
 }
 
@@ -135,15 +77,28 @@ export function normalizeAlignmentValue(
   return isTweakerAlignmentValue(value) ? value : fallback
 }
 
-function moveAlignmentFocusVertically(event: KeyboardEvent<HTMLButtonElement>) {
-  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+const tweakerAlignmentMatrixOptions = Array.from({ length: 3 }, (_, rowIndex) =>
+  tweakerAlignmentOptions.slice(rowIndex * 3, rowIndex * 3 + 3).map((option, columnIndex) => {
+    const index = rowIndex * 3 + columnIndex
+    const AlignmentIcon = alignmentColumnIcons[columnIndex] ?? TextAlignCenter
+    const rowClassName = alignmentRowClasses[rowIndex] ?? 'items-center'
+    const columnClassName = alignmentColumnClasses[columnIndex] ?? 'justify-center'
 
-  const index = Number(event.currentTarget.dataset.alignmentIndex)
-  const nextIndex = index + (event.key === 'ArrowUp' ? -3 : 3)
-  const root = event.currentTarget.parentElement
-  const nextItem = root?.querySelector<HTMLButtonElement>(`[data-alignment-index="${nextIndex}"]`)
-  if (!nextItem) return
-
-  event.preventDefault()
-  nextItem.focus()
-}
+    return {
+      'aria-label': option.label,
+      children: (
+        <AlignmentIcon aria-hidden="true" className="size-(--tweaker-icon-sm)" strokeWidth={2} />
+      ),
+      className: cn(
+        'relative flex size-(--tweaker-control-height-md) p-(--tweaker-space-1) text-tweaker-muted transition-colors duration-(--tweaker-duration-fast) hover:bg-tweaker-surface-muted hover:text-tweaker-text data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text',
+        columnIndex !== 0 && 'border-l border-tweaker-control',
+        rowIndex !== 0 && 'border-t border-tweaker-control',
+        rowClassName,
+        columnClassName,
+      ),
+      'data-alignment-index': index,
+      title: option.label,
+      value: option.value,
+    }
+  }),
+) satisfies readonly (readonly TweakerMatrix2DOption<TweakerAlignmentValue>[])[]
