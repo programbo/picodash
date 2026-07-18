@@ -10,7 +10,41 @@ import type {
   TweakerPanelStore,
   TweakerValue,
 } from '../src/tweaker-panel-types.ts'
-import type { TweakerParser, TweakerValidator } from '../src/tweaker-validation.ts'
+import {
+  jsonCompatibilityError,
+  type TweakerParser,
+  type TweakerValidator,
+} from '../src/tweaker-validation.ts'
+
+test('JSON compatibility accepts only arrays and plain records', () => {
+  class CustomValue {
+    value = 'custom'
+  }
+
+  const nullPrototypeRecord = Object.assign(Object.create(null) as Record<string, unknown>, {
+    enabled: true,
+    nested: { count: 1 },
+  })
+
+  expect(jsonCompatibilityError({ enabled: true, nested: [1, null, 'value'] })).toBeUndefined()
+  expect(jsonCompatibilityError(nullPrototypeRecord)).toBeUndefined()
+
+  const unsupportedValues = [
+    ['Date', new Date('2026-01-01T00:00:00.000Z')],
+    ['Map', new Map([['key', 'value']])],
+    ['Set', new Set(['value'])],
+    ['class instance', new CustomValue()],
+  ] as const
+
+  for (const [label, value] of unsupportedValues) {
+    expect(jsonCompatibilityError(value), `top-level ${label}`).toBe(
+      'Value at $ must be a plain object or array.',
+    )
+    expect(jsonCompatibilityError({ nested: value }), `nested ${label}`).toBe(
+      'Value at $.nested must be a plain object or array.',
+    )
+  }
+})
 
 test('isolates nested initial values and metadata from caller-owned objects', () => {
   const nestedStrings = ['original']

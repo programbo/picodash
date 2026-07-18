@@ -257,6 +257,10 @@ export function jsonCompatibilityError(value: unknown, rootPath = '$'): string |
       return Number.isFinite(candidate) ? undefined : `Value at ${path} must be a finite number.`
     }
     if (typeof candidate !== 'object') return `Value at ${path} is not JSON-compatible.`
+    const prototype = Object.getPrototypeOf(candidate)
+    if (!Array.isArray(candidate) && prototype !== Object.prototype && prototype !== null) {
+      return `Value at ${path} must be a plain object or array.`
+    }
     if (activeObjects.has(candidate)) return `Value at ${path} contains a cycle.`
 
     activeObjects.add(candidate)
