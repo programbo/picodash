@@ -34,7 +34,6 @@ export {
   useTweakerPanelSelector,
   useTweakerPanelState,
   useTweakerPanelStoreApi,
-  useTweakerReorderTransformTemplate,
 } from './tweaker-panel-context.js'
 export { TweakerGroupContextProvider, useTweakerGroupContext } from './tweaker-group-context.js'
 export {
@@ -59,6 +58,7 @@ export type {
   TweakerPanelState,
   TweakerPanelStore,
   TweakerReorderItemLayout,
+  TweakerReorderItemMotion,
   TweakerStatus,
   TweakerValue,
 } from './tweaker-panel-types.js'

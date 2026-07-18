@@ -331,6 +331,7 @@
   --tweaker-group-header-min-height: 2rem;
   --tweaker-group-child-inset-inline: -0.125rem;
   --tweaker-group-child-padding-bottom: 0.25rem;
+  --tweaker-control-hover-rail-overhang: 0.1875rem;
   --tweaker-control-hover-rail-inset-block: -0.1875rem;
   --tweaker-control-hover-rail-left: 0.125rem;
   --tweaker-control-hover-rail-width: 1.5rem;

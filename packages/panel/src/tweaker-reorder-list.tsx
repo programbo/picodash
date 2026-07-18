@@ -17,11 +17,15 @@ import {
   orderedItemsForParent,
   orderTweakerChildren,
   reorderValuesForPointer,
+  rootGroupId,
 } from './tweaker-order.js'
+import { tweakerMotionTokens } from './theme.js'
+import { cn } from './utils.js'
 import type {
   TweakerGroupContextValue,
   TweakerPanelStore,
   TweakerReorderItemLayout,
+  TweakerReorderItemMotion,
 } from './tweaker-panel-types.js'
 
 export function TweakerReorderList({
@@ -39,14 +43,32 @@ export function TweakerReorderList({
   const fallbackRef = useRef<HTMLDivElement | null>(null)
   const listRef = ref ?? fallbackRef
   const dragConstraintsRef = useRef<HTMLDivElement | null>(null)
+  const itemMotionByIdRef = useRef(new Map<string, TweakerReorderItemMotion>())
+  const pendingFlipRectsRef = useRef<Map<string, number> | null>(null)
   const registeredValues = useStore(
     store,
     useShallow((state) => orderedItemsForParent(state, parentId).map((entry) => entry.item.id)),
   )
   const draggingId = useStore(store, (state) => state.interaction.draggingId)
+  const captureFlipRects = useCallback(() => {
+    const groupElement = dragConstraintsRef.current
+    if (!groupElement) return
+
+    pendingFlipRectsRef.current = new Map(
+      directReorderItems(groupElement)
+        .map((element) => {
+          const id = reorderItemId(element)
+          return id && itemMotionByIdRef.current.has(id)
+            ? ([id, element.getBoundingClientRect().y] as const)
+            : null
+        })
+        .filter((entry): entry is readonly [string, number] => entry !== null),
+    )
+  }, [])
   const { previewOrder, values, valuesRef } = useSynchronizedVisibleOrder(
     registeredValues,
     draggingId,
+    captureFlipRects,
   )
   const layoutVersion = useReorderListLayoutVersion(listRef, store, draggingId)
   const { beginItemReorder, commitPendingOrder, synchronizeVisualOffset } =
@@ -59,8 +81,34 @@ export function TweakerReorderList({
       valuesRef,
     })
   useLayoutEffect(() => {
+    const pendingFlipRects = pendingFlipRectsRef.current
+    pendingFlipRectsRef.current = null
+    if (pendingFlipRects) {
+      const activeId = store.getState().interaction.draggingId
+      const groupElement = dragConstraintsRef.current
+      if (groupElement) {
+        for (const itemElement of directReorderItems(groupElement)) {
+          const id = reorderItemId(itemElement)
+          const itemMotion = id ? itemMotionByIdRef.current.get(id) : undefined
+          const previousVisualY = id ? pendingFlipRects.get(id) : undefined
+          if (!id || id === activeId || !itemMotion || previousVisualY === undefined) continue
+
+          const currentVisualY = itemElement.getBoundingClientRect().y
+          const currentLogicalY = currentVisualY - itemMotion.getOffset()
+          itemMotion.animateFrom(previousVisualY - currentLogicalY)
+        }
+      }
+    }
     synchronizeVisualOffset()
-  }, [synchronizeVisualOffset, values])
+  }, [store, synchronizeVisualOffset, values])
+  const registerItemMotion = useCallback((itemId: string, motion: TweakerReorderItemMotion) => {
+    itemMotionByIdRef.current.set(itemId, motion)
+    return () => {
+      if (itemMotionByIdRef.current.get(itemId) === motion) {
+        itemMotionByIdRef.current.delete(itemId)
+      }
+    }
+  }, [])
   const groupContext = useMemo<TweakerGroupContextValue>(
     () => ({
       beginItemReorder,
@@ -68,8 +116,9 @@ export function TweakerReorderList({
       dragConstraintsRef,
       listRef,
       parentId,
+      registerItemMotion,
     }),
-    [beginItemReorder, commitPendingOrder, listRef, parentId],
+    [beginItemReorder, commitPendingOrder, listRef, parentId, registerItemMotion],
   )
   const orderedChildren = useMemo(() => orderTweakerChildren(children, values), [children, values])
 
@@ -84,7 +133,10 @@ export function TweakerReorderList({
         ref={dragConstraintsRef}
         as="div"
         axis="y"
-        className="grid h-auto min-h-max grid-cols-[auto_minmax(4.5rem,max-content)_minmax(0,1fr)_max-content] gap-y-1"
+        className={cn(
+          'grid h-auto min-h-max grid-cols-[auto_minmax(4.5rem,max-content)_minmax(0,1fr)_max-content] gap-y-1',
+          parentId === rootGroupId && 'pb-(--tweaker-control-hover-rail-overhang)',
+        )}
         key={layoutVersion}
         values={values}
         onReorder={() => {}}
@@ -97,27 +149,37 @@ export function TweakerReorderList({
   )
 }
 
-function useSynchronizedVisibleOrder(registeredValues: string[], draggingId: string | null) {
+function useSynchronizedVisibleOrder(
+  registeredValues: string[],
+  draggingId: string | null,
+  captureFlipRects: () => void,
+) {
   const [values, setValues] = useState(registeredValues)
   const valuesRef = useRef(values)
 
   useLayoutEffect(() => {
     if (draggingId) return
-    if (arraysEqual(valuesRef.current, registeredValues)) return
-    valuesRef.current = registeredValues
-    setValues(registeredValues)
+    if (!arraysEqual(valuesRef.current, registeredValues)) {
+      valuesRef.current = registeredValues
+      setValues(registeredValues)
+    }
   }, [draggingId, registeredValues])
 
   useLayoutEffect(() => {
     valuesRef.current = values
   }, [values])
 
-  const previewOrder = useCallback((nextValues: string[]) => {
-    if (arraysEqual(valuesRef.current, nextValues)) return false
-    valuesRef.current = nextValues
-    setValues(nextValues)
-    return true
-  }, [])
+  const previewOrder = useCallback(
+    (nextValues: string[]) => {
+      if (arraysEqual(valuesRef.current, nextValues)) return false
+
+      captureFlipRects()
+      valuesRef.current = nextValues
+      setValues(nextValues)
+      return true
+    },
+    [captureFlipRects],
+  )
 
   return { previewOrder, values, valuesRef }
 }
@@ -198,6 +260,8 @@ function usePointerReorderSession({
     lastVisualOffset: number
     latestPointerOffset: number
     layouts: TweakerReorderItemLayout[]
+    maxPointerOffset: number
+    minPointerOffset: number
     scrollContainer: HTMLElement | null
     setVisualOffset: (offset: number) => void
     startPointerY: number
@@ -228,7 +292,12 @@ function usePointerReorderSession({
 
       const scrollOffset = (session.scrollContainer?.scrollTop ?? 0) - session.startScrollTop
       const pointerOffset = pointerY - session.startPointerY + scrollOffset
-      session.latestPointerOffset = pointerOffset
+      const visualPointerOffset = constrainReorderPointerOffset(
+        pointerOffset,
+        session.minPointerOffset,
+        session.maxPointerOffset,
+      )
+      session.latestPointerOffset = visualPointerOffset
       synchronizeVisualOffset()
       const nextOrder = reorderValuesForPointer(
         session.initialBandOrder,
@@ -268,6 +337,8 @@ function usePointerReorderSession({
         (element) => (element.dataset.controlId ?? element.dataset.groupId) === itemId,
       )
       if (!itemElement) return
+      const groupRect = groupElement.getBoundingClientRect()
+      const itemRect = itemElement.getBoundingClientRect()
       const itemBand = itemElement.dataset.orderBand
       const idsInBand = new Set(
         itemElements
@@ -295,6 +366,8 @@ function usePointerReorderSession({
         lastVisualOffset: 0,
         latestPointerOffset: 0,
         layouts,
+        maxPointerOffset: groupRect.bottom - itemRect.bottom,
+        minPointerOffset: groupRect.top - itemRect.top,
         scrollContainer,
         setVisualOffset,
         startPointerY: pointerY,
@@ -302,14 +375,14 @@ function usePointerReorderSession({
       }
 
       const trackPointer = (event: PointerEvent) => {
-        if (event.pointerId === pointerId) updatePendingItemReorder(itemId, event.pageY)
+        if (event.pointerId === pointerId) updatePendingItemReorder(itemId, event.clientY)
       }
       const stopTrackingPointer = (event: PointerEvent) => {
         if (event.pointerId !== pointerId) return
         // Auto-scroll can update scrollTop after the final pointermove capture.
         // Recompute from the release coordinate and latest scroll before Motion
         // fires onDragEnd and commits the pending order.
-        updatePendingItemReorder(itemId, event.pageY)
+        updatePendingItemReorder(itemId, event.clientY)
         stopPointerTracking()
       }
       const cancelTrackingPointer = (event: PointerEvent) => {
@@ -355,6 +428,16 @@ function usePointerReorderSession({
   return { beginItemReorder, commitPendingOrder, synchronizeVisualOffset }
 }
 
+export function constrainReorderPointerOffset(value: number, min: number, max: number) {
+  if (value < min) {
+    return min - Math.min((min - value) * tweakerMotionTokens.dragElastic, 1)
+  }
+  if (value > max) {
+    return max + Math.min((value - max) * tweakerMotionTokens.dragElastic, 1)
+  }
+  return value
+}
+
 function arraysEqual(left: string[], right: string[]) {
   return left.length === right.length && left.every((value, index) => value === right[index])
 }
@@ -375,4 +458,14 @@ function finishSiblingDisclosureTransitions(itemElements: HTMLElement[]) {
       }
     }
   }
+}
+
+function directReorderItems(groupElement: HTMLElement) {
+  return Array.from(groupElement.children).filter(
+    (element): element is HTMLElement => element instanceof HTMLElement,
+  )
+}
+
+function reorderItemId(element: HTMLElement) {
+  return element.dataset.controlId ?? element.dataset.groupId
 }

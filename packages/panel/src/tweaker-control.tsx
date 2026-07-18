@@ -1,5 +1,5 @@
 import { Info, RotateCcw } from 'lucide-react'
-import { Reorder, useTransform, type HTMLMotionProps } from 'motion/react'
+import { Reorder, useReducedMotion, useTransform, type HTMLMotionProps } from 'motion/react'
 import { createContext, useCallback, useContext, useId, useMemo, type ReactNode } from 'react'
 import { Button, Label, buttonVariants } from './ui.js'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip.js'
@@ -16,6 +16,7 @@ import {
 } from './tweaker-panel.js'
 import {
   disabledReorderItemLayout,
+  reducedMotionReorderTransition,
   reorderDragTransition,
   reorderTopWithOffset,
   reorderTransition,
@@ -122,10 +123,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   const active = Object.keys(interaction.activeIds).some((activeId) =>
     activeId.endsWith(`:${controlId}`),
   )
-  const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'div'>['transformTemplate']>>(
-    () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
-    [transformTemplateProp],
-  )
+  const prefersReducedMotion = useReducedMotion()
   const {
     beginReorder,
     cancelReorder,
@@ -135,6 +133,10 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
     parentId,
     visualDragOffsetY,
   } = useTweakerReorderItem(controlId, reorderable)
+  const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'div'>['transformTemplate']>>(
+    () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
+    [transformTemplateProp],
+  )
   const visualTop = useTransform(() =>
     reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
   )
@@ -232,7 +234,11 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         layout={disabledReorderItemLayout}
         style={{ ...props.style, top: visualTop }}
         transformTemplate={transformTemplate}
-        transition={props.transition ?? reorderTransition}
+        transition={
+          prefersReducedMotion
+            ? reducedMotionReorderTransition
+            : (props.transition ?? reorderTransition)
+        }
         value={controlId}
         onDrag={props.onDrag}
         onDragEnd={(event, info) => {

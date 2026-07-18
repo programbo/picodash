@@ -25,6 +25,7 @@ import {
   orderIndexForItem,
   reorderValuesForPointer,
 } from '../src/tweaker-panel.tsx'
+import { constrainReorderPointerOffset } from '../src/tweaker-reorder-list.tsx'
 import { TweakerReorderIndicator } from '../src/tweaker-reorder-indicator.tsx'
 
 test('creates feature panel elements', () => {
@@ -568,7 +569,7 @@ test('pointer reorder can reverse from past two rows back between them', () => {
   expect(store.getState().order.root).toEqual(['camera-height', 'quality', 'render-scale'])
 })
 
-test('pointer reorder moves an adjacent item down and back up from fixed drag geometry', () => {
+test('pointer reorder swaps only after the dragged leading edge passes an adjacent midpoint', () => {
   expect(
     reorderValuesForPointer(
       ['channel', 'lock-preview'],
@@ -577,7 +578,7 @@ test('pointer reorder moves an adjacent item down and back up from fixed drag ge
         { id: 'channel', min: 0, max: 42 },
         { id: 'lock-preview', min: 46, max: 86 },
       ],
-      45,
+      24,
     ),
   ).toEqual(['channel', 'lock-preview'])
 
@@ -589,7 +590,7 @@ test('pointer reorder moves an adjacent item down and back up from fixed drag ge
         { id: 'channel', min: 0, max: 42 },
         { id: 'lock-preview', min: 46, max: 86 },
       ],
-      46,
+      25,
     ),
   ).toEqual(['lock-preview', 'channel'])
 
@@ -601,7 +602,7 @@ test('pointer reorder moves an adjacent item down and back up from fixed drag ge
         { id: 'lock-preview', min: 0, max: 40 },
         { id: 'channel', min: 44, max: 86 },
       ],
-      -45,
+      -24,
     ),
   ).toEqual(['lock-preview', 'channel'])
 
@@ -613,7 +614,7 @@ test('pointer reorder moves an adjacent item down and back up from fixed drag ge
         { id: 'lock-preview', min: 0, max: 40 },
         { id: 'channel', min: 44, max: 86 },
       ],
-      -46,
+      -25,
     ),
   ).toEqual(['channel', 'lock-preview'])
 })
@@ -626,17 +627,104 @@ test('pointer reorder targets the second row without requiring a third-row cross
     { id: 'shadow-softness', min: 92, max: 132 },
   ]
 
-  expect(reorderValuesForPointer(order, 'quality', layouts, 47)).toEqual([
+  expect(reorderValuesForPointer(order, 'quality', layouts, 26)).toEqual([
     'camera-height',
     'quality',
     'shadow-softness',
   ])
-  expect(reorderValuesForPointer(order, 'quality', layouts, 92)).toEqual([
+  expect(reorderValuesForPointer(order, 'quality', layouts, 71)).toEqual([
     'camera-height',
     'shadow-softness',
     'quality',
   ])
-  expect(reorderValuesForPointer(order, 'quality', layouts, 10)).toEqual(order)
+  expect(reorderValuesForPointer(order, 'quality', layouts, 25)).toEqual(order)
+  expect(reorderValuesForPointer(order, 'quality', layouts, 70)).toEqual([
+    'camera-height',
+    'quality',
+    'shadow-softness',
+  ])
+})
+
+test('pointer reorder uses the leading edge when a tall item moves above shorter siblings', () => {
+  const order = ['first', 'second', 'tall']
+  const layouts = [
+    { id: 'first', min: 0, max: 40 },
+    { id: 'second', min: 44, max: 86 },
+    { id: 'tall', min: 90, max: 332 },
+  ]
+
+  expect(reorderValuesForPointer(order, 'tall', layouts, -25)).toEqual(order)
+  expect(reorderValuesForPointer(order, 'tall', layouts, -26)).toEqual(['first', 'tall', 'second'])
+  expect(reorderValuesForPointer(order, 'tall', layouts, -71)).toEqual(['tall', 'first', 'second'])
+})
+
+test('pointer reorder uses the leading edge when a tall item moves below shorter siblings', () => {
+  const order = ['tall', 'second', 'third']
+  const layouts = [
+    { id: 'tall', min: 0, max: 242 },
+    { id: 'second', min: 246, max: 286 },
+    { id: 'third', min: 290, max: 330 },
+  ]
+
+  expect(reorderValuesForPointer(order, 'tall', layouts, 24)).toEqual(order)
+  expect(reorderValuesForPointer(order, 'tall', layouts, 25)).toEqual(['second', 'tall', 'third'])
+  expect(reorderValuesForPointer(order, 'tall', layouts, 68)).toEqual(['second', 'tall', 'third'])
+  expect(reorderValuesForPointer(order, 'tall', layouts, 69)).toEqual(['second', 'third', 'tall'])
+})
+
+test('pointer reorder recalculates from fixed geometry after reversing across multiple items', () => {
+  const order = ['first', 'second', 'source', 'fourth', 'fifth']
+  const layouts = [
+    { id: 'first', min: 0, max: 40 },
+    { id: 'second', min: 44, max: 92 },
+    { id: 'source', min: 96, max: 138 },
+    { id: 'fourth', min: 142, max: 182 },
+    { id: 'fifth', min: 186, max: 238 },
+  ]
+
+  expect(reorderValuesForPointer(order, 'source', layouts, 24)).toEqual(order)
+  expect(reorderValuesForPointer(order, 'source', layouts, 25)).toEqual([
+    'first',
+    'second',
+    'fourth',
+    'source',
+    'fifth',
+  ])
+  expect(reorderValuesForPointer(order, 'source', layouts, 75)).toEqual([
+    'first',
+    'second',
+    'fourth',
+    'fifth',
+    'source',
+  ])
+  expect(reorderValuesForPointer(order, 'source', layouts, -29)).toEqual([
+    'first',
+    'source',
+    'second',
+    'fourth',
+    'fifth',
+  ])
+  expect(reorderValuesForPointer(order, 'source', layouts, -77)).toEqual([
+    'source',
+    'first',
+    'second',
+    'fourth',
+    'fifth',
+  ])
+})
+
+test('pointer reorder constraints preserve in-bounds offsets and apply symmetric elastic overshoot', () => {
+  expect(constrainReorderPointerOffset(-40, -100, 200)).toBe(-40)
+  expect(constrainReorderPointerOffset(125, -100, 200)).toBe(125)
+
+  const below = constrainReorderPointerOffset(-125, -100, 200)
+  const above = constrainReorderPointerOffset(225, -100, 200)
+  expect(below).toBe(-100.25)
+  expect(above).toBe(200.25)
+  expect(-100 - below).toBe(above - 200)
+
+  expect(constrainReorderPointerOffset(-1_000, -100, 200)).toBe(-101)
+  expect(constrainReorderPointerOffset(1_000, -100, 200)).toBe(201)
 })
 
 test('drag commit logs the same label order React will render when the last item moves first', () => {

@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useStore } from 'zustand'
-import type { HTMLMotionProps } from 'motion/react'
 import type {
   TweakerItemRegistration,
   TweakerPanelState,
@@ -31,22 +30,6 @@ export function useTweakerPanelSelector<T>(selector: (state: TweakerPanelState) 
 
 export function useTweakerPanelState() {
   return useTweakerPanelSelector((state) => state)
-}
-
-type TweakerTransformTemplate = NonNullable<HTMLMotionProps<'div'>['transformTemplate']>
-
-export function useTweakerReorderTransformTemplate(
-  store: TweakerPanelStore,
-  transformTemplate?: TweakerTransformTemplate,
-) {
-  return useMemo<TweakerTransformTemplate>(
-    () => (latest, generated) => {
-      const isReordering = Boolean(store.getState().interaction.draggingId)
-      if (transformTemplate) return transformTemplate(latest, isReordering ? generated : '')
-      return isReordering ? generated : 'none'
-    },
-    [store, transformTemplate],
-  )
 }
 
 export function useRegisterTweakerItem({

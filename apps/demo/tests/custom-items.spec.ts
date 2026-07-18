@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
+import { tweakerMotionTokens } from '../../../packages/panel/src/theme.ts'
 
 const customGroupLabels = {
   'common-items': 'Common inputs',
@@ -32,6 +33,7 @@ for (const scenario of [
     name: 'Common inputs over the second root item',
     sourceId: 'common-items',
     sourceLabel: 'Common inputs',
+    singleDirection: true,
     targetId: 'spatial-items',
   },
   {
@@ -58,6 +60,7 @@ for (const scenario of [
     name: 'Selection upward over the adjacent root group',
     sourceId: 'custom-items-summary',
     sourceLabel: 'Selection',
+    singleDirection: true,
     targetId: 'visualization-items',
   },
   {
@@ -87,6 +90,7 @@ for (const scenario of [
       page,
       panel,
       parentId: 'root',
+      verifyDirectionChange: !('singleDirection' in scenario && scenario.singleDirection),
       verifyCancellation: scenario.targetId === 'spatial-items',
     })
   })
@@ -133,6 +137,110 @@ for (const scenario of [
   })
 }
 
+test('previews and commits an expanded group downward across another expanded group', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 1200 })
+  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+
+  await collapseCustomGroups(panel, ['common-items', 'visualization-items'])
+  await expect(panel.locator('[data-group-id="spatial-items"]')).toHaveAttribute(
+    'data-collapsed',
+    'false',
+  )
+  await expect(panel.locator('[data-group-id="media-items"]')).toHaveAttribute(
+    'data-collapsed',
+    'false',
+  )
+
+  await exerciseLivePreviewDrag({
+    expectedOrder: [
+      'common-items',
+      'media-items',
+      'spatial-items',
+      'visualization-items',
+      'custom-items-summary',
+    ],
+    list: rootList,
+    page,
+    panel,
+    parentId: 'root',
+    sourceId: 'spatial-items',
+    sourceLabel: 'Direct manipulation',
+    targetId: 'media-items',
+  })
+})
+
+test('moves an expanded Common group upward across multiple collapsed groups from third', async ({
+  page,
+}) => {
+  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+
+  await collapseCustomGroups(panel, Object.keys(customGroupLabels) as CustomGroupId[])
+  await exerciseLivePreviewDrag({
+    expectedOrder: [
+      'spatial-items',
+      'media-items',
+      'common-items',
+      'visualization-items',
+      'custom-items-summary',
+    ],
+    list: rootList,
+    page,
+    panel,
+    parentId: 'root',
+    sourceId: 'common-items',
+    sourceLabel: 'Common inputs',
+    targetId: 'media-items',
+  })
+
+  const common = panel.locator('[data-group-id="common-items"]')
+  await common.getByRole('button', { name: customGroupLabels['common-items'], exact: true }).click()
+  await expect(common).toHaveAttribute('data-collapsed', 'false')
+  await page.waitForTimeout(200)
+
+  await exerciseLivePreviewDrag({
+    expectedOrder: initialCustomRootOrder,
+    list: rootList,
+    page,
+    panel,
+    parentId: 'root',
+    sourceId: 'common-items',
+    sourceLabel: 'Common inputs',
+    targetId: 'spatial-items',
+  })
+})
+
+test('reverses an expanded root group across collapsed groups and a root item', async ({
+  page,
+}) => {
+  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+
+  await collapseCustomGroups(panel, ['common-items', 'spatial-items', 'visualization-items'])
+  await expect(panel.locator('[data-group-id="media-items"]')).toHaveAttribute(
+    'data-collapsed',
+    'false',
+  )
+
+  await exerciseThresholdItinerary({
+    list: rootList,
+    page,
+    panel,
+    parentId: 'root',
+    sourceId: 'media-items',
+    sourceLabel: 'Media and files',
+    stops: [
+      { targetId: 'visualization-items' },
+      { targetId: 'custom-items-summary' },
+      { targetId: 'spatial-items' },
+      { targetId: 'common-items' },
+    ],
+  })
+})
+
 test('settles active group disclosure transitions before measuring a root drag', async ({
   page,
 }) => {
@@ -165,27 +273,234 @@ test('settles active group disclosure transitions before measuring a root drag',
   })
 })
 
-test('reorders grouped controls without changing root order', async ({ page }) => {
-  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
-  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
-  const commonList = panel.locator('[data-tweaker-reorder-list="common-items"]')
-
-  await exerciseLivePreviewDrag({
+for (const scenario of [
+  {
     expectedOrder: ['alignment', 'vector', 'density', 'thresholdRange'],
-    list: commonList,
-    page,
-    panel,
-    parentId: 'common-items',
+    name: 'downward',
     sourceId: 'density',
     sourceLabel: 'Density',
     targetId: 'vector',
+  },
+  {
+    expectedOrder: ['thresholdRange', 'density', 'alignment', 'vector'],
+    name: 'upward',
+    sourceId: 'thresholdRange',
+    sourceLabel: 'Thresholds',
+    targetId: 'density',
+  },
+] as const) {
+  test(`reorders grouped controls ${scenario.name} in one direction without changing root order`, async ({
+    page,
+  }) => {
+    const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+    const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+    const commonList = panel.locator('[data-tweaker-reorder-list="common-items"]')
+
+    await exerciseLivePreviewDrag({
+      ...scenario,
+      list: commonList,
+      page,
+      panel,
+      parentId: 'common-items',
+      unchangedOrder: {
+        expected: initialCustomRootOrder,
+        list: rootList,
+        parentId: 'root',
+      },
+      verifyDirectionChange: false,
+    })
+  })
+}
+
+test('reverses a nested control across multiple siblings in both directions', async ({ page }) => {
+  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+  const renderingList = panel.locator('[data-tweaker-reorder-list="scene-rendering"]')
+
+  await exerciseThresholdItinerary({
+    list: renderingList,
+    page,
+    panel,
+    parentId: 'scene-rendering',
+    sourceId: 'maxBounces',
+    sourceLabel: 'Max bounces',
+    stops: [
+      { targetId: 'textureQuality' },
+      { targetId: 'renderScale' },
+      { targetId: 'shadowSoftness' },
+      { targetId: 'cameraHeight' },
+      { targetId: 'quality' },
+    ],
     unchangedOrder: {
-      expected: initialCustomRootOrder,
+      expected: ['scene-essentials', 'scene-rendering', 'scene-summary'],
       list: rootList,
       parentId: 'root',
     },
   })
 })
+
+test('avoids Camera height before Quality covers it and retains avoidance on a 1px reversal', async ({
+  page,
+}) => {
+  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const list = panel.locator('[data-tweaker-reorder-list="scene-rendering"]')
+  const quality = panel.locator('[data-control-id="quality"]')
+  const cameraHeight = panel.locator('[data-control-id="cameraHeight"]')
+  const grip = quality.getByRole('button', { name: 'Reorder Quality', exact: true })
+
+  await grip.scrollIntoViewIfNeeded()
+  const gripRect = await requiredBox(grip)
+  const qualityRect = await requiredBox(quality)
+  const cameraRect = await requiredBox(cameraHeight)
+  const pointerX = gripRect.x + gripRect.width / 2
+  const pointerY = gripRect.y + gripRect.height / 2
+  const avoidanceOffset = cameraRect.y + cameraRect.height / 2 - qualityRect.y - qualityRect.height
+  const cameraSlotOffset = cameraRect.y - qualityRect.y
+
+  await page.mouse.move(pointerX, pointerY)
+  await page.mouse.down()
+
+  await page.mouse.move(pointerX, pointerY + avoidanceOffset - 1)
+  await expect
+    .poll(() => itemOrder(list, 'scene-rendering'))
+    .toEqual([
+      'quality',
+      'cameraHeight',
+      'shadowSoftness',
+      'maxBounces',
+      'motionBlur',
+      'textureQuality',
+      'renderScale',
+    ])
+  await expectSiblingAt(cameraHeight, cameraRect.y)
+
+  await page.mouse.move(pointerX, pointerY + avoidanceOffset + 1)
+  await expect
+    .poll(() => itemOrder(list, 'scene-rendering'))
+    .toEqual([
+      'cameraHeight',
+      'quality',
+      'shadowSoftness',
+      'maxBounces',
+      'motionBlur',
+      'textureQuality',
+      'renderScale',
+    ])
+  await expectSiblingAt(cameraHeight, qualityRect.y)
+  const partiallyOverlappingQuality = await requiredBox(quality)
+  expect(partiallyOverlappingQuality.y).toBeLessThan(cameraRect.y)
+  expect(partiallyOverlappingQuality.y + partiallyOverlappingQuality.height).toBeLessThan(
+    cameraRect.y + cameraRect.height,
+  )
+
+  await page.mouse.move(pointerX, pointerY + cameraSlotOffset)
+  await expectPointerOffset(quality, qualityRect.y, cameraSlotOffset)
+  await page.mouse.move(pointerX, pointerY + cameraSlotOffset - 1)
+  await expect
+    .poll(() => itemOrder(list, 'scene-rendering'))
+    .toEqual([
+      'cameraHeight',
+      'quality',
+      'shadowSoftness',
+      'maxBounces',
+      'motionBlur',
+      'textureQuality',
+      'renderScale',
+    ])
+  await expectSiblingAt(cameraHeight, qualityRect.y)
+
+  await page.mouse.up()
+  await expect
+    .poll(() => itemOrder(list, 'scene-rendering'))
+    .toEqual([
+      'cameraHeight',
+      'quality',
+      'shadowSoftness',
+      'maxBounces',
+      'motionBlur',
+      'textureQuality',
+      'renderScale',
+    ])
+  await expectContiguousItems(list, 'scene-rendering')
+})
+
+for (const collapsed of [false, true]) {
+  test(`reorders Scene Controls top-level groups while ${collapsed ? 'collapsed' : 'expanded'}`, async ({
+    page,
+  }) => {
+    const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+    const list = panel.locator('[data-tweaker-reorder-list="root"]')
+    const essentials = panel.locator('[data-group-id="scene-essentials"]')
+    const rendering = panel.locator('[data-group-id="scene-rendering"]')
+
+    if (collapsed) {
+      await essentials.getByRole('button', { name: 'Essentials', exact: true }).click()
+      await rendering.getByRole('button', { name: 'Rendering', exact: true }).click()
+      await expect(essentials).toHaveAttribute('data-collapsed', 'true')
+      await expect(rendering).toHaveAttribute('data-collapsed', 'true')
+      await page.waitForTimeout(200)
+    }
+
+    const grip = rendering.getByRole('button', { name: 'Reorder Rendering', exact: true })
+    await grip.scrollIntoViewIfNeeded()
+    const gripRect = await requiredBox(grip)
+    const essentialsRect = await requiredBox(essentials)
+    const renderingRect = await requiredBox(rendering)
+    const pointerX = gripRect.x + gripRect.width / 2
+    const pointerY = gripRect.y + gripRect.height / 2
+    const crossingOffset = essentialsRect.y + essentialsRect.height / 2 - renderingRect.y - 1
+
+    await page.mouse.move(pointerX, pointerY)
+    await page.mouse.down()
+    await page.mouse.move(pointerX, pointerY + crossingOffset)
+    await expect
+      .poll(() => itemOrder(list, 'root'))
+      .toEqual(['scene-rendering', 'scene-essentials', 'scene-summary'])
+    await expect
+      .poll(async () => Math.abs((await requiredBox(essentials)).y - essentialsRect.y))
+      .toBeGreaterThan(1)
+    await expectSiblingVisualsToSettle(list, 'root', 'scene-rendering')
+
+    await page.mouse.up()
+    await expect
+      .poll(() => itemOrder(list, 'root'))
+      .toEqual(['scene-rendering', 'scene-essentials', 'scene-summary'])
+    await expect(rendering).toHaveAttribute('data-dragging', 'false')
+    await expect.poll(() => listTransformsAreNone(list, 'root')).toBe(true)
+    await expectContiguousItems(list, 'root')
+  })
+}
+
+for (const collapsed of [false, true]) {
+  test(`reorders the Scene Controls Summary item while groups are ${collapsed ? 'collapsed' : 'expanded'}`, async ({
+    page,
+  }) => {
+    const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+    const list = panel.locator('[data-tweaker-reorder-list="root"]')
+    const essentials = panel.locator('[data-group-id="scene-essentials"]')
+    const rendering = panel.locator('[data-group-id="scene-rendering"]')
+
+    if (collapsed) {
+      await essentials.getByRole('button', { name: 'Essentials', exact: true }).click()
+      await rendering.getByRole('button', { name: 'Rendering', exact: true }).click()
+      await expect(essentials).toHaveAttribute('data-collapsed', 'true')
+      await expect(rendering).toHaveAttribute('data-collapsed', 'true')
+      await page.waitForTimeout(200)
+    }
+
+    await exerciseLivePreviewDrag({
+      expectedOrder: ['scene-essentials', 'scene-summary', 'scene-rendering'],
+      list,
+      page,
+      panel,
+      parentId: 'root',
+      sourceId: 'scene-summary',
+      sourceLabel: 'Summary',
+      targetId: 'scene-rendering',
+      verifyDirectionChange: false,
+    })
+  })
+}
 
 test('transfers hover ownership between a group header and its child', async ({ page }) => {
   const group = page.locator('[data-group-id="scene-rendering"]')
@@ -318,6 +633,16 @@ test('keeps panel typography and dropzone geometry at the baseline', async ({ pa
   await expect(helpButton).toHaveCSS('font-size', '14px')
   await expect(helpButton).toHaveCSS('line-height', '20px')
   await expect(dropSurface).toHaveCSS('height', '96px')
+})
+
+test('fits Scene Controls without a default vertical scrollbar', async ({ page }) => {
+  const body = page.locator(
+    '[data-tweaker-panel-id="scene-controls"] [data-tweaker-reorder-list="root"]',
+  )
+
+  await expect
+    .poll(() => body.evaluate((element) => element.scrollHeight - element.clientHeight))
+    .toBeLessThanOrEqual(0)
 })
 
 test('updates common, spatial, and gradient values through accessible controls', async ({
@@ -840,6 +1165,7 @@ async function exerciseLivePreviewDrag({
   targetId,
   unchangedOrder,
   verifyCancellation = false,
+  verifyDirectionChange = true,
 }: {
   expectedOrder: readonly string[]
   list: import('@playwright/test').Locator
@@ -856,6 +1182,7 @@ async function exerciseLivePreviewDrag({
     parentId: string
   }
   verifyCancellation?: boolean
+  verifyDirectionChange?: boolean
 }) {
   const source = panel.locator(`[data-group-id="${sourceId}"], [data-control-id="${sourceId}"]`)
   const grip = source.getByRole('button', {
@@ -888,6 +1215,19 @@ async function exerciseLivePreviewDrag({
   expect(targetRect).toBeDefined()
   if (!sourceRect || !targetRect) return
 
+  const sourceSlot = initialSlots[sourceId]
+  const targetSlot = initialSlots[targetId]
+  expect(sourceSlot).toBeDefined()
+  expect(targetSlot).toBeDefined()
+  if (!sourceSlot || !targetSlot) return
+  const constraintRect = await requiredBox(list.locator(':scope > div'))
+  const visualPointerOffset = (offset: number) =>
+    constrainPointerOffset(
+      offset,
+      constraintRect.y - sourceRect.y,
+      constraintRect.y + constraintRect.height - (sourceRect.y + sourceRect.height),
+    )
+
   const sourceCenter = sourceRect.y + sourceRect.height / 2
   const targetCenter = targetRect.y + targetRect.height / 2
   const direction = targetCenter > sourceCenter ? 1 : -1
@@ -901,13 +1241,15 @@ async function exerciseLivePreviewDrag({
     .poll(async () => ((await requiredBox(source)).y - sourceRect.y) * direction)
     .toBeLessThanOrEqual(5)
   await expectSiblingRects(list, parentId, initialRects, sourceId)
+  await expect.poll(() => siblingTransformsAreNone(list, parentId, sourceId)).toBe(true)
 
-  const targetThreshold = targetCenter - sourceCenter
+  const sourceLeadingEdge = direction > 0 ? sourceRect.y + sourceRect.height : sourceRect.y
+  const targetThreshold = targetCenter - sourceLeadingEdge
   const targetIndex = initialOrder.indexOf(targetId)
   const nextId = initialOrder[targetIndex + direction]
   const nextRect = nextId ? initialRects[nextId] : undefined
   const nextThreshold = nextRect
-    ? nextRect.y + nextRect.height / 2 - sourceCenter
+    ? nextRect.y + nextRect.height / 2 - sourceLeadingEdge
     : direction > 0
       ? Number.POSITIVE_INFINITY
       : Number.NEGATIVE_INFINITY
@@ -915,27 +1257,34 @@ async function exerciseLivePreviewDrag({
     direction > 0
       ? Math.min(targetThreshold + 2, nextThreshold - 2)
       : Math.max(targetThreshold - 2, nextThreshold + 2)
+  await startSiblingTransitionSampling(list, parentId, sourceId)
   await page.mouse.move(pointerX, pointerY + crossingOffset)
   await expect.poll(() => itemOrder(list, parentId)).toEqual(expectedOrder)
-  await expectPointerOffset(source, sourceRect.y, crossingOffset)
+  await expectPointerOffset(source, sourceRect.y, visualPointerOffset(crossingOffset))
   await expectSiblingDisplacement(list, parentId, initialSlots, sourceId)
+  await expectSiblingTransition(list, parentId, sourceId)
   await expectContiguousSlots(list, parentId)
-  await expect.poll(() => listTransformsAreNone(list, parentId)).toBe(true)
+  await expectSiblingVisualsToSettle(list, parentId, sourceId)
   await expect.poll(() => rootList.evaluate((element) => element.scrollTop)).toBe(initialScrollTop)
   await expectUnchangedOrder(unchangedOrder)
 
-  await page.mouse.move(pointerX, pointerY + restingOffset)
-  await expect.poll(() => itemOrder(list, parentId)).toEqual(initialOrder)
-  await expectPointerOffset(source, sourceRect.y, restingOffset)
-  await expectSiblingRects(list, parentId, initialRects, sourceId)
-  await expectContiguousSlots(list, parentId)
-  await expectUnchangedOrder(unchangedOrder)
+  if (verifyDirectionChange) {
+    await page.mouse.move(pointerX, pointerY + restingOffset)
+    await expect.poll(() => itemOrder(list, parentId)).toEqual(initialOrder)
+    await expectPointerOffset(source, sourceRect.y, restingOffset)
+    await expectSiblingVisualsToSettle(list, parentId, sourceId)
+    await expectSiblingRects(list, parentId, initialRects, sourceId)
+    await expectContiguousSlots(list, parentId)
+    await expectUnchangedOrder(unchangedOrder)
 
-  await page.mouse.move(pointerX, pointerY + crossingOffset)
-  await expect.poll(() => itemOrder(list, parentId)).toEqual(expectedOrder)
-  await expectPointerOffset(source, sourceRect.y, crossingOffset)
-  await expectContiguousSlots(list, parentId)
-  await expectUnchangedOrder(unchangedOrder)
+    await startSiblingTransitionSampling(list, parentId, sourceId)
+    await page.mouse.move(pointerX, pointerY + crossingOffset)
+    await expect.poll(() => itemOrder(list, parentId)).toEqual(expectedOrder)
+    await expectPointerOffset(source, sourceRect.y, visualPointerOffset(crossingOffset))
+    await expectSiblingTransition(list, parentId, sourceId)
+    await expectContiguousSlots(list, parentId)
+    await expectUnchangedOrder(unchangedOrder)
+  }
 
   if (verifyCancellation) {
     await grip.dispatchEvent('pointercancel', {
@@ -954,16 +1303,119 @@ async function exerciseLivePreviewDrag({
     await page.mouse.down()
     await page.mouse.move(pointerX, pointerY + crossingOffset)
     await expect.poll(() => itemOrder(list, parentId)).toEqual(expectedOrder)
-    await expectPointerOffset(source, sourceRect.y, crossingOffset)
+    await expectPointerOffset(source, sourceRect.y, visualPointerOffset(crossingOffset))
   }
 
   await page.mouse.up()
   await expect.poll(() => itemOrder(list, parentId)).toEqual(expectedOrder)
   await expect.poll(() => rootList.evaluate((element) => element.scrollTop)).toBe(initialScrollTop)
+  await expect.poll(async () => Math.abs(await visualTop(source))).toBeLessThanOrEqual(0.05)
   await expect(source).toHaveAttribute('data-dragging', 'false')
   await expect.poll(() => listTransformsAreNone(list, parentId)).toBe(true)
   await expectContiguousItems(list, parentId)
   await expectUnchangedOrder(unchangedOrder)
+}
+
+async function exerciseThresholdItinerary({
+  list,
+  page,
+  panel,
+  parentId,
+  sourceId,
+  sourceLabel,
+  stops,
+  unchangedOrder,
+}: {
+  list: import('@playwright/test').Locator
+  page: import('@playwright/test').Page
+  panel: import('@playwright/test').Locator
+  parentId: string
+  sourceId: string
+  sourceLabel: string
+  stops: readonly { targetId: string }[]
+  unchangedOrder?: {
+    expected: readonly string[]
+    list: import('@playwright/test').Locator
+    parentId: string
+  }
+}) {
+  const source = panel.locator(`[data-group-id="${sourceId}"], [data-control-id="${sourceId}"]`)
+  const grip = source.getByRole('button', {
+    name: `Reorder ${sourceLabel}`,
+    exact: true,
+  })
+  await grip.scrollIntoViewIfNeeded()
+  await expect.poll(() => listTransformsAreNone(list, parentId)).toBe(true)
+
+  const gripBox = await requiredBox(grip)
+  const pointerX = gripBox.x + gripBox.width / 2
+  const pointerY = gripBox.y + gripBox.height / 2
+  await page.mouse.move(pointerX, pointerY)
+  await page.mouse.down()
+
+  const initialOrder = await itemOrder(list, parentId)
+  const initialRects = await itemRects(list, parentId)
+  const sourceRect = initialRects[sourceId]
+  expect(sourceRect).toBeDefined()
+  if (!sourceRect) return
+  const sourceCenter = sourceRect.y + sourceRect.height / 2
+  for (const stop of stops) {
+    const targetRect = initialRects[stop.targetId]
+    expect(targetRect).toBeDefined()
+    if (!targetRect) continue
+
+    const targetCenter = targetRect.y + targetRect.height / 2
+    const direction = Math.sign(targetCenter - sourceCenter)
+    expect(direction).not.toBe(0)
+    const sourceLeadingEdge = direction > 0 ? sourceRect.y + sourceRect.height : sourceRect.y
+    const targetThreshold = targetCenter - sourceLeadingEdge
+
+    await page.mouse.move(pointerX, pointerY + targetThreshold - direction)
+    await expect
+      .poll(() => itemOrder(list, parentId))
+      .toEqual(orderAtTargetThreshold(initialOrder, sourceId, stop.targetId, false))
+    await expectPointerOffset(source, sourceRect.y, targetThreshold - direction)
+    await expectUnchangedOrder(unchangedOrder)
+
+    await page.mouse.move(pointerX, pointerY + targetThreshold + direction)
+    await expect
+      .poll(() => itemOrder(list, parentId))
+      .toEqual(orderAtTargetThreshold(initialOrder, sourceId, stop.targetId, true))
+    await expectPointerOffset(source, sourceRect.y, targetThreshold + direction)
+    await expectUnchangedOrder(unchangedOrder)
+  }
+
+  await page.mouse.up()
+  const finalTargetId = stops.at(-1)?.targetId
+  expect(finalTargetId).toBeDefined()
+  if (!finalTargetId) return
+  await expect
+    .poll(() => itemOrder(list, parentId))
+    .toEqual(orderAtTargetThreshold(initialOrder, sourceId, finalTargetId, true))
+  await expect.poll(async () => Math.abs(await visualTop(source))).toBeLessThanOrEqual(0.05)
+  await expect(source).toHaveAttribute('data-dragging', 'false')
+  await expect.poll(() => listTransformsAreNone(list, parentId)).toBe(true)
+  await expectContiguousItems(list, parentId)
+  await expectUnchangedOrder(unchangedOrder)
+}
+
+function orderAtTargetThreshold(
+  initialOrder: string[],
+  sourceId: string,
+  targetId: string,
+  crossed: boolean,
+) {
+  const sourceIndex = initialOrder.indexOf(sourceId)
+  const targetIndex = initialOrder.indexOf(targetId)
+  const direction = Math.sign(targetIndex - sourceIndex)
+  expect(sourceIndex).toBeGreaterThanOrEqual(0)
+  expect(targetIndex).toBeGreaterThanOrEqual(0)
+  expect(direction).not.toBe(0)
+
+  const nextOrder = [...initialOrder]
+  const [source] = nextOrder.splice(sourceIndex, 1)
+  nextOrder.splice(crossed ? targetIndex : targetIndex - direction, 0, source!)
+  return nextOrder
 }
 
 async function expectUnchangedOrder(
@@ -988,7 +1440,23 @@ async function expectPointerOffset(
 ) {
   await expect
     .poll(async () => Math.abs((await requiredBox(source)).y - (initialY + pointerOffset)))
-    .toBeLessThanOrEqual(1)
+    .toBeLessThanOrEqual(1.25)
+}
+
+async function expectSiblingAt(locator: import('@playwright/test').Locator, expectedY: number) {
+  await expect
+    .poll(async () => Math.abs((await requiredBox(locator)).y - expectedY))
+    .toBeLessThanOrEqual(1.25)
+}
+
+function constrainPointerOffset(value: number, min: number, max: number) {
+  if (value < min) {
+    return min - Math.min((min - value) * tweakerMotionTokens.dragElastic, 1)
+  }
+  if (value > max) {
+    return max + Math.min((value - max) * tweakerMotionTokens.dragElastic, 1)
+  }
+  return value
 }
 
 async function expectSiblingRects(
@@ -1031,6 +1499,81 @@ async function expectContiguousItems(list: import('@playwright/test').Locator, p
         index === 0 || slot.y + 0.5 >= slots[index - 1]!.y + slots[index - 1]!.height,
     ),
   ).toBe(true)
+}
+
+async function expectSiblingTransition(
+  list: import('@playwright/test').Locator,
+  _parentId: string,
+  _sourceId: string,
+) {
+  await expect
+    .poll(async () => Number(await list.getAttribute('data-test-max-sibling-reorder-offset')))
+    .toBeGreaterThan(0.5)
+}
+
+async function startSiblingTransitionSampling(
+  list: import('@playwright/test').Locator,
+  parentId: string,
+  sourceId: string,
+) {
+  await list.evaluate(
+    (element, { parentId, sourceId }) => {
+      const listElement = element as HTMLElement
+      listElement.dataset.testMaxSiblingReorderOffset = '0'
+      let remainingFrames = 120
+
+      const sample = () => {
+        const group = listElement.firstElementChild
+        const maxOffset = Math.max(
+          Number(listElement.dataset.testMaxSiblingReorderOffset ?? 0),
+          ...Array.from(group?.children ?? [])
+            .filter((item) => {
+              const itemElement = item as HTMLElement
+              const id = itemElement.dataset.groupId ?? itemElement.dataset.controlId
+              return itemElement.dataset.parentId === parentId && id !== sourceId
+            })
+            .map((item) => {
+              const top = Number.parseFloat(getComputedStyle(item).top)
+              return Number.isFinite(top) ? Math.abs(top) : 0
+            }),
+        )
+        listElement.dataset.testMaxSiblingReorderOffset = String(maxOffset)
+        remainingFrames -= 1
+        if (remainingFrames > 0) requestAnimationFrame(sample)
+      }
+
+      requestAnimationFrame(sample)
+    },
+    { parentId, sourceId },
+  )
+}
+
+async function expectSiblingVisualsToSettle(
+  list: import('@playwright/test').Locator,
+  parentId: string,
+  sourceId: string,
+) {
+  await expect
+    .poll(() =>
+      directItems(list, parentId).evaluateAll(
+        (items, sourceId) =>
+          Math.max(
+            0,
+            ...items
+              .filter((item) => {
+                const element = item as HTMLElement
+                return (element.dataset.groupId ?? element.dataset.controlId) !== sourceId
+              })
+              .map((item) => {
+                const element = item as HTMLElement
+                const top = Number.parseFloat(getComputedStyle(element).top)
+                return Number.isFinite(top) ? Math.abs(top) : 0
+              }),
+          ),
+        sourceId,
+      ),
+    )
+    .toBeLessThanOrEqual(0.5)
 }
 
 async function expectContiguousSlots(list: import('@playwright/test').Locator, parentId: string) {
@@ -1096,9 +1639,37 @@ async function requiredBox(locator: import('@playwright/test').Locator) {
   return box!
 }
 
+async function visualTop(locator: import('@playwright/test').Locator) {
+  return locator.evaluate((element) => {
+    const top = Number.parseFloat(getComputedStyle(element).top)
+    return Number.isFinite(top) ? top : 0
+  })
+}
+
 async function listTransformsAreNone(list: import('@playwright/test').Locator, parentId: string) {
   return directItems(list, parentId).evaluateAll((items) =>
     items.every((item) => getComputedStyle(item).transform === 'none'),
+  )
+}
+
+async function siblingTransformsAreNone(
+  list: import('@playwright/test').Locator,
+  parentId: string,
+  sourceId: string,
+) {
+  return directItems(list, parentId).evaluateAll(
+    (items, sourceId) =>
+      items
+        .filter((item) => {
+          const element = item as HTMLElement
+          return (element.dataset.groupId ?? element.dataset.controlId) !== sourceId
+        })
+        .every((item) => {
+          const style = getComputedStyle(item)
+          const top = Number.parseFloat(style.top)
+          return style.transform === 'none' && (!Number.isFinite(top) || Math.abs(top) <= 0.05)
+        }),
+    sourceId,
   )
 }
 

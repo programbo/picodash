@@ -1,5 +1,15 @@
-import { isMotionValue, useDragControls, useMotionValue, type HTMLMotionProps } from 'motion/react'
-import type { PointerEvent as ReactPointerEvent } from 'react'
+import {
+  animate,
+  isMotionValue,
+  useDragControls,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+  useTransform,
+  type AnimationPlaybackControlsWithThen,
+  type HTMLMotionProps,
+} from 'motion/react'
+import { useEffect, useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTweakerGroupContext } from './tweaker-group-context.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
 import { tweakerMotionTokens } from './theme.js'
@@ -23,6 +33,13 @@ type ReorderItemLayoutProp = true | 'position'
  */
 export const disabledReorderItemLayout = false as unknown as ReorderItemLayoutProp
 
+export const reducedMotionReorderTransition: HTMLMotionProps<'div'>['transition'] = {
+  duration: 0,
+  layout: { duration: 0 },
+  x: { duration: 0 },
+  y: { duration: 0 },
+}
+
 export function reorderTopWithOffset(top: unknown, offset: number) {
   const resolvedTop = isMotionValue(top) ? top.get() : top
   if (typeof resolvedTop === 'number') return resolvedTop + offset
@@ -36,26 +53,87 @@ export function useTweakerReorderItem(itemId: string, reorderable: boolean) {
   const store = useTweakerPanelStoreApi()
   const dragControls = useDragControls()
   const visualDragOffsetY = useMotionValue(0)
-  const { beginItemReorder, commitPendingOrder, dragConstraintsRef, parentId } =
+  const siblingOffsetY = useSpring(0, tweakerMotionTokens.reorder)
+  const visualOffsetY = useTransform(
+    [visualDragOffsetY, siblingOffsetY],
+    ([dragOffset, siblingOffset]) => Number(dragOffset) + Number(siblingOffset),
+  )
+  const prefersReducedMotion = useReducedMotion()
+  const settleAnimationRef = useRef<AnimationPlaybackControlsWithThen | null>(null)
+  const settleGenerationRef = useRef(0)
+  const { beginItemReorder, commitPendingOrder, dragConstraintsRef, parentId, registerItemMotion } =
     useTweakerGroupContext()
+
+  const stopSettleAnimation = () => {
+    settleGenerationRef.current += 1
+    settleAnimationRef.current?.stop()
+    settleAnimationRef.current = null
+  }
+
+  useLayoutEffect(
+    () =>
+      registerItemMotion(itemId, {
+        animateFrom: (offset) => {
+          siblingOffsetY.jump(offset)
+          if (prefersReducedMotion || Math.abs(offset) <= 0.0001) {
+            siblingOffsetY.jump(0)
+          } else {
+            siblingOffsetY.set(0)
+          }
+        },
+        getOffset: () => siblingOffsetY.get(),
+      }),
+    [itemId, prefersReducedMotion, registerItemMotion, siblingOffsetY],
+  )
+
+  useEffect(
+    () => () => {
+      stopSettleAnimation()
+    },
+    [],
+  )
 
   const beginReorder = (event: ReactPointerEvent) => {
     if (!reorderable) return
-    beginItemReorder(itemId, event.pageY, event.pointerId, (offset) =>
-      visualDragOffsetY.set(offset),
-    )
+    stopSettleAnimation()
+    const siblingOffset = siblingOffsetY.get()
+    siblingOffsetY.jump(0)
+    beginItemReorder(itemId, event.clientY, event.pointerId, (offset) => {
+      visualDragOffsetY.set(offset + siblingOffset)
+    })
     store.getState().setDraggingItem(itemId)
     dragControls.start(event)
   }
 
   const cancelReorder = () => {
+    stopSettleAnimation()
     visualDragOffsetY.set(0)
     store.getState().setDraggingItem(null)
   }
   const commitReorder = () => {
-    visualDragOffsetY.set(0)
     commitPendingOrder()
-    store.getState().setDraggingItem(null)
+    stopSettleAnimation()
+
+    if (prefersReducedMotion) {
+      visualDragOffsetY.set(0)
+      if (store.getState().interaction.draggingId === itemId) {
+        store.getState().setDraggingItem(null)
+      }
+      return
+    }
+
+    const generation = settleGenerationRef.current
+    const animation = animate(visualDragOffsetY, 0, tweakerMotionTokens.reorder)
+    settleAnimationRef.current = animation
+    void animation.then(() => {
+      if (settleGenerationRef.current !== generation || settleAnimationRef.current !== animation) {
+        return
+      }
+      settleAnimationRef.current = null
+      if (store.getState().interaction.draggingId === itemId) {
+        store.getState().setDraggingItem(null)
+      }
+    })
   }
 
   return {
@@ -65,6 +143,6 @@ export function useTweakerReorderItem(itemId: string, reorderable: boolean) {
     dragConstraintsRef,
     dragControls,
     parentId,
-    visualDragOffsetY,
+    visualDragOffsetY: visualOffsetY,
   }
 }

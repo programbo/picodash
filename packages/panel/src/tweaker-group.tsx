@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react'
-import { Reorder, useTransform, type HTMLMotionProps } from 'motion/react'
+import { Reorder, useReducedMotion, useTransform, type HTMLMotionProps } from 'motion/react'
 import { useMemo, useRef, type ReactNode } from 'react'
 import {
   dataAttributesForStates,
@@ -17,6 +17,7 @@ import {
 } from './tweaker-panel.js'
 import {
   disabledReorderItemLayout,
+  reducedMotionReorderTransition,
   reorderDragTransition,
   reorderTopWithOffset,
   reorderTransition,
@@ -82,10 +83,7 @@ export function TweakerGroup({
   const visible = useResolvedPanelProp(visibleProp, true) ?? true
   const labelText = typeof label === 'string' ? label : id
   const active = Object.keys(interaction.activeIds).some((activeId) => activeId.endsWith(`:${id}`))
-  const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'section'>['transformTemplate']>>(
-    () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
-    [transformTemplateProp],
-  )
+  const prefersReducedMotion = useReducedMotion()
   const {
     beginReorder,
     cancelReorder,
@@ -95,6 +93,10 @@ export function TweakerGroup({
     parentId,
     visualDragOffsetY,
   } = useTweakerReorderItem(id, reorderable)
+  const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'section'>['transformTemplate']>>(
+    () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
+    [transformTemplateProp],
+  )
   const visualTop = useTransform(() =>
     reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
   )
@@ -144,7 +146,11 @@ export function TweakerGroup({
       layout={disabledReorderItemLayout}
       style={{ ...props.style, top: visualTop }}
       transformTemplate={transformTemplate}
-      transition={props.transition ?? reorderTransition}
+      transition={
+        prefersReducedMotion
+          ? reducedMotionReorderTransition
+          : (props.transition ?? reorderTransition)
+      }
       value={id}
       onDrag={props.onDrag}
       onDragEnd={(event, info) => {

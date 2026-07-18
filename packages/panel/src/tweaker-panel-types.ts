@@ -100,10 +100,16 @@ export interface TweakerGroupContextValue {
   dragConstraintsRef: RefObject<HTMLDivElement | null>
   listRef: RefObject<HTMLDivElement | null>
   parentId: string
+  registerItemMotion: (itemId: string, motion: TweakerReorderItemMotion) => () => void
 }
 
 export interface TweakerReorderItemLayout {
   id: string
   max: number
   min: number
+}
+
+export interface TweakerReorderItemMotion {
+  animateFrom: (offset: number) => void
+  getOffset: () => number
 }
