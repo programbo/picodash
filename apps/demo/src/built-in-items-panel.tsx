@@ -31,6 +31,7 @@ const builtInItemDefaults = {
     { color: '#facc15', id: 'amber', position: 0.58 },
     { color: '#fb7185', id: 'rose', position: 1 },
   ],
+  gradientRotation: 135,
   matrix2d: 'top-left',
   multilineText: 'A text area grows with its contents.',
   number: 24,
@@ -209,10 +210,14 @@ export function BuiltInItemsPanel() {
           yMin={0}
         />
         <TweakerGradient
+          contentLayout="block"
+          defaultRotation={builtInItemDefaults.gradientRotation}
+          description="Drag stops or use arrow keys. Double-click the gradient to add a stop."
           field="gradient"
-          label="Gradient"
+          label="Background Gradient"
           defaultValue={builtInItemDefaults.gradient}
-          help="TweakerGradient — field and defaultValue props."
+          help="TweakerGradient — field, defaultValue, defaultRotation, and rotationField props."
+          rotationField="gradientRotation"
         />
       </TweakerGroup>
 

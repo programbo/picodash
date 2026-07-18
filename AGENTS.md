@@ -133,6 +133,9 @@ after their content. Do not restore `TweakerControl`, `TweakerField`, `fieldId`,
 `placement`, or panel `defaultValues` compatibility APIs.
 
 Composite control values must remain JSON-compatible. Dropzones store file metadata rather than `File` objects, media previews use safe image URLs rather than raw SVG HTML, and temporary object URLs must be revoked when removed or unmounted. Use MotionValues for high-frequency visuals and optional smoothing only; Zustand remains authoritative for persisted/user-editable values, and animated examples must respect reduced-motion.
+`TweakerGradient` may pair its stop editor with a registered rotation field through
+`rotationField` and `defaultRotation`; keep both fields application-owned and
+JSON-compatible.
 
 Panel state may be application-owned through `createTweakerPanelStore({ panelId,
 initialValues, initialMeta })` and injected with `<TweakerPanel store={store}>`.

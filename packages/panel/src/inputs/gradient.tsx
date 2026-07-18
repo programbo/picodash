@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
@@ -13,6 +14,7 @@ import {
   type TweakerItemContextValue,
   type TweakerInputItemProps,
 } from '../tweaker-control.js'
+import { useTweakerPanelSelector, useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { Button, Input } from '../ui.js'
 import { cn } from '../utils.js'
 import type { TweakerParser } from '../tweaker-validation.js'
@@ -26,7 +28,9 @@ export interface TweakerGradientProps extends Omit<
   'children' | 'defaultValue' | 'parse'
 > {
   defaultValue?: TweakerGradientValue
+  defaultRotation?: number
   gradientClassName?: string
+  rotationField?: string
 }
 
 const fallbackGradient: TweakerGradientValue = [
@@ -36,10 +40,21 @@ const fallbackGradient: TweakerGradientValue = [
 export function TweakerGradient({
   contentLayout = 'block',
   defaultValue,
+  defaultRotation = 0,
   gradientClassName,
+  rotationField,
   ...controlProps
 }: TweakerGradientProps) {
   const normalizedDefault = useMemo(() => normalizeTweakerGradient(defaultValue), [defaultValue])
+  const normalizedDefaultRotation = normalizeGradientRotation(defaultRotation)
+  const store = useTweakerPanelStoreApi()
+  const storedRotation = useTweakerPanelSelector((state) =>
+    rotationField ? state.values[rotationField] : undefined,
+  )
+  const rotation =
+    typeof storedRotation === 'number'
+      ? normalizeGradientRotation(storedRotation)
+      : normalizedDefaultRotation
   const parse = useMemo<TweakerParser<TweakerGradientValue>>(
     () => (input, context) => {
       const error = 'Gradient value must be a canonical array of at least two color stops.'
@@ -49,22 +64,53 @@ export function TweakerGradient({
     },
     [],
   )
+  const rotationParse = useMemo<TweakerParser<number>>(
+    () => (input, context) => {
+      const error = 'Gradient rotation must be a finite number from 0 through 359.'
+      const shapeError = strictImportShape(
+        context,
+        typeof input === 'number' && Number.isFinite(input),
+        error,
+      )
+      if (shapeError) return shapeError
+      return canonicalTweakerValue(input, normalizeGradientRotation(Number(input)), error)
+    },
+    [],
+  )
 
   return (
-    <TweakerItem<TweakerGradientValue>
-      {...controlProps}
-      contentLayout={contentLayout}
-      defaultValue={normalizedDefault}
-      parse={parse}
-    >
-      {(control) => (
-        <GradientEditor
-          className={gradientClassName}
-          control={control}
-          fallbackValue={normalizedDefault}
+    <>
+      {rotationField ? (
+        <TweakerItem<number>
+          id={`${rotationField}-registration`}
+          field={rotationField}
+          defaultValue={normalizedDefaultRotation}
+          parse={rotationParse}
+          reorderable={false}
+          visible={false}
         />
-      )}
-    </TweakerItem>
+      ) : null}
+      <TweakerItem<TweakerGradientValue>
+        {...controlProps}
+        contentLayout={contentLayout}
+        defaultValue={normalizedDefault}
+        parse={parse}
+      >
+        {(control) => (
+          <GradientEditor
+            className={gradientClassName}
+            control={control}
+            fallbackValue={normalizedDefault}
+            rotation={rotationField ? rotation : undefined}
+            onRotationChange={
+              rotationField
+                ? (value) => store.getState().setFieldInput(rotationField, value)
+                : undefined
+            }
+          />
+        )}
+      </TweakerItem>
+    </>
   )
 }
 
@@ -72,10 +118,14 @@ function GradientEditor({
   className,
   control,
   fallbackValue,
+  onRotationChange,
+  rotation,
 }: {
   className?: string
   control: TweakerItemContextValue<TweakerGradientValue>
   fallbackValue: TweakerGradientValue
+  onRotationChange?: (rotation: number) => void
+  rotation?: number
 }) {
   const reactId = useId().replaceAll(':', '')
   const idCounterRef = useRef(0)
@@ -124,64 +174,66 @@ function GradientEditor({
     setStops(nextStops)
   }
 
-  return (
-    <div className={cn('col-span-full grid gap-(--tweaker-space-2)', className)}>
-      <div
-        ref={trackRef}
-        className="border-tweaker-control rounded-tweaker-control relative mt-(--tweaker-space-2) h-(--tweaker-control-height-lg) border shadow-(--tweaker-shadow-inner)"
-        id={control.inputId}
-        style={{ backgroundImage: gradientCssValue(stops) }}
-        onDoubleClick={(event) => {
-          if (unavailable) return
-          const rect = event.currentTarget.getBoundingClientRect()
-          addStop(projectTweakerGradientPosition(event.clientX, rect))
-        }}
-      >
-        {stops.map((stop) => (
-          <button
-            key={stop.id}
-            aria-label={`Gradient stop at ${Math.round(stop.position * 100)} percent`}
-            aria-valuemax={100}
-            aria-valuemin={0}
-            aria-valuenow={Math.round(stop.position * 100)}
-            className={cn(
-              'absolute top-full z-(--tweaker-layer-raised) mt-(--tweaker-space-1) size-(--tweaker-icon-md) -translate-x-1/2 touch-none rounded-full border-2 border-tweaker-canvas shadow-tweaker-sm ring-1 ring-tweaker-border outline-none focus-visible:ring-2 focus-visible:ring-tweaker-focus',
-              selectedStop?.id === stop.id && 'ring-2 ring-tweaker-accent',
-              unavailable
-                ? 'cursor-not-allowed opacity-(--tweaker-opacity-muted)'
-                : 'cursor-ew-resize',
-            )}
-            disabled={control.disabled}
-            role="slider"
-            style={{ backgroundColor: stop.color, left: `${stop.position * 100}%` }}
-            type="button"
-            onClick={() => setSelectedId(stop.id)}
-            onKeyDown={(event) => {
-              handleStopKeyDown(event, stop, stops, unavailable, setStops, removeStop)
-            }}
-            onPointerCancel={(event) => {
-              if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null
-            }}
-            onPointerDown={(event) => {
-              if (unavailable || event.button !== 0) return
-              setSelectedId(stop.id)
-              dragRef.current = { pointerId: event.pointerId, stopId: stop.id }
-              event.currentTarget.setPointerCapture(event.pointerId)
-            }}
-            onPointerMove={(event) => moveStopFromPointer(event, stop.id)}
-            onPointerUp={(event) => {
-              if (dragRef.current?.pointerId !== event.pointerId) return
-              moveStopFromPointer(event, stop.id)
-              dragRef.current = null
-              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                event.currentTarget.releasePointerCapture(event.pointerId)
-              }
-            }}
-          />
-        ))}
-      </div>
+  const gradientPreview = (
+    <div
+      ref={trackRef}
+      className="border-tweaker-control rounded-tweaker-control relative h-(--tweaker-control-height-lg) border shadow-(--tweaker-shadow-inner)"
+      id={control.inputId}
+      style={{ backgroundImage: gradientCssValue(stops) }}
+      onDoubleClick={(event) => {
+        if (unavailable) return
+        const rect = event.currentTarget.getBoundingClientRect()
+        addStop(projectTweakerGradientPosition(event.clientX, rect))
+      }}
+    >
+      {stops.map((stop) => (
+        <button
+          key={stop.id}
+          aria-label={`Gradient stop at ${Math.round(stop.position * 100)} percent`}
+          aria-valuemax={100}
+          aria-valuemin={0}
+          aria-valuenow={Math.round(stop.position * 100)}
+          className={cn(
+            'absolute top-full z-(--tweaker-layer-raised) size-(--tweaker-icon-md) -translate-x-1/2 -translate-y-1/2 touch-none rounded-full border-2 border-tweaker-canvas shadow-tweaker-sm ring-1 ring-tweaker-border outline-none focus-visible:ring-2 focus-visible:ring-tweaker-focus',
+            selectedStop?.id === stop.id && 'ring-2 ring-tweaker-accent',
+            unavailable
+              ? 'cursor-not-allowed opacity-(--tweaker-opacity-muted)'
+              : 'cursor-ew-resize',
+          )}
+          disabled={control.disabled}
+          role="slider"
+          style={{ backgroundColor: stop.color, left: `${stop.position * 100}%` }}
+          type="button"
+          onClick={() => setSelectedId(stop.id)}
+          onKeyDown={(event) => {
+            handleStopKeyDown(event, stop, stops, unavailable, setStops, removeStop)
+          }}
+          onPointerCancel={(event) => {
+            if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null
+          }}
+          onPointerDown={(event) => {
+            if (unavailable || event.button !== 0) return
+            setSelectedId(stop.id)
+            dragRef.current = { pointerId: event.pointerId, stopId: stop.id }
+            event.currentTarget.setPointerCapture(event.pointerId)
+          }}
+          onPointerMove={(event) => moveStopFromPointer(event, stop.id)}
+          onPointerUp={(event) => {
+            if (dragRef.current?.pointerId !== event.pointerId) return
+            moveStopFromPointer(event, stop.id)
+            dragRef.current = null
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.releasePointerCapture(event.pointerId)
+            }
+          }}
+        />
+      ))}
+    </div>
+  )
 
-      <div className="mt-(--tweaker-space-4) grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-(--tweaker-space-1-5)">
+  const stopEditor = (
+    <div className="grid min-w-0 content-start gap-(--tweaker-space-2)">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-(--tweaker-space-1-5)">
         <input
           aria-label="Selected stop color"
           className="border-tweaker-control rounded-tweaker-control size-(--tweaker-control-height-sm) cursor-pointer border bg-transparent p-(--tweaker-space-0-5) disabled:cursor-not-allowed disabled:opacity-(--tweaker-opacity-disabled)"
@@ -235,9 +287,79 @@ function GradientEditor({
           <Trash2 className="size-(--tweaker-icon-sm)" aria-hidden="true" />
         </Button>
       </div>
-      <p className="text-tweaker-muted text-(length:--tweaker-font-size-sm) leading-(--tweaker-line-tight)">
-        Drag stops or use arrow keys. Double-click the gradient to add a stop.
-      </p>
+    </div>
+  )
+
+  return (
+    <div className={cn('col-span-full grid gap-(--tweaker-space-5)', className)}>
+      {gradientPreview}
+      <div
+        className={cn(
+          'grid gap-(--tweaker-space-3)',
+          rotation === undefined ? 'grid-cols-1' : 'grid-cols-2',
+        )}
+      >
+        {stopEditor}
+        {rotation === undefined || !onRotationChange ? null : (
+          <GradientRotationEditor
+            control={control}
+            rotation={rotation}
+            onChange={onRotationChange}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function GradientRotationEditor({
+  control,
+  onChange,
+  rotation,
+}: {
+  control: TweakerItemContextValue<TweakerGradientValue>
+  onChange: (rotation: number) => void
+  rotation: number
+}) {
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onChange(normalizeGradientRotation(event.currentTarget.valueAsNumber))
+  }
+
+  return (
+    <div className="grid min-w-0 content-start">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start">
+        <div className="relative h-(--tweaker-icon-md) min-w-0">
+          <div
+            aria-hidden="true"
+            className="bg-tweaker-control absolute inset-x-0 top-1/2 h-(--_tweaker-slider-track-height) -translate-y-1/2 overflow-hidden rounded-full"
+          >
+            <span className="bg-tweaker-text absolute inset-y-0 left-0 w-(--tweaker-border-thin)" />
+            <span className="bg-tweaker-text absolute inset-y-0 right-0 w-(--tweaker-border-thin)" />
+          </div>
+          <input
+            aria-label="Gradient rotation"
+            className="absolute top-1/2 left-(--_tweaker-slider-hit-offset) z-(--tweaker-layer-raised) h-(--tweaker-icon-md) w-(--_tweaker-slider-hit-width) min-w-0 -translate-y-1/2 cursor-pointer appearance-none bg-transparent accent-(--tweaker-color-accent) outline-none disabled:cursor-not-allowed disabled:opacity-(--tweaker-opacity-disabled) [&::-moz-range-thumb]:size-(--_tweaker-slider-thumb-size) [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-(--tweaker-color-accent) [&::-moz-range-thumb]:bg-(--_tweaker-slider-thumb) [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-(--tweaker-duration-fast) hover:[&::-moz-range-thumb]:scale-110 [&::-moz-range-track]:h-(--_tweaker-slider-track-height) [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:h-(--_tweaker-slider-track-height) [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:mt-(--_tweaker-slider-webkit-thumb-offset) [&::-webkit-slider-thumb]:size-(--_tweaker-slider-thumb-size) [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-(--tweaker-color-accent) [&::-webkit-slider-thumb]:bg-(--_tweaker-slider-thumb) [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-(--tweaker-duration-fast) hover:[&::-webkit-slider-thumb]:scale-110"
+            disabled={control.disabled || control.readOnly}
+            id={`${control.inputId}:rotation`}
+            max={359}
+            min={0}
+            step={1}
+            type="range"
+            value={rotation}
+            onChange={handleChange}
+          />
+          <div className="text-tweaker-muted pointer-events-none absolute inset-x-0 top-4.5 h-(--tweaker-space-3) text-(length:--tweaker-font-size-sm) leading-none">
+            <span className="absolute left-0">0</span>
+            <span className="absolute right-0">359</span>
+          </div>
+        </div>
+        <output
+          className="text-tweaker-text ml-(--tweaker-space-2) min-w-[5ch] self-center text-right text-(length:--tweaker-font-size-lg) leading-none font-(--tweaker-font-normal) tabular-nums"
+          htmlFor={`${control.inputId}:rotation`}
+        >
+          {rotation}°
+        </output>
+      </div>
     </div>
   )
 }
@@ -326,11 +448,18 @@ export function projectTweakerGradientPosition(
   return clamp((clientX - rect.left) / rect.width, 0, 1)
 }
 
-export function gradientCssValue(stops: TweakerGradientValue) {
+export function gradientCssValue(stops: TweakerGradientValue, rotation?: number) {
   const normalized = normalizeTweakerGradient(stops)
-  return `linear-gradient(to right, ${normalized
+  const direction =
+    rotation === undefined ? 'to right' : `${normalizeGradientRotation(rotation)}deg`
+  return `linear-gradient(${direction}, ${normalized
     .map((stop) => `${stop.color} ${stop.position * 100}%`)
     .join(', ')})`
+}
+
+function normalizeGradientRotation(value: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(359, Math.max(0, Math.round(value)))
 }
 
 function colorAtGradientPosition(stops: TweakerGradientValue, position: number) {

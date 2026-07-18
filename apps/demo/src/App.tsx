@@ -14,10 +14,12 @@ import {
   TweakerSwitch,
   useTweakerPanelStoreSelector,
   useTweakerTheme,
+  type TweakerGradientValue,
   type TweakerSliderMark,
   type TweakerValue,
 } from 'panel'
 import {
+  gradientCssValue,
   useTweakerSelector,
   type TweakerPanelRegistration,
   type TweakerPanelState,
@@ -118,7 +120,7 @@ export function App() {
   }, [])
 
   return (
-    <main className="dark bg-background text-foreground min-h-svh overflow-hidden">
+    <main className="dark bg-background text-foreground relative min-h-svh overflow-hidden">
       <TweakerProvider
         persistLayout
         storageKey="tweaker-demo:panel-layout:v1"
@@ -150,6 +152,7 @@ function readDemoThemes(): DemoThemes {
 }
 
 function DemoExperience({ themes }: { themes: DemoThemes }) {
+  const showStateLab = window.location.pathname.replace(/\/+$/, '') === '/state-lab'
   const resolvedProviderTheme = useTweakerTheme()
   const panelOrder = useTweakerSelector((state) => state.panelOrder)
   const providerPanels = useTweakerSelector((state) => state.panels)
@@ -163,6 +166,8 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
     builtInItemsPanelStore,
     (state) => state,
   )
+  const backgroundGradient = builtInItemsPanelState.values.gradient
+  const backgroundRotation = builtInItemsPanelState.values.gradientRotation
   const panelSnapshots = useMemo<PanelSnapshots>(
     () => ({
       [builtInItemsPanelId]: panelSnapshotFromState(builtInItemsPanelState),
@@ -180,111 +185,124 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
 
   return (
     <>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        data-demo-background
+        style={{
+          backgroundImage: gradientCssValue(
+            backgroundGradient as TweakerGradientValue,
+            typeof backgroundRotation === 'number' ? backgroundRotation : 135,
+          ),
+        }}
+      />
       <span data-demo-provider-theme={resolvedProviderTheme} hidden />
-      <div className="min-h-svh px-4 py-5 sm:px-6 lg:pr-208">
-        <div className="mx-auto grid max-w-7xl gap-5">
-          <header className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="grid gap-2">
-              <Badge variant="outline" className="w-fit gap-1.5">
-                <Activity className="size-3" />
-                Live store inspector
-              </Badge>
-              <div>
-                <h1 className="font-heading text-foreground text-3xl font-medium tracking-normal">
-                  Tweaker State Lab
-                </h1>
-                <div className="prose prose-invert prose-p:my-0 prose-code:bg-muted prose-code:text-foreground text-muted-foreground prose-code:rounded-md prose-code:px-1.5 prose-code:py-0.5 mt-2 max-w-2xl">
-                  <p>
-                    Inspect the panel store while trying common, spatial, media, and live-data{' '}
-                    <code>TweakerItem</code> compositions.
-                  </p>
+      {showStateLab ? (
+        <div className="min-h-svh px-4 py-5 sm:px-6 lg:pr-208">
+          <div className="mx-auto grid max-w-7xl gap-5">
+            <header className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
+              <div className="grid gap-2">
+                <Badge variant="outline" className="w-fit gap-1.5">
+                  <Activity className="size-3" />
+                  Live store inspector
+                </Badge>
+                <div>
+                  <h1 className="font-heading text-foreground text-3xl font-medium tracking-normal">
+                    Tweaker State Lab
+                  </h1>
+                  <div className="prose prose-invert prose-p:my-0 prose-code:bg-muted prose-code:text-foreground text-muted-foreground prose-code:rounded-md prose-code:px-1.5 prose-code:py-0.5 mt-2 max-w-2xl">
+                    <p>
+                      Inspect the panel store while trying common, spatial, media, and live-data{' '}
+                      <code>TweakerItem</code> compositions.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {providerState.panelOrder.map((panelId, index) => (
-                <Badge key={panelId} variant="secondary" className="gap-1.5">
-                  <Layers3 className="size-3" />
-                  {panelId} - z{index + 1}
-                </Badge>
-              ))}
-            </div>
-          </header>
+              <div className="flex flex-wrap gap-2">
+                {providerState.panelOrder.map((panelId, index) => (
+                  <Badge key={panelId} variant="secondary" className="gap-1.5">
+                    <Layers3 className="size-3" />
+                    {panelId} - z{index + 1}
+                  </Badge>
+                ))}
+              </div>
+            </header>
 
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <SummaryCard
-              icon={Layers3}
-              label="Registered panels"
-              value={String(Object.keys(providerState.panels).length)}
-              detail={providerState.panelOrder.join(' / ') || 'waiting for portal mount'}
-            />
-            <SummaryCard
-              icon={ListTree}
-              label="Registered items"
-              value={String(totals.items)}
-              detail={`${totals.groups} groups, ${totals.controls} controls`}
-            />
-            <SummaryCard
-              icon={Braces}
-              label="Tracked fields"
-              value={String(totals.fields)}
-              detail={`${totals.dirtyFields} dirty, ${totals.touchedFields} touched`}
-            />
-            <SummaryCard
-              icon={MousePointer2}
-              label="Interactions"
-              value={String(totals.activeInteractions)}
-              detail={totals.draggingPanel ? `dragging ${totals.draggingPanel}` : 'idle'}
-            />
-          </section>
-
-          <Tabs defaultValue="provider" className="grid gap-4">
-            <TabsList className="grid w-full grid-cols-4 lg:w-fit">
-              <TabsTrigger value="provider">TweakerState</TabsTrigger>
-              <TabsTrigger value={scenePanelId}>Scene</TabsTrigger>
-              <TabsTrigger value={builtInItemsPanelId}>Built-in Items</TabsTrigger>
-              <TabsTrigger value={outputPanelId}>Custom Items</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="provider">
-              <StatePanel
-                title="Provider state"
-                description="The shared provider store tracks registered panels and panel stacking order."
-                sections={[
-                  { label: 'panelOrder', value: providerState.panelOrder },
-                  { label: 'panels', value: providerState.panels },
-                ]}
-              >
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <KeyValue
-                    label="Top panel"
-                    value={lastValue(providerState.panelOrder) ?? 'none'}
-                  />
-                  <KeyValue
-                    label="Known panels"
-                    value={String(Object.keys(providerState.panels).length)}
-                  />
-                </div>
-              </StatePanel>
-            </TabsContent>
-
-            <TabsContent value={scenePanelId}>
-              <PanelStatePanel snapshot={panelSnapshots[scenePanelId]} title="Scene Controls" />
-            </TabsContent>
-
-            <TabsContent value={builtInItemsPanelId}>
-              <PanelStatePanel
-                snapshot={panelSnapshots[builtInItemsPanelId]}
-                title="Built-in Items"
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <SummaryCard
+                icon={Layers3}
+                label="Registered panels"
+                value={String(Object.keys(providerState.panels).length)}
+                detail={providerState.panelOrder.join(' / ') || 'waiting for portal mount'}
               />
-            </TabsContent>
+              <SummaryCard
+                icon={ListTree}
+                label="Registered items"
+                value={String(totals.items)}
+                detail={`${totals.groups} groups, ${totals.controls} controls`}
+              />
+              <SummaryCard
+                icon={Braces}
+                label="Tracked fields"
+                value={String(totals.fields)}
+                detail={`${totals.dirtyFields} dirty, ${totals.touchedFields} touched`}
+              />
+              <SummaryCard
+                icon={MousePointer2}
+                label="Interactions"
+                value={String(totals.activeInteractions)}
+                detail={totals.draggingPanel ? `dragging ${totals.draggingPanel}` : 'idle'}
+              />
+            </section>
 
-            <TabsContent value={outputPanelId}>
-              <PanelStatePanel snapshot={panelSnapshots[outputPanelId]} title="Custom Items" />
-            </TabsContent>
-          </Tabs>
+            <Tabs defaultValue="provider" className="grid gap-4">
+              <TabsList className="grid w-full grid-cols-4 lg:w-fit">
+                <TabsTrigger value="provider">TweakerState</TabsTrigger>
+                <TabsTrigger value={scenePanelId}>Scene</TabsTrigger>
+                <TabsTrigger value={builtInItemsPanelId}>Built-in Items</TabsTrigger>
+                <TabsTrigger value={outputPanelId}>Custom Items</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="provider">
+                <StatePanel
+                  title="Provider state"
+                  description="The shared provider store tracks registered panels and panel stacking order."
+                  sections={[
+                    { label: 'panelOrder', value: providerState.panelOrder },
+                    { label: 'panels', value: providerState.panels },
+                  ]}
+                >
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <KeyValue
+                      label="Top panel"
+                      value={lastValue(providerState.panelOrder) ?? 'none'}
+                    />
+                    <KeyValue
+                      label="Known panels"
+                      value={String(Object.keys(providerState.panels).length)}
+                    />
+                  </div>
+                </StatePanel>
+              </TabsContent>
+
+              <TabsContent value={scenePanelId}>
+                <PanelStatePanel snapshot={panelSnapshots[scenePanelId]} title="Scene Controls" />
+              </TabsContent>
+
+              <TabsContent value={builtInItemsPanelId}>
+                <PanelStatePanel
+                  snapshot={panelSnapshots[builtInItemsPanelId]}
+                  title="Built-in Items"
+                />
+              </TabsContent>
+
+              <TabsContent value={outputPanelId}>
+                <PanelStatePanel snapshot={panelSnapshots[outputPanelId]} title="Custom Items" />
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <TweakerPanel
         store={scenePanelStore}
