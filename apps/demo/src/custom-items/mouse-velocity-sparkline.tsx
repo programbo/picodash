@@ -112,11 +112,13 @@ export function MouseVelocitySparklineItem({
       if (!('relatedTarget' in event) || event.relatedTarget === null) resetPointer()
     }
 
-    const resetWhenHidden = () => {
+    const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') {
         previousPointerRef.current = null
         setVelocity(0, 0)
         cancelSampling()
+      } else if (hasUnsettledSignal()) {
+        scheduleSample()
       }
     }
 
@@ -178,7 +180,7 @@ export function MouseVelocitySparklineItem({
     eventTarget.addEventListener('pointerleave', resetPointer)
     eventTarget.addEventListener('pointerout', resetWhenLeavingViewport)
     window.addEventListener('blur', resetPointer)
-    document.addEventListener('visibilitychange', resetWhenHidden)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     const intersectionObserver =
       typeof IntersectionObserver === 'undefined'
@@ -201,7 +203,7 @@ export function MouseVelocitySparklineItem({
       eventTarget.removeEventListener('pointerleave', resetPointer)
       eventTarget.removeEventListener('pointerout', resetWhenLeavingViewport)
       window.removeEventListener('blur', resetPointer)
-      document.removeEventListener('visibilitychange', resetWhenHidden)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       intersectionObserver?.disconnect()
       previousPointerRef.current = null
       setVelocity(0, 0)
