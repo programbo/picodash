@@ -42,6 +42,102 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toBeVisible()
 })
 
+test('retains invalid custom-item drafts and validates through a Zod Standard Schema', async ({
+  page,
+}) => {
+  const input = page.locator('[data-validated-preset-name]')
+
+  await expect(input).toHaveValue('Studio')
+  await input.fill('x')
+  await expect(input).toHaveValue('x')
+  await expect(input).toHaveAttribute('aria-invalid', 'true')
+  await expect(page.getByText('Preset name must contain at least 3 characters.')).toBeVisible()
+
+  await input.fill('Gallery')
+  await expect(input).toHaveValue('Gallery')
+  await expect(input).toHaveAttribute('aria-invalid', 'false')
+  await expect(page.getByText('Preset name must contain at least 3 characters.')).toHaveCount(0)
+})
+
+test('reviews repairable custom-item imports before committing them atomically', async ({
+  page,
+}) => {
+  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const input = panel.locator('[data-validated-preset-name]')
+  const importInput = panel.locator('input[data-tweaker-panel-import]')
+  const trigger = panel.getByRole('button', { name: 'Open actions for Custom Items' })
+  const repairFile = {
+    buffer: Buffer.from('{"presetName":"x"}'),
+    mimeType: 'application/json',
+    name: 'repair.json',
+  }
+
+  await input.fill('Gallery')
+  await importInput.setInputFiles(repairFile)
+
+  const dialog = page.getByRole('alertdialog', { name: 'Review import for Custom Items' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('heading', { name: 'presetName' })).toBeVisible()
+  await expect(dialog).toContainText('Studio')
+  await dialog.getByRole('button', { name: 'Abort' }).click()
+  await expect(input).toHaveValue('Gallery')
+  await expect(trigger).toBeFocused()
+
+  await importInput.setInputFiles(repairFile)
+  await expect(dialog).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await expect(input).toHaveValue('Gallery')
+  await expect(trigger).toBeFocused()
+
+  await importInput.setInputFiles(repairFile)
+  await dialog.getByRole('button', { name: 'Accept changes' }).click()
+  await expect(input).toHaveValue('Studio')
+  await expect(trigger).toBeFocused()
+  await expect(panel.locator('span[role="status"]')).toHaveText(
+    'Imported repaired panel values from repair.json.',
+  )
+})
+
+test('keeps a repair review open when import constraints change before acceptance', async ({
+  page,
+}) => {
+  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const input = panel.locator('[data-validated-preset-name]')
+  const importInput = panel.locator('input[data-tweaker-panel-import]')
+  const repairFile = {
+    buffer: Buffer.from('{"presetName":"x"}'),
+    mimeType: 'application/json',
+    name: 'stale-repair.json',
+  }
+
+  await input.fill('Gallery')
+  await importInput.setInputFiles(repairFile)
+
+  const dialog = page.getByRole('alertdialog', { name: 'Review import for Custom Items' })
+  await expect(dialog).toBeVisible()
+
+  await page.evaluate(async () => {
+    const appModulePath = ['/src', 'App.tsx'].join('/')
+    const { customItemPanelStore } = await import(appModulePath)
+    customItemPanelStore.getState().setFieldDefault('presetName', 'Archive')
+  })
+
+  await dialog.getByRole('button', { name: 'Accept changes' }).click()
+
+  const acceptanceError = dialog.getByRole('alert')
+  await expect(dialog).toBeVisible()
+  await expect(acceptanceError).toBeVisible()
+  await expect(acceptanceError).toHaveText(
+    'Panel constraints changed while the import was awaiting review.',
+  )
+  await expect(input).toHaveValue('Gallery')
+
+  await dialog.getByRole('button', { name: 'Abort' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(input).toHaveValue('Gallery')
+})
+
 test('drops delayed pointer velocity intervals instead of backfilling history', () => {
   const sampleInterval = 1000 / 60
   const clock = advanceSparklineSamplingClock(4, 4, 100, sampleInterval)
@@ -385,8 +481,8 @@ test('avoids Camera height before Quality covers it and retains avoidance on a 1
 }) => {
   const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
   const list = panel.locator('[data-tweaker-reorder-list="scene-rendering"]')
-  const quality = panel.locator('[data-control-id="quality"]')
-  const cameraHeight = panel.locator('[data-control-id="cameraHeight"]')
+  const quality = panel.locator('[data-item-id="quality"]')
+  const cameraHeight = panel.locator('[data-item-id="cameraHeight"]')
   const grip = quality.getByRole('button', { name: 'Reorder Quality', exact: true })
 
   await grip.scrollIntoViewIfNeeded()
@@ -473,7 +569,7 @@ for (const collapsed of [false, true]) {
     const list = panel.locator('[data-tweaker-reorder-list="root"]')
     const essentials = panel.locator('[data-group-id="scene-essentials"]')
     const rendering = panel.locator('[data-group-id="scene-rendering"]')
-    const summary = panel.locator('[data-control-id="scene-summary"]')
+    const summary = panel.locator('[data-item-id="scene-summary"]')
 
     if (collapsed) {
       await essentials.getByRole('button', { name: 'Essentials', exact: true }).click()
@@ -513,7 +609,7 @@ for (const collapsed of [false, true]) {
 
 test('transfers hover ownership between a group header and its child', async ({ page }) => {
   const group = page.locator('[data-group-id="scene-rendering"]')
-  const child = page.locator('[data-control-id="quality"]')
+  const child = page.locator('[data-item-id="quality"]')
   const groupHeader = group.getByRole('button', { name: 'Rendering', exact: true })
   const childGrip = child.getByRole('button', { name: 'Reorder Quality', exact: true })
 
@@ -534,8 +630,8 @@ test('pins the group hover band to the left and bottom edges while preserving it
   page,
 }) => {
   const group = page.locator('[data-group-id="scene-essentials"]')
-  const firstRow = group.locator('[data-control-id="opacity"]')
-  const lastRow = group.locator('[data-control-id="bloom"]')
+  const firstRow = group.locator('[data-item-id="opacity"]')
+  const lastRow = group.locator('[data-item-id="bloom"]')
   const firstRail = firstRow.locator(':scope > span').first()
   const lastRail = lastRow.locator(':scope > span').first()
   const label = firstRow.locator('label').first()
@@ -574,8 +670,8 @@ test('pins the group hover band to the left and bottom edges while preserving it
 
 test('contains grip layers within their reorder items', async ({ page }) => {
   const group = page.locator('[data-group-id="scene-rendering"]')
-  const draggedControl = page.locator('[data-control-id="quality"]')
-  const idleControl = page.locator('[data-control-id="cameraHeight"]')
+  const draggedControl = page.locator('[data-item-id="quality"]')
+  const idleControl = page.locator('[data-item-id="cameraHeight"]')
   const draggedGrip = draggedControl.getByRole('button', {
     name: 'Reorder Quality',
     exact: true,
@@ -612,12 +708,12 @@ test('contains grip layers within their reorder items', async ({ page }) => {
 })
 
 test('renders static square slots for non-reorderable items', async ({ page }) => {
-  const fixedControl = page.locator('[data-control-id="shadcn-frame-chart"]')
+  const fixedControl = page.locator('[data-item-id="shadcn-frame-chart"]')
   const fixedSlot = fixedControl.getByRole('button', {
     name: 'Reorder Frame time',
     exact: true,
   })
-  const reorderableControl = page.locator('[data-control-id="quality"]')
+  const reorderableControl = page.locator('[data-item-id="quality"]')
   const reorderableSlot = reorderableControl.getByRole('button', {
     name: 'Reorder Quality',
     exact: true,
@@ -635,11 +731,11 @@ test('renders static square slots for non-reorderable items', async ({ page }) =
   await expect(reorderableSlot.locator('svg')).toHaveCount(1)
 })
 
-test('keeps the portaled Select in the viewport and updates it from the keyboard', async ({
+test('keeps the portaled Select interactive without blocking the surrounding page', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 640, height: 480 })
-  const quality = page.locator('[data-control-id="quality"]')
+  const quality = page.locator('[data-item-id="quality"]')
   const trigger = quality.getByRole('combobox', { name: 'Quality' })
 
   await trigger.scrollIntoViewIfNeeded()
@@ -649,6 +745,8 @@ test('keeps the portaled Select in the viewport and updates it from the keyboard
   const content = page.locator('[data-tweaker-theme="dark"][data-side]')
   await expect(content).toBeVisible()
   await expect(content).toHaveAttribute('data-tweaker-theme', 'dark')
+  await expect(content).toHaveCSS('pointer-events', 'auto')
+  await expect(page.locator('[data-tweaker-container]')).toHaveCSS('pointer-events', 'none')
   const finalOption = page.getByRole('option', { name: 'Final' })
   await expect(finalOption).toBeVisible()
 
@@ -661,21 +759,27 @@ test('keeps the portaled Select in the viewport and updates it from the keyboard
     expect(contentBox.y + contentBox.height).toBeLessThanOrEqual(480)
   }
 
-  await page.keyboard.press('ArrowDown')
-  await expect(finalOption).toHaveAttribute('data-highlighted', '')
-  await finalOption.press('Enter')
+  await finalOption.click()
   await expect(trigger).toHaveText('Final')
   await expect(page.getByText(/72% opacity \/ final/i)).toBeVisible()
   await expect(trigger).toBeFocused()
+
+  await trigger.press('Enter')
+  await page.keyboard.press('ArrowUp')
+  const balancedOption = page.getByRole('option', { name: 'Balanced' })
+  await expect(balancedOption).toHaveAttribute('data-highlighted', '')
+  await balancedOption.press('Enter')
+  await expect(trigger).toHaveText('Balanced')
+  await expect(page.getByText(/72% opacity \/ balanced/i)).toBeVisible()
 })
 
 test('keeps panel typography and dropzone geometry at the baseline', async ({ page }) => {
-  const alignment = page.locator('[data-control-id="alignment"]')
+  const alignment = page.locator('[data-item-id="alignment"]')
   const alignmentLabel = alignment.locator('label')
-  const qualityTrigger = page.locator('[data-control-id="quality"]').getByRole('combobox')
+  const qualityTrigger = page.locator('[data-item-id="quality"]').getByRole('combobox')
   const helpButton = alignment.getByRole('button', { name: 'Help for Alignment' })
   const dropSurface = page
-    .locator('[data-control-id="droppedFiles"]')
+    .locator('[data-item-id="droppedFiles"]')
     .getByRole('button', { name: 'Choose files or drop them here' })
 
   await expect(alignmentLabel).toHaveCSS('font-size', '12px')
@@ -700,29 +804,29 @@ test('fits Scene Controls without a default vertical scrollbar', async ({ page }
 test('updates common, spatial, and gradient values through accessible controls', async ({
   page,
 }) => {
-  const density = page.locator('[data-control-id="density"]')
+  const density = page.locator('[data-item-id="density"]')
   await expect(density.getByRole('radiogroup').locator('svg')).toHaveCount(3)
   await density.getByRole('radio', { name: 'Open' }).click()
   await expect(density.getByRole('radio', { name: 'Open' })).toHaveAttribute('data-state', 'on')
 
-  const alignment = page.locator('[data-control-id="alignment"]')
+  const alignment = page.locator('[data-item-id="alignment"]')
   await alignment.getByRole('radio', { name: 'Bottom right' }).click()
   await expect(alignment.getByRole('radio', { name: 'Bottom right' })).toHaveAttribute(
     'data-state',
     'on',
   )
 
-  const vector = page.locator('[data-control-id="vector"]')
+  const vector = page.locator('[data-item-id="vector"]')
   await vector.getByRole('spinbutton', { name: 'X axis' }).fill('4.5')
   await expect(vector.getByRole('spinbutton', { name: 'X axis' })).toHaveValue('4.5')
 
-  const range = page.locator('[data-control-id="thresholdRange"]')
+  const range = page.locator('[data-item-id="thresholdRange"]')
   const lowerThumb = range.getByRole('slider', { name: 'Lower value' })
   await lowerThumb.focus()
   await lowerThumb.press('ArrowRight')
   await expect(lowerThumb).toHaveAttribute('aria-valuenow', '25')
 
-  const xy = page.locator('[data-control-id="xy"]')
+  const xy = page.locator('[data-item-id="xy"]')
   const xyPad = xy.getByRole('group', { name: 'Two-dimensional value' })
   await xyPad.scrollIntoViewIfNeeded()
   const box = await xyPad.boundingBox()
@@ -743,7 +847,7 @@ test('updates common, spatial, and gradient values through accessible controls',
   await yAxis.press('ArrowUp')
   await expect(xy.locator('output')).toContainText('Y 0.26')
 
-  const gradient = page.locator('[data-control-id="gradient"]')
+  const gradient = page.locator('[data-item-id="gradient"]')
   const gradientTrack = gradient.locator('div[style*="linear-gradient"]')
   await expect(gradient.getByRole('slider')).toHaveCount(3)
   await gradientTrack.dblclick({ position: { x: 120, y: 18 } })
@@ -751,13 +855,13 @@ test('updates common, spatial, and gradient values through accessible controls',
 })
 
 test('renders safe media, serializable drop metadata, and a Recharts SVG', async ({ page }) => {
-  const preview = page.locator('[data-control-id="previewAsset"]')
+  const preview = page.locator('[data-item-id="previewAsset"]')
   await expect(preview.getByRole('img', { name: 'Tweaker mark' })).toHaveAttribute(
     'src',
     /favicon\.svg$/,
   )
 
-  const dropzone = page.locator('[data-control-id="droppedFiles"]')
+  const dropzone = page.locator('[data-item-id="droppedFiles"]')
   const fileInput = dropzone.locator('input[type="file"]')
   await fileInput.setInputFiles([
     {
@@ -785,7 +889,7 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
   await page.getByRole('button', { name: 'Close image viewer' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
 
-  const chart = page.locator('[data-control-id="shadcn-frame-chart"]')
+  const chart = page.locator('[data-item-id="shadcn-frame-chart"]')
   await expect(chart.locator('svg.recharts-surface')).toBeVisible()
   await expect(chart.locator('.recharts-line-curve')).toHaveCount(2)
   const yAxisTicks = chart.locator(
@@ -822,14 +926,14 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await expect(scenePanel).toHaveCSS('background-color', 'rgb(7, 38, 52)')
   await expect(customPanel).toHaveCSS('background-color', 'rgb(54, 19, 62)')
 
-  const alignment = customPanel.locator('[data-control-id="alignment"]')
+  const alignment = customPanel.locator('[data-item-id="alignment"]')
   await expect(alignment.getByRole('radio', { name: 'Centre', exact: true })).toHaveCSS(
     'background-color',
     'rgb(241, 159, 248)',
   )
   await expect(alignment.getByRole('radiogroup')).toHaveCSS('border-radius', '9px')
 
-  const qualityTrigger = page.locator('[data-control-id="quality"]').getByRole('combobox')
+  const qualityTrigger = page.locator('[data-item-id="quality"]').getByRole('combobox')
   await expect(qualityTrigger).toHaveCSS('border-bottom-color', 'rgb(91, 158, 171)')
   await qualityTrigger.click()
   const selectContent = page.locator('[data-tweaker-theme="ocean"][data-side]')
@@ -846,7 +950,7 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await expect(tooltip).toHaveCSS('background-color', 'rgb(75, 27, 85)')
   await expect(tooltip).toHaveCSS('border-radius', '12px')
 
-  const dropzone = customPanel.locator('[data-control-id="droppedFiles"]')
+  const dropzone = customPanel.locator('[data-item-id="droppedFiles"]')
   await dropzone.locator('input[type="file"]').setInputFiles({
     name: 'themed.png',
     mimeType: 'image/png',
@@ -864,7 +968,9 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   const menu = page.getByRole('menu', { name: 'Actions for Custom Items' })
   await expect(menu).toHaveAttribute('data-tweaker-theme', 'plum')
   await menu.getByRole('menuitem', { name: 'Copy' }).hover()
-  await expect(page.locator('[data-tweaker-theme="plum"][role="menu"]')).toHaveCount(2)
+  const themedMenus = page.locator('[data-tweaker-theme="plum"][role="menu"]')
+  await expect(themedMenus).toHaveCount(2)
+  await expect(themedMenus.nth(1)).toHaveCSS('pointer-events', 'auto')
   await page.keyboard.press('Escape')
   await page.keyboard.press('Escape')
   await customActions.click()
@@ -901,7 +1007,7 @@ test('updates inherited panel themes at runtime while preserving explicit overri
 })
 
 test('animates transient visual paths and switches deterministic signal mode', async ({ page }) => {
-  const velocity = page.locator('[data-control-id="mouse-velocity"]')
+  const velocity = page.locator('[data-item-id="mouse-velocity"]')
   const display = velocity.locator('[data-pointer-velocity-display]')
   const description = velocity.getByText('Move anywhere in the full viewport.', { exact: false })
   const velocityXPath = velocity.locator('path.stroke-chart-1')
@@ -966,7 +1072,7 @@ test('animates transient visual paths and switches deterministic signal mode', a
     .toBeGreaterThan(0)
   await expect(fps).toHaveText('0 FPS')
 
-  const signal = page.locator('[data-control-id="signal-visualizer"]')
+  const signal = page.locator('[data-item-id="signal-visualizer"]')
   const signalPath = signal.locator('path.stroke-chart-2')
   const initialSignalPath = await signalPath.getAttribute('d')
   await signal.getByRole('radio', { name: 'Show spectrum' }).click()
@@ -980,7 +1086,7 @@ test('animates transient visual paths and switches deterministic signal mode', a
 })
 
 test('resumes pointer velocity decay when document visibility returns', async ({ page }) => {
-  const velocity = page.locator('[data-control-id="mouse-velocity"]')
+  const velocity = page.locator('[data-item-id="mouse-velocity"]')
   const display = velocity.locator('[data-pointer-velocity-display]')
   const velocityXPath = velocity.locator('path.stroke-chart-1')
   const fps = velocity.locator('[data-pointer-velocity-fps]')
@@ -1045,6 +1151,8 @@ test('keeps the panel action menu contained and manages collapsible groups', asy
   const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
   await expect(menu).toBeVisible()
   await expect(menu).toHaveAttribute('data-tweaker-theme', 'dark')
+  await expect(menu).toHaveCSS('pointer-events', 'auto')
+  await expect(page.locator('[data-tweaker-container]')).toHaveCSS('pointer-events', 'none')
   const menuBox = await menu.boundingBox()
   expect(menuBox).not.toBeNull()
   if (menuBox) {
@@ -1085,7 +1193,7 @@ test('confirms registered-field resets without changing group disclosure', async
     .evaluate((element: HTMLElement) => (element.style.display = 'none'))
   const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
-  const quality = panel.locator('[data-control-id="quality"]').getByRole('combobox')
+  const quality = panel.locator('[data-item-id="quality"]').getByRole('combobox')
   const rendering = panel.locator('[data-group-id="scene-rendering"]')
 
   await quality.click()
@@ -1171,7 +1279,7 @@ test('imports JSON and YAML atomically and reports invalid files without mutatio
   const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
   const status = panel.locator('span[role="status"]')
-  const summary = page.locator('[data-control-id="scene-summary"]')
+  const summary = page.locator('[data-item-id="scene-summary"]')
 
   await importPanelFile(page, trigger, {
     buffer: Buffer.from('{"opacity":0.4,"quality":"final"}'),
@@ -1190,7 +1298,7 @@ test('imports JSON and YAML atomically and reports invalid files without mutatio
   await expect(status).toHaveText('Imported panel values from scene.yaml.')
   await expect(summary).toContainText('72% opacity / draft')
 
-  await panel.locator('[data-control-id="quality"]').getByRole('combobox').click()
+  await panel.locator('[data-item-id="quality"]').getByRole('combobox').click()
   await page.getByRole('option', { name: 'Final' }).click()
   await expect(summary).toContainText('72% opacity / final')
   await importPanelFile(page, trigger, yamlFile)
@@ -1292,7 +1400,7 @@ async function exerciseLivePreviewDrag({
   verifyCancellation?: boolean
   verifyDirectionChange?: boolean
 }) {
-  const source = panel.locator(`[data-group-id="${sourceId}"], [data-control-id="${sourceId}"]`)
+  const source = panel.locator(`[data-group-id="${sourceId}"], [data-item-id="${sourceId}"]`)
   const grip = source.getByRole('button', {
     name: `Reorder ${sourceLabel}`,
     exact: true,
@@ -1447,7 +1555,7 @@ async function exerciseThresholdItinerary({
     parentId: string
   }
 }) {
-  const source = panel.locator(`[data-group-id="${sourceId}"], [data-control-id="${sourceId}"]`)
+  const source = panel.locator(`[data-group-id="${sourceId}"], [data-item-id="${sourceId}"]`)
   const grip = source.getByRole('button', {
     name: `Reorder ${sourceLabel}`,
     exact: true,
@@ -1637,7 +1745,7 @@ async function startSiblingTransitionSampling(
           ...Array.from(group?.children ?? [])
             .filter((item) => {
               const itemElement = item as HTMLElement
-              const id = itemElement.dataset.groupId ?? itemElement.dataset.controlId
+              const id = itemElement.dataset.groupId ?? itemElement.dataset.itemId
               return itemElement.dataset.parentId === parentId && id !== sourceId
             })
             .map((item) => {
@@ -1670,7 +1778,7 @@ async function expectSiblingVisualsToSettle(
             ...items
               .filter((item) => {
                 const element = item as HTMLElement
-                return (element.dataset.groupId ?? element.dataset.controlId) !== sourceId
+                return (element.dataset.groupId ?? element.dataset.itemId) !== sourceId
               })
               .map((item) => {
                 const element = item as HTMLElement
@@ -1697,7 +1805,7 @@ async function expectContiguousSlots(list: import('@playwright/test').Locator, p
 async function itemOrder(list: import('@playwright/test').Locator, parentId: string) {
   return directItems(list, parentId).evaluateAll((items) =>
     items.map((item) =>
-      item instanceof HTMLElement ? (item.dataset.groupId ?? item.dataset.controlId ?? '') : '',
+      item instanceof HTMLElement ? (item.dataset.groupId ?? item.dataset.itemId ?? '') : '',
     ),
   )
 }
@@ -1711,7 +1819,7 @@ async function itemSlots(list: import('@playwright/test').Locator, parentId: str
         const element = item as HTMLElement
         const visualTop = Number.parseFloat(getComputedStyle(element).top)
         return [
-          element.dataset.groupId ?? element.dataset.controlId ?? '',
+          element.dataset.groupId ?? element.dataset.itemId ?? '',
           {
             height: element.offsetHeight,
             y: element.offsetTop - (Number.isFinite(visualTop) ? visualTop : 0),
@@ -1729,7 +1837,7 @@ async function itemRects(list: import('@playwright/test').Locator, parentId: str
         const element = item as HTMLElement
         const rect = element.getBoundingClientRect()
         return [
-          element.dataset.groupId ?? element.dataset.controlId ?? '',
+          element.dataset.groupId ?? element.dataset.itemId ?? '',
           { height: rect.height, y: rect.y },
         ]
       }),
@@ -1770,7 +1878,7 @@ async function siblingTransformsAreNone(
       items
         .filter((item) => {
           const element = item as HTMLElement
-          return (element.dataset.groupId ?? element.dataset.controlId) !== sourceId
+          return (element.dataset.groupId ?? element.dataset.itemId) !== sourceId
         })
         .every((item) => {
           const style = getComputedStyle(item)

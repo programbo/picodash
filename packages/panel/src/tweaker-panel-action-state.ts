@@ -20,8 +20,8 @@ export function registeredFieldIdsForState(state: Pick<TweakerPanelState, 'items
   return Array.from(
     new Set(
       Object.values(state.items)
-        .map((item) => item.fieldId)
-        .filter((fieldId): fieldId is string => fieldId !== undefined),
+        .map((item) => item.field)
+        .filter((field): field is string => field !== undefined),
     ),
   )
 }
@@ -31,7 +31,7 @@ export function registeredWritableFieldIdsForState(
 ): string[] {
   return registeredFieldIdsForState({
     items: Object.fromEntries(
-      Object.entries(state.items).filter(([, item]) => item.displayOnly !== true),
+      Object.entries(state.items).filter(([, item]) => item.valueMode !== 'display'),
     ),
   })
 }

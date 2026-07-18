@@ -248,6 +248,9 @@ importers:
       '@dnd-kit/react':
         specifier: 'catalog:'
         version: 0.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@standard-schema/spec':
+        specifier: ^1.1.0
+        version: 1.1.0
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1

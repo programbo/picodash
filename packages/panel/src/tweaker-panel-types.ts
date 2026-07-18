@@ -1,6 +1,13 @@
 import type { HTMLMotionProps } from 'motion/react'
 import type { ReactNode, RefObject } from 'react'
 import type { StoreApi } from 'zustand'
+import type {
+  TweakerConstraintRepair,
+  TweakerFieldOutput,
+  TweakerParser,
+  TweakerValidator,
+  TweakerWriteResult,
+} from './tweaker-validation.js'
 
 export type TweakerValue =
   | string
@@ -10,35 +17,35 @@ export type TweakerValue =
   | TweakerValue[]
   | { [key: string]: TweakerValue }
 
-export type TweakerPlacement = 'auto' | 'start' | 'end'
+export type TweakerPin = 'start' | 'end'
 export type TweakerItemKind = 'control' | 'group'
 export type TweakerStatus = 'info' | 'warning' | 'alert' | 'error'
 export type TweakerControlStateValue = boolean | string | number | null | undefined
 export type TweakerControlStates = Record<string, TweakerControlStateValue>
 
-export const tweakerItemImportAllowedStringValues = Symbol('tweakerItemImportAllowedStringValues')
-
 export interface TweakerFieldState {
   defaultValue?: TweakerValue
   dirty: boolean
+  draftValue?: unknown
   errors: string[]
   touched: boolean
 }
 
 export interface TweakerItemRegistration {
-  [tweakerItemImportAllowedStringValues]?: readonly string[]
   collapsible?: boolean
   defaultCollapsed?: boolean
   defaultValue?: TweakerValue
-  displayOnly?: boolean
-  fieldId?: string
+  field?: string
   hidden?: boolean
   id: string
   kind: TweakerItemKind
   label?: string
   parentId: string
-  placement: TweakerPlacement
+  parse?: TweakerParser
+  pin?: TweakerPin
   reorderable: boolean
+  validate?: TweakerValidator
+  valueMode?: 'display' | 'input'
 }
 
 export interface TweakerInteractionState {
@@ -46,6 +53,12 @@ export interface TweakerInteractionState {
   draggingId: string | null
   focusedId: string | null
   hoveredId: string | null
+}
+
+export interface TweakerRepairProposal {
+  changes: readonly TweakerConstraintRepair[]
+  source: 'constraint' | 'default' | 'initial'
+  token: number
 }
 
 export interface TweakerPanelState {
@@ -56,17 +69,26 @@ export interface TweakerPanelState {
   meta: Record<string, TweakerValue>
   order: Record<string, string[]>
   panelId: string
+  repairProposal: TweakerRepairProposal | null
   values: Record<string, TweakerValue>
+  abortRepairProposal: () => void
+  acceptRepairProposal: () => TweakerWriteResult
   registerItem: (item: TweakerItemRegistration) => void
   moveItemToIndex: (itemId: string, index: number) => void
   moveItemRelativeTo: (itemId: string, overId: string, position: 'before' | 'after') => void
   reorderItem: (activeId: string, overId: string) => void
-  resetFieldValue: (fieldId: string) => void
-  resetFields: () => void
-  resetRegisteredFields: () => void
+  resetFieldValue: (fieldId: string) => TweakerWriteResult
+  resetFields: () => TweakerWriteResult
+  resetRegisteredFields: () => TweakerWriteResult
+  applyRegisteredFieldOutputs: (
+    outputs: Record<string, TweakerFieldOutput>,
+    options?: { preserveMeta?: boolean; resetFields?: readonly string[] },
+  ) => void
   replaceRegisteredFieldValues: (values: Record<string, TweakerValue>) => void
   setFieldDefault: (fieldId: string, value: TweakerValue | undefined) => void
-  setFieldValue: (fieldId: string, value: TweakerValue) => void
+  setFieldInput: (fieldId: string, value: unknown) => TweakerWriteResult
+  setFieldValue: (fieldId: string, value: unknown) => TweakerWriteResult
+  setFieldValues: (values: Record<string, unknown>) => TweakerWriteResult
   setFocusedItem: (itemId: string | null) => void
   setGroupCollapsed: (groupId: string, collapsed: boolean) => void
   setAllCollapsibleGroupsCollapsed: (collapsed: boolean) => void
@@ -80,19 +102,34 @@ export interface TweakerPanelState {
 
 export type TweakerPanelStore = StoreApi<TweakerPanelState>
 
-export interface TweakerPanelProps extends Omit<
+export type TweakerPanelDefaultPlacement = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+
+interface TweakerPanelBaseProps extends Omit<
   HTMLMotionProps<'aside'>,
   'children' | 'dragConstraints' | 'id' | 'title'
 > {
   children?: ReactNode
   collapsible?: boolean
   defaultCollapsed?: boolean
-  defaultValues?: Record<string, TweakerValue>
-  id?: string
-  initialMeta?: Record<string, TweakerValue>
+  defaultPlacement?: TweakerPanelDefaultPlacement
   theme?: string
   title?: ReactNode
+  width?: number | string
 }
+
+export type TweakerPanelProps =
+  | (TweakerPanelBaseProps & {
+      id: string
+      initialMeta?: Record<string, TweakerValue>
+      initialValues?: Record<string, TweakerValue>
+      store?: never
+    })
+  | (TweakerPanelBaseProps & {
+      id?: never
+      initialMeta?: never
+      initialValues?: never
+      store: TweakerPanelStore
+    })
 
 export interface TweakerGroupContextValue {
   beginItemReorder: (

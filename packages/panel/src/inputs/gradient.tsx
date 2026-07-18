@@ -9,24 +9,21 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import {
-  TweakerControl,
-  type TweakerControlContextValue,
-  type TweakerControlProps,
+  TweakerItem,
+  type TweakerItemContextValue,
+  type TweakerInputItemProps,
 } from '../tweaker-control.js'
-import {
-  exactTweakerObjectArrayValue,
-  synchronizeTweakerFieldValue,
-} from '../tweaker-control-value.js'
-import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { Button, Input } from '../ui.js'
 import { cn } from '../utils.js'
+import type { TweakerParser } from '../tweaker-validation.js'
+import { canonicalTweakerValue, strictImportShape } from './built-in-validation.js'
 
 export type TweakerGradientStop = { color: string; id: string; position: number }
 export type TweakerGradientValue = TweakerGradientStop[]
 
 export interface TweakerGradientProps extends Omit<
-  TweakerControlProps<TweakerGradientValue>,
-  'children' | 'defaultValue'
+  TweakerInputItemProps<TweakerGradientValue>,
+  'children' | 'defaultValue' | 'parse'
 > {
   defaultValue?: TweakerGradientValue
   gradientClassName?: string
@@ -36,8 +33,6 @@ const fallbackGradient: TweakerGradientValue = [
   { color: '#111827', id: 'start', position: 0 },
   { color: '#f9fafb', id: 'end', position: 1 },
 ]
-const gradientStopKeys = ['color', 'id', 'position'] as const
-
 export function TweakerGradient({
   contentLayout = 'block',
   defaultValue,
@@ -45,12 +40,22 @@ export function TweakerGradient({
   ...controlProps
 }: TweakerGradientProps) {
   const normalizedDefault = useMemo(() => normalizeTweakerGradient(defaultValue), [defaultValue])
+  const parse = useMemo<TweakerParser<TweakerGradientValue>>(
+    () => (input, context) => {
+      const error = 'Gradient value must be a canonical array of at least two color stops.'
+      const shapeError = strictImportShape(context, Array.isArray(input), error)
+      if (shapeError) return shapeError
+      return canonicalTweakerValue(input, normalizeTweakerGradient(input), error)
+    },
+    [],
+  )
 
   return (
-    <TweakerControl<TweakerGradientValue>
+    <TweakerItem<TweakerGradientValue>
       {...controlProps}
       contentLayout={contentLayout}
       defaultValue={normalizedDefault}
+      parse={parse}
     >
       {(control) => (
         <GradientEditor
@@ -59,7 +64,7 @@ export function TweakerGradient({
           fallbackValue={normalizedDefault}
         />
       )}
-    </TweakerControl>
+    </TweakerItem>
   )
 }
 
@@ -69,10 +74,9 @@ function GradientEditor({
   fallbackValue,
 }: {
   className?: string
-  control: TweakerControlContextValue<TweakerGradientValue>
+  control: TweakerItemContextValue<TweakerGradientValue>
   fallbackValue: TweakerGradientValue
 }) {
-  const store = useTweakerPanelStoreApi()
   const reactId = useId().replaceAll(':', '')
   const idCounterRef = useRef(0)
   const trackRef = useRef<HTMLDivElement | null>(null)
@@ -83,23 +87,13 @@ function GradientEditor({
   const unavailable = control.disabled || control.readOnly
 
   useEffect(() => {
-    synchronizeTweakerFieldValue(
-      control,
-      normalizeTweakerGradient,
-      (currentValue, normalizedValue) =>
-        exactTweakerObjectArrayValue(currentValue, normalizedValue, gradientStopKeys),
-      store,
-    )
-  }, [control, store])
-
-  useEffect(() => {
     if (!stops.some((stop) => stop.id === selectedId)) {
       setSelectedId(stops[0]?.id ?? '')
     }
   }, [selectedId, stops])
 
   const setStops = (nextStops: TweakerGradientValue) => {
-    control.setValue(normalizeTweakerGradient(nextStops))
+    control.setInput(normalizeTweakerGradient(nextStops))
   }
 
   const moveStopFromPointer = (event: ReactPointerEvent<HTMLButtonElement>, stopId: string) => {

@@ -4,19 +4,17 @@ import { Dialog } from 'radix-ui'
 import { useDropzone, type Accept, type FileRejection } from 'react-dropzone'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  TweakerControl,
-  type TweakerControlContextValue,
-  type TweakerControlProps,
+  TweakerItem,
+  type TweakerItemContextValue,
+  type TweakerInputItemProps,
 } from '../tweaker-control.js'
-import {
-  exactTweakerObjectArrayValue,
-  synchronizeTweakerFieldValue,
-} from '../tweaker-control-value.js'
-import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
+import { useTweakerProviderContext } from '../tweaker-provider.js'
+import { useTweakerTheme } from '../tweaker-theme-context.js'
 import { Button } from '../ui.js'
 import { cn } from '../utils.js'
 import { tweakerMotionTokens } from '../theme.js'
-import { useTweakerTheme } from '../tweaker-theme-context.js'
+import type { TweakerParser } from '../tweaker-validation.js'
+import { canonicalTweakerValue, strictImportShape } from './built-in-validation.js'
 
 export type TweakerDroppedFileMetadata = {
   id: string
@@ -26,15 +24,13 @@ export type TweakerDroppedFileMetadata = {
   type: string
 }
 export type TweakerDropzoneValue = TweakerDroppedFileMetadata[]
-const droppedFileMetadataKeys = ['id', 'lastModified', 'name', 'size', 'type'] as const
-
 type TweakerDropzonePreview = TweakerDroppedFileMetadata & {
   url: string
 }
 
 export interface TweakerDropzoneProps extends Omit<
-  TweakerControlProps<TweakerDropzoneValue>,
-  'children' | 'defaultValue' | 'onDrop'
+  TweakerInputItemProps<TweakerDropzoneValue>,
+  'children' | 'defaultValue' | 'onDrop' | 'parse'
 > {
   accept?: Accept
   defaultValue?: TweakerDropzoneValue
@@ -64,12 +60,22 @@ export function TweakerDropzone({
     () => normalizeTweakerDropzoneValue(defaultValue),
     [defaultValue],
   )
+  const parse = useMemo<TweakerParser<TweakerDropzoneValue>>(
+    () => (input, context) => {
+      const error = 'Dropzone value must be an array of canonical serializable file metadata.'
+      const shapeError = strictImportShape(context, Array.isArray(input), error)
+      if (shapeError) return shapeError
+      return canonicalTweakerValue(input, normalizeTweakerDropzoneValue(input), error)
+    },
+    [],
+  )
 
   return (
-    <TweakerControl<TweakerDropzoneValue>
+    <TweakerItem<TweakerDropzoneValue>
       {...controlProps}
       contentLayout={contentLayout}
       defaultValue={normalizedDefault}
+      parse={parse}
     >
       {(control) => (
         <DropzoneSurface
@@ -85,7 +91,7 @@ export function TweakerDropzone({
           onFiles={onFiles}
         />
       )}
-    </TweakerControl>
+    </TweakerItem>
   )
 }
 
@@ -103,7 +109,7 @@ function DropzoneSurface({
 }: {
   accept: Accept | undefined
   className?: string
-  control: TweakerControlContextValue<TweakerDropzoneValue>
+  control: TweakerItemContextValue<TweakerDropzoneValue>
   fallbackValue: TweakerDropzoneValue
   maxFiles: number
   maxSize: number | undefined
@@ -112,7 +118,6 @@ function DropzoneSurface({
   onFiles: TweakerDropzoneProps['onFiles']
   showPreviews: boolean
 }) {
-  const store = useTweakerPanelStoreApi()
   const value = normalizeTweakerDropzoneValue(control.value ?? fallbackValue)
   const unavailable = control.disabled || control.readOnly
   const previewUrlsRef = useRef(new Map<string, string>())
@@ -124,16 +129,6 @@ function DropzoneSurface({
   const [viewerPreview, setViewerPreview] = useState<TweakerDropzonePreview | null>(null)
   const [viewerOpen, setViewerOpen] = useState(false)
   const atCapacity = multiple && maxFiles > 0 && value.length >= maxFiles
-
-  useEffect(() => {
-    synchronizeTweakerFieldValue(
-      control,
-      normalizeTweakerDropzoneValue,
-      (currentValue, normalizedValue) =>
-        exactTweakerObjectArrayValue(currentValue, normalizedValue, droppedFileMetadataKeys),
-      store,
-    )
-  }, [control, store])
 
   const { fileRejections, getInputProps, getRootProps, isDragAccept, isDragActive, isDragReject } =
     useDropzone({
@@ -173,7 +168,7 @@ function DropzoneSurface({
           setPreviewVersion((version) => version + 1)
         }
 
-        control.setValue(nextValue)
+        control.setInput(nextValue)
       },
     })
 
@@ -298,7 +293,7 @@ function DropzoneSurface({
                     onClick={(event) => {
                       event.stopPropagation()
                       setCapacityRejections([])
-                      control.setValue(value.filter((candidate) => candidate.id !== metadata.id))
+                      control.setInput(value.filter((candidate) => candidate.id !== metadata.id))
                     }}
                   >
                     <X className="size-(--tweaker-icon-sm)" aria-hidden="true" />
@@ -344,8 +339,9 @@ function DropzoneImageViewer({
   open: boolean
   preview: TweakerDropzonePreview | null
 }) {
-  const theme = useTweakerTheme()
   const prefersReducedMotion = useReducedMotion()
+  const { portalContainer } = useTweakerProviderContext()
+  const theme = useTweakerTheme()
   const present = open && preview
   const enterTransition: Transition = prefersReducedMotion
     ? { duration: 0 }
@@ -362,7 +358,7 @@ function DropzoneImageViewer({
         onOpenChange(nextOpen)
       }}
     >
-      <Dialog.Portal forceMount>
+      <Dialog.Portal container={portalContainer ?? undefined} forceMount>
         <AnimatePresence initial={false} onExitComplete={onExitComplete}>
           {present ? (
             <motion.div

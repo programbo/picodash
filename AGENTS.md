@@ -67,17 +67,27 @@ Assign dev, preview, e2e, test, mock API, and other local servers only from `603
 
 - `6030`: `apps/website` dev server and Playwright e2e web server.
 - `6031`: `apps/website` preview server.
-- `6032`: `apps/demo` dev server.
+- `6032`: canonical `apps/demo` dev server; override it with `DEMO_PORT` for concurrent worktrees.
 - `6033`: `apps/demo` preview server.
-- `6034-6039`: available for future local servers.
+- `6034`: dedicated `DEMO_PORT=6034` override for the `feature/panel-api-dx` worktree; this does not replace the canonical `6032` default.
+- `6035-6039`: available for future local servers.
 
-When adding a new app or local server, use the next available port from `6034-6039` and update this section plus `README.md`.
+When adding a new app or local server, use the next available port from `6035-6039` and update this section plus `README.md`.
 
 ## Package Boundaries
 
-The `packages/panel` package is a small Vite+ React component library. Keep it self-contained, export typed React components from `src/index.ts`, and consume it from `apps/demo` through `workspace:*`. Panel styles are authored through Tailwind v4 in `packages/panel/src/styles.css`, packed with PostCSS, and consumed from `panel/style.css`.
+The `packages/panel` package is a small Vite+ React component library. Keep it
+self-contained and consume it from `apps/demo` through `workspace:*`. `src/index.ts`
+is the curated consumer entrypoint; `src/advanced.ts` contains low-level state/hooks,
+ordering helpers, theme/storage constants, and normalization/projection helpers. Keep both
+entries in the Vite+ pack configuration and package export map. Panel styles are authored
+through Tailwind v4 in `packages/panel/src/styles.css`, packed with PostCSS, and consumed
+from `panel/style.css`.
 
-Panel inputs live in `packages/panel/src/inputs/`. Common primitives use the unified `radix-ui` package, direct-manipulation visuals use Motion, and file selection uses `react-dropzone`. Keep Recharts and the official shadcn chart source demo-local; they are examples of composing `TweakerControl`, not dependencies of the publishable panel package.
+Panel inputs live in `packages/panel/src/inputs/`. Common primitives use the unified
+`radix-ui` package, direct-manipulation visuals use Motion, and file selection uses
+`react-dropzone`. Keep Recharts and the official shadcn chart source demo-local; they are
+examples of composing `TweakerItem`, not dependencies of the publishable panel package.
 
 Titled panel header actions live in `packages/panel/src/tweaker-panel-actions.tsx`;
 JSON/YAML parsing, serialization, filenames, and validation live in the pure
@@ -85,11 +95,15 @@ JSON/YAML parsing, serialization, filenames, and validation live in the pure
 field changes belong in the panel store and must use one Zustand transaction. Copy and
 export include all currently registered field IDs, including hidden and display-only
 fields. Import and reset operate only on currently registered writable fields, including
-hidden fields. All actions exclude stale unregistered values.
+hidden fields. Imports validate the whole prospective document before mutation. Repairs
+must be reviewed through the accessible panel-owned dialog; Accept revalidates and commits
+once, while Abort leaves imported values and metadata unchanged. All actions exclude
+drafts and stale unregistered values.
 
 Panel theming is package-owned and namespaced. `TweakerProvider`, `TweakerPanel`, and
 `FeaturePanel` accept arbitrary named themes; resolve them as panel override, provider
-theme, then `"dark"`. Keep that resolved name in React context and repeat
+theme, then `"dark"`. The reserved `"system"` provider theme resolves to the current
+dark/light preference. Keep the resolved name in React context and repeat
 `data-tweaker-theme` on the provider carrier and every portaled panel, select, menu,
 submenu, tooltip, dialog overlay/content, and viewer surface. Export `useTweakerTheme()` so
 custom controls can propagate the same carrier.
@@ -110,9 +124,30 @@ never add bespoke component CSS rules or generic global `--color-*`/`--radius-*`
 definitions. `theme.ts` remains limited to JS-only Motion, projection geometry, and the
 numeric panel layer base.
 
-The panel package exports `TweakerSegmented`, `TweakerAlignment`, `TweakerVector3`, `TweakerRange`, `TweakerXYPad`, `TweakerGradient`, `TweakerMediaPreview`, and `TweakerDropzone`, their public value/props types, and their pure normalization/projection helpers. `TweakerControl.contentLayout` accepts `"inline"`, `"block"`, or `"full"`; block/full descriptions must remain in a separate row after their content.
+The panel root exports `TweakerItem`, built-in input components, their public value/props
+types, validation contracts, `createTweakerPanelStore`, and panel selector hooks. Pure
+normalization/projection helpers are advanced exports. `TweakerItem.contentLayout` accepts
+`"inline"`, `"block"`, or `"full"`; block/full descriptions must remain in a separate row
+after their content. Do not restore `TweakerControl`, `TweakerField`, `fieldId`,
+`placement`, or panel `defaultValues` compatibility APIs.
 
 Composite control values must remain JSON-compatible. Dropzones store file metadata rather than `File` objects, media previews use safe image URLs rather than raw SVG HTML, and temporary object URLs must be revoked when removed or unmounted. Use MotionValues for high-frequency visuals and optional smoothing only; Zustand remains authoritative for persisted/user-editable values, and animated examples must respect reduced-motion.
+
+Panel state may be application-owned through `createTweakerPanelStore({ panelId,
+initialValues, initialMeta })` and injected with `<TweakerPanel store={store}>`.
+Internal-store panels instead require `id` and may accept `initialValues`/`initialMeta`.
+Use `useTweakerPanelStoreSelector(store, selector)` outside panels and the context selector
+inside them. Programmatic `setFieldValue` and `setFieldValues` are strict and atomic;
+interactive components use `setFieldInput`, which may retain an invalid non-persisted
+draft and errors while preserving the canonical value.
+
+Field-backed items may register synchronous `parse` and `validate` contracts.
+Standard Schema-compatible validators are accepted directly. Promise-returning contracts
+are configuration errors. Parsing and validation ownership belongs in the store contract,
+not component effects. Built-in parsers must cover interactive input, programmatic writes,
+initial/default/reset values, imports, and reactive constraints consistently. Reactive
+repairs are proposed rather than silently written. Shared fields run all active contracts,
+aggregate errors, and reject conflicting parser outputs.
 
 The package source is intentionally split by responsibility:
 
@@ -126,7 +161,7 @@ The package source is intentionally split by responsibility:
 
 Avoid recreating monolithic `panel.tsx` or `store.tsx` files. Add new behavior to the module that owns the concept.
 
-## Public API
+## Tweaker Public API
 
 The package currently exports:
 
@@ -211,7 +246,7 @@ Rows also support a pointer-drag fallback and keyboard ArrowUp/ArrowDown reorder
 
 Panel controls and groups expose an active drag grip only when the item is configured as
 reorderable and has another visible, configured-reorderable sibling in the same parent and
-placement band. Static top-level items omit the reorder slot; nested static items retain
+pin band. Static top-level items omit the reorder slot; nested static items retain
 the marker for row alignment. Both must reject reorder attempts.
 
 The panel header is independently draggable for floating placement and magnetic docking. Keep row drag and panel drag event handling separate.
@@ -226,7 +261,15 @@ When changing UI behavior, prefer verifying with Playwright or the in-app browse
 
 ## Demo App
 
-`apps/demo` is the Vite+ React TypeScript Tailwind app for the local `panel` component package. It imports `panel` through `workspace:*`, uses `6032` for `vp dev` and Playwright e2e, and uses `6033` for `vp preview`. Its Custom Items panel is the integration gallery for the public composite inputs plus demo-local shadcn/Recharts, pointer-velocity, and waveform/spectrum examples. Keep representative browser coverage in `apps/demo/tests/custom-items.spec.ts` and run it through `pnpm --filter demo test:e2e`.
+`apps/demo` is the Vite+ React TypeScript Tailwind app for the local `panel` component
+package. It imports `panel` through `workspace:*`, defaults to `6032` for `vp dev` and
+Playwright e2e, and uses `6033` for `vp preview`. Set `DEMO_PORT=6034` for the
+`feature/panel-api-dx` worktree; do not replace the canonical default. Its Custom Items
+panel is the integration gallery for the public composite inputs, an application-owned
+store, a Standard Schema/Zod custom item, plus demo-local shadcn/Recharts,
+pointer-velocity, and waveform/spectrum examples. Keep representative browser coverage in
+`apps/demo/tests/custom-items.spec.ts` and run it through
+`DEMO_PORT=6034 pnpm --filter demo test:e2e` in this worktree.
 
 ## Documentation
 

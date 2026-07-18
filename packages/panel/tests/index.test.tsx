@@ -1,20 +1,8 @@
 import { isValidElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vite-plus/test'
-import {
-  createTweakerPanelStore,
-  createTweakerStore,
-  FeaturePanel,
-  panelLayoutStorageKey,
-  panelZIndexForState,
-  tweakerDefaultTheme,
-  tweakerGeometryTokens,
-  tweakerLayerTokens,
-  tweakerMotionTokens,
-  tweakerThemeAttribute,
-  TweakerProvider,
-  useTweakerTheme,
-} from '../src/index.ts'
+import { createTweakerPanelStore, FeaturePanel } from '../src/index.ts'
+import { panelLayoutStorageKey } from '../src/panel-persistence.ts'
 import {
   clampPanelPosition,
   positionForPanelLayout,
@@ -29,8 +17,23 @@ import {
   orderIndexForItem,
   reorderValuesForPointer,
 } from '../src/tweaker-panel.tsx'
+import { orderTweakerChildren } from '../src/tweaker-order.tsx'
+import {
+  createTweakerStore,
+  modalZIndexForState,
+  panelZIndexForState,
+  portalLayerZIndexForState,
+  portalLayerZIndexValue,
+} from '../src/tweaker-provider.tsx'
 import { constrainReorderPointerOffset } from '../src/tweaker-reorder-list.tsx'
 import { TweakerReorderIndicator } from '../src/tweaker-reorder-indicator.tsx'
+import {
+  tweakerDefaultTheme,
+  tweakerGeometryTokens,
+  tweakerLayerTokens,
+  tweakerMotionTokens,
+  tweakerThemeAttribute,
+} from '../src/theme.ts'
 
 test('creates feature panel elements', () => {
   const element = (
@@ -47,46 +50,6 @@ test('creates feature panel elements', () => {
   expect(element.props.items).toEqual([
     { label: 'Build health', value: 'Passing', status: 'success' },
   ])
-})
-
-test('resolves named themes through providers, feature panels, and the public hook', () => {
-  function ThemeProbe() {
-    return <span data-probe-theme={useTweakerTheme()} />
-  }
-
-  const inherited = renderToStaticMarkup(
-    <TweakerProvider theme="ocean">
-      <ThemeProbe />
-      <FeaturePanel title="Inherited" />
-      <FeaturePanel theme="plum" title="Override" />
-    </TweakerProvider>,
-  )
-  const defaulted = renderToStaticMarkup(
-    <TweakerProvider>
-      <ThemeProbe />
-    </TweakerProvider>,
-  )
-
-  expect(inherited).toContain('data-tweaker-theme="ocean"')
-  expect(inherited).toContain('data-probe-theme="ocean"')
-  expect(inherited).toContain('data-tweaker-theme="plum"')
-  expect(defaulted).toContain('data-tweaker-theme="dark"')
-  expect(defaulted).toContain('data-probe-theme="dark"')
-})
-
-test('puts provider children under a layout-neutral resolved theme carrier', () => {
-  const markup = renderToStaticMarkup(
-    <TweakerProvider theme="ocean">
-      <main data-provider-child="true">Consumer content</main>
-    </TweakerProvider>,
-  )
-
-  expect(markup).toMatch(
-    /<div data-tweaker-provider-content="" data-tweaker-theme="ocean" class="contents"><main data-provider-child="true">/,
-  )
-  expect(markup).toContain(
-    '<div data-tweaker-container="true" data-tweaker-theme="ocean" class="pointer-events-none fixed inset-0 h-dvh w-dvw"></div>',
-  )
 })
 
 test('exports the package theme carrier, motion, and layer contracts', () => {
@@ -181,6 +144,18 @@ test('raises the most recently interacted panel above earlier panels', () => {
   expect(store.getState().panelOrder).toEqual(['output', 'scene'])
   expect(panelZIndexForState(store.getState(), 'scene')).toBeGreaterThan(
     panelZIndexForState(store.getState(), 'output'),
+  )
+  expect(modalZIndexForState(store.getState())).toBeGreaterThan(
+    panelZIndexForState(store.getState(), 'scene'),
+  )
+  expect(modalZIndexForState(store.getState())).toBeGreaterThan(
+    panelZIndexForState(store.getState(), 'output'),
+  )
+  expect(portalLayerZIndexForState(store.getState(), 1)).toBeGreaterThan(
+    panelZIndexForState(store.getState(), 'scene'),
+  )
+  expect(portalLayerZIndexValue('--tweaker-layer-menu', 1003)).toBe(
+    'max(var(--tweaker-layer-menu), 1003)',
   )
 })
 
@@ -370,7 +345,6 @@ test('preserves collapsed group state across reorder layout remounts', () => {
     id: 'preview',
     kind: 'group' as const,
     parentId: 'root',
-    placement: 'auto' as const,
     reorderable: true,
   }
 
@@ -389,7 +363,6 @@ test('preserves control order slots across transient registration remounts', () 
       id,
       kind: 'control',
       parentId: 'root',
-      placement: 'auto',
       reorderable: true,
     })
 
@@ -408,6 +381,18 @@ test('preserves control order slots across transient registration remounts', () 
   expect(orderedItemIdsForParent(store.getState(), 'root')).toEqual(['gamma', 'alpha', 'beta'])
 })
 
+test('uses a field-backed item field as its default ordering ID', () => {
+  const children = [
+    <TestItem field="exposure" label="Exposure" />,
+    <TestItem id="summary" label="Summary" />,
+  ]
+  const ordered = orderTweakerChildren(children, ['summary', 'exposure'])
+
+  expect(
+    ordered.map((child) => (isValidElement<{ label: string }>(child) ? child.props.label : null)),
+  ).toEqual(['Summary', 'Exposure'])
+})
+
 test('preserves stale slots while multiple controls re-register out of order', () => {
   const store = createTweakerPanelStore({ panelId: 'inspect' })
   const register = (id: string) =>
@@ -415,7 +400,6 @@ test('preserves stale slots while multiple controls re-register out of order', (
       id,
       kind: 'control',
       parentId: 'root',
-      placement: 'auto',
       reorderable: true,
     })
 
@@ -440,14 +424,12 @@ test('preserves group and nested order slots across transient registration remou
     id: 'preview',
     kind: 'group',
     parentId: 'root',
-    placement: 'auto',
     reorderable: true,
   })
   store.getState().registerItem({
     id: 'output',
     kind: 'group',
     parentId: 'root',
-    placement: 'auto',
     reorderable: true,
   })
   for (const id of ['exposure', 'quality']) {
@@ -455,7 +437,6 @@ test('preserves group and nested order slots across transient registration remou
       id,
       kind: 'control',
       parentId: 'preview',
-      placement: 'auto',
       reorderable: true,
     })
   }
@@ -472,7 +453,6 @@ test('preserves group and nested order slots across transient registration remou
     id: 'preview',
     kind: 'group',
     parentId: 'root',
-    placement: 'auto',
     reorderable: true,
   })
 
@@ -480,22 +460,22 @@ test('preserves group and nested order slots across transient registration remou
   expect(orderedItemIdsForParent(store.getState(), 'preview')).toEqual(['quality', 'exposure'])
 })
 
-test('normalizes panel item order into start, auto, and end bands', () => {
+test('normalizes panel item order into start, unpinned, and end bands', () => {
   const store = createTweakerPanelStore({ panelId: 'inspect' })
-  const register = (id: string, placement: 'auto' | 'start' | 'end') => {
+  const register = (id: string, pin?: 'start' | 'end') => {
     store.getState().registerItem({
       id,
       kind: 'control',
       parentId: 'root',
-      placement,
+      pin,
       reorderable: true,
     })
   }
 
-  register('quality', 'auto')
+  register('quality')
   register('summary', 'end')
   register('header', 'start')
-  register('exposure', 'auto')
+  register('exposure')
 
   expect(store.getState().order.root).toEqual(['header', 'quality', 'exposure', 'summary'])
 
@@ -504,23 +484,23 @@ test('normalizes panel item order into start, auto, and end bands', () => {
   expect(store.getState().order.root).toEqual(['header', 'exposure', 'quality', 'summary'])
 })
 
-test('programmatic reorder stays within parent and placement band', () => {
+test('programmatic reorder stays within parent and pin band', () => {
   const store = createTweakerPanelStore({ panelId: 'inspect' })
-  const register = (id: string, placement: 'auto' | 'start' | 'end', parentId = 'root') => {
+  const register = (id: string, pin: 'start' | 'end' | undefined, parentId = 'root') => {
     store.getState().registerItem({
       id,
       kind: 'control',
       parentId,
-      placement,
+      pin,
       reorderable: true,
     })
   }
 
   register('header', 'start')
-  register('quality', 'auto')
-  register('exposure', 'auto')
+  register('quality', undefined)
+  register('exposure', undefined)
   register('summary', 'end')
-  register('nested', 'auto', 'group-a')
+  register('nested', undefined, 'group-a')
 
   store.getState().reorderItem('exposure', 'quality')
   expect(store.getState().order.root).toEqual(['header', 'exposure', 'quality', 'summary'])
@@ -532,19 +512,19 @@ test('programmatic reorder stays within parent and placement band', () => {
   expect(store.getState().order.root).toEqual(['header', 'exposure', 'quality', 'summary'])
 })
 
-test('requires a visible reorderable sibling in the same parent and placement band', () => {
+test('requires a visible reorderable sibling in the same parent and pin band', () => {
   const store = createTweakerPanelStore({ panelId: 'inspect' })
   const register = ({
     hidden = false,
     id,
     parentId = 'root',
-    placement = 'auto',
+    pin,
     reorderable = true,
   }: {
     hidden?: boolean
     id: string
     parentId?: string
-    placement?: 'auto' | 'start' | 'end'
+    pin?: 'start' | 'end'
     reorderable?: boolean
   }) => {
     store.getState().registerItem({
@@ -552,13 +532,13 @@ test('requires a visible reorderable sibling in the same parent and placement ba
       id,
       kind: 'control',
       parentId,
-      placement,
+      pin,
       reorderable,
     })
   }
 
   register({ id: 'quality' })
-  register({ id: 'header', placement: 'start' })
+  register({ id: 'header', pin: 'start' })
   register({ id: 'fixed', reorderable: false })
   register({ hidden: true, id: 'hidden' })
   register({ id: 'nested', parentId: 'group-a' })
@@ -572,7 +552,7 @@ test('requires a visible reorderable sibling in the same parent and placement ba
     hasVisibleReorderableSibling(store.getState(), {
       id: 'quality',
       parentId: 'root',
-      placement: 'auto',
+      pin: undefined,
     }),
   ).toBe(false)
 
@@ -590,7 +570,6 @@ test('reorder mutations reject an item whose only visible band sibling is fixed'
       id,
       kind: 'control',
       parentId: 'root',
-      placement: 'auto',
       reorderable,
     })
   }
@@ -612,24 +591,24 @@ test('reorder mutations reject an item whose only visible band sibling is fixed'
   expect(store.getState().order.root).toEqual(['fixed', 'exposure', 'quality'])
 })
 
-test('drag commit moves items by visible placement-local index', () => {
+test('drag commit moves items by visible pin-local index', () => {
   const store = createTweakerPanelStore({ panelId: 'inspect' })
-  const register = (id: string, placement: 'auto' | 'start' | 'end', hidden = false) => {
+  const register = (id: string, pin: 'start' | 'end' | undefined, hidden = false) => {
     store.getState().registerItem({
       hidden,
       id,
       kind: 'control',
       parentId: 'root',
-      placement,
+      pin,
       reorderable: true,
     })
   }
 
   register('header', 'start')
-  register('quality', 'auto')
-  register('advanced', 'auto', true)
-  register('exposure', 'auto')
-  register('render-scale', 'auto')
+  register('quality', undefined)
+  register('advanced', undefined, true)
+  register('exposure', undefined)
+  register('render-scale', undefined)
   register('summary', 'end')
 
   expect(orderIndexForItem(store.getState(), 'header')).toBe(0)
@@ -656,7 +635,6 @@ test('drag commit persists dnd-kit sortable indices without translating them', (
       id,
       kind: 'control',
       parentId: 'root',
-      placement: 'auto',
       reorderable: true,
     })
   }
@@ -681,7 +659,6 @@ test('pointer reorder can reverse from past two rows back between them', () => {
       id,
       kind: 'control',
       parentId: 'root',
-      placement: 'auto',
       reorderable: true,
     })
   }
@@ -865,7 +842,6 @@ test('drag commit logs the same label order React will render when the last item
       kind: 'control',
       label,
       parentId: 'root',
-      placement: 'auto',
       reorderable: true,
     })
   }
@@ -889,6 +865,10 @@ function rect(left: number, top: number, width: number, height: number): PanelRe
     top,
     width,
   }
+}
+
+function TestItem(_props: { field?: string; id?: string; label: string }) {
+  return null
 }
 
 function installFakeLocalStorage() {

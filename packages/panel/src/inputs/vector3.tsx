@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
 import {
-  TweakerControl,
+  TweakerItem,
   useResolvedPanelProp,
   type ReactiveProp,
-  type TweakerControlContextValue,
-  type TweakerControlProps,
+  type TweakerItemContextValue,
+  type TweakerInputItemProps,
 } from '../tweaker-control.js'
-import { exactTweakerObjectValue, synchronizeTweakerFieldValue } from '../tweaker-control-value.js'
-import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { Input } from '../ui.js'
+import type { TweakerParser } from '../tweaker-validation.js'
+import { canonicalTweakerValue, strictImportShape } from './built-in-validation.js'
 
 export type TweakerVector3Value = {
   x: number
@@ -17,8 +17,8 @@ export type TweakerVector3Value = {
 }
 
 export interface TweakerVector3Props extends Omit<
-  TweakerControlProps<TweakerVector3Value>,
-  'children' | 'defaultValue'
+  TweakerInputItemProps<TweakerVector3Value>,
+  'children' | 'defaultValue' | 'parse'
 > {
   defaultValue?: TweakerVector3Value
   max?: ReactiveProp<number>
@@ -44,9 +44,31 @@ export function TweakerVector3({
     () => normalizeVector3Value(defaultValue, zeroVector, bounds.min, bounds.max),
     [bounds.max, bounds.min, defaultValue],
   )
+  const { x: defaultX, y: defaultY, z: defaultZ } = normalizedDefaultValue
+  const parse = useMemo<TweakerParser<TweakerVector3Value>>(
+    () => (input, context) => {
+      const error =
+        'Vector value must contain exactly finite x, y, and z coordinates within bounds.'
+      const isObject = typeof input === 'object' && input !== null && !Array.isArray(input)
+      const shapeError = strictImportShape(context, isObject, error)
+      if (shapeError) return shapeError
+      const value = normalizeVector3Value(
+        input,
+        { x: defaultX, y: defaultY, z: defaultZ },
+        bounds.min,
+        bounds.max,
+      )
+      return canonicalTweakerValue(input, value, error)
+    },
+    [bounds.max, bounds.min, defaultX, defaultY, defaultZ],
+  )
 
   return (
-    <TweakerControl<TweakerVector3Value> {...controlProps} defaultValue={normalizedDefaultValue}>
+    <TweakerItem<TweakerVector3Value>
+      {...controlProps}
+      defaultValue={normalizedDefaultValue}
+      parse={parse}
+    >
       {(control) => {
         const value = normalizeVector3Value(
           control.value,
@@ -57,12 +79,6 @@ export function TweakerVector3({
 
         return (
           <div className="col-span-2 grid min-w-0 grid-cols-3 gap-(--tweaker-space-1)">
-            <TweakerVector3ValueSynchronizer
-              control={control}
-              fallback={normalizedDefaultValue}
-              max={bounds.max}
-              min={bounds.min}
-            />
             {axes.map((axis) => (
               <VectorAxisInput
                 key={axis}
@@ -73,7 +89,7 @@ export function TweakerVector3({
                 step={step}
                 value={value}
                 onValueChange={(nextAxisValue) => {
-                  control.setValue(
+                  control.setInput(
                     normalizeVector3Value(
                       { ...value, [axis]: nextAxisValue },
                       value,
@@ -87,35 +103,8 @@ export function TweakerVector3({
           </div>
         )
       }}
-    </TweakerControl>
+    </TweakerItem>
   )
-}
-
-function TweakerVector3ValueSynchronizer({
-  control,
-  fallback,
-  max,
-  min,
-}: {
-  control: TweakerControlContextValue<TweakerVector3Value>
-  fallback: TweakerVector3Value
-  max?: number
-  min?: number
-}) {
-  const store = useTweakerPanelStoreApi()
-  const { x, y, z } = fallback
-
-  useEffect(() => {
-    synchronizeTweakerFieldValue(
-      control,
-      (currentValue) => normalizeVector3Value(currentValue, { x, y, z }, min, max),
-      (currentValue, normalizedValue) =>
-        exactTweakerObjectValue(currentValue, normalizedValue, axes),
-      store,
-    )
-  }, [control, max, min, store, x, y, z])
-
-  return null
 }
 
 function VectorAxisInput({
@@ -128,7 +117,7 @@ function VectorAxisInput({
   value,
 }: {
   axis: (typeof axes)[number]
-  control: TweakerControlContextValue<TweakerVector3Value>
+  control: TweakerItemContextValue<TweakerVector3Value>
   max: number | undefined
   min: number | undefined
   onValueChange: (value: number) => void

@@ -1,17 +1,19 @@
-import { useEffect, useState, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
 import { formatNumericValue } from '../number-format.js'
 import {
-  TweakerControl,
+  TweakerItem,
   useResolvedPanelProp,
   type ReactiveProp,
-  type TweakerControlContextValue,
-  type TweakerControlProps,
+  type TweakerItemContextValue,
+  type TweakerInputItemProps,
 } from '../tweaker-control.js'
 import { Input } from '../ui.js'
+import type { TweakerParser } from '../tweaker-validation.js'
+import { canonicalTweakerValue, invalidTweakerValue } from './built-in-validation.js'
 
 export interface TweakerNumberProps extends Omit<
-  TweakerControlProps<number>,
-  'children' | 'defaultValue'
+  TweakerInputItemProps<number>,
+  'children' | 'defaultValue' | 'parse'
 > {
   defaultValue?: number
   formatOptions?: ReactiveProp<Intl.NumberFormatOptions>
@@ -34,21 +36,39 @@ export function TweakerNumber({
   const min = useResolvedPanelProp(minProp)
   const max = useResolvedPanelProp(maxProp)
   const step = useResolvedPanelProp(stepProp, 1)
+  const bounds = normalizeNumberBounds(min, max)
+  const normalizedDefault =
+    typeof defaultValue === 'number' && Number.isFinite(defaultValue)
+      ? clampNumber(defaultValue, bounds.min, bounds.max)
+      : undefined
+  const parse = useMemo<TweakerParser<number>>(
+    () => (input, context) => {
+      const error = 'Number value must be finite and within its configured bounds.'
+      if (typeof input === 'number' && Number.isFinite(input)) {
+        return canonicalTweakerValue(input, clampNumber(input, bounds.min, bounds.max), error)
+      }
+      if (context.source === 'import') return invalidTweakerValue(error)
+      return normalizedDefault === undefined
+        ? { errors: [error], repair: { unset: true }, success: false }
+        : { errors: [error], repair: { value: normalizedDefault }, success: false }
+    },
+    [bounds.max, bounds.min, normalizedDefault],
+  )
 
   return (
-    <TweakerControl<number> {...controlProps} defaultValue={defaultValue}>
+    <TweakerItem<number> {...controlProps} defaultValue={normalizedDefault} parse={parse}>
       {(control) => (
         <FormattedNumberInput
           control={control}
-          defaultValue={defaultValue}
+          defaultValue={normalizedDefault}
           formatOptions={formatOptions}
-          max={max}
-          min={min}
+          max={bounds.max}
+          min={bounds.min}
           placeholder={placeholder}
           step={step}
         />
       )}
-    </TweakerControl>
+    </TweakerItem>
   )
 }
 
@@ -61,7 +81,7 @@ function FormattedNumberInput({
   placeholder,
   step = 1,
 }: {
-  control: TweakerControlContextValue<number>
+  control: TweakerItemContextValue<number>
   defaultValue: number | undefined
   formatOptions: Intl.NumberFormatOptions | undefined
   max: number | undefined
@@ -105,12 +125,10 @@ function FormattedNumberInput({
         const nextDraftValue = event.currentTarget.value
         setDraftValue(nextDraftValue)
 
-        if (nextDraftValue.trim() === '') return
-
         const nextValue = Number(nextDraftValue)
-        if (Number.isFinite(nextValue)) {
-          control.setValue(nextValue)
-        }
+        control.setInput(
+          nextDraftValue.trim() !== '' && Number.isFinite(nextValue) ? nextValue : nextDraftValue,
+        )
       }}
       onFocus={(event) => {
         const nextDraftValue = value === undefined ? '' : String(value)
@@ -126,4 +144,17 @@ function FormattedNumberInput({
       }}
     />
   )
+}
+
+function normalizeNumberBounds(min: number | undefined, max: number | undefined) {
+  const finiteMin = typeof min === 'number' && Number.isFinite(min) ? min : undefined
+  const finiteMax = typeof max === 'number' && Number.isFinite(max) ? max : undefined
+  if (finiteMin !== undefined && finiteMax !== undefined && finiteMin > finiteMax) {
+    return { max: finiteMin, min: finiteMax }
+  }
+  return { max: finiteMax, min: finiteMin }
+}
+
+function clampNumber(value: number, min: number | undefined, max: number | undefined) {
+  return Math.min(max ?? Infinity, Math.max(min ?? -Infinity, value))
 }

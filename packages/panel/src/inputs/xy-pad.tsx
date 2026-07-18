@@ -2,15 +2,15 @@ import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } fro
 import { useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import { tweakerGeometryTokens, tweakerMotionTokens } from '../theme.js'
 import {
-  TweakerControl,
+  TweakerItem,
   useResolvedPanelProp,
   type ReactiveProp,
-  type TweakerControlContextValue,
-  type TweakerControlProps,
+  type TweakerItemContextValue,
+  type TweakerInputItemProps,
 } from '../tweaker-control.js'
-import { exactTweakerObjectValue, synchronizeTweakerFieldValue } from '../tweaker-control-value.js'
-import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
+import type { TweakerParser } from '../tweaker-validation.js'
 import { cn } from '../utils.js'
+import { canonicalTweakerValue, strictImportShape } from './built-in-validation.js'
 
 export type TweakerXYValue = { x: number; y: number }
 
@@ -31,8 +31,8 @@ export interface TweakerXYLabelMetrics {
 }
 
 export interface TweakerXYPadProps extends Omit<
-  TweakerControlProps<TweakerXYValue>,
-  'children' | 'defaultValue'
+  TweakerInputItemProps<TweakerXYValue>,
+  'children' | 'defaultValue' | 'parse'
 > {
   ariaLabel?: string
   defaultValue?: TweakerXYValue
@@ -51,8 +51,6 @@ const defaultBounds: TweakerXYBounds = {
   yMax: 1,
   yMin: 0,
 }
-const xyAxes = ['x', 'y'] as const
-
 export function TweakerXYPad({
   ariaLabel = 'Two-dimensional value',
   contentLayout = 'block',
@@ -78,12 +76,25 @@ export function TweakerXYPad({
     () => normalizeTweakerXYValue(defaultValue, bounds),
     [bounds, defaultValue],
   )
+  const { x: defaultX, y: defaultY } = initialValue
+  const parse = useMemo<TweakerParser<TweakerXYValue>>(
+    () => (input, context) => {
+      const error = 'XY value must contain exactly finite x and y coordinates within bounds.'
+      const isObject = typeof input === 'object' && input !== null && !Array.isArray(input)
+      const shapeError = strictImportShape(context, isObject, error)
+      if (shapeError) return shapeError
+      const value = normalizeTweakerXYValue(input, bounds, { x: defaultX, y: defaultY })
+      return canonicalTweakerValue(input, value, error)
+    },
+    [bounds, defaultX, defaultY],
+  )
 
   return (
-    <TweakerControl<TweakerXYValue>
+    <TweakerItem<TweakerXYValue>
       {...controlProps}
       contentLayout={contentLayout}
       defaultValue={initialValue}
+      parse={parse}
     >
       {(control) => (
         <XYPadSurface
@@ -94,7 +105,7 @@ export function TweakerXYPad({
           fallbackValue={initialValue}
         />
       )}
-    </TweakerControl>
+    </TweakerItem>
   )
 }
 
@@ -108,7 +119,7 @@ function XYPadSurface({
   ariaLabel: string
   bounds: TweakerXYBounds
   className?: string
-  control: TweakerControlContextValue<TweakerXYValue>
+  control: TweakerItemContextValue<TweakerXYValue>
   fallbackValue: TweakerXYValue
 }) {
   const padRef = useRef<HTMLDivElement | null>(null)
@@ -118,7 +129,6 @@ function XYPadSurface({
   const pointerRectRef = useRef<Pick<DOMRect, 'height' | 'left' | 'top' | 'width'> | null>(null)
   const travelRef = useRef({ x: 0, y: 0 })
   const prefersReducedMotion = useReducedMotion()
-  const store = useTweakerPanelStoreApi()
   const value = normalizeTweakerXYValue(control.value, bounds, fallbackValue)
   const projected = projectTweakerXYValue(value, bounds)
   const projectedRef = useRef(projected)
@@ -156,18 +166,6 @@ function XYPadSurface({
   const unavailable = control.disabled || control.readOnly
   const padId = `${control.inputId}:pad`
   const instructionsId = `${control.inputId}:instructions`
-  const { x: fallbackX, y: fallbackY } = fallbackValue
-
-  useEffect(() => {
-    synchronizeTweakerFieldValue(
-      control,
-      (currentValue) =>
-        normalizeTweakerXYValue(currentValue, bounds, { x: fallbackX, y: fallbackY }),
-      (currentValue, normalizedValue) =>
-        exactTweakerObjectValue(currentValue, normalizedValue, xyAxes),
-      store,
-    )
-  }, [bounds, control, fallbackX, fallbackY, store])
 
   useEffect(() => {
     const measure = () => {
@@ -210,7 +208,7 @@ function XYPadSurface({
     const nextPosition = projectTweakerXYValue(nextValue, bounds)
     cursorX.set(nextPosition.x * travelRef.current.x)
     cursorY.set(nextPosition.y * travelRef.current.y)
-    control.setValue(nextValue)
+    control.setInput(nextValue)
   }
 
   return (
@@ -283,7 +281,7 @@ function XYPadSurface({
           type="range"
           value={value.x}
           onChange={(event) => {
-            control.setValue(
+            control.setInput(
               normalizeTweakerXYValue({ ...value, x: event.currentTarget.valueAsNumber }, bounds),
             )
           }}
@@ -301,7 +299,7 @@ function XYPadSurface({
           type="range"
           value={value.y}
           onChange={(event) => {
-            control.setValue(
+            control.setInput(
               normalizeTweakerXYValue({ ...value, y: event.currentTarget.valueAsNumber }, bounds),
             )
           }}

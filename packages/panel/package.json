@@ -12,6 +12,7 @@
   ],
   "exports": {
     ".": "./dist/index.mjs",
+    "./advanced": "./dist/advanced.mjs",
     "./package.json": "./package.json",
     "./style.css": "./dist/style.css"
   },
@@ -29,6 +30,7 @@
     "@dnd-kit/abstract": "catalog:",
     "@dnd-kit/dom": "catalog:",
     "@dnd-kit/react": "catalog:",
+    "@standard-schema/spec": "^1.1.0",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "lucide-react": "catalog:",

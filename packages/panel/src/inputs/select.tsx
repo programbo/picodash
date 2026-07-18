@@ -1,15 +1,17 @@
-import { useEffect, useMemo, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import {
-  TweakerControl,
-  TweakerImportAllowedStringValuesProvider,
+  TweakerItem,
   useResolvedPanelProp,
   type ReactiveProp,
-  type TweakerControlContextValue,
-  type TweakerControlProps,
+  type TweakerInputItemProps,
 } from '../tweaker-control.js'
-import { synchronizeOptionalTweakerFieldValue } from '../tweaker-control-value.js'
-import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
+import type { TweakerParser } from '../tweaker-validation.js'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui.js'
+import {
+  canonicalTweakerValue,
+  invalidTweakerValue,
+  unsetTweakerValue,
+} from './built-in-validation.js'
 
 export type TweakerSelectOption =
   | string
@@ -20,8 +22,8 @@ export type TweakerSelectOption =
     }
 
 export interface TweakerSelectProps extends Omit<
-  TweakerControlProps<string>,
-  'children' | 'defaultValue'
+  TweakerInputItemProps<string>,
+  'children' | 'defaultValue' | 'parse'
 > {
   defaultValue?: string
   options: ReactiveProp<TweakerSelectOption[]>
@@ -33,80 +35,67 @@ export function TweakerSelect({
   ...controlProps
 }: TweakerSelectProps) {
   const options = useResolvedPanelProp(optionsProp, []) ?? []
-  const importAllowedValuesKey = JSON.stringify(selectOptionValues(options))
-  const importAllowedValues = useMemo(
-    () => JSON.parse(importAllowedValuesKey) as string[],
-    [importAllowedValuesKey],
-  )
+  const optionValuesKey = JSON.stringify(selectOptionValues(options))
+  const optionValues = useMemo(() => JSON.parse(optionValuesKey) as string[], [optionValuesKey])
   const normalizedDefaultValue = normalizeSelectValue(defaultValue, options)
+  const parse = useMemo<TweakerParser<string>>(
+    () => (input, context) => {
+      if (typeof input === 'string' && optionValues.includes(input)) {
+        return { output: { value: input }, success: true }
+      }
+      const error =
+        optionValues.length === 0
+          ? 'Select has no available options, so its field must be unset.'
+          : 'Select value must match one of its options.'
+      if (context.source === 'import') return invalidTweakerValue(error)
+      const fallback =
+        normalizedDefaultValue !== undefined && optionValues.includes(normalizedDefaultValue)
+          ? normalizedDefaultValue
+          : optionValues[0]
+      return fallback === undefined
+        ? unsetTweakerValue(input, error)
+        : canonicalTweakerValue(input, fallback, error)
+    },
+    [normalizedDefaultValue, optionValues],
+  )
 
   return (
-    <TweakerImportAllowedStringValuesProvider values={importAllowedValues}>
-      <TweakerControl<string> {...controlProps} defaultValue={normalizedDefaultValue}>
-        {(control) => {
-          const value = normalizeSelectValue(control.value, options, normalizedDefaultValue)
+    <TweakerItem<string> {...controlProps} defaultValue={normalizedDefaultValue} parse={parse}>
+      {(control) => {
+        const value = normalizeSelectValue(control.value, options, normalizedDefaultValue)
 
-          return (
-            <>
-              <TweakerSelectValueSynchronizer
-                control={control}
-                fallback={normalizedDefaultValue}
-                options={options}
-              />
-              <Select
-                disabled={control.disabled || control.readOnly}
-                value={value ?? ''}
-                onValueChange={control.setValue}
-              >
-                <SelectTrigger id={control.inputId} className="col-span-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {options.map((option) => {
-                    const value = optionValue(option)
+        return (
+          <>
+            <Select
+              disabled={control.disabled || control.readOnly}
+              value={value ?? ''}
+              onValueChange={control.setInput}
+            >
+              <SelectTrigger id={control.inputId} className="col-span-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((option) => {
+                  const value = optionValue(option)
 
-                    return (
-                      <SelectItem
-                        key={value}
-                        disabled={optionDisabled(option)}
-                        textValue={optionTextValue(option)}
-                        value={value}
-                      >
-                        {optionLabel(option)}
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
-            </>
-          )
-        }}
-      </TweakerControl>
-    </TweakerImportAllowedStringValuesProvider>
+                  return (
+                    <SelectItem
+                      key={value}
+                      disabled={optionDisabled(option)}
+                      textValue={optionTextValue(option)}
+                      value={value}
+                    >
+                      {optionLabel(option)}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </>
+        )
+      }}
+    </TweakerItem>
   )
-}
-
-function TweakerSelectValueSynchronizer({
-  control,
-  fallback,
-  options,
-}: {
-  control: TweakerControlContextValue<string>
-  fallback?: string
-  options: readonly TweakerSelectOption[]
-}) {
-  const store = useTweakerPanelStoreApi()
-
-  useEffect(() => {
-    synchronizeOptionalTweakerFieldValue(
-      control,
-      (currentValue) => normalizeSelectValue(currentValue, options, fallback),
-      (currentValue, normalizedValue) => currentValue === normalizedValue,
-      store,
-    )
-  }, [control, fallback, options, store])
-
-  return null
 }
 
 export function normalizeSelectValue(

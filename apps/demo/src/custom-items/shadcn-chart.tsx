@@ -1,5 +1,5 @@
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts'
-import { TweakerControl } from 'panel'
+import { TweakerItem } from 'panel'
 import {
   ChartContainer,
   ChartTooltip,
@@ -25,7 +25,7 @@ const chartConfig = {
 
 export function ShadcnChartItem() {
   return (
-    <TweakerControl
+    <TweakerItem
       id="shadcn-frame-chart"
       contentLayout="block"
       description="Official shadcn chart composition on Recharts v3, embedded as a display item."
@@ -69,6 +69,6 @@ export function ShadcnChartItem() {
           />
         </LineChart>
       </ChartContainer>
-    </TweakerControl>
+    </TweakerItem>
   )
 }

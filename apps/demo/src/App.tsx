@@ -8,13 +8,16 @@ import {
   MousePointer2,
   Space,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { z } from 'zod'
 import {
+  createTweakerPanelStore,
   TweakerAlignment,
   TweakerDisplay,
   TweakerDropzone,
   TweakerGradient,
   TweakerGroup,
+  TweakerItem,
   TweakerMediaPreview,
   TweakerNumber,
   TweakerPanel,
@@ -26,14 +29,16 @@ import {
   TweakerSwitch,
   TweakerVector3,
   TweakerXYPad,
-  useTweakerPanelSelector,
-  useTweakerSelector,
+  useTweakerPanelStoreSelector,
   useTweakerTheme,
-  type TweakerPanelRegistration,
-  type TweakerPanelState,
   type TweakerSliderMark,
   type TweakerValue,
 } from 'panel'
+import {
+  useTweakerSelector,
+  type TweakerPanelRegistration,
+  type TweakerPanelState,
+} from 'panel/advanced'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -72,11 +77,40 @@ const customItemDefaults = {
     { color: '#fb7185', id: 'rose', position: 1 },
   ],
   previewAsset: '/favicon.svg',
+  presetName: 'Studio',
   signalMode: 'waveform',
   thresholdRange: [24, 76],
   vector: { x: 1.25, y: -0.5, z: 3 },
   xy: { x: 0.68, y: 0.32 },
 }
+
+const scenePanelStore = createTweakerPanelStore({
+  initialMeta: {
+    canEdit: true,
+    opacityMax: 1,
+    opacityMin: 0,
+    opacityStops: [0, 0.5, 1],
+    unit: '%',
+  },
+  initialValues: sceneDefaults,
+  panelId: scenePanelId,
+})
+
+export const customItemPanelStore = createTweakerPanelStore({
+  initialValues: customItemDefaults,
+  panelId: outputPanelId,
+})
+
+const presetNameSchema = z
+  .string()
+  .trim()
+  .min(3, 'Preset name must contain at least 3 characters.')
+  .max(24, 'Preset name must contain at most 24 characters.')
+
+const opacityHighlightedStates = { highlighted: true }
+const opacityDefaultStates = { highlighted: false }
+const bloomEnabledStates = { enabled: true }
+const bloomDisabledStates = { enabled: false }
 
 type PanelSnapshot = Pick<
   TweakerPanelState,
@@ -109,7 +143,11 @@ export function App() {
 
   return (
     <main className="dark bg-background text-foreground min-h-svh overflow-hidden">
-      <TweakerProvider theme={themes.provider}>
+      <TweakerProvider
+        persistLayout
+        storageKey="tweaker-demo:panel-layout:v1"
+        theme={themes.provider ?? 'dark'}
+      >
         <DemoExperience themes={themes} />
       </TweakerProvider>
     </main>
@@ -143,17 +181,19 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
     () => ({ panelOrder, panels: providerPanels }),
     [panelOrder, providerPanels],
   )
-  const [panelSnapshots, setPanelSnapshots] = useState<PanelSnapshots>({})
+  const scenePanelState = useTweakerPanelStoreSelector(scenePanelStore, (state) => state)
+  const customItemPanelState = useTweakerPanelStoreSelector(customItemPanelStore, (state) => state)
+  const panelSnapshots = useMemo<PanelSnapshots>(
+    () => ({
+      [scenePanelId]: panelSnapshotFromState(scenePanelState),
+      [outputPanelId]: panelSnapshotFromState(customItemPanelState),
+    }),
+    [customItemPanelState, scenePanelState],
+  )
   const panels = [panelSnapshots[scenePanelId], panelSnapshots[outputPanelId]].filter(
     (panel): panel is PanelSnapshot => panel !== undefined,
   )
   const totals = useMemo(() => panelTotals(panels), [panels])
-
-  const handlePanelSnapshot = useCallback((panelId: string, snapshot: PanelSnapshot) => {
-    setPanelSnapshots((current) =>
-      current[panelId] === snapshot ? current : { ...current, [panelId]: snapshot },
-    )
-  }, [])
 
   return (
     <>
@@ -173,7 +213,7 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
                 <div className="prose prose-invert prose-p:my-0 prose-code:bg-muted prose-code:text-foreground text-muted-foreground prose-code:rounded-md prose-code:px-1.5 prose-code:py-0.5 mt-2 max-w-2xl">
                   <p>
                     Inspect the panel store while trying common, spatial, media, and live-data{' '}
-                    <code>TweakerControl</code> compositions.
+                    <code>TweakerItem</code> compositions.
                   </p>
                 </div>
               </div>
@@ -256,39 +296,36 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
       </div>
 
       <TweakerPanel
-        id={scenePanelId}
+        store={scenePanelStore}
         theme={themes.scene}
         title="Scene Controls"
         collapsible
+        defaultPlacement="top-right"
+        width={368}
         className="top-4 right-4 lg:top-8 lg:right-120"
-        defaultValues={sceneDefaults}
-        initialMeta={{
-          canEdit: true,
-          opacityMax: 1,
-          opacityMin: 0,
-          opacityStops: [0, 0.5, 1],
-          unit: '%',
-        }}
       >
-        <PanelStateObserver panelId={scenePanelId} onSnapshot={handlePanelSnapshot} />
-        <TweakerGroup id="scene-essentials" label="Essentials" placement="start">
+        <TweakerGroup id="scene-essentials" label="Essentials" pin="start">
           <TweakerSlider
             field="opacity"
             label={(state) => `Opacity (${stringFromMeta(state, 'unit', '%')})`}
+            defaultValue={sceneDefaults.opacity}
             min={(state) => numberFromMeta(state, 'opacityMin', 0)}
             max={(state) => numberFromMeta(state, 'opacityMax', 1)}
             step={0.01}
             marks={(state) => marksFromMeta(state, 'opacityStops', [0, 0.5, 1])}
             disabled={(state) => !state.meta.canEdit}
-            states={(state) => ({
-              highlighted: Number(state.values.opacity ?? 0) > 0.85,
-            })}
+            states={(state) =>
+              Number(state.values.opacity ?? 0) > 0.85
+                ? opacityHighlightedStates
+                : opacityDefaultStates
+            }
             status={(state) => (Number(state.values.opacity ?? 0) > 0.9 ? 'warning' : undefined)}
             formatOptions={{ style: 'percent' }}
           />
           <TweakerSlider
             field="exposure"
             label="Exposure"
+            defaultValue={sceneDefaults.exposure}
             min={-2}
             max={2}
             step={0.05}
@@ -300,7 +337,8 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
           <TweakerSwitch
             field="bloom"
             label="Bloom"
-            states={(state) => ({ enabled: Boolean(state.values.bloom) })}
+            defaultValue={sceneDefaults.bloom}
+            states={(state) => (state.values.bloom ? bloomEnabledStates : bloomDisabledStates)}
           />
         </TweakerGroup>
 
@@ -308,6 +346,7 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
           <TweakerSelect
             field="quality"
             label="Quality"
+            defaultValue={sceneDefaults.quality}
             options={[
               { label: 'Draft', value: 'draft' },
               { label: 'Balanced', value: 'balanced' },
@@ -317,6 +356,7 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
           <TweakerNumber
             field="cameraHeight"
             label="Camera height"
+            defaultValue={sceneDefaults.cameraHeight}
             min={8}
             max={120}
             step={1}
@@ -325,17 +365,30 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
           <TweakerSlider
             field="shadowSoftness"
             label="Shadow softness"
+            defaultValue={sceneDefaults.shadowSoftness}
             min={0}
             max={1}
             step={0.01}
             marks={1}
             formatValue={(value) => value.toFixed(2)}
           />
-          <TweakerNumber field="maxBounces" label="Max bounces" min={0} max={16} step={1} />
-          <TweakerSwitch field="motionBlur" label="Motion blur" />
+          <TweakerNumber
+            field="maxBounces"
+            label="Max bounces"
+            defaultValue={sceneDefaults.maxBounces}
+            min={0}
+            max={16}
+            step={1}
+          />
+          <TweakerSwitch
+            field="motionBlur"
+            label="Motion blur"
+            defaultValue={sceneDefaults.motionBlur}
+          />
           <TweakerSelect
             field="textureQuality"
             label="Texture quality"
+            defaultValue={sceneDefaults.textureQuality}
             options={[
               { label: 'Low', value: 'low' },
               { label: 'Medium', value: 'medium' },
@@ -346,6 +399,7 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
           <TweakerSlider
             field="renderScale"
             label="Render scale"
+            defaultValue={sceneDefaults.renderScale}
             min={0.5}
             max={2}
             step={0.05}
@@ -358,7 +412,7 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
         <TweakerDisplay
           id="scene-summary"
           label="Summary"
-          placement="end"
+          pin="end"
           value={(state) =>
             `${Math.round(numberFromValue(state.values.opacity, 0) * 100)}% opacity / ${stringFromValue(state.values.quality, 'balanced')}`
           }
@@ -366,14 +420,14 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
       </TweakerPanel>
 
       <TweakerPanel
-        id={outputPanelId}
+        store={customItemPanelStore}
         theme={themes.custom}
         title="Custom Items"
         collapsible
+        defaultPlacement="bottom-right"
+        width="23rem"
         className="top-136 right-4 w-92 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-8"
-        defaultValues={customItemDefaults}
       >
-        <PanelStateObserver panelId={outputPanelId} onSnapshot={handlePanelSnapshot} />
         <TweakerGroup id="common-items" label="Common inputs">
           <TweakerSegmented
             field="density"
@@ -428,6 +482,7 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
         </TweakerGroup>
 
         <TweakerGroup id="visualization-items" label="Live visualizations">
+          <ValidatedPresetNameItem />
           <ShadcnChartItem />
           <MouseVelocitySparklineItem
             target={viewportPointerTarget}
@@ -448,21 +503,36 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
   )
 }
 
-function PanelStateObserver({
-  onSnapshot,
-  panelId,
-}: {
-  onSnapshot: (panelId: string, snapshot: PanelSnapshot) => void
-  panelId: string
-}) {
-  const panelState = useTweakerPanelSelector((state) => state)
-  const snapshot = useMemo(() => panelSnapshotFromState(panelState), [panelState])
-
-  useEffect(() => {
-    onSnapshot(panelId, snapshot)
-  }, [onSnapshot, panelId, snapshot])
-
-  return null
+function ValidatedPresetNameItem() {
+  return (
+    <TweakerItem<string>
+      contentLayout="block"
+      defaultValue="Studio"
+      description="This app-local item passes a Zod schema directly through the Standard Schema contract."
+      field="presetName"
+      label="Preset name"
+      reorderable={false}
+      validate={presetNameSchema}
+    >
+      {(item) => (
+        <input
+          aria-describedby={item.fieldState?.errors.length ? item.errorId : undefined}
+          aria-invalid={Boolean(item.fieldState?.errors.length)}
+          className="border-input bg-tweaker-control text-foreground focus-visible:ring-ring col-span-full h-8 w-full rounded-md border px-2 text-sm outline-none focus-visible:ring-2"
+          data-validated-preset-name
+          disabled={item.disabled}
+          id={item.inputId}
+          readOnly={item.readOnly}
+          value={
+            typeof item.fieldState?.draftValue === 'string'
+              ? item.fieldState.draftValue
+              : (item.value ?? '')
+          }
+          onChange={(event) => item.setInput(event.target.value)}
+        />
+      )}
+    </TweakerItem>
+  )
 }
 
 function SummaryCard({
@@ -700,6 +770,7 @@ function marksFromMeta(
   const value = state.meta[key]
   if (!Array.isArray(value)) return fallback
 
-  const marks = value.filter((mark): mark is number => typeof mark === 'number')
-  return marks.length > 0 ? marks : fallback
+  return value.length > 0 && value.every((mark) => typeof mark === 'number')
+    ? (value as TweakerSliderMark[])
+    : fallback
 }

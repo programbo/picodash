@@ -1,6 +1,12 @@
 import { Tooltip as TooltipPrimitive } from 'radix-ui'
 import type { ComponentProps } from 'react'
+import { useStore } from 'zustand'
 import { useTweakerTheme } from './tweaker-theme-context.js'
+import {
+  portalLayerZIndexForState,
+  portalLayerZIndexValue,
+  useTweakerProviderContext,
+} from './tweaker-provider.js'
 import { cn } from './utils.js'
 
 export function TooltipProvider({
@@ -29,13 +35,16 @@ export function TooltipContent({
   children,
   className,
   sideOffset,
+  style,
   ...props
 }: ComponentProps<typeof TooltipPrimitive.Content>) {
   const theme = useTweakerTheme()
+  const { portalContainer, store } = useTweakerProviderContext()
+  const zIndexFloor = useStore(store, (state) => portalLayerZIndexForState(state, 1))
   const usesTokenOffset = sideOffset === undefined
 
   return (
-    <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Portal container={portalContainer}>
       <TooltipPrimitive.Content
         {...props}
         data-tweaker-theme={theme}
@@ -45,6 +54,10 @@ export function TooltipContent({
           className,
         )}
         sideOffset={sideOffset ?? 0}
+        style={{
+          ...style,
+          zIndex: portalLayerZIndexValue('--tweaker-layer-tooltip', zIndexFloor),
+        }}
       >
         {children}
         <TooltipPrimitive.Arrow className="fill-tweaker-surface-raised" />

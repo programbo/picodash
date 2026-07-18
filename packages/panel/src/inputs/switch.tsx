@@ -1,25 +1,40 @@
-import { TweakerControl, type TweakerControlProps } from '../tweaker-control.js'
+import { useMemo } from 'react'
+import { TweakerItem, type TweakerInputItemProps } from '../tweaker-control.js'
 import { Switch } from '../ui.js'
+import type { TweakerParser } from '../tweaker-validation.js'
+import { canonicalTweakerValue, invalidTweakerValue } from './built-in-validation.js'
 
 export interface TweakerSwitchProps extends Omit<
-  TweakerControlProps<boolean>,
-  'children' | 'defaultValue'
+  TweakerInputItemProps<boolean>,
+  'children' | 'defaultValue' | 'parse'
 > {
   defaultValue?: boolean
 }
 
 export function TweakerSwitch({ defaultValue = false, ...controlProps }: TweakerSwitchProps) {
+  const normalizedDefault = typeof defaultValue === 'boolean' ? defaultValue : false
+  const parse = useMemo<TweakerParser<boolean>>(
+    () => (input, context) => {
+      if (typeof input === 'boolean') return { output: { value: input }, success: true }
+      const error = 'Switch value must be a boolean.'
+      return context.source === 'import'
+        ? invalidTweakerValue(error)
+        : canonicalTweakerValue(input, normalizedDefault, error)
+    },
+    [normalizedDefault],
+  )
+
   return (
-    <TweakerControl<boolean> {...controlProps} defaultValue={defaultValue}>
+    <TweakerItem<boolean> {...controlProps} defaultValue={normalizedDefault} parse={parse}>
       {(control) => (
         <Switch
           aria-labelledby={`${control.id}:label`}
           className="col-span-2"
-          checked={typeof control.value === 'boolean' ? control.value : defaultValue}
+          checked={typeof control.value === 'boolean' ? control.value : normalizedDefault}
           disabled={control.disabled || control.readOnly}
-          onCheckedChange={control.setValue}
+          onCheckedChange={control.setInput}
         />
       )}
-    </TweakerControl>
+    </TweakerItem>
   )
 }

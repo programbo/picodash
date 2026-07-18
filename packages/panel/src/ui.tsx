@@ -2,8 +2,14 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { Select as SelectPrimitive } from 'radix-ui'
 import type { ComponentProps } from 'react'
+import { useStore } from 'zustand'
 import { tweakerGeometryTokens } from './theme.js'
 import { useTweakerTheme } from './tweaker-theme-context.js'
+import {
+  portalLayerZIndexForState,
+  portalLayerZIndexValue,
+  useTweakerProviderContext,
+} from './tweaker-provider.js'
 import { cn } from './utils.js'
 
 export const buttonVariants = cva(
@@ -102,24 +108,31 @@ export function SelectContent({
   collisionPadding = tweakerGeometryTokens.selectCollisionPadding,
   position = 'popper',
   sideOffset = tweakerGeometryTokens.selectSideOffset,
+  style,
   ...props
 }: ComponentProps<typeof SelectPrimitive.Content>) {
   const theme = useTweakerTheme()
+  const { portalContainer, store } = useTweakerProviderContext()
+  const zIndexFloor = useStore(store, (state) => portalLayerZIndexForState(state, 2))
 
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={portalContainer}>
       <SelectPrimitive.Content
         {...props}
         data-tweaker-theme={theme}
         avoidCollisions
         className={cn(
-          'z-(--tweaker-layer-select) max-h-(--radix-select-content-available-height) max-w-(--radix-select-content-available-width) min-w-(--radix-select-trigger-width) overflow-hidden rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-(--tweaker-shadow-md)',
+          'pointer-events-auto z-(--tweaker-layer-select) max-h-(--radix-select-content-available-height) max-w-(--radix-select-content-available-width) min-w-(--radix-select-trigger-width) overflow-hidden rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-(--tweaker-shadow-md)',
           className,
         )}
         collisionPadding={collisionPadding}
         position={position}
         sideOffset={sideOffset}
         sticky="always"
+        style={{
+          ...style,
+          zIndex: portalLayerZIndexValue('--tweaker-layer-select', zIndexFloor),
+        }}
       >
         <SelectPrimitive.ScrollUpButton className="flex h-(--tweaker-control-height-md) cursor-default items-center justify-center">
           <ChevronUp className="size-(--tweaker-icon-sm)" aria-hidden="true" />

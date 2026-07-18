@@ -5,14 +5,14 @@ import {
   dataAttributesForStates,
   useResolvedPanelProp,
   type ReactiveProp,
+  type TweakerItemStates,
 } from './tweaker-control.js'
 import {
   TweakerReorderList,
   useRegisterTweakerItem,
   useTweakerPanelSelector,
   useTweakerPanelStoreApi,
-  type TweakerControlStates,
-  type TweakerPlacement,
+  type TweakerPin,
   type TweakerStatus,
 } from './tweaker-panel.js'
 import {
@@ -38,14 +38,14 @@ export interface TweakerGroupProps extends Omit<
   defaultCollapsed?: boolean
   id: string
   label?: ReactiveProp<ReactNode>
-  placement?: ReactiveProp<TweakerPlacement>
+  pin?: ReactiveProp<TweakerPin | undefined>
   reorderable?: ReactiveProp<boolean>
-  states?: ReactiveProp<TweakerControlStates>
+  states?: ReactiveProp<TweakerItemStates>
   status?: ReactiveProp<TweakerStatus | undefined>
   visible?: ReactiveProp<boolean>
 }
 
-const emptyStates: TweakerControlStates = {}
+const emptyStates: TweakerItemStates = {}
 
 export function TweakerGroup({
   children,
@@ -61,7 +61,7 @@ export function TweakerGroup({
   onPointerEnter,
   onPointerLeave,
   onPointerUpCapture,
-  placement: placementProp,
+  pin: pinProp,
   reorderable: reorderableProp,
   states: statesProp,
   status: statusProp,
@@ -77,7 +77,7 @@ export function TweakerGroup({
   )
   const label = useResolvedPanelProp(labelProp, id)
   const collapsible = useResolvedPanelProp(collapsibleProp, true) ?? true
-  const placement = useResolvedPanelProp(placementProp, 'auto') ?? 'auto'
+  const pin = useResolvedPanelProp(pinProp)
   const configuredReorderable = useResolvedPanelProp(reorderableProp, true) ?? true
   const states = useResolvedPanelProp(statesProp, emptyStates) ?? emptyStates
   const status = useResolvedPanelProp(statusProp)
@@ -94,7 +94,7 @@ export function TweakerGroup({
     parentId,
     reorderable,
     visualDragOffsetY,
-  } = useTweakerReorderItem(id, configuredReorderable, placement)
+  } = useTweakerReorderItem(id, configuredReorderable, pin)
   const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'section'>['transformTemplate']>>(
     () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
     [transformTemplateProp],
@@ -112,7 +112,7 @@ export function TweakerGroup({
     kind: 'group',
     label: labelText,
     parentId,
-    placement,
+    pin,
     reorderable: configuredReorderable,
   })
 
@@ -135,10 +135,11 @@ export function TweakerGroup({
       data-focused={interaction.focusedId === id ? 'true' : 'false'}
       data-group-id={id}
       data-hovered={interaction.hoveredId === id ? 'true' : 'false'}
+      data-item-id={id}
       data-item-kind="group"
-      data-order-band={placement}
+      data-order-band={pin ?? 'auto'}
       data-parent-id={parentId}
-      data-placement={placement}
+      data-pin={pin}
       data-reorderable={reorderable ? 'true' : 'false'}
       data-status={status}
       dragConstraints={dragConstraintsRef}

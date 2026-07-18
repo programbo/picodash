@@ -98,7 +98,6 @@
 
   /* Derived semantic roles keep custom themes internally consistent. */
   --_tweaker-color-surface-hover: var(--tweaker-color-surface-muted);
-  --_tweaker-color-border-muted: color-mix(in oklab, var(--tweaker-color-border) 80%, transparent);
   --_tweaker-color-well: color-mix(in oklab, var(--tweaker-color-surface-muted) 30%, transparent);
   --_tweaker-color-success-strong: color-mix(
     in oklab,

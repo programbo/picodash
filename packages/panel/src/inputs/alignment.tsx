@@ -1,14 +1,9 @@
 import { TextAlignCenter, TextAlignEnd, TextAlignStart, type LucideIcon } from 'lucide-react'
 import { ToggleGroup } from 'radix-ui'
-import { useEffect, type KeyboardEvent } from 'react'
-import {
-  TweakerControl,
-  TweakerImportAllowedStringValuesProvider,
-  type TweakerControlContextValue,
-  type TweakerControlProps,
-} from '../tweaker-control.js'
-import { synchronizeTweakerFieldValue } from '../tweaker-control-value.js'
-import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
+import { useMemo, type KeyboardEvent } from 'react'
+import { TweakerItem, type TweakerInputItemProps } from '../tweaker-control.js'
+import type { TweakerParser } from '../tweaker-validation.js'
+import { canonicalTweakerValue, invalidTweakerValue } from './built-in-validation.js'
 import { cn } from '../utils.js'
 
 export type TweakerAlignmentValue =
@@ -23,8 +18,8 @@ export type TweakerAlignmentValue =
   | 'bottom-right'
 
 export interface TweakerAlignmentProps extends Omit<
-  TweakerControlProps<TweakerAlignmentValue>,
-  'children' | 'defaultValue'
+  TweakerInputItemProps<TweakerAlignmentValue>,
+  'children' | 'defaultValue' | 'parse'
 > {
   defaultValue?: TweakerAlignmentValue
 }
@@ -56,85 +51,77 @@ export function TweakerAlignment({
   defaultValue = 'center',
   ...controlProps
 }: TweakerAlignmentProps) {
-  return (
-    <TweakerImportAllowedStringValuesProvider values={tweakerAlignmentValues}>
-      <TweakerControl<TweakerAlignmentValue> {...controlProps} defaultValue={defaultValue}>
-        {(control) => {
-          const value = normalizeAlignmentValue(control.value, defaultValue)
-
-          return (
-            <>
-              <TweakerAlignmentValueSynchronizer control={control} fallback={defaultValue} />
-              <ToggleGroup.Root
-                id={control.inputId}
-                aria-label="Alignment"
-                className="border-tweaker-control shadow-tweaker-sm rounded-tweaker-control col-span-2 grid grid-cols-3 justify-self-start overflow-hidden border bg-(--_tweaker-choice-background) p-(--tweaker-space-0-5)"
-                disabled={control.disabled || control.readOnly}
-                type="single"
-                value={value}
-                onValueChange={(nextValue) => {
-                  if (isTweakerAlignmentValue(nextValue)) control.setValue(nextValue)
-                }}
-              >
-                {tweakerAlignmentOptions.map((option, index) => {
-                  const AlignmentIcon = alignmentColumnIcons[index % 3] ?? TextAlignCenter
-                  const rowClassName = alignmentRowClasses[Math.floor(index / 3)] ?? 'items-center'
-                  const columnClassName =
-                    alignmentColumnClasses[Math.floor(index % 3)] ?? 'justify-center'
-
-                  return (
-                    <ToggleGroup.Item
-                      key={option.value}
-                      id={`${control.inputId}:${option.value}`}
-                      aria-label={option.label}
-                      className={cn(
-                        'relative flex size-(--tweaker-control-height-md) p-(--tweaker-space-1) text-tweaker-muted transition-colors duration-(--tweaker-duration-fast) outline-none hover:bg-tweaker-surface-muted hover:text-tweaker-text focus-visible:z-(--tweaker-layer-raised) focus-visible:ring-2 focus-visible:ring-tweaker-focus data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text disabled:pointer-events-none disabled:opacity-(--tweaker-opacity-disabled-soft)',
-                        index % 3 !== 0 && 'border-l border-tweaker-control',
-                        index >= 3 && 'border-t border-tweaker-control',
-                        rowClassName,
-                        columnClassName,
-                      )}
-                      data-alignment-index={index}
-                      title={option.label}
-                      value={option.value}
-                      onKeyDown={moveAlignmentFocusVertically}
-                    >
-                      <AlignmentIcon
-                        aria-hidden="true"
-                        className="size-(--tweaker-icon-sm)"
-                        strokeWidth={2}
-                      />
-                    </ToggleGroup.Item>
-                  )
-                })}
-              </ToggleGroup.Root>
-            </>
-          )
-        }}
-      </TweakerControl>
-    </TweakerImportAllowedStringValuesProvider>
+  const normalizedDefault = normalizeAlignmentValue(defaultValue)
+  const parse = useMemo<TweakerParser<TweakerAlignmentValue>>(
+    () => (input, context) => {
+      if (isTweakerAlignmentValue(input)) {
+        return { output: { value: input }, success: true }
+      }
+      const error = 'Alignment must be one of the nine supported positions.'
+      return context.source === 'import'
+        ? invalidTweakerValue(error)
+        : canonicalTweakerValue(input, normalizedDefault, error)
+    },
+    [normalizedDefault],
   )
-}
 
-function TweakerAlignmentValueSynchronizer({
-  control,
-  fallback,
-}: {
-  control: TweakerControlContextValue<TweakerAlignmentValue>
-  fallback: TweakerAlignmentValue
-}) {
-  const store = useTweakerPanelStoreApi()
+  return (
+    <TweakerItem<TweakerAlignmentValue>
+      {...controlProps}
+      defaultValue={normalizedDefault}
+      parse={parse}
+    >
+      {(control) => {
+        const value = normalizeAlignmentValue(control.value, normalizedDefault)
 
-  useEffect(() => {
-    synchronizeTweakerFieldValue(
-      control,
-      (currentValue) => normalizeAlignmentValue(currentValue, fallback),
-      (currentValue, normalizedValue) => currentValue === normalizedValue,
-      store,
-    )
-  }, [control, fallback, store])
+        return (
+          <ToggleGroup.Root
+            id={control.inputId}
+            aria-label="Alignment"
+            className="border-tweaker-control shadow-tweaker-sm rounded-tweaker-control col-span-2 grid grid-cols-3 justify-self-start overflow-hidden border bg-(--_tweaker-choice-background) p-(--tweaker-space-0-5)"
+            disabled={control.disabled || control.readOnly}
+            type="single"
+            value={value}
+            onValueChange={(nextValue) => {
+              if (isTweakerAlignmentValue(nextValue)) control.setInput(nextValue)
+            }}
+          >
+            {tweakerAlignmentOptions.map((option, index) => {
+              const AlignmentIcon = alignmentColumnIcons[index % 3] ?? TextAlignCenter
+              const rowClassName = alignmentRowClasses[Math.floor(index / 3)] ?? 'items-center'
+              const columnClassName =
+                alignmentColumnClasses[Math.floor(index % 3)] ?? 'justify-center'
 
-  return null
+              return (
+                <ToggleGroup.Item
+                  key={option.value}
+                  id={`${control.inputId}:${option.value}`}
+                  aria-label={option.label}
+                  className={cn(
+                    'relative flex size-(--tweaker-control-height-md) p-(--tweaker-space-1) text-tweaker-muted transition-colors duration-(--tweaker-duration-fast) outline-none hover:bg-tweaker-surface-muted hover:text-tweaker-text focus-visible:z-(--tweaker-layer-raised) focus-visible:ring-2 focus-visible:ring-tweaker-focus data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text disabled:pointer-events-none disabled:opacity-(--tweaker-opacity-disabled-soft)',
+                    index % 3 !== 0 && 'border-l border-tweaker-control',
+                    index >= 3 && 'border-t border-tweaker-control',
+                    rowClassName,
+                    columnClassName,
+                  )}
+                  data-alignment-index={index}
+                  title={option.label}
+                  value={option.value}
+                  onKeyDown={moveAlignmentFocusVertically}
+                >
+                  <AlignmentIcon
+                    aria-hidden="true"
+                    className="size-(--tweaker-icon-sm)"
+                    strokeWidth={2}
+                  />
+                </ToggleGroup.Item>
+              )
+            })}
+          </ToggleGroup.Root>
+        )
+      }}
+    </TweakerItem>
+  )
 }
 
 export function isTweakerAlignmentValue(value: unknown): value is TweakerAlignmentValue {

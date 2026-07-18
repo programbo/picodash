@@ -5,25 +5,26 @@ import type {
   TweakerItemRegistration,
   TweakerPanelState,
   TweakerPanelStore,
-  TweakerPlacement,
+  TweakerPin,
   TweakerReorderItemLayout,
 } from './tweaker-panel-types.js'
 
 export const rootGroupId = 'root'
+export type TweakerOrderBand = 'auto' | TweakerPin
 
-export function bandForItem(item: Pick<TweakerItemRegistration, 'placement'>): TweakerPlacement {
-  return item.placement
+export function bandForItem(item: Pick<TweakerItemRegistration, 'pin'>): TweakerOrderBand {
+  return item.pin ?? 'auto'
 }
 
 export function hasVisibleReorderableSibling(
   state: Pick<TweakerPanelState, 'items'>,
-  item: Pick<TweakerItemRegistration, 'id' | 'parentId' | 'placement'>,
+  item: Pick<TweakerItemRegistration, 'id' | 'parentId' | 'pin'>,
 ) {
   return Object.values(state.items).some(
     (sibling) =>
       sibling.id !== item.id &&
       sibling.parentId === item.parentId &&
-      sibling.placement === item.placement &&
+      sibling.pin === item.pin &&
       sibling.reorderable &&
       !sibling.hidden,
   )
@@ -58,7 +59,7 @@ export function orderIndexForItem(state: TweakerPanelState, itemId: string) {
   const item = state.items[itemId]
   if (!item) return 0
   const index = orderedItemsForParent(state, item.parentId)
-    .filter((entry) => entry.item.placement === item.placement)
+    .filter((entry) => entry.item.pin === item.pin)
     .findIndex((entry) => entry.item.id === itemId)
   return index < 0 ? 0 : index
 }
@@ -166,26 +167,24 @@ export function normalizeParentOrder(
   })
   const full = [...base, ...children.filter((item) => !seen.has(item.id)).map((item) => item.id)]
   const byBand = {
-    auto: full.filter((id) => items[id]?.placement === 'auto'),
-    end: full.filter((id) => items[id]?.placement === 'end'),
-    start: full.filter((id) => items[id]?.placement === 'start'),
+    auto: full.filter((id) => items[id]?.pin === undefined),
+    end: full.filter((id) => items[id]?.pin === 'end'),
+    start: full.filter((id) => items[id]?.pin === 'start'),
   }
   return [...byBand.start, ...byBand.auto, ...byBand.end]
 }
 
 type TweakerChildProps = {
   field?: unknown
-  fieldId?: unknown
   id?: unknown
 }
 
 function itemIdFromTweakerChild(child: ReactNode) {
   if (!isValidElement<TweakerChildProps>(child)) return undefined
 
-  const { field, fieldId, id } = child.props
+  const { field, id } = child.props
   if (typeof id === 'string') return id
   if (typeof field === 'string') return field
-  if (typeof fieldId === 'string') return fieldId
   return undefined
 }
 

@@ -1,21 +1,24 @@
 import { ImageOff } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  TweakerControl,
-  type TweakerControlContextValue,
+  TweakerItem,
   useResolvedPanelProp,
   type ReactiveProp,
-  type TweakerControlProps,
+  type TweakerInputItemProps,
 } from '../tweaker-control.js'
-import { synchronizeOptionalTweakerFieldValue } from '../tweaker-control-value.js'
-import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { cn } from '../utils.js'
+import type { TweakerParser } from '../tweaker-validation.js'
+import {
+  canonicalTweakerValue,
+  invalidTweakerValue,
+  unsetTweakerValue,
+} from './built-in-validation.js'
 
 export type TweakerMediaObjectFit = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'
 
 export interface TweakerMediaPreviewProps extends Omit<
-  TweakerControlProps<string>,
-  'children' | 'onValueChange' | 'readOnly'
+  TweakerInputItemProps<string>,
+  'children' | 'onValueChange' | 'parse' | 'readOnly'
 > {
   alt: string
   fallback?: ReactNode
@@ -35,47 +38,43 @@ export function TweakerMediaPreview({
 }: TweakerMediaPreviewProps) {
   const src = useResolvedPanelProp(srcProp)
   const normalizedDefaultValue = normalizeTweakerMediaUrl(controlProps.defaultValue)
+  const parse = useMemo<TweakerParser<string>>(
+    () => (input, context) => {
+      const normalized = normalizeTweakerMediaUrl(input)
+      if (normalized !== undefined) {
+        return canonicalTweakerValue(
+          input,
+          normalized,
+          'Media URL must be trimmed and use a safe image URL scheme.',
+        )
+      }
+      const error = 'Media URL must be a safe HTTP, HTTPS, blob, or supported image data URL.'
+      return context.source === 'import'
+        ? invalidTweakerValue(error)
+        : unsetTweakerValue(input, error)
+    },
+    [],
+  )
 
   return (
-    <TweakerControl<string>
+    <TweakerItem<string>
       {...controlProps}
       contentLayout={contentLayout}
       defaultValue={normalizedDefaultValue}
+      parse={parse}
       readOnly
     >
       {(control) => (
-        <>
-          <TweakerMediaPreviewValueSynchronizer control={control} />
-          <MediaPreviewSurface
-            alt={alt}
-            className={imageClassName}
-            fallback={fallback}
-            objectFit={objectFit}
-            src={normalizeTweakerMediaUrl(src ?? control.value ?? normalizedDefaultValue)}
-          />
-        </>
+        <MediaPreviewSurface
+          alt={alt}
+          className={imageClassName}
+          fallback={fallback}
+          objectFit={objectFit}
+          src={normalizeTweakerMediaUrl(src ?? control.value ?? normalizedDefaultValue)}
+        />
       )}
-    </TweakerControl>
+    </TweakerItem>
   )
-}
-
-function TweakerMediaPreviewValueSynchronizer({
-  control,
-}: {
-  control: TweakerControlContextValue<string>
-}) {
-  const store = useTweakerPanelStoreApi()
-
-  useEffect(() => {
-    synchronizeOptionalTweakerFieldValue(
-      control,
-      normalizeTweakerMediaUrl,
-      (currentValue, normalizedValue) => currentValue === normalizedValue,
-      store,
-    )
-  }, [control, store])
-
-  return null
 }
 
 function MediaPreviewSurface({

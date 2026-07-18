@@ -9,7 +9,8 @@
     "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"],
-      "panel": ["../../packages/panel/src/index.ts"]
+      "panel": ["../../packages/panel/src/index.ts"],
+      "panel/advanced": ["../../packages/panel/src/advanced.ts"]
     },
 
     /* Bundler mode */
