@@ -6,6 +6,7 @@ import {
 import { bandForItem, itemCanReorder, normalizeAllOrders, rootGroupId } from './tweaker-order.js'
 import type {
   TweakerFieldState,
+  TweakerItemRegistration,
   TweakerPanelState,
   TweakerPanelStore,
   TweakerPlacement,
@@ -24,6 +25,11 @@ export function createTweakerPanelStore({
   initialMeta?: Record<string, TweakerValue>
   panelId: string
 }): TweakerPanelStore {
+  const registrationHistory = new Map<
+    string,
+    Pick<TweakerItemRegistration, 'defaultValue' | 'fieldId' | 'parentId'>
+  >()
+
   return createStore<TweakerPanelState>()((set) => ({
     collapsedGroups: {},
     fields: Object.fromEntries(
@@ -39,8 +45,16 @@ export function createTweakerPanelStore({
     panelId,
     values: defaultValues,
     registerItem(item) {
+      const historicalRegistration = registrationHistory.get(item.id)
+      registrationHistory.set(item.id, {
+        defaultValue: item.defaultValue,
+        fieldId: item.fieldId,
+        parentId: item.parentId,
+      })
+
       set((state) => {
-        const previous = state.items[item.id]
+        const mountedRegistration = state.items[item.id]
+        const previous = mountedRegistration ?? historicalRegistration
         const items = { ...state.items, [item.id]: item }
         let order = state.order
 
@@ -49,7 +63,7 @@ export function createTweakerPanelStore({
         }
 
         const parentOrder = order[item.parentId] ?? []
-        const reclaimsOrderSlot = previous === undefined && parentOrder.includes(item.id)
+        const reclaimsOrderSlot = mountedRegistration === undefined && parentOrder.includes(item.id)
         if (!parentOrder.includes(item.id)) {
           order = { ...order, [item.parentId]: [...parentOrder, item.id] }
         } else if (order === state.order) {

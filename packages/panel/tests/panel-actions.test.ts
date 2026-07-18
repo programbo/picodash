@@ -115,6 +115,7 @@ test('retains panel and dynamic field defaults across unchanged control fallback
   })
   expect(store.getState().fields.opacity?.defaultValue).toBe(0.72)
   store.getState().setFieldDefault('opacity', 0.85)
+  store.getState().unregisterItem('opacity-control')
   store.getState().registerItem({
     fieldId: 'opacity',
     id: 'opacity-control',
@@ -163,6 +164,42 @@ test('updates the field default when a registered item declares a genuine defaul
 
   expect(store.getState().values.opacity).toBeNull()
   expect(store.getState().fields.opacity?.defaultValue).toBeNull()
+})
+
+test('updates reset metadata when a control remounts with a new default', () => {
+  const store = createTweakerPanelStore({ panelId: 'scene' })
+  registerField(store, 'opacity', 0)
+  store.getState().setFieldValue('opacity', 0.4)
+  store.setState((state) => ({
+    fields: {
+      ...state.fields,
+      opacity: {
+        ...state.fields.opacity!,
+        errors: ['Out of range'],
+      },
+    },
+  }))
+
+  store.getState().unregisterItem('opacity-control')
+  registerField(store, 'opacity', 0.75)
+
+  expect(store.getState().values.opacity).toBe(0.4)
+  expect(store.getState().fields.opacity).toEqual({
+    defaultValue: 0.75,
+    dirty: true,
+    errors: ['Out of range'],
+    touched: true,
+  })
+
+  store.getState().resetRegisteredFields()
+
+  expect(store.getState().values.opacity).toBe(0.75)
+  expect(store.getState().fields.opacity).toEqual({
+    defaultValue: 0.75,
+    dirty: false,
+    errors: ['Out of range'],
+    touched: false,
+  })
 })
 
 test('serializes only currently registered fields as JSON and YAML', () => {
