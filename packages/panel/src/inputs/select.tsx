@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import {
   TweakerControl,
+  TweakerImportAllowedStringValuesProvider,
   useResolvedPanelProp,
   type ReactiveProp,
   type TweakerControlProps,
@@ -30,43 +31,55 @@ export function TweakerSelect({
 }: TweakerSelectProps) {
   const options = useResolvedPanelProp(optionsProp, []) ?? []
   const firstValue = optionValue(options[0])
+  const importAllowedValuesKey = JSON.stringify(selectOptionValues(options))
+  const importAllowedValues = useMemo(
+    () => JSON.parse(importAllowedValuesKey) as string[],
+    [importAllowedValuesKey],
+  )
 
   return (
-    <TweakerControl<string> {...controlProps} defaultValue={defaultValue ?? firstValue}>
-      {(control) => (
-        <Select
-          disabled={control.disabled || control.readOnly}
-          value={
-            typeof control.value === 'string' ? control.value : (defaultValue ?? firstValue ?? '')
-          }
-          onValueChange={control.setValue}
-        >
-          <SelectTrigger id={control.inputId} className="col-span-2">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((option) => {
-              const value = optionValue(option)
-              if (value === undefined) return null
+    <TweakerImportAllowedStringValuesProvider values={importAllowedValues}>
+      <TweakerControl<string> {...controlProps} defaultValue={defaultValue ?? firstValue}>
+        {(control) => (
+          <Select
+            disabled={control.disabled || control.readOnly}
+            value={
+              typeof control.value === 'string' ? control.value : (defaultValue ?? firstValue ?? '')
+            }
+            onValueChange={control.setValue}
+          >
+            <SelectTrigger id={control.inputId} className="col-span-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((option) => {
+                const value = optionValue(option)
 
-              return (
-                <SelectItem
-                  key={value}
-                  disabled={optionDisabled(option)}
-                  textValue={optionTextValue(option)}
-                  value={value}
-                >
-                  {optionLabel(option)}
-                </SelectItem>
-              )
-            })}
-          </SelectContent>
-        </Select>
-      )}
-    </TweakerControl>
+                return (
+                  <SelectItem
+                    key={value}
+                    disabled={optionDisabled(option)}
+                    textValue={optionTextValue(option)}
+                    value={value}
+                  >
+                    {optionLabel(option)}
+                  </SelectItem>
+                )
+              })}
+            </SelectContent>
+          </Select>
+        )}
+      </TweakerControl>
+    </TweakerImportAllowedStringValuesProvider>
   )
 }
 
+export function selectOptionValues(options: readonly TweakerSelectOption[]): string[] {
+  return Array.from(new Set(options.map((option) => optionValue(option))))
+}
+
+function optionValue(option: TweakerSelectOption): string
+function optionValue(option: TweakerSelectOption | undefined): string | undefined
 function optionValue(option: TweakerSelectOption | undefined) {
   return typeof option === 'string' ? option : option?.value
 }

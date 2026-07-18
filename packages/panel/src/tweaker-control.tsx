@@ -25,6 +25,7 @@ import {
 import { rootGroupId } from './tweaker-order.js'
 import { TweakerReorderIndicator } from './tweaker-reorder-indicator.js'
 import { tweakerMotionTokens } from './theme.js'
+import { tweakerItemImportAllowedStringValues } from './tweaker-panel-types.js'
 import { cn, toDataValue, toKebabCase } from './utils.js'
 
 export type ReactiveProp<T> = T | ((state: TweakerPanelState) => T)
@@ -68,6 +69,23 @@ export interface TweakerControlProps<TValue extends TweakerValue = TweakerValue>
 const emptyStates: TweakerControlStates = {}
 const TweakerControlContext = createContext<TweakerControlContextValue | null>(null)
 const TweakerDisplayOnlyContext = createContext(false)
+const TweakerImportAllowedStringValuesContext = createContext<readonly string[] | undefined>(
+  undefined,
+)
+
+export function TweakerImportAllowedStringValuesProvider({
+  children,
+  values,
+}: {
+  children: ReactNode
+  values: readonly string[]
+}) {
+  return (
+    <TweakerImportAllowedStringValuesContext.Provider value={values}>
+      {children}
+    </TweakerImportAllowedStringValuesContext.Provider>
+  )
+}
 
 export function TweakerDisplayOnlyProvider({ children }: { children: ReactNode }) {
   return <TweakerDisplayOnlyContext.Provider value>{children}</TweakerDisplayOnlyContext.Provider>
@@ -104,6 +122,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
 }: TweakerControlProps<TValue>) {
   const reactId = useId()
   const displayOnly = useContext(TweakerDisplayOnlyContext)
+  const importAllowedStringValues = useContext(TweakerImportAllowedStringValuesContext)
   const controlId = id ?? field ?? `tweaker-control-${reactId.replaceAll(':', '')}`
   const inputId = `${controlId}:input`
   const labelId = `${controlId}:label`
@@ -193,6 +212,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   )
 
   useRegisterTweakerItem({
+    [tweakerItemImportAllowedStringValues]: importAllowedStringValues,
     defaultValue,
     displayOnly,
     fieldId: field,

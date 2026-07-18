@@ -1,4 +1,5 @@
 import { expect, test } from 'vite-plus/test'
+import { selectOptionValues } from '../src/inputs/select.tsx'
 import { collapsibleGroupsForState } from '../src/tweaker-panel-action-state.ts'
 import {
   importTweakerPanelDocument,
@@ -9,6 +10,7 @@ import {
   validateTweakerPanelDocument,
 } from '../src/tweaker-panel-documents.ts'
 import { createTweakerPanelStore } from '../src/tweaker-panel-store.ts'
+import { tweakerItemImportAllowedStringValues } from '../src/tweaker-panel-types.ts'
 import type {
   TweakerItemRegistration,
   TweakerPanelStore,
@@ -260,6 +262,45 @@ test('parses and validates JSON and YAML panel documents', () => {
   ).toEqual({ quality: 'draft', range: [3, 7] })
 })
 
+test('validates imported select values against the latest registered options', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: { enabled: true, quality: 'balanced' },
+    panelId: 'inspect',
+  })
+  registerField(store, 'enabled', true)
+  registerSelectField(
+    store,
+    'quality',
+    'balanced',
+    selectOptionValues([
+      'balanced',
+      { disabled: true, label: 'Draft (unavailable)', value: 'draft' },
+      'final',
+    ]),
+  )
+
+  importTweakerPanelDocument(store, '{"quality":"final","enabled":false}', 'json')
+  expect(store.getState().values).toMatchObject({ enabled: false, quality: 'final' })
+
+  importTweakerPanelDocument(store, 'quality: draft\nenabled: true\n', 'yaml')
+  expect(store.getState().values).toMatchObject({ enabled: true, quality: 'draft' })
+
+  registerSelectField(store, 'quality', 'balanced', selectOptionValues(['balanced', 'preview']))
+  const initialValues = store.getState().values
+  const initialFields = store.getState().fields
+
+  expect(() =>
+    importTweakerPanelDocument(store, '{"quality":"final","enabled":false}', 'json'),
+  ).toThrow(/Field "quality" must be one of: "balanced", "preview"/)
+  expect(() =>
+    importTweakerPanelDocument(store, 'quality: draft\nenabled: false\n', 'yaml'),
+  ).toThrow(/Field "quality" must be one of: "balanced", "preview"/)
+
+  expect(store.getState().values).toBe(initialValues)
+  expect(store.getState().fields).toBe(initialFields)
+  expect(store.getState().values).toMatchObject({ enabled: true, quality: 'draft' })
+})
+
 test('rejects invalid imports without partially updating the store', () => {
   const store = createTweakerPanelStore({
     defaultValues: { enabled: true, quality: 'balanced' },
@@ -323,5 +364,16 @@ function registerField(
     placement: 'auto',
     reorderable: true,
     ...overrides,
+  })
+}
+
+function registerSelectField(
+  store: TweakerPanelStore,
+  fieldId: string,
+  defaultValue: string,
+  allowedValues: readonly string[],
+) {
+  registerField(store, fieldId, defaultValue, {
+    [tweakerItemImportAllowedStringValues]: allowedValues,
   })
 }

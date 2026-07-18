@@ -3,7 +3,13 @@ import {
   registeredFieldIdsForState,
   registeredWritableFieldIdsForState,
 } from './tweaker-panel-action-state.js'
-import type { TweakerPanelState, TweakerPanelStore, TweakerValue } from './tweaker-panel-types.js'
+import {
+  tweakerItemImportAllowedStringValues,
+  type TweakerItemRegistration,
+  type TweakerPanelState,
+  type TweakerPanelStore,
+  type TweakerValue,
+} from './tweaker-panel-types.js'
 
 export type TweakerPanelDocumentFormat = 'json' | 'yaml'
 
@@ -65,12 +71,26 @@ export function validateTweakerPanelDocument(
     const expectedValue = hasCurrentValue
       ? state.values[fieldId]
       : state.fields[fieldId]?.defaultValue
-    if (expectedValue === undefined) continue
+    if (expectedValue !== undefined) {
+      const expectedKind = coarseJsonKind(expectedValue)
+      const importedKind = coarseJsonKind(value)
+      if (expectedKind !== importedKind) {
+        throw new Error(`Field "${fieldId}" expects ${expectedKind}, received ${importedKind}.`)
+      }
+    }
 
-    const expectedKind = coarseJsonKind(expectedValue)
-    const importedKind = coarseJsonKind(value)
-    if (expectedKind !== importedKind) {
-      throw new Error(`Field "${fieldId}" expects ${expectedKind}, received ${importedKind}.`)
+    const allowedStringValues = importAllowedStringValuesForField(state.items, fieldId)
+    if (
+      allowedStringValues !== undefined &&
+      (typeof value !== 'string' || !allowedStringValues.includes(value))
+    ) {
+      throw new Error(
+        allowedStringValues.length === 0
+          ? `Field "${fieldId}" has no registered options.`
+          : `Field "${fieldId}" must be one of: ${allowedStringValues
+              .map(formatAllowedValue)
+              .join(', ')}.`,
+      )
     }
   }
 
@@ -126,6 +146,26 @@ function coarseJsonKind(value: unknown) {
   if (value === null) return 'null'
   if (Array.isArray(value)) return 'array'
   return typeof value === 'object' ? 'object' : typeof value
+}
+
+function importAllowedStringValuesForField(
+  items: Record<string, TweakerItemRegistration>,
+  fieldId: string,
+) {
+  const constraints = Object.values(items)
+    .filter((item) => item.fieldId === fieldId)
+    .map((item) => item[tweakerItemImportAllowedStringValues])
+    .filter((values): values is readonly string[] => values !== undefined)
+  if (constraints.length === 0) return undefined
+
+  return constraints.reduce<string[]>(
+    (allowedValues, values) => allowedValues.filter((value) => values.includes(value)),
+    [...constraints[0]!],
+  )
+}
+
+function formatAllowedValue(value: string) {
+  return JSON.stringify(value)
 }
 
 function isRecord(value: unknown): value is Record<string, TweakerValue> {

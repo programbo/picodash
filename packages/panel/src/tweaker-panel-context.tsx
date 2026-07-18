@@ -5,6 +5,7 @@ import type {
   TweakerPanelState,
   TweakerPanelStore,
 } from './tweaker-panel-types.js'
+import { tweakerItemImportAllowedStringValues } from './tweaker-panel-types.js'
 
 const TweakerPanelContext = createContext<TweakerPanelStore | null>(null)
 
@@ -32,24 +33,27 @@ export function useTweakerPanelState() {
   return useTweakerPanelSelector((state) => state)
 }
 
-export function useRegisterTweakerItem({
-  collapsible,
-  defaultCollapsed,
-  defaultValue,
-  displayOnly,
-  fieldId,
-  hidden,
-  id,
-  kind,
-  label,
-  parentId,
-  placement,
-  reorderable,
-}: TweakerItemRegistration) {
+export function useRegisterTweakerItem(item: TweakerItemRegistration) {
+  const {
+    collapsible,
+    defaultCollapsed,
+    defaultValue,
+    displayOnly,
+    fieldId,
+    hidden,
+    id,
+    kind,
+    label,
+    parentId,
+    placement,
+    reorderable,
+  } = item
+  const importAllowedStringValues = item[tweakerItemImportAllowedStringValues]
   const store = useTweakerPanelStoreApi()
 
   useEffect(() => {
     store.getState().registerItem({
+      [tweakerItemImportAllowedStringValues]: importAllowedStringValues,
       collapsible,
       defaultCollapsed,
       defaultValue,
@@ -71,6 +75,7 @@ export function useRegisterTweakerItem({
     fieldId,
     hidden,
     id,
+    importAllowedStringValues,
     kind,
     label,
     parentId,

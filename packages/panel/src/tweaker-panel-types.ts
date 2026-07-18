@@ -16,6 +16,8 @@ export type TweakerStatus = 'info' | 'warning' | 'alert' | 'error'
 export type TweakerControlStateValue = boolean | string | number | null | undefined
 export type TweakerControlStates = Record<string, TweakerControlStateValue>
 
+export const tweakerItemImportAllowedStringValues = Symbol('tweakerItemImportAllowedStringValues')
+
 export interface TweakerFieldState {
   defaultValue?: TweakerValue
   dirty: boolean
@@ -24,6 +26,7 @@ export interface TweakerFieldState {
 }
 
 export interface TweakerItemRegistration {
+  [tweakerItemImportAllowedStringValues]?: readonly string[]
   collapsible?: boolean
   defaultCollapsed?: boolean
   defaultValue?: TweakerValue
