@@ -94,7 +94,7 @@ export function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        'flex h-(--tweaker-control-height-sm) w-full items-center justify-between gap-(--tweaker-space-1) rounded-tweaker-control border-0 border-b border-tweaker-control bg-transparent py-(--tweaker-space-0-5) pr-6 pl-(--tweaker-space-1-5) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) text-tweaker-text shadow-none outline-none transition-colors duration-(--tweaker-duration-fast) focus:bg-tweaker-canvas focus-visible:ring-2 focus-visible:ring-tweaker-focus disabled:cursor-not-allowed disabled:opacity-(--tweaker-opacity-disabled)',
+        'flex h-(--tweaker-control-height-sm) w-full items-center justify-between gap-(--tweaker-space-1) rounded-tweaker-control border-0 border-b border-tweaker-control bg-transparent py-(--tweaker-space-0-5) pr-1 pl-(--tweaker-space-1-5) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) text-tweaker-text shadow-none outline-none transition-colors duration-(--tweaker-duration-fast) focus:bg-tweaker-canvas focus-visible:ring-2 focus-visible:ring-tweaker-focus disabled:cursor-not-allowed disabled:opacity-(--tweaker-opacity-disabled)',
         className,
       )}
       {...props}
@@ -168,7 +168,7 @@ export function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        'relative flex h-(--tweaker-control-height-md) w-full cursor-default items-center rounded-tweaker-control pr-8 pl-8 text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-(--tweaker-opacity-disabled) data-[highlighted]:bg-tweaker-surface-muted data-[highlighted]:text-tweaker-text',
+        'relative flex h-(--tweaker-control-height-md) w-full cursor-default items-center rounded-tweaker-control pr-8 pl-8 text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-(--tweaker-opacity-disabled) data-highlighted:bg-tweaker-surface-muted data-highlighted:text-tweaker-text',
         className,
       )}
       {...props}

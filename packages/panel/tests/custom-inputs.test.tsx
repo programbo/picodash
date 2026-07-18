@@ -94,7 +94,7 @@ test('normalizes select values across dynamic and disabled options', () => {
   expect(normalizeSelectValue('missing', [])).toBeUndefined()
 })
 
-test('validates every alignment and falls back to centre', () => {
+test('validates every alignment and falls back to center', () => {
   expect(tweakerAlignmentOptions).toHaveLength(9)
   expect(tweakerAlignmentValues).toEqual(tweakerAlignmentOptions.map(({ value }) => value))
   expect(tweakerAlignmentOptions.every(({ value }) => isTweakerAlignmentValue(value))).toBe(true)

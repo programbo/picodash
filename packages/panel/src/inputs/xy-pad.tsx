@@ -262,7 +262,7 @@ function XYPadSurface({
           <motion.output
             ref={coordinateRef}
             aria-hidden="true"
-            className="bg-tweaker-text/90 text-tweaker-canvas rounded-tweaker-control pointer-events-none absolute top-0 left-0 z-(--tweaker-layer-raised) px-(--tweaker-space-1-5) py-(--tweaker-space-1) text-(length:--tweaker-font-size-xs) leading-none font-(--tweaker-font-medium) whitespace-nowrap tabular-nums shadow-(--tweaker-shadow-md)"
+            className="bg-tweaker-text/90 text-tweaker-canvas rounded-tweaker-control pointer-events-none absolute top-0 left-0 z-(--tweaker-layer-raised) px-(--tweaker-space-1-5) py-(--tweaker-space-1) text-(length:--tweaker-font-size-xs) leading-(--tweaker-line-none) font-(--tweaker-font-medium) whitespace-nowrap tabular-nums shadow-(--tweaker-shadow-md)"
             style={{ x: coordinateX, y: coordinateY, willChange: 'transform' }}
           >
             X {formatXYValue(value.x, bounds.step)} · Y {formatXYValue(value.y, bounds.step)}

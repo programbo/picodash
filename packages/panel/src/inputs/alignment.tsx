@@ -3,16 +3,23 @@ import type { TweakerInputItemProps } from '../tweaker-control.js'
 import { cn } from '../utils.js'
 import { TweakerMatrix2D, type TweakerMatrix2DOption } from './matrix-2d.js'
 
-export type TweakerAlignmentValue =
-  | 'top-left'
-  | 'top-center'
-  | 'top-right'
-  | 'middle-left'
-  | 'center'
-  | 'middle-right'
-  | 'bottom-left'
-  | 'bottom-center'
-  | 'bottom-right'
+const alignmentRows = [
+  { label: 'Top', value: 'top' },
+  { label: 'Middle', value: 'middle' },
+  { label: 'Bottom', value: 'bottom' },
+] as const
+const alignmentColumns = [
+  { label: 'left', value: 'left' },
+  { label: 'center', value: 'center' },
+  { label: 'right', value: 'right' },
+] as const
+
+type AlignmentRow = (typeof alignmentRows)[number]['value']
+type AlignmentColumn = (typeof alignmentColumns)[number]['value']
+
+type AlignmentPosition = `${AlignmentRow}-${AlignmentColumn}`
+
+export type TweakerAlignmentValue = Exclude<AlignmentPosition, 'middle-center'> | 'center'
 
 export interface TweakerAlignmentProps extends Omit<
   TweakerInputItemProps<TweakerAlignmentValue>,
@@ -21,17 +28,21 @@ export interface TweakerAlignmentProps extends Omit<
   defaultValue?: TweakerAlignmentValue
 }
 
-export const tweakerAlignmentOptions = [
-  { label: 'Top left', value: 'top-left' },
-  { label: 'Top centre', value: 'top-center' },
-  { label: 'Top right', value: 'top-right' },
-  { label: 'Middle left', value: 'middle-left' },
-  { label: 'Centre', value: 'center' },
-  { label: 'Middle right', value: 'middle-right' },
-  { label: 'Bottom left', value: 'bottom-left' },
-  { label: 'Bottom centre', value: 'bottom-center' },
-  { label: 'Bottom right', value: 'bottom-right' },
-] as const satisfies readonly { label: string; value: TweakerAlignmentValue }[]
+export const tweakerAlignmentOptions = alignmentRows.reduce(
+  (options, row) => {
+    return [
+      ...options,
+      ...alignmentColumns.map((column) => ({
+        label: `${row.label} ${column.label}`,
+        value:
+          row.value === 'middle' && column.value === 'center'
+            ? 'center'
+            : (`${row.value}-${column.value}` as TweakerAlignmentValue),
+      })),
+    ]
+  },
+  [] as { label: string; value: TweakerAlignmentValue }[],
+)
 
 export const tweakerAlignmentValues = tweakerAlignmentOptions.map(({ value }) => value)
 
@@ -76,29 +87,28 @@ export function normalizeAlignmentValue(
 ): TweakerAlignmentValue {
   return isTweakerAlignmentValue(value) ? value : fallback
 }
+const columns = alignmentColumns.length
+const tweakerAlignmentMatrixOptions = Array.from({ length: columns }, (_, rowIndex) =>
+  tweakerAlignmentOptions
+    .slice(rowIndex * columns, rowIndex * columns + columns)
+    .map((option, columnIndex) => {
+      const AlignmentIcon = alignmentColumnIcons[columnIndex] ?? TextAlignCenter
 
-const tweakerAlignmentMatrixOptions = Array.from({ length: 3 }, (_, rowIndex) =>
-  tweakerAlignmentOptions.slice(rowIndex * 3, rowIndex * 3 + 3).map((option, columnIndex) => {
-    const index = rowIndex * 3 + columnIndex
-    const AlignmentIcon = alignmentColumnIcons[columnIndex] ?? TextAlignCenter
-    const rowClassName = alignmentRowClasses[rowIndex] ?? 'items-center'
-    const columnClassName = alignmentColumnClasses[columnIndex] ?? 'justify-center'
-
-    return {
-      'aria-label': option.label,
-      children: (
-        <AlignmentIcon aria-hidden="true" className="size-(--tweaker-icon-sm)" strokeWidth={2} />
-      ),
-      className: cn(
-        'relative flex size-(--tweaker-control-height-md) p-(--tweaker-space-1) text-tweaker-muted transition-colors duration-(--tweaker-duration-fast) hover:bg-tweaker-surface-muted hover:text-tweaker-text data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text',
-        columnIndex !== 0 && 'border-l border-tweaker-control',
-        rowIndex !== 0 && 'border-t border-tweaker-control',
-        rowClassName,
-        columnClassName,
-      ),
-      'data-alignment-index': index,
-      title: option.label,
-      value: option.value,
-    }
-  }),
+      return {
+        'aria-label': option.label,
+        children: (
+          <AlignmentIcon aria-hidden="true" className="size-(--tweaker-icon-sm)" strokeWidth={2} />
+        ),
+        className: cn(
+          'relative flex size-(--tweaker-control-height-md) p-(--tweaker-space-1) text-tweaker-muted transition-colors duration-(--tweaker-duration-fast) hover:bg-tweaker-surface-muted hover:text-tweaker-text data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text',
+          columnIndex !== 0 && 'border-l border-tweaker-control',
+          rowIndex !== 0 && 'border-t border-tweaker-control',
+          alignmentRowClasses[rowIndex],
+          alignmentColumnClasses[columnIndex],
+        ),
+        'data-alignment-index': rowIndex * columns + columnIndex,
+        title: option.label,
+        value: option.value,
+      }
+    }),
 ) satisfies readonly (readonly TweakerMatrix2DOption<TweakerAlignmentValue>[])[]

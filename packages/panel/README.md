@@ -336,7 +336,8 @@ The complete optional public system contract is:
 - Typography: `--tweaker-font-family`, `--tweaker-font-size-xs`,
   `--tweaker-font-size-sm`, `--tweaker-font-size-md`, `--tweaker-font-size-lg`,
   `--tweaker-font-size-xl`, `--tweaker-font-size-2xl`, `--tweaker-font-size-3xl`,
-  `--tweaker-line-tight`, `--tweaker-line-normal`, `--tweaker-line-relaxed`,
+  `--tweaker-line-none`, `--tweaker-line-tight`, `--tweaker-line-normal`,
+  `--tweaker-line-relaxed`,
   `--tweaker-font-light`, `--tweaker-font-normal`, `--tweaker-font-medium`,
   `--tweaker-font-semibold`, `--tweaker-tracking-normal`, `--tweaker-tracking-wide`.
 - Effects: `--tweaker-opacity-disabled`, `--tweaker-opacity-disabled-soft`,

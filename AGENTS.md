@@ -269,7 +269,9 @@ When changing UI behavior, prefer verifying with Playwright or the in-app browse
 package. It imports `panel` through `workspace:*`, defaults to `6032` for `vp dev` and
 Playwright e2e, and uses `6033` for `vp preview`. Set `DEMO_PORT=6035` in this worktree;
 do not replace the canonical default. Its application-owned Built-in Items panel is the
-canonical gallery for every public package input. Keep those rows ordered from common to
+canonical gallery for every public package input capability. A generic composition may
+replace a redundant preset-wrapper row when it recreates the same behavior; keep the
+wrapper documented and covered by package tests. Keep gallery rows ordered from common to
 specialized, label them by item type, identify component names and meaningful props in
 `help`, and reserve `description` for optional-feature variants. The separate Custom
 Items panel contains only demo-local `TweakerItem` compositions such as the Standard

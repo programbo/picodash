@@ -44,9 +44,10 @@
   --tweaker-font-size-xl: 0.875rem;
   --tweaker-font-size-2xl: 1.25rem;
   --tweaker-font-size-3xl: 1.5rem;
-  --tweaker-line-tight: 1rem;
-  --tweaker-line-normal: 1.25rem;
-  --tweaker-line-relaxed: 1.5rem;
+  --tweaker-line-none: 1em;
+  --tweaker-line-tight: 1.1em;
+  --tweaker-line-normal: 1.25em;
+  --tweaker-line-relaxed: 1.5em;
   --tweaker-font-light: 300;
   --tweaker-font-normal: 400;
   --tweaker-font-medium: 500;

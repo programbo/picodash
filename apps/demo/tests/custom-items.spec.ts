@@ -52,6 +52,20 @@ test('keeps the root route blank apart from the existing panels', async ({ page 
   await expect(page.locator('[data-tweaker-panel-id="custom-items"]')).toBeVisible()
 })
 
+test('lets the desktop custom-items panel size itself to its content', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const group = panel.locator('[data-group-id="custom-examples"]')
+
+  await expect(panel).toHaveCSS('top', '32px')
+  await expect
+    .poll(async () => {
+      const [panelBox, groupBox] = await Promise.all([panel.boundingBox(), group.boundingBox()])
+      return panelBox && groupBox ? Math.round(panelBox.height - groupBox.height) : null
+    })
+    .toBeLessThan(50)
+})
+
 test('retains invalid custom-item drafts and validates through a Zod Standard Schema', async ({
   page,
 }) => {
@@ -900,11 +914,11 @@ test('keeps panel typography and dropzone geometry at the baseline', async ({ pa
     .getByRole('button', { name: 'Choose files or drop them here' })
 
   await expect(alignmentLabel).toHaveCSS('font-size', '12px')
-  await expect(alignmentLabel).toHaveCSS('line-height', '16px')
+  await expect(alignmentLabel).toHaveCSS('line-height', '13.2px')
   await expect(qualityTrigger).toHaveCSS('font-size', '12px')
-  await expect(qualityTrigger).toHaveCSS('line-height', '16px')
+  await expect(qualityTrigger).toHaveCSS('line-height', '13.2px')
   await expect(helpButton).toHaveCSS('font-size', '14px')
-  await expect(helpButton).toHaveCSS('line-height', '20px')
+  await expect(helpButton).toHaveCSS('line-height', '17.5px')
   await expect(dropSurface).toHaveCSS('height', '96px')
 })
 
@@ -931,11 +945,11 @@ test('updates common, spatial, and gradient values through accessible controls',
     'data-state',
     'on',
   )
-  const centre = alignment.getByRole('radio', { name: 'Centre', exact: true })
+  const middleCenter = alignment.getByRole('radio', { name: 'Middle center', exact: true })
   const middleRight = alignment.getByRole('radio', { name: 'Middle right' })
-  await centre.click()
-  await centre.press('ArrowRight')
-  await expect(centre).toHaveAttribute('aria-checked', 'false')
+  await middleCenter.click()
+  await middleCenter.press('ArrowRight')
+  await expect(middleCenter).toHaveAttribute('aria-checked', 'false')
   await expect(middleRight).toHaveAttribute('aria-checked', 'true')
 
   const vector = page.locator('[data-item-id="vector3"]')
@@ -1074,7 +1088,7 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await expect(customPanel).toHaveCSS('background-color', 'rgb(54, 19, 62)')
 
   const alignment = builtInPanel.locator('[data-item-id="alignment"]')
-  await expect(alignment.getByRole('radio', { name: 'Centre', exact: true })).toHaveCSS(
+  await expect(alignment.getByRole('radio', { name: 'Middle center', exact: true })).toHaveCSS(
     'background-color',
     'rgb(61, 214, 230)',
   )

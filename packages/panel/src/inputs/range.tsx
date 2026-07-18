@@ -144,7 +144,7 @@ export function TweakerRange({
             </Slider.Root>
             <output
               aria-live="off"
-              className="text-tweaker-text min-w-[9ch] justify-self-end text-right text-(length:--tweaker-font-size-md) leading-none tabular-nums"
+              className="text-tweaker-text min-w-[9ch] justify-self-end text-right text-(length:--tweaker-font-size-md) leading-(--tweaker-line-none) tabular-nums"
             >
               {formattedLow}–{formattedHigh}
             </output>
