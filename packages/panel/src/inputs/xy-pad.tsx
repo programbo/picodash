@@ -213,15 +213,15 @@ function XYPadSurface({
 
   return (
     <div className="col-span-full grid gap-(--tweaker-space-1-5)">
-      <div className="focus-within:ring-tweaker-focus focus-within:ring-offset-tweaker-canvas rounded-(--tweaker-xy-radius) focus-within:ring-2 focus-within:ring-offset-1">
+      <div className="focus-within:ring-tweaker-focus focus-within:ring-offset-tweaker-canvas rounded-tweaker-control focus-within:ring-2 focus-within:ring-offset-1">
         <div
           ref={padRef}
           aria-describedby={instructionsId}
           aria-disabled={unavailable || undefined}
           aria-label={ariaLabel}
           className={cn(
-            'relative aspect-[2/1] min-h-(--tweaker-xy-min-height) touch-none overflow-hidden rounded-(--tweaker-xy-radius) border border-tweaker-control bg-(--tweaker-xy-background) outline-none',
-            'before:absolute before:inset-y-0 before:left-1/2 before:w-(--tweaker-border-thin) before:bg-(--tweaker-xy-grid) after:absolute after:inset-x-0 after:top-1/2 after:h-(--tweaker-border-thin) after:bg-(--tweaker-xy-grid)',
+            'relative aspect-[2/1] min-h-(--tweaker-field-surface-min-height) touch-none overflow-hidden rounded-tweaker-control border border-tweaker-control bg-(--_tweaker-xy-background) outline-none',
+            'before:absolute before:inset-y-0 before:left-1/2 before:w-(--tweaker-border-thin) before:bg-(--_tweaker-xy-grid) after:absolute after:inset-x-0 after:top-1/2 after:h-(--tweaker-border-thin) after:bg-(--_tweaker-xy-grid)',
             unavailable
               ? 'cursor-not-allowed opacity-(--tweaker-opacity-disabled)'
               : 'cursor-crosshair',
@@ -256,13 +256,13 @@ function XYPadSurface({
           <motion.span
             ref={thumbRef}
             aria-hidden="true"
-            className="border-tweaker-accent-text bg-tweaker-accent shadow-tweaker-sm pointer-events-none absolute top-0 left-0 size-(--tweaker-xy-point-size) rounded-full border-2"
+            className="border-tweaker-accent-text bg-tweaker-accent shadow-tweaker-sm pointer-events-none absolute top-0 left-0 size-(--tweaker-icon-xs) rounded-full border-2"
             style={{ x: visualX, y: visualY, willChange: 'transform' }}
           />
           <motion.output
             ref={coordinateRef}
             aria-hidden="true"
-            className="bg-tweaker-text/90 text-tweaker-canvas pointer-events-none absolute top-0 left-0 z-(--tweaker-layer-raised) rounded-(--tweaker-field-radius) px-(--tweaker-space-1-5) py-(--tweaker-space-1) text-(length:--tweaker-font-size-xs) leading-none font-(--tweaker-font-medium) whitespace-nowrap tabular-nums shadow-(--tweaker-shadow-md)"
+            className="bg-tweaker-text/90 text-tweaker-canvas rounded-tweaker-control pointer-events-none absolute top-0 left-0 z-(--tweaker-layer-raised) px-(--tweaker-space-1-5) py-(--tweaker-space-1) text-(length:--tweaker-font-size-xs) leading-none font-(--tweaker-font-medium) whitespace-nowrap tabular-nums shadow-(--tweaker-shadow-md)"
             style={{ x: coordinateX, y: coordinateY, willChange: 'transform' }}
           >
             X {formatXYValue(value.x, bounds.step)} · Y {formatXYValue(value.y, bounds.step)}

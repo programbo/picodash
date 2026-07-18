@@ -1,6 +1,7 @@
 import { Tooltip as TooltipPrimitive } from 'radix-ui'
 import type { ComponentProps } from 'react'
 import { useStore } from 'zustand'
+import { useTweakerTheme } from './tweaker-theme-context.js'
 import {
   portalLayerZIndexForState,
   portalLayerZIndexValue,
@@ -37,17 +38,19 @@ export function TooltipContent({
   style,
   ...props
 }: ComponentProps<typeof TooltipPrimitive.Content>) {
-  const usesTokenOffset = sideOffset === undefined
-  const { portalContainer, store, theme } = useTweakerProviderContext()
+  const theme = useTweakerTheme()
+  const { portalContainer, store } = useTweakerProviderContext()
   const zIndexFloor = useStore(store, (state) => portalLayerZIndexForState(state, 1))
+  const usesTokenOffset = sideOffset === undefined
 
   return (
     <TooltipPrimitive.Portal container={portalContainer}>
       <TooltipPrimitive.Content
+        {...props}
         data-tweaker-theme={theme}
         data-tweaker-token-offset={usesTokenOffset ? 'true' : undefined}
         className={cn(
-          'z-(--tweaker-layer-tooltip) max-w-(--tweaker-tooltip-max-width) rounded-(--tweaker-tooltip-radius) border border-(--tweaker-tooltip-border) bg-(--tweaker-tooltip-background) px-(--tweaker-tooltip-padding-inline) py-(--tweaker-tooltip-padding-block) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) text-(--tweaker-tooltip-foreground) shadow-(--tweaker-tooltip-shadow) outline-none data-[tweaker-token-offset=true]:data-[side=bottom]:mt-(--tweaker-tooltip-offset) data-[tweaker-token-offset=true]:data-[side=left]:mr-(--tweaker-tooltip-offset) data-[tweaker-token-offset=true]:data-[side=right]:ml-(--tweaker-tooltip-offset) data-[tweaker-token-offset=true]:data-[side=top]:mb-(--tweaker-tooltip-offset) data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95',
+          'z-(--tweaker-layer-tooltip) max-w-64 rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised px-(--tweaker-space-2-5) py-(--tweaker-space-2) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) text-tweaker-text shadow-[0_10px_15px_-3px_rgb(0_0_0/0.25),0_4px_6px_-4px_rgb(0_0_0/0.25)] outline-none data-[tweaker-token-offset=true]:data-[side=bottom]:mt-(--tweaker-space-1-5) data-[tweaker-token-offset=true]:data-[side=left]:mr-(--tweaker-space-1-5) data-[tweaker-token-offset=true]:data-[side=right]:ml-(--tweaker-space-1-5) data-[tweaker-token-offset=true]:data-[side=top]:mb-(--tweaker-space-1-5) data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95',
           className,
         )}
         sideOffset={sideOffset ?? 0}
@@ -55,10 +58,9 @@ export function TooltipContent({
           ...style,
           zIndex: portalLayerZIndexValue('--tweaker-layer-tooltip', zIndexFloor),
         }}
-        {...props}
       >
         {children}
-        <TooltipPrimitive.Arrow className="fill-(--tweaker-tooltip-background)" />
+        <TooltipPrimitive.Arrow className="fill-tweaker-surface-raised" />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )

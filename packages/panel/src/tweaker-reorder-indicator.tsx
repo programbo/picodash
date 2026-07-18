@@ -7,13 +7,13 @@ export interface TweakerReorderIndicatorProps {
 export function TweakerReorderIndicator({ reorderable }: TweakerReorderIndicatorProps) {
   return reorderable ? (
     <GripVertical
-      className="size-(--tweaker-chrome-icon-size)"
+      className="size-(--tweaker-icon-sm)"
       data-tweaker-reorder-indicator="grip"
       aria-hidden="true"
     />
   ) : (
     <span
-      className="size-(--tweaker-reorder-static-marker-size) bg-(--tweaker-reorder-static-marker-color) opacity-(--tweaker-reorder-static-marker-opacity)"
+      className="bg-tweaker-muted size-(--tweaker-space-1-5) opacity-(--tweaker-opacity-subtle)"
       data-tweaker-reorder-indicator="static"
       aria-hidden="true"
     />

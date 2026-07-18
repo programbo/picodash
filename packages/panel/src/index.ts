@@ -1,5 +1,13 @@
 import './styles.css'
 
+export {
+  tweakerDefaultTheme,
+  tweakerGeometryTokens,
+  tweakerLayerTokens,
+  tweakerMotionTokens,
+  tweakerThemeAttribute,
+} from './theme.js'
+export { useTweakerTheme } from './tweaker-theme-context.js'
 export { FeaturePanel } from './feature-panel.js'
 export type {
   FeaturePanelItem,

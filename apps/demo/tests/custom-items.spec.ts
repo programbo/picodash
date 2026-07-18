@@ -1,6 +1,10 @@
 import { readFile } from 'node:fs/promises'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { tweakerMotionTokens } from '../../../packages/panel/src/theme.ts'
+import {
+  advanceSparklineSamplingClock,
+  decayPointerVelocity,
+} from '../src/custom-items/pointer-velocity-sampling.ts'
 
 const customGroupLabels = {
   'common-items': 'Common inputs',
@@ -15,6 +19,23 @@ const initialCustomRootOrder = [
   'visualization-items',
   'custom-items-summary',
 ]
+
+async function changeDemoThemes(
+  page: Page,
+  detail: {
+    custom?: string | null
+    provider?: string | null
+    scene?: string | null
+  },
+) {
+  await page.evaluate((nextThemes) => {
+    window.dispatchEvent(
+      new CustomEvent('tweaker-demo-theme-change', {
+        detail: nextThemes,
+      }),
+    )
+  }, detail)
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
@@ -76,6 +97,26 @@ test('reviews repairable custom-item imports before committing them atomically',
   await expect(panel.locator('span[role="status"]')).toHaveText(
     'Imported repaired panel values from repair.json.',
   )
+})
+
+test('drops delayed pointer velocity intervals instead of backfilling history', () => {
+  const sampleInterval = 1000 / 60
+  const clock = advanceSparklineSamplingClock(4, 4, 100, sampleInterval)
+
+  expect(clock.shouldCommit).toBe(true)
+  expect(clock.accumulatedTime).toBeCloseTo(104 % sampleInterval)
+  expect(clock.accumulatedTime).toBeLessThan(sampleInterval)
+  expect(clock.decayElapsed).toBe(104)
+  expect(clock.elapsedSinceCommit).toBe(0)
+
+  const nextFrame = advanceSparklineSamplingClock(
+    clock.accumulatedTime,
+    clock.elapsedSinceCommit,
+    0,
+    sampleInterval,
+  )
+  expect(nextFrame.shouldCommit).toBe(false)
+  expect(decayPointerVelocity(1000, 84)).toBeCloseTo(1000 * 0.72 ** 2)
 })
 
 for (const scenario of [
@@ -824,122 +865,96 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
   }
 })
 
-test('applies package token overrides to shell, controls, and portaled surfaces', async ({
-  page,
-}) => {
-  await page.addStyleTag({
-    content: `
-      [data-tweaker-theme='dark'] {
-        --tweaker-panel-background: rgb(11 22 33);
-        --tweaker-row-hover: rgb(22 44 66);
-        --tweaker-color-accent: rgb(44 88 132);
-        --tweaker-alignment-radius: 7px;
-        --tweaker-alignment-item-size: 36px;
-        --tweaker-icon-sm: 18px;
-        --tweaker-reorder-static-marker-size: 10px;
-        --tweaker-reorder-static-marker-color: rgb(80 120 160);
-        --tweaker-reorder-static-marker-opacity: 0.4;
-        --tweaker-range-root-height: 30px;
-        --tweaker-vector-axis-bottom: 11px;
-        --tweaker-dropzone-radius: 6px;
-        --tweaker-dropzone-preview-size: 40px;
-        --tweaker-tooltip-background: rgb(33 55 77);
-        --tweaker-tooltip-max-width: 110px;
-        --tweaker-tooltip-offset: 18px;
-        --tweaker-tooltip-padding-inline: 13px;
-        --tweaker-select-border: rgb(55 85 115);
-        --tweaker-select-content-background: rgb(24 48 72);
-        --tweaker-select-content-radius: 8px;
-        --tweaker-select-item-highlight-background: rgb(48 72 96);
-        --tweaker-layer-select: 65432;
-        --tweaker-viewer-background: rgb(17 34 51);
-        --tweaker-viewer-radius: 9px;
-        --tweaker-viewer-image-max-height: 40px;
-        --tweaker-layer-viewer: 123456;
-      }
-    `,
-  })
+test('applies simultaneous named themes to panels and every portaled surface', async ({ page }) => {
+  await page.goto('/?providerTheme=ocean&customTheme=plum')
 
-  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
-  await expect(panel).toHaveAttribute('data-tweaker-theme', 'dark')
-  await expect(panel).toHaveCSS('background-color', 'rgb(11, 22, 33)')
+  const scenePanel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const customPanel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  await expect(page.locator('[data-tweaker-container]')).toHaveAttribute(
+    'data-tweaker-theme',
+    'ocean',
+  )
+  await expect(scenePanel).toHaveAttribute('data-tweaker-theme', 'ocean')
+  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
+  await expect(scenePanel).toHaveCSS('background-color', 'rgb(7, 38, 52)')
+  await expect(customPanel).toHaveCSS('background-color', 'rgb(54, 19, 62)')
 
-  const alignment = panel.locator('[data-item-id="alignment"]')
-  await alignment.hover()
-  await expect(alignment).toHaveCSS('background-color', 'rgb(22, 44, 66)')
+  const alignment = customPanel.locator('[data-item-id="alignment"]')
   await expect(alignment.getByRole('radio', { name: 'Centre', exact: true })).toHaveCSS(
     'background-color',
-    'rgb(44, 88, 132)',
+    'rgb(241, 159, 248)',
   )
-  await expect(alignment.getByRole('radiogroup')).toHaveCSS('border-radius', '7px')
-  await expect(alignment.getByRole('radio', { name: 'Centre', exact: true })).toHaveCSS(
-    'width',
-    '36px',
-  )
-  await expect(
-    alignment.getByRole('radio', { name: 'Centre', exact: true }).locator('svg'),
-  ).toHaveCSS('width', '18px')
-
-  const range = panel.locator('[data-item-id="thresholdRange"]')
-  await expect(range.locator('[class*="tweaker-range-root-height"]')).toHaveCSS('height', '30px')
-  await expect(
-    panel.locator('[data-item-id="vector"] [class*="tweaker-vector-axis-bottom"]').first(),
-  ).toHaveCSS('bottom', '11px')
-  const staticMarker = panel
-    .locator('[data-item-id="shadcn-frame-chart"]')
-    .locator('[data-tweaker-reorder-indicator="static"]')
-  await expect(staticMarker).toHaveCSS('width', '10px')
-  await expect(staticMarker).toHaveCSS('background-color', 'rgb(80, 120, 160)')
-  await expect(staticMarker).toHaveCSS('opacity', '0.4')
+  await expect(alignment.getByRole('radiogroup')).toHaveCSS('border-radius', '9px')
 
   const qualityTrigger = page.locator('[data-item-id="quality"]').getByRole('combobox')
-  await expect(qualityTrigger).toHaveCSS('border-bottom-color', 'rgb(55, 85, 115)')
+  await expect(qualityTrigger).toHaveCSS('border-bottom-color', 'rgb(91, 158, 171)')
   await qualityTrigger.click()
-  const selectContent = page.locator('[data-tweaker-theme="dark"][data-side]')
-  await expect(selectContent).toHaveCSS('background-color', 'rgb(24, 48, 72)')
+  const selectContent = page.locator('[data-tweaker-theme="ocean"][data-side]')
+  await expect(selectContent).toHaveCSS('background-color', 'rgb(11, 55, 72)')
   await expect(selectContent).toHaveCSS('border-radius', '8px')
-  await expect(selectContent).toHaveCSS('z-index', '65432')
   const finalOption = page.getByRole('option', { name: 'Final' })
   await finalOption.hover()
-  await expect(finalOption).toHaveCSS('background-color', 'rgb(48, 72, 96)')
+  await expect(finalOption).toHaveCSS('background-color', 'rgb(17, 78, 96)')
   await page.keyboard.press('Escape')
 
   await alignment.getByRole('button', { name: 'Help for Alignment' }).hover()
   await expect(page.getByRole('tooltip')).toBeVisible()
-  const tooltip = page.locator('[data-tweaker-theme="dark"][data-side]')
-  await expect(tooltip).toHaveAttribute('data-tweaker-theme', 'dark')
-  await expect(tooltip).toHaveCSS('background-color', 'rgb(33, 55, 77)')
-  await expect(tooltip).toHaveCSS('max-width', '110px')
-  await expect(tooltip).toHaveCSS('padding-left', '13px')
-  const tooltipSide = await tooltip.getAttribute('data-side')
-  const tooltipOffsetProperty = {
-    bottom: 'margin-top',
-    left: 'margin-right',
-    right: 'margin-left',
-    top: 'margin-bottom',
-  }[tooltipSide ?? 'top']
-  await expect(tooltip).toHaveCSS(tooltipOffsetProperty ?? 'margin-bottom', '18px')
+  const tooltip = page.locator('[data-tweaker-theme="plum"][data-side]')
+  await expect(tooltip).toHaveCSS('background-color', 'rgb(75, 27, 85)')
+  await expect(tooltip).toHaveCSS('border-radius', '12px')
 
-  const dropzone = panel.locator('[data-item-id="droppedFiles"]')
-  const dropSurface = dropzone.getByRole('button', { name: 'Choose files or drop them here' })
-  await expect(dropSurface).toHaveCSS('border-radius', '6px')
+  const dropzone = customPanel.locator('[data-item-id="droppedFiles"]')
   await dropzone.locator('input[type="file"]').setInputFiles({
     name: 'themed.png',
     mimeType: 'image/png',
     buffer: Buffer.from('themed image metadata'),
   })
   const previewButton = dropzone.getByRole('button', { name: 'View themed.png' })
-  await expect(previewButton).toHaveCSS('width', '40px')
   await previewButton.click()
   const viewer = page.getByRole('dialog')
-  await expect(viewer).toHaveAttribute('data-tweaker-theme', 'dark')
-  await expect(viewer).toHaveCSS('background-color', 'rgb(17, 34, 51)')
-  await expect(viewer).toHaveCSS('border-radius', '9px')
-  await expect(page.locator('[data-tweaker-theme="dark"][class*="z-("]')).toHaveCSS(
-    'z-index',
-    '123456',
+  await expect(viewer).toHaveAttribute('data-tweaker-theme', 'plum')
+  await expect(viewer).toHaveCSS('border-radius', '12px')
+  await page.keyboard.press('Escape')
+
+  const customActions = customPanel.getByRole('button', { name: 'Open actions for Custom Items' })
+  await customActions.click()
+  const menu = page.getByRole('menu', { name: 'Actions for Custom Items' })
+  await expect(menu).toHaveAttribute('data-tweaker-theme', 'plum')
+  await menu.getByRole('menuitem', { name: 'Copy' }).hover()
+  await expect(page.locator('[data-tweaker-theme="plum"][role="menu"]')).toHaveCount(2)
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+  await customActions.click()
+  await menu.getByRole('menuitem', { name: 'Reset…' }).click()
+  const dialog = page.getByRole('alertdialog', { name: 'Reset Custom Items?' })
+  await expect(dialog).toHaveAttribute('data-tweaker-theme', 'plum')
+  await expect(
+    page.locator('[data-tweaker-theme="plum"][data-state="open"].fixed.inset-0'),
+  ).toHaveCount(1)
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+})
+
+test('updates inherited panel themes at runtime while preserving explicit overrides', async ({
+  page,
+}) => {
+  await changeDemoThemes(page, { custom: 'plum' })
+
+  const scenePanel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const customPanel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  await expect(scenePanel).toHaveAttribute('data-tweaker-theme', 'dark')
+  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
+
+  await changeDemoThemes(page, { provider: 'ocean' })
+
+  await expect(page.locator('[data-demo-provider-theme]')).toHaveAttribute(
+    'data-demo-provider-theme',
+    'ocean',
   )
-  await expect(page.getByRole('img', { name: 'themed.png' })).toHaveCSS('max-height', '40px')
+  await expect(scenePanel).toHaveAttribute('data-tweaker-theme', 'ocean')
+  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
+
+  await changeDemoThemes(page, { custom: null })
+  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'ocean')
 })
 
 test('animates transient visual paths and switches deterministic signal mode', async ({ page }) => {
@@ -948,15 +963,28 @@ test('animates transient visual paths and switches deterministic signal mode', a
   const description = velocity.getByText('Move anywhere in the full viewport.', { exact: false })
   const velocityXPath = velocity.locator('path.stroke-chart-1')
   const velocityYPath = velocity.locator('path.stroke-chart-3')
+  const fps = velocity.locator('[data-pointer-velocity-fps]')
   await display.scrollIntoViewIfNeeded()
   await expect(display).toBeVisible()
   await expect(display).toHaveCSS('pointer-events', 'none')
+  await expect(fps).toHaveText(/^\d+ FPS$/)
   const displayBox = await display.boundingBox()
   const descriptionBox = await description.boundingBox()
+  const fpsBox = await fps.boundingBox()
   expect(displayBox).not.toBeNull()
   expect(descriptionBox).not.toBeNull()
+  expect(fpsBox).not.toBeNull()
   if (displayBox && descriptionBox) {
     expect(descriptionBox.y).toBeGreaterThanOrEqual(displayBox.y + displayBox.height)
+  }
+  if (displayBox && fpsBox) {
+    const rightGap = displayBox.x + displayBox.width - (fpsBox.x + fpsBox.width)
+    const bottomGap = displayBox.y + displayBox.height - (fpsBox.y + fpsBox.height)
+    expect(fpsBox.x).toBeGreaterThan(displayBox.x + displayBox.width / 2)
+    expect(rightGap).toBeGreaterThanOrEqual(0)
+    expect(rightGap).toBeLessThanOrEqual(12)
+    expect(bottomGap).toBeGreaterThanOrEqual(0)
+    expect(bottomGap).toBeLessThanOrEqual(12)
   }
   const initialVelocityXPath = await velocityXPath.getAttribute('d')
   const initialVelocityYPath = await velocityYPath.getAttribute('d')
@@ -977,6 +1005,24 @@ test('animates transient visual paths and switches deterministic signal mode', a
   await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(initialVelocityXPath)
   await expect.poll(() => velocityYPath.getAttribute('d')).not.toBe(initialVelocityYPath)
 
+  await display.evaluate((element: HTMLElement) => (element.style.display = 'none'))
+  await expect(display).toBeHidden()
+  await page.waitForTimeout(100)
+  await expect(fps).toHaveText('0 FPS')
+  const pausedVelocityXPath = await velocityXPath.getAttribute('d')
+
+  // Restoring the observed surface avoids producing another pointer sample.
+  // Re-entry should resume the retained trace until it naturally settles again.
+  await display.evaluate((element: HTMLElement) => element.style.removeProperty('display'))
+  await expect(display).toBeVisible()
+  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(pausedVelocityXPath)
+  await expect
+    .poll(async () => Number.parseInt((await fps.textContent()) ?? '0', 10), {
+      intervals: [50],
+    })
+    .toBeGreaterThan(0)
+  await expect(fps).toHaveText('0 FPS')
+
   const signal = page.locator('[data-item-id="signal-visualizer"]')
   const signalPath = signal.locator('path.stroke-chart-2')
   const initialSignalPath = await signalPath.getAttribute('d')
@@ -988,6 +1034,44 @@ test('animates transient visual paths and switches deterministic signal mode', a
   await expect(signal.getByRole('img', { name: 'Synthetic signal spectrum' })).toBeVisible()
   await expect.poll(() => signalPath.getAttribute('d')).not.toBe(initialSignalPath)
   await expect(signalPath).toHaveAttribute('fill-opacity', '0.18')
+})
+
+test('resumes pointer velocity decay when document visibility returns', async ({ page }) => {
+  const velocity = page.locator('[data-item-id="mouse-velocity"]')
+  const display = velocity.locator('[data-pointer-velocity-display]')
+  const velocityXPath = velocity.locator('path.stroke-chart-1')
+  const fps = velocity.locator('[data-pointer-velocity-fps]')
+  await display.scrollIntoViewIfNeeded()
+  await expect(display).toBeVisible()
+
+  const initialVelocityXPath = await velocityXPath.getAttribute('d')
+  const headingBox = await page.getByRole('heading', { name: 'Tweaker State Lab' }).boundingBox()
+  expect(headingBox).not.toBeNull()
+  if (!headingBox) return
+
+  await page.mouse.move(headingBox.x + 4, headingBox.y + 4)
+  await page.mouse.move(
+    headingBox.x + headingBox.width - 4,
+    headingBox.y + headingBox.height + 80,
+    { steps: 8 },
+  )
+  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(initialVelocityXPath)
+
+  await setDocumentVisibility(page, 'hidden')
+  await expect(fps).toHaveText('0 FPS')
+  await page.waitForTimeout(100)
+  const pausedVelocityXPath = await velocityXPath.getAttribute('d')
+  await page.waitForTimeout(100)
+  expect(await velocityXPath.getAttribute('d')).toBe(pausedVelocityXPath)
+
+  await setDocumentVisibility(page, 'visible')
+  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(pausedVelocityXPath)
+  await expect
+    .poll(async () => Number.parseInt((await fps.textContent()) ?? '0', 10), {
+      intervals: [50],
+    })
+    .toBeGreaterThan(0)
+  await expect(fps).toHaveText('0 FPS')
 })
 
 test('keeps the panel action menu contained and manages collapsible groups', async ({ page }) => {
@@ -1219,6 +1303,19 @@ async function collapseCustomGroups(
   if (settle) {
     await panel.page().waitForTimeout(200)
   }
+}
+
+async function setDocumentVisibility(
+  page: import('@playwright/test').Page,
+  visibilityState: DocumentVisibilityState,
+) {
+  await page.evaluate((state) => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: state,
+    })
+    document.dispatchEvent(new Event('visibilitychange'))
+  }, visibilityState)
 }
 
 async function exerciseLivePreviewDrag({

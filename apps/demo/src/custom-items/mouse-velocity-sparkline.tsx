@@ -1,8 +1,12 @@
-import { motion, useMotionValue, useMotionValueEvent, useReducedMotion } from 'motion/react'
+import { motion, useMotionValue, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, type RefObject } from 'react'
 import { TweakerItem } from 'panel'
+import { advanceSparklineSamplingClock, decayPointerVelocity } from './pointer-velocity-sampling'
 
 const sampleCount = 56
+const activeSampleInterval = 1000 / 60
+const reducedMotionSampleInterval = 160
+const fpsReportInterval = 500
 const viewBoxWidth = 320
 const viewBoxHeight = 88
 const baseline = viewBoxHeight / 2
@@ -27,45 +31,148 @@ export function MouseVelocitySparklineItem({
   const velocityY = useMotionValue(0)
   const pathX = useMotionValue(emptySparklinePath())
   const pathY = useMotionValue(emptySparklinePath())
+  const fpsLabel = useMotionValue('0 FPS')
   const velocityXRef = useRef(0)
   const velocityYRef = useRef(0)
   const samplesXRef = useRef<number[]>(Array.from({ length: sampleCount }, () => 0))
   const samplesYRef = useRef<number[]>(Array.from({ length: sampleCount }, () => 0))
   const previousPointerRef = useRef<{ time: number; x: number; y: number } | null>(null)
+  const displayRef = useRef<HTMLDivElement>(null)
   const prefersReducedMotion = useReducedMotion()
-
-  useMotionValueEvent(velocityX, 'change', (latest) => {
-    velocityXRef.current = latest
-  })
-  useMotionValueEvent(velocityY, 'change', (latest) => {
-    velocityYRef.current = latest
-  })
 
   useEffect(() => {
     const eventTarget = resolvePointerVelocityTarget(target)
-    if (!eventTarget) return
+    const display = displayRef.current
+    if (!eventTarget || !display) return
+
+    const sampleInterval = prefersReducedMotion ? reducedMotionSampleInterval : activeSampleInterval
+    let accumulatedTime = 0
+    let elapsedSinceCommit = 0
+    let commitsSinceReport = 0
+    let fpsWindowStartedAt = 0
+    let frameId: number | null = null
+    let lastFrameAt: number | null = null
+    let lastPointerActivityAt = 0
+    let isOnScreen = true
+
+    const setVelocity = (x: number, y: number) => {
+      velocityXRef.current = x
+      velocityYRef.current = y
+      velocityX.set(x)
+      velocityY.set(y)
+    }
+
+    const cancelSampling = () => {
+      if (frameId !== null) cancelAnimationFrame(frameId)
+      frameId = null
+      lastFrameAt = null
+      accumulatedTime = 0
+      elapsedSinceCommit = 0
+      commitsSinceReport = 0
+      fpsWindowStartedAt = 0
+      fpsLabel.set('0 FPS')
+    }
+
+    const scheduleSample = () => {
+      if (frameId !== null || !isOnScreen || document.visibilityState !== 'visible') {
+        return
+      }
+      frameId = requestAnimationFrame(sample)
+    }
+
+    const hasUnsettledSignal = () =>
+      hasSignal(samplesXRef.current) ||
+      hasSignal(samplesYRef.current) ||
+      velocityXRef.current !== 0 ||
+      velocityYRef.current !== 0
 
     const resetPointer = () => {
       previousPointerRef.current = null
-      velocityX.set(0)
-      velocityY.set(0)
+      setVelocity(0, 0)
+      scheduleSample()
     }
+
     const updatePointer = (event: Event) => {
       if (!isPointerPositionEvent(event)) return
       const now = performance.now()
       const previous = previousPointerRef.current
-      if (previous) {
+      if (previous && isOnScreen && document.visibilityState === 'visible') {
         const elapsedSeconds = Math.max(1, now - previous.time) / 1000
-        velocityX.set((event.clientX - previous.x) / elapsedSeconds)
-        velocityY.set((event.clientY - previous.y) / elapsedSeconds)
+        setVelocity(
+          (event.clientX - previous.x) / elapsedSeconds,
+          (event.clientY - previous.y) / elapsedSeconds,
+        )
       }
       previousPointerRef.current = { time: now, x: event.clientX, y: event.clientY }
+      lastPointerActivityAt = now
+      scheduleSample()
     }
+
     const resetWhenLeavingViewport = (event: Event) => {
       if (!('relatedTarget' in event) || event.relatedTarget === null) resetPointer()
     }
-    const resetWhenHidden = () => {
-      if (document.visibilityState !== 'visible') resetPointer()
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        previousPointerRef.current = null
+        setVelocity(0, 0)
+        cancelSampling()
+      } else if (hasUnsettledSignal()) {
+        scheduleSample()
+      }
+    }
+
+    function sample(now: number) {
+      frameId = null
+      if (!isOnScreen || document.visibilityState !== 'visible') {
+        cancelSampling()
+        return
+      }
+
+      if (lastFrameAt === null) {
+        lastFrameAt = now
+        fpsWindowStartedAt = now
+        scheduleSample()
+        return
+      }
+
+      const elapsed = Math.max(0, now - lastFrameAt)
+      lastFrameAt = now
+      const samplingClock = advanceSparklineSamplingClock(
+        accumulatedTime,
+        elapsedSinceCommit,
+        elapsed,
+        sampleInterval,
+      )
+      accumulatedTime = samplingClock.accumulatedTime
+      elapsedSinceCommit = samplingClock.elapsedSinceCommit
+
+      if (samplingClock.shouldCommit) {
+        pushSample(samplesXRef.current, velocityXRef.current)
+        pushSample(samplesYRef.current, velocityYRef.current)
+
+        pathX.set(sparklinePath(samplesXRef.current))
+        pathY.set(sparklinePath(samplesYRef.current))
+        setVelocity(
+          decayPointerVelocity(velocityXRef.current, samplingClock.decayElapsed),
+          decayPointerVelocity(velocityYRef.current, samplingClock.decayElapsed),
+        )
+        commitsSinceReport += 1
+
+        const fpsElapsed = now - fpsWindowStartedAt
+        if (fpsElapsed >= fpsReportInterval) {
+          fpsLabel.set(`${Math.round((commitsSinceReport * 1000) / fpsElapsed)} FPS`)
+          commitsSinceReport = 0
+          fpsWindowStartedAt = now
+        }
+      }
+
+      const isRecentlyActive = now - lastPointerActivityAt < sampleInterval * 2
+      if (isRecentlyActive || hasUnsettledSignal()) {
+        scheduleSample()
+      } else {
+        cancelSampling()
+      }
     }
 
     eventTarget.addEventListener('pointermove', updatePointer, { passive: true })
@@ -73,7 +180,22 @@ export function MouseVelocitySparklineItem({
     eventTarget.addEventListener('pointerleave', resetPointer)
     eventTarget.addEventListener('pointerout', resetWhenLeavingViewport)
     window.addEventListener('blur', resetPointer)
-    document.addEventListener('visibilitychange', resetWhenHidden)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    const intersectionObserver =
+      typeof IntersectionObserver === 'undefined'
+        ? null
+        : new IntersectionObserver(([entry]) => {
+            isOnScreen = entry?.isIntersecting === true
+            if (!isOnScreen) {
+              previousPointerRef.current = null
+              setVelocity(0, 0)
+              cancelSampling()
+            } else if (hasUnsettledSignal()) {
+              scheduleSample()
+            }
+          })
+    intersectionObserver?.observe(display)
 
     return () => {
       eventTarget.removeEventListener('pointermove', updatePointer)
@@ -81,32 +203,13 @@ export function MouseVelocitySparklineItem({
       eventTarget.removeEventListener('pointerleave', resetPointer)
       eventTarget.removeEventListener('pointerout', resetWhenLeavingViewport)
       window.removeEventListener('blur', resetPointer)
-      document.removeEventListener('visibilitychange', resetWhenHidden)
-      resetPointer()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      intersectionObserver?.disconnect()
+      previousPointerRef.current = null
+      setVelocity(0, 0)
+      cancelSampling()
     }
-  }, [target, velocityX, velocityY])
-
-  useEffect(() => {
-    let frameId = 0
-    let lastSampleAt = 0
-    const sampleInterval = prefersReducedMotion ? 160 : 42
-
-    const sample = (now: number) => {
-      if (now - lastSampleAt >= sampleInterval) {
-        pushSample(samplesXRef.current, velocityXRef.current)
-        pushSample(samplesYRef.current, velocityYRef.current)
-        pathX.set(sparklinePath(samplesXRef.current))
-        pathY.set(sparklinePath(samplesYRef.current))
-        velocityX.set(decayVelocity(velocityXRef.current))
-        velocityY.set(decayVelocity(velocityYRef.current))
-        lastSampleAt = now
-      }
-      frameId = requestAnimationFrame(sample)
-    }
-
-    frameId = requestAnimationFrame(sample)
-    return () => cancelAnimationFrame(frameId)
-  }, [pathX, pathY, prefersReducedMotion])
+  }, [fpsLabel, pathX, pathY, prefersReducedMotion, target, velocityX, velocityY])
 
   return (
     <TweakerItem
@@ -120,6 +223,7 @@ export function MouseVelocitySparklineItem({
         <div
           className="bg-muted/25 border-input pointer-events-none relative h-24 overflow-hidden rounded-md border"
           data-pointer-velocity-display
+          ref={displayRef}
         >
           <svg
             aria-label="Recent horizontal and vertical pointer velocity"
@@ -152,6 +256,12 @@ export function MouseVelocitySparklineItem({
           <span className="text-muted-foreground pointer-events-none absolute top-1.5 left-2 font-mono text-[9px] tracking-widest uppercase">
             px / sec
           </span>
+          <motion.span
+            className="text-muted-foreground pointer-events-none absolute right-2 bottom-1.5 font-mono text-[9px] tabular-nums"
+            data-pointer-velocity-fps
+          >
+            {fpsLabel}
+          </motion.span>
         </div>
         <div className="text-muted-foreground flex gap-3 font-mono text-[9px] tracking-wider uppercase">
           <span className="flex items-center gap-1.5">
@@ -192,9 +302,8 @@ function pushSample(samples: number[], value: number) {
   if (samples.length > sampleCount) samples.shift()
 }
 
-function decayVelocity(value: number) {
-  const decayed = value * 0.72
-  return Math.abs(decayed) < 1 ? 0 : decayed
+function hasSignal(samples: readonly number[]) {
+  return samples.some((sample) => sample !== 0)
 }
 
 function emptySparklinePath() {

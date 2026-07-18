@@ -43,6 +43,7 @@ import {
   useTweakerProviderContext,
 } from './tweaker-provider.js'
 import { tweakerGeometryTokens } from './theme.js'
+import { useTweakerTheme } from './tweaker-theme-context.js'
 import type { TweakerConstraintRepair, TweakerFieldOutput } from './tweaker-validation.js'
 import { Button, buttonVariants } from './ui.js'
 import { cn } from './utils.js'
@@ -55,7 +56,8 @@ export function TweakerPanelActions({
   panelTitle: string
 }) {
   const store = useTweakerPanelStoreApi()
-  const { portalContainer, store: providerStore, theme } = useTweakerProviderContext()
+  const theme = useTweakerTheme()
+  const { portalContainer, store: providerStore } = useTweakerProviderContext()
   const modalZIndex = useStore(providerStore, modalZIndexForState)
   const menuZIndex = useStore(providerStore, (state) => portalLayerZIndexForState(state, 3))
   const triggerRef = useRef<HTMLButtonElement | null>(null)
@@ -140,12 +142,12 @@ export function TweakerPanelActions({
             aria-label={`Open actions for ${panelTitle}`}
             className={cn(
               buttonVariants({ size: 'icon', variant: 'ghost' }),
-              'ml-auto size-(--tweaker-chrome-action-size) shrink-0 text-tweaker-muted',
+              'ml-auto size-(--tweaker-icon-lg) shrink-0 text-tweaker-muted',
             )}
             type="button"
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <Ellipsis className="size-(--tweaker-chrome-icon-size)" aria-hidden="true" />
+            <Ellipsis className="size-(--tweaker-icon-sm)" aria-hidden="true" />
           </button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal container={portalContainer}>
@@ -233,14 +235,14 @@ export function TweakerPanelActions({
             style={{
               zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
             }}
-            className="pointer-events-auto fixed inset-0 z-(--tweaker-layer-dialog) bg-(--tweaker-dialog-overlay) backdrop-blur-(--tweaker-blur-overlay)"
+            className="pointer-events-auto fixed inset-0 z-(--tweaker-layer-dialog) bg-(--tweaker-color-overlay) backdrop-blur-(--tweaker-blur-overlay)"
           />
           <AlertDialog.Content
             data-tweaker-theme={theme}
             style={{
               zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
             }}
-            className="pointer-events-auto fixed top-1/2 left-1/2 z-(--tweaker-layer-dialog) grid w-(--tweaker-dialog-width) -translate-x-1/2 -translate-y-1/2 gap-(--tweaker-dialog-gap) rounded-(--tweaker-dialog-radius) border border-(--tweaker-dialog-border) bg-(--tweaker-dialog-background) p-(--tweaker-dialog-padding) text-(--tweaker-dialog-foreground) shadow-(--tweaker-dialog-shadow) outline-none"
+            className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-tweaker-panel pointer-events-auto fixed top-1/2 left-1/2 z-(--tweaker-layer-dialog) grid w-[min(24rem,calc(100dvw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-(--tweaker-space-3) border p-(--tweaker-space-4) outline-none"
             onCloseAutoFocus={(event) => {
               event.preventDefault()
               triggerRef.current?.focus()
@@ -250,7 +252,7 @@ export function TweakerPanelActions({
               <AlertDialog.Title className="text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-normal) font-(--tweaker-font-semibold)">
                 Reset {panelTitle}?
               </AlertDialog.Title>
-              <AlertDialog.Description className="text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) text-(--tweaker-dialog-muted)">
+              <AlertDialog.Description className="text-tweaker-muted text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight)">
                 This restores every registered field to its default value. Panel position, order,
                 groups, and metadata stay unchanged.
               </AlertDialog.Description>
@@ -334,10 +336,10 @@ export function TweakerPanelConstraintRepairDialog({ panelTitle }: { panelTitle:
 }
 
 const menuContentClassName =
-  'z-(--tweaker-layer-menu) max-h-(--radix-dropdown-menu-content-available-height) min-w-(--tweaker-menu-min-width) overflow-y-auto rounded-(--tweaker-menu-radius) border border-(--tweaker-menu-border) bg-(--tweaker-menu-background) p-(--tweaker-menu-padding) text-(--tweaker-menu-foreground) shadow-(--tweaker-menu-shadow) outline-none'
+  'z-(--tweaker-layer-menu) max-h-(--radix-dropdown-menu-content-available-height) min-w-44 overflow-y-auto rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised p-(--tweaker-space-1) text-tweaker-text shadow-(--tweaker-shadow-md) outline-none'
 
 const menuItemClassName =
-  'relative flex h-(--tweaker-menu-item-height) cursor-default items-center gap-(--tweaker-menu-item-gap) rounded-(--tweaker-menu-item-radius) px-(--tweaker-menu-item-padding-inline) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-(--tweaker-opacity-disabled) data-[highlighted]:bg-(--tweaker-menu-item-highlight-background) data-[highlighted]:text-(--tweaker-menu-item-highlight-foreground) [&>svg]:size-(--tweaker-menu-icon-size) [&>svg]:shrink-0'
+  'relative flex h-(--tweaker-control-height-md) cursor-default items-center gap-(--tweaker-space-2) rounded-tweaker-control px-(--tweaker-space-2) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-(--tweaker-opacity-disabled) data-[highlighted]:bg-tweaker-surface-muted data-[highlighted]:text-tweaker-text [&>svg]:size-(--tweaker-icon-sm) [&>svg]:shrink-0'
 
 function MenuItem({
   children,
@@ -350,7 +352,7 @@ function MenuItem({
 }) {
   return (
     <DropdownMenu.Item
-      className={cn(menuItemClassName, destructive && 'text-(--tweaker-menu-item-danger)')}
+      className={cn(menuItemClassName, destructive && 'text-tweaker-danger')}
       {...props}
     >
       {icon}
@@ -360,9 +362,7 @@ function MenuItem({
 }
 
 function MenuSeparator() {
-  return (
-    <DropdownMenu.Separator className="my-(--tweaker-menu-separator-margin-block) h-px bg-(--tweaker-menu-separator)" />
-  )
+  return <DropdownMenu.Separator className="bg-tweaker-border my-(--tweaker-space-1) h-px" />
 }
 
 function MenuSub({
@@ -374,7 +374,8 @@ function MenuSub({
   icon: ReactNode
   label: string
 }) {
-  const { portalContainer, store, theme } = useTweakerProviderContext()
+  const theme = useTweakerTheme()
+  const { portalContainer, store } = useTweakerProviderContext()
   const menuZIndex = useStore(store, (state) => portalLayerZIndexForState(state, 3))
 
   return (
@@ -382,7 +383,7 @@ function MenuSub({
       <DropdownMenu.SubTrigger className={menuItemClassName}>
         {icon}
         <span className="min-w-0 flex-1">{label}</span>
-        <ChevronRight className="size-(--tweaker-menu-icon-size) shrink-0" aria-hidden="true" />
+        <ChevronRight className="size-(--tweaker-icon-sm) shrink-0" aria-hidden="true" />
       </DropdownMenu.SubTrigger>
       <DropdownMenu.Portal container={portalContainer}>
         <DropdownMenu.SubContent
@@ -457,7 +458,8 @@ function RepairReviewDialog({
   returnFocusRef?: RefObject<HTMLElement | null>
   title: string
 }) {
-  const { portalContainer, store: providerStore, theme } = useTweakerProviderContext()
+  const theme = useTweakerTheme()
+  const { portalContainer, store: providerStore } = useTweakerProviderContext()
   const modalZIndex = useStore(providerStore, modalZIndexForState)
   const [acceptError, setAcceptError] = useState('')
   const acceptedRef = useRef(false)
@@ -479,7 +481,7 @@ function RepairReviewDialog({
           style={{
             zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
           }}
-          className="pointer-events-auto fixed inset-0 z-(--tweaker-layer-dialog) bg-(--tweaker-dialog-overlay) backdrop-blur-(--tweaker-blur-overlay)"
+          className="pointer-events-auto fixed inset-0 z-(--tweaker-layer-dialog) bg-(--tweaker-color-overlay) backdrop-blur-(--tweaker-blur-overlay)"
         />
         <AlertDialog.Content
           data-tweaker-theme={theme}
@@ -487,7 +489,7 @@ function RepairReviewDialog({
           style={{
             zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
           }}
-          className="pointer-events-auto fixed top-1/2 left-1/2 z-(--tweaker-layer-dialog) grid max-h-[min(80dvh,36rem)] w-(--tweaker-dialog-width) -translate-x-1/2 -translate-y-1/2 gap-(--tweaker-dialog-gap) overflow-hidden rounded-(--tweaker-dialog-radius) border border-(--tweaker-dialog-border) bg-(--tweaker-dialog-background) p-(--tweaker-dialog-padding) text-(--tweaker-dialog-foreground) shadow-(--tweaker-dialog-shadow) outline-none"
+          className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-tweaker-panel pointer-events-auto fixed top-1/2 left-1/2 z-(--tweaker-layer-dialog) grid max-h-[min(80dvh,36rem)] w-[min(24rem,calc(100dvw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-(--tweaker-space-3) overflow-hidden border p-(--tweaker-space-4) outline-none"
           onCloseAutoFocus={(event) => {
             if (!returnFocusRef) return
             event.preventDefault()
@@ -498,7 +500,7 @@ function RepairReviewDialog({
             <AlertDialog.Title className="text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-normal) font-(--tweaker-font-semibold)">
               {title}
             </AlertDialog.Title>
-            <AlertDialog.Description className="text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) text-(--tweaker-dialog-muted)">
+            <AlertDialog.Description className="text-tweaker-muted text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight)">
               {description}
             </AlertDialog.Description>
           </div>
@@ -509,17 +511,17 @@ function RepairReviewDialog({
             {changes.map((change) => (
               <section
                 key={change.field}
-                className="grid gap-(--tweaker-space-1) border border-(--tweaker-dialog-border) p-(--tweaker-space-2)"
+                className="border-tweaker-border grid gap-(--tweaker-space-1) border p-(--tweaker-space-2)"
               >
                 <h3 className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-semibold)">
                   {change.field}
                 </h3>
                 <dl className="grid grid-cols-[auto_1fr] gap-x-(--tweaker-space-2) gap-y-(--tweaker-space-1) text-(length:--tweaker-font-size-lg)">
-                  <dt className="text-(--tweaker-dialog-muted)">{beforeLabel}</dt>
+                  <dt className="text-tweaker-muted">{beforeLabel}</dt>
                   <dd className="min-w-0 font-mono break-words">
                     {formatFieldOutput(change.before)}
                   </dd>
-                  <dt className="text-(--tweaker-dialog-muted)">Proposed</dt>
+                  <dt className="text-tweaker-muted">Proposed</dt>
                   <dd className="min-w-0 font-mono break-words">
                     {formatFieldOutput(change.after)}
                   </dd>

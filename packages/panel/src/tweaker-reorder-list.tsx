@@ -135,7 +135,7 @@ export function TweakerReorderList({
         axis="y"
         className={cn(
           'grid h-auto min-h-max grid-cols-[auto_minmax(4.5rem,max-content)_minmax(0,1fr)_max-content] gap-y-1',
-          parentId === rootGroupId && 'pb-(--tweaker-control-hover-rail-overhang)',
+          parentId === rootGroupId && 'pb-0.75',
         )}
         key={layoutVersion}
         values={values}

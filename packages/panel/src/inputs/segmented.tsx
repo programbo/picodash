@@ -63,7 +63,7 @@ export function TweakerSegmented({
             <ToggleGroup.Root
               id={control.inputId}
               aria-label="Options"
-              className="border-tweaker-control shadow-tweaker-sm col-span-2 inline-flex min-w-0 justify-self-start overflow-hidden rounded-(--tweaker-segmented-radius) border bg-(--tweaker-segmented-background) p-(--tweaker-space-0-5)"
+              className="border-tweaker-control shadow-tweaker-sm rounded-tweaker-control col-span-2 inline-flex min-w-0 justify-self-start overflow-hidden border bg-(--_tweaker-choice-background) p-(--tweaker-space-0-5)"
               disabled={control.disabled || control.readOnly}
               type="single"
               value={value}
@@ -84,7 +84,7 @@ export function TweakerSegmented({
                     id={`${control.inputId}:option-${index}`}
                     aria-label={typeof optionLabel === 'string' ? optionLabel : optionValue}
                     className={cn(
-                      'inline-flex h-(--tweaker-segmented-item-height) min-w-(--tweaker-segmented-item-min-width) items-center justify-center gap-(--tweaker-space-1) border-l border-tweaker-control px-(--tweaker-space-2) text-(length:--tweaker-font-size-md) leading-none font-(--tweaker-font-medium) text-tweaker-muted outline-none transition-colors duration-(--tweaker-duration-fast) first:border-l-0 hover:bg-tweaker-surface-muted hover:text-tweaker-text focus-visible:relative focus-visible:z-(--tweaker-layer-raised) focus-visible:ring-2 focus-visible:ring-tweaker-focus data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text disabled:pointer-events-none disabled:opacity-(--tweaker-opacity-disabled-soft)',
+                      'inline-flex h-(--tweaker-control-height-xs) min-w-(--tweaker-control-height-sm) items-center justify-center gap-(--tweaker-space-1) border-l border-tweaker-control px-(--tweaker-space-2) text-(length:--tweaker-font-size-md) leading-none font-(--tweaker-font-medium) text-tweaker-muted outline-none transition-colors duration-(--tweaker-duration-fast) first:border-l-0 hover:bg-tweaker-surface-muted hover:text-tweaker-text focus-visible:relative focus-visible:z-(--tweaker-layer-raised) focus-visible:ring-2 focus-visible:ring-tweaker-focus data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text disabled:pointer-events-none disabled:opacity-(--tweaker-opacity-disabled-soft)',
                     )}
                     disabled={segmentedOptionDisabled(option)}
                     title={typeof optionLabel === 'string' ? optionLabel : undefined}

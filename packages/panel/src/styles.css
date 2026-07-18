@@ -6,39 +6,17 @@
 @source './';
 
 /*
- * Tweaker tokens follow foundation -> semantic -> component contracts.
- * The zero-specificity carrier lets consumer declarations loaded later win.
+ * Public theme contract.
+ *
+ * Defaults live on every named theme carrier so consumers can create a theme by
+ * overriding only the cohesive roles they need. The zero-specificity selector
+ * lets declarations loaded after panel/style.css win.
  */
-:where([data-tweaker-theme='dark'], [data-tweaker-theme='light']) {
+:where([data-tweaker-theme]) {
+  color-scheme: dark;
   font-family: var(--tweaker-font-family);
 
-  /* Foundation: palette */
-  --tweaker-palette-black: oklch(0 0 0);
-  --tweaker-palette-white: oklch(1 0 0);
-  --tweaker-palette-slate-950: oklch(0.148 0.004 228.8);
-  --tweaker-palette-slate-900: oklch(0.218 0.008 223.9);
-  --tweaker-palette-slate-800: oklch(0.275 0.011 216.9);
-  --tweaker-palette-slate-700: oklch(0.34 0.014 216);
-  --tweaker-palette-slate-400: oklch(0.723 0.014 214.4);
-  --tweaker-palette-slate-300: oklch(0.82 0.01 214);
-  --tweaker-palette-slate-200: oklch(0.925 0.005 214.3);
-  --tweaker-palette-slate-50: oklch(0.987 0.002 197.1);
-  --tweaker-palette-mint-700: oklch(0.45 0.12 172);
-  --tweaker-palette-mint-400: oklch(0.76 0.14 172);
-  --tweaker-palette-mint-200: oklch(0.88 0.09 172);
-  --tweaker-palette-emerald-400: oklch(0.765 0.177 163.223);
-  --tweaker-palette-emerald-500: oklch(0.696 0.17 162.48);
-  --tweaker-palette-sky-400: oklch(0.746 0.16 232.661);
-  --tweaker-palette-sky-500: oklch(0.685 0.169 237.323);
-  --tweaker-palette-amber-400: oklch(0.828 0.189 84.429);
-  --tweaker-palette-amber-500: oklch(0.769 0.188 70.08);
-  --tweaker-palette-orange-400: oklch(0.75 0.183 55.934);
-  --tweaker-palette-orange-500: oklch(0.705 0.213 47.604);
-  --tweaker-palette-red-400: oklch(0.704 0.191 22.216);
-  --tweaker-palette-red-500: oklch(0.637 0.237 25.331);
-
-  /* Foundation: spacing, radii, type, opacity, borders, effects, motion, layers */
-  --tweaker-space-0: 0;
+  /* Foundation scales used by package controls and consumer-authored panel items. */
   --tweaker-space-0-5: 0.125rem;
   --tweaker-space-1: 0.25rem;
   --tweaker-space-1-5: 0.375rem;
@@ -47,14 +25,17 @@
   --tweaker-space-3: 0.75rem;
   --tweaker-space-4: 1rem;
   --tweaker-space-5: 1.25rem;
-  --tweaker-radius-none: 0;
-  --tweaker-radius-xs: 0.25rem;
-  --tweaker-radius-sm: 0.375rem;
-  --tweaker-radius-md: 0.5rem;
-  --tweaker-radius-lg: 0.625rem;
-  --tweaker-radius-xl: 0.75rem;
-  --tweaker-radius-round: 9999px;
-  --tweaker-font-size-2xs: 0.5rem;
+  --tweaker-radius-surface: 0;
+  --tweaker-radius-control: 0;
+  --tweaker-control-height-xs: 1.5rem;
+  --tweaker-control-height-sm: 1.75rem;
+  --tweaker-control-height-md: 2rem;
+  --tweaker-control-height-lg: 2.25rem;
+  --tweaker-field-surface-min-height: 6rem;
+  --tweaker-icon-xs: 0.75rem;
+  --tweaker-icon-sm: 0.875rem;
+  --tweaker-icon-md: 1rem;
+  --tweaker-icon-lg: 1.25rem;
   --tweaker-font-family: inherit;
   --tweaker-font-size-xs: 0.5625rem;
   --tweaker-font-size-sm: 0.625rem;
@@ -63,7 +44,6 @@
   --tweaker-font-size-xl: 0.875rem;
   --tweaker-font-size-2xl: 1.25rem;
   --tweaker-font-size-3xl: 1.5rem;
-  --tweaker-line-none: 1;
   --tweaker-line-tight: 1rem;
   --tweaker-line-normal: 1.25rem;
   --tweaker-line-relaxed: 1.5rem;
@@ -78,19 +58,15 @@
   --tweaker-opacity-muted: 0.7;
   --tweaker-opacity-subtle: 0.3;
   --tweaker-border-thin: 1px;
-  --tweaker-border-strong: 2px;
   --tweaker-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --tweaker-shadow-md: 0 4px 12px rgb(0 0 0 / 0.25);
   --tweaker-shadow-panel: 0 25px 50px -12px rgb(0 0 0 / 0.3);
   --tweaker-shadow-viewer: 0 25px 50px -12px rgb(0 0 0 / 0.7);
   --tweaker-shadow-inner: inset 0 2px 4px rgb(0 0 0 / 0.25);
   --tweaker-duration-fast: 150ms;
-  --tweaker-duration-normal: 200ms;
-  --tweaker-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --tweaker-ease-out: cubic-bezier(0, 0, 0.2, 1);
   --tweaker-blur-surface: 12px;
   --tweaker-blur-overlay: 4px;
-  --tweaker-layer-content: 0;
   --tweaker-layer-raised: 10;
   --tweaker-layer-drag: 20;
   --tweaker-layer-tooltip: 50;
@@ -98,283 +74,109 @@
   --tweaker-layer-menu: 70;
   --tweaker-layer-dialog: 80;
   --tweaker-layer-viewer: 2147483647;
+  --tweaker-panel-width: min(20rem, calc(100dvw - 2rem));
 
-  /* Semantic roles */
-  --tweaker-color-canvas: var(--tweaker-palette-slate-950);
-  --tweaker-color-surface: var(--tweaker-palette-slate-900);
-  --tweaker-color-surface-raised: var(--tweaker-palette-slate-900);
-  --tweaker-color-surface-muted: var(--tweaker-palette-slate-800);
-  --tweaker-color-surface-hover: var(--tweaker-palette-slate-800);
-  --tweaker-color-text: var(--tweaker-palette-slate-50);
-  --tweaker-color-text-strong: var(--tweaker-palette-white);
-  --tweaker-color-text-muted: var(--tweaker-palette-slate-400);
-  --tweaker-color-text-subtle: var(--tweaker-palette-slate-300);
+  /* Core semantic color roles: the minimum cohesive named-theme recipe. */
+  --tweaker-color-canvas: oklch(0.148 0.004 228.8);
+  --tweaker-color-surface: oklch(0.218 0.008 223.9);
+  --tweaker-color-surface-raised: oklch(0.218 0.008 223.9);
+  --tweaker-color-surface-muted: oklch(0.275 0.011 216.9);
+  --tweaker-color-text: oklch(0.987 0.002 197.1);
+  --tweaker-color-text-strong: oklch(1 0 0);
+  --tweaker-color-text-muted: oklch(0.723 0.014 214.4);
   --tweaker-color-border: oklch(1 0 0 / 10%);
-  --tweaker-color-border-muted: oklch(1 0 0 / 8%);
   --tweaker-color-control: oklch(1 0 0 / 15%);
-  --tweaker-color-control-hover: var(--tweaker-palette-slate-800);
   --tweaker-color-focus: oklch(0.56 0.021 213.5);
-  --tweaker-color-accent: var(--tweaker-palette-slate-200);
-  --tweaker-color-accent-text: var(--tweaker-palette-slate-900);
-  --tweaker-color-success: var(--tweaker-palette-emerald-400);
-  --tweaker-color-success-strong: var(--tweaker-palette-mint-700);
-  --tweaker-color-success-subtle: oklch(0.696 0.17 162.48 / 10%);
-  --tweaker-color-info: var(--tweaker-palette-sky-400);
-  --tweaker-color-info-border: oklch(0.746 0.16 232.661 / 80%);
-  --tweaker-color-info-subtle: oklch(0.685 0.169 237.323 / 10%);
-  --tweaker-color-warning: var(--tweaker-palette-amber-400);
-  --tweaker-color-warning-border: oklch(0.828 0.189 84.429 / 80%);
-  --tweaker-color-warning-subtle: oklch(0.769 0.188 70.08 / 10%);
-  --tweaker-color-alert: var(--tweaker-palette-orange-400);
-  --tweaker-color-alert-border: oklch(0.75 0.183 55.934 / 80%);
-  --tweaker-color-alert-subtle: oklch(0.705 0.213 47.604 / 10%);
-  --tweaker-color-danger: var(--tweaker-palette-red-400);
-  --tweaker-color-danger-border: oklch(0.704 0.191 22.216 / 80%);
-  --tweaker-color-danger-subtle: oklch(0.637 0.237 25.331 / 10%);
+  --tweaker-color-accent: oklch(0.925 0.005 214.3);
+  --tweaker-color-accent-text: oklch(0.218 0.008 223.9);
+  --tweaker-color-success: oklch(0.765 0.177 163.223);
+  --tweaker-color-info: oklch(0.746 0.16 232.661);
+  --tweaker-color-warning: oklch(0.828 0.189 84.429);
+  --tweaker-color-alert: oklch(0.75 0.183 55.934);
+  --tweaker-color-danger: oklch(0.704 0.191 22.216);
   --tweaker-color-overlay: oklch(0 0 0 / 85%);
 
-  /* Component contracts */
-  --tweaker-panel-background: var(--tweaker-color-surface);
-  --tweaker-panel-foreground: var(--tweaker-color-text);
-  --tweaker-panel-border: var(--tweaker-color-border);
-  --tweaker-panel-radius: var(--tweaker-radius-none);
-  --tweaker-panel-shadow: var(--tweaker-shadow-panel);
-  --tweaker-panel-ring: oklch(1 0 0 / 5%);
-  --tweaker-panel-width: min(20rem, calc(100dvw - 2rem));
-  --tweaker-panel-max-height: calc(100dvh - 1rem);
-  --tweaker-panel-inset: 2rem;
-  --tweaker-panel-header-height: 2.3125rem;
-  --tweaker-panel-title-size: var(--tweaker-font-size-xl);
-  --tweaker-row-min-height: 2.5rem;
-  --tweaker-row-radius: var(--tweaker-radius-none);
-  --tweaker-row-hover: color-mix(in oklab, var(--tweaker-color-surface-hover) 65%, transparent);
-  --tweaker-row-drag: color-mix(in oklab, var(--tweaker-color-surface-hover) 90%, transparent);
-  --tweaker-group-background: color-mix(
+  /* Derived semantic roles keep custom themes internally consistent. */
+  --_tweaker-color-surface-hover: var(--tweaker-color-surface-muted);
+  --_tweaker-color-well: color-mix(in oklab, var(--tweaker-color-surface-muted) 30%, transparent);
+  --_tweaker-color-success-strong: color-mix(
     in oklab,
-    var(--tweaker-color-surface-muted) 30%,
+    var(--tweaker-color-success) 70%,
+    var(--tweaker-color-canvas)
+  );
+  --_tweaker-color-success-subtle: color-mix(
+    in oklab,
+    var(--tweaker-color-success) 10%,
     transparent
   );
-  --tweaker-group-drag: color-mix(in oklab, var(--tweaker-color-surface-muted) 80%, transparent);
-  --tweaker-button-radius: var(--tweaker-radius-none);
-  --tweaker-button-background: var(--tweaker-color-accent);
-  --tweaker-button-foreground: var(--tweaker-color-accent-text);
-  --tweaker-button-icon-size: 1.75rem;
-  --tweaker-button-sm-height: 2rem;
-  --tweaker-button-sm-padding-inline: var(--tweaker-space-2-5);
-  --tweaker-button-md-height: 2.25rem;
-  --tweaker-button-md-padding-inline: var(--tweaker-space-3);
-  --tweaker-icon-xs: 0.75rem;
-  --tweaker-icon-sm: 0.875rem;
-  --tweaker-icon-md: 1rem;
-  --tweaker-icon-lg: 1.25rem;
-  --tweaker-chrome-button-size: 1.5rem;
-  --tweaker-chrome-action-size: 1.25rem;
-  --tweaker-chrome-icon-size: var(--tweaker-icon-sm);
-  --tweaker-chrome-icon-small-size: var(--tweaker-icon-xs);
-  --tweaker-reorder-static-marker-size: 0.375rem;
-  --tweaker-reorder-static-marker-color: var(--tweaker-color-text-muted);
-  --tweaker-reorder-static-marker-opacity: var(--tweaker-opacity-subtle);
-  --tweaker-field-background: transparent;
-  --tweaker-field-focus-background: var(--tweaker-color-canvas);
-  --tweaker-field-radius: var(--tweaker-radius-none);
-  --tweaker-input-height: 2rem;
-  --tweaker-input-compact-height: 1.75rem;
-  --tweaker-input-padding-block: var(--tweaker-space-1);
-  --tweaker-input-padding-inline: var(--tweaker-space-2-5);
-  --tweaker-select-height: 1.75rem;
-  --tweaker-select-padding-block: var(--tweaker-space-0-5);
-  --tweaker-select-padding-inline-start: var(--tweaker-space-1-5);
-  --tweaker-select-padding-inline-end: 1.5rem;
-  --tweaker-select-background: var(--tweaker-field-background);
-  --tweaker-select-focus-background: var(--tweaker-field-focus-background);
-  --tweaker-select-foreground: var(--tweaker-color-text);
-  --tweaker-select-border: var(--tweaker-color-control);
-  --tweaker-select-radius: var(--tweaker-field-radius);
-  --tweaker-select-icon-size: var(--tweaker-icon-sm);
-  --tweaker-select-content-background: var(--tweaker-color-surface-raised);
-  --tweaker-select-content-foreground: var(--tweaker-color-text);
-  --tweaker-select-content-border: var(--tweaker-color-border);
-  --tweaker-select-content-radius: var(--tweaker-radius-none);
-  --tweaker-select-content-shadow: var(--tweaker-shadow-md);
-  --tweaker-select-content-min-width: var(--radix-select-trigger-width);
-  --tweaker-select-content-padding: var(--tweaker-space-1);
-  --tweaker-select-item-height: 2rem;
-  --tweaker-select-item-radius: var(--tweaker-radius-none);
-  --tweaker-select-item-padding-inline-start: 2rem;
-  --tweaker-select-item-padding-inline-end: 2rem;
-  --tweaker-select-item-highlight-background: var(--tweaker-color-surface-muted);
-  --tweaker-select-item-highlight-foreground: var(--tweaker-color-text);
-  --tweaker-select-indicator-size: var(--tweaker-icon-sm);
-  --tweaker-menu-background: var(--tweaker-color-surface-raised);
-  --tweaker-menu-foreground: var(--tweaker-color-text);
-  --tweaker-menu-muted: var(--tweaker-color-text-muted);
-  --tweaker-menu-border: var(--tweaker-color-border);
-  --tweaker-menu-radius: var(--tweaker-radius-none);
-  --tweaker-menu-shadow: var(--tweaker-shadow-md);
-  --tweaker-menu-min-width: 11rem;
-  --tweaker-menu-padding: var(--tweaker-space-1);
-  --tweaker-menu-item-height: 2rem;
-  --tweaker-menu-item-radius: var(--tweaker-radius-none);
-  --tweaker-menu-item-gap: var(--tweaker-space-2);
-  --tweaker-menu-item-padding-inline: var(--tweaker-space-2);
-  --tweaker-menu-item-highlight-background: var(--tweaker-color-surface-muted);
-  --tweaker-menu-item-highlight-foreground: var(--tweaker-color-text);
-  --tweaker-menu-item-danger: var(--tweaker-color-danger);
-  --tweaker-menu-separator: var(--tweaker-color-border-muted);
-  --tweaker-menu-separator-margin-block: var(--tweaker-space-1);
-  --tweaker-menu-icon-size: var(--tweaker-icon-sm);
-  --tweaker-dialog-overlay: var(--tweaker-color-overlay);
-  --tweaker-dialog-background: var(--tweaker-color-surface-raised);
-  --tweaker-dialog-foreground: var(--tweaker-color-text);
-  --tweaker-dialog-muted: var(--tweaker-color-text-muted);
-  --tweaker-dialog-border: var(--tweaker-color-border);
-  --tweaker-dialog-radius: var(--tweaker-radius-none);
-  --tweaker-dialog-shadow: var(--tweaker-shadow-panel);
-  --tweaker-dialog-width: min(24rem, calc(100dvw - 2rem));
-  --tweaker-dialog-padding: var(--tweaker-space-4);
-  --tweaker-dialog-gap: var(--tweaker-space-3);
-  --tweaker-switch-height: 1.25rem;
-  --tweaker-switch-width: 2.25rem;
-  --tweaker-switch-thumb-size: 1rem;
-  --tweaker-switch-thumb-translate: 1rem;
-  --tweaker-choice-background: color-mix(
+  --_tweaker-color-info-border: color-mix(in oklab, var(--tweaker-color-info) 80%, transparent);
+  --_tweaker-color-info-subtle: color-mix(in oklab, var(--tweaker-color-info) 10%, transparent);
+  --_tweaker-color-warning-border: color-mix(
+    in oklab,
+    var(--tweaker-color-warning) 80%,
+    transparent
+  );
+  --_tweaker-color-warning-subtle: color-mix(
+    in oklab,
+    var(--tweaker-color-warning) 10%,
+    transparent
+  );
+  --_tweaker-color-alert-border: color-mix(in oklab, var(--tweaker-color-alert) 80%, transparent);
+  --_tweaker-color-alert-subtle: color-mix(in oklab, var(--tweaker-color-alert) 10%, transparent);
+  --_tweaker-color-danger-border: color-mix(in oklab, var(--tweaker-color-danger) 80%, transparent);
+  --_tweaker-color-danger-subtle: color-mix(in oklab, var(--tweaker-color-danger) 10%, transparent);
+
+  /*
+   * Private implementation values. These are derived geometry or visual
+   * formulas, not independent theme choices.
+   */
+  --_tweaker-panel-ring: oklch(1 0 0 / 5%);
+  --_tweaker-choice-background: color-mix(
     in oklab,
     var(--tweaker-color-surface-muted) 35%,
     transparent
   );
-  --tweaker-choice-radius: var(--tweaker-radius-none);
-  --tweaker-segmented-background: var(--tweaker-choice-background);
-  --tweaker-segmented-radius: var(--tweaker-choice-radius);
-  --tweaker-segmented-item-height: 1.5rem;
-  --tweaker-segmented-item-min-width: 1.75rem;
-  --tweaker-alignment-background: var(--tweaker-choice-background);
-  --tweaker-alignment-radius: var(--tweaker-choice-radius);
-  --tweaker-alignment-item-size: 2rem;
-  --tweaker-slider-track: var(--tweaker-color-control);
-  --tweaker-slider-fill: var(--tweaker-color-accent);
-  --tweaker-slider-thumb: color-mix(in oklab, var(--tweaker-color-accent) 60%, transparent);
-  --tweaker-slider-track-height: 0.25rem;
-  --tweaker-slider-thumb-size: 0.875rem;
-  --tweaker-slider-control-height: 1rem;
-  --tweaker-slider-hit-offset-inline: -0.5rem;
-  --tweaker-slider-hit-width: calc(100% + 1rem);
-  --tweaker-slider-webkit-thumb-offset: -0.3125rem;
-  --tweaker-slider-marks-top: 1.125rem;
-  --tweaker-slider-marks-height: 0.75rem;
-  --tweaker-slider-output-min-width: 5ch;
-  --tweaker-range-track: var(--tweaker-slider-track);
-  --tweaker-range-fill: var(--tweaker-slider-fill);
-  --tweaker-range-thumb: var(--tweaker-slider-thumb);
-  --tweaker-range-thumb-size: var(--tweaker-slider-thumb-size);
-  --tweaker-range-output-width: 9ch;
-  --tweaker-range-root-height: 1.5rem;
-  --tweaker-dropzone-background: color-mix(
+  --_tweaker-nested-inset: -0.125rem;
+  --_tweaker-row-hover: color-mix(in oklab, var(--_tweaker-color-surface-hover) 65%, transparent);
+  --_tweaker-row-drag: color-mix(in oklab, var(--_tweaker-color-surface-hover) 90%, transparent);
+  --_tweaker-group-drag: color-mix(in oklab, var(--tweaker-color-surface-muted) 80%, transparent);
+  --_tweaker-slider-track-height: var(--tweaker-space-1);
+  --_tweaker-slider-thumb-size: var(--tweaker-icon-sm);
+  --_tweaker-slider-thumb: color-mix(in oklab, var(--tweaker-color-accent) 60%, transparent);
+  --_tweaker-slider-hit-inset: var(--tweaker-space-2);
+  --_tweaker-slider-hit-offset: calc(-1 * var(--_tweaker-slider-hit-inset));
+  --_tweaker-slider-hit-width: calc(100% + 2 * var(--_tweaker-slider-hit-inset));
+  --_tweaker-slider-webkit-thumb-offset: calc(
+    (var(--_tweaker-slider-track-height) - var(--_tweaker-slider-thumb-size)) / 2
+  );
+  --_tweaker-switch-height: var(--tweaker-icon-lg);
+  --_tweaker-switch-thumb-size: calc(var(--_tweaker-switch-height) - var(--tweaker-space-1));
+  --_tweaker-switch-thumb-translate: var(--_tweaker-switch-thumb-size);
+  --_tweaker-switch-width: calc(
+    var(--_tweaker-switch-height) + var(--_tweaker-switch-thumb-translate)
+  );
+  --_tweaker-xy-background: color-mix(
     in oklab,
-    var(--tweaker-color-surface-muted) 30%,
+    var(--tweaker-color-surface-muted) 50%,
     transparent
   );
-  --tweaker-dropzone-success: var(--tweaker-palette-emerald-500);
-  --tweaker-dropzone-min-height: 6rem;
-  --tweaker-dropzone-radius: var(--tweaker-field-radius);
-  --tweaker-dropzone-preview-size: 2rem;
-  --tweaker-gradient-track-height: 2.25rem;
-  --tweaker-gradient-stop-size: 1rem;
-  --tweaker-gradient-radius: var(--tweaker-field-radius);
-  --tweaker-xy-background: color-mix(in oklab, var(--tweaker-color-surface-muted) 50%, transparent);
-  --tweaker-xy-grid: color-mix(in oklab, var(--tweaker-color-border) 70%, transparent);
-  --tweaker-xy-min-height: 6rem;
-  --tweaker-xy-radius: var(--tweaker-field-radius);
-  --tweaker-xy-point-size: 0.75rem;
-  --tweaker-media-background: var(--tweaker-dropzone-background);
-  --tweaker-media-min-height: 6rem;
-  --tweaker-media-radius: var(--tweaker-field-radius);
-  --tweaker-media-aspect-ratio: 16 / 9;
-  --tweaker-tooltip-background: var(--tweaker-color-surface-raised);
-  --tweaker-tooltip-foreground: var(--tweaker-color-text);
-  --tweaker-tooltip-border: var(--tweaker-color-border);
-  --tweaker-tooltip-radius: var(--tweaker-radius-none);
-  --tweaker-tooltip-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.25), 0 4px 6px -4px rgb(0 0 0 / 0.25);
-  --tweaker-tooltip-max-width: 16rem;
-  --tweaker-tooltip-offset: 0.375rem;
-  --tweaker-tooltip-padding-block: var(--tweaker-space-2);
-  --tweaker-tooltip-padding-inline: var(--tweaker-space-2-5);
-  --tweaker-viewer-background: oklch(0 0 0 / 75%);
-  --tweaker-viewer-overlay: var(--tweaker-color-overlay);
-  --tweaker-viewer-foreground: var(--tweaker-palette-white);
-  --tweaker-viewer-muted: oklch(1 0 0 / 55%);
-  --tweaker-viewer-border: oklch(1 0 0 / 15%);
-  --tweaker-viewer-width: min(92vw, 80rem);
-  --tweaker-viewer-surface-max-height: 82vh;
-  --tweaker-viewer-content-min-height: 12rem;
-  --tweaker-viewer-image-max-height: 74vh;
-  --tweaker-viewer-image-radius: var(--tweaker-field-radius);
-  --tweaker-viewer-close-size: 2rem;
-  --tweaker-viewer-radius: var(--tweaker-radius-none);
-  --tweaker-viewer-shadow: var(--tweaker-shadow-viewer);
-  --tweaker-viewer-preview-scrim: oklch(0 0 0 / 45%);
-  --tweaker-viewer-caption-background: oklch(0 0 0 / 70%);
-  --tweaker-viewer-spotlight: oklch(1 0 0 / 12%);
-  --tweaker-feature-background: oklch(0.218 0.008 223.9 / 90%);
-  --tweaker-feature-foreground: var(--tweaker-palette-slate-50);
-  --tweaker-feature-muted: var(--tweaker-palette-slate-300);
-  --tweaker-feature-subtle: var(--tweaker-palette-slate-400);
-  --tweaker-feature-border: oklch(1 0 0 / 12%);
-  --tweaker-feature-radius: var(--tweaker-radius-none);
-  --tweaker-feature-eyebrow: var(--tweaker-palette-mint-200);
-  --tweaker-feature-metric-background: var(--tweaker-color-text-strong);
-  --tweaker-feature-metric-foreground: var(--tweaker-color-canvas);
-  --tweaker-feature-metric-label: var(--tweaker-color-text-muted);
-  --tweaker-feature-trend: var(--tweaker-color-success-strong);
-  --tweaker-vector-axis-bottom: 0.5rem;
-  --tweaker-vector-axis-left: 0.125rem;
-  --tweaker-group-header-min-height: 2rem;
-  --tweaker-group-child-inset-inline: -0.125rem;
-  --tweaker-group-child-padding-bottom: 0.125rem;
-  --tweaker-control-hover-rail-overhang: 0.1875rem;
-  --tweaker-control-hover-rail-inset-block: -0.1875rem;
-  --tweaker-control-hover-rail-left: -0.125rem;
-  --tweaker-control-hover-rail-width: 1.5rem;
-}
-
-:where([data-tweaker-theme='dark']) {
-  color-scheme: dark;
-}
-
-:where([data-tweaker-theme='light']) {
-  color-scheme: light;
-
-  --tweaker-color-canvas: var(--tweaker-palette-white);
-  --tweaker-color-surface: var(--tweaker-palette-slate-50);
-  --tweaker-color-surface-raised: var(--tweaker-palette-white);
-  --tweaker-color-surface-muted: var(--tweaker-palette-slate-200);
-  --tweaker-color-surface-hover: var(--tweaker-palette-slate-200);
-  --tweaker-color-text: var(--tweaker-palette-slate-900);
-  --tweaker-color-text-strong: var(--tweaker-palette-black);
-  --tweaker-color-text-muted: var(--tweaker-palette-slate-700);
-  --tweaker-color-text-subtle: var(--tweaker-palette-slate-700);
-  --tweaker-color-border: oklch(0.218 0.008 223.9 / 18%);
-  --tweaker-color-border-muted: oklch(0.218 0.008 223.9 / 12%);
-  --tweaker-color-control: oklch(0.218 0.008 223.9 / 22%);
-  --tweaker-color-control-hover: var(--tweaker-palette-slate-200);
-  --tweaker-color-focus: oklch(0.56 0.11 213.5);
-  --tweaker-color-accent: var(--tweaker-palette-slate-900);
-  --tweaker-color-accent-text: var(--tweaker-palette-white);
-  --tweaker-color-success: var(--tweaker-palette-emerald-500);
-  --tweaker-color-success-strong: var(--tweaker-palette-mint-700);
-  --tweaker-color-info: var(--tweaker-palette-sky-500);
-  --tweaker-color-warning: var(--tweaker-palette-amber-500);
-  --tweaker-color-alert: var(--tweaker-palette-orange-500);
-  --tweaker-color-danger: var(--tweaker-palette-red-500);
-  --tweaker-color-overlay: oklch(0.148 0.004 228.8 / 55%);
-  --tweaker-panel-ring: oklch(0.218 0.008 223.9 / 8%);
-  --tweaker-tooltip-shadow:
-    0 10px 15px -3px rgb(15 23 42 / 0.14), 0 4px 6px -4px rgb(15 23 42 / 0.12);
-  --tweaker-feature-background: oklch(0.987 0.002 197.1 / 94%);
-  --tweaker-feature-foreground: var(--tweaker-palette-slate-900);
-  --tweaker-feature-muted: var(--tweaker-palette-slate-700);
-  --tweaker-feature-subtle: var(--tweaker-palette-slate-400);
-  --tweaker-feature-border: oklch(0.218 0.008 223.9 / 14%);
-  --tweaker-feature-eyebrow: var(--tweaker-palette-mint-700);
+  --_tweaker-xy-grid: color-mix(in oklab, var(--tweaker-color-border) 70%, transparent);
+  --_tweaker-viewer-background: color-mix(in oklab, var(--tweaker-color-canvas) 75%, transparent);
+  --_tweaker-viewer-preview-scrim: color-mix(
+    in oklab,
+    var(--tweaker-color-overlay) 53%,
+    transparent
+  );
+  --_tweaker-viewer-caption-background: color-mix(
+    in oklab,
+    var(--tweaker-color-overlay) 82%,
+    transparent
+  );
+  --_tweaker-viewer-spotlight: color-mix(
+    in oklab,
+    var(--tweaker-color-text-strong) 12%,
+    transparent
+  );
 }
 
 /* Namespaced utilities for package components and consumer-authored panel items. */
@@ -391,22 +193,20 @@
   --color-tweaker-accent: var(--tweaker-color-accent);
   --color-tweaker-accent-text: var(--tweaker-color-accent-text);
   --color-tweaker-success: var(--tweaker-color-success);
-  --color-tweaker-success-subtle: var(--tweaker-color-success-subtle);
+  --color-tweaker-success-subtle: var(--_tweaker-color-success-subtle);
   --color-tweaker-info: var(--tweaker-color-info);
-  --color-tweaker-info-subtle: var(--tweaker-color-info-subtle);
+  --color-tweaker-info-subtle: var(--_tweaker-color-info-subtle);
   --color-tweaker-warning: var(--tweaker-color-warning);
-  --color-tweaker-warning-subtle: var(--tweaker-color-warning-subtle);
+  --color-tweaker-warning-subtle: var(--_tweaker-color-warning-subtle);
   --color-tweaker-alert: var(--tweaker-color-alert);
-  --color-tweaker-alert-subtle: var(--tweaker-color-alert-subtle);
+  --color-tweaker-alert-subtle: var(--_tweaker-color-alert-subtle);
   --color-tweaker-danger: var(--tweaker-color-danger);
-  --color-tweaker-danger-subtle: var(--tweaker-color-danger-subtle);
-  --radius-tweaker-xs: var(--tweaker-radius-xs);
-  --radius-tweaker-sm: var(--tweaker-radius-sm);
-  --radius-tweaker-md: var(--tweaker-radius-md);
-  --radius-tweaker-lg: var(--tweaker-radius-lg);
+  --color-tweaker-danger-subtle: var(--_tweaker-color-danger-subtle);
+  --radius-tweaker-surface: var(--tweaker-radius-surface);
+  --radius-tweaker-control: var(--tweaker-radius-control);
   --shadow-tweaker-sm: var(--tweaker-shadow-sm);
-  --shadow-tweaker-panel: var(--tweaker-panel-shadow);
-  --shadow-tweaker-viewer: var(--tweaker-viewer-shadow);
+  --shadow-tweaker-panel: var(--tweaker-shadow-panel);
+  --shadow-tweaker-viewer: var(--tweaker-shadow-viewer);
   --spacing-tweaker-1: var(--tweaker-space-1);
   --spacing-tweaker-2: var(--tweaker-space-2);
   --spacing-tweaker-3: var(--tweaker-space-3);

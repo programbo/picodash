@@ -135,13 +135,13 @@ function VectorAxisInput({
 
   return (
     <label className="relative min-w-0" htmlFor={inputId}>
-      <span className="text-tweaker-muted pointer-events-none absolute bottom-(--tweaker-vector-axis-bottom) left-(--tweaker-vector-axis-left) z-(--tweaker-layer-raised) text-(length:--tweaker-font-size-2xs) leading-none font-(--tweaker-font-semibold) uppercase">
+      <span className="text-tweaker-muted pointer-events-none absolute bottom-2 left-0.5 z-(--tweaker-layer-raised) text-[0.5rem] leading-none font-(--tweaker-font-semibold) uppercase">
         {axis}
       </span>
       <Input
         id={inputId}
         aria-label={`${axis.toUpperCase()} axis`}
-        className="h-(--tweaker-input-compact-height) min-w-0 px-0 pr-0 pl-0 text-center tabular-nums"
+        className="h-(--tweaker-control-height-sm) min-w-0 px-0 pr-0 pl-0 text-center tabular-nums"
         disabled={control.disabled}
         inputMode="decimal"
         max={max}

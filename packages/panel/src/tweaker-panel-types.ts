@@ -112,6 +112,7 @@ interface TweakerPanelBaseProps extends Omit<
   collapsible?: boolean
   defaultCollapsed?: boolean
   defaultPlacement?: TweakerPanelDefaultPlacement
+  theme?: string
   title?: ReactNode
   width?: number | string
 }

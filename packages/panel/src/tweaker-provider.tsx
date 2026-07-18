@@ -18,6 +18,7 @@ import {
 } from './panel-persistence.js'
 import type { PanelLayout, PanelRect } from './panel-snapping.js'
 import { tweakerDefaultTheme, tweakerLayerTokens } from './theme.js'
+import { TweakerThemeContextProvider } from './tweaker-theme-context.js'
 
 export interface TweakerPanelRegistration {
   id: string
@@ -48,8 +49,8 @@ export interface TweakerProviderContextValue {
   store: TweakerStore
 }
 
-export type TweakerTheme = 'dark' | 'light' | 'system'
-export type TweakerResolvedTheme = Exclude<TweakerTheme, 'system'>
+export type TweakerTheme = 'dark' | 'light' | 'system' | (string & {})
+export type TweakerResolvedTheme = string
 
 export interface TweakerProviderProps {
   children: ReactNode
@@ -248,15 +249,19 @@ export function TweakerProvider({
   )
 
   return (
-    <TweakerContext.Provider value={contextValue}>
-      {children}
-      <div
-        data-tweaker-container
-        data-tweaker-theme={theme}
-        ref={handleContainerRef}
-        className="pointer-events-none fixed inset-0 h-dvh w-dvw"
-      ></div>
-    </TweakerContext.Provider>
+    <TweakerThemeContextProvider theme={theme}>
+      <TweakerContext.Provider value={contextValue}>
+        <div data-tweaker-provider-content="" data-tweaker-theme={theme} className="contents">
+          {children}
+        </div>
+        <div
+          data-tweaker-container
+          data-tweaker-theme={theme}
+          ref={handleContainerRef}
+          className="pointer-events-none fixed inset-0 h-dvh w-dvw"
+        ></div>
+      </TweakerContext.Provider>
+    </TweakerThemeContextProvider>
   )
 }
 
@@ -277,7 +282,7 @@ export function useTweakerSelector<T>(selector: (state: TweakerState) => T) {
 }
 
 function useResolvedTweakerTheme(theme: TweakerTheme): TweakerResolvedTheme {
-  const [systemTheme, setSystemTheme] = useState<TweakerResolvedTheme>(() => preferredSystemTheme())
+  const [systemTheme, setSystemTheme] = useState<'dark' | 'light'>(() => preferredSystemTheme())
 
   useEffect(() => {
     if (
@@ -298,7 +303,7 @@ function useResolvedTweakerTheme(theme: TweakerTheme): TweakerResolvedTheme {
   return theme === 'system' ? systemTheme : theme
 }
 
-function preferredSystemTheme(): TweakerResolvedTheme {
+function preferredSystemTheme(): 'dark' | 'light' {
   return typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-color-scheme: light)').matches

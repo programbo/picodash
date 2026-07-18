@@ -8,7 +8,7 @@ import {
   MousePointer2,
   Space,
 } from 'lucide-react'
-import { useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { z } from 'zod'
 import {
   createTweakerPanelStore,
@@ -30,6 +30,7 @@ import {
   TweakerVector3,
   TweakerXYPad,
   useTweakerPanelStoreSelector,
+  useTweakerTheme,
   type TweakerSliderMark,
   type TweakerValue,
 } from 'panel'
@@ -124,16 +125,56 @@ type ProviderSnapshot = {
 }
 
 export function App() {
+  const [themes, setThemes] = useState<DemoThemes>(readDemoThemes)
+
+  useEffect(() => {
+    const handleThemeChange = (event: Event) => {
+      const detail = (event as CustomEvent<DemoThemeChange>).detail
+      setThemes((current) => ({
+        custom: detail.custom === null ? undefined : (detail.custom ?? current.custom),
+        provider: detail.provider === null ? undefined : (detail.provider ?? current.provider),
+        scene: detail.scene === null ? undefined : (detail.scene ?? current.scene),
+      }))
+    }
+
+    window.addEventListener('tweaker-demo-theme-change', handleThemeChange)
+    return () => window.removeEventListener('tweaker-demo-theme-change', handleThemeChange)
+  }, [])
+
   return (
     <main className="dark bg-background text-foreground min-h-svh overflow-hidden">
-      <TweakerProvider persistLayout storageKey="tweaker-demo:panel-layout:v1" theme="dark">
-        <DemoExperience />
+      <TweakerProvider
+        persistLayout
+        storageKey="tweaker-demo:panel-layout:v1"
+        theme={themes.provider ?? 'dark'}
+      >
+        <DemoExperience themes={themes} />
       </TweakerProvider>
     </main>
   )
 }
 
-function DemoExperience() {
+type DemoThemes = {
+  custom?: string
+  provider?: string
+  scene?: string
+}
+
+type DemoThemeChange = {
+  [Key in keyof DemoThemes]?: string | null
+}
+
+function readDemoThemes(): DemoThemes {
+  const search = new URLSearchParams(window.location.search)
+  return {
+    custom: search.get('customTheme') ?? undefined,
+    provider: search.get('providerTheme') ?? undefined,
+    scene: search.get('sceneTheme') ?? undefined,
+  }
+}
+
+function DemoExperience({ themes }: { themes: DemoThemes }) {
+  const resolvedProviderTheme = useTweakerTheme()
   const panelOrder = useTweakerSelector((state) => state.panelOrder)
   const providerPanels = useTweakerSelector((state) => state.panels)
   const providerState = useMemo<ProviderSnapshot>(
@@ -156,6 +197,7 @@ function DemoExperience() {
 
   return (
     <>
+      <span data-demo-provider-theme={resolvedProviderTheme} hidden />
       <div className="min-h-svh px-4 py-5 sm:px-6 lg:pr-208">
         <div className="mx-auto grid max-w-7xl gap-5">
           <header className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -255,6 +297,7 @@ function DemoExperience() {
 
       <TweakerPanel
         store={scenePanelStore}
+        theme={themes.scene}
         title="Scene Controls"
         collapsible
         defaultPlacement="top-right"
@@ -378,6 +421,7 @@ function DemoExperience() {
 
       <TweakerPanel
         store={customItemPanelStore}
+        theme={themes.custom}
         title="Custom Items"
         collapsible
         defaultPlacement="bottom-right"

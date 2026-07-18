@@ -135,3 +135,49 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.56 0.021 213.5);
 }
+
+:where([data-tweaker-theme='ocean']) {
+  --tweaker-color-canvas: rgb(2 18 28);
+  --tweaker-color-surface: rgb(7 38 52);
+  --tweaker-color-surface-raised: rgb(11 55 72);
+  --tweaker-color-surface-muted: rgb(17 78 96);
+  --tweaker-color-text: rgb(220 248 255);
+  --tweaker-color-text-strong: rgb(255 255 255);
+  --tweaker-color-text-muted: rgb(139 195 207);
+  --tweaker-color-border: rgb(75 138 151);
+  --tweaker-color-control: rgb(91 158 171);
+  --tweaker-color-focus: rgb(89 214 239);
+  --tweaker-color-accent: rgb(61 214 230);
+  --tweaker-color-accent-text: rgb(2 18 28);
+  --tweaker-color-success: rgb(75 255 185);
+  --tweaker-color-info: rgb(112 200 255);
+  --tweaker-color-warning: rgb(255 214 102);
+  --tweaker-color-alert: rgb(255 183 77);
+  --tweaker-color-danger: rgb(255 112 112);
+  --tweaker-color-overlay: rgb(0 36 60 / 85%);
+  --tweaker-radius-surface: 8px;
+  --tweaker-radius-control: 6px;
+}
+
+:where([data-tweaker-theme='plum']) {
+  --tweaker-color-canvas: rgb(29 9 34);
+  --tweaker-color-surface: rgb(54 19 62);
+  --tweaker-color-surface-raised: rgb(75 27 85);
+  --tweaker-color-surface-muted: rgb(101 43 112);
+  --tweaker-color-text: rgb(253 236 255);
+  --tweaker-color-text-strong: rgb(255 255 255);
+  --tweaker-color-text-muted: rgb(207 156 213);
+  --tweaker-color-border: rgb(139 73 148);
+  --tweaker-color-control: rgb(157 91 166);
+  --tweaker-color-focus: rgb(238 139 247);
+  --tweaker-color-accent: rgb(241 159 248);
+  --tweaker-color-accent-text: rgb(29 9 34);
+  --tweaker-color-success: rgb(128 230 168);
+  --tweaker-color-info: rgb(131 199 253);
+  --tweaker-color-warning: rgb(248 205 118);
+  --tweaker-color-alert: rgb(255 196 106);
+  --tweaker-color-danger: rgb(255 126 110);
+  --tweaker-color-overlay: rgb(38 12 48 / 88%);
+  --tweaker-radius-surface: 12px;
+  --tweaker-radius-control: 9px;
+}

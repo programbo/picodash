@@ -107,9 +107,9 @@ test('renders a static square instead of a grip for non-reorderable item slots',
   const reorderGrip = renderToStaticMarkup(<TweakerReorderIndicator reorderable />)
 
   expect(staticIndicator).toContain('data-tweaker-reorder-indicator="static"')
-  expect(staticIndicator).toContain('size-(--tweaker-reorder-static-marker-size)')
-  expect(staticIndicator).toContain('bg-(--tweaker-reorder-static-marker-color)')
-  expect(staticIndicator).toContain('opacity-(--tweaker-reorder-static-marker-opacity)')
+  expect(staticIndicator).toContain('size-(--tweaker-space-1-5)')
+  expect(staticIndicator).toContain('bg-tweaker-muted')
+  expect(staticIndicator).toContain('opacity-(--tweaker-opacity-subtle)')
   expect(staticIndicator).not.toContain('<svg')
   expect(reorderGrip).toContain('data-tweaker-reorder-indicator="grip"')
   expect(reorderGrip).toContain('<svg')

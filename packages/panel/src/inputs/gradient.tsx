@@ -128,7 +128,7 @@ function GradientEditor({
     <div className={cn('col-span-full grid gap-(--tweaker-space-2)', className)}>
       <div
         ref={trackRef}
-        className="border-tweaker-control relative mt-(--tweaker-space-2) h-(--tweaker-gradient-track-height) rounded-(--tweaker-gradient-radius) border shadow-(--tweaker-shadow-inner)"
+        className="border-tweaker-control rounded-tweaker-control relative mt-(--tweaker-space-2) h-(--tweaker-control-height-lg) border shadow-(--tweaker-shadow-inner)"
         id={control.inputId}
         style={{ backgroundImage: gradientCssValue(stops) }}
         onDoubleClick={(event) => {
@@ -145,7 +145,7 @@ function GradientEditor({
             aria-valuemin={0}
             aria-valuenow={Math.round(stop.position * 100)}
             className={cn(
-              'absolute top-full z-(--tweaker-layer-raised) mt-(--tweaker-space-1) size-(--tweaker-gradient-stop-size) -translate-x-1/2 touch-none rounded-full border-2 border-tweaker-canvas shadow-tweaker-sm ring-1 ring-tweaker-border outline-none focus-visible:ring-2 focus-visible:ring-tweaker-focus',
+              'absolute top-full z-(--tweaker-layer-raised) mt-(--tweaker-space-1) size-(--tweaker-icon-md) -translate-x-1/2 touch-none rounded-full border-2 border-tweaker-canvas shadow-tweaker-sm ring-1 ring-tweaker-border outline-none focus-visible:ring-2 focus-visible:ring-tweaker-focus',
               selectedStop?.id === stop.id && 'ring-2 ring-tweaker-accent',
               unavailable
                 ? 'cursor-not-allowed opacity-(--tweaker-opacity-muted)'
@@ -184,7 +184,7 @@ function GradientEditor({
       <div className="mt-(--tweaker-space-4) grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-(--tweaker-space-1-5)">
         <input
           aria-label="Selected stop color"
-          className="border-tweaker-control size-(--tweaker-button-icon-size) cursor-pointer rounded-(--tweaker-field-radius) border bg-transparent p-(--tweaker-space-0-5) disabled:cursor-not-allowed disabled:opacity-(--tweaker-opacity-disabled)"
+          className="border-tweaker-control rounded-tweaker-control size-(--tweaker-control-height-sm) cursor-pointer border bg-transparent p-(--tweaker-space-0-5) disabled:cursor-not-allowed disabled:opacity-(--tweaker-opacity-disabled)"
           disabled={unavailable || !selectedStop}
           type="color"
           value={selectedStop?.color ?? '#000000'}
@@ -196,7 +196,7 @@ function GradientEditor({
         />
         <Input
           aria-label="Selected stop position"
-          className="h-(--tweaker-input-compact-height) min-w-0"
+          className="h-(--tweaker-control-height-sm) min-w-0"
           disabled={control.disabled || !selectedStop}
           max={100}
           min={0}
@@ -214,7 +214,7 @@ function GradientEditor({
         />
         <Button
           aria-label="Add gradient stop"
-          className="size-(--tweaker-button-icon-size)"
+          className="size-(--tweaker-control-height-sm)"
           disabled={unavailable}
           size="icon"
           variant="outline"
@@ -224,7 +224,7 @@ function GradientEditor({
         </Button>
         <Button
           aria-label="Remove selected gradient stop"
-          className="size-(--tweaker-button-icon-size)"
+          className="size-(--tweaker-control-height-sm)"
           disabled={unavailable || !selectedStop || stops.length <= 2}
           size="icon"
           variant="ghost"
