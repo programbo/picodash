@@ -398,16 +398,32 @@ export function createTweakerPanelStore({
       set((state) => replaceRegisteredFieldValuesState(state, importedValues))
     },
     setFieldDefault(fieldId, value) {
-      set((state) => ({
+      const state = getStoreState()
+      const insertsValue =
+        value !== undefined && !Object.prototype.hasOwnProperty.call(state.values, fieldId)
+      const resolution = insertsValue
+        ? resolveTweakerFieldValue(state, fieldId, value, 'default')
+        : undefined
+      if (resolution !== undefined && !resolution.success) return
+
+      const resolvedDefault =
+        resolution?.success === true
+          ? 'unset' in resolution.output
+            ? undefined
+            : resolution.output.value
+          : value
+      set((current) => ({
         fields: {
-          ...state.fields,
-          [fieldId]: { ...(state.fields[fieldId] ?? emptyField()), defaultValue: value },
+          ...current.fields,
+          [fieldId]: {
+            ...(current.fields[fieldId] ?? emptyField()),
+            defaultValue: resolvedDefault,
+          },
         },
-        values: Object.prototype.hasOwnProperty.call(state.values, fieldId)
-          ? state.values
-          : value === undefined
-            ? state.values
-            : { ...state.values, [fieldId]: value },
+        values:
+          !insertsValue || resolution?.success !== true || 'unset' in resolution.output
+            ? current.values
+            : { ...current.values, [fieldId]: resolution.output.value },
       }))
     },
     setFieldValue(fieldId, value) {
@@ -511,13 +527,99 @@ export function createTweakerPanelStore({
     },
     unregisterItem(itemId) {
       set((state) => {
-        if (!state.items[itemId] || state.interaction.draggingId) return state
+        const item = state.items[itemId]
+        if (!item || state.interaction.draggingId) return state
 
         const items = { ...state.items }
         delete items[itemId]
         // Registrations can unmount transiently while Reorder rebuilds its layout.
         // Keep parent and nested order slots so the same id reclaims its position.
-        return { items }
+        const field = itemField(item)
+        if (field === undefined) return { items }
+
+        const nextState = { ...state, items }
+        const remainingProposal = repairProposalWithoutField(state.repairProposal, field)
+        const defaultConflict = conflictingDefaultError(items, field)
+        if (defaultConflict !== undefined) {
+          return {
+            fields: {
+              ...state.fields,
+              [field]: {
+                ...(state.fields[field] ?? emptyField()),
+                errors: [defaultConflict],
+              },
+            },
+            items,
+            repairProposal: remainingProposal,
+          }
+        }
+
+        const analysis = analyzeTweakerFieldConstraint(nextState, field, 'constraint')
+        if (analysis.status === 'invalid') {
+          return {
+            fields: {
+              ...state.fields,
+              [field]: {
+                ...(state.fields[field] ?? emptyField()),
+                errors: [...analysis.errors],
+              },
+            },
+            items,
+            repairProposal: remainingProposal,
+          }
+        }
+        if (analysis.status === 'repair') {
+          return {
+            items,
+            repairProposal: {
+              changes: [...(remainingProposal?.changes ?? []), analysis.repair],
+              source: 'constraint',
+              token: ++repairToken,
+            },
+          }
+        }
+
+        const fieldState = state.fields[field]
+        if (
+          fieldState !== undefined &&
+          Object.prototype.hasOwnProperty.call(fieldState, 'draftValue')
+        ) {
+          const draftResolution = resolveTweakerFieldValue(
+            nextState,
+            field,
+            fieldState.draftValue,
+            'interactive',
+          )
+          if (!draftResolution.success) {
+            return {
+              fields: {
+                ...state.fields,
+                [field]: { ...fieldState, errors: [...draftResolution.errors] },
+              },
+              items,
+              repairProposal: remainingProposal,
+            }
+          }
+
+          const reconciledField = { ...fieldState, errors: [] }
+          delete reconciledField.draftValue
+          return {
+            fields: { ...state.fields, [field]: reconciledField },
+            items,
+            repairProposal: remainingProposal,
+          }
+        }
+        return {
+          fields:
+            fieldState !== undefined && fieldState.errors.length > 0
+              ? {
+                  ...state.fields,
+                  [field]: { ...fieldState, errors: [] },
+                }
+              : state.fields,
+          items,
+          repairProposal: remainingProposal,
+        }
       })
     },
   }))

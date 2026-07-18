@@ -251,6 +251,63 @@ test('shared field validators aggregate their errors', () => {
   })
 })
 
+test('unregistering a shared-field contract clears its stale repair proposal', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { shared: 8 },
+    panelId: 'validation',
+  })
+  const boundedParser =
+    (maximum: number): TweakerParser =>
+    (input) =>
+      typeof input === 'number' && input <= maximum
+        ? { output: { value: input }, success: true }
+        : {
+            errors: [`Value must not exceed ${maximum}.`],
+            repair: { value: maximum },
+            success: false,
+          }
+
+  registerField(store, 'shared', 1, { id: 'remaining', parse: boundedParser(10) })
+  registerField(store, 'shared', 1, { id: 'temporary', parse: boundedParser(5) })
+  expect(store.getState().repairProposal).toMatchObject({
+    changes: [{ after: { value: 1 }, field: 'shared' }],
+    source: 'constraint',
+  })
+
+  store.getState().unregisterItem('temporary')
+
+  expect(store.getState().values.shared).toBe(8)
+  expect(store.getState().fields.shared?.errors).toEqual([])
+  expect(store.getState().repairProposal).toBeNull()
+})
+
+test('unregistering a shared-field contract clears stale draft errors without changing the value', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { shared: 4 },
+    panelId: 'validation',
+  })
+  registerField(store, 'shared', 1, {
+    id: 'remaining',
+    validate: z.number().nonnegative(),
+  })
+  registerField(store, 'shared', 1, {
+    id: 'temporary',
+    validate: z.number().max(5),
+  })
+  expect(store.getState().setFieldInput('shared', 8)).toMatchObject({ success: false })
+  expect(store.getState().fields.shared).toMatchObject({
+    draftValue: 8,
+    errors: [expect.any(String)],
+  })
+
+  store.getState().unregisterItem('temporary')
+
+  expect(store.getState().values.shared).toBe(4)
+  expect(store.getState().fields.shared).not.toHaveProperty('draftValue')
+  expect(store.getState().fields.shared?.errors).toEqual([])
+  expect(store.getState().repairProposal).toBeNull()
+})
+
 test('parsers can explicitly unset a field', () => {
   const store = createTweakerPanelStore({
     initialValues: { optional: 'value' },
@@ -313,6 +370,40 @@ test('reset validates every default atomically and clears stale field state on s
     errors: [],
     touched: false,
   })
+})
+
+test('setFieldDefault validates an unset field before inserting its reset baseline', () => {
+  const store = createTweakerPanelStore({ panelId: 'validation' })
+  registerField(store, 'count', undefined, {
+    parse: (input) =>
+      typeof input === 'number' && Number.isFinite(input)
+        ? { output: { value: Math.min(input, 10) }, success: true }
+        : { errors: ['Count must be a finite number.'], success: false },
+  })
+  registerField(store, 'count', undefined, {
+    id: 'nonnegative-count',
+    validate: z.number().nonnegative(),
+  })
+  const beforeValues = store.getState().values
+  const beforeFields = store.getState().fields
+  let notifications = 0
+  const unsubscribe = store.subscribe(() => {
+    notifications += 1
+  })
+
+  store.getState().setFieldDefault('count', 'invalid')
+
+  expect(store.getState().values).toBe(beforeValues)
+  expect(store.getState().fields).toBe(beforeFields)
+  expect(store.getState().fields.count?.defaultValue).toBeUndefined()
+  expect(notifications).toBe(0)
+
+  store.getState().setFieldDefault('count', 8)
+
+  expect(store.getState().values.count).toBe(8)
+  expect(store.getState().fields.count?.defaultValue).toBe(8)
+  expect(notifications).toBe(1)
+  unsubscribe()
 })
 
 test('reactive contracts create observable repair proposals with accept and abort semantics', () => {
