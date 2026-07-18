@@ -315,7 +315,7 @@ function runContract(
   input: unknown,
   context: TweakerValidationContext,
 ): ContractAttempt {
-  let parsed: TweakerParseResult
+  let parsed: unknown
   try {
     parsed = contract.parse?.(input, context) ?? {
       output: { value: input as TweakerValue },
@@ -334,20 +334,30 @@ function runContract(
   ) {
     return { errors: ['Parser returned an invalid result.'] }
   }
-  if (!parsed.success) {
+  const result = parsed as Record<string, unknown> & { success: boolean }
+  if (!result.success) {
+    if (!isStringArray(result.errors)) {
+      return { errors: ['Parser returned an invalid result.'] }
+    }
+    if (result.repair !== undefined && !isTweakerFieldOutput(result.repair)) {
+      return { errors: ['Parser returned an invalid result.'] }
+    }
     return {
-      errors: normalizedErrors(parsed.errors, 'Value could not be parsed.'),
-      repair: parsed.repair,
+      errors: normalizedErrors(result.errors, 'Value could not be parsed.'),
+      repair: result.repair,
     }
   }
 
-  const jsonError = outputJsonCompatibilityError(parsed.output)
+  if (!isTweakerFieldOutput(result.output)) {
+    return { errors: ['Parser returned an invalid result.'] }
+  }
+  const jsonError = outputJsonCompatibilityError(result.output)
   if (jsonError !== undefined) return { errors: [jsonError] }
-  if ('unset' in parsed.output || contract.validate === undefined) {
-    return { errors: [], output: parsed.output }
+  if ('unset' in result.output || contract.validate === undefined) {
+    return { errors: [], output: result.output }
   }
 
-  const validated = runValidator(contract.validate, parsed.output.value, context)
+  const validated = runValidator(contract.validate, result.output.value, context)
   return validated.success
     ? { errors: [], output: { value: validated.value } }
     : { errors: validated.errors }
@@ -460,6 +470,18 @@ function formatStandardSchemaIssue(issue: StandardSchemaV1.Issue) {
 function normalizedErrors(errors: readonly string[], fallback: string) {
   const normalized = errors.map((error) => error.trim()).filter(Boolean)
   return normalized.length > 0 ? [...normalized] : [fallback]
+}
+
+function isStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
+}
+
+function isTweakerFieldOutput(value: unknown): value is TweakerFieldOutput {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const hasValue = Object.prototype.hasOwnProperty.call(value, 'value')
+  const hasUnset = Object.prototype.hasOwnProperty.call(value, 'unset')
+  if (hasValue === hasUnset) return false
+  return hasValue || (value as Record<string, unknown>).unset === true
 }
 
 function uniqueErrors(errors: readonly string[]) {

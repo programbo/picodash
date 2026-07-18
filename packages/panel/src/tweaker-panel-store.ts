@@ -340,6 +340,12 @@ export function createTweakerPanelStore({
     },
     resetFieldValue(fieldId) {
       const state = getStoreState()
+      if (fieldIsDisplayOnly(state, fieldId)) {
+        return {
+          errors: { [fieldId]: ['Display fields cannot be edited.'] },
+          success: false,
+        }
+      }
       const field = state.fields[fieldId]
       const result =
         field?.defaultValue === undefined
@@ -358,6 +364,7 @@ export function createTweakerPanelStore({
       const outputs: Record<string, TweakerFieldOutput> = {}
       const errors: Record<string, readonly string[]> = {}
       for (const [fieldId, field] of Object.entries(state.fields)) {
+        if (fieldIsDisplayOnly(state, fieldId)) continue
         const result =
           field.defaultValue === undefined
             ? ({ output: { unset: true }, success: true } as const)

@@ -348,6 +348,102 @@ test('display-only fields reject programmatic and interactive writes', () => {
   expect(store.getState().values).toBe(before)
 })
 
+test('direct resets reject display-only fields without changing their value or field state', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { summary: 'Derived' },
+    panelId: 'validation',
+  })
+  registerField(store, 'summary', undefined, { valueMode: 'display' })
+  store.setState((state) => ({
+    fields: {
+      ...state.fields,
+      summary: {
+        ...state.fields.summary!,
+        dirty: true,
+        draftValue: 'Pending',
+        errors: ['Stale derived value.'],
+        touched: true,
+      },
+    },
+  }))
+  const beforeValues = store.getState().values
+  const beforeFields = store.getState().fields
+  let notifications = 0
+  const unsubscribe = store.subscribe(() => {
+    notifications += 1
+  })
+
+  expect(store.getState().resetFieldValue('summary')).toEqual({
+    errors: { summary: ['Display fields cannot be edited.'] },
+    success: false,
+  })
+  expect(store.getState().values).toBe(beforeValues)
+  expect(store.getState().fields).toBe(beforeFields)
+  expect(notifications).toBe(0)
+  unsubscribe()
+})
+
+test('batch resets skip display-only fields and commit writable fields once', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { count: 9, summary: 'Derived' },
+    panelId: 'validation',
+  })
+  registerField(store, 'count', 1)
+  registerField(store, 'summary', undefined, { valueMode: 'display' })
+  store.setState((state) => ({
+    fields: {
+      ...state.fields,
+      summary: {
+        ...state.fields.summary!,
+        dirty: true,
+        errors: ['Stale derived value.'],
+        touched: true,
+      },
+    },
+  }))
+  const beforeDisplayField = store.getState().fields.summary
+  let notifications = 0
+  const unsubscribe = store.subscribe(() => {
+    notifications += 1
+  })
+
+  expect(store.getState().resetFields()).toEqual({ success: true })
+  expect(store.getState().values).toEqual({ count: 1, summary: 'Derived' })
+  expect(store.getState().fields.summary).toBe(beforeDisplayField)
+  expect(store.getState().fields.count).toMatchObject({
+    dirty: false,
+    errors: [],
+    touched: false,
+  })
+  expect(notifications).toBe(1)
+  unsubscribe()
+})
+
+test('batch resets remain atomic when a writable field default is invalid', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { alpha: 8, beta: 9, summary: 'Derived' },
+    panelId: 'validation',
+  })
+  registerField(store, 'alpha', 1, { validate: z.number().positive() })
+  registerField(store, 'beta', -1, { validate: z.number().positive() })
+  registerField(store, 'summary', undefined, { valueMode: 'display' })
+  const beforeValues = store.getState().values
+  const beforeFields = store.getState().fields
+  let notifications = 0
+  const unsubscribe = store.subscribe(() => {
+    notifications += 1
+  })
+
+  expect(store.getState().resetFields()).toMatchObject({
+    errors: { beta: expect.any(Array) },
+    success: false,
+  })
+  expect(store.getState().values).toBe(beforeValues)
+  expect(store.getState().fields).toBe(beforeFields)
+  expect(notifications).toBe(0)
+  unsubscribe()
+})
+
 test('reset validates every default atomically and clears stale field state on success', () => {
   const store = createTweakerPanelStore({ panelId: 'validation' })
   registerField(store, 'alpha', 1, { validate: z.number().positive() })
@@ -370,6 +466,55 @@ test('reset validates every default atomically and clears stale field state on s
     errors: [],
     touched: false,
   })
+})
+
+test('malformed parser results return field errors without throwing or mutating accepted values', () => {
+  const invalidResults = [
+    { success: true },
+    { output: null, success: true },
+    { output: {}, success: true },
+    { output: { unset: false }, success: true },
+    { output: { unset: true, value: 2 }, success: true },
+    { success: false },
+    { errors: ['Invalid.'], repair: {}, success: false },
+  ]
+
+  for (const [index, invalidResult] of invalidResults.entries()) {
+    const field = `malformed-${index}`
+    const store = createTweakerPanelStore({
+      initialValues: { [field]: 1 },
+      panelId: 'validation',
+    })
+    const parse = (() => invalidResult) as unknown as TweakerParser
+    registerField(store, field, 1, { parse })
+    const beforeValues = store.getState().values
+    const beforeFields = store.getState().fields
+    let notifications = 0
+    const unsubscribe = store.subscribe(() => {
+      notifications += 1
+    })
+
+    expect(store.getState().setFieldValue(field, 2)).toEqual({
+      errors: { [field]: ['Parser returned an invalid result.'] },
+      success: false,
+    })
+    expect(store.getState().values).toBe(beforeValues)
+    expect(store.getState().fields).toBe(beforeFields)
+    expect(notifications).toBe(0)
+
+    expect(store.getState().setFieldInput(field, 2)).toEqual({
+      errors: { [field]: ['Parser returned an invalid result.'] },
+      success: false,
+    })
+    expect(store.getState().values).toBe(beforeValues)
+    expect(store.getState().fields[field]).toMatchObject({
+      draftValue: 2,
+      errors: ['Parser returned an invalid result.'],
+      touched: true,
+    })
+    expect(notifications).toBe(1)
+    unsubscribe()
+  }
 })
 
 test('setFieldDefault validates an unset field before inserting its reset baseline', () => {
