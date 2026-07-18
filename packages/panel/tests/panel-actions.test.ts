@@ -202,6 +202,33 @@ test('updates reset metadata when a control remounts with a new default', () => 
   })
 })
 
+test('preserves a shared field default when one owner remounts with a new fallback', () => {
+  const store = createTweakerPanelStore({ panelId: 'scene' })
+  registerField(store, 'opacity', 0, { id: 'opacity-a' })
+  registerField(store, 'opacity', 1, { id: 'opacity-b' })
+  store.getState().setFieldValue('opacity', 0.4)
+
+  store.getState().unregisterItem('opacity-a')
+  registerField(store, 'opacity', 0.5, { id: 'opacity-a' })
+
+  expect(store.getState().items['opacity-b']?.fieldId).toBe('opacity')
+  expect(store.getState().values.opacity).toBe(0.4)
+  expect(store.getState().fields.opacity).toMatchObject({
+    defaultValue: 0,
+    dirty: true,
+    touched: true,
+  })
+
+  store.getState().resetRegisteredFields()
+
+  expect(store.getState().values.opacity).toBe(0)
+  expect(store.getState().fields.opacity).toMatchObject({
+    defaultValue: 0,
+    dirty: false,
+    touched: false,
+  })
+})
+
 test('serializes only currently registered fields as JSON and YAML', () => {
   const store = createTweakerPanelStore({
     defaultValues: { hidden: false, stale: 'ignore', visible: 1 },

@@ -79,10 +79,18 @@ export function createTweakerPanelStore({
           previous !== undefined &&
           previous.fieldId === item.fieldId &&
           !Object.is(previous.defaultValue, item.defaultValue)
+        const remountingWithSharedField =
+          mountedRegistration === undefined &&
+          historicalRegistration !== undefined &&
+          item.fieldId !== undefined &&
+          Object.values(state.items).some(
+            (registeredItem) =>
+              registeredItem.id !== item.id && registeredItem.fieldId === item.fieldId,
+          )
         const registeredDefaultValue =
           item.fieldId === undefined
             ? undefined
-            : fieldState === undefined || declaredDefaultChanged
+            : fieldState === undefined || (declaredDefaultChanged && !remountingWithSharedField)
               ? item.defaultValue
               : fieldState.defaultValue
         const fields =
