@@ -80,6 +80,12 @@ export function MouseVelocitySparklineItem({
       frameId = requestAnimationFrame(sample)
     }
 
+    const hasUnsettledSignal = () =>
+      hasSignal(samplesXRef.current) ||
+      hasSignal(samplesYRef.current) ||
+      velocityXRef.current !== 0 ||
+      velocityYRef.current !== 0
+
     const resetPointer = () => {
       previousPointerRef.current = null
       setVelocity(0, 0)
@@ -160,13 +166,7 @@ export function MouseVelocitySparklineItem({
       }
 
       const isRecentlyActive = now - lastPointerActivityAt < sampleInterval * 2
-      if (
-        isRecentlyActive ||
-        hasSignal(samplesXRef.current) ||
-        hasSignal(samplesYRef.current) ||
-        velocityXRef.current !== 0 ||
-        velocityYRef.current !== 0
-      ) {
+      if (isRecentlyActive || hasUnsettledSignal()) {
         scheduleSample()
       } else {
         cancelSampling()
@@ -189,6 +189,8 @@ export function MouseVelocitySparklineItem({
               previousPointerRef.current = null
               setVelocity(0, 0)
               cancelSampling()
+            } else if (hasUnsettledSignal()) {
+              scheduleSample()
             }
           })
     intersectionObserver?.observe(display)

@@ -956,9 +956,24 @@ test('animates transient visual paths and switches deterministic signal mode', a
   )
   await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(initialVelocityXPath)
   await expect.poll(() => velocityYPath.getAttribute('d')).not.toBe(initialVelocityYPath)
+
+  await display.evaluate((element: HTMLElement) => (element.style.display = 'none'))
+  await expect(display).toBeHidden()
+  await page.waitForTimeout(100)
+  await expect(fps).toHaveText('0 FPS')
+  const pausedVelocityXPath = await velocityXPath.getAttribute('d')
+
+  // Restoring the observed surface avoids producing another pointer sample.
+  // Re-entry should resume the retained trace until it naturally settles again.
+  await display.evaluate((element: HTMLElement) => element.style.removeProperty('display'))
+  await expect(display).toBeVisible()
+  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(pausedVelocityXPath)
   await expect
-    .poll(async () => Number.parseInt((await fps.textContent()) ?? '0', 10))
+    .poll(async () => Number.parseInt((await fps.textContent()) ?? '0', 10), {
+      intervals: [50],
+    })
     .toBeGreaterThan(0)
+  await expect(fps).toHaveText('0 FPS')
 
   const signal = page.locator('[data-control-id="signal-visualizer"]')
   const signalPath = signal.locator('path.stroke-chart-2')
