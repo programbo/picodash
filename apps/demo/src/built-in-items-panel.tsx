@@ -23,7 +23,7 @@ import {
 export const builtInItemsPanelId = 'built-in-items'
 
 const builtInItemDefaults = {
-  alignment: 'middle-center' as const,
+  alignment: 'center' as const,
   display: 'Ready',
   droppedFiles: [],
   gradient: [
@@ -68,8 +68,9 @@ const alignmentColumns = [
   value: string
 }[]
 
-type AlignmentValue =
+type AlignmentPosition =
   `${(typeof alignmentRows)[number]['value']}-${(typeof alignmentColumns)[number]['value']}`
+type AlignmentValue = Exclude<AlignmentPosition, 'middle-center'> | 'center'
 
 const alignmentOptions = alignmentRows.map((row, rowIndex) =>
   alignmentColumns.map((column, columnIndex) => ({
@@ -88,7 +89,10 @@ const alignmentOptions = alignmentRows.map((row, rowIndex) =>
       .join(' '),
     'data-alignment-index': rowIndex * alignmentColumns.length + columnIndex,
     title: `${row.label} ${column.label}`,
-    value: `${row.value}-${column.value}` as AlignmentValue,
+    value:
+      row.value === 'middle' && column.value === 'center'
+        ? 'center'
+        : (`${row.value}-${column.value}` as AlignmentValue),
   })),
 ) satisfies readonly (readonly TweakerMatrix2DOption<AlignmentValue>[])[]
 
