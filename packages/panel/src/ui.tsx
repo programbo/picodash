@@ -122,7 +122,7 @@ export function SelectContent({
         data-tweaker-theme={theme}
         avoidCollisions
         className={cn(
-          'z-(--tweaker-layer-select) max-h-(--radix-select-content-available-height) max-w-(--radix-select-content-available-width) min-w-(--radix-select-trigger-width) overflow-hidden rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-(--tweaker-shadow-md)',
+          'pointer-events-auto z-(--tweaker-layer-select) max-h-(--radix-select-content-available-height) max-w-(--radix-select-content-available-width) min-w-(--radix-select-trigger-width) overflow-hidden rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-(--tweaker-shadow-md)',
           className,
         )}
         collisionPadding={collisionPadding}

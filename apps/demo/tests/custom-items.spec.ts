@@ -692,7 +692,7 @@ test('renders static square slots for non-reorderable items', async ({ page }) =
   await expect(reorderableSlot.locator('svg')).toHaveCount(1)
 })
 
-test('keeps the portaled Select in the viewport and updates it from the keyboard', async ({
+test('keeps the portaled Select interactive without blocking the surrounding page', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 640, height: 480 })
@@ -706,6 +706,8 @@ test('keeps the portaled Select in the viewport and updates it from the keyboard
   const content = page.locator('[data-tweaker-theme="dark"][data-side]')
   await expect(content).toBeVisible()
   await expect(content).toHaveAttribute('data-tweaker-theme', 'dark')
+  await expect(content).toHaveCSS('pointer-events', 'auto')
+  await expect(page.locator('[data-tweaker-container]')).toHaveCSS('pointer-events', 'none')
   const finalOption = page.getByRole('option', { name: 'Final' })
   await expect(finalOption).toBeVisible()
 
@@ -718,12 +720,18 @@ test('keeps the portaled Select in the viewport and updates it from the keyboard
     expect(contentBox.y + contentBox.height).toBeLessThanOrEqual(480)
   }
 
-  await page.keyboard.press('ArrowDown')
-  await expect(finalOption).toHaveAttribute('data-highlighted', '')
-  await finalOption.press('Enter')
+  await finalOption.click()
   await expect(trigger).toHaveText('Final')
   await expect(page.getByText(/72% opacity \/ final/i)).toBeVisible()
   await expect(trigger).toBeFocused()
+
+  await trigger.press('Enter')
+  await page.keyboard.press('ArrowUp')
+  const balancedOption = page.getByRole('option', { name: 'Balanced' })
+  await expect(balancedOption).toHaveAttribute('data-highlighted', '')
+  await balancedOption.press('Enter')
+  await expect(trigger).toHaveText('Balanced')
+  await expect(page.getByText(/72% opacity \/ balanced/i)).toBeVisible()
 })
 
 test('keeps panel typography and dropzone geometry at the baseline', async ({ page }) => {
@@ -921,7 +929,9 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   const menu = page.getByRole('menu', { name: 'Actions for Custom Items' })
   await expect(menu).toHaveAttribute('data-tweaker-theme', 'plum')
   await menu.getByRole('menuitem', { name: 'Copy' }).hover()
-  await expect(page.locator('[data-tweaker-theme="plum"][role="menu"]')).toHaveCount(2)
+  const themedMenus = page.locator('[data-tweaker-theme="plum"][role="menu"]')
+  await expect(themedMenus).toHaveCount(2)
+  await expect(themedMenus.nth(1)).toHaveCSS('pointer-events', 'auto')
   await page.keyboard.press('Escape')
   await page.keyboard.press('Escape')
   await customActions.click()
@@ -1102,6 +1112,8 @@ test('keeps the panel action menu contained and manages collapsible groups', asy
   const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
   await expect(menu).toBeVisible()
   await expect(menu).toHaveAttribute('data-tweaker-theme', 'dark')
+  await expect(menu).toHaveCSS('pointer-events', 'auto')
+  await expect(page.locator('[data-tweaker-container]')).toHaveCSS('pointer-events', 'none')
   const menuBox = await menu.boundingBox()
   expect(menuBox).not.toBeNull()
   if (menuBox) {

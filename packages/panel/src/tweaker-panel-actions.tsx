@@ -336,7 +336,7 @@ export function TweakerPanelConstraintRepairDialog({ panelTitle }: { panelTitle:
 }
 
 const menuContentClassName =
-  'z-(--tweaker-layer-menu) max-h-(--radix-dropdown-menu-content-available-height) min-w-44 overflow-y-auto rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised p-(--tweaker-space-1) text-tweaker-text shadow-(--tweaker-shadow-md) outline-none'
+  'pointer-events-auto z-(--tweaker-layer-menu) max-h-(--radix-dropdown-menu-content-available-height) min-w-44 overflow-y-auto rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised p-(--tweaker-space-1) text-tweaker-text shadow-(--tweaker-shadow-md) outline-none'
 
 const menuItemClassName =
   'relative flex h-(--tweaker-control-height-md) cursor-default items-center gap-(--tweaker-space-2) rounded-tweaker-control px-(--tweaker-space-2) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-(--tweaker-opacity-disabled) data-[highlighted]:bg-tweaker-surface-muted data-[highlighted]:text-tweaker-text [&>svg]:size-(--tweaker-icon-sm) [&>svg]:shrink-0'
