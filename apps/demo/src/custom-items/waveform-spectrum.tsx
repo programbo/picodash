@@ -1,7 +1,7 @@
 import { motion, useMotionValue, useReducedMotion, type MotionValue } from 'motion/react'
 import { ToggleGroup } from 'radix-ui'
 import { useEffect } from 'react'
-import { TweakerControl } from 'panel'
+import { TweakerItem } from 'panel'
 
 type SignalMode = 'spectrum' | 'waveform'
 
@@ -13,7 +13,7 @@ export function WaveformSpectrumItem() {
   const prefersReducedMotion = useReducedMotion()
 
   return (
-    <TweakerControl<SignalMode>
+    <TweakerItem<SignalMode>
       id="signal-visualizer"
       contentLayout="block"
       defaultValue="waveform"
@@ -22,20 +22,20 @@ export function WaveformSpectrumItem() {
       label="Signal view"
       reorderable={false}
     >
-      {(control) => {
-        const mode: SignalMode = control.value === 'spectrum' ? 'spectrum' : 'waveform'
+      {(item) => {
+        const mode: SignalMode = item.value === 'spectrum' ? 'spectrum' : 'waveform'
 
         return (
           <SignalSurface
             mode={mode}
             path={path}
             prefersReducedMotion={prefersReducedMotion ?? false}
-            unavailable={control.disabled || control.readOnly}
-            onModeChange={control.setValue}
+            unavailable={item.disabled || item.readOnly}
+            onModeChange={item.setInput}
           />
         )
       }}
-    </TweakerControl>
+    </TweakerItem>
   )
 }
 

@@ -1,6 +1,6 @@
 import { motion, useMotionValue, useMotionValueEvent, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, type RefObject } from 'react'
-import { TweakerControl } from 'panel'
+import { TweakerItem } from 'panel'
 
 const sampleCount = 56
 const viewBoxWidth = 320
@@ -109,7 +109,7 @@ export function MouseVelocitySparklineItem({
   }, [pathX, pathY, prefersReducedMotion])
 
   return (
-    <TweakerControl
+    <TweakerItem
       id="mouse-velocity"
       contentLayout="block"
       description={`Move anywhere in ${targetLabel}. MotionValues sample velocity without updating React or the panel store.`}
@@ -162,7 +162,7 @@ export function MouseVelocitySparklineItem({
           </span>
         </div>
       </div>
-    </TweakerControl>
+    </TweakerItem>
   )
 }
 
