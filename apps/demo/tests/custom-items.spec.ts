@@ -921,6 +921,12 @@ test('updates common, spatial, and gradient values through accessible controls',
     'data-state',
     'on',
   )
+  const centre = alignment.getByRole('radio', { name: 'Centre', exact: true })
+  const middleRight = alignment.getByRole('radio', { name: 'Middle right' })
+  await centre.click()
+  await centre.press('ArrowRight')
+  await expect(centre).toHaveAttribute('aria-checked', 'false')
+  await expect(middleRight).toHaveAttribute('aria-checked', 'true')
 
   const vector = page.locator('[data-item-id="vector3"]')
   await vector.getByRole('spinbutton', { name: 'X axis' }).fill('4.5')

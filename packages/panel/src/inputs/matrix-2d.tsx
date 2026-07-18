@@ -161,7 +161,12 @@ export function TweakerMatrix2D<TValue extends TweakerValue>({
                     onKeyDown={(event) => {
                       onKeyDown?.(event)
                       if (!event.defaultPrevented) {
-                        moveMatrix2DFocus(event, options, position)
+                        const next = moveMatrix2DFocus(event, options, position)
+                        const nextValue =
+                          next === undefined ? undefined : options[next.row]?.[next.column]?.value
+                        if (selectionRole === 'radio' && nextValue !== undefined) {
+                          control.setInput(nextValue)
+                        }
                       }
                     }}
                   >
@@ -266,6 +271,7 @@ function moveMatrix2DFocus<TValue extends TweakerValue>(
 
   event.preventDefault()
   nextButton.focus()
+  return next
 }
 
 function matrix2DDirectionForKey(key: string): TweakerMatrix2DDirection | undefined {
