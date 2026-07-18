@@ -61,8 +61,13 @@ export {
 
 export {
   gradientCssValue,
+  enabledMatrix2DOptions,
+  findFirstEnabledMatrix2DPosition,
+  findMatrix2DValuePosition,
+  findNextMatrix2DPosition,
   isTweakerAlignmentValue,
   normalizeAlignmentValue,
+  normalizeMatrix2DValue,
   normalizeRangeBounds,
   normalizeRangeValue,
   normalizeSegmentedValue,
@@ -75,6 +80,7 @@ export {
   normalizeVector3Value,
   normalizeVectorBounds,
   normalizeVectorStep,
+  normalizeTextMinRows,
   objectFitClassName,
   partitionTweakerFilesByCapacity,
   projectTweakerFileMetadata,
@@ -87,8 +93,11 @@ export {
   segmentedOptionLabel,
   segmentedOptionValue,
   tweakerAlignmentOptions,
+  tweakerTextControlKind,
 } from './inputs/index.js'
 export type {
+  TweakerMatrix2DDirection,
+  TweakerMatrix2DPosition,
   TweakerRangeNormalizationOptions,
   TweakerXYBounds,
   TweakerXYLabelMetrics,

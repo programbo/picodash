@@ -266,6 +266,15 @@ types, hooks, ordering utilities, theme constants, and normalization helpers fro
 `panel/advanced`. See [`packages/panel/README.md`](packages/panel/README.md) for the full
 API.
 
+The `apps/demo` integration keeps package-owned inputs in a canonical **Built-in Items**
+panel, ordered from common inputs to more specialized spatial, media, and display items.
+Every row names its exported component and meaningful props in `help`; optional variants
+use `description`. `TweakerText` renders the basic input by default and an auto-growing
+textarea when `minRows` is greater than `1`. `TweakerMatrix2D` accepts consumer-authored
+button options and `containerProps`, so applications own the grid layout, button styling,
+and attributes. The separate **Custom Items** panel is reserved for app-local
+`TweakerItem` compositions.
+
 ## Development
 
 ```bash
@@ -291,6 +300,7 @@ Use only ports from this range for dev, preview, e2e, and testing servers:
 - `6032`: canonical `apps/demo` development server; override it with `DEMO_PORT` for concurrent worktrees.
 - `6033`: `apps/demo` preview server.
 - `6034`: dedicated `DEMO_PORT=6034` override for the `feature/panel-api-dx` worktree; this does not replace the canonical `6032` default.
-- `6035-6039`: available for future apps, e2e harnesses, API mocks, and test servers.
+- `6035`: dedicated `DEMO_PORT=6035` override for this worktree; this does not replace the canonical `6032` default.
+- `6036-6039`: available for future apps, e2e harnesses, API mocks, and test servers.
 
-When adding a new app or local server, assign it the next available port from `6035-6039` and document the assignment here.
+When adding a new app or local server, assign it the next available port from `6036-6039` and document the assignment here.

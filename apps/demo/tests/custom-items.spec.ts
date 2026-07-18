@@ -6,18 +6,18 @@ import {
   decayPointerVelocity,
 } from '../src/custom-items/pointer-velocity-sampling.ts'
 
-const customGroupLabels = {
+const builtInGroupLabels = {
   'common-items': 'Common inputs',
   'media-items': 'Media and files',
   'spatial-items': 'Direct manipulation',
-  'visualization-items': 'Live visualizations',
+  'visualization-items': 'Display variants',
 } as const
-const initialCustomRootOrder = [
+const initialBuiltInRootOrder = [
   'common-items',
   'spatial-items',
   'media-items',
   'visualization-items',
-  'custom-items-summary',
+  'display',
 ]
 
 async function changeDemoThemes(
@@ -120,7 +120,15 @@ test('keeps a repair review open when import constraints change before acceptanc
   await page.evaluate(async () => {
     const appModulePath = ['/src', 'App.tsx'].join('/')
     const { customItemPanelStore } = await import(appModulePath)
-    customItemPanelStore.getState().setFieldDefault('presetName', 'Archive')
+    const state = customItemPanelStore.getState()
+    const items = Object.values(state.items) as import('panel/advanced').TweakerItemRegistration[]
+    const item = items.find((registeredItem) => registeredItem.field === 'presetName')
+    if (!item) {
+      throw new Error(
+        `Expected presetName to be registered: ${Object.keys(state.items).join(', ')}`,
+      )
+    }
+    state.registerItem({ ...item, defaultValue: 'Archive' })
   })
 
   await dialog.getByRole('button', { name: 'Accept changes' }).click()
@@ -165,7 +173,7 @@ for (const scenario of [
       'common-items',
       'media-items',
       'visualization-items',
-      'custom-items-summary',
+      'display',
     ],
     name: 'Common inputs over the second root item',
     sourceId: 'common-items',
@@ -179,7 +187,7 @@ for (const scenario of [
       'media-items',
       'common-items',
       'visualization-items',
-      'custom-items-summary',
+      'display',
     ],
     name: 'Common inputs over the third root item',
     sourceId: 'common-items',
@@ -191,35 +199,35 @@ for (const scenario of [
       'common-items',
       'spatial-items',
       'media-items',
-      'custom-items-summary',
+      'display',
       'visualization-items',
     ],
-    name: 'Selection upward over the adjacent root group',
-    sourceId: 'custom-items-summary',
-    sourceLabel: 'Selection',
+    name: 'Display upward over the adjacent root group',
+    sourceId: 'display',
+    sourceLabel: 'Display',
     singleDirection: true,
     targetId: 'visualization-items',
   },
   {
     expectedOrder: [
       'common-items',
-      'custom-items-summary',
+      'display',
       'spatial-items',
       'media-items',
       'visualization-items',
     ],
-    name: 'Selection upward over multiple root groups',
-    sourceId: 'custom-items-summary',
-    sourceLabel: 'Selection',
+    name: 'Display upward over multiple root groups',
+    sourceId: 'display',
+    sourceLabel: 'Display',
     targetId: 'spatial-items',
   },
 ] as const) {
   test(`previews and commits ${scenario.name} while all groups are collapsed`, async ({ page }) => {
-    const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+    const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
     const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
 
-    await collapseCustomGroups(panel, Object.keys(customGroupLabels) as CustomGroupId[])
-    expect(await itemOrder(rootList, 'root')).toEqual(initialCustomRootOrder)
+    await collapseCustomGroups(panel, Object.keys(builtInGroupLabels) as CustomGroupId[])
+    expect(await itemOrder(rootList, 'root')).toEqual(initialBuiltInRootOrder)
 
     await exerciseLivePreviewDrag({
       ...scenario,
@@ -248,7 +256,7 @@ for (const scenario of [
   },
 ] as const) {
   test(`previews and commits ${scenario.name}`, async ({ page }) => {
-    const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+    const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
     const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
 
     await collapseCustomGroups(panel, ['common-items', 'spatial-items', 'visualization-items'])
@@ -264,7 +272,7 @@ for (const scenario of [
         'media-items',
         'spatial-items',
         'visualization-items',
-        'custom-items-summary',
+        'display',
       ],
       list: rootList,
       page,
@@ -278,7 +286,7 @@ test('previews and commits an expanded group downward across another expanded gr
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 1200 })
-  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
   const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
 
   await collapseCustomGroups(panel, ['common-items', 'visualization-items'])
@@ -297,7 +305,7 @@ test('previews and commits an expanded group downward across another expanded gr
       'media-items',
       'spatial-items',
       'visualization-items',
-      'custom-items-summary',
+      'display',
     ],
     list: rootList,
     page,
@@ -312,17 +320,17 @@ test('previews and commits an expanded group downward across another expanded gr
 test('moves an expanded Common group upward across multiple collapsed groups from third', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
   const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
 
-  await collapseCustomGroups(panel, Object.keys(customGroupLabels) as CustomGroupId[])
+  await collapseCustomGroups(panel, Object.keys(builtInGroupLabels) as CustomGroupId[])
   await exerciseLivePreviewDrag({
     expectedOrder: [
       'spatial-items',
       'media-items',
       'common-items',
       'visualization-items',
-      'custom-items-summary',
+      'display',
     ],
     list: rootList,
     page,
@@ -334,12 +342,17 @@ test('moves an expanded Common group upward across multiple collapsed groups fro
   })
 
   const common = panel.locator('[data-group-id="common-items"]')
-  await common.getByRole('button', { name: customGroupLabels['common-items'], exact: true }).click()
+  await common
+    .getByRole('button', {
+      name: builtInGroupLabels['common-items'],
+      exact: true,
+    })
+    .click()
   await expect(common).toHaveAttribute('data-collapsed', 'false')
   await page.waitForTimeout(200)
 
   await exerciseLivePreviewDrag({
-    expectedOrder: initialCustomRootOrder,
+    expectedOrder: initialBuiltInRootOrder,
     list: rootList,
     page,
     panel,
@@ -353,7 +366,7 @@ test('moves an expanded Common group upward across multiple collapsed groups fro
 test('reverses an expanded root group across collapsed groups and a root item', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
   const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
 
   await collapseCustomGroups(panel, ['common-items', 'spatial-items', 'visualization-items'])
@@ -371,7 +384,7 @@ test('reverses an expanded root group across collapsed groups and a root item', 
     sourceLabel: 'Media and files',
     stops: [
       { targetId: 'visualization-items' },
-      { targetId: 'custom-items-summary' },
+      { targetId: 'display' },
       { targetId: 'spatial-items' },
       { targetId: 'common-items' },
     ],
@@ -381,10 +394,10 @@ test('reverses an expanded root group across collapsed groups and a root item', 
 test('settles active group disclosure transitions before measuring a root drag', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
   const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
 
-  await collapseCustomGroups(panel, Object.keys(customGroupLabels) as CustomGroupId[], {
+  await collapseCustomGroups(panel, Object.keys(builtInGroupLabels) as CustomGroupId[], {
     settle: false,
   })
   expect(await activeDisclosureTransitionCount(panel)).toBeGreaterThan(0)
@@ -395,7 +408,7 @@ test('settles active group disclosure transitions before measuring a root drag',
       'media-items',
       'common-items',
       'visualization-items',
-      'custom-items-summary',
+      'display',
     ],
     list: rootList,
     page,
@@ -412,24 +425,44 @@ test('settles active group disclosure transitions before measuring a root drag',
 
 for (const scenario of [
   {
-    expectedOrder: ['alignment', 'vector', 'density', 'thresholdRange'],
+    expectedOrder: [
+      'multilineText',
+      'number',
+      'text',
+      'switch',
+      'select',
+      'slider',
+      'sliderMarks',
+      'range',
+      'segmented',
+    ],
     name: 'downward',
-    sourceId: 'density',
-    sourceLabel: 'Density',
-    targetId: 'vector',
+    sourceId: 'text',
+    sourceLabel: 'Text',
+    targetId: 'number',
   },
   {
-    expectedOrder: ['thresholdRange', 'density', 'alignment', 'vector'],
+    expectedOrder: [
+      'text',
+      'multilineText',
+      'number',
+      'switch',
+      'select',
+      'slider',
+      'sliderMarks',
+      'segmented',
+      'range',
+    ],
     name: 'upward',
-    sourceId: 'thresholdRange',
-    sourceLabel: 'Thresholds',
-    targetId: 'density',
+    sourceId: 'segmented',
+    sourceLabel: 'Segmented',
+    targetId: 'range',
   },
 ] as const) {
   test(`reorders grouped controls ${scenario.name} in one direction without changing root order`, async ({
     page,
   }) => {
-    const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+    const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
     const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
     const commonList = panel.locator('[data-tweaker-reorder-list="common-items"]')
 
@@ -440,7 +473,7 @@ for (const scenario of [
       panel,
       parentId: 'common-items',
       unchangedOrder: {
-        expected: initialCustomRootOrder,
+        expected: initialBuiltInRootOrder,
         list: rootList,
         parentId: 'root',
       },
@@ -448,6 +481,80 @@ for (const scenario of [
     })
   })
 }
+
+test('reorders an auto-grown Text textarea in both directions without losing its value or height', async ({
+  page,
+}) => {
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const list = panel.locator('[data-tweaker-reorder-list="common-items"]')
+  const row = panel.locator('[data-item-id="multilineText"]')
+  const textarea = row.getByRole('textbox')
+  const initialOrder = [
+    'text',
+    'multilineText',
+    'number',
+    'switch',
+    'select',
+    'slider',
+    'sliderMarks',
+    'range',
+    'segmented',
+  ]
+  const value = [
+    'Auto-growing text',
+    'keeps expanding',
+    'through several lines',
+    'before drag.',
+  ].join('\n')
+  const initialHeight = await textarea.evaluate((element) => element.getBoundingClientRect().height)
+
+  await textarea.fill(value)
+  await expect(textarea).toHaveValue(value)
+  const grownHeight = await textarea.evaluate((element) => element.getBoundingClientRect().height)
+  expect(grownHeight).toBeGreaterThan(initialHeight)
+
+  await exerciseLivePreviewDrag({
+    expectedOrder: [
+      'text',
+      'number',
+      'multilineText',
+      'switch',
+      'select',
+      'slider',
+      'sliderMarks',
+      'range',
+      'segmented',
+    ],
+    list,
+    page,
+    panel,
+    parentId: 'common-items',
+    sourceId: 'multilineText',
+    sourceLabel: 'Text',
+    targetId: 'number',
+    verifyDirectionChange: false,
+  })
+  await expect(textarea).toHaveValue(value)
+  await expect
+    .poll(() => textarea.evaluate((element) => element.getBoundingClientRect().height))
+    .toBe(grownHeight)
+
+  await exerciseLivePreviewDrag({
+    expectedOrder: initialOrder,
+    list,
+    page,
+    panel,
+    parentId: 'common-items',
+    sourceId: 'multilineText',
+    sourceLabel: 'Text',
+    targetId: 'number',
+    verifyDirectionChange: false,
+  })
+  await expect(textarea).toHaveValue(value)
+  await expect
+    .poll(() => textarea.evaluate((element) => element.getBoundingClientRect().height))
+    .toBe(grownHeight)
+})
 
 test('reverses a nested control across multiple siblings in both directions', async ({ page }) => {
   const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
@@ -804,10 +911,9 @@ test('fits Scene Controls without a default vertical scrollbar', async ({ page }
 test('updates common, spatial, and gradient values through accessible controls', async ({
   page,
 }) => {
-  const density = page.locator('[data-item-id="density"]')
-  await expect(density.getByRole('radiogroup').locator('svg')).toHaveCount(3)
-  await density.getByRole('radio', { name: 'Open' }).click()
-  await expect(density.getByRole('radio', { name: 'Open' })).toHaveAttribute('data-state', 'on')
+  const segmented = page.locator('[data-item-id="segmented"]')
+  await segmented.getByRole('radio', { name: 'Open' }).click()
+  await expect(segmented.getByRole('radio', { name: 'Open' })).toHaveAttribute('data-state', 'on')
 
   const alignment = page.locator('[data-item-id="alignment"]')
   await alignment.getByRole('radio', { name: 'Bottom right' }).click()
@@ -816,17 +922,17 @@ test('updates common, spatial, and gradient values through accessible controls',
     'on',
   )
 
-  const vector = page.locator('[data-item-id="vector"]')
+  const vector = page.locator('[data-item-id="vector3"]')
   await vector.getByRole('spinbutton', { name: 'X axis' }).fill('4.5')
   await expect(vector.getByRole('spinbutton', { name: 'X axis' })).toHaveValue('4.5')
 
-  const range = page.locator('[data-item-id="thresholdRange"]')
+  const range = page.locator('[data-item-id="range"]')
   const lowerThumb = range.getByRole('slider', { name: 'Lower value' })
   await lowerThumb.focus()
   await lowerThumb.press('ArrowRight')
   await expect(lowerThumb).toHaveAttribute('aria-valuenow', '25')
 
-  const xy = page.locator('[data-item-id="xy"]')
+  const xy = page.locator('[data-item-id="xyPad"]')
   const xyPad = xy.getByRole('group', { name: 'Two-dimensional value' })
   await xyPad.scrollIntoViewIfNeeded()
   const box = await xyPad.boundingBox()
@@ -917,21 +1023,24 @@ test('applies simultaneous named themes to panels and every portaled surface', a
 
   const scenePanel = page.locator('[data-tweaker-panel-id="scene-controls"]')
   const customPanel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const builtInPanel = page.locator('[data-tweaker-panel-id="built-in-items"]')
   await expect(page.locator('[data-tweaker-container]')).toHaveAttribute(
     'data-tweaker-theme',
     'ocean',
   )
   await expect(scenePanel).toHaveAttribute('data-tweaker-theme', 'ocean')
+  await expect(builtInPanel).toHaveAttribute('data-tweaker-theme', 'ocean')
   await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
   await expect(scenePanel).toHaveCSS('background-color', 'rgb(7, 38, 52)')
+  await expect(builtInPanel).toHaveCSS('background-color', 'rgb(7, 38, 52)')
   await expect(customPanel).toHaveCSS('background-color', 'rgb(54, 19, 62)')
 
-  const alignment = customPanel.locator('[data-item-id="alignment"]')
+  const alignment = builtInPanel.locator('[data-item-id="alignment"]')
   await expect(alignment.getByRole('radio', { name: 'Centre', exact: true })).toHaveCSS(
     'background-color',
-    'rgb(241, 159, 248)',
+    'rgb(61, 214, 230)',
   )
-  await expect(alignment.getByRole('radiogroup')).toHaveCSS('border-radius', '9px')
+  await expect(alignment.getByRole('radiogroup')).toHaveCSS('border-radius', '6px')
 
   const qualityTrigger = page.locator('[data-item-id="quality"]').getByRole('combobox')
   await expect(qualityTrigger).toHaveCSS('border-bottom-color', 'rgb(91, 158, 171)')
@@ -946,11 +1055,11 @@ test('applies simultaneous named themes to panels and every portaled surface', a
 
   await alignment.getByRole('button', { name: 'Help for Alignment' }).hover()
   await expect(page.getByRole('tooltip')).toBeVisible()
-  const tooltip = page.locator('[data-tweaker-theme="plum"][data-side]')
-  await expect(tooltip).toHaveCSS('background-color', 'rgb(75, 27, 85)')
-  await expect(tooltip).toHaveCSS('border-radius', '12px')
+  const tooltip = page.locator('[data-tweaker-theme="ocean"][data-side]')
+  await expect(tooltip).toHaveCSS('background-color', 'rgb(11, 55, 72)')
+  await expect(tooltip).toHaveCSS('border-radius', '8px')
 
-  const dropzone = customPanel.locator('[data-item-id="droppedFiles"]')
+  const dropzone = builtInPanel.locator('[data-item-id="droppedFiles"]')
   await dropzone.locator('input[type="file"]').setInputFiles({
     name: 'themed.png',
     mimeType: 'image/png',
@@ -959,8 +1068,8 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   const previewButton = dropzone.getByRole('button', { name: 'View themed.png' })
   await previewButton.click()
   const viewer = page.getByRole('dialog')
-  await expect(viewer).toHaveAttribute('data-tweaker-theme', 'plum')
-  await expect(viewer).toHaveCSS('border-radius', '12px')
+  await expect(viewer).toHaveAttribute('data-tweaker-theme', 'ocean')
+  await expect(viewer).toHaveCSS('border-radius', '8px')
   await page.keyboard.press('Escape')
 
   const customActions = customPanel.getByRole('button', { name: 'Open actions for Custom Items' })
@@ -1128,6 +1237,9 @@ test('keeps the panel action menu contained and manages collapsible groups', asy
   await page
     .locator('[data-tweaker-panel-id="custom-items"]')
     .evaluate((element: HTMLElement) => (element.style.display = 'none'))
+  await page
+    .locator('[data-tweaker-panel-id="built-in-items"]')
+    .evaluate((element: HTMLElement) => (element.style.display = 'none'))
   const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
   const essentials = panel.locator('[data-group-id="scene-essentials"]')
@@ -1190,6 +1302,9 @@ test('confirms registered-field resets without changing group disclosure', async
   await page.setViewportSize({ width: 640, height: 480 })
   await page
     .locator('[data-tweaker-panel-id="custom-items"]')
+    .evaluate((element: HTMLElement) => (element.style.display = 'none'))
+  await page
+    .locator('[data-tweaker-panel-id="built-in-items"]')
     .evaluate((element: HTMLElement) => (element.style.display = 'none'))
   const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
@@ -1336,7 +1451,7 @@ async function importPanelFile(
   await chooser.setFiles(file)
 }
 
-type CustomGroupId = keyof typeof customGroupLabels
+type CustomGroupId = keyof typeof builtInGroupLabels
 
 async function collapseCustomGroups(
   panel: import('@playwright/test').Locator,
@@ -1346,7 +1461,7 @@ async function collapseCustomGroups(
   for (const groupId of groupIds) {
     const group = panel.locator(`[data-group-id="${groupId}"]`)
     await group
-      .getByRole('button', { name: customGroupLabels[groupId], exact: true })
+      .getByRole('button', { name: builtInGroupLabels[groupId], exact: true })
       .evaluate((button: HTMLButtonElement) => button.click())
     await expect(group).toHaveAttribute('data-collapsed', 'true')
   }

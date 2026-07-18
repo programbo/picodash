@@ -1,34 +1,17 @@
-import {
-  Activity,
-  BetweenHorizontalEnd,
-  BetweenHorizontalStart,
-  Braces,
-  Layers3,
-  ListTree,
-  MousePointer2,
-  Space,
-} from 'lucide-react'
+import { Activity, Braces, Layers3, ListTree, MousePointer2 } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { z } from 'zod'
 import {
   createTweakerPanelStore,
-  TweakerAlignment,
   TweakerDisplay,
-  TweakerDropzone,
-  TweakerGradient,
   TweakerGroup,
   TweakerItem,
-  TweakerMediaPreview,
   TweakerNumber,
   TweakerPanel,
   TweakerProvider,
-  TweakerRange,
-  TweakerSegmented,
   TweakerSelect,
   TweakerSlider,
   TweakerSwitch,
-  TweakerVector3,
-  TweakerXYPad,
   useTweakerPanelStoreSelector,
   useTweakerTheme,
   type TweakerSliderMark,
@@ -39,6 +22,11 @@ import {
   type TweakerPanelRegistration,
   type TweakerPanelState,
 } from 'panel/advanced'
+import {
+  BuiltInItemsPanel,
+  builtInItemsPanelId,
+  builtInItemsPanelStore,
+} from '@/built-in-items-panel'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -68,20 +56,8 @@ const sceneDefaults = {
 }
 
 const customItemDefaults = {
-  alignment: 'center',
-  density: 'balanced',
-  droppedFiles: [],
-  gradient: [
-    { color: '#22d3ee', id: 'cyan', position: 0 },
-    { color: '#facc15', id: 'amber', position: 0.58 },
-    { color: '#fb7185', id: 'rose', position: 1 },
-  ],
-  previewAsset: '/favicon.svg',
   presetName: 'Studio',
   signalMode: 'waveform',
-  thresholdRange: [24, 76],
-  vector: { x: 1.25, y: -0.5, z: 3 },
-  xy: { x: 0.68, y: 0.32 },
 }
 
 const scenePanelStore = createTweakerPanelStore({
@@ -183,16 +159,23 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
   )
   const scenePanelState = useTweakerPanelStoreSelector(scenePanelStore, (state) => state)
   const customItemPanelState = useTweakerPanelStoreSelector(customItemPanelStore, (state) => state)
+  const builtInItemsPanelState = useTweakerPanelStoreSelector(
+    builtInItemsPanelStore,
+    (state) => state,
+  )
   const panelSnapshots = useMemo<PanelSnapshots>(
     () => ({
+      [builtInItemsPanelId]: panelSnapshotFromState(builtInItemsPanelState),
       [scenePanelId]: panelSnapshotFromState(scenePanelState),
       [outputPanelId]: panelSnapshotFromState(customItemPanelState),
     }),
-    [customItemPanelState, scenePanelState],
+    [builtInItemsPanelState, customItemPanelState, scenePanelState],
   )
-  const panels = [panelSnapshots[scenePanelId], panelSnapshots[outputPanelId]].filter(
-    (panel): panel is PanelSnapshot => panel !== undefined,
-  )
+  const panels = [
+    panelSnapshots[scenePanelId],
+    panelSnapshots[builtInItemsPanelId],
+    panelSnapshots[outputPanelId],
+  ].filter((panel): panel is PanelSnapshot => panel !== undefined)
   const totals = useMemo(() => panelTotals(panels), [panels])
 
   return (
@@ -256,9 +239,10 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
           </section>
 
           <Tabs defaultValue="provider" className="grid gap-4">
-            <TabsList className="grid w-full grid-cols-3 lg:w-fit">
+            <TabsList className="grid w-full grid-cols-4 lg:w-fit">
               <TabsTrigger value="provider">TweakerState</TabsTrigger>
               <TabsTrigger value={scenePanelId}>Scene</TabsTrigger>
+              <TabsTrigger value={builtInItemsPanelId}>Built-in Items</TabsTrigger>
               <TabsTrigger value={outputPanelId}>Custom Items</TabsTrigger>
             </TabsList>
 
@@ -286,6 +270,13 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
 
             <TabsContent value={scenePanelId}>
               <PanelStatePanel snapshot={panelSnapshots[scenePanelId]} title="Scene Controls" />
+            </TabsContent>
+
+            <TabsContent value={builtInItemsPanelId}>
+              <PanelStatePanel
+                snapshot={panelSnapshots[builtInItemsPanelId]}
+                title="Built-in Items"
+              />
             </TabsContent>
 
             <TabsContent value={outputPanelId}>
@@ -419,6 +410,8 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
         />
       </TweakerPanel>
 
+      <BuiltInItemsPanel />
+
       <TweakerPanel
         store={customItemPanelStore}
         theme={themes.custom}
@@ -428,60 +421,7 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
         width="23rem"
         className="top-136 right-4 w-92 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-8"
       >
-        <TweakerGroup id="common-items" label="Common inputs">
-          <TweakerSegmented
-            field="density"
-            label="Density"
-            options={[
-              { icon: <BetweenHorizontalStart />, label: 'Tight', value: 'compact' },
-              { icon: <Space />, label: 'Balanced', value: 'balanced' },
-              { icon: <BetweenHorizontalEnd />, label: 'Open', value: 'comfortable' },
-            ]}
-          />
-          <TweakerAlignment
-            field="alignment"
-            label="Alignment"
-            help="A 3×3 option grid with roving keyboard focus and spatial arrow-key navigation."
-          />
-          <TweakerVector3 field="vector" label="Position" max={10} min={-10} step={0.25} />
-          <TweakerRange field="thresholdRange" label="Thresholds" max={100} min={0} step={1} />
-        </TweakerGroup>
-
-        <TweakerGroup id="spatial-items" label="Direct manipulation">
-          <TweakerXYPad
-            field="xy"
-            label="Light position"
-            step={0.01}
-            xMax={1}
-            xMin={0}
-            yMax={1}
-            yMin={0}
-          />
-          <TweakerGradient
-            field="gradient"
-            label="Ramp"
-            help="Double-click to add a stop; drag or use the arrow keys to position it."
-          />
-        </TweakerGroup>
-
-        <TweakerGroup id="media-items" label="Media and files">
-          <TweakerMediaPreview
-            alt="Tweaker mark"
-            field="previewAsset"
-            label="SVG preview"
-            src={(state) => stringFromValue(state.values.previewAsset, '/favicon.svg')}
-          />
-          <TweakerDropzone
-            accept={{ 'image/*': ['.avif', '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp'] }}
-            field="droppedFiles"
-            label="Asset dropzone"
-            maxFiles={3}
-            maxSize={5_000_000}
-            showPreviews
-          />
-        </TweakerGroup>
-
-        <TweakerGroup id="visualization-items" label="Live visualizations">
+        <TweakerGroup id="custom-examples" label="App-local examples">
           <ValidatedPresetNameItem />
           <ShadcnChartItem />
           <MouseVelocitySparklineItem
@@ -490,14 +430,6 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
           />
           <WaveformSpectrumItem />
         </TweakerGroup>
-
-        <TweakerDisplay
-          id="custom-items-summary"
-          label="Selection"
-          value={(state) =>
-            `${stringFromValue(state.values.density, 'balanced')} / ${stringFromValue(state.values.alignment, 'center')}`
-          }
-        />
       </TweakerPanel>
     </>
   )
