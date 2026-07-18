@@ -1,6 +1,10 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 import { tweakerMotionTokens } from '../../../packages/panel/src/theme.ts'
+import {
+  advanceSparklineSamplingClock,
+  decayPointerVelocity,
+} from '../src/custom-items/pointer-velocity-sampling.ts'
 
 const customGroupLabels = {
   'common-items': 'Common inputs',
@@ -19,6 +23,26 @@ const initialCustomRootOrder = [
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toBeVisible()
+})
+
+test('drops delayed pointer velocity intervals instead of backfilling history', () => {
+  const sampleInterval = 1000 / 60
+  const clock = advanceSparklineSamplingClock(4, 4, 100, sampleInterval)
+
+  expect(clock.shouldCommit).toBe(true)
+  expect(clock.accumulatedTime).toBeCloseTo(104 % sampleInterval)
+  expect(clock.accumulatedTime).toBeLessThan(sampleInterval)
+  expect(clock.decayElapsed).toBe(104)
+  expect(clock.elapsedSinceCommit).toBe(0)
+
+  const nextFrame = advanceSparklineSamplingClock(
+    clock.accumulatedTime,
+    clock.elapsedSinceCommit,
+    0,
+    sampleInterval,
+  )
+  expect(nextFrame.shouldCommit).toBe(false)
+  expect(decayPointerVelocity(1000, 84)).toBeCloseTo(1000 * 0.72 ** 2)
 })
 
 for (const scenario of [
@@ -891,15 +915,28 @@ test('animates transient visual paths and switches deterministic signal mode', a
   const description = velocity.getByText('Move anywhere in the full viewport.', { exact: false })
   const velocityXPath = velocity.locator('path.stroke-chart-1')
   const velocityYPath = velocity.locator('path.stroke-chart-3')
+  const fps = velocity.locator('[data-pointer-velocity-fps]')
   await display.scrollIntoViewIfNeeded()
   await expect(display).toBeVisible()
   await expect(display).toHaveCSS('pointer-events', 'none')
+  await expect(fps).toHaveText(/^\d+ FPS$/)
   const displayBox = await display.boundingBox()
   const descriptionBox = await description.boundingBox()
+  const fpsBox = await fps.boundingBox()
   expect(displayBox).not.toBeNull()
   expect(descriptionBox).not.toBeNull()
+  expect(fpsBox).not.toBeNull()
   if (displayBox && descriptionBox) {
     expect(descriptionBox.y).toBeGreaterThanOrEqual(displayBox.y + displayBox.height)
+  }
+  if (displayBox && fpsBox) {
+    const rightGap = displayBox.x + displayBox.width - (fpsBox.x + fpsBox.width)
+    const bottomGap = displayBox.y + displayBox.height - (fpsBox.y + fpsBox.height)
+    expect(fpsBox.x).toBeGreaterThan(displayBox.x + displayBox.width / 2)
+    expect(rightGap).toBeGreaterThanOrEqual(0)
+    expect(rightGap).toBeLessThanOrEqual(12)
+    expect(bottomGap).toBeGreaterThanOrEqual(0)
+    expect(bottomGap).toBeLessThanOrEqual(12)
   }
   const initialVelocityXPath = await velocityXPath.getAttribute('d')
   const initialVelocityYPath = await velocityYPath.getAttribute('d')
@@ -919,6 +956,9 @@ test('animates transient visual paths and switches deterministic signal mode', a
   )
   await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(initialVelocityXPath)
   await expect.poll(() => velocityYPath.getAttribute('d')).not.toBe(initialVelocityYPath)
+  await expect
+    .poll(async () => Number.parseInt((await fps.textContent()) ?? '0', 10))
+    .toBeGreaterThan(0)
 
   const signal = page.locator('[data-control-id="signal-visualizer"]')
   const signalPath = signal.locator('path.stroke-chart-2')
