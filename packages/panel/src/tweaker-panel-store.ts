@@ -37,6 +37,94 @@ export function createTweakerPanelStore({
     Pick<TweakerItemRegistration, 'defaultValue' | 'field' | 'parentId'>
   >()
 
+  const reconcileFieldAfterContractRemoval = (
+    state: TweakerPanelState,
+    field: string,
+  ): TweakerPanelState => {
+    const remainingProposal = repairProposalWithoutField(state.repairProposal, field)
+    const defaultConflict = conflictingDefaultError(state.items, field)
+    if (defaultConflict !== undefined) {
+      return {
+        ...state,
+        fields: {
+          ...state.fields,
+          [field]: {
+            ...(state.fields[field] ?? emptyField()),
+            errors: [defaultConflict],
+          },
+        },
+        repairProposal: remainingProposal,
+      }
+    }
+
+    const analysis = analyzeTweakerFieldConstraint(state, field, 'constraint')
+    if (analysis.status === 'invalid') {
+      return {
+        ...state,
+        fields: {
+          ...state.fields,
+          [field]: {
+            ...(state.fields[field] ?? emptyField()),
+            errors: [...analysis.errors],
+          },
+        },
+        repairProposal: remainingProposal,
+      }
+    }
+    if (analysis.status === 'repair') {
+      return {
+        ...state,
+        repairProposal: {
+          changes: [...(remainingProposal?.changes ?? []), analysis.repair],
+          source: 'constraint',
+          token: ++repairToken,
+        },
+      }
+    }
+
+    const fieldState = state.fields[field]
+    if (
+      fieldState !== undefined &&
+      Object.prototype.hasOwnProperty.call(fieldState, 'draftValue')
+    ) {
+      const draftResolution = resolveTweakerFieldValue(
+        state,
+        field,
+        fieldState.draftValue,
+        'interactive',
+      )
+      if (!draftResolution.success) {
+        return {
+          ...state,
+          fields: {
+            ...state.fields,
+            [field]: { ...fieldState, errors: [...draftResolution.errors] },
+          },
+          repairProposal: remainingProposal,
+        }
+      }
+
+      const reconciledField = { ...fieldState, errors: [] }
+      delete reconciledField.draftValue
+      return {
+        ...state,
+        fields: { ...state.fields, [field]: reconciledField },
+        repairProposal: remainingProposal,
+      }
+    }
+    return {
+      ...state,
+      fields:
+        fieldState !== undefined && fieldState.errors.length > 0
+          ? {
+              ...state.fields,
+              [field]: { ...fieldState, errors: [] },
+            }
+          : state.fields,
+      repairProposal: remainingProposal,
+    }
+  }
+
   const store = createStore<TweakerPanelState>()((set) => ({
     collapsedGroups: {},
     fields: {},
@@ -165,16 +253,22 @@ export function createTweakerPanelStore({
           order: reclaimsOrderSlot ? order : normalizeAllOrders(order, items),
           values,
         }
-        if (field === undefined) return nextState
-        const remainingProposal = repairProposalWithoutField(state.repairProposal, field)
+        const reconciledState =
+          mountedRegistration !== undefined &&
+          previousField !== undefined &&
+          previousField !== field
+            ? reconcileFieldAfterContractRemoval(nextState, previousField)
+            : nextState
+        if (field === undefined) return reconciledState
+        const remainingProposal = repairProposalWithoutField(reconciledState.repairProposal, field)
         const defaultConflict = conflictingDefaultError(items, field)
         if (defaultConflict !== undefined) {
           return {
-            ...nextState,
+            ...reconciledState,
             fields: {
-              ...fields,
+              ...reconciledState.fields,
               [field]: {
-                ...(fields[field] ?? emptyField()),
+                ...(reconciledState.fields[field] ?? emptyField()),
                 errors: [defaultConflict],
               },
             },
@@ -189,14 +283,14 @@ export function createTweakerPanelStore({
               ? 'initial'
               : 'default'
             : 'constraint'
-        const analysis = analyzeTweakerFieldConstraint(nextState, field, validationSource)
+        const analysis = analyzeTweakerFieldConstraint(reconciledState, field, validationSource)
         if (analysis.status === 'invalid') {
           return {
-            ...nextState,
+            ...reconciledState,
             fields: {
-              ...fields,
+              ...reconciledState.fields,
               [field]: {
-                ...(fields[field] ?? emptyField()),
+                ...(reconciledState.fields[field] ?? emptyField()),
                 errors: [...analysis.errors],
               },
             },
@@ -204,23 +298,23 @@ export function createTweakerPanelStore({
           }
         }
         if (analysis.status === 'valid') {
-          const registeredFieldState = fields[field]
+          const registeredFieldState = reconciledState.fields[field]
           return {
-            ...nextState,
+            ...reconciledState,
             fields:
               registeredFieldState !== undefined &&
               !Object.prototype.hasOwnProperty.call(registeredFieldState, 'draftValue') &&
               registeredFieldState?.errors.length
                 ? {
-                    ...fields,
+                    ...reconciledState.fields,
                     [field]: { ...registeredFieldState, errors: [] },
                   }
-                : fields,
+                : reconciledState.fields,
             repairProposal: remainingProposal,
           }
         }
         return {
-          ...nextState,
+          ...reconciledState,
           repairProposal: {
             changes: [...(remainingProposal?.changes ?? []), analysis.repair],
             source: validationSource,
@@ -545,88 +639,7 @@ export function createTweakerPanelStore({
         if (field === undefined) return { items }
 
         const nextState = { ...state, items }
-        const remainingProposal = repairProposalWithoutField(state.repairProposal, field)
-        const defaultConflict = conflictingDefaultError(items, field)
-        if (defaultConflict !== undefined) {
-          return {
-            fields: {
-              ...state.fields,
-              [field]: {
-                ...(state.fields[field] ?? emptyField()),
-                errors: [defaultConflict],
-              },
-            },
-            items,
-            repairProposal: remainingProposal,
-          }
-        }
-
-        const analysis = analyzeTweakerFieldConstraint(nextState, field, 'constraint')
-        if (analysis.status === 'invalid') {
-          return {
-            fields: {
-              ...state.fields,
-              [field]: {
-                ...(state.fields[field] ?? emptyField()),
-                errors: [...analysis.errors],
-              },
-            },
-            items,
-            repairProposal: remainingProposal,
-          }
-        }
-        if (analysis.status === 'repair') {
-          return {
-            items,
-            repairProposal: {
-              changes: [...(remainingProposal?.changes ?? []), analysis.repair],
-              source: 'constraint',
-              token: ++repairToken,
-            },
-          }
-        }
-
-        const fieldState = state.fields[field]
-        if (
-          fieldState !== undefined &&
-          Object.prototype.hasOwnProperty.call(fieldState, 'draftValue')
-        ) {
-          const draftResolution = resolveTweakerFieldValue(
-            nextState,
-            field,
-            fieldState.draftValue,
-            'interactive',
-          )
-          if (!draftResolution.success) {
-            return {
-              fields: {
-                ...state.fields,
-                [field]: { ...fieldState, errors: [...draftResolution.errors] },
-              },
-              items,
-              repairProposal: remainingProposal,
-            }
-          }
-
-          const reconciledField = { ...fieldState, errors: [] }
-          delete reconciledField.draftValue
-          return {
-            fields: { ...state.fields, [field]: reconciledField },
-            items,
-            repairProposal: remainingProposal,
-          }
-        }
-        return {
-          fields:
-            fieldState !== undefined && fieldState.errors.length > 0
-              ? {
-                  ...state.fields,
-                  [field]: { ...fieldState, errors: [] },
-                }
-              : state.fields,
-          items,
-          repairProposal: remainingProposal,
-        }
+        return reconcileFieldAfterContractRemoval(nextState, field)
       })
     },
   }))

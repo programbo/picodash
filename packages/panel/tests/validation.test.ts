@@ -308,6 +308,127 @@ test('unregistering a shared-field contract clears stale draft errors without ch
   expect(store.getState().repairProposal).toBeNull()
 })
 
+test('retargeting an item reconciles stale repairs on its previous field', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { next: 4, shared: 8, unrelated: 7 },
+    panelId: 'validation',
+  })
+  const boundedParser =
+    (maximum: number): TweakerParser =>
+    (input) =>
+      typeof input === 'number' && input <= maximum
+        ? { output: { value: input }, success: true }
+        : {
+            errors: [`Value must not exceed ${maximum}.`],
+            repair: { value: maximum },
+            success: false,
+          }
+
+  registerField(store, 'unrelated', 1, { parse: boundedParser(5) })
+  registerField(store, 'shared', 1, { id: 'remaining', parse: boundedParser(10) })
+  registerField(store, 'shared', 1, { id: 'moving', parse: boundedParser(5) })
+  expect(store.getState().repairProposal).toMatchObject({
+    changes: [{ field: 'unrelated' }, { field: 'shared' }],
+    source: 'constraint',
+  })
+  const proposalToken = store.getState().repairProposal?.token
+
+  store.getState().registerItem({
+    defaultValue: 1,
+    field: 'next',
+    id: 'moving',
+    kind: 'control',
+    parentId: 'root',
+    parse: boundedParser(5),
+    reorderable: true,
+  })
+
+  expect(store.getState().values).toMatchObject({ next: 4, shared: 8 })
+  expect(store.getState().fields.shared?.errors).toEqual([])
+  expect(store.getState().repairProposal).toMatchObject({
+    changes: [{ field: 'unrelated' }],
+    source: 'constraint',
+    token: proposalToken,
+  })
+})
+
+test('retargeting an item clears a previous-field draft made valid by the remaining contracts', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { next: 2, shared: 4 },
+    panelId: 'validation',
+  })
+  registerField(store, 'shared', 1, {
+    id: 'remaining',
+    validate: z.number().nonnegative(),
+  })
+  registerField(store, 'shared', 1, {
+    id: 'moving',
+    validate: z.number().max(5),
+  })
+  expect(store.getState().setFieldInput('shared', 8)).toMatchObject({ success: false })
+
+  store.getState().registerItem({
+    defaultValue: 1,
+    field: 'next',
+    id: 'moving',
+    kind: 'control',
+    parentId: 'root',
+    reorderable: true,
+    validate: z.number(),
+  })
+
+  expect(store.getState().values.shared).toBe(4)
+  expect(store.getState().fields.shared).not.toHaveProperty('draftValue')
+  expect(store.getState().fields.shared?.errors).toEqual([])
+  expect(store.getState().repairProposal).toBeNull()
+})
+
+test('retargeting reconciles both fields in one transaction and leaves an acceptable repair', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { next: 9, shared: 8 },
+    panelId: 'validation',
+  })
+  const boundedParser: TweakerParser = (input) =>
+    typeof input === 'number' && input <= 5
+      ? { output: { value: input }, success: true }
+      : {
+          errors: ['Value must not exceed 5.'],
+          repair: { value: 5 },
+          success: false,
+        }
+
+  registerField(store, 'shared', 1, { id: 'remaining', parse: boundedParser })
+  registerField(store, 'shared', 1, { id: 'moving', parse: boundedParser })
+  let notifications = 0
+  const unsubscribe = store.subscribe(() => {
+    notifications += 1
+  })
+
+  store.getState().registerItem({
+    defaultValue: 1,
+    field: 'next',
+    id: 'moving',
+    kind: 'control',
+    parentId: 'root',
+    parse: boundedParser,
+    reorderable: true,
+  })
+
+  expect(notifications).toBe(1)
+  expect(store.getState().order.root?.filter((itemId) => itemId === 'moving')).toHaveLength(1)
+  expect(store.getState().repairProposal).toMatchObject({
+    changes: [
+      { after: { value: 5 }, before: { value: 8 }, field: 'shared' },
+      { after: { value: 5 }, before: { value: 9 }, field: 'next' },
+    ],
+    source: 'constraint',
+  })
+  expect(store.getState().acceptRepairProposal()).toEqual({ success: true })
+  expect(store.getState().values).toMatchObject({ next: 5, shared: 5 })
+  expect(store.getState().repairProposal).toBeNull()
+  unsubscribe()
+})
+
 test('parsers can explicitly unset a field', () => {
   const store = createTweakerPanelStore({
     initialValues: { optional: 'value' },
