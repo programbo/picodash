@@ -1,6 +1,6 @@
+import { TextAlignCenter, TextAlignEnd, TextAlignStart, type LucideIcon } from 'lucide-react'
 import {
   createTweakerPanelStore,
-  TweakerAlignment,
   TweakerDisplay,
   TweakerDropzone,
   TweakerGradient,
@@ -17,13 +17,14 @@ import {
   TweakerText,
   TweakerVector3,
   TweakerXYPad,
+  type TweakerAlignmentValue,
   type TweakerMatrix2DOption,
 } from 'panel'
 
 export const builtInItemsPanelId = 'built-in-items'
 
 const builtInItemDefaults = {
-  alignment: 'center' as const,
+  alignment: 'middle-center' as const,
   display: 'Ready',
   droppedFiles: [],
   gradient: [
@@ -32,7 +33,6 @@ const builtInItemDefaults = {
     { color: '#fb7185', id: 'rose', position: 1 },
   ],
   gradientRotation: 135,
-  matrix2d: 'top-left',
   multilineText: 'A text area grows with its contents.',
   number: 24,
   previewAsset: '/favicon.svg',
@@ -52,27 +52,43 @@ export const builtInItemsPanelStore = createTweakerPanelStore({
   panelId: builtInItemsPanelId,
 })
 
-const matrixButtonClassName =
-  'flex h-8 items-center justify-center rounded-md border border-tweaker-control bg-tweaker-control px-2 text-xs text-tweaker-muted outline-none transition-colors hover:bg-tweaker-surface-muted hover:text-tweaker-text focus-visible:ring-2 focus-visible:ring-tweaker-focus data-[state=on]:border-tweaker-accent data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text'
+const alignmentRows = [
+  { className: 'items-start', label: 'Top', value: 'top' },
+  { className: 'items-center', label: 'Middle', value: 'middle' },
+  { className: 'items-end', label: 'Bottom', value: 'bottom' },
+] as const
 
-const matrixOptions = [
-  [matrixOption('Top left', 'top-left', '1,1'), matrixOption('Top right', 'top-right', '1,2')],
-  [
-    matrixOption('Bottom left', 'bottom-left', '2,1'),
-    matrixOption('Bottom right', 'bottom-right', '2,2'),
-  ],
-] as const satisfies readonly (readonly TweakerMatrix2DOption<string>[])[]
+const alignmentColumns = [
+  { className: 'justify-start', Icon: TextAlignStart, label: 'left', value: 'left' },
+  { className: 'justify-center', Icon: TextAlignCenter, label: 'center', value: 'center' },
+  { className: 'justify-end', Icon: TextAlignEnd, label: 'right', value: 'right' },
+] as const satisfies readonly {
+  className: string
+  Icon: LucideIcon
+  label: string
+  value: string
+}[]
 
-function matrixOption(label: string, value: string, coordinates: string) {
-  return {
-    'aria-label': label,
-    'data-demo-matrix-cell': coordinates,
-    children: label,
-    className: matrixButtonClassName,
-    title: `${label} (${coordinates})`,
-    value,
-  }
-}
+const alignmentOptions = alignmentRows.map((row, rowIndex) =>
+  alignmentColumns.map((column, columnIndex) => ({
+    'aria-label': `${row.label} ${column.label}`,
+    children: (
+      <column.Icon aria-hidden="true" className="size-(--tweaker-icon-sm)" strokeWidth={2} />
+    ),
+    className: [
+      'relative flex size-(--tweaker-control-height-md) p-(--tweaker-space-1) text-tweaker-muted transition-colors duration-(--tweaker-duration-fast) hover:bg-tweaker-surface-muted hover:text-tweaker-text data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text',
+      columnIndex === 0 ? '' : 'border-l border-tweaker-control',
+      rowIndex === 0 ? '' : 'border-t border-tweaker-control',
+      row.className,
+      column.className,
+    ]
+      .filter(Boolean)
+      .join(' '),
+    'data-alignment-index': rowIndex * alignmentColumns.length + columnIndex,
+    title: `${row.label} ${column.label}`,
+    value: `${row.value}-${column.value}` as TweakerAlignmentValue,
+  })),
+) satisfies readonly (readonly TweakerMatrix2DOption<TweakerAlignmentValue>[])[]
 
 export function BuiltInItemsPanel() {
   return (
@@ -181,22 +197,18 @@ export function BuiltInItemsPanel() {
           step={0.25}
         />
         <TweakerMatrix2D
-          field="matrix2d"
-          label="Matrix2D"
-          defaultValue={builtInItemDefaults.matrix2d}
-          help="TweakerMatrix2D — field, defaultValue, options, and containerProps. The consumer defines every button and the grid layout."
-          containerProps={{
-            'aria-label': 'Placement matrix',
-            className: 'col-span-2 grid grid-cols-2 gap-1',
-            'data-demo-matrix': '',
-          }}
-          options={matrixOptions}
-        />
-        <TweakerAlignment
           field="alignment"
           label="Alignment"
           defaultValue={builtInItemDefaults.alignment}
-          help="TweakerAlignment — field and defaultValue props for the package alignment preset."
+          help="TweakerMatrix2D — field, defaultValue, options, containerProps, selectionRole, and validationMessage. The consumer defines every button and the grid layout."
+          containerProps={{
+            'aria-label': 'Alignment',
+            className:
+              'border-tweaker-control shadow-tweaker-sm rounded-tweaker-control overflow-hidden border bg-(--_tweaker-choice-background) p-(--tweaker-space-0-5)',
+          }}
+          options={alignmentOptions}
+          selectionRole="radio"
+          validationMessage="Alignment must be one of the nine supported positions."
         />
         <TweakerXYPad
           field="xyPad"

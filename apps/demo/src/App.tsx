@@ -437,7 +437,7 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
         collapsible
         defaultPlacement="bottom-right"
         width="23rem"
-        className="top-136 right-4 w-92 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-8"
+        className="top-136 right-4 w-92 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-8 lg:bottom-auto"
       >
         <TweakerGroup id="custom-examples" label="App-local examples">
           <ValidatedPresetNameItem />

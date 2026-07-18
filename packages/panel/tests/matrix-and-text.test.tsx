@@ -135,10 +135,10 @@ test('TweakerAlignment remains a styled 3x3 Matrix2D preset', () => {
   expect(props.defaultValue).toBe('bottom-right')
   expect(props.options.map((row) => row.length)).toEqual([3, 3, 3])
   expect(props.options[1]?.[1]).toMatchObject({
-    'aria-label': 'Centre',
+    'aria-label': 'Middle center',
     'data-alignment-index': 4,
-    title: 'Centre',
-    value: 'center',
+    title: 'Middle center',
+    value: 'middle-center',
   })
   expect(props.containerProps['aria-label']).toBe('Alignment')
   expect(props.containerProps.className).toContain('border-tweaker-control')

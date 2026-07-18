@@ -432,7 +432,7 @@ export function TweakerItem<TValue extends TweakerValue = TweakerValue>({
           <div
             id={descriptionId}
             className={cn(
-              'text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) font-(--tweaker-font-light) text-tweaker-muted',
+              'text-(length:--tweaker-font-size-sm) leading-(--tweaker-line-tight) font-(--tweaker-font-light) text-tweaker-muted pt-1.5',
               contentLayout === 'inline' && 'col-span-2 col-start-3 row-start-2',
               contentLayout === 'block' && 'col-span-3 col-start-2 row-start-3',
               contentLayout === 'full' && 'col-span-4 col-start-1 row-start-3',
