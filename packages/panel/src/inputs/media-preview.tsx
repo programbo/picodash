@@ -98,7 +98,7 @@ function MediaPreviewSurface({
   if (!src || failed) {
     return (
       <div
-        className="border-tweaker-control text-tweaker-muted col-span-full flex aspect-(--tweaker-media-aspect-ratio) min-h-(--tweaker-media-min-height) items-center justify-center gap-(--tweaker-space-2) rounded-(--tweaker-media-radius) border border-dashed bg-(--tweaker-media-background) px-(--tweaker-space-3) text-center text-(length:--tweaker-font-size-lg)"
+        className="border-tweaker-control text-tweaker-muted rounded-tweaker-control col-span-full flex aspect-video min-h-(--tweaker-field-surface-min-height) items-center justify-center gap-(--tweaker-space-2) border border-dashed bg-(--_tweaker-color-well) px-(--tweaker-space-3) text-center text-(length:--tweaker-font-size-lg)"
         role="status"
       >
         {fallback ?? (
@@ -112,7 +112,7 @@ function MediaPreviewSurface({
   }
 
   return (
-    <div className="border-tweaker-control col-span-full aspect-(--tweaker-media-aspect-ratio) min-h-(--tweaker-media-min-height) overflow-hidden rounded-(--tweaker-media-radius) border bg-(--tweaker-media-background)">
+    <div className="border-tweaker-control rounded-tweaker-control col-span-full aspect-video min-h-(--tweaker-field-surface-min-height) overflow-hidden border bg-(--_tweaker-color-well)">
       <img
         alt={alt}
         className={cn('size-full', objectFitClassName(objectFit), className)}

@@ -12,6 +12,8 @@ import {
   tweakerLayerTokens,
   tweakerMotionTokens,
   tweakerThemeAttribute,
+  TweakerProvider,
+  useTweakerTheme,
 } from '../src/index.ts'
 import {
   clampPanelPosition,
@@ -45,6 +47,46 @@ test('creates feature panel elements', () => {
   expect(element.props.items).toEqual([
     { label: 'Build health', value: 'Passing', status: 'success' },
   ])
+})
+
+test('resolves named themes through providers, feature panels, and the public hook', () => {
+  function ThemeProbe() {
+    return <span data-probe-theme={useTweakerTheme()} />
+  }
+
+  const inherited = renderToStaticMarkup(
+    <TweakerProvider theme="ocean">
+      <ThemeProbe />
+      <FeaturePanel title="Inherited" />
+      <FeaturePanel theme="plum" title="Override" />
+    </TweakerProvider>,
+  )
+  const defaulted = renderToStaticMarkup(
+    <TweakerProvider>
+      <ThemeProbe />
+    </TweakerProvider>,
+  )
+
+  expect(inherited).toContain('data-tweaker-theme="ocean"')
+  expect(inherited).toContain('data-probe-theme="ocean"')
+  expect(inherited).toContain('data-tweaker-theme="plum"')
+  expect(defaulted).toContain('data-tweaker-theme="dark"')
+  expect(defaulted).toContain('data-probe-theme="dark"')
+})
+
+test('puts provider children under a layout-neutral resolved theme carrier', () => {
+  const markup = renderToStaticMarkup(
+    <TweakerProvider theme="ocean">
+      <main data-provider-child="true">Consumer content</main>
+    </TweakerProvider>,
+  )
+
+  expect(markup).toMatch(
+    /<div data-tweaker-provider-content="" data-tweaker-theme="ocean" class="contents"><main data-provider-child="true">/,
+  )
+  expect(markup).toContain(
+    '<div data-tweaker-container="true" data-tweaker-theme="ocean" class="pointer-events-none fixed inset-0 h-dvh w-dvw"></div>',
+  )
 })
 
 test('exports the package theme carrier, motion, and layer contracts', () => {
@@ -102,9 +144,9 @@ test('renders a static square instead of a grip for non-reorderable item slots',
   const reorderGrip = renderToStaticMarkup(<TweakerReorderIndicator reorderable />)
 
   expect(staticIndicator).toContain('data-tweaker-reorder-indicator="static"')
-  expect(staticIndicator).toContain('size-(--tweaker-reorder-static-marker-size)')
-  expect(staticIndicator).toContain('bg-(--tweaker-reorder-static-marker-color)')
-  expect(staticIndicator).toContain('opacity-(--tweaker-reorder-static-marker-opacity)')
+  expect(staticIndicator).toContain('size-(--tweaker-space-1-5)')
+  expect(staticIndicator).toContain('bg-tweaker-muted')
+  expect(staticIndicator).toContain('opacity-(--tweaker-opacity-subtle)')
   expect(staticIndicator).not.toContain('<svg')
   expect(reorderGrip).toContain('data-tweaker-reorder-indicator="grip"')
   expect(reorderGrip).toContain('<svg')

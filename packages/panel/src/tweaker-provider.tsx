@@ -18,6 +18,7 @@ import {
 } from './panel-persistence.js'
 import type { PanelLayout, PanelRect } from './panel-snapping.js'
 import { tweakerDefaultTheme, tweakerLayerTokens } from './theme.js'
+import { TweakerThemeContextProvider, useResolvedTweakerTheme } from './tweaker-theme-context.js'
 
 export interface TweakerPanelRegistration {
   id: string
@@ -48,6 +49,7 @@ export interface TweakerProviderContextValue {
 
 export interface TweakerProviderProps {
   children: ReactNode
+  theme?: string
 }
 
 const TweakerContext = createContext<TweakerProviderContextValue | null>(null)
@@ -185,7 +187,8 @@ export function useRegisterTweakerPanel({ id }: TweakerPanelRegistration) {
   }, [id, store])
 }
 
-export function TweakerProvider({ children }: TweakerProviderProps) {
+export function TweakerProvider({ children, theme: themeProp }: TweakerProviderProps) {
+  const theme = useResolvedTweakerTheme(themeProp ?? tweakerDefaultTheme)
   const [containerElement, setContainerElement] = useState<HTMLDivElement | null>(null)
   const storeRef = useRef<TweakerStore | null>(null)
 
@@ -207,15 +210,19 @@ export function TweakerProvider({ children }: TweakerProviderProps) {
   )
 
   return (
-    <TweakerContext.Provider value={contextValue}>
-      {children}
-      <div
-        data-tweaker-container
-        data-tweaker-theme={tweakerDefaultTheme}
-        ref={handleContainerRef}
-        className="pointer-events-none fixed inset-0 h-dvh w-dvw"
-      ></div>
-    </TweakerContext.Provider>
+    <TweakerThemeContextProvider theme={theme}>
+      <TweakerContext.Provider value={contextValue}>
+        <div data-tweaker-provider-content="" data-tweaker-theme={theme} className="contents">
+          {children}
+        </div>
+        <div
+          data-tweaker-container
+          data-tweaker-theme={theme}
+          ref={handleContainerRef}
+          className="pointer-events-none fixed inset-0 h-dvh w-dvw"
+        ></div>
+      </TweakerContext.Provider>
+    </TweakerThemeContextProvider>
   )
 }
 

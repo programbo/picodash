@@ -126,7 +126,7 @@ export function TweakerGroup({
       {...stateAttributes}
       as="section"
       className={cn(
-        'group/tweaker-section relative isolate col-span-full shrink-0 select-none rounded-(--tweaker-row-radius) border border-l-2 border-tweaker-border/80 border-l-transparent bg-(--tweaker-group-background) transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--tweaker-duration-fast) data-[dragging=true]:z-(--tweaker-layer-drag)! data-[dragging=true]:border-tweaker-focus data-[dragging=true]:bg-(--tweaker-group-drag) data-[dragging=true]:shadow-tweaker-panel data-[dragging=true]:backdrop-blur-(--tweaker-blur-surface) data-[focused=true]:border-tweaker-focus/60 data-[hovered=true]:border-l-tweaker-surface-muted/80 data-[status=alert]:border-l-(--tweaker-color-alert-border) data-[status=alert]:bg-tweaker-alert-subtle data-[status=error]:border-l-(--tweaker-color-danger-border) data-[status=error]:bg-tweaker-danger-subtle data-[status=info]:border-l-(--tweaker-color-info-border) data-[status=info]:bg-tweaker-info-subtle data-[status=warning]:border-l-(--tweaker-color-warning-border) data-[status=warning]:bg-tweaker-warning-subtle',
+        'group/tweaker-section relative isolate col-span-full shrink-0 select-none rounded-tweaker-control border border-l-2 border-tweaker-border/80 border-l-transparent bg-(--_tweaker-color-well) transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--tweaker-duration-fast) data-[dragging=true]:z-(--tweaker-layer-drag)! data-[dragging=true]:border-tweaker-focus data-[dragging=true]:bg-(--_tweaker-group-drag) data-[dragging=true]:shadow-tweaker-panel data-[dragging=true]:backdrop-blur-(--tweaker-blur-surface) data-[focused=true]:border-tweaker-focus/60 data-[hovered=true]:border-l-tweaker-surface-muted/80 data-[status=alert]:border-l-(--_tweaker-color-alert-border) data-[status=alert]:bg-tweaker-alert-subtle data-[status=error]:border-l-(--_tweaker-color-danger-border) data-[status=error]:bg-tweaker-danger-subtle data-[status=info]:border-l-(--_tweaker-color-info-border) data-[status=info]:bg-tweaker-info-subtle data-[status=warning]:border-l-(--_tweaker-color-warning-border) data-[status=warning]:bg-tweaker-warning-subtle',
         className,
       )}
       data-active={active ? 'true' : 'false'}
@@ -194,7 +194,7 @@ export function TweakerGroup({
     >
       <div
         className={cn(
-          'group-data-[hovered=true]/tweaker-section:bg-tweaker-surface-muted/80 flex min-h-(--tweaker-group-header-min-height) items-center gap-0 rounded-t-(--tweaker-row-radius) py-(--tweaker-space-1) pr-(--tweaker-space-1-5) transition-colors duration-(--tweaker-duration-fast) group-data-[collapsed=true]/tweaker-section:rounded-b-(--tweaker-row-radius)',
+          'group-data-[hovered=true]/tweaker-section:bg-tweaker-surface-muted/80 flex min-h-(--tweaker-control-height-md) items-center gap-0 rounded-t-tweaker-control py-(--tweaker-space-1) pr-(--tweaker-space-1-5) transition-colors duration-(--tweaker-duration-fast) group-data-[collapsed=true]/tweaker-section:rounded-b-tweaker-control',
           !showReorderSlot && 'pl-(--tweaker-space-1-5)',
         )}
         onPointerEnter={() => store.getState().setHoveredItem(id)}
@@ -205,7 +205,7 @@ export function TweakerGroup({
             aria-label={`Reorder ${labelText}`}
             className={cn(
               buttonVariants({ size: 'icon', variant: 'ghost' }),
-              'size-(--tweaker-chrome-button-size) shrink-0 cursor-grab text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
+              'size-(--tweaker-control-height-xs) shrink-0 cursor-grab text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
             )}
             type="button"
             onPointerCancel={cancelReorder}
@@ -231,7 +231,7 @@ export function TweakerGroup({
           {collapsible ? (
             <ChevronRight
               className={cn(
-                'size-(--tweaker-chrome-icon-size) transition-transform duration-(--tweaker-duration-fast) ease-(--tweaker-ease-out) motion-reduce:transition-none',
+                'size-(--tweaker-icon-sm) transition-transform duration-(--tweaker-duration-fast) ease-(--tweaker-ease-out) motion-reduce:transition-none',
                 !collapsed && 'rotate-90',
               )}
               aria-hidden="true"
@@ -253,7 +253,7 @@ export function TweakerGroup({
         <div className="min-h-0 overflow-hidden">
           <TweakerReorderList
             ref={childListRef}
-            className="ml-(--tweaker-group-child-inset-inline) pb-(--tweaker-group-child-padding-bottom)"
+            className="ml-(--_tweaker-nested-inset) pb-(--tweaker-space-0-5)"
             parentId={id}
           >
             {children}

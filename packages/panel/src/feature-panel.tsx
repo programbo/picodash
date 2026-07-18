@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, type HTMLMotionProps, type Transition } from 'motion/react'
 import type { ReactNode } from 'react'
-import { tweakerDefaultTheme, tweakerMotionTokens } from './theme.js'
+import { tweakerMotionTokens } from './theme.js'
+import { TweakerThemeContextProvider, useResolvedTweakerTheme } from './tweaker-theme-context.js'
 
 export type FeaturePanelItemStatus = 'neutral' | 'success' | 'warning' | 'info'
 
@@ -23,6 +24,7 @@ export interface FeaturePanelProps extends Omit<HTMLMotionProps<'section'>, 'tit
   metric?: FeaturePanelMetric
   items?: FeaturePanelItem[]
   footer?: ReactNode
+  theme?: string
 }
 
 const statusClasses: Record<FeaturePanelItemStatus, string> = {
@@ -43,109 +45,114 @@ export function FeaturePanel({
   items = [],
   footer,
   className,
+  theme: themeProp,
   ...props
 }: FeaturePanelProps) {
+  const theme = useResolvedTweakerTheme(themeProp)
+
   return (
-    <motion.section
-      initial={tweakerMotionTokens.featurePanelInitial}
-      animate={tweakerMotionTokens.featurePanelAnimate}
-      transition={panelTransition}
-      data-tweaker-theme={tweakerDefaultTheme}
-      className={joinClassNames(
-        'overflow-hidden rounded-(--tweaker-feature-radius) border border-(--tweaker-feature-border) bg-(--tweaker-feature-background) text-(--tweaker-feature-foreground) shadow-tweaker-panel ring-1 ring-(--tweaker-panel-ring) backdrop-blur-(--tweaker-blur-surface)',
-        className,
-      )}
-      {...props}
-    >
-      <div className="border-tweaker-border border-b px-(--tweaker-space-5) py-(--tweaker-space-4)">
-        {eyebrow ? (
-          <p className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-wide) text-(--tweaker-feature-eyebrow) uppercase">
-            {eyebrow}
-          </p>
-        ) : null}
-        <div className="mt-(--tweaker-space-2) flex items-start justify-between gap-(--tweaker-space-4)">
-          <div>
-            <h2 className="text-(length:--tweaker-font-size-2xl) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-normal) text-(--tweaker-color-text-strong)">
-              {title}
-            </h2>
-            {summary ? (
-              <p className="mt-(--tweaker-space-1) text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-relaxed) text-(--tweaker-feature-muted)">
-                {summary}
-              </p>
-            ) : null}
-          </div>
-          {metric ? (
-            <motion.div
-              layout
-              whileHover={tweakerMotionTokens.featureMetricHover}
-              transition={rowTransition}
-              className="shrink-0 rounded-(--tweaker-button-radius) bg-(--tweaker-feature-metric-background) px-(--tweaker-space-3) py-(--tweaker-space-2) text-right text-(--tweaker-feature-metric-foreground)"
-            >
-              <p className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-medium) text-(--tweaker-feature-metric-label)">
-                {metric.label}
-              </p>
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.p
-                  key={metric.value}
-                  initial={tweakerMotionTokens.featureMetricEnter}
-                  animate={tweakerMotionTokens.featureMetricAnimate}
-                  exit={tweakerMotionTokens.featureMetricExit}
-                  transition={tweakerMotionTokens.quickFade}
-                  className="text-(length:--tweaker-font-size-3xl) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-normal)"
-                >
-                  {metric.value}
-                </motion.p>
-              </AnimatePresence>
-              {metric.trend ? (
-                <p className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-medium) text-(--tweaker-feature-trend)">
-                  {metric.trend}
+    <TweakerThemeContextProvider theme={theme}>
+      <motion.section
+        {...props}
+        initial={tweakerMotionTokens.featurePanelInitial}
+        animate={tweakerMotionTokens.featurePanelAnimate}
+        transition={panelTransition}
+        data-tweaker-theme={theme}
+        className={joinClassNames(
+          'overflow-hidden rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface/90 text-tweaker-text shadow-tweaker-panel ring-1 ring-(--_tweaker-panel-ring) backdrop-blur-(--tweaker-blur-surface)',
+          className,
+        )}
+      >
+        <div className="border-tweaker-border border-b px-(--tweaker-space-5) py-(--tweaker-space-4)">
+          {eyebrow ? (
+            <p className="text-tweaker-success text-(length:--tweaker-font-size-lg) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-wide) uppercase">
+              {eyebrow}
+            </p>
+          ) : null}
+          <div className="mt-(--tweaker-space-2) flex items-start justify-between gap-(--tweaker-space-4)">
+            <div>
+              <h2 className="text-(length:--tweaker-font-size-2xl) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-normal) text-(--tweaker-color-text-strong)">
+                {title}
+              </h2>
+              {summary ? (
+                <p className="text-tweaker-muted mt-(--tweaker-space-1) text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-relaxed)">
+                  {summary}
                 </p>
               ) : null}
-            </motion.div>
-          ) : null}
-        </div>
-      </div>
-
-      {items.length > 0 ? (
-        <ul className="divide-tweaker-border divide-y overflow-hidden">
-          <AnimatePresence initial={false}>
-            {items.map((item) => (
-              <motion.li
-                key={item.label}
+            </div>
+            {metric ? (
+              <motion.div
                 layout
-                initial={tweakerMotionTokens.featureRowInitial}
-                animate={tweakerMotionTokens.featureRowAnimate}
-                exit={tweakerMotionTokens.featureRowExit}
+                whileHover={tweakerMotionTokens.featureMetricHover}
                 transition={rowTransition}
-                className="flex items-center justify-between gap-(--tweaker-space-4) px-(--tweaker-space-5) py-(--tweaker-space-4)"
+                className="rounded-tweaker-control text-tweaker-canvas shrink-0 bg-(--tweaker-color-text-strong) px-(--tweaker-space-3) py-(--tweaker-space-2) text-right"
               >
-                <span className="flex min-w-0 items-center gap-(--tweaker-space-3)">
-                  <motion.span
-                    layout
-                    className={joinClassNames(
-                      'size-(--tweaker-space-2-5) shrink-0 rounded-full',
-                      statusClasses[item.status ?? 'neutral'],
-                    )}
-                  />
-                  <span className="truncate text-(length:--tweaker-font-size-xl) font-(--tweaker-font-medium) text-(--tweaker-feature-foreground)">
-                    {item.label}
-                  </span>
-                </span>
-                <span className="text-(length:--tweaker-font-size-xl) text-(--tweaker-feature-subtle)">
-                  {item.value}
-                </span>
-              </motion.li>
-            ))}
-          </AnimatePresence>
-        </ul>
-      ) : null}
-
-      {footer ? (
-        <div className="border-tweaker-border border-t px-(--tweaker-space-5) py-(--tweaker-space-3) text-(length:--tweaker-font-size-xl) text-(--tweaker-feature-subtle)">
-          {footer}
+                <p className="text-tweaker-muted text-(length:--tweaker-font-size-lg) font-(--tweaker-font-medium)">
+                  {metric.label}
+                </p>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.p
+                    key={metric.value}
+                    initial={tweakerMotionTokens.featureMetricEnter}
+                    animate={tweakerMotionTokens.featureMetricAnimate}
+                    exit={tweakerMotionTokens.featureMetricExit}
+                    transition={tweakerMotionTokens.quickFade}
+                    className="text-(length:--tweaker-font-size-3xl) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-normal)"
+                  >
+                    {metric.value}
+                  </motion.p>
+                </AnimatePresence>
+                {metric.trend ? (
+                  <p className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-medium) text-(--_tweaker-color-success-strong)">
+                    {metric.trend}
+                  </p>
+                ) : null}
+              </motion.div>
+            ) : null}
+          </div>
         </div>
-      ) : null}
-    </motion.section>
+
+        {items.length > 0 ? (
+          <ul className="divide-tweaker-border divide-y overflow-hidden">
+            <AnimatePresence initial={false}>
+              {items.map((item) => (
+                <motion.li
+                  key={item.label}
+                  layout
+                  initial={tweakerMotionTokens.featureRowInitial}
+                  animate={tweakerMotionTokens.featureRowAnimate}
+                  exit={tweakerMotionTokens.featureRowExit}
+                  transition={rowTransition}
+                  className="flex items-center justify-between gap-(--tweaker-space-4) px-(--tweaker-space-5) py-(--tweaker-space-4)"
+                >
+                  <span className="flex min-w-0 items-center gap-(--tweaker-space-3)">
+                    <motion.span
+                      layout
+                      className={joinClassNames(
+                        'size-(--tweaker-space-2-5) shrink-0 rounded-full',
+                        statusClasses[item.status ?? 'neutral'],
+                      )}
+                    />
+                    <span className="text-tweaker-text truncate text-(length:--tweaker-font-size-xl) font-(--tweaker-font-medium)">
+                      {item.label}
+                    </span>
+                  </span>
+                  <span className="text-tweaker-muted text-(length:--tweaker-font-size-xl)">
+                    {item.value}
+                  </span>
+                </motion.li>
+              ))}
+            </AnimatePresence>
+          </ul>
+        ) : null}
+
+        {footer ? (
+          <div className="border-tweaker-border text-tweaker-muted border-t px-(--tweaker-space-5) py-(--tweaker-space-3) text-(length:--tweaker-font-size-xl)">
+            {footer}
+          </div>
+        ) : null}
+      </motion.section>
+    </TweakerThemeContextProvider>
   )
 }
 

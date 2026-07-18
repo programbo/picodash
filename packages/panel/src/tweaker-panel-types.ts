@@ -90,6 +90,7 @@ export interface TweakerPanelProps extends Omit<
   defaultValues?: Record<string, TweakerValue>
   id?: string
   initialMeta?: Record<string, TweakerValue>
+  theme?: string
   title?: ReactNode
 }
 
