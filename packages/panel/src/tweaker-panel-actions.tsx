@@ -11,21 +11,39 @@ import {
   Upload,
 } from 'lucide-react'
 import { AlertDialog, DropdownMenu } from 'radix-ui'
-import { useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react'
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import { useStore } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import { collapsibleGroupsForState } from './tweaker-panel-action-state.js'
 import {
-  importTweakerPanelDocument,
+  applyTweakerPanelImport,
+  prepareTweakerPanelImport,
   serializeTweakerPanelValues,
   tweakerPanelDocumentFilename,
   tweakerPanelDocumentFormatFromFilename,
   tweakerPanelDocumentMimeType,
   tweakerPanelImportAccept,
+  TweakerPanelImportError,
+  type TweakerPanelImportAnalysis,
+  type TweakerPanelImportChange,
   type TweakerPanelDocumentFormat,
 } from './tweaker-panel-documents.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
-import { tweakerDefaultTheme, tweakerGeometryTokens } from './theme.js'
+import {
+  modalZIndexForState,
+  portalLayerZIndexForState,
+  portalLayerZIndexValue,
+  useTweakerProviderContext,
+} from './tweaker-provider.js'
+import { tweakerGeometryTokens } from './theme.js'
+import type { TweakerConstraintRepair, TweakerFieldOutput } from './tweaker-validation.js'
 import { Button, buttonVariants } from './ui.js'
 import { cn } from './utils.js'
 
@@ -37,9 +55,16 @@ export function TweakerPanelActions({
   panelTitle: string
 }) {
   const store = useTweakerPanelStoreApi()
+  const { portalContainer, store: providerStore, theme } = useTweakerProviderContext()
+  const modalZIndex = useStore(providerStore, modalZIndexForState)
+  const menuZIndex = useStore(providerStore, (state) => portalLayerZIndexForState(state, 3))
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [importRepair, setImportRepair] = useState<{
+    analysis: Extract<TweakerPanelImportAnalysis, { status: 'repair' }>
+    filename: string
+  } | null>(null)
   const [status, setStatus] = useState('')
   const { collapsedGroups, items } = useStore(
     store,
@@ -93,7 +118,13 @@ export function TweakerPanelActions({
   const importFile = async (file: File) => {
     try {
       const format = tweakerPanelDocumentFormatFromFilename(file.name)
-      importTweakerPanelDocument(store, await file.text(), format)
+      const analysis = prepareTweakerPanelImport(store, await file.text(), format)
+      if (analysis.status === 'invalid') throw new TweakerPanelImportError(analysis.errors)
+      if (analysis.status === 'repair') {
+        setImportRepair({ analysis, filename: file.name })
+        return
+      }
+      applyTweakerPanelImport(store, analysis)
       announce(`Imported panel values from ${file.name}.`)
     } catch (error) {
       announce(`Import failed: ${errorMessage(error)}`)
@@ -117,15 +148,18 @@ export function TweakerPanelActions({
             <Ellipsis className="size-(--tweaker-chrome-icon-size)" aria-hidden="true" />
           </button>
         </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
+        <DropdownMenu.Portal container={portalContainer}>
           <DropdownMenu.Content
-            data-tweaker-theme={tweakerDefaultTheme}
+            data-tweaker-theme={theme}
             aria-label={`Actions for ${panelTitle}`}
             avoidCollisions
             className={menuContentClassName}
             collisionPadding={tweakerGeometryTokens.menuCollisionPadding}
             sideOffset={tweakerGeometryTokens.menuSideOffset}
             sticky="always"
+            style={{
+              zIndex: portalLayerZIndexValue('--tweaker-layer-menu', menuZIndex),
+            }}
           >
             {groups.length > 0 ? (
               <>
@@ -193,13 +227,19 @@ export function TweakerPanelActions({
       </span>
 
       <AlertDialog.Root open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-        <AlertDialog.Portal>
+        <AlertDialog.Portal container={portalContainer}>
           <AlertDialog.Overlay
-            data-tweaker-theme={tweakerDefaultTheme}
+            data-tweaker-theme={theme}
+            style={{
+              zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
+            }}
             className="pointer-events-auto fixed inset-0 z-(--tweaker-layer-dialog) bg-(--tweaker-dialog-overlay) backdrop-blur-(--tweaker-blur-overlay)"
           />
           <AlertDialog.Content
-            data-tweaker-theme={tweakerDefaultTheme}
+            data-tweaker-theme={theme}
+            style={{
+              zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
+            }}
             className="pointer-events-auto fixed top-1/2 left-1/2 z-(--tweaker-layer-dialog) grid w-(--tweaker-dialog-width) -translate-x-1/2 -translate-y-1/2 gap-(--tweaker-dialog-gap) rounded-(--tweaker-dialog-radius) border border-(--tweaker-dialog-border) bg-(--tweaker-dialog-background) p-(--tweaker-dialog-padding) text-(--tweaker-dialog-foreground) shadow-(--tweaker-dialog-shadow) outline-none"
             onCloseAutoFocus={(event) => {
               event.preventDefault()
@@ -226,8 +266,12 @@ export function TweakerPanelActions({
                   className="bg-(--tweaker-color-danger) text-(--tweaker-color-canvas) hover:bg-(--tweaker-color-danger)/90"
                   size="sm"
                   onClick={() => {
-                    store.getState().resetRegisteredFields()
-                    announce('Reset all registered panel values.')
+                    const result = store.getState().resetRegisteredFields()
+                    announce(
+                      result.success
+                        ? 'Reset all registered panel values.'
+                        : `Reset failed: ${formatFieldErrors(result.errors)}`,
+                    )
                   }}
                 >
                   Reset values
@@ -237,7 +281,55 @@ export function TweakerPanelActions({
           </AlertDialog.Content>
         </AlertDialog.Portal>
       </AlertDialog.Root>
+
+      <RepairReviewDialog
+        beforeLabel="Imported"
+        changes={importRepair?.analysis.changes ?? []}
+        description="Some imported values need to be changed before they satisfy the current panel constraints. Review every change before applying the import."
+        open={importRepair !== null}
+        panelTitle={panelTitle}
+        returnFocusRef={triggerRef}
+        title={`Review import for ${panelTitle}`}
+        onAbort={() => {
+          setImportRepair(null)
+          announce('Import aborted. Panel values were not changed.')
+        }}
+        onAccept={() => {
+          if (!importRepair) return
+          try {
+            applyTweakerPanelImport(store, importRepair.analysis)
+            announce(`Imported repaired panel values from ${importRepair.filename}.`)
+            setImportRepair(null)
+          } catch (error) {
+            announce(`Import failed: ${errorMessage(error)}`)
+          }
+        }}
+      />
     </>
+  )
+}
+
+export function TweakerPanelConstraintRepairDialog({ panelTitle }: { panelTitle: string }) {
+  const store = useTweakerPanelStoreApi()
+  const proposal = useStore(store, (state) => state.repairProposal)
+  const copy = repairProposalCopy(proposal?.source)
+
+  return (
+    <RepairReviewDialog
+      beforeLabel={copy.beforeLabel}
+      changes={proposal?.changes ?? []}
+      description={copy.description}
+      open={proposal !== null}
+      panelTitle={panelTitle}
+      title={`${copy.title} for ${panelTitle}`}
+      onAbort={() => store.getState().abortRepairProposal()}
+      onAccept={() => {
+        const result = store.getState().acceptRepairProposal()
+        if (!result.success) {
+          throw new Error(formatFieldErrors(result.errors))
+        }
+      }}
+    />
   )
 }
 
@@ -282,6 +374,9 @@ function MenuSub({
   icon: ReactNode
   label: string
 }) {
+  const { portalContainer, store, theme } = useTweakerProviderContext()
+  const menuZIndex = useStore(store, (state) => portalLayerZIndexForState(state, 3))
+
   return (
     <DropdownMenu.Sub>
       <DropdownMenu.SubTrigger className={menuItemClassName}>
@@ -289,14 +384,17 @@ function MenuSub({
         <span className="min-w-0 flex-1">{label}</span>
         <ChevronRight className="size-(--tweaker-menu-icon-size) shrink-0" aria-hidden="true" />
       </DropdownMenu.SubTrigger>
-      <DropdownMenu.Portal>
+      <DropdownMenu.Portal container={portalContainer}>
         <DropdownMenu.SubContent
-          data-tweaker-theme={tweakerDefaultTheme}
+          data-tweaker-theme={theme}
           avoidCollisions
           className={menuContentClassName}
           collisionPadding={tweakerGeometryTokens.menuCollisionPadding}
           sideOffset={tweakerGeometryTokens.menuSubmenuOffset}
           sticky="always"
+          style={{
+            zIndex: portalLayerZIndexValue('--tweaker-layer-menu', menuZIndex),
+          }}
         >
           {children}
         </DropdownMenu.SubContent>
@@ -336,4 +434,174 @@ function FormatMenuItems({
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Unknown error.'
+}
+
+function RepairReviewDialog({
+  beforeLabel,
+  changes,
+  description,
+  onAbort,
+  onAccept,
+  open,
+  panelTitle,
+  returnFocusRef,
+  title,
+}: {
+  beforeLabel: string
+  changes: readonly (TweakerPanelImportChange | TweakerConstraintRepair)[]
+  description: string
+  onAbort: () => void
+  onAccept: () => void
+  open: boolean
+  panelTitle: string
+  returnFocusRef?: RefObject<HTMLElement | null>
+  title: string
+}) {
+  const { portalContainer, store: providerStore, theme } = useTweakerProviderContext()
+  const modalZIndex = useStore(providerStore, modalZIndexForState)
+  const [acceptError, setAcceptError] = useState('')
+  const acceptedRef = useRef(false)
+
+  return (
+    <AlertDialog.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && open && !acceptedRef.current) onAbort()
+        if (!nextOpen) {
+          acceptedRef.current = false
+          setAcceptError('')
+        }
+      }}
+    >
+      <AlertDialog.Portal container={portalContainer}>
+        <AlertDialog.Overlay
+          data-tweaker-theme={theme}
+          style={{
+            zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
+          }}
+          className="pointer-events-auto fixed inset-0 z-(--tweaker-layer-dialog) bg-(--tweaker-dialog-overlay) backdrop-blur-(--tweaker-blur-overlay)"
+        />
+        <AlertDialog.Content
+          data-tweaker-theme={theme}
+          aria-label={`Repair values for ${panelTitle}`}
+          style={{
+            zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
+          }}
+          className="pointer-events-auto fixed top-1/2 left-1/2 z-(--tweaker-layer-dialog) grid max-h-[min(80dvh,36rem)] w-(--tweaker-dialog-width) -translate-x-1/2 -translate-y-1/2 gap-(--tweaker-dialog-gap) overflow-hidden rounded-(--tweaker-dialog-radius) border border-(--tweaker-dialog-border) bg-(--tweaker-dialog-background) p-(--tweaker-dialog-padding) text-(--tweaker-dialog-foreground) shadow-(--tweaker-dialog-shadow) outline-none"
+          onCloseAutoFocus={(event) => {
+            if (!returnFocusRef) return
+            event.preventDefault()
+            returnFocusRef.current?.focus()
+          }}
+        >
+          <div className="grid gap-(--tweaker-space-1)">
+            <AlertDialog.Title className="text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-normal) font-(--tweaker-font-semibold)">
+              {title}
+            </AlertDialog.Title>
+            <AlertDialog.Description className="text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) text-(--tweaker-dialog-muted)">
+              {description}
+            </AlertDialog.Description>
+          </div>
+          <div
+            className="grid min-h-0 gap-(--tweaker-space-2) overflow-y-auto"
+            aria-label="Proposed value changes"
+          >
+            {changes.map((change) => (
+              <section
+                key={change.field}
+                className="grid gap-(--tweaker-space-1) border border-(--tweaker-dialog-border) p-(--tweaker-space-2)"
+              >
+                <h3 className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-semibold)">
+                  {change.field}
+                </h3>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-(--tweaker-space-2) gap-y-(--tweaker-space-1) text-(length:--tweaker-font-size-lg)">
+                  <dt className="text-(--tweaker-dialog-muted)">{beforeLabel}</dt>
+                  <dd className="min-w-0 font-mono break-words">
+                    {formatFieldOutput(change.before)}
+                  </dd>
+                  <dt className="text-(--tweaker-dialog-muted)">Proposed</dt>
+                  <dd className="min-w-0 font-mono break-words">
+                    {formatFieldOutput(change.after)}
+                  </dd>
+                </dl>
+                <ul className="list-disc pl-(--tweaker-space-4) text-(length:--tweaker-font-size-lg) text-(--tweaker-color-danger)">
+                  {change.errors.map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+          {acceptError ? (
+            <p
+              role="alert"
+              className="text-(length:--tweaker-font-size-lg) text-(--tweaker-color-danger)"
+            >
+              {acceptError}
+            </p>
+          ) : null}
+          <div className="flex justify-end gap-(--tweaker-space-2)">
+            <AlertDialog.Cancel asChild>
+              <Button size="sm" variant="outline">
+                Abort
+              </Button>
+            </AlertDialog.Cancel>
+            <AlertDialog.Action asChild>
+              <Button
+                size="sm"
+                onClick={(event) => {
+                  try {
+                    onAccept()
+                    acceptedRef.current = true
+                    setAcceptError('')
+                  } catch (error) {
+                    acceptedRef.current = false
+                    event.preventDefault()
+                    setAcceptError(errorMessage(error))
+                  }
+                }}
+              >
+                Accept changes
+              </Button>
+            </AlertDialog.Action>
+          </div>
+        </AlertDialog.Content>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
+  )
+}
+
+function formatFieldOutput(output: TweakerFieldOutput) {
+  return 'unset' in output ? '(unset)' : JSON.stringify(output.value)
+}
+
+function formatFieldErrors(errors: Record<string, readonly string[]>) {
+  return Object.entries(errors)
+    .flatMap(([field, fieldErrors]) => fieldErrors.map((error) => `${field}: ${error}`))
+    .join(' ')
+}
+
+function repairProposalCopy(source: 'constraint' | 'default' | 'initial' | undefined) {
+  if (source === 'initial') {
+    return {
+      beforeLabel: 'Initial',
+      description:
+        'The initial panel values need repair before they satisfy the registered field contracts. Accept the proposed values, or retain the supplied values and show their validation errors.',
+      title: 'Review initial values',
+    }
+  }
+  if (source === 'default') {
+    return {
+      beforeLabel: 'Default',
+      description:
+        'The field defaults need repair before they satisfy the registered field contracts. Accept the proposed values, or retain the declared defaults and show their validation errors.',
+      title: 'Review default values',
+    }
+  }
+  return {
+    beforeLabel: 'Current',
+    description:
+      'The panel constraints changed and the current values need repair. Accept the proposed values, or keep the current values and show their validation errors.',
+    title: 'Review changes',
+  }
 }

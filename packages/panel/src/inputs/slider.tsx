@@ -1,12 +1,14 @@
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import {
-  TweakerControl,
+  TweakerItem,
   useResolvedPanelProp,
   type ReactiveProp,
-  type TweakerControlProps,
+  type TweakerInputItemProps,
 } from '../tweaker-control.js'
 import type { TweakerPanelState } from '../tweaker-panel.js'
 import { formatNumericValue } from '../number-format.js'
+import type { TweakerParser } from '../tweaker-validation.js'
+import { canonicalTweakerValue, invalidTweakerValue } from './built-in-validation.js'
 
 export type TweakerSliderMark =
   | number
@@ -18,8 +20,8 @@ export type TweakerSliderMark =
 export type TweakerSliderMarks = boolean | number | TweakerSliderMark[]
 
 export interface TweakerSliderProps extends Omit<
-  TweakerControlProps<number>,
-  'children' | 'defaultValue'
+  TweakerInputItemProps<number>,
+  'children' | 'defaultValue' | 'parse'
 > {
   defaultValue?: number
   formatOptions?: ReactiveProp<Intl.NumberFormatOptions>
@@ -40,21 +42,39 @@ export function TweakerSlider({
   step: stepProp,
   ...controlProps
 }: TweakerSliderProps) {
-  const min = useResolvedPanelProp(minProp, 0) ?? 0
-  const max = useResolvedPanelProp(maxProp, 100) ?? 100
-  const step = useResolvedPanelProp(stepProp, 1) ?? 1
+  const rawMin = useResolvedPanelProp(minProp, 0) ?? 0
+  const rawMax = useResolvedPanelProp(maxProp, 100) ?? 100
+  const rawStep = useResolvedPanelProp(stepProp, 1) ?? 1
+  const { min, max, step } = normalizeSliderBounds(rawMin, rawMax, rawStep)
+  const normalizedDefault = normalizeSliderValue(defaultValue ?? min, min, max, step)
   const formatOptions = useResolvedPanelProp(formatOptionsProp)
   const marks = marksFromProp(useResolvedPanelProp(marksProp, []), min, max)
   const formattedValue = useResolvedPanelProp((state) => {
     const raw = controlProps.field === undefined ? defaultValue : state.values[controlProps.field]
-    const value = typeof raw === 'number' ? raw : (defaultValue ?? min)
+    const value =
+      typeof raw === 'number' ? normalizeSliderValue(raw, min, max, step) : normalizedDefault
     return formatValue?.(value, state) ?? formatNumericValue(value, { formatOptions, step })
   })
+  const parse = useMemo<TweakerParser<number>>(
+    () => (input, context) => {
+      const error = 'Slider value must be a finite number aligned to its bounds and step.'
+      if (typeof input !== 'number' || !Number.isFinite(input)) {
+        return context.source === 'import'
+          ? invalidTweakerValue(error)
+          : { errors: [error], repair: { value: normalizedDefault }, success: false }
+      }
+      return canonicalTweakerValue(input, normalizeSliderValue(input, min, max, step), error)
+    },
+    [max, min, normalizedDefault, step],
+  )
 
   return (
-    <TweakerControl<number> {...controlProps} defaultValue={defaultValue ?? min}>
+    <TweakerItem<number> {...controlProps} defaultValue={normalizedDefault} parse={parse}>
       {(control) => {
-        const value = typeof control.value === 'number' ? control.value : (defaultValue ?? min)
+        const value =
+          typeof control.value === 'number'
+            ? normalizeSliderValue(control.value, min, max, step)
+            : normalizedDefault
 
         return (
           <div className="col-span-2 grid min-w-0 grid-cols-subgrid items-center">
@@ -85,7 +105,7 @@ export function TweakerSlider({
                 step={step}
                 type="range"
                 value={value}
-                onChange={(event) => control.setValue(event.currentTarget.valueAsNumber)}
+                onChange={(event) => control.setInput(event.currentTarget.valueAsNumber)}
               />
               {marks.length > 0 ? (
                 <div className="text-tweaker-muted pointer-events-none absolute inset-x-0 top-(--tweaker-slider-marks-top) h-(--tweaker-slider-marks-height) text-(length:--tweaker-font-size-sm) leading-none">
@@ -116,8 +136,31 @@ export function TweakerSlider({
           </div>
         )
       }}
-    </TweakerControl>
+    </TweakerItem>
   )
+}
+
+function normalizeSliderBounds(min: number, max: number, step: number) {
+  const finiteMin = Number.isFinite(min) ? min : 0
+  const finiteMax = Number.isFinite(max) ? max : 100
+  return {
+    max: Math.max(finiteMin, finiteMax),
+    min: Math.min(finiteMin, finiteMax),
+    step: Number.isFinite(step) && step > 0 ? step : 1,
+  }
+}
+
+function normalizeSliderValue(value: number, min: number, max: number, step: number) {
+  const clamped = Math.min(max, Math.max(min, value))
+  const snapped = min + Math.round((clamped - min) / step) * step
+  return Math.min(max, Math.max(min, Number(snapped.toFixed(Math.min(12, decimalPlaces(step))))))
+}
+
+function decimalPlaces(value: number) {
+  const text = value.toString().toLowerCase()
+  const [coefficient = '', exponentText] = text.split('e')
+  const exponent = exponentText === undefined ? 0 : Number(exponentText)
+  return Math.max(0, (coefficient.split('.')[1]?.length ?? 0) - exponent)
 }
 
 function marksFromProp(

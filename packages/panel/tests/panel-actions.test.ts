@@ -12,7 +12,6 @@ import {
   validateTweakerPanelDocument,
 } from '../src/tweaker-panel-documents.ts'
 import { createTweakerPanelStore } from '../src/tweaker-panel-store.ts'
-import { tweakerItemImportAllowedStringValues } from '../src/tweaker-panel-types.ts'
 import type {
   TweakerItemRegistration,
   TweakerPanelStore,
@@ -71,7 +70,7 @@ test('bulk group disclosure updates eligible groups in one transaction', () => {
 
 test('atomically replaces registered values and resets omitted fields', () => {
   const store = createTweakerPanelStore({
-    defaultValues: { alpha: 'default', beta: 2, stale: true },
+    initialValues: { alpha: 'default', beta: 2, stale: true },
     panelId: 'inspect',
   })
   registerField(store, 'alpha', 'default')
@@ -101,30 +100,29 @@ test('atomically replaces registered values and resets omitted fields', () => {
   unsubscribe()
 })
 
-test('retains panel and dynamic field defaults across unchanged control fallback registration', () => {
+test('keeps initial values separate from registered reset defaults', () => {
   const store = createTweakerPanelStore({
-    defaultValues: { opacity: 0.72 },
+    initialValues: { opacity: 0.72 },
     panelId: 'scene',
   })
   store.getState().registerItem({
-    fieldId: 'opacity',
+    field: 'opacity',
     id: 'opacity-control',
     kind: 'control',
     defaultValue: 0,
     parentId: 'root',
-    placement: 'auto',
     reorderable: true,
   })
-  expect(store.getState().fields.opacity?.defaultValue).toBe(0.72)
+  expect(store.getState().values.opacity).toBe(0.72)
+  expect(store.getState().fields.opacity?.defaultValue).toBe(0)
   store.getState().setFieldDefault('opacity', 0.85)
   store.getState().unregisterItem('opacity-control')
   store.getState().registerItem({
-    fieldId: 'opacity',
+    field: 'opacity',
     id: 'opacity-control',
     kind: 'control',
     defaultValue: 0,
     parentId: 'root',
-    placement: 'auto',
     reorderable: true,
   })
   store.getState().setFieldValue('opacity', 0.4)
@@ -143,22 +141,20 @@ test('updates the field default when a registered item declares a genuine defaul
   const store = createTweakerPanelStore({ panelId: 'scene' })
   store.getState().registerItem({
     defaultValue: 0,
-    fieldId: 'opacity',
+    field: 'opacity',
     id: 'opacity-control',
     kind: 'control',
     parentId: 'root',
-    placement: 'auto',
     reorderable: true,
   })
   store.getState().setFieldDefault('opacity', 0.85)
 
   store.getState().registerItem({
     defaultValue: null,
-    fieldId: 'opacity',
+    field: 'opacity',
     id: 'opacity-control',
     kind: 'control',
     parentId: 'root',
-    placement: 'auto',
     reorderable: true,
   })
   store.getState().setFieldValue('opacity', 0.4)
@@ -189,7 +185,7 @@ test('updates reset metadata when a control remounts with a new default', () => 
   expect(store.getState().fields.opacity).toEqual({
     defaultValue: 0.75,
     dirty: true,
-    errors: ['Out of range'],
+    errors: [],
     touched: true,
   })
 
@@ -199,41 +195,35 @@ test('updates reset metadata when a control remounts with a new default', () => 
   expect(store.getState().fields.opacity).toEqual({
     defaultValue: 0.75,
     dirty: false,
-    errors: ['Out of range'],
+    errors: [],
     touched: false,
   })
 })
 
-test('preserves a shared field default when one owner remounts with a new fallback', () => {
+test('rejects conflicting defaults from active shared-field owners', () => {
   const store = createTweakerPanelStore({ panelId: 'scene' })
   registerField(store, 'opacity', 0, { id: 'opacity-a' })
   registerField(store, 'opacity', 1, { id: 'opacity-b' })
-  store.getState().setFieldValue('opacity', 0.4)
 
-  store.getState().unregisterItem('opacity-a')
-  registerField(store, 'opacity', 0.5, { id: 'opacity-a' })
+  expect(store.getState().items['opacity-b']?.field).toBe('opacity')
+  expect(store.getState().fields.opacity?.errors).toEqual([
+    'Field "opacity" has conflicting defaults across active items.',
+  ])
+  expect(store.getState().setFieldValue('opacity', 0.4)).toEqual({
+    errors: {
+      opacity: ['Field "opacity" has conflicting defaults across active items.'],
+    },
+    success: false,
+  })
 
-  expect(store.getState().items['opacity-b']?.fieldId).toBe('opacity')
+  store.getState().unregisterItem('opacity-b')
+  expect(store.getState().setFieldValue('opacity', 0.4)).toEqual({ success: true })
   expect(store.getState().values.opacity).toBe(0.4)
-  expect(store.getState().fields.opacity).toMatchObject({
-    defaultValue: 0,
-    dirty: true,
-    touched: true,
-  })
-
-  store.getState().resetRegisteredFields()
-
-  expect(store.getState().values.opacity).toBe(0)
-  expect(store.getState().fields.opacity).toMatchObject({
-    defaultValue: 0,
-    dirty: false,
-    touched: false,
-  })
 })
 
 test('serializes only currently registered fields as JSON and YAML', () => {
   const store = createTweakerPanelStore({
-    defaultValues: { hidden: false, stale: 'ignore', visible: 1 },
+    initialValues: { hidden: false, stale: 'ignore', visible: 1 },
     panelId: 'inspect',
   })
   registerField(store, 'visible', 1)
@@ -242,7 +232,6 @@ test('serializes only currently registered fields as JSON and YAML', () => {
     id: 'summary',
     kind: 'control',
     parentId: 'root',
-    placement: 'auto',
     reorderable: false,
   })
 
@@ -255,19 +244,18 @@ test('serializes only currently registered fields as JSON and YAML', () => {
 
 test('exports display-only fields but excludes them from import and reset actions', () => {
   const store = createTweakerPanelStore({
-    defaultValues: {
+    initialValues: {
       editable: 'default',
       hidden: 'hidden default',
-      summary: 'derived default',
+      summary: 'derived current',
     },
     panelId: 'inspect',
   })
   registerField(store, 'editable', 'default')
   registerField(store, 'hidden', 'hidden default', { hidden: true })
-  registerField(store, 'summary', 'derived default', { displayOnly: true })
+  registerField(store, 'summary', 'derived default', { valueMode: 'display' })
   store.getState().setFieldValue('editable', 'current')
   store.getState().setFieldValue('hidden', 'hidden current')
-  store.getState().setFieldValue('summary', 'derived current')
 
   const expectedExport = {
     editable: 'current',
@@ -302,12 +290,12 @@ test('exports display-only fields but excludes them from import and reset action
     hidden: 'hidden default',
     summary: 'derived current',
   })
-  expect(store.getState().fields.summary).toMatchObject({ dirty: true, touched: true })
+  expect(store.getState().fields.summary).toMatchObject({ dirty: false, touched: false })
 })
 
 test('parses and validates JSON and YAML panel documents', () => {
   const store = createTweakerPanelStore({
-    defaultValues: { enabled: true, quality: 'balanced', range: [1, 2] },
+    initialValues: { enabled: true, quality: 'balanced', range: [1, 2] },
     panelId: 'inspect',
   })
   registerField(store, 'enabled', true)
@@ -319,22 +307,22 @@ test('parses and validates JSON and YAML panel documents', () => {
       parseTweakerPanelDocument('{"quality":"final","enabled":false}', 'json'),
       store.getState(),
     ),
-  ).toEqual({ enabled: false, quality: 'final' })
+  ).toEqual({ enabled: false, quality: 'final', range: [1, 2] })
   expect(
     validateTweakerPanelDocument(
       parseTweakerPanelDocument('quality: draft\nrange:\n  - 3\n  - 7\n', 'yaml'),
       store.getState(),
     ),
-  ).toEqual({ quality: 'draft', range: [3, 7] })
+  ).toEqual({ enabled: true, quality: 'draft', range: [3, 7] })
 })
 
 test('validates imported alignment values against the registered alignment options', () => {
   const store = createTweakerPanelStore({
-    defaultValues: { alignment: 'center', enabled: true },
+    initialValues: { alignment: 'center', enabled: true },
     panelId: 'inspect',
   })
   registerField(store, 'alignment', 'center', {
-    [tweakerItemImportAllowedStringValues]: tweakerAlignmentValues,
+    validate: allowedStringValidator(tweakerAlignmentValues),
   })
   registerField(store, 'enabled', true)
 
@@ -347,12 +335,8 @@ test('validates imported alignment values against the registered alignment optio
   const initialValues = store.getState().values
   const initialFields = store.getState().fields
 
-  expect(() =>
-    importTweakerPanelDocument(store, '{"alignment":"baseline","enabled":true}', 'json'),
-  ).toThrow(/Field "alignment" must be one of/)
-  expect(() =>
-    importTweakerPanelDocument(store, 'alignment: diagonal\nenabled: true\n', 'yaml'),
-  ).toThrow(/Field "alignment" must be one of/)
+  expectRepairWithoutMutation(store, '{"alignment":"baseline","enabled":true}', 'json')
+  expectRepairWithoutMutation(store, 'alignment: diagonal\nenabled: true\n', 'yaml')
 
   expect(store.getState().values).toBe(initialValues)
   expect(store.getState().fields).toBe(initialFields)
@@ -364,16 +348,18 @@ test('validates imported alignment values against the registered alignment optio
 
 test('validates imported segmented values against the latest registered options', () => {
   const store = createTweakerPanelStore({
-    defaultValues: { density: 'compact', enabled: true },
+    initialValues: { density: 'compact', enabled: true },
     panelId: 'inspect',
   })
   registerField(store, 'enabled', true)
   registerField(store, 'density', 'compact', {
-    [tweakerItemImportAllowedStringValues]: segmentedEnabledOptionValues([
-      'compact',
-      { disabled: true, label: 'Comfortable (unavailable)', value: 'comfortable' },
-      'spacious',
-    ]),
+    validate: allowedStringValidator(
+      segmentedEnabledOptionValues([
+        'compact',
+        { disabled: true, label: 'Comfortable (unavailable)', value: 'comfortable' },
+        'spacious',
+      ]),
+    ),
   })
 
   importTweakerPanelDocument(store, '{"density":"spacious","enabled":false}', 'json')
@@ -381,20 +367,13 @@ test('validates imported segmented values against the latest registered options'
 
   const disabledInitialValues = store.getState().values
   const disabledInitialFields = store.getState().fields
-  expect(() =>
-    importTweakerPanelDocument(store, '{"density":"comfortable","enabled":true}', 'json'),
-  ).toThrow(/Field "density" must be one of: "compact", "spacious"/)
-  expect(() =>
-    importTweakerPanelDocument(store, 'density: comfortable\nenabled: true\n', 'yaml'),
-  ).toThrow(/Field "density" must be one of: "compact", "spacious"/)
+  expectRepairWithoutMutation(store, '{"density":"comfortable","enabled":true}', 'json')
+  expectRepairWithoutMutation(store, 'density: comfortable\nenabled: true\n', 'yaml')
   expect(store.getState().values).toBe(disabledInitialValues)
   expect(store.getState().fields).toBe(disabledInitialFields)
 
   registerField(store, 'density', 'compact', {
-    [tweakerItemImportAllowedStringValues]: segmentedEnabledOptionValues([
-      'compact',
-      'comfortable',
-    ]),
+    validate: allowedStringValidator(segmentedEnabledOptionValues(['compact', 'comfortable'])),
   })
   importTweakerPanelDocument(store, 'density: comfortable\nenabled: true\n', 'yaml')
   expect(store.getState().values).toMatchObject({ density: 'comfortable', enabled: true })
@@ -402,12 +381,8 @@ test('validates imported segmented values against the latest registered options'
   const initialValues = store.getState().values
   const initialFields = store.getState().fields
 
-  expect(() =>
-    importTweakerPanelDocument(store, '{"density":"spacious","enabled":false}', 'json'),
-  ).toThrow(/Field "density" must be one of: "compact", "comfortable"/)
-  expect(() =>
-    importTweakerPanelDocument(store, 'density: spacious\nenabled: false\n', 'yaml'),
-  ).toThrow(/Field "density" must be one of: "compact", "comfortable"/)
+  expectRepairWithoutMutation(store, '{"density":"spacious","enabled":false}', 'json')
+  expectRepairWithoutMutation(store, 'density: spacious\nenabled: false\n', 'yaml')
 
   expect(store.getState().values).toBe(initialValues)
   expect(store.getState().fields).toBe(initialFields)
@@ -416,7 +391,7 @@ test('validates imported segmented values against the latest registered options'
 
 test('validates imported select values against the latest registered options', () => {
   const store = createTweakerPanelStore({
-    defaultValues: { enabled: true, quality: 'balanced' },
+    initialValues: { enabled: true, quality: 'balanced' },
     panelId: 'inspect',
   })
   registerField(store, 'enabled', true)
@@ -441,12 +416,8 @@ test('validates imported select values against the latest registered options', (
   const initialValues = store.getState().values
   const initialFields = store.getState().fields
 
-  expect(() =>
-    importTweakerPanelDocument(store, '{"quality":"final","enabled":false}', 'json'),
-  ).toThrow(/Field "quality" must be one of: "balanced", "preview"/)
-  expect(() =>
-    importTweakerPanelDocument(store, 'quality: draft\nenabled: false\n', 'yaml'),
-  ).toThrow(/Field "quality" must be one of: "balanced", "preview"/)
+  expectRepairWithoutMutation(store, '{"quality":"final","enabled":false}', 'json')
+  expectRepairWithoutMutation(store, 'quality: draft\nenabled: false\n', 'yaml')
 
   expect(store.getState().values).toBe(initialValues)
   expect(store.getState().fields).toBe(initialFields)
@@ -455,11 +426,13 @@ test('validates imported select values against the latest registered options', (
 
 test('rejects invalid imports without partially updating the store', () => {
   const store = createTweakerPanelStore({
-    defaultValues: { enabled: true, quality: 'balanced' },
+    initialValues: { enabled: true, quality: 'balanced' },
     panelId: 'inspect',
   })
   registerField(store, 'enabled', true)
-  registerField(store, 'quality', 'balanced')
+  registerField(store, 'quality', undefined, {
+    validate: allowedStringValidator(['balanced', 'draft', 'final']),
+  })
   store.getState().setFieldValue('quality', 'final')
   const initialValues = store.getState().values
   const initialFields = store.getState().fields
@@ -468,7 +441,7 @@ test('rejects invalid imports without partially updating the store', () => {
     importTweakerPanelDocument(store, '{"quality":"draft","unknown":true}', 'json'),
   ).toThrow(/Unknown panel field: unknown/)
   expect(() => importTweakerPanelDocument(store, '{"quality":false}', 'json')).toThrow(
-    /expects string, received boolean/,
+    /Value must be one of/,
   )
   expect(() => importTweakerPanelDocument(store, '[]', 'json')).toThrow(/bare object/)
   expect(() => importTweakerPanelDocument(store, 'quality: .nan', 'yaml')).toThrow(/finite number/)
@@ -495,7 +468,6 @@ function registerGroup(
     id,
     kind: 'group',
     parentId: 'root',
-    placement: 'auto',
     reorderable: true,
     ...overrides,
   })
@@ -503,17 +475,16 @@ function registerGroup(
 
 function registerField(
   store: TweakerPanelStore,
-  fieldId: string,
+  field: string,
   defaultValue?: TweakerValue,
   overrides: Partial<TweakerItemRegistration> = {},
 ) {
   store.getState().registerItem({
     defaultValue,
-    fieldId,
-    id: `${fieldId}-control`,
+    field,
+    id: `${field}-control`,
     kind: 'control',
     parentId: 'root',
-    placement: 'auto',
     reorderable: true,
     ...overrides,
   })
@@ -521,11 +492,37 @@ function registerField(
 
 function registerSelectField(
   store: TweakerPanelStore,
-  fieldId: string,
+  field: string,
   defaultValue: string,
   allowedValues: readonly string[],
 ) {
-  registerField(store, fieldId, defaultValue, {
-    [tweakerItemImportAllowedStringValues]: allowedValues,
+  registerField(store, field, defaultValue, {
+    validate: allowedStringValidator(allowedValues),
   })
+}
+
+function allowedStringValidator(allowedValues: readonly string[]) {
+  return (value: TweakerValue) =>
+    typeof value === 'string' && allowedValues.includes(value)
+      ? { success: true as const }
+      : {
+          errors: [
+            allowedValues.length === 0
+              ? 'Field has no registered options.'
+              : `Value must be one of: ${allowedValues.map((entry) => JSON.stringify(entry)).join(', ')}.`,
+          ],
+          success: false as const,
+        }
+}
+
+function expectRepairWithoutMutation(
+  store: TweakerPanelStore,
+  source: string,
+  format: 'json' | 'yaml',
+) {
+  const values = store.getState().values
+  const fields = store.getState().fields
+  expect(importTweakerPanelDocument(store, source, format).status).toBe('repair')
+  expect(store.getState().values).toBe(values)
+  expect(store.getState().fields).toBe(fields)
 }

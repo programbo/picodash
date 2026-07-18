@@ -14,7 +14,7 @@ import { useStore } from 'zustand'
 import { useTweakerGroupContext } from './tweaker-group-context.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
 import { hasVisibleReorderableSibling } from './tweaker-order.js'
-import type { TweakerPlacement } from './tweaker-panel-types.js'
+import type { TweakerPin } from './tweaker-panel-types.js'
 import { tweakerMotionTokens } from './theme.js'
 
 export const reorderTransition: HTMLMotionProps<'div'>['transition'] = {
@@ -55,7 +55,7 @@ export function reorderTopWithOffset(top: unknown, offset: number) {
 export function useTweakerReorderItem(
   itemId: string,
   configuredReorderable: boolean,
-  placement: TweakerPlacement,
+  pin: TweakerPin | undefined,
 ) {
   const store = useTweakerPanelStoreApi()
   const dragControls = useDragControls()
@@ -71,7 +71,7 @@ export function useTweakerReorderItem(
   const { beginItemReorder, commitPendingOrder, dragConstraintsRef, parentId, registerItemMotion } =
     useTweakerGroupContext()
   const hasReorderableSibling = useStore(store, (state) =>
-    hasVisibleReorderableSibling(state, { id: itemId, parentId, placement }),
+    hasVisibleReorderableSibling(state, { id: itemId, parentId, pin }),
   )
   const reorderable = configuredReorderable && hasReorderableSibling
 

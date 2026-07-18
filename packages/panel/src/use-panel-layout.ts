@@ -18,7 +18,7 @@ export function usePanelLayoutSynchronization({
   x,
   y,
 }: {
-  containerElement: HTMLDivElement | null
+  containerElement: HTMLElement | null
   panelElementRef: RefObject<HTMLElement | null>
   panelId: string
   store: TweakerStore

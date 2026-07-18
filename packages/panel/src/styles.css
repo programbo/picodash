@@ -9,8 +9,7 @@
  * Tweaker tokens follow foundation -> semantic -> component contracts.
  * The zero-specificity carrier lets consumer declarations loaded later win.
  */
-:where([data-tweaker-theme='dark']) {
-  color-scheme: dark;
+:where([data-tweaker-theme='dark'], [data-tweaker-theme='light']) {
   font-family: var(--tweaker-font-family);
 
   /* Foundation: palette */
@@ -335,6 +334,47 @@
   --tweaker-control-hover-rail-inset-block: -0.1875rem;
   --tweaker-control-hover-rail-left: -0.125rem;
   --tweaker-control-hover-rail-width: 1.5rem;
+}
+
+:where([data-tweaker-theme='dark']) {
+  color-scheme: dark;
+}
+
+:where([data-tweaker-theme='light']) {
+  color-scheme: light;
+
+  --tweaker-color-canvas: var(--tweaker-palette-white);
+  --tweaker-color-surface: var(--tweaker-palette-slate-50);
+  --tweaker-color-surface-raised: var(--tweaker-palette-white);
+  --tweaker-color-surface-muted: var(--tweaker-palette-slate-200);
+  --tweaker-color-surface-hover: var(--tweaker-palette-slate-200);
+  --tweaker-color-text: var(--tweaker-palette-slate-900);
+  --tweaker-color-text-strong: var(--tweaker-palette-black);
+  --tweaker-color-text-muted: var(--tweaker-palette-slate-700);
+  --tweaker-color-text-subtle: var(--tweaker-palette-slate-700);
+  --tweaker-color-border: oklch(0.218 0.008 223.9 / 18%);
+  --tweaker-color-border-muted: oklch(0.218 0.008 223.9 / 12%);
+  --tweaker-color-control: oklch(0.218 0.008 223.9 / 22%);
+  --tweaker-color-control-hover: var(--tweaker-palette-slate-200);
+  --tweaker-color-focus: oklch(0.56 0.11 213.5);
+  --tweaker-color-accent: var(--tweaker-palette-slate-900);
+  --tweaker-color-accent-text: var(--tweaker-palette-white);
+  --tweaker-color-success: var(--tweaker-palette-emerald-500);
+  --tweaker-color-success-strong: var(--tweaker-palette-mint-700);
+  --tweaker-color-info: var(--tweaker-palette-sky-500);
+  --tweaker-color-warning: var(--tweaker-palette-amber-500);
+  --tweaker-color-alert: var(--tweaker-palette-orange-500);
+  --tweaker-color-danger: var(--tweaker-palette-red-500);
+  --tweaker-color-overlay: oklch(0.148 0.004 228.8 / 55%);
+  --tweaker-panel-ring: oklch(0.218 0.008 223.9 / 8%);
+  --tweaker-tooltip-shadow:
+    0 10px 15px -3px rgb(15 23 42 / 0.14), 0 4px 6px -4px rgb(15 23 42 / 0.12);
+  --tweaker-feature-background: oklch(0.987 0.002 197.1 / 94%);
+  --tweaker-feature-foreground: var(--tweaker-palette-slate-900);
+  --tweaker-feature-muted: var(--tweaker-palette-slate-700);
+  --tweaker-feature-subtle: var(--tweaker-palette-slate-400);
+  --tweaker-feature-border: oklch(0.218 0.008 223.9 / 14%);
+  --tweaker-feature-eyebrow: var(--tweaker-palette-mint-700);
 }
 
 /* Namespaced utilities for package components and consumer-authored panel items. */

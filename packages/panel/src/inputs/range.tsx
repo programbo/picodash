@@ -1,22 +1,21 @@
 import { Slider } from 'radix-ui'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { formatNumericValue } from '../number-format.js'
 import {
-  TweakerControl,
+  TweakerItem,
   useResolvedPanelProp,
   type ReactiveProp,
-  type TweakerControlContextValue,
-  type TweakerControlProps,
+  type TweakerInputItemProps,
 } from '../tweaker-control.js'
-import { exactTweakerTupleValue, synchronizeTweakerFieldValue } from '../tweaker-control-value.js'
-import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { tweakerGeometryTokens } from '../theme.js'
+import type { TweakerParser } from '../tweaker-validation.js'
+import { canonicalTweakerValue, strictImportShape } from './built-in-validation.js'
 
 export type TweakerRangeValue = [low: number, high: number]
 
 export interface TweakerRangeProps extends Omit<
-  TweakerControlProps<TweakerRangeValue>,
-  'children' | 'defaultValue'
+  TweakerInputItemProps<TweakerRangeValue>,
+  'children' | 'defaultValue' | 'parse'
 > {
   defaultValue?: TweakerRangeValue
   formatOptions?: ReactiveProp<Intl.NumberFormatOptions>
@@ -63,9 +62,29 @@ export function TweakerRange({
       }),
     [defaultValue, max, min, step],
   )
+  const [defaultLow, defaultHigh] = normalizedDefaultValue
+  const parse = useMemo<TweakerParser<TweakerRangeValue>>(
+    () => (input, context) => {
+      const error = 'Range value must be a canonical two-number tuple within its bounds.'
+      const shapeError = strictImportShape(context, Array.isArray(input), error)
+      if (shapeError) return shapeError
+      const value = normalizeRangeValue(input, {
+        fallback: [defaultLow, defaultHigh],
+        max,
+        min,
+        step,
+      })
+      return canonicalTweakerValue(input, value, error)
+    },
+    [defaultHigh, defaultLow, max, min, step],
+  )
 
   return (
-    <TweakerControl<TweakerRangeValue> {...controlProps} defaultValue={normalizedDefaultValue}>
+    <TweakerItem<TweakerRangeValue>
+      {...controlProps}
+      defaultValue={normalizedDefaultValue}
+      parse={parse}
+    >
       {(control) => {
         const value = normalizeRangeValue(control.value, {
           fallback: normalizedDefaultValue,
@@ -79,13 +98,6 @@ export function TweakerRange({
 
         return (
           <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-(--tweaker-space-2)">
-            <TweakerRangeValueSynchronizer
-              control={control}
-              fallbackValue={normalizedDefaultValue}
-              max={max}
-              min={min}
-              step={step}
-            />
             <Slider.Root
               id={control.inputId}
               aria-label="Range"
@@ -97,7 +109,7 @@ export function TweakerRange({
               step={step}
               value={value}
               onValueChange={(nextValue) => {
-                control.setValue(
+                control.setInput(
                   normalizeRangeValue(nextValue, {
                     fallback: value,
                     max,
@@ -139,42 +151,8 @@ export function TweakerRange({
           </div>
         )
       }}
-    </TweakerControl>
+    </TweakerItem>
   )
-}
-
-function TweakerRangeValueSynchronizer({
-  control,
-  fallbackValue,
-  max,
-  min,
-  step,
-}: {
-  control: TweakerControlContextValue<TweakerRangeValue>
-  fallbackValue: TweakerRangeValue
-  max: number
-  min: number
-  step: number
-}) {
-  const store = useTweakerPanelStoreApi()
-  const [fallbackLow, fallbackHigh] = fallbackValue
-
-  useEffect(() => {
-    synchronizeTweakerFieldValue(
-      control,
-      (currentValue) =>
-        normalizeRangeValue(currentValue, {
-          fallback: [fallbackLow, fallbackHigh],
-          max,
-          min,
-          step,
-        }),
-      exactTweakerTupleValue,
-      store,
-    )
-  }, [control, fallbackHigh, fallbackLow, max, min, step, store])
-
-  return null
 }
 
 export function projectTweakerRangeFill(

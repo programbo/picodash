@@ -2,7 +2,13 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { Select as SelectPrimitive } from 'radix-ui'
 import type { ComponentProps } from 'react'
-import { tweakerDefaultTheme, tweakerGeometryTokens } from './theme.js'
+import { useStore } from 'zustand'
+import { tweakerGeometryTokens } from './theme.js'
+import {
+  portalLayerZIndexForState,
+  portalLayerZIndexValue,
+  useTweakerProviderContext,
+} from './tweaker-provider.js'
 import { cn } from './utils.js'
 
 export const buttonVariants = cva(
@@ -101,12 +107,16 @@ export function SelectContent({
   collisionPadding = tweakerGeometryTokens.selectCollisionPadding,
   position = 'popper',
   sideOffset = tweakerGeometryTokens.selectSideOffset,
+  style,
   ...props
 }: ComponentProps<typeof SelectPrimitive.Content>) {
+  const { portalContainer, store, theme } = useTweakerProviderContext()
+  const zIndexFloor = useStore(store, (state) => portalLayerZIndexForState(state, 2))
+
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={portalContainer}>
       <SelectPrimitive.Content
-        data-tweaker-theme={tweakerDefaultTheme}
+        data-tweaker-theme={theme}
         avoidCollisions
         className={cn(
           'z-(--tweaker-layer-select) max-h-(--radix-select-content-available-height) max-w-(--radix-select-content-available-width) min-w-(--tweaker-select-content-min-width) overflow-hidden rounded-(--tweaker-select-content-radius) border border-(--tweaker-select-content-border) bg-(--tweaker-select-content-background) text-(--tweaker-select-content-foreground) shadow-(--tweaker-select-content-shadow)',
@@ -116,6 +126,10 @@ export function SelectContent({
         position={position}
         sideOffset={sideOffset}
         sticky="always"
+        style={{
+          ...style,
+          zIndex: portalLayerZIndexValue('--tweaker-layer-select', zIndexFloor),
+        }}
         {...props}
       >
         <SelectPrimitive.ScrollUpButton className="flex h-(--tweaker-select-item-height) cursor-default items-center justify-center">

@@ -1,18 +1,9 @@
 import { isValidElement } from 'react'
-import { expect, test, vi } from 'vite-plus/test'
+import { expect, test } from 'vite-plus/test'
 import { tweakerAlignmentValues } from '../src/inputs/alignment.tsx'
 import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
 import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
 import { normalizeSelectValue } from '../src/inputs/select.tsx'
-import {
-  exactTweakerObjectArrayValue,
-  exactTweakerObjectValue,
-  exactTweakerTupleValue,
-  synchronizeOptionalTweakerFieldValue,
-  synchronizeTweakerFieldValue,
-} from '../src/tweaker-control-value.ts'
-import { createTweakerPanelStore } from '../src/tweaker-panel-store.ts'
-import { serializeTweakerPanelValues } from '../src/tweaker-panel-documents.ts'
 import {
   gradientCssValue,
   isTweakerAlignmentValue,
@@ -40,6 +31,9 @@ import {
   segmentedOptionIcon,
   segmentedOptionLabel,
   segmentedOptionValue,
+  tweakerAlignmentOptions,
+} from '../src/advanced.ts'
+import {
   TweakerAlignment,
   TweakerDropzone,
   TweakerGradient,
@@ -48,21 +42,20 @@ import {
   TweakerSegmented,
   TweakerVector3,
   TweakerXYPad,
-  tweakerAlignmentOptions,
-  type TweakerControlContentLayout,
+  type TweakerItemContentLayout,
 } from '../src/index.ts'
 
 test('exports valid elements for every custom input', () => {
-  const layout: TweakerControlContentLayout = 'block'
+  const layout: TweakerItemContentLayout = 'block'
   const elements = [
-    <TweakerSegmented key="segmented" options={['one', 'two']} />,
-    <TweakerAlignment key="alignment" />,
-    <TweakerVector3 key="vector" />,
-    <TweakerRange key="range" />,
-    <TweakerXYPad key="xy" contentLayout={layout} />,
-    <TweakerGradient key="gradient" />,
-    <TweakerMediaPreview key="media" alt="Preview" />,
-    <TweakerDropzone key="dropzone" />,
+    <TweakerSegmented key="segmented" field="segmented" options={['one', 'two']} />,
+    <TweakerAlignment key="alignment" field="alignment" />,
+    <TweakerVector3 key="vector" field="vector" />,
+    <TweakerRange key="range" field="range" />,
+    <TweakerXYPad key="xy" contentLayout={layout} field="xy" />,
+    <TweakerGradient key="gradient" field="gradient" />,
+    <TweakerMediaPreview key="media" alt="Preview" field="media" />,
+    <TweakerDropzone key="dropzone" field="dropzone" />,
   ]
 
   expect(elements.every(isValidElement)).toBe(true)
@@ -87,131 +80,13 @@ test('normalizes segmented options to an enabled selection', () => {
   ).toBeUndefined()
 })
 
-test('persists a valid segmented fallback from the latest stored value', () => {
-  const store = createTweakerPanelStore({
-    defaultValues: { mode: 'initial' },
-    panelId: 'segmented',
-  })
-  const options = ['rendered-stale', 'fallback']
-  const fields = store.getState().fields
-  const guardedSetValue = vi.fn()
-  const control = {
-    disabled: true,
-    field: 'mode',
-    readOnly: true,
-    setValue: guardedSetValue,
-    value: 'rendered-stale',
-  }
+test('normalizes select values across dynamic and disabled options', () => {
+  const options = [{ disabled: true, value: 'legacy' }, 'current']
 
-  store.setState((state) => ({ values: { ...state.values, mode: 'latest-removed' } }))
-  synchronizeTweakerFieldValue(
-    control,
-    (currentValue) => normalizeSegmentedValue(currentValue, options, 'fallback'),
-    (currentValue, normalizedValue) => currentValue === normalizedValue,
-    store,
-  )
-  expect(store.getState().values.mode).toBe('fallback')
-  expect(store.getState().fields).toBe(fields)
-  expect(guardedSetValue).not.toHaveBeenCalled()
-
-  const canonicalValues = store.getState().values
-  synchronizeTweakerFieldValue(
-    control,
-    (currentValue) => normalizeSegmentedValue(currentValue, options, 'fallback'),
-    (currentValue, normalizedValue) => currentValue === normalizedValue,
-    store,
-  )
-  expect(store.getState().values).toBe(canonicalValues)
-
-  store.setState((state) => ({ values: { ...state.values, mode: 'removed-again' } }))
-  synchronizeTweakerFieldValue(
-    control,
-    (currentValue) =>
-      normalizeSegmentedValue(
-        currentValue,
-        [{ disabled: true, value: 'disabled' }, 'ready'],
-        'missing',
-      ),
-    (currentValue, normalizedValue) => currentValue === normalizedValue,
-    store,
-  )
-  expect(store.getState().values.mode).toBe('ready')
-
-  store.setState((state) => ({ values: { ...state.values, mode: 'unchanged' } }))
-  const unchangedValues = store.getState().values
-  synchronizeTweakerFieldValue(
-    control,
-    (currentValue) => normalizeSegmentedValue(currentValue, []),
-    (currentValue, normalizedValue) => currentValue === normalizedValue,
-    store,
-  )
-  expect(store.getState().values).toBe(unchangedValues)
-
-  const fieldlessSetValue = vi.fn()
-  const fieldlessControl = { setValue: fieldlessSetValue, value: 'fieldless-invalid' }
-  synchronizeTweakerFieldValue(
-    fieldlessControl,
-    () => 'phantom',
-    () => false,
-    store,
-  )
-  expect(store.getState().values).toBe(unchangedValues)
-  expect(fieldlessSetValue).not.toHaveBeenCalled()
-})
-
-test('persists select fallbacks after dynamic option changes and removes empty selections', () => {
-  const store = createTweakerPanelStore({
-    defaultValues: { mode: 'removed' },
-    panelId: 'select',
-  })
-  store.getState().registerItem({
-    defaultValue: 'spacious',
-    fieldId: 'mode',
-    id: 'mode-control',
-    kind: 'control',
-    parentId: 'root',
-    placement: 'auto',
-    reorderable: true,
-  })
-  const control = {
-    disabled: true,
-    field: 'mode',
-    readOnly: true,
-    value: 'stale-render-value',
-  }
-  const synchronize = (options: Parameters<typeof normalizeSelectValue>[1], fallback?: string) =>
-    synchronizeOptionalTweakerFieldValue(
-      control,
-      (currentValue) => normalizeSelectValue(currentValue, options, fallback),
-      (currentValue, normalizedValue) => currentValue === normalizedValue,
-      store,
-    )
-  const fields = store.getState().fields
-
-  expect(normalizeSelectValue('missing', ['compact', 'spacious'], 'spacious')).toBe('spacious')
-  expect(normalizeSelectValue('missing', ['compact', 'spacious'], 'missing')).toBe('compact')
-  synchronize(['compact', 'spacious'], 'spacious')
-
-  expect(store.getState().values.mode).toBe('spacious')
-  expect(store.getState().fields).toBe(fields)
-  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({
-    mode: 'spacious',
-  })
-
-  const fallbackValues = store.getState().values
-  synchronize(['compact', 'spacious'], 'spacious')
-  expect(store.getState().values).toBe(fallbackValues)
-
-  store.setState((state) => ({ values: { ...state.values, mode: 'legacy' } }))
-  const disabledValues = store.getState().values
-  synchronize([{ disabled: true, value: 'legacy' }, 'current'], 'current')
-  expect(store.getState().values).toBe(disabledValues)
-  expect(store.getState().values.mode).toBe('legacy')
-
-  synchronize([], 'current')
-  expect(store.getState().values).not.toHaveProperty('mode')
-  expect(store.getState().fields).toBe(fields)
-  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({})
+  expect(normalizeSelectValue('legacy', options)).toBe('legacy')
+  expect(normalizeSelectValue('missing', options, 'current')).toBe('current')
+  expect(normalizeSelectValue('missing', options, 'missing')).toBe('legacy')
+  expect(normalizeSelectValue('missing', [])).toBeUndefined()
 })
 
 test('validates every alignment and falls back to centre', () => {
@@ -222,36 +97,6 @@ test('validates every alignment and falls back to centre', () => {
   expect(normalizeAlignmentValue('baseline')).toBe('center')
 })
 
-test('persists a canonical alignment value before later exports', () => {
-  const store = createTweakerPanelStore({
-    defaultValues: { alignment: 'baseline' },
-    panelId: 'alignment',
-  })
-  store.getState().registerItem({
-    defaultValue: 'center',
-    fieldId: 'alignment',
-    id: 'alignment-control',
-    kind: 'control',
-    parentId: 'root',
-    placement: 'auto',
-    reorderable: true,
-  })
-  const fields = store.getState().fields
-
-  synchronizeTweakerFieldValue(
-    { field: 'alignment', value: 'baseline' },
-    (currentValue) => normalizeAlignmentValue(currentValue),
-    (currentValue, normalizedValue) => currentValue === normalizedValue,
-    store,
-  )
-
-  expect(store.getState().values.alignment).toBe('center')
-  expect(store.getState().fields).toBe(fields)
-  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({
-    alignment: 'center',
-  })
-})
-
 test('normalizes vector bounds, finite coordinates, and step', () => {
   expect(normalizeVectorBounds(8, -4)).toEqual({ min: -4, max: 8 })
   expect(
@@ -259,45 +104,6 @@ test('normalizes vector bounds, finite coordinates, and step', () => {
   ).toEqual({ x: 2, y: -5, z: 10 })
   expect(normalizeVectorStep(0)).toBe(1)
   expect(normalizeVectorStep(0.25)).toBe(0.25)
-})
-
-test('persists a canonical Vector3 from the latest stored value without changing metadata', () => {
-  const store = createTweakerPanelStore({
-    defaultValues: { vector: { x: 0, y: 0, z: 0 } },
-    panelId: 'vectors',
-  })
-  const control = {
-    disabled: true,
-    field: 'vector',
-    readOnly: true,
-    value: { x: 1, y: 1, z: 1 },
-  }
-  const fallback = { x: 0, y: 0, z: 0 }
-  const synchronize = () =>
-    synchronizeTweakerFieldValue(
-      control,
-      (currentValue) => normalizeVector3Value(currentValue, fallback, -5, 5),
-      (currentValue, normalizedValue) =>
-        exactTweakerObjectValue(currentValue, normalizedValue, ['x', 'y', 'z']),
-      store,
-    )
-
-  store.setState((state) => ({
-    values: { ...state.values, vector: { extra: 99, x: 9, y: -9, z: 2 } },
-  }))
-  const fields = store.getState().fields
-  synchronize()
-  expect(store.getState().values.vector).toEqual({ x: 5, y: -5, z: 2 })
-  expect(store.getState().fields).toBe(fields)
-
-  const values = store.getState().values
-  synchronize()
-  expect(store.getState().values).toBe(values)
-
-  store.setState((state) => ({ values: { ...state.values, vector: null } }))
-  synchronize()
-  expect(store.getState().values.vector).toEqual(fallback)
-  expect(store.getState().fields).toBe(fields)
 })
 
 test('normalizes range bounds and snaps an ordered tuple', () => {
@@ -311,74 +117,6 @@ test('normalizes range bounds and snaps an ordered tuple', () => {
       step: 1,
     }),
   ).toEqual([2, 6])
-})
-
-test('persists a dynamically normalized field range despite a guarded control setter', () => {
-  const store = createTweakerPanelStore({
-    defaultValues: { range: [2, 9] },
-    panelId: 'ranges',
-  })
-  const guardedSetValue = vi.fn()
-  const normalization = { fallback: [0, 6] as [number, number], max: 6, min: 0, step: 1 }
-  const control = {
-    disabled: true,
-    field: 'range',
-    readOnly: true,
-    setValue: guardedSetValue,
-    value: [2, 9],
-  }
-  const synchronize = () =>
-    synchronizeTweakerFieldValue(
-      control,
-      (currentValue) => normalizeRangeValue(currentValue, normalization),
-      exactTweakerTupleValue,
-      store,
-    )
-
-  store.setState((state) => ({ values: { ...state.values, range: [3, 8] } }))
-  const cleanFields = store.getState().fields
-  synchronize()
-  expect(store.getState().values.range).toEqual([3, 6])
-  expect(store.getState().fields).toBe(cleanFields)
-  expect(store.getState().fields.range).toEqual({
-    defaultValue: [2, 9],
-    dirty: false,
-    errors: [],
-    touched: false,
-  })
-  expect(guardedSetValue).not.toHaveBeenCalled()
-
-  const values = store.getState().values
-  synchronize()
-  expect(store.getState().values).toBe(values)
-
-  store.getState().setFieldValue('range', [4, 9])
-  store.setState((state) => ({
-    fields: {
-      ...state.fields,
-      range: { ...state.fields.range!, errors: ['existing error'] },
-    },
-  }))
-  const dirtyFields = store.getState().fields
-  synchronize()
-  expect(store.getState().values.range).toEqual([4, 6])
-  expect(store.getState().fields).toBe(dirtyFields)
-  expect(store.getState().fields.range).toEqual({
-    defaultValue: [2, 9],
-    dirty: true,
-    errors: ['existing error'],
-    touched: true,
-  })
-
-  store.setState((state) => ({ values: { ...state.values, range: [2, 6, 99] } }))
-  synchronize()
-  expect(store.getState().values.range).toEqual([2, 6])
-  expect(store.getState().fields).toBe(dirtyFields)
-
-  store.setState((state) => ({ values: { ...state.values, range: null } }))
-  synchronize()
-  expect(store.getState().values.range).toEqual([0, 6])
-  expect(store.getState().fields).toBe(dirtyFields)
 })
 
 test('projects the range fill between the thumbs inner edges', () => {
@@ -449,52 +187,6 @@ test('normalizes and projects XY values', () => {
   expect(projectTweakerXYLabelPosition(198, 60, labelMetrics)).toEqual({ x: 139, y: 37 })
 })
 
-test('persists a canonical XY value from reactive bounds and repairs malformed shapes', () => {
-  const store = createTweakerPanelStore({
-    defaultValues: { xy: { x: 0.25, y: 0.75 } },
-    panelId: 'xy',
-  })
-  const bounds = normalizeTweakerXYBounds({
-    step: 0.25,
-    xMax: 1,
-    xMin: 0,
-    yMax: 1,
-    yMin: 0,
-  })
-  const fallback = { x: 0.25, y: 0.75 }
-  const control = {
-    disabled: true,
-    field: 'xy',
-    readOnly: true,
-    value: { x: 0.5, y: 0.5 },
-  }
-  const synchronize = () =>
-    synchronizeTweakerFieldValue(
-      control,
-      (currentValue) => normalizeTweakerXYValue(currentValue, bounds, fallback),
-      (currentValue, normalizedValue) =>
-        exactTweakerObjectValue(currentValue, normalizedValue, ['x', 'y']),
-      store,
-    )
-
-  store.setState((state) => ({
-    values: { ...state.values, xy: { extra: 99, x: 1.6, y: -0.2 } },
-  }))
-  const fields = store.getState().fields
-  synchronize()
-  expect(store.getState().values.xy).toEqual({ x: 1, y: 0 })
-  expect(store.getState().fields).toBe(fields)
-
-  const values = store.getState().values
-  synchronize()
-  expect(store.getState().values).toBe(values)
-
-  store.setState((state) => ({ values: { ...state.values, xy: 'malformed' } }))
-  synchronize()
-  expect(store.getState().values.xy).toEqual(fallback)
-  expect(store.getState().fields).toBe(fields)
-})
-
 test('normalizes gradient stops, colors, and pointer projection', () => {
   const gradient = normalizeTweakerGradient([
     { color: '#fff', id: 'end', position: 1.5 },
@@ -524,58 +216,6 @@ test('normalizes malformed gradient values without projecting unknown records', 
   ])
 })
 
-test('persists canonical gradient stops from the latest stored value before export', () => {
-  const store = createTweakerPanelStore({
-    defaultValues: {
-      gradient: [
-        { color: '#ABC', extra: true, id: ' end ', position: 2 },
-        { color: 'invalid', id: 'end', position: -1 },
-      ],
-    },
-    panelId: 'gradient',
-  })
-  store.getState().registerItem({
-    defaultValue: [],
-    fieldId: 'gradient',
-    id: 'gradient-control',
-    kind: 'control',
-    parentId: 'root',
-    placement: 'auto',
-    reorderable: true,
-  })
-  const control = {
-    disabled: true,
-    field: 'gradient',
-    readOnly: true,
-    value: [],
-  }
-  const synchronize = () =>
-    synchronizeTweakerFieldValue(
-      control,
-      normalizeTweakerGradient,
-      (currentValue, normalizedValue) =>
-        exactTweakerObjectArrayValue(currentValue, normalizedValue, ['color', 'id', 'position']),
-      store,
-    )
-  const fields = store.getState().fields
-
-  synchronize()
-
-  const expected = [
-    { color: '#000000', id: 'end-2', position: 0 },
-    { color: '#aabbcc', id: 'end', position: 1 },
-  ]
-  expect(store.getState().values.gradient).toEqual(expected)
-  expect(store.getState().fields).toBe(fields)
-  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({
-    gradient: expected,
-  })
-
-  const values = store.getState().values
-  synchronize()
-  expect(store.getState().values).toBe(values)
-})
-
 test('accepts safe media URLs without interpreting SVG markup', () => {
   expect(normalizeTweakerMediaUrl('/preview.svg')).toBe('/preview.svg')
   expect(normalizeTweakerMediaUrl('data:image/svg+xml,%3Csvg%3E%3C/svg%3E')).toContain(
@@ -584,71 +224,6 @@ test('accepts safe media URLs without interpreting SVG markup', () => {
   expect(normalizeTweakerMediaUrl('javascript:alert(1)')).toBeUndefined()
   expect(normalizeTweakerMediaUrl('<svg onload="alert(1)">')).toBeUndefined()
   expect(objectFitClassName('scale-down')).toBe('object-scale-down')
-})
-
-test('removes unsafe stored media URLs and persists canonical safe URLs before export', () => {
-  const store = createTweakerPanelStore({
-    defaultValues: { media: 'javascript:alert(1)' },
-    panelId: 'media',
-  })
-  store.getState().registerItem({
-    fieldId: 'media',
-    id: 'media-control',
-    kind: 'control',
-    parentId: 'root',
-    placement: 'auto',
-    reorderable: true,
-  })
-  const control = {
-    disabled: true,
-    field: 'media',
-    readOnly: true,
-    value: '/stale-preview.svg',
-  }
-  const synchronize = () =>
-    synchronizeOptionalTweakerFieldValue(
-      control,
-      normalizeTweakerMediaUrl,
-      (currentValue, normalizedValue) => currentValue === normalizedValue,
-      store,
-    )
-  const fields = store.getState().fields
-
-  synchronize()
-
-  expect(store.getState().values).not.toHaveProperty('media')
-  expect(store.getState().fields).toBe(fields)
-  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({})
-
-  store.setState((state) => ({ values: { ...state.values, media: '/preview.svg' } }))
-  const exactValues = store.getState().values
-  synchronize()
-  expect(store.getState().values).toBe(exactValues)
-
-  store.setState((state) => ({ values: { ...state.values, media: ' /preview.svg ' } }))
-  synchronize()
-  expect(store.getState().values.media).toBe('/preview.svg')
-  expect(store.getState().fields).toBe(fields)
-  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({
-    media: '/preview.svg',
-  })
-
-  store.setState((state) => ({
-    values: { ...state.values, media: { markup: '<svg onload="alert(1)">' } },
-  }))
-  synchronize()
-  expect(store.getState().values).not.toHaveProperty('media')
-  expect(store.getState().fields).toBe(fields)
-  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({})
-
-  const fieldlessValues = store.getState().values
-  synchronizeOptionalTweakerFieldValue(
-    { value: 'javascript:alert(1)' },
-    normalizeTweakerMediaUrl,
-    (currentValue, normalizedValue) => currentValue === normalizedValue,
-    store,
-  )
-  expect(store.getState().values).toBe(fieldlessValues)
 })
 
 test('projects files to JSON-compatible metadata with stable unique IDs', () => {
@@ -714,84 +289,6 @@ test('normalizes malformed dropzone values and appends only within remaining cap
     acceptedFiles: ['one', 'two'],
     overflowFiles: [],
   })
-})
-
-test('persists canonical dropzone metadata from the latest stored value before export', () => {
-  const store = createTweakerPanelStore({
-    defaultValues: {
-      assets: [
-        { id: ' My File ', lastModified: -3, name: '  ', size: -2 },
-        {
-          extra: 'drop',
-          id: 'my-file',
-          lastModified: -1,
-          name: ' photo.png ',
-          size: 42,
-          type: ' image/png ',
-        },
-        'invalid',
-      ],
-    },
-    panelId: 'dropzone',
-  })
-  store.getState().registerItem({
-    defaultValue: [],
-    fieldId: 'assets',
-    id: 'assets-control',
-    kind: 'control',
-    parentId: 'root',
-    placement: 'auto',
-    reorderable: true,
-  })
-  const control = {
-    disabled: true,
-    field: 'assets',
-    readOnly: true,
-    value: [],
-  }
-  const synchronize = () =>
-    synchronizeTweakerFieldValue(
-      control,
-      normalizeTweakerDropzoneValue,
-      (currentValue, normalizedValue) =>
-        exactTweakerObjectArrayValue(currentValue, normalizedValue, [
-          'id',
-          'lastModified',
-          'name',
-          'size',
-          'type',
-        ]),
-      store,
-    )
-  const fields = store.getState().fields
-
-  synchronize()
-
-  const expected = [
-    {
-      id: 'my-file',
-      lastModified: 0,
-      name: 'Unnamed file',
-      size: 0,
-      type: 'application/octet-stream',
-    },
-    {
-      id: 'my-file-2',
-      lastModified: 0,
-      name: 'photo.png',
-      size: 42,
-      type: 'image/png',
-    },
-  ]
-  expect(store.getState().values.assets).toEqual(expected)
-  expect(store.getState().fields).toBe(fields)
-  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({
-    assets: expected,
-  })
-
-  const values = store.getState().values
-  synchronize()
-  expect(store.getState().values).toBe(values)
 })
 
 test('restores dropzone viewer focus only to a connected thumbnail trigger', () => {

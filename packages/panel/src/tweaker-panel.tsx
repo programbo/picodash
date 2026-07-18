@@ -1,6 +1,6 @@
-import { motion, useDragControls, useMotionValue } from 'motion/react'
+import { motion, useDragControls, useMotionValue, type MotionStyle } from 'motion/react'
 import { ChevronRight } from 'lucide-react'
-import { useId, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from 'zustand'
 import {
@@ -17,12 +17,11 @@ import {
   useTweakerProviderContext,
 } from './tweaker-provider.js'
 import { TweakerPanelContextProvider } from './tweaker-panel-context.js'
-import { TweakerPanelActions } from './tweaker-panel-actions.js'
+import { TweakerPanelActions, TweakerPanelConstraintRepairDialog } from './tweaker-panel-actions.js'
 import { createTweakerPanelStore } from './tweaker-panel-store.js'
 import { rootGroupId } from './tweaker-order.js'
 import { TweakerReorderList } from './tweaker-reorder-list.js'
 import { TooltipProvider } from './tooltip.js'
-import { tweakerDefaultTheme } from './theme.js'
 import { buttonVariants } from './ui.js'
 import { usePanelLayoutSynchronization } from './use-panel-layout.js'
 import { cn } from './utils.js'
@@ -34,6 +33,7 @@ export {
   useTweakerPanelSelector,
   useTweakerPanelState,
   useTweakerPanelStoreApi,
+  useTweakerPanelStoreSelector,
 } from './tweaker-panel-context.js'
 export { TweakerGroupContextProvider, useTweakerGroupContext } from './tweaker-group-context.js'
 export {
@@ -55,7 +55,8 @@ export type {
   TweakerInteractionState,
   TweakerItemKind,
   TweakerItemRegistration,
-  TweakerPlacement,
+  TweakerPin,
+  TweakerPanelDefaultPlacement,
   TweakerPanelProps,
   TweakerPanelState,
   TweakerPanelStore,
@@ -70,25 +71,30 @@ export function TweakerPanel({
   className,
   collapsible = false,
   defaultCollapsed = false,
-  defaultValues,
+  defaultPlacement = 'top-right',
   drag = true,
   dragElastic = false,
   dragMomentum = false,
   id,
   initialMeta,
+  initialValues,
   onFocusCapture,
   onPointerDownCapture,
+  store: injectedPanelStore,
   style,
   title,
+  width,
   ...props
 }: TweakerPanelProps) {
-  const reactId = useId()
-  const panelId = id ?? `tweaker-panel-${reactId.replaceAll(':', '')}`
-  const { containerElement, store } = useTweakerProviderContext()
+  const { portalContainer, store: providerStore, theme } = useTweakerProviderContext()
+  const panelId = injectedPanelStore?.getState().panelId ?? id
+  if (panelId === undefined) {
+    throw new Error('TweakerPanel requires either an id or an application-owned store.')
+  }
   const panelDragControls = useDragControls()
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const panelElementRef = useRef<HTMLElement | null>(null)
-  const panelStoreRef = useRef<TweakerPanelStore | null>(null)
+  const panelStoreRef = useRef<TweakerPanelStore | null>(injectedPanelStore ?? null)
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const dragStateRef = useRef<{
     baseRect: PanelRect
@@ -101,37 +107,41 @@ export function TweakerPanel({
   const y = useMotionValue(0)
 
   if (!panelStoreRef.current) {
-    panelStoreRef.current = createTweakerPanelStore({ defaultValues, initialMeta, panelId })
+    panelStoreRef.current = createTweakerPanelStore({ initialMeta, initialValues, panelId })
   }
 
   const panelStore = panelStoreRef.current
+  if (injectedPanelStore && panelStore !== injectedPanelStore) {
+    throw new Error('TweakerPanel store cannot be changed after the panel mounts.')
+  }
   const panelCollapsed = collapsible && collapsed
   const titleText = typeof title === 'string' ? title : 'panel'
-  const zIndex = useStore(store, (state) => panelZIndexForState(state, panelId))
+  const zIndex = useStore(providerStore, (state) => panelZIndexForState(state, panelId))
   const updatePanelRect = usePanelLayoutSynchronization({
-    containerElement,
+    containerElement: portalContainer,
     panelElementRef,
     panelId,
-    store,
+    store: providerStore,
     x,
     y,
   })
   useRegisterTweakerPanel({ id: panelId })
 
-  if (!containerElement) return null
+  if (!portalContainer) return null
 
   return createPortal(
     <TweakerPanelContextProvider store={panelStore}>
       <motion.aside
         {...props}
-        id={id}
+        id={panelId}
         data-tweaker-panel
         data-collapsed={panelCollapsed ? 'true' : 'false'}
-        data-tweaker-theme={tweakerDefaultTheme}
+        data-tweaker-theme={theme}
         data-tweaker-panel-id={panelId}
         ref={panelElementRef}
         className={cn(
-          'pointer-events-auto absolute top-(--tweaker-panel-inset) right-(--tweaker-panel-inset) flex min-h-0 max-h-(--tweaker-panel-max-height) w-(--tweaker-panel-width) flex-col overflow-hidden rounded-(--tweaker-panel-radius) border border-(--tweaker-panel-border) bg-(--tweaker-panel-background) text-(--tweaker-panel-foreground) shadow-tweaker-panel ring-1 ring-(--tweaker-panel-ring)',
+          'pointer-events-auto absolute flex min-h-0 max-h-(--tweaker-panel-max-height) w-(--tweaker-panel-width) max-w-[calc(100dvw-2rem)] flex-col overflow-hidden rounded-(--tweaker-panel-radius) border border-(--tweaker-panel-border) bg-(--tweaker-panel-background) text-(--tweaker-panel-foreground) shadow-tweaker-panel ring-1 ring-(--tweaker-panel-ring)',
+          panelPlacementClassNames[defaultPlacement],
           className,
         )}
         drag={drag}
@@ -139,7 +149,15 @@ export function TweakerPanel({
         dragElastic={dragElastic}
         dragListener={false}
         dragMomentum={dragMomentum}
-        style={{ ...style, x, y, zIndex }}
+        style={
+          {
+            ...style,
+            '--tweaker-panel-width': typeof width === 'number' ? `${width}px` : width,
+            x,
+            y,
+            zIndex,
+          } as MotionStyle & { '--tweaker-panel-width'?: string }
+        }
         onDrag={(event, info) => {
           const dragState = dragStateRef.current
           if (!dragState) {
@@ -181,7 +199,7 @@ export function TweakerPanel({
               rectFromElement(panelElement),
               displayedPosition,
             )
-            store.getState().setPanelLayout(panelId, {
+            providerStore.getState().setPanelLayout(panelId, {
               dock,
               x: Math.round(baseRect.left + displayedPosition.x),
               y: Math.round(baseRect.top + displayedPosition.y),
@@ -196,24 +214,24 @@ export function TweakerPanel({
             const displayedPosition = { x: x.get(), y: y.get() }
             dragStateRef.current = {
               baseRect: baseRectFromDisplayedRect(rectFromElement(panelElement), displayedPosition),
-              containerRect: rectFromElement(containerElement),
+              containerRect: rectFromElement(portalContainer),
               dock: null,
-              peerRects: Object.entries(store.getState().panelRects)
+              peerRects: Object.entries(providerStore.getState().panelRects)
                 .filter(([peerPanelId]) => peerPanelId !== panelId)
                 .map(([, rect]) => rect),
               startPosition: displayedPosition,
             }
           }
 
-          store.getState().activatePanel(panelId)
+          providerStore.getState().activatePanel(panelId)
           props.onDragStart?.(event, info)
         }}
         onFocusCapture={(event) => {
-          store.getState().activatePanel(panelId)
+          providerStore.getState().activatePanel(panelId)
           onFocusCapture?.(event)
         }}
         onPointerDownCapture={(event) => {
-          store.getState().activatePanel(panelId)
+          providerStore.getState().activatePanel(panelId)
           onPointerDownCapture?.(event)
         }}
       >
@@ -275,8 +293,16 @@ export function TweakerPanel({
             </TooltipProvider>
           </div>
         </div>
+        <TweakerPanelConstraintRepairDialog panelTitle={titleText} />
       </motion.aside>
     </TweakerPanelContextProvider>,
-    containerElement,
+    portalContainer,
   )
 }
+
+const panelPlacementClassNames = {
+  'bottom-left': 'bottom-(--tweaker-panel-inset) left-(--tweaker-panel-inset)',
+  'bottom-right': 'right-(--tweaker-panel-inset) bottom-(--tweaker-panel-inset)',
+  'top-left': 'top-(--tweaker-panel-inset) left-(--tweaker-panel-inset)',
+  'top-right': 'top-(--tweaker-panel-inset) right-(--tweaker-panel-inset)',
+} as const

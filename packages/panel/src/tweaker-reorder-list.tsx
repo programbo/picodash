@@ -333,9 +333,7 @@ function usePointerReorderSession({
       )
       finishSiblingDisclosureTransitions(itemElements)
       groupElement.getBoundingClientRect()
-      const itemElement = itemElements.find(
-        (element) => (element.dataset.controlId ?? element.dataset.groupId) === itemId,
-      )
+      const itemElement = itemElements.find((element) => element.dataset.itemId === itemId)
       if (!itemElement) return
       const groupRect = groupElement.getBoundingClientRect()
       const itemRect = itemElement.getBoundingClientRect()
@@ -343,12 +341,12 @@ function usePointerReorderSession({
       const idsInBand = new Set(
         itemElements
           .filter((element) => element.dataset.orderBand === itemBand)
-          .map((element) => element.dataset.controlId ?? element.dataset.groupId)
+          .map((element) => element.dataset.itemId)
           .filter((id): id is string => Boolean(id)),
       )
       const layouts = itemElements
         .map((element) => {
-          const id = element.dataset.controlId ?? element.dataset.groupId
+          const id = element.dataset.itemId
           if (!id || !idsInBand.has(id)) return null
           const rect = element.getBoundingClientRect()
           return { id, max: rect.bottom, min: rect.top }
@@ -467,5 +465,5 @@ function directReorderItems(groupElement: HTMLElement) {
 }
 
 function reorderItemId(element: HTMLElement) {
-  return element.dataset.controlId ?? element.dataset.groupId
+  return element.dataset.itemId
 }
