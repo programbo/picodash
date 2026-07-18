@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { tweakerMotionTokens } from '../../../packages/panel/src/theme.ts'
 
 const customGroupLabels = {
@@ -15,6 +15,23 @@ const initialCustomRootOrder = [
   'visualization-items',
   'custom-items-summary',
 ]
+
+async function changeDemoThemes(
+  page: Page,
+  detail: {
+    custom?: string | null
+    provider?: string | null
+    scene?: string | null
+  },
+) {
+  await page.evaluate((nextThemes) => {
+    window.dispatchEvent(
+      new CustomEvent('tweaker-demo-theme-change', {
+        detail: nextThemes,
+      }),
+    )
+  }, detail)
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
@@ -767,122 +784,96 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
   }
 })
 
-test('applies package token overrides to shell, controls, and portaled surfaces', async ({
-  page,
-}) => {
-  await page.addStyleTag({
-    content: `
-      [data-tweaker-theme='dark'] {
-        --tweaker-panel-background: rgb(11 22 33);
-        --tweaker-row-hover: rgb(22 44 66);
-        --tweaker-color-accent: rgb(44 88 132);
-        --tweaker-alignment-radius: 7px;
-        --tweaker-alignment-item-size: 36px;
-        --tweaker-icon-sm: 18px;
-        --tweaker-reorder-static-marker-size: 10px;
-        --tweaker-reorder-static-marker-color: rgb(80 120 160);
-        --tweaker-reorder-static-marker-opacity: 0.4;
-        --tweaker-range-root-height: 30px;
-        --tweaker-vector-axis-bottom: 11px;
-        --tweaker-dropzone-radius: 6px;
-        --tweaker-dropzone-preview-size: 40px;
-        --tweaker-tooltip-background: rgb(33 55 77);
-        --tweaker-tooltip-max-width: 110px;
-        --tweaker-tooltip-offset: 18px;
-        --tweaker-tooltip-padding-inline: 13px;
-        --tweaker-select-border: rgb(55 85 115);
-        --tweaker-select-content-background: rgb(24 48 72);
-        --tweaker-select-content-radius: 8px;
-        --tweaker-select-item-highlight-background: rgb(48 72 96);
-        --tweaker-layer-select: 65432;
-        --tweaker-viewer-background: rgb(17 34 51);
-        --tweaker-viewer-radius: 9px;
-        --tweaker-viewer-image-max-height: 40px;
-        --tweaker-layer-viewer: 123456;
-      }
-    `,
-  })
+test('applies simultaneous named themes to panels and every portaled surface', async ({ page }) => {
+  await page.goto('/?providerTheme=ocean&customTheme=plum')
 
-  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
-  await expect(panel).toHaveAttribute('data-tweaker-theme', 'dark')
-  await expect(panel).toHaveCSS('background-color', 'rgb(11, 22, 33)')
+  const scenePanel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const customPanel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  await expect(page.locator('[data-tweaker-container]')).toHaveAttribute(
+    'data-tweaker-theme',
+    'ocean',
+  )
+  await expect(scenePanel).toHaveAttribute('data-tweaker-theme', 'ocean')
+  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
+  await expect(scenePanel).toHaveCSS('background-color', 'rgb(7, 38, 52)')
+  await expect(customPanel).toHaveCSS('background-color', 'rgb(54, 19, 62)')
 
-  const alignment = panel.locator('[data-control-id="alignment"]')
-  await alignment.hover()
-  await expect(alignment).toHaveCSS('background-color', 'rgb(22, 44, 66)')
+  const alignment = customPanel.locator('[data-control-id="alignment"]')
   await expect(alignment.getByRole('radio', { name: 'Centre', exact: true })).toHaveCSS(
     'background-color',
-    'rgb(44, 88, 132)',
+    'rgb(241, 159, 248)',
   )
-  await expect(alignment.getByRole('radiogroup')).toHaveCSS('border-radius', '7px')
-  await expect(alignment.getByRole('radio', { name: 'Centre', exact: true })).toHaveCSS(
-    'width',
-    '36px',
-  )
-  await expect(
-    alignment.getByRole('radio', { name: 'Centre', exact: true }).locator('svg'),
-  ).toHaveCSS('width', '18px')
-
-  const range = panel.locator('[data-control-id="thresholdRange"]')
-  await expect(range.locator('[class*="tweaker-range-root-height"]')).toHaveCSS('height', '30px')
-  await expect(
-    panel.locator('[data-control-id="vector"] [class*="tweaker-vector-axis-bottom"]').first(),
-  ).toHaveCSS('bottom', '11px')
-  const staticMarker = panel
-    .locator('[data-control-id="shadcn-frame-chart"]')
-    .locator('[data-tweaker-reorder-indicator="static"]')
-  await expect(staticMarker).toHaveCSS('width', '10px')
-  await expect(staticMarker).toHaveCSS('background-color', 'rgb(80, 120, 160)')
-  await expect(staticMarker).toHaveCSS('opacity', '0.4')
+  await expect(alignment.getByRole('radiogroup')).toHaveCSS('border-radius', '9px')
 
   const qualityTrigger = page.locator('[data-control-id="quality"]').getByRole('combobox')
-  await expect(qualityTrigger).toHaveCSS('border-bottom-color', 'rgb(55, 85, 115)')
+  await expect(qualityTrigger).toHaveCSS('border-bottom-color', 'rgb(91, 158, 171)')
   await qualityTrigger.click()
-  const selectContent = page.locator('[data-tweaker-theme="dark"][data-side]')
-  await expect(selectContent).toHaveCSS('background-color', 'rgb(24, 48, 72)')
+  const selectContent = page.locator('[data-tweaker-theme="ocean"][data-side]')
+  await expect(selectContent).toHaveCSS('background-color', 'rgb(11, 55, 72)')
   await expect(selectContent).toHaveCSS('border-radius', '8px')
-  await expect(selectContent).toHaveCSS('z-index', '65432')
   const finalOption = page.getByRole('option', { name: 'Final' })
   await finalOption.hover()
-  await expect(finalOption).toHaveCSS('background-color', 'rgb(48, 72, 96)')
+  await expect(finalOption).toHaveCSS('background-color', 'rgb(17, 78, 96)')
   await page.keyboard.press('Escape')
 
   await alignment.getByRole('button', { name: 'Help for Alignment' }).hover()
   await expect(page.getByRole('tooltip')).toBeVisible()
-  const tooltip = page.locator('[data-tweaker-theme="dark"][data-side]')
-  await expect(tooltip).toHaveAttribute('data-tweaker-theme', 'dark')
-  await expect(tooltip).toHaveCSS('background-color', 'rgb(33, 55, 77)')
-  await expect(tooltip).toHaveCSS('max-width', '110px')
-  await expect(tooltip).toHaveCSS('padding-left', '13px')
-  const tooltipSide = await tooltip.getAttribute('data-side')
-  const tooltipOffsetProperty = {
-    bottom: 'margin-top',
-    left: 'margin-right',
-    right: 'margin-left',
-    top: 'margin-bottom',
-  }[tooltipSide ?? 'top']
-  await expect(tooltip).toHaveCSS(tooltipOffsetProperty ?? 'margin-bottom', '18px')
+  const tooltip = page.locator('[data-tweaker-theme="plum"][data-side]')
+  await expect(tooltip).toHaveCSS('background-color', 'rgb(75, 27, 85)')
+  await expect(tooltip).toHaveCSS('border-radius', '12px')
 
-  const dropzone = panel.locator('[data-control-id="droppedFiles"]')
-  const dropSurface = dropzone.getByRole('button', { name: 'Choose files or drop them here' })
-  await expect(dropSurface).toHaveCSS('border-radius', '6px')
+  const dropzone = customPanel.locator('[data-control-id="droppedFiles"]')
   await dropzone.locator('input[type="file"]').setInputFiles({
     name: 'themed.png',
     mimeType: 'image/png',
     buffer: Buffer.from('themed image metadata'),
   })
   const previewButton = dropzone.getByRole('button', { name: 'View themed.png' })
-  await expect(previewButton).toHaveCSS('width', '40px')
   await previewButton.click()
   const viewer = page.getByRole('dialog')
-  await expect(viewer).toHaveAttribute('data-tweaker-theme', 'dark')
-  await expect(viewer).toHaveCSS('background-color', 'rgb(17, 34, 51)')
-  await expect(viewer).toHaveCSS('border-radius', '9px')
-  await expect(page.locator('[data-tweaker-theme="dark"][class*="z-("]')).toHaveCSS(
-    'z-index',
-    '123456',
+  await expect(viewer).toHaveAttribute('data-tweaker-theme', 'plum')
+  await expect(viewer).toHaveCSS('border-radius', '12px')
+  await page.keyboard.press('Escape')
+
+  const customActions = customPanel.getByRole('button', { name: 'Open actions for Custom Items' })
+  await customActions.click()
+  const menu = page.getByRole('menu', { name: 'Actions for Custom Items' })
+  await expect(menu).toHaveAttribute('data-tweaker-theme', 'plum')
+  await menu.getByRole('menuitem', { name: 'Copy' }).hover()
+  await expect(page.locator('[data-tweaker-theme="plum"][role="menu"]')).toHaveCount(2)
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+  await customActions.click()
+  await menu.getByRole('menuitem', { name: 'Reset…' }).click()
+  const dialog = page.getByRole('alertdialog', { name: 'Reset Custom Items?' })
+  await expect(dialog).toHaveAttribute('data-tweaker-theme', 'plum')
+  await expect(
+    page.locator('[data-tweaker-theme="plum"][data-state="open"].fixed.inset-0'),
+  ).toHaveCount(1)
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+})
+
+test('updates inherited panel themes at runtime while preserving explicit overrides', async ({
+  page,
+}) => {
+  await changeDemoThemes(page, { custom: 'plum' })
+
+  const scenePanel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const customPanel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  await expect(scenePanel).toHaveAttribute('data-tweaker-theme', 'dark')
+  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
+
+  await changeDemoThemes(page, { provider: 'ocean' })
+
+  await expect(page.locator('[data-demo-provider-theme]')).toHaveAttribute(
+    'data-demo-provider-theme',
+    'ocean',
   )
-  await expect(page.getByRole('img', { name: 'themed.png' })).toHaveCSS('max-height', '40px')
+  await expect(scenePanel).toHaveAttribute('data-tweaker-theme', 'ocean')
+  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
+
+  await changeDemoThemes(page, { custom: null })
+  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'ocean')
 })
 
 test('animates transient visual paths and switches deterministic signal mode', async ({ page }) => {

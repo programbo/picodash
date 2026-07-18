@@ -87,14 +87,28 @@ export include all currently registered field IDs, including hidden and display-
 fields. Import and reset operate only on currently registered writable fields, including
 hidden fields. All actions exclude stale unregistered values.
 
-Panel theming is package-owned and namespaced. Keep foundation, semantic, and component
-contract variables in `packages/panel/src/styles.css`; never reintroduce generic global
-`--color-*` or `--radius-*` definitions. Components must consume tokens through Tailwind
-classes (namespaced utilities or v4 CSS-variable shorthand), not bespoke component CSS
-rules. Keep `data-tweaker-theme="dark"` on the provider carrier and every portaled panel,
-tooltip, overlay, and viewer surface. CSS variables are the public override API;
-`theme.ts` is only for JS-only Motion, projection geometry, and numeric panel-layer values;
-CSS-editable layers such as the viewer remain CSS variables.
+Panel theming is package-owned and namespaced. `TweakerProvider`, `TweakerPanel`, and
+`FeaturePanel` accept arbitrary named themes; resolve them as panel override, provider
+theme, then `"dark"`. Keep that resolved name in React context and repeat
+`data-tweaker-theme` on the provider carrier and every portaled panel, select, menu,
+submenu, tooltip, dialog overlay/content, and viewer surface. Export `useTweakerTheme()` so
+custom controls can propagate the same carrier.
+
+The public visual recipe in `packages/panel/src/styles.css` is the core semantic color
+contract (`--tweaker-color-canvas`, surface/raised/muted, text/strong/muted, border,
+control, focus, accent/text, success, info, warning, alert, danger, and overlay) plus the
+documented optional type/effect scales and shared geometry roles. Shared geometry is only
+surface/control radii, `xs`/`sm`/`md`/`lg` control heights, the icon scale, and the large
+field minimum height. Keep portal layers and panel width documented separately as host
+integration values.
+
+Derived hover, well, state, feature, viewer, slider, switch, and nesting formulas use
+private `--_tweaker-*` variables. Do not add public component-family token aliases.
+Components must consume theme roles through Tailwind classes (namespaced utilities or v4
+CSS-variable shorthand), using canonical utilities for one-off geometry where possible;
+never add bespoke component CSS rules or generic global `--color-*`/`--radius-*`
+definitions. `theme.ts` remains limited to JS-only Motion, projection geometry, and the
+numeric panel layer base.
 
 The panel package exports `TweakerSegmented`, `TweakerAlignment`, `TweakerVector3`, `TweakerRange`, `TweakerXYPad`, `TweakerGradient`, `TweakerMediaPreview`, and `TweakerDropzone`, their public value/props types, and their pure normalization/projection helpers. `TweakerControl.contentLayout` accepts `"inline"`, `"block"`, or `"full"`; block/full descriptions must remain in a separate row after their content.
 

@@ -89,7 +89,7 @@ export function TweakerRange({
             <Slider.Root
               id={control.inputId}
               aria-label="Range"
-              className="relative flex h-(--tweaker-range-root-height) min-w-0 touch-none items-center select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-(--tweaker-opacity-disabled)"
+              className="relative flex h-(--tweaker-control-height-xs) min-w-0 touch-none items-center select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-(--tweaker-opacity-disabled)"
               disabled={control.disabled || control.readOnly || min === max}
               max={max}
               min={min}
@@ -107,10 +107,10 @@ export function TweakerRange({
                 )
               }}
             >
-              <Slider.Track className="relative h-(--tweaker-slider-track-height) grow overflow-hidden rounded-full bg-(--tweaker-range-track)">
+              <Slider.Track className="bg-tweaker-control relative h-(--_tweaker-slider-track-height) grow overflow-hidden rounded-full">
                 <span
                   aria-hidden="true"
-                  className="absolute h-full bg-(--tweaker-range-fill)"
+                  className="bg-tweaker-accent absolute h-full"
                   style={{
                     insetInlineEnd: fillGeometry.insetInlineEnd,
                     insetInlineStart: fillGeometry.insetInlineStart,
@@ -121,18 +121,18 @@ export function TweakerRange({
                 id={`${control.inputId}:low`}
                 aria-label="Lower value"
                 aria-valuetext={formattedLow}
-                className="before:shadow-tweaker-sm focus-visible:before:ring-tweaker-focus focus-visible:before:ring-offset-tweaker-canvas relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--tweaker-range-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:border-(--tweaker-range-fill) before:bg-(--tweaker-range-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
+                className="before:shadow-tweaker-sm focus-visible:before:ring-tweaker-focus focus-visible:before:ring-offset-tweaker-canvas before:border-tweaker-accent relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--_tweaker-slider-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:bg-(--_tweaker-slider-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
               />
               <Slider.Thumb
                 id={`${control.inputId}:high`}
                 aria-label="Upper value"
                 aria-valuetext={formattedHigh}
-                className="before:shadow-tweaker-sm focus-visible:before:ring-tweaker-focus focus-visible:before:ring-offset-tweaker-canvas relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--tweaker-range-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:border-(--tweaker-range-fill) before:bg-(--tweaker-range-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
+                className="before:shadow-tweaker-sm focus-visible:before:ring-tweaker-focus focus-visible:before:ring-offset-tweaker-canvas before:border-tweaker-accent relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--_tweaker-slider-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:bg-(--_tweaker-slider-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
               />
             </Slider.Root>
             <output
               aria-live="off"
-              className="text-tweaker-text min-w-(--tweaker-range-output-width) justify-self-end text-right text-(length:--tweaker-font-size-md) leading-none tabular-nums"
+              className="text-tweaker-text min-w-[9ch] justify-self-end text-right text-(length:--tweaker-font-size-md) leading-none tabular-nums"
             >
               {formattedLow}–{formattedHigh}
             </output>

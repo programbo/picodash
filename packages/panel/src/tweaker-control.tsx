@@ -239,7 +239,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         aria-describedby={description ? descriptionId : undefined}
         aria-labelledby={label ? labelId : undefined}
         className={cn(
-          'group/control relative isolate col-span-full grid min-h-(--tweaker-row-min-height) shrink-0 grid-cols-subgrid items-start gap-x-(--tweaker-space-1) gap-y-(--tweaker-space-0-5) select-none rounded-(--tweaker-row-radius) border border-l-2 border-transparent bg-transparent py-(--tweaker-space-1) pr-(--tweaker-space-1-5) text-tweaker-text outline-none transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--tweaker-duration-fast) data-[dragging=true]:z-(--tweaker-layer-drag)! data-[dragging=true]:border-tweaker-focus data-[dragging=true]:bg-(--tweaker-row-drag) data-[dragging=true]:shadow-tweaker-panel data-[dragging=true]:backdrop-blur-(--tweaker-blur-surface) data-[focused=true]:border-tweaker-focus/60 data-[hovered=true]:bg-(--tweaker-row-hover) data-[status=alert]:border-l-(--tweaker-color-alert-border) data-[status=alert]:bg-tweaker-alert-subtle data-[status=error]:border-l-(--tweaker-color-danger-border) data-[status=error]:bg-tweaker-danger-subtle data-[status=info]:border-l-(--tweaker-color-info-border) data-[status=info]:bg-tweaker-info-subtle data-[status=warning]:border-l-(--tweaker-color-warning-border) data-[status=warning]:bg-tweaker-warning-subtle',
+          'group/control relative isolate col-span-full grid min-h-10 shrink-0 grid-cols-subgrid items-start gap-x-(--tweaker-space-1) gap-y-(--tweaker-space-0-5) select-none rounded-tweaker-control border border-l-2 border-transparent bg-transparent py-(--tweaker-space-1) pr-(--tweaker-space-1-5) text-tweaker-text outline-none transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--tweaker-duration-fast) data-[dragging=true]:z-(--tweaker-layer-drag)! data-[dragging=true]:border-tweaker-focus data-[dragging=true]:bg-(--_tweaker-row-drag) data-[dragging=true]:shadow-tweaker-panel data-[dragging=true]:backdrop-blur-(--tweaker-blur-surface) data-[focused=true]:border-tweaker-focus/60 data-[hovered=true]:bg-(--_tweaker-row-hover) data-[status=alert]:border-l-(--_tweaker-color-alert-border) data-[status=alert]:bg-tweaker-alert-subtle data-[status=error]:border-l-(--_tweaker-color-danger-border) data-[status=error]:bg-tweaker-danger-subtle data-[status=info]:border-l-(--_tweaker-color-info-border) data-[status=info]:bg-tweaker-info-subtle data-[status=warning]:border-l-(--_tweaker-color-warning-border) data-[status=warning]:bg-tweaker-warning-subtle',
           !showReorderSlot && 'pl-(--tweaker-space-1-5)',
           className,
         )}
@@ -309,7 +309,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
         }}
       >
         <span
-          className="group-data-[hovered=true]/tweaker-section:bg-tweaker-surface-muted/80 pointer-events-none absolute inset-y-(--tweaker-control-hover-rail-inset-block) left-(--tweaker-control-hover-rail-left) z-0 w-(--tweaker-control-hover-rail-width) transition-colors duration-(--tweaker-duration-fast)"
+          className="group-data-[hovered=true]/tweaker-section:bg-tweaker-surface-muted/80 pointer-events-none absolute -inset-y-0.75 left-(--_tweaker-nested-inset) z-0 w-6 transition-colors duration-(--tweaker-duration-fast)"
           aria-hidden="true"
         />
         {showReorderSlot ? (
@@ -318,7 +318,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
             aria-label={labelText ? `Reorder ${labelText}` : 'Reorder control'}
             className={cn(
               buttonVariants({ size: 'icon', variant: 'ghost' }),
-              'relative z-10 col-start-1 size-(--tweaker-chrome-button-size) shrink-0 cursor-grab self-center text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
+              'relative z-10 col-start-1 size-(--tweaker-control-height-xs) shrink-0 cursor-grab self-center text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
             )}
             type="button"
             onPointerCancel={cancelReorder}
@@ -346,10 +346,10 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
               <TooltipTrigger asChild>
                 <button
                   aria-label={labelText ? `Help for ${labelText}` : 'Control help'}
-                  className="text-tweaker-muted hover:text-tweaker-text focus-visible:ring-tweaker-focus inline-flex size-(--tweaker-chrome-action-size) shrink-0 items-center justify-center rounded-(--tweaker-button-radius) text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-normal) transition-colors duration-(--tweaker-duration-fast) outline-none focus-visible:ring-2"
+                  className="text-tweaker-muted hover:text-tweaker-text focus-visible:ring-tweaker-focus rounded-tweaker-control inline-flex size-(--tweaker-icon-lg) shrink-0 items-center justify-center text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-normal) transition-colors duration-(--tweaker-duration-fast) outline-none focus-visible:ring-2"
                   type="button"
                 >
-                  <Info className="size-(--tweaker-chrome-icon-small-size)" aria-hidden="true" />
+                  <Info className="size-(--tweaker-icon-xs)" aria-hidden="true" />
                 </button>
               </TooltipTrigger>
               <TooltipContent>{help}</TooltipContent>
@@ -359,16 +359,16 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
             fieldState?.dirty ? (
               <Button
                 aria-label={labelText ? `Reset ${labelText}` : 'Reset control'}
-                className="size-(--tweaker-chrome-action-size)"
+                className="size-(--tweaker-icon-lg)"
                 disabled={disabled || readOnly}
                 size="icon"
                 variant="ghost"
                 onClick={resetValue}
               >
-                <RotateCcw className="size-(--tweaker-chrome-icon-small-size)" aria-hidden="true" />
+                <RotateCcw className="size-(--tweaker-icon-xs)" aria-hidden="true" />
               </Button>
             ) : (
-              <span className="size-(--tweaker-chrome-action-size) shrink-0" aria-hidden="true" />
+              <span className="size-(--tweaker-icon-lg) shrink-0" aria-hidden="true" />
             )
           ) : null}
         </div>

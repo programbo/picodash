@@ -7,6 +7,7 @@ export {
   tweakerMotionTokens,
   tweakerThemeAttribute,
 } from './theme.js'
+export { useTweakerTheme } from './tweaker-theme-context.js'
 export { FeaturePanel } from './feature-panel.js'
 export { panelLayoutStorageKey } from './panel-persistence.js'
 export type {

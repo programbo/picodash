@@ -131,39 +131,98 @@ and commit meaningful values through `control.setValue`.
 
 ## Design tokens and themes
 
-`panel/style.css` owns a three-level token hierarchy:
+`TweakerProvider`, `TweakerPanel`, and `FeaturePanel` accept `theme?: string`.
+Resolution is panel override, then provider theme, then `"dark"`. `FeaturePanel` inherits
+the nearest Tweaker theme or defaults to dark. `useTweakerTheme()` returns the resolved
+name for custom controls that create portals.
 
-1. Foundation tokens (`--tweaker-palette-*`, `--tweaker-space-*`,
-   `--tweaker-radius-*`, typography, opacity, borders, shadows, timing, blur, and layers)
-   are the raw scales.
-2. Semantic tokens (`--tweaker-color-*`) describe canvas, surfaces, text, borders,
-   controls, focus, accent, and success/info/warning/alert/danger states.
-3. Component contracts (`--tweaker-panel-*`, `--tweaker-row-*`,
-   `--tweaker-slider-*`, `--tweaker-dropzone-*`, and related families) are the
-   narrowest overrides.
-
-Override semantic tokens for a cohesive theme, or a component token for a focused change.
-Load overrides after `panel/style.css`:
+Every carrier uses `data-tweaker-theme="<name>"`. Defaults are declared with
+`:where([data-tweaker-theme])`, so a named consumer selector loaded after
+`panel/style.css` can override the cohesive semantic contract. Provider children sit
+inside a `display: contents` carrier, so consumer markup receives the same variables
+without adding a layout box:
 
 ```css
-[data-tweaker-theme='dark'] {
-  --tweaker-color-accent: oklch(0.78 0.15 172);
-  --tweaker-color-accent-text: oklch(0.16 0.02 172);
-  --tweaker-panel-background: oklch(0.19 0.015 250);
-  --tweaker-row-hover: oklch(0.3 0.025 250 / 70%);
-  --tweaker-tooltip-background: oklch(0.24 0.018 250);
-  --tweaker-viewer-overlay: oklch(0 0 0 / 90%);
+[data-tweaker-theme='ocean'] {
+  color-scheme: dark;
+  --tweaker-color-canvas: oklch(0.16 0.025 225);
+  --tweaker-color-surface: oklch(0.23 0.035 225);
+  --tweaker-color-surface-raised: oklch(0.28 0.04 225);
+  --tweaker-color-surface-muted: oklch(0.34 0.045 225);
+  --tweaker-color-text: oklch(0.96 0.015 210);
+  --tweaker-color-text-strong: oklch(1 0 0);
+  --tweaker-color-text-muted: oklch(0.76 0.035 215);
+  --tweaker-color-border: oklch(0.72 0.05 215 / 30%);
+  --tweaker-color-control: oklch(0.72 0.05 215 / 42%);
+  --tweaker-color-focus: oklch(0.82 0.13 205);
+  --tweaker-color-accent: oklch(0.82 0.13 205);
+  --tweaker-color-accent-text: oklch(0.16 0.025 225);
+  --tweaker-color-success: oklch(0.78 0.17 165);
+  --tweaker-color-info: oklch(0.78 0.15 225);
+  --tweaker-color-warning: oklch(0.84 0.18 85);
+  --tweaker-color-alert: oklch(0.76 0.18 55);
+  --tweaker-color-danger: oklch(0.71 0.19 24);
+  --tweaker-color-overlay: oklch(0 0 0 / 85%);
 }
 ```
 
-`TweakerProvider` carries `data-tweaker-theme="dark"` on its portal container.
-Portaled panels, menus, alert dialogs, tooltips, and the dropzone image viewer repeat the
-carrier so the same selector themes content even when Radix mounts it outside the provider
-DOM subtree. The package never adds a host `.dark` class.
+Surface hover, wells, muted borders, state tints, feature-panel colors, and viewer colors
+are derived from those core roles. Select popovers, action menus and submenus, alert-dialog
+overlays and content, tooltips, and the media viewer repeat the resolved carrier even when
+Radix mounts them outside the provider subtree. The package never adds a host `.dark`
+class.
+
+```tsx
+<TweakerProvider theme="ocean">
+  <TweakerPanel id="scene" title="Scene">
+    {/* inherits ocean */}
+  </TweakerPanel>
+  <TweakerPanel id="output" title="Output" theme="plum">
+    {/* explicit override; its portals are plum too */}
+  </TweakerPanel>
+</TweakerProvider>
+```
+
+The complete optional public system contract is:
+
+- Spacing: `--tweaker-space-0-5`, `--tweaker-space-1`, `--tweaker-space-1-5`,
+  `--tweaker-space-2`, `--tweaker-space-2-5`, `--tweaker-space-3`,
+  `--tweaker-space-4`, `--tweaker-space-5`.
+- Geometry: `--tweaker-radius-surface`, `--tweaker-radius-control`,
+  `--tweaker-control-height-xs`, `--tweaker-control-height-sm`,
+  `--tweaker-control-height-md`, `--tweaker-control-height-lg`,
+  `--tweaker-field-surface-min-height`.
+- Icons: `--tweaker-icon-xs`, `--tweaker-icon-sm`, `--tweaker-icon-md`,
+  `--tweaker-icon-lg`.
+- Typography: `--tweaker-font-family`, `--tweaker-font-size-xs`,
+  `--tweaker-font-size-sm`, `--tweaker-font-size-md`, `--tweaker-font-size-lg`,
+  `--tweaker-font-size-xl`, `--tweaker-font-size-2xl`, `--tweaker-font-size-3xl`,
+  `--tweaker-line-tight`, `--tweaker-line-normal`, `--tweaker-line-relaxed`,
+  `--tweaker-font-light`, `--tweaker-font-normal`, `--tweaker-font-medium`,
+  `--tweaker-font-semibold`, `--tweaker-tracking-normal`, `--tweaker-tracking-wide`.
+- Effects: `--tweaker-opacity-disabled`, `--tweaker-opacity-disabled-soft`,
+  `--tweaker-opacity-muted`, `--tweaker-opacity-subtle`, `--tweaker-border-thin`,
+  `--tweaker-shadow-sm`, `--tweaker-shadow-md`, `--tweaker-shadow-panel`,
+  `--tweaker-shadow-viewer`, `--tweaker-shadow-inner`, `--tweaker-duration-fast`,
+  `--tweaker-ease-out`, `--tweaker-blur-surface`, `--tweaker-blur-overlay`.
+- Host integration: `--tweaker-layer-raised`, `--tweaker-layer-drag`,
+  `--tweaker-layer-tooltip`, `--tweaker-layer-select`, `--tweaker-layer-menu`,
+  `--tweaker-layer-dialog`, `--tweaker-layer-viewer`, `--tweaker-panel-width`.
+- Core colors: `--tweaker-color-canvas`, `--tweaker-color-surface`,
+  `--tweaker-color-surface-raised`, `--tweaker-color-surface-muted`,
+  `--tweaker-color-text`, `--tweaker-color-text-strong`,
+  `--tweaker-color-text-muted`, `--tweaker-color-border`,
+  `--tweaker-color-control`, `--tweaker-color-focus`, `--tweaker-color-accent`,
+  `--tweaker-color-accent-text`, `--tweaker-color-success`, `--tweaker-color-info`,
+  `--tweaker-color-warning`, `--tweaker-color-alert`, `--tweaker-color-danger`,
+  `--tweaker-color-overlay`.
+
+Variables prefixed `--_tweaker-` are private derived formulas and browser geometry; do not
+override them. Component-family theme variables are intentionally not part of the contract.
 
 The stylesheet also exposes namespaced Tailwind utilities such as
 `bg-tweaker-surface`, `text-tweaker-muted`, `border-tweaker-control`,
-`ring-tweaker-focus`, `rounded-tweaker-sm`, and `shadow-tweaker-panel`. These are
+`ring-tweaker-focus`, `rounded-tweaker-surface`, and `shadow-tweaker-panel`. These are
 convenient for custom items when the consumer's Tailwind build scans the package source.
 Raw `--tweaker-*` variables are the reliable public theming surface in every setup:
 
