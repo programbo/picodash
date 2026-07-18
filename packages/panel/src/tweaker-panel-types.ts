@@ -27,6 +27,7 @@ export interface TweakerItemRegistration {
   collapsible?: boolean
   defaultCollapsed?: boolean
   defaultValue?: TweakerValue
+  displayOnly?: boolean
   fieldId?: string
   hidden?: boolean
   id: string

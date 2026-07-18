@@ -1,12 +1,14 @@
 import { Slider } from 'radix-ui'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { formatNumericValue } from '../number-format.js'
 import {
   TweakerControl,
   useResolvedPanelProp,
   type ReactiveProp,
+  type TweakerControlContextValue,
   type TweakerControlProps,
 } from '../tweaker-control.js'
+import { useTweakerPanelStoreApi, type TweakerPanelStore } from '../tweaker-panel.js'
 import { tweakerGeometryTokens } from '../theme.js'
 
 export type TweakerRangeValue = [low: number, high: number]
@@ -76,6 +78,13 @@ export function TweakerRange({
 
         return (
           <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-(--tweaker-space-2)">
+            <TweakerRangeValueSynchronizer
+              control={control}
+              fallbackValue={normalizedDefaultValue}
+              max={max}
+              min={min}
+              step={step}
+            />
             <Slider.Root
               id={control.inputId}
               aria-label="Range"
@@ -130,6 +139,69 @@ export function TweakerRange({
         )
       }}
     </TweakerControl>
+  )
+}
+
+function TweakerRangeValueSynchronizer({
+  control,
+  fallbackValue,
+  max,
+  min,
+  step,
+}: {
+  control: TweakerControlContextValue<TweakerRangeValue>
+  fallbackValue: TweakerRangeValue
+  max: number
+  min: number
+  step: number
+}) {
+  const store = useTweakerPanelStoreApi()
+  const [fallbackLow, fallbackHigh] = fallbackValue
+
+  useEffect(() => {
+    synchronizeTweakerRangeValue(
+      control,
+      { fallback: [fallbackLow, fallbackHigh], max, min, step },
+      store,
+    )
+  }, [control, fallbackHigh, fallbackLow, max, min, step, store])
+
+  return null
+}
+
+export function synchronizeTweakerRangeValue(
+  control: Pick<
+    TweakerControlContextValue<TweakerRangeValue>,
+    'disabled' | 'field' | 'readOnly' | 'setValue'
+  > & { value?: unknown },
+  normalization: TweakerRangeNormalizationOptions,
+  store: TweakerPanelStore,
+) {
+  const field = control.field
+  if (field === undefined) {
+    if (control.value === undefined) return
+    const normalizedValue = normalizeRangeValue(control.value, normalization)
+    if (!isExactTweakerRangeValue(control.value, normalizedValue)) {
+      control.setValue(normalizedValue)
+    }
+    return
+  }
+
+  store.setState((state) => {
+    const currentValue = state.values[field]
+    if (currentValue === undefined) return state
+    const normalizedValue = normalizeRangeValue(currentValue, normalization)
+    if (isExactTweakerRangeValue(currentValue, normalizedValue)) return state
+    return { values: { ...state.values, [field]: normalizedValue } }
+  })
+}
+
+function isExactTweakerRangeValue(value: unknown, normalizedValue: TweakerRangeValue) {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    value[0] === normalizedValue[0] &&
+    value[1] === normalizedValue[1]
   )
 }
 

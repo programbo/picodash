@@ -26,6 +26,16 @@ export function registeredFieldIdsForState(state: Pick<TweakerPanelState, 'items
   )
 }
 
+export function registeredWritableFieldIdsForState(
+  state: Pick<TweakerPanelState, 'items'>,
+): string[] {
+  return registeredFieldIdsForState({
+    items: Object.fromEntries(
+      Object.entries(state.items).filter(([, item]) => item.displayOnly !== true),
+    ),
+  })
+}
+
 function isVisibleCollapsibleGroup(
   item: TweakerItemRegistration,
 ): item is TweakerItemRegistration & { kind: 'group' } {

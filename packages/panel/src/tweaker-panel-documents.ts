@@ -1,5 +1,8 @@
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import { registeredFieldIdsForState } from './tweaker-panel-action-state.js'
+import {
+  registeredFieldIdsForState,
+  registeredWritableFieldIdsForState,
+} from './tweaker-panel-action-state.js'
 import type { TweakerPanelState, TweakerPanelStore, TweakerValue } from './tweaker-panel-types.js'
 
 export type TweakerPanelDocumentFormat = 'json' | 'yaml'
@@ -52,7 +55,12 @@ export function validateTweakerPanelDocument(
     )
   }
 
-  for (const [fieldId, value] of Object.entries(document)) {
+  const writableFieldIdSet = new Set(registeredWritableFieldIdsForState(state))
+  const writableDocument = Object.fromEntries(
+    Object.entries(document).filter(([fieldId]) => writableFieldIdSet.has(fieldId)),
+  )
+
+  for (const [fieldId, value] of Object.entries(writableDocument)) {
     const hasCurrentValue = Object.prototype.hasOwnProperty.call(state.values, fieldId)
     const expectedValue = hasCurrentValue
       ? state.values[fieldId]
@@ -66,7 +74,7 @@ export function validateTweakerPanelDocument(
     }
   }
 
-  return document
+  return writableDocument
 }
 
 export function importTweakerPanelDocument(

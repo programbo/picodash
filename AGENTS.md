@@ -82,9 +82,10 @@ Panel inputs live in `packages/panel/src/inputs/`. Common primitives use the uni
 Titled panel header actions live in `packages/panel/src/tweaker-panel-actions.tsx`;
 JSON/YAML parsing, serialization, filenames, and validation live in the pure
 `tweaker-panel-documents.ts` helper. Keep the action component internal. Bulk group and
-field changes belong in the panel store and must use one Zustand transaction. Import,
-export, copy, and reset operate on currently registered field IDs, including hidden
-fields, while excluding display-only and stale unregistered values.
+field changes belong in the panel store and must use one Zustand transaction. Copy and
+export include all currently registered field IDs, including hidden and display-only
+fields. Import and reset operate only on currently registered writable fields, including
+hidden fields. All actions exclude stale unregistered values.
 
 Panel theming is package-owned and namespaced. Keep foundation, semantic, and component
 contract variables in `packages/panel/src/styles.css`; never reintroduce generic global

@@ -1,7 +1,8 @@
 import { isValidElement } from 'react'
-import { expect, test } from 'vite-plus/test'
+import { expect, test, vi } from 'vite-plus/test'
 import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
-import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
+import { projectTweakerRangeFill, synchronizeTweakerRangeValue } from '../src/inputs/range.tsx'
+import { createTweakerPanelStore } from '../src/tweaker-panel-store.ts'
 import {
   gradientCssValue,
   isTweakerAlignmentValue,
@@ -100,6 +101,67 @@ test('normalizes range bounds and snaps an ordered tuple', () => {
       step: 1,
     }),
   ).toEqual([2, 6])
+})
+
+test('persists a dynamically normalized field range despite a guarded control setter', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: { range: [2, 9] },
+    panelId: 'ranges',
+  })
+  const guardedSetValue = vi.fn()
+  const normalization = { fallback: [0, 6] as [number, number], max: 6, min: 0, step: 1 }
+  const control = {
+    disabled: true,
+    field: 'range',
+    readOnly: true,
+    setValue: guardedSetValue,
+    value: [2, 9],
+  }
+
+  store.setState((state) => ({ values: { ...state.values, range: [3, 8] } }))
+  const cleanFields = store.getState().fields
+  synchronizeTweakerRangeValue(control, normalization, store)
+  expect(store.getState().values.range).toEqual([3, 6])
+  expect(store.getState().fields).toBe(cleanFields)
+  expect(store.getState().fields.range).toEqual({
+    defaultValue: [2, 9],
+    dirty: false,
+    errors: [],
+    touched: false,
+  })
+  expect(guardedSetValue).not.toHaveBeenCalled()
+
+  const values = store.getState().values
+  synchronizeTweakerRangeValue(control, normalization, store)
+  expect(store.getState().values).toBe(values)
+
+  store.getState().setFieldValue('range', [4, 9])
+  store.setState((state) => ({
+    fields: {
+      ...state.fields,
+      range: { ...state.fields.range!, errors: ['existing error'] },
+    },
+  }))
+  const dirtyFields = store.getState().fields
+  synchronizeTweakerRangeValue(control, normalization, store)
+  expect(store.getState().values.range).toEqual([4, 6])
+  expect(store.getState().fields).toBe(dirtyFields)
+  expect(store.getState().fields.range).toEqual({
+    defaultValue: [2, 9],
+    dirty: true,
+    errors: ['existing error'],
+    touched: true,
+  })
+
+  store.setState((state) => ({ values: { ...state.values, range: [2, 6, 99] } }))
+  synchronizeTweakerRangeValue(control, normalization, store)
+  expect(store.getState().values.range).toEqual([2, 6])
+  expect(store.getState().fields).toBe(dirtyFields)
+
+  store.setState((state) => ({ values: { ...state.values, range: null } }))
+  synchronizeTweakerRangeValue(control, normalization, store)
+  expect(store.getState().values.range).toEqual([0, 6])
+  expect(store.getState().fields).toBe(dirtyFields)
 })
 
 test('projects the range fill between the thumbs inner edges', () => {

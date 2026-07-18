@@ -1,7 +1,7 @@
 import { createStore } from 'zustand'
 import {
   collapsibleGroupsForState,
-  registeredFieldIdsForState,
+  registeredWritableFieldIdsForState,
 } from './tweaker-panel-action-state.js'
 import { bandForItem, itemCanReorder, normalizeAllOrders, rootGroupId } from './tweaker-order.js'
 import type {
@@ -347,7 +347,7 @@ export function createTweakerPanelStore({
 }
 
 function resetRegisteredFieldsState(state: TweakerPanelState) {
-  const fieldIds = registeredFieldIdsForState(state)
+  const fieldIds = registeredWritableFieldIdsForState(state)
   if (fieldIds.length === 0) return state
 
   const fields = { ...state.fields }
@@ -365,7 +365,7 @@ function replaceRegisteredFieldValuesState(
   state: TweakerPanelState,
   importedValues: Record<string, TweakerValue>,
 ) {
-  const fieldIds = registeredFieldIdsForState(state)
+  const fieldIds = registeredWritableFieldIdsForState(state)
   if (fieldIds.length === 0) return state
 
   const fields = { ...state.fields }

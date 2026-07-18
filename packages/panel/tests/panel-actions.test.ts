@@ -185,6 +185,58 @@ test('serializes only currently registered fields as JSON and YAML', () => {
   expect(parseTweakerPanelDocument(yaml, 'yaml')).toEqual({ visible: 1, hidden: false })
 })
 
+test('exports display-only fields but excludes them from import and reset actions', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: {
+      editable: 'default',
+      hidden: 'hidden default',
+      summary: 'derived default',
+    },
+    panelId: 'inspect',
+  })
+  registerField(store, 'editable', 'default')
+  registerField(store, 'hidden', 'hidden default', { hidden: true })
+  registerField(store, 'summary', 'derived default', { displayOnly: true })
+  store.getState().setFieldValue('editable', 'current')
+  store.getState().setFieldValue('hidden', 'hidden current')
+  store.getState().setFieldValue('summary', 'derived current')
+
+  const expectedExport = {
+    editable: 'current',
+    hidden: 'hidden current',
+    summary: 'derived current',
+  }
+  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual(expectedExport)
+  expect(
+    parseTweakerPanelDocument(serializeTweakerPanelValues(store.getState(), 'yaml'), 'yaml'),
+  ).toEqual(expectedExport)
+  expect(
+    validateTweakerPanelDocument(
+      { editable: 'imported', hidden: 'hidden imported', summary: 'ignored' },
+      store.getState(),
+    ),
+  ).toEqual({ editable: 'imported', hidden: 'hidden imported' })
+
+  importTweakerPanelDocument(
+    store,
+    '{"editable":"imported","hidden":"hidden imported","summary":"ignored"}',
+    'json',
+  )
+  expect(store.getState().values).toMatchObject({
+    editable: 'imported',
+    hidden: 'hidden imported',
+    summary: 'derived current',
+  })
+
+  store.getState().resetRegisteredFields()
+  expect(store.getState().values).toMatchObject({
+    editable: 'default',
+    hidden: 'hidden default',
+    summary: 'derived current',
+  })
+  expect(store.getState().fields.summary).toMatchObject({ dirty: true, touched: true })
+})
+
 test('parses and validates JSON and YAML panel documents', () => {
   const store = createTweakerPanelStore({
     defaultValues: { enabled: true, quality: 'balanced', range: [1, 2] },

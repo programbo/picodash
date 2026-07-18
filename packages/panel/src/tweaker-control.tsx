@@ -67,6 +67,11 @@ export interface TweakerControlProps<TValue extends TweakerValue = TweakerValue>
 
 const emptyStates: TweakerControlStates = {}
 const TweakerControlContext = createContext<TweakerControlContextValue | null>(null)
+const TweakerDisplayOnlyContext = createContext(false)
+
+export function TweakerDisplayOnlyProvider({ children }: { children: ReactNode }) {
+  return <TweakerDisplayOnlyContext.Provider value>{children}</TweakerDisplayOnlyContext.Provider>
+}
 
 export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   children,
@@ -98,6 +103,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   ...props
 }: TweakerControlProps<TValue>) {
   const reactId = useId()
+  const displayOnly = useContext(TweakerDisplayOnlyContext)
   const controlId = id ?? field ?? `tweaker-control-${reactId.replaceAll(':', '')}`
   const inputId = `${controlId}:input`
   const labelId = `${controlId}:label`
@@ -188,6 +194,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
 
   useRegisterTweakerItem({
     defaultValue,
+    displayOnly,
     fieldId: field,
     hidden: !visible,
     id: controlId,

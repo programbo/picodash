@@ -38,16 +38,18 @@ Set `collapsible` to add an accessible disclosure control to the panel header. U
 
 Every titled `TweakerPanel` also includes an actions menu at the far end of its header.
 The menu can expand or collapse all visible collapsible groups, reset registered fields,
-and copy, export, or import panel values as JSON or YAML. Reset and import only change
-currently registered fields: order, group disclosure, panel layout, metadata, and stale
+and copy, export, or import panel values as JSON or YAML. Copy and export include
+display-only fields. Reset and import only change currently registered writable fields:
+order, group disclosure, panel layout, metadata, display-only values, and stale
 unregistered values remain untouched.
 
 Imported documents must be a bare object keyed by registered field ID. Unknown keys,
 non-JSON-compatible values, and values whose JSON kind differs from the current/default
-field value reject the whole document without a partial update. Missing registered keys
-reset to their defaults (or are removed when no default exists). Successful imported
-values become dirty and touched. Hidden registered fields participate; display-only and
-unregistered fields do not.
+field value reject the whole document without a partial update. Registered display-only
+keys are accepted but ignored. Missing registered writable keys reset to their defaults
+(or are removed when no default exists). Successful imported values become dirty and
+touched. Hidden registered writable fields participate; unregistered fields do not.
+Display-only fields remain available in copied and exported documents.
 
 `TweakerSlider` accepts `marks` for labels below the slider track:
 
