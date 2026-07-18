@@ -38,6 +38,8 @@ export {
 export { TweakerGroupContextProvider, useTweakerGroupContext } from './tweaker-group-context.js'
 export {
   bandForItem,
+  hasVisibleReorderableSibling,
+  itemCanReorder,
   orderedItemIdsForParent,
   orderedItemsForParent,
   orderIndexForItem,

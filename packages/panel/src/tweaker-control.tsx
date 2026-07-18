@@ -115,7 +115,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
   const disabled = useResolvedPanelProp(disabledProp, false) ?? false
   const readOnly = useResolvedPanelProp(readOnlyProp, false) ?? false
   const placement = useResolvedPanelProp(placementProp, 'auto') ?? 'auto'
-  const reorderable = useResolvedPanelProp(reorderableProp, true) ?? true
+  const configuredReorderable = useResolvedPanelProp(reorderableProp, true) ?? true
   const states = useResolvedPanelProp(statesProp, emptyStates) ?? emptyStates
   const status = useResolvedPanelProp(statusProp)
   const visible = useResolvedPanelProp(visibleProp, true) ?? true
@@ -131,8 +131,9 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
     dragConstraintsRef,
     dragControls,
     parentId,
+    reorderable,
     visualDragOffsetY,
-  } = useTweakerReorderItem(controlId, reorderable)
+  } = useTweakerReorderItem(controlId, configuredReorderable, placement)
   const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'div'>['transformTemplate']>>(
     () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
     [transformTemplateProp],
@@ -192,7 +193,7 @@ export function TweakerControl<TValue extends TweakerValue = TweakerValue>({
     label: labelText,
     parentId,
     placement,
-    reorderable,
+    reorderable: configuredReorderable,
   })
 
   if (!visible) return null

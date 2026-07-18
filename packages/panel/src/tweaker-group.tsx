@@ -77,7 +77,7 @@ export function TweakerGroup({
   const label = useResolvedPanelProp(labelProp, id)
   const collapsible = useResolvedPanelProp(collapsibleProp, true) ?? true
   const placement = useResolvedPanelProp(placementProp, 'auto') ?? 'auto'
-  const reorderable = useResolvedPanelProp(reorderableProp, true) ?? true
+  const configuredReorderable = useResolvedPanelProp(reorderableProp, true) ?? true
   const states = useResolvedPanelProp(statesProp, emptyStates) ?? emptyStates
   const status = useResolvedPanelProp(statusProp)
   const visible = useResolvedPanelProp(visibleProp, true) ?? true
@@ -91,8 +91,9 @@ export function TweakerGroup({
     dragConstraintsRef,
     dragControls,
     parentId,
+    reorderable,
     visualDragOffsetY,
-  } = useTweakerReorderItem(id, reorderable)
+  } = useTweakerReorderItem(id, configuredReorderable, placement)
   const transformTemplate = useMemo<NonNullable<HTMLMotionProps<'section'>['transformTemplate']>>(
     () => (latest) => (transformTemplateProp ? transformTemplateProp(latest, '') : 'none'),
     [transformTemplateProp],
@@ -110,7 +111,7 @@ export function TweakerGroup({
     label: labelText,
     parentId,
     placement,
-    reorderable,
+    reorderable: configuredReorderable,
   })
 
   if (!visible) return null

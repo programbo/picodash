@@ -425,13 +425,14 @@ test('avoids Camera height before Quality covers it and retains avoidance on a 1
 })
 
 for (const collapsed of [false, true]) {
-  test(`reorders Scene Controls top-level groups while ${collapsed ? 'collapsed' : 'expanded'}`, async ({
+  test(`renders singleton Scene placement bands as static while groups are ${collapsed ? 'collapsed' : 'expanded'}`, async ({
     page,
   }) => {
     const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
     const list = panel.locator('[data-tweaker-reorder-list="root"]')
     const essentials = panel.locator('[data-group-id="scene-essentials"]')
     const rendering = panel.locator('[data-group-id="scene-rendering"]')
+    const summary = panel.locator('[data-control-id="scene-summary"]')
 
     if (collapsed) {
       await essentials.getByRole('button', { name: 'Essentials', exact: true }).click()
@@ -441,64 +442,39 @@ for (const collapsed of [false, true]) {
       await page.waitForTimeout(200)
     }
 
-    const grip = rendering.getByRole('button', { name: 'Reorder Rendering', exact: true })
-    await grip.scrollIntoViewIfNeeded()
-    const gripRect = await requiredBox(grip)
-    const essentialsRect = await requiredBox(essentials)
-    const renderingRect = await requiredBox(rendering)
-    const pointerX = gripRect.x + gripRect.width / 2
-    const pointerY = gripRect.y + gripRect.height / 2
-    const crossingOffset = essentialsRect.y + essentialsRect.height / 2 - renderingRect.y - 1
+    const initialOrder = ['scene-essentials', 'scene-rendering', 'scene-summary']
+    expect(await itemOrder(list, 'root')).toEqual(initialOrder)
+    const initialSlots = await itemSlots(list, 'root')
+    const staticItems = [
+      { item: essentials, label: 'Essentials' },
+      { item: rendering, label: 'Rendering' },
+      { item: summary, label: 'Summary' },
+    ]
 
-    await page.mouse.move(pointerX, pointerY)
-    await page.mouse.down()
-    await page.mouse.move(pointerX, pointerY + crossingOffset)
-    await expect
-      .poll(() => itemOrder(list, 'root'))
-      .toEqual(['scene-rendering', 'scene-essentials', 'scene-summary'])
-    await expect
-      .poll(async () => Math.abs((await requiredBox(essentials)).y - essentialsRect.y))
-      .toBeGreaterThan(1)
-    await expectSiblingVisualsToSettle(list, 'root', 'scene-rendering')
+    for (const { item, label } of staticItems) {
+      const slot = item.getByRole('button', { name: `Reorder ${label}`, exact: true })
+      await expect(item).toHaveAttribute('data-reorderable', 'false')
+      await expect(slot).toHaveAttribute('aria-disabled', 'true')
+      await expect(slot.locator('[data-tweaker-reorder-indicator="static"]')).toHaveCount(1)
+      await expect(slot.locator('[data-tweaker-reorder-indicator="grip"]')).toHaveCount(0)
+      await expect(slot.locator('svg')).toHaveCount(0)
 
-    await page.mouse.up()
-    await expect
-      .poll(() => itemOrder(list, 'root'))
-      .toEqual(['scene-rendering', 'scene-essentials', 'scene-summary'])
-    await expect(rendering).toHaveAttribute('data-dragging', 'false')
+      await slot.scrollIntoViewIfNeeded()
+      const slotRect = await requiredBox(slot)
+      const pointerX = slotRect.x + slotRect.width / 2
+      const pointerY = slotRect.y + slotRect.height / 2
+      await page.mouse.move(pointerX, pointerY)
+      await page.mouse.down()
+      await page.mouse.move(pointerX, pointerY - 120)
+      await page.mouse.up()
+
+      await expect(item).toHaveAttribute('data-dragging', 'false')
+      expect(await itemOrder(list, 'root')).toEqual(initialOrder)
+    }
+
+    expect(await itemSlots(list, 'root')).toEqual(initialSlots)
     await expect.poll(() => listTransformsAreNone(list, 'root')).toBe(true)
     await expectContiguousItems(list, 'root')
-  })
-}
-
-for (const collapsed of [false, true]) {
-  test(`reorders the Scene Controls Summary item while groups are ${collapsed ? 'collapsed' : 'expanded'}`, async ({
-    page,
-  }) => {
-    const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
-    const list = panel.locator('[data-tweaker-reorder-list="root"]')
-    const essentials = panel.locator('[data-group-id="scene-essentials"]')
-    const rendering = panel.locator('[data-group-id="scene-rendering"]')
-
-    if (collapsed) {
-      await essentials.getByRole('button', { name: 'Essentials', exact: true }).click()
-      await rendering.getByRole('button', { name: 'Rendering', exact: true }).click()
-      await expect(essentials).toHaveAttribute('data-collapsed', 'true')
-      await expect(rendering).toHaveAttribute('data-collapsed', 'true')
-      await page.waitForTimeout(200)
-    }
-
-    await exerciseLivePreviewDrag({
-      expectedOrder: ['scene-essentials', 'scene-summary', 'scene-rendering'],
-      list,
-      page,
-      panel,
-      parentId: 'root',
-      sourceId: 'scene-summary',
-      sourceLabel: 'Summary',
-      targetId: 'scene-rendering',
-      verifyDirectionChange: false,
-    })
   })
 }
 

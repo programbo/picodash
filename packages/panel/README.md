@@ -116,6 +116,11 @@ export function CustomItems() {
 default to block/full layouts where appropriate while keeping descriptions in a separate
 following grid row.
 
+Controls and groups are draggable only when `reorderable` is enabled and another visible,
+reorderable item exists in the same parent and `placement` band. A singleton band, or a
+band whose remaining items are hidden or explicitly non-reorderable, renders a static
+marker instead of a drag grip and rejects pointer and store reorder attempts.
+
 Pure normalization and projection helpers are exported alongside the controls for custom
 composition and focused testing. Keep the panel store authoritative for user values. Use
 MotionValues only for high-frequency visual sampling or smoothing, respect reduced-motion,

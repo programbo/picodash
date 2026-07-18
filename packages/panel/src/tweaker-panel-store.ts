@@ -3,7 +3,7 @@ import {
   collapsibleGroupsForState,
   registeredFieldIdsForState,
 } from './tweaker-panel-action-state.js'
-import { bandForItem, normalizeAllOrders, rootGroupId } from './tweaker-order.js'
+import { bandForItem, itemCanReorder, normalizeAllOrders, rootGroupId } from './tweaker-order.js'
 import type {
   TweakerFieldState,
   TweakerPanelState,
@@ -99,7 +99,7 @@ export function createTweakerPanelStore({
     moveItemToIndex(itemId, index) {
       set((state) => {
         const item = state.items[itemId]
-        if (!item?.reorderable) return state
+        if (!item || !itemCanReorder(state, itemId)) return state
 
         const parentOrder = state.order[item.parentId] ?? []
         const visibleBandOrder = parentOrder.filter((id) => {
@@ -142,7 +142,7 @@ export function createTweakerPanelStore({
       set((state) => {
         const item = state.items[itemId]
         const over = state.items[overId]
-        if (!item?.reorderable || !over) return state
+        if (!item || !over || !itemCanReorder(state, itemId)) return state
         if (item.parentId !== over.parentId || item.placement !== over.placement) return state
 
         const parentOrder = state.order[item.parentId] ?? []
@@ -189,7 +189,7 @@ export function createTweakerPanelStore({
         const active = state.items[activeId]
         const over = state.items[overId]
         if (!active || !over) return state
-        if (!active.reorderable || active.parentId !== over.parentId) return state
+        if (!itemCanReorder(state, activeId) || active.parentId !== over.parentId) return state
         if (bandForItem(active) !== bandForItem(over)) return state
 
         const parentOrder = state.order[active.parentId] ?? []
@@ -311,6 +311,8 @@ export function createTweakerPanelStore({
     },
     setDraggingItem(itemId) {
       set((state) => {
+        if (itemId !== null && !itemCanReorder(state, itemId)) return state
+
         const activeIds =
           itemId === null
             ? Object.fromEntries(

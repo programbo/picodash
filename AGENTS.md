@@ -194,6 +194,10 @@ RestrictToElement.configure({ element: () => listRef.current })
 
 Rows also support a pointer-drag fallback and keyboard ArrowUp/ArrowDown reordering on the grip. Preserve all three paths unless a change explicitly replaces them and updates tests.
 
+Panel controls and groups expose an active drag grip only when the item is configured as
+reorderable and has another visible, configured-reorderable sibling in the same parent and
+placement band. Singleton bands render the static marker and must reject reorder attempts.
+
 The panel header is independently draggable for floating placement and magnetic docking. Keep row drag and panel drag event handling separate.
 
 ## Website App

@@ -232,7 +232,7 @@ function DemoExperience() {
         }}
       >
         <PanelStateObserver panelId={scenePanelId} onSnapshot={handlePanelSnapshot} />
-        <TweakerGroup id="scene-essentials" label="Essentials">
+        <TweakerGroup id="scene-essentials" label="Essentials" placement="start">
           <TweakerSlider
             field="opacity"
             label={(state) => `Opacity (${stringFromMeta(state, 'unit', '%')})`}
@@ -319,6 +319,7 @@ function DemoExperience() {
         <TweakerDisplay
           id="scene-summary"
           label="Summary"
+          placement="end"
           value={(state) =>
             `${Math.round(numberFromValue(state.values.opacity, 0) * 100)}% opacity / ${stringFromValue(state.values.quality, 'balanced')}`
           }

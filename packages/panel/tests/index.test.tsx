@@ -21,6 +21,8 @@ import {
   type PanelRect,
 } from '../src/panel-snapping.ts'
 import {
+  hasVisibleReorderableSibling,
+  itemCanReorder,
   orderedItemIdsForParent,
   orderIndexForItem,
   reorderValuesForPointer,
@@ -486,6 +488,86 @@ test('programmatic reorder stays within parent and placement band', () => {
 
   store.getState().reorderItem('nested', 'quality')
   expect(store.getState().order.root).toEqual(['header', 'exposure', 'quality', 'summary'])
+})
+
+test('requires a visible reorderable sibling in the same parent and placement band', () => {
+  const store = createTweakerPanelStore({ panelId: 'inspect' })
+  const register = ({
+    hidden = false,
+    id,
+    parentId = 'root',
+    placement = 'auto',
+    reorderable = true,
+  }: {
+    hidden?: boolean
+    id: string
+    parentId?: string
+    placement?: 'auto' | 'start' | 'end'
+    reorderable?: boolean
+  }) => {
+    store.getState().registerItem({
+      hidden,
+      id,
+      kind: 'control',
+      parentId,
+      placement,
+      reorderable,
+    })
+  }
+
+  register({ id: 'quality' })
+  register({ id: 'header', placement: 'start' })
+  register({ id: 'fixed', reorderable: false })
+  register({ hidden: true, id: 'hidden' })
+  register({ id: 'nested', parentId: 'group-a' })
+
+  expect(itemCanReorder(store.getState(), 'quality')).toBe(false)
+  expect(itemCanReorder(store.getState(), 'header')).toBe(false)
+  expect(itemCanReorder(store.getState(), 'fixed')).toBe(false)
+  expect(itemCanReorder(store.getState(), 'hidden')).toBe(false)
+  expect(itemCanReorder(store.getState(), 'nested')).toBe(false)
+  expect(
+    hasVisibleReorderableSibling(store.getState(), {
+      id: 'quality',
+      parentId: 'root',
+      placement: 'auto',
+    }),
+  ).toBe(false)
+
+  register({ id: 'exposure' })
+
+  expect(itemCanReorder(store.getState(), 'quality')).toBe(true)
+  expect(itemCanReorder(store.getState(), 'exposure')).toBe(true)
+  expect(itemCanReorder(store.getState(), 'fixed')).toBe(false)
+})
+
+test('reorder mutations reject an item whose only visible band sibling is fixed', () => {
+  const store = createTweakerPanelStore({ panelId: 'inspect' })
+  const register = (id: string, reorderable: boolean) => {
+    store.getState().registerItem({
+      id,
+      kind: 'control',
+      parentId: 'root',
+      placement: 'auto',
+      reorderable,
+    })
+  }
+
+  register('quality', true)
+  register('fixed', false)
+
+  store.getState().moveItemToIndex('quality', 1)
+  store.getState().moveItemRelativeTo('quality', 'fixed', 'after')
+  store.getState().reorderItem('quality', 'fixed')
+  store.getState().setDraggingItem('quality')
+
+  expect(store.getState().order.root).toEqual(['quality', 'fixed'])
+  expect(store.getState().interaction.draggingId).toBeNull()
+
+  register('exposure', true)
+  store.getState().moveItemToIndex('quality', 2)
+
+  expect(store.getState().order.root).toEqual(['fixed', 'exposure', 'quality'])
 })
 
 test('drag commit moves items by visible placement-local index', () => {

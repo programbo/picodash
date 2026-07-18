@@ -15,6 +15,25 @@ export function bandForItem(item: Pick<TweakerItemRegistration, 'placement'>): T
   return item.placement
 }
 
+export function hasVisibleReorderableSibling(
+  state: Pick<TweakerPanelState, 'items'>,
+  item: Pick<TweakerItemRegistration, 'id' | 'parentId' | 'placement'>,
+) {
+  return Object.values(state.items).some(
+    (sibling) =>
+      sibling.id !== item.id &&
+      sibling.parentId === item.parentId &&
+      sibling.placement === item.placement &&
+      sibling.reorderable &&
+      !sibling.hidden,
+  )
+}
+
+export function itemCanReorder(state: Pick<TweakerPanelState, 'items'>, itemId: string) {
+  const item = state.items[itemId]
+  return Boolean(item?.reorderable && !item.hidden && hasVisibleReorderableSibling(state, item))
+}
+
 export function orderedItemsForParent(
   state: Pick<TweakerPanelState, 'items' | 'order'>,
   parentId: string,

@@ -10,8 +10,11 @@ import {
   type HTMLMotionProps,
 } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import { useStore } from 'zustand'
 import { useTweakerGroupContext } from './tweaker-group-context.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
+import { hasVisibleReorderableSibling } from './tweaker-order.js'
+import type { TweakerPlacement } from './tweaker-panel-types.js'
 import { tweakerMotionTokens } from './theme.js'
 
 export const reorderTransition: HTMLMotionProps<'div'>['transition'] = {
@@ -49,7 +52,11 @@ export function reorderTopWithOffset(top: unknown, offset: number) {
   return offset
 }
 
-export function useTweakerReorderItem(itemId: string, reorderable: boolean) {
+export function useTweakerReorderItem(
+  itemId: string,
+  configuredReorderable: boolean,
+  placement: TweakerPlacement,
+) {
   const store = useTweakerPanelStoreApi()
   const dragControls = useDragControls()
   const visualDragOffsetY = useMotionValue(0)
@@ -63,6 +70,10 @@ export function useTweakerReorderItem(itemId: string, reorderable: boolean) {
   const settleGenerationRef = useRef(0)
   const { beginItemReorder, commitPendingOrder, dragConstraintsRef, parentId, registerItemMotion } =
     useTweakerGroupContext()
+  const hasReorderableSibling = useStore(store, (state) =>
+    hasVisibleReorderableSibling(state, { id: itemId, parentId, placement }),
+  )
+  const reorderable = configuredReorderable && hasReorderableSibling
 
   const stopSettleAnimation = () => {
     settleGenerationRef.current += 1
@@ -143,6 +154,7 @@ export function useTweakerReorderItem(itemId: string, reorderable: boolean) {
     dragConstraintsRef,
     dragControls,
     parentId,
+    reorderable,
     visualDragOffsetY: visualOffsetY,
   }
 }
