@@ -96,7 +96,7 @@ const scenePanelStore = createTweakerPanelStore({
   panelId: scenePanelId,
 })
 
-const customItemPanelStore = createTweakerPanelStore({
+export const customItemPanelStore = createTweakerPanelStore({
   initialValues: customItemDefaults,
   panelId: outputPanelId,
 })

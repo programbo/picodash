@@ -99,6 +99,45 @@ test('reviews repairable custom-item imports before committing them atomically',
   )
 })
 
+test('keeps a repair review open when import constraints change before acceptance', async ({
+  page,
+}) => {
+  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const input = panel.locator('[data-validated-preset-name]')
+  const importInput = panel.locator('input[data-tweaker-panel-import]')
+  const repairFile = {
+    buffer: Buffer.from('{"presetName":"x"}'),
+    mimeType: 'application/json',
+    name: 'stale-repair.json',
+  }
+
+  await input.fill('Gallery')
+  await importInput.setInputFiles(repairFile)
+
+  const dialog = page.getByRole('alertdialog', { name: 'Review import for Custom Items' })
+  await expect(dialog).toBeVisible()
+
+  await page.evaluate(async () => {
+    const appModulePath = ['/src', 'App.tsx'].join('/')
+    const { customItemPanelStore } = await import(appModulePath)
+    customItemPanelStore.getState().setFieldDefault('presetName', 'Archive')
+  })
+
+  await dialog.getByRole('button', { name: 'Accept changes' }).click()
+
+  const acceptanceError = dialog.getByRole('alert')
+  await expect(dialog).toBeVisible()
+  await expect(acceptanceError).toBeVisible()
+  await expect(acceptanceError).toHaveText(
+    'Panel constraints changed while the import was awaiting review.',
+  )
+  await expect(input).toHaveValue('Gallery')
+
+  await dialog.getByRole('button', { name: 'Abort' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(input).toHaveValue('Gallery')
+})
+
 test('drops delayed pointer velocity intervals instead of backfilling history', () => {
   const sampleInterval = 1000 / 60
   const clock = advanceSparklineSamplingClock(4, 4, 100, sampleInterval)

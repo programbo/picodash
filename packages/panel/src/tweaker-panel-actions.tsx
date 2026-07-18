@@ -298,13 +298,9 @@ export function TweakerPanelActions({
         }}
         onAccept={() => {
           if (!importRepair) return
-          try {
-            applyTweakerPanelImport(store, importRepair.analysis)
-            announce(`Imported repaired panel values from ${importRepair.filename}.`)
-            setImportRepair(null)
-          } catch (error) {
-            announce(`Import failed: ${errorMessage(error)}`)
-          }
+          applyTweakerPanelImport(store, importRepair.analysis)
+          announce(`Imported repaired panel values from ${importRepair.filename}.`)
+          setImportRepair(null)
         }}
       />
     </>
