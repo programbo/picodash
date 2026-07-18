@@ -8,6 +8,11 @@ import {
   type TweakerControlContextValue,
   type TweakerControlProps,
 } from '../tweaker-control.js'
+import {
+  exactTweakerObjectArrayValue,
+  synchronizeTweakerFieldValue,
+} from '../tweaker-control-value.js'
+import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { Button } from '../ui.js'
 import { cn } from '../utils.js'
 import { tweakerDefaultTheme, tweakerMotionTokens } from '../theme.js'
@@ -20,6 +25,7 @@ export type TweakerDroppedFileMetadata = {
   type: string
 }
 export type TweakerDropzoneValue = TweakerDroppedFileMetadata[]
+const droppedFileMetadataKeys = ['id', 'lastModified', 'name', 'size', 'type'] as const
 
 type TweakerDropzonePreview = TweakerDroppedFileMetadata & {
   url: string
@@ -105,6 +111,7 @@ function DropzoneSurface({
   onFiles: TweakerDropzoneProps['onFiles']
   showPreviews: boolean
 }) {
+  const store = useTweakerPanelStoreApi()
   const value = normalizeTweakerDropzoneValue(control.value ?? fallbackValue)
   const unavailable = control.disabled || control.readOnly
   const previewUrlsRef = useRef(new Map<string, string>())
@@ -116,6 +123,16 @@ function DropzoneSurface({
   const [viewerPreview, setViewerPreview] = useState<TweakerDropzonePreview | null>(null)
   const [viewerOpen, setViewerOpen] = useState(false)
   const atCapacity = multiple && maxFiles > 0 && value.length >= maxFiles
+
+  useEffect(() => {
+    synchronizeTweakerFieldValue(
+      control,
+      normalizeTweakerDropzoneValue,
+      (currentValue, normalizedValue) =>
+        exactTweakerObjectArrayValue(currentValue, normalizedValue, droppedFileMetadataKeys),
+      store,
+    )
+  }, [control, store])
 
   const { fileRejections, getInputProps, getRootProps, isDragAccept, isDragActive, isDragReject } =
     useDropzone({

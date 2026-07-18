@@ -13,6 +13,11 @@ import {
   type TweakerControlContextValue,
   type TweakerControlProps,
 } from '../tweaker-control.js'
+import {
+  exactTweakerObjectArrayValue,
+  synchronizeTweakerFieldValue,
+} from '../tweaker-control-value.js'
+import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { Button, Input } from '../ui.js'
 import { cn } from '../utils.js'
 
@@ -31,6 +36,7 @@ const fallbackGradient: TweakerGradientValue = [
   { color: '#111827', id: 'start', position: 0 },
   { color: '#f9fafb', id: 'end', position: 1 },
 ]
+const gradientStopKeys = ['color', 'id', 'position'] as const
 
 export function TweakerGradient({
   contentLayout = 'block',
@@ -66,6 +72,7 @@ function GradientEditor({
   control: TweakerControlContextValue<TweakerGradientValue>
   fallbackValue: TweakerGradientValue
 }) {
+  const store = useTweakerPanelStoreApi()
   const reactId = useId().replaceAll(':', '')
   const idCounterRef = useRef(0)
   const trackRef = useRef<HTMLDivElement | null>(null)
@@ -74,6 +81,16 @@ function GradientEditor({
   const [selectedId, setSelectedId] = useState(stops[0]?.id ?? '')
   const selectedStop = stops.find((stop) => stop.id === selectedId) ?? stops[0]
   const unavailable = control.disabled || control.readOnly
+
+  useEffect(() => {
+    synchronizeTweakerFieldValue(
+      control,
+      normalizeTweakerGradient,
+      (currentValue, normalizedValue) =>
+        exactTweakerObjectArrayValue(currentValue, normalizedValue, gradientStopKeys),
+      store,
+    )
+  }, [control, store])
 
   useEffect(() => {
     if (!stops.some((stop) => stop.id === selectedId)) {

@@ -361,6 +361,44 @@ test('validates imported alignment values against the registered alignment optio
   })
 })
 
+test('validates imported segmented values against the latest registered options', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: { density: 'compact', enabled: true },
+    panelId: 'inspect',
+  })
+  registerField(store, 'enabled', true)
+  registerField(store, 'density', 'compact', {
+    [tweakerItemImportAllowedStringValues]: selectOptionValues([
+      'compact',
+      { disabled: true, label: 'Comfortable (unavailable)', value: 'comfortable' },
+      'spacious',
+    ]),
+  })
+
+  importTweakerPanelDocument(store, '{"density":"spacious","enabled":false}', 'json')
+  expect(store.getState().values).toMatchObject({ density: 'spacious', enabled: false })
+
+  importTweakerPanelDocument(store, 'density: comfortable\nenabled: true\n', 'yaml')
+  expect(store.getState().values).toMatchObject({ density: 'comfortable', enabled: true })
+
+  registerField(store, 'density', 'compact', {
+    [tweakerItemImportAllowedStringValues]: selectOptionValues(['compact', 'spacious']),
+  })
+  const initialValues = store.getState().values
+  const initialFields = store.getState().fields
+
+  expect(() =>
+    importTweakerPanelDocument(store, '{"density":"comfortable","enabled":false}', 'json'),
+  ).toThrow(/Field "density" must be one of: "compact", "spacious"/)
+  expect(() =>
+    importTweakerPanelDocument(store, 'density: comfortable\nenabled: false\n', 'yaml'),
+  ).toThrow(/Field "density" must be one of: "compact", "spacious"/)
+
+  expect(store.getState().values).toBe(initialValues)
+  expect(store.getState().fields).toBe(initialFields)
+  expect(store.getState().values).toMatchObject({ density: 'comfortable', enabled: true })
+})
+
 test('validates imported select values against the latest registered options', () => {
   const store = createTweakerPanelStore({
     defaultValues: { enabled: true, quality: 'balanced' },

@@ -49,3 +49,18 @@ export function exactTweakerTupleValue<TValue extends readonly TweakerValue[]>(
     value.every((entry, index) => entry === normalizedValue[index])
   )
 }
+
+export function exactTweakerObjectArrayValue<TValue extends object>(
+  value: unknown,
+  normalizedValue: readonly TValue[],
+  keys: readonly (keyof TValue & string)[],
+) {
+  return (
+    Array.isArray(value) &&
+    value.length === normalizedValue.length &&
+    value.every((entry, index) => {
+      const normalizedEntry = normalizedValue[index]
+      return normalizedEntry !== undefined && exactTweakerObjectValue(entry, normalizedEntry, keys)
+    })
+  )
+}

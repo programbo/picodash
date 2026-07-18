@@ -4,6 +4,7 @@ import { tweakerAlignmentValues } from '../src/inputs/alignment.tsx'
 import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
 import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
 import {
+  exactTweakerObjectArrayValue,
   exactTweakerObjectValue,
   exactTweakerTupleValue,
   synchronizeTweakerFieldValue,
@@ -466,6 +467,58 @@ test('normalizes malformed gradient values without projecting unknown records', 
   ])
 })
 
+test('persists canonical gradient stops from the latest stored value before export', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: {
+      gradient: [
+        { color: '#ABC', extra: true, id: ' end ', position: 2 },
+        { color: 'invalid', id: 'end', position: -1 },
+      ],
+    },
+    panelId: 'gradient',
+  })
+  store.getState().registerItem({
+    defaultValue: [],
+    fieldId: 'gradient',
+    id: 'gradient-control',
+    kind: 'control',
+    parentId: 'root',
+    placement: 'auto',
+    reorderable: true,
+  })
+  const control = {
+    disabled: true,
+    field: 'gradient',
+    readOnly: true,
+    value: [],
+  }
+  const synchronize = () =>
+    synchronizeTweakerFieldValue(
+      control,
+      normalizeTweakerGradient,
+      (currentValue, normalizedValue) =>
+        exactTweakerObjectArrayValue(currentValue, normalizedValue, ['color', 'id', 'position']),
+      store,
+    )
+  const fields = store.getState().fields
+
+  synchronize()
+
+  const expected = [
+    { color: '#000000', id: 'end-2', position: 0 },
+    { color: '#aabbcc', id: 'end', position: 1 },
+  ]
+  expect(store.getState().values.gradient).toEqual(expected)
+  expect(store.getState().fields).toBe(fields)
+  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({
+    gradient: expected,
+  })
+
+  const values = store.getState().values
+  synchronize()
+  expect(store.getState().values).toBe(values)
+})
+
 test('accepts safe media URLs without interpreting SVG markup', () => {
   expect(normalizeTweakerMediaUrl('/preview.svg')).toBe('/preview.svg')
   expect(normalizeTweakerMediaUrl('data:image/svg+xml,%3Csvg%3E%3C/svg%3E')).toContain(
@@ -539,6 +592,84 @@ test('normalizes malformed dropzone values and appends only within remaining cap
     acceptedFiles: ['one', 'two'],
     overflowFiles: [],
   })
+})
+
+test('persists canonical dropzone metadata from the latest stored value before export', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: {
+      assets: [
+        { id: ' My File ', lastModified: -3, name: '  ', size: -2 },
+        {
+          extra: 'drop',
+          id: 'my-file',
+          lastModified: -1,
+          name: ' photo.png ',
+          size: 42,
+          type: ' image/png ',
+        },
+        'invalid',
+      ],
+    },
+    panelId: 'dropzone',
+  })
+  store.getState().registerItem({
+    defaultValue: [],
+    fieldId: 'assets',
+    id: 'assets-control',
+    kind: 'control',
+    parentId: 'root',
+    placement: 'auto',
+    reorderable: true,
+  })
+  const control = {
+    disabled: true,
+    field: 'assets',
+    readOnly: true,
+    value: [],
+  }
+  const synchronize = () =>
+    synchronizeTweakerFieldValue(
+      control,
+      normalizeTweakerDropzoneValue,
+      (currentValue, normalizedValue) =>
+        exactTweakerObjectArrayValue(currentValue, normalizedValue, [
+          'id',
+          'lastModified',
+          'name',
+          'size',
+          'type',
+        ]),
+      store,
+    )
+  const fields = store.getState().fields
+
+  synchronize()
+
+  const expected = [
+    {
+      id: 'my-file',
+      lastModified: 0,
+      name: 'Unnamed file',
+      size: 0,
+      type: 'application/octet-stream',
+    },
+    {
+      id: 'my-file-2',
+      lastModified: 0,
+      name: 'photo.png',
+      size: 42,
+      type: 'image/png',
+    },
+  ]
+  expect(store.getState().values.assets).toEqual(expected)
+  expect(store.getState().fields).toBe(fields)
+  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({
+    assets: expected,
+  })
+
+  const values = store.getState().values
+  synchronize()
+  expect(store.getState().values).toBe(values)
 })
 
 test('restores dropzone viewer focus only to a connected thumbnail trigger', () => {
