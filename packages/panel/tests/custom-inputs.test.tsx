@@ -94,12 +94,12 @@ test('normalizes select values across dynamic and disabled options', () => {
   expect(normalizeSelectValue('missing', [])).toBeUndefined()
 })
 
-test('validates every alignment and falls back to middle center', () => {
+test('validates every alignment and falls back to center', () => {
   expect(tweakerAlignmentOptions).toHaveLength(9)
   expect(tweakerAlignmentValues).toEqual(tweakerAlignmentOptions.map(({ value }) => value))
   expect(tweakerAlignmentOptions.every(({ value }) => isTweakerAlignmentValue(value))).toBe(true)
   expect(normalizeAlignmentValue('bottom-right')).toBe('bottom-right')
-  expect(normalizeAlignmentValue('baseline')).toBe('middle-center')
+  expect(normalizeAlignmentValue('baseline')).toBe('center')
 })
 
 test('normalizes vector bounds, finite coordinates, and step', () => {

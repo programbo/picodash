@@ -17,7 +17,9 @@ const alignmentColumns = [
 type AlignmentRow = (typeof alignmentRows)[number]['value']
 type AlignmentColumn = (typeof alignmentColumns)[number]['value']
 
-export type TweakerAlignmentValue = `${AlignmentRow}-${AlignmentColumn}`
+type AlignmentPosition = `${AlignmentRow}-${AlignmentColumn}`
+
+export type TweakerAlignmentValue = Exclude<AlignmentPosition, 'middle-center'> | 'center'
 
 export interface TweakerAlignmentProps extends Omit<
   TweakerInputItemProps<TweakerAlignmentValue>,
@@ -32,7 +34,10 @@ export const tweakerAlignmentOptions = alignmentRows.reduce(
       ...options,
       ...alignmentColumns.map((column) => ({
         label: `${row.label} ${column.label}`,
-        value: `${row.value}-${column.value}` as TweakerAlignmentValue,
+        value:
+          row.value === 'middle' && column.value === 'center'
+            ? 'center'
+            : (`${row.value}-${column.value}` as TweakerAlignmentValue),
       })),
     ]
   },
@@ -51,7 +56,7 @@ const alignmentRowClasses = ['items-start', 'items-center', 'items-end'] as cons
 const alignmentColumnClasses = ['justify-start', 'justify-center', 'justify-end'] as const
 
 export function TweakerAlignment({
-  defaultValue = 'middle-center',
+  defaultValue = 'center',
   ...controlProps
 }: TweakerAlignmentProps) {
   const normalizedDefault = normalizeAlignmentValue(defaultValue)
@@ -78,7 +83,7 @@ export function isTweakerAlignmentValue(value: unknown): value is TweakerAlignme
 
 export function normalizeAlignmentValue(
   value: unknown,
-  fallback: TweakerAlignmentValue = 'middle-center',
+  fallback: TweakerAlignmentValue = 'center',
 ): TweakerAlignmentValue {
   return isTweakerAlignmentValue(value) ? value : fallback
 }

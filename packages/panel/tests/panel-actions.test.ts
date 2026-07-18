@@ -318,10 +318,10 @@ test('parses and validates JSON and YAML panel documents', () => {
 
 test('validates imported alignment values against the registered alignment options', () => {
   const store = createTweakerPanelStore({
-    initialValues: { alignment: 'middle-center', enabled: true },
+    initialValues: { alignment: 'center', enabled: true },
     panelId: 'inspect',
   })
-  registerField(store, 'alignment', 'middle-center', {
+  registerField(store, 'alignment', 'center', {
     validate: allowedStringValidator(tweakerAlignmentValues),
   })
   registerField(store, 'enabled', true)

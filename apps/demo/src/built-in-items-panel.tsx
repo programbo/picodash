@@ -17,7 +17,6 @@ import {
   TweakerText,
   TweakerVector3,
   TweakerXYPad,
-  type TweakerAlignmentValue,
   type TweakerMatrix2DOption,
 } from 'panel'
 
@@ -69,6 +68,9 @@ const alignmentColumns = [
   value: string
 }[]
 
+type AlignmentValue =
+  `${(typeof alignmentRows)[number]['value']}-${(typeof alignmentColumns)[number]['value']}`
+
 const alignmentOptions = alignmentRows.map((row, rowIndex) =>
   alignmentColumns.map((column, columnIndex) => ({
     'aria-label': `${row.label} ${column.label}`,
@@ -86,9 +88,9 @@ const alignmentOptions = alignmentRows.map((row, rowIndex) =>
       .join(' '),
     'data-alignment-index': rowIndex * alignmentColumns.length + columnIndex,
     title: `${row.label} ${column.label}`,
-    value: `${row.value}-${column.value}` as TweakerAlignmentValue,
+    value: `${row.value}-${column.value}` as AlignmentValue,
   })),
-) satisfies readonly (readonly TweakerMatrix2DOption<TweakerAlignmentValue>[])[]
+) satisfies readonly (readonly TweakerMatrix2DOption<AlignmentValue>[])[]
 
 export function BuiltInItemsPanel() {
   return (
