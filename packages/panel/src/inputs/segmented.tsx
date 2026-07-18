@@ -11,7 +11,6 @@ import {
 import { synchronizeTweakerFieldValue } from '../tweaker-control-value.js'
 import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { cn } from '../utils.js'
-import { selectOptionValues } from './select.js'
 
 export type TweakerSegmentedOption =
   | string
@@ -37,7 +36,7 @@ export function TweakerSegmented({
 }: TweakerSegmentedProps) {
   const options = useResolvedPanelProp(optionsProp, []) ?? []
   const normalizedDefaultValue = normalizeSegmentedValue(defaultValue, options)
-  const importAllowedValuesKey = JSON.stringify(selectOptionValues(options))
+  const importAllowedValuesKey = JSON.stringify(segmentedEnabledOptionValues(options))
   const importAllowedValues = useMemo(
     () => JSON.parse(importAllowedValuesKey) as string[],
     [importAllowedValuesKey],
@@ -170,4 +169,10 @@ export function segmentedOptionIcon(option: TweakerSegmentedOption) {
 
 export function segmentedOptionDisabled(option: TweakerSegmentedOption) {
   return typeof option === 'string' ? false : (option.disabled ?? false)
+}
+
+export function segmentedEnabledOptionValues(options: readonly TweakerSegmentedOption[]) {
+  return options
+    .filter((option) => !segmentedOptionDisabled(option))
+    .map((option) => segmentedOptionValue(option))
 }

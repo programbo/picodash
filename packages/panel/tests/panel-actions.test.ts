@@ -1,5 +1,6 @@
 import { expect, test } from 'vite-plus/test'
 import { tweakerAlignmentValues } from '../src/inputs/alignment.tsx'
+import { segmentedEnabledOptionValues } from '../src/inputs/segmented.tsx'
 import { selectOptionValues } from '../src/inputs/select.tsx'
 import { collapsibleGroupsForState } from '../src/tweaker-panel-action-state.ts'
 import {
@@ -368,7 +369,7 @@ test('validates imported segmented values against the latest registered options'
   })
   registerField(store, 'enabled', true)
   registerField(store, 'density', 'compact', {
-    [tweakerItemImportAllowedStringValues]: selectOptionValues([
+    [tweakerItemImportAllowedStringValues]: segmentedEnabledOptionValues([
       'compact',
       { disabled: true, label: 'Comfortable (unavailable)', value: 'comfortable' },
       'spacious',
@@ -378,21 +379,35 @@ test('validates imported segmented values against the latest registered options'
   importTweakerPanelDocument(store, '{"density":"spacious","enabled":false}', 'json')
   expect(store.getState().values).toMatchObject({ density: 'spacious', enabled: false })
 
+  const disabledInitialValues = store.getState().values
+  const disabledInitialFields = store.getState().fields
+  expect(() =>
+    importTweakerPanelDocument(store, '{"density":"comfortable","enabled":true}', 'json'),
+  ).toThrow(/Field "density" must be one of: "compact", "spacious"/)
+  expect(() =>
+    importTweakerPanelDocument(store, 'density: comfortable\nenabled: true\n', 'yaml'),
+  ).toThrow(/Field "density" must be one of: "compact", "spacious"/)
+  expect(store.getState().values).toBe(disabledInitialValues)
+  expect(store.getState().fields).toBe(disabledInitialFields)
+
+  registerField(store, 'density', 'compact', {
+    [tweakerItemImportAllowedStringValues]: segmentedEnabledOptionValues([
+      'compact',
+      'comfortable',
+    ]),
+  })
   importTweakerPanelDocument(store, 'density: comfortable\nenabled: true\n', 'yaml')
   expect(store.getState().values).toMatchObject({ density: 'comfortable', enabled: true })
 
-  registerField(store, 'density', 'compact', {
-    [tweakerItemImportAllowedStringValues]: selectOptionValues(['compact', 'spacious']),
-  })
   const initialValues = store.getState().values
   const initialFields = store.getState().fields
 
   expect(() =>
-    importTweakerPanelDocument(store, '{"density":"comfortable","enabled":false}', 'json'),
-  ).toThrow(/Field "density" must be one of: "compact", "spacious"/)
+    importTweakerPanelDocument(store, '{"density":"spacious","enabled":false}', 'json'),
+  ).toThrow(/Field "density" must be one of: "compact", "comfortable"/)
   expect(() =>
-    importTweakerPanelDocument(store, 'density: comfortable\nenabled: false\n', 'yaml'),
-  ).toThrow(/Field "density" must be one of: "compact", "spacious"/)
+    importTweakerPanelDocument(store, 'density: spacious\nenabled: false\n', 'yaml'),
+  ).toThrow(/Field "density" must be one of: "compact", "comfortable"/)
 
   expect(store.getState().values).toBe(initialValues)
   expect(store.getState().fields).toBe(initialFields)

@@ -11,14 +11,39 @@ export function synchronizeTweakerFieldValue<TValue extends TweakerValue>(
   isCanonical: (value: unknown, normalizedValue: TValue) => boolean,
   store: TweakerPanelStore,
 ) {
+  synchronizeTweakerFieldValueInternal(control, normalize, isCanonical, store, false)
+}
+
+export function synchronizeOptionalTweakerFieldValue<TValue extends TweakerValue>(
+  control: TweakerControlValueReference,
+  normalize: (value: unknown) => TValue | undefined,
+  isCanonical: (value: unknown, normalizedValue: TValue) => boolean,
+  store: TweakerPanelStore,
+) {
+  synchronizeTweakerFieldValueInternal(control, normalize, isCanonical, store, true)
+}
+
+function synchronizeTweakerFieldValueInternal<TValue extends TweakerValue>(
+  control: TweakerControlValueReference,
+  normalize: (value: unknown) => TValue | undefined,
+  isCanonical: (value: unknown, normalizedValue: TValue) => boolean,
+  store: TweakerPanelStore,
+  removeWhenUndefined: boolean,
+) {
   const field = control.field
   if (field === undefined) return
 
   store.setState((state) => {
+    if (!Object.prototype.hasOwnProperty.call(state.values, field)) return state
     const currentValue = state.values[field]
-    if (currentValue === undefined) return state
     const normalizedValue = normalize(currentValue)
-    if (normalizedValue === undefined || isCanonical(currentValue, normalizedValue)) return state
+    if (normalizedValue === undefined) {
+      if (!removeWhenUndefined) return state
+      const values = { ...state.values }
+      delete values[field]
+      return { values }
+    }
+    if (isCanonical(currentValue, normalizedValue)) return state
     return { values: { ...state.values, [field]: normalizedValue } }
   })
 }

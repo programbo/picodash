@@ -2,10 +2,13 @@ import { ImageOff } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import {
   TweakerControl,
+  type TweakerControlContextValue,
   useResolvedPanelProp,
   type ReactiveProp,
   type TweakerControlProps,
 } from '../tweaker-control.js'
+import { synchronizeOptionalTweakerFieldValue } from '../tweaker-control-value.js'
+import { useTweakerPanelStoreApi } from '../tweaker-panel.js'
 import { cn } from '../utils.js'
 
 export type TweakerMediaObjectFit = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'
@@ -31,20 +34,48 @@ export function TweakerMediaPreview({
   ...controlProps
 }: TweakerMediaPreviewProps) {
   const src = useResolvedPanelProp(srcProp)
+  const normalizedDefaultValue = normalizeTweakerMediaUrl(controlProps.defaultValue)
 
   return (
-    <TweakerControl<string> {...controlProps} contentLayout={contentLayout} readOnly>
+    <TweakerControl<string>
+      {...controlProps}
+      contentLayout={contentLayout}
+      defaultValue={normalizedDefaultValue}
+      readOnly
+    >
       {(control) => (
-        <MediaPreviewSurface
-          alt={alt}
-          className={imageClassName}
-          fallback={fallback}
-          objectFit={objectFit}
-          src={normalizeTweakerMediaUrl(src ?? control.value ?? controlProps.defaultValue)}
-        />
+        <>
+          <TweakerMediaPreviewValueSynchronizer control={control} />
+          <MediaPreviewSurface
+            alt={alt}
+            className={imageClassName}
+            fallback={fallback}
+            objectFit={objectFit}
+            src={normalizeTweakerMediaUrl(src ?? control.value ?? normalizedDefaultValue)}
+          />
+        </>
       )}
     </TweakerControl>
   )
+}
+
+function TweakerMediaPreviewValueSynchronizer({
+  control,
+}: {
+  control: TweakerControlContextValue<string>
+}) {
+  const store = useTweakerPanelStoreApi()
+
+  useEffect(() => {
+    synchronizeOptionalTweakerFieldValue(
+      control,
+      normalizeTweakerMediaUrl,
+      (currentValue, normalizedValue) => currentValue === normalizedValue,
+      store,
+    )
+  }, [control, store])
+
+  return null
 }
 
 function MediaPreviewSurface({
@@ -94,7 +125,7 @@ function MediaPreviewSurface({
   )
 }
 
-export function normalizeTweakerMediaUrl(value: string | undefined) {
+export function normalizeTweakerMediaUrl(value: unknown) {
   if (typeof value !== 'string') return undefined
   const candidate = value.trim()
   if (!candidate) return undefined

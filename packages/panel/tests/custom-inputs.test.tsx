@@ -3,10 +3,12 @@ import { expect, test, vi } from 'vite-plus/test'
 import { tweakerAlignmentValues } from '../src/inputs/alignment.tsx'
 import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
 import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
+import { normalizeSelectValue } from '../src/inputs/select.tsx'
 import {
   exactTweakerObjectArrayValue,
   exactTweakerObjectValue,
   exactTweakerTupleValue,
+  synchronizeOptionalTweakerFieldValue,
   synchronizeTweakerFieldValue,
 } from '../src/tweaker-control-value.ts'
 import { createTweakerPanelStore } from '../src/tweaker-panel-store.ts'
@@ -155,6 +157,61 @@ test('persists a valid segmented fallback from the latest stored value', () => {
   )
   expect(store.getState().values).toBe(unchangedValues)
   expect(fieldlessSetValue).not.toHaveBeenCalled()
+})
+
+test('persists select fallbacks after dynamic option changes and removes empty selections', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: { mode: 'removed' },
+    panelId: 'select',
+  })
+  store.getState().registerItem({
+    defaultValue: 'spacious',
+    fieldId: 'mode',
+    id: 'mode-control',
+    kind: 'control',
+    parentId: 'root',
+    placement: 'auto',
+    reorderable: true,
+  })
+  const control = {
+    disabled: true,
+    field: 'mode',
+    readOnly: true,
+    value: 'stale-render-value',
+  }
+  const synchronize = (options: Parameters<typeof normalizeSelectValue>[1], fallback?: string) =>
+    synchronizeOptionalTweakerFieldValue(
+      control,
+      (currentValue) => normalizeSelectValue(currentValue, options, fallback),
+      (currentValue, normalizedValue) => currentValue === normalizedValue,
+      store,
+    )
+  const fields = store.getState().fields
+
+  expect(normalizeSelectValue('missing', ['compact', 'spacious'], 'spacious')).toBe('spacious')
+  expect(normalizeSelectValue('missing', ['compact', 'spacious'], 'missing')).toBe('compact')
+  synchronize(['compact', 'spacious'], 'spacious')
+
+  expect(store.getState().values.mode).toBe('spacious')
+  expect(store.getState().fields).toBe(fields)
+  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({
+    mode: 'spacious',
+  })
+
+  const fallbackValues = store.getState().values
+  synchronize(['compact', 'spacious'], 'spacious')
+  expect(store.getState().values).toBe(fallbackValues)
+
+  store.setState((state) => ({ values: { ...state.values, mode: 'legacy' } }))
+  const disabledValues = store.getState().values
+  synchronize([{ disabled: true, value: 'legacy' }, 'current'], 'current')
+  expect(store.getState().values).toBe(disabledValues)
+  expect(store.getState().values.mode).toBe('legacy')
+
+  synchronize([], 'current')
+  expect(store.getState().values).not.toHaveProperty('mode')
+  expect(store.getState().fields).toBe(fields)
+  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({})
 })
 
 test('validates every alignment and falls back to centre', () => {
@@ -527,6 +584,71 @@ test('accepts safe media URLs without interpreting SVG markup', () => {
   expect(normalizeTweakerMediaUrl('javascript:alert(1)')).toBeUndefined()
   expect(normalizeTweakerMediaUrl('<svg onload="alert(1)">')).toBeUndefined()
   expect(objectFitClassName('scale-down')).toBe('object-scale-down')
+})
+
+test('removes unsafe stored media URLs and persists canonical safe URLs before export', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: { media: 'javascript:alert(1)' },
+    panelId: 'media',
+  })
+  store.getState().registerItem({
+    fieldId: 'media',
+    id: 'media-control',
+    kind: 'control',
+    parentId: 'root',
+    placement: 'auto',
+    reorderable: true,
+  })
+  const control = {
+    disabled: true,
+    field: 'media',
+    readOnly: true,
+    value: '/stale-preview.svg',
+  }
+  const synchronize = () =>
+    synchronizeOptionalTweakerFieldValue(
+      control,
+      normalizeTweakerMediaUrl,
+      (currentValue, normalizedValue) => currentValue === normalizedValue,
+      store,
+    )
+  const fields = store.getState().fields
+
+  synchronize()
+
+  expect(store.getState().values).not.toHaveProperty('media')
+  expect(store.getState().fields).toBe(fields)
+  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({})
+
+  store.setState((state) => ({ values: { ...state.values, media: '/preview.svg' } }))
+  const exactValues = store.getState().values
+  synchronize()
+  expect(store.getState().values).toBe(exactValues)
+
+  store.setState((state) => ({ values: { ...state.values, media: ' /preview.svg ' } }))
+  synchronize()
+  expect(store.getState().values.media).toBe('/preview.svg')
+  expect(store.getState().fields).toBe(fields)
+  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({
+    media: '/preview.svg',
+  })
+
+  store.setState((state) => ({
+    values: { ...state.values, media: { markup: '<svg onload="alert(1)">' } },
+  }))
+  synchronize()
+  expect(store.getState().values).not.toHaveProperty('media')
+  expect(store.getState().fields).toBe(fields)
+  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({})
+
+  const fieldlessValues = store.getState().values
+  synchronizeOptionalTweakerFieldValue(
+    { value: 'javascript:alert(1)' },
+    normalizeTweakerMediaUrl,
+    (currentValue, normalizedValue) => currentValue === normalizedValue,
+    store,
+  )
+  expect(store.getState().values).toBe(fieldlessValues)
 })
 
 test('projects files to JSON-compatible metadata with stable unique IDs', () => {
