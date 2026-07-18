@@ -1,5 +1,6 @@
 import { isValidElement } from 'react'
 import { expect, test, vi } from 'vite-plus/test'
+import { tweakerAlignmentValues } from '../src/inputs/alignment.tsx'
 import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
 import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
 import {
@@ -8,6 +9,7 @@ import {
   synchronizeTweakerFieldValue,
 } from '../src/tweaker-control-value.ts'
 import { createTweakerPanelStore } from '../src/tweaker-panel-store.ts'
+import { serializeTweakerPanelValues } from '../src/tweaker-panel-documents.ts'
 import {
   gradientCssValue,
   isTweakerAlignmentValue,
@@ -156,9 +158,40 @@ test('persists a valid segmented fallback from the latest stored value', () => {
 
 test('validates every alignment and falls back to centre', () => {
   expect(tweakerAlignmentOptions).toHaveLength(9)
+  expect(tweakerAlignmentValues).toEqual(tweakerAlignmentOptions.map(({ value }) => value))
   expect(tweakerAlignmentOptions.every(({ value }) => isTweakerAlignmentValue(value))).toBe(true)
   expect(normalizeAlignmentValue('bottom-right')).toBe('bottom-right')
   expect(normalizeAlignmentValue('baseline')).toBe('center')
+})
+
+test('persists a canonical alignment value before later exports', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: { alignment: 'baseline' },
+    panelId: 'alignment',
+  })
+  store.getState().registerItem({
+    defaultValue: 'center',
+    fieldId: 'alignment',
+    id: 'alignment-control',
+    kind: 'control',
+    parentId: 'root',
+    placement: 'auto',
+    reorderable: true,
+  })
+  const fields = store.getState().fields
+
+  synchronizeTweakerFieldValue(
+    { field: 'alignment', value: 'baseline' },
+    (currentValue) => normalizeAlignmentValue(currentValue),
+    (currentValue, normalizedValue) => currentValue === normalizedValue,
+    store,
+  )
+
+  expect(store.getState().values.alignment).toBe('center')
+  expect(store.getState().fields).toBe(fields)
+  expect(JSON.parse(serializeTweakerPanelValues(store.getState(), 'json'))).toEqual({
+    alignment: 'center',
+  })
 })
 
 test('normalizes vector bounds, finite coordinates, and step', () => {

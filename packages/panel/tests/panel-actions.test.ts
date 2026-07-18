@@ -1,4 +1,5 @@
 import { expect, test } from 'vite-plus/test'
+import { tweakerAlignmentValues } from '../src/inputs/alignment.tsx'
 import { selectOptionValues } from '../src/inputs/select.tsx'
 import { collapsibleGroupsForState } from '../src/tweaker-panel-action-state.ts'
 import {
@@ -324,6 +325,40 @@ test('parses and validates JSON and YAML panel documents', () => {
       store.getState(),
     ),
   ).toEqual({ quality: 'draft', range: [3, 7] })
+})
+
+test('validates imported alignment values against the registered alignment options', () => {
+  const store = createTweakerPanelStore({
+    defaultValues: { alignment: 'center', enabled: true },
+    panelId: 'inspect',
+  })
+  registerField(store, 'alignment', 'center', {
+    [tweakerItemImportAllowedStringValues]: tweakerAlignmentValues,
+  })
+  registerField(store, 'enabled', true)
+
+  importTweakerPanelDocument(store, '{"alignment":"bottom-right","enabled":false}', 'json')
+  expect(store.getState().values).toMatchObject({
+    alignment: 'bottom-right',
+    enabled: false,
+  })
+
+  const initialValues = store.getState().values
+  const initialFields = store.getState().fields
+
+  expect(() =>
+    importTweakerPanelDocument(store, '{"alignment":"baseline","enabled":true}', 'json'),
+  ).toThrow(/Field "alignment" must be one of/)
+  expect(() =>
+    importTweakerPanelDocument(store, 'alignment: diagonal\nenabled: true\n', 'yaml'),
+  ).toThrow(/Field "alignment" must be one of/)
+
+  expect(store.getState().values).toBe(initialValues)
+  expect(store.getState().fields).toBe(initialFields)
+  expect(store.getState().values).toMatchObject({
+    alignment: 'bottom-right',
+    enabled: false,
+  })
 })
 
 test('validates imported select values against the latest registered options', () => {
