@@ -517,6 +517,74 @@ test('malformed parser results return field errors without throwing or mutating 
   }
 })
 
+test('setFieldDefault rejects invalid and repair-only defaults without mutating an accepted field', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { count: 4 },
+    panelId: 'validation',
+  })
+  registerField(store, 'count', 1, {
+    parse: (input) =>
+      typeof input !== 'number'
+        ? { errors: ['Count must be a number.'], success: false }
+        : input <= 10
+          ? { output: { value: Math.round(input) }, success: true }
+          : {
+              errors: ['Count must not exceed 10.'],
+              repair: { value: 10 },
+              success: false,
+            },
+  })
+  registerField(store, 'count', 1, {
+    id: 'nonnegative-count',
+    validate: z.number().nonnegative(),
+  })
+  const beforeValues = store.getState().values
+  const beforeFields = store.getState().fields
+  let notifications = 0
+  const unsubscribe = store.subscribe(() => {
+    notifications += 1
+  })
+
+  store.getState().setFieldDefault('count', -1)
+  store.getState().setFieldDefault('count', 12)
+
+  expect(store.getState().values).toBe(beforeValues)
+  expect(store.getState().fields).toBe(beforeFields)
+  expect(store.getState().fields.count?.defaultValue).toBe(1)
+  expect(notifications).toBe(0)
+  unsubscribe()
+})
+
+test('setFieldDefault stores a canonical baseline without changing an accepted value', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { count: 4 },
+    panelId: 'validation',
+  })
+  registerField(store, 'count', 1, {
+    parse: (input) =>
+      typeof input === 'number'
+        ? { output: { value: Math.round(input) }, success: true }
+        : { errors: ['Count must be a number.'], success: false },
+  })
+  const beforeValues = store.getState().values
+  let notifications = 0
+  const unsubscribe = store.subscribe(() => {
+    notifications += 1
+  })
+
+  store.getState().setFieldDefault('count', 2.6)
+
+  expect(store.getState().values).toBe(beforeValues)
+  expect(store.getState().values.count).toBe(4)
+  expect(store.getState().fields.count?.defaultValue).toBe(3)
+  expect(notifications).toBe(1)
+
+  expect(store.getState().resetFieldValue('count')).toEqual({ success: true })
+  expect(store.getState().values.count).toBe(3)
+  expect(notifications).toBe(2)
+  unsubscribe()
+})
+
 test('setFieldDefault validates an unset field before inserting its reset baseline', () => {
   const store = createTweakerPanelStore({ panelId: 'validation' })
   registerField(store, 'count', undefined, {

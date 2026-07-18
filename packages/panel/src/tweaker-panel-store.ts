@@ -406,11 +406,8 @@ export function createTweakerPanelStore({
     },
     setFieldDefault(fieldId, value) {
       const state = getStoreState()
-      const insertsValue =
-        value !== undefined && !Object.prototype.hasOwnProperty.call(state.values, fieldId)
-      const resolution = insertsValue
-        ? resolveTweakerFieldValue(state, fieldId, value, 'default')
-        : undefined
+      const resolution =
+        value === undefined ? undefined : resolveTweakerFieldValue(state, fieldId, value, 'default')
       if (resolution !== undefined && !resolution.success) return
 
       const resolvedDefault =
@@ -419,6 +416,9 @@ export function createTweakerPanelStore({
             ? undefined
             : resolution.output.value
           : value
+      const insertsValue =
+        resolvedDefault !== undefined &&
+        !Object.prototype.hasOwnProperty.call(state.values, fieldId)
       set((current) => ({
         fields: {
           ...current.fields,
