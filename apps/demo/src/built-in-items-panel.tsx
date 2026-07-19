@@ -19,10 +19,233 @@ import {
   TweakerXYPad,
   type TweakerMatrix2DOption,
 } from 'panel'
+import { ShadcnChartItem } from '@/custom-items/shadcn-chart'
+import { StreamingSparklineItem } from '@/custom-items/streaming-sparkline'
 
 export const builtInItemsPanelId = 'built-in-items'
 
-const builtInItemDefaults = {
+export type BuiltInChartType = 'area' | 'bar' | 'line' | 'pie' | 'radar' | 'radial'
+export type BuiltInContentLayout = 'block' | 'full' | 'inline'
+export type BuiltInMatrixSelectionRole = 'radio' | 'toggle'
+
+export const builtInItemIds = [
+  'text',
+  'multilineText',
+  'number',
+  'switch',
+  'select',
+  'slider',
+  'sliderMarks',
+  'range',
+  'segmented',
+  'vector3',
+  'alignment',
+  'xyPad',
+  'gradient',
+  'previewAsset',
+  'droppedFiles',
+  'sparkline',
+  'shadcn-frame-chart',
+  'displayFallback',
+  'display',
+] as const
+
+export type BuiltInItemId = (typeof builtInItemIds)[number]
+
+export const builtInGroupIds = [
+  'common-items',
+  'spatial-items',
+  'media-items',
+  'chart-items',
+  'visualization-items',
+] as const
+
+export type BuiltInGroupId = (typeof builtInGroupIds)[number]
+
+export interface BuiltInItemExampleProps {
+  contentLayout: BuiltInContentLayout
+  description: string
+  disabled: boolean
+  readOnly: boolean
+  reorderable: boolean
+  visible: boolean
+}
+
+export interface BuiltInGroupExampleProps {
+  collapsible: boolean
+  defaultCollapsed: boolean
+  visible: boolean
+}
+
+export interface BuiltInItemsExampleConfig {
+  chartAccessibilityLayer: boolean
+  chartType: BuiltInChartType
+  commonGroupLabel: string
+  commonGroupReorderable: boolean
+  dropzoneMaxFiles: number
+  dropzoneMaxSize: number
+  dropzoneShowPreviews: boolean
+  groupProps: Record<BuiltInGroupId, BuiltInGroupExampleProps>
+  itemProps: Record<BuiltInItemId, BuiltInItemExampleProps>
+  matrixSelectionRole: BuiltInMatrixSelectionRole
+  multiline: boolean
+  numberMax: number
+  numberMin: number
+  numberStep: number
+  panelCollapsible: boolean
+  panelTitle: string
+  panelWidth: number
+  rangeMax: number
+  rangeMin: number
+  rangeStep: number
+  sliderMarksMax: number
+  sliderMarksMin: number
+  sliderMarksStep: number
+  sliderMax: number
+  sliderMin: number
+  sliderStep: number
+  sparklineAutoscale: boolean
+  sparklineContinuous: boolean
+  sparklineMaxValue: number
+  sparklineMaxPoints: number
+  sparklineMinValue: number
+  sparklineShowBaseline: boolean
+  vectorMax: number
+  vectorMin: number
+  vectorStep: number
+  xyPadStep: number
+  xyPadXMax: number
+  xyPadXMin: number
+  xyPadYMax: number
+  xyPadYMin: number
+}
+
+function itemExampleProps(
+  description = '',
+  contentLayout: BuiltInContentLayout = 'inline',
+  reorderable = true,
+): BuiltInItemExampleProps {
+  return {
+    contentLayout,
+    description,
+    disabled: false,
+    readOnly: false,
+    reorderable,
+    visible: true,
+  }
+}
+
+function groupExampleProps(): BuiltInGroupExampleProps {
+  return {
+    collapsible: true,
+    defaultCollapsed: false,
+    visible: true,
+  }
+}
+
+export const defaultBuiltInItemsExampleConfig: BuiltInItemsExampleConfig = {
+  chartAccessibilityLayer: true,
+  chartType: 'line',
+  commonGroupLabel: 'Common inputs',
+  commonGroupReorderable: true,
+  dropzoneMaxFiles: 3,
+  dropzoneMaxSize: 5_000_000,
+  dropzoneShowPreviews: true,
+  groupProps: {
+    'chart-items': groupExampleProps(),
+    'common-items': groupExampleProps(),
+    'media-items': groupExampleProps(),
+    'spatial-items': groupExampleProps(),
+    'visualization-items': groupExampleProps(),
+  },
+  itemProps: {
+    alignment: itemExampleProps(),
+    display: itemExampleProps(),
+    displayFallback: itemExampleProps(
+      'The fallback prop supplies optional content when value is unset.',
+    ),
+    droppedFiles: itemExampleProps('', 'block'),
+    gradient: itemExampleProps(
+      'Drag stops or use arrow keys. Double-click the gradient to add a stop.',
+      'block',
+    ),
+    multilineText: itemExampleProps(
+      'The multiline prop switches the wrapped input to an auto-growing Textarea.',
+    ),
+    number: itemExampleProps(),
+    previewAsset: itemExampleProps('', 'block'),
+    range: itemExampleProps(),
+    segmented: itemExampleProps(),
+    select: itemExampleProps(),
+    'shadcn-frame-chart': itemExampleProps(
+      'A typed chart composition using public grid, axis, series, and tooltip props.',
+      'block',
+      false,
+    ),
+    slider: itemExampleProps(),
+    sliderMarks: itemExampleProps(
+      'The marks prop adds optional reference points along the slider track.',
+    ),
+    sparkline: itemExampleProps(
+      'Move anywhere in the viewport. X and Y velocity stream at the display frame rate while this item is visible.',
+      'block',
+      false,
+    ),
+    switch: itemExampleProps(),
+    text: itemExampleProps(),
+    vector3: itemExampleProps(),
+    xyPad: itemExampleProps('', 'block'),
+  },
+  matrixSelectionRole: 'radio',
+  multiline: true,
+  numberMax: 100,
+  numberMin: 0,
+  numberStep: 1,
+  panelCollapsible: true,
+  panelTitle: 'Built-in Items',
+  panelWidth: 368,
+  rangeMax: 100,
+  rangeMin: 0,
+  rangeStep: 1,
+  sliderMarksMax: 1,
+  sliderMarksMin: 0,
+  sliderMarksStep: 0.01,
+  sliderMax: 100,
+  sliderMin: 0,
+  sliderStep: 1,
+  sparklineAutoscale: false,
+  sparklineContinuous: true,
+  sparklineMaxValue: 1800,
+  sparklineMaxPoints: 56,
+  sparklineMinValue: -1800,
+  sparklineShowBaseline: true,
+  vectorMax: 10,
+  vectorMin: -10,
+  vectorStep: 0.25,
+  xyPadStep: 0.01,
+  xyPadXMax: 1,
+  xyPadXMin: 0,
+  xyPadYMax: 1,
+  xyPadYMin: 0,
+}
+
+export const densityOptions = [
+  { label: 'Compact', value: 'compact' },
+  { label: 'Balanced', value: 'balanced' },
+  { label: 'Comfortable', value: 'comfortable' },
+]
+
+export const sliderMarks = [0, 0.5, 1]
+
+export const segmentedOptions = [
+  { label: 'Tight', value: 'compact' },
+  { label: 'Balanced', value: 'balanced' },
+  { label: 'Open', value: 'comfortable' },
+]
+
+export const percentFormatOptions = { style: 'percent' as const }
+
+export const builtInItemDefaults = {
   alignment: 'center' as const,
   display: 'Ready',
   droppedFiles: [],
@@ -72,7 +295,7 @@ type AlignmentPosition =
   `${(typeof alignmentRows)[number]['value']}-${(typeof alignmentColumns)[number]['value']}`
 type AlignmentValue = Exclude<AlignmentPosition, 'middle-center'> | 'center'
 
-const alignmentOptions = alignmentRows.map((row, rowIndex) =>
+export const alignmentOptions = alignmentRows.map((row, rowIndex) =>
   alignmentColumns.map((column, columnIndex) => ({
     'aria-label': `${row.label} ${column.label}`,
     children: (
@@ -96,184 +319,357 @@ const alignmentOptions = alignmentRows.map((row, rowIndex) =>
   })),
 ) satisfies readonly (readonly TweakerMatrix2DOption<AlignmentValue>[])[]
 
-export function BuiltInItemsPanel() {
+export const alignmentContainerProps = {
+  'aria-label': 'Alignment',
+  className:
+    'border-tweaker-control shadow-tweaker-sm rounded-tweaker-control overflow-hidden border bg-(--_tweaker-choice-background) p-(--tweaker-space-0-5)',
+}
+
+export const builtInPropTypes = {
+  TweakerChart: `type TweakerChartProps =
+  | TweakerAreaChartProps
+  | TweakerBarChartProps
+  | TweakerLineChartProps
+  | TweakerPieChartProps
+  | TweakerRadarChartProps
+  | TweakerRadialChartProps`,
+  TweakerDisplay: `type TweakerDisplayProps = {
+  id: string
+  label?: ReactNode
+  value?: ReactiveProp<ReactNode>
+  fallback?: ReactNode
+}`,
+  TweakerDropzone: `type TweakerDropzoneProps = {
+  field: string
+  accept?: Accept
+  maxFiles?: number
+  maxSize?: number
+  showPreviews?: boolean
+}`,
+  TweakerGradient: `type TweakerGradientProps = {
+  field: string
+  defaultValue?: GradientStop[]
+  defaultRotation?: number
+  rotationField?: string
+}`,
+  TweakerMatrix2D: `type TweakerMatrix2DProps<T> = {
+  field: string
+  defaultValue?: T
+  options: Matrix2DOption<T>[][]
+  containerProps?: ComponentProps<"div">
+  selectionRole?: "radio" | "toggle"
+  validationMessage?: string
+}`,
+  TweakerMediaPreview: `type TweakerMediaPreviewProps = {
+  field: string
+  src?: ReactiveProp<string>
+  alt: string
+  objectFit?: CSSProperties["objectFit"]
+}`,
+  TweakerNumber: `type TweakerNumberProps = {
+  field: string
+  defaultValue?: number
+  min?: ReactiveProp<number>
+  max?: ReactiveProp<number>
+  step?: ReactiveProp<number>
+}`,
+  TweakerRange: `type TweakerRangeProps = {
+  field: string
+  defaultValue?: [number, number]
+  min?: ReactiveProp<number>
+  max?: ReactiveProp<number>
+  step?: ReactiveProp<number>
+}`,
+  TweakerSegmented: `type TweakerSegmentedProps = {
+  field: string
+  defaultValue?: string
+  options: SegmentedOption[]
+}`,
+  TweakerSelect: `type TweakerSelectProps = {
+  field: string
+  defaultValue?: string
+  options: ReactiveProp<SelectOption[]>
+}`,
+  TweakerSlider: `type TweakerSliderProps = {
+  field: string
+  defaultValue?: number
+  min?: ReactiveProp<number>
+  max?: ReactiveProp<number>
+  step?: ReactiveProp<number>
+  marks?: ReactiveProp<SliderMarks>
+  formatOptions?: Intl.NumberFormatOptions
+}`,
+  TweakerSparkline: `type TweakerSparklineProps = {
+  id: string
+  data: Array<number | Record<string, number>> | (() => AsyncIterable<TweakerSparklineEmission>) | TweakerSparklineSource
+  series?: Array<{
+    dataKey: string
+    label?: string
+    stroke?: string
+    strokeWidth?: number
+  }>
+  maxPoints?: number
+  continuous?: boolean
+  stroke?: string
+} & (
+  | { autoscale: true; minValue?: never; maxValue?: never }
+  | { autoscale?: false; minValue?: number; maxValue?: number }
+)`,
+  TweakerSwitch: `type TweakerSwitchProps = {
+  field: string
+  defaultValue?: boolean
+}`,
+  TweakerText: `type TweakerTextProps = {
+  field: string
+  defaultValue?: string
+  placeholder?: string
+  multiline?: boolean
+}`,
+  TweakerVector3: `type TweakerVector3Props = {
+  field: string
+  defaultValue?: { x: number; y: number; z: number }
+  min?: ReactiveProp<number>
+  max?: ReactiveProp<number>
+  step?: ReactiveProp<number>
+}`,
+  TweakerXYPad: `type TweakerXYPadProps = {
+  field: string
+  defaultValue?: { x: number; y: number }
+  xMin?: ReactiveProp<number>
+  xMax?: ReactiveProp<number>
+  yMin?: ReactiveProp<number>
+  yMax?: ReactiveProp<number>
+  step?: ReactiveProp<number>
+}`,
+} as const
+
+type BuiltInComponentName = keyof typeof builtInPropTypes
+
+function propTypeHelp(component: BuiltInComponentName) {
+  return (
+    <span className="grid gap-(--tweaker-space-2)">
+      <span className="text-tweaker-strong font-medium">{component}</span>
+      <code className="text-tweaker-text block font-mono text-(length:--tweaker-font-size-md) leading-(--tweaker-line-relaxed) whitespace-pre-wrap">
+        {builtInPropTypes[component]}
+      </code>
+    </span>
+  )
+}
+
+export function BuiltInItemsPanel({
+  config = defaultBuiltInItemsExampleConfig,
+}: {
+  config?: BuiltInItemsExampleConfig
+}) {
   return (
     <TweakerPanel
       store={builtInItemsPanelStore}
-      title="Built-in Items"
-      collapsible
-      defaultPlacement="top-left"
-      width="23rem"
-      className="top-4 left-4 w-92 max-w-[calc(100dvw-2rem)] lg:top-8 lg:left-8"
+      title={config.panelTitle}
+      collapsible={config.panelCollapsible}
+      defaultPlacement="top-right"
+      width={config.panelWidth}
+      className="bg-tweaker-surface/72 top-4 right-4 max-w-[calc(100dvw-2rem)] backdrop-blur-xl lg:top-8 lg:right-8"
+      data-example-width={config.panelWidth}
     >
-      <TweakerGroup id="common-items" label="Common inputs">
+      <TweakerGroup
+        {...config.groupProps['common-items']}
+        id="common-items"
+        label={config.commonGroupLabel}
+        reorderable={config.commonGroupReorderable}
+      >
         <TweakerText
+          {...config.itemProps.text}
           field="text"
           label="Text"
           defaultValue={builtInItemDefaults.text}
-          help="TweakerText — field, defaultValue, and placeholder props."
+          help={propTypeHelp('TweakerText')}
           placeholder="Enter text"
         />
         <TweakerText
+          {...config.itemProps.multilineText}
           field="multilineText"
           label="Text"
           defaultValue={builtInItemDefaults.multilineText}
-          description="Setting minRows greater than 1 switches the wrapped input to an auto-growing Textarea."
-          help="TweakerText — field, defaultValue, placeholder, and minRows={3} props."
-          minRows={3}
+          help={propTypeHelp('TweakerText')}
+          multiline={config.multiline}
           placeholder="Enter longer text"
         />
         <TweakerNumber
+          {...config.itemProps.number}
           field="number"
           label="Number"
           defaultValue={builtInItemDefaults.number}
-          help="TweakerNumber — field, defaultValue, min, max, and step props."
-          min={0}
-          max={100}
-          step={1}
+          help={propTypeHelp('TweakerNumber')}
+          min={config.numberMin}
+          max={config.numberMax}
+          step={config.numberStep}
         />
         <TweakerSwitch
+          {...config.itemProps.switch}
           field="switch"
           label="Switch"
           defaultValue={builtInItemDefaults.switch}
-          help="TweakerSwitch — field and defaultValue props."
+          help={propTypeHelp('TweakerSwitch')}
         />
         <TweakerSelect
+          {...config.itemProps.select}
           field="select"
           label="Select"
           defaultValue={builtInItemDefaults.select}
-          help="TweakerSelect — field, defaultValue, and options props."
-          options={[
-            { label: 'Compact', value: 'compact' },
-            { label: 'Balanced', value: 'balanced' },
-            { label: 'Comfortable', value: 'comfortable' },
-          ]}
+          help={propTypeHelp('TweakerSelect')}
+          options={densityOptions}
         />
         <TweakerSlider
+          {...config.itemProps.slider}
           field="slider"
           label="Slider"
           defaultValue={builtInItemDefaults.slider}
-          help="TweakerSlider — field, defaultValue, min, max, and step props."
-          min={0}
-          max={100}
-          step={1}
+          help={propTypeHelp('TweakerSlider')}
+          min={config.sliderMin}
+          max={config.sliderMax}
+          step={config.sliderStep}
         />
         <TweakerSlider
+          {...config.itemProps.sliderMarks}
           field="sliderMarks"
           label="Slider"
           defaultValue={builtInItemDefaults.sliderMarks}
-          description="The marks prop adds optional reference points along the slider track."
-          help="TweakerSlider — field, defaultValue, min, max, step, marks, and formatOptions props."
-          min={0}
-          max={1}
-          step={0.01}
-          marks={[0, 0.5, 1]}
-          formatOptions={{ style: 'percent' }}
+          help={propTypeHelp('TweakerSlider')}
+          min={config.sliderMarksMin}
+          max={config.sliderMarksMax}
+          step={config.sliderMarksStep}
+          marks={sliderMarks}
+          formatOptions={percentFormatOptions}
         />
         <TweakerRange
+          {...config.itemProps.range}
           field="range"
           label="Range"
           defaultValue={builtInItemDefaults.range}
-          help="TweakerRange — field, defaultValue, min, max, and step props."
-          min={0}
-          max={100}
-          step={1}
+          help={propTypeHelp('TweakerRange')}
+          min={config.rangeMin}
+          max={config.rangeMax}
+          step={config.rangeStep}
         />
         <TweakerSegmented
+          {...config.itemProps.segmented}
           field="segmented"
           label="Segmented"
           defaultValue={builtInItemDefaults.segmented}
-          help="TweakerSegmented — field, defaultValue, and options props."
-          options={[
-            { label: 'Tight', value: 'compact' },
-            { label: 'Balanced', value: 'balanced' },
-            { label: 'Open', value: 'comfortable' },
-          ]}
+          help={propTypeHelp('TweakerSegmented')}
+          options={segmentedOptions}
         />
-      </TweakerGroup>
-
-      <TweakerGroup id="spatial-items" label="Direct manipulation">
         <TweakerVector3
+          {...config.itemProps.vector3}
           field="vector3"
           label="Vector3"
           defaultValue={builtInItemDefaults.vector3}
-          help="TweakerVector3 — field, defaultValue, min, max, and step props."
-          max={10}
-          min={-10}
-          step={0.25}
+          help={propTypeHelp('TweakerVector3')}
+          max={config.vectorMax}
+          min={config.vectorMin}
+          step={config.vectorStep}
         />
         <TweakerMatrix2D
+          {...config.itemProps.alignment}
           field="alignment"
-          label="Alignment"
+          label="Matrix2D"
           defaultValue={builtInItemDefaults.alignment}
-          help="TweakerMatrix2D — field, defaultValue, options, containerProps, selectionRole, and validationMessage. The consumer defines every button and the grid layout."
-          containerProps={{
-            'aria-label': 'Alignment',
-            className:
-              'border-tweaker-control shadow-tweaker-sm rounded-tweaker-control overflow-hidden border bg-(--_tweaker-choice-background) p-(--tweaker-space-0-5)',
-          }}
+          help={propTypeHelp('TweakerMatrix2D')}
+          containerProps={alignmentContainerProps}
           options={alignmentOptions}
-          selectionRole="radio"
+          selectionRole={config.matrixSelectionRole}
           validationMessage="Alignment must be one of the nine supported positions."
         />
+      </TweakerGroup>
+
+      <TweakerGroup
+        {...config.groupProps['spatial-items']}
+        id="spatial-items"
+        label="Direct manipulation"
+      >
         <TweakerXYPad
+          {...config.itemProps.xyPad}
           field="xyPad"
           label="XYPad"
           defaultValue={builtInItemDefaults.xyPad}
-          help="TweakerXYPad — field, defaultValue, axis bounds, and step props."
-          step={0.01}
-          xMax={1}
-          xMin={0}
-          yMax={1}
-          yMin={0}
+          help={propTypeHelp('TweakerXYPad')}
+          step={config.xyPadStep}
+          xMax={config.xyPadXMax}
+          xMin={config.xyPadXMin}
+          yMax={config.xyPadYMax}
+          yMin={config.xyPadYMin}
         />
         <TweakerGradient
-          contentLayout="block"
+          {...config.itemProps.gradient}
           defaultRotation={builtInItemDefaults.gradientRotation}
-          description="Drag stops or use arrow keys. Double-click the gradient to add a stop."
           field="gradient"
-          label="Background Gradient"
+          label="Gradient"
           defaultValue={builtInItemDefaults.gradient}
-          help="TweakerGradient — field, defaultValue, defaultRotation, and rotationField props."
+          help={propTypeHelp('TweakerGradient')}
           rotationField="gradientRotation"
         />
       </TweakerGroup>
 
-      <TweakerGroup id="media-items" label="Media and files">
+      <TweakerGroup {...config.groupProps['media-items']} id="media-items" label="Media and files">
         <TweakerMediaPreview
+          {...config.itemProps.previewAsset}
           alt="Tweaker mark"
           field="previewAsset"
           label="MediaPreview"
-          help="TweakerMediaPreview — field, src, alt, and objectFit props."
+          help={propTypeHelp('TweakerMediaPreview')}
           src="/favicon.svg"
         />
         <TweakerDropzone
+          {...config.itemProps.droppedFiles}
           accept={{ 'image/*': ['.avif', '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp'] }}
           field="droppedFiles"
           label="Dropzone"
-          help="TweakerDropzone — field, accept, maxFiles, maxSize, and showPreviews props."
-          maxFiles={3}
-          maxSize={5_000_000}
-          showPreviews
+          help={propTypeHelp('TweakerDropzone')}
+          maxFiles={config.dropzoneMaxFiles}
+          maxSize={config.dropzoneMaxSize}
+          showPreviews={config.dropzoneShowPreviews}
         />
       </TweakerGroup>
 
-      <TweakerGroup id="visualization-items" label="Display variants">
+      <TweakerGroup {...config.groupProps['chart-items']} id="chart-items" label="Charts">
+        <StreamingSparklineItem
+          {...config.itemProps.sparkline}
+          autoscale={config.sparklineAutoscale}
+          continuous={config.sparklineContinuous}
+          help={propTypeHelp('TweakerSparkline')}
+          maxValue={config.sparklineMaxValue}
+          maxPoints={config.sparklineMaxPoints}
+          minValue={config.sparklineMinValue}
+          showBaseline={config.sparklineShowBaseline}
+        />
+        <ShadcnChartItem
+          {...config.itemProps['shadcn-frame-chart']}
+          accessibilityLayer={config.chartAccessibilityLayer}
+          help={propTypeHelp('TweakerChart')}
+          type={config.chartType}
+        />
+      </TweakerGroup>
+
+      <TweakerGroup
+        {...config.groupProps['visualization-items']}
+        id="visualization-items"
+        label="Display variants"
+      >
         <TweakerDisplay
+          {...config.itemProps.displayFallback}
           id="displayFallback"
           label="Display"
-          description="The fallback prop supplies optional content when value is unset."
           fallback="Waiting"
-          help="TweakerDisplay — id and the optional fallback prop."
+          help={propTypeHelp('TweakerDisplay')}
+        />
+        <TweakerDisplay
+          {...config.itemProps.display}
+          id="display"
+          label="Display"
+          help={propTypeHelp('TweakerDisplay')}
+          value={builtInItemDefaults.display}
         />
       </TweakerGroup>
-
-      <TweakerDisplay
-        id="display"
-        label="Display"
-        help="TweakerDisplay — id and value props for a read-only item."
-        value={builtInItemDefaults.display}
-      />
     </TweakerPanel>
   )
 }

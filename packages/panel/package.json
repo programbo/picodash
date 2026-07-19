@@ -37,6 +37,7 @@
     "motion": "catalog:",
     "radix-ui": "catalog:",
     "react-dropzone": "catalog:",
+    "recharts": "catalog:",
     "tailwind-merge": "catalog:",
     "yaml": "catalog:",
     "zod": "catalog:",

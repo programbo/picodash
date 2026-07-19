@@ -5,6 +5,30 @@ export {
   tweakerAlignmentOptions,
 } from './alignment.js'
 export type { TweakerAlignmentProps, TweakerAlignmentValue } from './alignment.js'
+export { TweakerChart } from './chart.js'
+export type {
+  TweakerAreaChartProps,
+  TweakerAreaChartSeries,
+  TweakerBarChartProps,
+  TweakerBarChartSeries,
+  TweakerChartCartesianGridProps,
+  TweakerChartDataRow,
+  TweakerChartLegendProps,
+  TweakerChartPolarAngleAxisProps,
+  TweakerChartPolarGridProps,
+  TweakerChartPolarRadiusAxisProps,
+  TweakerChartProps,
+  TweakerChartTooltipProps,
+  TweakerChartXAxisProps,
+  TweakerChartYAxisProps,
+  TweakerLineChartProps,
+  TweakerLineChartSeries,
+  TweakerPieChartProps,
+  TweakerRadarChartProps,
+  TweakerRadarChartSeries,
+  TweakerRadialChartProps,
+  TweakerRadialChartSeries,
+} from './chart.js'
 export { TweakerDisplay } from './display.js'
 export type { TweakerDisplayProps } from './display.js'
 export {
@@ -70,9 +94,26 @@ export {
 export type { TweakerSegmentedOption, TweakerSegmentedProps } from './segmented.js'
 export { TweakerSlider } from './slider.js'
 export type { TweakerSliderMark, TweakerSliderMarks, TweakerSliderProps } from './slider.js'
+export {
+  appendTweakerSparklineSamples,
+  projectTweakerSparklineBaseline,
+  projectTweakerSparklinePath,
+  resolveTweakerSparklineBounds,
+  TweakerSparkline,
+} from './sparkline.js'
+export type {
+  TweakerSparklineAsyncSource,
+  TweakerSparklineData,
+  TweakerSparklineDatum,
+  TweakerSparklineEmission,
+  TweakerSparklineProps,
+  TweakerSparklineSeries,
+  TweakerSparklineSource,
+  TweakerSparklineSubscriptionOptions,
+} from './sparkline.js'
 export { TweakerSwitch } from './switch.js'
 export type { TweakerSwitchProps } from './switch.js'
-export { normalizeTextMinRows, TweakerText, tweakerTextControlKind } from './text.js'
+export { TweakerText, tweakerTextControlKind } from './text.js'
 export type { TweakerTextProps } from './text.js'
 export {
   normalizeVector3Value,

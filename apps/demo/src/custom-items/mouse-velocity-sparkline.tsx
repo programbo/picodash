@@ -216,7 +216,7 @@ export function MouseVelocitySparklineItem({
       id="mouse-velocity"
       contentLayout="block"
       description={`Move anywhere in ${targetLabel}. MotionValues sample velocity without updating React or the panel store.`}
-      label="Pointer velocity"
+      label="Sparkline"
       reorderable={false}
     >
       <div className="col-span-full grid gap-1.5">

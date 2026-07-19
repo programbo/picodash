@@ -8,7 +8,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'pnpm --filter website dev',
+    command: 'bun run --filter website dev',
     url: 'http://127.0.0.1:6030',
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,

@@ -6,6 +6,12 @@ import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
 import { gradientRotationRegistrationId } from '../src/inputs/gradient.tsx'
 import { normalizeSelectValue } from '../src/inputs/select.tsx'
 import {
+  resolveTweakerSparklineProjectionBounds,
+  shouldJumpTweakerSparklineRange,
+  shouldUpdateTweakerSparklineRange,
+} from '../src/inputs/sparkline.tsx'
+import {
+  appendTweakerSparklineSamples,
   gradientCssValue,
   isTweakerAlignmentValue,
   normalizeAlignmentValue,
@@ -25,6 +31,9 @@ import {
   partitionTweakerFilesByCapacity,
   projectTweakerFileMetadata,
   projectTweakerGradientPosition,
+  projectTweakerSparklineBaseline,
+  projectTweakerSparklinePath,
+  resolveTweakerSparklineBounds,
   projectTweakerXYLabelPosition,
   projectTweakerXYPointer,
   projectTweakerXYValue,
@@ -36,12 +45,14 @@ import {
 } from '../src/advanced.ts'
 import {
   TweakerAlignment,
+  TweakerChart,
   TweakerDropzone,
   TweakerGradient,
   TweakerMediaPreview,
   TweakerMatrix2D,
   TweakerRange,
   TweakerSegmented,
+  TweakerSparkline,
   TweakerText,
   TweakerVector3,
   TweakerXYPad,
@@ -61,9 +72,157 @@ test('exports valid elements for every custom input', () => {
     <TweakerGradient key="gradient" field="gradient" />,
     <TweakerMediaPreview key="media" alt="Preview" field="media" />,
     <TweakerDropzone key="dropzone" field="dropzone" />,
+    <TweakerSparkline key="sparkline" id="sparkline" data={[1, 3, 2]} />,
+    <TweakerSparkline
+      key="autoscale-sparkline"
+      id="autoscale-sparkline"
+      autoscale
+      data={[1, 3, 2]}
+    />,
+    <TweakerSparkline
+      key="multi-sparkline"
+      id="multi-sparkline"
+      data={[
+        { x: 1, y: -1 },
+        { x: 2, y: -2 },
+      ]}
+      series={[{ dataKey: 'x' }, { dataKey: 'y' }]}
+    />,
+    <TweakerChart
+      key="chart"
+      id="chart"
+      data={[{ frame: '01', value: 12 }]}
+      series={[{ dataKey: 'value' }]}
+      type="line"
+      xAxisProps={{ dataKey: 'frame' }}
+    />,
   ]
 
   expect(elements.every(isValidElement)).toBe(true)
+})
+
+test('bounds appended sparkline samples and projects finite SVG coordinates', () => {
+  expect(appendTweakerSparklineSamples([1, 2], [3, Number.NaN, 4], 3)).toEqual([2, 3, 4])
+  expect(
+    projectTweakerSparklinePath([0, 5, 10], {
+      height: 100,
+      maxValue: 10,
+      minValue: 0,
+      width: 200,
+    }),
+  ).toBe('M 0 100 L 100 50 L 200 0')
+  expect(
+    projectTweakerSparklinePath([0, 5, Number.NaN], {
+      height: 100,
+      maxValue: 10,
+      minValue: 0,
+      width: 200,
+    }),
+  ).toBe('M 0 100 L 100 50')
+  expect(
+    projectTweakerSparklinePath([0, Number.NaN, 10], {
+      height: 100,
+      maxValue: 10,
+      minValue: 0,
+      width: 200,
+    }),
+  ).toBe('M 0 100 M 200 0')
+  expect(projectTweakerSparklinePath([])).toBe('')
+  expect(
+    resolveTweakerSparklineBounds(
+      [
+        { x: -10, y: 5 },
+        { x: 20, y: 10 },
+      ],
+      [{ dataKey: 'x' }, { dataKey: 'y' }],
+    ),
+  ).toEqual({ maxValue: 21.6, minValue: -21.6 })
+  expect(resolveTweakerSparklineBounds([{ x: 5, y: 5 }], [{ dataKey: 'x' }])).toEqual({
+    maxValue: 5.4,
+    minValue: -5.4,
+  })
+  expect(resolveTweakerSparklineBounds([{ x: 0.01 }], [{ dataKey: 'x' }])).toEqual({
+    maxValue: 0.0108,
+    minValue: -0.0108,
+  })
+  expect(resolveTweakerSparklineBounds([{ x: 0 }], [{ dataKey: 'x' }])).toEqual({
+    maxValue: 1.08,
+    minValue: -1.08,
+  })
+  const largeHistory = Array.from({ length: 200_000 }, (_, index) => ({
+    value: index - 100_000,
+  }))
+  expect(resolveTweakerSparklineBounds(largeHistory, [{ dataKey: 'value' }])).toEqual({
+    maxValue: 108_000,
+    minValue: -108_000,
+  })
+  expect(
+    resolveTweakerSparklineProjectionBounds(
+      largeHistory,
+      [{ dataKey: 'value' }],
+      undefined,
+      undefined,
+    ),
+  ).toEqual({
+    maxValue: 99_999,
+    minValue: -100_000,
+  })
+  expect(projectTweakerSparklinePath(largeHistory.map(({ value }) => value))).toMatch(/^M 0 88 L /)
+  expect(projectTweakerSparklineBaseline(0, 100, { height: 100, width: 200 })).toBe('M 0 100 H 200')
+  expect(projectTweakerSparklineBaseline(-25, 75, { height: 100, width: 200 })).toBe('M 0 75 H 200')
+  expect(projectTweakerSparklineBaseline(10, 100)).toBe('')
+  expect(shouldJumpTweakerSparklineRange(20, 10, false)).toBe(false)
+  expect(shouldJumpTweakerSparklineRange(20, 10, true)).toBe(true)
+  expect(shouldJumpTweakerSparklineRange(10, 20, false)).toBe(true)
+  expect(shouldUpdateTweakerSparklineRange(15, 10, 10, false)).toBe(false)
+  expect(shouldUpdateTweakerSparklineRange(15, 10, 10, true)).toBe(true)
+  expect(shouldUpdateTweakerSparklineRange(10, 20, 10, false)).toBe(true)
+})
+
+test('creates every supported TweakerChart type with type-specific Recharts props', () => {
+  const data = [
+    { category: 'A', value: 12 },
+    { category: 'B', value: 18 },
+  ]
+  const charts = [
+    <TweakerChart
+      key="area"
+      id="area"
+      cartesianGridProps={{ vertical: false }}
+      data={data}
+      series={[{ dataKey: 'value' }]}
+      type="area"
+      xAxisProps={{ dataKey: 'category' }}
+    />,
+    <TweakerChart key="bar" id="bar" data={data} series={[{ dataKey: 'value' }]} type="bar" />,
+    <TweakerChart key="line" id="line" data={data} series={[{ dataKey: 'value' }]} type="line" />,
+    <TweakerChart
+      key="pie"
+      id="pie"
+      data={data}
+      pieProps={{ dataKey: 'value', nameKey: 'category' }}
+      type="pie"
+    />,
+    <TweakerChart
+      key="radar"
+      id="radar"
+      data={data}
+      polarAngleAxisProps={{ dataKey: 'category' }}
+      polarGridProps={{ gridType: 'circle' }}
+      series={[{ dataKey: 'value' }]}
+      type="radar"
+    />,
+    <TweakerChart
+      key="radial"
+      id="radial"
+      data={data}
+      polarGridProps={{ radialLines: false }}
+      series={[{ dataKey: 'value' }]}
+      type="radial"
+    />,
+  ]
+
+  expect(charts.every(isValidElement)).toBe(true)
 })
 
 test('normalizes segmented options to an enabled selection', () => {

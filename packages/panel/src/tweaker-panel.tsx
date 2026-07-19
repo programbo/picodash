@@ -244,7 +244,11 @@ export function TweakerPanel({
         >
           {title ? (
             <div
-              className="border-tweaker-border flex h-[2.3125rem] shrink-0 cursor-grab items-center gap-(--tweaker-space-1) border-b py-(--tweaker-space-2) pr-(--tweaker-space-3) pl-(--tweaker-space-1) select-none active:cursor-grabbing"
+              className={cn(
+                'border-tweaker-border flex h-[2.3125rem] shrink-0 cursor-grab items-center gap-(--tweaker-space-1) border-b py-(--tweaker-space-2) pr-(--tweaker-space-3) select-none active:cursor-grabbing',
+                collapsible ? 'pl-(--tweaker-space-1)' : 'pl-(--tweaker-space-3)',
+              )}
+              data-tweaker-panel-header=""
               onPointerDown={(event) => {
                 if (drag) {
                   event.preventDefault()

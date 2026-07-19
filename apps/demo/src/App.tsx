@@ -28,18 +28,17 @@ import {
   BuiltInItemsPanel,
   builtInItemsPanelId,
   builtInItemsPanelStore,
+  defaultBuiltInItemsExampleConfig,
+  type BuiltInItemsExampleConfig,
 } from '@/built-in-items-panel'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  MouseVelocitySparklineItem,
-  viewportPointerTarget,
-} from '@/custom-items/mouse-velocity-sparkline'
-import { ShadcnChartItem } from '@/custom-items/shadcn-chart'
+import { MouseVelocitySparklineItem } from '@/custom-items/mouse-velocity-sparkline'
 import { WaveformSpectrumItem } from '@/custom-items/waveform-spectrum'
+import { InteractiveJsxExample } from '@/interactive-jsx-example'
 
 const scenePanelId = 'scene-controls'
 const outputPanelId = 'custom-items'
@@ -104,6 +103,9 @@ type ProviderSnapshot = {
 
 export function App() {
   const [themes, setThemes] = useState<DemoThemes>(readDemoThemes)
+  const [builtInExampleConfig, setBuiltInExampleConfig] = useState<BuiltInItemsExampleConfig>(
+    defaultBuiltInItemsExampleConfig,
+  )
 
   useEffect(() => {
     const handleThemeChange = (event: Event) => {
@@ -126,7 +128,12 @@ export function App() {
         storageKey="tweaker-demo:panel-layout:v1"
         theme={themes.provider ?? 'dark'}
       >
-        <DemoExperience themes={themes} />
+        <DemoExperience
+          builtInExampleConfig={builtInExampleConfig}
+          themes={themes}
+          onBuiltInExampleConfigChange={setBuiltInExampleConfig}
+          onProviderThemeChange={(provider) => setThemes((current) => ({ ...current, provider }))}
+        />
       </TweakerProvider>
     </main>
   )
@@ -151,7 +158,17 @@ function readDemoThemes(): DemoThemes {
   }
 }
 
-function DemoExperience({ themes }: { themes: DemoThemes }) {
+function DemoExperience({
+  builtInExampleConfig,
+  onBuiltInExampleConfigChange,
+  onProviderThemeChange,
+  themes,
+}: {
+  builtInExampleConfig: BuiltInItemsExampleConfig
+  onBuiltInExampleConfigChange: (config: BuiltInItemsExampleConfig) => void
+  onProviderThemeChange: (theme: string) => void
+  themes: DemoThemes
+}) {
   const showStateLab = window.location.pathname.replace(/\/+$/, '') === '/state-lab'
   const resolvedProviderTheme = useTweakerTheme()
   const panelOrder = useTweakerSelector((state) => state.panelOrder)
@@ -302,153 +319,160 @@ function DemoExperience({ themes }: { themes: DemoThemes }) {
             </Tabs>
           </div>
         </div>
+      ) : (
+        <InteractiveJsxExample
+          config={builtInExampleConfig}
+          providerTheme={themes.provider ?? 'dark'}
+          onConfigChange={onBuiltInExampleConfigChange}
+          onProviderThemeChange={onProviderThemeChange}
+        />
+      )}
+
+      {showStateLab ? (
+        <TweakerPanel
+          store={scenePanelStore}
+          theme={themes.scene}
+          title="Scene Controls"
+          collapsible
+          defaultPlacement="top-right"
+          width={368}
+          className="top-4 right-4 lg:top-8 lg:right-120"
+        >
+          <TweakerGroup id="scene-essentials" label="Essentials" pin="start">
+            <TweakerSlider
+              field="opacity"
+              label={(state) => `Opacity (${stringFromMeta(state, 'unit', '%')})`}
+              defaultValue={sceneDefaults.opacity}
+              min={(state) => numberFromMeta(state, 'opacityMin', 0)}
+              max={(state) => numberFromMeta(state, 'opacityMax', 1)}
+              step={0.01}
+              marks={(state) => marksFromMeta(state, 'opacityStops', [0, 0.5, 1])}
+              disabled={(state) => !state.meta.canEdit}
+              states={(state) =>
+                Number(state.values.opacity ?? 0) > 0.85
+                  ? opacityHighlightedStates
+                  : opacityDefaultStates
+              }
+              status={(state) => (Number(state.values.opacity ?? 0) > 0.9 ? 'warning' : undefined)}
+              formatOptions={{ style: 'percent' }}
+            />
+            <TweakerSlider
+              field="exposure"
+              label="Exposure"
+              defaultValue={sceneDefaults.exposure}
+              min={-2}
+              max={2}
+              step={0.05}
+              marks={1}
+              status={(state) =>
+                Math.abs(Number(state.values.exposure ?? 0)) > 1.5 ? 'alert' : undefined
+              }
+            />
+            <TweakerSwitch
+              field="bloom"
+              label="Bloom"
+              defaultValue={sceneDefaults.bloom}
+              states={(state) => (state.values.bloom ? bloomEnabledStates : bloomDisabledStates)}
+            />
+          </TweakerGroup>
+
+          <TweakerGroup id="scene-rendering" label="Rendering" reorderable>
+            <TweakerSelect
+              field="quality"
+              label="Quality"
+              defaultValue={sceneDefaults.quality}
+              options={[
+                { label: 'Draft', value: 'draft' },
+                { label: 'Balanced', value: 'balanced' },
+                { label: 'Final', value: 'final' },
+              ]}
+            />
+            <TweakerNumber
+              field="cameraHeight"
+              label="Camera height"
+              defaultValue={sceneDefaults.cameraHeight}
+              min={8}
+              max={120}
+              step={1}
+              formatOptions={{ style: 'unit', unit: 'meter', unitDisplay: 'short' }}
+            />
+            <TweakerSlider
+              field="shadowSoftness"
+              label="Shadow softness"
+              defaultValue={sceneDefaults.shadowSoftness}
+              min={0}
+              max={1}
+              step={0.01}
+              marks={1}
+              formatValue={(value) => value.toFixed(2)}
+            />
+            <TweakerNumber
+              field="maxBounces"
+              label="Max bounces"
+              defaultValue={sceneDefaults.maxBounces}
+              min={0}
+              max={16}
+              step={1}
+            />
+            <TweakerSwitch
+              field="motionBlur"
+              label="Motion blur"
+              defaultValue={sceneDefaults.motionBlur}
+            />
+            <TweakerSelect
+              field="textureQuality"
+              label="Texture quality"
+              defaultValue={sceneDefaults.textureQuality}
+              options={[
+                { label: 'Low', value: 'low' },
+                { label: 'Medium', value: 'medium' },
+                { label: 'High', value: 'high' },
+                { label: 'Ultra', value: 'ultra' },
+              ]}
+            />
+            <TweakerSlider
+              field="renderScale"
+              label="Render scale"
+              defaultValue={sceneDefaults.renderScale}
+              min={0.5}
+              max={2}
+              step={0.05}
+              marks
+              visible={(state) => state.values.quality !== 'draft'}
+              formatValue={(value) => `${value.toFixed(2)}x`}
+            />
+          </TweakerGroup>
+
+          <TweakerDisplay
+            id="scene-summary"
+            label="Summary"
+            pin="end"
+            value={(state) =>
+              `${Math.round(numberFromValue(state.values.opacity, 0) * 100)}% opacity / ${stringFromValue(state.values.quality, 'balanced')}`
+            }
+          />
+        </TweakerPanel>
       ) : null}
 
-      <TweakerPanel
-        store={scenePanelStore}
-        theme={themes.scene}
-        title="Scene Controls"
-        collapsible
-        defaultPlacement="top-right"
-        width={368}
-        className="top-4 right-4 lg:top-8 lg:right-120"
-      >
-        <TweakerGroup id="scene-essentials" label="Essentials" pin="start">
-          <TweakerSlider
-            field="opacity"
-            label={(state) => `Opacity (${stringFromMeta(state, 'unit', '%')})`}
-            defaultValue={sceneDefaults.opacity}
-            min={(state) => numberFromMeta(state, 'opacityMin', 0)}
-            max={(state) => numberFromMeta(state, 'opacityMax', 1)}
-            step={0.01}
-            marks={(state) => marksFromMeta(state, 'opacityStops', [0, 0.5, 1])}
-            disabled={(state) => !state.meta.canEdit}
-            states={(state) =>
-              Number(state.values.opacity ?? 0) > 0.85
-                ? opacityHighlightedStates
-                : opacityDefaultStates
-            }
-            status={(state) => (Number(state.values.opacity ?? 0) > 0.9 ? 'warning' : undefined)}
-            formatOptions={{ style: 'percent' }}
-          />
-          <TweakerSlider
-            field="exposure"
-            label="Exposure"
-            defaultValue={sceneDefaults.exposure}
-            min={-2}
-            max={2}
-            step={0.05}
-            marks={1}
-            status={(state) =>
-              Math.abs(Number(state.values.exposure ?? 0)) > 1.5 ? 'alert' : undefined
-            }
-          />
-          <TweakerSwitch
-            field="bloom"
-            label="Bloom"
-            defaultValue={sceneDefaults.bloom}
-            states={(state) => (state.values.bloom ? bloomEnabledStates : bloomDisabledStates)}
-          />
-        </TweakerGroup>
+      <BuiltInItemsPanel config={builtInExampleConfig} />
 
-        <TweakerGroup id="scene-rendering" label="Rendering" reorderable>
-          <TweakerSelect
-            field="quality"
-            label="Quality"
-            defaultValue={sceneDefaults.quality}
-            options={[
-              { label: 'Draft', value: 'draft' },
-              { label: 'Balanced', value: 'balanced' },
-              { label: 'Final', value: 'final' },
-            ]}
-          />
-          <TweakerNumber
-            field="cameraHeight"
-            label="Camera height"
-            defaultValue={sceneDefaults.cameraHeight}
-            min={8}
-            max={120}
-            step={1}
-            formatOptions={{ style: 'unit', unit: 'meter', unitDisplay: 'short' }}
-          />
-          <TweakerSlider
-            field="shadowSoftness"
-            label="Shadow softness"
-            defaultValue={sceneDefaults.shadowSoftness}
-            min={0}
-            max={1}
-            step={0.01}
-            marks={1}
-            formatValue={(value) => value.toFixed(2)}
-          />
-          <TweakerNumber
-            field="maxBounces"
-            label="Max bounces"
-            defaultValue={sceneDefaults.maxBounces}
-            min={0}
-            max={16}
-            step={1}
-          />
-          <TweakerSwitch
-            field="motionBlur"
-            label="Motion blur"
-            defaultValue={sceneDefaults.motionBlur}
-          />
-          <TweakerSelect
-            field="textureQuality"
-            label="Texture quality"
-            defaultValue={sceneDefaults.textureQuality}
-            options={[
-              { label: 'Low', value: 'low' },
-              { label: 'Medium', value: 'medium' },
-              { label: 'High', value: 'high' },
-              { label: 'Ultra', value: 'ultra' },
-            ]}
-          />
-          <TweakerSlider
-            field="renderScale"
-            label="Render scale"
-            defaultValue={sceneDefaults.renderScale}
-            min={0.5}
-            max={2}
-            step={0.05}
-            marks
-            visible={(state) => state.values.quality !== 'draft'}
-            formatValue={(value) => `${value.toFixed(2)}x`}
-          />
-        </TweakerGroup>
-
-        <TweakerDisplay
-          id="scene-summary"
-          label="Summary"
-          pin="end"
-          value={(state) =>
-            `${Math.round(numberFromValue(state.values.opacity, 0) * 100)}% opacity / ${stringFromValue(state.values.quality, 'balanced')}`
-          }
-        />
-      </TweakerPanel>
-
-      <BuiltInItemsPanel />
-
-      <TweakerPanel
-        store={customItemPanelStore}
-        theme={themes.custom}
-        title="Custom Items"
-        collapsible
-        defaultPlacement="bottom-right"
-        width="23rem"
-        className="top-136 right-4 w-92 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-8 lg:bottom-auto"
-      >
-        <TweakerGroup id="custom-examples" label="App-local examples">
-          <ValidatedPresetNameItem />
-          <ShadcnChartItem />
-          <MouseVelocitySparklineItem
-            target={viewportPointerTarget}
-            targetLabel="the full viewport"
-          />
-          <WaveformSpectrumItem />
-        </TweakerGroup>
-      </TweakerPanel>
+      {showStateLab ? (
+        <TweakerPanel
+          store={customItemPanelStore}
+          theme={themes.custom}
+          title="Custom Items"
+          collapsible
+          defaultPlacement="bottom-right"
+          width="23rem"
+          className="top-136 right-4 w-92 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-auto lg:bottom-auto lg:left-8"
+        >
+          <TweakerGroup id="custom-examples" label="App-local examples">
+            <ValidatedPresetNameItem />
+            <MouseVelocitySparklineItem />
+            <WaveformSpectrumItem />
+          </TweakerGroup>
+        </TweakerPanel>
+      ) : null}
     </>
   )
 }

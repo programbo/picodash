@@ -21,40 +21,41 @@ Keep this file current whenever the repo structure, scripts, architecture, packa
 
 ## What This Repo Is
 
-Tweaker is a pnpm workspace managed with Vite+. It contains reusable React packages plus local demo apps.
+Tweaker is a Bun workspace managed with Vite+. It contains reusable React packages plus local demo apps.
 
 - `packages/tweaker`: the publishable `tweaker` React package.
 - `packages/panel`: a Vite+ React component library consumed by `apps/demo`.
 - `apps/website`: the demo/docs app and Playwright coverage for the package behavior.
 - `apps/demo`: a Vite+ React TypeScript demo app with Tailwind CSS that imports `panel` via `workspace:*`.
-- `pnpm-workspace.yaml`: workspace package globs and dependency catalog.
+- `package.json`: Bun workspace globs, dependency catalog, overrides, and root scripts.
+- `bun.lock`: Bun's text lockfile for the complete workspace dependency graph.
 - `vite.config.ts`: root Vite+ formatting, linting, staged checks, and cached task config.
 - `apps/website/vercel.json`: production security headers for static Vercel deployments.
 
-Use pnpm workspace commands and Vite+ commands. Do not replace the toolchain with plain Vite, npm, yarn, or ad hoc scripts.
+Use Bun workspace commands and Vite+ commands. Do not replace the toolchain with plain Vite, npm, yarn, or ad hoc scripts.
 
 ## Required Commands
 
 Run the narrowest useful checks while working, then run the full gate before handing off meaningful changes.
 
 ```bash
-pnpm install
-pnpm dev
-pnpm --filter tweaker check
-pnpm --filter tweaker test
-pnpm --filter tweaker build
-pnpm --filter panel test
-pnpm --filter panel build
-pnpm --filter demo build
-pnpm --filter demo test:e2e
-pnpm --filter website test:e2e
-pnpm ready
+bun install
+bun run dev
+bun run --filter tweaker check
+bun run --filter tweaker test
+bun run --filter tweaker build
+bun run --filter panel test
+bun run --filter panel build
+bun run --filter demo build
+bun run --filter demo test:e2e
+bun run --filter website test:e2e
+bun run ready
 ```
 
-`pnpm ready` is the full verification gate. It runs formatting, linting, type checks, package tests, builds, website build, and Playwright e2e tests:
+`bun run ready` is the full verification gate. It runs formatting, linting, type checks, package tests, builds, website build, and Playwright e2e tests:
 
 ```bash
-vp check && vp run -r test && vp run -r build && pnpm --filter website test:e2e && pnpm --filter demo test:e2e
+vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e && bun run --filter demo test:e2e
 ```
 
 Use `vp check --fix` for formatter/linter autofixes. Vite+ may cache some `vp run` tasks; treat successful replay as valid unless you changed test/build inputs that are not tracked by Vite+.
@@ -87,8 +88,14 @@ from `panel/style.css`.
 
 Panel inputs live in `packages/panel/src/inputs/`. Common primitives use the unified
 `radix-ui` package, direct-manipulation visuals use Motion, and file selection uses
-`react-dropzone`. Keep Recharts and the official shadcn chart source demo-local; they are
-examples of composing `TweakerItem`, not dependencies of the publishable panel package.
+`react-dropzone`. `TweakerChart` owns the publishable Recharts composition surface, while
+shadcn tooltip content and concrete chart configurations remain demo-local.
+`TweakerSparkline` accepts arrays, async iterables, and subscription sources; keep its
+streaming history bounded and its high-frequency SVG writes outside the panel store.
+`autoscale` derives one shared visible range across every series as an alternative to
+fixed bounds; keep it symmetric around zero, expand it immediately, and settle contraction
+through its MotionValue. `continuous` is forwarded to subscription sources; streaming
+must stop when the sparkline leaves the viewport.
 
 Titled panel header actions live in `packages/panel/src/tweaker-panel-actions.tsx`;
 JSON/YAML parsing, serialization, filenames, and validation live in the pure
@@ -125,14 +132,16 @@ never add bespoke component CSS rules or generic global `--color-*`/`--radius-*`
 definitions. `theme.ts` remains limited to JS-only Motion, projection geometry, and the
 numeric panel layer base.
 
-The panel root exports `TweakerItem`, built-in input components, their public value/props
-types, validation contracts, `createTweakerPanelStore`, and panel selector hooks. Pure
-normalization/projection helpers are advanced exports. `TweakerItem.contentLayout` accepts
+The panel root exports `TweakerItem`, built-in input and visualization components, their
+public value/props types, validation contracts, `createTweakerPanelStore`, and panel
+selector hooks. Pure normalization/projection helpers are advanced exports.
+`TweakerChart` variants must remain a discriminated union so cartesian and polar props
+cannot be mixed accidentally. `TweakerItem.contentLayout` accepts
 `"inline"`, `"block"`, or `"full"`; block/full descriptions must remain in a separate row
 after their content. Do not restore `TweakerControl`, `TweakerField`, `fieldId`,
 `placement`, or panel `defaultValues` compatibility APIs.
 
-Composite control values must remain JSON-compatible. Dropzones store file metadata rather than `File` objects, media previews use safe image URLs rather than raw SVG HTML, and temporary object URLs must be revoked when removed or unmounted. Use MotionValues for high-frequency visuals and optional smoothing only; Zustand remains authoritative for persisted/user-editable values, and animated examples must respect reduced-motion.
+Composite control values must remain JSON-compatible. Dropzones store file metadata rather than `File` objects, media previews use safe image URLs rather than raw SVG HTML, and temporary object URLs must be revoked when removed or unmounted. Use MotionValues for high-frequency visuals; Zustand remains authoritative for persisted/user-editable values, and animated examples must respect reduced-motion.
 `TweakerGradient` may pair its stop editor with a registered rotation field through
 `rotationField` and `defaultRotation`; keep both fields application-owned and
 JSON-compatible.
@@ -273,12 +282,13 @@ canonical gallery for every public package input capability. A generic compositi
 replace a redundant preset-wrapper row when it recreates the same behavior; keep the
 wrapper documented and covered by package tests. Keep gallery rows ordered from common to
 specialized, label them by item type, identify component names and meaningful props in
-`help`, and reserve `description` for optional-feature variants. The separate Custom
-Items panel contains only demo-local `TweakerItem` compositions such as the Standard
-Schema/Zod, shadcn/Recharts, pointer-velocity, and waveform/spectrum examples. Keep
+`help`, and reserve `description` for optional-feature variants. Its separate Charts group
+contains the public chart/sparkline components with demo-local data and tooltip content. The
+Custom Items panel contains the remaining demo-local `TweakerItem` compositions such as
+the Standard Schema/Zod and waveform/spectrum examples. Keep
 representative browser coverage in `apps/demo/tests/built-in-items.spec.ts` and
 `apps/demo/tests/custom-items.spec.ts`, and run it through
-`DEMO_PORT=6035 pnpm --filter demo test:e2e` in this worktree.
+`DEMO_PORT=6035 bun run --filter demo test:e2e` in this worktree.
 
 ## Documentation
 
@@ -294,7 +304,7 @@ If an API, command, import path, architecture boundary, or verification step cha
 
 ## Git And Generated Files
 
-The package and website build outputs may exist locally under `dist/`. Do not edit generated files by hand. Let `vp pack`, `vp build`, or `pnpm ready` regenerate them.
+The package and website build outputs may exist locally under `dist/`. Do not edit generated files by hand. Let `vp pack`, `vp build`, or `bun run ready` regenerate them.
 
 Keep `apps/website/vercel.json` security headers aligned with app behavior. The current CSP allows inline styles because the demo and package use React style attributes for CSS custom properties; do not remove that exception without replacing the inline-style behavior.
 
