@@ -207,7 +207,8 @@ source. A datum may be a number for one path or a keyed number record paired wit
 for multiple paths. Streaming emissions may contain one datum or a batch. The component
 bounds its history with `maxPoints`, batches SVG path writes to animation frames without
 storing samples in the panel store, and keeps subscription sources connected only while
-the sparkline surface is in the viewport:
+the sparkline surface is in the viewport. A subscription source must return a cleanup
+function that stops its producer and removes its listeners:
 
 ```tsx
 const frameTimes = {
