@@ -6,6 +6,7 @@ import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
 import { gradientRotationRegistrationId } from '../src/inputs/gradient.tsx'
 import { normalizeSelectValue } from '../src/inputs/select.tsx'
 import {
+  resolveTweakerSparklineProjectionBounds,
   shouldJumpTweakerSparklineRange,
   shouldUpdateTweakerSparklineRange,
 } from '../src/inputs/sparkline.tsx'
@@ -155,6 +156,18 @@ test('bounds appended sparkline samples and projects finite SVG coordinates', ()
     maxValue: 108_000,
     minValue: -108_000,
   })
+  expect(
+    resolveTweakerSparklineProjectionBounds(
+      largeHistory,
+      [{ dataKey: 'value' }],
+      undefined,
+      undefined,
+    ),
+  ).toEqual({
+    maxValue: 99_999,
+    minValue: -100_000,
+  })
+  expect(projectTweakerSparklinePath(largeHistory.map(({ value }) => value))).toMatch(/^M 0 88 L /)
   expect(projectTweakerSparklineBaseline(0, 100, { height: 100, width: 200 })).toBe('M 0 100 H 200')
   expect(projectTweakerSparklineBaseline(-25, 75, { height: 100, width: 200 })).toBe('M 0 75 H 200')
   expect(projectTweakerSparklineBaseline(10, 100)).toBe('')

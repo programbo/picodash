@@ -511,13 +511,17 @@ export function projectTweakerSparklinePath(
   } = {},
 ) {
   if (samples.length === 0) return ''
-  const finiteSamples = samples.filter(Number.isFinite)
-  if (finiteSamples.length === 0) return ''
+  let implicitLow = Number.POSITIVE_INFINITY
+  let implicitHigh = Number.NEGATIVE_INFINITY
+  for (const sample of samples) {
+    if (!Number.isFinite(sample)) continue
+    implicitLow = Math.min(implicitLow, sample)
+    implicitHigh = Math.max(implicitHigh, sample)
+  }
+  if (!Number.isFinite(implicitLow) || !Number.isFinite(implicitHigh)) return ''
 
-  const requestedLow = Number.isFinite(minValue) ? (minValue as number) : Math.min(...finiteSamples)
-  const requestedHigh = Number.isFinite(maxValue)
-    ? (maxValue as number)
-    : Math.max(...finiteSamples)
+  const requestedLow = Number.isFinite(minValue) ? (minValue as number) : implicitLow
+  const requestedHigh = Number.isFinite(maxValue) ? (maxValue as number) : implicitHigh
   const low = Math.min(requestedLow, requestedHigh)
   const high = Math.max(requestedLow, requestedHigh)
   const span = high - low || 1
@@ -587,29 +591,25 @@ export function resolveTweakerSparklineBounds(
   }
 }
 
-function resolveTweakerSparklineProjectionBounds(
+export function resolveTweakerSparklineProjectionBounds(
   samples: readonly Readonly<Record<string, number>>[],
   series: readonly Pick<TweakerSparklineSeries, 'dataKey'>[],
   minValue: number | undefined,
   maxValue: number | undefined,
 ) {
-  const values = samples.flatMap((sample) =>
-    series.flatMap(({ dataKey }) => {
+  let implicitLow = Number.POSITIVE_INFINITY
+  let implicitHigh = Number.NEGATIVE_INFINITY
+  for (const sample of samples) {
+    for (const { dataKey } of series) {
       const value = sample[dataKey]
-      return Number.isFinite(value) ? [value] : []
-    }),
-  )
-  const requestedLow = Number.isFinite(minValue)
-    ? (minValue as number)
-    : values.length > 0
-      ? Math.min(...values)
-      : undefined
-  const requestedHigh = Number.isFinite(maxValue)
-    ? (maxValue as number)
-    : values.length > 0
-      ? Math.max(...values)
-      : undefined
-  if (requestedLow === undefined || requestedHigh === undefined) return undefined
+      if (!Number.isFinite(value)) continue
+      implicitLow = Math.min(implicitLow, value)
+      implicitHigh = Math.max(implicitHigh, value)
+    }
+  }
+  const requestedLow = Number.isFinite(minValue) ? (minValue as number) : implicitLow
+  const requestedHigh = Number.isFinite(maxValue) ? (maxValue as number) : implicitHigh
+  if (!Number.isFinite(requestedLow) || !Number.isFinite(requestedHigh)) return undefined
 
   return {
     maxValue: Math.max(requestedLow, requestedHigh),
