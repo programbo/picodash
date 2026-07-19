@@ -107,6 +107,22 @@ test('bounds appended sparkline samples and projects finite SVG coordinates', ()
       width: 200,
     }),
   ).toBe('M 0 100 L 100 50 L 200 0')
+  expect(
+    projectTweakerSparklinePath([0, 5, Number.NaN], {
+      height: 100,
+      maxValue: 10,
+      minValue: 0,
+      width: 200,
+    }),
+  ).toBe('M 0 100 L 100 50')
+  expect(
+    projectTweakerSparklinePath([0, Number.NaN, 10], {
+      height: 100,
+      maxValue: 10,
+      minValue: 0,
+      width: 200,
+    }),
+  ).toBe('M 0 100 M 200 0')
   expect(projectTweakerSparklinePath([])).toBe('')
   expect(
     resolveTweakerSparklineBounds(

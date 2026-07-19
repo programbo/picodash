@@ -500,18 +500,22 @@ export function projectTweakerSparklinePath(
   const low = Math.min(requestedLow, requestedHigh)
   const high = Math.max(requestedLow, requestedHigh)
   const span = high - low || 1
-  const denominator = Math.max(1, finiteSamples.length - 1)
+  const denominator = Math.max(1, samples.length - 1)
 
-  const points = finiteSamples.map((sample, index) => {
-    const x = (index / denominator) * width
-    const y = Math.min(height, Math.max(0, height - ((sample - low) / span) * height))
-    return { x, y }
-  })
-  return points
-    .map(
-      (point, index) =>
-        `${index === 0 ? 'M' : 'L'} ${formatCoordinate(point.x)} ${formatCoordinate(point.y)}`,
-    )
+  let startsSegment = true
+  return samples
+    .map((sample, index) => {
+      if (!Number.isFinite(sample)) {
+        startsSegment = true
+        return ''
+      }
+      const x = (index / denominator) * width
+      const y = Math.min(height, Math.max(0, height - ((sample - low) / span) * height))
+      const command = startsSegment ? 'M' : 'L'
+      startsSegment = false
+      return `${command} ${formatCoordinate(x)} ${formatCoordinate(y)}`
+    })
+    .filter(Boolean)
     .join(' ')
 }
 
