@@ -81,6 +81,7 @@ export function TweakerSparkline({
   ...itemProps
 }: TweakerSparklineProps) {
   const surfaceRef = useRef<HTMLDivElement>(null)
+  const baselineRef = useRef<SVGPathElement>(null)
   const pathRefs = useRef(new Map<string, SVGPathElement>())
   const samplesRef = useRef<Readonly<Record<string, number>>[]>([])
   const frameRef = useRef<number | null>(null)
@@ -152,7 +153,20 @@ export function TweakerSparkline({
             maxValue: currentAutoscaleRange.get(),
             minValue: -currentAutoscaleRange.get(),
           }
-        : { maxValue: currentMaxValue, minValue: currentMinValue }
+        : resolveTweakerSparklineProjectionBounds(
+            visibleSamples,
+            currentSeries,
+            currentMinValue,
+            currentMaxValue,
+          )
+      const baselinePath = projectTweakerSparklineBaseline(bounds?.minValue, bounds?.maxValue)
+      if (baselineRef.current) {
+        baselineRef.current.setAttribute('d', baselinePath)
+        baselineRef.current.setAttribute(
+          'visibility',
+          baselinePath.length === 0 ? 'hidden' : 'visible',
+        )
+      }
       for (const item of currentSeries) {
         const samples = visibleSamples.map((sample) => sample[item.dataKey])
         const path = projectTweakerSparklinePath(samples, {
@@ -243,15 +257,54 @@ export function TweakerSparkline({
       }
     }
 
-    void (async () => {
-      for await (const emission of data) {
-        if (!active) break
-        append(emission)
+    let iterator: AsyncIterator<TweakerSparklineEmission> | undefined
+    let iteration = 0
+    const asyncData = data as AsyncIterable<TweakerSparklineEmission>
+
+    const stopIteration = () => {
+      iteration += 1
+      const currentIterator = iterator
+      iterator = undefined
+      if (currentIterator?.return) {
+        void currentIterator.return().catch(() => undefined)
       }
-    })()
+    }
+
+    const startIteration = () => {
+      if (iterator || !active) return
+      const currentIterator = asyncData[Symbol.asyncIterator]()
+      const currentIteration = ++iteration
+      iterator = currentIterator
+
+      void (async () => {
+        try {
+          while (active && iteration === currentIteration) {
+            const next = await currentIterator.next()
+            if (!active || iteration !== currentIteration || next.done) break
+            append(next.value)
+          }
+        } finally {
+          if (iteration === currentIteration) iterator = undefined
+        }
+      })().catch(() => undefined)
+    }
+
+    const surface = surfaceRef.current
+    const observer =
+      surface && typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(([entry]) => {
+            if (entry?.isIntersecting) startIteration()
+            else stopIteration()
+          })
+        : undefined
+
+    if (observer && surface) observer.observe(surface)
+    else startIteration()
 
     return () => {
       active = false
+      observer?.disconnect()
+      stopIteration()
       scheduleDrawRef.current = () => undefined
       cancelDraw()
     }
@@ -274,7 +327,16 @@ export function TweakerSparkline({
     : []
   const initialBounds = autoscale
     ? resolveTweakerSparklineBounds(initialSampleRecords, renderedSeries)
-    : { maxValue, minValue }
+    : resolveTweakerSparklineProjectionBounds(
+        initialSampleRecords,
+        renderedSeries,
+        minValue,
+        maxValue,
+      )
+  const initialBaselinePath = projectTweakerSparklineBaseline(
+    initialBounds?.minValue,
+    initialBounds?.maxValue,
+  )
 
   return (
     <TweakerItem {...itemProps} contentLayout={contentLayout} readOnly valueMode="display">
@@ -296,11 +358,13 @@ export function TweakerSparkline({
         >
           {showBaseline ? (
             <path
-              d={`M 0 ${sparklineHeight / 2} H ${sparklineWidth}`}
+              ref={baselineRef}
+              d={initialBaselinePath}
               fill="none"
               stroke="var(--tweaker-color-border)"
               strokeDasharray="3 4"
               vectorEffect="non-scaling-stroke"
+              visibility={initialBaselinePath.length === 0 ? 'hidden' : 'visible'}
             />
           ) : null}
           {renderedSeries.map((item) => {
@@ -406,6 +470,28 @@ export function projectTweakerSparklinePath(
     .join(' ')
 }
 
+export function projectTweakerSparklineBaseline(
+  minValue: number | undefined,
+  maxValue: number | undefined,
+  {
+    height = sparklineHeight,
+    width = sparklineWidth,
+  }: {
+    height?: number
+    width?: number
+  } = {},
+) {
+  if (!Number.isFinite(minValue) || !Number.isFinite(maxValue)) return ''
+
+  const low = Math.min(minValue as number, maxValue as number)
+  const high = Math.max(minValue as number, maxValue as number)
+  if (low > 0 || high < 0) return ''
+
+  const span = high - low || 1
+  const y = Math.min(height, Math.max(0, height - ((0 - low) / span) * height))
+  return `M 0 ${formatCoordinate(y)} H ${formatCoordinate(width)}`
+}
+
 export function resolveTweakerSparklineBounds(
   samples: readonly Readonly<Record<string, number>>[],
   series: readonly Pick<TweakerSparklineSeries, 'dataKey'>[],
@@ -425,6 +511,36 @@ export function resolveTweakerSparklineBounds(
   return {
     maxValue: extent,
     minValue: -extent,
+  }
+}
+
+function resolveTweakerSparklineProjectionBounds(
+  samples: readonly Readonly<Record<string, number>>[],
+  series: readonly Pick<TweakerSparklineSeries, 'dataKey'>[],
+  minValue: number | undefined,
+  maxValue: number | undefined,
+) {
+  const values = samples.flatMap((sample) =>
+    series.flatMap(({ dataKey }) => {
+      const value = sample[dataKey]
+      return Number.isFinite(value) ? [value] : []
+    }),
+  )
+  const requestedLow = Number.isFinite(minValue)
+    ? (minValue as number)
+    : values.length > 0
+      ? Math.min(...values)
+      : undefined
+  const requestedHigh = Number.isFinite(maxValue)
+    ? (maxValue as number)
+    : values.length > 0
+      ? Math.max(...values)
+      : undefined
+  if (requestedLow === undefined || requestedHigh === undefined) return undefined
+
+  return {
+    maxValue: Math.max(requestedLow, requestedHigh),
+    minValue: Math.min(requestedLow, requestedHigh),
   }
 }
 

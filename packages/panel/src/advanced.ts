@@ -85,6 +85,7 @@ export {
   partitionTweakerFilesByCapacity,
   projectTweakerFileMetadata,
   projectTweakerGradientPosition,
+  projectTweakerSparklineBaseline,
   projectTweakerSparklinePath,
   resolveTweakerSparklineBounds,
   projectTweakerXYLabelPosition,

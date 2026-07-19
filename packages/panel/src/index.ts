@@ -53,9 +53,6 @@ export { TweakerGroup } from './tweaker-group.js'
 export type { TweakerGroupProps } from './tweaker-group.js'
 
 export {
-  appendTweakerSparklineSamples,
-  projectTweakerSparklinePath,
-  resolveTweakerSparklineBounds,
   TweakerAlignment,
   TweakerChart,
   TweakerDisplay,

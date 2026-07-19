@@ -96,6 +96,7 @@ export { TweakerSlider } from './slider.js'
 export type { TweakerSliderMark, TweakerSliderMarks, TweakerSliderProps } from './slider.js'
 export {
   appendTweakerSparklineSamples,
+  projectTweakerSparklineBaseline,
   projectTweakerSparklinePath,
   resolveTweakerSparklineBounds,
   TweakerSparkline,

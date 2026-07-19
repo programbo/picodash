@@ -26,6 +26,7 @@ import {
   partitionTweakerFilesByCapacity,
   projectTweakerFileMetadata,
   projectTweakerGradientPosition,
+  projectTweakerSparklineBaseline,
   projectTweakerSparklinePath,
   resolveTweakerSparklineBounds,
   projectTweakerXYLabelPosition,
@@ -119,6 +120,9 @@ test('bounds appended sparkline samples and projects finite SVG coordinates', ()
     maxValue: 5.4,
     minValue: -5.4,
   })
+  expect(projectTweakerSparklineBaseline(0, 100, { height: 100, width: 200 })).toBe('M 0 100 H 200')
+  expect(projectTweakerSparklineBaseline(-25, 75, { height: 100, width: 200 })).toBe('M 0 75 H 200')
+  expect(projectTweakerSparklineBaseline(10, 100)).toBe('')
 })
 
 test('creates every supported TweakerChart type with type-specific Recharts props', () => {
