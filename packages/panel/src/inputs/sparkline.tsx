@@ -576,7 +576,8 @@ export function resolveTweakerSparklineBounds(
 
   const minimum = Math.min(...values)
   const maximum = Math.max(...values)
-  const extent = Math.max(1, Math.abs(minimum), Math.abs(maximum)) * 1.08
+  const magnitude = Math.max(Math.abs(minimum), Math.abs(maximum))
+  const extent = (magnitude || 1) * 1.08
 
   return {
     maxValue: extent,

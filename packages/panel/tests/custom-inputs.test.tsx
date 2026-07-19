@@ -140,6 +140,14 @@ test('bounds appended sparkline samples and projects finite SVG coordinates', ()
     maxValue: 5.4,
     minValue: -5.4,
   })
+  expect(resolveTweakerSparklineBounds([{ x: 0.01 }], [{ dataKey: 'x' }])).toEqual({
+    maxValue: 0.0108,
+    minValue: -0.0108,
+  })
+  expect(resolveTweakerSparklineBounds([{ x: 0 }], [{ dataKey: 'x' }])).toEqual({
+    maxValue: 1.08,
+    minValue: -1.08,
+  })
   expect(projectTweakerSparklineBaseline(0, 100, { height: 100, width: 200 })).toBe('M 0 100 H 200')
   expect(projectTweakerSparklineBaseline(-25, 75, { height: 100, width: 200 })).toBe('M 0 75 H 200')
   expect(projectTweakerSparklineBaseline(10, 100)).toBe('')
