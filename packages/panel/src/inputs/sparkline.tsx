@@ -1,4 +1,4 @@
-import { useSpring } from 'motion/react'
+import { useReducedMotion, useSpring } from 'motion/react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { TweakerItem, type TweakerDisplayItemProps } from '../tweaker-control.js'
 import type { TweakerValue } from '../tweaker-panel.js'
@@ -64,6 +64,14 @@ export type TweakerSparklineProps = TweakerSparklineBaseProps &
 const sparklineWidth = 320
 const sparklineHeight = 88
 
+export function shouldJumpTweakerSparklineRange(
+  currentRange: number,
+  targetRange: number,
+  prefersReducedMotion: boolean,
+) {
+  return prefersReducedMotion || targetRange >= currentRange
+}
+
 export function TweakerSparkline({
   ariaLabel = 'Sparkline',
   autoscale = false,
@@ -81,6 +89,7 @@ export function TweakerSparkline({
   ...itemProps
 }: TweakerSparklineProps) {
   const [surface, setSurface] = useState<HTMLDivElement | null>(null)
+  const prefersReducedMotion = useReducedMotion() === true
   const baselineRef = useRef<SVGPathElement>(null)
   const pathRefs = useRef(new Map<string, SVGPathElement>())
   const samplesRef = useRef<Readonly<Record<string, number>>[]>([])
@@ -113,6 +122,7 @@ export function TweakerSparkline({
     maxValue,
     minValue,
     pointLimit,
+    prefersReducedMotion,
     renderedSeries,
   })
   continuousRef.current = continuous
@@ -122,6 +132,7 @@ export function TweakerSparkline({
     maxValue,
     minValue,
     pointLimit,
+    prefersReducedMotion,
     renderedSeries,
   }
 
@@ -136,6 +147,7 @@ export function TweakerSparkline({
         maxValue: currentMaxValue,
         minValue: currentMinValue,
         pointLimit: currentPointLimit,
+        prefersReducedMotion: currentPrefersReducedMotion,
         renderedSeries: currentSeries,
       } = renderConfigRef.current
       const visibleSamples = samplesRef.current.slice(-currentPointLimit)
@@ -145,8 +157,15 @@ export function TweakerSparkline({
       if (targetBounds && targetBounds.maxValue !== autoscaleTargetRef.current) {
         const targetRange = targetBounds.maxValue
         autoscaleTargetRef.current = targetRange
-        if (targetRange >= currentAutoscaleRange.get()) currentAutoscaleRange.jump(targetRange)
-        else currentAutoscaleRange.set(targetRange)
+        if (
+          shouldJumpTweakerSparklineRange(
+            currentAutoscaleRange.get(),
+            targetRange,
+            currentPrefersReducedMotion,
+          )
+        ) {
+          currentAutoscaleRange.jump(targetRange)
+        } else currentAutoscaleRange.set(targetRange)
       }
       const bounds = currentAutoscale
         ? {
@@ -330,7 +349,15 @@ export function TweakerSparkline({
   useEffect(() => {
     samplesRef.current = samplesRef.current.slice(-pointLimit)
     scheduleDrawRef.current()
-  }, [autoscale, maxValue, minValue, pointLimit, renderedSeries, showBaseline])
+  }, [
+    autoscale,
+    maxValue,
+    minValue,
+    pointLimit,
+    prefersReducedMotion,
+    renderedSeries,
+    showBaseline,
+  ])
 
   useEffect(() => {
     for (const listener of continuousListenersRef.current) listener(continuous)

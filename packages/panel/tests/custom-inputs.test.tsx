@@ -5,6 +5,7 @@ import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
 import { projectTweakerRangeFill } from '../src/inputs/range.tsx'
 import { gradientRotationRegistrationId } from '../src/inputs/gradient.tsx'
 import { normalizeSelectValue } from '../src/inputs/select.tsx'
+import { shouldJumpTweakerSparklineRange } from '../src/inputs/sparkline.tsx'
 import {
   appendTweakerSparklineSamples,
   gradientCssValue,
@@ -123,6 +124,9 @@ test('bounds appended sparkline samples and projects finite SVG coordinates', ()
   expect(projectTweakerSparklineBaseline(0, 100, { height: 100, width: 200 })).toBe('M 0 100 H 200')
   expect(projectTweakerSparklineBaseline(-25, 75, { height: 100, width: 200 })).toBe('M 0 75 H 200')
   expect(projectTweakerSparklineBaseline(10, 100)).toBe('')
+  expect(shouldJumpTweakerSparklineRange(20, 10, false)).toBe(false)
+  expect(shouldJumpTweakerSparklineRange(20, 10, true)).toBe(true)
+  expect(shouldJumpTweakerSparklineRange(10, 20, false)).toBe(true)
 })
 
 test('creates every supported TweakerChart type with type-specific Recharts props', () => {
