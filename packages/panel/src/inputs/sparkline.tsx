@@ -258,53 +258,63 @@ export function TweakerSparkline({
     }
 
     let iterator: AsyncIterator<TweakerSparklineEmission> | undefined
-    let iteration = 0
     const asyncData = data as AsyncIterable<TweakerSparklineEmission>
+    let consuming = false
+    let finished = false
+    let isVisible = false
+    let pendingEmission: TweakerSparklineEmission | undefined
 
-    const stopIteration = () => {
-      iteration += 1
-      const currentIterator = iterator
-      iterator = undefined
-      if (currentIterator?.return) {
-        void currentIterator.return().catch(() => undefined)
-      }
-    }
+    const consume = async () => {
+      if (consuming || finished || !active || !isVisible) return
+      consuming = true
+      iterator ??= asyncData[Symbol.asyncIterator]()
 
-    const startIteration = () => {
-      if (iterator || !active) return
-      const currentIterator = asyncData[Symbol.asyncIterator]()
-      const currentIteration = ++iteration
-      iterator = currentIterator
-
-      void (async () => {
-        try {
-          while (active && iteration === currentIteration) {
-            const next = await currentIterator.next()
-            if (!active || iteration !== currentIteration || next.done) break
-            append(next.value)
-          }
-        } finally {
-          if (iteration === currentIteration) iterator = undefined
+      try {
+        if (pendingEmission !== undefined) {
+          append(pendingEmission)
+          pendingEmission = undefined
         }
-      })().catch(() => undefined)
+
+        while (active && isVisible && !finished) {
+          const next = await iterator.next()
+          if (!active) break
+          if (next.done) {
+            finished = true
+            break
+          }
+          if (!isVisible) {
+            pendingEmission = next.value
+            break
+          }
+          append(next.value)
+        }
+      } finally {
+        consuming = false
+      }
     }
 
     const surface = surfaceRef.current
     const observer =
       surface && typeof IntersectionObserver !== 'undefined'
         ? new IntersectionObserver(([entry]) => {
-            if (entry?.isIntersecting) startIteration()
-            else stopIteration()
+            isVisible = entry?.isIntersecting === true
+            if (isVisible) void consume().catch(() => undefined)
           })
         : undefined
 
     if (observer && surface) observer.observe(surface)
-    else startIteration()
+    else {
+      isVisible = true
+      void consume().catch(() => undefined)
+    }
 
     return () => {
       active = false
+      isVisible = false
       observer?.disconnect()
-      stopIteration()
+      pendingEmission = undefined
+      if (iterator?.return) void iterator.return().catch(() => undefined)
+      iterator = undefined
       scheduleDrawRef.current = () => undefined
       cancelDraw()
     }
