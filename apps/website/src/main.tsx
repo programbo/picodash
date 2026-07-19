@@ -397,7 +397,7 @@ function Demo() {
           <article>
             <h2>Install</h2>
             <pre>
-              <code>{`pnpm add tweaker
+              <code>{`bun add tweaker
 import "tweaker/style.css";`}</code>
             </pre>
           </article>

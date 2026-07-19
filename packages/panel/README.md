@@ -182,6 +182,7 @@ but cannot be changed by import, reset, or writes.
 - `TweakerGradient`
 - `TweakerMediaPreview` and `TweakerDropzone`
 - `TweakerDisplay` for derived, non-writable output
+- `TweakerSparkline` and `TweakerChart` for live and structured data visualization
 
 Composite values remain JSON-compatible. Dropzones store file metadata rather than
 `File` objects; media previews use safe image URLs; object URLs are revoked when removed
@@ -196,9 +197,100 @@ constraint changes.
 the color-stop editor; set its initial angle with `defaultRotation`. The editable stop
 preview remains horizontal so its handles stay aligned with their positions.
 
-`TweakerText.minRows` defaults to `1`. A value greater than `1` renders the package
-auto-growing textarea primitive with the normalized minimum row count; otherwise it
-renders the single-line input.
+`TweakerText.multiline` renders the package auto-growing textarea primitive when `true`;
+otherwise it renders the single-line input.
+
+### Sparklines and charts
+
+`TweakerSparkline.data` accepts a finite array, an async iterable, or a subscription
+source. A datum may be a number for one path or a keyed number record paired with `series`
+for multiple paths. Streaming emissions may contain one datum or a batch. The component
+bounds its history with `maxPoints`, batches SVG path writes to animation frames without
+storing samples in the panel store, and keeps subscription sources connected only while
+the sparkline surface is in the viewport:
+
+```tsx
+const frameTimes = {
+  subscribe(emit: (sample: number) => void) {
+    const socket = new WebSocket('/frame-times')
+    socket.addEventListener('message', (event) => emit(Number(event.data)))
+    return () => socket.close()
+  },
+}
+
+<TweakerSparkline
+  id="frame-times"
+  label="Frame time"
+  data={frameTimes}
+  maxPoints={120}
+  minValue={0}
+  maxValue={33}
+/>
+```
+
+`maxPoints` controls history length rather than source cadence. At 60 samples per second,
+`56` points represent roughly 0.93 seconds; reducing it makes new samples traverse the
+chart faster, while increasing it shows a longer, slower-moving window. Changing
+`maxPoints` trims or extends the visible history without reconnecting the source.
+
+Set `autoscale` to derive one symmetric, padded visible range shared by every series. Its
+positive and negative bounds follow the largest absolute visible value, keeping multiple
+streams directly comparable around zero. Range expansion is immediate so a new peak is
+not clipped; contraction follows a Motion spring so the scale settles without abrupt
+jumps. `autoscale` is an alternative to explicit `minValue` and `maxValue`; omit it or set
+it to `false` when providing fixed bounds.
+
+Set `continuous` to request uninterrupted display-cadence emissions from subscription
+sources while the surface remains visible. The source receives this preference as the
+second argument to `subscribe`. Read `options.continuous` for the current value and use
+`options.onContinuousChange` to react without reconnecting the source. Finite arrays and
+async iterables ignore it.
+
+For multiple streams, emit records and identify each path with `series`:
+
+```tsx
+<TweakerSparkline
+  id="velocity"
+  label="Velocity"
+  data={pointerVelocitySource}
+  series={[
+    { dataKey: 'x', label: 'X velocity', stroke: 'var(--tweaker-color-accent)' },
+    { dataKey: 'y', label: 'Y velocity', stroke: 'var(--tweaker-color-warning)' },
+  ]}
+  autoscale
+  continuous
+/>
+```
+
+`TweakerChart` is a display-only Recharts composition with a discriminated `type` prop:
+`"area"`, `"bar"`, `"line"`, `"pie"`, `"radar"`, or `"radial"`. Each variant exposes
+only the primitives it supports. Cartesian charts accept `cartesianGridProps`,
+`xAxisProps`, and `yAxisProps`; radar and radial charts accept `polarGridProps`,
+`polarAngleAxisProps`, and `polarRadiusAxisProps`. Every chart accepts `tooltipProps`
+for `ChartTooltip` and optional `legendProps`.
+
+```tsx
+<TweakerChart
+  id="frame-chart"
+  label="Frame time"
+  type="line"
+  data={[
+    { frame: '01', gpu: 8.9, target: 16.7 },
+    { frame: '02', gpu: 11.4, target: 16.7 },
+  ]}
+  series={[
+    { dataKey: 'target', stroke: 'var(--tweaker-color-warning)', strokeDasharray: '4 4' },
+    { dataKey: 'gpu', stroke: 'var(--tweaker-color-accent)', type: 'monotone' },
+  ]}
+  cartesianGridProps={{ vertical: false }}
+  xAxisProps={{ dataKey: 'frame', tickLine: false }}
+  tooltipProps={{ cursor: false }}
+/>
+```
+
+Chart-container props use the chart-specific names `areaChartProps`, `barChartProps`,
+`lineChartProps`, `pieChartProps`, `radarChartProps`, and `radialBarChartProps`. Pie
+charts take `pieProps`; the other chart types take a typed `series` array.
 
 `TweakerMatrix2D` is a controlled, generic single-selection grid. Rows and columns come
 from a two-dimensional option array. Each option accepts button content, disabled state,
@@ -378,9 +470,10 @@ JS-only Motion springs and visual states, `tweakerGeometryTokens` holds numeric 
 needed by projection math, and `tweakerLayerTokens` holds the JS-only panel layer base.
 `tweakerThemeAttribute` and `tweakerDefaultTheme` expose the carrier contract.
 
-The official shadcn/Recharts and live MotionValue examples live in `apps/demo` rather than
-the publishable package. The chart style generator receives application-authored trusted
-configuration only; media URLs, dropped files, and SVG input never flow into its CSS.
+The demo uses the public `TweakerChart` for a typed line-chart composition and exercises
+`TweakerSparkline` with a live subscription source. Application-authored chart data and
+component props are passed directly to Recharts; media URLs, dropped files, and SVG input
+never flow into generated chart CSS.
 
 ## Development
 
@@ -388,13 +481,13 @@ configuration only; media URLs, dropped files, and SVG input never flow into its
 vp install
 vp test
 vp pack
-pnpm --filter demo test:e2e
+bun run --filter demo test:e2e
 ```
 
 The demo defaults to port `6032`. For the API/DX worktree, run it on the reserved
 worktree port without changing the canonical default:
 
 ```bash
-DEMO_PORT=6034 pnpm --filter demo dev
-DEMO_PORT=6034 pnpm --filter demo test:e2e
+DEMO_PORT=6034 bun run --filter demo dev
+DEMO_PORT=6034 bun run --filter demo test:e2e
 ```

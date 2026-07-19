@@ -9,18 +9,17 @@ export interface TweakerTextProps extends Omit<
   'children' | 'defaultValue' | 'parse'
 > {
   defaultValue?: string
-  minRows?: number
+  multiline?: boolean
   placeholder?: string
 }
 
 export function TweakerText({
   defaultValue,
-  minRows,
+  multiline = false,
   placeholder,
   ...controlProps
 }: TweakerTextProps) {
   const normalizedDefault = typeof defaultValue === 'string' ? defaultValue : undefined
-  const normalizedMinRows = normalizeTextMinRows(minRows)
   const parse = useMemo<TweakerParser<string>>(
     () => (input, context) => {
       if (typeof input === 'string') return { output: { value: input }, success: true }
@@ -58,8 +57,8 @@ export function TweakerText({
           },
         }
 
-        return tweakerTextControlKind(normalizedMinRows) === 'textarea' ? (
-          <Textarea {...inputProps} rows={normalizedMinRows} />
+        return tweakerTextControlKind(multiline) === 'textarea' ? (
+          <Textarea {...inputProps} />
         ) : (
           <Input {...inputProps} type="text" />
         )
@@ -68,11 +67,6 @@ export function TweakerText({
   )
 }
 
-export function normalizeTextMinRows(minRows: number | undefined) {
-  if (typeof minRows !== 'number' || !Number.isFinite(minRows)) return 1
-  return Math.max(1, Math.ceil(minRows))
-}
-
-export function tweakerTextControlKind(minRows: number | undefined): 'input' | 'textarea' {
-  return normalizeTextMinRows(minRows) > 1 ? 'textarea' : 'input'
+export function tweakerTextControlKind(multiline: boolean | undefined): 'input' | 'textarea' {
+  return multiline ? 'textarea' : 'input'
 }

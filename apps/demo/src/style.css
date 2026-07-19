@@ -136,6 +136,31 @@
   --sidebar-ring: oklch(0.56 0.021 213.5);
 }
 
+:where([data-tweaker-theme='light']) {
+  color-scheme: light;
+  --tweaker-color-canvas: oklch(0.963 0.002 197.1);
+  --tweaker-color-surface: oklch(1 0 0);
+  --tweaker-color-surface-raised: oklch(0.987 0.002 197.1);
+  --tweaker-color-surface-muted: oklch(0.925 0.005 214.3);
+  --tweaker-color-text: oklch(0.218 0.008 223.9);
+  --tweaker-color-text-strong: oklch(0.148 0.004 228.8);
+  --tweaker-color-text-muted: oklch(0.473 0.014 214.4);
+  --tweaker-color-border: oklch(0.148 0.004 228.8 / 14%);
+  --tweaker-color-control: oklch(0.148 0.004 228.8 / 20%);
+  --tweaker-color-focus: oklch(0.56 0.12 221);
+  --tweaker-color-accent: oklch(0.218 0.008 223.9);
+  --tweaker-color-accent-text: oklch(0.987 0.002 197.1);
+  --tweaker-color-success: oklch(0.49 0.14 163.223);
+  --tweaker-color-info: oklch(0.5 0.15 232.661);
+  --tweaker-color-warning: oklch(0.58 0.16 84.429);
+  --tweaker-color-alert: oklch(0.55 0.17 55.934);
+  --tweaker-color-danger: oklch(0.55 0.19 22.216);
+  --tweaker-color-overlay: oklch(0.148 0.004 228.8 / 55%);
+  --tweaker-shadow-panel: 0 25px 50px -12px rgb(15 23 42 / 0.22);
+  --tweaker-shadow-viewer: 0 25px 50px -12px rgb(15 23 42 / 0.35);
+  --tweaker-shadow-inner: inset 0 2px 4px rgb(15 23 42 / 0.12);
+}
+
 :where([data-tweaker-theme='ocean']) {
   --tweaker-color-canvas: rgb(2 18 28);
   --tweaker-color-surface: rgb(7 38 52);

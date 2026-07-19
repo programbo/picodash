@@ -7,6 +7,7 @@ import {
 } from '../src/custom-items/pointer-velocity-sampling.ts'
 
 const builtInGroupLabels = {
+  'chart-items': 'Charts',
   'common-items': 'Common inputs',
   'media-items': 'Media and files',
   'spatial-items': 'Direct manipulation',
@@ -16,8 +17,8 @@ const initialBuiltInRootOrder = [
   'common-items',
   'spatial-items',
   'media-items',
+  'chart-items',
   'visualization-items',
-  'display',
 ]
 
 async function changeDemoThemes(
@@ -43,13 +44,15 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('[data-state-lab]')).toHaveCSS('position', 'relative')
 })
 
-test('keeps the root route blank apart from the existing panels', async ({ page }) => {
+test('focuses the root route on interactive JSX and the Built-in Items panel', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toHaveCount(0)
-  await expect(page.locator('[data-tweaker-panel-id="scene-controls"]')).toBeVisible()
+  await expect(page.locator('[data-interactive-jsx-example]')).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Code' })).toBeVisible()
   await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
-  await expect(page.locator('[data-tweaker-panel-id="custom-items"]')).toBeVisible()
+  await expect(page.locator('[data-tweaker-panel-id="scene-controls"]')).toHaveCount(0)
+  await expect(page.locator('[data-tweaker-panel-id="custom-items"]')).toHaveCount(0)
 })
 
 test('lets the desktop custom-items panel size itself to its content', async ({ page }) => {
@@ -196,8 +199,8 @@ for (const scenario of [
       'spatial-items',
       'common-items',
       'media-items',
+      'chart-items',
       'visualization-items',
-      'display',
     ],
     name: 'Common inputs over the second root item',
     sourceId: 'common-items',
@@ -210,40 +213,13 @@ for (const scenario of [
       'spatial-items',
       'media-items',
       'common-items',
+      'chart-items',
       'visualization-items',
-      'display',
     ],
     name: 'Common inputs over the third root item',
     sourceId: 'common-items',
     sourceLabel: 'Common inputs',
     targetId: 'media-items',
-  },
-  {
-    expectedOrder: [
-      'common-items',
-      'spatial-items',
-      'media-items',
-      'display',
-      'visualization-items',
-    ],
-    name: 'Display upward over the adjacent root group',
-    sourceId: 'display',
-    sourceLabel: 'Display',
-    singleDirection: true,
-    targetId: 'visualization-items',
-  },
-  {
-    expectedOrder: [
-      'common-items',
-      'display',
-      'spatial-items',
-      'media-items',
-      'visualization-items',
-    ],
-    name: 'Display upward over multiple root groups',
-    sourceId: 'display',
-    sourceLabel: 'Display',
-    targetId: 'spatial-items',
   },
 ] as const) {
   test(`previews and commits ${scenario.name} while all groups are collapsed`, async ({ page }) => {
@@ -283,7 +259,12 @@ for (const scenario of [
     const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
     const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
 
-    await collapseCustomGroups(panel, ['common-items', 'spatial-items', 'visualization-items'])
+    await collapseCustomGroups(panel, [
+      'common-items',
+      'spatial-items',
+      'chart-items',
+      'visualization-items',
+    ])
     await expect(panel.locator('[data-group-id="media-items"]')).toHaveAttribute(
       'data-collapsed',
       'false',
@@ -295,8 +276,8 @@ for (const scenario of [
         'common-items',
         'media-items',
         'spatial-items',
+        'chart-items',
         'visualization-items',
-        'display',
       ],
       list: rootList,
       page,
@@ -313,7 +294,7 @@ test('previews and commits an expanded group downward across another expanded gr
   const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
   const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
 
-  await collapseCustomGroups(panel, ['common-items', 'visualization-items'])
+  await collapseCustomGroups(panel, ['common-items', 'chart-items', 'visualization-items'])
   await expect(panel.locator('[data-group-id="spatial-items"]')).toHaveAttribute(
     'data-collapsed',
     'false',
@@ -328,8 +309,8 @@ test('previews and commits an expanded group downward across another expanded gr
       'common-items',
       'media-items',
       'spatial-items',
+      'chart-items',
       'visualization-items',
-      'display',
     ],
     list: rootList,
     page,
@@ -353,8 +334,8 @@ test('moves an expanded Common group upward across multiple collapsed groups fro
       'spatial-items',
       'media-items',
       'common-items',
+      'chart-items',
       'visualization-items',
-      'display',
     ],
     list: rootList,
     page,
@@ -393,7 +374,12 @@ test('reverses an expanded root group across collapsed groups and a root item', 
   const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
   const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
 
-  await collapseCustomGroups(panel, ['common-items', 'spatial-items', 'visualization-items'])
+  await collapseCustomGroups(panel, [
+    'common-items',
+    'spatial-items',
+    'chart-items',
+    'visualization-items',
+  ])
   await expect(panel.locator('[data-group-id="media-items"]')).toHaveAttribute(
     'data-collapsed',
     'false',
@@ -408,7 +394,7 @@ test('reverses an expanded root group across collapsed groups and a root item', 
     sourceLabel: 'Media and files',
     stops: [
       { targetId: 'visualization-items' },
-      { targetId: 'display' },
+      { targetId: 'chart-items' },
       { targetId: 'spatial-items' },
       { targetId: 'common-items' },
     ],
@@ -431,8 +417,8 @@ test('settles active group disclosure transitions before measuring a root drag',
       'spatial-items',
       'media-items',
       'common-items',
+      'chart-items',
       'visualization-items',
-      'display',
     ],
     list: rootList,
     page,
@@ -459,6 +445,8 @@ for (const scenario of [
       'sliderMarks',
       'range',
       'segmented',
+      'vector3',
+      'alignment',
     ],
     name: 'downward',
     sourceId: 'text',
@@ -476,6 +464,8 @@ for (const scenario of [
       'sliderMarks',
       'segmented',
       'range',
+      'vector3',
+      'alignment',
     ],
     name: 'upward',
     sourceId: 'segmented',
@@ -523,6 +513,8 @@ test('reorders an auto-grown Text textarea in both directions without losing its
     'sliderMarks',
     'range',
     'segmented',
+    'vector3',
+    'alignment',
   ]
   const value = [
     'Auto-growing text',
@@ -548,6 +540,8 @@ test('reorders an auto-grown Text textarea in both directions without losing its
       'sliderMarks',
       'range',
       'segmented',
+      'vector3',
+      'alignment',
     ],
     list,
     page,
@@ -841,7 +835,7 @@ test('contains grip layers within their reorder items', async ({ page }) => {
 test('renders static square slots for non-reorderable items', async ({ page }) => {
   const fixedControl = page.locator('[data-item-id="shadcn-frame-chart"]')
   const fixedSlot = fixedControl.getByRole('button', {
-    name: 'Reorder Frame time',
+    name: 'Reorder Chart',
     exact: true,
   })
   const reorderableControl = page.locator('[data-item-id="quality"]')
@@ -908,7 +902,7 @@ test('keeps panel typography and dropzone geometry at the baseline', async ({ pa
   const alignment = page.locator('[data-item-id="alignment"]')
   const alignmentLabel = alignment.locator('label')
   const qualityTrigger = page.locator('[data-item-id="quality"]').getByRole('combobox')
-  const helpButton = alignment.getByRole('button', { name: 'Help for Alignment' })
+  const helpButton = alignment.getByRole('button', { name: 'Help for Matrix2D' })
   const dropSurface = page
     .locator('[data-item-id="droppedFiles"]')
     .getByRole('button', { name: 'Choose files or drop them here' })
@@ -985,7 +979,7 @@ test('updates common, spatial, and gradient values through accessible controls',
 
   const gradient = page.locator('[data-item-id="gradient"]')
   const gradientTrack = gradient.locator('[id="gradient:input"]')
-  await expect(gradient).toContainText('Background Gradient')
+  await expect(gradient).toContainText('Gradient')
   await expect(gradientTrack).toHaveAttribute('style', /linear-gradient\(to right/)
   await expect(gradient).not.toContainText('Rotation')
   await expect(
@@ -1084,7 +1078,7 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await expect(builtInPanel).toHaveAttribute('data-tweaker-theme', 'ocean')
   await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
   await expect(scenePanel).toHaveCSS('background-color', 'rgb(7, 38, 52)')
-  await expect(builtInPanel).toHaveCSS('background-color', 'rgb(7, 38, 52)')
+  await expect(builtInPanel).toHaveCSS('background-color', /0\.72/)
   await expect(customPanel).toHaveCSS('background-color', 'rgb(54, 19, 62)')
 
   const alignment = builtInPanel.locator('[data-item-id="alignment"]')
@@ -1105,7 +1099,7 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await expect(finalOption).toHaveCSS('background-color', 'rgb(17, 78, 96)')
   await page.keyboard.press('Escape')
 
-  await alignment.getByRole('button', { name: 'Help for Alignment' }).hover()
+  await alignment.getByRole('button', { name: 'Help for Matrix2D' }).hover()
   await expect(page.getByRole('tooltip')).toBeVisible()
   const tooltip = page.locator('[data-tweaker-theme="ocean"][data-side]')
   await expect(tooltip).toHaveCSS('background-color', 'rgb(11, 55, 72)')

@@ -60,6 +60,7 @@ export {
 } from './tweaker-order.js'
 
 export {
+  appendTweakerSparklineSamples,
   gradientCssValue,
   enabledMatrix2DOptions,
   findFirstEnabledMatrix2DPosition,
@@ -80,11 +81,12 @@ export {
   normalizeVector3Value,
   normalizeVectorBounds,
   normalizeVectorStep,
-  normalizeTextMinRows,
   objectFitClassName,
   partitionTweakerFilesByCapacity,
   projectTweakerFileMetadata,
   projectTweakerGradientPosition,
+  projectTweakerSparklinePath,
+  resolveTweakerSparklineBounds,
   projectTweakerXYLabelPosition,
   projectTweakerXYPointer,
   projectTweakerXYValue,

@@ -266,11 +266,19 @@ types, hooks, ordering utilities, theme constants, and normalization helpers fro
 `panel/advanced`. See [`packages/panel/README.md`](packages/panel/README.md) for the full
 API.
 
+Display-only visualization components include `TweakerSparkline`, whose `data` accepts
+arrays, async iterables, or subscription streams, whose `autoscale` can replace explicit
+bounds with one symmetric Motion-driven multi-series range, and whose `continuous` prop
+controls source cadence, and
+`TweakerChart`, whose typed
+`area`/`bar`/`line`/`pie`/`radar`/`radial` variants expose the corresponding Recharts
+axis, grid, tooltip, legend, series, and chart-container props.
+
 The `apps/demo` integration keeps package-owned inputs in a canonical **Built-in Items**
 panel, ordered from common inputs to more specialized spatial, media, and display items.
 Every row names its exported component and meaningful props in `help`; optional variants
 use `description`. `TweakerText` renders the basic input by default and an auto-growing
-textarea when `minRows` is greater than `1`. `TweakerMatrix2D` accepts consumer-authored
+textarea when `multiline` is `true`. `TweakerMatrix2D` accepts consumer-authored
 button options and `containerProps`, so applications own the grid layout, button styling,
 and attributes. The separate **Custom Items** panel is reserved for app-local
 `TweakerItem` compositions.
@@ -278,13 +286,13 @@ and attributes. The separate **Custom Items** panel is reserved for app-local
 ## Development
 
 ```bash
-pnpm install
-pnpm dev
-pnpm --filter tweaker test
-pnpm --filter panel test
-pnpm --filter demo build
-pnpm --filter website test:e2e
-pnpm ready
+bun install
+bun run dev
+bun run --filter tweaker test
+bun run --filter panel test
+bun run --filter demo build
+bun run --filter website test:e2e
+bun run ready
 ```
 
 The demo/docs page lives in `apps/website`. The reusable Tweaker package lives in `packages/tweaker`. The standalone panel package lives in `packages/panel`, and `apps/demo` consumes it through `workspace:*`.

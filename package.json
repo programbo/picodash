@@ -2,13 +2,59 @@
   "name": "tweaker-monorepo",
   "version": "0.0.0",
   "private": true,
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*",
+      "tools/*"
+    ],
+    "catalog": {
+      "@types/node": "^24",
+      "typescript": "^5",
+      "vite": "npm:@voidzero-dev/vite-plus-core@0.1.24",
+      "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.24",
+      "vite-plus": "0.1.24",
+      "react": "^19.2.7",
+      "react-dom": "^19.2.7",
+      "react-json-view-lite": "^2.5.0",
+      "@dnd-kit/react": "^0.5.0",
+      "@dnd-kit/dom": "^0.5.0",
+      "@dnd-kit/abstract": "^0.5.0",
+      "lucide-react": "^1.18.0",
+      "@types/react": "^19.2.17",
+      "@types/react-dom": "^19.2.3",
+      "@tsdown/css": "0.22.1",
+      "@playwright/test": "^1.60.0",
+      "highlight.js": "^11.11.1",
+      "zustand": "^5.0.14",
+      "zod": "^4.4.3",
+      "clsx": "^2.1.1",
+      "tailwindcss": "^4.3.1",
+      "@tailwindcss/postcss": "^4.3.1",
+      "postcss": "^8.5.15",
+      "postcss-import": "^16.1.1",
+      "prettier": "^3.8.4",
+      "prettier-plugin-tailwindcss": "^0.8.0",
+      "react-aria-components": "1.19.0",
+      "motion": "^12.42.2",
+      "recharts": "^3.9.2",
+      "react-dropzone": "^17.0.0",
+      "tailwind-merge": "^3.6.0",
+      "class-variance-authority": "^0.7.1",
+      "shadcn": "^4.12.0",
+      "tw-animate-css": "^1.4.0",
+      "radix-ui": "^1.6.1",
+      "yaml": "^2.9.0",
+      "@tailwindcss/typography": "^0.5.20"
+    }
+  },
   "type": "module",
   "scripts": {
-    "ready": "vp check && vp run -r test && vp run -r build && pnpm --filter website test:e2e && pnpm --filter demo test:e2e",
+    "ready": "vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e && bun run --filter demo test:e2e",
     "dev": "vp run website#dev",
     "demo": "vp run demo#dev",
     "panel": "vp run panel#dev",
-    "test:e2e": "pnpm --filter website test:e2e && pnpm --filter demo test:e2e",
+    "test:e2e": "bun run --filter website test:e2e && bun run --filter demo test:e2e",
     "prepare": "vp config"
   },
   "devDependencies": {
@@ -17,8 +63,13 @@
     "prettier-plugin-tailwindcss": "catalog:",
     "vite-plus": "catalog:"
   },
+  "overrides": {
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
   "engines": {
+    "bun": ">=1.3.14",
     "node": ">=22.12.0"
   },
-  "packageManager": "pnpm@11.6.0"
+  "packageManager": "bun@1.3.14"
 }

@@ -5,7 +5,6 @@ import {
   findMatrix2DValuePosition,
   findNextMatrix2DPosition,
   normalizeMatrix2DValue,
-  normalizeTextMinRows,
   tweakerTextControlKind,
 } from '../src/advanced.ts'
 import {
@@ -48,21 +47,16 @@ const matrixOptions: readonly (readonly TweakerMatrix2DOption<{
   ],
 ]
 
-test('TweakerText selects the input primitive from normalized minRows', () => {
-  expect(normalizeTextMinRows(undefined)).toBe(1)
-  expect(normalizeTextMinRows(0)).toBe(1)
-  expect(normalizeTextMinRows(1)).toBe(1)
-  expect(normalizeTextMinRows(1.1)).toBe(2)
-  expect(normalizeTextMinRows(3.2)).toBe(4)
-  expect(normalizeTextMinRows(Number.NaN)).toBe(1)
-  expect(tweakerTextControlKind(1)).toBe('input')
-  expect(tweakerTextControlKind(2)).toBe('textarea')
+test('TweakerText selects the input primitive from multiline', () => {
+  expect(tweakerTextControlKind(undefined)).toBe('input')
+  expect(tweakerTextControlKind(false)).toBe('input')
+  expect(tweakerTextControlKind(true)).toBe('textarea')
 
   const singleLine = <TweakerText field="title" defaultValue="Untitled" />
-  const multiline = <TweakerText field="notes" defaultValue="" minRows={3} />
+  const multiline = <TweakerText field="notes" defaultValue="" multiline />
   expect(isValidElement(singleLine)).toBe(true)
   expect(isValidElement(multiline)).toBe(true)
-  expect(multiline.props.minRows).toBe(3)
+  expect(multiline.props.multiline).toBe(true)
 })
 
 test('TweakerMatrix2D exposes controlled values and arbitrary option/container props', () => {

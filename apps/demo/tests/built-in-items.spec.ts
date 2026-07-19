@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 
 const builtInItems = [
   { component: 'TweakerText', id: 'text', label: 'Text' },
@@ -11,18 +11,302 @@ const builtInItems = [
   { component: 'TweakerRange', id: 'range', label: 'Range' },
   { component: 'TweakerSegmented', id: 'segmented', label: 'Segmented' },
   { component: 'TweakerVector3', id: 'vector3', label: 'Vector3' },
-  { component: 'TweakerMatrix2D', id: 'alignment', label: 'Alignment' },
+  { component: 'TweakerMatrix2D', id: 'alignment', label: 'Matrix2D' },
   { component: 'TweakerXYPad', id: 'xyPad', label: 'XYPad' },
-  { component: 'TweakerGradient', id: 'gradient', label: 'Background Gradient' },
+  { component: 'TweakerGradient', id: 'gradient', label: 'Gradient' },
   { component: 'TweakerMediaPreview', id: 'previewAsset', label: 'MediaPreview' },
   { component: 'TweakerDropzone', id: 'droppedFiles', label: 'Dropzone' },
+  { component: 'TweakerSparkline', id: 'sparkline', label: 'Sparkline' },
+  { component: 'TweakerChart', id: 'shadcn-frame-chart', label: 'Chart' },
   { component: 'TweakerDisplay', id: 'displayFallback', label: 'Display' },
   { component: 'TweakerDisplay', id: 'display', label: 'Display' },
 ] as const
 
+async function setBooleanSwitch(locator: Locator, value: boolean) {
+  await expect(locator).toHaveAttribute('role', 'switch')
+  if ((await locator.getAttribute('aria-checked')) !== String(value)) {
+    await locator.click()
+  }
+  await expect(locator).toHaveAttribute('aria-checked', String(value))
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
+})
+
+test('edits live provider, panel, and Common inputs props through highlighted JSX', async ({
+  page,
+}) => {
+  const example = page.locator('[data-interactive-jsx-example]')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+
+  await expect(example.locator('[data-interactive-tabs]')).toHaveClass(/bg-zinc-950\/78/)
+  const showAllProps = example.getByRole('checkbox', { name: 'Show all props' })
+  const textDeclaration = example.locator('[data-jsx-control="text"]')
+  await expect(showAllProps).not.toBeChecked()
+  await expect(textDeclaration.getByText('contentLayout', { exact: true })).toHaveCount(0)
+  await showAllProps.check()
+  const hiddenContentLayout = textDeclaration.getByText('contentLayout', { exact: true })
+  await expect(hiddenContentLayout).toBeVisible()
+  await expect(hiddenContentLayout.locator('..')).toHaveClass(/opacity-60/)
+  const textDeclarationLines = await textDeclaration.locator(':scope > span').allTextContents()
+  const textDescriptionIndex = textDeclarationLines.findIndex((line) =>
+    line.includes('description='),
+  )
+  const textContentLayoutIndex = textDeclarationLines.findIndex((line) =>
+    line.includes('contentLayout='),
+  )
+  expect(textDescriptionIndex).toBeGreaterThan(0)
+  expect(textDescriptionIndex).toBeLessThan(textContentLayoutIndex)
+  await expect(example.getByText('defaultPlacement', { exact: true })).toBeVisible()
+  const numberDeclaration = example.locator('[data-jsx-control="number"]')
+  const numberRow = panel.locator('[data-item-id="number"]')
+  await example.getByLabel('Content layout for number').selectOption('block')
+  await expect(numberRow).toHaveAttribute('data-content-layout', 'block')
+  await setBooleanSwitch(example.getByLabel('Disabled for number'), true)
+  await expect(numberRow.locator('input')).toBeDisabled()
+  await setBooleanSwitch(example.getByLabel('Disabled for number'), false)
+  await setBooleanSwitch(example.getByLabel('Read only for number'), true)
+  await expect(numberRow.locator('input')).toHaveAttribute('readonly', '')
+  await setBooleanSwitch(example.getByLabel('Read only for number'), false)
+  await setBooleanSwitch(example.getByLabel('Reorderable for number'), false)
+  await expect(numberDeclaration.getByLabel('Reorderable for number')).toHaveAttribute(
+    'aria-checked',
+    'false',
+  )
+  await setBooleanSwitch(example.getByLabel('Visible for number'), false)
+  await expect(numberRow).toBeHidden()
+  await setBooleanSwitch(example.getByLabel('Visible for number'), true)
+  await expect(numberRow).toBeVisible()
+  await numberDeclaration.locator('[data-jsx-help="TweakerNumber"]').hover()
+  const propTypeTooltip = page.locator('[data-jsx-prop-type-tooltip="TweakerNumber"]:visible')
+  await expect(propTypeTooltip).toContainText('// TweakerNumber')
+  await expect(propTypeTooltip).toContainText('type TweakerNumberProps = {')
+  await expect(propTypeTooltip).toContainText('field: string')
+  await expect(propTypeTooltip.locator('.hljs-keyword').first()).toContainText('type')
+  await expect
+    .poll(async () => (await propTypeTooltip.boundingBox())?.width ?? 0)
+    .toBeGreaterThan(500)
+  await page.keyboard.press('Escape')
+  await showAllProps.uncheck()
+  await expect(hiddenContentLayout).toHaveCount(0)
+
+  const darkSurface = await panel.evaluate((element) => getComputedStyle(element).backgroundColor)
+  await expect(panel).toHaveCSS('backdrop-filter', /blur/)
+  await expect(panel).toHaveClass(/bg-tweaker-surface\/72/)
+  await example.getByLabel('Provider theme').selectOption('light')
+  await expect(panel).toHaveAttribute('data-tweaker-theme', 'light')
+  await expect(panel).toHaveCSS('color-scheme', 'light')
+  await expect
+    .poll(() => panel.evaluate((element) => getComputedStyle(element).backgroundColor))
+    .not.toBe(darkSurface)
+
+  await example.getByLabel('Provider theme').selectOption('ocean')
+  await expect(panel).toHaveAttribute('data-tweaker-theme', 'ocean')
+
+  await example.getByLabel('Panel title').fill('Live Built-ins')
+  await expect(panel).toContainText('Live Built-ins')
+
+  await example.getByLabel('Common inputs group label').fill('Everyday controls')
+  await expect(panel).toContainText('Everyday controls')
+
+  const multilineRow = panel.locator('[data-item-id="multilineText"]')
+  await expect(multilineRow.locator('textarea')).toBeVisible()
+  await setBooleanSwitch(example.getByLabel('Multiline text'), false)
+  await expect(multilineRow.locator('input')).toBeVisible()
+  await setBooleanSwitch(example.getByLabel('Multiline text'), true)
+  await expect(multilineRow.locator('textarea')).toBeVisible()
+
+  await example.getByLabel('Panel width').fill('420')
+  await expect(panel).toHaveAttribute('data-example-width', '420')
+
+  await example.getByLabel('Slider maximum', { exact: true }).fill('80')
+  await expect(panel.locator('[data-item-id="slider"]').getByRole('slider')).toHaveAttribute(
+    'max',
+    '80',
+  )
+
+  await example.getByText('densityOptions').first().hover()
+  await expect(page.getByRole('tooltip')).toContainText('"label": "Compact"')
+
+  const alignmentOptionsVariable = example.locator('[data-jsx-variable="alignmentOptions"]')
+  await alignmentOptionsVariable.scrollIntoViewIfNeeded()
+  await alignmentOptionsVariable.hover()
+  const variableTooltip = page.getByRole('tooltip')
+  const tooltipBox = await variableTooltip.boundingBox()
+  expect(tooltipBox).not.toBeNull()
+  if (tooltipBox) {
+    await page.mouse.move(tooltipBox.x + tooltipBox.width / 2, tooltipBox.y + tooltipBox.height / 2)
+    await expect(variableTooltip).toBeVisible()
+    await page.mouse.wheel(0, 160)
+    await expect
+      .poll(() => variableTooltip.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(0)
+  }
+
+  await expect(example.getByText('description="', { exact: false })).toHaveCount(
+    builtInItems.length,
+  )
+  await example.getByLabel('Description for text').fill('A live description.')
+  await expect(panel.locator('[data-item-id="text"]')).toContainText('A live description.')
+  await example.getByLabel('Description for text').fill('')
+  await expect(panel.locator('[data-item-id="text"]')).not.toContainText('A live description.')
+  await expect(example.getByText('sliderMarks', { exact: true }).first()).toBeVisible()
+  await expect(example.locator('[data-jsx-control="text"] > span')).toHaveCount(7)
+  for (const groupId of ['spatial-items', 'media-items', 'chart-items', 'visualization-items']) {
+    await expect(example.getByText(groupId, { exact: true })).toBeVisible()
+  }
+  await expect(example.locator('[data-jsx-control="displayFallback"]')).toContainText(
+    'TweakerDisplay',
+  )
+  await expect(example.locator('[data-jsx-control="display"]')).toContainText('TweakerDisplay')
+  const sparklineSurface = panel.locator('[data-item-id="sparkline"] [data-tweaker-sparkline]')
+  await setBooleanSwitch(example.getByLabel('Sparkline continuous streaming'), false)
+  await expect(sparklineSurface).toHaveAttribute('data-continuous', 'false')
+  await setBooleanSwitch(example.getByLabel('Sparkline continuous streaming'), true)
+  await expect(sparklineSurface).toHaveAttribute('data-continuous', 'true')
+  await sparklineSurface.scrollIntoViewIfNeeded()
+  const editedVelocityPaths = [
+    sparklineSurface.locator('[data-sparkline-series="x"]'),
+    sparklineSurface.locator('[data-sparkline-series="y"]'),
+  ]
+  await page.mouse.move(180, 140)
+  await page.mouse.move(620, 340, { steps: 6 })
+  const pathsBeforePointLimitEdit = await Promise.all(
+    editedVelocityPaths.map((path) => path.getAttribute('d')),
+  )
+  const maximumPoints = example.getByLabel('Sparkline maximum points')
+  await maximumPoints.click()
+  await maximumPoints.selectText()
+  await maximumPoints.pressSequentially('112')
+  await maximumPoints.press('Tab')
+  await expect(maximumPoints).toHaveValue('112')
+  await expect(sparklineSurface).toHaveAttribute('data-max-points', '112')
+  await expect
+    .poll(() => Promise.all(editedVelocityPaths.map((path) => path.getAttribute('d'))))
+    .not.toEqual(pathsBeforePointLimitEdit)
+  const sparklineDeclaration = example.locator('[data-jsx-control="sparkline"]')
+  const pathsBeforeAutoscaleEdit = await Promise.all(
+    editedVelocityPaths.map((path) => path.getAttribute('d')),
+  )
+  await setBooleanSwitch(example.getByLabel('Sparkline automatic scale'), true)
+  await expect(sparklineSurface).toHaveAttribute('data-autoscale', 'true')
+  await expect(example.getByLabel('Sparkline automatic scale')).toHaveAttribute(
+    'aria-checked',
+    'true',
+  )
+  await expect(sparklineDeclaration).not.toContainText('minValue')
+  await expect(sparklineDeclaration).not.toContainText('maxValue')
+  await expect
+    .poll(() => Promise.all(editedVelocityPaths.map((path) => path.getAttribute('d'))))
+    .not.toEqual(pathsBeforeAutoscaleEdit)
+  await setBooleanSwitch(example.getByLabel('Sparkline automatic scale'), false)
+  await expect(sparklineSurface).toHaveAttribute('data-autoscale', 'false')
+  await expect(sparklineDeclaration).toContainText('minValue')
+  await expect(sparklineDeclaration).toContainText('maxValue')
+  const matrixDeclaration = example.locator('[data-jsx-control="alignment"]')
+  const matrixRole = example.getByLabel('Matrix2D selection role')
+  await matrixRole.selectOption('toggle')
+  await expect(matrixDeclaration.getByLabel('Matrix2D selection role')).toHaveValue('toggle')
+  await expect(
+    panel.locator('[data-item-id="alignment"] [data-alignment-index="0"]'),
+  ).not.toHaveAttribute('role', 'radio')
+  await matrixRole.selectOption('radio')
+  await expect(
+    panel.locator('[data-item-id="alignment"] [data-alignment-index="0"]'),
+  ).toHaveAttribute('role', 'radio')
+
+  const chartDeclaration = example.locator('[data-jsx-control="shadcn-frame-chart"]')
+  const chartSurface = panel.locator('[data-item-id="shadcn-frame-chart"] [data-tweaker-chart]')
+  const chartType = example.getByLabel('Chart type')
+  for (const [type, specificProp] of [
+    ['area', 'areaChartProps'],
+    ['bar', 'barChartProps'],
+    ['line', 'lineChartProps'],
+    ['pie', 'pieProps'],
+    ['radar', 'radarChartProps'],
+    ['radial', 'radialBarChartProps'],
+  ] as const) {
+    await chartType.selectOption(type)
+    await expect(chartSurface).toHaveAttribute('data-tweaker-chart', type)
+    await expect(chartDeclaration).toContainText(specificProp)
+  }
+  await chartType.selectOption('line')
+  const chartPlot = chartSurface.locator('.recharts-wrapper')
+  const chartBox = await chartPlot.boundingBox()
+  expect(chartBox).not.toBeNull()
+  if (chartBox) {
+    await page.mouse.move(chartBox.x + chartBox.width * 0.45, chartBox.y + chartBox.height * 0.45)
+    const chartTooltip = chartSurface.locator('.recharts-default-tooltip')
+    await expect(chartTooltip).toBeVisible()
+    await expect
+      .poll(() => chartTooltip.evaluate((element) => getComputedStyle(element).backgroundColor))
+      .not.toBe('rgb(255, 255, 255)')
+  }
+  for (const controlId of ['multilineText', 'sliderMarks']) {
+    const declaration = example.locator(`[data-jsx-control="${controlId}"]`)
+    await expect(declaration.locator(':scope > span:nth-last-child(2)')).toContainText(
+      'description=',
+    )
+    await expect(declaration.locator(':scope > span:last-child')).toHaveText('/>')
+  }
+
+  await example.getByRole('button', { name: 'Open live panel store' }).click()
+  await expect(example.getByRole('tab', { name: 'Store' })).toHaveAttribute('data-state', 'active')
+  await example.getByRole('tab', { name: 'Code' }).click()
+
+  await example.getByRole('tab', { name: 'Store' }).click()
+  await expect(example.getByLabel('Live Built-in Items panel store')).toContainText('panelId')
+  await expect(example.getByLabel('Live Built-in Items panel store')).toContainText(
+    'built-in-items',
+  )
+  await expect(example.getByLabel('Live Built-in Items panel store')).toContainText('slider')
+  const storeTree = example.getByRole('tree', { name: 'Collapsible live panel state' })
+  await storeTree.getByRole('button', { name: 'collapse JSON' }).first().click()
+  await expect(storeTree).not.toContainText('panelId')
+  await storeTree.getByRole('button', { name: 'expand JSON' }).click()
+  await expect(storeTree).toContainText('panelId')
+  await example.getByRole('tab', { name: 'Code' }).click()
+
+  await setBooleanSwitch(example.getByLabel('Panel collapsible'), false)
+  await expect(panel.getByRole('button', { name: /Collapse panel/ })).toHaveCount(0)
+  await expect
+    .poll(async () => {
+      const [panelBox, titleBox] = await Promise.all([
+        panel.boundingBox(),
+        panel.getByRole('heading', { name: 'Live Built-ins' }).boundingBox(),
+      ])
+      return panelBox && titleBox ? Math.round(titleBox.x - panelBox.x) : null
+    })
+    .toBeGreaterThanOrEqual(12)
+})
+
+test('keeps the JSX left aligned until viewport centering clears the panel', async ({ page }) => {
+  const example = page.locator('[data-interactive-jsx-example]')
+  const content = example.locator(':scope > div')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+
+  await page.setViewportSize({ width: 1600, height: 1000 })
+  await expect
+    .poll(async () => {
+      const [contentBox, panelBox] = await Promise.all([content.boundingBox(), panel.boundingBox()])
+      return contentBox && panelBox
+        ? {
+            contentLeft: Math.round(contentBox.x),
+            gap: Math.round(panelBox.x - (contentBox.x + contentBox.width)),
+          }
+        : null
+    })
+    .toEqual({ contentLeft: 32, gap: 16 })
+
+  await page.setViewportSize({ width: 2476, height: 1000 })
+  await expect
+    .poll(async () => {
+      const contentBox = await content.boundingBox()
+      return contentBox ? Math.round(contentBox.x + contentBox.width / 2) : null
+    })
+    .toBe(1238)
 })
 
 test('presents canonical built-in examples in order with API help and variant descriptions', async ({
@@ -32,6 +316,8 @@ test('presents canonical built-in examples in order with API help and variant de
   const common = panel.locator('[data-tweaker-reorder-list="common-items"]')
   const spatial = panel.locator('[data-tweaker-reorder-list="spatial-items"]')
   const media = panel.locator('[data-tweaker-reorder-list="media-items"]')
+  const charts = panel.locator('[data-tweaker-reorder-list="chart-items"]')
+  const displays = panel.locator('[data-tweaker-reorder-list="visualization-items"]')
   const root = panel.locator('[data-tweaker-reorder-list="root"]')
 
   await expect
@@ -46,14 +332,53 @@ test('presents canonical built-in examples in order with API help and variant de
       'sliderMarks',
       'range',
       'segmented',
+      'vector3',
+      'alignment',
     ])
-  await expect
-    .poll(() => itemOrder(spatial, 'spatial-items'))
-    .toEqual(['vector3', 'alignment', 'xyPad', 'gradient'])
+  await expect.poll(() => itemOrder(spatial, 'spatial-items')).toEqual(['xyPad', 'gradient'])
   await expect.poll(() => itemOrder(media, 'media-items')).toEqual(['previewAsset', 'droppedFiles'])
   await expect
+    .poll(() => itemOrder(charts, 'chart-items'))
+    .toEqual(['sparkline', 'shadcn-frame-chart'])
+  await expect
+    .poll(() => itemOrder(displays, 'visualization-items'))
+    .toEqual(['displayFallback', 'display'])
+  await expect
     .poll(() => itemOrder(root, 'root'))
-    .toEqual(['common-items', 'spatial-items', 'media-items', 'visualization-items', 'display'])
+    .toEqual(['common-items', 'spatial-items', 'media-items', 'chart-items', 'visualization-items'])
+
+  await expect(panel.locator('[data-group-id="chart-items"]')).toContainText('Charts')
+  await expect(panel.locator('[data-item-id="sparkline"] label')).toHaveText('Sparkline')
+  await expect(panel.locator('[data-item-id="shadcn-frame-chart"] label')).toHaveText('Chart')
+  const sparkline = panel.locator('[data-item-id="sparkline"] [data-tweaker-sparkline]')
+  await sparkline.scrollIntoViewIfNeeded()
+  const velocityXPath = sparkline.locator('[data-sparkline-series="x"]')
+  const velocityYPath = sparkline.locator('[data-sparkline-series="y"]')
+  await expect(velocityXPath).toHaveCount(1)
+  await expect(velocityYPath).toHaveCount(1)
+  await page.mouse.move(120, 160)
+  await page.mouse.move(520, 300, { steps: 6 })
+  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe('')
+  await expect.poll(() => velocityYPath.getAttribute('d')).not.toBe('')
+  const movingPaths = await Promise.all([
+    velocityXPath.getAttribute('d'),
+    velocityYPath.getAttribute('d'),
+  ])
+  await page.waitForTimeout(120)
+  await expect
+    .poll(() => Promise.all([velocityXPath.getAttribute('d'), velocityYPath.getAttribute('d')]))
+    .not.toEqual(movingPaths)
+  const decayingPaths = await Promise.all([
+    velocityXPath.getAttribute('d'),
+    velocityYPath.getAttribute('d'),
+  ])
+  await page.mouse.move(860, 180, { steps: 6 })
+  await expect
+    .poll(() => Promise.all([velocityXPath.getAttribute('d'), velocityYPath.getAttribute('d')]))
+    .not.toEqual(decayingPaths)
+  await expect(panel.locator('[data-group-id="visualization-items"]')).toContainText(
+    'Display variants',
+  )
 
   for (const item of builtInItems) {
     const row = panel.locator(`[data-item-id="${item.id}"]`)
@@ -67,8 +392,16 @@ test('presents canonical built-in examples in order with API help and variant de
     await expect(page.getByRole('tooltip')).toBeHidden()
   }
 
+  const textHelp = panel
+    .locator('[data-item-id="text"]')
+    .getByRole('button', { name: 'Help for Text' })
+  await textHelp.hover()
+  await expect(page.getByRole('tooltip')).toContainText('type TweakerTextProps = {')
+  await expect(page.getByRole('tooltip')).toContainText('field: string')
+  await page.keyboard.press('Escape')
+
   await expect(panel.locator('[data-item-id="multilineText"]')).toContainText(
-    'Setting minRows greater than 1 switches the wrapped input to an auto-growing Textarea.',
+    'The multiline prop switches the wrapped input to an auto-growing Textarea.',
   )
   await expect(panel.locator('[data-item-id="sliderMarks"]')).toContainText(
     'The marks prop adds optional reference points along the slider track.',
@@ -76,8 +409,48 @@ test('presents canonical built-in examples in order with API help and variant de
   await expect(panel.locator('[data-item-id="displayFallback"]')).toContainText(
     'The fallback prop supplies optional content when value is unset.',
   )
-  await expect(panel.locator('[data-item-id="text"]')).not.toContainText('minRows')
+  await expect(panel.locator('[data-item-id="text"]')).not.toContainText('multiline')
   await expect(panel.locator('[data-item-id="slider"]')).not.toContainText('marks prop')
+})
+
+test('mirrors panel hover and focus on the matching JSX declaration', async ({ page }) => {
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const codeViewport = page.getByLabel('Interactive JSX example')
+  const declaration = page.locator('[data-jsx-control="multilineText"]')
+  const row = panel.locator('[data-item-id="multilineText"]')
+
+  await row.hover()
+  await expect(declaration).toHaveAttribute('data-jsx-hovered', 'true')
+  await expect(declaration).toHaveCSS('border-left-color', /.+/)
+
+  await row.getByRole('textbox').focus()
+  await expect(declaration).toHaveAttribute('data-jsx-focused', 'true')
+  await expect(declaration).toHaveCSS('box-shadow', /.+/)
+
+  const vectorDeclaration = page.locator('[data-jsx-control="vector3"]')
+  await codeViewport.evaluate((element) => {
+    element.scrollTop = 0
+  })
+  await panel
+    .locator('[data-item-id="vector3"]')
+    .getByRole('spinbutton', { name: 'X axis' })
+    .focus()
+
+  await expect.poll(() => codeViewport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await expect
+    .poll(() =>
+      vectorDeclaration.evaluate((element) => {
+        const viewport = element.closest('pre')
+        if (!viewport) return false
+        const viewportBounds = viewport.getBoundingClientRect()
+        const declarationBounds = element.getBoundingClientRect()
+        return (
+          declarationBounds.top >= viewportBounds.top &&
+          declarationBounds.bottom <= viewportBounds.bottom
+        )
+      }),
+    )
+    .toBe(true)
 })
 
 test('updates Text, Range, Segmented, Vector3, and consumer-defined Matrix2D inputs', async ({
