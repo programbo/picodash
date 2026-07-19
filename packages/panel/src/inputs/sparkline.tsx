@@ -261,11 +261,16 @@ export function TweakerSparkline({
     if (isTweakerSparklineSource(data)) {
       let unsubscribe: undefined | void | (() => void)
       let subscribed = false
+      let isVisible = false
+
+      const appendWhenVisible = (emission: TweakerSparklineEmission) => {
+        if (isVisible) append(emission)
+      }
 
       const subscribe = () => {
         if (subscribed || !active) return
         subscribed = true
-        unsubscribe = data.subscribe(append, {
+        unsubscribe = data.subscribe(appendWhenVisible, {
           get continuous() {
             return continuousRef.current
           },
@@ -276,8 +281,8 @@ export function TweakerSparkline({
         })
       }
 
-      const unsubscribeSource = () => {
-        if (!subscribed) return
+      const unsubscribeSource = (force = false) => {
+        if (!subscribed || (!force && typeof unsubscribe !== 'function')) return
         subscribed = false
         unsubscribe?.()
         unsubscribe = undefined
@@ -287,18 +292,24 @@ export function TweakerSparkline({
       const observer =
         typeof IntersectionObserver !== 'undefined'
           ? new IntersectionObserver(([entry]) => {
-              if (entry?.isIntersecting) subscribe()
+              isVisible = entry?.isIntersecting === true
+              if (isVisible) subscribe()
               else unsubscribeSource()
             })
           : undefined
 
       if (observer) observer.observe(surface)
-      else subscribe()
+      else {
+        isVisible = true
+        subscribe()
+      }
 
       return () => {
         active = false
+        isVisible = false
         observer?.disconnect()
-        unsubscribeSource()
+        unsubscribeSource(true)
+        continuousListenersRef.current.clear()
         scheduleDrawRef.current = () => undefined
         cancelDraw()
       }
