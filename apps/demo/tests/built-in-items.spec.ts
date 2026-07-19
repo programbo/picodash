@@ -36,8 +36,10 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('edits live provider, panel, and Common inputs props through highlighted JSX', async ({
+  context,
   page,
 }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   const example = page.locator('[data-interactive-jsx-example]')
   const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
 
@@ -120,6 +122,10 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
 
   await example.getByLabel('Panel width').fill('420')
   await expect(panel).toHaveAttribute('data-example-width', '420')
+  await example.getByLabel('Panel width').fill('999')
+  await example.getByLabel('Panel width').press('Escape')
+  await expect(example.getByLabel('Panel width')).toHaveValue('420')
+  await expect(panel).toHaveAttribute('data-example-width', '420')
 
   await example.getByLabel('Slider maximum', { exact: true }).fill('80')
   await expect(panel.locator('[data-item-id="slider"]').getByRole('slider')).toHaveAttribute(
@@ -148,10 +154,20 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
   await expect(example.getByText('description="', { exact: false })).toHaveCount(
     builtInItems.length,
   )
-  await example.getByLabel('Description for text').fill('A live description.')
-  await expect(panel.locator('[data-item-id="text"]')).toContainText('A live description.')
+  await example.getByLabel('Description for text').fill('A "quoted" description.')
+  await expect(panel.locator('[data-item-id="text"]')).toContainText('A "quoted" description.')
+  await example.getByRole('button', { name: 'Copy JSX' }).click()
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toContain('description={"A \\"quoted\\" description."}')
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toContain('title={"Live Built-ins"}')
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toContain('label={"Everyday controls"}')
   await example.getByLabel('Description for text').fill('')
-  await expect(panel.locator('[data-item-id="text"]')).not.toContainText('A live description.')
+  await expect(panel.locator('[data-item-id="text"]')).not.toContainText('A "quoted" description.')
   await expect(example.getByText('sliderMarks', { exact: true }).first()).toBeVisible()
   await expect(example.locator('[data-jsx-control="text"] > span')).toHaveCount(7)
   for (const groupId of ['spatial-items', 'media-items', 'chart-items', 'visualization-items']) {

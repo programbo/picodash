@@ -1,5 +1,5 @@
 import { useSpring } from 'motion/react'
-import { useEffect, useMemo, useRef, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { TweakerItem, type TweakerDisplayItemProps } from '../tweaker-control.js'
 import type { TweakerValue } from '../tweaker-panel.js'
 import type { DistributiveOmit } from './built-in-validation.js'
@@ -80,7 +80,7 @@ export function TweakerSparkline({
   strokeWidth = 1.75,
   ...itemProps
 }: TweakerSparklineProps) {
-  const surfaceRef = useRef<HTMLDivElement>(null)
+  const [surface, setSurface] = useState<HTMLDivElement | null>(null)
   const baselineRef = useRef<SVGPathElement>(null)
   const pathRefs = useRef(new Map<string, SVGPathElement>())
   const samplesRef = useRef<Readonly<Record<string, number>>[]>([])
@@ -200,6 +200,15 @@ export function TweakerSparkline({
     }
 
     samplesRef.current = []
+    scheduleDraw()
+
+    if (!surface) {
+      return () => {
+        active = false
+        scheduleDrawRef.current = () => undefined
+        cancelDraw()
+      }
+    }
 
     if (Array.isArray(data)) {
       append(data)
@@ -236,16 +245,15 @@ export function TweakerSparkline({
         continuousListenersRef.current.clear()
       }
 
-      const surface = surfaceRef.current
       const observer =
-        surface && typeof IntersectionObserver !== 'undefined'
+        typeof IntersectionObserver !== 'undefined'
           ? new IntersectionObserver(([entry]) => {
               if (entry?.isIntersecting) subscribe()
               else unsubscribeSource()
             })
           : undefined
 
-      if (observer && surface) observer.observe(surface)
+      if (observer) observer.observe(surface)
       else subscribe()
 
       return () => {
@@ -293,16 +301,15 @@ export function TweakerSparkline({
       }
     }
 
-    const surface = surfaceRef.current
     const observer =
-      surface && typeof IntersectionObserver !== 'undefined'
+      typeof IntersectionObserver !== 'undefined'
         ? new IntersectionObserver(([entry]) => {
             isVisible = entry?.isIntersecting === true
             if (isVisible) void consume().catch(() => undefined)
           })
         : undefined
 
-    if (observer && surface) observer.observe(surface)
+    if (observer) observer.observe(surface)
     else {
       isVisible = true
       void consume().catch(() => undefined)
@@ -318,7 +325,7 @@ export function TweakerSparkline({
       scheduleDrawRef.current = () => undefined
       cancelDraw()
     }
-  }, [data])
+  }, [data, surface])
 
   useEffect(() => {
     samplesRef.current = samplesRef.current.slice(-pointLimit)
@@ -351,7 +358,7 @@ export function TweakerSparkline({
   return (
     <TweakerItem {...itemProps} contentLayout={contentLayout} readOnly valueMode="display">
       <div
-        ref={surfaceRef}
+        ref={setSurface}
         className="border-tweaker-control rounded-tweaker-control col-span-full min-h-(--tweaker-field-surface-min-height) overflow-hidden border bg-(--_tweaker-color-well)"
         data-autoscale={autoscale ? 'true' : 'false'}
         data-continuous={continuous ? 'true' : 'false'}

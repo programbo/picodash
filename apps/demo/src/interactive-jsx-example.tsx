@@ -1436,6 +1436,7 @@ function InlineNumber({
   value: number
 }) {
   const [draft, setDraft] = useState(String(value))
+  const cancelBlurRef = useRef(false)
   const focusedRef = useRef(false)
 
   useEffect(() => {
@@ -1464,6 +1465,11 @@ function InlineNumber({
       value={draft}
       onBlur={() => {
         focusedRef.current = false
+        if (cancelBlurRef.current) {
+          cancelBlurRef.current = false
+          setDraft(String(value))
+          return
+        }
         commitDraft()
       }}
       onFocus={() => {
@@ -1485,6 +1491,7 @@ function InlineNumber({
       onKeyDown={(event) => {
         if (event.key === 'Enter') event.currentTarget.blur()
         if (event.key === 'Escape') {
+          cancelBlurRef.current = true
           setDraft(String(value))
           event.currentTarget.blur()
         }
@@ -1672,13 +1679,22 @@ function sourceForExample(
   config: BuiltInItemsExampleConfig,
   showAllProps = false,
 ) {
+  const noopBooleanUpdate = () => undefined
+  const noopItemUpdate: UpdateItemProp = () => undefined
+  const noopNumberUpdate = () => undefined
+  const noopStringUpdate = () => undefined
   const serializeControls = (lines: CommonInputLine[]) =>
     lines
       .map((line) => {
         const serializedProps = Object.entries(propsForLine(line))
           .filter(([, value]) => showAllProps || !value.hidden)
           .map(([propName, value]) => {
-            if (value.kind === 'string') return `${propName}=${JSON.stringify(value.value)}`
+            if (value.kind === 'string') {
+              const serializedValue = JSON.stringify(value.value)
+              return value.onChange
+                ? `${propName}={${serializedValue}}`
+                : `${propName}=${serializedValue}`
+            }
             return `${propName}={${String(value.value)}}`
           })
           .map((prop) => `        ${prop}`)
@@ -1688,7 +1704,15 @@ function sourceForExample(
       })
       .join('\n')
 
-  const commonControls = serializeControls(commonInputLinesForConfig(config))
+  const commonControls = serializeControls(
+    commonInputLinesForConfig(
+      config,
+      noopBooleanUpdate,
+      noopItemUpdate,
+      noopNumberUpdate,
+      noopStringUpdate,
+    ),
+  )
   const hiddenGroupSource = (groupId: BuiltInGroupId) => {
     if (!showAllProps) return ''
     const group = config.groupProps[groupId]
@@ -1697,7 +1721,13 @@ function sourceForExample(
       defaultCollapsed={${group.defaultCollapsed}}
       visible={${group.visible}}`
   }
-  const remainingSource = remainingGroupsForConfig(config)
+  const remainingSource = remainingGroupsForConfig(
+    config,
+    noopBooleanUpdate,
+    noopItemUpdate,
+    noopNumberUpdate,
+    noopStringUpdate,
+  )
     .map(
       (group) => `    <TweakerGroup
       id=${JSON.stringify(group.id)}
@@ -1711,11 +1741,11 @@ ${serializeControls(group.lines)}
   return `<TweakerProvider
   persistLayout
   storageKey="tweaker-demo:panel-layout:v1"
-  theme=${JSON.stringify(providerTheme)}
+  theme={${JSON.stringify(providerTheme)}}
 >
   <TweakerPanel
     store={builtInItemsPanelStore}
-    title=${JSON.stringify(config.panelTitle)}
+    title={${JSON.stringify(config.panelTitle)}}
     collapsible={${config.panelCollapsible}}
     width={${config.panelWidth}}${
       showAllProps
@@ -1727,7 +1757,7 @@ ${serializeControls(group.lines)}
   >
     <TweakerGroup
       id="common-items"
-      label=${JSON.stringify(config.commonGroupLabel)}
+      label={${JSON.stringify(config.commonGroupLabel)}}
       reorderable={${config.commonGroupReorderable}}${hiddenGroupSource('common-items')}
     >
 ${commonControls}
