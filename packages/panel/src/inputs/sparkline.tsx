@@ -566,16 +566,18 @@ export function resolveTweakerSparklineBounds(
   samples: readonly Readonly<Record<string, number>>[],
   series: readonly Pick<TweakerSparklineSeries, 'dataKey'>[],
 ) {
-  const values = samples.flatMap((sample) =>
-    series.flatMap(({ dataKey }) => {
+  let minimum = Number.POSITIVE_INFINITY
+  let maximum = Number.NEGATIVE_INFINITY
+  for (const sample of samples) {
+    for (const { dataKey } of series) {
       const value = sample[dataKey]
-      return Number.isFinite(value) ? [value] : []
-    }),
-  )
-  if (values.length === 0) return undefined
+      if (!Number.isFinite(value)) continue
+      minimum = Math.min(minimum, value)
+      maximum = Math.max(maximum, value)
+    }
+  }
+  if (!Number.isFinite(minimum) || !Number.isFinite(maximum)) return undefined
 
-  const minimum = Math.min(...values)
-  const maximum = Math.max(...values)
   const magnitude = Math.max(Math.abs(minimum), Math.abs(maximum))
   const extent = (magnitude || 1) * 1.08
 

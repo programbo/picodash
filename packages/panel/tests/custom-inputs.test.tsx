@@ -148,6 +148,13 @@ test('bounds appended sparkline samples and projects finite SVG coordinates', ()
     maxValue: 1.08,
     minValue: -1.08,
   })
+  const largeHistory = Array.from({ length: 200_000 }, (_, index) => ({
+    value: index - 100_000,
+  }))
+  expect(resolveTweakerSparklineBounds(largeHistory, [{ dataKey: 'value' }])).toEqual({
+    maxValue: 108_000,
+    minValue: -108_000,
+  })
   expect(projectTweakerSparklineBaseline(0, 100, { height: 100, width: 200 })).toBe('M 0 100 H 200')
   expect(projectTweakerSparklineBaseline(-25, 75, { height: 100, width: 200 })).toBe('M 0 75 H 200')
   expect(projectTweakerSparklineBaseline(10, 100)).toBe('')
