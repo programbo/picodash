@@ -72,6 +72,18 @@ export function shouldJumpTweakerSparklineRange(
   return prefersReducedMotion || targetRange >= currentRange
 }
 
+export function shouldUpdateTweakerSparklineRange(
+  currentRange: number,
+  targetRange: number,
+  previousTargetRange: number,
+  prefersReducedMotion: boolean,
+) {
+  return (
+    targetRange !== previousTargetRange ||
+    (prefersReducedMotion && currentRange !== previousTargetRange)
+  )
+}
+
 export function TweakerSparkline({
   ariaLabel = 'Sparkline',
   autoscale = false,
@@ -154,7 +166,15 @@ export function TweakerSparkline({
       const targetBounds = currentAutoscale
         ? resolveTweakerSparklineBounds(visibleSamples, currentSeries)
         : undefined
-      if (targetBounds && targetBounds.maxValue !== autoscaleTargetRef.current) {
+      if (
+        targetBounds &&
+        shouldUpdateTweakerSparklineRange(
+          currentAutoscaleRange.get(),
+          targetBounds.maxValue,
+          autoscaleTargetRef.current,
+          currentPrefersReducedMotion,
+        )
+      ) {
         const targetRange = targetBounds.maxValue
         autoscaleTargetRef.current = targetRange
         if (
