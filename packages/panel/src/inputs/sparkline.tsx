@@ -20,9 +20,11 @@ export interface TweakerSparklineSource {
   ) => () => void
 }
 
+export type TweakerSparklineAsyncSource = () => AsyncIterable<TweakerSparklineEmission>
+
 export type TweakerSparklineData =
   | readonly TweakerSparklineDatum[]
-  | AsyncIterable<TweakerSparklineEmission>
+  | TweakerSparklineAsyncSource
   | TweakerSparklineSource
 
 export interface TweakerSparklineSeries {
@@ -304,40 +306,40 @@ export function TweakerSparkline({
       }
     }
 
+    const createAsyncData = data as TweakerSparklineAsyncSource
     let iterator: AsyncIterator<TweakerSparklineEmission> | undefined
-    const asyncData = data as AsyncIterable<TweakerSparklineEmission>
     let consuming = false
-    let finished = false
     let isVisible = false
-    let pendingEmission: TweakerSparklineEmission | undefined
+    let iteration = 0
 
     const consume = async () => {
-      if (consuming || finished || !active || !isVisible) return
+      if (consuming || !active || !isVisible) return
       consuming = true
-      iterator ??= asyncData[Symbol.asyncIterator]()
+      const currentIteration = ++iteration
+      const currentIterator = createAsyncData()[Symbol.asyncIterator]()
+      iterator = currentIterator
 
       try {
-        if (pendingEmission !== undefined) {
-          append(pendingEmission)
-          pendingEmission = undefined
-        }
-
-        while (active && isVisible && !finished) {
-          const next = await iterator.next()
-          if (!active) break
-          if (next.done) {
-            finished = true
-            break
-          }
-          if (!isVisible) {
-            pendingEmission = next.value
-            break
-          }
+        while (active && isVisible && currentIteration === iteration) {
+          const next = await currentIterator.next()
+          if (!active || !isVisible || currentIteration !== iteration || next.done) break
           append(next.value)
         }
       } finally {
-        consuming = false
+        if (currentIteration === iteration) {
+          consuming = false
+          iterator = undefined
+        }
       }
+    }
+
+    const stopIteration = () => {
+      isVisible = false
+      consuming = false
+      iteration += 1
+      const currentIterator = iterator
+      iterator = undefined
+      if (currentIterator?.return) void currentIterator.return().catch(() => undefined)
     }
 
     const observer =
@@ -345,6 +347,7 @@ export function TweakerSparkline({
         ? new IntersectionObserver(([entry]) => {
             isVisible = entry?.isIntersecting === true
             if (isVisible) void consume().catch(() => undefined)
+            else stopIteration()
           })
         : undefined
 
@@ -356,11 +359,8 @@ export function TweakerSparkline({
 
     return () => {
       active = false
-      isVisible = false
       observer?.disconnect()
-      pendingEmission = undefined
-      if (iterator?.return) void iterator.return().catch(() => undefined)
-      iterator = undefined
+      stopIteration()
       scheduleDrawRef.current = () => undefined
       cancelDraw()
     }
@@ -488,10 +488,11 @@ function normalizeSparklineData(emission: TweakerSparklineEmission) {
 
 export function appendTweakerSparklineSamples(
   current: readonly number[],
-  emission: TweakerSparklineEmission,
+  emission: number | readonly number[],
   maxPoints: number,
-) {
-  const appended = (Array.isArray(emission) ? emission : [emission]).filter(Number.isFinite)
+): number[] {
+  const candidates: readonly number[] = Array.isArray(emission) ? emission : [emission]
+  const appended = candidates.filter(Number.isFinite)
   return [...current, ...appended].slice(-normalizePointLimit(maxPoints))
 }
 

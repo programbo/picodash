@@ -202,13 +202,14 @@ otherwise it renders the single-line input.
 
 ### Sparklines and charts
 
-`TweakerSparkline.data` accepts a finite array, an async iterable, or a subscription
-source. A datum may be a number for one path or a keyed number record paired with `series`
-for multiple paths. Streaming emissions may contain one datum or a batch. The component
-bounds its history with `maxPoints`, batches SVG path writes to animation frames without
-storing samples in the panel store, and keeps subscription sources connected only while
-the sparkline surface is in the viewport. A subscription source must return a cleanup
-function that stops its producer and removes its listeners:
+`TweakerSparkline.data` accepts a finite array, a restartable async-iterable factory, or a
+subscription source. A datum may be a number for one path or a keyed number record paired
+with `series` for multiple paths. Streaming emissions may contain one datum or a batch.
+The component bounds its history with `maxPoints`, batches SVG path writes to animation
+frames without storing samples in the panel store, and keeps streaming sources connected
+only while the sparkline surface is in the viewport. An async factory must return a fresh
+iterable on every call. A subscription source must return a cleanup function that stops
+its producer and removes its listeners:
 
 ```tsx
 const frameTimes = {
@@ -245,7 +246,7 @@ Set `continuous` to request uninterrupted display-cadence emissions from subscri
 sources while the surface remains visible. The source receives this preference as the
 second argument to `subscribe`. Read `options.continuous` for the current value and use
 `options.onContinuousChange` to react without reconnecting the source. Finite arrays and
-async iterables ignore it.
+async-iterable factories ignore it.
 
 For multiple streams, emit records and identify each path with `series`:
 

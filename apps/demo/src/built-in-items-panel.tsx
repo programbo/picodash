@@ -401,7 +401,7 @@ export const builtInPropTypes = {
 }`,
   TweakerSparkline: `type TweakerSparklineProps = {
   id: string
-  data: Array<number | Record<string, number>> | AsyncIterable<TweakerSparklineEmission> | TweakerSparklineSource
+  data: Array<number | Record<string, number>> | (() => AsyncIterable<TweakerSparklineEmission>) | TweakerSparklineSource
   series?: Array<{
     dataKey: string
     label?: string

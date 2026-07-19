@@ -102,6 +102,7 @@ export {
   TweakerSparkline,
 } from './sparkline.js'
 export type {
+  TweakerSparklineAsyncSource,
   TweakerSparklineData,
   TweakerSparklineDatum,
   TweakerSparklineEmission,

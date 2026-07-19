@@ -121,6 +121,7 @@ export type {
   TweakerSliderMark,
   TweakerSliderMarks,
   TweakerSliderProps,
+  TweakerSparklineAsyncSource,
   TweakerSparklineData,
   TweakerSparklineDatum,
   TweakerSparklineEmission,

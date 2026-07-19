@@ -267,9 +267,9 @@ types, hooks, ordering utilities, theme constants, and normalization helpers fro
 API.
 
 Display-only visualization components include `TweakerSparkline`, whose `data` accepts
-arrays, async iterables, or subscription streams, whose `autoscale` can replace explicit
-bounds with one symmetric Motion-driven multi-series range, and whose `continuous` prop
-controls source cadence, and
+arrays, restartable async-iterable factories, or disposable subscription streams, whose
+`autoscale` can replace explicit bounds with one symmetric Motion-driven multi-series
+range, and whose `continuous` prop controls source cadence, and
 `TweakerChart`, whose typed
 `area`/`bar`/`line`/`pie`/`radar`/`radial` variants expose the corresponding Recharts
 axis, grid, tooltip, legend, series, and chart-container props.
