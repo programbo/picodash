@@ -330,7 +330,7 @@ export function TweakerSparkline({
   useEffect(() => {
     samplesRef.current = samplesRef.current.slice(-pointLimit)
     scheduleDrawRef.current()
-  }, [autoscale, maxValue, minValue, pointLimit, renderedSeries])
+  }, [autoscale, maxValue, minValue, pointLimit, renderedSeries, showBaseline])
 
   useEffect(() => {
     for (const listener of continuousListenersRef.current) listener(continuous)
@@ -376,6 +376,7 @@ export function TweakerSparkline({
           {showBaseline ? (
             <path
               ref={baselineRef}
+              data-sparkline-baseline
               d={initialBaselinePath}
               fill="none"
               stroke="var(--tweaker-color-border)"
