@@ -84,7 +84,7 @@ export interface TweakerPanelState {
     outputs: Record<string, TweakerFieldOutput>,
     options?: { preserveMeta?: boolean; resetFields?: readonly string[] },
   ) => void
-  replaceRegisteredFieldValues: (values: Record<string, TweakerValue>) => void
+  replaceRegisteredFieldValues: (values: Record<string, TweakerValue>) => TweakerWriteResult
   setFieldDefault: (fieldId: string, value: TweakerValue | undefined) => void
   setFieldInput: (fieldId: string, value: unknown) => TweakerWriteResult
   setFieldValue: (fieldId: string, value: unknown) => TweakerWriteResult
@@ -151,9 +151,15 @@ export interface TweakerGroupContextValue {
     pointerId: number,
     setVisualOffset: (offset: number) => void,
   ) => void
+  beginKeyboardReorder: (itemId: string, label: string) => void
+  cancelKeyboardReorder: (itemId: string) => void
   commitPendingOrder: () => void
+  commitKeyboardReorder: (itemId: string) => void
   dragConstraintsRef: RefObject<HTMLDivElement | null>
+  keyboardAnnouncement: { itemId: string; message: string } | null
+  keyboardReorderItemId: string | null
   listRef: RefObject<HTMLDivElement | null>
+  moveKeyboardReorder: (itemId: string, direction: -1 | 1) => void
   parentId: string
   registerItemMotion: (itemId: string, motion: TweakerReorderItemMotion) => () => void
 }

@@ -451,6 +451,14 @@ export function UsageGuide() {
                 Give every panel, group, item, and field a stable identity.
               </ConstraintItem>
               <ConstraintItem>
+                Hoist custom parser and validator functions or stabilize them with{' '}
+                <Code>useCallback</Code>.
+              </ConstraintItem>
+              <ConstraintItem>
+                In a Next.js App Router project, add <Code>&apos;use client&apos;</Code> to modules
+                that render Tweaker components.
+              </ConstraintItem>
+              <ConstraintItem>
                 Keep panel values JSON-compatible and keep high-frequency visual samples outside the
                 panel store.
               </ConstraintItem>
@@ -517,13 +525,17 @@ function CodeBlock({
   language: 'bash' | 'typescript'
   source: string
 }) {
-  const [copied, setCopied] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<'copied' | 'error' | 'idle'>('idle')
   const highlightedSource = hljs.highlight(source, { language }).value
 
   const copySource = async () => {
-    await navigator.clipboard.writeText(source)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1600)
+    try {
+      await navigator.clipboard.writeText(source)
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('error')
+    }
+    window.setTimeout(() => setCopyStatus('idle'), 1600)
   }
 
   return (
@@ -533,15 +545,21 @@ function CodeBlock({
         <button
           aria-label={`Copy ${label}`}
           className="flex h-7 items-center gap-1.5 border border-white/10 bg-white/4 px-2 font-mono text-[11px] text-zinc-400 transition-colors hover:bg-white/8 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:outline-none"
+          data-copy-code={label}
           type="button"
           onClick={copySource}
         >
-          {copied ? (
+          {copyStatus === 'copied' ? (
             <Check aria-hidden="true" className="size-3 text-amber-200" />
           ) : (
-            <Copy aria-hidden="true" className="size-3" />
+            <Copy
+              aria-hidden="true"
+              className={cn('size-3', copyStatus === 'error' && 'text-red-300')}
+            />
           )}
-          <span aria-live="polite">{copied ? 'Copied' : 'Copy'}</span>
+          <span aria-live="polite">
+            {copyStatus === 'copied' ? 'Copied' : copyStatus === 'error' ? 'Copy failed' : 'Copy'}
+          </span>
         </button>
       </div>
       <pre className="min-w-0 overflow-x-auto p-3 font-mono text-xs leading-6 text-zinc-300 sm:p-4">

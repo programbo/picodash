@@ -22,6 +22,7 @@ export function PanelGeometryLab() {
 
   return (
     <main
+      id="main-content"
       className="dark bg-background text-foreground relative min-h-[180dvh]"
       data-panel-geometry-lab
       data-product-route="panel-geometry-lab"

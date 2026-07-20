@@ -41,6 +41,7 @@ notifying the host. Legacy schema-driven `useTweaker` registration flow is retir
 - `bun run --filter tweaker test`
 - `bun run --filter tweaker build`
 - `bun run --filter website test:e2e`
+- `bun audit --audit-level=high`
 - `bun run ready`
 
 `bun run ready` is the full gate:
@@ -48,6 +49,9 @@ notifying the host. Legacy schema-driven `useTweaker` registration flow is retir
 ```bash
 vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e
 ```
+
+GitHub CI runs the high-severity audit and full gate for pull requests and pushes to `main`.
+Package publication runs the package check, tests, and build before publishing.
 
 ## Port Allocation
 
@@ -96,3 +100,5 @@ Update all five files together when command surface, entrypoints, or architectur
 - Keep theme logic on `theme` props and data attributes.
 - Validate whole batch writes before mutation in programmatic setters.
 - Preserve synchronous parser/validator behavior; promise-based contracts are not supported.
+- Keep custom parser/validator callback identities stable across renders.
+- Preserve pointer and keyboard reorder parity, including same-band constraints and cancellation.

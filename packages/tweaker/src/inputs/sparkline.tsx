@@ -43,6 +43,7 @@ type TweakerSparklineBaseProps = DistributiveOmit<
   data: TweakerSparklineData
   height?: number | string
   maxPoints?: number
+  onSourceError?: (error: unknown) => void
   series?: readonly TweakerSparklineSeries[]
   showBaseline?: boolean
   stroke?: string
@@ -86,6 +87,18 @@ export function shouldUpdateTweakerSparklineRange(
   )
 }
 
+export async function settleTweakerSparklineSource(
+  consumption: Promise<void>,
+  isActive: () => boolean,
+  onSourceError?: (error: unknown) => void,
+) {
+  try {
+    await consumption
+  } catch (error) {
+    if (isActive()) onSourceError?.(error)
+  }
+}
+
 export function TweakerSparkline({
   ariaLabel = 'Sparkline',
   autoscale = false,
@@ -94,6 +107,7 @@ export function TweakerSparkline({
   data,
   height = 96,
   maxPoints = 60,
+  onSourceError,
   maxValue,
   minValue,
   series,
@@ -346,15 +360,16 @@ export function TweakerSparkline({
       typeof IntersectionObserver !== 'undefined'
         ? new IntersectionObserver(([entry]) => {
             isVisible = entry?.isIntersecting === true
-            if (isVisible) void consume().catch(() => undefined)
-            else stopIteration()
+            if (isVisible) {
+              void settleTweakerSparklineSource(consume(), () => active, onSourceError)
+            } else stopIteration()
           })
         : undefined
 
     if (observer) observer.observe(surface)
     else {
       isVisible = true
-      void consume().catch(() => undefined)
+      void settleTweakerSparklineSource(consume(), () => active, onSourceError)
     }
 
     return () => {
@@ -364,7 +379,7 @@ export function TweakerSparkline({
       scheduleDrawRef.current = () => undefined
       cancelDraw()
     }
-  }, [data, surface])
+  }, [data, onSourceError, surface])
 
   useEffect(() => {
     samplesRef.current = samplesRef.current.slice(-pointLimit)

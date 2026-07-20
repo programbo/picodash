@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, expect, test } from 'vite-plus/test'
+import { createValidatedPanelPersistStorage } from '../src/panel-persistence.ts'
 import { createTweakerStore, TweakerProvider } from '../src/tweaker-provider.tsx'
 
 const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
@@ -40,6 +41,36 @@ test('can disable provider layout persistence without accessing local storage', 
 
   expect(store.getState().panelLayouts.scene).toEqual({ x: 24, y: 32 })
   expect(accesses).toBe(0)
+})
+
+test('keeps provider state usable when layout persistence writes fail', () => {
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem: () => null,
+        removeItem: () => {
+          throw new DOMException('Storage is disabled.', 'SecurityError')
+        },
+        setItem: () => {
+          throw new DOMException('Storage is full.', 'QuotaExceededError')
+        },
+      },
+    },
+  })
+
+  const store = createTweakerStore()
+  const storage = createValidatedPanelPersistStorage()
+
+  expect(() => store.getState().setPanelLayout('scene', { x: 24, y: 32 })).not.toThrow()
+  expect(() =>
+    storage.setItem('layout', {
+      state: { panelLayouts: { scene: { dock: null, x: 24, y: 32 } } },
+      version: 1,
+    }),
+  ).not.toThrow()
+  expect(() => storage.removeItem?.('layout')).not.toThrow()
+  expect(store.getState().panelLayouts.scene).toEqual({ x: 24, y: 32 })
 })
 
 test('applies explicit and system-resolved themes to the provider carrier', () => {

@@ -496,7 +496,31 @@ export function createTweakerPanelStore({
       )
     },
     replaceRegisteredFieldValues(importedValues) {
-      set((state) => replaceRegisteredFieldValuesState(state, importedValues))
+      const state = getStoreState()
+      const outputs: Record<string, TweakerFieldOutput> = {}
+      const errors: Record<string, readonly string[]> = {}
+      const resetFields: string[] = []
+      for (const fieldId of registeredWritableFieldIdsForState(state)) {
+        const hasImportedValue = Object.prototype.hasOwnProperty.call(importedValues, fieldId)
+        const candidate = hasImportedValue
+          ? importedValues[fieldId]
+          : state.fields[fieldId]?.defaultValue
+        const result =
+          candidate === undefined
+            ? ({ output: { unset: true }, success: true } as const)
+            : resolveTweakerFieldValue(
+                state,
+                fieldId,
+                candidate,
+                hasImportedValue ? 'import' : 'default',
+              )
+        if (result.success) outputs[fieldId] = result.output
+        else errors[fieldId] = result.errors
+        if (!hasImportedValue) resetFields.push(fieldId)
+      }
+      if (Object.keys(errors).length > 0) return { errors, success: false }
+      set((current) => applyOutputsState(current, outputs, { resetFields }))
+      return { success: true }
     },
     setFieldDefault(fieldId, value) {
       const state = getStoreState()
@@ -667,29 +691,6 @@ function cloneTweakerValue(value: TweakerValue): TweakerValue {
   if (Array.isArray(value)) return value.map(cloneTweakerValue)
   if (value === null || typeof value !== 'object') return value
   return cloneTweakerRecord(value)
-}
-
-function replaceRegisteredFieldValuesState(
-  state: TweakerPanelState,
-  importedValues: Record<string, TweakerValue>,
-) {
-  const fieldIds = registeredWritableFieldIdsForState(state)
-  if (fieldIds.length === 0) return state
-
-  const fields = { ...state.fields }
-  const values = { ...state.values }
-  for (const fieldId of fieldIds) {
-    const field = fields[fieldId] ?? emptyField()
-    if (Object.prototype.hasOwnProperty.call(importedValues, fieldId)) {
-      fields[fieldId] = { ...field, dirty: true, touched: true }
-      values[fieldId] = importedValues[fieldId]!
-    } else {
-      fields[fieldId] = { ...field, dirty: false, touched: false }
-      if (field.defaultValue === undefined) delete values[fieldId]
-      else values[fieldId] = field.defaultValue
-    }
-  }
-  return { fields, values }
 }
 
 function replaceVisibleBandOrder(

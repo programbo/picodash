@@ -111,16 +111,27 @@ type ProductRoute = 'gallery' | 'not-found' | 'panel-geometry-lab' | 'state-lab'
 
 export function App() {
   const route = resolveProductRoute(window.location.pathname)
+  let page: ReactNode
 
   if (route === 'not-found') {
-    return <NotFoundPage />
+    page = <NotFoundPage />
+  } else if (route === 'panel-geometry-lab') {
+    page = <PanelGeometryLab />
+  } else {
+    page = <DemoApp route={route} />
   }
 
-  if (route === 'panel-geometry-lab') {
-    return <PanelGeometryLab />
-  }
-
-  return <DemoApp route={route} />
+  return (
+    <>
+      <a
+        className="bg-primary text-primary-foreground fixed top-2 left-2 z-(--tweaker-layer-viewer) -translate-y-16 px-3 py-2 text-sm font-medium transition-transform focus:translate-y-0 focus:outline-none"
+        href="#main-content"
+      >
+        Skip to main content
+      </a>
+      {page}
+    </>
+  )
 }
 
 function DemoApp({ route }: { route: Extract<ProductRoute, 'gallery' | 'state-lab'> }) {
@@ -145,6 +156,7 @@ function DemoApp({ route }: { route: Extract<ProductRoute, 'gallery' | 'state-la
 
   return (
     <main
+      id="main-content"
       className={
         route === 'gallery'
           ? 'dark bg-background text-foreground relative h-svh overflow-hidden'
@@ -207,6 +219,7 @@ function resolveProductRoute(pathname: string): ProductRoute {
 function NotFoundPage() {
   return (
     <main
+      id="main-content"
       className="dark bg-background text-foreground grid min-h-svh place-items-center overflow-x-hidden px-6 py-16"
       data-product-route="not-found"
     >

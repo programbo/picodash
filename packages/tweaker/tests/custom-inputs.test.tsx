@@ -7,6 +7,7 @@ import { gradientRotationRegistrationId } from '../src/inputs/gradient.tsx'
 import { normalizeSelectValue } from '../src/inputs/select.tsx'
 import {
   resolveTweakerSparklineProjectionBounds,
+  settleTweakerSparklineSource,
   shouldJumpTweakerSparklineRange,
   shouldUpdateTweakerSparklineRange,
 } from '../src/inputs/sparkline.tsx'
@@ -177,6 +178,29 @@ test('bounds appended sparkline samples and projects finite SVG coordinates', ()
   expect(shouldUpdateTweakerSparklineRange(15, 10, 10, false)).toBe(false)
   expect(shouldUpdateTweakerSparklineRange(15, 10, 10, true)).toBe(true)
   expect(shouldUpdateTweakerSparklineRange(10, 20, 10, false)).toBe(true)
+})
+
+test('reports active async sparkline failures and suppresses stale source failures', async () => {
+  const reported: unknown[] = []
+  const sourceError = new Error('Source stopped.')
+
+  await settleTweakerSparklineSource(
+    Promise.reject(sourceError),
+    () => true,
+    (error) => reported.push(error),
+  )
+  await settleTweakerSparklineSource(
+    Promise.reject(new Error('Replaced source stopped.')),
+    () => false,
+    (error) => reported.push(error),
+  )
+  await settleTweakerSparklineSource(
+    Promise.resolve(),
+    () => true,
+    (error) => reported.push(error),
+  )
+
+  expect(reported).toEqual([sourceError])
 })
 
 test('creates every supported TweakerChart type with type-specific Recharts props', () => {

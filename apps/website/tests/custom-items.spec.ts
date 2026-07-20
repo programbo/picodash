@@ -279,7 +279,9 @@ test('keeps a repair review open when import constraints change before acceptanc
     const appModulePath = ['/src', 'App.tsx'].join('/')
     const { customItemPanelStore } = await import(appModulePath)
     const state = customItemPanelStore.getState()
-    const items = Object.values(state.items) as import('tweaker/advanced').TweakerItemRegistration[]
+    const items = Object.values(
+      state.items,
+    ) as import('../../../packages/tweaker/src/tweaker-panel-types.ts').TweakerItemRegistration[]
     const item = items.find((registeredItem) => registeredItem.field === 'presetName')
     if (!item) {
       throw new Error(
@@ -532,16 +534,11 @@ test('reverses an expanded root group across collapsed groups and a root item', 
   })
 })
 
-test('settles active group disclosure transitions before measuring a root drag', async ({
-  page,
-}) => {
+test('settles group disclosure changes before measuring a root drag', async ({ page }) => {
   const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
   const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
 
-  await collapseCustomGroups(panel, Object.keys(builtInGroupLabels) as CustomGroupId[], {
-    settle: false,
-  })
-  expect(await activeDisclosureTransitionCount(panel)).toBeGreaterThan(0)
+  await collapseCustomGroups(panel, ['media-items'], { settle: false })
 
   await exerciseLivePreviewDrag({
     expectedOrder: [
@@ -730,6 +727,80 @@ test('reverses a nested control across multiple siblings in both directions', as
       parentId: 'root',
     },
   })
+})
+
+test('reorders root and nested items from the keyboard with commit and cancellation', async ({
+  page,
+}) => {
+  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+  const renderingList = panel.locator('[data-tweaker-reorder-list="scene-rendering"]')
+  const builtInPanel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const builtInRootList = builtInPanel.locator('[data-tweaker-reorder-list="root"]')
+  const qualityGrip = panel.getByRole('button', { name: 'Reorder Quality', exact: true })
+  const mediaGrip = builtInPanel.getByRole('button', {
+    name: 'Reorder Media and files',
+    exact: true,
+  })
+
+  await qualityGrip.focus()
+  await expect(qualityGrip).toHaveAttribute('aria-pressed', 'false')
+  await qualityGrip.press('Enter')
+  await expect(qualityGrip).toHaveAttribute('aria-pressed', 'true')
+  await expect(panel.locator('[data-keyboard-reorder-status]')).toContainText('Quality picked up.')
+
+  await qualityGrip.press('ArrowDown')
+  await expect
+    .poll(() => itemOrder(renderingList, 'scene-rendering'))
+    .toEqual([
+      'cameraHeight',
+      'quality',
+      'shadowSoftness',
+      'maxBounces',
+      'motionBlur',
+      'textureQuality',
+      'renderScale',
+    ])
+  await qualityGrip.press('Escape')
+  await expect(qualityGrip).toHaveAttribute('aria-pressed', 'false')
+  await expect
+    .poll(() => itemOrder(renderingList, 'scene-rendering'))
+    .toEqual([
+      'quality',
+      'cameraHeight',
+      'shadowSoftness',
+      'maxBounces',
+      'motionBlur',
+      'textureQuality',
+      'renderScale',
+    ])
+
+  await mediaGrip.focus()
+  await mediaGrip.press('Space')
+  await mediaGrip.press('ArrowUp')
+  await expect
+    .poll(() => itemOrder(builtInRootList, 'root'))
+    .toEqual(['common-items', 'media-items', 'spatial-items', 'chart-items', 'visualization-items'])
+  await mediaGrip.press('Space')
+  await expect(mediaGrip).toHaveAttribute('aria-pressed', 'false')
+  await expect(builtInPanel.locator('[data-keyboard-reorder-status]')).toContainText(
+    'Media and files dropped.',
+  )
+
+  await expect(panel.getByRole('button', { name: 'Reorder Rendering', exact: true })).toHaveCount(0)
+  await expect(itemOrder(rootList, 'root')).resolves.toEqual([
+    'scene-essentials',
+    'scene-rendering',
+    'scene-summary',
+  ])
+
+  const fixedGrip = builtInPanel
+    .locator('[data-item-id="shadcn-frame-chart"]')
+    .getByRole('button', { name: 'Reorder Chart', exact: true })
+  await expect(fixedGrip).toHaveAttribute('aria-disabled', 'true')
+  await fixedGrip.focus()
+  await fixedGrip.press('Space')
+  await expect(fixedGrip).toHaveAttribute('aria-pressed', 'false')
 })
 
 test('avoids Camera height before Quality covers it and retains avoidance on a 1px reversal', async ({

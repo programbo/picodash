@@ -35,6 +35,39 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
 })
 
+test('reveals a skip link on keyboard focus', async ({ page }) => {
+  const skipLink = page.getByRole('link', { name: 'Skip to main content' })
+
+  await expect(skipLink).not.toBeInViewport()
+  await page.keyboard.press('Tab')
+
+  await expect(skipLink).toBeFocused()
+  await expect(skipLink).toBeInViewport()
+  await expect(skipLink).toHaveAttribute('href', '#main-content')
+  await expect(page.locator('#main-content')).toHaveCount(1)
+})
+
+test('surfaces clipboard failures in code and usage examples', async ({ page }) => {
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: () => Promise.reject(new DOMException('Clipboard denied.', 'NotAllowedError')),
+      },
+    })
+  })
+
+  const example = page.locator('[data-interactive-jsx-example]')
+  const copyJsx = example.locator('[data-copy-jsx]')
+  await copyJsx.click()
+  await expect(copyJsx).toContainText('Copy failed')
+
+  await example.getByRole('tab', { name: 'Usage' }).click()
+  const copyInstall = example.locator('[data-copy-code="Install Tweaker"]')
+  await copyInstall.click()
+  await expect(copyInstall).toContainText('Copy failed')
+})
+
 test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {
   const example = page.locator('[data-interactive-jsx-example]')
 

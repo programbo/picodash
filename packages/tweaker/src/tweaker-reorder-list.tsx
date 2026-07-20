@@ -45,6 +45,15 @@ export function TweakerReorderList({
   const dragConstraintsRef = useRef<HTMLDivElement | null>(null)
   const itemMotionByIdRef = useRef(new Map<string, TweakerReorderItemMotion>())
   const pendingFlipRectsRef = useRef<Map<string, number> | null>(null)
+  const [keyboardAnnouncement, setKeyboardAnnouncement] = useState<{
+    itemId: string
+    message: string
+  } | null>(null)
+  const [keyboardSession, setKeyboardSession] = useState<{
+    initialOrder: string[]
+    itemId: string
+    label: string
+  } | null>(null)
   const registeredValues = useStore(
     store,
     useShallow((state) => orderedItemsForParent(state, parentId).map((entry) => entry.item.id)),
@@ -80,6 +89,94 @@ export function TweakerReorderList({
       store,
       valuesRef,
     })
+  const announceKeyboardReorder = useCallback((itemId: string, message: string) => {
+    setKeyboardAnnouncement(null)
+    requestAnimationFrame(() => setKeyboardAnnouncement({ itemId, message }))
+  }, [])
+  const beginKeyboardReorder = useCallback(
+    (itemId: string, label: string) => {
+      if (!valuesRef.current.includes(itemId)) return
+      setKeyboardSession({ initialOrder: [...valuesRef.current], itemId, label })
+      const state = store.getState()
+      const item = state.items[itemId]
+      const bandItems = valuesRef.current.filter((id) => {
+        const candidate = state.items[id]
+        return (
+          candidate !== undefined &&
+          !candidate.hidden &&
+          candidate.parentId === item?.parentId &&
+          candidate.pin === item?.pin
+        )
+      })
+      announceKeyboardReorder(
+        itemId,
+        `${label} picked up. Position ${bandItems.indexOf(itemId) + 1} of ${bandItems.length}.`,
+      )
+    },
+    [announceKeyboardReorder, store, valuesRef],
+  )
+  const moveKeyboardReorder = useCallback(
+    (itemId: string, direction: -1 | 1) => {
+      if (keyboardSession?.itemId !== itemId) return
+      const state = store.getState()
+      const item = state.items[itemId]
+      if (!item) return
+      const bandItems = valuesRef.current.filter((id) => {
+        const candidate = state.items[id]
+        return (
+          candidate !== undefined &&
+          !candidate.hidden &&
+          candidate.parentId === item.parentId &&
+          candidate.pin === item.pin
+        )
+      })
+      const currentBandIndex = bandItems.indexOf(itemId)
+      const nextBandIndex = currentBandIndex + direction
+      if (currentBandIndex < 0 || nextBandIndex < 0 || nextBandIndex >= bandItems.length) {
+        announceKeyboardReorder(
+          itemId,
+          `${keyboardSession.label} is already ${direction < 0 ? 'first' : 'last'}.`,
+        )
+        return
+      }
+      const targetId = bandItems[nextBandIndex]!
+      const currentIndex = valuesRef.current.indexOf(itemId)
+      const targetIndex = valuesRef.current.indexOf(targetId)
+      const nextOrder = [...valuesRef.current]
+      nextOrder.splice(currentIndex, 1)
+      nextOrder.splice(targetIndex, 0, itemId)
+      previewOrder(nextOrder)
+      store.getState().setOrder(parentId, nextOrder)
+      announceKeyboardReorder(
+        itemId,
+        `${keyboardSession.label} moved to position ${nextBandIndex + 1} of ${bandItems.length}.`,
+      )
+    },
+    [announceKeyboardReorder, keyboardSession, parentId, previewOrder, store, valuesRef],
+  )
+  const cancelKeyboardReorder = useCallback(
+    (itemId: string) => {
+      if (keyboardSession?.itemId !== itemId) return
+      previewOrder(keyboardSession.initialOrder)
+      store.getState().setOrder(parentId, keyboardSession.initialOrder)
+      announceKeyboardReorder(itemId, `${keyboardSession.label} reorder cancelled.`)
+      setKeyboardSession(null)
+    },
+    [announceKeyboardReorder, keyboardSession, parentId, previewOrder, store],
+  )
+  const commitKeyboardReorder = useCallback(
+    (itemId: string) => {
+      if (keyboardSession?.itemId !== itemId) return
+      announceKeyboardReorder(itemId, `${keyboardSession.label} dropped.`)
+      setKeyboardSession(null)
+    },
+    [announceKeyboardReorder, keyboardSession],
+  )
+  useEffect(() => {
+    if (keyboardSession && !registeredValues.includes(keyboardSession.itemId)) {
+      setKeyboardSession(null)
+    }
+  }, [keyboardSession, registeredValues])
   useLayoutEffect(() => {
     const pendingFlipRects = pendingFlipRectsRef.current
     pendingFlipRectsRef.current = null
@@ -112,13 +209,31 @@ export function TweakerReorderList({
   const groupContext = useMemo<TweakerGroupContextValue>(
     () => ({
       beginItemReorder,
+      beginKeyboardReorder,
+      cancelKeyboardReorder,
       commitPendingOrder,
+      commitKeyboardReorder,
       dragConstraintsRef,
+      keyboardAnnouncement,
+      keyboardReorderItemId: keyboardSession?.itemId ?? null,
       listRef,
+      moveKeyboardReorder,
       parentId,
       registerItemMotion,
     }),
-    [beginItemReorder, commitPendingOrder, listRef, parentId, registerItemMotion],
+    [
+      beginItemReorder,
+      beginKeyboardReorder,
+      cancelKeyboardReorder,
+      commitKeyboardReorder,
+      commitPendingOrder,
+      keyboardAnnouncement,
+      keyboardSession?.itemId,
+      listRef,
+      moveKeyboardReorder,
+      parentId,
+      registerItemMotion,
+    ],
   )
   const orderedChildren = useMemo(() => orderTweakerChildren(children, values), [children, values])
 

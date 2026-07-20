@@ -12,6 +12,9 @@ The workspace website presents the interactive control gallery at `/` and the li
 
 ## Imports and styles
 
+Next.js App Router modules that render Tweaker components must be client components. Add
+`'use client'` to the consuming module; the package does not force that boundary on every import.
+
 ```tsx
 import {
   createTweakerPanelStore,
@@ -114,6 +117,8 @@ function ScenePanel() {
 ## Validation and value contracts
 
 - Field-backed items accept synchronous `parse` and `validate`.
+- Hoist custom `parse` and `validate` functions or stabilize them with `useCallback`; changing
+  callback identities re-registers the field contract.
 - Standard Schema validators (for example Zod) are supported.
 - Promise-valued contracts are rejected.
 - Shared fields must pass a common contract chain; all validators are combined.
@@ -136,7 +141,8 @@ Dropzone media values are metadata records and safe image URLs rather than raw o
 
 `data` accepts finite arrays, restartable async iterable factories, or subscription sources.
 Use `autoscale` for symmetric shared ranges and `continuous` for sustained streaming while visible.
-`maxPoints` controls history retention.
+`maxPoints` controls history retention. Use `onSourceError` to observe an async source that stops
+with an error.
 
 ### Charts
 
@@ -150,6 +156,14 @@ Use `autoscale` for symmetric shared ranges and `continuous` for sustained strea
 - `id` is required for non-field display rows.
 - `contentLayout` is `inline`, `block`, or `full`.
 - `TweakerGroup` supports `pin="start"` and `pin="end"` placement bands.
+- Reorder handles support pointer dragging and keyboard pick-up with Space/Enter, movement with
+  Arrow Up/Down, dropping with Space/Enter, and cancellation with Escape.
+
+## Release verification
+
+Pull requests and pushes to `main` run the full `bun run ready` gate plus
+`bun audit --audit-level=high`. Package publication independently runs package checks, tests, and
+the build, which includes source maps.
 
 ## Themability
 

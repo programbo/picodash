@@ -9,7 +9,13 @@ import {
   type AnimationPlaybackControlsWithThen,
   type HTMLMotionProps,
 } from 'motion/react'
-import { useEffect, useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { useStore } from 'zustand'
 import { useTweakerGroupContext } from './tweaker-group-context.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
@@ -68,12 +74,24 @@ export function useTweakerReorderItem(
   const prefersReducedMotion = useReducedMotion()
   const settleAnimationRef = useRef<AnimationPlaybackControlsWithThen | null>(null)
   const settleGenerationRef = useRef(0)
-  const { beginItemReorder, commitPendingOrder, dragConstraintsRef, parentId, registerItemMotion } =
-    useTweakerGroupContext()
+  const {
+    beginItemReorder,
+    beginKeyboardReorder,
+    cancelKeyboardReorder,
+    commitKeyboardReorder,
+    commitPendingOrder,
+    dragConstraintsRef,
+    keyboardAnnouncement,
+    keyboardReorderItemId,
+    moveKeyboardReorder,
+    parentId,
+    registerItemMotion,
+  } = useTweakerGroupContext()
   const hasReorderableSibling = useStore(store, (state) =>
     hasVisibleReorderableSibling(state, { id: itemId, parentId, pin }),
   )
   const reorderable = configuredReorderable && hasReorderableSibling
+  const keyboardReorderActive = keyboardReorderItemId === itemId
 
   const stopSettleAnimation = () => {
     settleGenerationRef.current += 1
@@ -146,6 +164,23 @@ export function useTweakerReorderItem(
       }
     })
   }
+  const handleReorderKeyDown = (event: ReactKeyboardEvent, label: string) => {
+    if (!reorderable) return
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault()
+      if (keyboardReorderActive) commitKeyboardReorder(itemId)
+      else beginKeyboardReorder(itemId, label)
+      return
+    }
+    if (!keyboardReorderActive) return
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      moveKeyboardReorder(itemId, event.key === 'ArrowUp' ? -1 : 1)
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      cancelKeyboardReorder(itemId)
+    }
+  }
 
   return {
     beginReorder,
@@ -153,6 +188,10 @@ export function useTweakerReorderItem(
     commitReorder,
     dragConstraintsRef,
     dragControls,
+    handleReorderKeyDown,
+    keyboardAnnouncement:
+      keyboardAnnouncement?.itemId === itemId ? keyboardAnnouncement.message : undefined,
+    keyboardReorderActive,
     parentId,
     reorderable,
     visualDragOffsetY: visualOffsetY,

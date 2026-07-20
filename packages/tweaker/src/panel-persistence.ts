@@ -53,14 +53,22 @@ export function createValidatedPanelPersistStorage(): PersistStorage<TweakerPers
       const parsed = tweakerPersistedStateSchema.safeParse(value.state)
       if (!parsed.success) return
 
-      window.localStorage.setItem(
-        name,
-        JSON.stringify({ state: parsed.data, version: value.version }),
-      )
+      try {
+        window.localStorage.setItem(
+          name,
+          JSON.stringify({ state: parsed.data, version: value.version }),
+        )
+      } catch {
+        // Layout persistence is best-effort. Storage can be unavailable or full.
+      }
     },
     removeItem(name) {
       if (typeof window === 'undefined') return
-      window.localStorage.removeItem(name)
+      try {
+        window.localStorage.removeItem(name)
+      } catch {
+        // Keep provider state usable when browser storage is unavailable.
+      }
     },
   }
 }
