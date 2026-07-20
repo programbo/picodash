@@ -891,6 +891,46 @@ test('blocks keyboard pickup while a pointer reorder session is active', async (
   await page.mouse.up()
 })
 
+test('keeps keyboard and pointer reorder sessions exclusive across nested lists', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const mediaGrip = panel.getByRole('button', {
+    name: 'Reorder Media and files',
+    exact: true,
+  })
+  const textItem = panel.locator('[data-item-id="text"]')
+  const textGrip = textItem.getByRole('button', {
+    name: 'Reorder Text',
+    exact: true,
+  })
+  const initialOrder = [
+    'common-items',
+    'spatial-items',
+    'media-items',
+    'chart-items',
+    'visualization-items',
+  ]
+
+  await mediaGrip.press('Space')
+  await mediaGrip.press('ArrowUp')
+  await textGrip.press('Space')
+  await expect(textGrip).toHaveAttribute('aria-pressed', 'false')
+
+  const gripRect = await requiredBox(textGrip)
+  await page.mouse.move(gripRect.x + gripRect.width / 2, gripRect.y + gripRect.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(gripRect.x + gripRect.width / 2, gripRect.y + gripRect.height + 80, {
+    steps: 4,
+  })
+  await expect.poll(() => builtInDraggingId(page)).toBeNull()
+  await page.mouse.up()
+
+  await mediaGrip.press('Escape')
+  await expect.poll(() => builtInRootStoreOrder(page)).toEqual(initialOrder)
+})
+
 test('keyboard reordering preserves hidden root slots on commit and cancellation', async ({
   page,
 }) => {

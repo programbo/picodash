@@ -10,6 +10,7 @@ import type {
 } from './tweaker-panel-types.js'
 
 export const rootGroupId = 'root'
+export const keyboardReorderInteractionId = 'keyboard-reorder'
 export type TweakerOrderBand = 'auto' | TweakerPin
 
 export function bandForItem(item: Pick<TweakerItemRegistration, 'pin'>): TweakerOrderBand {

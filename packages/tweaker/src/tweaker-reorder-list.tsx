@@ -14,6 +14,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { TweakerGroupContextProvider } from './tweaker-group-context.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
 import {
+  keyboardReorderInteractionId,
   orderedItemsForParent,
   orderSnapshotForParent,
   orderTweakerChildren,
@@ -98,8 +99,15 @@ export function TweakerReorderList({
   }, [])
   const beginKeyboardReorder = useCallback(
     (itemId: string, label: string) => {
-      if (draggingId || keyboardSession || !valuesRef.current.includes(itemId)) return
+      if (keyboardSession || !valuesRef.current.includes(itemId)) return
       const state = store.getState()
+      if (
+        state.interaction.draggingId ||
+        state.interaction.activeIds[keyboardReorderInteractionId]
+      ) {
+        return
+      }
+      state.setInteractionActive(keyboardReorderInteractionId, true)
       setKeyboardSession({
         initialOrder: orderSnapshotForParent(state, parentId),
         initialVisibleOrder: [...valuesRef.current],
@@ -121,7 +129,7 @@ export function TweakerReorderList({
         `${label} picked up. Position ${bandItems.indexOf(itemId) + 1} of ${bandItems.length}.`,
       )
     },
-    [announceKeyboardReorder, draggingId, keyboardSession, parentId, store, valuesRef],
+    [announceKeyboardReorder, keyboardSession, parentId, store, valuesRef],
   )
   const moveKeyboardReorder = useCallback(
     (itemId: string, direction: -1 | 1) => {
@@ -167,6 +175,7 @@ export function TweakerReorderList({
       if (keyboardSession?.itemId !== itemId) return
       previewOrder(keyboardSession.initialVisibleOrder)
       restoreKeyboardReorderOrder(store, parentId, keyboardSession.initialOrder)
+      store.getState().setInteractionActive(keyboardReorderInteractionId, false)
       announceKeyboardReorder(itemId, `${keyboardSession.label} reorder cancelled.`)
       setKeyboardSession(null)
     },
@@ -175,6 +184,7 @@ export function TweakerReorderList({
   const commitKeyboardReorder = useCallback(
     (itemId: string) => {
       if (keyboardSession?.itemId !== itemId) return
+      store.getState().setInteractionActive(keyboardReorderInteractionId, false)
       announceKeyboardReorder(itemId, `${keyboardSession.label} dropped.`)
       setKeyboardSession(null)
     },
@@ -183,6 +193,7 @@ export function TweakerReorderList({
   useEffect(() => {
     if (keyboardSession && !registeredValues.includes(keyboardSession.itemId)) {
       restoreKeyboardReorderOrder(store, parentId, keyboardSession.initialOrder)
+      store.getState().setInteractionActive(keyboardReorderInteractionId, false)
       setKeyboardSession(null)
     }
   }, [keyboardSession, parentId, registeredValues, store])
@@ -194,6 +205,7 @@ export function TweakerReorderList({
       const activeSession = keyboardSessionRef.current
       if (activeSession) {
         restoreKeyboardReorderOrder(store, parentId, activeSession.initialOrder)
+        store.getState().setInteractionActive(keyboardReorderInteractionId, false)
       }
     },
     [parentId, store],

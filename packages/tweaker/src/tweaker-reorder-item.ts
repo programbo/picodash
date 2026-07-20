@@ -19,6 +19,7 @@ import {
 import { useStore } from 'zustand'
 import { useTweakerGroupContext } from './tweaker-group-context.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
+import { keyboardReorderInteractionId } from './tweaker-order.js'
 import { hasVisibleReorderableSibling } from './tweaker-order.js'
 import type { TweakerPin } from './tweaker-panel-types.js'
 import { tweakerMotionTokens } from './theme.js'
@@ -90,6 +91,10 @@ export function useTweakerReorderItem(
   const hasReorderableSibling = useStore(store, (state) =>
     hasVisibleReorderableSibling(state, { id: itemId, parentId, pin }),
   )
+  const panelKeyboardReorderActive = useStore(
+    store,
+    (state) => state.interaction.activeIds[keyboardReorderInteractionId] === true,
+  )
   const reorderable = configuredReorderable && hasReorderableSibling
   const keyboardReorderActive = keyboardReorderItemId === itemId
 
@@ -123,7 +128,7 @@ export function useTweakerReorderItem(
   )
 
   const beginReorder = (event: ReactPointerEvent) => {
-    if (!reorderable || keyboardReorderItemId !== null) return
+    if (!reorderable || panelKeyboardReorderActive || keyboardReorderItemId !== null) return
     stopSettleAnimation()
     const siblingOffset = siblingOffsetY.get()
     siblingOffsetY.jump(0)
