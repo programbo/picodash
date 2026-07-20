@@ -1,6 +1,36 @@
 import { describe, expect, test } from 'vite-plus/test'
 import { PANEL_MIN_VISIBLE_HEIGHT, projectPanelGeometry } from '../src/panel-geometry.ts'
 import { snapPanelPosition, type PanelRect } from '../src/panel-snapping.ts'
+import { panelUsesBottomConstraint } from '../src/use-panel-layout.ts'
+
+test('detects bottom constraints with Typed OM and legacy computed-style fallback', () => {
+  expect(
+    panelUsesBottomConstraint({
+      computedBottom: '165px',
+      computedTop: '32px',
+      typedBottom: 'auto',
+    }),
+  ).toBe(false)
+  expect(
+    panelUsesBottomConstraint({
+      computedBottom: '16px',
+      computedTop: '620px',
+      typedBottom: '16px',
+    }),
+  ).toBe(true)
+  expect(
+    panelUsesBottomConstraint({
+      computedBottom: '16px',
+      computedTop: 'auto',
+    }),
+  ).toBe(true)
+  expect(
+    panelUsesBottomConstraint({
+      computedBottom: '165px',
+      computedTop: '32px',
+    }),
+  ).toBe(false)
+})
 
 describe('panel geometry projection', () => {
   test('leaves a fitting panel at its requested position', () => {

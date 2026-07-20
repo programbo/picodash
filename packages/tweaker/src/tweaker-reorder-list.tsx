@@ -181,9 +181,10 @@ export function TweakerReorderList({
   )
   useEffect(() => {
     if (keyboardSession && !registeredValues.includes(keyboardSession.itemId)) {
+      store.getState().setOrder(parentId, keyboardSession.initialOrder)
       setKeyboardSession(null)
     }
-  }, [keyboardSession, registeredValues])
+  }, [keyboardSession, parentId, registeredValues, store])
   useLayoutEffect(() => {
     const pendingFlipRects = pendingFlipRectsRef.current
     pendingFlipRectsRef.current = null

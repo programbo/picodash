@@ -18,6 +18,20 @@ import {
 } from './panel-snapping.js'
 import type { TweakerStore } from './tweaker-provider.js'
 
+export function panelUsesBottomConstraint({
+  computedBottom,
+  computedTop,
+  typedBottom,
+}: {
+  computedBottom: string
+  computedTop: string
+  typedBottom?: string
+}) {
+  return typedBottom === undefined
+    ? computedBottom !== 'auto' && computedTop === 'auto'
+    : typedBottom !== 'auto'
+}
+
 export function usePanelLayoutSynchronization({
   callerMaxHeight,
   containerElement,
@@ -190,10 +204,19 @@ export function usePanelLayoutSynchronization({
     )
     const savedPosition = store.getState().panelLayouts[panelId]
     const containerRect = rectFromElement(containerElement)
-    const computedBottom = panelElement.computedStyleMap().get('bottom')?.toString()
+    const computedStyle = getComputedStyle(panelElement)
+    const typedBottom =
+      typeof panelElement.computedStyleMap === 'function'
+        ? panelElement.computedStyleMap().get('bottom')?.toString()
+        : undefined
     const startsBottomPositioned =
       savedPosition === undefined &&
-      (defaultBottomInsetRef.current !== null || computedBottom !== 'auto')
+      (defaultBottomInsetRef.current !== null ||
+        panelUsesBottomConstraint({
+          computedBottom: computedStyle.bottom,
+          computedTop: computedStyle.top,
+          typedBottom,
+        }))
     if (startsBottomPositioned && defaultBottomInsetRef.current === null) {
       defaultBottomInsetRef.current = Math.max(containerRect.bottom - displayedRect.bottom, 0)
     }

@@ -8,6 +8,7 @@ import { normalizeSelectValue } from '../src/inputs/select.tsx'
 import {
   resolveTweakerSparklineProjectionBounds,
   settleTweakerSparklineSource,
+  settleTweakerSparklineSourceConsumption,
   shouldJumpTweakerSparklineRange,
   shouldUpdateTweakerSparklineRange,
 } from '../src/inputs/sparkline.tsx'
@@ -230,6 +231,21 @@ test('routes async sparkline failures to the latest handler and ignores visibili
     () => handler(),
   )
   expect(reported).toEqual(['latest'])
+})
+
+test('reports synchronous async sparkline source factory failures', async () => {
+  const sourceError = new Error('Source factory failed.')
+  const reported: unknown[] = []
+
+  await settleTweakerSparklineSourceConsumption(
+    () => {
+      throw sourceError
+    },
+    () => true,
+    (error) => reported.push(error),
+  )
+
+  expect(reported).toEqual([sourceError])
 })
 
 test('creates every supported TweakerChart type with type-specific Recharts props', () => {

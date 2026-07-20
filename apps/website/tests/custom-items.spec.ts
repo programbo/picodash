@@ -864,6 +864,27 @@ test('allows an active keyboard reorder to cancel after its siblings become hidd
   )
 })
 
+test('rolls back an active keyboard reorder when the picked-up item becomes hidden', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const example = page.locator('[data-interactive-jsx-example]')
+  const mediaGrip = panel.getByRole('button', {
+    name: 'Reorder Media and files',
+    exact: true,
+  })
+
+  await example.getByRole('checkbox', { name: 'Show all props' }).check()
+  await mediaGrip.press('Space')
+  await mediaGrip.press('ArrowUp')
+  await example.getByLabel('Visible for media-items').click()
+  await expect(panel.locator('[data-group-id="media-items"]')).toHaveCount(0)
+  await expect
+    .poll(() => builtInRootStoreOrder(page))
+    .toEqual(['common-items', 'spatial-items', 'media-items', 'chart-items', 'visualization-items'])
+})
+
 test('avoids Camera height before Quality covers it and retains avoidance on a 1px reversal', async ({
   page,
 }) => {

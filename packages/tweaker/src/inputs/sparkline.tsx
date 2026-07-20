@@ -99,6 +99,14 @@ export async function settleTweakerSparklineSource(
   }
 }
 
+export function settleTweakerSparklineSourceConsumption(
+  consumption: () => Promise<void> | void,
+  isActive: () => boolean,
+  onSourceError?: (error: unknown) => void,
+) {
+  return settleTweakerSparklineSource(Promise.resolve().then(consumption), isActive, onSourceError)
+}
+
 export function TweakerSparkline({
   ariaLabel = 'Sparkline',
   autoscale = false,
@@ -335,12 +343,12 @@ export function TweakerSparkline({
       if (consuming || !active || !isVisible) return Promise.resolve()
       consuming = true
       const currentIteration = ++iteration
-      const currentIterator = createAsyncData()[Symbol.asyncIterator]()
-      iterator = currentIterator
 
-      return settleTweakerSparklineSource(
-        (async () => {
+      return settleTweakerSparklineSourceConsumption(
+        async () => {
           try {
+            const currentIterator = createAsyncData()[Symbol.asyncIterator]()
+            iterator = currentIterator
             while (active && isVisible && currentIteration === iteration) {
               const next = await currentIterator.next()
               if (!active || !isVisible || currentIteration !== iteration || next.done) break
@@ -352,7 +360,7 @@ export function TweakerSparkline({
               iterator = undefined
             }
           }
-        })(),
+        },
         () => active && isVisible && currentIteration === iteration,
         (error) => onSourceErrorRef.current?.(error),
       )
