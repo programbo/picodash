@@ -1,6 +1,8 @@
 import { isValidElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vite-plus/test'
+import * as advancedApi from '../src/advanced.ts'
+import * as publicApi from '../src/index.ts'
 import { createTweakerPanelStore, FeaturePanel } from '../src/index.ts'
 import { panelLayoutStorageKey } from '../src/panel-persistence.ts'
 import {
@@ -37,6 +39,24 @@ import {
   tweakerMotionTokens,
   tweakerThemeAttribute,
 } from '../src/theme.ts'
+
+test('keeps the public and advanced hook surfaces explicit', () => {
+  expect(publicApi.useTweakerPanel).toBeTypeOf('function')
+  expect(publicApi.useTweakerPanelStoreSelector).toBeTypeOf('function')
+  expect(publicApi.useTweakerTheme).toBeTypeOf('function')
+  expect('useTweakerPanelSelector' in publicApi).toBe(false)
+
+  expect(advancedApi.useTweakerPanelSelector).toBeTypeOf('function')
+  expect(advancedApi.useTweakerPanelStoreApi).toBeTypeOf('function')
+  expect(advancedApi.useTweakerProviderSelector).toBeTypeOf('function')
+  expect(advancedApi.useTweakerProviderStoreApi).toBeTypeOf('function')
+  expect('useTweakerGroupContext' in advancedApi).toBe(false)
+  expect('useTweakerPanel' in advancedApi).toBe(false)
+  expect('useTweakerPanelState' in advancedApi).toBe(false)
+  expect('useTweakerProviderContext' in advancedApi).toBe(false)
+  expect('useTweakerSelector' in advancedApi).toBe(false)
+  expect('useTweakerStoreApi' in advancedApi).toBe(false)
+})
 
 test('creates feature panel elements', () => {
   const element = (

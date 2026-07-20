@@ -36,10 +36,6 @@ export function useTweakerPanelStoreSelector<T>(
   return useStore(store, selector)
 }
 
-export function useTweakerPanelState() {
-  return useTweakerPanelSelector((state) => state)
-}
-
 export function useRegisterTweakerItem(item: TweakerItemRegistration) {
   const ownerRef = useRef(Symbol('tweaker-item-owner'))
   const {

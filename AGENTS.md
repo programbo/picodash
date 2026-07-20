@@ -30,7 +30,11 @@ The workspace API is application-owned panel state using the `createTweakerPanel
 Provider descendants may control registered panel visibility and activation with `useTweakerPanel`;
 that visibility is transient and separate from persisted layout. `TweakerPanel close` hides by
 default, while the explicit `deregister` close behavior removes the registration and portal before
-notifying the host. Legacy schema-driven `useTweaker` registration flow is retired.
+notifying the host. Application code reads panel values from its explicit store with
+`useTweakerPanelStoreSelector`; panel IDs do not provide global value lookup. Advanced provider
+access uses `useTweakerProviderSelector` / `useTweakerProviderStoreApi`, while contextual panel
+access uses `useTweakerPanelSelector` / `useTweakerPanelStoreApi`. Legacy schema-driven
+`useTweaker` registration flow is retired.
 
 ## Required Commands
 

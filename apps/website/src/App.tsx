@@ -23,7 +23,7 @@ import {
 } from 'tweaker'
 import {
   gradientCssValue,
-  useTweakerSelector,
+  useTweakerProviderSelector,
   type TweakerPanelRegistration,
   type TweakerPanelState,
 } from 'tweaker/advanced'
@@ -273,9 +273,9 @@ function DemoExperience({
   const scenePanelController = useTweakerPanel(scenePanelId)
   const initiallyHiddenPanelController = useTweakerPanel(initiallyHiddenPanelId)
   const missingPanelController = useTweakerPanel('not-registered')
-  const panelOrder = useTweakerSelector((state) => state.panelOrder)
-  const panelRects = useTweakerSelector((state) => state.panelRects)
-  const providerPanels = useTweakerSelector((state) => state.panels)
+  const panelOrder = useTweakerProviderSelector((state) => state.panelOrder)
+  const panelRects = useTweakerProviderSelector((state) => state.panelRects)
+  const providerPanels = useTweakerProviderSelector((state) => state.panels)
   const providerState = useMemo<ProviderSnapshot>(
     () => ({ panelOrder, panelRects, panels: providerPanels }),
     [panelOrder, panelRects, providerPanels],

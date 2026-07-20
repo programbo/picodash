@@ -263,7 +263,7 @@ export function modalZIndexForState(state: Pick<TweakerState, 'panelOrder'>) {
 }
 
 export function useRegisterTweakerPanel({ id, visible }: TweakerPanelRegistrationInput) {
-  const store = useTweakerStoreApi()
+  const store = useTweakerProviderStoreApi()
 
   useEffect(() => {
     store.getState().registerPanel({ id, visible })
@@ -330,16 +330,16 @@ export function useTweakerProviderContext() {
   return context
 }
 
-export function useTweakerStoreApi() {
+export function useTweakerProviderStoreApi() {
   return useTweakerProviderContext().store
 }
 
-export function useTweakerSelector<T>(selector: (state: TweakerState) => T) {
-  return useStore(useTweakerStoreApi(), selector)
+export function useTweakerProviderSelector<T>(selector: (state: TweakerState) => T) {
+  return useStore(useTweakerProviderStoreApi(), selector)
 }
 
 export function useTweakerPanel(panelId: string): TweakerPanelController | null {
-  const store = useTweakerStoreApi()
+  const store = useTweakerProviderStoreApi()
   const panel = useStore(store, (state) => state.panels[panelId])
 
   return useMemo(() => {

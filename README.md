@@ -95,7 +95,8 @@ All package usage should be built on `TweakerProvider` + panel stores.
 - UI controls and panels: `TweakerPanel`, `TweakerItem`, and built-in inputs/visualization components.
 - State selectors and panel UI control: `useTweakerPanelStoreSelector`, `useTweakerPanel`.
 - Validation contracts: synchronous `parse`/`validate` per field and optional Standard Schema validators.
-- Advanced tools: `tweaker/advanced` for internals, helpers, ordering and persistence wiring.
+- Advanced tools: `tweaker/advanced` for focused provider/panel selectors, imperative store access,
+  helpers, ordering and persistence wiring.
 - Styling import: `import 'tweaker/style.css'`.
 - No separate dist stylesheet import should be documented (the package export maps that path).
 
@@ -111,6 +112,15 @@ Set `close` to add a header close button immediately after the action menu. `clo
 `close={{ behavior: 'hide' }}` hide through the provider; `close={{ behavior: 'deregister' }}`
 removes the registration and portal so an optional `onClose({ panelId, behavior })` observer can
 unmount the host component. The callback observes the built-in behavior rather than replacing it.
+
+### Advanced hook boundary
+
+The main entrypoint keeps application ownership explicit: use
+`useTweakerPanelStoreSelector(store, selector)` for panel values and `useTweakerPanel(panelId)` only
+for provider-managed visibility and activation. `tweaker/advanced` exposes
+`useTweakerProviderSelector`, `useTweakerProviderStoreApi`, `useTweakerPanelSelector`, and
+`useTweakerPanelStoreApi` for low-level integrations. The contextual panel hooks must run beneath
+the rendered `TweakerPanel`; they do not look up application state by panel ID.
 
 ### JSON-compatibility rule
 

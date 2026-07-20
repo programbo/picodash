@@ -105,6 +105,7 @@ function ScenePanel() {
 - `useTweakerPanelStoreSelector` reads store slices without recreating local mirrors.
 - `useTweakerPanel(panelId)` returns a registered panel controller with reactive `visible` state
   and `show`, `hide`, `toggle`, `setVisible`, and show-and-raise `activate` methods.
+- Panel values remain application-owned and are never discovered globally through a panel ID.
 - `defaultVisible={false}` registers a panel in a hidden state; visibility is transient and is not
   stored with persisted layout.
 - `close` adds a header close button that hides by default. Use
@@ -188,10 +189,17 @@ Use `tweaker/advanced` for low-level helpers and internals:
 import {
   createTweakerStore,
   tweakerPersistedStateSchema,
-  useTweakerSelector,
+  useTweakerPanelSelector,
+  useTweakerPanelStoreApi,
+  useTweakerProviderSelector,
+  useTweakerProviderStoreApi,
   normalizeRangeValue,
 } from 'tweaker/advanced'
 ```
+
+The provider hooks expose global registration/layout state. The panel hooks use the nearest
+rendered `TweakerPanel` context and are intended for low-level custom integrations. Prefer the main
+entrypoint's explicit `useTweakerPanelStoreSelector(store, selector)` in application components.
 
 ## Known breaking impact
 
