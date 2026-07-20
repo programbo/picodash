@@ -17,7 +17,7 @@ import {
   orderIndexForItem,
   reorderValuesForPointer,
 } from '../src/tweaker-panel.tsx'
-import { orderTweakerChildren } from '../src/tweaker-order.tsx'
+import { orderSnapshotForParent, orderTweakerChildren } from '../src/tweaker-order.tsx'
 import {
   createTweakerStore,
   modalZIndexForState,
@@ -25,7 +25,10 @@ import {
   portalLayerZIndexForState,
   portalLayerZIndexValue,
 } from '../src/tweaker-provider.tsx'
-import { constrainReorderPointerOffset } from '../src/tweaker-reorder-list.tsx'
+import {
+  constrainReorderPointerOffset,
+  restoreKeyboardReorderOrder,
+} from '../src/tweaker-reorder-list.tsx'
 import { TweakerReorderIndicator } from '../src/tweaker-reorder-indicator.tsx'
 import {
   tweakerDefaultTheme,
@@ -432,6 +435,30 @@ test('preserves control order slots across transient registration remounts', () 
   register('alpha')
 
   expect(orderedItemIdsForParent(store.getState(), 'root')).toEqual(['gamma', 'alpha', 'beta'])
+})
+
+test('snapshots dormant order slots for reversible keyboard reordering', () => {
+  const store = createTweakerPanelStore({ panelId: 'inspect' })
+  const register = (id: string) =>
+    store.getState().registerItem({
+      id,
+      kind: 'control',
+      parentId: 'root',
+      reorderable: true,
+    })
+
+  register('alpha')
+  register('beta')
+  register('gamma')
+  store.getState().setOrder('root', ['gamma', 'alpha', 'beta'])
+  store.getState().unregisterItem('alpha')
+
+  const snapshot = orderSnapshotForParent(store.getState(), 'root')
+  store.getState().moveItemRelativeTo('gamma', 'beta', 'after')
+  expect(store.getState().order.root).toEqual(['beta', 'gamma'])
+
+  restoreKeyboardReorderOrder(store, 'root', snapshot)
+  expect(store.getState().order.root).toEqual(['gamma', 'alpha', 'beta'])
 })
 
 test('uses a field-backed item field as its default ordering ID', () => {

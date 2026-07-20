@@ -744,7 +744,7 @@ export function InteractiveJsxExample({
   providerTheme,
 }: InteractiveJsxExampleProps) {
   const [activeTab, setActiveTab] = useState('code')
-  const [copied, setCopied] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<'copied' | 'error' | 'idle'>('idle')
   const [showAllProps, setShowAllProps] = useState(false)
   const panelState = useTweakerPanelStoreSelector(builtInItemsPanelStore, (state) => state)
   const panelStoreSnapshot = useMemo(() => snapshotForDisplay(panelState), [panelState])
@@ -839,9 +839,13 @@ export function InteractiveJsxExample({
   )
 
   const copySource = async () => {
-    await navigator.clipboard.writeText(sourceForExample(providerTheme, config, showAllProps))
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1600)
+    try {
+      await navigator.clipboard.writeText(sourceForExample(providerTheme, config, showAllProps))
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('error')
+    }
+    window.setTimeout(() => setCopyStatus('idle'), 1600)
   }
 
   return (
@@ -898,15 +902,25 @@ export function InteractiveJsxExample({
                 </label>
                 <button
                   className="flex h-7 items-center gap-1.5 border border-white/12 bg-white/5 px-2 font-mono text-[11px] text-zinc-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:outline-none"
+                  data-copy-jsx
                   type="button"
                   onClick={copySource}
                 >
-                  {copied ? (
+                  {copyStatus === 'copied' ? (
                     <Check aria-hidden="true" className="size-3 text-cyan-300" />
                   ) : (
-                    <Copy aria-hidden="true" className="size-3" />
+                    <Copy
+                      aria-hidden="true"
+                      className={cn('size-3', copyStatus === 'error' && 'text-red-300')}
+                    />
                   )}
-                  <span aria-live="polite">{copied ? 'Copied' : 'Copy JSX'}</span>
+                  <span aria-live="polite">
+                    {copyStatus === 'copied'
+                      ? 'Copied'
+                      : copyStatus === 'error'
+                        ? 'Copy failed'
+                        : 'Copy JSX'}
+                  </span>
                 </button>
               </div>
             ) : activeTab === 'store' ? (

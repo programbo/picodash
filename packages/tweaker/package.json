@@ -24,12 +24,9 @@
     "dev": "vp pack --watch",
     "test": "vp test",
     "check": "vp check",
-    "prepublishOnly": "vp run build"
+    "prepublishOnly": "vp check && vp test && vp run build"
   },
   "dependencies": {
-    "@dnd-kit/abstract": "catalog:",
-    "@dnd-kit/dom": "catalog:",
-    "@dnd-kit/react": "catalog:",
     "@standard-schema/spec": "^1.1.0",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
@@ -46,7 +43,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "catalog:",
     "@tsdown/css": "catalog:",
-    "@types/node": "^25.6.2",
+    "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@typescript/native-preview": "7.0.0-dev.20260509.2",
@@ -55,7 +52,7 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwindcss": "catalog:",
-    "typescript": "^6.0.3",
+    "typescript": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {

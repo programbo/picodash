@@ -7,6 +7,8 @@ description: Use the promoted Tweaker package with application-owned stores and 
 
 This workspace uses the promoted `tweaker` API only.
 
+The workspace website serves the interactive control gallery at `/` and the live store inspector at `/state-lab`.
+
 ## Preferred Imports
 
 ```tsx
@@ -81,8 +83,15 @@ export function SiteControls() {
 ## Validation and State
 
 - Use synchronous `parse` and `validate`; no promise-based contracts.
+- Hoist custom parser and validator functions or stabilize them with `useCallback`.
 - Values must be JSON-compatible.
 - `setFieldValues` is atomic and rejects invalid batches.
+- Handle async sparkline failures with `onSourceError`.
+
+## Framework and Accessibility Notes
+
+- In Next.js App Router projects, add `'use client'` to modules that render Tweaker components.
+- Reorder with Space/Enter, Arrow Up/Down, and Escape as well as pointer dragging.
 
 ## Migration Note
 
@@ -96,4 +105,5 @@ This repository is on the promoted API. Legacy schema-driven `useTweaker` and ol
 - `bun run --filter tweaker check`
 - `bun run --filter tweaker test`
 - `bun run --filter website test:e2e`
+- `bun audit --audit-level=high`
 - `bun run ready`

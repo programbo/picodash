@@ -42,7 +42,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MouseVelocitySparklineItem } from '@/custom-items/mouse-velocity-sparkline'
 import { WaveformSpectrumItem } from '@/custom-items/waveform-spectrum'
 import { InteractiveJsxExample } from '@/interactive-jsx-example'
-import { LandingPage } from '@/landing-page'
 import { PanelGeometryLab } from '@/panel-geometry-lab'
 
 const scenePanelId = 'scene-controls'
@@ -108,24 +107,31 @@ type ProviderSnapshot = {
   panels: Record<string, TweakerPanelRegistration>
 }
 
-type ProductRoute = 'gallery' | 'landing' | 'not-found' | 'panel-geometry-lab' | 'state-lab'
+type ProductRoute = 'gallery' | 'not-found' | 'panel-geometry-lab' | 'state-lab'
 
 export function App() {
   const route = resolveProductRoute(window.location.pathname)
-
-  if (route === 'landing') {
-    return <LandingPage />
-  }
+  let page: ReactNode
 
   if (route === 'not-found') {
-    return <NotFoundPage />
+    page = <NotFoundPage />
+  } else if (route === 'panel-geometry-lab') {
+    page = <PanelGeometryLab />
+  } else {
+    page = <DemoApp route={route} />
   }
 
-  if (route === 'panel-geometry-lab') {
-    return <PanelGeometryLab />
-  }
-
-  return <DemoApp route={route} />
+  return (
+    <>
+      <a
+        className="bg-primary text-primary-foreground fixed top-2 left-2 z-(--tweaker-layer-viewer) -translate-y-16 px-3 py-2 text-sm font-medium transition-transform focus:translate-y-0 focus:outline-none"
+        href="#main-content"
+      >
+        Skip to main content
+      </a>
+      {page}
+    </>
+  )
 }
 
 function DemoApp({ route }: { route: Extract<ProductRoute, 'gallery' | 'state-lab'> }) {
@@ -150,6 +156,7 @@ function DemoApp({ route }: { route: Extract<ProductRoute, 'gallery' | 'state-la
 
   return (
     <main
+      id="main-content"
       className={
         route === 'gallery'
           ? 'dark bg-background text-foreground relative h-svh overflow-hidden'
@@ -198,7 +205,6 @@ function resolveProductRoute(pathname: string): ProductRoute {
 
   switch (normalizedPathname) {
     case '/':
-      return 'landing'
     case '/gallery':
       return 'gallery'
     case '/state-lab':
@@ -213,6 +219,7 @@ function resolveProductRoute(pathname: string): ProductRoute {
 function NotFoundPage() {
   return (
     <main
+      id="main-content"
       className="dark bg-background text-foreground grid min-h-svh place-items-center overflow-x-hidden px-6 py-16"
       data-product-route="not-found"
     >
@@ -223,23 +230,15 @@ function NotFoundPage() {
             Page not found
           </h1>
           <p className="text-muted-foreground">
-            That Tweaker page does not exist. Return home or open the interactive gallery.
+            That Tweaker page does not exist. Return to the interactive gallery.
           </p>
         </div>
         <nav aria-label="Page not found">
           <ul className="flex flex-wrap justify-center gap-3">
             <li>
               <a
-                className="border-border bg-secondary text-secondary-foreground inline-flex h-9 items-center border px-4 text-sm font-medium"
-                href="/"
-              >
-                Home
-              </a>
-            </li>
-            <li>
-              <a
                 className="bg-primary text-primary-foreground inline-flex h-9 items-center px-4 text-sm font-medium"
-                href="/gallery"
+                href="/"
               >
                 Open gallery
               </a>

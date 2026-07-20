@@ -5,7 +5,7 @@ Monorepo for the promoted [Tweaker] package and its web showcase (`apps/website`
 ## Active product topology
 
 - `packages/tweaker`: published package API for application-owned inspector panels.
-- `apps/website`: landing, `/gallery`, and `/state-lab` demo surfaces built with the promoted package.
+- `apps/website`: the interactive gallery at `/` and the `/state-lab` demo surface, both built with the promoted package.
 - Legacy `/demo` integration and old schema-driven API are not part of this workspace and should not be documented as active APIs.
 
 ## Breaking migration notes
@@ -126,6 +126,8 @@ Repairs from imports and constraint propagation are reviewable through the built
 ### Validation and reactive behavior
 
 - Synchronous `parse` and `validate` are enforced before any mutation.
+- Custom parser and validator callbacks should be hoisted or stabilized with `useCallback` so
+  their contracts are not re-registered on every render.
 - Promise-based parsers and validators are not supported.
 - Field metadata changes (for example `min`, `max`, `options`, `readOnly`, `hidden`, labels/help/status) can be passed from state and re-registered; values are normalized to the active contract.
 
@@ -172,6 +174,7 @@ bun run --filter tweaker check
 bun run --filter tweaker test
 bun run --filter tweaker build
 bun run --filter website test:e2e
+bun audit --audit-level=high
 bun run ready
 ```
 
@@ -180,3 +183,6 @@ bun run ready
 ```bash
 vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e
 ```
+
+GitHub CI runs the audit and full gate for pull requests and pushes to `main`. Publishing the
+package also runs its check, test, and build commands.

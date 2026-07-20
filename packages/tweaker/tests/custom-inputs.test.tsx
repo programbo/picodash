@@ -7,6 +7,8 @@ import { gradientRotationRegistrationId } from '../src/inputs/gradient.tsx'
 import { normalizeSelectValue } from '../src/inputs/select.tsx'
 import {
   resolveTweakerSparklineProjectionBounds,
+  settleTweakerSparklineSource,
+  settleTweakerSparklineSourceConsumption,
   shouldJumpTweakerSparklineRange,
   shouldUpdateTweakerSparklineRange,
 } from '../src/inputs/sparkline.tsx'
@@ -177,6 +179,90 @@ test('bounds appended sparkline samples and projects finite SVG coordinates', ()
   expect(shouldUpdateTweakerSparklineRange(15, 10, 10, false)).toBe(false)
   expect(shouldUpdateTweakerSparklineRange(15, 10, 10, true)).toBe(true)
   expect(shouldUpdateTweakerSparklineRange(10, 20, 10, false)).toBe(true)
+})
+
+test('reports active async sparkline failures and suppresses stale source failures', async () => {
+  const reported: unknown[] = []
+  const sourceError = new Error('Source stopped.')
+
+  await settleTweakerSparklineSource(
+    Promise.reject(sourceError),
+    () => true,
+    (error) => reported.push(error),
+  )
+  await settleTweakerSparklineSource(
+    Promise.reject(new Error('Replaced source stopped.')),
+    () => false,
+    (error) => reported.push(error),
+  )
+  await settleTweakerSparklineSource(
+    Promise.resolve(),
+    () => true,
+    (error) => reported.push(error),
+  )
+
+  expect(reported).toEqual([sourceError])
+})
+
+test('routes async sparkline failures to the latest handler and ignores visibility cancellation', async () => {
+  const reported: string[] = []
+  let rejectSource: ((error: unknown) => void) | undefined
+  let visible = true
+  let handler = () => reported.push('initial')
+  const consumption = new Promise<void>((_resolve, reject) => {
+    rejectSource = reject
+  })
+  const settlement = settleTweakerSparklineSource(
+    consumption,
+    () => visible,
+    () => handler(),
+  )
+
+  handler = () => reported.push('latest')
+  visible = false
+  rejectSource?.(new Error('Visibility cancellation.'))
+  await settlement
+
+  expect(reported).toEqual([])
+
+  await settleTweakerSparklineSource(
+    Promise.reject(new Error('Current source failed.')),
+    () => true,
+    () => handler(),
+  )
+  expect(reported).toEqual(['latest'])
+})
+
+test('reports synchronous async sparkline source factory failures', async () => {
+  const sourceError = new Error('Source factory failed.')
+  const reported: unknown[] = []
+
+  await settleTweakerSparklineSourceConsumption(
+    () => {
+      throw sourceError
+    },
+    () => true,
+    (error) => reported.push(error),
+  )
+
+  expect(reported).toEqual([sourceError])
+})
+
+test('does not create an async sparkline source after its effect becomes inactive', async () => {
+  let active = true
+  let consumptionCalls = 0
+
+  const settlement = settleTweakerSparklineSourceConsumption(
+    () => {
+      consumptionCalls += 1
+    },
+    () => active,
+  )
+  active = false
+
+  await settlement
+
+  expect(consumptionCalls).toBe(0)
 })
 
 test('creates every supported TweakerChart type with type-specific Recharts props', () => {

@@ -14,6 +14,7 @@ export default defineConfig({
       tsgo: true,
     },
     exports: true,
+    sourcemap: true,
   },
   lint: {
     options: {

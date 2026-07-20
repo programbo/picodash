@@ -1,6 +1,104 @@
 import { describe, expect, test } from 'vite-plus/test'
 import { PANEL_MIN_VISIBLE_HEIGHT, projectPanelGeometry } from '../src/panel-geometry.ts'
 import { snapPanelPosition, type PanelRect } from '../src/panel-snapping.ts'
+import { panelUsesBottomConstraint } from '../src/use-panel-layout.ts'
+
+test('detects bottom constraints with Typed OM and legacy computed-style fallback', () => {
+  expect(
+    panelUsesBottomConstraint({
+      computedBottom: '165px',
+      computedTop: '32px',
+      typedBottom: 'auto',
+    }),
+  ).toBe(false)
+  expect(
+    panelUsesBottomConstraint({
+      computedBottom: '16px',
+      computedTop: '620px',
+      typedBottom: '16px',
+      typedTop: 'auto',
+    }),
+  ).toBe(true)
+  expect(
+    panelUsesBottomConstraint({
+      computedBottom: '16px',
+      computedTop: '32px',
+      typedBottom: '16px',
+      typedTop: '32px',
+    }),
+  ).toBe(false)
+  expect(
+    panelUsesBottomConstraint({
+      computedBottom: '16px',
+      computedTop: 'auto',
+    }),
+  ).toBe(true)
+  expect(
+    panelUsesBottomConstraint({
+      computedBottom: '165px',
+      computedTop: '32px',
+    }),
+  ).toBe(false)
+})
+
+test('projects a custom bottom inset independently from the other bounds', () => {
+  const projection = projectPanelGeometry({
+    anchor: 'bottom',
+    baseRect: {
+      bottom: 180,
+      height: 180,
+      left: 564,
+      right: 884,
+      top: 0,
+      width: 320,
+    },
+    bottomInset: 80,
+    containerRect: {
+      bottom: 600,
+      height: 600,
+      left: 0,
+      right: 900,
+      top: 0,
+      width: 900,
+    },
+    intrinsicHeight: 180,
+    position: { x: 0, y: 0 },
+  })
+
+  expect(projection.rect).toMatchObject({
+    bottom: 520,
+    left: 564,
+    right: 884,
+  })
+})
+
+test('honors a bottom inset larger than half the container', () => {
+  const projection = projectPanelGeometry({
+    anchor: 'bottom',
+    baseRect: {
+      bottom: 24,
+      height: 24,
+      left: 16,
+      right: 56,
+      top: 0,
+      width: 40,
+    },
+    bottomInset: 60,
+    containerRect: {
+      bottom: 100,
+      height: 100,
+      left: 0,
+      right: 100,
+      top: 0,
+      width: 100,
+    },
+    inset: 16,
+    intrinsicHeight: 24,
+    position: { x: 0, y: 0 },
+  })
+
+  expect(projection.rect.bottom).toBe(40)
+})
 
 describe('panel geometry projection', () => {
   test('leaves a fitting panel at its requested position', () => {

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   createTweakerPanelStore,
   TweakerDisplay,
@@ -12,6 +13,14 @@ const tallPanelStore = createTweakerPanelStore({ panelId: 'geometry-tall' })
 const peerPanelStore = createTweakerPanelStore({ panelId: 'geometry-peer' })
 const expansionPanelStore = createTweakerPanelStore({ panelId: 'geometry-expansion' })
 const bottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom' })
+const customBottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-custom-bottom' })
+const responsivePanelStore = createTweakerPanelStore({ panelId: 'geometry-responsive' })
+const changingConstraintPanelStore = createTweakerPanelStore({
+  panelId: 'geometry-changing-constraint',
+})
+export const keyboardUnmountPanelStore = createTweakerPanelStore({
+  panelId: 'geometry-keyboard-unmount',
+})
 const cappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-capped' })
 const classCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-class-capped' })
 const bottomCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-capped' })
@@ -22,6 +31,7 @@ export function PanelGeometryLab() {
 
   return (
     <main
+      id="main-content"
       className="dark bg-background text-foreground relative min-h-[180dvh]"
       data-panel-geometry-lab
       data-product-route="panel-geometry-lab"
@@ -33,6 +43,10 @@ export function PanelGeometryLab() {
         {fixture === 'panel-expansion' ? <PanelExpansionFixture /> : null}
         {fixture === 'groups' ? <GroupExpansionFixture /> : null}
         {fixture === 'bottom' ? <BottomExpansionFixture /> : null}
+        {fixture === 'custom-bottom' ? <CustomBottomFixture /> : null}
+        {fixture === 'responsive' ? <ResponsiveConstraintFixture /> : null}
+        {fixture === 'changing-constraint' ? <ChangingConstraintFixture /> : null}
+        {fixture === 'keyboard-unmount' ? <KeyboardUnmountFixture /> : null}
         {fixture === 'caller-max-height' ? <CallerMaxHeightFixture /> : null}
         {fixture === 'class-max-height' ? <ClassMaxHeightFixture /> : null}
         {fixture === 'bottom-max-height' ? <BottomMaxHeightFixture /> : null}
@@ -134,6 +148,99 @@ function BottomExpansionFixture() {
         <TallContent prefix="bottom" count={18} />
       </TweakerGroup>
     </TweakerPanel>
+  )
+}
+
+function CustomBottomFixture() {
+  return (
+    <TweakerPanel
+      store={customBottomPanelStore}
+      title="Custom bottom inset fixture"
+      width={320}
+      defaultPlacement="bottom-right"
+      className="right-4 bottom-20"
+      data-geometry-fixture="custom-bottom"
+    >
+      <TallContent prefix="custom-bottom" count={3} />
+    </TweakerPanel>
+  )
+}
+
+function ResponsiveConstraintFixture() {
+  return (
+    <TweakerPanel
+      store={responsivePanelStore}
+      title="Responsive constraint fixture"
+      width={320}
+      defaultPlacement="top-right"
+      className="top-4 right-4 bottom-auto lg:top-auto lg:bottom-20 xl:bottom-4"
+      data-geometry-fixture="responsive"
+    >
+      <TallContent prefix="responsive" count={3} />
+    </TweakerPanel>
+  )
+}
+
+function ChangingConstraintFixture() {
+  const [placement, setPlacement] = useState<'bottom-large' | 'bottom-small' | 'top'>(
+    'bottom-large',
+  )
+  const className =
+    placement === 'bottom-large'
+      ? 'right-4 bottom-20'
+      : placement === 'bottom-small'
+        ? 'right-4 bottom-4'
+        : 'top-4 right-4 bottom-auto'
+
+  return (
+    <>
+      <div className="fixed top-2 left-2 z-50 flex gap-2">
+        <button type="button" onClick={() => setPlacement('bottom-small')}>
+          Use small bottom inset
+        </button>
+        <button type="button" onClick={() => setPlacement('top')}>
+          Use top constraint
+        </button>
+      </div>
+      <TweakerPanel
+        store={changingConstraintPanelStore}
+        title="Changing constraint fixture"
+        width={320}
+        defaultPlacement="bottom-right"
+        className={className}
+        data-geometry-fixture="changing-constraint"
+      >
+        <TallContent prefix="changing-constraint" count={3} />
+      </TweakerPanel>
+    </>
+  )
+}
+
+function KeyboardUnmountFixture() {
+  const [mounted, setMounted] = useState(true)
+
+  return (
+    <>
+      <button className="fixed top-2 left-2 z-50" type="button" onClick={() => setMounted(false)}>
+        Unmount keyboard fixture
+      </button>
+      {mounted ? (
+        <TweakerPanel
+          store={keyboardUnmountPanelStore}
+          title="Keyboard unmount fixture"
+          width={320}
+          defaultPlacement="top-right"
+          data-geometry-fixture="keyboard-unmount"
+        >
+          <TweakerGroup id="first-group" label="First group">
+            <TallContent prefix="first-group" count={1} />
+          </TweakerGroup>
+          <TweakerGroup id="second-group" label="Second group">
+            <TallContent prefix="second-group" count={1} />
+          </TweakerGroup>
+        </TweakerPanel>
+      ) : null}
+    </>
   )
 }
 

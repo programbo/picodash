@@ -13,12 +13,14 @@ What it provides:
 - provider-scoped panel visibility and activation via useTweakerPanel
 - optional panel close buttons with hide or deregister behavior
 - strict programmatic writes, sync validation, JSON-compatible values
+- pointer and keyboard item reordering with same-band constraints
+- observable async sparkline source failures
 - theme/portal aware styling
 - import/export and repair flows
 
 Workspace pages:
-- / (landing)
-- /gallery
+- / (interactive gallery)
+- /gallery (compatibility alias)
 - /state-lab
 
 Important migration:
@@ -38,3 +40,8 @@ Docs to keep aligned:
 - SKILL.md
 - AGENTS.md
 - llms.txt
+
+Verification:
+- bun audit --audit-level=high
+- bun run ready
+- GitHub CI runs both for pull requests and main pushes

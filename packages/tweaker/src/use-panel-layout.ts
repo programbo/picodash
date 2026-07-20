@@ -18,6 +18,22 @@ import {
 } from './panel-snapping.js'
 import type { TweakerStore } from './tweaker-provider.js'
 
+export function panelUsesBottomConstraint({
+  computedBottom,
+  computedTop,
+  typedBottom,
+  typedTop,
+}: {
+  computedBottom: string
+  computedTop: string
+  typedBottom?: string
+  typedTop?: string
+}) {
+  return typedBottom === undefined
+    ? computedBottom !== 'auto' && computedTop === 'auto'
+    : typedBottom !== 'auto' && typedTop === 'auto'
+}
+
 export function usePanelLayoutSynchronization({
   callerMaxHeight,
   containerElement,
@@ -99,13 +115,17 @@ export function usePanelLayoutSynchronization({
     ({
       anchor,
       baseRect,
+      bottomInset,
       containerRect,
+      inset,
       intrinsicHeight = baseRect.height,
       position,
     }: {
       anchor: PanelVerticalAnchor
       baseRect: PanelRect
+      bottomInset?: number
       containerRect: PanelRect
+      inset?: number
       intrinsicHeight?: number
       position: PanelPosition
     }): PanelGeometryProjection => {
@@ -125,7 +145,9 @@ export function usePanelLayoutSynchronization({
       const projection = projectPanelGeometry({
         anchor,
         baseRect,
+        bottomInset,
         containerRect,
+        inset,
         intrinsicHeight: Math.min(intrinsicHeight, callerMaxHeight),
         position,
       })
@@ -177,17 +199,28 @@ export function usePanelLayoutSynchronization({
       return
     }
 
+    const displayedRect = rectFromElement(panelElement)
     const appliedPosition = translationFromTransform(getComputedStyle(panelElement).transform)
     const intrinsicHeight = measureIntrinsicHeight()
-    const baseRect = rectWithHeight(
-      baseRectFromDisplayedRect(rectFromElement(panelElement), appliedPosition),
-      intrinsicHeight,
-    )
+    const layoutRect = baseRectFromDisplayedRect(displayedRect, appliedPosition)
+    const baseRect = rectWithHeight(layoutRect, intrinsicHeight)
     const savedPosition = store.getState().panelLayouts[panelId]
     const containerRect = rectFromElement(containerElement)
     const computedStyle = getComputedStyle(panelElement)
+    const typedStyleMap =
+      typeof panelElement.computedStyleMap === 'function'
+        ? panelElement.computedStyleMap()
+        : undefined
+    const typedBottom = typedStyleMap?.get('bottom')?.toString()
+    const typedTop = typedStyleMap?.get('top')?.toString()
     const startsBottomPositioned =
-      savedPosition === undefined && computedStyle.bottom !== 'auto' && computedStyle.top === 'auto'
+      savedPosition === undefined &&
+      panelUsesBottomConstraint({
+        computedBottom: computedStyle.bottom,
+        computedTop: computedStyle.top,
+        typedBottom,
+        typedTop,
+      })
     const targetPosition = positionForPanelLayout({
       baseRect,
       containerRect,
@@ -197,6 +230,9 @@ export function usePanelLayoutSynchronization({
       anchor:
         savedPosition?.dock?.vertical === 'bottom' || startsBottomPositioned ? 'bottom' : 'top',
       baseRect,
+      bottomInset: startsBottomPositioned
+        ? Math.max(containerRect.bottom - layoutRect.bottom, 0)
+        : undefined,
       containerRect,
       intrinsicHeight,
       position: targetPosition,

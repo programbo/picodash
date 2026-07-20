@@ -182,6 +182,62 @@ test('a fresh bottom-positioned panel expands upward before layout is persisted'
   await expect.poll(async () => (await requiredBox(panel)).y).toBeLessThan(initial.y - 250)
 })
 
+test('keeps custom bottom and horizontal placement insets independent', async ({ page }) => {
+  await page.goto('/panel-geometry-lab?fixture=custom-bottom')
+  const panel = geometryPanel(page, 'custom-bottom')
+
+  await expect
+    .poll(async () => {
+      const rect = await requiredBox(panel)
+      return {
+        bottom: Math.round(600 - rect.y - rect.height),
+        right: Math.round(900 - rect.x - rect.width),
+      }
+    })
+    .toEqual({ bottom: 80, right: 16 })
+})
+
+test('tracks responsive bottom inset and anchor changes before persistence', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 600 })
+  await page.goto('/panel-geometry-lab?fixture=responsive')
+  const panel = geometryPanel(page, 'responsive')
+  await expectEdgeInsets(panel, { bottom: 80, right: 16 })
+
+  await page.setViewportSize({ width: 1300, height: 600 })
+  await expectEdgeInsets(panel, { bottom: 16, right: 16 })
+
+  await page.setViewportSize({ width: 900, height: 600 })
+  await expectEdgeInsets(panel, { right: 16, top: 16 })
+})
+
+test('tracks live placement constraint changes before persistence', async ({ page }) => {
+  await page.goto('/panel-geometry-lab?fixture=changing-constraint')
+  const panel = geometryPanel(page, 'changing-constraint')
+  await expectEdgeInsets(panel, { bottom: 80, right: 16 })
+
+  await page.getByRole('button', { name: 'Use small bottom inset' }).click()
+  await expectEdgeInsets(panel, { bottom: 16, right: 16 })
+
+  await page.getByRole('button', { name: 'Use top constraint' }).click()
+  await expectEdgeInsets(panel, { right: 16, top: 16 })
+})
+
+test('rolls back an active keyboard reorder when its list unmounts', async ({ page }) => {
+  await page.goto('/panel-geometry-lab?fixture=keyboard-unmount')
+  const panel = geometryPanel(page, 'keyboard-unmount')
+  const secondGrip = panel.getByRole('button', {
+    name: 'Reorder Second group',
+    exact: true,
+  })
+
+  await secondGrip.press('Space')
+  await secondGrip.press('ArrowUp')
+  await page.getByRole('button', { name: 'Unmount keyboard fixture' }).click()
+  await expect(panel).toHaveCount(0)
+
+  await expect.poll(() => keyboardUnmountRootOrder(page)).toEqual(['first-group', 'second-group'])
+})
+
 test('viewport shrink and growth constrain an undocked panel without moving its top', async ({
   page,
 }) => {
@@ -278,6 +334,35 @@ test('rebases a bottom-positioned panel while shrinking during a held drag', asy
 
 function geometryPanel(page: Page, fixture: string) {
   return page.locator(`[data-geometry-fixture="${fixture}"]`)
+}
+
+async function expectEdgeInsets(
+  panel: Locator,
+  expected: { bottom?: number; right?: number; top?: number },
+) {
+  await expect
+    .poll(async () => {
+      const viewport = panel.page().viewportSize()
+      const rect = await requiredBox(panel)
+      return {
+        ...(expected.bottom === undefined
+          ? {}
+          : { bottom: Math.round((viewport?.height ?? 0) - rect.y - rect.height) }),
+        ...(expected.right === undefined
+          ? {}
+          : { right: Math.round((viewport?.width ?? 0) - rect.x - rect.width) }),
+        ...(expected.top === undefined ? {} : { top: Math.round(rect.y) }),
+      }
+    })
+    .toEqual(expected)
+}
+
+async function keyboardUnmountRootOrder(page: Page) {
+  return page.evaluate(async () => {
+    const modulePath = ['/src', 'panel-geometry-lab.tsx'].join('/')
+    const { keyboardUnmountPanelStore } = await import(modulePath)
+    return keyboardUnmountPanelStore.getState().order.root
+  })
 }
 
 async function requiredBox(locator: Locator) {

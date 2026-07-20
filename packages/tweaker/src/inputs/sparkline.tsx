@@ -43,6 +43,7 @@ type TweakerSparklineBaseProps = DistributiveOmit<
   data: TweakerSparklineData
   height?: number | string
   maxPoints?: number
+  onSourceError?: (error: unknown) => void
   series?: readonly TweakerSparklineSeries[]
   showBaseline?: boolean
   stroke?: string
@@ -86,6 +87,33 @@ export function shouldUpdateTweakerSparklineRange(
   )
 }
 
+export async function settleTweakerSparklineSource(
+  consumption: Promise<void>,
+  isActive: () => boolean,
+  onSourceError?: (error: unknown) => void,
+) {
+  try {
+    await consumption
+  } catch (error) {
+    if (isActive()) onSourceError?.(error)
+  }
+}
+
+export function settleTweakerSparklineSourceConsumption(
+  consumption: () => Promise<void> | void,
+  isActive: () => boolean,
+  onSourceError?: (error: unknown) => void,
+) {
+  return settleTweakerSparklineSource(
+    Promise.resolve().then(() => {
+      if (!isActive()) return
+      return consumption()
+    }),
+    isActive,
+    onSourceError,
+  )
+}
+
 export function TweakerSparkline({
   ariaLabel = 'Sparkline',
   autoscale = false,
@@ -94,6 +122,7 @@ export function TweakerSparkline({
   data,
   height = 96,
   maxPoints = 60,
+  onSourceError,
   maxValue,
   minValue,
   series,
@@ -110,6 +139,7 @@ export function TweakerSparkline({
   const frameRef = useRef<number | null>(null)
   const continuousRef = useRef(continuous)
   const continuousListenersRef = useRef(new Set<(continuous: boolean) => void>())
+  const onSourceErrorRef = useRef(onSourceError)
   const scheduleDrawRef = useRef<() => void>(() => undefined)
   const autoscaleRange = useSpring(1, {
     damping: 32,
@@ -149,6 +179,10 @@ export function TweakerSparkline({
     prefersReducedMotion,
     renderedSeries,
   }
+
+  useEffect(() => {
+    onSourceErrorRef.current = onSourceError
+  }, [onSourceError])
 
   useEffect(() => {
     let active = true
@@ -312,25 +346,31 @@ export function TweakerSparkline({
     let isVisible = false
     let iteration = 0
 
-    const consume = async () => {
-      if (consuming || !active || !isVisible) return
+    const consume = () => {
+      if (consuming || !active || !isVisible) return Promise.resolve()
       consuming = true
       const currentIteration = ++iteration
-      const currentIterator = createAsyncData()[Symbol.asyncIterator]()
-      iterator = currentIterator
 
-      try {
-        while (active && isVisible && currentIteration === iteration) {
-          const next = await currentIterator.next()
-          if (!active || !isVisible || currentIteration !== iteration || next.done) break
-          append(next.value)
-        }
-      } finally {
-        if (currentIteration === iteration) {
-          consuming = false
-          iterator = undefined
-        }
-      }
+      return settleTweakerSparklineSourceConsumption(
+        async () => {
+          try {
+            const currentIterator = createAsyncData()[Symbol.asyncIterator]()
+            iterator = currentIterator
+            while (active && isVisible && currentIteration === iteration) {
+              const next = await currentIterator.next()
+              if (!active || !isVisible || currentIteration !== iteration || next.done) break
+              append(next.value)
+            }
+          } finally {
+            if (currentIteration === iteration) {
+              consuming = false
+              iterator = undefined
+            }
+          }
+        },
+        () => active && isVisible && currentIteration === iteration,
+        (error) => onSourceErrorRef.current?.(error),
+      )
     }
 
     const stopIteration = () => {
@@ -346,15 +386,16 @@ export function TweakerSparkline({
       typeof IntersectionObserver !== 'undefined'
         ? new IntersectionObserver(([entry]) => {
             isVisible = entry?.isIntersecting === true
-            if (isVisible) void consume().catch(() => undefined)
-            else stopIteration()
+            if (isVisible) {
+              void consume()
+            } else stopIteration()
           })
         : undefined
 
     if (observer) observer.observe(surface)
     else {
       isVisible = true
-      void consume().catch(() => undefined)
+      void consume()
     }
 
     return () => {

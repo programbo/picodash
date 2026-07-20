@@ -10,6 +10,7 @@ import type {
 } from './tweaker-panel-types.js'
 
 export const rootGroupId = 'root'
+export const keyboardReorderInteractionId = 'keyboard-reorder'
 export type TweakerOrderBand = 'auto' | TweakerPin
 
 export function bandForItem(item: Pick<TweakerItemRegistration, 'pin'>): TweakerOrderBand {
@@ -53,6 +54,15 @@ export function orderedItemIdsForParent(
   const orderedIds = state.order[parentId]?.filter((id) => childIds.has(id)) ?? []
   const missing = children.filter((item) => !orderedIds.includes(item.id)).map((item) => item.id)
   return normalizeParentOrder([...orderedIds, ...missing], state.items, parentId)
+}
+
+export function orderSnapshotForParent(
+  state: Pick<TweakerPanelState, 'items' | 'order'>,
+  parentId: string,
+) {
+  return state.order[parentId]
+    ? [...state.order[parentId]]
+    : orderedItemIdsForParent(state, parentId)
 }
 
 export function orderIndexForItem(state: TweakerPanelState, itemId: string) {

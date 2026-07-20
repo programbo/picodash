@@ -91,6 +91,9 @@ export function TweakerGroup({
     commitReorder,
     dragConstraintsRef,
     dragControls,
+    handleReorderKeyDown,
+    keyboardAnnouncement,
+    keyboardReorderActive,
     parentId,
     reorderable,
     visualDragOffsetY,
@@ -102,7 +105,7 @@ export function TweakerGroup({
   const visualTop = useTransform(() =>
     reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
   )
-  const showReorderSlot = reorderable || parentId !== rootGroupId
+  const showReorderSlot = reorderable || keyboardReorderActive || parentId !== rootGroupId
 
   useRegisterTweakerItem({
     collapsible,
@@ -202,18 +205,32 @@ export function TweakerGroup({
       >
         {showReorderSlot ? (
           <button
+            aria-description="Press Space or Enter to pick up. Use Arrow Up and Arrow Down to move. Press Space or Enter to drop, or Escape to cancel."
             aria-disabled={!reorderable}
+            aria-keyshortcuts="Space Enter ArrowUp ArrowDown Escape"
             aria-label={`Reorder ${labelText}`}
+            aria-pressed={keyboardReorderActive}
             className={cn(
               buttonVariants({ size: 'icon', variant: 'ghost' }),
               'size-(--tweaker-control-height-xs) shrink-0 cursor-grab text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
             )}
             type="button"
+            onKeyDown={(event) => handleReorderKeyDown(event, labelText)}
             onPointerCancel={cancelReorder}
             onPointerDown={beginReorder}
           >
             <TweakerReorderIndicator reorderable={reorderable} />
           </button>
+        ) : null}
+        {keyboardAnnouncement ? (
+          <span
+            className="sr-only"
+            aria-live="polite"
+            aria-atomic="true"
+            data-keyboard-reorder-status
+          >
+            {keyboardAnnouncement}
+          </span>
         ) : null}
         <button
           aria-expanded={!collapsed}

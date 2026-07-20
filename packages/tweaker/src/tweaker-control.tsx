@@ -177,6 +177,9 @@ export function TweakerItem<TValue extends TweakerValue = TweakerValue>({
     commitReorder,
     dragConstraintsRef,
     dragControls,
+    handleReorderKeyDown,
+    keyboardAnnouncement,
+    keyboardReorderActive,
     parentId,
     reorderable,
     visualDragOffsetY,
@@ -188,7 +191,7 @@ export function TweakerItem<TValue extends TweakerValue = TweakerValue>({
   const visualTop = useTransform(() =>
     reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
   )
-  const showReorderSlot = reorderable || parentId !== rootGroupId
+  const showReorderSlot = reorderable || keyboardReorderActive || parentId !== rootGroupId
 
   const resetValue = useCallback(() => {
     if (field !== undefined) {
@@ -347,18 +350,32 @@ export function TweakerItem<TValue extends TweakerValue = TweakerValue>({
         />
         {showReorderSlot ? (
           <button
+            aria-description="Press Space or Enter to pick up. Use Arrow Up and Arrow Down to move. Press Space or Enter to drop, or Escape to cancel."
             aria-disabled={!reorderable}
+            aria-keyshortcuts="Space Enter ArrowUp ArrowDown Escape"
             aria-label={labelText ? `Reorder ${labelText}` : 'Reorder item'}
+            aria-pressed={keyboardReorderActive}
             className={cn(
               buttonVariants({ size: 'icon', variant: 'ghost' }),
               'relative z-10 col-start-1 size-(--tweaker-control-height-xs) shrink-0 cursor-grab self-center text-tweaker-muted opacity-(--tweaker-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
             )}
             type="button"
+            onKeyDown={(event) => handleReorderKeyDown(event, labelText ?? 'Item')}
             onPointerCancel={cancelReorder}
             onPointerDown={beginReorder}
           >
             <TweakerReorderIndicator reorderable={reorderable} />
           </button>
+        ) : null}
+        {keyboardAnnouncement ? (
+          <span
+            className="sr-only"
+            aria-live="polite"
+            aria-atomic="true"
+            data-keyboard-reorder-status
+          >
+            {keyboardAnnouncement}
+          </span>
         ) : null}
 
         <div className="col-start-2 flex min-w-0 items-center gap-1 self-center">

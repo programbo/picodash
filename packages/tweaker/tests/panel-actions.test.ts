@@ -100,6 +100,35 @@ test('atomically replaces registered values and resets omitted fields', () => {
   unsubscribe()
 })
 
+test('rejects an invalid registered-value replacement without notifying subscribers', () => {
+  const store = createTweakerPanelStore({
+    initialValues: { alpha: 2, beta: 4 },
+    panelId: 'inspect',
+  })
+  registerField(store, 'alpha', 2, {
+    validate: (value) => ({
+      errors: typeof value === 'number' && value <= 10 ? [] : ['Alpha must be at most 10.'],
+      success: typeof value === 'number' && value <= 10,
+    }),
+  })
+  registerField(store, 'beta', 4)
+  const initialValues = store.getState().values
+  let notifications = 0
+  const unsubscribe = store.subscribe(() => {
+    notifications += 1
+  })
+
+  const result = store.getState().replaceRegisteredFieldValues({ alpha: 20, beta: 8 })
+
+  expect(result).toEqual({
+    errors: { alpha: ['Alpha must be at most 10.'] },
+    success: false,
+  })
+  expect(store.getState().values).toBe(initialValues)
+  expect(notifications).toBe(0)
+  unsubscribe()
+})
+
 test('keeps initial values separate from registered reset defaults', () => {
   const store = createTweakerPanelStore({
     initialValues: { opacity: 0.72 },
