@@ -13,6 +13,7 @@ export const PANEL_MIN_VISIBLE_HEIGHT = 37
 export function projectPanelGeometry({
   anchor,
   baseRect,
+  bottomInset,
   containerRect,
   inset = SNAP_GAP,
   intrinsicHeight = baseRect.height,
@@ -21,13 +22,14 @@ export function projectPanelGeometry({
 }: {
   anchor: PanelVerticalAnchor
   baseRect: PanelRect
+  bottomInset?: number
   containerRect: PanelRect
   inset?: number
   intrinsicHeight?: number
   minimumHeight?: number
   position: PanelPosition
 }): PanelGeometryProjection {
-  const bounds = safeBounds(containerRect, inset)
+  const bounds = safeBounds(containerRect, inset, bottomInset)
   const height = Math.min(nonNegative(intrinsicHeight), bounds.height)
   const minimumVisibleHeight = Math.min(nonNegative(minimumHeight), height)
   const desiredLeft = baseRect.left + position.x
@@ -71,13 +73,14 @@ export function rectWithHeight(rect: PanelRect, height: number): PanelRect {
   }
 }
 
-function safeBounds(rect: PanelRect, inset: number) {
+function safeBounds(rect: PanelRect, inset: number, bottomInset = inset) {
   const horizontalInset = Math.min(nonNegative(inset), nonNegative(rect.width) / 2)
-  const verticalInset = Math.min(nonNegative(inset), nonNegative(rect.height) / 2)
+  const topInset = Math.min(nonNegative(inset), nonNegative(rect.height) / 2)
+  const normalizedBottomInset = Math.min(nonNegative(bottomInset), nonNegative(rect.height) / 2)
   const left = rect.left + horizontalInset
   const right = rect.right - horizontalInset
-  const top = rect.top + verticalInset
-  const bottom = rect.bottom - verticalInset
+  const top = rect.top + topInset
+  const bottom = rect.bottom - normalizedBottomInset
 
   return {
     bottom,

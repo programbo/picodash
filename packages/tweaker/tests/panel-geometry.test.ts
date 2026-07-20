@@ -32,6 +32,37 @@ test('detects bottom constraints with Typed OM and legacy computed-style fallbac
   ).toBe(false)
 })
 
+test('projects a custom bottom inset independently from the other bounds', () => {
+  const projection = projectPanelGeometry({
+    anchor: 'bottom',
+    baseRect: {
+      bottom: 180,
+      height: 180,
+      left: 564,
+      right: 884,
+      top: 0,
+      width: 320,
+    },
+    bottomInset: 80,
+    containerRect: {
+      bottom: 600,
+      height: 600,
+      left: 0,
+      right: 900,
+      top: 0,
+      width: 900,
+    },
+    intrinsicHeight: 180,
+    position: { x: 0, y: 0 },
+  })
+
+  expect(projection.rect).toMatchObject({
+    bottom: 520,
+    left: 564,
+    right: 884,
+  })
+})
+
 describe('panel geometry projection', () => {
   test('leaves a fitting panel at its requested position', () => {
     const projection = projectPanelGeometry({

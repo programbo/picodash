@@ -114,6 +114,7 @@ export function usePanelLayoutSynchronization({
     ({
       anchor,
       baseRect,
+      bottomInset,
       containerRect,
       inset,
       intrinsicHeight = baseRect.height,
@@ -121,6 +122,7 @@ export function usePanelLayoutSynchronization({
     }: {
       anchor: PanelVerticalAnchor
       baseRect: PanelRect
+      bottomInset?: number
       containerRect: PanelRect
       inset?: number
       intrinsicHeight?: number
@@ -142,6 +144,7 @@ export function usePanelLayoutSynchronization({
       const projection = projectPanelGeometry({
         anchor,
         baseRect,
+        bottomInset,
         containerRect,
         inset,
         intrinsicHeight: Math.min(intrinsicHeight, callerMaxHeight),
@@ -229,8 +232,10 @@ export function usePanelLayoutSynchronization({
       anchor:
         savedPosition?.dock?.vertical === 'bottom' || startsBottomPositioned ? 'bottom' : 'top',
       baseRect,
+      bottomInset: startsBottomPositioned
+        ? (defaultBottomInsetRef.current ?? undefined)
+        : undefined,
       containerRect,
-      inset: startsBottomPositioned ? (defaultBottomInsetRef.current ?? undefined) : undefined,
       intrinsicHeight,
       position: targetPosition,
     })

@@ -55,6 +55,15 @@ export function orderedItemIdsForParent(
   return normalizeParentOrder([...orderedIds, ...missing], state.items, parentId)
 }
 
+export function orderSnapshotForParent(
+  state: Pick<TweakerPanelState, 'items' | 'order'>,
+  parentId: string,
+) {
+  return state.order[parentId]
+    ? [...state.order[parentId]]
+    : orderedItemIdsForParent(state, parentId)
+}
+
 export function orderIndexForItem(state: TweakerPanelState, itemId: string) {
   const item = state.items[itemId]
   if (!item) return 0

@@ -14,8 +14,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { TweakerGroupContextProvider } from './tweaker-group-context.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
 import {
-  orderedItemIdsForParent,
   orderedItemsForParent,
+  orderSnapshotForParent,
   orderTweakerChildren,
   reorderValuesForPointer,
   rootGroupId,
@@ -100,7 +100,7 @@ export function TweakerReorderList({
       if (!valuesRef.current.includes(itemId)) return
       const state = store.getState()
       setKeyboardSession({
-        initialOrder: orderedItemIdsForParent(state, parentId),
+        initialOrder: orderSnapshotForParent(state, parentId),
         initialVisibleOrder: [...valuesRef.current],
         itemId,
         label,
@@ -165,7 +165,7 @@ export function TweakerReorderList({
     (itemId: string) => {
       if (keyboardSession?.itemId !== itemId) return
       previewOrder(keyboardSession.initialVisibleOrder)
-      store.getState().setOrder(parentId, keyboardSession.initialOrder)
+      restoreKeyboardReorderOrder(store, parentId, keyboardSession.initialOrder)
       announceKeyboardReorder(itemId, `${keyboardSession.label} reorder cancelled.`)
       setKeyboardSession(null)
     },
@@ -181,7 +181,7 @@ export function TweakerReorderList({
   )
   useEffect(() => {
     if (keyboardSession && !registeredValues.includes(keyboardSession.itemId)) {
-      store.getState().setOrder(parentId, keyboardSession.initialOrder)
+      restoreKeyboardReorderOrder(store, parentId, keyboardSession.initialOrder)
       setKeyboardSession(null)
     }
   }, [keyboardSession, parentId, registeredValues, store])
@@ -579,6 +579,19 @@ function finishSiblingDisclosureTransitions(itemElements: HTMLElement[]) {
       }
     }
   }
+}
+
+export function restoreKeyboardReorderOrder(
+  store: TweakerPanelStore,
+  parentId: string,
+  order: string[],
+) {
+  store.setState((state) => ({
+    order: {
+      ...state.order,
+      [parentId]: [...order],
+    },
+  }))
 }
 
 function directReorderItems(groupElement: HTMLElement) {

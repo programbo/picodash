@@ -182,6 +182,21 @@ test('a fresh bottom-positioned panel expands upward before layout is persisted'
   await expect.poll(async () => (await requiredBox(panel)).y).toBeLessThan(initial.y - 250)
 })
 
+test('keeps custom bottom and horizontal placement insets independent', async ({ page }) => {
+  await page.goto('/panel-geometry-lab?fixture=custom-bottom')
+  const panel = geometryPanel(page, 'custom-bottom')
+
+  await expect
+    .poll(async () => {
+      const rect = await requiredBox(panel)
+      return {
+        bottom: Math.round(600 - rect.y - rect.height),
+        right: Math.round(900 - rect.x - rect.width),
+      }
+    })
+    .toEqual({ bottom: 80, right: 16 })
+})
+
 test('viewport shrink and growth constrain an undocked panel without moving its top', async ({
   page,
 }) => {

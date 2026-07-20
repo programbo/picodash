@@ -12,6 +12,7 @@ const tallPanelStore = createTweakerPanelStore({ panelId: 'geometry-tall' })
 const peerPanelStore = createTweakerPanelStore({ panelId: 'geometry-peer' })
 const expansionPanelStore = createTweakerPanelStore({ panelId: 'geometry-expansion' })
 const bottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom' })
+const customBottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-custom-bottom' })
 const cappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-capped' })
 const classCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-class-capped' })
 const bottomCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-capped' })
@@ -34,6 +35,7 @@ export function PanelGeometryLab() {
         {fixture === 'panel-expansion' ? <PanelExpansionFixture /> : null}
         {fixture === 'groups' ? <GroupExpansionFixture /> : null}
         {fixture === 'bottom' ? <BottomExpansionFixture /> : null}
+        {fixture === 'custom-bottom' ? <CustomBottomFixture /> : null}
         {fixture === 'caller-max-height' ? <CallerMaxHeightFixture /> : null}
         {fixture === 'class-max-height' ? <ClassMaxHeightFixture /> : null}
         {fixture === 'bottom-max-height' ? <BottomMaxHeightFixture /> : null}
@@ -134,6 +136,21 @@ function BottomExpansionFixture() {
       <TweakerGroup id="bottom-group" label="Bottom group" defaultCollapsed>
         <TallContent prefix="bottom" count={18} />
       </TweakerGroup>
+    </TweakerPanel>
+  )
+}
+
+function CustomBottomFixture() {
+  return (
+    <TweakerPanel
+      store={customBottomPanelStore}
+      title="Custom bottom inset fixture"
+      width={320}
+      defaultPlacement="bottom-right"
+      className="right-4 bottom-20"
+      data-geometry-fixture="custom-bottom"
+    >
+      <TallContent prefix="custom-bottom" count={3} />
     </TweakerPanel>
   )
 }
