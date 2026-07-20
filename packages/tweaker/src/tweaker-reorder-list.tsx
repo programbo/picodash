@@ -63,6 +63,10 @@ export function TweakerReorderList({
     useShallow((state) => orderedItemsForParent(state, parentId).map((entry) => entry.item.id)),
   )
   const draggingId = useStore(store, (state) => state.interaction.draggingId)
+  const keyboardReorderActive = useStore(
+    store,
+    (state) => state.interaction.activeIds[keyboardReorderInteractionId] === true,
+  )
   const captureFlipRects = useCallback(() => {
     const groupElement = dragConstraintsRef.current
     if (!groupElement) return
@@ -83,7 +87,12 @@ export function TweakerReorderList({
     draggingId,
     captureFlipRects,
   )
-  const layoutVersion = useReorderListLayoutVersion(listRef, store, draggingId)
+  const layoutVersion = useReorderListLayoutVersion(
+    listRef,
+    store,
+    draggingId,
+    keyboardReorderActive,
+  )
   const { beginItemReorder, commitPendingOrder, synchronizeVisualOffset } =
     usePointerReorderSession({
       dragConstraintsRef,
@@ -336,6 +345,7 @@ function useReorderListLayoutVersion(
   listRef: RefObject<HTMLDivElement | null>,
   store: TweakerPanelStore,
   draggingId: string | null,
+  keyboardReorderActive: boolean,
 ) {
   const [layoutVersion, setLayoutVersion] = useState(0)
   const listWidthRef = useRef<number | null>(null)
@@ -352,7 +362,13 @@ function useReorderListLayoutVersion(
         layoutWidthRef.current = nextWidth
         return
       }
-      if (store.getState().interaction.draggingId || layoutWidthRef.current === nextWidth) return
+      const interaction = store.getState().interaction
+      if (
+        interaction.draggingId ||
+        interaction.activeIds[keyboardReorderInteractionId] ||
+        layoutWidthRef.current === nextWidth
+      )
+        return
 
       layoutWidthRef.current = nextWidth
       setLayoutVersion((version) => version + 1)
@@ -369,7 +385,7 @@ function useReorderListLayoutVersion(
   }, [listRef, store])
 
   useLayoutEffect(() => {
-    if (draggingId) return
+    if (draggingId || keyboardReorderActive) return
 
     const currentWidth = listRef.current?.clientWidth ?? listWidthRef.current
     if (currentWidth === null || layoutWidthRef.current === currentWidth) return
@@ -377,7 +393,7 @@ function useReorderListLayoutVersion(
     listWidthRef.current = currentWidth
     layoutWidthRef.current = currentWidth
     setLayoutVersion((version) => version + 1)
-  }, [draggingId, listRef])
+  }, [draggingId, keyboardReorderActive, listRef])
 
   return layoutVersion
 }

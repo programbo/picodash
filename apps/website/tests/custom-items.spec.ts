@@ -832,6 +832,26 @@ test('ignores a second keyboard pickup while a reorder session is active', async
   await expect.poll(() => builtInRootStoreOrder(page)).toEqual(initialOrder)
 })
 
+test('preserves an active keyboard reorder when the panel width changes', async ({ page }) => {
+  await page.goto('/')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const mediaGrip = panel.getByRole('button', {
+    name: 'Reorder Media and files',
+    exact: true,
+  })
+
+  await mediaGrip.focus()
+  await mediaGrip.press('Space')
+  await panel.evaluate((element) => {
+    element.style.width = '420px'
+  })
+
+  await expect(panel).toHaveCSS('width', '420px')
+  await expect(mediaGrip).toBeFocused()
+  await expect(mediaGrip).toHaveAttribute('aria-pressed', 'true')
+  await mediaGrip.press('Escape')
+})
+
 test('blocks pointer pickup while a keyboard reorder session is active', async ({ page }) => {
   await page.goto('/')
   const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')

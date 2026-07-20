@@ -248,6 +248,23 @@ test('reports synchronous async sparkline source factory failures', async () => 
   expect(reported).toEqual([sourceError])
 })
 
+test('does not create an async sparkline source after its effect becomes inactive', async () => {
+  let active = true
+  let consumptionCalls = 0
+
+  const settlement = settleTweakerSparklineSourceConsumption(
+    () => {
+      consumptionCalls += 1
+    },
+    () => active,
+  )
+  active = false
+
+  await settlement
+
+  expect(consumptionCalls).toBe(0)
+})
+
 test('creates every supported TweakerChart type with type-specific Recharts props', () => {
   const data = [
     { category: 'A', value: 12 },

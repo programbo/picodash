@@ -104,7 +104,14 @@ export function settleTweakerSparklineSourceConsumption(
   isActive: () => boolean,
   onSourceError?: (error: unknown) => void,
 ) {
-  return settleTweakerSparklineSource(Promise.resolve().then(consumption), isActive, onSourceError)
+  return settleTweakerSparklineSource(
+    Promise.resolve().then(() => {
+      if (!isActive()) return
+      return consumption()
+    }),
+    isActive,
+    onSourceError,
+  )
 }
 
 export function TweakerSparkline({
