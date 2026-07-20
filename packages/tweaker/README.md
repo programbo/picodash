@@ -98,6 +98,13 @@ function ScenePanel() {
 - `createTweakerPanelStore({ panelId, initialValues, initialMeta })` creates application-owned store state.
 - `TweakerPanel` may render that store via `store` prop.
 - `useTweakerPanelStoreSelector` reads store slices without recreating local mirrors.
+- `useTweakerPanel(panelId)` returns a registered panel controller with reactive `visible` state
+  and `show`, `hide`, `toggle`, `setVisible`, and show-and-raise `activate` methods.
+- `defaultVisible={false}` registers a panel in a hidden state; visibility is transient and is not
+  stored with persisted layout.
+- `close` adds a header close button that hides by default. Use
+  `close={{ behavior: 'deregister' }}` to remove the provider registration and rendered portal;
+  optional `onClose` observes the completed default behavior and can unmount the host component.
 - Internal-store panels are supported with `TweakerPanel id + initialValues/initialMeta`; this mode is UI-local unless app state is injected.
 - `setFieldValue` and `setFieldValues` are strict and atomic.
 - `setFieldInput` is the interactive path that may keep non-persisted drafts with validation feedback while preserving canonical values.

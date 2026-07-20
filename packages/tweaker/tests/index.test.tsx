@@ -120,7 +120,7 @@ test('tracks registered panels in the global tweaker store', () => {
 
   store.getState().registerPanel({ id: 'inspect' })
 
-  expect(store.getState().panels.inspect).toEqual({ id: 'inspect' })
+  expect(store.getState().panels.inspect).toEqual({ id: 'inspect', visible: true })
   expect(store.getState().panelOrder).toEqual(['inspect'])
 
   store.getState().unregisterPanel('inspect')
@@ -157,6 +157,59 @@ test('raises the most recently interacted panel above earlier panels', () => {
   expect(portalLayerZIndexValue('--tweaker-layer-menu', 1003)).toBe(
     'max(var(--tweaker-layer-menu), 1003)',
   )
+})
+
+test('controls transient panel visibility without changing stacking order', () => {
+  const store = createTweakerStore()
+
+  store.getState().registerPanel({ id: 'scene' })
+  store.getState().registerPanel({ id: 'output', visible: false })
+
+  expect(store.getState().panels.scene.visible).toBe(true)
+  expect(store.getState().panels.output.visible).toBe(false)
+
+  store.getState().setPanelVisible('scene', false)
+  expect(store.getState().panels.scene.visible).toBe(false)
+  expect(store.getState().panelOrder).toEqual(['scene', 'output'])
+
+  store.getState().togglePanel('scene')
+  expect(store.getState().panels.scene.visible).toBe(true)
+  expect(store.getState().panelOrder).toEqual(['scene', 'output'])
+
+  store.getState().setPanelVisible('scene', true)
+  expect(store.getState().panels.scene.visible).toBe(true)
+})
+
+test('shows and raises a hidden panel when activated', () => {
+  const store = createTweakerStore()
+
+  store.getState().registerPanel({ id: 'scene', visible: false })
+  store.getState().registerPanel({ id: 'output' })
+  store.getState().activatePanel('scene')
+
+  expect(store.getState().panels.scene.visible).toBe(true)
+  expect(store.getState().panelOrder).toEqual(['output', 'scene'])
+})
+
+test('ignores visibility actions for unknown or unregistered panels', () => {
+  const store = createTweakerStore()
+  const initialState = store.getState()
+
+  initialState.setPanelVisible('missing', false)
+  initialState.togglePanel('missing')
+  initialState.activatePanel('missing')
+
+  expect(store.getState()).toBe(initialState)
+
+  store.getState().registerPanel({ id: 'scene' })
+  const staleActions = store.getState()
+  staleActions.unregisterPanel('scene')
+  staleActions.setPanelVisible('scene', false)
+  staleActions.togglePanel('scene')
+  staleActions.activatePanel('scene')
+
+  expect(store.getState().panels.scene).toBeUndefined()
+  expect(store.getState().panelOrder).toEqual([])
 })
 
 test('hydrates valid persisted panel layouts', () => {

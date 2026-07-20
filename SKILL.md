@@ -66,6 +66,13 @@ export function SiteControls() {
 
 - Use `createTweakerPanelStore` for application-owned state.
 - Use `TweakerPanel` with `store` for app-owned modes.
+- Use `useTweakerPanel(panelId)` beneath `TweakerProvider` for reactive visibility and imperative
+  `show`, `hide`, `toggle`, `setVisible`, or show-and-raise `activate` behavior.
+- Use `defaultVisible={false}` for an initially hidden but registered panel; visibility is not
+  persisted with layout.
+- Use `close` for a provider-managed hide button, or `close={{ behavior: 'deregister' }}` when the
+  host will unmount after the provider removes the registration and portal. `onClose` is an
+  optional observer and does not replace the default close behavior.
 - Use `setFieldValue` / `setFieldValues` for strict app writes.
 - Use `setFieldInput` for interactive editors that should retain transient drafts.
 - Use `TweakerItem`, `TweakerGroup`, and built-in items for custom compositions.

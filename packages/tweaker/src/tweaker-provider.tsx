@@ -22,6 +22,21 @@ import { TweakerThemeContextProvider } from './tweaker-theme-context.js'
 
 export interface TweakerPanelRegistration {
   id: string
+  visible: boolean
+}
+
+export interface TweakerPanelRegistrationInput {
+  id: string
+  visible?: boolean
+}
+
+export interface TweakerPanelController {
+  visible: boolean
+  activate: () => void
+  hide: () => void
+  setVisible: (visible: boolean) => void
+  show: () => void
+  toggle: () => void
 }
 
 export interface TweakerPersistedState {
@@ -34,9 +49,11 @@ export interface TweakerState {
   panelRects: Record<string, PanelRect>
   panels: Record<string, TweakerPanelRegistration>
   activatePanel: (panelId: string) => void
-  registerPanel: (panel: TweakerPanelRegistration) => void
+  registerPanel: (panel: TweakerPanelRegistrationInput) => void
   setPanelLayout: (panelId: string, layout: PanelLayout) => void
   setPanelRect: (panelId: string, rect: PanelRect | null) => void
+  setPanelVisible: (panelId: string, visible: boolean) => void
+  togglePanel: (panelId: string) => void
   unregisterPanel: (panelId: string) => void
 }
 
@@ -77,27 +94,41 @@ export function createTweakerStore({
     panels: {},
     activatePanel(panelId: string) {
       set((state) => {
-        if (!state.panels[panelId]) return state
+        const panel = state.panels[panelId]
+        if (!panel) return state
 
         const previousIndex = state.panelOrder.indexOf(panelId)
-        if (previousIndex === state.panelOrder.length - 1) return state
+        const alreadyActive = previousIndex === state.panelOrder.length - 1
+        if (alreadyActive && panel.visible) return state
 
         return {
-          panelOrder: [...state.panelOrder.filter((id) => id !== panelId), panelId],
+          panelOrder: alreadyActive
+            ? state.panelOrder
+            : [...state.panelOrder.filter((id) => id !== panelId), panelId],
+          panels: panel.visible
+            ? state.panels
+            : {
+                ...state.panels,
+                [panelId]: { ...panel, visible: true },
+              },
         }
       })
     },
-    registerPanel(panel: TweakerPanelRegistration) {
+    registerPanel(panel: TweakerPanelRegistrationInput) {
       set((state) => {
         const panelOrder = state.panelOrder.includes(panel.id)
           ? state.panelOrder
           : [...state.panelOrder, panel.id]
+        const registration = state.panels[panel.id] ?? {
+          id: panel.id,
+          visible: panel.visible ?? true,
+        }
 
         return {
           panelOrder,
           panels: {
             ...state.panels,
-            [panel.id]: panel,
+            [panel.id]: registration,
           },
         }
       })
@@ -147,6 +178,32 @@ export function createTweakerStore({
           panelRects: {
             ...state.panelRects,
             [panelId]: rect,
+          },
+        }
+      })
+    },
+    setPanelVisible(panelId: string, visible: boolean) {
+      set((state) => {
+        const panel = state.panels[panelId]
+        if (!panel || panel.visible === visible) return state
+
+        return {
+          panels: {
+            ...state.panels,
+            [panelId]: { ...panel, visible },
+          },
+        }
+      })
+    },
+    togglePanel(panelId: string) {
+      set((state) => {
+        const panel = state.panels[panelId]
+        if (!panel) return state
+
+        return {
+          panels: {
+            ...state.panels,
+            [panelId]: { ...panel, visible: !panel.visible },
           },
         }
       })
@@ -205,16 +262,16 @@ export function modalZIndexForState(state: Pick<TweakerState, 'panelOrder'>) {
   return portalLayerZIndexForState(state, 4)
 }
 
-export function useRegisterTweakerPanel({ id }: TweakerPanelRegistration) {
+export function useRegisterTweakerPanel({ id, visible }: TweakerPanelRegistrationInput) {
   const store = useTweakerStoreApi()
 
   useEffect(() => {
-    store.getState().registerPanel({ id })
+    store.getState().registerPanel({ id, visible })
 
     return () => {
       store.getState().unregisterPanel(id)
     }
-  }, [id, store])
+  }, [id, store, visible])
 }
 
 export function TweakerProvider({
@@ -279,6 +336,24 @@ export function useTweakerStoreApi() {
 
 export function useTweakerSelector<T>(selector: (state: TweakerState) => T) {
   return useStore(useTweakerStoreApi(), selector)
+}
+
+export function useTweakerPanel(panelId: string): TweakerPanelController | null {
+  const store = useTweakerStoreApi()
+  const panel = useStore(store, (state) => state.panels[panelId])
+
+  return useMemo(() => {
+    if (!panel) return null
+
+    return {
+      visible: panel.visible,
+      activate: () => store.getState().activatePanel(panelId),
+      hide: () => store.getState().setPanelVisible(panelId, false),
+      setVisible: (visible: boolean) => store.getState().setPanelVisible(panelId, visible),
+      show: () => store.getState().setPanelVisible(panelId, true),
+      toggle: () => store.getState().togglePanel(panelId),
+    }
+  }, [panel, panelId, store])
 }
 
 function useResolvedTweakerTheme(theme: TweakerTheme): TweakerResolvedTheme {

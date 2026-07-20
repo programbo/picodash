@@ -103,15 +103,28 @@ export interface TweakerPanelState {
 export type TweakerPanelStore = StoreApi<TweakerPanelState>
 
 export type TweakerPanelDefaultPlacement = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+export type TweakerPanelCloseBehavior = 'deregister' | 'hide'
+
+export interface TweakerPanelCloseOptions {
+  behavior: TweakerPanelCloseBehavior
+}
+
+export interface TweakerPanelCloseDetails {
+  behavior: TweakerPanelCloseBehavior
+  panelId: string
+}
 
 interface TweakerPanelBaseProps extends Omit<
   HTMLMotionProps<'aside'>,
-  'children' | 'dragConstraints' | 'id' | 'title'
+  'children' | 'dragConstraints' | 'id' | 'onClose' | 'title'
 > {
   children?: ReactNode
+  close?: boolean | TweakerPanelCloseOptions
   collapsible?: boolean
   defaultCollapsed?: boolean
   defaultPlacement?: TweakerPanelDefaultPlacement
+  defaultVisible?: boolean
+  onClose?: (details: TweakerPanelCloseDetails) => void
   theme?: string
   title?: ReactNode
   width?: number | string

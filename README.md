@@ -93,11 +93,24 @@ All package usage should be built on `TweakerProvider` + panel stores.
 
 - Store ownership and strict writes: `createTweakerPanelStore`, `setFieldValue`, `setFieldValues`.
 - UI controls and panels: `TweakerPanel`, `TweakerItem`, and built-in inputs/visualization components.
-- State selectors: `useTweakerPanelStoreSelector`.
+- State selectors and panel UI control: `useTweakerPanelStoreSelector`, `useTweakerPanel`.
 - Validation contracts: synchronous `parse`/`validate` per field and optional Standard Schema validators.
 - Advanced tools: `tweaker/advanced` for internals, helpers, ordering and persistence wiring.
 - Styling import: `import 'tweaker/style.css'`.
 - No separate dist stylesheet import should be documented (the package export maps that path).
+
+### Panel visibility and activation
+
+Use `useTweakerPanel(panelId)` beneath `TweakerProvider` to control a registered panel. The hook
+returns `null` until registration and otherwise exposes reactive `visible` state plus `show`,
+`hide`, `toggle`, `setVisible`, and show-and-raise `activate` methods. Set
+`defaultVisible={false}` when a panel should register without initially appearing. Visibility is
+transient; persisted provider layout still contains position and docking only.
+
+Set `close` to add a header close button immediately after the action menu. `close` and
+`close={{ behavior: 'hide' }}` hide through the provider; `close={{ behavior: 'deregister' }}`
+removes the registration and portal so an optional `onClose({ panelId, behavior })` observer can
+unmount the host component. The callback observes the built-in behavior rather than replacing it.
 
 ### JSON-compatibility rule
 

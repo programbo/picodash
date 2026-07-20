@@ -23,6 +23,7 @@ export function usePanelLayoutSynchronization({
   containerElement,
   constraintClassName,
   contentElementRef,
+  enabled,
   panelElementRef,
   panelId,
   synchronizationPausedRef,
@@ -34,6 +35,7 @@ export function usePanelLayoutSynchronization({
   containerElement: HTMLElement | null
   constraintClassName?: string
   contentElementRef: RefObject<HTMLElement | null>
+  enabled: boolean
   panelElementRef: RefObject<HTMLElement | null>
   panelId: string
   synchronizationPausedRef?: RefObject<unknown>
@@ -46,9 +48,10 @@ export function usePanelLayoutSynchronization({
   const synchronizationFrameRef = useRef<number | null>(null)
 
   const updatePanelRect = useCallback(() => {
+    if (!enabled) return
     const panelElement = panelElementRef.current
     if (panelElement) store.getState().setPanelRect(panelId, rectFromElement(panelElement))
-  }, [panelElementRef, panelId, store])
+  }, [enabled, panelElementRef, panelId, store])
 
   const measureIntrinsicHeight = useCallback(() => {
     const panelElement = panelElementRef.current
@@ -214,10 +217,12 @@ export function usePanelLayoutSynchronization({
   }, [syncDisplayedPositionToSavedLayout])
 
   useLayoutEffect(() => {
+    if (!enabled) return
     syncDisplayedPositionToSavedLayout()
   }, [
     callerMaxHeight,
     constraintClassName,
+    enabled,
     savedLayout?.dock?.horizontal,
     savedLayout?.dock?.vertical,
     savedLayout?.x,
@@ -227,7 +232,10 @@ export function usePanelLayoutSynchronization({
 
   useEffect(() => {
     const panelElement = panelElementRef.current
-    if (!containerElement || !panelElement) return
+    if (!containerElement || !enabled || !panelElement) {
+      store.getState().setPanelRect(panelId, null)
+      return
+    }
 
     const resizeObserver = new ResizeObserver(scheduleSynchronization)
     resizeObserver.observe(containerElement)
@@ -273,6 +281,7 @@ export function usePanelLayoutSynchronization({
   }, [
     containerElement,
     contentElementRef,
+    enabled,
     panelElementRef,
     panelId,
     scheduleSynchronization,

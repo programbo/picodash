@@ -1,5 +1,5 @@
 import { motion, useDragControls, useMotionValue, type MotionStyle } from 'motion/react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from 'zustand'
@@ -27,7 +27,11 @@ import { TooltipProvider } from './tooltip.js'
 import { buttonVariants } from './ui.js'
 import { usePanelLayoutSynchronization } from './use-panel-layout.js'
 import { cn } from './utils.js'
-import type { TweakerPanelProps, TweakerPanelStore } from './tweaker-panel-types.js'
+import type {
+  TweakerPanelCloseBehavior,
+  TweakerPanelProps,
+  TweakerPanelStore,
+} from './tweaker-panel-types.js'
 
 export { createTweakerPanelStore } from './tweaker-panel-store.js'
 export {
@@ -58,6 +62,9 @@ export type {
   TweakerItemKind,
   TweakerItemRegistration,
   TweakerPin,
+  TweakerPanelCloseBehavior,
+  TweakerPanelCloseDetails,
+  TweakerPanelCloseOptions,
   TweakerPanelDefaultPlacement,
   TweakerPanelProps,
   TweakerPanelState,
@@ -71,15 +78,18 @@ export type {
 export function TweakerPanel({
   children,
   className,
+  close = false,
   collapsible = false,
   defaultCollapsed = false,
   defaultPlacement = 'top-right',
+  defaultVisible = true,
   drag = true,
   dragElastic = false,
   dragMomentum = false,
   id,
   initialMeta,
   initialValues,
+  onClose,
   onFocusCapture,
   onPointerDownCapture,
   store: injectedPanelStore,
@@ -97,6 +107,8 @@ export function TweakerPanel({
   }
   const panelDragControls = useDragControls()
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
+  const [deregistered, setDeregistered] = useState(false)
+  const defaultVisibleRef = useRef(defaultVisible)
   const panelElementRef = useRef<HTMLElement | null>(null)
   const panelStoreRef = useRef<TweakerPanelStore | null>(injectedPanelStore ?? null)
   const bodyRef = useRef<HTMLDivElement | null>(null)
@@ -123,12 +135,19 @@ export function TweakerPanel({
   const titleText = typeof title === 'string' ? title : 'panel'
   const callerMaxHeight = style?.maxHeight
   const zIndex = useStore(providerStore, (state) => panelZIndexForState(state, panelId))
+  const visible = useStore(
+    providerStore,
+    (state) => state.panels[panelId]?.visible ?? defaultVisibleRef.current,
+  )
+  const closeBehavior: TweakerPanelCloseBehavior =
+    typeof close === 'object' ? close.behavior : 'hide'
   const { applyProjection, measureIntrinsicHeight, scheduleSynchronization, updatePanelRect } =
     usePanelLayoutSynchronization({
       callerMaxHeight,
       containerElement: portalContainer,
       constraintClassName: className,
       contentElementRef: bodyRef,
+      enabled: visible && !deregistered,
       panelElementRef,
       panelId,
       synchronizationPausedRef: dragStateRef,
@@ -136,9 +155,9 @@ export function TweakerPanel({
       x,
       y,
     })
-  useRegisterTweakerPanel({ id: panelId })
+  useRegisterTweakerPanel({ id: panelId, visible: defaultVisibleRef.current })
 
-  if (!portalContainer) return null
+  if (!portalContainer || deregistered) return null
 
   return createPortal(
     <TweakerThemeContextProvider theme={theme}>
@@ -150,11 +169,14 @@ export function TweakerPanel({
           data-collapsed={panelCollapsed ? 'true' : 'false'}
           data-tweaker-theme={theme}
           data-tweaker-panel-id={panelId}
+          data-visible={visible ? 'true' : 'false'}
+          hidden={!visible}
           ref={panelElementRef}
           className={cn(
             'pointer-events-auto absolute flex min-h-0 max-h-[calc(100dvh-1rem)] w-(--tweaker-panel-width) max-w-[calc(100dvw-2rem)] flex-col overflow-hidden rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface text-tweaker-text shadow-tweaker-panel ring-1 ring-(--_tweaker-panel-ring)',
             panelPlacementClassNames[defaultPlacement],
             className,
+            !visible && 'hidden',
           )}
           drag={drag}
           dragControls={panelDragControls}
@@ -258,7 +280,7 @@ export function TweakerPanel({
             onPointerDownCapture?.(event)
           }}
         >
-          {title ? (
+          {title || close ? (
             <div
               className={cn(
                 'border-tweaker-border flex h-[2.3125rem] shrink-0 cursor-grab items-center gap-(--tweaker-space-1) border-b py-(--tweaker-space-2) pr-(--tweaker-space-3) select-none active:cursor-grabbing',
@@ -294,10 +316,36 @@ export function TweakerPanel({
                   />
                 </button>
               ) : null}
-              <h2 className="min-w-0 flex-1 truncate text-(length:--tweaker-font-size-xl) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-normal)">
-                {title}
-              </h2>
+              {title ? (
+                <h2 className="min-w-0 flex-1 truncate text-(length:--tweaker-font-size-xl) font-(--tweaker-font-semibold) tracking-(--tweaker-tracking-normal)">
+                  {title}
+                </h2>
+              ) : (
+                <span className="min-w-0 flex-1" />
+              )}
               <TweakerPanelActions panelId={panelId} panelTitle={titleText} />
+              {close ? (
+                <button
+                  aria-label={`Close panel ${titleText}`}
+                  className={cn(
+                    buttonVariants({ size: 'icon', variant: 'ghost' }),
+                    'size-(--tweaker-icon-lg) shrink-0 text-tweaker-muted',
+                  )}
+                  type="button"
+                  onClick={() => {
+                    if (closeBehavior === 'deregister') {
+                      providerStore.getState().unregisterPanel(panelId)
+                      setDeregistered(true)
+                    } else {
+                      providerStore.getState().setPanelVisible(panelId, false)
+                    }
+                    onClose?.({ behavior: closeBehavior, panelId })
+                  }}
+                  onPointerDown={(event) => event.stopPropagation()}
+                >
+                  <X className="size-(--tweaker-icon-sm)" aria-hidden="true" />
+                </button>
+              ) : null}
             </div>
           ) : null}
           <div
