@@ -35,6 +35,24 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
 })
 
+test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {
+  const example = page.locator('[data-interactive-jsx-example]')
+
+  await expect(example.getByRole('tab', { name: 'Usage' })).toBeVisible()
+  await example.getByRole('tab', { name: 'Usage' }).click()
+
+  const guide = example.locator('[data-usage-guide]')
+  await expect(guide).toBeVisible()
+  await expect(guide.getByRole('heading', { name: 'Add a reactive Tweaker panel' })).toBeVisible()
+  await expect(guide.getByRole('heading', { name: 'Create a stable panel store' })).toBeVisible()
+  await expect(guide.getByText('bun add panel', { exact: true })).toBeVisible()
+  await expect(guide.getByRole('heading', { name: 'Common integration patterns' })).toBeVisible()
+  await expect(guide.getByRole('heading', { name: 'Implementation constraints' })).toBeVisible()
+
+  await example.getByRole('tab', { name: 'Store' }).click()
+  await expect(example.getByLabel('Live Built-in Items panel store')).toBeVisible()
+})
+
 test('edits live provider, panel, and Common inputs props through highlighted JSX', async ({
   context,
   page,
