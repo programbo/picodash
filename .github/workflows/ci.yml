@@ -30,7 +30,7 @@ jobs:
         run: bun audit --audit-level=high
 
       - name: Install Chromium
-        run: bunx playwright install --with-deps chromium
+        run: bun run --cwd apps/website playwright install --with-deps chromium
 
       - name: Run the full readiness gate
         run: bun run ready
