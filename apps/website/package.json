@@ -4,24 +4,36 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vp dev --host 127.0.0.1 --port 6030 --strictPort",
-    "test:e2e": "playwright test",
+    "dev": "vp dev --host 127.0.0.1 --port ${WEBSITE_PORT:-6030} --strictPort",
     "build": "tsc && vp build",
+    "test:e2e": "playwright test",
     "preview": "vp preview --host 127.0.0.1 --port 6031 --strictPort"
   },
   "dependencies": {
-    "@dnd-kit/abstract": "catalog:",
-    "@dnd-kit/dom": "catalog:",
-    "@dnd-kit/react": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "highlight.js": "catalog:",
     "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "radix-ui": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "tweaker": "workspace:*"
+    "react-json-view-lite": "catalog:",
+    "recharts": "catalog:",
+    "shadcn": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tw-animate-css": "catalog:",
+    "tweaker": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@playwright/test": "catalog:",
+    "@tailwindcss/postcss": "catalog:",
+    "@tailwindcss/typography": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "postcss": "catalog:",
+    "tailwindcss": "catalog:",
     "typescript": "~6.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"

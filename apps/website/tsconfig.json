@@ -2,10 +2,16 @@
   "compilerOptions": {
     "target": "es2023",
     "module": "esnext",
-    "lib": ["ES2023", "DOM"],
-    "types": ["vite-plus/client"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite-plus/client", "react", "react-dom"],
     "jsx": "react-jsx",
+    "allowArbitraryExtensions": true,
     "skipLibCheck": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "tweaker": ["../../packages/tweaker/src/index.ts"],
+      "tweaker/advanced": ["../../packages/tweaker/src/advanced.ts"]
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -13,9 +19,6 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "paths": {
-      "tweaker": ["../../packages/tweaker/src/index.ts"]
-    },
 
     /* Linting */
     "noUnusedLocals": true,

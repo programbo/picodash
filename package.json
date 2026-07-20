@@ -32,10 +32,8 @@
       "tailwindcss": "^4.3.1",
       "@tailwindcss/postcss": "^4.3.1",
       "postcss": "^8.5.15",
-      "postcss-import": "^16.1.1",
       "prettier": "^3.8.4",
       "prettier-plugin-tailwindcss": "^0.8.0",
-      "react-aria-components": "1.19.0",
       "motion": "^12.42.2",
       "recharts": "^3.9.2",
       "react-dropzone": "^17.0.0",
@@ -50,11 +48,11 @@
   },
   "type": "module",
   "scripts": {
-    "ready": "vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e && bun run --filter demo test:e2e",
+    "ready": "vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e",
     "dev": "vp run website#dev",
-    "demo": "vp run demo#dev",
-    "panel": "vp run panel#dev",
-    "test:e2e": "bun run --filter website test:e2e && bun run --filter demo test:e2e",
+    "website": "vp run website#dev",
+    "tweaker": "vp run tweaker#dev",
+    "test:e2e": "bun run --filter website test:e2e",
     "prepare": "vp config"
   },
   "devDependencies": {
