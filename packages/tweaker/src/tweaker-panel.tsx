@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from 'zustand'
+import { rectWithHeight } from './panel-geometry.js'
 import {
   baseRectFromDisplayedRect,
   rectFromElement,
@@ -103,6 +104,7 @@ export function TweakerPanel({
     baseRect: PanelRect
     containerRect: PanelRect
     dock: PanelDock | null
+    intrinsicHeight: number
     peerRects: PanelRect[]
     startPosition: PanelPosition
   } | null>(null)
@@ -120,14 +122,17 @@ export function TweakerPanel({
   const panelCollapsed = collapsible && collapsed
   const titleText = typeof title === 'string' ? title : 'panel'
   const zIndex = useStore(providerStore, (state) => panelZIndexForState(state, panelId))
-  const updatePanelRect = usePanelLayoutSynchronization({
-    containerElement: portalContainer,
-    panelElementRef,
-    panelId,
-    store: providerStore,
-    x,
-    y,
-  })
+  const { applyProjection, measureIntrinsicHeight, scheduleSynchronization, updatePanelRect } =
+    usePanelLayoutSynchronization({
+      containerElement: portalContainer,
+      contentElementRef: bodyRef,
+      panelElementRef,
+      panelId,
+      synchronizationPausedRef: dragStateRef,
+      store: providerStore,
+      x,
+      y,
+    })
   useRegisterTweakerPanel({ id: panelId })
 
   if (!portalContainer) return null
@@ -144,7 +149,7 @@ export function TweakerPanel({
           data-tweaker-panel-id={panelId}
           ref={panelElementRef}
           className={cn(
-            'pointer-events-auto absolute flex min-h-0 max-h-[calc(100dvh-2rem)] w-(--tweaker-panel-width) max-w-[calc(100dvw-2rem)] flex-col overflow-hidden rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface text-tweaker-text shadow-tweaker-panel ring-1 ring-(--_tweaker-panel-ring)',
+            'pointer-events-auto absolute flex min-h-0 max-h-[calc(100dvh-1rem)] w-(--tweaker-panel-width) max-w-[calc(100dvw-2rem)] flex-col overflow-hidden rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface text-tweaker-text shadow-tweaker-panel ring-1 ring-(--_tweaker-panel-ring)',
             panelPlacementClassNames[defaultPlacement],
             className,
           )}
@@ -178,8 +183,13 @@ export function TweakerPanel({
                 y: dragState.startPosition.y + info.offset.y,
               },
             })
-            x.set(snapped.position.x)
-            y.set(snapped.position.y)
+            applyProjection({
+              anchor: snapped.dock?.vertical === 'bottom' ? 'bottom' : 'top',
+              baseRect: dragState.baseRect,
+              containerRect: dragState.containerRect,
+              intrinsicHeight: dragState.intrinsicHeight,
+              position: snapped.position,
+            })
             dragState.dock = snapped.dock
             panelElementRef.current?.toggleAttribute(
               'data-tweaker-panel-snapping',
@@ -210,19 +220,22 @@ export function TweakerPanel({
               })
             }
             updatePanelRect()
+            scheduleSynchronization()
             props.onDragEnd?.(event, info)
           }}
           onDragStart={(event, info) => {
             const panelElement = panelElementRef.current
             if (panelElement) {
               const displayedPosition = { x: x.get(), y: y.get() }
+              const intrinsicHeight = measureIntrinsicHeight()
               dragStateRef.current = {
-                baseRect: baseRectFromDisplayedRect(
-                  rectFromElement(panelElement),
-                  displayedPosition,
+                baseRect: rectWithHeight(
+                  baseRectFromDisplayedRect(rectFromElement(panelElement), displayedPosition),
+                  intrinsicHeight,
                 ),
                 containerRect: rectFromElement(portalContainer),
                 dock: null,
+                intrinsicHeight,
                 peerRects: Object.entries(providerStore.getState().panelRects)
                   .filter(([peerPanelId]) => peerPanelId !== panelId)
                   .map(([, rect]) => rect),

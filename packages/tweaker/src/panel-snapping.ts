@@ -1,3 +1,5 @@
+import { projectPanelGeometry } from './panel-geometry.js'
+
 export interface PanelPosition {
   x: number
   y: number
@@ -147,87 +149,95 @@ export function snapPanelPosition({
   const gap = options?.gap ?? SNAP_GAP
   const threshold = options?.threshold ?? SNAP_THRESHOLD
   const candidateRect = offsetRect(baseRect, position)
-  const xCandidates = [
-    containerRect.left + gap - candidateRect.left,
-    containerRect.right - gap - candidateRect.right,
+  const xCandidates: SnapCandidate[] = [
+    {
+      delta: containerRect.left + gap - candidateRect.left,
+      dock: 'left',
+      viewport: true,
+    },
+    {
+      delta: containerRect.right - gap - candidateRect.right,
+      dock: 'right',
+      viewport: true,
+    },
   ]
-  const yCandidates = [
-    containerRect.top + gap - candidateRect.top,
-    containerRect.bottom - gap - candidateRect.bottom,
+  const yCandidates: SnapCandidate[] = [
+    {
+      delta: containerRect.top + gap - candidateRect.top,
+      dock: 'top',
+      viewport: true,
+    },
+    {
+      delta: containerRect.bottom - gap - candidateRect.bottom,
+      dock: 'bottom',
+      viewport: true,
+    },
   ]
 
   for (const peerRect of peerRects ?? []) {
     xCandidates.push(
-      peerRect.left - candidateRect.left,
-      peerRect.left - candidateRect.right,
-      peerRect.right - candidateRect.left,
-      peerRect.right - candidateRect.right,
+      { delta: peerRect.left - candidateRect.left },
+      { delta: peerRect.left - candidateRect.right },
+      { delta: peerRect.right - candidateRect.left },
+      { delta: peerRect.right - candidateRect.right },
     )
     yCandidates.push(
-      peerRect.top - candidateRect.top,
-      peerRect.top - candidateRect.bottom,
-      peerRect.bottom - candidateRect.top,
-      peerRect.bottom - candidateRect.bottom,
+      { delta: peerRect.top - candidateRect.top },
+      { delta: peerRect.top - candidateRect.bottom },
+      { delta: peerRect.bottom - candidateRect.top },
+      { delta: peerRect.bottom - candidateRect.bottom },
     )
   }
 
-  const xDelta = nearestDeltaWithinThreshold(xCandidates, threshold)
-  const yDelta = nearestDeltaWithinThreshold(yCandidates, threshold)
+  const xSnap = nearestCandidateWithinThreshold(xCandidates, threshold)
+  const ySnap = nearestCandidateWithinThreshold(yCandidates, threshold)
   const snapped = {
-    x: position.x + (xDelta ?? 0),
-    y: position.y + (yDelta ?? 0),
+    x: position.x + (xSnap?.delta ?? 0),
+    y: position.y + (ySnap?.delta ?? 0),
   }
-  const clampedPosition = clampPanelPosition(snapped, baseRect, insetRect(containerRect, gap))
-
-  return {
-    dock: dockForPosition(clampedPosition, baseRect, insetRect(containerRect, gap)),
-    position: clampedPosition,
-    snappedX: xDelta !== null,
-    snappedY: yDelta !== null,
-  }
-}
-
-function dockForPosition(
-  position: PanelPosition,
-  baseRect: PanelRect,
-  containerRect: PanelRect,
-): PanelDock | null {
-  const rect = offsetRect(baseRect, position)
+  const projection = projectPanelGeometry({
+    anchor: ySnap?.viewport && ySnap.dock === 'bottom' ? 'bottom' : 'top',
+    baseRect,
+    containerRect,
+    inset: gap,
+    position: snapped,
+  })
   const dock: PanelDock = {}
-
-  if (almostEqual(rect.left, containerRect.left)) {
+  const safeLeft = containerRect.left + gap
+  const safeRight = containerRect.right - gap
+  const safeTop = containerRect.top + gap
+  if (almostEqual(projection.rect.left, safeLeft)) {
     dock.horizontal = 'left'
-  } else if (almostEqual(rect.right, containerRect.right)) {
+  } else if (almostEqual(projection.rect.right, safeRight)) {
     dock.horizontal = 'right'
   }
-
-  if (almostEqual(rect.top, containerRect.top)) {
+  if (almostEqual(projection.rect.top, safeTop)) {
     dock.vertical = 'top'
-  } else if (almostEqual(rect.bottom, containerRect.bottom)) {
+  } else if (ySnap?.viewport && ySnap.dock === 'bottom') {
     dock.vertical = 'bottom'
   }
 
-  return dock.horizontal || dock.vertical ? dock : null
-}
-
-function insetRect(rect: PanelRect, inset: number): PanelRect {
   return {
-    bottom: rect.bottom - inset,
-    height: Math.max(rect.height - inset * 2, 0),
-    left: rect.left + inset,
-    right: rect.right - inset,
-    top: rect.top + inset,
-    width: Math.max(rect.width - inset * 2, 0),
+    dock: dock.horizontal || dock.vertical ? dock : null,
+    position: projection.position,
+    snappedX: xSnap !== null,
+    snappedY: ySnap !== null,
   }
 }
 
-function nearestDeltaWithinThreshold(deltas: number[], threshold: number) {
-  let nearest: number | null = null
+interface SnapCandidate {
+  delta: number
+  dock?: 'bottom' | 'left' | 'right' | 'top'
+  viewport?: boolean
+}
 
-  for (const delta of deltas) {
-    if (Math.abs(delta) > threshold) continue
-    if (nearest === null || Math.abs(delta) < Math.abs(nearest)) {
-      nearest = delta
+function nearestCandidateWithinThreshold(candidates: SnapCandidate[], threshold: number) {
+  let nearest: SnapCandidate | null = null
+
+  for (const candidate of candidates) {
+    if (Math.abs(candidate.delta) > threshold) continue
+    if (nearest === null || Math.abs(candidate.delta) < Math.abs(nearest.delta)) {
+      nearest = candidate
     }
   }
 
