@@ -207,6 +207,32 @@ test('preserves a caller-provided max-height while applying viewport containment
   await expect.poll(async () => (await requiredBox(panel)).height).toBe(200)
 })
 
+test('preserves a class-based max-height constraint', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 800 })
+  await page.goto('/panel-geometry-lab?fixture=class-max-height')
+  const panel = geometryPanel(page, 'class-max-height')
+
+  await expect.poll(async () => (await requiredBox(panel)).height).toBe(192)
+  await expect
+    .poll(() => panel.evaluate((element) => getComputedStyle(element).maxHeight))
+    .toBe('192px')
+})
+
+test('anchors a bottom-docked panel using its caller-capped height', async ({ page }) => {
+  await seedLayout(page, {
+    'geometry-bottom-capped': {
+      dock: { horizontal: 'left', vertical: 'bottom' },
+      x: safeInset,
+      y: 500,
+    },
+  })
+  await page.goto('/panel-geometry-lab?fixture=bottom-max-height')
+  const panel = geometryPanel(page, 'bottom-max-height')
+
+  await expect.poll(async () => (await requiredBox(panel)).height).toBe(200)
+  await expectBottom(panel, 600 - safeInset)
+})
+
 function geometryPanel(page: Page, fixture: string) {
   return page.locator(`[data-geometry-fixture="${fixture}"]`)
 }

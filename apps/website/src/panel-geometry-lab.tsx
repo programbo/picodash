@@ -13,6 +13,8 @@ const peerPanelStore = createTweakerPanelStore({ panelId: 'geometry-peer' })
 const expansionPanelStore = createTweakerPanelStore({ panelId: 'geometry-expansion' })
 const bottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom' })
 const cappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-capped' })
+const classCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-class-capped' })
+const bottomCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-capped' })
 
 export function PanelGeometryLab() {
   const fixture = new URLSearchParams(window.location.search).get('fixture') ?? 'drag'
@@ -31,6 +33,8 @@ export function PanelGeometryLab() {
         {fixture === 'groups' ? <GroupExpansionFixture /> : null}
         {fixture === 'bottom' ? <BottomExpansionFixture /> : null}
         {fixture === 'caller-max-height' ? <CallerMaxHeightFixture /> : null}
+        {fixture === 'class-max-height' ? <ClassMaxHeightFixture /> : null}
+        {fixture === 'bottom-max-height' ? <BottomMaxHeightFixture /> : null}
       </TweakerProvider>
     </main>
   )
@@ -142,6 +146,36 @@ function CallerMaxHeightFixture() {
       style={{ maxHeight: 200 }}
     >
       <TallContent prefix="caller-max-height" count={24} />
+    </TweakerPanel>
+  )
+}
+
+function ClassMaxHeightFixture() {
+  return (
+    <TweakerPanel
+      store={classCappedPanelStore}
+      title="Class max-height fixture"
+      width={320}
+      defaultPlacement="top-left"
+      className="max-h-48"
+      data-geometry-fixture="class-max-height"
+    >
+      <TallContent prefix="class-max-height" count={24} />
+    </TweakerPanel>
+  )
+}
+
+function BottomMaxHeightFixture() {
+  return (
+    <TweakerPanel
+      store={bottomCappedPanelStore}
+      title="Bottom max-height fixture"
+      width={320}
+      defaultPlacement="bottom-left"
+      data-geometry-fixture="bottom-max-height"
+      style={{ maxHeight: 200 }}
+    >
+      <TallContent prefix="bottom-max-height" count={24} />
     </TweakerPanel>
   )
 }

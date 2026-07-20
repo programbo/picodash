@@ -125,7 +125,9 @@ export function TweakerPanel({
   const zIndex = useStore(providerStore, (state) => panelZIndexForState(state, panelId))
   const { applyProjection, measureIntrinsicHeight, scheduleSynchronization, updatePanelRect } =
     usePanelLayoutSynchronization({
+      callerMaxHeight,
       containerElement: portalContainer,
+      constraintClassName: className,
       contentElementRef: bodyRef,
       panelElementRef,
       panelId,
@@ -162,24 +164,11 @@ export function TweakerPanel({
           style={
             {
               ...style,
-              ...(callerMaxHeight === undefined || callerMaxHeight === 'none'
-                ? {}
-                : {
-                    '--_tw-panel-caller-max-height':
-                      typeof callerMaxHeight === 'number'
-                        ? `${callerMaxHeight}px`
-                        : callerMaxHeight,
-                  }),
-              maxHeight:
-                'min(var(--_tw-panel-available-height, calc(100dvh - 1rem)), var(--_tw-panel-caller-max-height, 1000000px))',
               '--tweaker-panel-width': typeof width === 'number' ? `${width}px` : width,
               x,
               y,
               zIndex,
-            } as MotionStyle & {
-              '--_tw-panel-caller-max-height'?: MotionStyle['maxHeight']
-              '--tweaker-panel-width'?: string
-            }
+            } as MotionStyle & { '--tweaker-panel-width'?: string }
           }
           onDrag={(event, info) => {
             const dragState = dragStateRef.current
