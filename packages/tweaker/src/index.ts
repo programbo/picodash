@@ -16,8 +16,9 @@ export type {
   FeaturePanelProps,
 } from './feature-panel.js'
 
-export { TweakerProvider } from './tweaker-provider.js'
+export { TweakerProvider, useTweakerPanel } from './tweaker-provider.js'
 export type {
+  TweakerPanelController,
   TweakerProviderProps,
   TweakerResolvedTheme,
   TweakerTheme,
@@ -31,6 +32,9 @@ export {
 } from './tweaker-panel.js'
 export type {
   TweakerFieldState,
+  TweakerPanelCloseBehavior,
+  TweakerPanelCloseDetails,
+  TweakerPanelCloseOptions,
   TweakerPanelDefaultPlacement,
   TweakerPanelProps,
   TweakerPanelStore,

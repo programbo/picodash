@@ -12,9 +12,12 @@ import {
   TweakerSelect,
   TweakerSlider,
   TweakerSwitch,
+  useTweakerPanel,
   useTweakerPanelStoreSelector,
   useTweakerTheme,
   type TweakerGradientValue,
+  type TweakerPanelCloseDetails,
+  type TweakerPanelController,
   type TweakerSliderMark,
   type TweakerValue,
 } from 'tweaker'
@@ -44,6 +47,7 @@ import { PanelGeometryLab } from '@/panel-geometry-lab'
 
 const scenePanelId = 'scene-controls'
 const outputPanelId = 'custom-items'
+const initiallyHiddenPanelId = 'initially-hidden'
 
 const sceneDefaults = {
   bloom: true,
@@ -100,6 +104,7 @@ type PanelSnapshots = Record<string, PanelSnapshot | undefined>
 
 type ProviderSnapshot = {
   panelOrder: string[]
+  panelRects: Record<string, unknown>
   panels: Record<string, TweakerPanelRegistration>
 }
 
@@ -260,12 +265,21 @@ function DemoExperience({
   themes: DemoThemes
 }) {
   const showStateLab = route === 'state-lab'
+  const [closeCallbackPortalState, setCloseCallbackPortalState] = useState<
+    'none' | 'present' | 'removed'
+  >('none')
+  const [initiallyHiddenPanelMounted, setInitiallyHiddenPanelMounted] = useState(true)
+  const [lastPanelClose, setLastPanelClose] = useState<TweakerPanelCloseDetails | null>(null)
   const resolvedProviderTheme = useTweakerTheme()
+  const scenePanelController = useTweakerPanel(scenePanelId)
+  const initiallyHiddenPanelController = useTweakerPanel(initiallyHiddenPanelId)
+  const missingPanelController = useTweakerPanel('not-registered')
   const panelOrder = useTweakerSelector((state) => state.panelOrder)
+  const panelRects = useTweakerSelector((state) => state.panelRects)
   const providerPanels = useTweakerSelector((state) => state.panels)
   const providerState = useMemo<ProviderSnapshot>(
-    () => ({ panelOrder, panels: providerPanels }),
-    [panelOrder, providerPanels],
+    () => ({ panelOrder, panelRects, panels: providerPanels }),
+    [panelOrder, panelRects, providerPanels],
   )
   const scenePanelState = useTweakerPanelStoreSelector(scenePanelStore, (state) => state)
   const customItemPanelState = useTweakerPanelStoreSelector(customItemPanelStore, (state) => state)
@@ -289,6 +303,10 @@ function DemoExperience({
     panelSnapshots[outputPanelId],
   ].filter((panel): panel is PanelSnapshot => panel !== undefined)
   const totals = useMemo(() => panelTotals(panels), [panels])
+  const recordPanelClose = (details: TweakerPanelCloseDetails) => {
+    setLastPanelClose(details)
+    setCloseCallbackPortalState(document.getElementById(details.panelId) ? 'present' : 'removed')
+  }
 
   return (
     <>
@@ -334,6 +352,37 @@ function DemoExperience({
                 ))}
               </div>
             </header>
+
+            <section
+              aria-label="Panel controller examples"
+              className="grid gap-3 sm:grid-cols-2"
+              data-panel-controller-examples
+            >
+              <PanelControllerExample controller={scenePanelController} label="Scene Controls" />
+              <PanelControllerExample
+                controller={initiallyHiddenPanelController}
+                label="Initially Hidden"
+              />
+              <span
+                data-missing-panel-controller={
+                  missingPanelController === null ? 'null' : 'registered'
+                }
+                hidden
+              />
+              <span data-close-callback-portal-state={closeCallbackPortalState} hidden />
+              <span
+                data-last-panel-close={
+                  lastPanelClose ? `${lastPanelClose.panelId}:${lastPanelClose.behavior}` : 'none'
+                }
+                hidden
+              />
+              <span
+                data-scene-panel-rect={
+                  providerState.panelRects[scenePanelId] ? 'present' : 'absent'
+                }
+                hidden
+              />
+            </section>
 
             <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryCard
@@ -420,6 +469,7 @@ function DemoExperience({
 
       {showStateLab ? (
         <TweakerPanel
+          close
           store={scenePanelStore}
           theme={themes.scene}
           title="Scene Controls"
@@ -427,6 +477,7 @@ function DemoExperience({
           defaultPlacement="top-right"
           width={368}
           className="top-4 right-4 lg:top-8 lg:right-120"
+          onClose={recordPanelClose}
         >
           <TweakerGroup id="scene-essentials" label="Essentials" pin="start">
             <TweakerSlider
@@ -563,6 +614,23 @@ function DemoExperience({
           </TweakerGroup>
         </TweakerPanel>
       ) : null}
+
+      {showStateLab && initiallyHiddenPanelMounted ? (
+        <TweakerPanel
+          close={{ behavior: 'deregister' }}
+          id={initiallyHiddenPanelId}
+          title="Initially Hidden"
+          defaultVisible={false}
+          defaultPlacement="bottom-left"
+          width={240}
+          onClose={(details) => {
+            recordPanelClose(details)
+            setInitiallyHiddenPanelMounted(false)
+          }}
+        >
+          <TweakerDisplay id="hidden-panel-status" label="Status" value="Registered while hidden" />
+        </TweakerPanel>
+      ) : null}
     </>
   )
 }
@@ -621,6 +689,70 @@ function SummaryCard({
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground truncate text-xs">{detail}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function PanelControllerExample({
+  controller,
+  label,
+}: {
+  controller: TweakerPanelController | null
+  label: string
+}) {
+  const buttonClassName =
+    'border-border bg-muted/30 hover:bg-muted focus-visible:ring-ring h-8 border px-2.5 text-xs font-medium outline-none focus-visible:ring-2 disabled:opacity-50'
+
+  return (
+    <Card size="sm" data-panel-controller={label}>
+      <CardHeader>
+        <CardDescription>{label}</CardDescription>
+        <CardTitle data-panel-visibility={label}>
+          {controller ? (controller.visible ? 'visible' : 'hidden') : 'waiting'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-2">
+        <button
+          className={buttonClassName}
+          disabled={!controller}
+          type="button"
+          onClick={() => controller?.show()}
+        >
+          Show
+        </button>
+        <button
+          className={buttonClassName}
+          disabled={!controller}
+          type="button"
+          onClick={() => controller?.hide()}
+        >
+          Hide
+        </button>
+        <button
+          className={buttonClassName}
+          disabled={!controller}
+          type="button"
+          onClick={() => controller?.toggle()}
+        >
+          Toggle
+        </button>
+        <button
+          className={buttonClassName}
+          disabled={!controller}
+          type="button"
+          onClick={() => controller?.activate()}
+        >
+          Activate
+        </button>
+        <button
+          className={buttonClassName}
+          disabled={!controller}
+          type="button"
+          onClick={() => controller?.setVisible(false)}
+        >
+          Set hidden
+        </button>
       </CardContent>
     </Card>
   )

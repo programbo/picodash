@@ -26,7 +26,11 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 
 ## Active API Model
 
-The workspace API is application-owned panel state using the `createTweakerPanelStore` model. Legacy schema-driven `useTweaker` registration flow is retired.
+The workspace API is application-owned panel state using the `createTweakerPanelStore` model.
+Provider descendants may control registered panel visibility and activation with `useTweakerPanel`;
+that visibility is transient and separate from persisted layout. `TweakerPanel close` hides by
+default, while the explicit `deregister` close behavior removes the registration and portal before
+notifying the host. Legacy schema-driven `useTweaker` registration flow is retired.
 
 ## Required Commands
 

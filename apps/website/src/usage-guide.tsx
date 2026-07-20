@@ -36,6 +36,33 @@ const showGrid = useTweakerPanelStoreSelector(
   (state) => state.values.showGrid === true,
 )`
 
+const controllerSource = `function SettingsPanelActions() {
+  const panel = useTweakerPanel('site-settings')
+
+  return (
+    <div>
+      <button onClick={() => panel?.toggle()}>
+        {panel?.visible ? 'Hide settings' : 'Show settings'}
+      </button>
+      <button onClick={() => panel?.activate()}>
+        Open in front
+      </button>
+    </div>
+  )
+}
+
+<TweakerPanel
+  close={{ behavior: 'deregister' }}
+  store={settingsStore}
+  title="Site settings"
+  defaultVisible={false}
+  onClose={({ panelId, behavior }) => {
+    // Observe the built-in close behavior and unmount if needed.
+  }}
+>
+  {/* Items remain mounted and registered while hidden. */}
+</TweakerPanel>`
+
 const panelSource = `<TweakerProvider
   persistLayout
   storageKey="my-site:tweaker-layout:v1"
@@ -372,6 +399,22 @@ export function UsageGuide() {
                   and accepts <Code>initialValues</Code>.
                 </p>
                 <CodeBlock language="typescript" label="Isolated panel" source={isolatedSource} />
+              </Recipe>
+
+              <Recipe title="Control panel visibility from application UI">
+                <p>
+                  Call <Code>useTweakerPanel</Code> beneath the provider with a stable panel ID. It
+                  returns <Code>null</Code> until registration, then exposes reactive visibility and
+                  methods to show, hide, toggle, or activate the panel. Activation also raises a
+                  hidden panel to the front. Add <Code>close</Code> for a header button that hides
+                  through the provider, or select the <Code>deregister</Code> behavior when the host
+                  should unmount after the registration and portal are removed.
+                </p>
+                <CodeBlock
+                  language="typescript"
+                  label="Panel visibility controls"
+                  source={controllerSource}
+                />
               </Recipe>
 
               <Recipe title="Keep responsibilities separate">

@@ -44,6 +44,110 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('[data-state-lab]')).toHaveCSS('position', 'relative')
 })
 
+test('controls registered panels through useTweakerPanel', async ({ page }) => {
+  const scenePanel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const hiddenPanel = page.locator('[data-tweaker-panel-id="initially-hidden"]')
+  const sceneController = page.locator('[data-panel-controller="Scene Controls"]')
+  const hiddenController = page.locator('[data-panel-controller="Initially Hidden"]')
+  const sceneItems = scenePanel.locator('[data-item-id]')
+  const sceneActions = scenePanel.getByRole('button', { name: 'Open actions for Scene Controls' })
+  const sceneClose = scenePanel.getByRole('button', { name: 'Close panel Scene Controls' })
+
+  await expect(page.locator('[data-missing-panel-controller]')).toHaveAttribute(
+    'data-missing-panel-controller',
+    'null',
+  )
+  await expect(sceneController.locator('[data-panel-visibility]')).toHaveText('visible')
+  await expect(hiddenController.locator('[data-panel-visibility]')).toHaveText('hidden')
+  await expect(hiddenPanel).toHaveCount(1)
+  await expect(hiddenPanel).toBeHidden()
+  await expect(hiddenPanel.locator('[data-item-id="hidden-panel-status"]')).toHaveCount(1)
+  const [sceneActionsBox, sceneCloseBox] = await Promise.all([
+    sceneActions.boundingBox(),
+    sceneClose.boundingBox(),
+  ])
+  expect(sceneActionsBox).not.toBeNull()
+  expect(sceneCloseBox).not.toBeNull()
+  if (sceneActionsBox && sceneCloseBox) {
+    expect(sceneCloseBox.x).toBeGreaterThanOrEqual(sceneActionsBox.x + sceneActionsBox.width)
+    expect(sceneCloseBox.x - (sceneActionsBox.x + sceneActionsBox.width)).toBeLessThanOrEqual(8)
+  }
+  await expect(
+    page
+      .locator('[data-tweaker-panel-id="custom-items"]')
+      .getByRole('button', { name: 'Close panel Custom Items' }),
+  ).toHaveCount(0)
+
+  const sceneItemCount = await sceneItems.count()
+  await sceneController.getByRole('button', { name: 'Hide', exact: true }).click()
+  await expect(scenePanel).toBeHidden()
+  await expect(scenePanel).toHaveAttribute('data-visible', 'false')
+  await expect(sceneController.locator('[data-panel-visibility]')).toHaveText('hidden')
+  await expect(sceneItems).toHaveCount(sceneItemCount)
+
+  await sceneController.getByRole('button', { name: 'Show', exact: true }).click()
+  await expect(scenePanel).toBeVisible()
+  await expect(scenePanel).toHaveAttribute('data-visible', 'true')
+
+  await sceneController.getByRole('button', { name: 'Toggle', exact: true }).click()
+  await expect(scenePanel).toBeHidden()
+  await sceneController.getByRole('button', { name: 'Toggle', exact: true }).click()
+  await expect(scenePanel).toBeVisible()
+
+  await sceneController.getByRole('button', { name: 'Set hidden', exact: true }).click()
+  await expect(scenePanel).toBeHidden()
+  await sceneController.getByRole('button', { name: 'Activate', exact: true }).click()
+  await expect(scenePanel).toBeVisible()
+  await expect
+    .poll(async () =>
+      Number(await scenePanel.evaluate((element) => getComputedStyle(element).zIndex)),
+    )
+    .toBeGreaterThan(
+      Number(await hiddenPanel.evaluate((element) => getComputedStyle(element).zIndex)),
+    )
+
+  await hiddenController.getByRole('button', { name: 'Activate', exact: true }).click()
+  await expect(hiddenPanel).toBeVisible()
+  await expect
+    .poll(async () =>
+      Number(await hiddenPanel.evaluate((element) => getComputedStyle(element).zIndex)),
+    )
+    .toBeGreaterThan(
+      Number(await scenePanel.evaluate((element) => getComputedStyle(element).zIndex)),
+    )
+
+  await sceneClose.click()
+  await expect(scenePanel).toBeHidden()
+  await expect(sceneController.locator('[data-panel-visibility]')).toHaveText('hidden')
+  await expect(sceneItems).toHaveCount(sceneItemCount)
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      }),
+  )
+  await expect(page.locator('[data-scene-panel-rect]')).toHaveAttribute(
+    'data-scene-panel-rect',
+    'absent',
+  )
+  await expect(page.locator('[data-last-panel-close]')).toHaveAttribute(
+    'data-last-panel-close',
+    'scene-controls:hide',
+  )
+
+  await hiddenPanel.getByRole('button', { name: 'Close panel Initially Hidden' }).click()
+  await expect(hiddenPanel).toHaveCount(0)
+  await expect(hiddenController.locator('[data-panel-visibility]')).toHaveText('waiting')
+  await expect(page.locator('[data-close-callback-portal-state]')).toHaveAttribute(
+    'data-close-callback-portal-state',
+    'removed',
+  )
+  await expect(page.locator('[data-last-panel-close]')).toHaveAttribute(
+    'data-last-panel-close',
+    'initially-hidden:deregister',
+  )
+})
+
 test('routes the landing, gallery, state lab, and unknown paths explicitly', async ({ page }) => {
   await page.goto('/')
 

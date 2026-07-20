@@ -10,6 +10,8 @@ Package import surface:
 What it provides:
 - application-owned panel stores via createTweakerPanelStore
 - TweakerProvider, TweakerPanel, TweakerItem, built-in inputs and charts
+- provider-scoped panel visibility and activation via useTweakerPanel
+- optional panel close buttons with hide or deregister behavior
 - strict programmatic writes, sync validation, JSON-compatible values
 - theme/portal aware styling
 - import/export and repair flows
