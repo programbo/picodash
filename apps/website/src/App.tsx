@@ -40,6 +40,7 @@ import { MouseVelocitySparklineItem } from '@/custom-items/mouse-velocity-sparkl
 import { WaveformSpectrumItem } from '@/custom-items/waveform-spectrum'
 import { InteractiveJsxExample } from '@/interactive-jsx-example'
 import { LandingPage } from '@/landing-page'
+import { PanelGeometryLab } from '@/panel-geometry-lab'
 
 const scenePanelId = 'scene-controls'
 const outputPanelId = 'custom-items'
@@ -102,7 +103,7 @@ type ProviderSnapshot = {
   panels: Record<string, TweakerPanelRegistration>
 }
 
-type ProductRoute = 'gallery' | 'landing' | 'not-found' | 'state-lab'
+type ProductRoute = 'gallery' | 'landing' | 'not-found' | 'panel-geometry-lab' | 'state-lab'
 
 export function App() {
   const route = resolveProductRoute(window.location.pathname)
@@ -113,6 +114,10 @@ export function App() {
 
   if (route === 'not-found') {
     return <NotFoundPage />
+  }
+
+  if (route === 'panel-geometry-lab') {
+    return <PanelGeometryLab />
   }
 
   return <DemoApp route={route} />
@@ -193,6 +198,8 @@ function resolveProductRoute(pathname: string): ProductRoute {
       return 'gallery'
     case '/state-lab':
       return 'state-lab'
+    case '/panel-geometry-lab':
+      return 'panel-geometry-lab'
     default:
       return 'not-found'
   }
