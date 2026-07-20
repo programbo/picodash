@@ -15,6 +15,7 @@ const bottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom' })
 const cappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-capped' })
 const classCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-class-capped' })
 const bottomCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-capped' })
+const bottomDragPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-drag' })
 
 export function PanelGeometryLab() {
   const fixture = new URLSearchParams(window.location.search).get('fixture') ?? 'drag'
@@ -35,6 +36,7 @@ export function PanelGeometryLab() {
         {fixture === 'caller-max-height' ? <CallerMaxHeightFixture /> : null}
         {fixture === 'class-max-height' ? <ClassMaxHeightFixture /> : null}
         {fixture === 'bottom-max-height' ? <BottomMaxHeightFixture /> : null}
+        {fixture === 'bottom-drag' ? <BottomDragFixture /> : null}
       </TweakerProvider>
     </main>
   )
@@ -176,6 +178,20 @@ function BottomMaxHeightFixture() {
       style={{ maxHeight: 200 }}
     >
       <TallContent prefix="bottom-max-height" count={24} />
+    </TweakerPanel>
+  )
+}
+
+function BottomDragFixture() {
+  return (
+    <TweakerPanel
+      store={bottomDragPanelStore}
+      title="Bottom drag fixture"
+      width={320}
+      defaultPlacement="bottom-left"
+      data-geometry-fixture="bottom-drag"
+    >
+      <TallContent prefix="bottom-drag" count={24} />
     </TweakerPanel>
   )
 }

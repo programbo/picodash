@@ -233,6 +233,30 @@ test('anchors a bottom-docked panel using its caller-capped height', async ({ pa
   await expectBottom(panel, 600 - safeInset)
 })
 
+test('rebases a bottom-positioned panel while shrinking during a held drag', async ({ page }) => {
+  await page.goto('/panel-geometry-lab?fixture=bottom-drag')
+  const panel = geometryPanel(page, 'bottom-drag')
+  const initial = await requiredBox(panel)
+  const header = await requiredBox(panel.locator('[data-tweaker-panel-header]'))
+  const start = {
+    x: header.x + header.width / 2,
+    y: header.y + header.height / 2,
+  }
+
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(start.x, start.y + 200, { steps: 12 })
+
+  await expect
+    .poll(async () => Math.abs((await requiredBox(panel)).y - initial.y - 200))
+    .toBeLessThanOrEqual(20)
+  await expectBottom(panel, 600 - safeInset)
+  await expect
+    .poll(async () => (await requiredBox(panel)).height)
+    .toBeLessThan(initial.height - 180)
+  await page.mouse.up()
+})
+
 function geometryPanel(page: Page, fixture: string) {
   return page.locator(`[data-geometry-fixture="${fixture}"]`)
 }

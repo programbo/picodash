@@ -126,9 +126,22 @@ export function usePanelLayoutSynchronization({
         appliedMaxHeightRef.current = appliedMaxHeight
         panelElement.style.maxHeight = `${appliedMaxHeight}px`
       }
-      if (x.get() !== projection.position.x) x.set(projection.position.x)
-      if (y.get() !== projection.position.y) y.set(projection.position.y)
-      return projection
+      const appliedPosition = panelElement
+        ? (() => {
+            const currentPosition = { x: x.get(), y: y.get() }
+            const rebasedRect = baseRectFromDisplayedRect(
+              rectFromElement(panelElement),
+              currentPosition,
+            )
+            return {
+              x: projection.rect.left - rebasedRect.left,
+              y: projection.rect.top - rebasedRect.top,
+            }
+          })()
+        : projection.position
+      if (x.get() !== appliedPosition.x) x.set(appliedPosition.x)
+      if (y.get() !== appliedPosition.y) y.set(appliedPosition.y)
+      return { ...projection, position: appliedPosition }
     },
     [measureCallerMaxHeight, panelElementRef, restoreCallerMaxHeight, x, y],
   )
@@ -229,12 +242,15 @@ export function usePanelLayoutSynchronization({
     })
     if (contentElement) {
       mutationObserver.observe(contentElement, {
+        attributeFilter: ['data-collapsed'],
         attributes: true,
         childList: true,
         subtree: true,
       })
     } else {
       mutationObserver.observe(panelElement, {
+        attributeFilter: ['data-collapsed'],
+        attributes: true,
         childList: true,
         subtree: true,
       })
