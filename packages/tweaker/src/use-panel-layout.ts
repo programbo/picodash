@@ -176,13 +176,17 @@ export function usePanelLayoutSynchronization({
     )
     const savedPosition = store.getState().panelLayouts[panelId]
     const containerRect = rectFromElement(containerElement)
+    const computedStyle = getComputedStyle(panelElement)
+    const startsBottomPositioned =
+      savedPosition === undefined && computedStyle.bottom !== 'auto' && computedStyle.top === 'auto'
     const targetPosition = positionForPanelLayout({
       baseRect,
       containerRect,
       layout: savedPosition,
     })
     applyProjection({
-      anchor: savedPosition?.dock?.vertical === 'bottom' ? 'bottom' : 'top',
+      anchor:
+        savedPosition?.dock?.vertical === 'bottom' || startsBottomPositioned ? 'bottom' : 'top',
       baseRect,
       containerRect,
       intrinsicHeight,

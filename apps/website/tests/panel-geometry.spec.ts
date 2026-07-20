@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 
 const storageKey = 'tweaker-geometry-lab:panel-layout:v1'
 const safeInset = 8
+const defaultPlacementInset = 16
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 600 })
@@ -160,6 +161,24 @@ test('a bottom-docked panel grows upward and survives reduced motion', async ({ 
     'false',
   )
   await expectBottom(panel, 600 - safeInset)
+  await expect.poll(async () => (await requiredBox(panel)).y).toBeLessThan(initial.y - 250)
+})
+
+test('a fresh bottom-positioned panel expands upward before layout is persisted', async ({
+  page,
+}) => {
+  await page.goto('/panel-geometry-lab?fixture=bottom')
+  const panel = geometryPanel(page, 'bottom')
+  const initial = await requiredBox(panel)
+  await expectBottom(panel, 600 - defaultPlacementInset)
+
+  await panel.getByRole('button', { name: 'Bottom group', exact: true }).click()
+
+  await expect(panel.locator('[data-group-id="bottom-group"]')).toHaveAttribute(
+    'data-collapsed',
+    'false',
+  )
+  await expectBottom(panel, 600 - defaultPlacementInset)
   await expect.poll(async () => (await requiredBox(panel)).y).toBeLessThan(initial.y - 250)
 })
 
