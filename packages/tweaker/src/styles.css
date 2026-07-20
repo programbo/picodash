@@ -1,794 +1,221 @@
-@reference "tailwindcss";
+@layer theme, base, components, utilities;
 
-:where(.tw-panel, .tw-select__popover, .tw-tooltip, .tw-menu__popover) {
-  --tw-panel-color-opacity: 0.78;
-  --tw-panel-active-color-opacity: var(--tw-panel-color-opacity);
-  --tw-bg: rgb(21 22 23 / var(--tw-panel-active-color-opacity));
-  --tw-bg-elevated: rgb(29 31 32 / var(--tw-panel-active-color-opacity));
-  --tw-row-drag-bg: rgb(29 31 32 / calc(var(--tw-panel-active-color-opacity) * 0.42));
-  --tw-border: rgb(54 58 61 / var(--tw-panel-active-color-opacity));
-  --tw-border-strong: rgb(75 81 85 / var(--tw-panel-active-color-opacity));
-  --tw-control-bg: rgb(16 17 18 / var(--tw-panel-active-color-opacity));
-  --tw-row-bg: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.025));
-  --tw-row-hover-bg: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.055));
-  --tw-row-hover-border: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.04));
-  --tw-row-status-bg: var(--tw-row-bg);
-  --tw-row-status-hover-bg: var(--tw-row-hover-bg);
-  --tw-row-status-border: var(--tw-row-hover-border);
-  --tw-row-status-outline: transparent;
-  --tw-row-status-accent: transparent;
-  --tw-control-hover-bg: rgb(255 255 255 / calc(var(--tw-panel-active-color-opacity) * 0.08));
-  --tw-text: #f1f4f2;
-  --tw-muted: #9aa39d;
-  --tw-accent: #9bd16f;
-  --tw-accent-strong: #b9ef83;
-  --tw-accent-soft: rgb(155 209 111 / 0.11);
-  --tw-accent-border: rgb(155 209 111 / 0.32);
-  --tw-check: rgb(16 17 18);
-  --tw-danger: #ff8e6e;
-  --tw-shadow: 0 18px 48px rgb(0 0 0 / 0.36);
-  --tw-drag-shadow:
-    0 22px 46px rgb(0 0 0 / 0.48), 0 8px 18px rgb(0 0 0 / 0.32), 0 0 0 1px rgb(255 255 255 / 0.12);
-  --tw-thumb-shadow: 0 1px 4px rgb(0 0 0 / 0.36);
-  --tw-radius: 7px;
-  --spacing: 0.25rem;
-}
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
 
-:where(.tw-panel, .tw-select__popover, .tw-tooltip, .tw-menu__popover)[data-theme='light'] {
-  --tw-bg: rgb(248 250 246 / var(--tw-panel-active-color-opacity));
-  --tw-bg-elevated: rgb(255 255 252 / var(--tw-panel-active-color-opacity));
-  --tw-row-drag-bg: rgb(255 255 252 / calc(var(--tw-panel-active-color-opacity) * 0.82));
-  --tw-border: rgb(198 207 197 / var(--tw-panel-active-color-opacity));
-  --tw-border-strong: rgb(144 158 146 / var(--tw-panel-active-color-opacity));
-  --tw-control-bg: rgb(237 242 235 / var(--tw-panel-active-color-opacity));
-  --tw-row-bg: rgb(26 48 34 / calc(var(--tw-panel-active-color-opacity) * 0.035));
-  --tw-row-hover-bg: rgb(26 48 34 / calc(var(--tw-panel-active-color-opacity) * 0.075));
-  --tw-row-hover-border: rgb(26 48 34 / calc(var(--tw-panel-active-color-opacity) * 0.09));
-  --tw-control-hover-bg: rgb(26 48 34 / calc(var(--tw-panel-active-color-opacity) * 0.09));
-  --tw-text: #172019;
-  --tw-muted: #647064;
-  --tw-accent: #2f7b44;
-  --tw-accent-strong: #195d31;
-  --tw-accent-soft: rgb(47 123 68 / 0.13);
-  --tw-accent-border: rgb(47 123 68 / 0.34);
-  --tw-check: rgb(255 255 252);
-  --tw-danger: #b8492f;
-  --tw-shadow: 0 18px 46px rgb(47 64 50 / 0.18);
-  --tw-drag-shadow:
-    0 22px 44px rgb(47 64 50 / 0.28), 0 8px 18px rgb(47 64 50 / 0.2), 0 0 0 1px rgb(26 48 34 / 0.12);
-  --tw-thumb-shadow: 0 1px 4px rgb(47 64 50 / 0.24);
-}
+@source './';
 
-@media (prefers-color-scheme: light) {
-  :where(.tw-panel, .tw-select__popover, .tw-tooltip, .tw-menu__popover)[data-theme='system'] {
-    --tw-bg: rgb(248 250 246 / var(--tw-panel-active-color-opacity));
-    --tw-bg-elevated: rgb(255 255 252 / var(--tw-panel-active-color-opacity));
-    --tw-row-drag-bg: rgb(255 255 252 / calc(var(--tw-panel-active-color-opacity) * 0.82));
-    --tw-border: rgb(198 207 197 / var(--tw-panel-active-color-opacity));
-    --tw-border-strong: rgb(144 158 146 / var(--tw-panel-active-color-opacity));
-    --tw-control-bg: rgb(237 242 235 / var(--tw-panel-active-color-opacity));
-    --tw-row-bg: rgb(26 48 34 / calc(var(--tw-panel-active-color-opacity) * 0.035));
-    --tw-row-hover-bg: rgb(26 48 34 / calc(var(--tw-panel-active-color-opacity) * 0.075));
-    --tw-row-hover-border: rgb(26 48 34 / calc(var(--tw-panel-active-color-opacity) * 0.09));
-    --tw-control-hover-bg: rgb(26 48 34 / calc(var(--tw-panel-active-color-opacity) * 0.09));
-    --tw-text: #172019;
-    --tw-muted: #647064;
-    --tw-accent: #2f7b44;
-    --tw-accent-strong: #195d31;
-    --tw-accent-soft: rgb(47 123 68 / 0.13);
-    --tw-accent-border: rgb(47 123 68 / 0.34);
-    --tw-check: rgb(255 255 252);
-    --tw-danger: #b8492f;
-    --tw-shadow: 0 18px 46px rgb(47 64 50 / 0.18);
-    --tw-drag-shadow:
-      0 22px 44px rgb(47 64 50 / 0.28), 0 8px 18px rgb(47 64 50 / 0.2),
-      0 0 0 1px rgb(26 48 34 / 0.12);
-    --tw-thumb-shadow: 0 1px 4px rgb(47 64 50 / 0.24);
-  }
-}
+/*
+ * Public theme contract.
+ *
+ * Defaults live on every named theme carrier so consumers can create a theme by
+ * overriding only the cohesive roles they need. The zero-specificity selector
+ * lets declarations loaded after tweaker/style.css win.
+ */
+:where([data-tweaker-theme]) {
+  color-scheme: dark;
+  font-family: var(--tweaker-font-family);
 
-.tw-panel {
-  @apply fixed z-1000 overflow-hidden select-none;
+  /* Foundation scales used by package controls and consumer-authored panel items. */
+  --tweaker-space-0-5: 0.125rem;
+  --tweaker-space-1: 0.25rem;
+  --tweaker-space-1-5: 0.375rem;
+  --tweaker-space-2: 0.5rem;
+  --tweaker-space-2-5: 0.625rem;
+  --tweaker-space-3: 0.75rem;
+  --tweaker-space-4: 1rem;
+  --tweaker-space-5: 1.25rem;
+  --tweaker-radius-surface: 0;
+  --tweaker-radius-control: 0;
+  --tweaker-control-height-xs: 1.5rem;
+  --tweaker-control-height-sm: 1.75rem;
+  --tweaker-control-height-md: 2rem;
+  --tweaker-control-height-lg: 2.25rem;
+  --tweaker-field-surface-min-height: 6rem;
+  --tweaker-icon-xs: 0.75rem;
+  --tweaker-icon-sm: 0.875rem;
+  --tweaker-icon-md: 1rem;
+  --tweaker-icon-lg: 1.25rem;
+  --tweaker-font-family: inherit;
+  --tweaker-font-size-xs: 0.5625rem;
+  --tweaker-font-size-sm: 0.625rem;
+  --tweaker-font-size-md: 0.6875rem;
+  --tweaker-font-size-lg: 0.75rem;
+  --tweaker-font-size-xl: 0.875rem;
+  --tweaker-font-size-2xl: 1.25rem;
+  --tweaker-font-size-3xl: 1.5rem;
+  --tweaker-line-none: 1em;
+  --tweaker-line-tight: 1.1em;
+  --tweaker-line-normal: 1.25em;
+  --tweaker-line-relaxed: 1.5em;
+  --tweaker-font-light: 300;
+  --tweaker-font-normal: 400;
+  --tweaker-font-medium: 500;
+  --tweaker-font-semibold: 600;
+  --tweaker-tracking-normal: 0;
+  --tweaker-tracking-wide: 0.025em;
+  --tweaker-opacity-disabled: 0.5;
+  --tweaker-opacity-disabled-soft: 0.45;
+  --tweaker-opacity-muted: 0.7;
+  --tweaker-opacity-subtle: 0.3;
+  --tweaker-border-thin: 1px;
+  --tweaker-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --tweaker-shadow-md: 0 4px 12px rgb(0 0 0 / 0.25);
+  --tweaker-shadow-panel: 0 25px 50px -12px rgb(0 0 0 / 0.3);
+  --tweaker-shadow-viewer: 0 25px 50px -12px rgb(0 0 0 / 0.7);
+  --tweaker-shadow-inner: inset 0 2px 4px rgb(0 0 0 / 0.25);
+  --tweaker-duration-fast: 150ms;
+  --tweaker-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --tweaker-blur-surface: 12px;
+  --tweaker-blur-overlay: 4px;
+  --tweaker-layer-raised: 10;
+  --tweaker-layer-drag: 20;
+  --tweaker-layer-tooltip: 50;
+  --tweaker-layer-select: 60;
+  --tweaker-layer-menu: 70;
+  --tweaker-layer-dialog: 80;
+  --tweaker-layer-viewer: 2147483647;
+  --tweaker-panel-width: min(20rem, calc(100dvw - 2rem));
 
-  width: min(var(--tw-panel-width, 320px), calc(100vw - 16px));
-  -webkit-backdrop-filter: blur(var(--tw-panel-background-blur, 0px));
-  backdrop-filter: blur(var(--tw-panel-background-blur, 0px));
-  color: var(--tw-text);
-  background-color: var(--tw-bg);
-  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.035), transparent 32px);
-  border: 1px solid var(--tw-border);
-  border-radius: var(--tw-radius);
-  box-shadow: var(--tw-shadow);
-  font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 0;
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    -webkit-backdrop-filter 160ms ease,
-    backdrop-filter 160ms ease;
-}
+  /* Core semantic color roles: the minimum cohesive named-theme recipe. */
+  --tweaker-color-canvas: oklch(0.148 0.004 228.8);
+  --tweaker-color-surface: oklch(0.218 0.008 223.9);
+  --tweaker-color-surface-raised: oklch(0.218 0.008 223.9);
+  --tweaker-color-surface-muted: oklch(0.275 0.011 216.9);
+  --tweaker-color-text: oklch(0.987 0.002 197.1);
+  --tweaker-color-text-strong: oklch(1 0 0);
+  --tweaker-color-text-muted: oklch(0.723 0.014 214.4);
+  --tweaker-color-border: oklch(1 0 0 / 10%);
+  --tweaker-color-control: oklch(1 0 0 / 15%);
+  --tweaker-color-focus: oklch(0.56 0.021 213.5);
+  --tweaker-color-accent: oklch(0.925 0.005 214.3);
+  --tweaker-color-accent-text: oklch(0.218 0.008 223.9);
+  --tweaker-color-success: oklch(0.765 0.177 163.223);
+  --tweaker-color-info: oklch(0.746 0.16 232.661);
+  --tweaker-color-warning: oklch(0.828 0.189 84.429);
+  --tweaker-color-alert: oklch(0.75 0.183 55.934);
+  --tweaker-color-danger: oklch(0.704 0.191 22.216);
+  --tweaker-color-overlay: oklch(0 0 0 / 85%);
 
-.tw-panel:hover,
-.tw-panel:focus-within,
-.tw-panel[data-active='true'] {
-  --tw-panel-active-color-opacity: var(
-    --tw-panel-hover-color-opacity,
-    var(--tw-panel-color-opacity)
+  /* Derived semantic roles keep custom themes internally consistent. */
+  --_tweaker-color-surface-hover: var(--tweaker-color-surface-muted);
+  --_tweaker-color-well: color-mix(in oklab, var(--tweaker-color-surface-muted) 30%, transparent);
+  --_tweaker-color-success-strong: color-mix(
+    in oklab,
+    var(--tweaker-color-success) 70%,
+    var(--tweaker-color-canvas)
   );
-  -webkit-backdrop-filter: blur(
-    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
+  --_tweaker-color-success-subtle: color-mix(
+    in oklab,
+    var(--tweaker-color-success) 10%,
+    transparent
   );
-  backdrop-filter: blur(
-    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
+  --_tweaker-color-info-border: color-mix(in oklab, var(--tweaker-color-info) 80%, transparent);
+  --_tweaker-color-info-subtle: color-mix(in oklab, var(--tweaker-color-info) 10%, transparent);
+  --_tweaker-color-warning-border: color-mix(
+    in oklab,
+    var(--tweaker-color-warning) 80%,
+    transparent
+  );
+  --_tweaker-color-warning-subtle: color-mix(
+    in oklab,
+    var(--tweaker-color-warning) 10%,
+    transparent
+  );
+  --_tweaker-color-alert-border: color-mix(in oklab, var(--tweaker-color-alert) 80%, transparent);
+  --_tweaker-color-alert-subtle: color-mix(in oklab, var(--tweaker-color-alert) 10%, transparent);
+  --_tweaker-color-danger-border: color-mix(in oklab, var(--tweaker-color-danger) 80%, transparent);
+  --_tweaker-color-danger-subtle: color-mix(in oklab, var(--tweaker-color-danger) 10%, transparent);
+
+  /*
+   * Private implementation values. These are derived geometry or visual
+   * formulas, not independent theme choices.
+   */
+  --_tweaker-panel-ring: oklch(1 0 0 / 5%);
+  --_tweaker-choice-background: color-mix(
+    in oklab,
+    var(--tweaker-color-surface-muted) 35%,
+    transparent
+  );
+  --_tweaker-nested-inset: -0.125rem;
+  --_tweaker-row-hover: color-mix(in oklab, var(--_tweaker-color-surface-hover) 65%, transparent);
+  --_tweaker-row-drag: color-mix(in oklab, var(--_tweaker-color-surface-hover) 90%, transparent);
+  --_tweaker-group-drag: color-mix(in oklab, var(--tweaker-color-surface-muted) 80%, transparent);
+  --_tweaker-slider-track-height: var(--tweaker-space-1);
+  --_tweaker-slider-thumb-size: var(--tweaker-icon-sm);
+  --_tweaker-slider-thumb: color-mix(in oklab, var(--tweaker-color-accent) 60%, transparent);
+  --_tweaker-slider-hit-inset: var(--tweaker-space-2);
+  --_tweaker-slider-hit-offset: calc(-1 * var(--_tweaker-slider-hit-inset));
+  --_tweaker-slider-hit-width: calc(100% + 2 * var(--_tweaker-slider-hit-inset));
+  --_tweaker-slider-webkit-thumb-offset: calc(
+    (var(--_tweaker-slider-track-height) - var(--_tweaker-slider-thumb-size)) / 2
+  );
+  --_tweaker-switch-height: var(--tweaker-icon-lg);
+  --_tweaker-switch-thumb-size: calc(var(--_tweaker-switch-height) - var(--tweaker-space-1));
+  --_tweaker-switch-thumb-translate: var(--_tweaker-switch-thumb-size);
+  --_tweaker-switch-width: calc(
+    var(--_tweaker-switch-height) + var(--_tweaker-switch-thumb-translate)
+  );
+  --_tweaker-xy-background: color-mix(
+    in oklab,
+    var(--tweaker-color-surface-muted) 50%,
+    transparent
+  );
+  --_tweaker-xy-grid: color-mix(in oklab, var(--tweaker-color-border) 70%, transparent);
+  --_tweaker-viewer-background: color-mix(in oklab, var(--tweaker-color-canvas) 75%, transparent);
+  --_tweaker-viewer-preview-scrim: color-mix(
+    in oklab,
+    var(--tweaker-color-overlay) 53%,
+    transparent
+  );
+  --_tweaker-viewer-caption-background: color-mix(
+    in oklab,
+    var(--tweaker-color-overlay) 82%,
+    transparent
+  );
+  --_tweaker-viewer-spotlight: color-mix(
+    in oklab,
+    var(--tweaker-color-text-strong) 12%,
+    transparent
   );
 }
 
-/* While a drag/menu interaction is in progress (or settling), keep the active
-   background snapped: a momentary :hover flicker (e.g. the cursor crossing a
-   gap as reordered rows animate) must not start a visible dim-then-brighten
-   transition. The transition is restored once the interaction settles. */
-.tw-panel[data-active='true'] {
-  transition: none;
-}
-
-.tw-panel * {
-  @apply box-border;
-}
-
-.tw-panel__header {
-  @apply grid h-8.5 cursor-grab items-center gap-1.5 px-1.5 py-1;
-
-  background-color: var(--tw-bg-elevated);
-  border-bottom: 1px solid var(--tw-border);
-  grid-template-columns: 26px 1fr 26px auto;
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease;
-  touch-action: none;
-}
-
-.tw-panel__header:active {
-  @apply cursor-grabbing;
-}
-
-.tw-panel__header strong {
-  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
-
-  color: var(--tw-text);
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.tw-panel__body {
-  @apply overflow-auto p-1.75;
-
-  max-height: min(90vh, calc(100vh - 3rem));
-}
-
-.tw-panel__bottom-sentinel {
-  --bg: var(--tw-bg);
-  --text: var(--tw-text);
-
-  @apply sticky bottom-[calc(-1.75*var(--spacing,0.25rem))] z-1 hidden items-center justify-center;
-
-  height: 32px;
-  margin: -32px -7px 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, transparent, var(--bg) 74%);
-}
-
-.tw-panel__body[data-overflowing] .tw-panel__bottom-sentinel {
-  @apply flex;
-}
-
-.tw-panel__bottom-sentinel::after {
-  content: '';
-  width: 12px;
-  height: 12px;
-  border-right: 1.5px solid var(--text);
-  border-bottom: 1.5px solid var(--text);
-  opacity: 0.78;
-  transform: translateY(1px) rotate(45deg);
-}
-
-.tw-icon-button,
-.tw-text-button,
-.tw-grip,
-.tw-help {
-  @apply inline-flex h-6 cursor-pointer items-center justify-center;
-
-  background: transparent;
-  color: var(--tw-muted);
-  border: 0;
-  border-radius: 5px;
-}
-
-.tw-icon-button {
-  @apply size-6;
-}
-
-.tw-text-button {
-  @apply w-auto py-0;
-
-  font: inherit;
-  font-size: 11px;
-  padding-inline: 7px;
-}
-
-.tw-icon-button:hover,
-.tw-text-button:hover,
-.tw-grip:hover,
-.tw-help:hover {
-  color: var(--tw-text);
-  background-color: var(--tw-control-hover-bg);
-}
-
-.tw-icon-button:focus-visible,
-.tw-text-button:focus-visible,
-.tw-grip:focus-visible,
-.tw-help:focus-visible,
-.tw-number:focus-visible,
-.tw-select__button:focus-visible,
-.tw-checkbox[data-focus-visible],
-.tw-slider__thumb[data-focus-visible] {
-  @apply outline-offset-1;
-
-  outline: 2px solid var(--tw-accent);
-  outline-color: var(--tw-accent);
-}
-
-.tw-section + .tw-section {
-  @apply mt-2.25 pt-1.75;
-
-  border-top: 1px solid var(--tw-border);
-}
-
-/* A headerless section has no toggle/title row, so it skips the top divider
-   and spacing that belong to a section header. */
-.tw-section.is-headerless + .tw-section,
-.tw-section + .tw-section.is-headerless {
-  @apply mt-1.5 pt-1.5;
-}
-
-.tw-section__header {
-  @apply grid min-h-6 w-full cursor-pointer items-center gap-0.75 border-0 bg-transparent pb-1.5 text-left;
-
-  grid-template-columns: 22px minmax(0, 1fr);
-  border-radius: 5px;
-  color: var(--tw-muted);
-}
-.tw-section__header:hover {
-  color: var(--tw-text);
-}
-
-.tw-section__title {
-  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap uppercase;
-
-  color: var(--tw-muted);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.tw-section__toggle {
-  @apply size-5;
-}
-
-.tw-section__list {
-  @apply grid min-h-7.5 gap-0.75;
-
-  grid-template-columns: 22px minmax(70px, 0.9fr) minmax(64px, 1.2fr) max-content;
-}
-
-.tw-row {
-  @apply grid min-h-7.5 items-center gap-1.75 py-0.75 pr-1.25 pl-0.5;
-
-  --tw-control-min-height: 0px;
-
-  background-color: var(--tw-row-status-bg);
-  border: 1px solid transparent;
-  border-left-color: var(--tw-row-status-accent);
-  border-radius: 5px;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  outline: 1px solid var(--tw-row-status-outline);
-  outline-offset: -1px;
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    outline-color 160ms ease,
-    box-shadow 160ms ease,
-    -webkit-backdrop-filter 160ms ease,
-    backdrop-filter 160ms ease;
-}
-
-.tw-row:hover {
-  background-color: var(--tw-row-status-hover-bg);
-  border-color: var(--tw-row-status-border, var(--tw-row-hover-border));
-  border-left-color: var(--tw-row-status-accent);
-}
-
-.tw-row.is-dragging,
-.tw-row[data-dnd-dragging] {
-  position: relative;
-  z-index: 2;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  background-color: var(--tw-row-drag-bg);
-  border-color: var(--tw-accent-border);
-  box-shadow: var(--tw-drag-shadow);
-}
-
-.tw-row[data-dnd-dragging][data-control-layout='inline'] {
-  column-gap: var(--tw-drag-column-gap, 2px);
-  grid-template-columns:
-    var(--tw-drag-grip-width, 22px)
-    var(--tw-drag-label-width, minmax(70px, 0.9fr))
-    var(--tw-drag-control-width, minmax(64px, 1.2fr));
-}
-
-.tw-row[data-dnd-dragging][data-control-layout='inline'] .tw-row__control {
-  display: block;
-  grid-column: 3;
-}
-
-.tw-row[data-dnd-dragging][data-control-layout='inline'] .tw-slider {
-  grid-template-columns: minmax(0, 1fr) var(--tw-drag-slider-value-width, max-content);
-}
-
-.tw-row--info {
-  --tw-row-status-bg: rgb(59 130 246 / 0.1);
-  --tw-row-status-hover-bg: rgb(59 130 246 / 0.16);
-  --tw-row-status-border: rgb(96 165 250 / 0.28);
-  --tw-row-status-outline: rgb(96 165 250 / 0.22);
-  --tw-row-status-accent: rgb(96 165 250 / 0.8);
-
-  border-color: var(--tw-row-status-border);
-  border-left-width: 3px;
-}
-
-.tw-row--alert {
-  --tw-row-status-bg: rgb(245 158 11 / 0.11);
-  --tw-row-status-hover-bg: rgb(245 158 11 / 0.17);
-  --tw-row-status-border: rgb(251 191 36 / 0.3);
-  --tw-row-status-outline: rgb(251 191 36 / 0.24);
-  --tw-row-status-accent: rgb(251 191 36 / 0.85);
-
-  border-color: var(--tw-row-status-border);
-  border-left-width: 3px;
-}
-
-.tw-row--error {
-  --tw-row-status-bg: rgb(239 68 68 / 0.1);
-  --tw-row-status-hover-bg: rgb(239 68 68 / 0.16);
-  --tw-row-status-border: rgb(248 113 113 / 0.3);
-  --tw-row-status-outline: rgb(248 113 113 / 0.24);
-  --tw-row-status-accent: rgb(248 113 113 / 0.85);
-
-  border-color: var(--tw-row-status-border);
-  border-left-width: 3px;
-}
-
-.tw-row.is-not-reorderable .tw-grip {
-  @apply cursor-default opacity-35;
-}
-
-.tw-row.is-not-reorderable .tw-grip:hover {
-  color: var(--tw-muted);
-  background: transparent;
-}
-
-/* Read-only controls: inputs are faded and rendered in greyscale so they read
-   as non-editable while still displaying their value. The label stays legible. */
-.tw-row[data-readonly='true'] .tw-number-field,
-.tw-row[data-readonly='true'] .tw-select,
-.tw-row[data-readonly='true'] .tw-checkbox-field,
-.tw-row[data-readonly='true'] .tw-slider {
-  opacity: 0.5;
-  filter: grayscale(1);
-  pointer-events: none;
-}
-
-/* Hidden controls: the row is removed from the layout but stays registered so
-   its value and order slot are preserved when it is shown again. */
-.tw-row[data-hidden='true'] {
-  display: none;
-}
-
-.tw-row__label-wrap {
-  @apply inline-flex min-w-0 items-center gap-1.25;
-
-  width: fit-content;
-  max-width: 100%;
-}
-
-.tw-row__label {
-  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
-
-  color: var(--tw-muted);
-}
-
-.tw-row__control {
-  @apply grid min-w-0;
-
-  grid-column: 3 / -1;
-  grid-template-columns: subgrid;
-  height: var(--tw-control-height, auto);
-  min-height: var(--tw-control-min-height);
-}
-
-.tw-row__control > * {
-  grid-column: 1 / -1;
-  width: 100%;
-}
-
-.tw-row__description {
-  @apply min-w-0 pt-0.5;
-
-  grid-column: 2 / -1;
-  color: var(--tw-muted);
-  font-size: 10px;
-  line-height: 1.35;
-  white-space: normal;
-}
-
-.tw-row[data-control-layout='block'],
-.tw-row[data-control-layout='full'] {
-  @apply items-start;
-}
-
-.tw-row[data-control-layout='block'] .tw-row__label-wrap,
-.tw-row[data-control-layout='full'] .tw-row__label-wrap {
-  grid-column: 2 / -1;
-}
-
-.tw-row[data-control-layout='block'] .tw-row__control {
-  grid-column: 2 / -1;
-}
-
-.tw-row[data-control-layout='full'] .tw-row__control {
-  grid-column: 1 / -1;
-}
-
-.tw-row[data-control-layout='block'] .tw-row__description,
-.tw-row[data-control-layout='full'] .tw-row__description {
-  grid-column: 2 / -1;
-}
-
-.tw-help {
-  @apply size-4 cursor-help p-0;
-
-  transform: translateX(1px);
-}
-
-.tw-help svg {
-  @apply shrink-0;
-}
-
-.tw-grip {
-  @apply w-5.5 cursor-grab;
-
-  touch-action: none;
-}
-
-.tw-grip:active {
-  @apply cursor-grabbing;
-}
-
-.tw-number-field {
-  @apply min-w-0;
-}
-
-.tw-number-field .react-aria-Group {
-  @apply flex min-w-0 flex-1;
-}
-
-/* Tweaker renders NumberField without stepper buttons; keep the layout compact
-   even if a consumer's CSS resets reintroduce them. */
-.tw-number-field .react-aria-Button {
-  display: none;
-}
-
-.tw-number,
-.tw-select__button {
-  @apply h-6 w-full min-w-0;
-
-  color: var(--tw-text);
-  background-color: var(--tw-control-bg);
-  border: 1px solid var(--tw-border);
-  border-radius: 5px;
-  font: inherit;
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease;
-}
-
-.tw-number {
-  @apply px-1.75 py-0 text-right;
-}
-
-/* Display controls: non-interactive derived values rendered as text, aligned
-   with the other inputs in the row. */
-.tw-display {
-  @apply flex h-6 w-full min-w-0 items-center justify-end;
-
-  color: var(--tw-text);
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.9;
-}
-
-.tw-select {
-  @apply min-w-0;
-}
-
-.tw-select__button {
-  @apply grid cursor-pointer items-center gap-1.25 px-1.5 py-0 text-left;
-
-  grid-template-columns: minmax(0, 1fr) 13px;
-}
-
-.tw-select__button [slot='value'] {
-  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
-}
-
-.tw-select__button svg {
-  color: var(--tw-muted);
-}
-
-.tw-select__popover {
-  --tw-panel-active-color-opacity: var(
-    --tw-panel-hover-color-opacity,
-    var(--tw-panel-color-opacity, 0.78)
-  );
-
-  @apply z-1001 overflow-auto;
-
-  min-width: var(--trigger-width);
-  max-height: min(240px, var(--available-height));
-  -webkit-backdrop-filter: blur(
-    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
-  );
-  backdrop-filter: blur(
-    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
-  );
-  color: var(--tw-text);
-  background-color: var(--tw-bg-elevated);
-  border: 1px solid var(--tw-border-strong);
-  border-radius: 5px;
-  box-shadow: var(--tw-shadow);
-  font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', monospace;
-  font-size: 12px;
-}
-
-.tw-tooltip {
-  --tw-panel-active-color-opacity: var(
-    --tw-panel-hover-color-opacity,
-    var(--tw-panel-color-opacity, 0.78)
-  );
-
-  @apply z-1002 max-w-64 px-2 py-1.5;
-
-  -webkit-backdrop-filter: blur(
-    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
-  );
-  backdrop-filter: blur(
-    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
-  );
-  color: var(--tw-text);
-  background-color: var(--tw-bg-elevated);
-  border: 1px solid var(--tw-border-strong);
-  border-radius: 5px;
-  box-shadow: var(--tw-shadow);
-  font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', monospace;
-  font-size: 11px;
-  line-height: 1.35;
-  pointer-events: none;
-}
-
-.tw-tooltip__arrow svg {
-  display: block;
-  fill: var(--tw-bg-elevated);
-  stroke: var(--tw-border-strong);
-  stroke-width: 1px;
-}
-
-.tw-tooltip[data-placement='bottom'] .tw-tooltip__arrow svg {
-  transform: rotate(180deg);
-}
-
-.tw-tooltip[data-placement='left'] .tw-tooltip__arrow svg {
-  transform: rotate(90deg);
-}
-
-.tw-tooltip[data-placement='right'] .tw-tooltip__arrow svg {
-  transform: rotate(-90deg);
-}
-
-.tw-select__list {
-  @apply m-0 grid gap-0.5 p-0.75 outline-none;
-}
-
-.tw-select__list [role='option'] {
-  @apply min-h-5.75 cursor-pointer rounded-sm px-1.5 py-1 outline-none;
-}
-
-.tw-select__list [role='option'][data-focused],
-.tw-select__list [role='option'][data-hovered] {
-  background-color: var(--tw-control-hover-bg);
-}
-
-.tw-select__list [role='option'][data-selected] {
-  color: var(--tw-accent-strong);
-}
-
-.tw-checkbox {
-  @apply relative inline-flex size-4 cursor-pointer justify-self-end rounded-sm;
-
-  background-color: var(--tw-control-bg);
-  border: 1px solid var(--tw-border-strong);
-}
-
-.tw-checkbox[data-hovered] {
-  background-color: var(--tw-control-hover-bg);
-}
-
-.tw-checkbox[data-selected] {
-  background-color: var(--tw-accent);
-  border-color: var(--tw-accent-strong);
-}
-
-.tw-checkbox[data-selected]::after {
-  @apply absolute top-0.25 left-1 h-2.25 w-1.25;
-
-  border: solid var(--tw-check);
-  border-width: 0 2px 2px 0;
-  content: '';
-  transform: rotate(45deg);
-}
-
-.tw-number-field,
-.tw-select,
-.tw-checkbox-field,
-.tw-display,
-.tw-custom-missing {
-  min-width: 0;
-}
-
-.tw-slider {
-  @apply grid items-center gap-2;
-
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-}
-
-.tw-slider__track {
-  @apply relative h-4.5 w-full min-w-0;
-}
-
-.tw-slider__track::before {
-  @apply absolute top-1/2 right-0 left-0 h-1 rounded-full;
-
-  background-color: var(--tw-control-bg);
-  content: '';
-  transform: translateY(-50%);
-}
-
-.tw-slider__thumb {
-  @apply absolute top-1/2 size-3.25 rounded-full outline-none;
-
-  background-color: var(--tw-accent);
-  border: 1px solid var(--tw-accent-strong);
-  box-shadow: var(--tw-thumb-shadow);
-  transform: translateY(-50%);
-}
-
-.tw-slider__thumb[data-dragging] {
-  background-color: var(--tw-accent-strong);
-}
-
-.tw-slider__value {
-  @apply text-right;
-
-  color: var(--tw-text);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.tw-visually-hidden {
-  @apply absolute size-px overflow-hidden p-0 whitespace-nowrap;
-
-  border: 0;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-}
-
-@media (max-width: 520px) {
-  .tw-panel {
-    width: min(var(--tw-panel-width, calc(100vw - 12px)), calc(100vw - 12px));
-  }
-
-  .tw-row {
-    grid-template-columns: subgrid;
-  }
-
-  .tw-section__list {
-    grid-template-columns: 22px minmax(54px, 0.85fr) minmax(54px, 1.15fr) max-content;
-  }
-}
-
-/* Panel action / sticky-edge menu. Mirrors the select popover surface so it
-   inherits the panel's opacity, blur, and theme. */
-.tw-menu__popover {
-  --tw-panel-active-color-opacity: var(
-    --tw-panel-hover-color-opacity,
-    var(--tw-panel-color-opacity, 0.78)
-  );
-
-  @apply z-1001 min-w-44 overflow-auto;
-
-  -webkit-backdrop-filter: blur(
-    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
-  );
-  backdrop-filter: blur(
-    var(--tw-panel-hover-background-blur, var(--tw-panel-background-blur, 0px))
-  );
-  color: var(--tw-text);
-  background-color: var(--tw-bg-elevated);
-  border: 1px solid var(--tw-border-strong);
-  border-radius: 5px;
-  box-shadow: var(--tw-shadow);
-}
-
-.tw-menu {
-  @apply m-0 grid gap-0.5 p-0.75 outline-none;
-}
-
-.tw-menu__section {
-  @apply grid gap-0.5;
-}
-
-.tw-menu__section-header {
-  @apply px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase;
-
-  color: var(--tw-muted);
-}
-
-.tw-menu__item {
-  @apply flex min-h-5.75 cursor-pointer items-center gap-1 rounded-sm px-1.5 py-1 text-[11px] outline-none;
-
-  color: var(--tw-text);
-}
-
-.tw-menu__item[data-focused],
-.tw-menu__item[data-hovered] {
-  background-color: var(--tw-control-hover-bg);
-}
-
-/* Checkable items reserve space for the leading tick so labels align whether
-   or not the current item is the active one. */
-.tw-menu__item--checkable {
-  @apply grid gap-1;
-
-  grid-template-columns: 0.75rem minmax(0, 1fr);
-}
-
-.tw-menu__check {
-  @apply text-center;
-
-  color: var(--tw-accent-strong);
-}
-
-.tw-menu__label {
-  @apply min-w-0;
-}
-
-/* Submenu trigger chevron, pushed to the right edge of the item. */
-.tw-menu__chevron {
-  @apply ml-auto opacity-70;
-}
-
-/* The destructive "Reset all" item is tinted with the danger token. */
-.tw-menu__item--danger {
-  color: var(--tw-danger);
+/* Namespaced utilities for package components and consumer-authored panel items. */
+@theme inline {
+  --color-tweaker-canvas: var(--tweaker-color-canvas);
+  --color-tweaker-surface: var(--tweaker-color-surface);
+  --color-tweaker-surface-raised: var(--tweaker-color-surface-raised);
+  --color-tweaker-surface-muted: var(--tweaker-color-surface-muted);
+  --color-tweaker-text: var(--tweaker-color-text);
+  --color-tweaker-muted: var(--tweaker-color-text-muted);
+  --color-tweaker-border: var(--tweaker-color-border);
+  --color-tweaker-control: var(--tweaker-color-control);
+  --color-tweaker-focus: var(--tweaker-color-focus);
+  --color-tweaker-accent: var(--tweaker-color-accent);
+  --color-tweaker-accent-text: var(--tweaker-color-accent-text);
+  --color-tweaker-success: var(--tweaker-color-success);
+  --color-tweaker-success-subtle: var(--_tweaker-color-success-subtle);
+  --color-tweaker-info: var(--tweaker-color-info);
+  --color-tweaker-info-subtle: var(--_tweaker-color-info-subtle);
+  --color-tweaker-warning: var(--tweaker-color-warning);
+  --color-tweaker-warning-subtle: var(--_tweaker-color-warning-subtle);
+  --color-tweaker-alert: var(--tweaker-color-alert);
+  --color-tweaker-alert-subtle: var(--_tweaker-color-alert-subtle);
+  --color-tweaker-danger: var(--tweaker-color-danger);
+  --color-tweaker-danger-subtle: var(--_tweaker-color-danger-subtle);
+  --radius-tweaker-surface: var(--tweaker-radius-surface);
+  --radius-tweaker-control: var(--tweaker-radius-control);
+  --shadow-tweaker-sm: var(--tweaker-shadow-sm);
+  --shadow-tweaker-panel: var(--tweaker-shadow-panel);
+  --shadow-tweaker-viewer: var(--tweaker-shadow-viewer);
+  --spacing-tweaker-1: var(--tweaker-space-1);
+  --spacing-tweaker-2: var(--tweaker-space-2);
+  --spacing-tweaker-3: var(--tweaker-space-3);
+  --spacing-tweaker-4: var(--tweaker-space-4);
+  --text-tweaker-xs: var(--tweaker-font-size-sm);
+  --text-tweaker-xs--line-height: var(--tweaker-line-tight);
+  --text-tweaker-sm: var(--tweaker-font-size-lg);
+  --text-tweaker-sm--line-height: var(--tweaker-line-tight);
+  --text-tweaker-md: var(--tweaker-font-size-xl);
+  --text-tweaker-md--line-height: var(--tweaker-line-normal);
 }

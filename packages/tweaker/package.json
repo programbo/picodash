@@ -1,7 +1,7 @@
 {
   "name": "tweaker",
   "version": "0.0.0",
-  "description": "A compact Leva-inspired React config panel.",
+  "description": "The composable React control panel for Tweaker.",
   "license": "MIT",
   "files": [
     "dist"
@@ -12,6 +12,7 @@
   ],
   "exports": {
     ".": "./dist/index.mjs",
+    "./advanced": "./dist/advanced.mjs",
     "./package.json": "./package.json",
     "./style.css": "./dist/style.css"
   },
@@ -29,9 +30,16 @@
     "@dnd-kit/abstract": "catalog:",
     "@dnd-kit/dom": "catalog:",
     "@dnd-kit/react": "catalog:",
+    "@standard-schema/spec": "^1.1.0",
+    "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "lucide-react": "catalog:",
-    "react-aria-components": "catalog:",
+    "motion": "catalog:",
+    "radix-ui": "catalog:",
+    "react-dropzone": "catalog:",
+    "recharts": "catalog:",
+    "tailwind-merge": "catalog:",
+    "yaml": "catalog:",
     "zod": "catalog:",
     "zustand": "catalog:"
   },
@@ -44,7 +52,8 @@
     "@typescript/native-preview": "7.0.0-dev.20260509.2",
     "bumpp": "^11.1.0",
     "postcss": "catalog:",
-    "postcss-import": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "^6.0.3",
     "vite-plus": "catalog:"

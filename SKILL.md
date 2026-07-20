@@ -1,101 +1,95 @@
 ---
 name: tweaker
-description: Use the local Tweaker React package to add a Leva-inspired floating config system with named panels, built-in controls, display readouts, custom controls, dynamic schemas, persisted values, themes, status states, help tooltips, collapsible sections, and reorderable sections.
+description: Use the promoted Tweaker package with application-owned stores and composable panels.
 ---
 
 # Tweaker Package Usage
 
-Use `tweaker` when a React app needs a compact floating configuration panel.
+This workspace uses the promoted `tweaker` API only.
 
-Internally, Tweaker uses a provider-scoped Zustand store. Persistence is handled by Zustand's `persist` middleware, and persisted localStorage data is Zod-validated before hydration.
-
-## Required Imports
+## Preferred Imports
 
 ```tsx
-import { TweakerPanel, TweakerProvider, useTweaker } from 'tweaker'
+import {
+  createTweakerPanelStore,
+  TweakerItem,
+  TweakerPanel,
+  TweakerProvider,
+  useTweakerPanelStoreSelector,
+} from 'tweaker'
 import 'tweaker/style.css'
 ```
 
-## Repo Workspaces
+## Quick Start Pattern
 
-- `packages/tweaker`: the main reusable Tweaker React package.
-- `apps/website`: the Tweaker demo/docs and Playwright e2e surface.
-- `packages/panel`: a Vite+ React component library that exports typed components from `src/index.ts` and compiled Tailwind-authored CSS from `panel/style.css`.
-- `apps/demo`: a Vite+ React TypeScript Tailwind app that imports `panel` through `workspace:*`.
+1. Create a stable store once.
 
-## Provider and Panels
+```ts
+import { createTweakerPanelStore } from 'tweaker'
 
-Wrap the app once with `TweakerProvider`. Always provide a stable `id`; it is used for localStorage persistence.
-
-```tsx
-<TweakerProvider id="my-app">
-  <SceneControls />
-  <BuildControls />
-  <TweakerPanel id="scene" defaultPlacement="top-right" theme="dark" width={360} />
-  <TweakerPanel id="build" defaultPlacement="bottom-right" theme="system" />
-</TweakerProvider>
-```
-
-Omitted panel IDs default to `"default"`, so existing single-panel usage remains straightforward.
-
-## Register Controls
-
-Call `useTweaker(schema, { panel, section, reorderable })` inside React components. It returns `[values, setValue]`. `reorderable` defaults to `true`.
-
-```tsx
-const [values, setValue] = useTweaker(
-  {
-    speed: {
-      defaultValue: 0.75,
-      min: 0,
-      max: 2,
-      status: 'info',
-      help: 'Adjusts preview animation speed.',
-    },
-    exposure: { type: 'number', defaultValue: 1, min: 0, max: 4 },
-    fps: { type: 'display', defaultValue: 60, format: '{value} fps' },
-    mode: { type: 'select', defaultValue: 'fast', options: ['fast', 'quality'] },
-    enabled: { defaultValue: true },
+export const settingsStore = createTweakerPanelStore({
+  panelId: 'settings',
+  initialValues: {
+    quality: 'balanced',
+    showGrid: true,
+    exposure: 1,
   },
-  {
-    panel: 'scene',
-    section: { id: 'rendering', label: 'Rendering' },
-    reorderable: true,
-  },
-)
+})
 ```
 
-## Custom Controls
+2. Read values with selectors.
 
-Register custom components once on the provider, then reference them by `type` in schemas.
+```ts
+import { useTweakerPanelStoreSelector } from 'tweaker'
+
+const exposure = useTweakerPanelStoreSelector(settingsStore, (state) => {
+  return typeof state.values.exposure === 'number' ? state.values.exposure : 1
+})
+```
+
+3. Render `TweakerProvider` and `TweakerPanel`.
 
 ```tsx
-<TweakerProvider id="my-app" controls={{ color: ColorControl }}>
-  <Controls />
-  <TweakerPanel />
-</TweakerProvider>
+import { TweakerPanel, TweakerProvider, TweakerSwitch, useTweakerPanelStoreSelector } from 'tweaker'
+
+export function SiteControls() {
+  return (
+    <TweakerProvider theme="system" persistLayout storageKey="my-site:tweaker-layout:v1">
+      <main style={{ opacity: exposure }}>App content</main>
+
+      <TweakerPanel store={settingsStore} title="Settings" defaultPlacement="top-right">
+        <TweakerSwitch field="showGrid" label="Show grid" defaultValue />
+      </TweakerPanel>
+    </TweakerProvider>
+  )
+}
 ```
 
-Custom control values must be JSON-serializable. Use control-level `id` when a schema key may change.
+## API Expectations
 
-## Constraints
+- Use `createTweakerPanelStore` for application-owned state.
+- Use `TweakerPanel` with `store` for app-owned modes.
+- Use `setFieldValue` / `setFieldValues` for strict app writes.
+- Use `setFieldInput` for interactive editors that should retain transient drafts.
+- Use `TweakerItem`, `TweakerGroup`, and built-in items for custom compositions.
+- Use `tweaker/advanced` only when a task needs internals.
 
-- Supported built-ins are numbers, sliders, selects, checkboxes, and display rows.
-- Min/max numeric shorthand becomes a slider.
-- Use explicit `type: "number"` for bounded number inputs.
-- Use `formatOptions` on sliders when their output needs Intl formatting; default fraction digits are inferred from `step`.
-- Use `type: "display"` for derived non-interactive readouts; they update from `defaultValue` on re-registration and ignore writes.
-- Use `status: "info" | "alert" | "error"` on object controls for blue, amber, or red row states.
-- Use `help: React.ReactNode` on object controls for row help tooltips; keep tooltip styling owned by the panel.
-- Use `description: React.ReactNode` on object controls for dynamic row footer content; derive it from live values and re-register when it changes.
-- Use `readOnly: true` to show a value while blocking writes.
-- Use `hidden: true` on controls or sections to hide rows while preserving values and order.
-- Dynamic schemas are supported; re-registration updates labels, bounds, options, formatting, read-only/hidden state, and display metadata, and it sanitizes values when numeric bounds or select options narrow.
-- Pass `reorderable: false` in hook options when a hook registration should not be draggable.
-- Put panel opacity and backdrop blur on `TweakerPanel.appearance`, not hook options.
-- Use `width={360}` or another CSS length string on `TweakerPanel` to set `--tw-panel-width`.
-- Section collapse state is persisted per panel and section.
-- Reordering is panel-local and section-local and starts from the grip handle.
-- The package ships dark and light CSS-variable themes. Use `theme="system"` to follow `prefers-color-scheme`, or customize further by overriding CSS variables around the panel.
-- Package styles may be authored with Tailwind internally, but consumers only import compiled plain CSS from `tweaker/style.css`.
-- Compatibility aliases still work: `storeId`, `placement`, `sortable`, hook-level panel effects, and `value`.
+## Validation and State
+
+- Use synchronous `parse` and `validate`; no promise-based contracts.
+- Values must be JSON-compatible.
+- `setFieldValues` is atomic and rejects invalid batches.
+
+## Migration Note
+
+This repository is on the promoted API. Legacy schema-driven `useTweaker` and old persistence are not migrated.
+
+## Local Development
+
+- `bun install`
+- `bun run dev`
+- `bun run website`
+- `bun run --filter tweaker check`
+- `bun run --filter tweaker test`
+- `bun run --filter website test:e2e`
+- `bun run ready`
