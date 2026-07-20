@@ -22,7 +22,7 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 ## Repository Topology
 
 - `packages/tweaker`: the promoted public package and default API surface.
-- `apps/website`: showcase, landing page, and `/gallery` + `/state-lab` demo apps.
+- `apps/website`: interactive gallery at `/` and the `/state-lab` demo app. `/gallery` remains a compatibility alias.
 
 ## Active API Model
 

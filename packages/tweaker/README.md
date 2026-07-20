@@ -2,6 +2,8 @@
 
 A composable React inspector-panel package with application-owned state, synchronous validation contracts, and built-in controls/visualizations.
 
+The workspace website presents the interactive control gallery at `/` and the live store inspector at `/state-lab`.
+
 ## Migration boundary
 
 - This package is the promoted API. Old schema-driven specifiers and behavior (`useTweaker` driven registration and old persistence shape) are retired.

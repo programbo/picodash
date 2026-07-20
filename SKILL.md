@@ -7,6 +7,8 @@ description: Use the promoted Tweaker package with application-owned stores and 
 
 This workspace uses the promoted `tweaker` API only.
 
+The workspace website serves the interactive control gallery at `/` and the live store inspector at `/state-lab`.
+
 ## Preferred Imports
 
 ```tsx

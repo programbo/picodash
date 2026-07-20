@@ -5,7 +5,7 @@ Monorepo for the promoted [Tweaker] package and its web showcase (`apps/website`
 ## Active product topology
 
 - `packages/tweaker`: published package API for application-owned inspector panels.
-- `apps/website`: landing, `/gallery`, and `/state-lab` demo surfaces built with the promoted package.
+- `apps/website`: the interactive gallery at `/` and the `/state-lab` demo surface, both built with the promoted package.
 - Legacy `/demo` integration and old schema-driven API are not part of this workspace and should not be documented as active APIs.
 
 ## Breaking migration notes

@@ -17,8 +17,8 @@ What it provides:
 - import/export and repair flows
 
 Workspace pages:
-- / (landing)
-- /gallery
+- / (interactive gallery)
+- /gallery (compatibility alias)
 - /state-lab
 
 Important migration:

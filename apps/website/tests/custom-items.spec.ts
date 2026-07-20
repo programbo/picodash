@@ -148,13 +148,15 @@ test('controls registered panels through useTweakerPanel', async ({ page }) => {
   )
 })
 
-test('routes the landing, gallery, state lab, and unknown paths explicitly', async ({ page }) => {
+test('routes the gallery, its compatibility alias, state lab, and unknown paths explicitly', async ({
+  page,
+}) => {
   await page.goto('/')
 
-  await expect(page.locator('[data-interactive-jsx-example]')).toHaveCount(0)
-  await expect(page.locator('[data-tweaker-panel-id="scene-controls"]')).toHaveCount(0)
-  await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toHaveCount(0)
-  await expect(page.locator('[data-tweaker-panel-id="custom-items"]')).toHaveCount(0)
+  await expect(page.locator('main')).toHaveAttribute('data-product-route', 'gallery')
+  await expect(page.locator('main')).toHaveCSS('overflow', 'hidden')
+  await expect(page.locator('[data-interactive-jsx-example]')).toBeVisible()
+  await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
 
   await page.goto('/gallery/')
 
@@ -180,8 +182,7 @@ test('routes the landing, gallery, state lab, and unknown paths explicitly', asy
   await expect(page.locator('main')).toHaveAttribute('data-product-route', 'not-found')
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Page not found' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
-  await expect(page.getByRole('link', { name: 'Open gallery' })).toHaveAttribute('href', '/gallery')
+  await expect(page.getByRole('link', { name: 'Open gallery' })).toHaveAttribute('href', '/')
   await expect(page.locator('[data-tweaker-panel-id]')).toHaveCount(0)
 })
 

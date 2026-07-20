@@ -42,7 +42,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MouseVelocitySparklineItem } from '@/custom-items/mouse-velocity-sparkline'
 import { WaveformSpectrumItem } from '@/custom-items/waveform-spectrum'
 import { InteractiveJsxExample } from '@/interactive-jsx-example'
-import { LandingPage } from '@/landing-page'
 import { PanelGeometryLab } from '@/panel-geometry-lab'
 
 const scenePanelId = 'scene-controls'
@@ -108,14 +107,10 @@ type ProviderSnapshot = {
   panels: Record<string, TweakerPanelRegistration>
 }
 
-type ProductRoute = 'gallery' | 'landing' | 'not-found' | 'panel-geometry-lab' | 'state-lab'
+type ProductRoute = 'gallery' | 'not-found' | 'panel-geometry-lab' | 'state-lab'
 
 export function App() {
   const route = resolveProductRoute(window.location.pathname)
-
-  if (route === 'landing') {
-    return <LandingPage />
-  }
 
   if (route === 'not-found') {
     return <NotFoundPage />
@@ -198,7 +193,6 @@ function resolveProductRoute(pathname: string): ProductRoute {
 
   switch (normalizedPathname) {
     case '/':
-      return 'landing'
     case '/gallery':
       return 'gallery'
     case '/state-lab':
@@ -223,23 +217,15 @@ function NotFoundPage() {
             Page not found
           </h1>
           <p className="text-muted-foreground">
-            That Tweaker page does not exist. Return home or open the interactive gallery.
+            That Tweaker page does not exist. Return to the interactive gallery.
           </p>
         </div>
         <nav aria-label="Page not found">
           <ul className="flex flex-wrap justify-center gap-3">
             <li>
               <a
-                className="border-border bg-secondary text-secondary-foreground inline-flex h-9 items-center border px-4 text-sm font-medium"
-                href="/"
-              >
-                Home
-              </a>
-            </li>
-            <li>
-              <a
                 className="bg-primary text-primary-foreground inline-flex h-9 items-center px-4 text-sm font-medium"
-                href="/gallery"
+                href="/"
               >
                 Open gallery
               </a>

@@ -31,7 +31,7 @@ async function setBooleanSwitch(locator: Locator, value: boolean) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/gallery')
+  await page.goto('/')
   await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
 })
 
