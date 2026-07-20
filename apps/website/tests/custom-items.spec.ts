@@ -803,6 +803,67 @@ test('reorders root and nested items from the keyboard with commit and cancellat
   await expect(fixedGrip).toHaveAttribute('aria-pressed', 'false')
 })
 
+test('keyboard reordering preserves hidden root slots on commit and cancellation', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const mediaGrip = panel.getByRole('button', {
+    name: 'Reorder Media and files',
+    exact: true,
+  })
+  const example = page.locator('[data-interactive-jsx-example]')
+  const initialOrder = [
+    'common-items',
+    'spatial-items',
+    'media-items',
+    'chart-items',
+    'visualization-items',
+  ]
+
+  await example.getByRole('checkbox', { name: 'Show all props' }).check()
+  await example.getByLabel('Visible for spatial-items').click()
+  await expect(panel.locator('[data-group-id="spatial-items"]')).toHaveCount(0)
+  await mediaGrip.press('Space')
+  await mediaGrip.press('ArrowUp')
+  await mediaGrip.press('Escape')
+  await expect.poll(() => builtInRootStoreOrder(page)).toEqual(initialOrder)
+
+  await mediaGrip.press('Space')
+  await mediaGrip.press('ArrowUp')
+  await mediaGrip.press('Space')
+  await expect
+    .poll(() => builtInRootStoreOrder(page))
+    .toEqual(['media-items', 'spatial-items', 'common-items', 'chart-items', 'visualization-items'])
+})
+
+test('allows an active keyboard reorder to cancel after its siblings become hidden', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const mediaGrip = panel.getByRole('button', {
+    name: 'Reorder Media and files',
+    exact: true,
+  })
+  const example = page.locator('[data-interactive-jsx-example]')
+
+  await mediaGrip.press('Space')
+  await expect(mediaGrip).toHaveAttribute('aria-pressed', 'true')
+  await example.getByRole('checkbox', { name: 'Show all props' }).check()
+  for (const groupId of ['common-items', 'spatial-items', 'chart-items', 'visualization-items']) {
+    await example.getByLabel(`Visible for ${groupId}`).click()
+    await expect(panel.locator(`[data-group-id="${groupId}"]`)).toHaveCount(0)
+  }
+  await expect(mediaGrip).toHaveAttribute('aria-disabled', 'true')
+
+  await mediaGrip.press('Escape')
+  await expect(mediaGrip).toHaveCount(0)
+  await expect(panel.locator('[data-keyboard-reorder-status]')).toContainText(
+    'Media and files reorder cancelled.',
+  )
+})
+
 test('avoids Camera height before Quality covers it and retains avoidance on a 1px reversal', async ({
   page,
 }) => {
@@ -2250,6 +2311,14 @@ async function siblingTransformsAreNone(
         }),
     sourceId,
   )
+}
+
+async function builtInRootStoreOrder(page: Page) {
+  return page.evaluate(async () => {
+    const modulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
+    const { builtInItemsPanelStore } = await import(modulePath)
+    return builtInItemsPanelStore.getState().order.root
+  })
 }
 
 async function activeDisclosureTransitionCount(panel: import('@playwright/test').Locator) {

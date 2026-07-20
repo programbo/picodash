@@ -45,6 +45,7 @@ export function usePanelLayoutSynchronization({
 }) {
   const savedLayout = useStore(store, (state) => state.panelLayouts[panelId])
   const appliedMaxHeightRef = useRef<number | null>(null)
+  const defaultBottomInsetRef = useRef<number | null>(null)
   const enabledRef = useRef(enabled)
   const synchronizationFrameRef = useRef<number | null>(null)
 
@@ -100,12 +101,14 @@ export function usePanelLayoutSynchronization({
       anchor,
       baseRect,
       containerRect,
+      inset,
       intrinsicHeight = baseRect.height,
       position,
     }: {
       anchor: PanelVerticalAnchor
       baseRect: PanelRect
       containerRect: PanelRect
+      inset?: number
       intrinsicHeight?: number
       position: PanelPosition
     }): PanelGeometryProjection => {
@@ -126,6 +129,7 @@ export function usePanelLayoutSynchronization({
         anchor,
         baseRect,
         containerRect,
+        inset,
         intrinsicHeight: Math.min(intrinsicHeight, callerMaxHeight),
         position,
       })
@@ -177,17 +181,22 @@ export function usePanelLayoutSynchronization({
       return
     }
 
+    const displayedRect = rectFromElement(panelElement)
     const appliedPosition = translationFromTransform(getComputedStyle(panelElement).transform)
     const intrinsicHeight = measureIntrinsicHeight()
     const baseRect = rectWithHeight(
-      baseRectFromDisplayedRect(rectFromElement(panelElement), appliedPosition),
+      baseRectFromDisplayedRect(displayedRect, appliedPosition),
       intrinsicHeight,
     )
     const savedPosition = store.getState().panelLayouts[panelId]
     const containerRect = rectFromElement(containerElement)
-    const computedStyle = getComputedStyle(panelElement)
+    const computedBottom = panelElement.computedStyleMap().get('bottom')?.toString()
     const startsBottomPositioned =
-      savedPosition === undefined && computedStyle.bottom !== 'auto' && computedStyle.top === 'auto'
+      savedPosition === undefined &&
+      (defaultBottomInsetRef.current !== null || computedBottom !== 'auto')
+    if (startsBottomPositioned && defaultBottomInsetRef.current === null) {
+      defaultBottomInsetRef.current = Math.max(containerRect.bottom - displayedRect.bottom, 0)
+    }
     const targetPosition = positionForPanelLayout({
       baseRect,
       containerRect,
@@ -198,6 +207,7 @@ export function usePanelLayoutSynchronization({
         savedPosition?.dock?.vertical === 'bottom' || startsBottomPositioned ? 'bottom' : 'top',
       baseRect,
       containerRect,
+      inset: startsBottomPositioned ? (defaultBottomInsetRef.current ?? undefined) : undefined,
       intrinsicHeight,
       position: targetPosition,
     })

@@ -165,7 +165,7 @@ export function useTweakerReorderItem(
     })
   }
   const handleReorderKeyDown = (event: ReactKeyboardEvent, label: string) => {
-    if (!reorderable) return
+    if (!reorderable && !keyboardReorderActive) return
     if (event.key === ' ' || event.key === 'Enter') {
       event.preventDefault()
       if (keyboardReorderActive) commitKeyboardReorder(itemId)
@@ -173,12 +173,12 @@ export function useTweakerReorderItem(
       return
     }
     if (!keyboardReorderActive) return
-    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-      event.preventDefault()
-      moveKeyboardReorder(itemId, event.key === 'ArrowUp' ? -1 : 1)
-    } else if (event.key === 'Escape') {
+    if (event.key === 'Escape') {
       event.preventDefault()
       cancelKeyboardReorder(itemId)
+    } else if (reorderable && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+      event.preventDefault()
+      moveKeyboardReorder(itemId, event.key === 'ArrowUp' ? -1 : 1)
     }
   }
 

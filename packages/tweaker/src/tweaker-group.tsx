@@ -105,7 +105,7 @@ export function TweakerGroup({
   const visualTop = useTransform(() =>
     reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
   )
-  const showReorderSlot = reorderable || parentId !== rootGroupId
+  const showReorderSlot = reorderable || keyboardReorderActive || parentId !== rootGroupId
 
   useRegisterTweakerItem({
     collapsible,

@@ -203,6 +203,35 @@ test('reports active async sparkline failures and suppresses stale source failur
   expect(reported).toEqual([sourceError])
 })
 
+test('routes async sparkline failures to the latest handler and ignores visibility cancellation', async () => {
+  const reported: string[] = []
+  let rejectSource: ((error: unknown) => void) | undefined
+  let visible = true
+  let handler = () => reported.push('initial')
+  const consumption = new Promise<void>((_resolve, reject) => {
+    rejectSource = reject
+  })
+  const settlement = settleTweakerSparklineSource(
+    consumption,
+    () => visible,
+    () => handler(),
+  )
+
+  handler = () => reported.push('latest')
+  visible = false
+  rejectSource?.(new Error('Visibility cancellation.'))
+  await settlement
+
+  expect(reported).toEqual([])
+
+  await settleTweakerSparklineSource(
+    Promise.reject(new Error('Current source failed.')),
+    () => true,
+    () => handler(),
+  )
+  expect(reported).toEqual(['latest'])
+})
+
 test('creates every supported TweakerChart type with type-specific Recharts props', () => {
   const data = [
     { category: 'A', value: 12 },

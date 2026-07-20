@@ -14,6 +14,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { TweakerGroupContextProvider } from './tweaker-group-context.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
 import {
+  orderedItemIdsForParent,
   orderedItemsForParent,
   orderTweakerChildren,
   reorderValuesForPointer,
@@ -51,6 +52,7 @@ export function TweakerReorderList({
   } | null>(null)
   const [keyboardSession, setKeyboardSession] = useState<{
     initialOrder: string[]
+    initialVisibleOrder: string[]
     itemId: string
     label: string
   } | null>(null)
@@ -96,8 +98,13 @@ export function TweakerReorderList({
   const beginKeyboardReorder = useCallback(
     (itemId: string, label: string) => {
       if (!valuesRef.current.includes(itemId)) return
-      setKeyboardSession({ initialOrder: [...valuesRef.current], itemId, label })
       const state = store.getState()
+      setKeyboardSession({
+        initialOrder: orderedItemIdsForParent(state, parentId),
+        initialVisibleOrder: [...valuesRef.current],
+        itemId,
+        label,
+      })
       const item = state.items[itemId]
       const bandItems = valuesRef.current.filter((id) => {
         const candidate = state.items[id]
@@ -113,7 +120,7 @@ export function TweakerReorderList({
         `${label} picked up. Position ${bandItems.indexOf(itemId) + 1} of ${bandItems.length}.`,
       )
     },
-    [announceKeyboardReorder, store, valuesRef],
+    [announceKeyboardReorder, parentId, store, valuesRef],
   )
   const moveKeyboardReorder = useCallback(
     (itemId: string, direction: -1 | 1) => {
@@ -146,7 +153,7 @@ export function TweakerReorderList({
       nextOrder.splice(currentIndex, 1)
       nextOrder.splice(targetIndex, 0, itemId)
       previewOrder(nextOrder)
-      store.getState().setOrder(parentId, nextOrder)
+      store.getState().moveItemRelativeTo(itemId, targetId, direction < 0 ? 'before' : 'after')
       announceKeyboardReorder(
         itemId,
         `${keyboardSession.label} moved to position ${nextBandIndex + 1} of ${bandItems.length}.`,
@@ -157,7 +164,7 @@ export function TweakerReorderList({
   const cancelKeyboardReorder = useCallback(
     (itemId: string) => {
       if (keyboardSession?.itemId !== itemId) return
-      previewOrder(keyboardSession.initialOrder)
+      previewOrder(keyboardSession.initialVisibleOrder)
       store.getState().setOrder(parentId, keyboardSession.initialOrder)
       announceKeyboardReorder(itemId, `${keyboardSession.label} reorder cancelled.`)
       setKeyboardSession(null)

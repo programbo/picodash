@@ -191,7 +191,7 @@ export function TweakerItem<TValue extends TweakerValue = TweakerValue>({
   const visualTop = useTransform(() =>
     reorderTopWithOffset(props.style?.top, visualDragOffsetY.get()),
   )
-  const showReorderSlot = reorderable || parentId !== rootGroupId
+  const showReorderSlot = reorderable || keyboardReorderActive || parentId !== rootGroupId
 
   const resetValue = useCallback(() => {
     if (field !== undefined) {
