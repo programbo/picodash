@@ -869,6 +869,28 @@ test('blocks pointer pickup while a keyboard reorder session is active', async (
   await expect.poll(() => builtInRootStoreOrder(page)).toEqual(initialOrder)
 })
 
+test('blocks keyboard pickup while a pointer reorder session is active', async ({ page }) => {
+  await page.goto('/')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const commonGroup = panel.locator('[data-group-id="common-items"]')
+  const commonGrip = commonGroup.getByRole('button', {
+    name: 'Reorder Common inputs',
+    exact: true,
+  })
+  const gripRect = await requiredBox(commonGrip)
+
+  await page.mouse.move(gripRect.x + gripRect.width / 2, gripRect.y + gripRect.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(gripRect.x + gripRect.width / 2, gripRect.y + gripRect.height + 80, {
+    steps: 4,
+  })
+  await expect.poll(() => builtInDraggingId(page)).toBe('common-items')
+
+  await commonGrip.press('Space')
+  await expect(commonGrip).toHaveAttribute('aria-pressed', 'false')
+  await page.mouse.up()
+})
+
 test('keyboard reordering preserves hidden root slots on commit and cancellation', async ({
   page,
 }) => {
