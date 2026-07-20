@@ -1,6 +1,6 @@
 import { motion, useDragControls, useMotionValue, type MotionStyle } from 'motion/react'
 import { ChevronRight, X } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from 'zustand'
 import { rectWithHeight } from './panel-geometry.js'
@@ -29,6 +29,7 @@ import { usePanelLayoutSynchronization } from './use-panel-layout.js'
 import { cn } from './utils.js'
 import type {
   TweakerPanelCloseBehavior,
+  TweakerPanelCloseDetails,
   TweakerPanelProps,
   TweakerPanelStore,
 } from './tweaker-panel-types.js'
@@ -109,6 +110,7 @@ export function TweakerPanel({
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const [deregistered, setDeregistered] = useState(false)
   const defaultVisibleRef = useRef(defaultVisible)
+  const pendingDeregisterCloseRef = useRef<TweakerPanelCloseDetails | null>(null)
   const panelElementRef = useRef<HTMLElement | null>(null)
   const panelStoreRef = useRef<TweakerPanelStore | null>(injectedPanelStore ?? null)
   const bodyRef = useRef<HTMLDivElement | null>(null)
@@ -156,6 +158,14 @@ export function TweakerPanel({
       y,
     })
   useRegisterTweakerPanel({ id: panelId, visible: defaultVisibleRef.current })
+
+  useEffect(() => {
+    const details = pendingDeregisterCloseRef.current
+    if (!deregistered || !details) return
+
+    pendingDeregisterCloseRef.current = null
+    onClose?.(details)
+  }, [deregistered, onClose])
 
   if (!portalContainer || deregistered) return null
 
@@ -334,12 +344,16 @@ export function TweakerPanel({
                   type="button"
                   onClick={() => {
                     if (closeBehavior === 'deregister') {
+                      pendingDeregisterCloseRef.current = {
+                        behavior: closeBehavior,
+                        panelId,
+                      }
                       providerStore.getState().unregisterPanel(panelId)
                       setDeregistered(true)
                     } else {
                       providerStore.getState().setPanelVisible(panelId, false)
+                      onClose?.({ behavior: closeBehavior, panelId })
                     }
-                    onClose?.({ behavior: closeBehavior, panelId })
                   }}
                   onPointerDown={(event) => event.stopPropagation()}
                 >

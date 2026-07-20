@@ -45,13 +45,18 @@ export function usePanelLayoutSynchronization({
 }) {
   const savedLayout = useStore(store, (state) => state.panelLayouts[panelId])
   const appliedMaxHeightRef = useRef<number | null>(null)
+  const enabledRef = useRef(enabled)
   const synchronizationFrameRef = useRef<number | null>(null)
 
+  useLayoutEffect(() => {
+    enabledRef.current = enabled
+  }, [enabled])
+
   const updatePanelRect = useCallback(() => {
-    if (!enabled) return
+    if (!enabledRef.current) return
     const panelElement = panelElementRef.current
     if (panelElement) store.getState().setPanelRect(panelId, rectFromElement(panelElement))
-  }, [enabled, panelElementRef, panelId, store])
+  }, [panelElementRef, panelId, store])
 
   const measureIntrinsicHeight = useCallback(() => {
     const panelElement = panelElementRef.current
@@ -150,6 +155,7 @@ export function usePanelLayoutSynchronization({
   )
 
   const syncDisplayedPositionToSavedLayout = useCallback(() => {
+    if (!enabledRef.current) return
     if (synchronizationPausedRef?.current) return
     const panelElement = panelElementRef.current
     if (!containerElement || !panelElement) return

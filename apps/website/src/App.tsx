@@ -104,6 +104,7 @@ type PanelSnapshots = Record<string, PanelSnapshot | undefined>
 
 type ProviderSnapshot = {
   panelOrder: string[]
+  panelRects: Record<string, unknown>
   panels: Record<string, TweakerPanelRegistration>
 }
 
@@ -264,6 +265,9 @@ function DemoExperience({
   themes: DemoThemes
 }) {
   const showStateLab = route === 'state-lab'
+  const [closeCallbackPortalState, setCloseCallbackPortalState] = useState<
+    'none' | 'present' | 'removed'
+  >('none')
   const [initiallyHiddenPanelMounted, setInitiallyHiddenPanelMounted] = useState(true)
   const [lastPanelClose, setLastPanelClose] = useState<TweakerPanelCloseDetails | null>(null)
   const resolvedProviderTheme = useTweakerTheme()
@@ -271,10 +275,11 @@ function DemoExperience({
   const initiallyHiddenPanelController = useTweakerPanel(initiallyHiddenPanelId)
   const missingPanelController = useTweakerPanel('not-registered')
   const panelOrder = useTweakerSelector((state) => state.panelOrder)
+  const panelRects = useTweakerSelector((state) => state.panelRects)
   const providerPanels = useTweakerSelector((state) => state.panels)
   const providerState = useMemo<ProviderSnapshot>(
-    () => ({ panelOrder, panels: providerPanels }),
-    [panelOrder, providerPanels],
+    () => ({ panelOrder, panelRects, panels: providerPanels }),
+    [panelOrder, panelRects, providerPanels],
   )
   const scenePanelState = useTweakerPanelStoreSelector(scenePanelStore, (state) => state)
   const customItemPanelState = useTweakerPanelStoreSelector(customItemPanelStore, (state) => state)
@@ -298,6 +303,10 @@ function DemoExperience({
     panelSnapshots[outputPanelId],
   ].filter((panel): panel is PanelSnapshot => panel !== undefined)
   const totals = useMemo(() => panelTotals(panels), [panels])
+  const recordPanelClose = (details: TweakerPanelCloseDetails) => {
+    setLastPanelClose(details)
+    setCloseCallbackPortalState(document.getElementById(details.panelId) ? 'present' : 'removed')
+  }
 
   return (
     <>
@@ -360,9 +369,16 @@ function DemoExperience({
                 }
                 hidden
               />
+              <span data-close-callback-portal-state={closeCallbackPortalState} hidden />
               <span
                 data-last-panel-close={
                   lastPanelClose ? `${lastPanelClose.panelId}:${lastPanelClose.behavior}` : 'none'
+                }
+                hidden
+              />
+              <span
+                data-scene-panel-rect={
+                  providerState.panelRects[scenePanelId] ? 'present' : 'absent'
                 }
                 hidden
               />
@@ -461,7 +477,7 @@ function DemoExperience({
           defaultPlacement="top-right"
           width={368}
           className="top-4 right-4 lg:top-8 lg:right-120"
-          onClose={setLastPanelClose}
+          onClose={recordPanelClose}
         >
           <TweakerGroup id="scene-essentials" label="Essentials" pin="start">
             <TweakerSlider
@@ -608,7 +624,7 @@ function DemoExperience({
           defaultPlacement="bottom-left"
           width={240}
           onClose={(details) => {
-            setLastPanelClose(details)
+            recordPanelClose(details)
             setInitiallyHiddenPanelMounted(false)
           }}
         >

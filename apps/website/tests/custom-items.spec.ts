@@ -120,6 +120,16 @@ test('controls registered panels through useTweakerPanel', async ({ page }) => {
   await expect(scenePanel).toBeHidden()
   await expect(sceneController.locator('[data-panel-visibility]')).toHaveText('hidden')
   await expect(sceneItems).toHaveCount(sceneItemCount)
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      }),
+  )
+  await expect(page.locator('[data-scene-panel-rect]')).toHaveAttribute(
+    'data-scene-panel-rect',
+    'absent',
+  )
   await expect(page.locator('[data-last-panel-close]')).toHaveAttribute(
     'data-last-panel-close',
     'scene-controls:hide',
@@ -128,6 +138,10 @@ test('controls registered panels through useTweakerPanel', async ({ page }) => {
   await hiddenPanel.getByRole('button', { name: 'Close panel Initially Hidden' }).click()
   await expect(hiddenPanel).toHaveCount(0)
   await expect(hiddenController.locator('[data-panel-visibility]')).toHaveText('waiting')
+  await expect(page.locator('[data-close-callback-portal-state]')).toHaveAttribute(
+    'data-close-callback-portal-state',
+    'removed',
+  )
   await expect(page.locator('[data-last-panel-close]')).toHaveAttribute(
     'data-last-panel-close',
     'initially-hidden:deregister',
