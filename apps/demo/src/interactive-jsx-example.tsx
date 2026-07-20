@@ -27,6 +27,7 @@ import {
 import { shadcnChartTypes } from '@/custom-items/shadcn-chart'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import { UsageGuide } from '@/usage-guide'
 
 hljs.registerLanguage('typescript', typescript)
 
@@ -845,7 +846,7 @@ export function InteractiveJsxExample({
 
   return (
     <section
-      className="relative min-h-svh overflow-x-hidden px-4 py-5 sm:px-6 lg:py-8 lg:pr-[calc(var(--demo-panel-width)+3rem)] lg:pl-8 min-[141rem]:px-8"
+      className="relative min-h-svh overflow-x-hidden px-4 pt-18 pb-5 sm:px-6 sm:py-5 lg:py-8 lg:pr-[calc(var(--demo-panel-width)+3rem)] lg:pl-8 min-[141rem]:px-8"
       data-interactive-jsx-example
       style={{ '--demo-panel-width': `${config.panelWidth}px` } as CSSProperties}
     >
@@ -856,7 +857,7 @@ export function InteractiveJsxExample({
           value={activeTab}
           onValueChange={setActiveTab}
         >
-          <div className="flex items-center justify-between border-b border-white/10 bg-white/4 px-4 py-2.5">
+          <div className="flex flex-col gap-2 border-b border-white/10 bg-white/4 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <TabsList
               aria-label="Interactive example views"
               className="h-7 gap-4 rounded-none p-0"
@@ -876,9 +877,16 @@ export function InteractiveJsxExample({
                 <span className="size-2 bg-violet-300" />
                 Store
               </TabsTrigger>
+              <TabsTrigger
+                className="h-7 flex-none rounded-none px-0 font-mono text-xs text-zinc-400 data-active:text-amber-200"
+                value="usage"
+              >
+                <span className="size-2 bg-amber-200" />
+                Usage
+              </TabsTrigger>
             </TabsList>
             {activeTab === 'code' ? (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
                 <label className="flex cursor-pointer items-center gap-1.5 font-mono text-[11px] text-zinc-400 transition-colors hover:text-zinc-200">
                   <input
                     checked={showAllProps}
@@ -901,10 +909,14 @@ export function InteractiveJsxExample({
                   <span aria-live="polite">{copied ? 'Copied' : 'Copy JSX'}</span>
                 </button>
               </div>
-            ) : (
-              <span className="flex items-center gap-2 font-mono text-[11px] text-zinc-400">
+            ) : activeTab === 'store' ? (
+              <span className="flex items-center gap-2 self-end font-mono text-[11px] text-zinc-400 sm:self-auto">
                 <span className="size-1.5 animate-pulse bg-emerald-300 motion-reduce:animate-none" />
                 Live panel state
+              </span>
+            ) : (
+              <span className="self-end font-mono text-[11px] text-zinc-500 sm:self-auto">
+                React + TypeScript
               </span>
             )}
           </div>
@@ -1153,6 +1165,9 @@ export function InteractiveJsxExample({
                 style={storeJsonStyles}
               />
             </div>
+          </TabsContent>
+          <TabsContent className="min-h-0" value="usage">
+            <UsageGuide />
           </TabsContent>
         </Tabs>
       </div>
