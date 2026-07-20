@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   createTweakerPanelStore,
   TweakerDisplay,
@@ -13,6 +14,10 @@ const peerPanelStore = createTweakerPanelStore({ panelId: 'geometry-peer' })
 const expansionPanelStore = createTweakerPanelStore({ panelId: 'geometry-expansion' })
 const bottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom' })
 const customBottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-custom-bottom' })
+const responsivePanelStore = createTweakerPanelStore({ panelId: 'geometry-responsive' })
+const changingConstraintPanelStore = createTweakerPanelStore({
+  panelId: 'geometry-changing-constraint',
+})
 const cappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-capped' })
 const classCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-class-capped' })
 const bottomCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-capped' })
@@ -36,6 +41,8 @@ export function PanelGeometryLab() {
         {fixture === 'groups' ? <GroupExpansionFixture /> : null}
         {fixture === 'bottom' ? <BottomExpansionFixture /> : null}
         {fixture === 'custom-bottom' ? <CustomBottomFixture /> : null}
+        {fixture === 'responsive' ? <ResponsiveConstraintFixture /> : null}
+        {fixture === 'changing-constraint' ? <ChangingConstraintFixture /> : null}
         {fixture === 'caller-max-height' ? <CallerMaxHeightFixture /> : null}
         {fixture === 'class-max-height' ? <ClassMaxHeightFixture /> : null}
         {fixture === 'bottom-max-height' ? <BottomMaxHeightFixture /> : null}
@@ -152,6 +159,56 @@ function CustomBottomFixture() {
     >
       <TallContent prefix="custom-bottom" count={3} />
     </TweakerPanel>
+  )
+}
+
+function ResponsiveConstraintFixture() {
+  return (
+    <TweakerPanel
+      store={responsivePanelStore}
+      title="Responsive constraint fixture"
+      width={320}
+      defaultPlacement="top-right"
+      className="top-4 right-4 bottom-auto lg:top-auto lg:bottom-20 xl:bottom-4"
+      data-geometry-fixture="responsive"
+    >
+      <TallContent prefix="responsive" count={3} />
+    </TweakerPanel>
+  )
+}
+
+function ChangingConstraintFixture() {
+  const [placement, setPlacement] = useState<'bottom-large' | 'bottom-small' | 'top'>(
+    'bottom-large',
+  )
+  const className =
+    placement === 'bottom-large'
+      ? 'right-4 bottom-20'
+      : placement === 'bottom-small'
+        ? 'right-4 bottom-4'
+        : 'top-4 right-4 bottom-auto'
+
+  return (
+    <>
+      <div className="fixed top-2 left-2 z-50 flex gap-2">
+        <button type="button" onClick={() => setPlacement('bottom-small')}>
+          Use small bottom inset
+        </button>
+        <button type="button" onClick={() => setPlacement('top')}>
+          Use top constraint
+        </button>
+      </div>
+      <TweakerPanel
+        store={changingConstraintPanelStore}
+        title="Changing constraint fixture"
+        width={320}
+        defaultPlacement="bottom-right"
+        className={className}
+        data-geometry-fixture="changing-constraint"
+      >
+        <TallContent prefix="changing-constraint" count={3} />
+      </TweakerPanel>
+    </>
   )
 }
 

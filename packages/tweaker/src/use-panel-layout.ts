@@ -59,7 +59,6 @@ export function usePanelLayoutSynchronization({
 }) {
   const savedLayout = useStore(store, (state) => state.panelLayouts[panelId])
   const appliedMaxHeightRef = useRef<number | null>(null)
-  const defaultBottomInsetRef = useRef<number | null>(null)
   const enabledRef = useRef(enabled)
   const synchronizationFrameRef = useRef<number | null>(null)
 
@@ -201,10 +200,8 @@ export function usePanelLayoutSynchronization({
     const displayedRect = rectFromElement(panelElement)
     const appliedPosition = translationFromTransform(getComputedStyle(panelElement).transform)
     const intrinsicHeight = measureIntrinsicHeight()
-    const baseRect = rectWithHeight(
-      baseRectFromDisplayedRect(displayedRect, appliedPosition),
-      intrinsicHeight,
-    )
+    const layoutRect = baseRectFromDisplayedRect(displayedRect, appliedPosition)
+    const baseRect = rectWithHeight(layoutRect, intrinsicHeight)
     const savedPosition = store.getState().panelLayouts[panelId]
     const containerRect = rectFromElement(containerElement)
     const computedStyle = getComputedStyle(panelElement)
@@ -214,15 +211,11 @@ export function usePanelLayoutSynchronization({
         : undefined
     const startsBottomPositioned =
       savedPosition === undefined &&
-      (defaultBottomInsetRef.current !== null ||
-        panelUsesBottomConstraint({
-          computedBottom: computedStyle.bottom,
-          computedTop: computedStyle.top,
-          typedBottom,
-        }))
-    if (startsBottomPositioned && defaultBottomInsetRef.current === null) {
-      defaultBottomInsetRef.current = Math.max(containerRect.bottom - displayedRect.bottom, 0)
-    }
+      panelUsesBottomConstraint({
+        computedBottom: computedStyle.bottom,
+        computedTop: computedStyle.top,
+        typedBottom,
+      })
     const targetPosition = positionForPanelLayout({
       baseRect,
       containerRect,
@@ -233,7 +226,7 @@ export function usePanelLayoutSynchronization({
         savedPosition?.dock?.vertical === 'bottom' || startsBottomPositioned ? 'bottom' : 'top',
       baseRect,
       bottomInset: startsBottomPositioned
-        ? (defaultBottomInsetRef.current ?? undefined)
+        ? Math.max(containerRect.bottom - layoutRect.bottom, 0)
         : undefined,
       containerRect,
       intrinsicHeight,

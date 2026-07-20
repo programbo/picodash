@@ -197,6 +197,31 @@ test('keeps custom bottom and horizontal placement insets independent', async ({
     .toEqual({ bottom: 80, right: 16 })
 })
 
+test('tracks responsive bottom inset and anchor changes before persistence', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 600 })
+  await page.goto('/panel-geometry-lab?fixture=responsive')
+  const panel = geometryPanel(page, 'responsive')
+  await expectEdgeInsets(panel, { bottom: 80, right: 16 })
+
+  await page.setViewportSize({ width: 1300, height: 600 })
+  await expectEdgeInsets(panel, { bottom: 16, right: 16 })
+
+  await page.setViewportSize({ width: 900, height: 600 })
+  await expectEdgeInsets(panel, { right: 16, top: 16 })
+})
+
+test('tracks live placement constraint changes before persistence', async ({ page }) => {
+  await page.goto('/panel-geometry-lab?fixture=changing-constraint')
+  const panel = geometryPanel(page, 'changing-constraint')
+  await expectEdgeInsets(panel, { bottom: 80, right: 16 })
+
+  await page.getByRole('button', { name: 'Use small bottom inset' }).click()
+  await expectEdgeInsets(panel, { bottom: 16, right: 16 })
+
+  await page.getByRole('button', { name: 'Use top constraint' }).click()
+  await expectEdgeInsets(panel, { right: 16, top: 16 })
+})
+
 test('viewport shrink and growth constrain an undocked panel without moving its top', async ({
   page,
 }) => {
@@ -293,6 +318,27 @@ test('rebases a bottom-positioned panel while shrinking during a held drag', asy
 
 function geometryPanel(page: Page, fixture: string) {
   return page.locator(`[data-geometry-fixture="${fixture}"]`)
+}
+
+async function expectEdgeInsets(
+  panel: Locator,
+  expected: { bottom?: number; right?: number; top?: number },
+) {
+  await expect
+    .poll(async () => {
+      const viewport = panel.page().viewportSize()
+      const rect = await requiredBox(panel)
+      return {
+        ...(expected.bottom === undefined
+          ? {}
+          : { bottom: Math.round((viewport?.height ?? 0) - rect.y - rect.height) }),
+        ...(expected.right === undefined
+          ? {}
+          : { right: Math.round((viewport?.width ?? 0) - rect.x - rect.width) }),
+        ...(expected.top === undefined ? {} : { top: Math.round(rect.y) }),
+      }
+    })
+    .toEqual(expected)
 }
 
 async function requiredBox(locator: Locator) {
