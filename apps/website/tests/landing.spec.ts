@@ -64,6 +64,35 @@ test('shows an interactive product showcase with live panel controls', async ({ 
   expect(firstColumnHeightAfter).not.toEqual(firstColumnHeightBefore)
 })
 
+test('keeps the in-flow showcase panel stable across layout synchronization', async ({ page }) => {
+  const panel = page.locator('[data-landing-panel]')
+  const initial = await panel.boundingBox()
+  if (!initial) throw new Error('Failed to measure the in-flow landing panel.')
+
+  await page.setViewportSize({ width: 1100, height: 700 })
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        let remainingFrames = 60
+        const tick = () => {
+          remainingFrames -= 1
+          if (remainingFrames === 0) {
+            resolve()
+          } else {
+            requestAnimationFrame(tick)
+          }
+        }
+        requestAnimationFrame(tick)
+      }),
+  )
+
+  const synchronized = await panel.boundingBox()
+  if (!synchronized) throw new Error('Failed to remeasure the in-flow landing panel.')
+  expect(Math.abs(synchronized.height - initial.height)).toBeLessThanOrEqual(1)
+  await expect(panel.locator('[data-item-id="exposure"] input[type="range"]')).toBeVisible()
+  await expect(panel.getByRole('switch', { name: 'Live signal sync' })).toBeVisible()
+})
+
 test('keeps landing content within viewport width on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
 
