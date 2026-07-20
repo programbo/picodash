@@ -187,6 +187,26 @@ test('viewport shrink and growth constrain an undocked panel without moving its 
   await expectBottomAtMost(panel, 720 - safeInset)
 })
 
+test('preserves a caller-provided max-height while applying viewport containment', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 800 })
+  await page.goto('/panel-geometry-lab?fixture=caller-max-height')
+  const panel = geometryPanel(page, 'caller-max-height')
+
+  await expect.poll(async () => (await requiredBox(panel)).height).toBe(200)
+  await expect
+    .poll(() => panel.evaluate((element) => getComputedStyle(element).maxHeight))
+    .toBe('200px')
+
+  await page.setViewportSize({ width: 900, height: 160 })
+  await expectBottomAtMost(panel, 160 - safeInset)
+  expect((await requiredBox(panel)).height).toBeLessThan(200)
+
+  await page.setViewportSize({ width: 900, height: 800 })
+  await expect.poll(async () => (await requiredBox(panel)).height).toBe(200)
+})
+
 function geometryPanel(page: Page, fixture: string) {
   return page.locator(`[data-geometry-fixture="${fixture}"]`)
 }

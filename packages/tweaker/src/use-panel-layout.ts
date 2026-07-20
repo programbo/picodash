@@ -82,7 +82,10 @@ export function usePanelLayoutSynchronization({
       const panelElement = panelElementRef.current
       if (panelElement && appliedAvailableHeightRef.current !== projection.availableHeight) {
         appliedAvailableHeightRef.current = projection.availableHeight
-        panelElement.style.maxHeight = `${projection.availableHeight}px`
+        panelElement.style.setProperty(
+          '--_tw-panel-available-height',
+          `${projection.availableHeight}px`,
+        )
       }
       if (x.get() !== projection.position.x) x.set(projection.position.x)
       if (y.get() !== projection.position.y) y.set(projection.position.y)

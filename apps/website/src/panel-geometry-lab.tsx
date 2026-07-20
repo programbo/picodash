@@ -12,6 +12,7 @@ const tallPanelStore = createTweakerPanelStore({ panelId: 'geometry-tall' })
 const peerPanelStore = createTweakerPanelStore({ panelId: 'geometry-peer' })
 const expansionPanelStore = createTweakerPanelStore({ panelId: 'geometry-expansion' })
 const bottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom' })
+const cappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-capped' })
 
 export function PanelGeometryLab() {
   const fixture = new URLSearchParams(window.location.search).get('fixture') ?? 'drag'
@@ -29,6 +30,7 @@ export function PanelGeometryLab() {
         {fixture === 'panel-expansion' ? <PanelExpansionFixture /> : null}
         {fixture === 'groups' ? <GroupExpansionFixture /> : null}
         {fixture === 'bottom' ? <BottomExpansionFixture /> : null}
+        {fixture === 'caller-max-height' ? <CallerMaxHeightFixture /> : null}
       </TweakerProvider>
     </main>
   )
@@ -125,6 +127,21 @@ function BottomExpansionFixture() {
       <TweakerGroup id="bottom-group" label="Bottom group" defaultCollapsed>
         <TallContent prefix="bottom" count={18} />
       </TweakerGroup>
+    </TweakerPanel>
+  )
+}
+
+function CallerMaxHeightFixture() {
+  return (
+    <TweakerPanel
+      store={cappedPanelStore}
+      title="Caller max-height fixture"
+      width={320}
+      defaultPlacement="top-left"
+      data-geometry-fixture="caller-max-height"
+      style={{ maxHeight: 200 }}
+    >
+      <TallContent prefix="caller-max-height" count={24} />
     </TweakerPanel>
   )
 }
