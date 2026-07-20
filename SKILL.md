@@ -78,7 +78,11 @@ export function SiteControls() {
 - Use `setFieldValue` / `setFieldValues` for strict app writes.
 - Use `setFieldInput` for interactive editors that should retain transient drafts.
 - Use `TweakerItem`, `TweakerGroup`, and built-in items for custom compositions.
-- Use `tweaker/advanced` only when a task needs internals.
+- Use `tweaker/advanced` only when a task needs focused provider state through
+  `useTweakerProviderSelector`, imperative provider access through `useTweakerProviderStoreApi`, or
+  contextual panel access through `useTweakerPanelSelector` / `useTweakerPanelStoreApi`.
+- Do not use `useTweakerPanel(panelId)` to discover panel values. Panel data remains owned by the
+  store passed to `TweakerPanel`.
 
 ## Validation and State
 

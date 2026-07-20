@@ -11,6 +11,9 @@ What it provides:
 - application-owned panel stores via createTweakerPanelStore
 - TweakerProvider, TweakerPanel, TweakerItem, built-in inputs and charts
 - provider-scoped panel visibility and activation via useTweakerPanel
+- explicit application-owned reads via useTweakerPanelStoreSelector(store, selector)
+- advanced provider access via useTweakerProviderSelector and useTweakerProviderStoreApi
+- contextual advanced panel access via useTweakerPanelSelector and useTweakerPanelStoreApi
 - optional panel close buttons with hide or deregister behavior
 - strict programmatic writes, sync validation, JSON-compatible values
 - pointer and keyboard item reordering with same-band constraints

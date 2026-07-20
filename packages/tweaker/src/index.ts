@@ -27,7 +27,6 @@ export type {
 export {
   createTweakerPanelStore,
   TweakerPanel,
-  useTweakerPanelSelector,
   useTweakerPanelStoreSelector,
 } from './tweaker-panel.js'
 export type {

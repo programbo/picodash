@@ -16,31 +16,25 @@ export {
   createTweakerStore,
   panelZIndexForState,
   useRegisterTweakerPanel,
-  useTweakerPanel,
-  useTweakerProviderContext,
-  useTweakerSelector,
-  useTweakerStoreApi,
+  useTweakerProviderSelector,
+  useTweakerProviderStoreApi,
 } from './tweaker-provider.js'
 export type {
   TweakerPanelRegistration,
   TweakerPanelRegistrationInput,
-  TweakerPanelController,
   TweakerPersistedState,
-  TweakerProviderContextValue,
   TweakerState,
   TweakerStore,
 } from './tweaker-provider.js'
 
 export {
   useRegisterTweakerItem,
-  useTweakerGroupContext,
-  useTweakerPanelState,
+  useTweakerPanelSelector,
   useTweakerPanelStoreApi,
 } from './tweaker-panel.js'
 export type {
   TweakerControlStates,
   TweakerControlStateValue,
-  TweakerGroupContextValue,
   TweakerInteractionState,
   TweakerItemKind,
   TweakerItemRegistration,
