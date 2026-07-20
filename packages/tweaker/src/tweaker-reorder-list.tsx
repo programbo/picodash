@@ -97,7 +97,7 @@ export function TweakerReorderList({
   }, [])
   const beginKeyboardReorder = useCallback(
     (itemId: string, label: string) => {
-      if (!valuesRef.current.includes(itemId)) return
+      if (keyboardSession || !valuesRef.current.includes(itemId)) return
       const state = store.getState()
       setKeyboardSession({
         initialOrder: orderSnapshotForParent(state, parentId),
@@ -120,7 +120,7 @@ export function TweakerReorderList({
         `${label} picked up. Position ${bandItems.indexOf(itemId) + 1} of ${bandItems.length}.`,
       )
     },
-    [announceKeyboardReorder, parentId, store, valuesRef],
+    [announceKeyboardReorder, keyboardSession, parentId, store, valuesRef],
   )
   const moveKeyboardReorder = useCallback(
     (itemId: string, direction: -1 | 1) => {

@@ -803,6 +803,35 @@ test('reorders root and nested items from the keyboard with commit and cancellat
   await expect(fixedGrip).toHaveAttribute('aria-pressed', 'false')
 })
 
+test('ignores a second keyboard pickup while a reorder session is active', async ({ page }) => {
+  await page.goto('/')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const mediaGrip = panel.getByRole('button', {
+    name: 'Reorder Media and files',
+    exact: true,
+  })
+  const commonGrip = panel.getByRole('button', {
+    name: 'Reorder Common inputs',
+    exact: true,
+  })
+  const initialOrder = [
+    'common-items',
+    'spatial-items',
+    'media-items',
+    'chart-items',
+    'visualization-items',
+  ]
+
+  await mediaGrip.press('Space')
+  await mediaGrip.press('ArrowUp')
+  await commonGrip.press('Space')
+
+  await expect(mediaGrip).toHaveAttribute('aria-pressed', 'true')
+  await expect(commonGrip).toHaveAttribute('aria-pressed', 'false')
+  await mediaGrip.press('Escape')
+  await expect.poll(() => builtInRootStoreOrder(page)).toEqual(initialOrder)
+})
+
 test('keyboard reordering preserves hidden root slots on commit and cancellation', async ({
   page,
 }) => {
