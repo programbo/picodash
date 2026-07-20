@@ -1,0 +1,42 @@
+# Tweaker
+
+> Tweaker is a Bun and Vite+ monorepo for React 19 developer-tooling interfaces. It contains the `tweaker` package, a compact Leva-inspired floating configuration panel, and the separate experimental `panel` package, a composable application-owned panel system with built-in inputs and visualizations.
+
+The two packages have distinct APIs and state models; do not treat them as interchangeable. Prefer their documented public entrypoints and import each package's `style.css` export. Source files are authoritative for current behavior, while `dist` directories are generated build output.
+
+## Documentation
+
+- [Project overview](README.md): Usage, control extensions, panels, workspace structure, development commands, and port allocation
+- [Tweaker package reference](packages/tweaker/README.md): Preferred `tweaker` API and compatibility notes
+- [Panel package reference](packages/panel/README.md): `panel` quick start, state ownership, items, validation, built-in components, themes, exports, and development
+- [Repository guide](AGENTS.md): Architecture boundaries, public API constraints, persistence rules, verification requirements, and contributor guidance
+
+## Tweaker Package
+
+- [Public entrypoint](packages/tweaker/src/index.ts): Exported components, hooks, store utilities, and types
+- [Public types](packages/tweaker/src/types.ts): Control configuration, schema, state, store, and component contracts
+- [React integration](packages/tweaker/src/react): Provider, context hooks, snapshots, and `useTweaker`
+- [Panel implementation](packages/tweaker/src/panel): Panel composition, docking, sections, controls, and row ordering
+- [Store implementation](packages/tweaker/src/store): Zustand store creation and Zod-validated persistence
+- [Website example](apps/website/src/main.tsx): End-to-end consumer example for the `tweaker` package
+
+## Panel Package
+
+- [Public entrypoint](packages/panel/src/index.ts): Consumer components, built-in inputs and visualizations, and public contracts
+- [Advanced entrypoint](packages/panel/src/advanced.ts): Low-level store hooks, state types, ordering helpers, theme constants, and normalization utilities
+- [Built-in inputs](packages/panel/src/inputs): Package-owned input and visualization components
+- [Demo application](apps/demo/src/App.tsx): Integrated examples of public `panel` capabilities
+- [Interactive usage guide](apps/demo/src/usage-guide.tsx): Demo-local usage documentation and examples
+
+## Development and Verification
+
+- [Workspace configuration](package.json): Bun workspaces, package catalog, scripts, and the full `bun run ready` verification gate
+- [Vite+ configuration](vite.config.ts): Formatting, linting, staged checks, and task configuration
+- [Tweaker tests](packages/tweaker/tests): Store, persistence, ordering, and docking behavior tests
+- [Panel tests](packages/panel/tests): Store, component, validation, document, and input behavior tests
+- [Website end-to-end tests](apps/website/tests/tweaker.spec.ts): Browser coverage for the `tweaker` package
+- [Demo end-to-end tests](apps/demo/tests): Browser coverage for built-in and custom `panel` items
+
+## Optional
+
+- [Codex skill](SKILL.md): Compact repository-specific usage guidance for coding agents
