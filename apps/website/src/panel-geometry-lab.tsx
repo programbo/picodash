@@ -18,6 +18,9 @@ const responsivePanelStore = createTweakerPanelStore({ panelId: 'geometry-respon
 const changingConstraintPanelStore = createTweakerPanelStore({
   panelId: 'geometry-changing-constraint',
 })
+export const keyboardUnmountPanelStore = createTweakerPanelStore({
+  panelId: 'geometry-keyboard-unmount',
+})
 const cappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-capped' })
 const classCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-class-capped' })
 const bottomCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-capped' })
@@ -43,6 +46,7 @@ export function PanelGeometryLab() {
         {fixture === 'custom-bottom' ? <CustomBottomFixture /> : null}
         {fixture === 'responsive' ? <ResponsiveConstraintFixture /> : null}
         {fixture === 'changing-constraint' ? <ChangingConstraintFixture /> : null}
+        {fixture === 'keyboard-unmount' ? <KeyboardUnmountFixture /> : null}
         {fixture === 'caller-max-height' ? <CallerMaxHeightFixture /> : null}
         {fixture === 'class-max-height' ? <ClassMaxHeightFixture /> : null}
         {fixture === 'bottom-max-height' ? <BottomMaxHeightFixture /> : null}
@@ -208,6 +212,34 @@ function ChangingConstraintFixture() {
       >
         <TallContent prefix="changing-constraint" count={3} />
       </TweakerPanel>
+    </>
+  )
+}
+
+function KeyboardUnmountFixture() {
+  const [mounted, setMounted] = useState(true)
+
+  return (
+    <>
+      <button className="fixed top-2 left-2 z-50" type="button" onClick={() => setMounted(false)}>
+        Unmount keyboard fixture
+      </button>
+      {mounted ? (
+        <TweakerPanel
+          store={keyboardUnmountPanelStore}
+          title="Keyboard unmount fixture"
+          width={320}
+          defaultPlacement="top-right"
+          data-geometry-fixture="keyboard-unmount"
+        >
+          <TweakerGroup id="first-group" label="First group">
+            <TallContent prefix="first-group" count={1} />
+          </TweakerGroup>
+          <TweakerGroup id="second-group" label="Second group">
+            <TallContent prefix="second-group" count={1} />
+          </TweakerGroup>
+        </TweakerPanel>
+      ) : null}
     </>
   )
 }

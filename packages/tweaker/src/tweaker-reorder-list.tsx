@@ -56,6 +56,7 @@ export function TweakerReorderList({
     itemId: string
     label: string
   } | null>(null)
+  const keyboardSessionRef = useRef(keyboardSession)
   const registeredValues = useStore(
     store,
     useShallow((state) => orderedItemsForParent(state, parentId).map((entry) => entry.item.id)),
@@ -185,6 +186,18 @@ export function TweakerReorderList({
       setKeyboardSession(null)
     }
   }, [keyboardSession, parentId, registeredValues, store])
+  useLayoutEffect(() => {
+    keyboardSessionRef.current = keyboardSession
+  }, [keyboardSession])
+  useEffect(
+    () => () => {
+      const activeSession = keyboardSessionRef.current
+      if (activeSession) {
+        restoreKeyboardReorderOrder(store, parentId, activeSession.initialOrder)
+      }
+    },
+    [parentId, store],
+  )
   useLayoutEffect(() => {
     const pendingFlipRects = pendingFlipRectsRef.current
     pendingFlipRectsRef.current = null

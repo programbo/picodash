@@ -16,8 +16,17 @@ test('detects bottom constraints with Typed OM and legacy computed-style fallbac
       computedBottom: '16px',
       computedTop: '620px',
       typedBottom: '16px',
+      typedTop: 'auto',
     }),
   ).toBe(true)
+  expect(
+    panelUsesBottomConstraint({
+      computedBottom: '16px',
+      computedTop: '32px',
+      typedBottom: '16px',
+      typedTop: '32px',
+    }),
+  ).toBe(false)
   expect(
     panelUsesBottomConstraint({
       computedBottom: '16px',

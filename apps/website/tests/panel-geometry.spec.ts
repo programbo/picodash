@@ -222,6 +222,22 @@ test('tracks live placement constraint changes before persistence', async ({ pag
   await expectEdgeInsets(panel, { right: 16, top: 16 })
 })
 
+test('rolls back an active keyboard reorder when its list unmounts', async ({ page }) => {
+  await page.goto('/panel-geometry-lab?fixture=keyboard-unmount')
+  const panel = geometryPanel(page, 'keyboard-unmount')
+  const secondGrip = panel.getByRole('button', {
+    name: 'Reorder Second group',
+    exact: true,
+  })
+
+  await secondGrip.press('Space')
+  await secondGrip.press('ArrowUp')
+  await page.getByRole('button', { name: 'Unmount keyboard fixture' }).click()
+  await expect(panel).toHaveCount(0)
+
+  await expect.poll(() => keyboardUnmountRootOrder(page)).toEqual(['first-group', 'second-group'])
+})
+
 test('viewport shrink and growth constrain an undocked panel without moving its top', async ({
   page,
 }) => {
@@ -339,6 +355,14 @@ async function expectEdgeInsets(
       }
     })
     .toEqual(expected)
+}
+
+async function keyboardUnmountRootOrder(page: Page) {
+  return page.evaluate(async () => {
+    const modulePath = ['/src', 'panel-geometry-lab.tsx'].join('/')
+    const { keyboardUnmountPanelStore } = await import(modulePath)
+    return keyboardUnmountPanelStore.getState().order.root
+  })
 }
 
 async function requiredBox(locator: Locator) {

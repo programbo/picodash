@@ -22,14 +22,16 @@ export function panelUsesBottomConstraint({
   computedBottom,
   computedTop,
   typedBottom,
+  typedTop,
 }: {
   computedBottom: string
   computedTop: string
   typedBottom?: string
+  typedTop?: string
 }) {
   return typedBottom === undefined
     ? computedBottom !== 'auto' && computedTop === 'auto'
-    : typedBottom !== 'auto'
+    : typedBottom !== 'auto' && typedTop === 'auto'
 }
 
 export function usePanelLayoutSynchronization({
@@ -205,16 +207,19 @@ export function usePanelLayoutSynchronization({
     const savedPosition = store.getState().panelLayouts[panelId]
     const containerRect = rectFromElement(containerElement)
     const computedStyle = getComputedStyle(panelElement)
-    const typedBottom =
+    const typedStyleMap =
       typeof panelElement.computedStyleMap === 'function'
-        ? panelElement.computedStyleMap().get('bottom')?.toString()
+        ? panelElement.computedStyleMap()
         : undefined
+    const typedBottom = typedStyleMap?.get('bottom')?.toString()
+    const typedTop = typedStyleMap?.get('top')?.toString()
     const startsBottomPositioned =
       savedPosition === undefined &&
       panelUsesBottomConstraint({
         computedBottom: computedStyle.bottom,
         computedTop: computedStyle.top,
         typedBottom,
+        typedTop,
       })
     const targetPosition = positionForPanelLayout({
       baseRect,
