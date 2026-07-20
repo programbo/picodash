@@ -38,6 +38,10 @@ test.beforeEach(async ({ page }) => {
 test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {
   const example = page.locator('[data-interactive-jsx-example]')
 
+  await page.setViewportSize({ width: 320, height: 844 })
+  await page.getByRole('button', { name: 'Collapse panel Built-in Items' }).click()
+  await expect(example.getByRole('checkbox', { name: 'Show all props' })).toBeInViewport()
+  await expect(example.getByRole('button', { name: 'Copy JSX' })).toBeInViewport()
   await expect(example.getByRole('tab', { name: 'Usage' })).toBeVisible()
   await example.getByRole('tab', { name: 'Usage' }).click()
 
