@@ -38,13 +38,7 @@ import {
 } from 'tweaker'
 import 'tweaker/style.css'
 
-type SceneState = {
-  bloom: boolean
-  exposure: number
-  quality: 'draft' | 'balanced' | 'final'
-}
-
-const sceneStore = createTweakerPanelStore<SceneState>({
+const sceneStore = createTweakerPanelStore({
   panelId: 'scene-controls',
   initialValues: { bloom: true, exposure: 1.2, quality: 'balanced' },
 })

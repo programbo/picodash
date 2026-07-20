@@ -37,22 +37,19 @@ export const settingsStore = createTweakerPanelStore({
 })
 ```
 
-2. Read values with selectors.
-
-```ts
-import { useTweakerPanelStoreSelector } from 'tweaker'
-
-const exposure = useTweakerPanelStoreSelector(settingsStore, (state) => {
-  return typeof state.values.exposure === 'number' ? state.values.exposure : 1
-})
-```
+2. Read values with selectors inside the component that consumes them.
 
 3. Render `TweakerProvider` and `TweakerPanel`.
 
 ```tsx
 import { TweakerPanel, TweakerProvider, TweakerSwitch, useTweakerPanelStoreSelector } from 'tweaker'
+import { settingsStore } from './settings-store'
 
 export function SiteControls() {
+  const exposure = useTweakerPanelStoreSelector(settingsStore, (state) => {
+    return typeof state.values.exposure === 'number' ? state.values.exposure : 1
+  })
+
   return (
     <TweakerProvider theme="system" persistLayout storageKey="my-site:tweaker-layout:v1">
       <main style={{ opacity: exposure }}>App content</main>
