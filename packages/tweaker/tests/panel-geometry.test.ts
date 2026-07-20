@@ -63,6 +63,34 @@ test('projects a custom bottom inset independently from the other bounds', () =>
   })
 })
 
+test('honors a bottom inset larger than half the container', () => {
+  const projection = projectPanelGeometry({
+    anchor: 'bottom',
+    baseRect: {
+      bottom: 24,
+      height: 24,
+      left: 16,
+      right: 56,
+      top: 0,
+      width: 40,
+    },
+    bottomInset: 60,
+    containerRect: {
+      bottom: 100,
+      height: 100,
+      left: 0,
+      right: 100,
+      top: 0,
+      width: 100,
+    },
+    inset: 16,
+    intrinsicHeight: 24,
+    position: { x: 0, y: 0 },
+  })
+
+  expect(projection.rect.bottom).toBe(40)
+})
+
 describe('panel geometry projection', () => {
   test('leaves a fitting panel at its requested position', () => {
     const projection = projectPanelGeometry({

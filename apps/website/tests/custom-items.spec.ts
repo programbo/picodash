@@ -832,6 +832,43 @@ test('ignores a second keyboard pickup while a reorder session is active', async
   await expect.poll(() => builtInRootStoreOrder(page)).toEqual(initialOrder)
 })
 
+test('blocks pointer pickup while a keyboard reorder session is active', async ({ page }) => {
+  await page.goto('/')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const mediaGrip = panel.getByRole('button', {
+    name: 'Reorder Media and files',
+    exact: true,
+  })
+  const commonGroup = panel.locator('[data-group-id="common-items"]')
+  const commonGrip = commonGroup.getByRole('button', {
+    name: 'Reorder Common inputs',
+    exact: true,
+  })
+  const initialOrder = [
+    'common-items',
+    'spatial-items',
+    'media-items',
+    'chart-items',
+    'visualization-items',
+  ]
+
+  await mediaGrip.press('Space')
+  await mediaGrip.press('ArrowUp')
+  const gripRect = await requiredBox(commonGrip)
+  await page.mouse.move(gripRect.x + gripRect.width / 2, gripRect.y + gripRect.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(gripRect.x + gripRect.width / 2, gripRect.y + gripRect.height + 80, {
+    steps: 4,
+  })
+  await expect.poll(() => builtInDraggingId(page)).toBeNull()
+  await expect(commonGroup).toHaveAttribute('data-dragging', 'false')
+  await page.mouse.up()
+
+  await expect(mediaGrip).toHaveAttribute('aria-pressed', 'true')
+  await mediaGrip.press('Escape')
+  await expect.poll(() => builtInRootStoreOrder(page)).toEqual(initialOrder)
+})
+
 test('keyboard reordering preserves hidden root slots on commit and cancellation', async ({
   page,
 }) => {
@@ -2368,6 +2405,14 @@ async function builtInRootStoreOrder(page: Page) {
     const modulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
     const { builtInItemsPanelStore } = await import(modulePath)
     return builtInItemsPanelStore.getState().order.root
+  })
+}
+
+async function builtInDraggingId(page: Page) {
+  return page.evaluate(async () => {
+    const modulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
+    const { builtInItemsPanelStore } = await import(modulePath)
+    return builtInItemsPanelStore.getState().interaction.draggingId
   })
 }
 

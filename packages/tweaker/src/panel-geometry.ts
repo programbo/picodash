@@ -75,8 +75,12 @@ export function rectWithHeight(rect: PanelRect, height: number): PanelRect {
 
 function safeBounds(rect: PanelRect, inset: number, bottomInset = inset) {
   const horizontalInset = Math.min(nonNegative(inset), nonNegative(rect.width) / 2)
-  const topInset = Math.min(nonNegative(inset), nonNegative(rect.height) / 2)
-  const normalizedBottomInset = Math.min(nonNegative(bottomInset), nonNegative(rect.height) / 2)
+  const height = nonNegative(rect.height)
+  const topInset = Math.min(nonNegative(inset), height / 2)
+  const normalizedBottomInset =
+    bottomInset === inset
+      ? topInset
+      : Math.min(nonNegative(bottomInset), Math.max(height - topInset, 0))
   const left = rect.left + horizontalInset
   const right = rect.right - horizontalInset
   const top = rect.top + topInset

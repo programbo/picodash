@@ -123,7 +123,7 @@ export function useTweakerReorderItem(
   )
 
   const beginReorder = (event: ReactPointerEvent) => {
-    if (!reorderable) return
+    if (!reorderable || keyboardReorderItemId !== null) return
     stopSettleAnimation()
     const siblingOffset = siblingOffsetY.get()
     siblingOffsetY.jump(0)
