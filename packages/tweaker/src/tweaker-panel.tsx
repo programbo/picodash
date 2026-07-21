@@ -364,7 +364,7 @@ export function TweakerPanel({
           data-tweaker-panel-shell=""
           data-fixed-placement={fixedPlacement ? placement.position : undefined}
           className={cn(
-            'pointer-events-none absolute h-fit w-(--tweaker-panel-width) max-w-[calc(100dvw-2rem)]',
+            'pointer-events-none absolute h-fit w-fit max-w-[calc(100dvw-2rem)]',
             placementShellClassName(placement),
             !visible && 'hidden',
           )}
@@ -677,24 +677,27 @@ function useResolvedPanelBoundary(
     let frame: number | null = null
     let observer: MutationObserver | null = null
     if (requestedBoundary && 'current' in requestedBoundary) {
+      let remainingPollFrames = 60
       const pollUnresolvedBoundary = () => {
         frame = null
         synchronize()
-        if (requestedBoundary.current === null) {
+        remainingPollFrames -= 1
+        if (requestedBoundary.current === null && remainingPollFrames > 0) {
           frame = requestAnimationFrame(pollUnresolvedBoundary)
         }
       }
-      const ensureUnresolvedBoundaryPolling = () => {
+      const ensureUnresolvedBoundaryPolling = (pollFrames: number) => {
+        remainingPollFrames = Math.max(remainingPollFrames, pollFrames)
         if (requestedBoundary.current === null && frame === null) {
           frame = requestAnimationFrame(pollUnresolvedBoundary)
         }
       }
       observer = new MutationObserver(() => {
         synchronize()
-        ensureUnresolvedBoundaryPolling()
+        ensureUnresolvedBoundaryPolling(1)
       })
       observer.observe(document.documentElement, { childList: true, subtree: true })
-      ensureUnresolvedBoundaryPolling()
+      ensureUnresolvedBoundaryPolling(60)
     }
     return () => {
       if (frame !== null) cancelAnimationFrame(frame)

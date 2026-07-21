@@ -328,6 +328,7 @@ test('handles deferred corners, ordinary class constraints, and viewport panels 
     'floating:bottom-right',
   )
   await expect(shell).not.toHaveAttribute('data-fixed-placement')
+  await expect.poll(async () => (await requiredBox(shell)).width).toBe(220)
   await expect
     .poll(async () => {
       const box = await requiredBox(panel)
