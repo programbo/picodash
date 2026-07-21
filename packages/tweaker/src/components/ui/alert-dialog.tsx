@@ -42,18 +42,57 @@ function AlertDialog({
   className,
   size = 'default',
   children,
+  isDismissable = false,
+  isOpen,
+  onOpenChange,
+  overlayClassName,
+  overlayStyle,
+  portalContainer,
+  style,
+  'data-tweaker-theme': tweakerTheme,
   ...props
 }: Omit<ModalOverlayPrimitiveProps, 'className' | 'children'> &
   Pick<React.ComponentProps<typeof ModalPrimitive>, 'isDismissable'> & {
     className?: string
     size?: 'default' | 'sm'
     children: React.ReactNode
+    overlayClassName?: string
+    overlayStyle?: React.CSSProperties
+    portalContainer?: Element | null
+    style?: React.CSSProperties
+    'data-tweaker-theme'?: string
   }) {
+  React.useEffect(() => {
+    if (!isOpen || !onOpenChange) return
+
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      onOpenChange(false)
+    }
+
+    document.addEventListener('keydown', dismissOnEscape, true)
+    return () => document.removeEventListener('keydown', dismissOnEscape, true)
+  }, [isOpen, onOpenChange])
+
   return (
-    <AlertDialogOverlay {...props}>
+    <AlertDialogOverlay
+      {...props}
+      isDismissable={isDismissable}
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      shouldCloseOnInteractOutside={() => false}
+      data-tweaker-theme={tweakerTheme}
+      className={overlayClassName}
+      style={overlayStyle}
+      UNSTABLE_portalContainer={portalContainer ?? undefined}
+    >
       <ModalPrimitive
         data-slot="alert-dialog-content"
         data-size={size}
+        data-tweaker-theme={tweakerTheme}
+        style={style}
         className={cn(
           'group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full -translate-x-1/2 -translate-y-1/2 gap-6 rounded-[min(var(--radius-4xl),24px)] bg-tweaker-surface-raised p-6 text-tweaker-text shadow-xl ring-1 ring-tweaker-text/5 duration-100 outline-none data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-md dark:ring-tweaker-text/10',
           className,
@@ -61,6 +100,7 @@ function AlertDialog({
       >
         <AlertDialogPrimitive
           data-slot="alert-dialog"
+          data-tweaker-theme={tweakerTheme}
           role="alertdialog"
           className="[display:inherit] [gap:inherit] outline-none"
         >
@@ -156,9 +196,18 @@ function AlertDialogDescription({
   )
 }
 
-function AlertDialogAction({ className, ...props }: React.ComponentProps<typeof Button>) {
+function AlertDialogAction({
+  className,
+  closeOnPress = true,
+  ...props
+}: React.ComponentProps<typeof Button> & { closeOnPress?: boolean }) {
   return (
-    <Button slot="close" data-slot="alert-dialog-action" className={cn(className)} {...props} />
+    <Button
+      slot={closeOnPress ? 'close' : undefined}
+      data-slot="alert-dialog-action"
+      className={cn(className)}
+      {...props}
+    />
   )
 }
 

@@ -6,7 +6,13 @@ import {
   type TweakerInputItemProps,
 } from '../tweaker-control.js'
 import type { TweakerParser } from '../tweaker-validation.js'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui.js'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select.js'
 import {
   canonicalTweakerValue,
   invalidTweakerValue,
@@ -67,11 +73,15 @@ export function TweakerSelect({
         return (
           <>
             <Select
-              disabled={control.disabled || control.readOnly}
-              value={value ?? ''}
-              onValueChange={control.setInput}
+              aria-labelledby={`${control.id}:label`}
+              className="col-span-2 w-full"
+              isDisabled={control.disabled || control.readOnly}
+              selectedKey={value ?? null}
+              onSelectionChange={(nextValue) => {
+                if (typeof nextValue === 'string') control.setInput(nextValue)
+              }}
             >
-              <SelectTrigger id={control.inputId} className="col-span-2">
+              <SelectTrigger id={control.inputId}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -81,9 +91,9 @@ export function TweakerSelect({
                   return (
                     <SelectItem
                       key={value}
-                      disabled={optionDisabled(option)}
+                      id={value}
+                      isDisabled={optionDisabled(option)}
                       textValue={optionTextValue(option)}
-                      value={value}
                     >
                       {optionLabel(option)}
                     </SelectItem>

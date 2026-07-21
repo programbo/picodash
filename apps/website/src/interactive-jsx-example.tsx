@@ -1,12 +1,12 @@
 import hljs from 'highlight.js/lib/core'
 import typescript from 'highlight.js/lib/languages/typescript'
 import { Check, Copy } from 'lucide-react'
-import { Tooltip as TooltipPrimitive } from 'radix-ui'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { darkStyles, JsonView } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
 import { useTweakerPanel, useTweakerPanelStoreSelector } from 'tweaker'
 import type { TweakerPanelState } from 'tweaker/advanced'
+import { Tabs, TabsContent, TabsList, TabsTrigger, Tooltip, TooltipTrigger } from 'tweaker/ui'
 import {
   alignmentContainerProps,
   alignmentOptions,
@@ -31,7 +31,6 @@ import {
   type BuiltInPanelPlacementPosition,
 } from '@/built-in-items-panel'
 import { shadcnChartTypes } from '@/custom-items/shadcn-chart'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GuideSideNav } from '@/guide-side-nav'
 import { cn } from '@/lib/utils'
 import { MoreExamples } from '@/more-examples'
@@ -897,8 +896,8 @@ export function InteractiveJsxExample({
         <Tabs
           className="min-w-0 gap-0 overflow-hidden border border-white/12 bg-zinc-950/78 shadow-2xl shadow-black/35 backdrop-blur-xl"
           data-interactive-tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
+          selectedKey={activeTab}
+          onSelectionChange={(key) => setActiveTab(String(key))}
         >
           <div className="flex flex-col gap-2 border-b border-white/10 bg-white/4 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <TabsList
@@ -907,29 +906,29 @@ export function InteractiveJsxExample({
               variant="line"
             >
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-cyan-200 sm:text-xs"
-                value="code"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-cyan-200 sm:text-xs"
+                id="code"
               >
                 <span className="size-2 bg-cyan-300" />
                 Code
               </TabsTrigger>
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-violet-200 sm:text-xs"
-                value="store"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-violet-200 sm:text-xs"
+                id="store"
               >
                 <span className="size-2 bg-violet-300" />
                 Store
               </TabsTrigger>
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-amber-200 sm:text-xs"
-                value="usage"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-amber-200 sm:text-xs"
+                id="usage"
               >
                 <span className="size-2 bg-amber-200" />
                 Usage
               </TabsTrigger>
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-amber-200 sm:text-xs"
-                value="more-examples"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-amber-200 sm:text-xs"
+                id="more-examples"
               >
                 <span className="size-2 bg-amber-200" />
                 More examples
@@ -981,7 +980,7 @@ export function InteractiveJsxExample({
             )}
           </div>
 
-          <TabsContent className="min-h-0" value="code">
+          <TabsContent className="min-h-0" id="code">
             <div
               ref={codeViewportRef}
               className="max-h-[calc(100svh-15rem)] min-w-0 overflow-y-auto overscroll-contain scroll-smooth motion-reduce:scroll-auto"
@@ -1264,7 +1263,7 @@ export function InteractiveJsxExample({
               </div>
             </div>
           </TabsContent>
-          <TabsContent className="min-h-0" value="store">
+          <TabsContent className="min-h-0" id="store">
             <div
               aria-label="Live Built-in Items panel store"
               className="max-h-[calc(100svh-15rem)] min-w-0 overflow-auto p-4 sm:p-5"
@@ -1279,10 +1278,10 @@ export function InteractiveJsxExample({
               />
             </div>
           </TabsContent>
-          <TabsContent className="min-h-0" value="usage">
+          <TabsContent className="min-h-0" id="usage">
             <UsageGuide />
           </TabsContent>
-          <TabsContent className="min-h-0" value="more-examples">
+          <TabsContent className="min-h-0" id="more-examples">
             <MoreExamples />
           </TabsContent>
         </Tabs>
@@ -1773,33 +1772,26 @@ function HelpExpression({ children, component }: { children: ReactNode; componen
   }).value
 
   return (
-    <TooltipPrimitive.Provider delayDuration={180}>
-      <TooltipPrimitive.Root>
-        <TooltipPrimitive.Trigger asChild>
-          <span
-            className="inline-block cursor-help text-violet-200 underline decoration-violet-300/35 decoration-dotted underline-offset-4 outline-none hover:text-violet-100 focus-visible:ring-2 focus-visible:ring-violet-300/60"
-            data-jsx-help={component}
-            tabIndex={0}
-          >
-            {children}
-          </span>
-        </TooltipPrimitive.Trigger>
-        <TooltipPrimitive.Portal>
-          <TooltipPrimitive.Content
-            className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text z-50 max-h-96 w-[42rem] max-w-[calc(100vw-2rem)] overflow-auto border px-(--tweaker-space-3) py-(--tweaker-space-2-5) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) shadow-[0_10px_15px_-3px_rgb(0_0_0/0.25),0_4px_6px_-4px_rgb(0_0_0/0.25)] outline-none"
-            data-jsx-prop-type-tooltip={component}
-            data-tweaker-theme="dark"
-            sideOffset={8}
-          >
-            <code
-              className="text-tweaker-text block font-mono text-(length:--tweaker-font-size-md) leading-(--tweaker-line-relaxed) whitespace-pre [&_.hljs-attr]:text-sky-200 [&_.hljs-comment]:text-zinc-500 [&_.hljs-keyword]:text-violet-300 [&_.hljs-literal]:text-rose-300 [&_.hljs-number]:text-rose-200 [&_.hljs-string]:text-amber-200 [&_.hljs-title.class_]:text-cyan-200 [&_.hljs-title.function_]:text-cyan-200 [&_.hljs-type]:text-cyan-200"
-              dangerouslySetInnerHTML={{ __html: highlightedPropType }}
-            />
-            <TooltipPrimitive.Arrow className="fill-tweaker-surface-raised" />
-          </TooltipPrimitive.Content>
-        </TooltipPrimitive.Portal>
-      </TooltipPrimitive.Root>
-    </TooltipPrimitive.Provider>
+    <TooltipTrigger delay={180}>
+      <span
+        className="inline-block cursor-help text-violet-200 underline decoration-violet-300/35 decoration-dotted underline-offset-4 outline-none hover:text-violet-100 focus-visible:ring-2 focus-visible:ring-violet-300/60"
+        data-jsx-help={component}
+        tabIndex={0}
+      >
+        {children}
+      </span>
+      <Tooltip
+        className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text z-50 max-h-96 w-[42rem] max-w-[calc(100vw-2rem)] overflow-auto border px-(--tweaker-space-3) py-(--tweaker-space-2-5) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) shadow-[0_10px_15px_-3px_rgb(0_0_0/0.25),0_4px_6px_-4px_rgb(0_0_0/0.25)] outline-none"
+        data-jsx-prop-type-tooltip={component}
+        data-tweaker-theme="dark"
+        offset={8}
+      >
+        <code
+          className="text-tweaker-text block font-mono text-(length:--tweaker-font-size-md) leading-(--tweaker-line-relaxed) whitespace-pre [&_.hljs-attr]:text-sky-200 [&_.hljs-comment]:text-zinc-500 [&_.hljs-keyword]:text-violet-300 [&_.hljs-literal]:text-rose-300 [&_.hljs-number]:text-rose-200 [&_.hljs-string]:text-amber-200 [&_.hljs-title.class_]:text-cyan-200 [&_.hljs-title.function_]:text-cyan-200 [&_.hljs-type]:text-cyan-200"
+          dangerouslySetInnerHTML={{ __html: highlightedPropType }}
+        />
+      </Tooltip>
+    </TooltipTrigger>
   )
 }
 

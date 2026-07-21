@@ -28,17 +28,26 @@ import {
   type TweakerPanelState,
 } from 'tweaker/advanced'
 import {
+  Badge,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  ScrollArea,
+  Separator,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from 'tweaker/ui'
+import {
   BuiltInItemsPanel,
   builtInItemsPanelId,
   builtInItemsPanelStore,
   defaultBuiltInItemsExampleConfig,
   type BuiltInItemsExampleConfig,
 } from '@/built-in-items-panel'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MouseVelocitySparklineItem } from '@/custom-items/mouse-velocity-sparkline'
 import { WaveformSpectrumItem } from '@/custom-items/waveform-spectrum'
 import { InteractiveJsxExample } from '@/interactive-jsx-example'
@@ -410,15 +419,15 @@ function DemoExperience({
               />
             </section>
 
-            <Tabs defaultValue="provider" className="grid gap-4">
+            <Tabs defaultSelectedKey="provider" className="grid gap-4">
               <TabsList className="grid w-full grid-cols-4 lg:w-fit">
-                <TabsTrigger value="provider">TweakerState</TabsTrigger>
-                <TabsTrigger value={scenePanelId}>Scene</TabsTrigger>
-                <TabsTrigger value={builtInItemsPanelId}>Built-in Items</TabsTrigger>
-                <TabsTrigger value={outputPanelId}>Custom Items</TabsTrigger>
+                <TabsTrigger id="provider">TweakerState</TabsTrigger>
+                <TabsTrigger id={scenePanelId}>Scene</TabsTrigger>
+                <TabsTrigger id={builtInItemsPanelId}>Built-in Items</TabsTrigger>
+                <TabsTrigger id={outputPanelId}>Custom Items</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="provider">
+              <TabsContent id="provider">
                 <StatePanel
                   title="Provider state"
                   description="The shared provider store tracks registered panels and panel stacking order."
@@ -440,18 +449,18 @@ function DemoExperience({
                 </StatePanel>
               </TabsContent>
 
-              <TabsContent value={scenePanelId}>
+              <TabsContent id={scenePanelId}>
                 <PanelStatePanel snapshot={panelSnapshots[scenePanelId]} title="Scene Controls" />
               </TabsContent>
 
-              <TabsContent value={builtInItemsPanelId}>
+              <TabsContent id={builtInItemsPanelId}>
                 <PanelStatePanel
                   snapshot={panelSnapshots[builtInItemsPanelId]}
                   title="Built-in Items"
                 />
               </TabsContent>
 
-              <TabsContent value={outputPanelId}>
+              <TabsContent id={outputPanelId}>
                 <PanelStatePanel snapshot={panelSnapshots[outputPanelId]} title="Custom Items" />
               </TabsContent>
             </Tabs>

@@ -3,7 +3,7 @@ import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
   pack: {
-    entry: ['src/index.ts', 'src/advanced.ts'],
+    entry: ['src/index.ts', 'src/advanced.ts', 'src/ui.ts'],
     css: {
       transformer: 'postcss',
       postcss: {

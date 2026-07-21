@@ -15,7 +15,8 @@ import {
   type TweakerInputItemProps,
 } from '../tweaker-control.js'
 import { useTweakerPanelSelector, useTweakerPanelStoreApi } from '../tweaker-panel.js'
-import { Button, Input } from '../ui.js'
+import { Button } from '../components/ui/button.js'
+import { Input } from '../components/ui/input.js'
 import { cn } from '../utils.js'
 import type { TweakerParser } from '../tweaker-validation.js'
 import { canonicalTweakerValue, strictImportShape } from './built-in-validation.js'

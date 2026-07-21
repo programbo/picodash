@@ -94,7 +94,12 @@ Update all five files together when command surface, entrypoints, or architectur
 
 ## Package Boundaries
 
-- `tweaker` exports remain package-owned and are used via `tweaker`, `tweaker/advanced`, and `tweaker/style.css`.
+- `tweaker` exports remain package-owned and are used via `tweaker`, `tweaker/advanced`,
+  `tweaker/ui`, and `tweaker/style.css`.
+- Shared shadcn components live only under `packages/tweaker/src/components/ui`; workspace apps
+  consume `tweaker/ui` and do not keep their own `components.json` or generated copies.
+- `tweaker/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve the
+  provider portal/theme/z-index contract, while nested submenus inherit their parent overlay.
 - Do not document `packages/panel` or `apps/demo` as active workspace products.
 
 ## Verification Discipline

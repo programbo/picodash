@@ -43,7 +43,7 @@ import { rootGroupId } from './tweaker-order.js'
 import { TweakerReorderList } from './tweaker-reorder-list.js'
 import { TweakerThemeContextProvider, useResolvedTweakerTheme } from './tweaker-theme-context.js'
 import { TooltipProvider } from './tooltip.js'
-import { buttonVariants } from './ui.js'
+import { buttonVariants } from './components/ui/button.js'
 import { usePanelLayoutSynchronization } from './use-panel-layout.js'
 import { cn } from './utils.js'
 import type {

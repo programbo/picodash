@@ -11,7 +11,7 @@ Monorepo for the promoted [Tweaker] package and its web showcase (`apps/website`
 ## Breaking migration notes
 
 - Legacy panel imports and specs now map to `tweaker` imports. The prior schema-driven `useTweaker` API and its persistence contracts are retired and are not migrated.
-- If your app imported `panel` in this workspace, map it directly to `tweaker` specifiers (`tweaker`, `tweaker/advanced`, `tweaker/style.css`).
+- If your app imported `panel` in this workspace, map it directly to `tweaker` specifiers (`tweaker`, `tweaker/advanced`, `tweaker/ui`, `tweaker/style.css`).
 - External consumer `Gearmo` is a known breaking downstream that requires its own migration planning and coordination.
 
 ## Install and style import
@@ -97,6 +97,8 @@ All package usage should be built on `TweakerProvider` + panel stores.
 - Validation contracts: synchronous `parse`/`validate` per field and optional Standard Schema validators.
 - Advanced tools: `tweaker/advanced` for focused provider/panel selectors, imperative store access,
   helpers, ordering and persistence wiring.
+- Shared UI primitives: `tweaker/ui` for the package-owned shadcn `aria-rhea` components used by
+  Tweaker and workspace consumers. Their interaction props follow React Aria conventions.
 - Styling import: `import 'tweaker/style.css'`.
 - No separate dist stylesheet import should be documented (the package export maps that path).
 

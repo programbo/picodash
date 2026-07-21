@@ -65,17 +65,36 @@ function Dialog({
   children,
   showCloseButton = true,
   isDismissable = true,
+  overlayClassName,
+  overlayStyle,
+  portalContainer,
+  style,
+  'data-tweaker-theme': tweakerTheme,
   ...props
 }: Omit<ModalOverlayPrimitiveProps, 'className' | 'children'> &
   Pick<React.ComponentProps<typeof ModalPrimitive>, 'isDismissable'> & {
     className?: string
     children: React.ReactNode
     showCloseButton?: boolean
+    overlayClassName?: string
+    overlayStyle?: React.CSSProperties
+    portalContainer?: Element | null
+    style?: React.CSSProperties
+    'data-tweaker-theme'?: string
   }) {
   return (
-    <DialogOverlay isDismissable={isDismissable} {...props}>
+    <DialogOverlay
+      isDismissable={isDismissable}
+      {...props}
+      data-tweaker-theme={tweakerTheme}
+      className={overlayClassName}
+      style={overlayStyle}
+      UNSTABLE_portalContainer={portalContainer ?? undefined}
+    >
       <ModalPrimitive
         data-slot="dialog-content"
+        data-tweaker-theme={tweakerTheme}
+        style={style}
         className={cn(
           'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-[min(var(--radius-4xl),24px)] bg-tweaker-surface-raised p-6 text-sm text-tweaker-text shadow-xl ring-1 ring-tweaker-text/5 duration-100 outline-none data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 sm:max-w-md dark:ring-tweaker-text/10',
           className,
@@ -83,6 +102,7 @@ function Dialog({
       >
         <DialogPrimitive
           data-slot="dialog"
+          data-tweaker-theme={tweakerTheme}
           className="[display:inherit] [gap:inherit] outline-none"
         >
           {children}

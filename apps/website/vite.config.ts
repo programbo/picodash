@@ -13,11 +13,6 @@ export default defineConfig({
         replacement: new URL('../../packages/tweaker/src/advanced.ts', import.meta.url).pathname,
       },
       {
-        find: /^tweaker\/ui$/,
-        replacement: new URL('../../packages/tweaker/src/components/ui/index.ts', import.meta.url)
-          .pathname,
-      },
-      {
         find: /^tweaker$/,
         replacement: new URL('../../packages/tweaker/src/index.ts', import.meta.url).pathname,
       },

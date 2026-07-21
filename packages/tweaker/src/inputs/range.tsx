@@ -1,5 +1,5 @@
-import { Slider } from 'radix-ui'
 import { useMemo } from 'react'
+import { Slider, SliderThumb, SliderTrack } from '../components/ui/slider.js'
 import { formatNumericValue } from '../number-format.js'
 import {
   TweakerItem,
@@ -98,17 +98,16 @@ export function TweakerRange({
 
         return (
           <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-(--tweaker-space-2)">
-            <Slider.Root
+            <Slider<TweakerRangeValue>
               id={control.inputId}
               aria-label="Range"
               className="relative flex h-(--tweaker-control-height-xs) min-w-0 touch-none items-center select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-(--tweaker-opacity-disabled)"
-              disabled={control.disabled || control.readOnly || min === max}
-              max={max}
-              min={min}
-              minStepsBetweenThumbs={0}
+              isDisabled={control.disabled || control.readOnly || min === max}
+              maxValue={max}
+              minValue={min}
               step={step}
               value={value}
-              onValueChange={(nextValue) => {
+              onChange={(nextValue) => {
                 control.setInput(
                   normalizeRangeValue(nextValue, {
                     fallback: value,
@@ -119,29 +118,33 @@ export function TweakerRange({
                 )
               }}
             >
-              <Slider.Track className="bg-tweaker-control relative h-(--_tweaker-slider-track-height) grow overflow-hidden rounded-full">
-                <span
-                  aria-hidden="true"
-                  className="bg-tweaker-accent absolute h-full"
-                  style={{
-                    insetInlineEnd: fillGeometry.insetInlineEnd,
-                    insetInlineStart: fillGeometry.insetInlineStart,
-                  }}
+              <SliderTrack className="relative h-(--tweaker-control-height-xs) grow">
+                <div className="bg-tweaker-control absolute inset-x-0 top-1/2 h-(--_tweaker-slider-track-height) -translate-y-1/2 overflow-hidden rounded-full">
+                  <span
+                    aria-hidden="true"
+                    className="bg-tweaker-accent absolute h-full"
+                    style={{
+                      insetInlineEnd: fillGeometry.insetInlineEnd,
+                      insetInlineStart: fillGeometry.insetInlineStart,
+                    }}
+                  />
+                </div>
+                <SliderThumb
+                  id={`${control.inputId}:low`}
+                  aria-label="Lower value"
+                  aria-valuetext={formattedLow}
+                  index={0}
+                  className="before:shadow-tweaker-sm data-focus-visible:before:ring-tweaker-focus data-focus-visible:before:ring-offset-tweaker-canvas before:border-tweaker-accent absolute top-1/2 block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--_tweaker-slider-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:bg-(--_tweaker-slider-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] data-disabled:pointer-events-none data-focus-visible:before:ring-2 data-focus-visible:before:ring-offset-1 data-hovered:before:scale-110"
                 />
-              </Slider.Track>
-              <Slider.Thumb
-                id={`${control.inputId}:low`}
-                aria-label="Lower value"
-                aria-valuetext={formattedLow}
-                className="before:shadow-tweaker-sm focus-visible:before:ring-tweaker-focus focus-visible:before:ring-offset-tweaker-canvas before:border-tweaker-accent relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--_tweaker-slider-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:bg-(--_tweaker-slider-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
-              />
-              <Slider.Thumb
-                id={`${control.inputId}:high`}
-                aria-label="Upper value"
-                aria-valuetext={formattedHigh}
-                className="before:shadow-tweaker-sm focus-visible:before:ring-tweaker-focus focus-visible:before:ring-offset-tweaker-canvas before:border-tweaker-accent relative block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--_tweaker-slider-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:bg-(--_tweaker-slider-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] hover:before:scale-110 focus-visible:before:ring-2 focus-visible:before:ring-offset-1 disabled:pointer-events-none"
-              />
-            </Slider.Root>
+                <SliderThumb
+                  id={`${control.inputId}:high`}
+                  aria-label="Upper value"
+                  aria-valuetext={formattedHigh}
+                  index={1}
+                  className="before:shadow-tweaker-sm data-focus-visible:before:ring-tweaker-focus data-focus-visible:before:ring-offset-tweaker-canvas before:border-tweaker-accent absolute top-1/2 block size-0 outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--_tweaker-slider-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:bg-(--_tweaker-slider-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] data-disabled:pointer-events-none data-focus-visible:before:ring-2 data-focus-visible:before:ring-offset-1 data-hovered:before:scale-110"
+                />
+              </SliderTrack>
+            </Slider>
             <output
               aria-live="off"
               className="text-tweaker-text min-w-[9ch] justify-self-end text-right text-(length:--tweaker-font-size-md) leading-(--tweaker-line-none) tabular-nums"

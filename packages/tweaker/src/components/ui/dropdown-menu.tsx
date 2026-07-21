@@ -13,7 +13,9 @@ import {
   Separator as SeparatorPrimitive,
   SubmenuTrigger as SubmenuTriggerPrimitive,
   type MenuItemProps as MenuItemPrimitiveProps,
+  type MenuProps as MenuPrimitiveProps,
   type MenuSectionProps as MenuSectionPrimitiveProps,
+  type PopoverProps as PopoverPrimitiveProps,
 } from 'react-aria-components'
 
 import { cn } from '#lib/utils'
@@ -24,33 +26,48 @@ function DropdownMenuTrigger({ ...props }: React.ComponentProps<typeof MenuTrigg
 }
 
 function DropdownMenu({
-  'data-slot': dataSlot = 'dropdown-menu-content',
-  placement = 'bottom start',
-  offset = 4,
-  crossOffset = 0,
+  'data-tweaker-theme': tweakerTheme,
   className,
   children,
-  ...props
-}: Omit<React.ComponentProps<typeof MenuPrimitive<object>>, 'children' | 'className'> &
-  Pick<React.ComponentProps<typeof PopoverPrimitive>, 'placement' | 'offset' | 'crossOffset'> & {
-    'data-slot'?: string
-    className?: string
-    children?: React.ReactNode
-  }) {
+  popoverClassName,
+  popoverProps,
+  popoverStyle,
+  portalContainer,
+  ...menuProps
+}: Omit<MenuPrimitiveProps<object>, 'children' | 'className' | 'style'> & {
+  children?: React.ReactNode
+  className?: string
+  'data-tweaker-theme'?: string
+  popoverClassName?: string
+  popoverProps?: Omit<
+    PopoverPrimitiveProps,
+    'children' | 'className' | 'style' | 'UNSTABLE_portalContainer'
+  > & { 'data-tweaker-theme'?: string }
+  popoverStyle?: PopoverPrimitiveProps['style']
+  portalContainer?: Element | null
+}) {
   return (
     <PopoverPrimitive
-      data-slot={dataSlot}
-      placement={placement}
-      offset={offset}
-      crossOffset={crossOffset}
+      {...popoverProps}
+      data-slot="dropdown-menu-content"
+      data-tweaker-theme={tweakerTheme}
+      placement={popoverProps?.placement ?? 'bottom start'}
+      offset={popoverProps?.offset ?? 4}
+      crossOffset={popoverProps?.crossOffset ?? 0}
+      UNSTABLE_portalContainer={portalContainer ?? undefined}
       className={cn(
         'dark z-50 w-(--trigger-width) min-w-32 origin-(--trigger-anchor-point) overflow-x-hidden overflow-y-auto rounded-2xl p-1 text-tweaker-text shadow-lg ring-1 ring-tweaker-text/5 duration-100 outline-none data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:overflow-hidden data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot$=-item]:data-focused:bg-tweaker-text/10 dark:ring-tweaker-text/10 animate-none! relative bg-tweaker-surface-raised/70 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-tweaker-text/10 **:data-[slot$=-item]:data-highlighted:bg-tweaker-text/10 **:data-[slot$=-separator]:bg-tweaker-text/5 **:data-[slot$=-trigger]:focus:bg-tweaker-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-tweaker-text/10! **:data-[variant=destructive]:focus:bg-tweaker-text/10! **:data-[variant=destructive]:text-tweaker-text! **:data-[variant=destructive]:**:text-tweaker-text!',
-        className,
+        popoverClassName,
       )}
+      style={popoverStyle}
     >
       <MenuPrimitive
-        className="max-h-[inherit] overflow-x-hidden overflow-y-auto outline-hidden"
-        {...props}
+        data-tweaker-theme={tweakerTheme}
+        className={cn(
+          'max-h-[inherit] overflow-x-hidden overflow-y-auto outline-hidden',
+          className,
+        )}
+        {...menuProps}
       >
         {children}
       </MenuPrimitive>
@@ -174,22 +191,22 @@ function DropdownMenuSubTrigger({
 }
 
 function DropdownMenuSubContent({
-  placement = 'end top',
-  crossOffset = -3,
-  offset = 0,
-  className,
+  popoverClassName,
+  popoverProps,
   ...props
 }: React.ComponentProps<typeof DropdownMenu>) {
   return (
     <DropdownMenu
-      data-slot="dropdown-menu-sub-content"
-      className={cn(
+      popoverClassName={cn(
         'dark w-auto min-w-[96px] rounded-2xl p-1 text-tweaker-text shadow-lg ring-1 ring-tweaker-text/5 duration-100 dark:ring-tweaker-text/10 animate-none! relative bg-tweaker-surface-raised/70 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-tweaker-text/10 **:data-[slot$=-item]:data-highlighted:bg-tweaker-text/10 **:data-[slot$=-separator]:bg-tweaker-text/5 **:data-[slot$=-trigger]:focus:bg-tweaker-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-tweaker-text/10! **:data-[variant=destructive]:focus:bg-tweaker-text/10! **:data-[variant=destructive]:text-tweaker-text! **:data-[variant=destructive]:**:text-tweaker-text!',
-        className,
+        popoverClassName,
       )}
-      placement={placement}
-      crossOffset={crossOffset}
-      offset={offset}
+      popoverProps={{
+        placement: 'end top',
+        crossOffset: -3,
+        offset: 0,
+        ...popoverProps,
+      }}
       {...props}
     />
   )

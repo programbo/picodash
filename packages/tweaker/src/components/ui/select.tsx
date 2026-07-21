@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useStore } from 'zustand'
 import {
   Button as ButtonPrimitive,
   composeRenderProps,
@@ -21,12 +22,25 @@ import {
 import { cn } from '#lib/utils'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '#components/ui/input-group'
 import { ChevronDownIcon, SearchIcon, CheckIcon } from 'lucide-react'
+import { tweakerGeometryTokens } from '../../theme.js'
+import { useTweakerTheme } from '../../tweaker-theme-context.js'
+import {
+  portalLayerZIndexForState,
+  portalLayerZIndexValue,
+  useTweakerProviderContext,
+} from '../../tweaker-provider.js'
 
 function Select<T extends object, M extends 'single' | 'multiple' = 'single'>({
   className,
   ...props
 }: SelectProps<T, M>) {
-  return <SelectPrimitive data-slot="select" className={cn('w-fit', className)} {...props} />
+  return (
+    <SelectPrimitive
+      data-slot="select"
+      className={composeRenderProps(className, (className) => cn('min-w-0', className))}
+      {...props}
+    />
+  )
 }
 
 function SelectGroup<T extends object>({ className, ...props }: SelectGroupProps<T>) {
@@ -68,7 +82,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-full items-center justify-between gap-1.5 rounded-2xl border border-transparent bg-tweaker-control/50 px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow] duration-200 outline-none focus-visible:border-tweaker-focus focus-visible:ring-3 focus-visible:ring-tweaker-focus/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-tweaker-danger aria-invalid:ring-3 aria-invalid:ring-tweaker-danger/20 data-placeholder:text-tweaker-muted data-[size=default]:h-8 data-[size=sm]:h-7 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-tweaker-danger/50 dark:aria-invalid:ring-tweaker-danger/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex h-(--tweaker-control-height-sm) w-full items-center justify-between gap-(--tweaker-space-1) rounded-tweaker-control border-0 border-b border-tweaker-control bg-transparent py-(--tweaker-space-0-5) pr-1 pl-(--tweaker-space-1-5) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) text-tweaker-text whitespace-nowrap shadow-none outline-none transition-colors duration-(--tweaker-duration-fast) data-hovered:bg-tweaker-canvas data-focus-visible:ring-2 data-focus-visible:ring-tweaker-focus data-disabled:cursor-not-allowed data-disabled:opacity-(--tweaker-opacity-disabled) aria-invalid:border-tweaker-danger aria-invalid:ring-2 aria-invalid:ring-tweaker-danger/20 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-(--tweaker-space-1) [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-(--tweaker-icon-sm)",
         className,
       )}
       {...props}
@@ -83,7 +97,7 @@ function SelectContent({
   className,
   children,
   placement = 'bottom',
-  offset = 4,
+  offset = tweakerGeometryTokens.selectSideOffset,
   crossOffset = 0,
   ...props
 }: Omit<React.ComponentProps<typeof PopoverPrimitive>, 'className' | 'children'> & {
@@ -107,23 +121,35 @@ function SelectPopover({
   className,
   children,
   placement = 'bottom start',
-  offset = 4,
+  offset = tweakerGeometryTokens.selectSideOffset,
   crossOffset = 0,
+  style,
   ...props
 }: Omit<React.ComponentProps<typeof PopoverPrimitive>, 'className' | 'children'> & {
   className?: string
   children?: React.ReactNode
 }) {
+  const theme = useTweakerTheme()
+  const { portalContainer, store } = useTweakerProviderContext()
+  const zIndexFloor = useStore(store, (state) => portalLayerZIndexForState(state, 2))
+
   return (
     <PopoverPrimitive
       data-slot="select-content"
+      data-tweaker-theme={theme}
       placement={placement}
       offset={offset}
       crossOffset={crossOffset}
+      containerPadding={tweakerGeometryTokens.selectCollisionPadding}
+      UNSTABLE_portalContainer={portalContainer ?? undefined}
       className={cn(
-        'dark isolate z-50 w-(--trigger-width) min-w-36 origin-(--trigger-anchor-point) overflow-hidden rounded-2xl text-tweaker-text shadow-lg ring-1 ring-tweaker-text/5 duration-100 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot$=-item]:data-focused:bg-tweaker-text/10 dark:ring-tweaker-text/10 animate-none! relative bg-tweaker-surface-raised/70 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-tweaker-text/10 **:data-[slot$=-item]:data-highlighted:bg-tweaker-text/10 **:data-[slot$=-separator]:bg-tweaker-text/5 **:data-[slot$=-trigger]:focus:bg-tweaker-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-tweaker-text/10! **:data-[variant=destructive]:focus:bg-tweaker-text/10! **:data-[variant=destructive]:text-tweaker-text! **:data-[variant=destructive]:**:text-tweaker-text!',
+        'pointer-events-auto isolate z-(--tweaker-layer-select) max-h-(--available-height) w-(--trigger-width) min-w-(--trigger-width) origin-(--trigger-anchor-point) overflow-hidden rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-(--tweaker-shadow-md) duration-100 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2',
         className,
       )}
+      style={composeRenderProps(style, (style) => ({
+        ...style,
+        zIndex: portalLayerZIndexValue('--tweaker-layer-select', zIndexFloor),
+      }))}
       {...props}
     >
       {children}
@@ -136,7 +162,7 @@ function SelectList<T extends object>({ className, ...props }: ListBoxProps<T>) 
     <ListBoxPrimitive
       data-slot="select-list"
       className={cn(
-        'group/select-list max-h-[inherit] overflow-x-hidden overflow-y-auto p-0 outline-hidden',
+        'group/select-list max-h-[inherit] overflow-x-hidden overflow-y-auto p-(--tweaker-space-1) outline-hidden',
         className,
       )}
       {...props}
@@ -185,7 +211,7 @@ function SelectItem({
       data-slot="select-item"
       textValue={typeof children === 'string' ? children : undefined}
       className={cn(
-        "relative flex min-h-7 w-full cursor-default items-center gap-2 rounded-xl py-1.5 pr-8 pl-2 text-sm outline-hidden select-none focus:bg-tweaker-surface-muted focus:text-tweaker-text not-data-[variant=destructive]:focus:**:text-tweaker-text data-focused:bg-tweaker-surface-muted data-focused:text-tweaker-text data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "relative flex h-(--tweaker-control-height-md) w-full cursor-default items-center gap-(--tweaker-space-1) rounded-tweaker-control pr-8 pl-8 text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) outline-hidden select-none data-focused:bg-tweaker-surface-muted data-focused:text-tweaker-text data-disabled:pointer-events-none data-disabled:opacity-(--tweaker-opacity-disabled) [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-(--tweaker-icon-sm)",
         className,
       )}
       {...props}

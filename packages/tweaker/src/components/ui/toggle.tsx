@@ -6,12 +6,13 @@ import { ToggleButton as TogglePrimitive, type ToggleButtonProps } from 'react-a
 import { cn } from '#lib/utils'
 
 const toggleVariants = cva(
-  "group/toggle inline-flex items-center justify-center gap-1 rounded-2xl text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-tweaker-surface-muted hover:text-tweaker-text focus-visible:border-tweaker-focus focus-visible:ring-[3px] focus-visible:ring-tweaker-focus/30 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-tweaker-danger aria-invalid:ring-tweaker-danger/20 aria-pressed:bg-tweaker-surface-muted dark:aria-invalid:ring-tweaker-danger/40 data-selected:bg-tweaker-surface-muted [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/toggle inline-flex items-center justify-center gap-(--tweaker-space-1) rounded-tweaker-control text-(length:--tweaker-font-size-md) leading-(--tweaker-line-none) font-(--tweaker-font-medium) whitespace-nowrap text-tweaker-muted transition-colors duration-(--tweaker-duration-fast) outline-none data-hovered:bg-tweaker-surface-muted data-hovered:text-tweaker-text data-focus-visible:ring-2 data-focus-visible:ring-tweaker-focus data-selected:bg-tweaker-accent data-selected:text-tweaker-accent-text data-disabled:pointer-events-none data-disabled:opacity-(--tweaker-opacity-disabled-soft) aria-invalid:border-tweaker-danger aria-invalid:ring-2 aria-invalid:ring-tweaker-danger/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-(--tweaker-icon-sm)",
   {
     variants: {
       variant: {
         default: 'bg-transparent',
-        outline: 'border border-tweaker-control bg-transparent hover:bg-tweaker-surface-muted',
+        outline:
+          'border border-tweaker-control bg-transparent data-hovered:bg-tweaker-surface-muted',
       },
       size: {
         default:

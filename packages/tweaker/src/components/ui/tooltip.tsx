@@ -24,15 +24,19 @@ function TooltipTrigger({
 }
 
 function Tooltip({
+  arrowClassName,
   className,
   placement = 'top',
   offset = 4,
   crossOffset = 0,
   children,
+  portalContainer,
   ...props
 }: Omit<React.ComponentProps<typeof TooltipPrimitive>, 'children' | 'className'> & {
   className?: string
   children?: React.ReactNode
+  arrowClassName?: string
+  portalContainer?: Element | null
 }) {
   return (
     <TooltipPrimitive
@@ -40,15 +44,19 @@ function Tooltip({
       placement={placement}
       offset={offset}
       crossOffset={crossOffset}
+      UNSTABLE_portalContainer={portalContainer ?? undefined}
       className={cn(
-        'z-50 inline-flex w-fit max-w-xs origin-(--trigger-anchor-point) items-center gap-1.5 rounded-xl bg-tweaker-text px-3 py-1.5 text-xs text-tweaker-canvas has-data-[slot=kbd]:pr-1.5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-50 **:data-[slot=kbd]:rounded-lg',
+        'z-50 inline-flex w-fit max-w-xs origin-(--trigger-anchor-point) items-center gap-1.5 rounded-tweaker-surface bg-tweaker-text px-3 py-1.5 text-xs text-tweaker-canvas has-data-[slot=kbd]:pr-1.5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-50 **:data-[slot=kbd]:rounded-lg',
         className,
       )}
       {...props}
     >
       {children}
       <OverlayArrow
-        className="bg-tweaker-text fill-tweaker-text z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px] data-[side=left]:translate-x-[-1.5px] data-[side=right]:translate-x-[1.5px]"
+        className={cn(
+          'bg-tweaker-text fill-tweaker-text z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px]',
+          arrowClassName,
+        )}
         style={({ placement, defaultStyle }) => ({
           ...defaultStyle,
           rotate: '0deg',

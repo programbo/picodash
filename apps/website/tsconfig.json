@@ -10,8 +10,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "tweaker": ["../../packages/tweaker/src/index.ts"],
-      "tweaker/advanced": ["../../packages/tweaker/src/advanced.ts"],
-      "tweaker/ui": ["../../packages/tweaker/src/components/ui/index.ts"]
+      "tweaker/advanced": ["../../packages/tweaker/src/advanced.ts"]
     },
 
     /* Bundler mode */

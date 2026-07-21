@@ -21,7 +21,7 @@ function Switch({
       data-slot="switch"
       data-size={size}
       className={cn(
-        'peer group/switch relative inline-flex shrink-0 items-center rounded-2xl border-2 transition-all outline-none not-data-selected:border-transparent not-data-selected:bg-tweaker-control/90 after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:border-tweaker-focus focus-visible:ring-3 focus-visible:ring-tweaker-focus/30 aria-invalid:border-tweaker-danger aria-invalid:ring-3 aria-invalid:ring-tweaker-danger/20 data-focus-visible:border-tweaker-focus data-focus-visible:ring-3 data-focus-visible:ring-tweaker-focus/30 data-invalid:border-tweaker-danger data-invalid:ring-3 data-invalid:ring-tweaker-danger/20 data-[size=default]:h-5 data-[size=default]:w-8 data-[size=sm]:h-4 data-[size=sm]:w-6 dark:aria-invalid:border-tweaker-danger/50 dark:aria-invalid:ring-tweaker-danger/40 dark:data-invalid:border-tweaker-danger/50 dark:data-invalid:ring-tweaker-danger/40 data-checked:border-tweaker-accent data-checked:bg-tweaker-accent data-unchecked:border-transparent data-unchecked:bg-tweaker-control/90 data-selected:border-tweaker-accent data-selected:bg-tweaker-accent data-disabled:cursor-not-allowed data-disabled:opacity-50',
+        'peer group/switch relative inline-flex h-(--_tweaker-switch-height) w-(--_tweaker-switch-width) shrink-0 items-center rounded-full border border-transparent bg-tweaker-control transition-colors duration-(--tweaker-duration-fast) outline-none after:absolute after:-inset-x-3 after:-inset-y-2 data-focus-visible:ring-2 data-focus-visible:ring-tweaker-focus data-selected:bg-tweaker-accent data-disabled:cursor-not-allowed data-disabled:opacity-(--tweaker-opacity-disabled) data-readonly:cursor-default aria-invalid:border-tweaker-danger aria-invalid:ring-2 aria-invalid:ring-tweaker-danger/20',
         className,
       )}
       {...props}
@@ -31,7 +31,7 @@ function Switch({
           <span
             data-slot="switch-thumb"
             data-selected={isSelected || undefined}
-            className="bg-tweaker-canvas dark:not-data-selected:bg-tweaker-text dark:data-checked:bg-tweaker-accent-text dark:data-unchecked:bg-tweaker-text dark:data-selected:bg-tweaker-accent-text pointer-events-none block rounded-2xl shadow-sm ring-0 transition-transform not-data-selected:translate-x-0 not-dark:bg-clip-padding group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3 data-checked:translate-x-[calc(100%-4px)] data-selected:translate-x-[calc(100%-4px)] data-unchecked:translate-x-0"
+            className="bg-tweaker-canvas shadow-tweaker-sm pointer-events-none block size-(--_tweaker-switch-thumb-size) translate-x-0 rounded-full transition-transform duration-(--tweaker-duration-fast) data-selected:translate-x-(--_tweaker-switch-thumb-translate)"
           />
           {children}
         </>

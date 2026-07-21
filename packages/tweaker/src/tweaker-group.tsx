@@ -26,7 +26,7 @@ import {
 import { rootGroupId } from './tweaker-order.js'
 import { TweakerReorderIndicator } from './tweaker-reorder-indicator.js'
 import { tweakerMotionTokens } from './theme.js'
-import { buttonVariants } from './ui.js'
+import { buttonVariants } from './components/ui/button.js'
 import { cn } from './utils.js'
 
 export interface TweakerGroupProps extends Omit<

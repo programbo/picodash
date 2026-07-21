@@ -1,7 +1,8 @@
 import { Info, RotateCcw } from 'lucide-react'
 import { Reorder, useReducedMotion, useTransform, type HTMLMotionProps } from 'motion/react'
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
-import { Button, Label, buttonVariants } from './ui.js'
+import { Button, buttonVariants } from './components/ui/button.js'
+import { Label } from './components/ui/label.js'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip.js'
 import {
   useRegisterTweakerItem,

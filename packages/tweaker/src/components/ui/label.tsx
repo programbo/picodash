@@ -7,7 +7,7 @@ function Label({ className, htmlFor, slot, ...props }: LabelProps) {
     <LabelPrimitive
       data-slot="label"
       className={cn(
-        'flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 peer-data-disabled:opacity-50',
+        'flex items-center gap-(--tweaker-space-1) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) font-(--tweaker-font-medium) text-tweaker-text select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-(--tweaker-opacity-disabled) peer-disabled:cursor-not-allowed peer-disabled:opacity-(--tweaker-opacity-disabled) peer-data-disabled:opacity-(--tweaker-opacity-disabled)',
         className,
       )}
       {...props}

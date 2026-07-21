@@ -22,6 +22,9 @@ import {
 import 'tweaker/style.css'
 ```
 
+Use package-owned shadcn components through `tweaker/ui` rather than adding another generated copy
+to a consuming workspace. This surface uses React Aria prop and state conventions.
+
 ## Quick Start Pattern
 
 1. Create a stable store once.
@@ -82,6 +85,7 @@ export function SiteControls() {
 - Use `tweaker/advanced` only when a task needs focused provider state through
   `useTweakerProviderSelector`, imperative provider access through `useTweakerProviderStoreApi`, or
   contextual panel access through `useTweakerPanelSelector` / `useTweakerPanelStoreApi`.
+- Use `tweaker/ui` for shared `aria-rhea` Button, Card, Tabs, overlay, and form primitives.
 - Do not use `useTweakerPanel(panelId)` to discover panel values. Panel data remains owned by the
   store passed to `TweakerPanel`.
 - Preserve corner strings for legacy `defaultPlacement` usage. Use the placement object for new

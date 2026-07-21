@@ -1,5 +1,4 @@
 import {
-  ChevronRight,
   ChevronsDownUp,
   ChevronsUpDown,
   Clipboard,
@@ -10,8 +9,8 @@ import {
   RotateCcw,
   Upload,
 } from 'lucide-react'
-import { AlertDialog, DropdownMenu } from 'radix-ui'
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -21,6 +20,23 @@ import {
 } from 'react'
 import { useStore } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from './components/ui/alert-dialog.js'
+import { Button, buttonVariants } from './components/ui/button.js'
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from './components/ui/dropdown-menu.js'
 import { collapsibleGroupsForState } from './tweaker-panel-action-state.js'
 import {
   applyTweakerPanelImport,
@@ -45,7 +61,6 @@ import {
 import { tweakerGeometryTokens } from './theme.js'
 import { useTweakerTheme } from './tweaker-theme-context.js'
 import type { TweakerConstraintRepair, TweakerFieldOutput } from './tweaker-validation.js'
-import { Button, buttonVariants } from './ui.js'
 import { cn } from './utils.js'
 
 export function TweakerPanelActions({
@@ -135,77 +150,73 @@ export function TweakerPanelActions({
 
   return (
     <>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger asChild>
-          <button
-            ref={triggerRef}
-            aria-label={`Open actions for ${panelTitle}`}
-            className={cn(
-              buttonVariants({ size: 'icon', variant: 'ghost' }),
-              'ml-auto size-(--tweaker-icon-lg) shrink-0 text-tweaker-muted',
-            )}
-            type="button"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <Ellipsis className="size-(--tweaker-icon-sm)" aria-hidden="true" />
-          </button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal container={portalContainer}>
-          <DropdownMenu.Content
-            data-tweaker-theme={theme}
-            aria-label={`Actions for ${panelTitle}`}
-            avoidCollisions
-            className={menuContentClassName}
-            collisionPadding={tweakerGeometryTokens.menuCollisionPadding}
-            sideOffset={tweakerGeometryTokens.menuSideOffset}
-            sticky="always"
-            style={{
-              zIndex: portalLayerZIndexValue('--tweaker-layer-menu', menuZIndex),
-            }}
-          >
-            {groups.length > 0 ? (
-              <>
-                <MenuItem
-                  disabled={allExpanded}
-                  icon={<ChevronsUpDown aria-hidden="true" />}
-                  onSelect={() => store.getState().setAllCollapsibleGroupsCollapsed(false)}
-                >
-                  Expand all
-                </MenuItem>
-                <MenuItem
-                  disabled={allCollapsed}
-                  icon={<ChevronsDownUp aria-hidden="true" />}
-                  onSelect={() => store.getState().setAllCollapsibleGroupsCollapsed(true)}
-                >
-                  Collapse all
-                </MenuItem>
-                <MenuSeparator />
-              </>
-            ) : null}
+      <DropdownMenuTrigger>
+        <Button
+          ref={triggerRef}
+          aria-label={`Open actions for ${panelTitle}`}
+          className="text-tweaker-muted ml-auto size-(--tweaker-icon-lg) shrink-0"
+          size="icon"
+          variant="ghost"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <Ellipsis className="size-(--tweaker-icon-sm)" aria-hidden="true" />
+        </Button>
+        <DropdownMenu
+          data-tweaker-theme={theme}
+          aria-label={`Actions for ${panelTitle}`}
+          portalContainer={portalContainer}
+          popoverClassName={menuContentClassName}
+          popoverProps={{
+            containerPadding: tweakerGeometryTokens.menuCollisionPadding,
+            offset: tweakerGeometryTokens.menuSideOffset,
+            shouldFlip: true,
+          }}
+          popoverStyle={{
+            zIndex: portalLayerZIndexValue('--tweaker-layer-menu', menuZIndex),
+          }}
+        >
+          {groups.length > 0 ? (
+            <>
+              <MenuItem
+                disabled={allExpanded}
+                icon={<ChevronsUpDown aria-hidden="true" />}
+                onSelect={() => store.getState().setAllCollapsibleGroupsCollapsed(false)}
+              >
+                Expand all
+              </MenuItem>
+              <MenuItem
+                disabled={allCollapsed}
+                icon={<ChevronsDownUp aria-hidden="true" />}
+                onSelect={() => store.getState().setAllCollapsibleGroupsCollapsed(true)}
+              >
+                Collapse all
+              </MenuItem>
+              <MenuSeparator />
+            </>
+          ) : null}
 
-            <MenuSub label="Copy" icon={<Clipboard aria-hidden="true" />}>
-              <FormatMenuItems verb="Copy" onSelect={copyValues} />
-            </MenuSub>
-            <MenuSub label="Export" icon={<Download aria-hidden="true" />}>
-              <FormatMenuItems verb="Export" onSelect={exportValues} />
-            </MenuSub>
-            <MenuItem
-              icon={<Upload aria-hidden="true" />}
-              onSelect={() => importInputRef.current?.click()}
-            >
-              Import…
-            </MenuItem>
-            <MenuSeparator />
-            <MenuItem
-              destructive
-              icon={<RotateCcw aria-hidden="true" />}
-              onSelect={() => setResetDialogOpen(true)}
-            >
-              Reset…
-            </MenuItem>
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
+          <MenuSub label="Copy" icon={<Clipboard aria-hidden="true" />}>
+            <FormatMenuItems verb="Copy" onSelect={copyValues} />
+          </MenuSub>
+          <MenuSub label="Export" icon={<Download aria-hidden="true" />}>
+            <FormatMenuItems verb="Export" onSelect={exportValues} />
+          </MenuSub>
+          <MenuItem
+            icon={<Upload aria-hidden="true" />}
+            onSelect={() => importInputRef.current?.click()}
+          >
+            Import…
+          </MenuItem>
+          <MenuSeparator />
+          <MenuItem
+            destructive
+            icon={<RotateCcw aria-hidden="true" />}
+            onSelect={() => setResetDialogOpen(true)}
+          >
+            Reset…
+          </MenuItem>
+        </DropdownMenu>
+      </DropdownMenuTrigger>
 
       <input
         ref={importInputRef}
@@ -228,68 +239,60 @@ export function TweakerPanelActions({
         {status}
       </span>
 
-      <AlertDialog.Root open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-        <AlertDialog.Portal container={portalContainer}>
-          <AlertDialog.Overlay
-            data-tweaker-theme={theme}
-            style={{
-              zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
-            }}
-            className="pointer-events-auto fixed inset-0 z-(--tweaker-layer-dialog) bg-(--tweaker-color-overlay) backdrop-blur-(--tweaker-blur-overlay)"
-          />
-          <AlertDialog.Content
-            data-tweaker-theme={theme}
-            style={{
-              zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
-            }}
-            className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-tweaker-panel pointer-events-auto fixed top-1/2 left-1/2 z-(--tweaker-layer-dialog) grid w-[min(24rem,calc(100dvw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-(--tweaker-space-3) border p-(--tweaker-space-4) outline-none"
-            onCloseAutoFocus={(event) => {
-              event.preventDefault()
-              triggerRef.current?.focus()
+      <AlertDialog
+        data-tweaker-theme={theme}
+        isOpen={resetDialogOpen}
+        onOpenChange={(nextOpen) => {
+          setResetDialogOpen(nextOpen)
+          if (!nextOpen) requestAnimationFrame(() => triggerRef.current?.focus())
+        }}
+        portalContainer={portalContainer}
+        overlayClassName="pointer-events-auto fixed inset-0 z-(--tweaker-layer-dialog) bg-(--tweaker-color-overlay) backdrop-blur-(--tweaker-blur-overlay)"
+        overlayStyle={{
+          zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
+        }}
+        style={{
+          zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
+        }}
+        className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-tweaker-panel pointer-events-auto fixed top-1/2 left-1/2 z-(--tweaker-layer-dialog) grid w-[min(24rem,calc(100dvw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-(--tweaker-space-3) border p-(--tweaker-space-4) outline-none"
+      >
+        <div className="grid gap-(--tweaker-space-1)">
+          <AlertDialogTitle className="text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-normal) font-(--tweaker-font-semibold)">
+            Reset {panelTitle}?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-tweaker-muted text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight)">
+            This restores every registered field to its default value. Panel position, order,
+            groups, and metadata stay unchanged.
+          </AlertDialogDescription>
+        </div>
+        <div className="flex justify-end gap-(--tweaker-space-2)">
+          <AlertDialogCancel className={buttonVariants({ size: 'sm', variant: 'outline' })}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            className={cn(
+              buttonVariants({ size: 'sm' }),
+              'bg-(--tweaker-color-danger) text-(--tweaker-color-canvas) hover:bg-(--tweaker-color-danger)/90',
+            )}
+            onPress={() => {
+              const result = store.getState().resetRegisteredFields()
+              announce(
+                result.success
+                  ? 'Reset all registered panel values.'
+                  : `Reset failed: ${formatFieldErrors(result.errors)}`,
+              )
             }}
           >
-            <div className="grid gap-(--tweaker-space-1)">
-              <AlertDialog.Title className="text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-normal) font-(--tweaker-font-semibold)">
-                Reset {panelTitle}?
-              </AlertDialog.Title>
-              <AlertDialog.Description className="text-tweaker-muted text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight)">
-                This restores every registered field to its default value. Panel position, order,
-                groups, and metadata stay unchanged.
-              </AlertDialog.Description>
-            </div>
-            <div className="flex justify-end gap-(--tweaker-space-2)">
-              <AlertDialog.Cancel asChild>
-                <Button size="sm" variant="outline">
-                  Cancel
-                </Button>
-              </AlertDialog.Cancel>
-              <AlertDialog.Action asChild>
-                <Button
-                  className="bg-(--tweaker-color-danger) text-(--tweaker-color-canvas) hover:bg-(--tweaker-color-danger)/90"
-                  size="sm"
-                  onClick={() => {
-                    const result = store.getState().resetRegisteredFields()
-                    announce(
-                      result.success
-                        ? 'Reset all registered panel values.'
-                        : `Reset failed: ${formatFieldErrors(result.errors)}`,
-                    )
-                  }}
-                >
-                  Reset values
-                </Button>
-              </AlertDialog.Action>
-            </div>
-          </AlertDialog.Content>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
+            Reset values
+          </AlertDialogAction>
+        </div>
+      </AlertDialog>
 
       <RepairReviewDialog
         beforeLabel="Imported"
         changes={importRepair?.analysis.changes ?? []}
         description="Some imported values need to be changed before they satisfy the current panel constraints. Review every change before applying the import."
         open={importRepair !== null}
-        panelTitle={panelTitle}
         returnFocusRef={triggerRef}
         title={`Review import for ${panelTitle}`}
         onAbort={() => {
@@ -318,7 +321,6 @@ export function TweakerPanelConstraintRepairDialog({ panelTitle }: { panelTitle:
       changes={proposal?.changes ?? []}
       description={copy.description}
       open={proposal !== null}
-      panelTitle={panelTitle}
       title={`${copy.title} for ${panelTitle}`}
       onAbort={() => store.getState().abortRepairProposal()}
       onAccept={() => {
@@ -332,33 +334,40 @@ export function TweakerPanelConstraintRepairDialog({ panelTitle }: { panelTitle:
 }
 
 const menuContentClassName =
-  'pointer-events-auto z-(--tweaker-layer-menu) max-h-(--radix-dropdown-menu-content-available-height) min-w-44 overflow-y-auto rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised p-(--tweaker-space-1) text-tweaker-text shadow-(--tweaker-shadow-md) outline-none'
+  'pointer-events-auto z-(--tweaker-layer-menu) min-w-44 overflow-y-auto rounded-tweaker-surface border border-tweaker-border bg-tweaker-surface-raised p-(--tweaker-space-1) text-tweaker-text shadow-(--tweaker-shadow-md) ring-0 outline-none before:hidden'
 
 const menuItemClassName =
-  'relative flex h-(--tweaker-control-height-md) cursor-default items-center gap-(--tweaker-space-2) rounded-tweaker-control px-(--tweaker-space-2) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-(--tweaker-opacity-disabled) data-[highlighted]:bg-tweaker-surface-muted data-[highlighted]:text-tweaker-text [&>svg]:size-(--tweaker-icon-sm) [&>svg]:shrink-0'
+  'relative flex h-(--tweaker-control-height-md) cursor-default items-center gap-(--tweaker-space-2) rounded-tweaker-control px-(--tweaker-space-2) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-(--tweaker-opacity-disabled) data-focused:bg-tweaker-surface-muted data-focused:text-tweaker-text [&>svg]:size-(--tweaker-icon-sm) [&>svg]:shrink-0'
 
 function MenuItem({
   children,
   destructive = false,
+  disabled,
   icon,
+  onSelect,
   ...props
-}: ComponentProps<typeof DropdownMenu.Item> & {
+}: Omit<ComponentProps<typeof DropdownMenuItem>, 'children' | 'onAction'> & {
+  children: ReactNode
   destructive?: boolean
+  disabled?: boolean
   icon?: ReactNode
+  onSelect?: () => void
 }) {
   return (
-    <DropdownMenu.Item
+    <DropdownMenuItem
       className={cn(menuItemClassName, destructive && 'text-tweaker-danger')}
+      isDisabled={disabled}
+      onAction={onSelect}
       {...props}
     >
       {icon}
       <span className="min-w-0 flex-1">{children}</span>
-    </DropdownMenu.Item>
+    </DropdownMenuItem>
   )
 }
 
 function MenuSeparator() {
-  return <DropdownMenu.Separator className="bg-tweaker-border my-(--tweaker-space-1) h-px" />
+  return <DropdownMenuSeparator className="bg-tweaker-border my-(--tweaker-space-1) h-px" />
 }
 
 function MenuSub({
@@ -371,32 +380,30 @@ function MenuSub({
   label: string
 }) {
   const theme = useTweakerTheme()
-  const { portalContainer, store } = useTweakerProviderContext()
+  const { store } = useTweakerProviderContext()
   const menuZIndex = useStore(store, (state) => portalLayerZIndexForState(state, 3))
 
   return (
-    <DropdownMenu.Sub>
-      <DropdownMenu.SubTrigger className={menuItemClassName}>
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger className={menuItemClassName}>
         {icon}
         <span className="min-w-0 flex-1">{label}</span>
-        <ChevronRight className="size-(--tweaker-icon-sm) shrink-0" aria-hidden="true" />
-      </DropdownMenu.SubTrigger>
-      <DropdownMenu.Portal container={portalContainer}>
-        <DropdownMenu.SubContent
-          data-tweaker-theme={theme}
-          avoidCollisions
-          className={menuContentClassName}
-          collisionPadding={tweakerGeometryTokens.menuCollisionPadding}
-          sideOffset={tweakerGeometryTokens.menuSubmenuOffset}
-          sticky="always"
-          style={{
-            zIndex: portalLayerZIndexValue('--tweaker-layer-menu', menuZIndex),
-          }}
-        >
-          {children}
-        </DropdownMenu.SubContent>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Sub>
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent
+        data-tweaker-theme={theme}
+        popoverClassName={menuContentClassName}
+        popoverProps={{
+          containerPadding: tweakerGeometryTokens.menuCollisionPadding,
+          offset: tweakerGeometryTokens.menuSubmenuOffset,
+          shouldFlip: true,
+        }}
+        popoverStyle={{
+          zIndex: portalLayerZIndexValue('--tweaker-layer-menu', menuZIndex),
+        }}
+      >
+        {children}
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
   )
 }
 
@@ -440,7 +447,6 @@ function RepairReviewDialog({
   onAbort,
   onAccept,
   open,
-  panelTitle,
   returnFocusRef,
   title,
 }: {
@@ -450,7 +456,6 @@ function RepairReviewDialog({
   onAbort: () => void
   onAccept: () => void
   open: boolean
-  panelTitle: string
   returnFocusRef?: RefObject<HTMLElement | null>
   title: string
 }) {
@@ -458,114 +463,97 @@ function RepairReviewDialog({
   const { portalContainer, store: providerStore } = useTweakerProviderContext()
   const modalZIndex = useStore(providerStore, modalZIndexForState)
   const [acceptError, setAcceptError] = useState('')
-  const acceptedRef = useRef(false)
+  const wasOpenRef = useRef(open)
+
+  useEffect(() => {
+    if (wasOpenRef.current && !open && returnFocusRef) {
+      requestAnimationFrame(() => returnFocusRef.current?.focus())
+    }
+    wasOpenRef.current = open
+  }, [open, returnFocusRef])
 
   return (
-    <AlertDialog.Root
-      open={open}
+    <AlertDialog
+      data-tweaker-theme={theme}
+      isOpen={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen && open && !acceptedRef.current) onAbort()
+        if (!nextOpen && open) onAbort()
         if (!nextOpen) {
-          acceptedRef.current = false
           setAcceptError('')
         }
       }}
+      portalContainer={portalContainer}
+      overlayClassName="pointer-events-auto fixed inset-0 z-(--tweaker-layer-dialog) bg-(--tweaker-color-overlay) backdrop-blur-(--tweaker-blur-overlay)"
+      overlayStyle={{
+        zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
+      }}
+      style={{
+        zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
+      }}
+      className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-tweaker-panel pointer-events-auto fixed top-1/2 left-1/2 z-(--tweaker-layer-dialog) grid max-h-[min(80dvh,36rem)] w-[min(24rem,calc(100dvw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-(--tweaker-space-3) overflow-hidden border p-(--tweaker-space-4) outline-none"
     >
-      <AlertDialog.Portal container={portalContainer}>
-        <AlertDialog.Overlay
-          data-tweaker-theme={theme}
-          style={{
-            zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
-          }}
-          className="pointer-events-auto fixed inset-0 z-(--tweaker-layer-dialog) bg-(--tweaker-color-overlay) backdrop-blur-(--tweaker-blur-overlay)"
-        />
-        <AlertDialog.Content
-          data-tweaker-theme={theme}
-          aria-label={`Repair values for ${panelTitle}`}
-          style={{
-            zIndex: portalLayerZIndexValue('--tweaker-layer-dialog', modalZIndex),
-          }}
-          className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text shadow-tweaker-panel pointer-events-auto fixed top-1/2 left-1/2 z-(--tweaker-layer-dialog) grid max-h-[min(80dvh,36rem)] w-[min(24rem,calc(100dvw-2rem))] -translate-x-1/2 -translate-y-1/2 gap-(--tweaker-space-3) overflow-hidden border p-(--tweaker-space-4) outline-none"
-          onCloseAutoFocus={(event) => {
-            if (!returnFocusRef) return
-            event.preventDefault()
-            returnFocusRef.current?.focus()
+      <div className="grid gap-(--tweaker-space-1)">
+        <AlertDialogTitle className="text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-normal) font-(--tweaker-font-semibold)">
+          {title}
+        </AlertDialogTitle>
+        <AlertDialogDescription className="text-tweaker-muted text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight)">
+          {description}
+        </AlertDialogDescription>
+      </div>
+      <div
+        className="grid min-h-0 gap-(--tweaker-space-2) overflow-y-auto"
+        aria-label="Proposed value changes"
+      >
+        {changes.map((change) => (
+          <section
+            key={change.field}
+            className="border-tweaker-border grid gap-(--tweaker-space-1) border p-(--tweaker-space-2)"
+          >
+            <h3 className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-semibold)">
+              {change.field}
+            </h3>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-(--tweaker-space-2) gap-y-(--tweaker-space-1) text-(length:--tweaker-font-size-lg)">
+              <dt className="text-tweaker-muted">{beforeLabel}</dt>
+              <dd className="min-w-0 font-mono break-words">{formatFieldOutput(change.before)}</dd>
+              <dt className="text-tweaker-muted">Proposed</dt>
+              <dd className="min-w-0 font-mono break-words">{formatFieldOutput(change.after)}</dd>
+            </dl>
+            <ul className="list-disc pl-(--tweaker-space-4) text-(length:--tweaker-font-size-lg) text-(--tweaker-color-danger)">
+              {change.errors.map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+      {acceptError ? (
+        <p
+          role="alert"
+          className="text-(length:--tweaker-font-size-lg) text-(--tweaker-color-danger)"
+        >
+          {acceptError}
+        </p>
+      ) : null}
+      <div className="flex justify-end gap-(--tweaker-space-2)">
+        <AlertDialogCancel className={buttonVariants({ size: 'sm', variant: 'outline' })}>
+          Abort
+        </AlertDialogCancel>
+        <AlertDialogAction
+          closeOnPress={false}
+          className={buttonVariants({ size: 'sm' })}
+          onPress={() => {
+            try {
+              onAccept()
+              setAcceptError('')
+            } catch (error) {
+              setAcceptError(errorMessage(error))
+            }
           }}
         >
-          <div className="grid gap-(--tweaker-space-1)">
-            <AlertDialog.Title className="text-(length:--tweaker-font-size-xl) leading-(--tweaker-line-normal) font-(--tweaker-font-semibold)">
-              {title}
-            </AlertDialog.Title>
-            <AlertDialog.Description className="text-tweaker-muted text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight)">
-              {description}
-            </AlertDialog.Description>
-          </div>
-          <div
-            className="grid min-h-0 gap-(--tweaker-space-2) overflow-y-auto"
-            aria-label="Proposed value changes"
-          >
-            {changes.map((change) => (
-              <section
-                key={change.field}
-                className="border-tweaker-border grid gap-(--tweaker-space-1) border p-(--tweaker-space-2)"
-              >
-                <h3 className="text-(length:--tweaker-font-size-lg) font-(--tweaker-font-semibold)">
-                  {change.field}
-                </h3>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-(--tweaker-space-2) gap-y-(--tweaker-space-1) text-(length:--tweaker-font-size-lg)">
-                  <dt className="text-tweaker-muted">{beforeLabel}</dt>
-                  <dd className="min-w-0 font-mono break-words">
-                    {formatFieldOutput(change.before)}
-                  </dd>
-                  <dt className="text-tweaker-muted">Proposed</dt>
-                  <dd className="min-w-0 font-mono break-words">
-                    {formatFieldOutput(change.after)}
-                  </dd>
-                </dl>
-                <ul className="list-disc pl-(--tweaker-space-4) text-(length:--tweaker-font-size-lg) text-(--tweaker-color-danger)">
-                  {change.errors.map((error) => (
-                    <li key={error}>{error}</li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
-          {acceptError ? (
-            <p
-              role="alert"
-              className="text-(length:--tweaker-font-size-lg) text-(--tweaker-color-danger)"
-            >
-              {acceptError}
-            </p>
-          ) : null}
-          <div className="flex justify-end gap-(--tweaker-space-2)">
-            <AlertDialog.Cancel asChild>
-              <Button size="sm" variant="outline">
-                Abort
-              </Button>
-            </AlertDialog.Cancel>
-            <AlertDialog.Action asChild>
-              <Button
-                size="sm"
-                onClick={(event) => {
-                  try {
-                    onAccept()
-                    acceptedRef.current = true
-                    setAcceptError('')
-                  } catch (error) {
-                    acceptedRef.current = false
-                    event.preventDefault()
-                    setAcceptError(errorMessage(error))
-                  }
-                }}
-              >
-                Accept changes
-              </Button>
-            </AlertDialog.Action>
-          </div>
-        </AlertDialog.Content>
-      </AlertDialog.Portal>
-    </AlertDialog.Root>
+          Accept changes
+        </AlertDialogAction>
+      </div>
+    </AlertDialog>
   )
 }
 

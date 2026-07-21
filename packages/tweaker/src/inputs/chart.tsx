@@ -1,5 +1,5 @@
-import type { ComponentProps, CSSProperties } from 'react'
-import {
+import { lazy, Suspense, type ComponentProps, type CSSProperties } from 'react'
+import type {
   Area,
   AreaChart,
   Bar,
@@ -17,7 +17,6 @@ import {
   RadarChart,
   RadialBar,
   RadialBarChart,
-  ResponsiveContainer,
   Tooltip as ChartTooltip,
   XAxis,
   YAxis,
@@ -51,7 +50,7 @@ type TweakerChartBaseProps = TweakerChartItemProps & {
   tooltipProps?: false | TweakerChartTooltipProps
 }
 
-type TweakerCartesianChartProps = {
+export type TweakerCartesianChartProps = {
   cartesianGridProps?: false | TweakerChartCartesianGridProps
   xAxisProps?: false | TweakerChartXAxisProps
   yAxisProps?: false | TweakerChartYAxisProps
@@ -132,15 +131,7 @@ export type TweakerChartProps =
   | TweakerRadialChartProps
 
 const defaultInitialDimension = { height: 144, width: 320 }
-const defaultTooltipContentStyle = {
-  backgroundColor: 'var(--tweaker-color-surface-raised)',
-  border: '1px solid var(--tweaker-color-border)',
-  borderRadius: 'var(--tweaker-radius-control)',
-  color: 'var(--tweaker-color-text)',
-} satisfies CSSProperties
-const defaultTooltipLabelStyle = {
-  color: 'var(--tweaker-color-text-strong)',
-} satisfies CSSProperties
+const LazyTweakerChartImplementation = lazy(() => import('./chart-implementation.js'))
 
 export function TweakerChart({
   accessibilityLayer = true,
@@ -163,162 +154,46 @@ export function TweakerChart({
         data-tweaker-chart={props.type}
         style={surfaceStyle}
       >
-        <ResponsiveContainer initialDimension={initialDimension}>
-          {renderChart({
-            accessibilityLayer,
-            data,
-            legendProps,
-            props,
-            tooltipProps,
-          })}
-        </ResponsiveContainer>
+        <Suspense fallback={<TweakerChartFallback />}>
+          <LazyTweakerChartImplementation
+            accessibilityLayer={accessibilityLayer}
+            data={data}
+            initialDimension={initialDimension}
+            legendProps={legendProps}
+            props={props}
+            tooltipProps={tooltipProps}
+          />
+        </Suspense>
       </div>
     </TweakerItem>
   )
 }
 
-function renderChart({
-  accessibilityLayer,
-  data,
-  legendProps,
-  props,
-  tooltipProps,
-}: {
+function TweakerChartFallback() {
+  return (
+    <div
+      aria-label="Loading chart"
+      className="text-tweaker-muted flex size-full min-h-(--tweaker-field-surface-min-height) items-center justify-center"
+      role="status"
+    >
+      <span className="sr-only">Loading chart</span>
+    </div>
+  )
+}
+
+export type TweakerChartImplementationProps = {
   accessibilityLayer: boolean
   data: readonly TweakerChartDataRow[]
+  initialDimension: { height: number; width: number }
   legendProps: false | TweakerChartLegendProps | undefined
   props: ChartSpecificProps
   tooltipProps: false | TweakerChartTooltipProps | undefined
-}) {
-  const shared = (
-    <>
-      {tooltipProps === false ? null : <ThemedChartTooltip tooltipProps={tooltipProps} />}
-      {legendProps === false || legendProps === undefined ? null : <Legend {...legendProps} />}
-    </>
-  )
-
-  if (props.type === 'area') {
-    return (
-      <AreaChart accessibilityLayer={accessibilityLayer} data={[...data]} {...props.areaChartProps}>
-        <CartesianParts {...props} />
-        {shared}
-        {props.series.map(({ dataKey, ...seriesProps }) => (
-          <Area key={dataKey} dataKey={dataKey} {...seriesProps} />
-        ))}
-      </AreaChart>
-    )
-  }
-
-  if (props.type === 'bar') {
-    return (
-      <BarChart accessibilityLayer={accessibilityLayer} data={[...data]} {...props.barChartProps}>
-        <CartesianParts {...props} />
-        {shared}
-        {props.series.map(({ dataKey, ...seriesProps }) => (
-          <Bar key={dataKey} dataKey={dataKey} {...seriesProps} />
-        ))}
-      </BarChart>
-    )
-  }
-
-  if (props.type === 'line') {
-    return (
-      <LineChart accessibilityLayer={accessibilityLayer} data={[...data]} {...props.lineChartProps}>
-        <CartesianParts {...props} />
-        {shared}
-        {props.series.map(({ dataKey, ...seriesProps }) => (
-          <Line key={dataKey} dataKey={dataKey} {...seriesProps} />
-        ))}
-      </LineChart>
-    )
-  }
-
-  if (props.type === 'pie') {
-    return (
-      <PieChart accessibilityLayer={accessibilityLayer} {...props.pieChartProps}>
-        {shared}
-        <Pie data={[...data]} {...props.pieProps} />
-      </PieChart>
-    )
-  }
-
-  const polarParts = (
-    <>
-      {props.polarGridProps === false ? null : <PolarGrid {...props.polarGridProps} />}
-      {props.polarAngleAxisProps === false ? null : (
-        <PolarAngleAxis {...props.polarAngleAxisProps} />
-      )}
-      {props.polarRadiusAxisProps === false ? null : (
-        <PolarRadiusAxis {...props.polarRadiusAxisProps} />
-      )}
-    </>
-  )
-
-  if (props.type === 'radar') {
-    return (
-      <RadarChart
-        accessibilityLayer={accessibilityLayer}
-        data={[...data]}
-        {...props.radarChartProps}
-      >
-        {polarParts}
-        {shared}
-        {props.series.map(({ dataKey, ...seriesProps }) => (
-          <Radar key={dataKey} dataKey={dataKey} {...seriesProps} />
-        ))}
-      </RadarChart>
-    )
-  }
-
-  return (
-    <RadialBarChart
-      accessibilityLayer={accessibilityLayer}
-      data={[...data]}
-      {...props.radialBarChartProps}
-    >
-      {polarParts}
-      {shared}
-      {props.series.map(({ dataKey, ...seriesProps }) => (
-        <RadialBar key={dataKey} dataKey={dataKey} {...seriesProps} />
-      ))}
-    </RadialBarChart>
-  )
 }
 
-function ThemedChartTooltip({
-  tooltipProps,
-}: {
-  tooltipProps: TweakerChartTooltipProps | undefined
-}) {
-  const { contentStyle, labelStyle, ...remainingTooltipProps } = tooltipProps ?? {}
-
-  return (
-    <ChartTooltip
-      {...remainingTooltipProps}
-      contentStyle={{ ...defaultTooltipContentStyle, ...contentStyle }}
-      labelStyle={{ ...defaultTooltipLabelStyle, ...labelStyle }}
-    />
-  )
-}
-
-type ChartSpecificProps = DistributiveOmit<
+export type ChartSpecificProps = DistributiveOmit<
   TweakerChartProps,
   keyof TweakerChartBaseProps | keyof TweakerChartItemProps
 >
-
-function CartesianParts({
-  cartesianGridProps,
-  xAxisProps,
-  yAxisProps,
-}: TweakerCartesianChartProps) {
-  return (
-    <>
-      {cartesianGridProps === false ? null : <CartesianGrid {...cartesianGridProps} />}
-      {xAxisProps === false ? null : <XAxis {...xAxisProps} />}
-      {yAxisProps === false ? null : <YAxis {...yAxisProps} />}
-    </>
-  )
-}
 
 function chartItemProps(props: ChartSpecificProps): TweakerChartItemProps {
   const {

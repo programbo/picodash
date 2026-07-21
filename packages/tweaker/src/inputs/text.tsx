@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { TweakerItem, type TweakerInputItemProps } from '../tweaker-control.js'
-import { Input, Textarea } from '../ui.js'
+import { Input } from '../components/ui/input.js'
+import { Textarea } from '../components/ui/textarea.js'
 import type { TweakerParser } from '../tweaker-validation.js'
 import { canonicalTweakerValue, invalidTweakerValue } from './built-in-validation.js'
 

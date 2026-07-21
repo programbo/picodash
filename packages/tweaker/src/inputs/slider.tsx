@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react'
+import { Slider, SliderThumb, SliderTrack } from '../components/ui/slider.js'
 import {
   TweakerItem,
   useResolvedPanelProp,
@@ -77,8 +78,17 @@ export function TweakerSlider({
             : normalizedDefault
 
         return (
-          <div className="col-span-2 grid min-w-0 grid-cols-subgrid items-center">
-            <div className="relative col-start-1 h-(--tweaker-icon-md) min-w-0">
+          <Slider<number>
+            aria-labelledby={`${control.id}:label`}
+            className="col-span-2 grid min-w-0 grid-cols-subgrid items-center"
+            isDisabled={control.disabled || control.readOnly}
+            maxValue={max}
+            minValue={min}
+            step={step}
+            value={value}
+            onChange={control.setInput}
+          >
+            <SliderTrack className="relative col-start-1 h-(--tweaker-icon-md) min-w-0">
               <div
                 aria-hidden="true"
                 className="bg-tweaker-control absolute inset-x-0 top-1/2 h-(--_tweaker-slider-track-height) -translate-y-1/2 overflow-hidden rounded-full"
@@ -96,16 +106,10 @@ export function TweakerSlider({
                   )
                 })}
               </div>
-              <input
+              <SliderThumb
                 id={control.inputId}
-                className="accent-tweaker-accent [&::-moz-range-thumb]:border-tweaker-accent [&::-webkit-slider-thumb]:border-tweaker-accent absolute top-1/2 left-(--_tweaker-slider-hit-offset) z-(--tweaker-layer-raised) h-(--tweaker-icon-md) w-(--_tweaker-slider-hit-width) min-w-0 -translate-y-1/2 cursor-pointer appearance-none bg-transparent outline-none disabled:cursor-not-allowed disabled:opacity-(--tweaker-opacity-disabled) [&::-moz-range-thumb]:size-(--_tweaker-slider-thumb-size) [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border [&::-moz-range-thumb]:bg-(--_tweaker-slider-thumb) [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-(--tweaker-duration-fast) hover:[&::-moz-range-thumb]:scale-110 [&::-moz-range-track]:h-(--_tweaker-slider-track-height) [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:h-(--_tweaker-slider-track-height) [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:mt-(--_tweaker-slider-webkit-thumb-offset) [&::-webkit-slider-thumb]:size-(--_tweaker-slider-thumb-size) [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:bg-(--_tweaker-slider-thumb) [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-(--tweaker-duration-fast) hover:[&::-webkit-slider-thumb]:scale-110"
-                disabled={control.disabled || control.readOnly}
-                max={max}
-                min={min}
-                step={step}
-                type="range"
-                value={value}
-                onChange={(event) => control.setInput(event.currentTarget.valueAsNumber)}
+                index={0}
+                className="before:shadow-tweaker-sm data-focus-visible:before:ring-tweaker-focus data-focus-visible:before:ring-offset-tweaker-canvas before:border-tweaker-accent absolute top-1/2 z-(--tweaker-layer-raised) block size-0 cursor-pointer outline-none before:absolute before:top-1/2 before:left-1/2 before:size-(--_tweaker-slider-thumb-size) before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:border before:bg-(--_tweaker-slider-thumb) before:transition-[box-shadow,scale] before:duration-(--tweaker-duration-fast) before:content-[''] data-disabled:cursor-not-allowed data-focus-visible:before:ring-2 data-focus-visible:before:ring-offset-1 data-hovered:before:scale-110"
               />
               {marks.length > 0 ? (
                 <div className="text-tweaker-muted pointer-events-none absolute inset-x-0 top-4 h-(--tweaker-space-3) text-(length:--tweaker-font-size-sm) leading-(--tweaker-line-none)">
@@ -129,11 +133,11 @@ export function TweakerSlider({
                   })}
                 </div>
               ) : null}
-            </div>
+            </SliderTrack>
             <output className="text-tweaker-text col-start-2 ml-(--tweaker-space-2) min-w-[4.5ch] justify-self-end text-right text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-none) font-(--tweaker-font-normal) tabular-nums">
               {formattedValue}
             </output>
-          </div>
+          </Slider>
         )
       }}
     </TweakerItem>

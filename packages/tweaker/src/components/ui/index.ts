@@ -70,7 +70,7 @@ export {
   SelectValue,
 } from './select.js'
 export { Separator } from './separator.js'
-export { Slider } from './slider.js'
+export { Slider, SliderFill, SliderThumb, SliderTrack } from './slider.js'
 export { Switch } from './switch.js'
 export { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants } from './tabs.js'
 export { Textarea } from './textarea.js'
