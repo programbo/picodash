@@ -339,6 +339,32 @@ test('handles deferred corners, ordinary class constraints, and viewport panels 
     .toEqual({ bottom: defaultPlacementInset, right: defaultPlacementInset })
 })
 
+test('resolves an unsaved corner and relative max constraints against a custom boundary', async ({
+  page,
+}) => {
+  await page.goto('/panel-geometry-lab?fixture=relative-constraints')
+  const boundary = page.locator('[data-geometry-boundary="relative-constraints"]')
+  const panel = geometryPanel(page, 'relative-constraint')
+
+  await expect.poll(async () => (await requiredBox(panel)).width).toBe(260)
+  await expect.poll(async () => (await requiredBox(panel)).height).toBe(320)
+  await expect(panel).toHaveCSS('max-width', '260px')
+  await expect(panel).toHaveCSS('max-height', '320px')
+  await expectCornerInset(panel, boundary, 'bottom-right', defaultPlacementInset)
+
+  await boundary.evaluate((element) => {
+    const boundaryElement = element as HTMLElement
+    boundaryElement.style.width = '600px'
+    boundaryElement.style.height = '400px'
+  })
+
+  await expect.poll(async () => (await requiredBox(panel)).width).toBe(300)
+  await expect.poll(async () => (await requiredBox(panel)).height).toBe(360)
+  await expect(panel).toHaveCSS('max-width', '300px')
+  await expect(panel).toHaveCSS('max-height', '360px')
+  await expectCornerInset(panel, boundary, 'bottom-right', defaultPlacementInset)
+})
+
 test('retracts every fixed placement while preserving its reopening control', async ({ page }) => {
   await page.goto('/panel-geometry-lab?fixture=fixed-boundaries')
   const boundary = page.locator('[data-geometry-boundary="provider"]')
@@ -580,6 +606,28 @@ async function expectPanelAtBoundary(
       right: position.endsWith('right') || position === 'right' ? 0 : null,
       top: position.startsWith('top') || position === 'left' || position === 'right' ? 0 : null,
     })
+}
+
+async function expectCornerInset(
+  panel: Locator,
+  boundary: Locator,
+  position: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right',
+  inset: number,
+) {
+  await expect
+    .poll(async () => {
+      const panelBox = await requiredBox(panel)
+      const boundaryBox = await requiredBox(boundary)
+      return {
+        horizontal: position.endsWith('left')
+          ? Math.round(panelBox.x - boundaryBox.x)
+          : Math.round(boundaryBox.x + boundaryBox.width - panelBox.x - panelBox.width),
+        vertical: position.startsWith('top')
+          ? Math.round(panelBox.y - boundaryBox.y)
+          : Math.round(boundaryBox.y + boundaryBox.height - panelBox.y - panelBox.height),
+      }
+    })
+    .toEqual({ horizontal: inset, vertical: inset })
 }
 
 async function expectCollapsedPanelBeyondBoundary(

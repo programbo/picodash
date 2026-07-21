@@ -32,6 +32,9 @@ const fixedOverridePanelStore = createTweakerPanelStore({ panelId: 'geometry-fix
 const reviewRegressionPanelStore = createTweakerPanelStore({
   panelId: 'geometry-review-regression',
 })
+const relativeConstraintPanelStore = createTweakerPanelStore({
+  panelId: 'geometry-relative-constraint',
+})
 
 const fixedPositions = [
   'top-left',
@@ -50,6 +53,9 @@ export function PanelGeometryLab() {
   }
   if (fixture === 'review-regressions') {
     return <ReviewRegressionFixture />
+  }
+  if (fixture === 'relative-constraints') {
+    return <RelativeConstraintFixture />
   }
 
   return (
@@ -75,6 +81,40 @@ export function PanelGeometryLab() {
         {fixture === 'bottom-max-height' ? <BottomMaxHeightFixture /> : null}
         {fixture === 'bottom-drag' ? <BottomDragFixture /> : null}
       </TweakerProvider>
+    </main>
+  )
+}
+
+function RelativeConstraintFixture() {
+  const boundaryRef = useRef<HTMLElement>(null)
+
+  return (
+    <main
+      id="main-content"
+      className="dark bg-background text-foreground relative min-h-svh"
+      data-panel-geometry-lab
+      data-product-route="panel-geometry-lab"
+    >
+      <style>{`.review-relative-constraint { max-width: 50%; }`}</style>
+      <section
+        ref={boundaryRef}
+        className="absolute top-20 left-[120px] h-[360px] w-[520px] border border-white/15"
+        data-geometry-boundary="relative-constraints"
+      >
+        <TweakerProvider panelBoundary={boundaryRef} persistLayout={false} theme="dark">
+          <TweakerPanel
+            store={relativeConstraintPanelStore}
+            title="Relative constraints"
+            width={480}
+            className="review-relative-constraint"
+            defaultPlacement={{ mode: 'floating', position: 'bottom-right' }}
+            style={{ maxHeight: 'calc(100% - 40px)' }}
+            data-geometry-fixture="relative-constraint"
+          >
+            <TallContent prefix="relative-constraint" count={32} />
+          </TweakerPanel>
+        </TweakerProvider>
+      </section>
     </main>
   )
 }

@@ -331,6 +331,20 @@ test('recomputes an explicit floating corner from live panel and boundary geomet
   ).toEqual({ dock: null, placement: { mode: 'floating' }, x: 24, y: 32 })
 })
 
+test('resolves an unsaved default floating corner against the live boundary', () => {
+  expect(
+    resolveFloatingCornerLayout(undefined, { height: 120, width: 180 }, rect(120, 80, 520, 360), {
+      mode: 'floating',
+      position: 'bottom-right',
+    }),
+  ).toEqual({
+    dock: null,
+    placement: { mode: 'floating', position: 'bottom-right' },
+    x: 444,
+    y: 304,
+  })
+})
+
 test('removes only retracted fixed panels from peer snapping', () => {
   expect(panelParticipatesInSnapping({ mode: 'fixed', position: 'left' }, true)).toBe(false)
   expect(panelParticipatesInSnapping({ mode: 'fixed', position: 'left' }, false)).toBe(true)
