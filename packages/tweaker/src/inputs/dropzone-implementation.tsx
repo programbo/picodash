@@ -298,20 +298,16 @@ function DropzoneImageViewer({
   const enterTransition: Transition = prefersReducedMotion
     ? { duration: 0 }
     : tweakerMotionTokens.viewerEnter
-  const fadeTransition: Transition = {
-    ...tweakerMotionTokens.viewerFade,
-    duration: prefersReducedMotion ? 0 : tweakerMotionTokens.viewerFade.duration,
-  }
 
   return (
     <AnimatePresence initial={false} onExitComplete={onExitComplete}>
       {present ? (
         <Dialog
           key="dropzone-image-viewer"
-          className="pointer-events-none inset-0! z-(--tweaker-layer-viewer)! size-full! max-w-none! translate-x-0! translate-y-0! gap-0! rounded-none! bg-transparent! p-0! shadow-none! ring-0!"
+          className="pointer-events-auto z-(--tweaker-layer-viewer)! w-[min(92vw,80rem)] max-w-none! gap-0! rounded-none! bg-transparent! p-0! shadow-none! ring-0!"
           data-tweaker-theme={theme}
           isOpen
-          overlayClassName="z-(--tweaker-layer-viewer)! bg-transparent! backdrop-blur-none!"
+          overlayClassName="pointer-events-auto z-(--tweaker-layer-viewer)! bg-(--tweaker-color-overlay)! backdrop-blur-(--tweaker-blur-overlay)!"
           overlayStyle={{ zIndex: 'var(--tweaker-layer-viewer)' }}
           portalContainer={portalContainer ?? undefined}
           showCloseButton={false}
@@ -320,17 +316,9 @@ function DropzoneImageViewer({
             if (!nextOpen) onOpenChange(false)
           }}
         >
-          <motion.div
-            data-tweaker-theme={theme}
-            className="pointer-events-auto fixed inset-0 bg-(--tweaker-color-overlay) backdrop-blur-(--tweaker-blur-overlay)"
-            initial={tweakerMotionTokens.viewerOverlayInitial}
-            animate={tweakerMotionTokens.viewerOverlayAnimate}
-            exit={tweakerMotionTokens.viewerOverlayExit}
-            transition={fadeTransition}
-          />
           <motion.figure
             data-tweaker-theme={theme}
-            className="shadow-tweaker-viewer rounded-tweaker-surface border-tweaker-control pointer-events-auto fixed top-1/2 left-1/2 m-0 grid w-[min(92vw,80rem)] max-w-none gap-0 overflow-hidden border bg-(--_tweaker-viewer-background) text-(--tweaker-color-text-strong) outline-none"
+            className="shadow-tweaker-viewer rounded-tweaker-surface border-tweaker-control m-0 grid w-full gap-0 overflow-hidden border bg-(--_tweaker-viewer-background) text-(--tweaker-color-text-strong) outline-none"
             initial={prefersReducedMotion ? false : tweakerMotionTokens.viewerSurfaceInitial}
             animate={tweakerMotionTokens.viewerSurfaceAnimate}
             exit={
@@ -338,7 +326,6 @@ function DropzoneImageViewer({
                 ? tweakerMotionTokens.viewerSurfaceReducedExit
                 : tweakerMotionTokens.viewerSurfaceExit
             }
-            style={{ x: '-50%', y: '-50%' }}
             transition={enterTransition}
           >
             <div className="relative flex max-h-[82vh] min-h-48 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_35%,var(--_tweaker-viewer-spotlight),transparent_65%)] p-(--tweaker-space-3) sm:p-(--tweaker-space-5)">

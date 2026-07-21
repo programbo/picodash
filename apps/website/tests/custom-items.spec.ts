@@ -1473,6 +1473,11 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
   await dropzone.getByRole('button', { name: 'View sample.png' }).click()
   await expect(page.getByRole('dialog')).toBeVisible()
   await expect(page.getByRole('img', { name: 'sample.png' })).toBeVisible()
+  await page.locator('[data-slot="dialog-overlay"]').click({ position: { x: 8, y: 8 } })
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(dropzone.getByRole('button', { name: 'View sample.png' })).toBeFocused()
+
+  await dropzone.getByRole('button', { name: 'View sample.png' }).click()
   await page.getByRole('button', { name: 'Close image viewer' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(dropzone.getByRole('button', { name: 'View sample.png' })).toBeFocused()
