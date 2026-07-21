@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -16,24 +17,42 @@ import {
   panelLayoutStorageKey,
   tweakerPersistedStateSchema,
 } from './panel-persistence.js'
-import type { PanelLayout, PanelRect } from './panel-snapping.js'
+import {
+  dockForSnapPosition,
+  placementForPanelLayout,
+  positionForFloatingCorner,
+  rectForPanelBoundary,
+  type PanelLayout,
+  type PanelRect,
+} from './panel-snapping.js'
 import { tweakerDefaultTheme, tweakerLayerTokens } from './theme.js'
 import { TweakerThemeContextProvider } from './tweaker-theme-context.js'
+import type {
+  TweakerPanelBoundary,
+  TweakerPanelDefaultPlacement,
+  TweakerPanelPlacement,
+} from './tweaker-panel-types.js'
 
 export interface TweakerPanelRegistration {
+  boundary: Element | null
   id: string
+  placement: TweakerPanelPlacement
   visible: boolean
 }
 
 export interface TweakerPanelRegistrationInput {
+  boundary?: Element | null
+  defaultPlacement?: TweakerPanelDefaultPlacement
   id: string
   visible?: boolean
 }
 
 export interface TweakerPanelController {
+  placement: TweakerPanelPlacement
   visible: boolean
   activate: () => void
   hide: () => void
+  setPlacement: (placement: TweakerPanelPlacement) => void
   setVisible: (visible: boolean) => void
   show: () => void
   toggle: () => void
@@ -50,7 +69,9 @@ export interface TweakerState {
   panels: Record<string, TweakerPanelRegistration>
   activatePanel: (panelId: string) => void
   registerPanel: (panel: TweakerPanelRegistrationInput) => void
+  setPanelBoundary: (panelId: string, boundary: Element | null) => void
   setPanelLayout: (panelId: string, layout: PanelLayout) => void
+  setPanelPlacement: (panelId: string, placement: TweakerPanelPlacement) => void
   setPanelRect: (panelId: string, rect: PanelRect | null) => void
   setPanelVisible: (panelId: string, visible: boolean) => void
   togglePanel: (panelId: string) => void
@@ -61,6 +82,7 @@ export type TweakerStore = StoreApi<TweakerState>
 
 export interface TweakerProviderContextValue {
   containerElement: HTMLDivElement | null
+  panelBoundary: TweakerPanelBoundary | null
   portalContainer: HTMLElement | null
   theme: TweakerResolvedTheme
   store: TweakerStore
@@ -71,6 +93,7 @@ export type TweakerResolvedTheme = string
 
 export interface TweakerProviderProps {
   children: ReactNode
+  panelBoundary?: TweakerPanelBoundary | null
   persistLayout?: boolean
   portalContainer?: HTMLElement | null
   storageKey?: string
@@ -119,10 +142,17 @@ export function createTweakerStore({
         const panelOrder = state.panelOrder.includes(panel.id)
           ? state.panelOrder
           : [...state.panelOrder, panel.id]
-        const registration = state.panels[panel.id] ?? {
-          id: panel.id,
-          visible: panel.visible ?? true,
-        }
+        const registration =
+          state.panels[panel.id] ??
+          ({
+            boundary: panel.boundary ?? null,
+            id: panel.id,
+            placement: placementForPanelLayout(
+              state.panelLayouts[panel.id],
+              panel.defaultPlacement,
+            ),
+            visible: panel.visible ?? true,
+          } satisfies TweakerPanelRegistration)
 
         return {
           panelOrder,
@@ -133,23 +163,89 @@ export function createTweakerStore({
         }
       })
     },
+    setPanelBoundary(panelId: string, boundary: Element | null) {
+      set((state) => {
+        const panel = state.panels[panelId]
+        if (!panel || panel.boundary === boundary) return state
+
+        const panelRects = { ...state.panelRects }
+        delete panelRects[panelId]
+        return {
+          panelRects,
+          panels: {
+            ...state.panels,
+            [panelId]: { ...panel, boundary },
+          },
+        }
+      })
+    },
     setPanelLayout(panelId: string, layout: PanelLayout) {
       set((state) => {
         const current = state.panelLayouts[panelId]
         if (
           current?.dock?.horizontal === layout.dock?.horizontal &&
           current?.dock?.vertical === layout.dock?.vertical &&
+          placementsEqual(current?.placement, layout.placement) &&
           current?.x === layout.x &&
           current.y === layout.y
         ) {
           return state
         }
 
+        const panel = state.panels[panelId]
+        const placement = layout.placement
+          ? layout.placement
+          : layout.dock
+            ? placementForPanelLayout(layout)
+            : ({ mode: 'floating' } satisfies TweakerPanelPlacement)
         return {
           panelLayouts: {
             ...state.panelLayouts,
             [panelId]: layout,
           },
+          panels: panel
+            ? {
+                ...state.panels,
+                [panelId]: placementsEqual(panel.placement, placement)
+                  ? panel
+                  : { ...panel, placement },
+              }
+            : state.panels,
+        }
+      })
+    },
+    setPanelPlacement(panelId: string, placement: TweakerPanelPlacement) {
+      set((state) => {
+        const panel = state.panels[panelId]
+        if (!panel) return state
+
+        const current = state.panelLayouts[panelId]
+        const measuredRect = state.panelRects[panelId]
+        const requestedFloatingPosition =
+          placement.mode === 'floating' && placement.position && measuredRect
+            ? positionForFloatingCorner(
+                placement.position,
+                measuredRect,
+                rectForPanelBoundary(panel.boundary),
+              )
+            : null
+        const layout: PanelLayout = {
+          dock: placement.mode === 'magnetic' ? dockForSnapPosition(placement.position) : null,
+          placement,
+          x: requestedFloatingPosition?.x ?? current?.x ?? measuredRect?.left ?? 0,
+          y: requestedFloatingPosition?.y ?? current?.y ?? measuredRect?.top ?? 0,
+        }
+        return {
+          panelLayouts: {
+            ...state.panelLayouts,
+            [panelId]: layout,
+          },
+          panels: placementsEqual(panel.placement, placement)
+            ? state.panels
+            : {
+                ...state.panels,
+                [panelId]: { ...panel, placement },
+              },
         }
       })
     },
@@ -262,20 +358,31 @@ export function modalZIndexForState(state: Pick<TweakerState, 'panelOrder'>) {
   return portalLayerZIndexForState(state, 4)
 }
 
-export function useRegisterTweakerPanel({ id, visible }: TweakerPanelRegistrationInput) {
-  const store = useTweakerStoreApi()
+export function useRegisterTweakerPanel({
+  boundary,
+  defaultPlacement,
+  id,
+  visible,
+}: TweakerPanelRegistrationInput) {
+  const store = useTweakerProviderStoreApi()
+  const initialRegistrationRef = useRef({ boundary, defaultPlacement, id, visible })
 
-  useEffect(() => {
-    store.getState().registerPanel({ id, visible })
+  useLayoutEffect(() => {
+    store.getState().registerPanel(initialRegistrationRef.current)
 
     return () => {
       store.getState().unregisterPanel(id)
     }
-  }, [id, store, visible])
+  }, [id, store])
+
+  useLayoutEffect(() => {
+    store.getState().setPanelBoundary(id, boundary ?? null)
+  }, [boundary, id, store])
 }
 
 export function TweakerProvider({
   children,
+  panelBoundary = null,
   persistLayout = true,
   portalContainer: portalContainerProp,
   storageKey = panelLayoutStorageKey,
@@ -298,11 +405,12 @@ export function TweakerProvider({
   const contextValue = useMemo<TweakerProviderContextValue>(
     () => ({
       containerElement,
+      panelBoundary,
       portalContainer,
       store,
       theme,
     }),
-    [containerElement, portalContainer, store, theme],
+    [containerElement, panelBoundary, portalContainer, store, theme],
   )
 
   return (
@@ -330,30 +438,40 @@ export function useTweakerProviderContext() {
   return context
 }
 
-export function useTweakerStoreApi() {
+export function useTweakerProviderStoreApi() {
   return useTweakerProviderContext().store
 }
 
-export function useTweakerSelector<T>(selector: (state: TweakerState) => T) {
-  return useStore(useTweakerStoreApi(), selector)
+export function useTweakerProviderSelector<T>(selector: (state: TweakerState) => T) {
+  return useStore(useTweakerProviderStoreApi(), selector)
 }
 
 export function useTweakerPanel(panelId: string): TweakerPanelController | null {
-  const store = useTweakerStoreApi()
+  const store = useTweakerProviderStoreApi()
   const panel = useStore(store, (state) => state.panels[panelId])
 
   return useMemo(() => {
     if (!panel) return null
 
     return {
+      placement: panel.placement,
       visible: panel.visible,
       activate: () => store.getState().activatePanel(panelId),
       hide: () => store.getState().setPanelVisible(panelId, false),
+      setPlacement: (placement: TweakerPanelPlacement) =>
+        store.getState().setPanelPlacement(panelId, placement),
       setVisible: (visible: boolean) => store.getState().setPanelVisible(panelId, visible),
       show: () => store.getState().setPanelVisible(panelId, true),
       toggle: () => store.getState().togglePanel(panelId),
     }
   }, [panel, panelId, store])
+}
+
+function placementsEqual(
+  left: TweakerPanelPlacement | undefined,
+  right: TweakerPanelPlacement | undefined,
+) {
+  return left?.mode === right?.mode && left?.position === right?.position
 }
 
 function useResolvedTweakerTheme(theme: TweakerTheme): TweakerResolvedTheme {

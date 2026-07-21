@@ -1,4 +1,11 @@
 import { projectPanelGeometry } from './panel-geometry.js'
+import type {
+  TweakerPanelBoundary,
+  TweakerPanelCorner,
+  TweakerPanelDefaultPlacement,
+  TweakerPanelPlacement,
+  TweakerPanelSnapPosition,
+} from './tweaker-panel-types.js'
 
 export interface PanelPosition {
   x: number
@@ -12,6 +19,7 @@ export interface PanelDock {
 
 export interface PanelLayout extends PanelPosition {
   dock?: PanelDock | null
+  placement?: TweakerPanelPlacement
 }
 
 export interface PanelRect {
@@ -37,6 +45,107 @@ export interface PanelSnapResult {
 
 export const SNAP_GAP = 8
 export const SNAP_THRESHOLD = 16
+export const FLOATING_PLACEMENT_INSET = 16
+
+export function normalizeTweakerPanelPlacement(
+  placement: TweakerPanelDefaultPlacement = 'top-right',
+): TweakerPanelPlacement {
+  return typeof placement === 'string' ? { mode: 'floating', position: placement } : placement
+}
+
+export function dockForSnapPosition(position: TweakerPanelSnapPosition): PanelDock {
+  switch (position) {
+    case 'top-left':
+      return { horizontal: 'left', vertical: 'top' }
+    case 'top':
+      return { vertical: 'top' }
+    case 'top-right':
+      return { horizontal: 'right', vertical: 'top' }
+    case 'right':
+      return { horizontal: 'right' }
+    case 'bottom-right':
+      return { horizontal: 'right', vertical: 'bottom' }
+    case 'bottom':
+      return { vertical: 'bottom' }
+    case 'bottom-left':
+      return { horizontal: 'left', vertical: 'bottom' }
+    case 'left':
+      return { horizontal: 'left' }
+  }
+}
+
+export function snapPositionForDock(
+  dock: PanelDock | null | undefined,
+): TweakerPanelSnapPosition | null {
+  if (!dock) return null
+  if (dock.horizontal === 'left' && dock.vertical === 'top') return 'top-left'
+  if (dock.horizontal === 'right' && dock.vertical === 'top') return 'top-right'
+  if (dock.horizontal === 'right' && dock.vertical === 'bottom') return 'bottom-right'
+  if (dock.horizontal === 'left' && dock.vertical === 'bottom') return 'bottom-left'
+  return dock.horizontal ?? dock.vertical ?? null
+}
+
+export function placementForPanelLayout(
+  layout: PanelLayout | undefined,
+  defaultPlacement: TweakerPanelDefaultPlacement = 'top-right',
+): TweakerPanelPlacement {
+  if (layout?.placement) return layout.placement
+  const snapPosition = snapPositionForDock(layout?.dock)
+  if (snapPosition) return { mode: 'magnetic', position: snapPosition }
+  return layout ? { mode: 'floating' } : normalizeTweakerPanelPlacement(defaultPlacement)
+}
+
+export function resolveTweakerPanelBoundary(
+  boundary: TweakerPanelBoundary | null | undefined,
+  fallback?: TweakerPanelBoundary | null,
+): Element | null {
+  if (boundary === null) return null
+  if (boundary === undefined) return resolveBoundaryValue(fallback)
+  return resolveBoundaryValue(boundary) ?? resolveBoundaryValue(fallback)
+}
+
+export function rectForPanelBoundary(boundary: Element | null): PanelRect {
+  const viewport = viewportRect()
+  return boundary ? intersectPanelRects(rectFromElement(boundary), viewport) : viewport
+}
+
+export function positionForFloatingCorner(
+  position: TweakerPanelCorner,
+  panelRect: Pick<PanelRect, 'height' | 'width'>,
+  boundaryRect: PanelRect,
+  inset = FLOATING_PLACEMENT_INSET,
+): PanelPosition {
+  return {
+    x: position.endsWith('left')
+      ? boundaryRect.left + inset
+      : boundaryRect.right - inset - panelRect.width,
+    y: position.startsWith('top')
+      ? boundaryRect.top + inset
+      : boundaryRect.bottom - inset - panelRect.height,
+  }
+}
+
+export function intersectPanelRects(left: PanelRect, right: PanelRect): PanelRect {
+  const intersectionLeft = Math.max(left.left, right.left)
+  const intersectionTop = Math.max(left.top, right.top)
+  const intersectionRight = Math.max(intersectionLeft, Math.min(left.right, right.right))
+  const intersectionBottom = Math.max(intersectionTop, Math.min(left.bottom, right.bottom))
+  return {
+    bottom: intersectionBottom,
+    height: intersectionBottom - intersectionTop,
+    left: intersectionLeft,
+    right: intersectionRight,
+    top: intersectionTop,
+    width: intersectionRight - intersectionLeft,
+  }
+}
+
+export function viewportRect(): PanelRect {
+  const hasViewport = typeof window !== 'undefined' && typeof document !== 'undefined'
+  const width = hasViewport ? document.documentElement.clientWidth : 0
+  const height = hasViewport ? document.documentElement.clientHeight : 0
+  return { bottom: height, height, left: 0, right: width, top: 0, width }
+}
 
 export function rectFromElement(element: Element): PanelRect {
   const rect = element.getBoundingClientRect()
@@ -113,24 +222,38 @@ export function positionForPanelLayout({
 }): PanelPosition {
   if (!layout) return { x: 0, y: 0 }
 
-  const dock = layout.dock ?? null
+  const placement = layout.placement
+  const fixed = placement?.mode === 'fixed'
+  const dock =
+    placement?.mode === 'magnetic' || placement?.mode === 'fixed'
+      ? dockForSnapPosition(placement.position)
+      : (layout.dock ?? null)
+  const inset = fixed ? 0 : SNAP_GAP
   const targetLeft =
     dock?.horizontal === 'left'
-      ? containerRect.left + SNAP_GAP
+      ? containerRect.left + inset
       : dock?.horizontal === 'right'
-        ? containerRect.right - SNAP_GAP - baseRect.width
+        ? containerRect.right - inset - baseRect.width
         : layout.x
   const targetTop =
     dock?.vertical === 'top'
-      ? containerRect.top + SNAP_GAP
+      ? containerRect.top + inset
       : dock?.vertical === 'bottom'
-        ? containerRect.bottom - SNAP_GAP - baseRect.height
-        : layout.y
+        ? containerRect.bottom - inset - baseRect.height
+        : fixed
+          ? containerRect.top
+          : layout.y
 
   return {
     x: targetLeft - baseRect.left,
     y: targetTop - baseRect.top,
   }
+}
+
+function resolveBoundaryValue(boundary: TweakerPanelBoundary | null | undefined): Element | null {
+  if (!boundary) return null
+  if ('current' in boundary) return boundary.current
+  return boundary
 }
 
 export function snapPanelPosition({

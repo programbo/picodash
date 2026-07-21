@@ -14,12 +14,15 @@ import { useShallow } from 'zustand/react/shallow'
 import { TweakerGroupContextProvider } from './tweaker-group-context.js'
 import { useTweakerPanelStoreApi } from './tweaker-panel-context.js'
 import {
+  bandForItem,
   keyboardReorderInteractionId,
   orderedItemsForParent,
   orderSnapshotForParent,
   orderTweakerChildren,
+  partitionTweakerChildrenByBand,
   reorderValuesForPointer,
   rootGroupId,
+  type TweakerOrderBand,
 } from './tweaker-order.js'
 import { tweakerMotionTokens } from './theme.js'
 import { cn } from './utils.js'
@@ -33,13 +36,82 @@ import type {
 export function TweakerReorderList({
   children,
   className,
+  fixedPlacement = false,
   parentId,
   ref,
 }: {
   children: ReactNode
   className?: string
+  fixedPlacement?: boolean
   parentId: string
   ref?: RefObject<HTMLDivElement | null>
+}) {
+  const store = useTweakerPanelStoreApi()
+  const bandById = useStore(
+    store,
+    useShallow((state) =>
+      Object.fromEntries(
+        orderedItemsForParent(state, parentId).map(({ item }) => [item.id, bandForItem(item)]),
+      ),
+    ),
+  )
+  const partitionedChildren = useMemo(
+    () => partitionTweakerChildrenByBand(children, bandById),
+    [bandById, children],
+  )
+  const fixedRoot = fixedPlacement && parentId === rootGroupId
+
+  if (!fixedRoot) {
+    return (
+      <TweakerReorderListSurface
+        ref={ref}
+        className={cn(className, parentId === rootGroupId && 'scroll-fade')}
+        parentId={parentId}
+        scrollport={parentId === rootGroupId ? 'body' : undefined}
+      >
+        {children}
+      </TweakerReorderListSurface>
+    )
+  }
+
+  return (
+    <motion.div
+      ref={ref}
+      className={cn(className, 'flex min-h-0 flex-col overflow-hidden pb-0.75')}
+      data-tweaker-reorder-list={parentId}
+    >
+      <TweakerReorderListSurface band="start" parentId={parentId}>
+        {partitionedChildren.start}
+      </TweakerReorderListSurface>
+      <TweakerReorderListSurface
+        band="auto"
+        className="scroll-fade min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
+        parentId={parentId}
+        scrollport="auto"
+      >
+        {partitionedChildren.auto}
+      </TweakerReorderListSurface>
+      <TweakerReorderListSurface band="end" parentId={parentId}>
+        {partitionedChildren.end}
+      </TweakerReorderListSurface>
+    </motion.div>
+  )
+}
+
+function TweakerReorderListSurface({
+  band,
+  children,
+  className,
+  parentId,
+  ref,
+  scrollport,
+}: {
+  band?: TweakerOrderBand
+  children: ReactNode
+  className?: string
+  parentId: string
+  ref?: RefObject<HTMLDivElement | null>
+  scrollport?: 'auto' | 'body'
 }) {
   const store = useTweakerPanelStoreApi()
   const fallbackRef = useRef<HTMLDivElement | null>(null)
@@ -60,7 +132,11 @@ export function TweakerReorderList({
   const keyboardSessionRef = useRef(keyboardSession)
   const registeredValues = useStore(
     store,
-    useShallow((state) => orderedItemsForParent(state, parentId).map((entry) => entry.item.id)),
+    useShallow((state) =>
+      orderedItemsForParent(state, parentId)
+        .filter((entry) => band === undefined || bandForItem(entry.item) === band)
+        .map((entry) => entry.item.id),
+    ),
   )
   const draggingId = useStore(store, (state) => state.interaction.draggingId)
   const keyboardReorderActive = useStore(
@@ -283,7 +359,9 @@ export function TweakerReorderList({
     <motion.div
       ref={listRef}
       className={className}
-      data-tweaker-reorder-list={parentId}
+      data-tweaker-reorder-lane={band}
+      data-tweaker-reorder-list={band === undefined ? parentId : undefined}
+      data-tweaker-scrollport={scrollport}
       layoutScroll
     >
       <Reorder.Group<string[], 'div'>
@@ -292,7 +370,7 @@ export function TweakerReorderList({
         axis="y"
         className={cn(
           'grid h-auto min-h-max grid-cols-[auto_minmax(4.5rem,max-content)_minmax(0,1fr)_max-content] gap-y-1',
-          parentId === rootGroupId && 'pb-0.75',
+          parentId === rootGroupId && band === undefined && 'pb-0.75',
         )}
         key={layoutVersion}
         values={values}
@@ -418,6 +496,7 @@ function usePointerReorderSession({
   const reorderSessionRef = useRef<{
     initialBandOrder: string[]
     initialOrder: string[]
+    initialVisibleOrder: string[]
     initialItemOffsetTop: number
     itemElement: HTMLElement
     itemId: string
@@ -473,8 +552,12 @@ function usePointerReorderSession({
       const nextFullOrder = session.initialOrder.map((id) =>
         session.initialBandOrder.includes(id) ? (queuedBandOrder.shift() ?? id) : id,
       )
+      const queuedVisibleBandOrder = [...nextOrder]
+      const nextVisibleOrder = session.initialVisibleOrder.map((id) =>
+        session.initialBandOrder.includes(id) ? (queuedVisibleBandOrder.shift() ?? id) : id,
+      )
       pendingStoreOrderRef.current = nextFullOrder
-      previewOrder(nextFullOrder)
+      previewOrder(nextVisibleOrder)
     },
     [previewOrder, synchronizeVisualOffset],
   )
@@ -490,7 +573,8 @@ function usePointerReorderSession({
       if (!groupElement) return
 
       stopPointerTracking()
-      pendingStoreOrderRef.current = [...valuesRef.current]
+      const initialOrder = orderSnapshotForParent(store.getState(), parentId)
+      pendingStoreOrderRef.current = initialOrder
       setVisualOffset(0)
       const itemElements = Array.from(groupElement.children).filter(
         (element): element is HTMLElement => element instanceof HTMLElement,
@@ -517,12 +601,13 @@ function usePointerReorderSession({
         })
         .filter((layout): layout is TweakerReorderItemLayout => layout !== null)
       const scrollContainer =
-        listRef.current?.closest<HTMLElement>('[data-tweaker-reorder-list="root"]') ?? null
+        listRef.current?.closest<HTMLElement>('[data-tweaker-scrollport]') ?? null
 
       reorderSessionRef.current = {
         initialBandOrder: valuesRef.current.filter((id) => idsInBand.has(id)),
         initialItemOffsetTop: itemElement.offsetTop,
-        initialOrder: [...valuesRef.current],
+        initialOrder,
+        initialVisibleOrder: [...valuesRef.current],
         itemElement,
         itemId,
         lastVisualOffset: 0,
@@ -552,7 +637,7 @@ function usePointerReorderSession({
         const session = reorderSessionRef.current
         if (session) {
           session.setVisualOffset(0)
-          previewOrder(session.initialOrder)
+          previewOrder(session.initialVisibleOrder)
         }
         pendingStoreOrderRef.current = null
         reorderSessionRef.current = null

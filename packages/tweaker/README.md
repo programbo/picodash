@@ -104,7 +104,9 @@ function ScenePanel() {
 - `TweakerPanel` may render that store via `store` prop.
 - `useTweakerPanelStoreSelector` reads store slices without recreating local mirrors.
 - `useTweakerPanel(panelId)` returns a registered panel controller with reactive `visible` state
-  and `show`, `hide`, `toggle`, `setVisible`, and show-and-raise `activate` methods.
+  and `placement` plus `show`, `hide`, `toggle`, `setVisible`, show-and-raise `activate`, and
+  `setPlacement` methods.
+- Panel values remain application-owned and are never discovered globally through a panel ID.
 - `defaultVisible={false}` registers a panel in a hidden state; visibility is transient and is not
   stored with persisted layout.
 - `close` adds a header close button that hides by default. Use
@@ -113,6 +115,67 @@ function ScenePanel() {
 - Internal-store panels are supported with `TweakerPanel id + initialValues/initialMeta`; this mode is UI-local unless app state is injected.
 - `setFieldValue` and `setFieldValues` are strict and atomic.
 - `setFieldInput` is the interactive path that may keep non-persisted drafts with validation feedback while preserving canonical values.
+
+## Placement and boundaries
+
+`defaultPlacement` accepts the existing corner strings or a placement object:
+
+```ts
+type TweakerPanelPlacement =
+  | { mode: 'floating'; position?: TweakerPanelCorner }
+  | { mode: 'magnetic'; position: TweakerPanelSnapPosition }
+  | { mode: 'fixed'; position: TweakerPanelFixedPosition }
+
+type TweakerPanelBoundary = Element | React.RefObject<Element | null>
+```
+
+`TweakerPanelSnapPosition` replaces the former dock-position name and covers all four edges and
+four corners. `TweakerPanelFixedPosition` supports `top-left`, `bottom-left`, `top-right`,
+`bottom-right`, `left`, and `right`.
+
+Use a provider boundary when panels should share the same working area, and a panel override only
+when one panel belongs to a different surface:
+
+```tsx
+const canvasStore = createTweakerPanelStore({ panelId: 'canvas-tools' })
+const mainRef = useRef<HTMLElement>(null)
+const canvasRef = useRef<HTMLDivElement>(null)
+
+<TweakerProvider panelBoundary={mainRef} persistLayout>
+  <main ref={mainRef}>
+    <div ref={canvasRef} />
+  </main>
+
+  <TweakerPanel
+    store={sceneStore}
+    collapsible
+    defaultPlacement={{ mode: 'fixed', position: 'left' }}
+  />
+
+  <TweakerPanel
+    store={canvasStore}
+    boundary={canvasRef}
+    defaultPlacement={{ mode: 'fixed', position: 'bottom-right' }}
+  />
+</TweakerProvider>
+```
+
+- The viewport is the default boundary. `boundary={null}` explicitly opts a panel out of an
+  inherited provider boundary.
+- Boundary inputs are direct `Element` values or React refs. CSS selectors are not resolved by the
+  package.
+- Boundaries control geometry only. `portalContainer` independently controls where panel portals
+  render, and fixed panels overlay rather than inset application content.
+- Floating panels remain constrained to the effective boundary. Magnetic and fixed placements
+  follow its live edges; only panels with the same resolved boundary participate in peer snapping.
+- Fixed `left` and `right` panels fill the effective boundary height. Fixed corner panels keep
+  content-driven height capped to that boundary.
+- Collapsible fixed panels retract into their edge or corner and leave an accessible arrow button
+  visible for reopening.
+- `useTweakerPanel(panelId).setPlacement(...)` changes placement at runtime. Returning to floating
+  restores the last non-fixed coordinates.
+- Placement persists with provider layout only when `persistLayout` is enabled. Existing stored
+  floating and magnetic layouts continue to hydrate.
 
 ## Validation and value contracts
 
@@ -156,6 +219,10 @@ with an error.
 - `id` is required for non-field display rows.
 - `contentLayout` is `inline`, `block`, or `full`.
 - `TweakerGroup` supports `pin="start"` and `pin="end"` placement bands.
+- Fixed panels keep the start and end bands visible while only the auto band scrolls. Floating and
+  magnetic panels keep their existing single body scrollport.
+- Each panel scrollport includes `scroll-fade` through `tweaker/style.css`; consumers do not need a
+  separate shadcn stylesheet import.
 - Reorder handles support pointer dragging and keyboard pick-up with Space/Enter, movement with
   Arrow Up/Down, dropping with Space/Enter, and cancellation with Escape.
 
@@ -188,10 +255,17 @@ Use `tweaker/advanced` for low-level helpers and internals:
 import {
   createTweakerStore,
   tweakerPersistedStateSchema,
-  useTweakerSelector,
+  useTweakerPanelSelector,
+  useTweakerPanelStoreApi,
+  useTweakerProviderSelector,
+  useTweakerProviderStoreApi,
   normalizeRangeValue,
 } from 'tweaker/advanced'
 ```
+
+The provider hooks expose global registration/layout state. The panel hooks use the nearest
+rendered `TweakerPanel` context and are intended for low-level custom integrations. Prefer the main
+entrypoint's explicit `useTweakerPanelStoreSelector(store, selector)` in application components.
 
 ## Known breaking impact
 

@@ -10,7 +10,13 @@ Package import surface:
 What it provides:
 - application-owned panel stores via createTweakerPanelStore
 - TweakerProvider, TweakerPanel, TweakerItem, built-in inputs and charts
-- provider-scoped panel visibility and activation via useTweakerPanel
+- provider-scoped panel visibility, activation, reactive placement, and runtime setPlacement via useTweakerPanel
+- floating, magnetic, and fixed panel placement; magnetic edges use TweakerPanelSnapPosition
+- viewport-default geometry with provider panelBoundary and per-panel boundary Element/ref overrides
+- collapsible fixed sidebars with pinned start/end lanes and a scroll-faded auto lane
+- explicit application-owned reads via useTweakerPanelStoreSelector(store, selector)
+- advanced provider access via useTweakerProviderSelector and useTweakerProviderStoreApi
+- contextual advanced panel access via useTweakerPanelSelector and useTweakerPanelStoreApi
 - optional panel close buttons with hide or deregister behavior
 - strict programmatic writes, sync validation, JSON-compatible values
 - pointer and keyboard item reordering with same-band constraints

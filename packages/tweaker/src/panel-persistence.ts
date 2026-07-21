@@ -12,6 +12,31 @@ const panelPositionSchema = z.object({
     })
     .nullable()
     .default(null),
+  placement: z
+    .discriminatedUnion('mode', [
+      z.object({
+        mode: z.literal('floating'),
+        position: z.enum(['bottom-left', 'bottom-right', 'top-left', 'top-right']).optional(),
+      }),
+      z.object({
+        mode: z.literal('magnetic'),
+        position: z.enum([
+          'top-left',
+          'top',
+          'top-right',
+          'right',
+          'bottom-right',
+          'bottom',
+          'bottom-left',
+          'left',
+        ]),
+      }),
+      z.object({
+        mode: z.literal('fixed'),
+        position: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left', 'right']),
+      }),
+    ])
+    .optional(),
   x: z.number().finite(),
   y: z.number().finite(),
 })

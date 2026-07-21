@@ -3,6 +3,7 @@ import bash from 'highlight.js/lib/languages/bash'
 import typescript from 'highlight.js/lib/languages/typescript'
 import { Check, Copy } from 'lucide-react'
 import { useState } from 'react'
+import { GuideSideNav } from '@/guide-side-nav'
 import { cn } from '@/lib/utils'
 
 hljs.registerLanguage('bash', bash)
@@ -62,6 +63,57 @@ const controllerSource = `function SettingsPanelActions() {
 >
   {/* Items remain mounted and registered while hidden. */}
 </TweakerPanel>`
+
+const boundarySource = `const canvasStore = createTweakerPanelStore({
+  panelId: 'canvas-tools',
+})
+
+function BoundedPanels() {
+  const mainRef = useRef<HTMLElement>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <TweakerProvider panelBoundary={mainRef} persistLayout>
+      <main ref={mainRef}>
+        <div ref={canvasRef}>{/* Canvas */}</div>
+      </main>
+
+      <TweakerPanel
+        store={settingsStore}
+        collapsible
+        defaultPlacement={{ mode: 'fixed', position: 'left' }}
+      >
+        <TweakerGroup id="session" label="Session" pin="start">
+          {/* Always-visible items */}
+        </TweakerGroup>
+        {/* The auto lane scrolls */}
+        <TweakerGroup id="status" label="Status" pin="end">
+          {/* Always-visible items */}
+        </TweakerGroup>
+      </TweakerPanel>
+
+      <TweakerPanel
+        store={canvasStore}
+        boundary={canvasRef}
+        defaultPlacement={{ mode: 'fixed', position: 'bottom-right' }}
+      />
+    </TweakerProvider>
+  )
+}
+
+function PlacementActions() {
+  const panel = useTweakerPanel('site-settings')
+
+  return (
+    <button
+      onClick={() =>
+        panel?.setPlacement({ mode: 'fixed', position: 'right' })
+      }
+    >
+      Dock right
+    </button>
+  )
+}`
 
 const panelSource = `<TweakerProvider
   persistLayout
@@ -241,33 +293,16 @@ const guideLinks = [
 export function UsageGuide() {
   return (
     <div
-      className="max-h-[calc(100svh-15rem)] min-w-0 overflow-y-auto overscroll-contain"
+      className="max-h-[calc(100svh-15rem)] min-w-0 overflow-y-auto overscroll-contain scroll-smooth motion-reduce:scroll-auto"
       data-usage-guide
     >
       <div className="mx-auto grid max-w-5xl gap-8 p-4 sm:p-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10 lg:p-8">
-        <aside className="lg:sticky lg:top-8 lg:self-start">
-          <p className="font-mono text-[11px] tracking-widest text-amber-200 uppercase">Usage</p>
-          <nav aria-label="Usage guide steps" className="mt-4">
-            <ol className="grid gap-px border border-white/10 bg-white/10">
-              {guideLinks.map((link, index) => (
-                <li key={link.href}>
-                  <a
-                    className="group flex gap-3 bg-zinc-950 px-3 py-2.5 text-xs leading-5 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:outline-none"
-                    href={link.href}
-                  >
-                    <span className="font-mono text-amber-200/70">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <span>{link.label}</span>
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </nav>
-          <p className="mt-4 text-xs leading-5 text-zinc-500">
-            Examples use React, TypeScript, and an application-owned panel store.
-          </p>
-        </aside>
+        <GuideSideNav
+          ariaLabel="Usage guide steps"
+          description="Examples use React, TypeScript, and an application-owned panel store."
+          links={guideLinks}
+          title="Usage"
+        />
 
         <article className="min-w-0">
           <header className="border-b border-white/10 pb-8">
@@ -344,7 +379,7 @@ export function UsageGuide() {
                 </CheckItem>
               </ul>
               <Callout>
-                <Code>persistLayout</Code> stores panel position and docking only. Persist field
+                <Code>persistLayout</Code> stores panel position and placement only. Persist field
                 values through your application&apos;s own storage layer when required.
               </Callout>
             </GuideStep>
@@ -417,6 +452,32 @@ export function UsageGuide() {
                 />
               </Recipe>
 
+              <Recipe title="Constrain and fix panels to an application surface">
+                <p>
+                  Panels use the viewport by default. Pass an Element or React ref to{' '}
+                  <Code>panelBoundary</Code> for a provider-wide working area, then use{' '}
+                  <Code>boundary</Code> only when one panel needs a different surface. A fixed panel
+                  overlays that boundary; it does not inset the application layout. The portal
+                  container remains an independent rendering choice.
+                </p>
+                <p>
+                  Full-edge left and right panels fill the boundary height. Their start and end
+                  lanes remain visible while the auto lane scrolls with the bundled scroll fade. Use
+                  the controller&apos;s reactive <Code>placement</Code> and{' '}
+                  <Code>setPlacement</Code> to change modes at runtime.
+                </p>
+                <CodeBlock
+                  language="typescript"
+                  label="Fixed panels and boundary inheritance"
+                  source={boundarySource}
+                />
+                <Callout>
+                  Set <Code>boundary={'{null}'}</Code> to opt a panel back into viewport bounds. CSS
+                  selectors are not accepted; resolve a selector to an Element yourself or use a
+                  ref.
+                </Callout>
+              </Recipe>
+
               <Recipe title="Keep responsibilities separate">
                 <ul className="grid gap-2">
                   <CheckItem>
@@ -487,7 +548,7 @@ function GuideStep({
 }) {
   return (
     <section className="scroll-mt-6 py-9 first:pt-8" id={id}>
-      <div className="grid gap-4 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
+      <div className="grid items-baseline gap-4 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
         <span className="font-mono text-xs text-amber-200/70">{number}</span>
         <div className="min-w-0">
           <h2 className="text-lg font-medium text-zinc-100">{title}</h2>

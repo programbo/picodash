@@ -30,7 +30,17 @@ The workspace API is application-owned panel state using the `createTweakerPanel
 Provider descendants may control registered panel visibility and activation with `useTweakerPanel`;
 that visibility is transient and separate from persisted layout. `TweakerPanel close` hides by
 default, while the explicit `deregister` close behavior removes the registration and portal before
-notifying the host. Legacy schema-driven `useTweaker` registration flow is retired.
+notifying the host. Application code reads panel values from its explicit store with
+`useTweakerPanelStoreSelector`; panel IDs do not provide global value lookup. Advanced provider
+access uses `useTweakerProviderSelector` / `useTweakerProviderStoreApi`, while contextual panel
+access uses `useTweakerPanelSelector` / `useTweakerPanelStoreApi`. Legacy schema-driven
+`useTweaker` registration flow is retired.
+
+Panel placement supports floating, magnetic, and fixed modes. `TweakerPanelSnapPosition` names
+magnetic edges, while fixed docking uses the six side/corner positions. `useTweakerPanel` owns
+runtime placement changes. Geometry defaults to the viewport; `TweakerProvider.panelBoundary`
+sets a shared Element/ref boundary and `TweakerPanel.boundary` can override it. Boundaries remain
+independent of portal ownership.
 
 ## Required Commands
 
@@ -102,3 +112,9 @@ Update all five files together when command surface, entrypoints, or architectur
 - Preserve synchronous parser/validator behavior; promise-based contracts are not supported.
 - Keep custom parser/validator callback identities stable across renders.
 - Preserve pointer and keyboard reorder parity, including same-band constraints and cancellation.
+- Preserve legacy corner-string placements and persisted floating/magnetic layouts when extending
+  placement normalization.
+- Resolve panel boundaries in panel-override, provider-default, viewport order; `null` explicitly
+  selects the viewport, while an unresolved ref falls through to the next boundary.
+- Keep fixed start/end lanes outside the auto-lane scrollport and apply the bundled `scroll-fade`
+  utility to every root panel scrollport.

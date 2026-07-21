@@ -102,7 +102,37 @@ export interface TweakerPanelState {
 
 export type TweakerPanelStore = StoreApi<TweakerPanelState>
 
-export type TweakerPanelDefaultPlacement = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+export type TweakerPanelCorner = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+
+export type TweakerPanelSnapPosition =
+  | 'top-left'
+  | 'top'
+  | 'top-right'
+  | 'right'
+  | 'bottom-right'
+  | 'bottom'
+  | 'bottom-left'
+  | 'left'
+
+export type TweakerPanelFixedPosition =
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'left'
+  | 'right'
+
+export type TweakerPanelPlacement =
+  | { mode: 'floating'; position?: TweakerPanelCorner }
+  | { mode: 'magnetic'; position: TweakerPanelSnapPosition }
+  | { mode: 'fixed'; position: TweakerPanelFixedPosition }
+
+/**
+ * The four original corner strings remain accepted as shorthand for floating placement.
+ */
+export type TweakerPanelDefaultPlacement = TweakerPanelCorner | TweakerPanelPlacement
+
+export type TweakerPanelBoundary = Element | RefObject<Element | null>
 export type TweakerPanelCloseBehavior = 'deregister' | 'hide'
 
 export interface TweakerPanelCloseOptions {
@@ -119,6 +149,7 @@ interface TweakerPanelBaseProps extends Omit<
   'children' | 'dragConstraints' | 'id' | 'onClose' | 'title'
 > {
   children?: ReactNode
+  boundary?: TweakerPanelBoundary | null
   close?: boolean | TweakerPanelCloseOptions
   collapsible?: boolean
   defaultCollapsed?: boolean

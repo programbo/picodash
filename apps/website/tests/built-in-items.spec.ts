@@ -68,6 +68,66 @@ test('surfaces clipboard failures in code and usage examples', async ({ page }) 
   await expect(copyInstall).toContainText('Copy failed')
 })
 
+test('keeps the non-fixed panel background attached to the panel at and away from the left edge', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1558, height: 1091 })
+  const example = page.locator('[data-interactive-jsx-example]')
+  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const shell = page.locator(
+    '[data-tweaker-panel-shell]:has([data-tweaker-panel-id="built-in-items"])',
+  )
+  const placementMode = example.getByLabel('Panel placement mode')
+  const placementPosition = example.getByLabel('Panel placement position')
+
+  await placementPosition.selectOption('top-left')
+  await expect(shell).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(shell).toHaveCSS('backdrop-filter', 'none')
+
+  const [initialPanelBox, initialShellBox] = await Promise.all([
+    panel.boundingBox(),
+    shell.boundingBox(),
+  ])
+  expect(initialPanelBox).not.toBeNull()
+  expect(initialShellBox).not.toBeNull()
+  if (!initialPanelBox || !initialShellBox) return
+  expect(initialPanelBox.x).toBeGreaterThanOrEqual(0)
+  expect(initialPanelBox.x).toBeLessThanOrEqual(16)
+  expect(initialShellBox.width).toBeCloseTo(initialPanelBox.width, 0)
+
+  await placementMode.selectOption('magnetic')
+  await expect(placementPosition).toHaveValue('top-left')
+  await expect(shell).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(shell).toHaveCSS('backdrop-filter', 'none')
+  await placementMode.selectOption('floating')
+
+  const headerBox = await panel.locator('[data-tweaker-panel-header]').boundingBox()
+  expect(headerBox).not.toBeNull()
+  if (!headerBox) return
+  const startX = headerBox.x + headerBox.width / 2
+  const startY = headerBox.y + headerBox.height / 2
+  await page.mouse.move(startX, startY)
+  await page.mouse.down()
+  await page.mouse.move(startX + 500, startY + 150, { steps: 12 })
+  await page.mouse.up()
+
+  await expect
+    .poll(async () => (await panel.boundingBox())?.x ?? 0)
+    .toBeGreaterThan(initialPanelBox.x + 400)
+  await expect(shell).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(shell).toHaveCSS('backdrop-filter', 'none')
+  const [draggedPanelBox, draggedShellBox] = await Promise.all([
+    panel.boundingBox(),
+    shell.boundingBox(),
+  ])
+  expect(draggedPanelBox).not.toBeNull()
+  expect(draggedShellBox).not.toBeNull()
+  if (draggedPanelBox && draggedShellBox) {
+    expect(draggedShellBox.x).toBeCloseTo(draggedPanelBox.x, 0)
+    expect(draggedShellBox.width).toBeCloseTo(draggedPanelBox.width, 0)
+  }
+})
+
 test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {
   const example = page.locator('[data-interactive-jsx-example]')
 
@@ -76,6 +136,7 @@ test('provides a step-by-step Usage tab for adding a reactive panel', async ({ p
   await expect(example.getByRole('checkbox', { name: 'Show all props' })).toBeInViewport()
   await expect(example.getByRole('button', { name: 'Copy JSX' })).toBeInViewport()
   await expect(example.getByRole('tab', { name: 'Usage' })).toBeVisible()
+  await expect(example.getByRole('tab', { name: 'More examples' })).toBeInViewport({ ratio: 1 })
   await example.getByRole('tab', { name: 'Usage' }).click()
 
   const guide = example.locator('[data-usage-guide]')
@@ -85,9 +146,49 @@ test('provides a step-by-step Usage tab for adding a reactive panel', async ({ p
   await expect(guide.getByText('bun add tweaker', { exact: true })).toBeVisible()
   await expect(guide.getByRole('heading', { name: 'Common integration patterns' })).toBeVisible()
   await expect(guide.getByRole('heading', { name: 'Implementation constraints' })).toBeVisible()
+  await expect(guide).toHaveCSS('scroll-behavior', 'smooth')
+
+  await guide.getByRole('link', { name: /Create the store/ }).click()
+  await expect.poll(() => guide.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
 
   await example.getByRole('tab', { name: 'Store' }).click()
   await expect(example.getByLabel('Live Built-in Items panel store')).toBeVisible()
+})
+
+test('provides sticky smooth-scroll component navigation in the Code tab', async ({ page }) => {
+  const example = page.locator('[data-interactive-jsx-example]')
+  const codeGuide = example.locator('[data-code-guide]')
+  const codeNavigation = codeGuide.getByRole('navigation', { name: 'Code components' })
+
+  await expect(codeNavigation).toBeVisible()
+  await expect(codeGuide).toHaveCSS('scroll-behavior', 'smooth')
+  await expect(codeNavigation.getByRole('link')).toHaveCount(builtInItems.length)
+
+  await codeNavigation.getByRole('link', { name: /Chart shadcn-frame-chart/ }).click()
+  await expect.poll(() => codeGuide.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await expect(example.locator('#code-shadcn-frame-chart')).toBeInViewport()
+
+  await expect(codeNavigation.locator('..')).toHaveCSS('position', 'sticky')
+})
+
+test('provides a More examples placeholder with shared section navigation', async ({ page }) => {
+  const example = page.locator('[data-interactive-jsx-example]')
+
+  await example.getByRole('tab', { name: 'More examples' }).click()
+
+  const moreExamples = example.locator('[data-more-examples]')
+  const navigation = moreExamples.getByRole('navigation', { name: 'More examples' })
+  await expect(moreExamples).toBeVisible()
+  await expect(
+    moreExamples.getByRole('heading', { name: 'More complex Tweaker compositions' }),
+  ).toBeVisible()
+  await expect(navigation.getByRole('link')).toHaveCount(4)
+  await expect(moreExamples.getByText('Coming soon')).toHaveCount(4)
+  await expect(moreExamples).toHaveCSS('scroll-behavior', 'smooth')
+
+  await navigation.getByRole('link', { name: /Import and validation/ }).click()
+  await expect.poll(() => moreExamples.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await expect(example.locator('#example-import-validation')).toBeInViewport()
 })
 
 test('edits live provider, panel, and Common inputs props through highlighted JSX', async ({
@@ -97,8 +198,53 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   const example = page.locator('[data-interactive-jsx-example]')
   const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const placementMode = example.getByLabel('Panel placement mode')
+  const placementPosition = example.getByLabel('Panel placement position')
+  const panelShell = page.locator(
+    '[data-tweaker-panel-shell]:has([data-tweaker-panel-id="built-in-items"])',
+  )
 
   await expect(example.locator('[data-interactive-tabs]')).toHaveClass(/bg-zinc-950\/78/)
+  await expect(placementMode).toHaveValue('floating')
+  await expect(placementPosition).toHaveValue('top-right')
+  await expect(placementPosition.locator('option')).toHaveText([
+    'top-left',
+    'top-right',
+    'bottom-left',
+    'bottom-right',
+  ])
+
+  await placementMode.selectOption('magnetic')
+  await expect(placementPosition).toHaveValue('top-right')
+  await expect(placementPosition.locator('option')).toHaveText([
+    'top-left',
+    'top',
+    'top-right',
+    'right',
+    'bottom-right',
+    'bottom',
+    'bottom-left',
+    'left',
+  ])
+  await placementPosition.selectOption('bottom')
+  await placementMode.selectOption('fixed')
+  await expect(placementPosition).toHaveValue('bottom-left')
+  await expect(placementPosition.locator('option')).toHaveText([
+    'top-left',
+    'top-right',
+    'bottom-left',
+    'bottom-right',
+    'left',
+    'right',
+  ])
+  await expect(panelShell).toHaveAttribute('data-fixed-placement', 'bottom-left')
+
+  await placementPosition.selectOption('right')
+  await expect(panelShell).toHaveAttribute('data-fixed-placement', 'right')
+  await placementMode.selectOption('floating')
+  await expect(placementPosition).toHaveValue('top-right')
+  await expect(panelShell).not.toHaveAttribute('data-fixed-placement')
+
   const showAllProps = example.getByRole('checkbox', { name: 'Show all props' })
   const textDeclaration = example.locator('[data-jsx-control="text"]')
   await expect(showAllProps).not.toBeChecked()
@@ -218,6 +364,9 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toContain('title={"Live Built-ins"}')
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toContain('defaultPlacement={{ mode: "floating", position: "top-right" }}')
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toContain('label={"Everyday controls"}')
@@ -494,7 +643,7 @@ test('presents canonical built-in examples in order with API help and variant de
 
 test('mirrors panel hover and focus on the matching JSX declaration', async ({ page }) => {
   const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-  const codeViewport = page.getByLabel('Interactive JSX example')
+  const codeViewport = page.locator('[data-code-guide]')
   const declaration = page.locator('[data-jsx-control="multilineText"]')
   const row = panel.locator('[data-item-id="multilineText"]')
 
@@ -519,7 +668,7 @@ test('mirrors panel hover and focus on the matching JSX declaration', async ({ p
   await expect
     .poll(() =>
       vectorDeclaration.evaluate((element) => {
-        const viewport = element.closest('pre')
+        const viewport = element.closest('[data-code-guide]')
         if (!viewport) return false
         const viewportBounds = viewport.getBoundingClientRect()
         const declarationBounds = element.getBoundingClientRect()
