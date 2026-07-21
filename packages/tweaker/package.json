@@ -35,6 +35,7 @@
     "radix-ui": "catalog:",
     "react-dropzone": "catalog:",
     "recharts": "catalog:",
+    "shadcn": "^4.13.1",
     "tailwind-merge": "catalog:",
     "yaml": "catalog:",
     "zod": "catalog:",
