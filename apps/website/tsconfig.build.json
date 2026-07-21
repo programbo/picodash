@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "tweaker": ["../../packages/tweaker/src/index.ts"],
+      "tweaker/advanced": ["../../packages/tweaker/src/advanced.ts"]
+    }
+  }
+}

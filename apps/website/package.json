@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev --host 127.0.0.1 --port ${WEBSITE_PORT:-6030} --strictPort",
-    "build": "tsc && vp build",
+    "build": "vp run website#build-package-consumer",
     "test:e2e": "playwright test",
     "preview": "vp preview --host 127.0.0.1 --port 6031 --strictPort"
   },
