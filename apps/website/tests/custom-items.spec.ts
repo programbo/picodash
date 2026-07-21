@@ -1449,12 +1449,37 @@ test('fits Scene Controls without a default vertical scrollbar', async ({ page }
 test('updates common, spatial, and gradient values through accessible controls', async ({
   page,
 }) => {
+  const groupToggle = page.getByRole('button', { name: 'Common inputs', exact: true })
+  await expect(groupToggle).toHaveAttribute('aria-expanded', 'true')
+  await expect(groupToggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+
+  const switchItem = page.locator('[data-item-id="switch"]')
+  const switchInput = switchItem.getByRole('switch')
+  await switchItem.locator('[id="switch:label"]').click()
+  await expect(switchInput).toBeFocused()
+
+  const range = page.locator('[data-item-id="range"]')
+  const lowerThumb = range.getByRole('slider', { name: 'Lower value' })
+  await range.locator('[id="range:label"]').click()
+  await expect(lowerThumb).toBeFocused()
+
   const segmented = page.locator('[data-item-id="segmented"]')
-  await segmented.getByRole('radio', { name: 'Open' }).click()
-  await expect(segmented.getByRole('radio', { name: 'Open' })).toHaveAttribute(
-    'data-selected',
-    'true',
-  )
+  const balancedSegment = segmented.getByRole('radio', { name: 'Balanced' })
+  const openSegment = segmented.getByRole('radio', { name: 'Open' })
+  const tightSegment = segmented.getByRole('radio', { name: 'Tight' })
+  await segmented.locator('[id="segmented:label"]').click()
+  await expect(balancedSegment).toBeFocused()
+  await openSegment.click()
+  await expect(openSegment).toHaveAttribute('data-selected', 'true')
+  await expect
+    .poll(async () => {
+      const [selectedBackground, unselectedBackground] = await Promise.all([
+        openSegment.evaluate((element) => getComputedStyle(element).backgroundColor),
+        tightSegment.evaluate((element) => getComputedStyle(element).backgroundColor),
+      ])
+      return selectedBackground === unselectedBackground
+    })
+    .toBe(false)
 
   const alignment = page.locator('[data-item-id="alignment"]')
   await alignment.getByRole('radio', { name: 'Bottom right' }).click()
@@ -1473,8 +1498,6 @@ test('updates common, spatial, and gradient values through accessible controls',
   await vector.getByRole('spinbutton', { name: 'X axis' }).fill('4.5')
   await expect(vector.getByRole('spinbutton', { name: 'X axis' })).toHaveValue('4.5')
 
-  const range = page.locator('[data-item-id="range"]')
-  const lowerThumb = range.getByRole('slider', { name: 'Lower value' })
   await lowerThumb.focus()
   await lowerThumb.press('ArrowRight')
   await expect(lowerThumb).toHaveValue('25')

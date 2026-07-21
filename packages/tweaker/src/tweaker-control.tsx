@@ -1,6 +1,6 @@
 import { Info, RotateCcw } from 'lucide-react'
 import { Reorder, useReducedMotion, useTransform, type HTMLMotionProps } from 'motion/react'
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react'
 import { Button, buttonVariants } from './components/ui/button.js'
 import { Label } from './components/ui/label.js'
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip.js'
@@ -106,6 +106,18 @@ export type TweakerItemProps<TValue extends TweakerValue = TweakerValue> =
 
 const emptyStates: TweakerItemStates = {}
 const TweakerItemContext = createContext<TweakerItemContextValue | null>(null)
+const focusableControlSelector =
+  'button, input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
+
+function isFocusableControl(element: HTMLElement) {
+  return (
+    element.matches(focusableControlSelector) &&
+    !element.matches(
+      '[disabled], [aria-disabled="true"], [data-disabled]:not([data-disabled="false"])',
+    ) &&
+    !element.closest('[inert]')
+  )
+}
 
 export function TweakerItem<TValue extends TweakerValue = TweakerValue>({
   children,
@@ -147,6 +159,7 @@ export function TweakerItem<TValue extends TweakerValue = TweakerValue>({
   const labelId = `${itemId}:label`
   const descriptionId = `${itemId}:description`
   const errorId = `${itemId}:errors`
+  const controlContentRef = useRef<HTMLDivElement | null>(null)
   const store = useTweakerPanelStoreApi()
   const value = useTweakerPanelSelector((state) =>
     field === undefined ? undefined : (state.values[field] as TValue | undefined),
@@ -199,6 +212,25 @@ export function TweakerItem<TValue extends TweakerValue = TweakerValue>({
       store.getState().resetFieldValue(field)
     }
   }, [field, store])
+
+  const focusControl = useCallback(() => {
+    const content = controlContentRef.current
+    if (!content) return
+
+    const directTarget = content.ownerDocument.getElementById(inputId)
+    const statefulTargets = content.querySelectorAll<HTMLElement>(
+      '[data-selected="true"], [aria-checked="true"], [data-state="on"]',
+    )
+    const fallbackTargets = content.querySelectorAll<HTMLElement>(focusableControlSelector)
+    const target = [directTarget, ...statefulTargets, ...fallbackTargets].find(
+      (candidate): candidate is HTMLElement =>
+        candidate instanceof HTMLElement &&
+        content.contains(candidate) &&
+        isFocusableControl(candidate),
+    )
+
+    target?.focus()
+  }, [inputId])
 
   const setInput = useCallback(
     (candidate: unknown) => {
@@ -388,6 +420,7 @@ export function TweakerItem<TValue extends TweakerValue = TweakerValue>({
               )}
               htmlFor={field ? inputId : undefined}
               id={labelId}
+              onClick={focusControl}
             >
               {label}
             </Label>
@@ -425,6 +458,7 @@ export function TweakerItem<TValue extends TweakerValue = TweakerValue>({
         </div>
 
         <div
+          ref={controlContentRef}
           className={cn(
             'grid min-w-0 grid-cols-subgrid self-center',
             contentLayout === 'inline' && 'col-span-2 col-start-3',

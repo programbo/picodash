@@ -1,5 +1,6 @@
 import { expect, test } from 'vite-plus/test'
 import { buttonVariants } from '../src/components/ui/button.tsx'
+import { toggleVariants } from '../src/components/ui/toggle.tsx'
 
 test('shows the same focus ring on React Aria and native buttons', () => {
   const classNames = buttonVariants().split(/\s+/)
@@ -16,4 +17,11 @@ test('shows the same focus ring on React Aria and native buttons', () => {
       'data-focus-visible:ring-offset-tweaker-canvas',
     ]),
   )
+})
+
+test('lets the selected toggle state own its background across stylesheet boundaries', () => {
+  const classNames = toggleVariants().split(/\s+/)
+
+  expect(classNames).toContain('data-selected:bg-tweaker-accent')
+  expect(classNames).not.toContain('bg-transparent')
 })
