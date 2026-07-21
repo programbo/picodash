@@ -10,6 +10,11 @@
   "sideEffects": [
     "**/*.css"
   ],
+  "imports": {
+    "#components/*": "./src/components/*.tsx",
+    "#hooks/*": "./src/hooks/*.ts",
+    "#lib/*": "./src/lib/*.ts"
+  },
   "exports": {
     ".": "./dist/index.mjs",
     "./advanced": "./dist/advanced.mjs",
@@ -33,6 +38,7 @@
     "lucide-react": "catalog:",
     "motion": "catalog:",
     "radix-ui": "catalog:",
+    "react-aria-components": "catalog:",
     "react-dropzone": "catalog:",
     "recharts": "catalog:",
     "shadcn": "^4.13.1",

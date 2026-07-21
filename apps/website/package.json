@@ -17,6 +17,7 @@
     "motion": "catalog:",
     "radix-ui": "catalog:",
     "react": "catalog:",
+    "react-aria-components": "catalog:",
     "react-dom": "catalog:",
     "react-json-view-lite": "catalog:",
     "recharts": "catalog:",
