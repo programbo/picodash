@@ -642,10 +642,10 @@ async function expectCollapsedPanelBeyondBoundary(
       return {
         horizontal:
           position.endsWith('left') || position === 'left'
-            ? Math.round(panelBox.x + panelBox.width - boundaryBox.x)
-            : Math.round(panelBox.x - boundaryBox.x - boundaryBox.width),
+            ? Math.round(panelBox.x + panelBox.width - boundaryBox.x) || 0
+            : Math.round(panelBox.x - boundaryBox.x - boundaryBox.width) || 0,
         vertical: position.startsWith('bottom')
-          ? Math.round(panelBox.y - boundaryBox.y - boundaryBox.height)
+          ? Math.round(panelBox.y - boundaryBox.y - boundaryBox.height) || 0
           : null,
       }
     })
