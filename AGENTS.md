@@ -36,6 +36,12 @@ access uses `useTweakerProviderSelector` / `useTweakerProviderStoreApi`, while c
 access uses `useTweakerPanelSelector` / `useTweakerPanelStoreApi`. Legacy schema-driven
 `useTweaker` registration flow is retired.
 
+Panel placement supports floating, magnetic, and fixed modes. `TweakerPanelSnapPosition` names
+magnetic edges, while fixed docking uses the six side/corner positions. `useTweakerPanel` owns
+runtime placement changes. Geometry defaults to the viewport; `TweakerProvider.panelBoundary`
+sets a shared Element/ref boundary and `TweakerPanel.boundary` can override it. Boundaries remain
+independent of portal ownership.
+
 ## Required Commands
 
 - `bun install`
@@ -106,3 +112,9 @@ Update all five files together when command surface, entrypoints, or architectur
 - Preserve synchronous parser/validator behavior; promise-based contracts are not supported.
 - Keep custom parser/validator callback identities stable across renders.
 - Preserve pointer and keyboard reorder parity, including same-band constraints and cancellation.
+- Preserve legacy corner-string placements and persisted floating/magnetic layouts when extending
+  placement normalization.
+- Resolve panel boundaries in panel-override, provider-default, viewport order; `null` explicitly
+  selects the viewport, while an unresolved ref falls through to the next boundary.
+- Keep fixed start/end lanes outside the auto-lane scrollport and apply the bundled `scroll-fade`
+  utility to every root panel scrollport.

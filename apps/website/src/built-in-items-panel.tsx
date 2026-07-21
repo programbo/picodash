@@ -18,6 +18,10 @@ import {
   TweakerVector3,
   TweakerXYPad,
   type TweakerMatrix2DOption,
+  type TweakerPanelCorner,
+  type TweakerPanelFixedPosition,
+  type TweakerPanelPlacement,
+  type TweakerPanelSnapPosition,
 } from 'tweaker'
 import { ShadcnChartItem } from '@/custom-items/shadcn-chart'
 import { StreamingSparklineItem } from '@/custom-items/streaming-sparkline'
@@ -27,6 +31,54 @@ export const builtInItemsPanelId = 'built-in-items'
 export type BuiltInChartType = 'area' | 'bar' | 'line' | 'pie' | 'radar' | 'radial'
 export type BuiltInContentLayout = 'block' | 'full' | 'inline'
 export type BuiltInMatrixSelectionRole = 'radio' | 'toggle'
+export type BuiltInPanelPlacementMode = TweakerPanelPlacement['mode']
+
+export const builtInPanelPlacementPositions = {
+  fixed: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left', 'right'],
+  floating: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+  magnetic: [
+    'top-left',
+    'top',
+    'top-right',
+    'right',
+    'bottom-right',
+    'bottom',
+    'bottom-left',
+    'left',
+  ],
+} as const satisfies Record<BuiltInPanelPlacementMode, readonly TweakerPanelSnapPosition[]>
+
+export type BuiltInPanelPlacementPosition = TweakerPanelSnapPosition
+
+const panelPlacementPoints = {
+  'bottom-left': [0, 1],
+  'bottom-right': [1, 1],
+  bottom: [0.5, 1],
+  left: [0, 0.5],
+  right: [1, 0.5],
+  'top-left': [0, 0],
+  'top-right': [1, 0],
+  top: [0.5, 0],
+} as const satisfies Record<BuiltInPanelPlacementPosition, readonly [number, number]>
+
+export function closestBuiltInPanelPlacementPosition(
+  position: BuiltInPanelPlacementPosition,
+  mode: BuiltInPanelPlacementMode,
+): BuiltInPanelPlacementPosition {
+  const validPositions = builtInPanelPlacementPositions[
+    mode
+  ] as readonly BuiltInPanelPlacementPosition[]
+  if (validPositions.includes(position)) return position
+
+  const [sourceX, sourceY] = panelPlacementPoints[position]
+  return validPositions.reduce((closest, candidate) => {
+    const [closestX, closestY] = panelPlacementPoints[closest]
+    const [candidateX, candidateY] = panelPlacementPoints[candidate]
+    const closestDistance = Math.hypot(closestX - sourceX, closestY - sourceY)
+    const candidateDistance = Math.hypot(candidateX - sourceX, candidateY - sourceY)
+    return candidateDistance < closestDistance ? candidate : closest
+  })
+}
 
 export const builtInItemIds = [
   'text',
@@ -93,6 +145,8 @@ export interface BuiltInItemsExampleConfig {
   numberMin: number
   numberStep: number
   panelCollapsible: boolean
+  panelPlacementMode: BuiltInPanelPlacementMode
+  panelPlacementPosition: BuiltInPanelPlacementPosition
   panelTitle: string
   panelWidth: number
   rangeMax: number
@@ -202,6 +256,8 @@ export const defaultBuiltInItemsExampleConfig: BuiltInItemsExampleConfig = {
   numberMin: 0,
   numberStep: 1,
   panelCollapsible: true,
+  panelPlacementMode: 'floating',
+  panelPlacementPosition: 'top-right',
   panelTitle: 'Built-in Items',
   panelWidth: 368,
   rangeMax: 100,
@@ -466,7 +522,7 @@ export function BuiltInItemsPanel({
       store={builtInItemsPanelStore}
       title={config.panelTitle}
       collapsible={config.panelCollapsible}
-      defaultPlacement="top-right"
+      defaultPlacement={placementForBuiltInItemsConfig(config)}
       width={config.panelWidth}
       className="bg-tweaker-surface/72 top-4 right-4 max-w-[calc(100dvw-2rem)] backdrop-blur-xl lg:top-8 lg:right-8"
       data-example-width={config.panelWidth}
@@ -672,4 +728,14 @@ export function BuiltInItemsPanel({
       </TweakerGroup>
     </TweakerPanel>
   )
+}
+
+export function placementForBuiltInItemsConfig(
+  config: Pick<BuiltInItemsExampleConfig, 'panelPlacementMode' | 'panelPlacementPosition'>,
+): TweakerPanelPlacement {
+  const { panelPlacementMode: mode } = config
+  const position = closestBuiltInPanelPlacementPosition(config.panelPlacementPosition, mode)
+  if (mode === 'fixed') return { mode, position: position as TweakerPanelFixedPosition }
+  if (mode === 'magnetic') return { mode, position }
+  return { mode, position: position as TweakerPanelCorner }
 }

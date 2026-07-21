@@ -7,7 +7,14 @@ import { createTweakerPanelStore, FeaturePanel } from '../src/index.ts'
 import { panelLayoutStorageKey } from '../src/panel-persistence.ts'
 import {
   clampPanelPosition,
+  dockForSnapPosition,
+  intersectPanelRects,
+  normalizeTweakerPanelPlacement,
+  placementForPanelLayout,
+  positionForFloatingCorner,
   positionForPanelLayout,
+  resolveTweakerPanelBoundary,
+  snapPositionForDock,
   snapPanelPosition,
   translationFromTransform,
   type PanelRect,
@@ -17,9 +24,14 @@ import {
   itemCanReorder,
   orderedItemIdsForParent,
   orderIndexForItem,
+  panelShellDragProps,
   reorderValuesForPointer,
 } from '../src/tweaker-panel.tsx'
-import { orderSnapshotForParent, orderTweakerChildren } from '../src/tweaker-order.tsx'
+import {
+  orderSnapshotForParent,
+  orderTweakerChildren,
+  partitionTweakerChildrenByBand,
+} from '../src/tweaker-order.tsx'
 import {
   createTweakerStore,
   modalZIndexForState,
@@ -56,6 +68,23 @@ test('keeps the public and advanced hook surfaces explicit', () => {
   expect('useTweakerProviderContext' in advancedApi).toBe(false)
   expect('useTweakerSelector' in advancedApi).toBe(false)
   expect('useTweakerStoreApi' in advancedApi).toBe(false)
+})
+
+test('forwards drag behavior to the movable shell only for non-fixed panels', () => {
+  const onDirectionLock = () => undefined
+  const onDragTransitionEnd = () => undefined
+  const dragProps = {
+    dragDirectionLock: true,
+    dragPropagation: true,
+    dragSnapToOrigin: 'x' as const,
+    dragTransition: { bounceDamping: 12 },
+    onDirectionLock,
+    onDragTransitionEnd,
+    whileDrag: { scale: 1.03 },
+  }
+
+  expect(panelShellDragProps(false, dragProps)).toBe(dragProps)
+  expect(panelShellDragProps(true, dragProps)).toEqual({})
 })
 
 test('creates feature panel elements', () => {
@@ -143,7 +172,12 @@ test('tracks registered panels in the global tweaker store', () => {
 
   store.getState().registerPanel({ id: 'inspect' })
 
-  expect(store.getState().panels.inspect).toEqual({ id: 'inspect', visible: true })
+  expect(store.getState().panels.inspect).toEqual({
+    boundary: null,
+    id: 'inspect',
+    placement: { mode: 'floating', position: 'top-right' },
+    visible: true,
+  })
   expect(store.getState().panelOrder).toEqual(['inspect'])
 
   store.getState().unregisterPanel('inspect')
@@ -265,6 +299,28 @@ test('ignores invalid persisted panel layouts', () => {
   expect(store.getState().panelLayouts).toEqual({})
 })
 
+test('ignores persisted fixed placements with unsupported positions', () => {
+  const storage = installFakeLocalStorage()
+  storage.setItem(
+    panelLayoutStorageKey,
+    JSON.stringify({
+      state: {
+        panelLayouts: {
+          inspect: {
+            dock: null,
+            placement: { mode: 'fixed', position: 'top' },
+            x: 0,
+            y: 0,
+          },
+        },
+      },
+      version: 0,
+    }),
+  )
+
+  expect(createTweakerStore().getState().panelLayouts).toEqual({})
+})
+
 test('persists manual panel layout without persisting measured rect changes', () => {
   const storage = installFakeLocalStorage()
   const store = createTweakerStore()
@@ -288,6 +344,163 @@ test('persists docked panel layout edges', () => {
   expect(readPersistedPanelLayouts(storage)).toEqual({
     inspect: { dock: { horizontal: 'right', vertical: 'top' }, x: 700, y: 8 },
   })
+})
+
+test('persists fixed placement while retaining the last non-fixed coordinates', () => {
+  const storage = installFakeLocalStorage()
+  const store = createTweakerStore()
+  store.getState().registerPanel({ id: 'inspect' })
+  store.getState().setPanelLayout('inspect', { x: 24, y: 32 })
+
+  store.getState().setPanelPlacement('inspect', { mode: 'fixed', position: 'right' })
+
+  expect(store.getState().panels.inspect.placement).toEqual({
+    mode: 'fixed',
+    position: 'right',
+  })
+  expect(readPersistedPanelLayouts(storage)).toEqual({
+    inspect: {
+      dock: null,
+      placement: { mode: 'fixed', position: 'right' },
+      x: 24,
+      y: 32,
+    },
+  })
+
+  store.getState().setPanelPlacement('inspect', { mode: 'floating' })
+
+  expect(store.getState().panelLayouts.inspect).toEqual({
+    dock: null,
+    placement: { mode: 'floating' },
+    x: 24,
+    y: 32,
+  })
+})
+
+test('uses the measured panel position when runtime placement has no saved layout', () => {
+  const store = createTweakerStore({ persistLayout: false })
+  store.getState().registerPanel({ id: 'inspect' })
+  store.getState().setPanelRect('inspect', rect(240, 96, 100, 80))
+
+  store.getState().setPanelPlacement('inspect', { mode: 'magnetic', position: 'top' })
+
+  expect(store.getState().panelLayouts.inspect).toEqual({
+    dock: { vertical: 'top' },
+    placement: { mode: 'magnetic', position: 'top' },
+    x: 240,
+    y: 96,
+  })
+})
+
+test('moves runtime floating corner placement within the panel boundary', () => {
+  expect(
+    positionForFloatingCorner('bottom-right', { height: 80, width: 100 }, rect(50, 20, 500, 300)),
+  ).toEqual({ x: 434, y: 224 })
+})
+
+test('retains an explicit floating corner request while a retracted fixed panel is unmeasured', () => {
+  const store = createTweakerStore({ persistLayout: false })
+  store.getState().registerPanel({ id: 'inspect' })
+  store.getState().setPanelLayout('inspect', { x: 24, y: 32 })
+  store.getState().setPanelPlacement('inspect', { mode: 'fixed', position: 'right' })
+  store.getState().setPanelRect('inspect', null)
+
+  store.getState().setPanelPlacement('inspect', { mode: 'floating', position: 'bottom-right' })
+
+  expect(store.getState().panelLayouts.inspect).toEqual({
+    dock: null,
+    placement: { mode: 'floating', position: 'bottom-right' },
+    x: 24,
+    y: 32,
+  })
+})
+
+test('hydrates legacy docks as magnetic placement when a panel registers', () => {
+  const storage = installFakeLocalStorage()
+  storage.setItem(
+    panelLayoutStorageKey,
+    JSON.stringify({
+      state: {
+        panelLayouts: {
+          inspect: {
+            dock: { horizontal: 'left', vertical: 'bottom' },
+            x: 8,
+            y: 312,
+          },
+        },
+      },
+      version: 0,
+    }),
+  )
+  const store = createTweakerStore()
+
+  store.getState().registerPanel({ id: 'inspect' })
+
+  expect(store.getState().panels.inspect.placement).toEqual({
+    mode: 'magnetic',
+    position: 'bottom-left',
+  })
+})
+
+test('keeps legacy undocked layouts floating when a declaration now has a fixed default', () => {
+  const storage = installFakeLocalStorage()
+  storage.setItem(
+    panelLayoutStorageKey,
+    JSON.stringify({
+      state: { panelLayouts: { inspect: { dock: null, x: 42, y: 24 } } },
+      version: 0,
+    }),
+  )
+  const store = createTweakerStore()
+
+  store
+    .getState()
+    .registerPanel({ id: 'inspect', defaultPlacement: { mode: 'fixed', position: 'right' } })
+
+  expect(store.getState().panels.inspect.placement).toEqual({ mode: 'floating' })
+})
+
+test('normalizes placement and converts magnetic edges without dock terminology in public types', () => {
+  expect(normalizeTweakerPanelPlacement('bottom-right')).toEqual({
+    mode: 'floating',
+    position: 'bottom-right',
+  })
+  expect(dockForSnapPosition('top-right')).toEqual({ horizontal: 'right', vertical: 'top' })
+  expect(snapPositionForDock({ horizontal: 'left' })).toBe('left')
+  expect(
+    placementForPanelLayout({
+      dock: { horizontal: 'right', vertical: 'bottom' },
+      x: 0,
+      y: 0,
+    }),
+  ).toEqual({ mode: 'magnetic', position: 'bottom-right' })
+})
+
+test('tracks panel boundary identity separately from persisted layout', () => {
+  const store = createTweakerStore({ persistLayout: false })
+  const boundary = { getBoundingClientRect: () => ({}) } as unknown as Element
+  store.getState().registerPanel({ boundary, id: 'inspect' })
+  store.getState().setPanelRect('inspect', rect(8, 8, 100, 80))
+
+  expect(store.getState().panels.inspect.boundary).toBe(boundary)
+  store.getState().setPanelBoundary('inspect', null)
+  expect(store.getState().panels.inspect.boundary).toBeNull()
+  expect(store.getState().panelRects.inspect).toBeUndefined()
+})
+
+test('resolves direct and referenced panel boundaries with provider fallback and viewport reset', () => {
+  const providerBoundary = { getBoundingClientRect: () => ({}) } as unknown as Element
+  const panelBoundary = { getBoundingClientRect: () => ({}) } as unknown as Element
+
+  expect(resolveTweakerPanelBoundary(undefined, providerBoundary)).toBe(providerBoundary)
+  expect(resolveTweakerPanelBoundary(null, providerBoundary)).toBeNull()
+  expect(resolveTweakerPanelBoundary({ current: panelBoundary }, providerBoundary)).toBe(
+    panelBoundary,
+  )
+  expect(resolveTweakerPanelBoundary({ current: null }, providerBoundary)).toBe(providerBoundary)
+  expect(intersectPanelRects(rect(-20, 10, 100, 100), rect(0, 0, 60, 80))).toEqual(
+    rect(0, 10, 60, 70),
+  )
 })
 
 test('snaps panel position to viewport edges and corners', () => {
@@ -491,6 +704,28 @@ test('uses a field-backed item field as its default ordering ID', () => {
   expect(
     ordered.map((child) => (isValidElement<{ label: string }>(child) ? child.props.label : null)),
   ).toEqual(['Summary', 'Exposure'])
+})
+
+test('partitions only root children into their registered pin bands', () => {
+  const partition = partitionTweakerChildrenByBand(
+    [
+      <TestItem id="toolbar" label="Toolbar" />,
+      <TestItem field="exposure" label="Exposure" />,
+      <TestItem id="status" label="Status" />,
+      <span>Unregistered content</span>,
+    ],
+    { exposure: 'auto', status: 'end', toolbar: 'start' },
+  )
+  const labels = (children: typeof partition.auto) =>
+    children.map((child) =>
+      isValidElement<{ children?: string; label?: string }>(child)
+        ? (child.props.label ?? child.props.children)
+        : null,
+    )
+
+  expect(labels(partition.start)).toEqual(['Toolbar'])
+  expect(labels(partition.auto)).toEqual(['Exposure', 'Unregistered content'])
+  expect(labels(partition.end)).toEqual(['Status'])
 })
 
 test('preserves stale slots while multiple controls re-register out of order', () => {

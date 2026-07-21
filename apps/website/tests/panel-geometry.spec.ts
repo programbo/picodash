@@ -3,6 +3,14 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 const storageKey = 'tweaker-geometry-lab:panel-layout:v1'
 const safeInset = 8
 const defaultPlacementInset = 16
+const fixedPositions = [
+  'top-left',
+  'bottom-left',
+  'top-right',
+  'bottom-right',
+  'left',
+  'right',
+] as const
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 600 })
@@ -40,6 +48,8 @@ test('shrinks and restores a tall panel during a held drag while preserving its 
   await page.mouse.up()
 
   const body = panel.locator('[data-tweaker-reorder-list]').first()
+  await expect(body).toHaveAttribute('data-tweaker-scrollport', 'body')
+  await expect(body).toHaveClass(/scroll-fade/)
   await body.hover()
   await page.mouse.wheel(0, 500)
   await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBeGreaterThan(100)
@@ -222,6 +232,173 @@ test('tracks live placement constraint changes before persistence', async ({ pag
   await expectEdgeInsets(panel, { right: 16, top: 16 })
 })
 
+test('supports fixed placements, inherited boundaries, pinned lanes, and panel overrides', async ({
+  page,
+}) => {
+  await page.goto('/panel-geometry-lab?fixture=fixed-boundaries')
+  const boundary = page.locator('[data-geometry-boundary="provider"]')
+  const overrideBoundary = page.locator('[data-geometry-boundary="override"]')
+  const panel = geometryPanel(page, 'fixed-boundary')
+  const overridePanel = geometryPanel(page, 'fixed-override')
+  const placement = page.getByLabel('Fixed placement')
+  const runtimePlacement = page.locator('[data-runtime-placement]')
+
+  await expect(runtimePlacement).toHaveText('fixed:left')
+  await expect(placement.locator('option')).toHaveText([
+    'top-left',
+    'bottom-left',
+    'top-right',
+    'bottom-right',
+    'left',
+    'right',
+  ])
+
+  for (const position of fixedPositions) {
+    await placement.selectOption(position)
+    await expect(runtimePlacement).toHaveText(`fixed:${position}`)
+    await expectPanelAtBoundary(panel, boundary, position)
+  }
+
+  await page.getByRole('button', { name: 'Magnetic' }).click()
+  await expect(runtimePlacement).toHaveText('magnetic:top-left')
+  await page.getByRole('button', { name: 'Floating' }).click()
+  await expect(runtimePlacement).toHaveText('floating:')
+
+  await expectPanelAtBoundary(overridePanel, overrideBoundary, 'bottom-right')
+
+  await placement.selectOption('left')
+  const scrollport = panel.locator('[data-tweaker-scrollport="auto"]')
+  await expect(scrollport).toHaveClass(/scroll-fade/)
+  await expect(scrollport).toHaveAttribute('data-tweaker-reorder-lane', 'auto')
+  await expect
+    .poll(() =>
+      scrollport.evaluate((element) => ({
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+      })),
+    )
+    .toMatchObject({ clientHeight: expect.any(Number), scrollHeight: expect.any(Number) })
+
+  const pinnedStart = panel.locator('[data-group-id="fixed-start"]')
+  const pinnedEnd = panel.locator('[data-group-id="fixed-end"]')
+  const initialPinned = {
+    end: (await requiredBox(pinnedEnd)).y,
+    start: (await requiredBox(pinnedStart)).y,
+  }
+  await scrollport.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+    element.dispatchEvent(new Event('scroll'))
+  })
+  await expect.poll(() => scrollport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  expect((await requiredBox(pinnedStart)).y).toBe(initialPinned.start)
+  expect((await requiredBox(pinnedEnd)).y).toBe(initialPinned.end)
+})
+
+test('handles deferred corners, ordinary class constraints, and viewport panels in a scrolling portal', async ({
+  page,
+}) => {
+  await page.goto('/panel-geometry-lab?fixture=review-regressions')
+  const panel = geometryPanel(page, 'review-regression')
+  const portal = page.locator('[data-geometry-scroll-portal]')
+  const shell = page.locator('[data-tweaker-panel-shell]').filter({ has: panel })
+
+  await expect.poll(async () => (await requiredBox(panel)).width).toBe(220)
+  await expect.poll(async () => (await requiredBox(panel)).height).toBe(180)
+  await expect(panel).toHaveCSS('max-width', '220px')
+  await expect(panel).toHaveCSS('max-height', '180px')
+  const initial = await requiredBox(panel)
+
+  await portal.evaluate((element) => {
+    element.scrollTop = 160
+    element.dispatchEvent(new Event('scroll'))
+  })
+  await expect.poll(() => portal.evaluate((element) => element.scrollTop)).toBe(160)
+  await expect
+    .poll(async () => {
+      const current = await requiredBox(panel)
+      return { x: Math.round(current.x), y: Math.round(current.y) }
+    })
+    .toEqual({ x: Math.round(initial.x), y: Math.round(initial.y) })
+
+  await shell.locator('[data-tweaker-fixed-toggle]').click()
+  await expect(panel).toHaveAttribute('data-collapsed', 'true')
+  await page.waitForTimeout(250)
+  await page.getByRole('button', { name: 'Float bottom-right' }).click()
+  await expect(page.locator('[data-review-regression-placement]')).toHaveText(
+    'floating:bottom-right',
+  )
+  await expect(shell).not.toHaveAttribute('data-fixed-placement')
+  await expect.poll(async () => (await requiredBox(shell)).width).toBe(220)
+  await expect
+    .poll(async () => {
+      const box = await requiredBox(panel)
+      return {
+        bottom: Math.round(600 - box.y - box.height),
+        right: Math.round(900 - box.x - box.width),
+      }
+    })
+    .toEqual({ bottom: defaultPlacementInset, right: defaultPlacementInset })
+})
+
+test('resolves an unsaved corner and ancestor-scoped variable constraints against a custom boundary', async ({
+  page,
+}) => {
+  await page.goto('/panel-geometry-lab?fixture=relative-constraints')
+  const boundary = page.locator('[data-geometry-boundary="relative-constraints"]')
+  const panel = geometryPanel(page, 'relative-constraint')
+
+  await expect.poll(async () => (await requiredBox(panel)).width).toBe(260)
+  await expect.poll(async () => (await requiredBox(panel)).height).toBe(320)
+  await expect(panel).toHaveCSS('max-width', '260px')
+  await expect(panel).toHaveCSS('max-height', '320px')
+  await expectCornerInset(panel, boundary, 'bottom-right', defaultPlacementInset)
+
+  await boundary.evaluate((element) => {
+    const boundaryElement = element as HTMLElement
+    boundaryElement.style.width = '600px'
+    boundaryElement.style.height = '400px'
+  })
+
+  await expect.poll(async () => (await requiredBox(panel)).width).toBe(300)
+  await expect.poll(async () => (await requiredBox(panel)).height).toBe(360)
+  await expect(panel).toHaveCSS('max-width', '300px')
+  await expect(panel).toHaveCSS('max-height', '360px')
+  await expectCornerInset(panel, boundary, 'bottom-right', defaultPlacementInset)
+})
+
+test('retracts every fixed placement while preserving its reopening control', async ({ page }) => {
+  await page.goto('/panel-geometry-lab?fixture=fixed-boundaries')
+  const boundary = page.locator('[data-geometry-boundary="provider"]')
+  const panel = geometryPanel(page, 'fixed-boundary')
+  const shell = page.locator('[data-tweaker-panel-shell]').filter({ has: panel })
+  const placement = page.getByLabel('Fixed placement')
+  const toggle = shell.locator('[data-tweaker-fixed-toggle]')
+
+  await expect(page.locator('[data-runtime-placement]')).toHaveText('fixed:left')
+
+  for (const position of fixedPositions) {
+    await placement.selectOption(position)
+    await expect(shell).toHaveAttribute('data-fixed-placement', position)
+    await expectPanelAtBoundary(panel, boundary, position)
+    await expect(toggle).toHaveAccessibleName('Collapse panel Provider boundary')
+    await expect(toggle.locator('svg')).toHaveClass(expandedArrowClass(position))
+
+    await toggle.click()
+
+    await expect(panel).toHaveAttribute('data-collapsed', 'true')
+    await expect(toggle).toHaveAccessibleName('Expand panel Provider boundary')
+    await expect(toggle.locator('svg')).toHaveClass(collapsedArrowClass(position))
+    await expectCollapsedPanelBeyondBoundary(panel, boundary, position)
+    await expectToggleAtBoundaryCorner(toggle, boundary, position)
+
+    await toggle.click()
+
+    await expect(panel).toHaveAttribute('data-collapsed', 'false')
+    await expect(toggle).toHaveAccessibleName('Collapse panel Provider boundary')
+    await expectPanelAtBoundary(panel, boundary, position)
+  }
+})
+
 test('rolls back an active keyboard reorder when its list unmounts', async ({ page }) => {
   await page.goto('/panel-geometry-lab?fixture=keyboard-unmount')
   const panel = geometryPanel(page, 'keyboard-unmount')
@@ -393,6 +570,125 @@ async function expectBottomAtMost(panel: Locator, maximumBottom: number) {
       return box.y + box.height - maximumBottom
     })
     .toBeLessThanOrEqual(1)
+}
+
+async function expectPanelAtBoundary(
+  panel: Locator,
+  boundary: Locator,
+  position: 'bottom-left' | 'bottom-right' | 'left' | 'right' | 'top-left' | 'top-right',
+) {
+  await expect
+    .poll(async () => {
+      const panelBox = await requiredBox(panel)
+      const boundaryBox = await requiredBox(boundary)
+      return {
+        bottom:
+          position.startsWith('bottom') || position === 'left' || position === 'right'
+            ? Math.round(boundaryBox.y + boundaryBox.height - panelBox.y - panelBox.height)
+            : null,
+        left:
+          position.endsWith('left') || position === 'left'
+            ? Math.round(panelBox.x - boundaryBox.x)
+            : null,
+        right:
+          position.endsWith('right') || position === 'right'
+            ? Math.round(boundaryBox.x + boundaryBox.width - panelBox.x - panelBox.width)
+            : null,
+        top:
+          position.startsWith('top') || position === 'left' || position === 'right'
+            ? Math.round(panelBox.y - boundaryBox.y)
+            : null,
+      }
+    })
+    .toEqual({
+      bottom:
+        position.startsWith('bottom') || position === 'left' || position === 'right' ? 0 : null,
+      left: position.endsWith('left') || position === 'left' ? 0 : null,
+      right: position.endsWith('right') || position === 'right' ? 0 : null,
+      top: position.startsWith('top') || position === 'left' || position === 'right' ? 0 : null,
+    })
+}
+
+async function expectCornerInset(
+  panel: Locator,
+  boundary: Locator,
+  position: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right',
+  inset: number,
+) {
+  await expect
+    .poll(async () => {
+      const panelBox = await requiredBox(panel)
+      const boundaryBox = await requiredBox(boundary)
+      return {
+        horizontal: position.endsWith('left')
+          ? Math.round(panelBox.x - boundaryBox.x)
+          : Math.round(boundaryBox.x + boundaryBox.width - panelBox.x - panelBox.width),
+        vertical: position.startsWith('top')
+          ? Math.round(panelBox.y - boundaryBox.y)
+          : Math.round(boundaryBox.y + boundaryBox.height - panelBox.y - panelBox.height),
+      }
+    })
+    .toEqual({ horizontal: inset, vertical: inset })
+}
+
+async function expectCollapsedPanelBeyondBoundary(
+  panel: Locator,
+  boundary: Locator,
+  position: (typeof fixedPositions)[number],
+) {
+  await expect
+    .poll(async () => {
+      const panelBox = await requiredBox(panel)
+      const boundaryBox = await requiredBox(boundary)
+      return {
+        horizontal:
+          position.endsWith('left') || position === 'left'
+            ? Math.round(panelBox.x + panelBox.width - boundaryBox.x) || 0
+            : Math.round(panelBox.x - boundaryBox.x - boundaryBox.width) || 0,
+        vertical: position.startsWith('bottom')
+          ? Math.round(panelBox.y - boundaryBox.y - boundaryBox.height) || 0
+          : null,
+      }
+    })
+    .toEqual({ horizontal: 0, vertical: position.startsWith('bottom') ? 0 : null })
+}
+
+async function expectToggleAtBoundaryCorner(
+  toggle: Locator,
+  boundary: Locator,
+  position: (typeof fixedPositions)[number],
+) {
+  await expect
+    .poll(async () => {
+      const toggleBox = await requiredBox(toggle)
+      const boundaryBox = await requiredBox(boundary)
+      return {
+        horizontal:
+          position.endsWith('left') || position === 'left'
+            ? Math.round(toggleBox.x - boundaryBox.x)
+            : Math.round(boundaryBox.x + boundaryBox.width - toggleBox.x - toggleBox.width),
+        vertical: position.startsWith('bottom')
+          ? Math.round(boundaryBox.y + boundaryBox.height - toggleBox.y - toggleBox.height)
+          : Math.round(toggleBox.y - boundaryBox.y),
+      }
+    })
+    .toEqual({ horizontal: 0, vertical: 0 })
+}
+
+function collapsedArrowClass(position: (typeof fixedPositions)[number]) {
+  if (position === 'bottom-left') return /lucide-arrow-up-right/
+  if (position === 'bottom-right') return /lucide-arrow-up-left/
+  return position.endsWith('left') || position === 'left'
+    ? /lucide-arrow-right/
+    : /lucide-arrow-left/
+}
+
+function expandedArrowClass(position: (typeof fixedPositions)[number]) {
+  if (position === 'bottom-left') return /lucide-arrow-down-left/
+  if (position === 'bottom-right') return /lucide-arrow-down-right/
+  return position.endsWith('left') || position === 'left'
+    ? /lucide-arrow-left/
+    : /lucide-arrow-right/
 }
 
 async function seedLayout(

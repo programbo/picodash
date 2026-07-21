@@ -1,7 +1,20 @@
 import { describe, expect, test } from 'vite-plus/test'
-import { PANEL_MIN_VISIBLE_HEIGHT, projectPanelGeometry } from '../src/panel-geometry.ts'
+import {
+  PANEL_MIN_VISIBLE_HEIGHT,
+  fixedPanelRect,
+  fixedPanelRetraction,
+  panelMaxWidthForBoundary,
+  panelParticipatesInSnapping,
+  projectPanelGeometry,
+} from '../src/panel-geometry.ts'
 import { snapPanelPosition, type PanelRect } from '../src/panel-snapping.ts'
-import { panelUsesBottomConstraint } from '../src/use-panel-layout.ts'
+import {
+  nonFixedPanelMaxWidthForBoundary,
+  panelHasCallerConstraint,
+  panelUsesBottomConstraint,
+  resolveFloatingCornerLayout,
+  withoutCallerClassNames,
+} from '../src/use-panel-layout.ts'
 
 test('detects bottom constraints with Typed OM and legacy computed-style fallback', () => {
   expect(
@@ -223,6 +236,136 @@ describe('panel geometry projection', () => {
     expect(snapped).not.toHaveProperty('height')
     expect(snapped).not.toHaveProperty('availableHeight')
   })
+})
+
+describe('fixed panel geometry', () => {
+  const boundaryRect = rect(120, 80, 640, 480)
+
+  test.each([
+    ['top-left', rect(120, 80, 280, 240)],
+    ['bottom-left', rect(120, 320, 280, 240)],
+    ['top-right', rect(480, 80, 280, 240)],
+    ['bottom-right', rect(480, 320, 280, 240)],
+    ['left', rect(120, 80, 280, 240)],
+    ['right', rect(480, 80, 280, 240)],
+  ] as const)('places %s flush with its boundary', (position, expected) => {
+    expect(fixedPanelRect({ boundaryRect, height: 240, position, width: 280 })).toEqual(expected)
+  })
+
+  test('caps fixed dimensions to the visible boundary', () => {
+    expect(
+      fixedPanelRect({ boundaryRect, height: 800, position: 'bottom-right', width: 900 }),
+    ).toEqual(boundaryRect)
+  })
+
+  test.each([
+    ['top-left', { x: -280, y: 0 }],
+    ['left', { x: -280, y: 0 }],
+    ['top-right', { x: 280, y: 0 }],
+    ['right', { x: 280, y: 0 }],
+    ['bottom-left', { x: -280, y: 240 }],
+    ['bottom-right', { x: 280, y: 240 }],
+  ] as const)('retracts %s through its docked edge', (position, expected) => {
+    expect(fixedPanelRetraction(position, { height: 240, width: 280 })).toEqual(expected)
+  })
+})
+
+describe('boundary width constraints', () => {
+  test('caps a panel to a narrower custom boundary', () => {
+    expect(panelMaxWidthForBoundary(240, 480)).toBe(240)
+    expect(panelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY)).toBe(240)
+  })
+
+  test('preserves a stricter caller maximum width', () => {
+    expect(panelMaxWidthForBoundary(480, 220)).toBe(220)
+  })
+
+  test('reserves placement-specific insets for a non-fixed panel', () => {
+    expect(
+      nonFixedPanelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY, {
+        mode: 'floating',
+        position: 'top-left',
+      }),
+    ).toBe(208)
+    expect(
+      nonFixedPanelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY, {
+        mode: 'magnetic',
+        position: 'left',
+      }),
+    ).toBe(224)
+    expect(
+      nonFixedPanelMaxWidthForBoundary(240, 200, {
+        mode: 'floating',
+        position: 'top-left',
+      }),
+    ).toBe(200)
+  })
+})
+
+test('detects ordinary caller class constraints from their computed-style effect', () => {
+  expect(panelHasCallerConstraint(undefined, 'compact-panel', '192px', '584px')).toBe(true)
+  expect(panelHasCallerConstraint(undefined, 'compact-panel', '224px', '868px')).toBe(true)
+  expect(panelHasCallerConstraint(undefined, 'rounded-lg', '584px', '584px')).toBe(false)
+  expect(panelHasCallerConstraint(undefined, undefined, '584px', 'none')).toBe(false)
+})
+
+test('keeps inline constraints authoritative and removes only caller classes for a baseline', () => {
+  expect(panelHasCallerConstraint(320, undefined, '320px', 'none')).toBe(true)
+  expect(panelHasCallerConstraint('12rem', undefined, '192px', 'none')).toBe(true)
+  expect(
+    withoutCallerClassNames(
+      'relative max-h-[calc(100dvh-1rem)] compact-panel rounded-lg',
+      'compact-panel rounded-lg',
+    ),
+  ).toBe('relative max-h-[calc(100dvh-1rem)]')
+})
+
+test('recomputes an explicit floating corner from live panel and boundary geometry', () => {
+  expect(
+    resolveFloatingCornerLayout(
+      {
+        dock: null,
+        placement: { mode: 'floating', position: 'bottom-right' },
+        x: 24,
+        y: 32,
+      },
+      { height: 80, width: 100 },
+      rect(50, 20, 500, 300),
+    ),
+  ).toEqual({
+    dock: null,
+    placement: { mode: 'floating', position: 'bottom-right' },
+    x: 434,
+    y: 224,
+  })
+  expect(
+    resolveFloatingCornerLayout(
+      { dock: null, placement: { mode: 'floating' }, x: 24, y: 32 },
+      { height: 80, width: 100 },
+      rect(50, 20, 500, 300),
+    ),
+  ).toEqual({ dock: null, placement: { mode: 'floating' }, x: 24, y: 32 })
+})
+
+test('resolves an unsaved default floating corner against the live boundary', () => {
+  expect(
+    resolveFloatingCornerLayout(undefined, { height: 120, width: 180 }, rect(120, 80, 520, 360), {
+      mode: 'floating',
+      position: 'bottom-right',
+    }),
+  ).toEqual({
+    dock: null,
+    placement: { mode: 'floating', position: 'bottom-right' },
+    x: 444,
+    y: 304,
+  })
+})
+
+test('removes only retracted fixed panels from peer snapping', () => {
+  expect(panelParticipatesInSnapping({ mode: 'fixed', position: 'left' }, true)).toBe(false)
+  expect(panelParticipatesInSnapping({ mode: 'fixed', position: 'left' }, false)).toBe(true)
+  expect(panelParticipatesInSnapping({ mode: 'floating' }, true)).toBe(true)
+  expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'right' }, true)).toBe(true)
 })
 
 function rect(left: number, top: number, width: number, height: number): PanelRect {

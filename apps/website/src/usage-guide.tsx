@@ -64,6 +64,57 @@ const controllerSource = `function SettingsPanelActions() {
   {/* Items remain mounted and registered while hidden. */}
 </TweakerPanel>`
 
+const boundarySource = `const canvasStore = createTweakerPanelStore({
+  panelId: 'canvas-tools',
+})
+
+function BoundedPanels() {
+  const mainRef = useRef<HTMLElement>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <TweakerProvider panelBoundary={mainRef} persistLayout>
+      <main ref={mainRef}>
+        <div ref={canvasRef}>{/* Canvas */}</div>
+      </main>
+
+      <TweakerPanel
+        store={settingsStore}
+        collapsible
+        defaultPlacement={{ mode: 'fixed', position: 'left' }}
+      >
+        <TweakerGroup id="session" label="Session" pin="start">
+          {/* Always-visible items */}
+        </TweakerGroup>
+        {/* The auto lane scrolls */}
+        <TweakerGroup id="status" label="Status" pin="end">
+          {/* Always-visible items */}
+        </TweakerGroup>
+      </TweakerPanel>
+
+      <TweakerPanel
+        store={canvasStore}
+        boundary={canvasRef}
+        defaultPlacement={{ mode: 'fixed', position: 'bottom-right' }}
+      />
+    </TweakerProvider>
+  )
+}
+
+function PlacementActions() {
+  const panel = useTweakerPanel('site-settings')
+
+  return (
+    <button
+      onClick={() =>
+        panel?.setPlacement({ mode: 'fixed', position: 'right' })
+      }
+    >
+      Dock right
+    </button>
+  )
+}`
+
 const panelSource = `<TweakerProvider
   persistLayout
   storageKey="my-site:tweaker-layout:v1"
@@ -328,7 +379,7 @@ export function UsageGuide() {
                 </CheckItem>
               </ul>
               <Callout>
-                <Code>persistLayout</Code> stores panel position and docking only. Persist field
+                <Code>persistLayout</Code> stores panel position and placement only. Persist field
                 values through your application&apos;s own storage layer when required.
               </Callout>
             </GuideStep>
@@ -399,6 +450,32 @@ export function UsageGuide() {
                   label="Panel visibility controls"
                   source={controllerSource}
                 />
+              </Recipe>
+
+              <Recipe title="Constrain and fix panels to an application surface">
+                <p>
+                  Panels use the viewport by default. Pass an Element or React ref to{' '}
+                  <Code>panelBoundary</Code> for a provider-wide working area, then use{' '}
+                  <Code>boundary</Code> only when one panel needs a different surface. A fixed panel
+                  overlays that boundary; it does not inset the application layout. The portal
+                  container remains an independent rendering choice.
+                </p>
+                <p>
+                  Full-edge left and right panels fill the boundary height. Their start and end
+                  lanes remain visible while the auto lane scrolls with the bundled scroll fade. Use
+                  the controller&apos;s reactive <Code>placement</Code> and{' '}
+                  <Code>setPlacement</Code> to change modes at runtime.
+                </p>
+                <CodeBlock
+                  language="typescript"
+                  label="Fixed panels and boundary inheritance"
+                  source={boundarySource}
+                />
+                <Callout>
+                  Set <Code>boundary={'{null}'}</Code> to opt a panel back into viewport bounds. CSS
+                  selectors are not accepted; resolve a selector to an Element yourself or use a
+                  ref.
+                </Callout>
               </Recipe>
 
               <Recipe title="Keep responsibilities separate">

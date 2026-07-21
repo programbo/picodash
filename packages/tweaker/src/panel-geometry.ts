@@ -1,4 +1,5 @@
 import { SNAP_GAP, type PanelPosition, type PanelRect } from './panel-snapping.js'
+import type { TweakerPanelFixedPosition, TweakerPanelPlacement } from './tweaker-panel-types.js'
 
 export type PanelVerticalAnchor = 'bottom' | 'top'
 
@@ -9,6 +10,64 @@ export interface PanelGeometryProjection {
 }
 
 export const PANEL_MIN_VISIBLE_HEIGHT = 37
+
+export function panelParticipatesInSnapping(placement: TweakerPanelPlacement, collapsed: boolean) {
+  return placement.mode !== 'fixed' || !collapsed
+}
+
+export function panelMaxWidthForBoundary(boundaryWidth: number, callerMaxWidth: number) {
+  const normalizedCallerMaxWidth = Number.isFinite(callerMaxWidth)
+    ? nonNegative(callerMaxWidth)
+    : Number.POSITIVE_INFINITY
+  return Math.min(nonNegative(boundaryWidth), normalizedCallerMaxWidth)
+}
+
+export function fixedPanelRect({
+  boundaryRect,
+  height,
+  position,
+  width,
+}: {
+  boundaryRect: PanelRect
+  height: number
+  position: TweakerPanelFixedPosition
+  width: number
+}): PanelRect {
+  const appliedWidth = Math.min(nonNegative(width), boundaryRect.width)
+  const appliedHeight = Math.min(nonNegative(height), boundaryRect.height)
+  const left =
+    position.endsWith('right') || position === 'right'
+      ? boundaryRect.right - appliedWidth
+      : boundaryRect.left
+  const top = position.startsWith('bottom') ? boundaryRect.bottom - appliedHeight : boundaryRect.top
+
+  return {
+    bottom: top + appliedHeight,
+    height: appliedHeight,
+    left,
+    right: left + appliedWidth,
+    top,
+    width: appliedWidth,
+  }
+}
+
+export function fixedPanelRetraction(
+  position: TweakerPanelFixedPosition,
+  rect: Pick<PanelRect, 'height' | 'width'>,
+): PanelPosition {
+  switch (position) {
+    case 'bottom-left':
+      return { x: -rect.width, y: rect.height }
+    case 'bottom-right':
+      return { x: rect.width, y: rect.height }
+    case 'right':
+    case 'top-right':
+      return { x: rect.width, y: 0 }
+    case 'left':
+    case 'top-left':
+      return { x: -rect.width, y: 0 }
+  }
+}
 
 export function projectPanelGeometry({
   anchor,

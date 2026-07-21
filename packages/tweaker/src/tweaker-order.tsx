@@ -13,6 +13,25 @@ export const rootGroupId = 'root'
 export const keyboardReorderInteractionId = 'keyboard-reorder'
 export type TweakerOrderBand = 'auto' | TweakerPin
 
+export function partitionTweakerChildrenByBand(
+  children: ReactNode,
+  bandById: Readonly<Record<string, TweakerOrderBand>>,
+) {
+  const partition: Record<TweakerOrderBand, ReactNode[]> = {
+    auto: [],
+    end: [],
+    start: [],
+  }
+
+  for (const child of Children.toArray(children)) {
+    const itemId = itemIdFromTweakerChild(child)
+    const band = itemId ? (bandById[itemId] ?? 'auto') : 'auto'
+    partition[band].push(keyedTweakerChild(child, itemId))
+  }
+
+  return partition
+}
+
 export function bandForItem(item: Pick<TweakerItemRegistration, 'pin'>): TweakerOrderBand {
   return item.pin ?? 'auto'
 }

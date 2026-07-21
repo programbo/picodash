@@ -69,7 +69,8 @@ export function SiteControls() {
 - Use `createTweakerPanelStore` for application-owned state.
 - Use `TweakerPanel` with `store` for app-owned modes.
 - Use `useTweakerPanel(panelId)` beneath `TweakerProvider` for reactive visibility and imperative
-  `show`, `hide`, `toggle`, `setVisible`, or show-and-raise `activate` behavior.
+  `show`, `hide`, `toggle`, `setVisible`, show-and-raise `activate`, and `setPlacement` behavior.
+  The controller's reactive `placement` reports floating, magnetic, or fixed state.
 - Use `defaultVisible={false}` for an initially hidden but registered panel; visibility is not
   persisted with layout.
 - Use `close` for a provider-managed hide button, or `close={{ behavior: 'deregister' }}` when the
@@ -83,6 +84,20 @@ export function SiteControls() {
   contextual panel access through `useTweakerPanelSelector` / `useTweakerPanelStoreApi`.
 - Do not use `useTweakerPanel(panelId)` to discover panel values. Panel data remains owned by the
   store passed to `TweakerPanel`.
+- Preserve corner strings for legacy `defaultPlacement` usage. Use the placement object for new
+  magnetic or fixed declarations, for example
+  `defaultPlacement={{ mode: 'fixed', position: 'right' }}`. The magnetic edge type is
+  `TweakerPanelSnapPosition`; do not reintroduce the old dock-position name.
+- Prefer `TweakerProvider panelBoundary={mainRef}` when all panels share an application surface.
+  Use `TweakerPanel boundary={canvasRef}` only for a panel-specific surface, and
+  `boundary={null}` to explicitly restore viewport bounds. Accept Elements and React refs, not CSS
+  selector strings.
+- Keep `portalContainer` and boundaries conceptually separate: the portal chooses render
+  ownership, while the boundary constrains floating, snapping, fixed docking, and collapse-toggle
+  geometry.
+- Fixed `left` and `right` placements fill the effective boundary height. Start/end pinned lanes
+  remain visible while only the auto lane scrolls. Every root scrollport receives the bundled
+  `scroll-fade` utility from `tweaker/style.css`.
 
 ## Validation and State
 
