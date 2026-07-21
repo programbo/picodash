@@ -1759,6 +1759,41 @@ test('supports keyboard typeahead across panel actions and format submenus', asy
   await expect(menu.getByRole('menuitem', { name: 'Export' })).toBeFocused()
 })
 
+test('keeps tall panel action menus scrollable within the available viewport height', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 640, height: 240 })
+  await page
+    .locator('[data-tweaker-panel-id="custom-items"]')
+    .evaluate((element: HTMLElement) => (element.style.display = 'none'))
+  await page
+    .locator('[data-tweaker-panel-id="built-in-items"]')
+    .evaluate((element: HTMLElement) => (element.style.display = 'none'))
+
+  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  await panel.getByRole('button', { name: 'Open actions for Scene Controls' }).click()
+
+  const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
+  const popover = page.locator('[data-slot="dropdown-menu-content"]', { has: menu })
+  await expect(menu).toBeVisible()
+  await expect(popover).toHaveCSS('overflow-y', 'auto')
+
+  const metrics = await popover.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    maxHeight: getComputedStyle(element).maxHeight,
+    scrollHeight: element.scrollHeight,
+  }))
+  expect(metrics.maxHeight).not.toBe('none')
+  expect(metrics.clientHeight).toBeLessThan(metrics.scrollHeight)
+
+  const popoverBox = await popover.boundingBox()
+  expect(popoverBox).not.toBeNull()
+  if (popoverBox) {
+    expect(popoverBox.y).toBeGreaterThanOrEqual(0)
+    expect(popoverBox.y + popoverBox.height).toBeLessThanOrEqual(240)
+  }
+})
+
 test('keeps the panel action menu contained and manages collapsible groups', async ({ page }) => {
   await page.setViewportSize({ width: 640, height: 480 })
   await page
