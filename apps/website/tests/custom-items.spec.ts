@@ -261,12 +261,7 @@ test('dismisses only the topmost repair dialog on Escape', async ({ page }) => {
   await expect(async () => {
     await page.evaluate(async () => {
       const appModulePath = ['/src', 'App.tsx'].join('/')
-      const builtInModulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
-      const [{ customItemPanelStore }, { builtInItemsPanelStore }] = await Promise.all([
-        import(appModulePath),
-        import(builtInModulePath),
-      ])
-
+      const { customItemPanelStore } = await import(appModulePath)
       const customState = customItemPanelStore.getState()
       customItemPanelStore.setState({
         repairProposal: {
@@ -282,7 +277,16 @@ test('dismisses only the topmost repair dialog on Escape', async ({ page }) => {
           token: 1,
         },
       })
+    })
+  }).toPass()
 
+  const customDialog = page.getByRole('alertdialog', { name: 'Review changes for Custom Items' })
+  await expect(customDialog).toBeVisible()
+
+  await expect(async () => {
+    await page.evaluate(async () => {
+      const builtInModulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
+      const { builtInItemsPanelStore } = await import(builtInModulePath)
       const builtInState = builtInItemsPanelStore.getState()
       builtInItemsPanelStore.setState({
         repairProposal: {
@@ -304,8 +308,23 @@ test('dismisses only the topmost repair dialog on Escape', async ({ page }) => {
   const dialogs = page.locator('[role="alertdialog"]')
   await expect(dialogs).toHaveCount(2)
 
+  await expect(async () => {
+    await page.evaluate(async () => {
+      const appModulePath = ['/src', 'App.tsx'].join('/')
+      const { customItemPanelStore } = await import(appModulePath)
+      const customState = customItemPanelStore.getState()
+      customItemPanelStore.setState({
+        meta: { ...customState.meta, stackRerender: Date.now() },
+      })
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+    })
+  }).toPass()
+
   await page.keyboard.press('Escape')
   await expect(dialogs).toHaveCount(1)
+  await expect(customDialog).toBeVisible()
   await expect
     .poll(() =>
       page.evaluate(async () => {

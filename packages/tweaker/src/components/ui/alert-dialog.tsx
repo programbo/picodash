@@ -49,6 +49,7 @@ function AlertDialog({
   size = 'default',
   children,
   isDismissable = false,
+  isKeyboardDismissDisabled = false,
   isOpen,
   onOpenChange,
   overlayClassName,
@@ -70,6 +71,10 @@ function AlertDialog({
   }) {
   const [descriptionIds, setDescriptionIds] = React.useState<readonly string[]>([])
   const dialogId = React.useRef(Symbol('alert-dialog')).current
+  const isKeyboardDismissDisabledRef = React.useRef(isKeyboardDismissDisabled)
+  const onOpenChangeRef = React.useRef(onOpenChange)
+  isKeyboardDismissDisabledRef.current = isKeyboardDismissDisabled
+  onOpenChangeRef.current = onOpenChange
   const registerDescription = React.useCallback((descriptionId: string) => {
     setDescriptionIds((currentIds) =>
       currentIds.includes(descriptionId) ? currentIds : [...currentIds, descriptionId],
@@ -80,16 +85,22 @@ function AlertDialog({
   }, [])
 
   React.useEffect(() => {
-    if (!isOpen || !onOpenChange) return
+    if (!isOpen) return
 
     openAlertDialogs.push(dialogId)
     const dismissOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || openAlertDialogs[openAlertDialogs.length - 1] !== dialogId) {
+      if (
+        event.key !== 'Escape' ||
+        isKeyboardDismissDisabledRef.current ||
+        openAlertDialogs[openAlertDialogs.length - 1] !== dialogId
+      ) {
         return
       }
+      const changeOpen = onOpenChangeRef.current
+      if (!changeOpen) return
       event.preventDefault()
       event.stopPropagation()
-      onOpenChange(false)
+      changeOpen(false)
     }
 
     document.addEventListener('keydown', dismissOnEscape, true)
@@ -98,12 +109,13 @@ function AlertDialog({
       const index = openAlertDialogs.lastIndexOf(dialogId)
       if (index >= 0) openAlertDialogs.splice(index, 1)
     }
-  }, [dialogId, isOpen, onOpenChange])
+  }, [dialogId, isOpen])
 
   return (
     <AlertDialogOverlay
       {...props}
       isDismissable={isDismissable}
+      isKeyboardDismissDisabled={isKeyboardDismissDisabled}
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       shouldCloseOnInteractOutside={() => false}
