@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, test } from 'vite-plus/test'
 import * as advancedApi from '../src/advanced.ts'
 import * as publicApi from '../src/index.ts'
+import * as uiApi from '../src/ui.ts'
 import { createTweakerPanelStore, FeaturePanel } from '../src/index.ts'
 import { panelLayoutStorageKey } from '../src/panel-persistence.ts'
 import {
@@ -68,6 +69,24 @@ test('keeps the public and advanced hook surfaces explicit', () => {
   expect('useTweakerProviderContext' in advancedApi).toBe(false)
   expect('useTweakerSelector' in advancedApi).toBe(false)
   expect('useTweakerStoreApi' in advancedApi).toBe(false)
+})
+
+test('renders the shared Select without TweakerProvider', () => {
+  const markup = renderToStaticMarkup(
+    <uiApi.Select aria-label="Standalone choice" defaultSelectedKey="first">
+      <uiApi.SelectTrigger>
+        <uiApi.SelectValue />
+      </uiApi.SelectTrigger>
+      <uiApi.SelectContent>
+        <uiApi.SelectItem id="first">First</uiApi.SelectItem>
+        <uiApi.SelectItem id="second">Second</uiApi.SelectItem>
+      </uiApi.SelectContent>
+    </uiApi.Select>,
+  )
+
+  expect(markup).toContain('aria-label="Standalone choice"')
+  expect(markup).toContain('data-tweaker-theme="dark"')
+  expect(markup).toContain('data-slot="select-trigger"')
 })
 
 test('forwards drag behavior to the movable shell only for non-fixed panels', () => {

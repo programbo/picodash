@@ -27,16 +27,28 @@ import { useTweakerTheme } from '../../tweaker-theme-context.js'
 import {
   portalLayerZIndexForState,
   portalLayerZIndexValue,
-  useTweakerProviderContext,
+  useOptionalTweakerProviderContext,
+  type TweakerProviderContextValue,
 } from '../../tweaker-provider.js'
+
+type SelectPopoverProps = Omit<
+  React.ComponentProps<typeof PopoverPrimitive>,
+  'className' | 'children'
+> & {
+  className?: string
+  children?: React.ReactNode
+}
 
 function Select<T extends object, M extends 'single' | 'multiple' = 'single'>({
   className,
   ...props
 }: SelectProps<T, M>) {
+  const theme = useTweakerTheme()
+
   return (
     <SelectPrimitive
       data-slot="select"
+      data-tweaker-theme={theme}
       className={composeRenderProps(className, (className) => cn('min-w-0', className))}
       {...props}
     />
@@ -125,14 +137,62 @@ function SelectPopover({
   crossOffset = 0,
   style,
   ...props
-}: Omit<React.ComponentProps<typeof PopoverPrimitive>, 'className' | 'children'> & {
-  className?: string
-  children?: React.ReactNode
-}) {
+}: SelectPopoverProps) {
   const theme = useTweakerTheme()
-  const { portalContainer, store } = useTweakerProviderContext()
-  const zIndexFloor = useStore(store, (state) => portalLayerZIndexForState(state, 2))
+  const provider = useOptionalTweakerProviderContext()
+  const surfaceProps: SelectPopoverSurfaceProps = {
+    ...props,
+    children,
+    className,
+    crossOffset,
+    offset,
+    placement,
+    style,
+    theme,
+  }
 
+  return provider ? (
+    <ProviderSelectPopover {...surfaceProps} provider={provider} />
+  ) : (
+    <SelectPopoverSurface {...surfaceProps} />
+  )
+}
+
+function ProviderSelectPopover({
+  provider,
+  ...props
+}: SelectPopoverSurfaceProps & {
+  provider: TweakerProviderContextValue
+}) {
+  const zIndexFloor = useStore(provider.store, (state) => portalLayerZIndexForState(state, 2))
+
+  return (
+    <SelectPopoverSurface
+      {...props}
+      portalContainer={provider.portalContainer}
+      zIndexFloor={zIndexFloor}
+    />
+  )
+}
+
+type SelectPopoverSurfaceProps = SelectPopoverProps & {
+  portalContainer?: HTMLElement | null
+  theme: string
+  zIndexFloor?: number
+}
+
+function SelectPopoverSurface({
+  className,
+  children,
+  placement,
+  offset,
+  crossOffset,
+  portalContainer,
+  style,
+  theme,
+  zIndexFloor,
+  ...props
+}: SelectPopoverSurfaceProps) {
   return (
     <PopoverPrimitive
       data-slot="select-content"
@@ -148,7 +208,9 @@ function SelectPopover({
       )}
       style={composeRenderProps(style, (style) => ({
         ...style,
-        zIndex: portalLayerZIndexValue('--tweaker-layer-select', zIndexFloor),
+        ...(zIndexFloor === undefined
+          ? {}
+          : { zIndex: portalLayerZIndexValue('--tweaker-layer-select', zIndexFloor) }),
       }))}
       {...props}
     >

@@ -431,11 +431,15 @@ export function TweakerProvider({
 }
 
 export function useTweakerProviderContext() {
-  const context = useContext(TweakerContext)
+  const context = useOptionalTweakerProviderContext()
   if (!context) {
     throw new Error('Tweaker components must be rendered inside TweakerProvider.')
   }
   return context
+}
+
+export function useOptionalTweakerProviderContext() {
+  return useContext(TweakerContext)
 }
 
 export function useTweakerProviderStoreApi() {
