@@ -180,17 +180,15 @@ export function TweakerPanelActions({
               <MenuItem
                 disabled={allExpanded}
                 icon={<ChevronsUpDown aria-hidden="true" />}
+                label="Expand all"
                 onSelect={() => store.getState().setAllCollapsibleGroupsCollapsed(false)}
-              >
-                Expand all
-              </MenuItem>
+              />
               <MenuItem
                 disabled={allCollapsed}
                 icon={<ChevronsDownUp aria-hidden="true" />}
+                label="Collapse all"
                 onSelect={() => store.getState().setAllCollapsibleGroupsCollapsed(true)}
-              >
-                Collapse all
-              </MenuItem>
+              />
               <MenuSeparator />
             </>
           ) : null}
@@ -203,18 +201,16 @@ export function TweakerPanelActions({
           </MenuSub>
           <MenuItem
             icon={<Upload aria-hidden="true" />}
+            label="Import…"
             onSelect={() => importInputRef.current?.click()}
-          >
-            Import…
-          </MenuItem>
+          />
           <MenuSeparator />
           <MenuItem
             destructive
             icon={<RotateCcw aria-hidden="true" />}
+            label="Reset…"
             onSelect={() => setResetDialogOpen(true)}
-          >
-            Reset…
-          </MenuItem>
+          />
         </DropdownMenu>
       </DropdownMenuTrigger>
 
@@ -340,17 +336,17 @@ const menuItemClassName =
   'relative flex h-(--tweaker-control-height-md) cursor-default items-center gap-(--tweaker-space-2) rounded-tweaker-control px-(--tweaker-space-2) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-(--tweaker-opacity-disabled) data-focused:bg-tweaker-surface-muted data-focused:text-tweaker-text [&>svg]:size-(--tweaker-icon-sm) [&>svg]:shrink-0'
 
 function MenuItem({
-  children,
   destructive = false,
   disabled,
   icon,
+  label,
   onSelect,
   ...props
-}: Omit<ComponentProps<typeof DropdownMenuItem>, 'children' | 'onAction'> & {
-  children: ReactNode
+}: Omit<ComponentProps<typeof DropdownMenuItem>, 'children' | 'onAction' | 'textValue'> & {
   destructive?: boolean
   disabled?: boolean
   icon?: ReactNode
+  label: string
   onSelect?: () => void
 }) {
   return (
@@ -358,10 +354,11 @@ function MenuItem({
       className={cn(menuItemClassName, destructive && 'text-tweaker-danger')}
       isDisabled={disabled}
       onAction={onSelect}
+      textValue={label}
       {...props}
     >
       {icon}
-      <span className="min-w-0 flex-1">{children}</span>
+      <span className="min-w-0 flex-1">{label}</span>
     </DropdownMenuItem>
   )
 }
@@ -385,7 +382,7 @@ function MenuSub({
 
   return (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger className={menuItemClassName}>
+      <DropdownMenuSubTrigger className={menuItemClassName} textValue={label}>
         {icon}
         <span className="min-w-0 flex-1">{label}</span>
       </DropdownMenuSubTrigger>
@@ -418,20 +415,18 @@ function FormatMenuItems({
     <>
       <MenuItem
         icon={<FileJson aria-hidden="true" />}
+        label={`${verb} JSON`}
         onSelect={() => {
           void onSelect('json')
         }}
-      >
-        {verb} JSON
-      </MenuItem>
+      />
       <MenuItem
         icon={<FileText aria-hidden="true" />}
+        label={`${verb} YAML`}
         onSelect={() => {
           void onSelect('yaml')
         }}
-      >
-        {verb} YAML
-      </MenuItem>
+      />
     </>
   )
 }

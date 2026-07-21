@@ -1471,7 +1471,11 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
   await expect(dropzone.getByRole('listitem')).toHaveCount(3)
   await expect(dropzone.getByText('Only 3 files can be selected')).toBeVisible()
   await dropzone.getByRole('button', { name: 'View sample.png' }).click()
-  await expect(page.getByRole('dialog')).toBeVisible()
+  const imageDialog = page.getByRole('dialog')
+  await expect(imageDialog).toBeVisible()
+  const imageDescriptionId = await imageDialog.getAttribute('aria-describedby')
+  expect(imageDescriptionId).toBeTruthy()
+  await expect(page.locator(`[id="${imageDescriptionId}"]`)).toHaveText('19 B')
   await expect(page.getByRole('img', { name: 'sample.png' })).toBeVisible()
   await page.locator('[data-slot="dialog-overlay"]').click({ position: { x: 8, y: 8 } })
   await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -1722,6 +1726,39 @@ test('resumes pointer velocity decay when document visibility returns', async ({
   await expect(fps).toHaveText('0 FPS')
 })
 
+test('supports keyboard typeahead across panel actions and format submenus', async ({ page }) => {
+  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
+  const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
+
+  await trigger.click()
+  await menu.focus()
+  await page.keyboard.type('import')
+  await expect(menu.getByRole('menuitem', { name: 'Import…' })).toBeFocused()
+  await page.keyboard.press('Escape')
+
+  await trigger.click()
+  await menu.focus()
+  await page.keyboard.type('copy')
+  const copyTrigger = menu.getByRole('menuitem', { name: 'Copy' })
+  await expect(copyTrigger).toBeFocused()
+  await page.keyboard.press('ArrowRight')
+
+  const copyMenu = page.getByRole('menu').nth(1)
+  await expect(copyMenu).toBeVisible()
+  const copyJson = copyMenu.getByRole('menuitem', { name: 'Copy JSON' })
+  await copyMenu.focus()
+  await page.keyboard.press('c')
+  await expect(copyJson).toHaveAttribute('data-focused', 'true')
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+
+  await trigger.click()
+  await menu.focus()
+  await page.keyboard.type('export')
+  await expect(menu.getByRole('menuitem', { name: 'Export' })).toBeFocused()
+})
+
 test('keeps the panel action menu contained and manages collapsible groups', async ({ page }) => {
   await page.setViewportSize({ width: 640, height: 480 })
   await page
@@ -1810,6 +1847,11 @@ test('confirms registered-field resets without changing group disclosure', async
   await page.getByRole('menuitem', { name: 'Reset…' }).click()
   const dialog = page.getByRole('alertdialog', { name: 'Reset Scene Controls?' })
   await expect(dialog).toHaveAttribute('data-tweaker-theme', 'dark')
+  const resetDescriptionId = await dialog.getAttribute('aria-describedby')
+  expect(resetDescriptionId).toBeTruthy()
+  await expect(page.locator(`[id="${resetDescriptionId}"]`)).toContainText(
+    'This restores every registered field to its default value.',
+  )
   const dialogBox = await dialog.boundingBox()
   expect(dialogBox).not.toBeNull()
   if (dialogBox) {

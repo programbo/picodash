@@ -5,12 +5,17 @@ import {
   Heading,
   ModalOverlay as ModalOverlayPrimitive,
   Modal as ModalPrimitive,
+  Text,
   type DialogTriggerProps as AlertDialogTriggerPrimitiveProps,
   type ModalOverlayProps as ModalOverlayPrimitiveProps,
 } from 'react-aria-components'
 
 import { cn } from '#lib/utils'
 import { Button } from '#components/ui/button'
+
+const AlertDialogDescriptionContext = React.createContext<
+  ((descriptionId: string) => () => void) | null
+>(null)
 
 function AlertDialogTrigger({ ...props }: AlertDialogTriggerPrimitiveProps) {
   return <AlertDialogTriggerPrimitive data-slot="alert-dialog-trigger" {...props} />
@@ -62,6 +67,16 @@ function AlertDialog({
     style?: React.CSSProperties
     'data-tweaker-theme'?: string
   }) {
+  const [descriptionIds, setDescriptionIds] = React.useState<readonly string[]>([])
+  const registerDescription = React.useCallback((descriptionId: string) => {
+    setDescriptionIds((currentIds) =>
+      currentIds.includes(descriptionId) ? currentIds : [...currentIds, descriptionId],
+    )
+    return () => {
+      setDescriptionIds((currentIds) => currentIds.filter((id) => id !== descriptionId))
+    }
+  }, [])
+
   React.useEffect(() => {
     if (!isOpen || !onOpenChange) return
 
@@ -99,12 +114,15 @@ function AlertDialog({
         )}
       >
         <AlertDialogPrimitive
+          aria-describedby={descriptionIds.length > 0 ? descriptionIds.join(' ') : undefined}
           data-slot="alert-dialog"
           data-tweaker-theme={tweakerTheme}
           role="alertdialog"
           className="[display:inherit] [gap:inherit] outline-none"
         >
-          {children}
+          <AlertDialogDescriptionContext.Provider value={registerDescription}>
+            {children}
+          </AlertDialogDescriptionContext.Provider>
         </AlertDialogPrimitive>
       </ModalPrimitive>
     </AlertDialogOverlay>
@@ -182,10 +200,20 @@ function AlertDialogTitle({
 
 function AlertDialogDescription({
   className,
+  id: providedId,
   ...props
-}: Omit<React.ComponentProps<'div'>, 'slot'>) {
+}: Omit<React.ComponentProps<typeof Text>, 'elementType' | 'slot'>) {
+  const generatedId = React.useId()
+  const descriptionId = providedId ?? generatedId
+  const registerDescription = React.useContext(AlertDialogDescriptionContext)
+
+  React.useEffect(() => registerDescription?.(descriptionId), [descriptionId, registerDescription])
+
   return (
-    <div
+    <Text
+      slot="description"
+      elementType="div"
+      id={descriptionId}
       data-slot="alert-dialog-description"
       className={cn(
         'text-sm text-balance text-tweaker-muted md:text-pretty *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-tweaker-text',

@@ -7,6 +7,7 @@ import {
   Heading,
   ModalOverlay as ModalOverlayPrimitive,
   Modal as ModalPrimitive,
+  Text,
   type DialogProps as DialogPrimitiveProps,
   type DialogTriggerProps as DialogTriggerPrimitiveProps,
   type ModalOverlayProps as ModalOverlayPrimitiveProps,
@@ -15,6 +16,10 @@ import {
 import { cn } from '#lib/utils'
 import { Button } from '#components/ui/button'
 import { XIcon } from 'lucide-react'
+
+const DialogDescriptionContext = React.createContext<
+  ((descriptionId: string) => () => void) | null
+>(null)
 
 function DialogTrigger({ ...props }: DialogTriggerPrimitiveProps) {
   return <DialogTriggerPrimitive data-slot="dialog-trigger" {...props} />
@@ -82,6 +87,16 @@ function Dialog({
     style?: React.CSSProperties
     'data-tweaker-theme'?: string
   }) {
+  const [descriptionIds, setDescriptionIds] = React.useState<readonly string[]>([])
+  const registerDescription = React.useCallback((descriptionId: string) => {
+    setDescriptionIds((currentIds) =>
+      currentIds.includes(descriptionId) ? currentIds : [...currentIds, descriptionId],
+    )
+    return () => {
+      setDescriptionIds((currentIds) => currentIds.filter((id) => id !== descriptionId))
+    }
+  }, [])
+
   return (
     <DialogOverlay
       isDismissable={isDismissable}
@@ -101,11 +116,14 @@ function Dialog({
         )}
       >
         <DialogPrimitive
+          aria-describedby={descriptionIds.length > 0 ? descriptionIds.join(' ') : undefined}
           data-slot="dialog"
           data-tweaker-theme={tweakerTheme}
           className="[display:inherit] [gap:inherit] outline-none"
         >
-          {children}
+          <DialogDescriptionContext.Provider value={registerDescription}>
+            {children}
+          </DialogDescriptionContext.Provider>
           {showCloseButton && (
             <DialogClose
               variant="ghost"
@@ -159,9 +177,22 @@ function DialogTitle({ className, ...props }: Omit<React.ComponentProps<typeof H
   )
 }
 
-function DialogDescription({ className, ...props }: Omit<React.ComponentProps<'div'>, 'slot'>) {
+function DialogDescription({
+  className,
+  id: providedId,
+  ...props
+}: Omit<React.ComponentProps<typeof Text>, 'elementType' | 'slot'>) {
+  const generatedId = React.useId()
+  const descriptionId = providedId ?? generatedId
+  const registerDescription = React.useContext(DialogDescriptionContext)
+
+  React.useEffect(() => registerDescription?.(descriptionId), [descriptionId, registerDescription])
+
   return (
-    <div
+    <Text
+      slot="description"
+      elementType="div"
+      id={descriptionId}
       data-slot="dialog-description"
       className={cn(
         'text-sm text-tweaker-muted *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-tweaker-text',
