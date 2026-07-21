@@ -16,6 +16,7 @@ import {
   positionForPanelLayout,
   rectForPanelBoundary,
   rectFromElement,
+  SNAP_GAP,
   translationFromTransform,
   type PanelPosition,
   type PanelRect,
@@ -37,6 +38,17 @@ export function panelUsesBottomConstraint({
   return typedBottom === undefined
     ? computedBottom !== 'auto' && computedTop === 'auto'
     : typedBottom !== 'auto' && typedTop === 'auto'
+}
+
+export function panelHasCallerConstraint(
+  inlineConstraint: MotionStyle['maxHeight'] | MotionStyle['maxWidth'] | undefined,
+  constraintClassName: string | undefined,
+) {
+  return inlineConstraint !== undefined || Boolean(constraintClassName?.trim())
+}
+
+export function nonFixedPanelMaxWidthForBoundary(boundaryWidth: number, callerMaxWidth: number) {
+  return panelMaxWidthForBoundary(boundaryWidth - SNAP_GAP * 2, callerMaxWidth)
 }
 
 export function usePanelLayoutSynchronization({
@@ -230,10 +242,12 @@ export function usePanelLayoutSynchronization({
     const containerRect = rectForPanelBoundary(boundaryElement)
 
     if (placement.mode === 'fixed') {
-      const measuredCallerMaxHeight =
-        callerMaxHeight === undefined ? Number.POSITIVE_INFINITY : measureCallerMaxHeight()
-      const measuredCallerMaxWidth =
-        callerMaxWidth === undefined ? Number.POSITIVE_INFINITY : measureCallerMaxWidth()
+      const measuredCallerMaxHeight = panelHasCallerConstraint(callerMaxHeight, constraintClassName)
+        ? measureCallerMaxHeight()
+        : Number.POSITIVE_INFINITY
+      const measuredCallerMaxWidth = panelHasCallerConstraint(callerMaxWidth, constraintClassName)
+        ? measureCallerMaxWidth()
+        : Number.POSITIVE_INFINITY
       const appliedMaxHeight = Math.min(containerRect.height, measuredCallerMaxHeight)
       const appliedMaxWidth = Math.min(containerRect.width, measuredCallerMaxWidth)
       if (appliedMaxHeightRef.current !== appliedMaxHeight) {
@@ -275,7 +289,10 @@ export function usePanelLayoutSynchronization({
     }
 
     restoreCallerFixedDimensions()
-    const appliedMaxWidth = panelMaxWidthForBoundary(containerRect.width, measureCallerMaxWidth())
+    const appliedMaxWidth = nonFixedPanelMaxWidthForBoundary(
+      containerRect.width,
+      measureCallerMaxWidth(),
+    )
     if (appliedMaxWidthRef.current !== appliedMaxWidth) {
       appliedMaxWidthRef.current = appliedMaxWidth
       panelElement.style.maxWidth = `${appliedMaxWidth}px`

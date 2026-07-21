@@ -207,6 +207,25 @@ export function TweakerPanel({
     visible: defaultVisibleRef.current,
   })
 
+  useLayoutEffect(() => {
+    if (fixedPlacement) return
+
+    const synchronizeConstraints = () => {
+      const panelElement = panelElementRef.current
+      const positionElement = positionElementRef.current
+      if (!panelElement || !positionElement) return
+
+      const computedStyle = getComputedStyle(panelElement)
+      synchronizeConstraintAxis(positionElement, computedStyle, 'left', 'right')
+      synchronizeConstraintAxis(positionElement, computedStyle, 'top', 'bottom')
+      scheduleSynchronization()
+    }
+
+    synchronizeConstraints()
+    window.addEventListener('resize', synchronizeConstraints)
+    return () => window.removeEventListener('resize', synchronizeConstraints)
+  }, [className, fixedPlacement, scheduleSynchronization, style])
+
   useEffect(() => {
     const details = pendingDeregisterCloseRef.current
     if (!deregistered || !details) return
@@ -324,7 +343,6 @@ export function TweakerPanel({
           className={cn(
             'pointer-events-none absolute h-fit w-(--tweaker-panel-width) max-w-[calc(100dvw-2rem)]',
             placementShellClassName(placement),
-            !fixedPlacement && className,
             !visible && 'hidden',
           )}
           drag={fixedPlacement ? false : drag}
@@ -622,41 +640,48 @@ function useResolvedPanelBoundary(
   const [resolvedBoundary, setResolvedBoundary] = useState<Element | null>(() =>
     resolveTweakerPanelBoundary(boundary, providerBoundary),
   )
+  const resolvedBoundaryRef = useRef(resolvedBoundary)
 
   useLayoutEffect(() => {
     const synchronize = () => {
       const nextBoundary = resolveTweakerPanelBoundary(boundary, providerBoundary)
-      setResolvedBoundary((current) => (current === nextBoundary ? current : nextBoundary))
-      return nextBoundary
+      if (resolvedBoundaryRef.current === nextBoundary) return
+      resolvedBoundaryRef.current = nextBoundary
+      setResolvedBoundary(nextBoundary)
     }
     synchronize()
-    const frame = requestAnimationFrame(synchronize)
     const requestedBoundary = boundary === undefined ? providerBoundary : boundary
-    const requestedRefIsUnresolved =
-      requestedBoundary !== null &&
-      requestedBoundary !== undefined &&
-      'current' in requestedBoundary &&
-      requestedBoundary.current === null
-    const observer = new MutationObserver(() => {
-      synchronize()
-      if (
-        requestedBoundary &&
-        'current' in requestedBoundary &&
-        requestedBoundary.current !== null
-      ) {
-        observer.disconnect()
+    let frame: number | null = null
+    if (requestedBoundary && 'current' in requestedBoundary) {
+      const trackBoundaryRef = () => {
+        synchronize()
+        frame = requestAnimationFrame(trackBoundaryRef)
       }
-    })
-    if (requestedRefIsUnresolved) {
-      observer.observe(document.documentElement, { childList: true, subtree: true })
+      frame = requestAnimationFrame(trackBoundaryRef)
     }
     return () => {
-      cancelAnimationFrame(frame)
-      observer.disconnect()
+      if (frame !== null) cancelAnimationFrame(frame)
     }
   }, [boundary, providerBoundary])
 
   return resolvedBoundary
+}
+
+function synchronizeConstraintAxis(
+  positionElement: HTMLElement,
+  computedStyle: CSSStyleDeclaration,
+  start: 'left' | 'top',
+  end: 'bottom' | 'right',
+) {
+  const startValue = computedStyle[start]
+  const endValue = computedStyle[end]
+  if (startValue === 'auto' && endValue === 'auto') {
+    positionElement.style.removeProperty(start)
+    positionElement.style.removeProperty(end)
+    return
+  }
+  positionElement.style[start] = startValue
+  positionElement.style[end] = endValue
 }
 
 const panelPlacementClassNames = {

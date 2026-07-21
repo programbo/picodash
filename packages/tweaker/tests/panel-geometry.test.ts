@@ -8,7 +8,11 @@ import {
   projectPanelGeometry,
 } from '../src/panel-geometry.ts'
 import { snapPanelPosition, type PanelRect } from '../src/panel-snapping.ts'
-import { panelUsesBottomConstraint } from '../src/use-panel-layout.ts'
+import {
+  nonFixedPanelMaxWidthForBoundary,
+  panelHasCallerConstraint,
+  panelUsesBottomConstraint,
+} from '../src/use-panel-layout.ts'
 
 test('detects bottom constraints with Typed OM and legacy computed-style fallback', () => {
   expect(
@@ -273,6 +277,17 @@ describe('boundary width constraints', () => {
   test('preserves a stricter caller maximum width', () => {
     expect(panelMaxWidthForBoundary(480, 220)).toBe(220)
   })
+
+  test('reserves both safe insets for a non-fixed panel', () => {
+    expect(nonFixedPanelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY)).toBe(224)
+    expect(nonFixedPanelMaxWidthForBoundary(240, 200)).toBe(200)
+  })
+})
+
+test('measures class-based fixed panel constraints without requiring inline styles', () => {
+  expect(panelHasCallerConstraint(undefined, 'max-h-48 max-w-56')).toBe(true)
+  expect(panelHasCallerConstraint(undefined, '  ')).toBe(false)
+  expect(panelHasCallerConstraint(320, undefined)).toBe(true)
 })
 
 test('removes only retracted fixed panels from peer snapping', () => {
