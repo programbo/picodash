@@ -26,7 +26,7 @@ import {
 import { rootGroupId } from './tweaker-order.js'
 import { TweakerReorderIndicator } from './tweaker-reorder-indicator.js'
 import { tweakerMotionTokens } from './theme.js'
-import { buttonVariants } from './ui.js'
+import { buttonVariants } from './components/ui/button.js'
 import { cn } from './utils.js'
 
 export interface TweakerGroupProps extends Omit<
@@ -236,7 +236,7 @@ export function TweakerGroup({
           aria-expanded={!collapsed}
           className={cn(
             buttonVariants({ size: 'sm', variant: 'ghost' }),
-            'min-w-0 flex-1 justify-start pr-(--tweaker-space-1) pl-0 text-(length:--tweaker-font-size-lg) text-tweaker-muted',
+            'min-w-0 flex-1 justify-start pr-(--tweaker-space-1) pl-0 text-(length:--tweaker-font-size-lg) text-tweaker-muted aria-expanded:bg-transparent',
             !collapsible && 'pointer-events-none',
           )}
           type="button"

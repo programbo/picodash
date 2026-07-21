@@ -6,7 +6,7 @@ import {
   type TweakerItemContextValue,
   type TweakerInputItemProps,
 } from '../tweaker-control.js'
-import { Input } from '../ui.js'
+import { Input } from '../components/ui/input.js'
 import type { TweakerParser } from '../tweaker-validation.js'
 import { canonicalTweakerValue, strictImportShape } from './built-in-validation.js'
 

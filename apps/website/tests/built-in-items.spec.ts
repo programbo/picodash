@@ -481,7 +481,7 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
   }
 
   await example.getByRole('button', { name: 'Open live panel store' }).click()
-  await expect(example.getByRole('tab', { name: 'Store' })).toHaveAttribute('data-state', 'active')
+  await expect(example.getByRole('tab', { name: 'Store' })).toHaveAttribute('data-selected', 'true')
   await example.getByRole('tab', { name: 'Code' }).click()
 
   await example.getByRole('tab', { name: 'Store' }).click()
@@ -614,6 +614,7 @@ test('presents canonical built-in examples in order with API help and variant de
     const help = row.getByRole('button', { name: `Help for ${item.label}`, exact: true })
     await help.scrollIntoViewIfNeeded()
     await page.waitForTimeout(100)
+    await page.mouse.move(0, 0)
     await help.hover()
     await expect(page.getByRole('tooltip')).toContainText(item.component)
     await page.keyboard.press('Escape')
@@ -623,6 +624,7 @@ test('presents canonical built-in examples in order with API help and variant de
   const textHelp = panel
     .locator('[data-item-id="text"]')
     .getByRole('button', { name: 'Help for Text' })
+  await page.mouse.move(0, 0)
   await textHelp.hover()
   await expect(page.getByRole('tooltip')).toContainText('type TweakerTextProps = {')
   await expect(page.getByRole('tooltip')).toContainText('field: string')
@@ -694,11 +696,14 @@ test('updates Text, Range, Segmented, Vector3, and consumer-defined Matrix2D inp
   const lowerThumb = range.getByRole('slider', { name: 'Lower value' })
   await lowerThumb.focus()
   await lowerThumb.press('ArrowRight')
-  await expect(lowerThumb).toHaveAttribute('aria-valuenow', '25')
+  await expect(lowerThumb).toHaveValue('25')
 
   const segmented = panel.locator('[data-item-id="segmented"]')
   await segmented.getByRole('radio', { name: 'Open' }).click()
-  await expect(segmented.getByRole('radio', { name: 'Open' })).toHaveAttribute('data-state', 'on')
+  await expect(segmented.getByRole('radio', { name: 'Open' })).toHaveAttribute(
+    'data-selected',
+    'true',
+  )
 
   const vector = panel.locator('[data-item-id="vector3"]')
   await vector.getByRole('spinbutton', { name: 'X axis' }).fill('4.5')

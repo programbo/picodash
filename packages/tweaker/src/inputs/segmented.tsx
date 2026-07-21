@@ -1,5 +1,5 @@
-import { ToggleGroup } from 'radix-ui'
 import { useMemo, type ReactNode } from 'react'
+import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js'
 import {
   TweakerItem,
   useResolvedPanelProp,
@@ -60,17 +60,17 @@ export function TweakerSegmented({
 
         return (
           <>
-            <ToggleGroup.Root
-              id={control.inputId}
+            <ToggleGroup
               aria-label="Options"
               className="border-tweaker-control shadow-tweaker-sm rounded-tweaker-control col-span-2 inline-flex min-w-0 justify-self-start overflow-hidden border bg-(--_tweaker-choice-background) p-(--tweaker-space-0-5)"
-              disabled={control.disabled || control.readOnly}
-              type="single"
-              value={value}
-              onValueChange={(nextValue) => {
-                // Radix reports an empty string when the selected item is pressed again.
-                // A segmented control always has one selection, so retain the current value.
-                if (nextValue) control.setInput(nextValue)
+              disallowEmptySelection
+              isDisabled={control.disabled || control.readOnly}
+              selectedKeys={value ? [value] : []}
+              selectionMode="single"
+              spacing={0}
+              onSelectionChange={(nextKeys) => {
+                const nextValue = nextKeys.values().next().value
+                if (typeof nextValue === 'string') control.setInput(nextValue)
               }}
             >
               {options.map((option, index) => {
@@ -79,16 +79,14 @@ export function TweakerSegmented({
                 const optionIcon = segmentedOptionIcon(option)
 
                 return (
-                  <ToggleGroup.Item
+                  <ToggleGroupItem
                     key={`${optionValue}:${index}`}
-                    id={`${control.inputId}:option-${index}`}
+                    id={optionValue}
                     aria-label={typeof optionLabel === 'string' ? optionLabel : optionValue}
                     className={cn(
-                      'inline-flex h-(--tweaker-control-height-xs) min-w-(--tweaker-control-height-sm) items-center justify-center gap-(--tweaker-space-1) border-l border-tweaker-control px-(--tweaker-space-2) text-(length:--tweaker-font-size-md) leading-(--tweaker-line-none) font-(--tweaker-font-medium) text-tweaker-muted outline-none transition-colors duration-(--tweaker-duration-fast) first:border-l-0 hover:bg-tweaker-surface-muted hover:text-tweaker-text focus-visible:relative focus-visible:z-(--tweaker-layer-raised) focus-visible:ring-2 focus-visible:ring-tweaker-focus data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text disabled:pointer-events-none disabled:opacity-(--tweaker-opacity-disabled-soft)',
+                      'inline-flex h-(--tweaker-control-height-xs) min-w-(--tweaker-control-height-sm) items-center justify-center gap-(--tweaker-space-1) border-l border-tweaker-control px-(--tweaker-space-2) text-(length:--tweaker-font-size-md) leading-(--tweaker-line-none) font-(--tweaker-font-medium) text-tweaker-muted outline-none transition-colors duration-(--tweaker-duration-fast) first:border-l-0 data-hovered:bg-tweaker-surface-muted data-hovered:text-tweaker-text data-focus-visible:relative data-focus-visible:z-(--tweaker-layer-raised) data-focus-visible:ring-2 data-focus-visible:ring-tweaker-focus data-selected:bg-tweaker-accent data-selected:text-tweaker-accent-text data-disabled:pointer-events-none data-disabled:opacity-(--tweaker-opacity-disabled-soft)',
                     )}
-                    disabled={segmentedOptionDisabled(option)}
-                    title={typeof optionLabel === 'string' ? optionLabel : undefined}
-                    value={optionValue}
+                    isDisabled={segmentedOptionDisabled(option)}
                   >
                     {optionIcon ? (
                       <span
@@ -99,10 +97,10 @@ export function TweakerSegmented({
                       </span>
                     ) : null}
                     <span>{optionLabel}</span>
-                  </ToggleGroup.Item>
+                  </ToggleGroupItem>
                 )
               })}
-            </ToggleGroup.Root>
+            </ToggleGroup>
           </>
         )
       }}

@@ -26,6 +26,16 @@ import {
 import 'tweaker/style.css'
 ```
 
+Reusable shadcn components are centralized in the package and exported from `tweaker/ui`:
+
+```tsx
+import { Button, Card, Tabs, TabsContent, TabsList, TabsTrigger } from 'tweaker/ui'
+```
+
+These components use the `aria-rhea` React Aria contracts, including `id`, `selectedKey`,
+`onSelectionChange`, `isDisabled`, `onAction`, and `data-selected`. Add or update shared shadcn
+components from `packages/tweaker`; consuming workspaces should not install duplicate copies.
+
 ## Quick start
 
 ```tsx
@@ -210,6 +220,9 @@ with an error.
 ### Charts
 
 `TweakerChart` is a typed discriminated union on `type` and supports only compatible props per variant (`area`, `bar`, `line`, `pie`, `radar`, `radial`).
+Recharts is loaded lazily when a chart is rendered. The Dropzone implementation similarly loads
+`react-dropzone` only when that control is rendered; both public components and their types remain
+available from the main entrypoint.
 
 ## Items and layout
 

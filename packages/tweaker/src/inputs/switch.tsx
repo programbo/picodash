@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
+import { Switch } from '../components/ui/switch.js'
 import { TweakerItem, type TweakerInputItemProps } from '../tweaker-control.js'
-import { Switch } from '../ui.js'
 import type { TweakerParser } from '../tweaker-validation.js'
 import { canonicalTweakerValue, invalidTweakerValue } from './built-in-validation.js'
 
@@ -30,9 +30,9 @@ export function TweakerSwitch({ defaultValue = false, ...controlProps }: Tweaker
         <Switch
           aria-labelledby={`${control.id}:label`}
           className="col-span-2"
-          checked={typeof control.value === 'boolean' ? control.value : normalizedDefault}
-          disabled={control.disabled || control.readOnly}
-          onCheckedChange={control.setInput}
+          isDisabled={control.disabled || control.readOnly}
+          isSelected={typeof control.value === 'boolean' ? control.value : normalizedDefault}
+          onChange={control.setInput}
         />
       )}
     </TweakerItem>

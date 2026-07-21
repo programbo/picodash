@@ -257,6 +257,94 @@ test('reviews repairable custom-item imports before committing them atomically',
   )
 })
 
+test('dismisses only the topmost repair dialog on Escape', async ({ page }) => {
+  await expect(async () => {
+    await page.evaluate(async () => {
+      const appModulePath = ['/src', 'App.tsx'].join('/')
+      const { customItemPanelStore } = await import(appModulePath)
+      const customState = customItemPanelStore.getState()
+      customItemPanelStore.setState({
+        repairProposal: {
+          changes: [
+            {
+              after: { value: 'Gallery' },
+              before: { value: customState.values.presetName },
+              errors: ['Preset name requires review.'],
+              field: 'presetName',
+            },
+          ],
+          source: 'constraint',
+          token: 1,
+        },
+      })
+    })
+  }).toPass()
+
+  const customDialog = page.getByRole('alertdialog', { name: 'Review changes for Custom Items' })
+  await expect(customDialog).toBeVisible()
+
+  await expect(async () => {
+    await page.evaluate(async () => {
+      const builtInModulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
+      const { builtInItemsPanelStore } = await import(builtInModulePath)
+      const builtInState = builtInItemsPanelStore.getState()
+      builtInItemsPanelStore.setState({
+        repairProposal: {
+          changes: [
+            {
+              after: { value: 'Gallery' },
+              before: { value: builtInState.values.text },
+              errors: ['Text requires review.'],
+              field: 'text',
+            },
+          ],
+          source: 'constraint',
+          token: 2,
+        },
+      })
+    })
+  }).toPass()
+
+  const dialogs = page.locator('[role="alertdialog"]')
+  await expect(dialogs).toHaveCount(2)
+
+  await expect(async () => {
+    await page.evaluate(async () => {
+      const appModulePath = ['/src', 'App.tsx'].join('/')
+      const { customItemPanelStore } = await import(appModulePath)
+      const customState = customItemPanelStore.getState()
+      customItemPanelStore.setState({
+        meta: { ...customState.meta, stackRerender: Date.now() },
+      })
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+    })
+  }).toPass()
+
+  await page.keyboard.press('Escape')
+  await expect(dialogs).toHaveCount(1)
+  await expect(customDialog).toBeVisible()
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const appModulePath = ['/src', 'App.tsx'].join('/')
+        const builtInModulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
+        const [{ customItemPanelStore }, { builtInItemsPanelStore }] = await Promise.all([
+          import(appModulePath),
+          import(builtInModulePath),
+        ])
+        return [customItemPanelStore, builtInItemsPanelStore].filter(
+          (store) => store.getState().repairProposal !== null,
+        ).length
+      }),
+    )
+    .toBe(1)
+
+  await page.keyboard.press('Escape')
+  await expect(dialogs).toHaveCount(0)
+})
+
 test('keeps a repair review open when import constraints change before acceptance', async ({
   page,
 }) => {
@@ -1293,13 +1381,13 @@ test('keeps the portaled Select interactive without blocking the surrounding pag
 }) => {
   await page.setViewportSize({ width: 640, height: 480 })
   const quality = page.locator('[data-item-id="quality"]')
-  const trigger = quality.getByRole('combobox', { name: 'Quality' })
+  const trigger = quality.locator('[aria-haspopup="listbox"]')
 
   await trigger.scrollIntoViewIfNeeded()
   await trigger.focus()
   await trigger.press('Enter')
 
-  const content = page.locator('[data-tweaker-theme="dark"][data-side]')
+  const content = page.locator('[data-tweaker-theme="dark"][data-placement]')
   await expect(content).toBeVisible()
   await expect(content).toHaveAttribute('data-tweaker-theme', 'dark')
   await expect(content).toHaveCSS('pointer-events', 'auto')
@@ -1324,7 +1412,7 @@ test('keeps the portaled Select interactive without blocking the surrounding pag
   await trigger.press('Enter')
   await page.keyboard.press('ArrowUp')
   const balancedOption = page.getByRole('option', { name: 'Balanced' })
-  await expect(balancedOption).toHaveAttribute('data-highlighted', '')
+  await expect(balancedOption).toHaveAttribute('data-focused', 'true')
   await balancedOption.press('Enter')
   await expect(trigger).toHaveText('Balanced')
   await expect(page.getByText(/72% opacity \/ balanced/i)).toBeVisible()
@@ -1333,7 +1421,7 @@ test('keeps the portaled Select interactive without blocking the surrounding pag
 test('keeps panel typography and dropzone geometry at the baseline', async ({ page }) => {
   const alignment = page.locator('[data-item-id="alignment"]')
   const alignmentLabel = alignment.locator('label')
-  const qualityTrigger = page.locator('[data-item-id="quality"]').getByRole('combobox')
+  const qualityTrigger = page.locator('[data-item-id="quality"] [aria-haspopup="listbox"]')
   const helpButton = alignment.getByRole('button', { name: 'Help for Matrix2D' })
   const dropSurface = page
     .locator('[data-item-id="droppedFiles"]')
@@ -1361,9 +1449,37 @@ test('fits Scene Controls without a default vertical scrollbar', async ({ page }
 test('updates common, spatial, and gradient values through accessible controls', async ({
   page,
 }) => {
+  const groupToggle = page.getByRole('button', { name: 'Common inputs', exact: true })
+  await expect(groupToggle).toHaveAttribute('aria-expanded', 'true')
+  await expect(groupToggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+
+  const switchItem = page.locator('[data-item-id="switch"]')
+  const switchInput = switchItem.getByRole('switch')
+  await switchItem.locator('[id="switch:label"]').click()
+  await expect(switchInput).toBeFocused()
+
+  const range = page.locator('[data-item-id="range"]')
+  const lowerThumb = range.getByRole('slider', { name: 'Lower value' })
+  await range.locator('[id="range:label"]').click()
+  await expect(lowerThumb).toBeFocused()
+
   const segmented = page.locator('[data-item-id="segmented"]')
-  await segmented.getByRole('radio', { name: 'Open' }).click()
-  await expect(segmented.getByRole('radio', { name: 'Open' })).toHaveAttribute('data-state', 'on')
+  const balancedSegment = segmented.getByRole('radio', { name: 'Balanced' })
+  const openSegment = segmented.getByRole('radio', { name: 'Open' })
+  const tightSegment = segmented.getByRole('radio', { name: 'Tight' })
+  await segmented.locator('[id="segmented:label"]').click()
+  await expect(balancedSegment).toBeFocused()
+  await openSegment.click()
+  await expect(openSegment).toHaveAttribute('data-selected', 'true')
+  await expect
+    .poll(async () => {
+      const [selectedBackground, unselectedBackground] = await Promise.all([
+        openSegment.evaluate((element) => getComputedStyle(element).backgroundColor),
+        tightSegment.evaluate((element) => getComputedStyle(element).backgroundColor),
+      ])
+      return selectedBackground === unselectedBackground
+    })
+    .toBe(false)
 
   const alignment = page.locator('[data-item-id="alignment"]')
   await alignment.getByRole('radio', { name: 'Bottom right' }).click()
@@ -1382,11 +1498,9 @@ test('updates common, spatial, and gradient values through accessible controls',
   await vector.getByRole('spinbutton', { name: 'X axis' }).fill('4.5')
   await expect(vector.getByRole('spinbutton', { name: 'X axis' })).toHaveValue('4.5')
 
-  const range = page.locator('[data-item-id="range"]')
-  const lowerThumb = range.getByRole('slider', { name: 'Lower value' })
   await lowerThumb.focus()
   await lowerThumb.press('ArrowRight')
-  await expect(lowerThumb).toHaveAttribute('aria-valuenow', '25')
+  await expect(lowerThumb).toHaveValue('25')
 
   const xy = page.locator('[data-item-id="xyPad"]')
   const xyPad = xy.getByRole('group', { name: 'Two-dimensional value' })
@@ -1468,10 +1582,20 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
   await expect(dropzone.getByRole('listitem')).toHaveCount(3)
   await expect(dropzone.getByText('Only 3 files can be selected')).toBeVisible()
   await dropzone.getByRole('button', { name: 'View sample.png' }).click()
-  await expect(page.getByRole('dialog')).toBeVisible()
+  const imageDialog = page.getByRole('dialog')
+  await expect(imageDialog).toBeVisible()
+  const imageDescriptionId = await imageDialog.getAttribute('aria-describedby')
+  expect(imageDescriptionId).toBeTruthy()
+  await expect(page.locator(`[id="${imageDescriptionId}"]`)).toHaveText('19 B')
   await expect(page.getByRole('img', { name: 'sample.png' })).toBeVisible()
+  await page.locator('[data-slot="dialog-overlay"]').click({ position: { x: 8, y: 8 } })
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(dropzone.getByRole('button', { name: 'View sample.png' })).toBeFocused()
+
+  await dropzone.getByRole('button', { name: 'View sample.png' }).click()
   await page.getByRole('button', { name: 'Close image viewer' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(dropzone.getByRole('button', { name: 'View sample.png' })).toBeFocused()
 
   const chart = page.locator('[data-item-id="shadcn-frame-chart"]')
   await expect(chart.locator('svg.recharts-surface')).toBeVisible()
@@ -1520,10 +1644,10 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   )
   await expect(alignment.getByRole('radiogroup')).toHaveCSS('border-radius', '6px')
 
-  const qualityTrigger = page.locator('[data-item-id="quality"]').getByRole('combobox')
+  const qualityTrigger = page.locator('[data-item-id="quality"] [aria-haspopup="listbox"]')
   await expect(qualityTrigger).toHaveCSS('border-bottom-color', 'rgb(91, 158, 171)')
   await qualityTrigger.click()
-  const selectContent = page.locator('[data-tweaker-theme="ocean"][data-side]')
+  const selectContent = page.locator('[data-tweaker-theme="ocean"][data-placement]')
   await expect(selectContent).toHaveCSS('background-color', 'rgb(11, 55, 72)')
   await expect(selectContent).toHaveCSS('border-radius', '8px')
   const finalOption = page.getByRole('option', { name: 'Final' })
@@ -1531,9 +1655,10 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await expect(finalOption).toHaveCSS('background-color', 'rgb(17, 78, 96)')
   await page.keyboard.press('Escape')
 
+  await page.mouse.move(0, 0)
   await alignment.getByRole('button', { name: 'Help for Matrix2D' }).hover()
   await expect(page.getByRole('tooltip')).toBeVisible()
-  const tooltip = page.locator('[data-tweaker-theme="ocean"][data-side]')
+  const tooltip = page.locator('[data-tweaker-theme="ocean"][data-placement]')
   await expect(tooltip).toHaveCSS('background-color', 'rgb(11, 55, 72)')
   await expect(tooltip).toHaveCSS('border-radius', '8px')
 
@@ -1547,14 +1672,16 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await previewButton.click()
   const viewer = page.getByRole('dialog')
   await expect(viewer).toHaveAttribute('data-tweaker-theme', 'ocean')
-  await expect(viewer).toHaveCSS('border-radius', '8px')
+  await expect(viewer.locator('figure')).toHaveCSS('border-radius', '8px')
   await page.keyboard.press('Escape')
 
   const customActions = customPanel.getByRole('button', { name: 'Open actions for Custom Items' })
   await customActions.click()
   const menu = page.getByRole('menu', { name: 'Actions for Custom Items' })
   await expect(menu).toHaveAttribute('data-tweaker-theme', 'plum')
-  await menu.getByRole('menuitem', { name: 'Copy' }).hover()
+  const copySubmenuTrigger = menu.getByRole('menuitem', { name: 'Copy' })
+  await copySubmenuTrigger.focus()
+  await copySubmenuTrigger.press('ArrowRight')
   const themedMenus = page.locator('[data-tweaker-theme="plum"][role="menu"]')
   await expect(themedMenus).toHaveCount(2)
   await expect(themedMenus.nth(1)).toHaveCSS('pointer-events', 'auto')
@@ -1565,7 +1692,7 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   const dialog = page.getByRole('alertdialog', { name: 'Reset Custom Items?' })
   await expect(dialog).toHaveAttribute('data-tweaker-theme', 'plum')
   await expect(
-    page.locator('[data-tweaker-theme="plum"][data-state="open"].fixed.inset-0'),
+    page.locator('[data-tweaker-theme="plum"][data-slot="alert-dialog-overlay"]'),
   ).toHaveCount(1)
   await dialog.getByRole('button', { name: 'Cancel' }).click()
 })
@@ -1664,8 +1791,8 @@ test('animates transient visual paths and switches deterministic signal mode', a
   const initialSignalPath = await signalPath.getAttribute('d')
   await signal.getByRole('radio', { name: 'Show spectrum' }).click()
   await expect(signal.getByRole('radio', { name: 'Show spectrum' })).toHaveAttribute(
-    'data-state',
-    'on',
+    'data-selected',
+    'true',
   )
   await expect(signal.getByRole('img', { name: 'Synthetic signal spectrum' })).toBeVisible()
   await expect.poll(() => signalPath.getAttribute('d')).not.toBe(initialSignalPath)
@@ -1708,6 +1835,74 @@ test('resumes pointer velocity decay when document visibility returns', async ({
     })
     .toBeGreaterThan(0)
   await expect(fps).toHaveText('0 FPS')
+})
+
+test('supports keyboard typeahead across panel actions and format submenus', async ({ page }) => {
+  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
+  const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
+
+  await trigger.click()
+  await menu.focus()
+  await page.keyboard.type('import')
+  await expect(menu.getByRole('menuitem', { name: 'Import…' })).toBeFocused()
+  await page.keyboard.press('Escape')
+
+  await trigger.click()
+  await menu.focus()
+  await page.keyboard.type('copy')
+  const copyTrigger = menu.getByRole('menuitem', { name: 'Copy' })
+  await expect(copyTrigger).toBeFocused()
+  await page.keyboard.press('ArrowRight')
+
+  const copyMenu = page.getByRole('menu').nth(1)
+  await expect(copyMenu).toBeVisible()
+  const copyJson = copyMenu.getByRole('menuitem', { name: 'Copy JSON' })
+  await copyMenu.focus()
+  await page.keyboard.press('c')
+  await expect(copyJson).toHaveAttribute('data-focused', 'true')
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+
+  await trigger.click()
+  await menu.focus()
+  await page.keyboard.type('export')
+  await expect(menu.getByRole('menuitem', { name: 'Export' })).toBeFocused()
+})
+
+test('keeps tall panel action menus scrollable within the available viewport height', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 640, height: 240 })
+  await page
+    .locator('[data-tweaker-panel-id="custom-items"]')
+    .evaluate((element: HTMLElement) => (element.style.display = 'none'))
+  await page
+    .locator('[data-tweaker-panel-id="built-in-items"]')
+    .evaluate((element: HTMLElement) => (element.style.display = 'none'))
+
+  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  await panel.getByRole('button', { name: 'Open actions for Scene Controls' }).click()
+
+  const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
+  const popover = page.locator('[data-slot="dropdown-menu-content"]', { has: menu })
+  await expect(menu).toBeVisible()
+  await expect(popover).toHaveCSS('overflow-y', 'auto')
+
+  const metrics = await popover.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    maxHeight: getComputedStyle(element).maxHeight,
+    scrollHeight: element.scrollHeight,
+  }))
+  expect(metrics.maxHeight).not.toBe('none')
+  expect(metrics.clientHeight).toBeLessThan(metrics.scrollHeight)
+
+  const popoverBox = await popover.boundingBox()
+  expect(popoverBox).not.toBeNull()
+  if (popoverBox) {
+    expect(popoverBox.y).toBeGreaterThanOrEqual(0)
+    expect(popoverBox.y + popoverBox.height).toBeLessThanOrEqual(240)
+  }
 })
 
 test('keeps the panel action menu contained and manages collapsible groups', async ({ page }) => {
@@ -1786,7 +1981,7 @@ test('confirms registered-field resets without changing group disclosure', async
     .evaluate((element: HTMLElement) => (element.style.display = 'none'))
   const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
-  const quality = panel.locator('[data-item-id="quality"]').getByRole('combobox')
+  const quality = panel.locator('[data-item-id="quality"] [aria-haspopup="listbox"]')
   const rendering = panel.locator('[data-group-id="scene-rendering"]')
 
   await quality.click()
@@ -1798,6 +1993,11 @@ test('confirms registered-field resets without changing group disclosure', async
   await page.getByRole('menuitem', { name: 'Reset…' }).click()
   const dialog = page.getByRole('alertdialog', { name: 'Reset Scene Controls?' })
   await expect(dialog).toHaveAttribute('data-tweaker-theme', 'dark')
+  const resetDescriptionId = await dialog.getAttribute('aria-describedby')
+  expect(resetDescriptionId).toBeTruthy()
+  await expect(page.locator(`[id="${resetDescriptionId}"]`)).toContainText(
+    'This restores every registered field to its default value.',
+  )
   const dialogBox = await dialog.boundingBox()
   expect(dialogBox).not.toBeNull()
   if (dialogBox) {
@@ -1891,7 +2091,7 @@ test('imports JSON and YAML atomically and reports invalid files without mutatio
   await expect(status).toHaveText('Imported panel values from scene.yaml.')
   await expect(summary).toContainText('72% opacity / draft')
 
-  await panel.locator('[data-item-id="quality"]').getByRole('combobox').click()
+  await panel.locator('[data-item-id="quality"] [aria-haspopup="listbox"]').click()
   await page.getByRole('option', { name: 'Final' }).click()
   await expect(summary).toContainText('72% opacity / final')
   await importPanelFile(page, trigger, yamlFile)
@@ -1913,7 +2113,9 @@ async function openActionSubmenu(
 ) {
   await trigger.click()
   const submenuTrigger = page.getByRole('menuitem', { name })
-  await submenuTrigger.hover()
+  await submenuTrigger.focus()
+  await submenuTrigger.press('ArrowRight')
+  await expect(page.getByRole('menu')).toHaveCount(2)
 }
 
 async function importPanelFile(

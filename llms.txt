@@ -5,11 +5,13 @@ Active graph: packages/tweaker + apps/website.
 Package import surface:
 - tweaker
 - tweaker/advanced
+- tweaker/ui
 - tweaker/style.css
 
 What it provides:
 - application-owned panel stores via createTweakerPanelStore
 - TweakerProvider, TweakerPanel, TweakerItem, built-in inputs and charts
+- centralized shadcn aria-rhea primitives via tweaker/ui
 - provider-scoped panel visibility, activation, reactive placement, and runtime setPlacement via useTweakerPanel
 - floating, magnetic, and fixed panel placement; magnetic edges use TweakerPanelSnapPosition
 - viewport-default geometry with provider panelBoundary and per-panel boundary Element/ref overrides
@@ -22,6 +24,7 @@ What it provides:
 - pointer and keyboard item reordering with same-band constraints
 - observable async sparkline source failures
 - theme/portal aware styling
+- lazy Recharts and react-dropzone implementations behind stable public components
 - import/export and repair flows
 
 Workspace pages:

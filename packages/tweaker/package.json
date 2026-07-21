@@ -10,9 +10,15 @@
   "sideEffects": [
     "**/*.css"
   ],
+  "imports": {
+    "#components/*": "./src/components/*.tsx",
+    "#hooks/*": "./src/hooks/*.ts",
+    "#lib/*": "./src/lib/*.ts"
+  },
   "exports": {
     ".": "./dist/index.mjs",
     "./advanced": "./dist/advanced.mjs",
+    "./ui": "./dist/ui.mjs",
     "./package.json": "./package.json",
     "./style.css": "./dist/style.css"
   },
@@ -32,10 +38,9 @@
     "clsx": "catalog:",
     "lucide-react": "catalog:",
     "motion": "catalog:",
-    "radix-ui": "catalog:",
+    "react-aria-components": "catalog:",
     "react-dropzone": "catalog:",
     "recharts": "catalog:",
-    "shadcn": "^4.13.1",
     "tailwind-merge": "catalog:",
     "yaml": "catalog:",
     "zod": "catalog:",
@@ -52,7 +57,9 @@
     "postcss": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "shadcn": "catalog:",
     "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },

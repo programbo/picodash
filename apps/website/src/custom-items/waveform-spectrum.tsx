@@ -1,7 +1,7 @@
 import { motion, useMotionValue, useReducedMotion, type MotionValue } from 'motion/react'
-import { ToggleGroup } from 'radix-ui'
 import { useEffect } from 'react'
 import { TweakerItem } from 'tweaker'
+import { ToggleGroup, ToggleGroupItem } from 'tweaker/ui'
 
 type SignalMode = 'spectrum' | 'waveform'
 
@@ -78,27 +78,28 @@ function SignalSurface({
         <p className="text-muted-foreground font-mono text-[9px] tracking-widest uppercase">
           deterministic oscillator
         </p>
-        <ToggleGroup.Root
+        <ToggleGroup
           aria-label="Signal visualization mode"
           className="bg-muted/35 border-input inline-flex overflow-hidden rounded-md border p-0.5"
-          disabled={unavailable}
-          type="single"
-          value={mode}
-          onValueChange={(value) => {
+          disallowEmptySelection
+          isDisabled={unavailable}
+          selectedKeys={[mode]}
+          onSelectionChange={(keys) => {
+            const value = keys.values().next().value
             if (value === 'waveform' || value === 'spectrum') onModeChange(value)
           }}
         >
           {(['waveform', 'spectrum'] as const).map((value) => (
-            <ToggleGroup.Item
+            <ToggleGroupItem
               key={value}
               aria-label={`Show ${value}`}
-              className="text-muted-foreground hover:text-foreground focus-visible:ring-ring data-[state=on]:bg-primary data-[state=on]:text-primary-foreground h-6 px-2 text-[10px] font-medium capitalize outline-none focus-visible:ring-2 disabled:opacity-50"
-              value={value}
+              className="text-muted-foreground hover:text-foreground focus-visible:ring-ring data-selected:bg-primary data-selected:text-primary-foreground h-6 px-2 text-[10px] font-medium capitalize outline-none focus-visible:ring-2 disabled:opacity-50"
+              id={value}
             >
               {value}
-            </ToggleGroup.Item>
+            </ToggleGroupItem>
           ))}
-        </ToggleGroup.Root>
+        </ToggleGroup>
       </div>
       <div className="bg-muted/25 border-input h-28 overflow-hidden rounded-md border">
         <svg

@@ -5,24 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev --host 127.0.0.1 --port ${WEBSITE_PORT:-6030} --strictPort",
-    "build": "tsc && vp build",
+    "build": "vp run website#build-package-consumer",
     "test:e2e": "playwright test",
     "preview": "vp preview --host 127.0.0.1 --port 6031 --strictPort"
   },
   "dependencies": {
-    "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "highlight.js": "catalog:",
     "lucide-react": "catalog:",
     "motion": "catalog:",
-    "radix-ui": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-json-view-lite": "catalog:",
-    "recharts": "catalog:",
-    "shadcn": "catalog:",
     "tailwind-merge": "catalog:",
-    "tw-animate-css": "catalog:",
     "tweaker": "workspace:*",
     "zod": "catalog:"
   },

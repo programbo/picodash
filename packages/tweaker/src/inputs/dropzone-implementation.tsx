@@ -1,0 +1,380 @@
+import { Expand, File, UploadCloud, X } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react'
+import { useEffect, useRef, useState } from 'react'
+import { useDropzone } from 'react-dropzone'
+import type { FileRejection } from 'react-dropzone'
+import { Button } from '../components/ui/button.js'
+import {
+  Dialog,
+  DialogClose,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from '../components/ui/dialog.js'
+import { tweakerMotionTokens } from '../theme.js'
+import { useTweakerProviderContext } from '../tweaker-provider.js'
+import { useTweakerTheme } from '../tweaker-theme-context.js'
+import { cn } from '../utils.js'
+import {
+  normalizeTweakerDropzoneValue,
+  partitionTweakerFilesByCapacity,
+  projectTweakerFileMetadata,
+  restoreDropzoneViewerFocus,
+  type TweakerDropzoneImplementationProps,
+  type TweakerDropzonePreview,
+} from './dropzone.js'
+
+export default function DropzoneImplementation({
+  accept,
+  className,
+  control,
+  fallbackValue,
+  maxFiles,
+  maxSize,
+  minSize,
+  multiple,
+  onFiles,
+  showPreviews,
+}: TweakerDropzoneImplementationProps) {
+  const value = normalizeTweakerDropzoneValue(control.value ?? fallbackValue)
+  const unavailable = control.disabled || control.readOnly
+  const previewUrlsRef = useRef(new Map<string, string>())
+  const viewerTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const [previewVersion, setPreviewVersion] = useState(0)
+  const [capacityRejections, setCapacityRejections] = useState<FileRejection[]>([])
+  const [viewerPreview, setViewerPreview] = useState<TweakerDropzonePreview | null>(null)
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const atCapacity = multiple && maxFiles > 0 && value.length >= maxFiles
+
+  const { fileRejections, getInputProps, getRootProps, isDragAccept, isDragActive, isDragReject } =
+    useDropzone({
+      accept,
+      disabled: unavailable,
+      maxFiles: 0,
+      maxSize,
+      minSize,
+      multiple,
+      noDragEventsBubbling: true,
+      onDrop: (acceptedFiles, rejectedFiles) => {
+        const partition = partitionTweakerFilesByCapacity(
+          acceptedFiles,
+          value.length,
+          maxFiles,
+          multiple,
+        )
+        const overflowRejections = partition.overflowFiles.map((file) => ({
+          errors: [{ code: 'too-many-files', message: capacityErrorMessage(maxFiles) }],
+          file,
+        }))
+        const allRejections = [...rejectedFiles, ...overflowRejections]
+        setCapacityRejections(overflowRejections)
+        onFiles?.(partition.acceptedFiles, allRejections)
+        if (partition.acceptedFiles.length === 0) return
+
+        const nextValue = projectTweakerFileMetadata(partition.acceptedFiles, multiple ? value : [])
+
+        if (showPreviews && typeof URL !== 'undefined' && URL.createObjectURL) {
+          const addedMetadata = nextValue.slice(multiple ? value.length : 0)
+          for (const [index, file] of partition.acceptedFiles.entries()) {
+            if (!file.type.startsWith('image/')) continue
+            const metadata = addedMetadata[index]
+            if (!metadata || previewUrlsRef.current.has(metadata.id)) continue
+            previewUrlsRef.current.set(metadata.id, URL.createObjectURL(file))
+          }
+          setPreviewVersion((version) => version + 1)
+        }
+
+        control.setInput(nextValue)
+      },
+    })
+
+  useEffect(() => {
+    const retainedIds = new Set(value.map((metadata) => metadata.id))
+    let changed = false
+    for (const [id, url] of previewUrlsRef.current) {
+      if (retainedIds.has(id) || viewerPreview?.id === id) continue
+      URL.revokeObjectURL(url)
+      previewUrlsRef.current.delete(id)
+      changed = true
+    }
+    if (viewerPreview && !retainedIds.has(viewerPreview.id)) {
+      setViewerOpen(false)
+      URL.revokeObjectURL(viewerPreview.url)
+      previewUrlsRef.current.delete(viewerPreview.id)
+      setViewerPreview(null)
+      changed = true
+    }
+    if (changed) setPreviewVersion((version) => version + 1)
+  }, [value, viewerPreview])
+
+  useEffect(() => {
+    const previewUrls = previewUrlsRef.current
+    return () => {
+      for (const url of previewUrls.values()) URL.revokeObjectURL(url)
+      previewUrls.clear()
+    }
+  }, [])
+
+  const rejectionMessage = rejectionSummary([...fileRejections, ...capacityRejections])
+  void previewVersion
+
+  return (
+    <>
+      <div className="col-span-full grid gap-(--tweaker-space-1-5)">
+        <div
+          {...getRootProps({
+            'aria-label': multiple
+              ? 'Choose files or drop them here'
+              : 'Choose a file or drop it here',
+            className: cn(
+              'box-border flex min-h-(--tweaker-field-surface-min-height) cursor-pointer flex-col items-center justify-center gap-(--tweaker-space-1) rounded-tweaker-control border border-dashed border-tweaker-control bg-(--_tweaker-color-well) px-(--tweaker-space-3) py-(--tweaker-space-4) text-center text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) text-tweaker-muted outline-none focus-visible:ring-2 focus-visible:ring-tweaker-focus focus-visible:ring-offset-1 focus-visible:ring-offset-tweaker-canvas',
+              isDragActive && 'border-tweaker-focus bg-tweaker-surface-muted/60 text-tweaker-text',
+              isDragAccept && 'border-tweaker-success/80 bg-tweaker-success-subtle',
+              (isDragReject || (isDragActive && atCapacity)) &&
+                'border-tweaker-danger bg-tweaker-danger-subtle text-tweaker-danger',
+              unavailable && 'cursor-not-allowed opacity-(--tweaker-opacity-disabled)',
+              className,
+            ),
+            id: control.inputId,
+            role: 'button',
+          })}
+        >
+          <input {...getInputProps()} />
+          <UploadCloud className="size-(--tweaker-icon-lg)" aria-hidden="true" />
+          <span className="text-tweaker-text font-(--tweaker-font-medium)">
+            {isDragActive ? 'Drop files here' : 'Drop files or click to browse'}
+          </span>
+          <span>
+            {multiple && maxFiles > 0
+              ? `${value.length} of ${maxFiles} files selected`
+              : multiple
+                ? 'Select one or more files'
+                : 'Select one file'}
+          </span>
+        </div>
+
+        <div
+          className="min-h-4 text-(length:--tweaker-font-size-sm) leading-(--tweaker-line-tight)"
+          aria-live="polite"
+        >
+          {rejectionMessage ? <p className="text-tweaker-danger">{rejectionMessage}</p> : null}
+        </div>
+
+        {value.length > 0 ? (
+          <ul className="grid gap-(--tweaker-space-1)" aria-label="Selected files">
+            {value.map((metadata) => {
+              const previewUrl = previewUrlsRef.current.get(metadata.id)
+              const isViewerOpen = viewerOpen && viewerPreview?.id === metadata.id
+              const setViewerOpenForPreview = (nextOpen: boolean) => {
+                if (nextOpen && previewUrl) {
+                  setViewerPreview({ ...metadata, url: previewUrl })
+                  setViewerOpen(true)
+                } else {
+                  setViewerOpen(false)
+                  restoreDropzoneViewerFocusWhenReady(viewerTriggerRef.current)
+                }
+              }
+              return (
+                <li
+                  key={metadata.id}
+                  className="border-tweaker-control bg-tweaker-canvas/60 rounded-tweaker-control grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-(--tweaker-space-2) border p-(--tweaker-space-1)"
+                >
+                  {previewUrl ? (
+                    <DialogTrigger isOpen={isViewerOpen} onOpenChange={setViewerOpenForPreview}>
+                      <Button
+                        aria-label={`View ${metadata.name}`}
+                        className="group/preview focus-visible:ring-tweaker-focus rounded-tweaker-control relative size-(--tweaker-control-height-md) overflow-hidden p-0 outline-none hover:bg-transparent focus-visible:ring-2"
+                        size="icon"
+                        variant="ghost"
+                        onPress={(event) => {
+                          viewerTriggerRef.current = event.target.closest('button')
+                        }}
+                      >
+                        <img
+                          alt=""
+                          className="size-full object-cover"
+                          draggable={false}
+                          src={previewUrl}
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center bg-(--_tweaker-viewer-preview-scrim) text-(--tweaker-color-text-strong) opacity-0 transition-opacity duration-(--tweaker-duration-fast) group-hover/preview:opacity-100 group-focus-visible/preview:opacity-100 motion-reduce:transition-none">
+                          <Expand className="size-(--tweaker-icon-sm)" aria-hidden="true" />
+                        </span>
+                      </Button>
+                      <DropzoneImageViewer
+                        open={isViewerOpen}
+                        preview={
+                          viewerPreview?.id === metadata.id
+                            ? viewerPreview
+                            : { ...metadata, url: previewUrl }
+                        }
+                        onExitComplete={() => setViewerPreview(null)}
+                        onOpenChange={setViewerOpenForPreview}
+                      />
+                    </DialogTrigger>
+                  ) : (
+                    <span className="bg-tweaker-surface-muted rounded-tweaker-control flex size-(--tweaker-control-height-md) items-center justify-center">
+                      <File
+                        className="text-tweaker-muted size-(--tweaker-icon-md)"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  )}
+                  <span className="min-w-0">
+                    <span className="text-tweaker-text block truncate text-(length:--tweaker-font-size-lg)">
+                      {metadata.name}
+                    </span>
+                    <span className="text-tweaker-muted block text-(length:--tweaker-font-size-sm)">
+                      {formatFileSize(metadata.size)}
+                    </span>
+                  </span>
+                  <Button
+                    aria-label={`Remove ${metadata.name}`}
+                    className="size-(--tweaker-control-height-xs)"
+                    isDisabled={unavailable}
+                    size="icon"
+                    variant="ghost"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setCapacityRejections([])
+                      control.setInput(value.filter((candidate) => candidate.id !== metadata.id))
+                    }}
+                  >
+                    <X className="size-(--tweaker-icon-sm)" aria-hidden="true" />
+                  </Button>
+                </li>
+              )
+            })}
+          </ul>
+        ) : null}
+      </div>
+    </>
+  )
+}
+
+function restoreDropzoneViewerFocusWhenReady(trigger: HTMLButtonElement | null) {
+  if (!trigger?.isConnected) return
+  const ownerDocument = trigger.ownerDocument
+  let observer: MutationObserver | undefined
+  const restore = () => {
+    if (!trigger.isConnected) {
+      observer?.disconnect()
+      return
+    }
+    if (
+      ownerDocument.querySelector('[data-slot="dialog-overlay"]') ||
+      trigger.closest('[aria-hidden="true"], [inert]')
+    )
+      return
+    if (restoreDropzoneViewerFocus(trigger)) {
+      if (ownerDocument.activeElement === trigger) observer?.disconnect()
+    }
+  }
+
+  observer = new MutationObserver(restore)
+  observer.observe(ownerDocument.body, {
+    attributeFilter: ['aria-hidden', 'inert'],
+    attributes: true,
+    childList: true,
+    subtree: true,
+  })
+  queueMicrotask(restore)
+}
+
+function DropzoneImageViewer({
+  onExitComplete,
+  onOpenChange,
+  open,
+  preview,
+}: {
+  onExitComplete: () => void
+  onOpenChange: (open: boolean) => void
+  open: boolean
+  preview: TweakerDropzonePreview | null
+}) {
+  const prefersReducedMotion = useReducedMotion()
+  const { portalContainer } = useTweakerProviderContext()
+  const theme = useTweakerTheme()
+  const present = open && preview
+  const enterTransition: Transition = prefersReducedMotion
+    ? { duration: 0 }
+    : tweakerMotionTokens.viewerEnter
+
+  return (
+    <AnimatePresence initial={false} onExitComplete={onExitComplete}>
+      {present ? (
+        <Dialog
+          key="dropzone-image-viewer"
+          className="pointer-events-auto z-(--tweaker-layer-viewer)! w-[min(92vw,80rem)] max-w-none! gap-0! rounded-none! bg-transparent! p-0! shadow-none! ring-0!"
+          data-tweaker-theme={theme}
+          isOpen
+          overlayClassName="pointer-events-auto z-(--tweaker-layer-viewer)! bg-(--tweaker-color-overlay)! backdrop-blur-(--tweaker-blur-overlay)!"
+          overlayStyle={{ zIndex: 'var(--tweaker-layer-viewer)' }}
+          portalContainer={portalContainer ?? undefined}
+          showCloseButton={false}
+          style={{ zIndex: 'var(--tweaker-layer-viewer)' }}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen) onOpenChange(false)
+          }}
+        >
+          <motion.figure
+            data-tweaker-theme={theme}
+            className="shadow-tweaker-viewer rounded-tweaker-surface border-tweaker-control m-0 grid w-full gap-0 overflow-hidden border bg-(--_tweaker-viewer-background) text-(--tweaker-color-text-strong) outline-none"
+            initial={prefersReducedMotion ? false : tweakerMotionTokens.viewerSurfaceInitial}
+            animate={tweakerMotionTokens.viewerSurfaceAnimate}
+            exit={
+              prefersReducedMotion
+                ? tweakerMotionTokens.viewerSurfaceReducedExit
+                : tweakerMotionTokens.viewerSurfaceExit
+            }
+            transition={enterTransition}
+          >
+            <div className="relative flex max-h-[82vh] min-h-48 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_35%,var(--_tweaker-viewer-spotlight),transparent_65%)] p-(--tweaker-space-3) sm:p-(--tweaker-space-5)">
+              <img
+                alt={preview.name}
+                className="shadow-tweaker-viewer rounded-tweaker-control max-h-[74vh] max-w-full object-contain"
+                draggable={false}
+                src={preview.url}
+              />
+            </div>
+            <figcaption className="border-tweaker-border flex min-w-0 items-center justify-between gap-(--tweaker-space-3) border-t bg-(--_tweaker-viewer-caption-background) px-(--tweaker-space-4) py-(--tweaker-space-2-5)">
+              <span className="min-w-0">
+                <DialogTitle className="block truncate text-(length:--tweaker-font-size-xl) font-(--tweaker-font-medium) text-(--tweaker-color-text-strong)">
+                  {preview.name}
+                </DialogTitle>
+                <DialogDescription className="text-(length:--tweaker-font-size-md) text-(--tweaker-color-text-strong)/55">
+                  {formatFileSize(preview.size)}
+                </DialogDescription>
+              </span>
+              <DialogClose
+                aria-label="Close image viewer"
+                className="size-(--tweaker-control-height-md) shrink-0 text-(--tweaker-color-text-strong)/70 hover:bg-(--tweaker-color-text-strong)/10 hover:text-(--tweaker-color-text-strong)"
+                size="icon"
+                variant="ghost"
+              >
+                <X className="size-(--tweaker-icon-md)" aria-hidden="true" />
+              </DialogClose>
+            </figcaption>
+          </motion.figure>
+        </Dialog>
+      ) : null}
+    </AnimatePresence>
+  )
+}
+
+function rejectionSummary(rejections: readonly FileRejection[]) {
+  if (rejections.length === 0) return undefined
+  const errors = [
+    ...new Set(rejections.flatMap((rejection) => rejection.errors.map((error) => error.message))),
+  ]
+  return errors.join(' ')
+}
+
+function capacityErrorMessage(maxFiles: number) {
+  return maxFiles === 1 ? 'Only 1 file can be selected' : `Only ${maxFiles} files can be selected`
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
