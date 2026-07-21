@@ -877,32 +877,32 @@ export function InteractiveJsxExample({
           <div className="flex flex-col gap-2 border-b border-white/10 bg-white/4 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <TabsList
               aria-label="Interactive example views"
-              className="h-7 gap-3 rounded-none p-0 sm:gap-4"
+              className="h-7 gap-2 rounded-none p-0 sm:gap-4"
               variant="line"
             >
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-xs text-zinc-400 data-active:text-cyan-200"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-cyan-200 sm:text-xs"
                 value="code"
               >
                 <span className="size-2 bg-cyan-300" />
                 Code
               </TabsTrigger>
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-xs text-zinc-400 data-active:text-violet-200"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-violet-200 sm:text-xs"
                 value="store"
               >
                 <span className="size-2 bg-violet-300" />
                 Store
               </TabsTrigger>
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-xs text-zinc-400 data-active:text-amber-200"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-amber-200 sm:text-xs"
                 value="usage"
               >
                 <span className="size-2 bg-amber-200" />
                 Usage
               </TabsTrigger>
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-xs text-zinc-400 data-active:text-amber-200"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-amber-200 sm:text-xs"
                 value="more-examples"
               >
                 <span className="size-2 bg-amber-200" />

@@ -76,7 +76,7 @@ test('provides a step-by-step Usage tab for adding a reactive panel', async ({ p
   await expect(example.getByRole('checkbox', { name: 'Show all props' })).toBeInViewport()
   await expect(example.getByRole('button', { name: 'Copy JSX' })).toBeInViewport()
   await expect(example.getByRole('tab', { name: 'Usage' })).toBeVisible()
-  await expect(example.getByRole('tab', { name: 'More examples' })).toBeInViewport()
+  await expect(example.getByRole('tab', { name: 'More examples' })).toBeInViewport({ ratio: 1 })
   await example.getByRole('tab', { name: 'Usage' }).click()
 
   const guide = example.locator('[data-usage-guide]')
