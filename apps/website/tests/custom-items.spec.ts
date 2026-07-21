@@ -257,6 +257,75 @@ test('reviews repairable custom-item imports before committing them atomically',
   )
 })
 
+test('dismisses only the topmost repair dialog on Escape', async ({ page }) => {
+  await expect(async () => {
+    await page.evaluate(async () => {
+      const appModulePath = ['/src', 'App.tsx'].join('/')
+      const builtInModulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
+      const [{ customItemPanelStore }, { builtInItemsPanelStore }] = await Promise.all([
+        import(appModulePath),
+        import(builtInModulePath),
+      ])
+
+      const customState = customItemPanelStore.getState()
+      customItemPanelStore.setState({
+        repairProposal: {
+          changes: [
+            {
+              after: { value: 'Gallery' },
+              before: { value: customState.values.presetName },
+              errors: ['Preset name requires review.'],
+              field: 'presetName',
+            },
+          ],
+          source: 'constraint',
+          token: 1,
+        },
+      })
+
+      const builtInState = builtInItemsPanelStore.getState()
+      builtInItemsPanelStore.setState({
+        repairProposal: {
+          changes: [
+            {
+              after: { value: 'Gallery' },
+              before: { value: builtInState.values.text },
+              errors: ['Text requires review.'],
+              field: 'text',
+            },
+          ],
+          source: 'constraint',
+          token: 2,
+        },
+      })
+    })
+  }).toPass()
+
+  const dialogs = page.locator('[role="alertdialog"]')
+  await expect(dialogs).toHaveCount(2)
+
+  await page.keyboard.press('Escape')
+  await expect(dialogs).toHaveCount(1)
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const appModulePath = ['/src', 'App.tsx'].join('/')
+        const builtInModulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
+        const [{ customItemPanelStore }, { builtInItemsPanelStore }] = await Promise.all([
+          import(appModulePath),
+          import(builtInModulePath),
+        ])
+        return [customItemPanelStore, builtInItemsPanelStore].filter(
+          (store) => store.getState().repairProposal !== null,
+        ).length
+      }),
+    )
+    .toBe(1)
+
+  await page.keyboard.press('Escape')
+  await expect(dialogs).toHaveCount(0)
+})
+
 test('keeps a repair review open when import constraints change before acceptance', async ({
   page,
 }) => {

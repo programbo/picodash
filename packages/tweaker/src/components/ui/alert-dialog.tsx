@@ -16,6 +16,7 @@ import { Button } from '#components/ui/button'
 const AlertDialogDescriptionContext = React.createContext<
   ((descriptionId: string) => () => void) | null
 >(null)
+const openAlertDialogs: symbol[] = []
 
 function AlertDialogTrigger({ ...props }: AlertDialogTriggerPrimitiveProps) {
   return <AlertDialogTriggerPrimitive data-slot="alert-dialog-trigger" {...props} />
@@ -68,6 +69,7 @@ function AlertDialog({
     'data-tweaker-theme'?: string
   }) {
   const [descriptionIds, setDescriptionIds] = React.useState<readonly string[]>([])
+  const dialogId = React.useRef(Symbol('alert-dialog')).current
   const registerDescription = React.useCallback((descriptionId: string) => {
     setDescriptionIds((currentIds) =>
       currentIds.includes(descriptionId) ? currentIds : [...currentIds, descriptionId],
@@ -80,16 +82,23 @@ function AlertDialog({
   React.useEffect(() => {
     if (!isOpen || !onOpenChange) return
 
+    openAlertDialogs.push(dialogId)
     const dismissOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
+      if (event.key !== 'Escape' || openAlertDialogs[openAlertDialogs.length - 1] !== dialogId) {
+        return
+      }
       event.preventDefault()
       event.stopPropagation()
       onOpenChange(false)
     }
 
     document.addEventListener('keydown', dismissOnEscape, true)
-    return () => document.removeEventListener('keydown', dismissOnEscape, true)
-  }, [isOpen, onOpenChange])
+    return () => {
+      document.removeEventListener('keydown', dismissOnEscape, true)
+      const index = openAlertDialogs.lastIndexOf(dialogId)
+      if (index >= 0) openAlertDialogs.splice(index, 1)
+    }
+  }, [dialogId, isOpen, onOpenChange])
 
   return (
     <AlertDialogOverlay
