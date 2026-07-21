@@ -5,15 +5,19 @@ import { Tooltip as TooltipPrimitive } from 'radix-ui'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { darkStyles, JsonView } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
-import { useTweakerPanelStoreSelector } from 'tweaker'
+import { useTweakerPanel, useTweakerPanelStoreSelector } from 'tweaker'
 import type { TweakerPanelState } from 'tweaker/advanced'
 import {
   alignmentContainerProps,
   alignmentOptions,
+  builtInItemsPanelId,
   builtInPropTypes,
   builtInItemDefaults,
   builtInItemsPanelStore,
+  builtInPanelPlacementPositions,
+  closestBuiltInPanelPlacementPosition,
   densityOptions,
+  placementForBuiltInItemsConfig,
   percentFormatOptions,
   segmentedOptions,
   sliderMarks,
@@ -23,6 +27,8 @@ import {
   type BuiltInItemExampleProps,
   type BuiltInItemId,
   type BuiltInItemsExampleConfig,
+  type BuiltInPanelPlacementMode,
+  type BuiltInPanelPlacementPosition,
 } from '@/built-in-items-panel'
 import { shadcnChartTypes } from '@/custom-items/shadcn-chart'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -748,6 +754,7 @@ export function InteractiveJsxExample({
   const [activeTab, setActiveTab] = useState('code')
   const [copyStatus, setCopyStatus] = useState<'copied' | 'error' | 'idle'>('idle')
   const [showAllProps, setShowAllProps] = useState(false)
+  const panelController = useTweakerPanel(builtInItemsPanelId)
   const panelState = useTweakerPanelStoreSelector(builtInItemsPanelStore, (state) => state)
   const panelStoreSnapshot = useMemo(() => snapshotForDisplay(panelState), [panelState])
   const codeViewportRef = useRef<HTMLDivElement>(null)
@@ -805,6 +812,20 @@ export function InteractiveJsxExample({
     onConfigChange({ ...config, [key]: value } as BuiltInItemsExampleConfig)
   }
 
+  const updatePanelPlacement = (
+    mode: BuiltInPanelPlacementMode,
+    position: BuiltInPanelPlacementPosition,
+  ) => {
+    const panelPlacementPosition = closestBuiltInPanelPlacementPosition(position, mode)
+    const nextConfig = {
+      ...config,
+      panelPlacementMode: mode,
+      panelPlacementPosition,
+    }
+    onConfigChange(nextConfig)
+    panelController?.setPlacement(placementForBuiltInItemsConfig(nextConfig))
+  }
+
   const updateItemProp: UpdateItemProp = (id, key, value) => {
     onConfigChange({
       ...config,
@@ -850,6 +871,11 @@ export function InteractiveJsxExample({
       href: `#code-${controlId}`,
     }
   })
+  const panelPlacementPosition = closestBuiltInPanelPlacementPosition(
+    config.panelPlacementPosition,
+    config.panelPlacementMode,
+  )
+  const panelPlacementPositions = [...builtInPanelPlacementPositions[config.panelPlacementMode]]
 
   const copySource = async () => {
     try {
@@ -1054,14 +1080,49 @@ export function InteractiveJsxExample({
                       />
                       <Punctuation>&#125;</Punctuation>
                     </CodeLine>
+                    <CodeLine indent={2}>
+                      <Prop>defaultPlacement</Prop>
+                      <Punctuation>=&#123;&#123;</Punctuation>
+                    </CodeLine>
+                    <CodeLine indent={3}>
+                      <Prop>mode</Prop>
+                      <Punctuation>: &apos;</Punctuation>
+                      <InlineSelect
+                        ariaLabel="Panel placement mode"
+                        className="w-20"
+                        value={config.panelPlacementMode}
+                        values={['floating', 'magnetic', 'fixed']}
+                        onChange={(value) =>
+                          updatePanelPlacement(
+                            value as BuiltInPanelPlacementMode,
+                            panelPlacementPosition,
+                          )
+                        }
+                      />
+                      <Punctuation>&apos;,</Punctuation>
+                    </CodeLine>
+                    <CodeLine indent={3}>
+                      <Prop>position</Prop>
+                      <Punctuation>: &apos;</Punctuation>
+                      <InlineSelect
+                        ariaLabel="Panel placement position"
+                        className="w-24"
+                        value={panelPlacementPosition}
+                        values={panelPlacementPositions}
+                        onChange={(value) =>
+                          updatePanelPlacement(
+                            config.panelPlacementMode,
+                            value as BuiltInPanelPlacementPosition,
+                          )
+                        }
+                      />
+                      <Punctuation>&apos;,</Punctuation>
+                    </CodeLine>
+                    <CodeLine indent={2}>
+                      <Punctuation>&#125;&#125;</Punctuation>
+                    </CodeLine>
                     {showAllProps ? (
                       <>
-                        <CodeLine indent={2} muted>
-                          <Prop>defaultPlacement</Prop>
-                          <Punctuation>=&quot;</Punctuation>
-                          <StringValue>top-right</StringValue>
-                          <Punctuation>&quot;</Punctuation>
-                        </CodeLine>
                         <CodeLine indent={2} muted>
                           <Prop>className</Prop>
                           <Punctuation>=&quot;</Punctuation>
@@ -1751,6 +1812,7 @@ function sourceForExample(
   config: BuiltInItemsExampleConfig,
   showAllProps = false,
 ) {
+  const panelPlacement = placementForBuiltInItemsConfig(config)
   const noopBooleanUpdate = () => undefined
   const noopItemUpdate: UpdateItemProp = () => undefined
   const noopNumberUpdate = () => undefined
@@ -1819,10 +1881,10 @@ ${serializeControls(group.lines)}
     store={builtInItemsPanelStore}
     title={${JSON.stringify(config.panelTitle)}}
     collapsible={${config.panelCollapsible}}
-    width={${config.panelWidth}}${
+    width={${config.panelWidth}}
+    defaultPlacement={{ mode: ${JSON.stringify(panelPlacement.mode)}, position: ${JSON.stringify(panelPlacement.position)} }}${
       showAllProps
         ? `
-    defaultPlacement="top-right"
     className="bg-tweaker-surface/72 top-4 right-4 max-w-[calc(100dvw-2rem)] backdrop-blur-xl lg:top-8 lg:right-8"`
         : ''
     }

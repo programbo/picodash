@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   createTweakerPanelStore,
   TweakerDisplay,
   TweakerGroup,
   TweakerPanel,
   TweakerProvider,
+  useTweakerPanel,
+  type TweakerPanelFixedPosition,
 } from 'tweaker'
 
 const storageKey = 'tweaker-geometry-lab:panel-layout:v1'
@@ -25,9 +27,24 @@ const cappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-capped' })
 const classCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-class-capped' })
 const bottomCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-capped' })
 const bottomDragPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-drag' })
+const fixedBoundaryPanelStore = createTweakerPanelStore({ panelId: 'geometry-fixed-boundary' })
+const fixedOverridePanelStore = createTweakerPanelStore({ panelId: 'geometry-fixed-override' })
+
+const fixedPositions = [
+  'top-left',
+  'bottom-left',
+  'top-right',
+  'bottom-right',
+  'left',
+  'right',
+] as const satisfies readonly TweakerPanelFixedPosition[]
 
 export function PanelGeometryLab() {
   const fixture = new URLSearchParams(window.location.search).get('fixture') ?? 'drag'
+
+  if (fixture === 'fixed-boundaries') {
+    return <FixedBoundaryFixture />
+  }
 
   return (
     <main
@@ -53,6 +70,120 @@ export function PanelGeometryLab() {
         {fixture === 'bottom-drag' ? <BottomDragFixture /> : null}
       </TweakerProvider>
     </main>
+  )
+}
+
+function FixedBoundaryFixture() {
+  const mainBoundaryRef = useRef<HTMLElement>(null)
+  const canvasBoundaryRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <main
+      id="main-content"
+      className="dark bg-background text-foreground min-h-svh p-12"
+      data-panel-geometry-lab
+      data-product-route="panel-geometry-lab"
+    >
+      <section
+        ref={mainBoundaryRef}
+        className="relative h-[calc(100svh-6rem)] rounded-xl border border-white/15 bg-zinc-950"
+        data-geometry-boundary="provider"
+      >
+        <TweakerProvider
+          panelBoundary={mainBoundaryRef}
+          persistLayout
+          storageKey="tweaker-geometry-lab:fixed-boundaries:v1"
+          theme="dark"
+        >
+          <FixedPlacementControls />
+          <div
+            ref={canvasBoundaryRef}
+            className="absolute top-24 right-24 bottom-16 left-[48%] rounded-lg border border-dashed border-cyan-400/50 bg-cyan-400/5"
+            data-geometry-boundary="override"
+          >
+            <p className="p-4 text-sm text-cyan-200">Panel-level canvas boundary</p>
+          </div>
+
+          <TweakerPanel
+            store={fixedBoundaryPanelStore}
+            title="Provider boundary"
+            width={300}
+            collapsible
+            defaultPlacement={{ mode: 'fixed', position: 'left' }}
+            data-geometry-fixture="fixed-boundary"
+          >
+            <TweakerGroup id="fixed-start" label="Pinned start" pin="start">
+              <TweakerDisplay id="fixed-start-value" label="Boundary" value="Provider" />
+            </TweakerGroup>
+            <TallContent prefix="fixed-auto" count={28} />
+            <TweakerGroup id="fixed-end" label="Pinned end" pin="end">
+              <TweakerDisplay id="fixed-end-value" label="Placement" value="Runtime" />
+            </TweakerGroup>
+          </TweakerPanel>
+
+          <TweakerPanel
+            store={fixedOverridePanelStore}
+            title="Canvas boundary"
+            width={240}
+            collapsible
+            boundary={canvasBoundaryRef}
+            defaultPlacement={{ mode: 'fixed', position: 'bottom-right' }}
+            data-geometry-fixture="fixed-override"
+          >
+            <TweakerDisplay id="fixed-override-value" label="Boundary" value="Panel override" />
+          </TweakerPanel>
+        </TweakerProvider>
+      </section>
+    </main>
+  )
+}
+
+function FixedPlacementControls() {
+  const panel = useTweakerPanel('geometry-fixed-boundary')
+  const fixedPosition =
+    panel?.placement.mode === 'fixed' ? panel.placement.position : fixedPositions[0]
+  const placementLabel = panel
+    ? `${panel.placement.mode}:${'position' in panel.placement ? (panel.placement.position ?? '') : ''}`
+    : 'unregistered'
+
+  return (
+    <div className="fixed top-1 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-white/15 bg-black/80 p-2 text-xs shadow-xl">
+      <label htmlFor="fixed-placement">Fixed placement</label>
+      <select
+        id="fixed-placement"
+        className="rounded border border-white/20 bg-zinc-900 px-2 py-1"
+        value={fixedPosition}
+        onChange={(event) => {
+          panel?.setPlacement({
+            mode: 'fixed',
+            position: event.currentTarget.value as TweakerPanelFixedPosition,
+          })
+        }}
+      >
+        {fixedPositions.map((position) => (
+          <option key={position} value={position}>
+            {position}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        className="rounded border border-white/20 px-2 py-1"
+        onClick={() => panel?.setPlacement({ mode: 'magnetic', position: 'top-left' })}
+      >
+        Magnetic
+      </button>
+      <button
+        type="button"
+        className="rounded border border-white/20 px-2 py-1"
+        onClick={() => panel?.setPlacement({ mode: 'floating' })}
+      >
+        Floating
+      </button>
+      <output className="sr-only" data-runtime-placement>
+        {placementLabel}
+      </output>
+    </div>
   )
 }
 

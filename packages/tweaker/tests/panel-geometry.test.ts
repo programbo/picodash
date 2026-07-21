@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'vite-plus/test'
-import { PANEL_MIN_VISIBLE_HEIGHT, projectPanelGeometry } from '../src/panel-geometry.ts'
+import {
+  PANEL_MIN_VISIBLE_HEIGHT,
+  fixedPanelRect,
+  fixedPanelRetraction,
+  panelMaxWidthForBoundary,
+  panelParticipatesInSnapping,
+  projectPanelGeometry,
+} from '../src/panel-geometry.ts'
 import { snapPanelPosition, type PanelRect } from '../src/panel-snapping.ts'
 import { panelUsesBottomConstraint } from '../src/use-panel-layout.ts'
 
@@ -223,6 +230,56 @@ describe('panel geometry projection', () => {
     expect(snapped).not.toHaveProperty('height')
     expect(snapped).not.toHaveProperty('availableHeight')
   })
+})
+
+describe('fixed panel geometry', () => {
+  const boundaryRect = rect(120, 80, 640, 480)
+
+  test.each([
+    ['top-left', rect(120, 80, 280, 240)],
+    ['bottom-left', rect(120, 320, 280, 240)],
+    ['top-right', rect(480, 80, 280, 240)],
+    ['bottom-right', rect(480, 320, 280, 240)],
+    ['left', rect(120, 80, 280, 240)],
+    ['right', rect(480, 80, 280, 240)],
+  ] as const)('places %s flush with its boundary', (position, expected) => {
+    expect(fixedPanelRect({ boundaryRect, height: 240, position, width: 280 })).toEqual(expected)
+  })
+
+  test('caps fixed dimensions to the visible boundary', () => {
+    expect(
+      fixedPanelRect({ boundaryRect, height: 800, position: 'bottom-right', width: 900 }),
+    ).toEqual(boundaryRect)
+  })
+
+  test.each([
+    ['top-left', { x: -280, y: 0 }],
+    ['left', { x: -280, y: 0 }],
+    ['top-right', { x: 280, y: 0 }],
+    ['right', { x: 280, y: 0 }],
+    ['bottom-left', { x: -280, y: 240 }],
+    ['bottom-right', { x: 280, y: 240 }],
+  ] as const)('retracts %s through its docked edge', (position, expected) => {
+    expect(fixedPanelRetraction(position, { height: 240, width: 280 })).toEqual(expected)
+  })
+})
+
+describe('boundary width constraints', () => {
+  test('caps a panel to a narrower custom boundary', () => {
+    expect(panelMaxWidthForBoundary(240, 480)).toBe(240)
+    expect(panelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY)).toBe(240)
+  })
+
+  test('preserves a stricter caller maximum width', () => {
+    expect(panelMaxWidthForBoundary(480, 220)).toBe(220)
+  })
+})
+
+test('removes only retracted fixed panels from peer snapping', () => {
+  expect(panelParticipatesInSnapping({ mode: 'fixed', position: 'left' }, true)).toBe(false)
+  expect(panelParticipatesInSnapping({ mode: 'fixed', position: 'left' }, false)).toBe(true)
+  expect(panelParticipatesInSnapping({ mode: 'floating' }, true)).toBe(true)
+  expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'right' }, true)).toBe(true)
 })
 
 function rect(left: number, top: number, width: number, height: number): PanelRect {

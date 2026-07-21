@@ -30,12 +30,17 @@ export {
   useTweakerPanelStoreSelector,
 } from './tweaker-panel.js'
 export type {
+  TweakerPanelBoundary,
   TweakerFieldState,
   TweakerPanelCloseBehavior,
   TweakerPanelCloseDetails,
   TweakerPanelCloseOptions,
+  TweakerPanelCorner,
   TweakerPanelDefaultPlacement,
+  TweakerPanelFixedPosition,
+  TweakerPanelPlacement,
   TweakerPanelProps,
+  TweakerPanelSnapPosition,
   TweakerPanelStore,
   TweakerPin,
   TweakerStatus,

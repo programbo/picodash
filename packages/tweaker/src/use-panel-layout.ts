@@ -2,6 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 
 import type { MotionStyle, MotionValue } from 'motion/react'
 import { useStore } from 'zustand'
 import {
+  fixedPanelRect,
+  panelMaxWidthForBoundary,
+  panelParticipatesInSnapping,
   projectPanelGeometry,
   rectWithHeight,
   type PanelGeometryProjection,
@@ -11,12 +14,14 @@ import {
   baseRectFromDisplayedRect,
   clampPanelPosition,
   positionForPanelLayout,
+  rectForPanelBoundary,
   rectFromElement,
   translationFromTransform,
   type PanelPosition,
   type PanelRect,
 } from './panel-snapping.js'
 import type { TweakerStore } from './tweaker-provider.js'
+import type { TweakerPanelPlacement } from './tweaker-panel-types.js'
 
 export function panelUsesBottomConstraint({
   computedBottom,
@@ -35,25 +40,35 @@ export function panelUsesBottomConstraint({
 }
 
 export function usePanelLayoutSynchronization({
+  boundaryElement,
+  callerHeight,
   callerMaxHeight,
-  containerElement,
+  callerMaxWidth,
+  collapsed,
   constraintClassName,
   contentElementRef,
   enabled,
   panelElementRef,
   panelId,
+  placement,
+  positionElementRef,
   synchronizationPausedRef,
   store,
   x,
   y,
 }: {
+  boundaryElement: Element | null
+  callerHeight?: MotionStyle['height']
   callerMaxHeight?: MotionStyle['maxHeight']
-  containerElement: HTMLElement | null
+  callerMaxWidth?: MotionStyle['maxWidth']
+  collapsed: boolean
   constraintClassName?: string
   contentElementRef: RefObject<HTMLElement | null>
   enabled: boolean
   panelElementRef: RefObject<HTMLElement | null>
   panelId: string
+  placement: TweakerPanelPlacement
+  positionElementRef?: RefObject<HTMLElement | null>
   synchronizationPausedRef?: RefObject<unknown>
   store: TweakerStore
   x: MotionValue<number>
@@ -61,6 +76,7 @@ export function usePanelLayoutSynchronization({
 }) {
   const savedLayout = useStore(store, (state) => state.panelLayouts[panelId])
   const appliedMaxHeightRef = useRef<number | null>(null)
+  const appliedMaxWidthRef = useRef<number | null>(null)
   const enabledRef = useRef(enabled)
   const synchronizationFrameRef = useRef<number | null>(null)
 
@@ -70,9 +86,13 @@ export function usePanelLayoutSynchronization({
 
   const updatePanelRect = useCallback(() => {
     if (!enabledRef.current) return
+    if (!panelParticipatesInSnapping(placement, collapsed)) {
+      store.getState().setPanelRect(panelId, null)
+      return
+    }
     const panelElement = panelElementRef.current
     if (panelElement) store.getState().setPanelRect(panelId, rectFromElement(panelElement))
-  }, [panelElementRef, panelId, store])
+  }, [collapsed, panelElementRef, panelId, placement.mode, store])
 
   const measureIntrinsicHeight = useCallback(() => {
     const panelElement = panelElementRef.current
@@ -104,12 +124,36 @@ export function usePanelLayoutSynchronization({
       : Number.POSITIVE_INFINITY
   }, [callerMaxHeight, panelElementRef])
 
+  const measureCallerMaxWidth = useCallback(() => {
+    const panelElement = panelElementRef.current
+    if (!panelElement) return Number.POSITIVE_INFINITY
+
+    const appliedMaxWidth = panelElement.style.maxWidth
+    applyCallerDimension(panelElement, 'maxWidth', callerMaxWidth)
+    const computedMaxWidth = Number.parseFloat(getComputedStyle(panelElement).maxWidth)
+    if (appliedMaxWidth) {
+      panelElement.style.maxWidth = appliedMaxWidth
+    } else {
+      panelElement.style.removeProperty('max-width')
+    }
+    return Number.isFinite(computedMaxWidth)
+      ? Math.max(computedMaxWidth, 0)
+      : Number.POSITIVE_INFINITY
+  }, [callerMaxWidth, panelElementRef])
+
   const restoreCallerMaxHeight = useCallback(() => {
     const panelElement = panelElementRef.current
     if (!panelElement) return
     appliedMaxHeightRef.current = null
     applyCallerMaxHeight(panelElement, callerMaxHeight)
   }, [callerMaxHeight, panelElementRef])
+
+  const restoreCallerFixedDimensions = useCallback(() => {
+    const panelElement = panelElementRef.current
+    if (!panelElement) return
+    applyCallerDimension(panelElement, 'height', callerHeight)
+    restoreCallerMaxHeight()
+  }, [callerHeight, panelElementRef, restoreCallerMaxHeight])
 
   const applyProjection = useCallback(
     ({
@@ -130,7 +174,8 @@ export function usePanelLayoutSynchronization({
       position: PanelPosition
     }): PanelGeometryProjection => {
       const panelElement = panelElementRef.current
-      if (panelElement && !isFloatingPanel(panelElement)) {
+      const positionElement = positionElementRef?.current ?? panelElement
+      if (panelElement && positionElement && !isFloatingPanel(positionElement)) {
         restoreCallerMaxHeight()
         if (x.get() !== position.x) x.set(position.x)
         if (y.get() !== position.y) y.set(position.y)
@@ -173,20 +218,75 @@ export function usePanelLayoutSynchronization({
       if (y.get() !== appliedPosition.y) y.set(appliedPosition.y)
       return { ...projection, position: appliedPosition }
     },
-    [measureCallerMaxHeight, panelElementRef, restoreCallerMaxHeight, x, y],
+    [measureCallerMaxHeight, panelElementRef, positionElementRef, restoreCallerMaxHeight, x, y],
   )
 
   const syncDisplayedPositionToSavedLayout = useCallback(() => {
     if (!enabledRef.current) return
     if (synchronizationPausedRef?.current) return
     const panelElement = panelElementRef.current
-    if (!containerElement || !panelElement) return
+    const positionElement = positionElementRef?.current ?? panelElement
+    if (!panelElement || !positionElement) return
+    const containerRect = rectForPanelBoundary(boundaryElement)
 
-    if (!isFloatingPanel(panelElement)) {
+    if (placement.mode === 'fixed') {
+      const measuredCallerMaxHeight =
+        callerMaxHeight === undefined ? Number.POSITIVE_INFINITY : measureCallerMaxHeight()
+      const measuredCallerMaxWidth =
+        callerMaxWidth === undefined ? Number.POSITIVE_INFINITY : measureCallerMaxWidth()
+      const appliedMaxHeight = Math.min(containerRect.height, measuredCallerMaxHeight)
+      const appliedMaxWidth = Math.min(containerRect.width, measuredCallerMaxWidth)
+      if (appliedMaxHeightRef.current !== appliedMaxHeight) {
+        appliedMaxHeightRef.current = appliedMaxHeight
+        panelElement.style.maxHeight = `${appliedMaxHeight}px`
+      }
+      if (appliedMaxWidthRef.current !== appliedMaxWidth) {
+        appliedMaxWidthRef.current = appliedMaxWidth
+        panelElement.style.maxWidth = `${appliedMaxWidth}px`
+      }
+      if (placement.position === 'left' || placement.position === 'right') {
+        panelElement.style.height = `${appliedMaxHeight}px`
+      } else {
+        applyCallerDimension(panelElement, 'height', callerHeight)
+      }
+
+      const panelRect = rectFromElement(panelElement)
+      positionElement.style.width = `${panelRect.width}px`
+      positionElement.style.height = `${panelRect.height}px`
+      const displayedPosition = { x: x.get(), y: y.get() }
+      const baseRect = baseRectFromDisplayedRect(
+        rectFromElement(positionElement),
+        displayedPosition,
+      )
+      const targetRect = fixedPanelRect({
+        boundaryRect: containerRect,
+        height: panelRect.height,
+        position: placement.position,
+        width: panelRect.width,
+      })
+      const targetPosition = {
+        x: targetRect.left - baseRect.left,
+        y: targetRect.top - baseRect.top,
+      }
+      if (x.get() !== targetPosition.x) x.set(targetPosition.x)
+      if (y.get() !== targetPosition.y) y.set(targetPosition.y)
+      requestAnimationFrame(updatePanelRect)
+      return
+    }
+
+    restoreCallerFixedDimensions()
+    const appliedMaxWidth = panelMaxWidthForBoundary(containerRect.width, measureCallerMaxWidth())
+    if (appliedMaxWidthRef.current !== appliedMaxWidth) {
+      appliedMaxWidthRef.current = appliedMaxWidth
+      panelElement.style.maxWidth = `${appliedMaxWidth}px`
+    }
+    positionElement.style.removeProperty('height')
+    positionElement.style.removeProperty('width')
+
+    if (!isFloatingPanel(positionElement)) {
       restoreCallerMaxHeight()
-      const appliedPosition = translationFromTransform(getComputedStyle(panelElement).transform)
+      const appliedPosition = translationFromTransform(getComputedStyle(positionElement).transform)
       const baseRect = baseRectFromDisplayedRect(rectFromElement(panelElement), appliedPosition)
-      const containerRect = rectFromElement(containerElement)
       const targetPosition = positionForPanelLayout({
         baseRect,
         containerRect,
@@ -200,16 +300,15 @@ export function usePanelLayoutSynchronization({
     }
 
     const displayedRect = rectFromElement(panelElement)
-    const appliedPosition = translationFromTransform(getComputedStyle(panelElement).transform)
+    const appliedPosition = translationFromTransform(getComputedStyle(positionElement).transform)
     const intrinsicHeight = measureIntrinsicHeight()
     const layoutRect = baseRectFromDisplayedRect(displayedRect, appliedPosition)
     const baseRect = rectWithHeight(layoutRect, intrinsicHeight)
     const savedPosition = store.getState().panelLayouts[panelId]
-    const containerRect = rectFromElement(containerElement)
-    const computedStyle = getComputedStyle(panelElement)
+    const computedStyle = getComputedStyle(positionElement)
     const typedStyleMap =
-      typeof panelElement.computedStyleMap === 'function'
-        ? panelElement.computedStyleMap()
+      typeof positionElement.computedStyleMap === 'function'
+        ? positionElement.computedStyleMap()
         : undefined
     const typedBottom = typedStyleMap?.get('bottom')?.toString()
     const typedTop = typedStyleMap?.get('top')?.toString()
@@ -221,10 +320,20 @@ export function usePanelLayoutSynchronization({
         typedBottom,
         typedTop,
       })
+    const effectiveSavedPosition =
+      savedPosition ??
+      (placement.mode === 'magnetic'
+        ? {
+            dock: null,
+            placement,
+            x: layoutRect.left,
+            y: layoutRect.top,
+          }
+        : undefined)
     const targetPosition = positionForPanelLayout({
       baseRect,
       containerRect,
-      layout: savedPosition,
+      layout: effectiveSavedPosition,
     })
     applyProjection({
       anchor:
@@ -240,10 +349,18 @@ export function usePanelLayoutSynchronization({
     requestAnimationFrame(updatePanelRect)
   }, [
     applyProjection,
-    containerElement,
+    boundaryElement,
+    callerHeight,
+    callerMaxHeight,
+    callerMaxWidth,
     measureIntrinsicHeight,
+    measureCallerMaxHeight,
+    measureCallerMaxWidth,
     panelElementRef,
     panelId,
+    placement,
+    positionElementRef,
+    restoreCallerFixedDimensions,
     restoreCallerMaxHeight,
     store,
     synchronizationPausedRef,
@@ -267,6 +384,8 @@ export function usePanelLayoutSynchronization({
     enabled,
     savedLayout?.dock?.horizontal,
     savedLayout?.dock?.vertical,
+    savedLayout?.placement?.mode,
+    savedLayout?.placement?.position,
     savedLayout?.x,
     savedLayout?.y,
     syncDisplayedPositionToSavedLayout,
@@ -274,14 +393,16 @@ export function usePanelLayoutSynchronization({
 
   useEffect(() => {
     const panelElement = panelElementRef.current
-    if (!containerElement || !enabled || !panelElement) {
+    const positionElement = positionElementRef?.current ?? panelElement
+    if (!enabled || !panelElement || !positionElement) {
       store.getState().setPanelRect(panelId, null)
       return
     }
 
     const resizeObserver = new ResizeObserver(scheduleSynchronization)
-    resizeObserver.observe(containerElement)
+    if (boundaryElement) resizeObserver.observe(boundaryElement)
     resizeObserver.observe(panelElement)
+    if (positionElement !== panelElement) resizeObserver.observe(positionElement)
     const contentElement = contentElementRef.current
     if (contentElement) {
       resizeObserver.observe(contentElement)
@@ -310,10 +431,17 @@ export function usePanelLayoutSynchronization({
       })
     }
     window.addEventListener('resize', scheduleSynchronization)
+    const scrollListenerOptions = { capture: true, passive: true } as const
+    if (boundaryElement) {
+      window.addEventListener('scroll', scheduleSynchronization, scrollListenerOptions)
+    }
     return () => {
       resizeObserver.disconnect()
       mutationObserver.disconnect()
       window.removeEventListener('resize', scheduleSynchronization)
+      if (boundaryElement) {
+        window.removeEventListener('scroll', scheduleSynchronization, scrollListenerOptions)
+      }
       if (synchronizationFrameRef.current !== null) {
         cancelAnimationFrame(synchronizationFrameRef.current)
         synchronizationFrameRef.current = null
@@ -321,11 +449,12 @@ export function usePanelLayoutSynchronization({
       store.getState().setPanelRect(panelId, null)
     }
   }, [
-    containerElement,
+    boundaryElement,
     contentElementRef,
     enabled,
     panelElementRef,
     panelId,
+    positionElementRef,
     scheduleSynchronization,
     store,
   ])
@@ -342,20 +471,28 @@ function applyCallerMaxHeight(
   panelElement: HTMLElement,
   callerMaxHeight: MotionStyle['maxHeight'] | undefined,
 ) {
+  applyCallerDimension(panelElement, 'maxHeight', callerMaxHeight)
+}
+
+function applyCallerDimension(
+  panelElement: HTMLElement,
+  property: 'height' | 'maxHeight' | 'maxWidth',
+  value: MotionStyle['height'] | MotionStyle['maxHeight'] | MotionStyle['maxWidth'] | undefined,
+) {
   const resolvedCallerMaxHeight =
-    callerMaxHeight &&
-    typeof callerMaxHeight === 'object' &&
-    'get' in callerMaxHeight &&
-    typeof callerMaxHeight.get === 'function'
-      ? callerMaxHeight.get()
-      : callerMaxHeight
+    value && typeof value === 'object' && 'get' in value && typeof value.get === 'function'
+      ? value.get()
+      : value
+
+  const cssProperty =
+    property === 'maxHeight' ? 'max-height' : property === 'maxWidth' ? 'max-width' : 'height'
 
   if (typeof resolvedCallerMaxHeight === 'number') {
-    panelElement.style.maxHeight = `${resolvedCallerMaxHeight}px`
+    panelElement.style[property] = `${resolvedCallerMaxHeight}px`
   } else if (typeof resolvedCallerMaxHeight === 'string') {
-    panelElement.style.maxHeight = resolvedCallerMaxHeight
+    panelElement.style[property] = resolvedCallerMaxHeight
   } else {
-    panelElement.style.removeProperty('max-height')
+    panelElement.style.removeProperty(cssProperty)
   }
 }
 

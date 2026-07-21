@@ -113,6 +113,37 @@ Set `close` to add a header close button immediately after the action menu. `clo
 removes the registration and portal so an optional `onClose({ panelId, behavior })` observer can
 unmount the host component. The callback observes the built-in behavior rather than replacing it.
 
+### Placement and panel boundaries
+
+Panels support floating, magnetic, and fixed placement. Existing corner strings remain valid for
+`defaultPlacement`; use the object form for magnetic snapping and fixed sidebars:
+
+```tsx
+<TweakerPanel
+  store={sceneStore}
+  collapsible
+  defaultPlacement={{ mode: 'fixed', position: 'right' }}
+/>
+```
+
+Magnetic positions use `TweakerPanelSnapPosition`; fixed positions use
+`TweakerPanelFixedPosition`.
+
+Fixed positions are `top-left`, `bottom-left`, `top-right`, `bottom-right`, `left`, and `right`.
+The full-edge `left` and `right` positions fill the boundary height. In fixed panels, start- and
+end-pinned lanes remain visible while the auto lane scrolls. Every panel scrollport includes the
+bundled `scroll-fade` utility through `tweaker/style.css`.
+
+The viewport is the default geometry boundary. Set `panelBoundary` on `TweakerProvider` to
+constrain every panel to an `Element` or React ref, then use a panel's `boundary` prop for an
+override. `boundary={null}` explicitly restores the viewport. Boundaries do not change portal
+ownership or resize application content; fixed panels overlay their boundary.
+
+`useTweakerPanel(panelId)` also exposes reactive `placement` and `setPlacement()`. Runtime placement
+changes join coordinates and magnetic/fixed edge state in provider layout persistence when
+`persistLayout` is enabled. Selectors are not accepted as boundary inputs; resolve one to an
+`Element` or use a ref.
+
 ### Advanced hook boundary
 
 The main entrypoint keeps application ownership explicit: use
