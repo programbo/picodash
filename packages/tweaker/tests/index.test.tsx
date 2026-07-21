@@ -24,6 +24,7 @@ import {
   itemCanReorder,
   orderedItemIdsForParent,
   orderIndexForItem,
+  panelShellDragProps,
   reorderValuesForPointer,
 } from '../src/tweaker-panel.tsx'
 import {
@@ -67,6 +68,23 @@ test('keeps the public and advanced hook surfaces explicit', () => {
   expect('useTweakerProviderContext' in advancedApi).toBe(false)
   expect('useTweakerSelector' in advancedApi).toBe(false)
   expect('useTweakerStoreApi' in advancedApi).toBe(false)
+})
+
+test('forwards drag behavior to the movable shell only for non-fixed panels', () => {
+  const onDirectionLock = () => undefined
+  const onDragTransitionEnd = () => undefined
+  const dragProps = {
+    dragDirectionLock: true,
+    dragPropagation: true,
+    dragSnapToOrigin: 'x' as const,
+    dragTransition: { bounceDamping: 12 },
+    onDirectionLock,
+    onDragTransitionEnd,
+    whileDrag: { scale: 1.03 },
+  }
+
+  expect(panelShellDragProps(false, dragProps)).toBe(dragProps)
+  expect(panelShellDragProps(true, dragProps)).toEqual({})
 })
 
 test('creates feature panel elements', () => {

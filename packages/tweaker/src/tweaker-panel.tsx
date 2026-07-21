@@ -101,6 +101,8 @@ export type {
 } from './tweaker-panel-types.js'
 
 export function TweakerPanel({
+  _dragX,
+  _dragY,
   boundary,
   children,
   className,
@@ -110,18 +112,26 @@ export function TweakerPanel({
   defaultPlacement = 'top-right',
   defaultVisible = true,
   drag = true,
+  dragDirectionLock,
   dragElastic = false,
   dragMomentum = false,
+  dragPropagation,
+  dragSnapToOrigin,
+  dragTransition,
   id,
   initialMeta,
   initialValues,
   onClose,
+  onDirectionLock,
+  onDragTransitionEnd,
   onFocusCapture,
+  onMeasureDragConstraints,
   onPointerDownCapture,
   store: injectedPanelStore,
   style,
   theme: themeProp,
   title,
+  whileDrag,
   width,
   ...props
 }: TweakerPanelProps) {
@@ -175,6 +185,18 @@ export function TweakerPanel({
     (state) => state.panels[panelId]?.placement ?? normalizedDefaultPlacement,
   )
   const fixedPlacement = placement.mode === 'fixed'
+  const shellDragProps = panelShellDragProps(fixedPlacement, {
+    _dragX,
+    _dragY,
+    dragDirectionLock,
+    dragPropagation,
+    dragSnapToOrigin,
+    dragTransition,
+    onDirectionLock,
+    onDragTransitionEnd,
+    onMeasureDragConstraints,
+    whileDrag,
+  })
   const visible = useStore(
     providerStore,
     (state) => state.panels[panelId]?.visible ?? defaultVisibleRef.current,
@@ -338,6 +360,7 @@ export function TweakerPanel({
     <TweakerThemeContextProvider theme={theme}>
       <TweakerPanelContextProvider store={panelStore}>
         <motion.div
+          {...shellDragProps}
           data-tweaker-panel-shell=""
           data-fixed-placement={fixedPlacement ? placement.position : undefined}
           className={cn(
@@ -718,3 +741,24 @@ const fixedPanelEdgeClassNames = {
   left: 'rounded-l-none',
   right: 'rounded-r-none',
 } as const
+
+type PanelShellDragProps = Pick<
+  TweakerPanelProps,
+  | '_dragX'
+  | '_dragY'
+  | 'dragDirectionLock'
+  | 'dragPropagation'
+  | 'dragSnapToOrigin'
+  | 'dragTransition'
+  | 'onDirectionLock'
+  | 'onDragTransitionEnd'
+  | 'onMeasureDragConstraints'
+  | 'whileDrag'
+>
+
+export function panelShellDragProps(
+  fixedPlacement: boolean,
+  dragProps: PanelShellDragProps,
+): PanelShellDragProps {
+  return fixedPlacement ? {} : dragProps
+}

@@ -647,11 +647,15 @@ function withPanelMeasurementProbe<T>(
   panelElement: HTMLElement,
   measure: (probeElement: HTMLElement, probeContainer: HTMLElement) => T,
 ) {
-  const containingBlock = panelElement.ownerDocument.body
-  const probeContainer = panelElement.ownerDocument.createElement('div')
+  const liveContainingBlock = panelElement.parentElement
+  const containingBlock = liveContainingBlock ?? panelElement.ownerDocument.body
+  const probeContainer = liveContainingBlock
+    ? (liveContainingBlock.cloneNode(false) as HTMLElement)
+    : panelElement.ownerDocument.createElement('div')
   const probeElement = panelElement.cloneNode(false) as HTMLElement
 
   probeContainer.setAttribute('aria-hidden', 'true')
+  probeContainer.removeAttribute('id')
   probeElement.removeAttribute('id')
   probeContainer.style.setProperty('contain', 'strict')
   probeContainer.style.setProperty('display', 'block', 'important')

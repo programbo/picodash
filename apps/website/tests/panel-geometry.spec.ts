@@ -339,7 +339,7 @@ test('handles deferred corners, ordinary class constraints, and viewport panels 
     .toEqual({ bottom: defaultPlacementInset, right: defaultPlacementInset })
 })
 
-test('resolves an unsaved corner and relative max constraints against a custom boundary', async ({
+test('resolves an unsaved corner and ancestor-scoped variable constraints against a custom boundary', async ({
   page,
 }) => {
   await page.goto('/panel-geometry-lab?fixture=relative-constraints')

@@ -86,7 +86,7 @@ export function PanelGeometryLab() {
 }
 
 function RelativeConstraintFixture() {
-  const boundaryRef = useRef<HTMLElement>(null)
+  const [boundaryElement, setBoundaryElement] = useState<HTMLElement | null>(null)
 
   return (
     <main
@@ -95,25 +95,39 @@ function RelativeConstraintFixture() {
       data-panel-geometry-lab
       data-product-route="panel-geometry-lab"
     >
-      <style>{`.review-relative-constraint { max-width: 50%; }`}</style>
+      <style>{`
+        .review-probe-context {
+          --review-panel-max-height: calc(100% - 40px);
+        }
+        .review-probe-context .review-relative-constraint {
+          max-width: 50%;
+          max-height: var(--review-panel-max-height);
+        }
+      `}</style>
       <section
-        ref={boundaryRef}
-        className="absolute top-20 left-[120px] h-[360px] w-[520px] border border-white/15"
+        ref={setBoundaryElement}
+        className="review-probe-context absolute top-20 left-[120px] h-[360px] w-[520px] border border-white/15"
         data-geometry-boundary="relative-constraints"
       >
-        <TweakerProvider panelBoundary={boundaryRef} persistLayout={false} theme="dark">
-          <TweakerPanel
-            store={relativeConstraintPanelStore}
-            title="Relative constraints"
-            width={480}
-            className="review-relative-constraint"
-            defaultPlacement={{ mode: 'floating', position: 'bottom-right' }}
-            style={{ maxHeight: 'calc(100% - 40px)' }}
-            data-geometry-fixture="relative-constraint"
+        {boundaryElement ? (
+          <TweakerProvider
+            panelBoundary={boundaryElement}
+            persistLayout={false}
+            portalContainer={boundaryElement}
+            theme="dark"
           >
-            <TallContent prefix="relative-constraint" count={32} />
-          </TweakerPanel>
-        </TweakerProvider>
+            <TweakerPanel
+              store={relativeConstraintPanelStore}
+              title="Relative constraints"
+              width={480}
+              className="review-relative-constraint"
+              defaultPlacement={{ mode: 'floating', position: 'bottom-right' }}
+              data-geometry-fixture="relative-constraint"
+            >
+              <TallContent prefix="relative-constraint" count={32} />
+            </TweakerPanel>
+          </TweakerProvider>
+        ) : null}
       </section>
     </main>
   )
