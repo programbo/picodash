@@ -380,6 +380,23 @@ test('moves runtime floating corner placement within the panel boundary', () => 
   ).toEqual({ x: 434, y: 224 })
 })
 
+test('retains an explicit floating corner request while a retracted fixed panel is unmeasured', () => {
+  const store = createTweakerStore({ persistLayout: false })
+  store.getState().registerPanel({ id: 'inspect' })
+  store.getState().setPanelLayout('inspect', { x: 24, y: 32 })
+  store.getState().setPanelPlacement('inspect', { mode: 'fixed', position: 'right' })
+  store.getState().setPanelRect('inspect', null)
+
+  store.getState().setPanelPlacement('inspect', { mode: 'floating', position: 'bottom-right' })
+
+  expect(store.getState().panelLayouts.inspect).toEqual({
+    dock: null,
+    placement: { mode: 'floating', position: 'bottom-right' },
+    x: 24,
+    y: 32,
+  })
+})
+
 test('hydrates legacy docks as magnetic placement when a panel registers', () => {
   const storage = installFakeLocalStorage()
   storage.setItem(

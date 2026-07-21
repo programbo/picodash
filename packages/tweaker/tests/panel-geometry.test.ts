@@ -12,6 +12,8 @@ import {
   nonFixedPanelMaxWidthForBoundary,
   panelHasCallerConstraint,
   panelUsesBottomConstraint,
+  resolveFloatingCornerLayout,
+  withoutCallerClassNames,
 } from '../src/use-panel-layout.ts'
 
 test('detects bottom constraints with Typed OM and legacy computed-style fallback', () => {
@@ -284,22 +286,49 @@ describe('boundary width constraints', () => {
   })
 })
 
-test('detects caller constraints only on the requested fixed panel axis', () => {
-  expect(panelHasCallerConstraint(undefined, 'max-h-48 text-sm', 'height')).toBe(true)
-  expect(panelHasCallerConstraint(undefined, 'max-h-48 text-sm', 'width')).toBe(false)
-  expect(panelHasCallerConstraint(undefined, 'max-w-56 text-sm', 'width')).toBe(true)
-  expect(panelHasCallerConstraint(undefined, 'max-w-56 text-sm', 'height')).toBe(false)
-  expect(panelHasCallerConstraint(undefined, 'rounded-lg bg-black/80', 'height')).toBe(false)
-  expect(panelHasCallerConstraint(undefined, 'rounded-lg bg-black/80', 'width')).toBe(false)
+test('detects ordinary caller class constraints from their computed-style effect', () => {
+  expect(panelHasCallerConstraint(undefined, 'compact-panel', '192px', '584px')).toBe(true)
+  expect(panelHasCallerConstraint(undefined, 'compact-panel', '224px', '868px')).toBe(true)
+  expect(panelHasCallerConstraint(undefined, 'rounded-lg', '584px', '584px')).toBe(false)
+  expect(panelHasCallerConstraint(undefined, undefined, '584px', 'none')).toBe(false)
 })
 
-test('detects variant, important, arbitrary, and inline fixed panel constraints', () => {
-  expect(panelHasCallerConstraint(undefined, 'md:max-h-48', 'height')).toBe(true)
-  expect(panelHasCallerConstraint(undefined, 'hover:!max-w-56', 'width')).toBe(true)
-  expect(panelHasCallerConstraint(undefined, '[max-height:12rem]', 'height')).toBe(true)
-  expect(panelHasCallerConstraint(undefined, 'lg:[max-width:24rem]', 'width')).toBe(true)
-  expect(panelHasCallerConstraint(320, undefined, 'width')).toBe(true)
-  expect(panelHasCallerConstraint('12rem', undefined, 'height')).toBe(true)
+test('keeps inline constraints authoritative and removes only caller classes for a baseline', () => {
+  expect(panelHasCallerConstraint(320, undefined, '320px', 'none')).toBe(true)
+  expect(panelHasCallerConstraint('12rem', undefined, '192px', 'none')).toBe(true)
+  expect(
+    withoutCallerClassNames(
+      'relative max-h-[calc(100dvh-1rem)] compact-panel rounded-lg',
+      'compact-panel rounded-lg',
+    ),
+  ).toBe('relative max-h-[calc(100dvh-1rem)]')
+})
+
+test('recomputes an explicit floating corner from live panel and boundary geometry', () => {
+  expect(
+    resolveFloatingCornerLayout(
+      {
+        dock: null,
+        placement: { mode: 'floating', position: 'bottom-right' },
+        x: 24,
+        y: 32,
+      },
+      { height: 80, width: 100 },
+      rect(50, 20, 500, 300),
+    ),
+  ).toEqual({
+    dock: null,
+    placement: { mode: 'floating', position: 'bottom-right' },
+    x: 434,
+    y: 224,
+  })
+  expect(
+    resolveFloatingCornerLayout(
+      { dock: null, placement: { mode: 'floating' }, x: 24, y: 32 },
+      { height: 80, width: 100 },
+      rect(50, 20, 500, 300),
+    ),
+  ).toEqual({ dock: null, placement: { mode: 'floating' }, x: 24, y: 32 })
 })
 
 test('removes only retracted fixed panels from peer snapping', () => {

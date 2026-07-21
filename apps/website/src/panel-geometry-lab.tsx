@@ -29,6 +29,9 @@ const bottomCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-bott
 const bottomDragPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-drag' })
 const fixedBoundaryPanelStore = createTweakerPanelStore({ panelId: 'geometry-fixed-boundary' })
 const fixedOverridePanelStore = createTweakerPanelStore({ panelId: 'geometry-fixed-override' })
+const reviewRegressionPanelStore = createTweakerPanelStore({
+  panelId: 'geometry-review-regression',
+})
 
 const fixedPositions = [
   'top-left',
@@ -44,6 +47,9 @@ export function PanelGeometryLab() {
 
   if (fixture === 'fixed-boundaries') {
     return <FixedBoundaryFixture />
+  }
+  if (fixture === 'review-regressions') {
+    return <ReviewRegressionFixture />
   }
 
   return (
@@ -70,6 +76,64 @@ export function PanelGeometryLab() {
         {fixture === 'bottom-drag' ? <BottomDragFixture /> : null}
       </TweakerProvider>
     </main>
+  )
+}
+
+function ReviewRegressionFixture() {
+  const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null)
+
+  return (
+    <main
+      id="main-content"
+      className="dark bg-background text-foreground min-h-svh"
+      data-panel-geometry-lab
+      data-product-route="panel-geometry-lab"
+    >
+      <style>{`.review-panel-constraint { max-height: 180px; max-width: 220px; }`}</style>
+      <div
+        ref={setPortalContainer}
+        className="fixed inset-0 overflow-auto"
+        data-geometry-scroll-portal
+      >
+        <div className="h-[1200px] w-px" aria-hidden="true" />
+        {portalContainer ? (
+          <TweakerProvider persistLayout={false} portalContainer={portalContainer} theme="dark">
+            <ReviewRegressionControls />
+            <TweakerPanel
+              store={reviewRegressionPanelStore}
+              title="Review regression"
+              width={320}
+              className="review-panel-constraint"
+              collapsible
+              defaultPlacement={{ mode: 'fixed', position: 'left' }}
+              data-geometry-fixture="review-regression"
+            >
+              <TallContent prefix="review-regression" count={24} />
+            </TweakerPanel>
+          </TweakerProvider>
+        ) : null}
+      </div>
+    </main>
+  )
+}
+
+function ReviewRegressionControls() {
+  const panel = useTweakerPanel('geometry-review-regression')
+  return (
+    <>
+      <button
+        type="button"
+        className="fixed top-2 left-1/2 z-50 -translate-x-1/2 rounded bg-black px-3 py-2 text-xs"
+        onClick={() => panel?.setPlacement({ mode: 'floating', position: 'bottom-right' })}
+      >
+        Float bottom-right
+      </button>
+      <output data-review-regression-placement hidden>
+        {panel
+          ? `${panel.placement.mode}:${'position' in panel.placement ? (panel.placement.position ?? '') : ''}`
+          : 'unregistered'}
+      </output>
+    </>
   )
 }
 

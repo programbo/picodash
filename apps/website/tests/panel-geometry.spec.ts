@@ -294,6 +294,51 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   expect((await requiredBox(pinnedEnd)).y).toBe(initialPinned.end)
 })
 
+test('handles deferred corners, ordinary class constraints, and viewport panels in a scrolling portal', async ({
+  page,
+}) => {
+  await page.goto('/panel-geometry-lab?fixture=review-regressions')
+  const panel = geometryPanel(page, 'review-regression')
+  const portal = page.locator('[data-geometry-scroll-portal]')
+  const shell = page.locator('[data-tweaker-panel-shell]').filter({ has: panel })
+
+  await expect.poll(async () => (await requiredBox(panel)).width).toBe(220)
+  await expect.poll(async () => (await requiredBox(panel)).height).toBe(180)
+  await expect(panel).toHaveCSS('max-width', '220px')
+  await expect(panel).toHaveCSS('max-height', '180px')
+  const initial = await requiredBox(panel)
+
+  await portal.evaluate((element) => {
+    element.scrollTop = 160
+    element.dispatchEvent(new Event('scroll'))
+  })
+  await expect.poll(() => portal.evaluate((element) => element.scrollTop)).toBe(160)
+  await expect
+    .poll(async () => {
+      const current = await requiredBox(panel)
+      return { x: Math.round(current.x), y: Math.round(current.y) }
+    })
+    .toEqual({ x: Math.round(initial.x), y: Math.round(initial.y) })
+
+  await shell.locator('[data-tweaker-fixed-toggle]').click()
+  await expect(panel).toHaveAttribute('data-collapsed', 'true')
+  await page.waitForTimeout(250)
+  await page.getByRole('button', { name: 'Float bottom-right' }).click()
+  await expect(page.locator('[data-review-regression-placement]')).toHaveText(
+    'floating:bottom-right',
+  )
+  await expect(shell).not.toHaveAttribute('data-fixed-placement')
+  await expect
+    .poll(async () => {
+      const box = await requiredBox(panel)
+      return {
+        bottom: Math.round(600 - box.y - box.height),
+        right: Math.round(900 - box.x - box.width),
+      }
+    })
+    .toEqual({ bottom: defaultPlacementInset, right: defaultPlacementInset })
+})
+
 test('retracts every fixed placement while preserving its reopening control', async ({ page }) => {
   await page.goto('/panel-geometry-lab?fixture=fixed-boundaries')
   const boundary = page.locator('[data-geometry-boundary="provider"]')
