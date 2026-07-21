@@ -652,15 +652,30 @@ function useResolvedPanelBoundary(
     synchronize()
     const requestedBoundary = boundary === undefined ? providerBoundary : boundary
     let frame: number | null = null
+    let observer: MutationObserver | null = null
     if (requestedBoundary && 'current' in requestedBoundary) {
-      const trackBoundaryRef = () => {
+      const pollUnresolvedBoundary = () => {
+        frame = null
         synchronize()
-        frame = requestAnimationFrame(trackBoundaryRef)
+        if (requestedBoundary.current === null) {
+          frame = requestAnimationFrame(pollUnresolvedBoundary)
+        }
       }
-      frame = requestAnimationFrame(trackBoundaryRef)
+      const ensureUnresolvedBoundaryPolling = () => {
+        if (requestedBoundary.current === null && frame === null) {
+          frame = requestAnimationFrame(pollUnresolvedBoundary)
+        }
+      }
+      observer = new MutationObserver(() => {
+        synchronize()
+        ensureUnresolvedBoundaryPolling()
+      })
+      observer.observe(document.documentElement, { childList: true, subtree: true })
+      ensureUnresolvedBoundaryPolling()
     }
     return () => {
       if (frame !== null) cancelAnimationFrame(frame)
+      observer?.disconnect()
     }
   }, [boundary, providerBoundary])
 

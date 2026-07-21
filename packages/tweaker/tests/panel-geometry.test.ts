@@ -284,10 +284,22 @@ describe('boundary width constraints', () => {
   })
 })
 
-test('measures class-based fixed panel constraints without requiring inline styles', () => {
-  expect(panelHasCallerConstraint(undefined, 'max-h-48 max-w-56')).toBe(true)
-  expect(panelHasCallerConstraint(undefined, '  ')).toBe(false)
-  expect(panelHasCallerConstraint(320, undefined)).toBe(true)
+test('detects caller constraints only on the requested fixed panel axis', () => {
+  expect(panelHasCallerConstraint(undefined, 'max-h-48 text-sm', 'height')).toBe(true)
+  expect(panelHasCallerConstraint(undefined, 'max-h-48 text-sm', 'width')).toBe(false)
+  expect(panelHasCallerConstraint(undefined, 'max-w-56 text-sm', 'width')).toBe(true)
+  expect(panelHasCallerConstraint(undefined, 'max-w-56 text-sm', 'height')).toBe(false)
+  expect(panelHasCallerConstraint(undefined, 'rounded-lg bg-black/80', 'height')).toBe(false)
+  expect(panelHasCallerConstraint(undefined, 'rounded-lg bg-black/80', 'width')).toBe(false)
+})
+
+test('detects variant, important, arbitrary, and inline fixed panel constraints', () => {
+  expect(panelHasCallerConstraint(undefined, 'md:max-h-48', 'height')).toBe(true)
+  expect(panelHasCallerConstraint(undefined, 'hover:!max-w-56', 'width')).toBe(true)
+  expect(panelHasCallerConstraint(undefined, '[max-height:12rem]', 'height')).toBe(true)
+  expect(panelHasCallerConstraint(undefined, 'lg:[max-width:24rem]', 'width')).toBe(true)
+  expect(panelHasCallerConstraint(320, undefined, 'width')).toBe(true)
+  expect(panelHasCallerConstraint('12rem', undefined, 'height')).toBe(true)
 })
 
 test('removes only retracted fixed panels from peer snapping', () => {

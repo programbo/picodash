@@ -43,8 +43,16 @@ export function panelUsesBottomConstraint({
 export function panelHasCallerConstraint(
   inlineConstraint: MotionStyle['maxHeight'] | MotionStyle['maxWidth'] | undefined,
   constraintClassName: string | undefined,
+  axis: 'height' | 'width',
 ) {
-  return inlineConstraint !== undefined || Boolean(constraintClassName?.trim())
+  if (inlineConstraint !== undefined) return true
+  if (!constraintClassName) return false
+
+  const utilityPattern =
+    axis === 'height'
+      ? /(?:^|:)!?max-h-|(?:^|:)!?\[max-height:/
+      : /(?:^|:)!?max-w-|(?:^|:)!?\[max-width:/
+  return constraintClassName.split(/\s+/).some((className) => utilityPattern.test(className))
 }
 
 export function nonFixedPanelMaxWidthForBoundary(boundaryWidth: number, callerMaxWidth: number) {
@@ -242,10 +250,18 @@ export function usePanelLayoutSynchronization({
     const containerRect = rectForPanelBoundary(boundaryElement)
 
     if (placement.mode === 'fixed') {
-      const measuredCallerMaxHeight = panelHasCallerConstraint(callerMaxHeight, constraintClassName)
+      const measuredCallerMaxHeight = panelHasCallerConstraint(
+        callerMaxHeight,
+        constraintClassName,
+        'height',
+      )
         ? measureCallerMaxHeight()
         : Number.POSITIVE_INFINITY
-      const measuredCallerMaxWidth = panelHasCallerConstraint(callerMaxWidth, constraintClassName)
+      const measuredCallerMaxWidth = panelHasCallerConstraint(
+        callerMaxWidth,
+        constraintClassName,
+        'width',
+      )
         ? measureCallerMaxWidth()
         : Number.POSITIVE_INFINITY
       const appliedMaxHeight = Math.min(containerRect.height, measuredCallerMaxHeight)
