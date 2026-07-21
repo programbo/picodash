@@ -34,6 +34,13 @@ const componentFamilies = [
   'xy',
 ]
 
+test('resolves the shadcn stylesheet through its package', () => {
+  const styles = readFileSync(stylesPath, 'utf8')
+
+  expect(styles).toContain("@import 'shadcn/tailwind.css'")
+  expect(styles).not.toContain('node_modules/shadcn')
+})
+
 test('keeps the public theme contract declared, used, documented, and semantic', () => {
   const sourceFiles = filesBelow(sourceDirectory).filter((path) =>
     ['.css', '.ts', '.tsx'].includes(extname(path)),

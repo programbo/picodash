@@ -1,5 +1,14 @@
+import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/postcss'
+import { parse, type Parser } from 'postcss'
 import { defineConfig } from 'vite-plus'
+
+const shadcnStylesheet = fileURLToPath(import.meta.resolve('shadcn/tailwind.css')).replaceAll(
+  '\\',
+  '/',
+)
+const resolveShadcnStylesheet: Parser = (css, options) =>
+  parse(css.toString().replaceAll("'shadcn/tailwind.css'", `'${shadcnStylesheet}'`), options)
 
 export default defineConfig({
   pack: {
@@ -7,6 +16,7 @@ export default defineConfig({
     css: {
       transformer: 'postcss',
       postcss: {
+        parser: resolveShadcnStylesheet,
         plugins: [tailwindcss()],
       },
     },
