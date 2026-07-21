@@ -3,6 +3,7 @@ import bash from 'highlight.js/lib/languages/bash'
 import typescript from 'highlight.js/lib/languages/typescript'
 import { Check, Copy } from 'lucide-react'
 import { useState } from 'react'
+import { GuideSideNav } from '@/guide-side-nav'
 import { cn } from '@/lib/utils'
 
 hljs.registerLanguage('bash', bash)
@@ -241,33 +242,16 @@ const guideLinks = [
 export function UsageGuide() {
   return (
     <div
-      className="max-h-[calc(100svh-15rem)] min-w-0 overflow-y-auto overscroll-contain"
+      className="max-h-[calc(100svh-15rem)] min-w-0 overflow-y-auto overscroll-contain scroll-smooth motion-reduce:scroll-auto"
       data-usage-guide
     >
       <div className="mx-auto grid max-w-5xl gap-8 p-4 sm:p-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10 lg:p-8">
-        <aside className="lg:sticky lg:top-8 lg:self-start">
-          <p className="font-mono text-[11px] tracking-widest text-amber-200 uppercase">Usage</p>
-          <nav aria-label="Usage guide steps" className="mt-4">
-            <ol className="grid gap-px border border-white/10 bg-white/10">
-              {guideLinks.map((link, index) => (
-                <li key={link.href}>
-                  <a
-                    className="group flex gap-3 bg-zinc-950 px-3 py-2.5 text-xs leading-5 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:outline-none"
-                    href={link.href}
-                  >
-                    <span className="font-mono text-amber-200/70">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <span>{link.label}</span>
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </nav>
-          <p className="mt-4 text-xs leading-5 text-zinc-500">
-            Examples use React, TypeScript, and an application-owned panel store.
-          </p>
-        </aside>
+        <GuideSideNav
+          ariaLabel="Usage guide steps"
+          description="Examples use React, TypeScript, and an application-owned panel store."
+          links={guideLinks}
+          title="Usage"
+        />
 
         <article className="min-w-0">
           <header className="border-b border-white/10 pb-8">
@@ -487,7 +471,7 @@ function GuideStep({
 }) {
   return (
     <section className="scroll-mt-6 py-9 first:pt-8" id={id}>
-      <div className="grid gap-4 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
+      <div className="grid items-baseline gap-4 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
         <span className="font-mono text-xs text-amber-200/70">{number}</span>
         <div className="min-w-0">
           <h2 className="text-lg font-medium text-zinc-100">{title}</h2>

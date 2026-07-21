@@ -26,7 +26,9 @@ import {
 } from '@/built-in-items-panel'
 import { shadcnChartTypes } from '@/custom-items/shadcn-chart'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { GuideSideNav } from '@/guide-side-nav'
 import { cn } from '@/lib/utils'
+import { MoreExamples } from '@/more-examples'
 import { UsageGuide } from '@/usage-guide'
 
 hljs.registerLanguage('typescript', typescript)
@@ -748,7 +750,7 @@ export function InteractiveJsxExample({
   const [showAllProps, setShowAllProps] = useState(false)
   const panelState = useTweakerPanelStoreSelector(builtInItemsPanelStore, (state) => state)
   const panelStoreSnapshot = useMemo(() => snapshotForDisplay(panelState), [panelState])
-  const codeViewportRef = useRef<HTMLPreElement>(null)
+  const codeViewportRef = useRef<HTMLDivElement>(null)
   const declarationRefs = useRef(new Map<string, HTMLElement>())
   const focusedField = panelState.interaction.focusedId
 
@@ -837,6 +839,17 @@ export function InteractiveJsxExample({
     updateNumberConfig,
     updateStringConfig,
   )
+  const codeComponentLinks = [
+    ...commonInputLines,
+    ...remainingGroups.flatMap((group) => group.lines),
+  ].map((line) => {
+    const controlId = controlIdForLine(line)
+    return {
+      component: line.name.replace(/^Tweaker/, ''),
+      field: controlId,
+      href: `#code-${controlId}`,
+    }
+  })
 
   const copySource = async () => {
     try {
@@ -864,29 +877,36 @@ export function InteractiveJsxExample({
           <div className="flex flex-col gap-2 border-b border-white/10 bg-white/4 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <TabsList
               aria-label="Interactive example views"
-              className="h-7 gap-4 rounded-none p-0"
+              className="h-7 gap-2 rounded-none p-0 sm:gap-4"
               variant="line"
             >
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-xs text-zinc-400 data-active:text-cyan-200"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-cyan-200 sm:text-xs"
                 value="code"
               >
                 <span className="size-2 bg-cyan-300" />
                 Code
               </TabsTrigger>
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-xs text-zinc-400 data-active:text-violet-200"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-violet-200 sm:text-xs"
                 value="store"
               >
                 <span className="size-2 bg-violet-300" />
                 Store
               </TabsTrigger>
               <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-xs text-zinc-400 data-active:text-amber-200"
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-amber-200 sm:text-xs"
                 value="usage"
               >
                 <span className="size-2 bg-amber-200" />
                 Usage
+              </TabsTrigger>
+              <TabsTrigger
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-active:text-amber-200 sm:text-xs"
+                value="more-examples"
+              >
+                <span className="size-2 bg-amber-200" />
+                More examples
               </TabsTrigger>
             </TabsList>
             {activeTab === 'code' ? (
@@ -936,200 +956,166 @@ export function InteractiveJsxExample({
           </div>
 
           <TabsContent className="min-h-0" value="code">
-            <pre
+            <div
               ref={codeViewportRef}
-              aria-label="Interactive JSX example"
-              className="max-h-[calc(100svh-15rem)] min-w-0 overflow-auto p-4 font-mono text-[13px] leading-7 text-zinc-300 sm:p-5 sm:text-sm"
+              className="max-h-[calc(100svh-15rem)] min-w-0 overflow-y-auto overscroll-contain scroll-smooth motion-reduce:scroll-auto"
+              data-code-guide
             >
-              <code className="block min-w-max">
-                <CodeLine>
-                  <Punctuation>&lt;</Punctuation>
-                  <Tag>TweakerProvider</Tag>
-                </CodeLine>
-                <CodeLine indent={1}>
-                  <Prop>persistLayout</Prop>
-                </CodeLine>
-                <CodeLine indent={1}>
-                  <Prop>storageKey</Prop>
-                  <Punctuation>=&quot;</Punctuation>
-                  <StringValue>tweaker-demo:panel-layout:v1</StringValue>
-                  <Punctuation>&quot;</Punctuation>
-                </CodeLine>
-                <CodeLine indent={1}>
-                  <Prop>theme</Prop>
-                  <Punctuation>=&quot;</Punctuation>
-                  <InlineSelect
-                    ariaLabel="Provider theme"
-                    value={providerTheme}
-                    values={['dark', 'light', 'ocean', 'plum']}
-                    onChange={onProviderThemeChange}
-                  />
-                  <Punctuation>&quot;</Punctuation>
-                </CodeLine>
-                <CodeLine>
-                  <Punctuation>&gt;</Punctuation>
-                </CodeLine>
-
-                <CodeLine indent={1}>
-                  <Punctuation>&lt;</Punctuation>
-                  <Tag>TweakerPanel</Tag>
-                </CodeLine>
-                <CodeLine indent={2}>
-                  <Prop>store</Prop>
-                  <Punctuation>=&#123;</Punctuation>
-                  <Expression
-                    actionLabel="Open live panel store"
-                    onActivate={() => setActiveTab('store')}
-                  >
-                    builtInItemsPanelStore
-                  </Expression>
-                  <Punctuation>&#125;</Punctuation>
-                </CodeLine>
-                <CodeLine indent={2}>
-                  <Prop>title</Prop>
-                  <Punctuation>=&quot;</Punctuation>
-                  <InlineText
-                    ariaLabel="Panel title"
-                    className="w-34 sm:w-40"
-                    value={config.panelTitle}
-                    onChange={(value) => updateConfig('panelTitle', value)}
-                  />
-                  <Punctuation>&quot;</Punctuation>
-                </CodeLine>
-                <CodeLine indent={2}>
-                  <Prop>collapsible</Prop>
-                  <Punctuation>=&#123;</Punctuation>
-                  <InlineBoolean
-                    ariaLabel="Panel collapsible"
-                    value={config.panelCollapsible}
-                    onChange={(value) => updateConfig('panelCollapsible', value)}
-                  />
-                  <Punctuation>&#125;</Punctuation>
-                </CodeLine>
-                <CodeLine indent={2}>
-                  <Prop>width</Prop>
-                  <Punctuation>=&#123;</Punctuation>
-                  <InlineNumber
-                    ariaLabel="Panel width"
-                    max={520}
-                    min={280}
-                    value={config.panelWidth}
-                    onChange={(value) => updateConfig('panelWidth', value)}
-                  />
-                  <Punctuation>&#125;</Punctuation>
-                </CodeLine>
-                {showAllProps ? (
-                  <>
-                    <CodeLine indent={2} muted>
-                      <Prop>defaultPlacement</Prop>
-                      <Punctuation>=&quot;</Punctuation>
-                      <StringValue>top-right</StringValue>
-                      <Punctuation>&quot;</Punctuation>
-                    </CodeLine>
-                    <CodeLine indent={2} muted>
-                      <Prop>className</Prop>
-                      <Punctuation>=&quot;</Punctuation>
-                      <StringValue>
-                        bg-tweaker-surface/72 top-4 right-4 max-w-[calc(100dvw-2rem)]
-                        backdrop-blur-xl lg:top-8 lg:right-8
-                      </StringValue>
-                      <Punctuation>&quot;</Punctuation>
-                    </CodeLine>
-                  </>
-                ) : null}
-                <CodeLine indent={1}>
-                  <Punctuation>&gt;</Punctuation>
-                </CodeLine>
-
-                <CodeLine indent={2}>
-                  <Punctuation>&lt;</Punctuation>
-                  <Tag>TweakerGroup</Tag> <Prop>id</Prop>
-                  <Punctuation>=&quot;</Punctuation>
-                  <StringValue>common-items</StringValue>
-                  <Punctuation>&quot;</Punctuation>
-                </CodeLine>
-                <CodeLine indent={3}>
-                  <Prop>label</Prop>
-                  <Punctuation>=&quot;</Punctuation>
-                  <InlineText
-                    ariaLabel="Common inputs group label"
-                    className="w-30 sm:w-36"
-                    value={config.commonGroupLabel}
-                    onChange={(value) => updateConfig('commonGroupLabel', value)}
-                  />
-                  <Punctuation>&quot;</Punctuation>
-                </CodeLine>
-                <CodeLine indent={3}>
-                  <Prop>reorderable</Prop>
-                  <Punctuation>=&#123;</Punctuation>
-                  <InlineBoolean
-                    ariaLabel="Common inputs group reorderable"
-                    value={config.commonGroupReorderable}
-                    onChange={(value) => updateConfig('commonGroupReorderable', value)}
-                  />
-                  <Punctuation>&#125;</Punctuation>
-                </CodeLine>
-                <HiddenGroupProps
-                  config={config.groupProps['common-items']}
-                  groupId="common-items"
-                  visible={showAllProps}
-                  onChange={updateGroupProp}
+              <div className="mx-auto grid max-w-5xl min-w-0 gap-8 p-4 sm:p-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10 lg:p-8">
+                <GuideSideNav
+                  ariaLabel="Code components"
+                  description="Jump to a live component declaration."
+                  links={codeComponentLinks.map((link) => ({
+                    href: link.href,
+                    label: link.component,
+                    meta: link.field,
+                  }))}
+                  title="Components"
                 />
-                <CodeLine indent={2}>
-                  <Punctuation>&gt;</Punctuation>
-                </CodeLine>
 
-                {commonInputLines.map((line) => {
-                  const field = controlIdForLine(line)
-                  return (
-                    <StaticControlLine
-                      key={`${line.name}:${field}`}
-                      focused={panelState.interaction.focusedId === field}
-                      hovered={panelState.interaction.hoveredId === field}
-                      elementRef={(element) => {
-                        if (element) declarationRefs.current.set(field, element)
-                        else declarationRefs.current.delete(field)
-                      }}
-                      showAllProps={showAllProps}
-                      {...line}
-                    />
-                  )
-                })}
+                <pre
+                  aria-label="Interactive JSX example"
+                  className="min-w-0 overflow-x-auto font-mono text-[13px] leading-7 text-zinc-300 sm:text-sm"
+                >
+                  <code className="block min-w-max">
+                    <CodeLine>
+                      <Punctuation>&lt;</Punctuation>
+                      <Tag>TweakerProvider</Tag>
+                    </CodeLine>
+                    <CodeLine indent={1}>
+                      <Prop>persistLayout</Prop>
+                    </CodeLine>
+                    <CodeLine indent={1}>
+                      <Prop>storageKey</Prop>
+                      <Punctuation>=&quot;</Punctuation>
+                      <StringValue>tweaker-demo:panel-layout:v1</StringValue>
+                      <Punctuation>&quot;</Punctuation>
+                    </CodeLine>
+                    <CodeLine indent={1}>
+                      <Prop>theme</Prop>
+                      <Punctuation>=&quot;</Punctuation>
+                      <InlineSelect
+                        ariaLabel="Provider theme"
+                        value={providerTheme}
+                        values={['dark', 'light', 'ocean', 'plum']}
+                        onChange={onProviderThemeChange}
+                      />
+                      <Punctuation>&quot;</Punctuation>
+                    </CodeLine>
+                    <CodeLine>
+                      <Punctuation>&gt;</Punctuation>
+                    </CodeLine>
 
-                <CodeLine indent={2}>
-                  <Punctuation>&lt;/</Punctuation>
-                  <Tag>TweakerGroup</Tag>
-                  <Punctuation>&gt;</Punctuation>
-                </CodeLine>
+                    <CodeLine indent={1}>
+                      <Punctuation>&lt;</Punctuation>
+                      <Tag>TweakerPanel</Tag>
+                    </CodeLine>
+                    <CodeLine indent={2}>
+                      <Prop>store</Prop>
+                      <Punctuation>=&#123;</Punctuation>
+                      <Expression
+                        actionLabel="Open live panel store"
+                        onActivate={() => setActiveTab('store')}
+                      >
+                        builtInItemsPanelStore
+                      </Expression>
+                      <Punctuation>&#125;</Punctuation>
+                    </CodeLine>
+                    <CodeLine indent={2}>
+                      <Prop>title</Prop>
+                      <Punctuation>=&quot;</Punctuation>
+                      <InlineText
+                        ariaLabel="Panel title"
+                        className="w-34 sm:w-40"
+                        value={config.panelTitle}
+                        onChange={(value) => updateConfig('panelTitle', value)}
+                      />
+                      <Punctuation>&quot;</Punctuation>
+                    </CodeLine>
+                    <CodeLine indent={2}>
+                      <Prop>collapsible</Prop>
+                      <Punctuation>=&#123;</Punctuation>
+                      <InlineBoolean
+                        ariaLabel="Panel collapsible"
+                        value={config.panelCollapsible}
+                        onChange={(value) => updateConfig('panelCollapsible', value)}
+                      />
+                      <Punctuation>&#125;</Punctuation>
+                    </CodeLine>
+                    <CodeLine indent={2}>
+                      <Prop>width</Prop>
+                      <Punctuation>=&#123;</Punctuation>
+                      <InlineNumber
+                        ariaLabel="Panel width"
+                        max={520}
+                        min={280}
+                        value={config.panelWidth}
+                        onChange={(value) => updateConfig('panelWidth', value)}
+                      />
+                      <Punctuation>&#125;</Punctuation>
+                    </CodeLine>
+                    {showAllProps ? (
+                      <>
+                        <CodeLine indent={2} muted>
+                          <Prop>defaultPlacement</Prop>
+                          <Punctuation>=&quot;</Punctuation>
+                          <StringValue>top-right</StringValue>
+                          <Punctuation>&quot;</Punctuation>
+                        </CodeLine>
+                        <CodeLine indent={2} muted>
+                          <Prop>className</Prop>
+                          <Punctuation>=&quot;</Punctuation>
+                          <StringValue>
+                            bg-tweaker-surface/72 top-4 right-4 max-w-[calc(100dvw-2rem)]
+                            backdrop-blur-xl lg:top-8 lg:right-8
+                          </StringValue>
+                          <Punctuation>&quot;</Punctuation>
+                        </CodeLine>
+                      </>
+                    ) : null}
+                    <CodeLine indent={1}>
+                      <Punctuation>&gt;</Punctuation>
+                    </CodeLine>
 
-                {remainingGroups.map((group) => (
-                  <span key={group.id} className="block">
                     <CodeLine indent={2}>
                       <Punctuation>&lt;</Punctuation>
-                      <Tag>TweakerGroup</Tag>
-                    </CodeLine>
-                    <CodeLine indent={3}>
-                      <Prop>id</Prop>
+                      <Tag>TweakerGroup</Tag> <Prop>id</Prop>
                       <Punctuation>=&quot;</Punctuation>
-                      <StringValue>{group.id}</StringValue>
+                      <StringValue>common-items</StringValue>
                       <Punctuation>&quot;</Punctuation>
                     </CodeLine>
                     <CodeLine indent={3}>
                       <Prop>label</Prop>
                       <Punctuation>=&quot;</Punctuation>
-                      <StringValue>{group.label}</StringValue>
+                      <InlineText
+                        ariaLabel="Common inputs group label"
+                        className="w-30 sm:w-36"
+                        value={config.commonGroupLabel}
+                        onChange={(value) => updateConfig('commonGroupLabel', value)}
+                      />
                       <Punctuation>&quot;</Punctuation>
                     </CodeLine>
+                    <CodeLine indent={3}>
+                      <Prop>reorderable</Prop>
+                      <Punctuation>=&#123;</Punctuation>
+                      <InlineBoolean
+                        ariaLabel="Common inputs group reorderable"
+                        value={config.commonGroupReorderable}
+                        onChange={(value) => updateConfig('commonGroupReorderable', value)}
+                      />
+                      <Punctuation>&#125;</Punctuation>
+                    </CodeLine>
                     <HiddenGroupProps
-                      config={config.groupProps[group.id as BuiltInGroupId]}
-                      groupId={group.id as BuiltInGroupId}
+                      config={config.groupProps['common-items']}
+                      groupId="common-items"
                       visible={showAllProps}
                       onChange={updateGroupProp}
                     />
                     <CodeLine indent={2}>
                       <Punctuation>&gt;</Punctuation>
                     </CodeLine>
-                    {group.lines.map((line) => {
+
+                    {commonInputLines.map((line) => {
                       const field = controlIdForLine(line)
                       return (
                         <StaticControlLine
@@ -1145,25 +1131,77 @@ export function InteractiveJsxExample({
                         />
                       )
                     })}
+
                     <CodeLine indent={2}>
                       <Punctuation>&lt;/</Punctuation>
                       <Tag>TweakerGroup</Tag>
                       <Punctuation>&gt;</Punctuation>
                     </CodeLine>
-                  </span>
-                ))}
-                <CodeLine indent={1}>
-                  <Punctuation>&lt;/</Punctuation>
-                  <Tag>TweakerPanel</Tag>
-                  <Punctuation>&gt;</Punctuation>
-                </CodeLine>
-                <CodeLine>
-                  <Punctuation>&lt;/</Punctuation>
-                  <Tag>TweakerProvider</Tag>
-                  <Punctuation>&gt;</Punctuation>
-                </CodeLine>
-              </code>
-            </pre>
+
+                    {remainingGroups.map((group) => (
+                      <span key={group.id} className="block">
+                        <CodeLine indent={2}>
+                          <Punctuation>&lt;</Punctuation>
+                          <Tag>TweakerGroup</Tag>
+                        </CodeLine>
+                        <CodeLine indent={3}>
+                          <Prop>id</Prop>
+                          <Punctuation>=&quot;</Punctuation>
+                          <StringValue>{group.id}</StringValue>
+                          <Punctuation>&quot;</Punctuation>
+                        </CodeLine>
+                        <CodeLine indent={3}>
+                          <Prop>label</Prop>
+                          <Punctuation>=&quot;</Punctuation>
+                          <StringValue>{group.label}</StringValue>
+                          <Punctuation>&quot;</Punctuation>
+                        </CodeLine>
+                        <HiddenGroupProps
+                          config={config.groupProps[group.id as BuiltInGroupId]}
+                          groupId={group.id as BuiltInGroupId}
+                          visible={showAllProps}
+                          onChange={updateGroupProp}
+                        />
+                        <CodeLine indent={2}>
+                          <Punctuation>&gt;</Punctuation>
+                        </CodeLine>
+                        {group.lines.map((line) => {
+                          const field = controlIdForLine(line)
+                          return (
+                            <StaticControlLine
+                              key={`${line.name}:${field}`}
+                              focused={panelState.interaction.focusedId === field}
+                              hovered={panelState.interaction.hoveredId === field}
+                              elementRef={(element) => {
+                                if (element) declarationRefs.current.set(field, element)
+                                else declarationRefs.current.delete(field)
+                              }}
+                              showAllProps={showAllProps}
+                              {...line}
+                            />
+                          )
+                        })}
+                        <CodeLine indent={2}>
+                          <Punctuation>&lt;/</Punctuation>
+                          <Tag>TweakerGroup</Tag>
+                          <Punctuation>&gt;</Punctuation>
+                        </CodeLine>
+                      </span>
+                    ))}
+                    <CodeLine indent={1}>
+                      <Punctuation>&lt;/</Punctuation>
+                      <Tag>TweakerPanel</Tag>
+                      <Punctuation>&gt;</Punctuation>
+                    </CodeLine>
+                    <CodeLine>
+                      <Punctuation>&lt;/</Punctuation>
+                      <Tag>TweakerProvider</Tag>
+                      <Punctuation>&gt;</Punctuation>
+                    </CodeLine>
+                  </code>
+                </pre>
+              </div>
+            </div>
           </TabsContent>
           <TabsContent className="min-h-0" value="store">
             <div
@@ -1182,6 +1220,9 @@ export function InteractiveJsxExample({
           </TabsContent>
           <TabsContent className="min-h-0" value="usage">
             <UsageGuide />
+          </TabsContent>
+          <TabsContent className="min-h-0" value="more-examples">
+            <MoreExamples />
           </TabsContent>
         </Tabs>
       </div>
@@ -1301,17 +1342,19 @@ function StaticControlLine({
   const displayedProps = Object.entries(propsForLine({ controlId, name, props })).filter(
     ([, value]) => showAllProps || !value.hidden,
   )
+  const resolvedControlId = String(controlId ?? props.field?.value ?? props.id?.value ?? name)
 
   return (
     <span
       ref={elementRef}
+      id={`code-${resolvedControlId}`}
       className={cn(
         '-mx-2 block border-l-2 border-transparent px-2 transition-[background-color,border-color,box-shadow] duration-150',
         hovered && 'border-cyan-300/45 bg-cyan-300/8',
         focused &&
           'border-cyan-200 bg-cyan-300/12 ring-1 ring-cyan-200/55 ring-inset shadow-[0_0_24px_rgb(34_211_238_/_0.08)]',
       )}
-      data-jsx-control={String(controlId ?? props.field?.value ?? props.id?.value ?? name)}
+      data-jsx-control={resolvedControlId}
       data-jsx-focused={focused ? 'true' : 'false'}
       data-jsx-hovered={hovered ? 'true' : 'false'}
     >
