@@ -77,8 +77,13 @@ export function resolveFloatingCornerLayout(
   }
 }
 
-export function nonFixedPanelMaxWidthForBoundary(boundaryWidth: number, callerMaxWidth: number) {
-  return panelMaxWidthForBoundary(boundaryWidth - SNAP_GAP * 2, callerMaxWidth)
+export function nonFixedPanelMaxWidthForBoundary(
+  boundaryWidth: number,
+  callerMaxWidth: number,
+  placement: Exclude<TweakerPanelPlacement, { mode: 'fixed' }>,
+) {
+  const inset = placement.mode === 'floating' ? FLOATING_PLACEMENT_INSET : SNAP_GAP
+  return panelMaxWidthForBoundary(boundaryWidth - inset * 2, callerMaxWidth)
 }
 
 export function usePanelLayoutSynchronization({
@@ -334,6 +339,7 @@ export function usePanelLayoutSynchronization({
     const appliedMaxWidth = nonFixedPanelMaxWidthForBoundary(
       containerRect.width,
       measureCallerMaxWidth(containerRect),
+      placement,
     )
     if (appliedMaxWidthRef.current !== appliedMaxWidth) {
       appliedMaxWidthRef.current = appliedMaxWidth

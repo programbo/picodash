@@ -280,9 +280,25 @@ describe('boundary width constraints', () => {
     expect(panelMaxWidthForBoundary(480, 220)).toBe(220)
   })
 
-  test('reserves both safe insets for a non-fixed panel', () => {
-    expect(nonFixedPanelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY)).toBe(224)
-    expect(nonFixedPanelMaxWidthForBoundary(240, 200)).toBe(200)
+  test('reserves placement-specific insets for a non-fixed panel', () => {
+    expect(
+      nonFixedPanelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY, {
+        mode: 'floating',
+        position: 'top-left',
+      }),
+    ).toBe(208)
+    expect(
+      nonFixedPanelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY, {
+        mode: 'magnetic',
+        position: 'left',
+      }),
+    ).toBe(224)
+    expect(
+      nonFixedPanelMaxWidthForBoundary(240, 200, {
+        mode: 'floating',
+        position: 'top-left',
+      }),
+    ).toBe(200)
   })
 })
 
