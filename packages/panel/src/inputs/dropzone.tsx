@@ -203,13 +203,31 @@ function fileId(file: Pick<File, 'lastModified' | 'name' | 'size'>) {
 }
 
 function cleanId(value: string | undefined) {
-  return typeof value === 'string'
-    ? value
-        .trim()
-        .toLowerCase()
-        .replaceAll(/[^a-z0-9_-]+/g, '-')
-        .replaceAll(/^-+|-+$/g, '')
-    : ''
+  if (typeof value !== 'string') return ''
+
+  let result = ''
+  let hasSeparator = false
+  for (const character of value.trim().toLowerCase()) {
+    const code = character.charCodeAt(0)
+    const isAllowed =
+      (code >= 48 && code <= 57) ||
+      (code >= 97 && code <= 122) ||
+      character === '_' ||
+      character === '-'
+    if (isAllowed) {
+      result += character
+      hasSeparator = false
+    } else if (result && !hasSeparator) {
+      result += '-'
+      hasSeparator = true
+    }
+  }
+
+  let start = 0
+  let end = result.length
+  while (result.charCodeAt(start) === 45) start += 1
+  while (result.charCodeAt(end - 1) === 45) end -= 1
+  return result.slice(start, end)
 }
 
 function nonNegativeFinite(value: unknown) {

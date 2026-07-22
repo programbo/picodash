@@ -486,6 +486,12 @@ test('derives import formats and sanitized export filenames', () => {
   expect(() => picodashPanelDocumentFormatFromFilename('scene.txt')).toThrow(/\.json/)
   expect(picodashPanelDocumentFilename(' Scene / Controls ', 'json')).toBe('Scene-Controls.json')
   expect(picodashPanelDocumentFilename('../', 'yaml')).toBe('panel.yaml')
+  expect(picodashPanelDocumentFilename('---scene...controls---', 'json')).toBe(
+    'scene...controls.json',
+  )
+  expect(picodashPanelDocumentFilename('scene' + 'x'.repeat(100_000), 'json')).toBe(
+    `scene${'x'.repeat(100_000)}.json`,
+  )
 })
 
 function registerGroup(

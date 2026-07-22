@@ -237,12 +237,36 @@ export function picodashPanelDocumentFilename(
   panelId: string,
   format: PicodashPanelDocumentFormat,
 ) {
-  const sanitizedPanelId =
-    panelId
-      .trim()
-      .replaceAll(/[^a-zA-Z0-9._-]+/g, '-')
-      .replaceAll(/^[._-]+|[._-]+$/g, '') || 'panel'
+  let sanitizedPanelId = ''
+  let hasSeparator = false
+  for (const character of panelId.trim()) {
+    const code = character.charCodeAt(0)
+    const isAllowed =
+      (code >= 48 && code <= 57) ||
+      (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122) ||
+      character === '.' ||
+      character === '_' ||
+      character === '-'
+    if (isAllowed) {
+      sanitizedPanelId += character
+      hasSeparator = false
+    } else if (sanitizedPanelId && !hasSeparator) {
+      sanitizedPanelId += '-'
+      hasSeparator = true
+    }
+  }
+  let start = 0
+  let end = sanitizedPanelId.length
+  while (isFilenameBoundary(sanitizedPanelId.charAt(start))) start += 1
+  while (isFilenameBoundary(sanitizedPanelId.charAt(end - 1))) end -= 1
+  sanitizedPanelId = sanitizedPanelId.slice(start, end)
+  if (!sanitizedPanelId) sanitizedPanelId = 'panel'
   return `${sanitizedPanelId}.${format}`
+}
+
+function isFilenameBoundary(character: string) {
+  return character === '.' || character === '_' || character === '-'
 }
 
 export function picodashPanelDocumentMimeType(format: PicodashPanelDocumentFormat) {
