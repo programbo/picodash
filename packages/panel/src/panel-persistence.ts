@@ -5,6 +5,13 @@ import type { PicodashPersistedState } from './picodash-provider.js'
 export const panelLayoutStorageKey = 'picodash-panel:provider-layout:v1'
 export const legacyPanelLayoutStorageKey = 'tweaker-panel:provider-layout:v1'
 
+const legacyPanelLayoutStorageKeys = new Map([
+  [panelLayoutStorageKey, legacyPanelLayoutStorageKey],
+  ['picodash-demo:panel-layout:v1', 'tweaker-demo:panel-layout:v1'],
+  ['picodash-geometry-lab:panel-layout:v1', 'tweaker-geometry-lab:panel-layout:v1'],
+  ['picodash-geometry-lab:fixed-boundaries:v1', 'tweaker-geometry-lab:fixed-boundaries:v1'],
+])
+
 const panelPositionSchema = z.object({
   dock: z
     .object({
@@ -61,8 +68,8 @@ export function createValidatedPanelPersistStorage(): PersistStorage<PicodashPer
       if (typeof window === 'undefined') return null
 
       try {
-        const storageKeys =
-          name === panelLayoutStorageKey ? [name, legacyPanelLayoutStorageKey] : [name]
+        const legacyStorageKey = legacyPanelLayoutStorageKeys.get(name)
+        const storageKeys = legacyStorageKey ? [name, legacyStorageKey] : [name]
         for (const storageKey of storageKeys) {
           const raw = window.localStorage.getItem(storageKey)
           if (!raw) continue

@@ -45,6 +45,22 @@ test('migrates provider layouts from the retired storage key', () => {
   expect(storage.getItem(panelLayoutStorageKey)).toBeTruthy()
 })
 
+test('migrates custom demo layouts from the retired storage key', () => {
+  const storage = installFakeLocalStorage()
+  storage.setItem(
+    'tweaker-demo:panel-layout:v1',
+    JSON.stringify({
+      state: { panelLayouts: { scene: { x: 48, y: 64 } } },
+      version: 0,
+    }),
+  )
+
+  const store = createPicodashStore({ storageKey: 'picodash-demo:panel-layout:v1' })
+
+  expect(store.getState().panelLayouts.scene).toEqual({ dock: null, x: 48, y: 64 })
+  expect(storage.getItem('picodash-demo:panel-layout:v1')).toBeTruthy()
+})
+
 test('can disable provider layout persistence without accessing local storage', () => {
   let accesses = 0
   Object.defineProperty(globalThis, 'window', {
