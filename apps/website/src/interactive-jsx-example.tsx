@@ -1781,7 +1781,7 @@ function HelpExpression({ children, component }: { children: ReactNode; componen
         {children}
       </span>
       <Tooltip
-        className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text z-50 max-h-96 w-[42rem] max-w-[calc(100vw-2rem)] overflow-auto border px-(--tweaker-space-3) py-(--tweaker-space-2-5) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) shadow-[0_10px_15px_-3px_rgb(0_0_0/0.25),0_4px_6px_-4px_rgb(0_0_0/0.25)] outline-none"
+        className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text z-50 max-h-96 w-max max-w-[calc(100vw-2rem)] overflow-auto border px-(--tweaker-space-3) py-(--tweaker-space-2-5) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) shadow-[0_10px_15px_-3px_rgb(0_0_0/0.25),0_4px_6px_-4px_rgb(0_0_0/0.25)] outline-none"
         data-jsx-prop-type-tooltip={component}
         data-tweaker-theme="dark"
         offset={8}

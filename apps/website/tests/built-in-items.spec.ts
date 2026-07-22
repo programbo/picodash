@@ -287,10 +287,9 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
   await expect(propTypeTooltip).toContainText('// TweakerNumber')
   await expect(propTypeTooltip).toContainText('type TweakerNumberProps = {')
   await expect(propTypeTooltip).toContainText('field: string')
+  await expect(propTypeTooltip.locator('code')).toHaveCSS('white-space', 'pre')
+  await expect(propTypeTooltip.locator('.hljs-comment')).toHaveText('// TweakerNumber')
   await expect(propTypeTooltip.locator('.hljs-keyword').first()).toContainText('type')
-  await expect
-    .poll(async () => (await propTypeTooltip.boundingBox())?.width ?? 0)
-    .toBeGreaterThan(500)
   await page.keyboard.press('Escape')
   await showAllProps.uncheck()
   await expect(hiddenContentLayout).toHaveCount(0)
