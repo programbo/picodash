@@ -382,12 +382,16 @@ test('retracts every fixed placement while preserving its reopening control', as
     await expectPanelAtBoundary(panel, boundary, position)
     await expect(toggle).toHaveAccessibleName('Collapse panel Provider boundary')
     await expect(toggle.locator('svg')).toHaveClass(expandedArrowClass(position))
+    await movePointerOutside(page, toggle)
+    await expect(toggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 
     await toggle.click()
 
     await expect(panel).toHaveAttribute('data-collapsed', 'true')
     await expect(toggle).toHaveAccessibleName('Expand panel Provider boundary')
     await expect(toggle.locator('svg')).toHaveClass(collapsedArrowClass(position))
+    await movePointerOutside(page, toggle)
+    await expect(toggle).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
     await expectCollapsedPanelBeyondBoundary(panel, boundary, position)
     await expectToggleAtBoundaryCorner(toggle, boundary, position)
 
@@ -395,6 +399,8 @@ test('retracts every fixed placement while preserving its reopening control', as
 
     await expect(panel).toHaveAttribute('data-collapsed', 'false')
     await expect(toggle).toHaveAccessibleName('Collapse panel Provider boundary')
+    await movePointerOutside(page, toggle)
+    await expect(toggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
     await expectPanelAtBoundary(panel, boundary, position)
   }
 })
@@ -546,6 +552,17 @@ async function requiredBox(locator: Locator) {
   const box = await locator.boundingBox()
   expect(box).not.toBeNull()
   return box!
+}
+
+async function movePointerOutside(page: Page, locator: Locator) {
+  const box = await requiredBox(locator)
+  const viewport = page.viewportSize()
+  if (!viewport) throw new Error('Expected a viewport for pointer positioning')
+
+  await page.mouse.move(
+    box.x + box.width / 2 < viewport.width / 2 ? viewport.width - 1 : 0,
+    box.y + box.height / 2 < viewport.height / 2 ? viewport.height - 1 : 0,
+  )
 }
 
 async function expectTop(panel: Locator, expectedTop: number) {

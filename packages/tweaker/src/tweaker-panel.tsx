@@ -607,6 +607,9 @@ function FixedPanelToggle({
         buttonVariants({ size: 'icon', variant: 'ghost' }),
         'pointer-events-auto absolute z-10 size-(--tweaker-control-height-md) shrink-0 text-tweaker-muted',
         'transition-[background-color,color] motion-reduce:transition-none',
+        collapsed
+          ? 'border-tweaker-border bg-tweaker-surface-raised/90 shadow-tweaker-sm backdrop-blur-md'
+          : 'bg-transparent! hover:bg-tweaker-surface-muted!',
         fixedTogglePositionClassName(position, collapsed),
       )}
       data-tweaker-fixed-toggle=""
