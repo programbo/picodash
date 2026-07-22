@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, expect, test } from 'vite-plus/test'
 import { createValidatedPanelPersistStorage } from '../src/panel-persistence.ts'
 import { createTweakerStore, TweakerProvider } from '../src/tweaker-provider.tsx'
+import { installFakeLocalStorage } from './helpers.ts'
 
 const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
 
@@ -95,35 +96,4 @@ function renderProvider(theme: 'dark' | 'light' | 'system') {
       theme,
     }),
   )
-}
-
-function installFakeLocalStorage() {
-  const values = new Map<string, string>()
-  const storage = {
-    clear() {
-      values.clear()
-    },
-    getItem(key: string) {
-      return values.get(key) ?? null
-    },
-    key(index: number) {
-      return Array.from(values.keys())[index] ?? null
-    },
-    get length() {
-      return values.size
-    },
-    removeItem(key: string) {
-      values.delete(key)
-    },
-    setItem(key: string, value: string) {
-      values.set(key, value)
-    },
-  }
-
-  Object.defineProperty(globalThis, 'window', {
-    configurable: true,
-    value: { localStorage: storage },
-  })
-
-  return storage
 }

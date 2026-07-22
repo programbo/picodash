@@ -241,9 +241,10 @@ available from the main entrypoint.
 
 ## Release verification
 
-Pull requests and pushes to `main` run the full `bun run ready` gate plus
-`bun audit --audit-level=high`. Package publication independently runs package checks, tests, and
-the build, which includes source maps.
+Pull requests and pushes to `main` run parallel quality and E2E jobs. The quality job runs
+`bun audit --audit-level=high`, workspace checks, and unit tests; the E2E job builds the workspace
+and runs the Playwright end-to-end suite. Package publication independently runs package checks,
+tests, and the build, which includes source maps.
 
 ## Themability
 

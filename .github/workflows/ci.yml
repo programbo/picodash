@@ -9,28 +9,67 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  ready:
+  quality:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
+
+      - name: Audit high-severity vulnerabilities
+        run: bun audit --audit-level=high
+
+      - name: Run lint, type-check, and unit tests
+        run: vp check && vp run -r test
+
+  e2e:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 20
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version-file: package.json
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Audit high-severity vulnerabilities
-        run: bun audit --audit-level=high
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
 
       - name: Install Chromium
         run: bun run --cwd apps/website playwright install --with-deps chromium
 
-      - name: Run the full readiness gate
-        run: bun run ready
+      - name: Build and run E2E tests
+        run: vp run -r build && bun run --filter website test:e2e
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: playwright-failures
+          path: apps/website/test-results
+          retention-days: 7

@@ -1,4 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test'
+import { requiredBox } from './helpers.ts'
 
 const builtInItems = [
   { component: 'TweakerText', id: 'text', label: 'Text' },
@@ -85,12 +86,9 @@ test('keeps the non-fixed panel background attached to the panel at and away fro
   await expect(shell).toHaveCSS('backdrop-filter', 'none')
 
   const [initialPanelBox, initialShellBox] = await Promise.all([
-    panel.boundingBox(),
-    shell.boundingBox(),
+    requiredBox(panel),
+    requiredBox(shell),
   ])
-  expect(initialPanelBox).not.toBeNull()
-  expect(initialShellBox).not.toBeNull()
-  if (!initialPanelBox || !initialShellBox) return
   expect(initialPanelBox.x).toBeGreaterThanOrEqual(0)
   expect(initialPanelBox.x).toBeLessThanOrEqual(16)
   expect(initialShellBox.width).toBeCloseTo(initialPanelBox.width, 0)
@@ -101,9 +99,7 @@ test('keeps the non-fixed panel background attached to the panel at and away fro
   await expect(shell).toHaveCSS('backdrop-filter', 'none')
   await placementMode.selectOption('floating')
 
-  const headerBox = await panel.locator('[data-tweaker-panel-header]').boundingBox()
-  expect(headerBox).not.toBeNull()
-  if (!headerBox) return
+  const headerBox = await requiredBox(panel.locator('[data-tweaker-panel-header]'))
   const startX = headerBox.x + headerBox.width / 2
   const startY = headerBox.y + headerBox.height / 2
   await page.mouse.move(startX, startY)
@@ -117,15 +113,11 @@ test('keeps the non-fixed panel background attached to the panel at and away fro
   await expect(shell).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
   await expect(shell).toHaveCSS('backdrop-filter', 'none')
   const [draggedPanelBox, draggedShellBox] = await Promise.all([
-    panel.boundingBox(),
-    shell.boundingBox(),
+    requiredBox(panel),
+    requiredBox(shell),
   ])
-  expect(draggedPanelBox).not.toBeNull()
-  expect(draggedShellBox).not.toBeNull()
-  if (draggedPanelBox && draggedShellBox) {
-    expect(draggedShellBox.x).toBeCloseTo(draggedPanelBox.x, 0)
-    expect(draggedShellBox.width).toBeCloseTo(draggedPanelBox.width, 0)
-  }
+  expect(draggedShellBox.x).toBeCloseTo(draggedPanelBox.x, 0)
+  expect(draggedShellBox.width).toBeCloseTo(draggedPanelBox.width, 0)
 })
 
 test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {
@@ -333,23 +325,21 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
     '80',
   )
 
-  await example.getByText('densityOptions').first().hover()
-  await expect(page.getByRole('tooltip')).toContainText('"label": "Compact"')
+  const densityOptionsVariable = example.locator('[data-jsx-variable="densityOptions"]')
+  await densityOptionsVariable.hover()
+  await expect(page.getByRole('tooltip').filter({ hasText: '"label": "Compact"' })).toBeVisible()
 
   const alignmentOptionsVariable = example.locator('[data-jsx-variable="alignmentOptions"]')
   await alignmentOptionsVariable.scrollIntoViewIfNeeded()
   await alignmentOptionsVariable.hover()
-  const variableTooltip = page.getByRole('tooltip')
-  const tooltipBox = await variableTooltip.boundingBox()
-  expect(tooltipBox).not.toBeNull()
-  if (tooltipBox) {
-    await page.mouse.move(tooltipBox.x + tooltipBox.width / 2, tooltipBox.y + tooltipBox.height / 2)
-    await expect(variableTooltip).toBeVisible()
-    await page.mouse.wheel(0, 160)
-    await expect
-      .poll(() => variableTooltip.evaluate((element) => element.scrollTop))
-      .toBeGreaterThan(0)
-  }
+  const variableTooltip = page.getByRole('tooltip').filter({ hasText: '"aria-label": "Top left"' })
+  const tooltipBox = await requiredBox(variableTooltip)
+  await page.mouse.move(tooltipBox.x + tooltipBox.width / 2, tooltipBox.y + tooltipBox.height / 2)
+  await expect(variableTooltip).toBeVisible()
+  await page.mouse.wheel(0, 160)
+  await expect
+    .poll(() => variableTooltip.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0)
 
   await expect(example.getByText('description="', { exact: false })).toHaveCount(
     builtInItems.length,
@@ -461,16 +451,13 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
   }
   await chartType.selectOption('line')
   const chartPlot = chartSurface.locator('.recharts-wrapper')
-  const chartBox = await chartPlot.boundingBox()
-  expect(chartBox).not.toBeNull()
-  if (chartBox) {
-    await page.mouse.move(chartBox.x + chartBox.width * 0.45, chartBox.y + chartBox.height * 0.45)
-    const chartTooltip = chartSurface.locator('.recharts-default-tooltip')
-    await expect(chartTooltip).toBeVisible()
-    await expect
-      .poll(() => chartTooltip.evaluate((element) => getComputedStyle(element).backgroundColor))
-      .not.toBe('rgb(255, 255, 255)')
-  }
+  const chartBox = await requiredBox(chartPlot)
+  await page.mouse.move(chartBox.x + chartBox.width * 0.45, chartBox.y + chartBox.height * 0.45)
+  const chartTooltip = chartSurface.locator('.recharts-default-tooltip')
+  await expect(chartTooltip).toBeVisible()
+  await expect
+    .poll(() => chartTooltip.evaluate((element) => getComputedStyle(element).backgroundColor))
+    .not.toBe('rgb(255, 255, 255)')
   for (const controlId of ['multilineText', 'sliderMarks']) {
     const declaration = example.locator(`[data-jsx-control="${controlId}"]`)
     await expect(declaration.locator(':scope > span:nth-last-child(2)')).toContainText(
@@ -591,7 +578,6 @@ test('presents canonical built-in examples in order with API help and variant de
     velocityXPath.getAttribute('d'),
     velocityYPath.getAttribute('d'),
   ])
-  await page.waitForTimeout(120)
   await expect
     .poll(() => Promise.all([velocityXPath.getAttribute('d'), velocityYPath.getAttribute('d')]))
     .not.toEqual(movingPaths)
@@ -612,7 +598,6 @@ test('presents canonical built-in examples in order with API help and variant de
     await expect(row.locator('label').first()).toHaveText(item.label)
     const help = row.getByRole('button', { name: `Help for ${item.label}`, exact: true })
     await help.scrollIntoViewIfNeeded()
-    await page.waitForTimeout(100)
     await page.mouse.move(0, 0)
     await help.hover()
     await expect(page.getByRole('tooltip')).toContainText(item.component)

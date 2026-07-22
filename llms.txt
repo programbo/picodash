@@ -53,4 +53,4 @@ Docs to keep aligned:
 Verification:
 - bun audit --audit-level=high
 - bun run ready
-- GitHub CI runs both for pull requests and main pushes
+- GitHub CI runs parallel quality and E2E jobs for pull requests and main pushes

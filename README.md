@@ -227,5 +227,6 @@ bun run ready
 vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e
 ```
 
-GitHub CI runs the audit and full gate for pull requests and pushes to `main`. Publishing the
-package also runs its check, test, and build commands.
+GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`. The quality job
+runs the audit, workspace checks, and unit tests; the E2E job builds the workspace and runs the
+Playwright end-to-end suite. Publishing the package also runs its check, test, and build commands.
