@@ -396,6 +396,7 @@ test('retracts every fixed placement while preserving its reopening control', as
     await expect(toggle.locator('svg')).toHaveClass(expandedArrowClass(position))
     await movePointerOutside(page, toggle)
     await expect(toggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    await expectTranslucentHover(page, toggle)
 
     await toggle.click()
 
@@ -403,7 +404,19 @@ test('retracts every fixed placement while preserving its reopening control', as
     await expect(toggle).toHaveAccessibleName('Expand panel Provider boundary')
     await expect(toggle.locator('svg')).toHaveClass(collapsedArrowClass(position))
     await movePointerOutside(page, toggle)
-    await expect(toggle).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    await toggle.evaluate((element) => (element as HTMLElement).blur())
+    const restingRevealAlpha = await backgroundAlphaAfterTransition(page, toggle)
+    expect(restingRevealAlpha).toBeCloseTo(0.72, 2)
+    await toggle.hover()
+    const hoveredRevealAlpha = await backgroundAlphaAfterTransition(page, toggle)
+    expect(hoveredRevealAlpha).toBeCloseTo(0.82, 2)
+    await movePointerOutside(page, toggle)
+    await toggle.focus()
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('Shift+Tab')
+    await expect(toggle).toBeFocused()
+    const focusedRevealAlpha = await backgroundAlphaAfterTransition(page, toggle)
+    expect(focusedRevealAlpha).toBeCloseTo(0.82, 2)
     await expectCollapsedPanelBeyondBoundary(panel, boundary, position)
     await expectToggleAtBoundaryCorner(toggle, boundary, position)
 
@@ -569,6 +582,32 @@ async function movePointerOutside(page: Page, locator: Locator) {
     box.x + box.width / 2 < viewport.width / 2 ? viewport.width - 1 : 0,
     box.y + box.height / 2 < viewport.height / 2 ? viewport.height - 1 : 0,
   )
+}
+
+async function expectTranslucentHover(page: Page, locator: Locator) {
+  await locator.hover()
+  const alpha = await backgroundAlphaAfterTransition(page, locator)
+
+  expect(alpha).toBeGreaterThan(0)
+  expect(alpha).toBeLessThan(1)
+  return alpha
+}
+
+async function backgroundAlphaAfterTransition(page: Page, locator: Locator) {
+  return cssColorAlpha(await backgroundColorAfterTransition(page, locator))
+}
+
+async function backgroundColorAfterTransition(page: Page, locator: Locator) {
+  await page.waitForTimeout(200)
+  return locator.evaluate((element) => getComputedStyle(element).backgroundColor)
+}
+
+function cssColorAlpha(color: string) {
+  const modernAlpha = color.match(/\/\s*([\d.]+)\s*\)$/)
+  if (modernAlpha?.[1]) return Number(modernAlpha[1])
+
+  const rgbaAlpha = color.match(/^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)$/)
+  return rgbaAlpha?.[1] ? Number(rgbaAlpha[1]) : 1
 }
 
 async function expectTop(panel: Locator, expectedTop: number) {

@@ -761,6 +761,28 @@ export function InteractiveJsxExample({
   const focusedField = panelState.interaction.focusedId
 
   useEffect(() => {
+    const runtimePlacement = panelController?.placement
+    if (!runtimePlacement) return
+
+    const panelPlacementMode = runtimePlacement.mode
+    const panelPlacementPosition = runtimePlacement.position
+      ? closestBuiltInPanelPlacementPosition(runtimePlacement.position, panelPlacementMode)
+      : closestBuiltInPanelPlacementPosition(config.panelPlacementPosition, panelPlacementMode)
+    if (
+      config.panelPlacementMode === panelPlacementMode &&
+      config.panelPlacementPosition === panelPlacementPosition
+    ) {
+      return
+    }
+
+    onConfigChange({
+      ...config,
+      panelPlacementMode,
+      panelPlacementPosition,
+    })
+  }, [config, onConfigChange, panelController?.placement])
+
+  useEffect(() => {
     if (activeTab !== 'code' || !focusedField) return
 
     const viewport = codeViewportRef.current
@@ -1126,7 +1148,7 @@ export function InteractiveJsxExample({
                           <Prop>className</Prop>
                           <Punctuation>=&quot;</Punctuation>
                           <StringValue>
-                            bg-tweaker-surface/72 top-4 right-4 max-w-[calc(100dvw-2rem)]
+                            bg-(--tweaker-color-surface)/72 top-4 right-4 max-w-[calc(100dvw-2rem)]
                             backdrop-blur-xl lg:top-8 lg:right-8
                           </StringValue>
                           <Punctuation>&quot;</Punctuation>
@@ -1412,7 +1434,7 @@ function StaticControlLine({
         '-mx-2 block border-l-2 border-transparent px-2 transition-[background-color,border-color,box-shadow] duration-150',
         hovered && 'border-cyan-300/45 bg-cyan-300/8',
         focused &&
-          'border-cyan-200 bg-cyan-300/12 ring-1 ring-cyan-200/55 ring-inset shadow-[0_0_24px_rgb(34_211_238_/_0.08)]',
+          'border-cyan-200 bg-cyan-300/12 ring-1 ring-cyan-200/55 ring-inset shadow-[0_0_24px_rgb(34_211_238/0.08)]',
       )}
       data-jsx-control={resolvedControlId}
       data-jsx-focused={focused ? 'true' : 'false'}
@@ -1787,7 +1809,7 @@ function HelpExpression({ children, component }: { children: ReactNode; componen
         offset={8}
       >
         <code
-          className="text-tweaker-text block font-mono text-(length:--tweaker-font-size-md) leading-(--tweaker-line-relaxed) whitespace-pre [&_.hljs-attr]:text-sky-200 [&_.hljs-comment]:text-zinc-500 [&_.hljs-keyword]:text-violet-300 [&_.hljs-literal]:text-rose-300 [&_.hljs-number]:text-rose-200 [&_.hljs-string]:text-amber-200 [&_.hljs-title.class_]:text-cyan-200 [&_.hljs-title.function_]:text-cyan-200 [&_.hljs-type]:text-cyan-200"
+          className="text-tweaker-text block font-mono text-(length:--tweaker-font-size-md) leading-(--tweaker-line-relaxed) whitespace-pre [&_.hljs-attr]:text-sky-200 [&_.hljs-comment]:text-zinc-500 [&_.hljs-keyword]:text-violet-300 [&_.hljs-literal]:text-rose-300 [&_.hljs-number]:text-rose-200 [&_.hljs-string]:text-amber-200 [&_.hljs-title.class]:text-cyan-200 [&_.hljs-title.function]:text-cyan-200 [&_.hljs-type]:text-cyan-200"
           dangerouslySetInnerHTML={{ __html: highlightedPropType }}
         />
       </Tooltip>
@@ -1877,7 +1899,7 @@ ${serializeControls(group.lines)}
     defaultPlacement={{ mode: ${JSON.stringify(panelPlacement.mode)}, position: ${JSON.stringify(panelPlacement.position)} }}${
       showAllProps
         ? `
-    className="bg-tweaker-surface/72 top-4 right-4 max-w-[calc(100dvw-2rem)] backdrop-blur-xl lg:top-8 lg:right-8"`
+    className="bg-(--tweaker-color-surface)/72 top-4 right-4 max-w-[calc(100dvw-2rem)] backdrop-blur-xl lg:top-8 lg:right-8"`
         : ''
     }
   >
