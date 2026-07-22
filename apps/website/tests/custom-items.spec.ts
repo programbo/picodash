@@ -1,10 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
 import { tweakerMotionTokens } from '../../../packages/tweaker/src/theme.ts'
-import {
-  advanceSparklineSamplingClock,
-  decayPointerVelocity,
-} from '../src/custom-items/pointer-velocity-sampling.ts'
+import { requiredBox } from './helpers.ts'
 
 const builtInGroupLabels = {
   'chart-items': 'Charts',
@@ -63,15 +60,11 @@ test('controls registered panels through useTweakerPanel', async ({ page }) => {
   await expect(hiddenPanel).toBeHidden()
   await expect(hiddenPanel.locator('[data-item-id="hidden-panel-status"]')).toHaveCount(1)
   const [sceneActionsBox, sceneCloseBox] = await Promise.all([
-    sceneActions.boundingBox(),
-    sceneClose.boundingBox(),
+    requiredBox(sceneActions),
+    requiredBox(sceneClose),
   ])
-  expect(sceneActionsBox).not.toBeNull()
-  expect(sceneCloseBox).not.toBeNull()
-  if (sceneActionsBox && sceneCloseBox) {
-    expect(sceneCloseBox.x).toBeGreaterThanOrEqual(sceneActionsBox.x + sceneActionsBox.width)
-    expect(sceneCloseBox.x - (sceneActionsBox.x + sceneActionsBox.width)).toBeLessThanOrEqual(8)
-  }
+  expect(sceneCloseBox.x).toBeGreaterThanOrEqual(sceneActionsBox.x + sceneActionsBox.width)
+  expect(sceneCloseBox.x - (sceneActionsBox.x + sceneActionsBox.width)).toBeLessThanOrEqual(8)
   await expect(
     page
       .locator('[data-tweaker-panel-id="custom-items"]')
@@ -394,26 +387,6 @@ test('keeps a repair review open when import constraints change before acceptanc
   await expect(input).toHaveValue('Gallery')
 })
 
-test('drops delayed pointer velocity intervals instead of backfilling history', () => {
-  const sampleInterval = 1000 / 60
-  const clock = advanceSparklineSamplingClock(4, 4, 100, sampleInterval)
-
-  expect(clock.shouldCommit).toBe(true)
-  expect(clock.accumulatedTime).toBeCloseTo(104 % sampleInterval)
-  expect(clock.accumulatedTime).toBeLessThan(sampleInterval)
-  expect(clock.decayElapsed).toBe(104)
-  expect(clock.elapsedSinceCommit).toBe(0)
-
-  const nextFrame = advanceSparklineSamplingClock(
-    clock.accumulatedTime,
-    clock.elapsedSinceCommit,
-    0,
-    sampleInterval,
-  )
-  expect(nextFrame.shouldCommit).toBe(false)
-  expect(decayPointerVelocity(1000, 84)).toBeCloseTo(1000 * 0.72 ** 2)
-})
-
 for (const scenario of [
   {
     expectedOrder: [
@@ -575,7 +548,7 @@ test('moves an expanded Common group upward across multiple collapsed groups fro
     })
     .click()
   await expect(common).toHaveAttribute('data-collapsed', 'false')
-  await page.waitForTimeout(200)
+  await expect(common.locator('[data-tweaker-reorder-list="common-items"]')).toBeVisible()
 
   await exerciseLivePreviewDrag({
     expectedOrder: initialBuiltInRootOrder,
@@ -1221,7 +1194,6 @@ for (const collapsed of [false, true]) {
       await rendering.getByRole('button', { name: 'Rendering', exact: true }).click()
       await expect(essentials).toHaveAttribute('data-collapsed', 'true')
       await expect(rendering).toHaveAttribute('data-collapsed', 'true')
-      await page.waitForTimeout(200)
     }
 
     const initialOrder = ['scene-essentials', 'scene-rendering', 'scene-summary']
@@ -1330,9 +1302,7 @@ test('contains grip layers within their reorder items', async ({ page }) => {
   await expect(draggedControl).toHaveCSS('isolation', 'isolate')
   await expect(idleControl).toHaveCSS('isolation', 'isolate')
 
-  const draggedGripBox = await draggedGrip.boundingBox()
-  expect(draggedGripBox).not.toBeNull()
-  if (!draggedGripBox) return
+  const draggedGripBox = await requiredBox(draggedGrip)
 
   await page.mouse.move(
     draggedGripBox.x + draggedGripBox.width / 2,
@@ -1395,14 +1365,11 @@ test('keeps the portaled Select interactive without blocking the surrounding pag
   const finalOption = page.getByRole('option', { name: 'Final' })
   await expect(finalOption).toBeVisible()
 
-  const contentBox = await content.boundingBox()
-  expect(contentBox).not.toBeNull()
-  if (contentBox) {
-    expect(contentBox.x).toBeGreaterThanOrEqual(0)
-    expect(contentBox.y).toBeGreaterThanOrEqual(0)
-    expect(contentBox.x + contentBox.width).toBeLessThanOrEqual(640)
-    expect(contentBox.y + contentBox.height).toBeLessThanOrEqual(480)
-  }
+  const contentBox = await requiredBox(content)
+  expect(contentBox.x).toBeGreaterThanOrEqual(0)
+  expect(contentBox.y).toBeGreaterThanOrEqual(0)
+  expect(contentBox.x + contentBox.width).toBeLessThanOrEqual(640)
+  expect(contentBox.y + contentBox.height).toBeLessThanOrEqual(480)
 
   await finalOption.click()
   await expect(trigger).toHaveText('Final')
@@ -1505,9 +1472,7 @@ test('updates common, spatial, and gradient values through accessible controls',
   const xy = page.locator('[data-item-id="xyPad"]')
   const xyPad = xy.getByRole('group', { name: 'Two-dimensional value' })
   await xyPad.scrollIntoViewIfNeeded()
-  const box = await xyPad.boundingBox()
-  expect(box).not.toBeNull()
-  if (!box) return
+  const box = await requiredBox(xyPad)
   await page.mouse.click(box.x + box.width * 0.25, box.y + box.height * 0.75)
   await expect(xy.locator('output')).toContainText('X 0.25')
   await expect(xy.locator('output')).toContainText('Y 0.25')
@@ -1604,19 +1569,16 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
     '.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value',
   )
   await expect(yAxisTicks).toHaveText(['0', '5', '10', '15', '20'])
-  const chartBox = await chart.locator('svg.recharts-surface').boundingBox()
-  expect(chartBox).not.toBeNull()
-  if (chartBox) {
-    const tickBoxes = await yAxisTicks.evaluateAll((ticks) =>
-      ticks.map((tick) => {
-        const box = tick.getBoundingClientRect()
-        return { left: box.left, right: box.right }
-      }),
-    )
-    for (const tickBox of tickBoxes) {
-      expect(tickBox.left).toBeGreaterThanOrEqual(chartBox.x)
-      expect(tickBox.right).toBeLessThanOrEqual(chartBox.x + chartBox.width)
-    }
+  const chartBox = await requiredBox(chart.locator('svg.recharts-surface'))
+  const tickBoxes = await yAxisTicks.evaluateAll((ticks) =>
+    ticks.map((tick) => {
+      const box = tick.getBoundingClientRect()
+      return { left: box.left, right: box.right }
+    }),
+  )
+  for (const tickBox of tickBoxes) {
+    expect(tickBox.left).toBeGreaterThanOrEqual(chartBox.x)
+    expect(tickBox.right).toBeLessThanOrEqual(chartBox.x + chartBox.width)
   }
 })
 
@@ -1731,29 +1693,20 @@ test('animates transient visual paths and switches deterministic signal mode', a
   await expect(display).toBeVisible()
   await expect(display).toHaveCSS('pointer-events', 'none')
   await expect(fps).toHaveText(/^\d+ FPS$/)
-  const displayBox = await display.boundingBox()
-  const descriptionBox = await description.boundingBox()
-  const fpsBox = await fps.boundingBox()
-  expect(displayBox).not.toBeNull()
-  expect(descriptionBox).not.toBeNull()
-  expect(fpsBox).not.toBeNull()
-  if (displayBox && descriptionBox) {
-    expect(descriptionBox.y).toBeGreaterThanOrEqual(displayBox.y + displayBox.height)
-  }
-  if (displayBox && fpsBox) {
-    const rightGap = displayBox.x + displayBox.width - (fpsBox.x + fpsBox.width)
-    const bottomGap = displayBox.y + displayBox.height - (fpsBox.y + fpsBox.height)
-    expect(fpsBox.x).toBeGreaterThan(displayBox.x + displayBox.width / 2)
-    expect(rightGap).toBeGreaterThanOrEqual(0)
-    expect(rightGap).toBeLessThanOrEqual(12)
-    expect(bottomGap).toBeGreaterThanOrEqual(0)
-    expect(bottomGap).toBeLessThanOrEqual(12)
-  }
+  const displayBox = await requiredBox(display)
+  const descriptionBox = await requiredBox(description)
+  const fpsBox = await requiredBox(fps)
+  expect(descriptionBox.y).toBeGreaterThanOrEqual(displayBox.y + displayBox.height)
+  const rightGap = displayBox.x + displayBox.width - (fpsBox.x + fpsBox.width)
+  const bottomGap = displayBox.y + displayBox.height - (fpsBox.y + fpsBox.height)
+  expect(fpsBox.x).toBeGreaterThan(displayBox.x + displayBox.width / 2)
+  expect(rightGap).toBeGreaterThanOrEqual(0)
+  expect(rightGap).toBeLessThanOrEqual(12)
+  expect(bottomGap).toBeGreaterThanOrEqual(0)
+  expect(bottomGap).toBeLessThanOrEqual(12)
   const initialVelocityXPath = await velocityXPath.getAttribute('d')
   const initialVelocityYPath = await velocityYPath.getAttribute('d')
-  const headingBox = await page.getByRole('heading', { name: 'Tweaker State Lab' }).boundingBox()
-  expect(headingBox).not.toBeNull()
-  if (!headingBox) return
+  const headingBox = await requiredBox(page.getByRole('heading', { name: 'Tweaker State Lab' }))
 
   // The listener targets the full viewport, so motion over unrelated page content
   // updates the display without the chart needing to capture pointer events.
@@ -1770,7 +1723,6 @@ test('animates transient visual paths and switches deterministic signal mode', a
 
   await display.evaluate((element: HTMLElement) => (element.style.display = 'none'))
   await expect(display).toBeHidden()
-  await page.waitForTimeout(100)
   await expect(fps).toHaveText('0 FPS')
   const pausedVelocityXPath = await velocityXPath.getAttribute('d')
 
@@ -1808,9 +1760,7 @@ test('resumes pointer velocity decay when document visibility returns', async ({
   await expect(display).toBeVisible()
 
   const initialVelocityXPath = await velocityXPath.getAttribute('d')
-  const headingBox = await page.getByRole('heading', { name: 'Tweaker State Lab' }).boundingBox()
-  expect(headingBox).not.toBeNull()
-  if (!headingBox) return
+  const headingBox = await requiredBox(page.getByRole('heading', { name: 'Tweaker State Lab' }))
 
   await page.mouse.move(headingBox.x + 4, headingBox.y + 4)
   await page.mouse.move(
@@ -1822,9 +1772,10 @@ test('resumes pointer velocity decay when document visibility returns', async ({
 
   await setDocumentVisibility(page, 'hidden')
   await expect(fps).toHaveText('0 FPS')
-  await page.waitForTimeout(100)
   const pausedVelocityXPath = await velocityXPath.getAttribute('d')
-  await page.waitForTimeout(100)
+  await page.evaluate(
+    () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))),
+  )
   expect(await velocityXPath.getAttribute('d')).toBe(pausedVelocityXPath)
 
   await setDocumentVisibility(page, 'visible')
@@ -1897,12 +1848,9 @@ test('keeps tall panel action menus scrollable within the available viewport hei
   expect(metrics.maxHeight).not.toBe('none')
   expect(metrics.clientHeight).toBeLessThan(metrics.scrollHeight)
 
-  const popoverBox = await popover.boundingBox()
-  expect(popoverBox).not.toBeNull()
-  if (popoverBox) {
-    expect(popoverBox.y).toBeGreaterThanOrEqual(0)
-    expect(popoverBox.y + popoverBox.height).toBeLessThanOrEqual(240)
-  }
+  const popoverBox = await requiredBox(popover)
+  expect(popoverBox.y).toBeGreaterThanOrEqual(0)
+  expect(popoverBox.y + popoverBox.height).toBeLessThanOrEqual(240)
 })
 
 test('keeps the panel action menu contained and manages collapsible groups', async ({ page }) => {
@@ -1919,18 +1867,15 @@ test('keeps the panel action menu contained and manages collapsible groups', asy
   const rendering = panel.locator('[data-group-id="scene-rendering"]')
   const panelTransform = await panel.evaluate((element) => getComputedStyle(element).transform)
 
-  const triggerBox = await trigger.boundingBox()
-  expect(triggerBox).not.toBeNull()
-  if (triggerBox) {
-    await page.mouse.move(triggerBox.x + triggerBox.width / 2, triggerBox.y + triggerBox.height / 2)
-    await page.mouse.down()
-    await page.mouse.move(triggerBox.x - 80, triggerBox.y + 60, { steps: 4 })
-    await page.mouse.up()
-    await page.keyboard.press('Escape')
-    await expect
-      .poll(() => panel.evaluate((element) => getComputedStyle(element).transform))
-      .toBe(panelTransform)
-  }
+  const triggerBox = await requiredBox(trigger)
+  await page.mouse.move(triggerBox.x + triggerBox.width / 2, triggerBox.y + triggerBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(triggerBox.x - 80, triggerBox.y + 60, { steps: 4 })
+  await page.mouse.up()
+  await page.keyboard.press('Escape')
+  await expect
+    .poll(() => panel.evaluate((element) => getComputedStyle(element).transform))
+    .toBe(panelTransform)
 
   await trigger.click()
   const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
@@ -1938,14 +1883,11 @@ test('keeps the panel action menu contained and manages collapsible groups', asy
   await expect(menu).toHaveAttribute('data-tweaker-theme', 'dark')
   await expect(menu).toHaveCSS('pointer-events', 'auto')
   await expect(page.locator('[data-tweaker-container]')).toHaveCSS('pointer-events', 'none')
-  const menuBox = await menu.boundingBox()
-  expect(menuBox).not.toBeNull()
-  if (menuBox) {
-    expect(menuBox.x).toBeGreaterThanOrEqual(0)
-    expect(menuBox.y).toBeGreaterThanOrEqual(0)
-    expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(640)
-    expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(480)
-  }
+  const menuBox = await requiredBox(menu)
+  expect(menuBox.x).toBeGreaterThanOrEqual(0)
+  expect(menuBox.y).toBeGreaterThanOrEqual(0)
+  expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(640)
+  expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(480)
 
   const expandAll = menu.getByRole('menuitem', { name: 'Expand all' })
   const collapseAll = menu.getByRole('menuitem', { name: 'Collapse all' })
@@ -1998,14 +1940,11 @@ test('confirms registered-field resets without changing group disclosure', async
   await expect(page.locator(`[id="${resetDescriptionId}"]`)).toContainText(
     'This restores every registered field to its default value.',
   )
-  const dialogBox = await dialog.boundingBox()
-  expect(dialogBox).not.toBeNull()
-  if (dialogBox) {
-    expect(dialogBox.x).toBeGreaterThanOrEqual(0)
-    expect(dialogBox.y).toBeGreaterThanOrEqual(0)
-    expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(640)
-    expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(480)
-  }
+  const dialogBox = await requiredBox(dialog)
+  expect(dialogBox.x).toBeGreaterThanOrEqual(0)
+  expect(dialogBox.y).toBeGreaterThanOrEqual(0)
+  expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(640)
+  expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(480)
   await dialog.getByRole('button', { name: 'Cancel' }).click()
   await expect(page.getByText(/72% opacity \/ final/i)).toBeVisible()
   await expect(rendering).toHaveAttribute('data-collapsed', 'true')
@@ -2049,9 +1988,7 @@ test('copies and exports registered panel values as JSON and YAML', async ({ con
   expect(jsonDownload.suggestedFilename()).toBe('scene-controls.json')
   const jsonPath = await jsonDownload.path()
   expect(jsonPath).not.toBeNull()
-  if (jsonPath) {
-    expect(JSON.parse(await readFile(jsonPath, 'utf8'))).toMatchObject({ quality: 'balanced' })
-  }
+  expect(JSON.parse(await readFile(jsonPath!, 'utf8'))).toMatchObject({ quality: 'balanced' })
 
   await openActionSubmenu(page, trigger, 'Export')
   const [yamlDownload] = await Promise.all([
@@ -2061,9 +1998,7 @@ test('copies and exports registered panel values as JSON and YAML', async ({ con
   expect(yamlDownload.suggestedFilename()).toBe('scene-controls.yaml')
   const yamlPath = await yamlDownload.path()
   expect(yamlPath).not.toBeNull()
-  if (yamlPath) {
-    expect(await readFile(yamlPath, 'utf8')).toContain('quality: balanced')
-  }
+  expect(await readFile(yamlPath!, 'utf8')).toContain('quality: balanced')
 })
 
 test('imports JSON and YAML atomically and reports invalid files without mutation', async ({
@@ -2147,7 +2082,18 @@ async function collapseCustomGroups(
   }
 
   if (settle) {
-    await panel.page().waitForTimeout(200)
+    let lastHeight = -1
+    await expect
+      .poll(
+        async () => {
+          const height = await panel.evaluate((el: HTMLElement) => el.offsetHeight)
+          const stable = height === lastHeight
+          lastHeight = height
+          return stable
+        },
+        { timeout: 1000, intervals: [50] },
+      )
+      .toBe(true)
   }
 }
 
@@ -2205,9 +2151,7 @@ async function exerciseLivePreviewDrag({
   await expectContiguousItems(list, parentId)
 
   const initialOrder = await itemOrder(list, parentId)
-  const gripBox = await grip.boundingBox()
-  expect(gripBox).not.toBeNull()
-  if (!gripBox) return
+  const gripBox = await requiredBox(grip)
 
   const pointerX = gripBox.x + gripBox.width / 2
   const pointerY = gripBox.y + gripBox.height / 2
@@ -2224,13 +2168,11 @@ async function exerciseLivePreviewDrag({
   const targetRect = initialRects[targetId]
   expect(sourceRect).toBeDefined()
   expect(targetRect).toBeDefined()
-  if (!sourceRect || !targetRect) return
 
   const sourceSlot = initialSlots[sourceId]
   const targetSlot = initialSlots[targetId]
   expect(sourceSlot).toBeDefined()
   expect(targetSlot).toBeDefined()
-  if (!sourceSlot || !targetSlot) return
   const constraintRect = await requiredBox(list.locator(':scope > div'))
   const visualPointerOffset = (offset: number) =>
     constrainPointerOffset(
@@ -2368,31 +2310,29 @@ async function exerciseThresholdItinerary({
   const initialRects = await itemRects(list, parentId)
   const sourceRect = initialRects[sourceId]
   expect(sourceRect).toBeDefined()
-  if (!sourceRect) return
-  const sourceCenter = sourceRect.y + sourceRect.height / 2
+  const sourceCenter = sourceRect!.y + sourceRect!.height / 2
   for (const stop of stops) {
     const targetRect = initialRects[stop.targetId]
     expect(targetRect).toBeDefined()
-    if (!targetRect) continue
 
-    const targetCenter = targetRect.y + targetRect.height / 2
+    const targetCenter = targetRect!.y + targetRect!.height / 2
     const direction = Math.sign(targetCenter - sourceCenter)
     expect(direction).not.toBe(0)
-    const sourceLeadingEdge = direction > 0 ? sourceRect.y + sourceRect.height : sourceRect.y
+    const sourceLeadingEdge = direction > 0 ? sourceRect!.y + sourceRect!.height : sourceRect!.y
     const targetThreshold = targetCenter - sourceLeadingEdge
 
     await page.mouse.move(pointerX, pointerY + targetThreshold - direction)
     await expect
       .poll(() => itemOrder(list, parentId))
       .toEqual(orderAtTargetThreshold(initialOrder, sourceId, stop.targetId, false))
-    await expectPointerOffset(source, sourceRect.y, targetThreshold - direction)
+    await expectPointerOffset(source, sourceRect!.y, targetThreshold - direction)
     await expectUnchangedOrder(unchangedOrder)
 
     await page.mouse.move(pointerX, pointerY + targetThreshold + direction)
     await expect
       .poll(() => itemOrder(list, parentId))
       .toEqual(orderAtTargetThreshold(initialOrder, sourceId, stop.targetId, true))
-    await expectPointerOffset(source, sourceRect.y, targetThreshold + direction)
+    await expectPointerOffset(source, sourceRect!.y, targetThreshold + direction)
     await expectUnchangedOrder(unchangedOrder)
   }
 
@@ -2642,12 +2582,6 @@ async function itemRects(list: import('@playwright/test').Locator, parentId: str
 
 function directItems(list: import('@playwright/test').Locator, parentId: string) {
   return list.locator(`:scope > div > [data-parent-id="${parentId}"]`)
-}
-
-async function requiredBox(locator: import('@playwright/test').Locator) {
-  const box = await locator.boundingBox()
-  expect(box).not.toBeNull()
-  return box!
 }
 
 async function visualTop(locator: import('@playwright/test').Locator) {

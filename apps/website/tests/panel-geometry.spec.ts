@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { requiredBox } from './helpers.ts'
 
 const storageKey = 'tweaker-geometry-lab:panel-layout:v1'
 const safeInset = 8
@@ -14,13 +15,13 @@ const fixedPositions = [
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 600 })
-  await page.goto('/panel-geometry-lab?fixture=drag')
-  await expect(page.locator('[data-panel-geometry-lab]')).toBeVisible()
 })
 
 test('shrinks and restores a tall panel during a held drag while preserving its top', async ({
   page,
 }) => {
+  await page.goto('/panel-geometry-lab?fixture=drag')
+  await expect(page.locator('[data-panel-geometry-lab]')).toBeVisible()
   const panel = geometryPanel(page, 'tall')
   const header = panel.locator('[data-tweaker-panel-header]')
   const initial = await requiredBox(panel)
@@ -322,7 +323,18 @@ test('handles deferred corners, ordinary class constraints, and viewport panels 
 
   await shell.locator('[data-tweaker-fixed-toggle]').click()
   await expect(panel).toHaveAttribute('data-collapsed', 'true')
-  await page.waitForTimeout(250)
+  let lastWidth = -1
+  await expect
+    .poll(
+      async () => {
+        const width = await panel.evaluate((el: HTMLElement) => el.offsetWidth)
+        const stable = width === lastWidth
+        lastWidth = width
+        return stable
+      },
+      { timeout: 1000, intervals: [50] },
+    )
+    .toBe(true)
   await page.getByRole('button', { name: 'Float bottom-right' }).click()
   await expect(page.locator('[data-review-regression-placement]')).toHaveText(
     'floating:bottom-right',
@@ -546,12 +558,6 @@ async function keyboardUnmountRootOrder(page: Page) {
     const { keyboardUnmountPanelStore } = await import(modulePath)
     return keyboardUnmountPanelStore.getState().order.root
   })
-}
-
-async function requiredBox(locator: Locator) {
-  const box = await locator.boundingBox()
-  expect(box).not.toBeNull()
-  return box!
 }
 
 async function movePointerOutside(page: Page, locator: Locator) {

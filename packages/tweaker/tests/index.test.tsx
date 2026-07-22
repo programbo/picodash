@@ -6,6 +6,7 @@ import * as publicApi from '../src/index.ts'
 import * as uiApi from '../src/ui.ts'
 import { createTweakerPanelStore, FeaturePanel } from '../src/index.ts'
 import { panelLayoutStorageKey } from '../src/panel-persistence.ts'
+import { installFakeLocalStorage, readPersistedPanelLayouts } from './helpers.ts'
 import {
   clampPanelPosition,
   dockForSnapPosition,
@@ -347,7 +348,9 @@ test('persists manual panel layout without persisting measured rect changes', ()
   store.getState().setPanelLayout('inspect', { x: 24, y: 32 })
   store.getState().setPanelRect('inspect', rect(24, 32, 100, 80))
 
-  expect(readPersistedPanelLayouts(storage)).toEqual({ inspect: { dock: null, x: 24, y: 32 } })
+  expect(readPersistedPanelLayouts(storage, panelLayoutStorageKey)).toEqual({
+    inspect: { dock: null, x: 24, y: 32 },
+  })
 })
 
 test('persists docked panel layout edges', () => {
@@ -360,7 +363,7 @@ test('persists docked panel layout edges', () => {
     y: 8,
   })
 
-  expect(readPersistedPanelLayouts(storage)).toEqual({
+  expect(readPersistedPanelLayouts(storage, panelLayoutStorageKey)).toEqual({
     inspect: { dock: { horizontal: 'right', vertical: 'top' }, x: 700, y: 8 },
   })
 })
@@ -377,7 +380,7 @@ test('persists fixed placement while retaining the last non-fixed coordinates', 
     mode: 'fixed',
     position: 'right',
   })
-  expect(readPersistedPanelLayouts(storage)).toEqual({
+  expect(readPersistedPanelLayouts(storage, panelLayoutStorageKey)).toEqual({
     inspect: {
       dock: null,
       placement: { mode: 'fixed', position: 'right' },
@@ -1223,42 +1226,4 @@ function rect(left: number, top: number, width: number, height: number): PanelRe
 
 function TestItem(_props: { field?: string; id?: string; label: string }) {
   return null
-}
-
-function installFakeLocalStorage() {
-  const values = new Map<string, string>()
-  const storage = {
-    clear() {
-      values.clear()
-    },
-    getItem(key: string) {
-      return values.get(key) ?? null
-    },
-    key(index: number) {
-      return Array.from(values.keys())[index] ?? null
-    },
-    get length() {
-      return values.size
-    },
-    removeItem(key: string) {
-      values.delete(key)
-    },
-    setItem(key: string, value: string) {
-      values.set(key, value)
-    },
-  }
-
-  Object.defineProperty(globalThis, 'window', {
-    configurable: true,
-    value: { localStorage: storage },
-  })
-
-  return storage
-}
-
-function readPersistedPanelLayouts(storage: ReturnType<typeof installFakeLocalStorage>) {
-  const raw = storage.getItem(panelLayoutStorageKey)
-  expect(raw).toBeTruthy()
-
-  return JSON.parse(raw!).state.panelLayouts as unknown
 }
