@@ -43,8 +43,8 @@
   "type": "module",
   "scripts": {
     "ready": "vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e",
-    "dev": "vp run website#dev",
-    "website": "vp run website#dev",
+    "dev": "bun run --filter website dev",
+    "website": "bun run --filter website dev",
     "tweaker": "vp run tweaker#dev",
     "test:e2e": "bun run --filter website test:e2e",
     "prepare": "vp config"

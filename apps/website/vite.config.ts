@@ -11,6 +11,11 @@ export default defineConfig(({ command }) => ({
       ...(command === 'serve'
         ? [
             {
+              find: /^tweaker\/style\.css$/,
+              replacement: new URL('../../packages/tweaker/src/styles.css', import.meta.url)
+                .pathname,
+            },
+            {
               find: /^tweaker\/ui$/,
               replacement: new URL('../../packages/tweaker/src/ui.ts', import.meta.url).pathname,
             },

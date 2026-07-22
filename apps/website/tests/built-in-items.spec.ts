@@ -144,6 +144,7 @@ test('reflects persisted panel placement in the interactive JSX controls after r
 test('keeps the expanded panel header toggle transparent until hover', async ({ page }) => {
   const example = page.locator('[data-interactive-jsx-example]')
   await example.getByLabel('Panel placement mode').selectOption('floating')
+  await example.getByLabel('Provider theme').selectOption('light')
 
   const toggle = page.getByRole('button', { name: 'Collapse panel Built-in Items' })
   await page.mouse.move(0, 0)
@@ -152,6 +153,10 @@ test('keeps the expanded panel header toggle transparent until hover', async ({ 
 
   await toggle.hover()
   await expect(toggle).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  const hoveredBackground = await toggle.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  )
+  expect(hoveredBackground).not.toMatch(/\/\s*0\.5\s*\)$/)
 })
 
 test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {

@@ -487,7 +487,7 @@ export function TweakerPanel({
                     aria-label={`${panelCollapsed ? 'Expand' : 'Collapse'} panel ${titleText}`}
                     className={cn(
                       buttonVariants({ size: 'icon', variant: 'ghost' }),
-                      'size-(--tweaker-icon-lg) shrink-0 text-tweaker-muted aria-expanded:bg-transparent! aria-expanded:hover:bg-tweaker-surface-muted! dark:aria-expanded:hover:bg-tweaker-surface-muted/50!',
+                      'size-(--tweaker-icon-lg) shrink-0 text-tweaker-muted aria-expanded:bg-transparent! aria-expanded:hover:bg-tweaker-surface-muted!',
                     )}
                     type="button"
                     onClick={() => togglePanelCollapsed()}
