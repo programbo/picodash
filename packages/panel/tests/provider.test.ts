@@ -1,7 +1,11 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, expect, test } from 'vite-plus/test'
-import { createValidatedPanelPersistStorage } from '../src/panel-persistence.ts'
+import {
+  createValidatedPanelPersistStorage,
+  legacyPanelLayoutStorageKey,
+  panelLayoutStorageKey,
+} from '../src/panel-persistence.ts'
 import { createPicodashStore, PicodashProvider } from '../src/picodash-provider.tsx'
 import { installFakeLocalStorage } from './helpers.ts'
 
@@ -23,6 +27,22 @@ test('supports a custom provider layout storage key', () => {
 
   expect(storage.getItem('custom-panel-layout')).toBeTruthy()
   expect(storage.getItem('picodash-panel:provider-layout:v1')).toBeNull()
+})
+
+test('migrates provider layouts from the retired storage key', () => {
+  const storage = installFakeLocalStorage()
+  storage.setItem(
+    legacyPanelLayoutStorageKey,
+    JSON.stringify({
+      state: { panelLayouts: { scene: { x: 24, y: 32 } } },
+      version: 0,
+    }),
+  )
+
+  const store = createPicodashStore()
+
+  expect(store.getState().panelLayouts.scene).toEqual({ dock: null, x: 24, y: 32 })
+  expect(storage.getItem(panelLayoutStorageKey)).toBeTruthy()
 })
 
 test('can disable provider layout persistence without accessing local storage', () => {

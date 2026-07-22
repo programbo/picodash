@@ -3,6 +3,7 @@ import type { PersistStorage } from 'zustand/middleware'
 import type { PicodashPersistedState } from './picodash-provider.js'
 
 export const panelLayoutStorageKey = 'picodash-panel:provider-layout:v1'
+export const legacyPanelLayoutStorageKey = 'tweaker-panel:provider-layout:v1'
 
 const panelPositionSchema = z.object({
   dock: z
@@ -60,14 +61,27 @@ export function createValidatedPanelPersistStorage(): PersistStorage<PicodashPer
       if (typeof window === 'undefined') return null
 
       try {
-        const raw = window.localStorage.getItem(name)
-        if (!raw) return null
+        const storageKeys =
+          name === panelLayoutStorageKey ? [name, legacyPanelLayoutStorageKey] : [name]
+        for (const storageKey of storageKeys) {
+          const raw = window.localStorage.getItem(storageKey)
+          if (!raw) continue
 
-        const parsed = persistedStorageValueSchema.safeParse(JSON.parse(raw))
-        if (!parsed.success) return null
+          const parsed = persistedStorageValueSchema.safeParse(JSON.parse(raw))
+          if (!parsed.success) continue
 
-        const state = picodashPersistedStateSchema.safeParse(parsed.data.state)
-        return state.success ? { state: state.data, version: parsed.data.version } : null
+          const state = picodashPersistedStateSchema.safeParse(parsed.data.state)
+          if (!state.success) continue
+
+          if (storageKey !== name) {
+            window.localStorage.setItem(
+              name,
+              JSON.stringify({ state: state.data, version: parsed.data.version }),
+            )
+          }
+          return { state: state.data, version: parsed.data.version }
+        }
+        return null
       } catch {
         return null
       }

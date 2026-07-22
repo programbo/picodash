@@ -34,7 +34,7 @@ notifying the host. Application code reads panel values from its explicit store 
 `usePicodashPanelStoreSelector`; panel IDs do not provide global value lookup. Advanced provider
 access uses `usePicodashProviderSelector` / `usePicodashProviderStoreApi`, while contextual panel
 access uses `usePicodashPanelSelector` / `usePicodashPanelStoreApi`. Legacy schema-driven
-Legacy schema-driven registration flow is retired.
+registration flow is retired.
 
 Panel placement supports floating, magnetic, and fixed modes. `PicodashPanelSnapPosition` names
 magnetic edges, while fixed docking uses the six side/corner positions. `usePicodashPanel` owns
@@ -107,7 +107,7 @@ Update all five files together when command surface, entrypoints, or architectur
   consume `@picodash/panel/ui` and do not keep their own `components.json` or generated copies.
 - `@picodash/panel/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve the
   provider portal/theme/z-index contract, while nested submenus inherit their parent overlay.
-- Do not document `packages/panel` or `apps/demo` as active workspace products.
+- Do not document `packages/tweaker` or `apps/demo` as active workspace products.
 
 ## Verification Discipline
 
