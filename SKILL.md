@@ -61,7 +61,7 @@ export function SiteControls() {
   })
 
   return (
-    <PicodashProvider theme="system" persistLayout storageKey="my-site:picodash-layout:v1">
+    <PicodashProvider theme="system" persistLayout storageKey="my-site:tweaker-layout:v1">
       <main style={{ opacity: exposure }}>App content</main>
 
       <PicodashPanel store={settingsStore} title="Settings" defaultPlacement="top-right">

@@ -71,7 +71,7 @@ function ScenePanel() {
   })
 
   return (
-    <PicodashProvider theme="system" persistLayout storageKey="my-app:picodash-layout:v1">
+    <PicodashProvider theme="system" persistLayout storageKey="my-app:tweaker-layout:v1">
       <PicodashPanel store={sceneStore} title="Scene" defaultPlacement="top-right" width={360}>
         <PicodashGroup id="render" label="Render">
           <PicodashSwitch field="bloom" label="Bloom" defaultValue={true} />

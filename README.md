@@ -52,7 +52,7 @@ export function App() {
   })
 
   return (
-    <PicodashProvider persistLayout storageKey="my-app:picodash-layout:v1" theme="system">
+    <PicodashProvider persistLayout storageKey="my-app:tweaker-layout:v1" theme="system">
       <main style={{ filter: `blur(${exposure * 0.2}px)` }}>Scene preview</main>
 
       <PicodashPanel

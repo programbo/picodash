@@ -117,7 +117,7 @@ function PlacementActions() {
 
 const panelSource = `<PicodashProvider
   persistLayout
-  storageKey="my-site:picodash-layout:v1"
+  storageKey="my-site:tweaker-layout:v1"
   theme="system"
 >
   <main
@@ -198,7 +198,7 @@ export function SitePreview() {
   return (
     <PicodashProvider
       persistLayout
-      storageKey="my-site:picodash-layout:v1"
+      storageKey="my-site:tweaker-layout:v1"
       theme="system"
     >
       <main
