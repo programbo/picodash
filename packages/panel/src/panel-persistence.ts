@@ -81,10 +81,14 @@ export function createValidatedPanelPersistStorage(): PersistStorage<PicodashPer
           if (!state.success) continue
 
           if (storageKey !== name) {
-            window.localStorage.setItem(
-              name,
-              JSON.stringify({ state: state.data, version: parsed.data.version }),
-            )
+            try {
+              window.localStorage.setItem(
+                name,
+                JSON.stringify({ state: state.data, version: parsed.data.version }),
+              )
+            } catch {
+              // Migration is best-effort. The valid legacy state still hydrates the provider.
+            }
           }
           return { state: state.data, version: parsed.data.version }
         }

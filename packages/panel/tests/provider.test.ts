@@ -61,6 +61,31 @@ test('migrates custom demo layouts from the retired storage key', () => {
   expect(storage.getItem('picodash-demo:panel-layout:v1')).toBeTruthy()
 })
 
+test('hydrates legacy layouts when the migration write fails', () => {
+  const raw = JSON.stringify({
+    state: { panelLayouts: { scene: { x: 72, y: 96 } } },
+    version: 0,
+  })
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem: (key: string) => (key === legacyPanelLayoutStorageKey ? raw : null),
+        setItem: () => {
+          throw new DOMException('Storage is full.', 'QuotaExceededError')
+        },
+      },
+    },
+  })
+
+  const storage = createValidatedPanelPersistStorage()
+
+  expect(storage.getItem(panelLayoutStorageKey)).toEqual({
+    state: { panelLayouts: { scene: { dock: null, x: 72, y: 96 } } },
+    version: 0,
+  })
+})
+
 test('can disable provider layout persistence without accessing local storage', () => {
   let accesses = 0
   Object.defineProperty(globalThis, 'window', {
