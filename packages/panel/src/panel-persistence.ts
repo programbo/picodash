@@ -74,7 +74,14 @@ export function createValidatedPanelPersistStorage(): PersistStorage<PicodashPer
           const raw = window.localStorage.getItem(storageKey)
           if (!raw) continue
 
-          const parsed = persistedStorageValueSchema.safeParse(JSON.parse(raw))
+          let parsedJson: unknown
+          try {
+            parsedJson = JSON.parse(raw)
+          } catch {
+            continue
+          }
+
+          const parsed = persistedStorageValueSchema.safeParse(parsedJson)
           if (!parsed.success) continue
 
           const state = picodashPersistedStateSchema.safeParse(parsed.data.state)
@@ -114,10 +121,14 @@ export function createValidatedPanelPersistStorage(): PersistStorage<PicodashPer
     },
     removeItem(name) {
       if (typeof window === 'undefined') return
-      try {
-        window.localStorage.removeItem(name)
-      } catch {
-        // Keep provider state usable when browser storage is unavailable.
+      const legacyStorageKey = legacyPanelLayoutStorageKeys.get(name)
+      const storageKeys = legacyStorageKey ? [name, legacyStorageKey] : [name]
+      for (const storageKey of storageKeys) {
+        try {
+          window.localStorage.removeItem(storageKey)
+        } catch {
+          // Keep provider state usable when browser storage is unavailable.
+        }
       }
     },
   }

@@ -45,6 +45,36 @@ test('migrates provider layouts from the retired storage key', () => {
   expect(storage.getItem(panelLayoutStorageKey)).toBeTruthy()
 })
 
+test('falls back when the new layout key contains malformed JSON', () => {
+  const storage = installFakeLocalStorage()
+  storage.setItem(panelLayoutStorageKey, '{malformed')
+  storage.setItem(
+    legacyPanelLayoutStorageKey,
+    JSON.stringify({
+      state: { panelLayouts: { scene: { x: 36, y: 48 } } },
+      version: 0,
+    }),
+  )
+
+  const persistStorage = createValidatedPanelPersistStorage()
+
+  expect(persistStorage.getItem(panelLayoutStorageKey)).toEqual({
+    state: { panelLayouts: { scene: { dock: null, x: 36, y: 48 } } },
+    version: 0,
+  })
+})
+
+test('removes both current and retired layout keys', () => {
+  const storage = installFakeLocalStorage()
+  storage.setItem(panelLayoutStorageKey, 'current')
+  storage.setItem(legacyPanelLayoutStorageKey, 'retired')
+
+  createValidatedPanelPersistStorage().removeItem(panelLayoutStorageKey)
+
+  expect(storage.getItem(panelLayoutStorageKey)).toBeNull()
+  expect(storage.getItem(legacyPanelLayoutStorageKey)).toBeNull()
+})
+
 test('migrates custom demo layouts from the retired storage key', () => {
   const storage = installFakeLocalStorage()
   storage.setItem(
