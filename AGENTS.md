@@ -60,8 +60,10 @@ independent of portal ownership.
 vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e
 ```
 
-GitHub CI runs the high-severity audit and full gate for pull requests and pushes to `main`.
-Package publication runs the package check, tests, and build before publishing.
+GitHub CI runs parallel `quality` and `e2e` jobs for pull requests and pushes to `main`. The quality
+job audits high-severity vulnerabilities, checks the workspace, and runs unit tests. The E2E job
+builds the workspace and runs the Playwright end-to-end suite. Package publication runs the package
+check, tests, and build before publishing.
 
 ## Port Allocation
 

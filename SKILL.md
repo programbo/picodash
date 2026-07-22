@@ -130,3 +130,5 @@ This repository is on the promoted API. Legacy schema-driven `useTweaker` and ol
 - `bun run --filter website test:e2e`
 - `bun audit --audit-level=high`
 - `bun run ready`
+
+GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`.
