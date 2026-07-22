@@ -52,6 +52,7 @@ independent of portal ownership.
 - `bun run --filter tweaker build`
 - `bun run --filter website test:e2e`
 - `bun audit --audit-level=high`
+- `bun run --cwd packages/tweaker release:check`
 - `bun run ready`
 
 `bun run ready` is the full gate:
@@ -64,6 +65,10 @@ GitHub CI runs parallel `quality` and `e2e` jobs for pull requests and pushes to
 job audits high-severity vulnerabilities, checks the workspace, and runs unit tests. The E2E job
 builds the workspace and runs the Playwright end-to-end suite. Package publication runs the package
 check, tests, and build before publishing.
+
+The repository is currently a public preview: Issues are available for feedback, while pull
+requests are disabled until the contribution workflow reopens. Versioning and release guidance is
+in `RELEASING.md`.
 
 ## Port Allocation
 

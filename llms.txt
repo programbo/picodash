@@ -2,6 +2,8 @@ Tweaker
 
 Active graph: packages/tweaker + apps/website.
 
+Project status: public preview; Issues are available for feedback, and pull requests are currently disabled.
+
 Package import surface:
 - tweaker
 - tweaker/advanced
@@ -46,11 +48,15 @@ Ports:
 Docs to keep aligned:
 - README.md
 - packages/tweaker/README.md
+- CONTRIBUTING.md
+- SECURITY.md
+- RELEASING.md
 - SKILL.md
 - AGENTS.md
 - llms.txt
 
 Verification:
 - bun audit --audit-level=high
+- bun run --cwd packages/tweaker release:check
 - bun run ready
 - GitHub CI runs parallel quality and E2E jobs for pull requests and main pushes

@@ -2,7 +2,23 @@
   "name": "tweaker",
   "version": "0.0.0",
   "description": "The composable React control panel for Tweaker.",
+  "keywords": [
+    "control-panel",
+    "developer-tools",
+    "inspector",
+    "react",
+    "ui",
+    "zustand"
+  ],
+  "homepage": "https://github.com/programbo/tweaker#readme",
+  "bugs": {
+    "url": "https://github.com/programbo/tweaker/issues"
+  },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/programbo/tweaker"
+  },
   "files": [
     "dist"
   ],
@@ -30,6 +46,8 @@
     "dev": "vp pack --watch",
     "test": "vp test",
     "check": "vp check",
+    "release:check": "vp check && vp test && vp run build && bun pm pack --dry-run",
+    "release:version": "bumpp --commit=false --tag=false --push=false",
     "prepublishOnly": "vp check && vp test && vp run build"
   },
   "dependencies": {
