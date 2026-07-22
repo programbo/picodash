@@ -11,23 +11,22 @@ export default defineConfig(({ command }) => ({
       ...(command === 'serve'
         ? [
             {
-              find: /^tweaker\/style\.css$/,
-              replacement: new URL('../../packages/tweaker/src/styles.css', import.meta.url)
-                .pathname,
+              find: /^@picodash\/panel\/style\.css$/,
+              replacement: new URL('../../packages/panel/src/styles.css', import.meta.url).pathname,
             },
             {
-              find: /^tweaker\/ui$/,
-              replacement: new URL('../../packages/tweaker/src/ui.ts', import.meta.url).pathname,
+              find: /^@picodash\/panel\/ui$/,
+              replacement: new URL('../../packages/panel/src/ui.ts', import.meta.url).pathname,
             },
           ]
         : []),
       {
-        find: /^tweaker\/advanced$/,
-        replacement: new URL('../../packages/tweaker/src/advanced.ts', import.meta.url).pathname,
+        find: /^@picodash\/panel\/advanced$/,
+        replacement: new URL('../../packages/panel/src/advanced.ts', import.meta.url).pathname,
       },
       {
-        find: /^tweaker$/,
-        replacement: new URL('../../packages/tweaker/src/index.ts', import.meta.url).pathname,
+        find: /^@picodash\/panel$/,
+        replacement: new URL('../../packages/panel/src/index.ts', import.meta.url).pathname,
       },
     ],
     dedupe: ['react', 'react-dom'],
@@ -42,7 +41,7 @@ export default defineConfig(({ command }) => ({
       'build-package-consumer': {
         cache: false,
         command: 'tsc -p tsconfig.build.json && vp build',
-        dependsOn: ['tweaker#build'],
+        dependsOn: ['@picodash/panel#build'],
       },
     },
   },

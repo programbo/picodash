@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { requiredBox } from './helpers.ts'
 
-const storageKey = 'tweaker-geometry-lab:panel-layout:v1'
+const storageKey = 'picodash-geometry-lab:panel-layout:v1'
 const safeInset = 8
 const defaultPlacementInset = 16
 const fixedPositions = [
@@ -23,7 +23,7 @@ test('shrinks and restores a tall panel during a held drag while preserving its 
   await page.goto('/panel-geometry-lab?fixture=drag')
   await expect(page.locator('[data-panel-geometry-lab]')).toBeVisible()
   const panel = geometryPanel(page, 'tall')
-  const header = panel.locator('[data-tweaker-panel-header]')
+  const header = panel.locator('[data-picodash-panel-header]')
   const initial = await requiredBox(panel)
   const headerBox = await requiredBox(header)
   const start = {
@@ -48,8 +48,8 @@ test('shrinks and restores a tall panel during a held drag while preserving its 
   expect(restoredDuringDrag.height).toBeGreaterThan(reduced.height + 100)
   await page.mouse.up()
 
-  const body = panel.locator('[data-tweaker-reorder-list]').first()
-  await expect(body).toHaveAttribute('data-tweaker-scrollport', 'body')
+  const body = panel.locator('[data-picodash-reorder-list]').first()
+  await expect(body).toHaveAttribute('data-picodash-scrollport', 'body')
   await expect(body).toHaveClass(/scroll-fade/)
   await body.hover()
   await page.mouse.wheel(0, 500)
@@ -77,7 +77,7 @@ test('retains peer-edge snapping while projecting panel bounds', async ({ page }
   const peer = geometryPanel(page, 'snap-peer')
   const sourceBox = await requiredBox(source)
   const peerBox = await requiredBox(peer)
-  const headerBox = await requiredBox(source.locator('[data-tweaker-panel-header]'))
+  const headerBox = await requiredBox(source.locator('[data-picodash-panel-header]'))
   const deltaX = peerBox.x - (sourceBox.x + sourceBox.width)
   const startX = headerBox.x + headerBox.width / 2
   const startY = headerBox.y + headerBox.height / 2
@@ -90,7 +90,7 @@ test('retains peer-edge snapping while projecting panel bounds', async ({ page }
   pointerX += peerBox.x - (intermediateSource.x + intermediateSource.width)
   await page.mouse.move(pointerX, startY, { steps: 4 })
 
-  await expect(source).toHaveAttribute('data-tweaker-panel-snapping', '')
+  await expect(source).toHaveAttribute('data-picodash-panel-snapping', '')
   await expect
     .poll(async () => {
       const [nextSource, nextPeer] = await Promise.all([requiredBox(source), requiredBox(peer)])
@@ -268,9 +268,9 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   await expectPanelAtBoundary(overridePanel, overrideBoundary, 'bottom-right')
 
   await placement.selectOption('left')
-  const scrollport = panel.locator('[data-tweaker-scrollport="auto"]')
+  const scrollport = panel.locator('[data-picodash-scrollport="auto"]')
   await expect(scrollport).toHaveClass(/scroll-fade/)
-  await expect(scrollport).toHaveAttribute('data-tweaker-reorder-lane', 'auto')
+  await expect(scrollport).toHaveAttribute('data-picodash-reorder-lane', 'auto')
   await expect
     .poll(() =>
       scrollport.evaluate((element) => ({
@@ -301,7 +301,7 @@ test('handles deferred corners, ordinary class constraints, and viewport panels 
   await page.goto('/panel-geometry-lab?fixture=review-regressions')
   const panel = geometryPanel(page, 'review-regression')
   const portal = page.locator('[data-geometry-scroll-portal]')
-  const shell = page.locator('[data-tweaker-panel-shell]').filter({ has: panel })
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
 
   await expect.poll(async () => (await requiredBox(panel)).width).toBe(220)
   await expect.poll(async () => (await requiredBox(panel)).height).toBe(180)
@@ -321,7 +321,7 @@ test('handles deferred corners, ordinary class constraints, and viewport panels 
     })
     .toEqual({ x: Math.round(initial.x), y: Math.round(initial.y) })
 
-  await shell.locator('[data-tweaker-fixed-toggle]').click()
+  await shell.locator('[data-picodash-fixed-toggle]').click()
   await expect(panel).toHaveAttribute('data-collapsed', 'true')
   let lastWidth = -1
   await expect
@@ -382,9 +382,9 @@ test('retracts every fixed placement while preserving its reopening control', as
   await page.goto('/panel-geometry-lab?fixture=fixed-boundaries')
   const boundary = page.locator('[data-geometry-boundary="provider"]')
   const panel = geometryPanel(page, 'fixed-boundary')
-  const shell = page.locator('[data-tweaker-panel-shell]').filter({ has: panel })
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
   const placement = page.getByLabel('Fixed placement')
-  const toggle = shell.locator('[data-tweaker-fixed-toggle]')
+  const toggle = shell.locator('[data-picodash-fixed-toggle]')
 
   await expect(page.locator('[data-runtime-placement]')).toHaveText('fixed:left')
 
@@ -520,7 +520,7 @@ test('rebases a bottom-positioned panel while shrinking during a held drag', asy
   await page.goto('/panel-geometry-lab?fixture=bottom-drag')
   const panel = geometryPanel(page, 'bottom-drag')
   const initial = await requiredBox(panel)
-  const header = await requiredBox(panel.locator('[data-tweaker-panel-header]'))
+  const header = await requiredBox(panel.locator('[data-picodash-panel-header]'))
   const start = {
     x: header.x + header.width / 2,
     y: header.y + header.height / 2,

@@ -1,28 +1,28 @@
 import { TextAlignCenter, TextAlignEnd, TextAlignStart, type LucideIcon } from 'lucide-react'
 import {
-  createTweakerPanelStore,
-  TweakerDisplay,
-  TweakerDropzone,
-  TweakerGradient,
-  TweakerGroup,
-  TweakerMatrix2D,
-  TweakerMediaPreview,
-  TweakerNumber,
-  TweakerPanel,
-  TweakerRange,
-  TweakerSegmented,
-  TweakerSelect,
-  TweakerSlider,
-  TweakerSwitch,
-  TweakerText,
-  TweakerVector3,
-  TweakerXYPad,
-  type TweakerMatrix2DOption,
-  type TweakerPanelCorner,
-  type TweakerPanelFixedPosition,
-  type TweakerPanelPlacement,
-  type TweakerPanelSnapPosition,
-} from 'tweaker'
+  createPicodashPanelStore,
+  PicodashDisplay,
+  PicodashDropzone,
+  PicodashGradient,
+  PicodashGroup,
+  PicodashMatrix2D,
+  PicodashMediaPreview,
+  PicodashNumber,
+  PicodashPanel,
+  PicodashRange,
+  PicodashSegmented,
+  PicodashSelect,
+  PicodashSlider,
+  PicodashSwitch,
+  PicodashText,
+  PicodashVector3,
+  PicodashXYPad,
+  type PicodashMatrix2DOption,
+  type PicodashPanelCorner,
+  type PicodashPanelFixedPosition,
+  type PicodashPanelPlacement,
+  type PicodashPanelSnapPosition,
+} from '@picodash/panel'
 import { ShadcnChartItem } from '@/custom-items/shadcn-chart'
 import { StreamingSparklineItem } from '@/custom-items/streaming-sparkline'
 
@@ -31,7 +31,7 @@ export const builtInItemsPanelId = 'built-in-items'
 export type BuiltInChartType = 'area' | 'bar' | 'line' | 'pie' | 'radar' | 'radial'
 export type BuiltInContentLayout = 'block' | 'full' | 'inline'
 export type BuiltInMatrixSelectionRole = 'radio' | 'toggle'
-export type BuiltInPanelPlacementMode = TweakerPanelPlacement['mode']
+export type BuiltInPanelPlacementMode = PicodashPanelPlacement['mode']
 
 export const builtInPanelPlacementPositions = {
   fixed: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left', 'right'],
@@ -46,9 +46,9 @@ export const builtInPanelPlacementPositions = {
     'bottom-left',
     'left',
   ],
-} as const satisfies Record<BuiltInPanelPlacementMode, readonly TweakerPanelSnapPosition[]>
+} as const satisfies Record<BuiltInPanelPlacementMode, readonly PicodashPanelSnapPosition[]>
 
-export type BuiltInPanelPlacementPosition = TweakerPanelSnapPosition
+export type BuiltInPanelPlacementPosition = PicodashPanelSnapPosition
 
 const panelPlacementPoints = {
   'bottom-left': [0, 1],
@@ -325,7 +325,7 @@ export const builtInItemDefaults = {
   xyPad: { x: 0.68, y: 0.32 },
 }
 
-export const builtInItemsPanelStore = createTweakerPanelStore({
+export const builtInItemsPanelStore = createPicodashPanelStore({
   initialValues: builtInItemDefaults,
   panelId: builtInItemsPanelId,
 })
@@ -355,12 +355,12 @@ export const alignmentOptions = alignmentRows.map((row, rowIndex) =>
   alignmentColumns.map((column, columnIndex) => ({
     'aria-label': `${row.label} ${column.label}`,
     children: (
-      <column.Icon aria-hidden="true" className="size-(--tweaker-icon-sm)" strokeWidth={2} />
+      <column.Icon aria-hidden="true" className="size-(--picodash-icon-sm)" strokeWidth={2} />
     ),
     className: [
-      'relative flex size-(--tweaker-control-height-md) p-(--tweaker-space-1) text-tweaker-muted transition-colors duration-(--tweaker-duration-fast) hover:bg-tweaker-surface-muted hover:text-tweaker-text data-[state=on]:bg-tweaker-accent data-[state=on]:text-tweaker-accent-text',
-      columnIndex === 0 ? '' : 'border-l border-tweaker-control',
-      rowIndex === 0 ? '' : 'border-t border-tweaker-control',
+      'relative flex size-(--picodash-control-height-md) p-(--picodash-space-1) text-picodash-muted transition-colors duration-(--picodash-duration-fast) hover:bg-picodash-surface-muted hover:text-picodash-text data-[state=on]:bg-picodash-accent data-[state=on]:text-picodash-accent-text',
+      columnIndex === 0 ? '' : 'border-l border-picodash-control',
+      rowIndex === 0 ? '' : 'border-t border-picodash-control',
       row.className,
       column.className,
     ]
@@ -373,42 +373,42 @@ export const alignmentOptions = alignmentRows.map((row, rowIndex) =>
         ? 'center'
         : (`${row.value}-${column.value}` as AlignmentValue),
   })),
-) satisfies readonly (readonly TweakerMatrix2DOption<AlignmentValue>[])[]
+) satisfies readonly (readonly PicodashMatrix2DOption<AlignmentValue>[])[]
 
 export const alignmentContainerProps = {
   'aria-label': 'Alignment',
   className:
-    'border-tweaker-control shadow-tweaker-sm rounded-tweaker-control overflow-hidden border bg-(--_tweaker-choice-background) p-(--tweaker-space-0-5)',
+    'border-picodash-control shadow-picodash-sm rounded-picodash-control overflow-hidden border bg-(--_picodash-choice-background) p-(--picodash-space-0-5)',
 }
 
 export const builtInPropTypes = {
-  TweakerChart: `type TweakerChartProps =
-  | TweakerAreaChartProps
-  | TweakerBarChartProps
-  | TweakerLineChartProps
-  | TweakerPieChartProps
-  | TweakerRadarChartProps
-  | TweakerRadialChartProps`,
-  TweakerDisplay: `type TweakerDisplayProps = {
+  PicodashChart: `type PicodashChartProps =
+  | PicodashAreaChartProps
+  | PicodashBarChartProps
+  | PicodashLineChartProps
+  | PicodashPieChartProps
+  | PicodashRadarChartProps
+  | PicodashRadialChartProps`,
+  PicodashDisplay: `type PicodashDisplayProps = {
   id: string
   label?: ReactNode
   value?: ReactiveProp<ReactNode>
   fallback?: ReactNode
 }`,
-  TweakerDropzone: `type TweakerDropzoneProps = {
+  PicodashDropzone: `type PicodashDropzoneProps = {
   field: string
   accept?: Accept
   maxFiles?: number
   maxSize?: number
   showPreviews?: boolean
 }`,
-  TweakerGradient: `type TweakerGradientProps = {
+  PicodashGradient: `type PicodashGradientProps = {
   field: string
   defaultValue?: GradientStop[]
   defaultRotation?: number
   rotationField?: string
 }`,
-  TweakerMatrix2D: `type TweakerMatrix2DProps<T> = {
+  PicodashMatrix2D: `type PicodashMatrix2DProps<T> = {
   field: string
   defaultValue?: T
   options: Matrix2DOption<T>[][]
@@ -416,37 +416,37 @@ export const builtInPropTypes = {
   selectionRole?: "radio" | "toggle"
   validationMessage?: string
 }`,
-  TweakerMediaPreview: `type TweakerMediaPreviewProps = {
+  PicodashMediaPreview: `type PicodashMediaPreviewProps = {
   field: string
   src?: ReactiveProp<string>
   alt: string
   objectFit?: CSSProperties["objectFit"]
 }`,
-  TweakerNumber: `type TweakerNumberProps = {
+  PicodashNumber: `type PicodashNumberProps = {
   field: string
   defaultValue?: number
   min?: ReactiveProp<number>
   max?: ReactiveProp<number>
   step?: ReactiveProp<number>
 }`,
-  TweakerRange: `type TweakerRangeProps = {
+  PicodashRange: `type PicodashRangeProps = {
   field: string
   defaultValue?: [number, number]
   min?: ReactiveProp<number>
   max?: ReactiveProp<number>
   step?: ReactiveProp<number>
 }`,
-  TweakerSegmented: `type TweakerSegmentedProps = {
+  PicodashSegmented: `type PicodashSegmentedProps = {
   field: string
   defaultValue?: string
   options: SegmentedOption[]
 }`,
-  TweakerSelect: `type TweakerSelectProps = {
+  PicodashSelect: `type PicodashSelectProps = {
   field: string
   defaultValue?: string
   options: ReactiveProp<SelectOption[]>
 }`,
-  TweakerSlider: `type TweakerSliderProps = {
+  PicodashSlider: `type PicodashSliderProps = {
   field: string
   defaultValue?: number
   min?: ReactiveProp<number>
@@ -455,9 +455,9 @@ export const builtInPropTypes = {
   marks?: ReactiveProp<SliderMarks>
   formatOptions?: Intl.NumberFormatOptions
 }`,
-  TweakerSparkline: `type TweakerSparklineProps = {
+  PicodashSparkline: `type PicodashSparklineProps = {
   id: string
-  data: Array<number | Record<string, number>> | (() => AsyncIterable<TweakerSparklineEmission>) | TweakerSparklineSource
+  data: Array<number | Record<string, number>> | (() => AsyncIterable<PicodashSparklineEmission>) | PicodashSparklineSource
   series?: Array<{
     dataKey: string
     label?: string
@@ -471,24 +471,24 @@ export const builtInPropTypes = {
   | { autoscale: true; minValue?: never; maxValue?: never }
   | { autoscale?: false; minValue?: number; maxValue?: number }
 )`,
-  TweakerSwitch: `type TweakerSwitchProps = {
+  PicodashSwitch: `type PicodashSwitchProps = {
   field: string
   defaultValue?: boolean
 }`,
-  TweakerText: `type TweakerTextProps = {
+  PicodashText: `type PicodashTextProps = {
   field: string
   defaultValue?: string
   placeholder?: string
   multiline?: boolean
 }`,
-  TweakerVector3: `type TweakerVector3Props = {
+  PicodashVector3: `type PicodashVector3Props = {
   field: string
   defaultValue?: { x: number; y: number; z: number }
   min?: ReactiveProp<number>
   max?: ReactiveProp<number>
   step?: ReactiveProp<number>
 }`,
-  TweakerXYPad: `type TweakerXYPadProps = {
+  PicodashXYPad: `type PicodashXYPadProps = {
   field: string
   defaultValue?: { x: number; y: number }
   xMin?: ReactiveProp<number>
@@ -503,9 +503,9 @@ type BuiltInComponentName = keyof typeof builtInPropTypes
 
 function propTypeHelp(component: BuiltInComponentName) {
   return (
-    <span className="grid gap-(--tweaker-space-2)">
-      <span className="text-tweaker-strong font-medium">{component}</span>
-      <code className="text-tweaker-text block font-mono text-(length:--tweaker-font-size-md) leading-(--tweaker-line-relaxed) whitespace-pre-wrap">
+    <span className="grid gap-(--picodash-space-2)">
+      <span className="text-picodash-strong font-medium">{component}</span>
+      <code className="text-picodash-text block font-mono text-(length:--picodash-font-size-md) leading-(--picodash-line-relaxed) whitespace-pre-wrap">
         {builtInPropTypes[component]}
       </code>
     </span>
@@ -518,181 +518,181 @@ export function BuiltInItemsPanel({
   config?: BuiltInItemsExampleConfig
 }) {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={builtInItemsPanelStore}
       title={config.panelTitle}
       collapsible={config.panelCollapsible}
       defaultPlacement={placementForBuiltInItemsConfig(config)}
       width={config.panelWidth}
-      className="top-4 right-4 max-w-[calc(100dvw-2rem)] bg-(--tweaker-color-surface)/72 backdrop-blur-xl lg:top-8 lg:right-8"
+      className="top-4 right-4 max-w-[calc(100dvw-2rem)] bg-(--picodash-color-surface)/72 backdrop-blur-xl lg:top-8 lg:right-8"
       data-example-width={config.panelWidth}
     >
-      <TweakerGroup
+      <PicodashGroup
         {...config.groupProps['common-items']}
         id="common-items"
         label={config.commonGroupLabel}
         reorderable={config.commonGroupReorderable}
       >
-        <TweakerText
+        <PicodashText
           {...config.itemProps.text}
           field="text"
           label="Text"
           defaultValue={builtInItemDefaults.text}
-          help={propTypeHelp('TweakerText')}
+          help={propTypeHelp('PicodashText')}
           placeholder="Enter text"
         />
-        <TweakerText
+        <PicodashText
           {...config.itemProps.multilineText}
           field="multilineText"
           label="Text"
           defaultValue={builtInItemDefaults.multilineText}
-          help={propTypeHelp('TweakerText')}
+          help={propTypeHelp('PicodashText')}
           multiline={config.multiline}
           placeholder="Enter longer text"
         />
-        <TweakerNumber
+        <PicodashNumber
           {...config.itemProps.number}
           field="number"
           label="Number"
           defaultValue={builtInItemDefaults.number}
-          help={propTypeHelp('TweakerNumber')}
+          help={propTypeHelp('PicodashNumber')}
           min={config.numberMin}
           max={config.numberMax}
           step={config.numberStep}
         />
-        <TweakerSwitch
+        <PicodashSwitch
           {...config.itemProps.switch}
           field="switch"
           label="Switch"
           defaultValue={builtInItemDefaults.switch}
-          help={propTypeHelp('TweakerSwitch')}
+          help={propTypeHelp('PicodashSwitch')}
         />
-        <TweakerSelect
+        <PicodashSelect
           {...config.itemProps.select}
           field="select"
           label="Select"
           defaultValue={builtInItemDefaults.select}
-          help={propTypeHelp('TweakerSelect')}
+          help={propTypeHelp('PicodashSelect')}
           options={densityOptions}
         />
-        <TweakerSlider
+        <PicodashSlider
           {...config.itemProps.slider}
           field="slider"
           label="Slider"
           defaultValue={builtInItemDefaults.slider}
-          help={propTypeHelp('TweakerSlider')}
+          help={propTypeHelp('PicodashSlider')}
           min={config.sliderMin}
           max={config.sliderMax}
           step={config.sliderStep}
         />
-        <TweakerSlider
+        <PicodashSlider
           {...config.itemProps.sliderMarks}
           field="sliderMarks"
           label="Slider"
           defaultValue={builtInItemDefaults.sliderMarks}
-          help={propTypeHelp('TweakerSlider')}
+          help={propTypeHelp('PicodashSlider')}
           min={config.sliderMarksMin}
           max={config.sliderMarksMax}
           step={config.sliderMarksStep}
           marks={sliderMarks}
           formatOptions={percentFormatOptions}
         />
-        <TweakerRange
+        <PicodashRange
           {...config.itemProps.range}
           field="range"
           label="Range"
           defaultValue={builtInItemDefaults.range}
-          help={propTypeHelp('TweakerRange')}
+          help={propTypeHelp('PicodashRange')}
           min={config.rangeMin}
           max={config.rangeMax}
           step={config.rangeStep}
         />
-        <TweakerSegmented
+        <PicodashSegmented
           {...config.itemProps.segmented}
           field="segmented"
           label="Segmented"
           defaultValue={builtInItemDefaults.segmented}
-          help={propTypeHelp('TweakerSegmented')}
+          help={propTypeHelp('PicodashSegmented')}
           options={segmentedOptions}
         />
-        <TweakerVector3
+        <PicodashVector3
           {...config.itemProps.vector3}
           field="vector3"
           label="Vector3"
           defaultValue={builtInItemDefaults.vector3}
-          help={propTypeHelp('TweakerVector3')}
+          help={propTypeHelp('PicodashVector3')}
           max={config.vectorMax}
           min={config.vectorMin}
           step={config.vectorStep}
         />
-        <TweakerMatrix2D
+        <PicodashMatrix2D
           {...config.itemProps.alignment}
           field="alignment"
           label="Matrix2D"
           defaultValue={builtInItemDefaults.alignment}
-          help={propTypeHelp('TweakerMatrix2D')}
+          help={propTypeHelp('PicodashMatrix2D')}
           containerProps={alignmentContainerProps}
           options={alignmentOptions}
           selectionRole={config.matrixSelectionRole}
           validationMessage="Alignment must be one of the nine supported positions."
         />
-      </TweakerGroup>
+      </PicodashGroup>
 
-      <TweakerGroup
+      <PicodashGroup
         {...config.groupProps['spatial-items']}
         id="spatial-items"
         label="Direct manipulation"
       >
-        <TweakerXYPad
+        <PicodashXYPad
           {...config.itemProps.xyPad}
           field="xyPad"
           label="XYPad"
           defaultValue={builtInItemDefaults.xyPad}
-          help={propTypeHelp('TweakerXYPad')}
+          help={propTypeHelp('PicodashXYPad')}
           step={config.xyPadStep}
           xMax={config.xyPadXMax}
           xMin={config.xyPadXMin}
           yMax={config.xyPadYMax}
           yMin={config.xyPadYMin}
         />
-        <TweakerGradient
+        <PicodashGradient
           {...config.itemProps.gradient}
           defaultRotation={builtInItemDefaults.gradientRotation}
           field="gradient"
           label="Gradient"
           defaultValue={builtInItemDefaults.gradient}
-          help={propTypeHelp('TweakerGradient')}
+          help={propTypeHelp('PicodashGradient')}
           rotationField="gradientRotation"
         />
-      </TweakerGroup>
+      </PicodashGroup>
 
-      <TweakerGroup {...config.groupProps['media-items']} id="media-items" label="Media and files">
-        <TweakerMediaPreview
+      <PicodashGroup {...config.groupProps['media-items']} id="media-items" label="Media and files">
+        <PicodashMediaPreview
           {...config.itemProps.previewAsset}
-          alt="Tweaker mark"
+          alt="Picodash mark"
           field="previewAsset"
           label="MediaPreview"
-          help={propTypeHelp('TweakerMediaPreview')}
+          help={propTypeHelp('PicodashMediaPreview')}
           src="/favicon.svg"
         />
-        <TweakerDropzone
+        <PicodashDropzone
           {...config.itemProps.droppedFiles}
           accept={{ 'image/*': ['.avif', '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp'] }}
           field="droppedFiles"
           label="Dropzone"
-          help={propTypeHelp('TweakerDropzone')}
+          help={propTypeHelp('PicodashDropzone')}
           maxFiles={config.dropzoneMaxFiles}
           maxSize={config.dropzoneMaxSize}
           showPreviews={config.dropzoneShowPreviews}
         />
-      </TweakerGroup>
+      </PicodashGroup>
 
-      <TweakerGroup {...config.groupProps['chart-items']} id="chart-items" label="Charts">
+      <PicodashGroup {...config.groupProps['chart-items']} id="chart-items" label="Charts">
         <StreamingSparklineItem
           {...config.itemProps.sparkline}
           autoscale={config.sparklineAutoscale}
           continuous={config.sparklineContinuous}
-          help={propTypeHelp('TweakerSparkline')}
+          help={propTypeHelp('PicodashSparkline')}
           maxValue={config.sparklineMaxValue}
           maxPoints={config.sparklineMaxPoints}
           minValue={config.sparklineMinValue}
@@ -701,41 +701,41 @@ export function BuiltInItemsPanel({
         <ShadcnChartItem
           {...config.itemProps['shadcn-frame-chart']}
           accessibilityLayer={config.chartAccessibilityLayer}
-          help={propTypeHelp('TweakerChart')}
+          help={propTypeHelp('PicodashChart')}
           type={config.chartType}
         />
-      </TweakerGroup>
+      </PicodashGroup>
 
-      <TweakerGroup
+      <PicodashGroup
         {...config.groupProps['visualization-items']}
         id="visualization-items"
         label="Display variants"
       >
-        <TweakerDisplay
+        <PicodashDisplay
           {...config.itemProps.displayFallback}
           id="displayFallback"
           label="Display"
           fallback="Waiting"
-          help={propTypeHelp('TweakerDisplay')}
+          help={propTypeHelp('PicodashDisplay')}
         />
-        <TweakerDisplay
+        <PicodashDisplay
           {...config.itemProps.display}
           id="display"
           label="Display"
-          help={propTypeHelp('TweakerDisplay')}
+          help={propTypeHelp('PicodashDisplay')}
           value={builtInItemDefaults.display}
         />
-      </TweakerGroup>
-    </TweakerPanel>
+      </PicodashGroup>
+    </PicodashPanel>
   )
 }
 
 export function placementForBuiltInItemsConfig(
   config: Pick<BuiltInItemsExampleConfig, 'panelPlacementMode' | 'panelPlacementPosition'>,
-): TweakerPanelPlacement {
+): PicodashPanelPlacement {
   const { panelPlacementMode: mode } = config
   const position = closestBuiltInPanelPlacementPosition(config.panelPlacementPosition, mode)
-  if (mode === 'fixed') return { mode, position: position as TweakerPanelFixedPosition }
+  if (mode === 'fixed') return { mode, position: position as PicodashPanelFixedPosition }
   if (mode === 'magnetic') return { mode, position }
-  return { mode, position: position as TweakerPanelCorner }
+  return { mode, position: position as PicodashPanelCorner }
 }

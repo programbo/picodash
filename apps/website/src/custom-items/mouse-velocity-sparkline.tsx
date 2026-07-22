@@ -1,6 +1,6 @@
 import { motion, useMotionValue, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, type RefObject } from 'react'
-import { TweakerItem } from 'tweaker'
+import { PicodashItem } from '@picodash/panel'
 import { advanceSparklineSamplingClock, decayPointerVelocity } from './pointer-velocity-sampling'
 
 const sampleCount = 56
@@ -212,7 +212,7 @@ export function MouseVelocitySparklineItem({
   }, [fpsLabel, pathX, pathY, prefersReducedMotion, target, velocityX, velocityY])
 
   return (
-    <TweakerItem
+    <PicodashItem
       id="mouse-velocity"
       contentLayout="block"
       description={`Move anywhere in ${targetLabel}. MotionValues sample velocity without updating React or the panel store.`}
@@ -272,7 +272,7 @@ export function MouseVelocitySparklineItem({
           </span>
         </div>
       </div>
-    </TweakerItem>
+    </PicodashItem>
   )
 }
 

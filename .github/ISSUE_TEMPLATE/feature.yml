@@ -1,5 +1,5 @@
 name: Feature request
-description: Propose a focused improvement to Tweaker
+description: Propose a focused improvement to Picodash
 title: '[Feature]: '
 labels:
   - enhancement
@@ -19,7 +19,7 @@ body:
     id: proposal
     attributes:
       label: Proposed solution
-      description: What would you like Tweaker to do?
+      description: What would you like Picodash to do?
     validations:
       required: true
   - type: textarea

@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Tweaker is intended to be a welcoming, respectful, and constructive project.
+Picodash is intended to be a welcoming, respectful, and constructive project.
 Participants are expected to:
 
 - communicate respectfully and assume good faith;

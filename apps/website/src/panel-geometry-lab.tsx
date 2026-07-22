@@ -1,38 +1,38 @@
 import { useRef, useState } from 'react'
 import {
-  createTweakerPanelStore,
-  TweakerDisplay,
-  TweakerGroup,
-  TweakerPanel,
-  TweakerProvider,
-  useTweakerPanel,
-  type TweakerPanelFixedPosition,
-} from 'tweaker'
+  createPicodashPanelStore,
+  PicodashDisplay,
+  PicodashGroup,
+  PicodashPanel,
+  PicodashProvider,
+  usePicodashPanel,
+  type PicodashPanelFixedPosition,
+} from '@picodash/panel'
 
-const storageKey = 'tweaker-geometry-lab:panel-layout:v1'
+const storageKey = 'picodash-geometry-lab:panel-layout:v1'
 
-const tallPanelStore = createTweakerPanelStore({ panelId: 'geometry-tall' })
-const peerPanelStore = createTweakerPanelStore({ panelId: 'geometry-peer' })
-const expansionPanelStore = createTweakerPanelStore({ panelId: 'geometry-expansion' })
-const bottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom' })
-const customBottomPanelStore = createTweakerPanelStore({ panelId: 'geometry-custom-bottom' })
-const responsivePanelStore = createTweakerPanelStore({ panelId: 'geometry-responsive' })
-const changingConstraintPanelStore = createTweakerPanelStore({
+const tallPanelStore = createPicodashPanelStore({ panelId: 'geometry-tall' })
+const peerPanelStore = createPicodashPanelStore({ panelId: 'geometry-peer' })
+const expansionPanelStore = createPicodashPanelStore({ panelId: 'geometry-expansion' })
+const bottomPanelStore = createPicodashPanelStore({ panelId: 'geometry-bottom' })
+const customBottomPanelStore = createPicodashPanelStore({ panelId: 'geometry-custom-bottom' })
+const responsivePanelStore = createPicodashPanelStore({ panelId: 'geometry-responsive' })
+const changingConstraintPanelStore = createPicodashPanelStore({
   panelId: 'geometry-changing-constraint',
 })
-export const keyboardUnmountPanelStore = createTweakerPanelStore({
+export const keyboardUnmountPanelStore = createPicodashPanelStore({
   panelId: 'geometry-keyboard-unmount',
 })
-const cappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-capped' })
-const classCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-class-capped' })
-const bottomCappedPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-capped' })
-const bottomDragPanelStore = createTweakerPanelStore({ panelId: 'geometry-bottom-drag' })
-const fixedBoundaryPanelStore = createTweakerPanelStore({ panelId: 'geometry-fixed-boundary' })
-const fixedOverridePanelStore = createTweakerPanelStore({ panelId: 'geometry-fixed-override' })
-const reviewRegressionPanelStore = createTweakerPanelStore({
+const cappedPanelStore = createPicodashPanelStore({ panelId: 'geometry-capped' })
+const classCappedPanelStore = createPicodashPanelStore({ panelId: 'geometry-class-capped' })
+const bottomCappedPanelStore = createPicodashPanelStore({ panelId: 'geometry-bottom-capped' })
+const bottomDragPanelStore = createPicodashPanelStore({ panelId: 'geometry-bottom-drag' })
+const fixedBoundaryPanelStore = createPicodashPanelStore({ panelId: 'geometry-fixed-boundary' })
+const fixedOverridePanelStore = createPicodashPanelStore({ panelId: 'geometry-fixed-override' })
+const reviewRegressionPanelStore = createPicodashPanelStore({
   panelId: 'geometry-review-regression',
 })
-const relativeConstraintPanelStore = createTweakerPanelStore({
+const relativeConstraintPanelStore = createPicodashPanelStore({
   panelId: 'geometry-relative-constraint',
 })
 
@@ -43,7 +43,7 @@ const fixedPositions = [
   'bottom-right',
   'left',
   'right',
-] as const satisfies readonly TweakerPanelFixedPosition[]
+] as const satisfies readonly PicodashPanelFixedPosition[]
 
 export function PanelGeometryLab() {
   const fixture = new URLSearchParams(window.location.search).get('fixture') ?? 'drag'
@@ -66,7 +66,7 @@ export function PanelGeometryLab() {
       data-product-route="panel-geometry-lab"
     >
       <div className="pointer-events-none fixed inset-0" data-geometry-viewport />
-      <TweakerProvider persistLayout storageKey={storageKey} theme="dark">
+      <PicodashProvider persistLayout storageKey={storageKey} theme="dark">
         {fixture === 'drag' ? <DragFixture /> : null}
         {fixture === 'peer' ? <PeerFixture /> : null}
         {fixture === 'panel-expansion' ? <PanelExpansionFixture /> : null}
@@ -80,7 +80,7 @@ export function PanelGeometryLab() {
         {fixture === 'class-max-height' ? <ClassMaxHeightFixture /> : null}
         {fixture === 'bottom-max-height' ? <BottomMaxHeightFixture /> : null}
         {fixture === 'bottom-drag' ? <BottomDragFixture /> : null}
-      </TweakerProvider>
+      </PicodashProvider>
     </main>
   )
 }
@@ -110,13 +110,13 @@ function RelativeConstraintFixture() {
         data-geometry-boundary="relative-constraints"
       >
         {boundaryElement ? (
-          <TweakerProvider
+          <PicodashProvider
             panelBoundary={boundaryElement}
             persistLayout={false}
             portalContainer={boundaryElement}
             theme="dark"
           >
-            <TweakerPanel
+            <PicodashPanel
               store={relativeConstraintPanelStore}
               title="Relative constraints"
               width={480}
@@ -125,8 +125,8 @@ function RelativeConstraintFixture() {
               data-geometry-fixture="relative-constraint"
             >
               <TallContent prefix="relative-constraint" count={32} />
-            </TweakerPanel>
-          </TweakerProvider>
+            </PicodashPanel>
+          </PicodashProvider>
         ) : null}
       </section>
     </main>
@@ -151,9 +151,9 @@ function ReviewRegressionFixture() {
       >
         <div className="h-[1200px] w-px" aria-hidden="true" />
         {portalContainer ? (
-          <TweakerProvider persistLayout={false} portalContainer={portalContainer} theme="dark">
+          <PicodashProvider persistLayout={false} portalContainer={portalContainer} theme="dark">
             <ReviewRegressionControls />
-            <TweakerPanel
+            <PicodashPanel
               store={reviewRegressionPanelStore}
               title="Review regression"
               width={320}
@@ -163,8 +163,8 @@ function ReviewRegressionFixture() {
               data-geometry-fixture="review-regression"
             >
               <TallContent prefix="review-regression" count={24} />
-            </TweakerPanel>
-          </TweakerProvider>
+            </PicodashPanel>
+          </PicodashProvider>
         ) : null}
       </div>
     </main>
@@ -172,7 +172,7 @@ function ReviewRegressionFixture() {
 }
 
 function ReviewRegressionControls() {
-  const panel = useTweakerPanel('geometry-review-regression')
+  const panel = usePicodashPanel('geometry-review-regression')
   return (
     <>
       <button
@@ -207,10 +207,10 @@ function FixedBoundaryFixture() {
         className="relative h-[calc(100svh-6rem)] rounded-xl border border-white/15 bg-zinc-950"
         data-geometry-boundary="provider"
       >
-        <TweakerProvider
+        <PicodashProvider
           panelBoundary={mainBoundaryRef}
           persistLayout
-          storageKey="tweaker-geometry-lab:fixed-boundaries:v1"
+          storageKey="picodash-geometry-lab:fixed-boundaries:v1"
           theme="dark"
         >
           <FixedPlacementControls />
@@ -222,7 +222,7 @@ function FixedBoundaryFixture() {
             <p className="p-4 text-sm text-cyan-200">Panel-level canvas boundary</p>
           </div>
 
-          <TweakerPanel
+          <PicodashPanel
             store={fixedBoundaryPanelStore}
             title="Provider boundary"
             width={300}
@@ -230,16 +230,16 @@ function FixedBoundaryFixture() {
             defaultPlacement={{ mode: 'fixed', position: 'left' }}
             data-geometry-fixture="fixed-boundary"
           >
-            <TweakerGroup id="fixed-start" label="Pinned start" pin="start">
-              <TweakerDisplay id="fixed-start-value" label="Boundary" value="Provider" />
-            </TweakerGroup>
+            <PicodashGroup id="fixed-start" label="Pinned start" pin="start">
+              <PicodashDisplay id="fixed-start-value" label="Boundary" value="Provider" />
+            </PicodashGroup>
             <TallContent prefix="fixed-auto" count={28} />
-            <TweakerGroup id="fixed-end" label="Pinned end" pin="end">
-              <TweakerDisplay id="fixed-end-value" label="Placement" value="Runtime" />
-            </TweakerGroup>
-          </TweakerPanel>
+            <PicodashGroup id="fixed-end" label="Pinned end" pin="end">
+              <PicodashDisplay id="fixed-end-value" label="Placement" value="Runtime" />
+            </PicodashGroup>
+          </PicodashPanel>
 
-          <TweakerPanel
+          <PicodashPanel
             store={fixedOverridePanelStore}
             title="Canvas boundary"
             width={240}
@@ -248,16 +248,16 @@ function FixedBoundaryFixture() {
             defaultPlacement={{ mode: 'fixed', position: 'bottom-right' }}
             data-geometry-fixture="fixed-override"
           >
-            <TweakerDisplay id="fixed-override-value" label="Boundary" value="Panel override" />
-          </TweakerPanel>
-        </TweakerProvider>
+            <PicodashDisplay id="fixed-override-value" label="Boundary" value="Panel override" />
+          </PicodashPanel>
+        </PicodashProvider>
       </section>
     </main>
   )
 }
 
 function FixedPlacementControls() {
-  const panel = useTweakerPanel('geometry-fixed-boundary')
+  const panel = usePicodashPanel('geometry-fixed-boundary')
   const fixedPosition =
     panel?.placement.mode === 'fixed' ? panel.placement.position : fixedPositions[0]
   const placementLabel = panel
@@ -274,7 +274,7 @@ function FixedPlacementControls() {
         onChange={(event) => {
           panel?.setPlacement({
             mode: 'fixed',
-            position: event.currentTarget.value as TweakerPanelFixedPosition,
+            position: event.currentTarget.value as PicodashPanelFixedPosition,
           })
         }}
       >
@@ -307,7 +307,7 @@ function FixedPlacementControls() {
 
 function DragFixture() {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={tallPanelStore}
       title="Tall geometry panel"
       width={320}
@@ -315,14 +315,14 @@ function DragFixture() {
       data-geometry-fixture="tall"
     >
       <TallContent prefix="tall" count={24} />
-    </TweakerPanel>
+    </PicodashPanel>
   )
 }
 
 function PeerFixture() {
   return (
     <>
-      <TweakerPanel
+      <PicodashPanel
         store={tallPanelStore}
         title="Snap source"
         width={280}
@@ -330,8 +330,8 @@ function PeerFixture() {
         data-geometry-fixture="snap-source"
       >
         <TallContent prefix="snap" count={3} />
-      </TweakerPanel>
-      <TweakerPanel
+      </PicodashPanel>
+      <PicodashPanel
         store={peerPanelStore}
         title="Snap peer"
         width={280}
@@ -339,14 +339,14 @@ function PeerFixture() {
         data-geometry-fixture="snap-peer"
       >
         <TallContent prefix="peer" count={3} />
-      </TweakerPanel>
+      </PicodashPanel>
     </>
   )
 }
 
 function PanelExpansionFixture() {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={expansionPanelStore}
       title="Panel disclosure fixture"
       width={320}
@@ -357,13 +357,13 @@ function PanelExpansionFixture() {
       data-geometry-fixture="panel-expansion"
     >
       <TallContent prefix="panel-expansion" count={20} />
-    </TweakerPanel>
+    </PicodashPanel>
   )
 }
 
 function GroupExpansionFixture() {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={expansionPanelStore}
       title="Group expansion fixture"
       width={320}
@@ -371,38 +371,38 @@ function GroupExpansionFixture() {
       className="top-20 left-24"
       data-geometry-fixture="groups"
     >
-      <TweakerGroup id="outer-group" label="Outer group" defaultCollapsed>
+      <PicodashGroup id="outer-group" label="Outer group" defaultCollapsed>
         <TallContent prefix="outer" count={5} />
-        <TweakerGroup id="nested-group" label="Nested group" defaultCollapsed>
+        <PicodashGroup id="nested-group" label="Nested group" defaultCollapsed>
           <TallContent prefix="nested" count={12} />
-        </TweakerGroup>
-      </TweakerGroup>
-      <TweakerGroup id="second-group" label="Second group" defaultCollapsed>
+        </PicodashGroup>
+      </PicodashGroup>
+      <PicodashGroup id="second-group" label="Second group" defaultCollapsed>
         <TallContent prefix="second" count={8} />
-      </TweakerGroup>
-    </TweakerPanel>
+      </PicodashGroup>
+    </PicodashPanel>
   )
 }
 
 function BottomExpansionFixture() {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={bottomPanelStore}
       title="Bottom docked fixture"
       width={320}
       defaultPlacement="bottom-left"
       data-geometry-fixture="bottom"
     >
-      <TweakerGroup id="bottom-group" label="Bottom group" defaultCollapsed>
+      <PicodashGroup id="bottom-group" label="Bottom group" defaultCollapsed>
         <TallContent prefix="bottom" count={18} />
-      </TweakerGroup>
-    </TweakerPanel>
+      </PicodashGroup>
+    </PicodashPanel>
   )
 }
 
 function CustomBottomFixture() {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={customBottomPanelStore}
       title="Custom bottom inset fixture"
       width={320}
@@ -411,13 +411,13 @@ function CustomBottomFixture() {
       data-geometry-fixture="custom-bottom"
     >
       <TallContent prefix="custom-bottom" count={3} />
-    </TweakerPanel>
+    </PicodashPanel>
   )
 }
 
 function ResponsiveConstraintFixture() {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={responsivePanelStore}
       title="Responsive constraint fixture"
       width={320}
@@ -426,7 +426,7 @@ function ResponsiveConstraintFixture() {
       data-geometry-fixture="responsive"
     >
       <TallContent prefix="responsive" count={3} />
-    </TweakerPanel>
+    </PicodashPanel>
   )
 }
 
@@ -451,7 +451,7 @@ function ChangingConstraintFixture() {
           Use top constraint
         </button>
       </div>
-      <TweakerPanel
+      <PicodashPanel
         store={changingConstraintPanelStore}
         title="Changing constraint fixture"
         width={320}
@@ -460,7 +460,7 @@ function ChangingConstraintFixture() {
         data-geometry-fixture="changing-constraint"
       >
         <TallContent prefix="changing-constraint" count={3} />
-      </TweakerPanel>
+      </PicodashPanel>
     </>
   )
 }
@@ -474,20 +474,20 @@ function KeyboardUnmountFixture() {
         Unmount keyboard fixture
       </button>
       {mounted ? (
-        <TweakerPanel
+        <PicodashPanel
           store={keyboardUnmountPanelStore}
           title="Keyboard unmount fixture"
           width={320}
           defaultPlacement="top-right"
           data-geometry-fixture="keyboard-unmount"
         >
-          <TweakerGroup id="first-group" label="First group">
+          <PicodashGroup id="first-group" label="First group">
             <TallContent prefix="first-group" count={1} />
-          </TweakerGroup>
-          <TweakerGroup id="second-group" label="Second group">
+          </PicodashGroup>
+          <PicodashGroup id="second-group" label="Second group">
             <TallContent prefix="second-group" count={1} />
-          </TweakerGroup>
-        </TweakerPanel>
+          </PicodashGroup>
+        </PicodashPanel>
       ) : null}
     </>
   )
@@ -495,7 +495,7 @@ function KeyboardUnmountFixture() {
 
 function CallerMaxHeightFixture() {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={cappedPanelStore}
       title="Caller max-height fixture"
       width={320}
@@ -504,13 +504,13 @@ function CallerMaxHeightFixture() {
       style={{ maxHeight: 200 }}
     >
       <TallContent prefix="caller-max-height" count={24} />
-    </TweakerPanel>
+    </PicodashPanel>
   )
 }
 
 function ClassMaxHeightFixture() {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={classCappedPanelStore}
       title="Class max-height fixture"
       width={320}
@@ -519,13 +519,13 @@ function ClassMaxHeightFixture() {
       data-geometry-fixture="class-max-height"
     >
       <TallContent prefix="class-max-height" count={24} />
-    </TweakerPanel>
+    </PicodashPanel>
   )
 }
 
 function BottomMaxHeightFixture() {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={bottomCappedPanelStore}
       title="Bottom max-height fixture"
       width={320}
@@ -534,13 +534,13 @@ function BottomMaxHeightFixture() {
       style={{ maxHeight: 200 }}
     >
       <TallContent prefix="bottom-max-height" count={24} />
-    </TweakerPanel>
+    </PicodashPanel>
   )
 }
 
 function BottomDragFixture() {
   return (
-    <TweakerPanel
+    <PicodashPanel
       store={bottomDragPanelStore}
       title="Bottom drag fixture"
       width={320}
@@ -548,13 +548,13 @@ function BottomDragFixture() {
       data-geometry-fixture="bottom-drag"
     >
       <TallContent prefix="bottom-drag" count={24} />
-    </TweakerPanel>
+    </PicodashPanel>
   )
 }
 
 function TallContent({ count, prefix }: { count: number; prefix: string }) {
   return Array.from({ length: count }, (_, index) => (
-    <TweakerDisplay
+    <PicodashDisplay
       id={`${prefix}-${index + 1}`}
       key={`${prefix}-${index + 1}`}
       label={`Geometry row ${index + 1}`}

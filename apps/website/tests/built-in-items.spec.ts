@@ -2,25 +2,25 @@ import { expect, test, type Locator } from '@playwright/test'
 import { requiredBox } from './helpers.ts'
 
 const builtInItems = [
-  { component: 'TweakerText', id: 'text', label: 'Text' },
-  { component: 'TweakerText', id: 'multilineText', label: 'Text' },
-  { component: 'TweakerNumber', id: 'number', label: 'Number' },
-  { component: 'TweakerSwitch', id: 'switch', label: 'Switch' },
-  { component: 'TweakerSelect', id: 'select', label: 'Select' },
-  { component: 'TweakerSlider', id: 'slider', label: 'Slider' },
-  { component: 'TweakerSlider', id: 'sliderMarks', label: 'Slider' },
-  { component: 'TweakerRange', id: 'range', label: 'Range' },
-  { component: 'TweakerSegmented', id: 'segmented', label: 'Segmented' },
-  { component: 'TweakerVector3', id: 'vector3', label: 'Vector3' },
-  { component: 'TweakerMatrix2D', id: 'alignment', label: 'Matrix2D' },
-  { component: 'TweakerXYPad', id: 'xyPad', label: 'XYPad' },
-  { component: 'TweakerGradient', id: 'gradient', label: 'Gradient' },
-  { component: 'TweakerMediaPreview', id: 'previewAsset', label: 'MediaPreview' },
-  { component: 'TweakerDropzone', id: 'droppedFiles', label: 'Dropzone' },
-  { component: 'TweakerSparkline', id: 'sparkline', label: 'Sparkline' },
-  { component: 'TweakerChart', id: 'shadcn-frame-chart', label: 'Chart' },
-  { component: 'TweakerDisplay', id: 'displayFallback', label: 'Display' },
-  { component: 'TweakerDisplay', id: 'display', label: 'Display' },
+  { component: 'PicodashText', id: 'text', label: 'Text' },
+  { component: 'PicodashText', id: 'multilineText', label: 'Text' },
+  { component: 'PicodashNumber', id: 'number', label: 'Number' },
+  { component: 'PicodashSwitch', id: 'switch', label: 'Switch' },
+  { component: 'PicodashSelect', id: 'select', label: 'Select' },
+  { component: 'PicodashSlider', id: 'slider', label: 'Slider' },
+  { component: 'PicodashSlider', id: 'sliderMarks', label: 'Slider' },
+  { component: 'PicodashRange', id: 'range', label: 'Range' },
+  { component: 'PicodashSegmented', id: 'segmented', label: 'Segmented' },
+  { component: 'PicodashVector3', id: 'vector3', label: 'Vector3' },
+  { component: 'PicodashMatrix2D', id: 'alignment', label: 'Matrix2D' },
+  { component: 'PicodashXYPad', id: 'xyPad', label: 'XYPad' },
+  { component: 'PicodashGradient', id: 'gradient', label: 'Gradient' },
+  { component: 'PicodashMediaPreview', id: 'previewAsset', label: 'MediaPreview' },
+  { component: 'PicodashDropzone', id: 'droppedFiles', label: 'Dropzone' },
+  { component: 'PicodashSparkline', id: 'sparkline', label: 'Sparkline' },
+  { component: 'PicodashChart', id: 'shadcn-frame-chart', label: 'Chart' },
+  { component: 'PicodashDisplay', id: 'displayFallback', label: 'Display' },
+  { component: 'PicodashDisplay', id: 'display', label: 'Display' },
 ] as const
 
 async function setBooleanSwitch(locator: Locator, value: boolean) {
@@ -33,7 +33,7 @@ async function setBooleanSwitch(locator: Locator, value: boolean) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
+  await expect(page.locator('[data-picodash-panel-id="built-in-items"]')).toBeVisible()
 })
 
 test('reveals a skip link on keyboard focus', async ({ page }) => {
@@ -64,7 +64,7 @@ test('surfaces clipboard failures in code and usage examples', async ({ page }) 
   await expect(copyJsx).toContainText('Copy failed')
 
   await example.getByRole('tab', { name: 'Usage' }).click()
-  const copyInstall = example.locator('[data-copy-code="Install Tweaker"]')
+  const copyInstall = example.locator('[data-copy-code="Install Picodash"]')
   await copyInstall.click()
   await expect(copyInstall).toContainText('Copy failed')
 })
@@ -74,9 +74,9 @@ test('keeps the non-fixed panel background attached to the panel at and away fro
 }) => {
   await page.setViewportSize({ width: 1558, height: 1091 })
   const example = page.locator('[data-interactive-jsx-example]')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const shell = page.locator(
-    '[data-tweaker-panel-shell]:has([data-tweaker-panel-id="built-in-items"])',
+    '[data-picodash-panel-shell]:has([data-picodash-panel-id="built-in-items"])',
   )
   const placementMode = example.getByLabel('Panel placement mode')
   const placementPosition = example.getByLabel('Panel placement position')
@@ -99,7 +99,7 @@ test('keeps the non-fixed panel background attached to the panel at and away fro
   await expect(shell).toHaveCSS('backdrop-filter', 'none')
   await placementMode.selectOption('floating')
 
-  const headerBox = await requiredBox(panel.locator('[data-tweaker-panel-header]'))
+  const headerBox = await requiredBox(panel.locator('[data-picodash-panel-header]'))
   const startX = headerBox.x + headerBox.width / 2
   const startY = headerBox.y + headerBox.height / 2
   await page.mouse.move(startX, startY)
@@ -127,7 +127,7 @@ test('reflects persisted panel placement in the interactive JSX controls after r
   const placementMode = example.getByLabel('Panel placement mode')
   const placementPosition = example.getByLabel('Panel placement position')
   const panelShell = page.locator(
-    '[data-tweaker-panel-shell]:has([data-tweaker-panel-id="built-in-items"])',
+    '[data-picodash-panel-shell]:has([data-picodash-panel-id="built-in-items"])',
   )
 
   await placementMode.selectOption('fixed')
@@ -172,9 +172,9 @@ test('provides a step-by-step Usage tab for adding a reactive panel', async ({ p
 
   const guide = example.locator('[data-usage-guide]')
   await expect(guide).toBeVisible()
-  await expect(guide.getByRole('heading', { name: 'Add a reactive Tweaker panel' })).toBeVisible()
+  await expect(guide.getByRole('heading', { name: 'Add a reactive Picodash panel' })).toBeVisible()
   await expect(guide.getByRole('heading', { name: 'Create a stable panel store' })).toBeVisible()
-  await expect(guide.getByText('bun add tweaker', { exact: true })).toBeVisible()
+  await expect(guide.getByText('bun add @picodash/panel', { exact: true })).toBeVisible()
   await expect(guide.getByRole('heading', { name: 'Common integration patterns' })).toBeVisible()
   await expect(guide.getByRole('heading', { name: 'Implementation constraints' })).toBeVisible()
   await expect(guide).toHaveCSS('scroll-behavior', 'smooth')
@@ -211,7 +211,7 @@ test('provides a More examples placeholder with shared section navigation', asyn
   const navigation = moreExamples.getByRole('navigation', { name: 'More examples' })
   await expect(moreExamples).toBeVisible()
   await expect(
-    moreExamples.getByRole('heading', { name: 'More complex Tweaker compositions' }),
+    moreExamples.getByRole('heading', { name: 'More complex Picodash compositions' }),
   ).toBeVisible()
   await expect(navigation.getByRole('link')).toHaveCount(4)
   await expect(moreExamples.getByText('Coming soon')).toHaveCount(4)
@@ -228,11 +228,11 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
 }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   const example = page.locator('[data-interactive-jsx-example]')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const placementMode = example.getByLabel('Panel placement mode')
   const placementPosition = example.getByLabel('Panel placement position')
   const panelShell = page.locator(
-    '[data-tweaker-panel-shell]:has([data-tweaker-panel-id="built-in-items"])',
+    '[data-picodash-panel-shell]:has([data-picodash-panel-id="built-in-items"])',
   )
 
   await expect(example.locator('[data-interactive-tabs]')).toHaveClass(/bg-zinc-950\/78/)
@@ -313,13 +313,13 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
   await expect(numberRow).toBeHidden()
   await setBooleanSwitch(example.getByLabel('Visible for number'), true)
   await expect(numberRow).toBeVisible()
-  await numberDeclaration.locator('[data-jsx-help="TweakerNumber"]').hover()
-  const propTypeTooltip = page.locator('[data-jsx-prop-type-tooltip="TweakerNumber"]:visible')
-  await expect(propTypeTooltip).toContainText('// TweakerNumber')
-  await expect(propTypeTooltip).toContainText('type TweakerNumberProps = {')
+  await numberDeclaration.locator('[data-jsx-help="PicodashNumber"]').hover()
+  const propTypeTooltip = page.locator('[data-jsx-prop-type-tooltip="PicodashNumber"]:visible')
+  await expect(propTypeTooltip).toContainText('// PicodashNumber')
+  await expect(propTypeTooltip).toContainText('type PicodashNumberProps = {')
   await expect(propTypeTooltip).toContainText('field: string')
   await expect(propTypeTooltip.locator('code')).toHaveCSS('white-space', 'pre')
-  await expect(propTypeTooltip.locator('.hljs-comment')).toHaveText('// TweakerNumber')
+  await expect(propTypeTooltip.locator('.hljs-comment')).toHaveText('// PicodashNumber')
   await expect(propTypeTooltip.locator('.hljs-keyword').first()).toContainText('type')
   await page.keyboard.press('Escape')
   await showAllProps.uncheck()
@@ -327,16 +327,16 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
 
   const darkSurface = await panel.evaluate((element) => getComputedStyle(element).backgroundColor)
   await expect(panel).toHaveCSS('backdrop-filter', /blur/)
-  await expect(panel).toHaveClass(/bg-\(--tweaker-color-surface\)\/72/)
+  await expect(panel).toHaveClass(/bg-\(--picodash-color-surface\)\/72/)
   await example.getByLabel('Provider theme').selectOption('light')
-  await expect(panel).toHaveAttribute('data-tweaker-theme', 'light')
+  await expect(panel).toHaveAttribute('data-picodash-theme', 'light')
   await expect(panel).toHaveCSS('color-scheme', 'light')
   await expect
     .poll(() => panel.evaluate((element) => getComputedStyle(element).backgroundColor))
     .not.toBe(darkSurface)
 
   await example.getByLabel('Provider theme').selectOption('ocean')
-  await expect(panel).toHaveAttribute('data-tweaker-theme', 'ocean')
+  await expect(panel).toHaveAttribute('data-picodash-theme', 'ocean')
 
   await example.getByLabel('Panel title').fill('Live Built-ins')
   await expect(panel).toContainText('Live Built-ins')
@@ -406,10 +406,10 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
     await expect(example.getByText(groupId, { exact: true })).toBeVisible()
   }
   await expect(example.locator('[data-jsx-control="displayFallback"]')).toContainText(
-    'TweakerDisplay',
+    'PicodashDisplay',
   )
-  await expect(example.locator('[data-jsx-control="display"]')).toContainText('TweakerDisplay')
-  const sparklineSurface = panel.locator('[data-item-id="sparkline"] [data-tweaker-sparkline]')
+  await expect(example.locator('[data-jsx-control="display"]')).toContainText('PicodashDisplay')
+  const sparklineSurface = panel.locator('[data-item-id="sparkline"] [data-picodash-sparkline]')
   await setBooleanSwitch(example.getByLabel('Sparkline continuous streaming'), false)
   await expect(sparklineSurface).toHaveAttribute('data-continuous', 'false')
   await setBooleanSwitch(example.getByLabel('Sparkline continuous streaming'), true)
@@ -474,7 +474,7 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
   ).toHaveAttribute('role', 'radio')
 
   const chartDeclaration = example.locator('[data-jsx-control="shadcn-frame-chart"]')
-  const chartSurface = panel.locator('[data-item-id="shadcn-frame-chart"] [data-tweaker-chart]')
+  const chartSurface = panel.locator('[data-item-id="shadcn-frame-chart"] [data-picodash-chart]')
   const chartType = example.getByLabel('Chart type')
   for (const [type, specificProp] of [
     ['area', 'areaChartProps'],
@@ -485,7 +485,7 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
     ['radial', 'radialBarChartProps'],
   ] as const) {
     await chartType.selectOption(type)
-    await expect(chartSurface).toHaveAttribute('data-tweaker-chart', type)
+    await expect(chartSurface).toHaveAttribute('data-picodash-chart', type)
     await expect(chartDeclaration).toContainText(specificProp)
   }
   await chartType.selectOption('line')
@@ -538,7 +538,7 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
 test('keeps the JSX left aligned until viewport centering clears the panel', async ({ page }) => {
   const example = page.locator('[data-interactive-jsx-example]')
   const content = example.locator(':scope > div')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
 
   await page.setViewportSize({ width: 1600, height: 1000 })
   await expect
@@ -565,13 +565,13 @@ test('keeps the JSX left aligned until viewport centering clears the panel', asy
 test('presents canonical built-in examples in order with API help and variant descriptions', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-  const common = panel.locator('[data-tweaker-reorder-list="common-items"]')
-  const spatial = panel.locator('[data-tweaker-reorder-list="spatial-items"]')
-  const media = panel.locator('[data-tweaker-reorder-list="media-items"]')
-  const charts = panel.locator('[data-tweaker-reorder-list="chart-items"]')
-  const displays = panel.locator('[data-tweaker-reorder-list="visualization-items"]')
-  const root = panel.locator('[data-tweaker-reorder-list="root"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const common = panel.locator('[data-picodash-reorder-list="common-items"]')
+  const spatial = panel.locator('[data-picodash-reorder-list="spatial-items"]')
+  const media = panel.locator('[data-picodash-reorder-list="media-items"]')
+  const charts = panel.locator('[data-picodash-reorder-list="chart-items"]')
+  const displays = panel.locator('[data-picodash-reorder-list="visualization-items"]')
+  const root = panel.locator('[data-picodash-reorder-list="root"]')
 
   await expect
     .poll(() => itemOrder(common, 'common-items'))
@@ -603,7 +603,7 @@ test('presents canonical built-in examples in order with API help and variant de
   await expect(panel.locator('[data-group-id="chart-items"]')).toContainText('Charts')
   await expect(panel.locator('[data-item-id="sparkline"] label')).toHaveText('Sparkline')
   await expect(panel.locator('[data-item-id="shadcn-frame-chart"] label')).toHaveText('Chart')
-  const sparkline = panel.locator('[data-item-id="sparkline"] [data-tweaker-sparkline]')
+  const sparkline = panel.locator('[data-item-id="sparkline"] [data-picodash-sparkline]')
   await sparkline.scrollIntoViewIfNeeded()
   const velocityXPath = sparkline.locator('[data-sparkline-series="x"]')
   const velocityYPath = sparkline.locator('[data-sparkline-series="y"]')
@@ -649,7 +649,7 @@ test('presents canonical built-in examples in order with API help and variant de
     .getByRole('button', { name: 'Help for Text' })
   await page.mouse.move(0, 0)
   await textHelp.hover()
-  await expect(page.getByRole('tooltip')).toContainText('type TweakerTextProps = {')
+  await expect(page.getByRole('tooltip')).toContainText('type PicodashTextProps = {')
   await expect(page.getByRole('tooltip')).toContainText('field: string')
   await page.keyboard.press('Escape')
 
@@ -667,7 +667,7 @@ test('presents canonical built-in examples in order with API help and variant de
 })
 
 test('mirrors panel hover and focus on the matching JSX declaration', async ({ page }) => {
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const codeViewport = page.locator('[data-code-guide]')
   const declaration = page.locator('[data-jsx-control="multilineText"]')
   const row = panel.locator('[data-item-id="multilineText"]')
@@ -709,7 +709,7 @@ test('mirrors panel hover and focus on the matching JSX declaration', async ({ p
 test('updates Text, Range, Segmented, Vector3, and consumer-defined Matrix2D inputs', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
 
   const text = panel.locator('[data-item-id="text"]').getByRole('textbox')
   await text.fill('Gallery')

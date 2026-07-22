@@ -51,7 +51,7 @@ export function MoreExamples() {
         <article className="min-w-0">
           <header className="border-b border-white/10 pb-8">
             <h1 className="text-2xl font-medium tracking-tight text-zinc-50 sm:text-3xl">
-              More complex Tweaker compositions
+              More complex Picodash compositions
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
               This section will collect complete examples that combine multiple items, application

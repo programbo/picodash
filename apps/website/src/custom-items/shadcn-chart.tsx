@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { TweakerChart } from 'tweaker'
+import { PicodashChart } from '@picodash/panel'
 
 export const shadcnChartTypes = ['area', 'bar', 'line', 'pie', 'radar', 'radial'] as const
 export type ShadcnChartType = (typeof shadcnChartTypes)[number]
@@ -109,7 +109,7 @@ export function ShadcnChartItem({
 
   if (type === 'area') {
     return (
-      <TweakerChart
+      <PicodashChart
         {...itemProps}
         areaChartProps={{ margin: { left: 12, right: 8, top: 8 } }}
         cartesianGridProps={{ strokeDasharray: '2 4', vertical: false }}
@@ -123,7 +123,7 @@ export function ShadcnChartItem({
 
   if (type === 'bar') {
     return (
-      <TweakerChart
+      <PicodashChart
         {...itemProps}
         barChartProps={{ margin: { left: 12, right: 8, top: 8 } }}
         cartesianGridProps={{ strokeDasharray: '2 4', vertical: false }}
@@ -137,7 +137,7 @@ export function ShadcnChartItem({
 
   if (type === 'pie') {
     return (
-      <TweakerChart
+      <PicodashChart
         {...itemProps}
         pieChartProps={{ margin: { bottom: 4, top: 4 } }}
         pieProps={{
@@ -155,7 +155,7 @@ export function ShadcnChartItem({
 
   if (type === 'radar') {
     return (
-      <TweakerChart
+      <PicodashChart
         {...itemProps}
         polarAngleAxisProps={{ dataKey: 'frame', tick: { fontSize: 9 } }}
         polarGridProps={{ gridType: 'polygon' }}
@@ -169,7 +169,7 @@ export function ShadcnChartItem({
 
   if (type === 'radial') {
     return (
-      <TweakerChart
+      <PicodashChart
         {...itemProps}
         polarAngleAxisProps={{ domain: [0, 20], tick: false, type: 'number' }}
         polarGridProps={{ gridType: 'circle' }}
@@ -188,7 +188,7 @@ export function ShadcnChartItem({
   }
 
   return (
-    <TweakerChart
+    <PicodashChart
       {...itemProps}
       cartesianGridProps={{ strokeDasharray: '2 4', vertical: false }}
       lineChartProps={{ margin: { left: 12, right: 8, top: 8 } }}

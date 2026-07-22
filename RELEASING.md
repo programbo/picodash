@@ -1,11 +1,11 @@
-# Releasing Tweaker
+# Releasing Picodash
 
-The published package is `packages/tweaker`; the private workspace package at
+The published package is `packages/panel`; the private workspace package at
 the repository root is not released.
 
 ## Version policy
 
-Tweaker uses Semantic Versioning with a deliberate pre-1.0 policy:
+Picodash uses Semantic Versioning with a deliberate pre-1.0 policy:
 
 - Start the first public npm release at `0.1.0`.
 - Use patch releases for backwards-compatible fixes and security fixes.
@@ -19,14 +19,14 @@ Tweaker uses Semantic Versioning with a deliberate pre-1.0 policy:
 ## Release checklist
 
 1. Work from an up-to-date `main` checkout.
-2. Update `packages/tweaker/package.json` and the `Unreleased` section of
+2. Update `packages/panel/package.json` and the `Unreleased` section of
    `CHANGELOG.md`.
 3. Run the full gate:
 
    ```bash
    bun run ready
    bun audit --audit-level=high
-   bun run --cwd packages/tweaker release:check
+   bun run --cwd packages/panel release:check
    ```
 
 4. Move the entries from `Unreleased` into a versioned heading such as

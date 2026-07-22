@@ -21,25 +21,25 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 
 ## Repository Topology
 
-- `packages/tweaker`: the promoted public package and default API surface.
+- `packages/panel`: the promoted public package and default API surface.
 - `apps/website`: interactive gallery at `/` and the `/state-lab` demo app. `/gallery` remains a compatibility alias.
 
 ## Active API Model
 
-The workspace API is application-owned panel state using the `createTweakerPanelStore` model.
-Provider descendants may control registered panel visibility and activation with `useTweakerPanel`;
-that visibility is transient and separate from persisted layout. `TweakerPanel close` hides by
+The workspace API is application-owned panel state using the `createPicodashPanelStore` model.
+Provider descendants may control registered panel visibility and activation with `usePicodashPanel`;
+that visibility is transient and separate from persisted layout. `PicodashPanel close` hides by
 default, while the explicit `deregister` close behavior removes the registration and portal before
 notifying the host. Application code reads panel values from its explicit store with
-`useTweakerPanelStoreSelector`; panel IDs do not provide global value lookup. Advanced provider
-access uses `useTweakerProviderSelector` / `useTweakerProviderStoreApi`, while contextual panel
-access uses `useTweakerPanelSelector` / `useTweakerPanelStoreApi`. Legacy schema-driven
-`useTweaker` registration flow is retired.
+`usePicodashPanelStoreSelector`; panel IDs do not provide global value lookup. Advanced provider
+access uses `usePicodashProviderSelector` / `usePicodashProviderStoreApi`, while contextual panel
+access uses `usePicodashPanelSelector` / `usePicodashPanelStoreApi`. Legacy schema-driven
+Legacy schema-driven registration flow is retired.
 
-Panel placement supports floating, magnetic, and fixed modes. `TweakerPanelSnapPosition` names
-magnetic edges, while fixed docking uses the six side/corner positions. `useTweakerPanel` owns
-runtime placement changes. Geometry defaults to the viewport; `TweakerProvider.panelBoundary`
-sets a shared Element/ref boundary and `TweakerPanel.boundary` can override it. Boundaries remain
+Panel placement supports floating, magnetic, and fixed modes. `PicodashPanelSnapPosition` names
+magnetic edges, while fixed docking uses the six side/corner positions. `usePicodashPanel` owns
+runtime placement changes. Geometry defaults to the viewport; `PicodashProvider.panelBoundary`
+sets a shared Element/ref boundary and `PicodashPanel.boundary` can override it. Boundaries remain
 independent of portal ownership.
 
 ## Required Commands
@@ -47,12 +47,12 @@ independent of portal ownership.
 - `bun install`
 - `bun run dev`
 - `bun run website`
-- `bun run --filter tweaker check`
-- `bun run --filter tweaker test`
-- `bun run --filter tweaker build`
+- `bun run --filter @picodash/panel check`
+- `bun run --filter @picodash/panel test`
+- `bun run --filter @picodash/panel build`
 - `bun run --filter website test:e2e`
 - `bun audit --audit-level=high`
-- `bun run --cwd packages/tweaker release:check`
+- `bun run --cwd packages/panel release:check`
 - `bun run ready`
 
 `bun run ready` is the full gate:
@@ -72,7 +72,7 @@ in `RELEASING.md`.
 
 ## Port Allocation
 
-This worktree is in the `tweaker` port registry range `6030-6039`.
+This worktree is in the `picodash` port registry range `6030-6039`.
 
 - `6030`: website dev and Playwright harness server.
 - `6031`: website preview server.
@@ -92,7 +92,7 @@ WEBSITE_PORT=6035 bun run --filter website test:e2e
 ## Documentation Surfaces
 
 - `README.md`
-- `packages/tweaker/README.md`
+- `packages/panel/README.md`
 - `SKILL.md`
 - `AGENTS.md`
 - `llms.txt`
@@ -101,11 +101,11 @@ Update all five files together when command surface, entrypoints, or architectur
 
 ## Package Boundaries
 
-- `tweaker` exports remain package-owned and are used via `tweaker`, `tweaker/advanced`,
-  `tweaker/ui`, and `tweaker/style.css`.
-- Shared shadcn components live only under `packages/tweaker/src/components/ui`; workspace apps
-  consume `tweaker/ui` and do not keep their own `components.json` or generated copies.
-- `tweaker/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve the
+- `@picodash/panel` exports remain package-owned and are used via `@picodash/panel`, `@picodash/panel/advanced`,
+  `@picodash/panel/ui`, and `@picodash/panel/style.css`.
+- Shared shadcn components live only under `packages/panel/src/components/ui`; workspace apps
+  consume `@picodash/panel/ui` and do not keep their own `components.json` or generated copies.
+- `@picodash/panel/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve the
   provider portal/theme/z-index contract, while nested submenus inherit their parent overlay.
 - Do not document `packages/panel` or `apps/demo` as active workspace products.
 

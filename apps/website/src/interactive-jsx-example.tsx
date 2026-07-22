@@ -4,9 +4,16 @@ import { Check, Copy } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { darkStyles, JsonView } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
-import { useTweakerPanel, useTweakerPanelStoreSelector } from 'tweaker'
-import type { TweakerPanelState } from 'tweaker/advanced'
-import { Tabs, TabsContent, TabsList, TabsTrigger, Tooltip, TooltipTrigger } from 'tweaker/ui'
+import { usePicodashPanel, usePicodashPanelStoreSelector } from '@picodash/panel'
+import type { PicodashPanelState } from '@picodash/panel/advanced'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Tooltip,
+  TooltipTrigger,
+} from '@picodash/panel/ui'
 import {
   alignmentContainerProps,
   alignmentOptions,
@@ -119,7 +126,7 @@ function commonInputLinesForConfig(
 
   const lines: CommonInputLine[] = [
     {
-      name: 'TweakerText',
+      name: 'PicodashText',
       props: {
         field: { kind: 'string', value: 'text' },
         label: { kind: 'string', value: 'Text' },
@@ -132,7 +139,7 @@ function commonInputLinesForConfig(
       },
     },
     {
-      name: 'TweakerText',
+      name: 'PicodashText',
       props: {
         field: { kind: 'string', value: 'multilineText' },
         label: { kind: 'string', value: 'Text' },
@@ -146,7 +153,7 @@ function commonInputLinesForConfig(
       },
     },
     {
-      name: 'TweakerNumber',
+      name: 'PicodashNumber',
       props: {
         field: { kind: 'string', value: 'number' },
         label: { kind: 'string', value: 'Number' },
@@ -161,7 +168,7 @@ function commonInputLinesForConfig(
       },
     },
     {
-      name: 'TweakerSwitch',
+      name: 'PicodashSwitch',
       props: {
         field: { kind: 'string', value: 'switch' },
         label: { kind: 'string', value: 'Switch' },
@@ -173,7 +180,7 @@ function commonInputLinesForConfig(
       },
     },
     {
-      name: 'TweakerSelect',
+      name: 'PicodashSelect',
       props: {
         field: { kind: 'string', value: 'select' },
         label: { kind: 'string', value: 'Select' },
@@ -186,7 +193,7 @@ function commonInputLinesForConfig(
       },
     },
     {
-      name: 'TweakerSlider',
+      name: 'PicodashSlider',
       props: {
         field: { kind: 'string', value: 'slider' },
         label: { kind: 'string', value: 'Slider' },
@@ -201,7 +208,7 @@ function commonInputLinesForConfig(
       },
     },
     {
-      name: 'TweakerSlider',
+      name: 'PicodashSlider',
       props: {
         field: { kind: 'string', value: 'sliderMarks' },
         label: { kind: 'string', value: 'Slider' },
@@ -222,7 +229,7 @@ function commonInputLinesForConfig(
       },
     },
     {
-      name: 'TweakerRange',
+      name: 'PicodashRange',
       props: {
         field: { kind: 'string', value: 'range' },
         label: { kind: 'string', value: 'Range' },
@@ -237,7 +244,7 @@ function commonInputLinesForConfig(
       },
     },
     {
-      name: 'TweakerSegmented',
+      name: 'PicodashSegmented',
       props: {
         field: { kind: 'string', value: 'segmented' },
         label: { kind: 'string', value: 'Segmented' },
@@ -254,7 +261,7 @@ function commonInputLinesForConfig(
       },
     },
     {
-      name: 'TweakerVector3',
+      name: 'PicodashVector3',
       props: {
         field: { kind: 'string', value: 'vector3' },
         label: { kind: 'string', value: 'Vector3' },
@@ -269,7 +276,7 @@ function commonInputLinesForConfig(
       },
     },
     {
-      name: 'TweakerMatrix2D',
+      name: 'PicodashMatrix2D',
       props: {
         field: { kind: 'string', value: 'alignment' },
         label: { kind: 'string', value: 'Matrix2D' },
@@ -355,7 +362,7 @@ function remainingGroupsForConfig(
       label: 'Direct manipulation',
       lines: [
         {
-          name: 'TweakerXYPad',
+          name: 'PicodashXYPad',
           props: {
             field: { kind: 'string', value: 'xyPad' },
             label: { kind: 'string', value: 'XYPad' },
@@ -372,7 +379,7 @@ function remainingGroupsForConfig(
           },
         },
         {
-          name: 'TweakerGradient',
+          name: 'PicodashGradient',
           props: {
             field: { kind: 'string', value: 'gradient' },
             label: { kind: 'string', value: 'Gradient' },
@@ -397,17 +404,17 @@ function remainingGroupsForConfig(
       lines: [
         {
           controlId: 'previewAsset',
-          name: 'TweakerMediaPreview',
+          name: 'PicodashMediaPreview',
           props: {
             field: { kind: 'string', value: 'previewAsset' },
             label: { kind: 'string', value: 'MediaPreview' },
-            alt: { kind: 'string', value: 'Tweaker mark' },
+            alt: { kind: 'string', value: 'Picodash mark' },
             src: { kind: 'string', value: '/favicon.svg' },
           },
         },
         {
           controlId: 'droppedFiles',
-          name: 'TweakerDropzone',
+          name: 'PicodashDropzone',
           props: {
             field: { kind: 'string', value: 'droppedFiles' },
             label: { kind: 'string', value: 'Dropzone' },
@@ -434,7 +441,7 @@ function remainingGroupsForConfig(
       lines: [
         {
           controlId: 'sparkline',
-          name: 'TweakerSparkline',
+          name: 'PicodashSparkline',
           props: {
             id: { kind: 'string', value: 'sparkline' },
             label: { kind: 'string', value: 'Sparkline' },
@@ -444,12 +451,12 @@ function remainingGroupsForConfig(
                 {
                   dataKey: 'x',
                   label: 'X velocity',
-                  stroke: 'var(--tweaker-color-accent)',
+                  stroke: 'var(--picodash-color-accent)',
                 },
                 {
                   dataKey: 'y',
                   label: 'Y velocity',
-                  stroke: 'var(--tweaker-color-warning)',
+                  stroke: 'var(--picodash-color-warning)',
                 },
               ],
               kind: 'expression',
@@ -479,7 +486,7 @@ function remainingGroupsForConfig(
         },
         {
           controlId: 'shadcn-frame-chart',
-          name: 'TweakerChart',
+          name: 'PicodashChart',
           props: chartPropsForConfig(config, updateBoolean, updateString),
         },
       ],
@@ -490,7 +497,7 @@ function remainingGroupsForConfig(
       lines: [
         {
           controlId: 'displayFallback',
-          name: 'TweakerDisplay',
+          name: 'PicodashDisplay',
           props: {
             id: { kind: 'string', value: 'displayFallback' },
             label: { kind: 'string', value: 'Display' },
@@ -499,7 +506,7 @@ function remainingGroupsForConfig(
         },
         {
           controlId: 'display',
-          name: 'TweakerDisplay',
+          name: 'PicodashDisplay',
           props: {
             id: { kind: 'string', value: 'display' },
             label: { kind: 'string', value: 'Display' },
@@ -753,8 +760,8 @@ export function InteractiveJsxExample({
   const [activeTab, setActiveTab] = useState('code')
   const [copyStatus, setCopyStatus] = useState<'copied' | 'error' | 'idle'>('idle')
   const [showAllProps, setShowAllProps] = useState(false)
-  const panelController = useTweakerPanel(builtInItemsPanelId)
-  const panelState = useTweakerPanelStoreSelector(builtInItemsPanelStore, (state) => state)
+  const panelController = usePicodashPanel(builtInItemsPanelId)
+  const panelState = usePicodashPanelStoreSelector(builtInItemsPanelStore, (state) => state)
   const panelStoreSnapshot = useMemo(() => snapshotForDisplay(panelState), [panelState])
   const codeViewportRef = useRef<HTMLDivElement>(null)
   const declarationRefs = useRef(new Map<string, HTMLElement>())
@@ -887,7 +894,7 @@ export function InteractiveJsxExample({
   ].map((line) => {
     const controlId = controlIdForLine(line)
     return {
-      component: line.name.replace(/^Tweaker/, ''),
+      component: line.name.replace(/^Picodash/, ''),
       field: controlId,
       href: `#code-${controlId}`,
     }
@@ -1027,7 +1034,7 @@ export function InteractiveJsxExample({
                   <code className="block min-w-max">
                     <CodeLine>
                       <Punctuation>&lt;</Punctuation>
-                      <Tag>TweakerProvider</Tag>
+                      <Tag>PicodashProvider</Tag>
                     </CodeLine>
                     <CodeLine indent={1}>
                       <Prop>persistLayout</Prop>
@@ -1035,7 +1042,7 @@ export function InteractiveJsxExample({
                     <CodeLine indent={1}>
                       <Prop>storageKey</Prop>
                       <Punctuation>=&quot;</Punctuation>
-                      <StringValue>tweaker-demo:panel-layout:v1</StringValue>
+                      <StringValue>picodash-demo:panel-layout:v1</StringValue>
                       <Punctuation>&quot;</Punctuation>
                     </CodeLine>
                     <CodeLine indent={1}>
@@ -1055,7 +1062,7 @@ export function InteractiveJsxExample({
 
                     <CodeLine indent={1}>
                       <Punctuation>&lt;</Punctuation>
-                      <Tag>TweakerPanel</Tag>
+                      <Tag>PicodashPanel</Tag>
                     </CodeLine>
                     <CodeLine indent={2}>
                       <Prop>store</Prop>
@@ -1148,7 +1155,7 @@ export function InteractiveJsxExample({
                           <Prop>className</Prop>
                           <Punctuation>=&quot;</Punctuation>
                           <StringValue>
-                            bg-(--tweaker-color-surface)/72 top-4 right-4 max-w-[calc(100dvw-2rem)]
+                            bg-(--picodash-color-surface)/72 top-4 right-4 max-w-[calc(100dvw-2rem)]
                             backdrop-blur-xl lg:top-8 lg:right-8
                           </StringValue>
                           <Punctuation>&quot;</Punctuation>
@@ -1161,7 +1168,7 @@ export function InteractiveJsxExample({
 
                     <CodeLine indent={2}>
                       <Punctuation>&lt;</Punctuation>
-                      <Tag>TweakerGroup</Tag> <Prop>id</Prop>
+                      <Tag>PicodashGroup</Tag> <Prop>id</Prop>
                       <Punctuation>=&quot;</Punctuation>
                       <StringValue>common-items</StringValue>
                       <Punctuation>&quot;</Punctuation>
@@ -1216,7 +1223,7 @@ export function InteractiveJsxExample({
 
                     <CodeLine indent={2}>
                       <Punctuation>&lt;/</Punctuation>
-                      <Tag>TweakerGroup</Tag>
+                      <Tag>PicodashGroup</Tag>
                       <Punctuation>&gt;</Punctuation>
                     </CodeLine>
 
@@ -1224,7 +1231,7 @@ export function InteractiveJsxExample({
                       <span key={group.id} className="block">
                         <CodeLine indent={2}>
                           <Punctuation>&lt;</Punctuation>
-                          <Tag>TweakerGroup</Tag>
+                          <Tag>PicodashGroup</Tag>
                         </CodeLine>
                         <CodeLine indent={3}>
                           <Prop>id</Prop>
@@ -1265,19 +1272,19 @@ export function InteractiveJsxExample({
                         })}
                         <CodeLine indent={2}>
                           <Punctuation>&lt;/</Punctuation>
-                          <Tag>TweakerGroup</Tag>
+                          <Tag>PicodashGroup</Tag>
                           <Punctuation>&gt;</Punctuation>
                         </CodeLine>
                       </span>
                     ))}
                     <CodeLine indent={1}>
                       <Punctuation>&lt;/</Punctuation>
-                      <Tag>TweakerPanel</Tag>
+                      <Tag>PicodashPanel</Tag>
                       <Punctuation>&gt;</Punctuation>
                     </CodeLine>
                     <CodeLine>
                       <Punctuation>&lt;/</Punctuation>
-                      <Tag>TweakerProvider</Tag>
+                      <Tag>PicodashProvider</Tag>
                       <Punctuation>&gt;</Punctuation>
                     </CodeLine>
                   </code>
@@ -1312,7 +1319,7 @@ export function InteractiveJsxExample({
   )
 }
 
-function snapshotForDisplay(state: TweakerPanelState) {
+function snapshotForDisplay(state: PicodashPanelState) {
   return {
     panelId: state.panelId,
     values: state.values,
@@ -1519,7 +1526,7 @@ function propsForLine(line: CommonInputLine) {
   }
 
   const componentProps: Record<string, StaticPropValue> =
-    line.name === 'TweakerSparkline'
+    line.name === 'PicodashSparkline'
       ? {
           ariaLabel: hiddenProp({
             kind: 'string',
@@ -1803,13 +1810,13 @@ function HelpExpression({ children, component }: { children: ReactNode; componen
         {children}
       </span>
       <Tooltip
-        className="rounded-tweaker-surface border-tweaker-border bg-tweaker-surface-raised text-tweaker-text z-50 max-h-96 w-max max-w-[calc(100vw-2rem)] overflow-auto border px-(--tweaker-space-3) py-(--tweaker-space-2-5) text-(length:--tweaker-font-size-lg) leading-(--tweaker-line-tight) shadow-[0_10px_15px_-3px_rgb(0_0_0/0.25),0_4px_6px_-4px_rgb(0_0_0/0.25)] outline-none"
+        className="rounded-picodash-surface border-picodash-border bg-picodash-surface-raised text-picodash-text z-50 max-h-96 w-max max-w-[calc(100vw-2rem)] overflow-auto border px-(--picodash-space-3) py-(--picodash-space-2-5) text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) shadow-[0_10px_15px_-3px_rgb(0_0_0/0.25),0_4px_6px_-4px_rgb(0_0_0/0.25)] outline-none"
         data-jsx-prop-type-tooltip={component}
-        data-tweaker-theme="dark"
+        data-picodash-theme="dark"
         offset={8}
       >
         <code
-          className="text-tweaker-text block font-mono text-(length:--tweaker-font-size-md) leading-(--tweaker-line-relaxed) whitespace-pre [&_.hljs-attr]:text-sky-200 [&_.hljs-comment]:text-zinc-500 [&_.hljs-keyword]:text-violet-300 [&_.hljs-literal]:text-rose-300 [&_.hljs-number]:text-rose-200 [&_.hljs-string]:text-amber-200 [&_.hljs-title.class]:text-cyan-200 [&_.hljs-title.function]:text-cyan-200 [&_.hljs-type]:text-cyan-200"
+          className="text-picodash-text block font-mono text-(length:--picodash-font-size-md) leading-(--picodash-line-relaxed) whitespace-pre [&_.hljs-attr]:text-sky-200 [&_.hljs-comment]:text-zinc-500 [&_.hljs-keyword]:text-violet-300 [&_.hljs-literal]:text-rose-300 [&_.hljs-number]:text-rose-200 [&_.hljs-string]:text-amber-200 [&_.hljs-title.class]:text-cyan-200 [&_.hljs-title.function]:text-cyan-200 [&_.hljs-type]:text-cyan-200"
           dangerouslySetInnerHTML={{ __html: highlightedPropType }}
         />
       </Tooltip>
@@ -1877,21 +1884,21 @@ function sourceForExample(
     noopStringUpdate,
   )
     .map(
-      (group) => `    <TweakerGroup
+      (group) => `    <PicodashGroup
       id=${JSON.stringify(group.id)}
       label=${JSON.stringify(group.label)}${hiddenGroupSource(group.id as BuiltInGroupId)}
     >
 ${serializeControls(group.lines)}
-    </TweakerGroup>`,
+    </PicodashGroup>`,
     )
     .join('\n')
 
-  return `<TweakerProvider
+  return `<PicodashProvider
   persistLayout
-  storageKey="tweaker-demo:panel-layout:v1"
+  storageKey="picodash-demo:panel-layout:v1"
   theme={${JSON.stringify(providerTheme)}}
 >
-  <TweakerPanel
+  <PicodashPanel
     store={builtInItemsPanelStore}
     title={${JSON.stringify(config.panelTitle)}}
     collapsible={${config.panelCollapsible}}
@@ -1899,20 +1906,20 @@ ${serializeControls(group.lines)}
     defaultPlacement={{ mode: ${JSON.stringify(panelPlacement.mode)}, position: ${JSON.stringify(panelPlacement.position)} }}${
       showAllProps
         ? `
-    className="bg-(--tweaker-color-surface)/72 top-4 right-4 max-w-[calc(100dvw-2rem)] backdrop-blur-xl lg:top-8 lg:right-8"`
+    className="bg-(--picodash-color-surface)/72 top-4 right-4 max-w-[calc(100dvw-2rem)] backdrop-blur-xl lg:top-8 lg:right-8"`
         : ''
     }
   >
-    <TweakerGroup
+    <PicodashGroup
       id="common-items"
       label={${JSON.stringify(config.commonGroupLabel)}}
       reorderable={${config.commonGroupReorderable}}${hiddenGroupSource('common-items')}
     >
 ${commonControls}
-    </TweakerGroup>
+    </PicodashGroup>
 ${remainingSource}
-  </TweakerPanel>
-</TweakerProvider>`
+  </PicodashPanel>
+</PicodashProvider>`
 }
 
 const pairedNumberBounds: Partial<Record<NumberConfigKey, NumberConfigKey>> = {

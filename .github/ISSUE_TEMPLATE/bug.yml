@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem with Tweaker
+description: Report a reproducible problem with Picodash
 title: '[Bug]: '
 labels:
   - bug

@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "tweaker-monorepo",
+      "name": "picodash",
       "devDependencies": {
         "@tsdown/css": "catalog:",
         "vite-plus": "catalog:",
@@ -13,6 +13,7 @@
       "name": "website",
       "version": "0.0.0",
       "dependencies": {
+        "@picodash/panel": "workspace:*",
         "clsx": "catalog:",
         "highlight.js": "catalog:",
         "lucide-react": "catalog:",
@@ -21,7 +22,6 @@
         "react-dom": "catalog:",
         "react-json-view-lite": "catalog:",
         "tailwind-merge": "catalog:",
-        "tweaker": "workspace:*",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -37,8 +37,8 @@
         "vite-plus": "catalog:",
       },
     },
-    "packages/tweaker": {
-      "name": "tweaker",
+    "packages/panel": {
+      "name": "@picodash/panel",
       "version": "0.0.0",
       "dependencies": {
         "@standard-schema/spec": "^1.1.0",
@@ -304,6 +304,8 @@
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.67.0", "", { "os": "win32", "cpu": "x64" }, "sha512-bw24y+/1MHS4QDkons3YyHkPT9uCMoLHHgQhb+mb8NOjTYwub1CZ+K9Ngr8aO5DMrDrkqHwTzlTwFP2vS8Y/ZQ=="],
 
     "@oxlint/plugins": ["@oxlint/plugins@1.61.0", "", {}, "sha512-nkOyZEF1vH527CkdQtOp1HMrVFEM4ResURvI2JFeGoup+h+43J/k/FgdOR9b9Isxg+Yae7qVDa7y3nssE8b3TQ=="],
+
+    "@picodash/panel": ["@picodash/panel@workspace:packages/panel"],
 
     "@playwright/test": ["@playwright/test@1.60.0", "", { "dependencies": { "playwright": "1.60.0" }, "bin": { "playwright": "cli.js" } }, "sha512-O71yZIbAh/PxDMNGns37GHBIfrVkEVyn+AXyIa5dOTfb4/xNvRWV+Vv/NMbNCtODB/pO7vLlF2OTmMVLhmr7Ag=="],
 
@@ -1130,8 +1132,6 @@
     "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
     "tw-animate-css": ["tw-animate-css@1.4.0", "", {}, "sha512-7bziOlRqH0hJx80h/3mbicLW7o8qLsH5+RaLR2t+OHM3D0JlWGODQKQ4cxbK7WlvmUxpcj6Kgu6EKqjrGFe3QQ=="],
-
-    "tweaker": ["tweaker@workspace:packages/tweaker"],
 
     "type-is": ["type-is@2.1.0", "", { "dependencies": { "content-type": "2.0.0", "media-typer": "1.1.0", "mime-types": "3.0.2" } }, "sha512-faYHw0anBbc/kWF3zFTEnxSFOAGUX9GFbOBthvDdLsIlEoWOFOtS0zgCiQYwIskL9iGXZL3kAXD8OoZ4GmMATA=="],
 

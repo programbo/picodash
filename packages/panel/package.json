@@ -1,0 +1,88 @@
+{
+  "name": "@picodash/panel",
+  "version": "0.0.0",
+  "description": "The composable React control panel for Picodash.",
+  "keywords": [
+    "control-panel",
+    "developer-tools",
+    "inspector",
+    "react",
+    "ui",
+    "zustand"
+  ],
+  "homepage": "https://github.com/programbo/picodash#readme",
+  "bugs": {
+    "url": "https://github.com/programbo/picodash/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/programbo/picodash"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "imports": {
+    "#components/*": "./src/components/*.tsx",
+    "#hooks/*": "./src/hooks/*.ts",
+    "#lib/*": "./src/lib/*.ts"
+  },
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./advanced": "./dist/advanced.mjs",
+    "./ui": "./dist/ui.mjs",
+    "./package.json": "./package.json",
+    "./style.css": "./dist/style.css"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "check": "vp check",
+    "release:check": "vp check && vp test && vp run build && bun pm pack --dry-run",
+    "release:version": "bumpp --commit=false --tag=false --push=false",
+    "prepublishOnly": "vp check && vp test && vp run build"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "react-aria-components": "catalog:",
+    "react-dropzone": "catalog:",
+    "recharts": "catalog:",
+    "tailwind-merge": "catalog:",
+    "yaml": "catalog:",
+    "zod": "catalog:",
+    "zustand": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@tsdown/css": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
+    "bumpp": "^12.0.0",
+    "postcss": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "shadcn": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  }
+}

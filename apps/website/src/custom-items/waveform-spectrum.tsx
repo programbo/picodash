@@ -1,7 +1,7 @@
 import { motion, useMotionValue, useReducedMotion, type MotionValue } from 'motion/react'
 import { useEffect } from 'react'
-import { TweakerItem } from 'tweaker'
-import { ToggleGroup, ToggleGroupItem } from 'tweaker/ui'
+import { PicodashItem } from '@picodash/panel'
+import { ToggleGroup, ToggleGroupItem } from '@picodash/panel/ui'
 
 type SignalMode = 'spectrum' | 'waveform'
 
@@ -13,7 +13,7 @@ export function WaveformSpectrumItem() {
   const prefersReducedMotion = useReducedMotion()
 
   return (
-    <TweakerItem<SignalMode>
+    <PicodashItem<SignalMode>
       id="signal-visualizer"
       contentLayout="block"
       defaultValue="waveform"
@@ -35,7 +35,7 @@ export function WaveformSpectrumItem() {
           />
         )
       }}
-    </TweakerItem>
+    </PicodashItem>
   )
 }
 

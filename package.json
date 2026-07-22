@@ -1,5 +1,5 @@
 {
-  "name": "tweaker-monorepo",
+  "name": "picodash",
   "version": "0.0.0",
   "private": true,
   "workspaces": {
@@ -45,7 +45,7 @@
     "ready": "vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e",
     "dev": "bun run --filter website dev",
     "website": "bun run --filter website dev",
-    "tweaker": "vp run tweaker#dev",
+    "picodash": "vp run @picodash/panel#dev",
     "test:e2e": "bun run --filter website test:e2e",
     "prepare": "vp config"
   },
