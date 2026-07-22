@@ -120,6 +120,45 @@ test('keeps the non-fixed panel background attached to the panel at and away fro
   expect(draggedShellBox.width).toBeCloseTo(draggedPanelBox.width, 0)
 })
 
+test('reflects persisted panel placement in the interactive JSX controls after reload', async ({
+  page,
+}) => {
+  const example = page.locator('[data-interactive-jsx-example]')
+  const placementMode = example.getByLabel('Panel placement mode')
+  const placementPosition = example.getByLabel('Panel placement position')
+  const panelShell = page.locator(
+    '[data-tweaker-panel-shell]:has([data-tweaker-panel-id="built-in-items"])',
+  )
+
+  await placementMode.selectOption('fixed')
+  await placementPosition.selectOption('right')
+  await expect(panelShell).toHaveAttribute('data-fixed-placement', 'right')
+
+  await page.reload()
+
+  await expect(placementMode).toHaveValue('fixed')
+  await expect(placementPosition).toHaveValue('right')
+  await expect(panelShell).toHaveAttribute('data-fixed-placement', 'right')
+})
+
+test('keeps the expanded panel header toggle transparent until hover', async ({ page }) => {
+  const example = page.locator('[data-interactive-jsx-example]')
+  await example.getByLabel('Panel placement mode').selectOption('floating')
+  await example.getByLabel('Provider theme').selectOption('light')
+
+  const toggle = page.getByRole('button', { name: 'Collapse panel Built-in Items' })
+  await page.mouse.move(0, 0)
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  await expect(toggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+
+  await toggle.hover()
+  await expect(toggle).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  const hoveredBackground = await toggle.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  )
+  expect(hoveredBackground).not.toMatch(/\/\s*0\.5\s*\)$/)
+})
+
 test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {
   const example = page.locator('[data-interactive-jsx-example]')
 
@@ -288,7 +327,7 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
 
   const darkSurface = await panel.evaluate((element) => getComputedStyle(element).backgroundColor)
   await expect(panel).toHaveCSS('backdrop-filter', /blur/)
-  await expect(panel).toHaveClass(/bg-tweaker-surface\/72/)
+  await expect(panel).toHaveClass(/bg-\(--tweaker-color-surface\)\/72/)
   await example.getByLabel('Provider theme').selectOption('light')
   await expect(panel).toHaveAttribute('data-tweaker-theme', 'light')
   await expect(panel).toHaveCSS('color-scheme', 'light')

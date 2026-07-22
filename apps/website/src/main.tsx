@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import 'tweaker/style.css'
 import { App } from './App.tsx'
 import { AppErrorBoundary } from './app-error-boundary.tsx'
 import './style.css'

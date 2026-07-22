@@ -460,7 +460,7 @@ export function TweakerPanel({
             {title || close || (fixedPlacement && collapsible) ? (
               <div
                 className={cn(
-                  'border-tweaker-border flex h-[2.3125rem] shrink-0 items-center gap-(--tweaker-space-1) border-b py-(--tweaker-space-2) pr-(--tweaker-space-3) select-none',
+                  'border-tweaker-border flex h-9.25 shrink-0 items-center gap-(--tweaker-space-1) border-b py-(--tweaker-space-2) pr-(--tweaker-space-3) select-none',
                   !fixedPlacement && 'cursor-grab active:cursor-grabbing',
                   collapsible && !fixedPlacement
                     ? 'pl-(--tweaker-space-1)'
@@ -487,7 +487,7 @@ export function TweakerPanel({
                     aria-label={`${panelCollapsed ? 'Expand' : 'Collapse'} panel ${titleText}`}
                     className={cn(
                       buttonVariants({ size: 'icon', variant: 'ghost' }),
-                      'size-(--tweaker-icon-lg) shrink-0 text-tweaker-muted',
+                      'size-(--tweaker-icon-lg) shrink-0 text-tweaker-muted aria-expanded:bg-transparent! aria-expanded:hover:bg-tweaker-surface-muted!',
                     )}
                     type="button"
                     onClick={() => togglePanelCollapsed()}
@@ -608,8 +608,8 @@ function FixedPanelToggle({
         'pointer-events-auto absolute z-10 size-(--tweaker-control-height-md) shrink-0 text-tweaker-muted',
         'transition-[background-color,color] motion-reduce:transition-none',
         collapsed
-          ? 'border-tweaker-border bg-tweaker-surface-raised/90 shadow-tweaker-sm backdrop-blur-md'
-          : 'bg-transparent! hover:bg-tweaker-surface-muted!',
+          ? 'bg-(--tweaker-color-surface)/72! backdrop-blur-xl hover:bg-(--tweaker-color-surface)/82! focus-visible:bg-(--tweaker-color-surface)/82!'
+          : 'bg-transparent! hover:bg-tweaker-surface-muted/50!',
         fixedTogglePositionClassName(position, collapsed),
       )}
       data-tweaker-fixed-toggle=""

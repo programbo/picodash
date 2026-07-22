@@ -524,7 +524,7 @@ export function BuiltInItemsPanel({
       collapsible={config.panelCollapsible}
       defaultPlacement={placementForBuiltInItemsConfig(config)}
       width={config.panelWidth}
-      className="bg-tweaker-surface/72 top-4 right-4 max-w-[calc(100dvw-2rem)] backdrop-blur-xl lg:top-8 lg:right-8"
+      className="top-4 right-4 max-w-[calc(100dvw-2rem)] bg-(--tweaker-color-surface)/72 backdrop-blur-xl lg:top-8 lg:right-8"
       data-example-width={config.panelWidth}
     >
       <TweakerGroup
