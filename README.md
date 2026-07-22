@@ -2,6 +2,9 @@
 
 Monorepo for the promoted [Tweaker] package and its web showcase (`apps/website`).
 
+> **Public preview:** Tweaker is currently available for reading, evaluation, and issue feedback.
+> Pull requests are temporarily disabled while the API and maintenance workflow settle.
+
 ## Active product topology
 
 - `packages/tweaker`: published package API for application-owned inspector panels.
@@ -185,6 +188,8 @@ Repairs from imports and constraint propagation are reviewable through the built
 
 - `README.md`: workspace setup, installation, runbook, topology.
 - `packages/tweaker/README.md`: API, usage patterns, and feature behavior.
+- `CONTRIBUTING.md`: current public-preview contribution policy.
+- `RELEASING.md`: package versioning and release checklist.
 - `SKILL.md`: agent workflow guidance.
 - `AGENTS.md`: verification and port conventions.
 - `llms.txt`: short topology and migration summary.
@@ -218,6 +223,7 @@ bun run --filter tweaker test
 bun run --filter tweaker build
 bun run --filter website test:e2e
 bun audit --audit-level=high
+bun run --cwd packages/tweaker release:check
 bun run ready
 ```
 
