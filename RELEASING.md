@@ -25,17 +25,22 @@ Tweaker uses Semantic Versioning with a deliberate pre-1.0 policy:
 
    ```bash
    bun run ready
+   bun audit --audit-level=high
    bun run --cwd packages/tweaker release:check
    ```
 
 4. Create an annotated tag in the form `v<package-version>`, for example
    `v0.1.0`.
 5. Create a GitHub Release from that tag with the changelog entries.
-6. Publish to npm only after configuring npm trusted publishing for the
-   repository's release workflow.
-7. Install the published package in a clean example project and verify the
+6. For the first npm release, publish manually from the clean checkout using
+   an interactive npm login with account-level two-factor authentication. Do
+   not store an npm token in the repository or workflow configuration.
+7. For later releases, configure npm trusted publishing for the repository's
+   release workflow and publish through that workflow instead of a long-lived
+   token.
+8. Install the published package in a clean example project and verify the
    documented entrypoints and stylesheet import.
 
-The first npm release should be a deliberate manual release. Automation can be
-added after the package metadata, trusted publisher, and clean-install checks
-have been confirmed.
+The first release is deliberately manual so the package name, metadata,
+account ownership, and clean-install path can be verified. Automation can be
+added for subsequent releases after trusted publishing has been configured.

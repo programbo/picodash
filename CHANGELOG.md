@@ -6,4 +6,4 @@ and releases follow the versioning policy in [RELEASING.md](RELEASING.md).
 
 ## [Unreleased]
 
-- Public-preview administration and release process established.
+No published package release exists yet.

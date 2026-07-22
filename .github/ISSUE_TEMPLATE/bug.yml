@@ -20,7 +20,7 @@ body:
     id: reproduction
     attributes:
       label: Reproduction
-      description: Describe the smallest reproduction, including relevant code or a link.
+      description: Describe the smallest reproduction, including relevant code or a link. Redact tokens, credentials, private URLs, and customer data before submitting.
     validations:
       required: true
   - type: textarea
@@ -39,6 +39,6 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Include browser, OS, React, Bun/Node, and relevant dependency versions.
+      description: Include browser, OS, React, Bun/Node, and relevant dependency versions. Redact tokens, credentials, private URLs, and customer data before submitting.
     validations:
       required: true
