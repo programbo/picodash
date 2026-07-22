@@ -54,6 +54,7 @@
     "vite-plus": "catalog:"
   },
   "overrides": {
+    "fast-uri": "3.1.4",
     "vite": "catalog:",
     "vitest": "catalog:"
   },
