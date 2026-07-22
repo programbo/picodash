@@ -47,7 +47,7 @@
     "test": "vp test",
     "check": "vp check",
     "release:check": "vp check && vp test && vp run build && bun pm pack --dry-run",
-    "release:version": "bumpp package.json --commit=false --tag=false --push=false",
+    "release:version": "bumpp --commit=false --tag=false --push=false",
     "prepublishOnly": "vp check && vp test && vp run build"
   },
   "dependencies": {
