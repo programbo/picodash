@@ -1,8 +1,8 @@
-# Tweaker — Codebase Review
+# Picodash — Codebase Review
 
 **Date:** 2026-07-20
 **Status updated:** 2026-07-21
-**Scope:** Full read-only audit of `packages/tweaker`, `apps/website`, build/test/CI posture, and documentation surfaces.
+**Scope:** Full read-only audit of `packages/panel`, `apps/website`, build/test/CI posture, and documentation surfaces.
 **Method:** Parallel deep-dive exploration of source, tests, configs, and on-disk artifacts; spot-checked key findings against the actual files. No edits were made to source.
 
 ---
@@ -26,50 +26,50 @@ The detailed findings in §3 remain the original audit record. Their recommendat
 
 | ID  | Sev | Category        | Title                                                                         | Location                                                                                                                                   |
 | --- | --- | --------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| S1  | P0  | Stability       | `localStorage.setItem` not wrapped in try/catch                               | `packages/tweaker/src/panel-persistence.ts:56-59`                                                                                          |
+| S1  | P0  | Stability       | `localStorage.setItem` not wrapped in try/catch                               | `packages/panel/src/panel-persistence.ts:56-59`                                                                                            |
 | S2  | P0  | Stability       | No error boundary in website                                                  | `apps/website/src/main.tsx:12-15`                                                                                                          |
 | S3  | P0  | DX / Tooling    | No CI, no Dependabot/CodeQL/Snyk/OSV, no audit                                | (repo-wide)                                                                                                                                |
 | S4  | P0  | Maintainability | `tsconfig.json` missing `"strict": true`                                      | `apps/website/tsconfig.json:1-30`                                                                                                          |
-| S5  | P0  | Maintainability | Catalog bypass for `@types/node` and `typescript`                             | `package.json:12-13`, `packages/tweaker/package.json:49,58`, `apps/website/package.json:37`                                                |
+| S5  | P0  | Maintainability | Catalog bypass for `@types/node` and `typescript`                             | `package.json:12-13`, `packages/panel/package.json:49,58`, `apps/website/package.json:37`                                                  |
 | P1  | P1  | DX              | Bundle is 666 KB, no code-splitting                                           | `apps/website/dist/assets/index-CXY0zvQ-.js`                                                                                               |
-| P2  | P1  | Maintainability | `@dnd-kit/*` declared but never imported                                      | `packages/tweaker/package.json:31-33`                                                                                                      |
-| P3  | P1  | Stability       | Silent error swallowing in persistence read                                   | `packages/tweaker/src/panel-persistence.ts:37-48`                                                                                          |
-| P4  | P1  | Stability       | Async sparkline errors silently dropped                                       | `packages/tweaker/src/inputs/sparkline.tsx:342, 349, 357`                                                                                  |
-| P5  | P1  | Maintainability | No source maps from `vp pack`                                                 | `packages/tweaker/vite.config.ts:5-17`                                                                                                     |
+| P2  | P1  | Maintainability | `@dnd-kit/*` declared but never imported                                      | `packages/panel/package.json:31-33`                                                                                                        |
+| P3  | P1  | Stability       | Silent error swallowing in persistence read                                   | `packages/panel/src/panel-persistence.ts:37-48`                                                                                            |
+| P4  | P1  | Stability       | Async sparkline errors silently dropped                                       | `packages/panel/src/inputs/sparkline.tsx:342, 349, 357`                                                                                    |
+| P5  | P1  | Maintainability | No source maps from `vp pack`                                                 | `packages/panel/vite.config.ts:5-17`                                                                                                       |
 | P6  | P1  | Maintainability | No coverage threshold / bundle-size budget / license check                    | `package.json:51`                                                                                                                          |
-| P7  | P1  | Maintainability | Stale `packages/panel/` directory                                             | `packages/panel/`                                                                                                                          |
-| P8  | P1  | UX / A11y       | No keyboard-accessible item reorder                                           | `packages/tweaker/src/tweaker-control.tsx:349-361`                                                                                         |
+| P7  | P1  | Maintainability | Retired `packages/tweaker/` directory                                         | `packages/tweaker/`                                                                                                                        |
+| P8  | P1  | UX / A11y       | No keyboard-accessible item reorder                                           | `packages/panel/src/picodash-control.tsx:349-361`                                                                                          |
 | P9  | P1  | UX / A11y       | Chromium-only E2E; no axe audit, no visual regression                         | `apps/website/playwright.config.ts:19-24`                                                                                                  |
-| P10 | P1  | Maintainability | Tailwind sort-function mismatch                                               | `vite.config.ts:11`, `packages/tweaker/vite.config.ts:28`                                                                                  |
+| P10 | P1  | Maintainability | Tailwind sort-function mismatch                                               | `vite.config.ts:11`, `packages/panel/vite.config.ts:28`                                                                                    |
 | P11 | P1  | Security        | Missing HSTS header                                                           | `apps/website/vercel.json:2-23`                                                                                                            |
-| P12 | P1  | Stability       | TOCTOU window in simple store setters                                         | `packages/tweaker/src/tweaker-panel-store.ts:436-489, 501-535`                                                                             |
+| P12 | P1  | Stability       | TOCTOU window in simple store setters                                         | `packages/panel/src/picodash-panel-store.ts:436-489, 501-535`                                                                              |
 | P13 | P1  | Maintainability | Duplicated helpers (`decimalPlaces`, `finiteOr`, `clamp`)                     | see §3.5                                                                                                                                   |
 | P14 | P1  | DX              | No skip link to main content                                                  | `apps/website/src/App.tsx`                                                                                                                 |
-| L1  | P2  | DX              | Inline `parse`/`validate` foot-gun                                            | `packages/tweaker/src/tweaker-panel-context.tsx:96-112`                                                                                    |
-| L2  | P2  | DX              | No `"use client"` note for Next.js consumers                                  | `packages/tweaker/README.md`                                                                                                               |
+| L1  | P2  | DX              | Inline `parse`/`validate` foot-gun                                            | `packages/panel/src/picodash-panel-context.tsx:96-112`                                                                                     |
+| L2  | P2  | DX              | No `"use client"` note for Next.js consumers                                  | `packages/panel/README.md`                                                                                                                 |
 | L3  | P2  | Stability       | Unhandled `clipboard.writeText` rejections                                    | `apps/website/src/interactive-jsx-example.tsx:842`, `apps/website/src/usage-guide.tsx:481`                                                 |
 | L4  | P2  | DX              | Meaningless `'use client'` in `scroll-area.tsx`                               | `apps/website/src/components/ui/scroll-area.tsx:1`                                                                                         |
 | L5  | P2  | DX              | `.vscode/extensions.json` not provided                                        | `.vscode/`                                                                                                                                 |
 | L6  | P2  | Maintainability | Vestigial `prettier` / `prettier-plugin-tailwindcss` deps                     | `package.json:35-36, 60-61`                                                                                                                |
 | L7  | P2  | Security        | `dangerouslySetInnerHTML` x3 (safe today, implicit on hljs)                   | `apps/website/src/components/ui/chart.tsx:76`, `apps/website/src/usage-guide.tsx:514`, `apps/website/src/interactive-jsx-example.tsx:1678` |
-| L8  | P2  | Maintainability | No migration strategy for `:v1` storage key                                   | `packages/tweaker/src/panel-persistence.ts:5`                                                                                              |
-| L9  | P2  | Stability       | `replaceRegisteredFieldValues` bypasses validation                            | `packages/tweaker/src/tweaker-panel-store.ts:498-500, 672-693`                                                                             |
+| L8  | P2  | Maintainability | No migration strategy for `:v1` storage key                                   | `packages/panel/src/panel-persistence.ts:5`                                                                                                |
+| L9  | P2  | Stability       | `replaceRegisteredFieldValues` bypasses validation                            | `packages/panel/src/picodash-panel-store.ts:498-500, 672-693`                                                                              |
 | L10 | P2  | Maintainability | `tools/*` declared in workspace patterns but doesn't exist                    | `package.json:5-9`                                                                                                                         |
 | L11 | P2  | Maintainability | Redundant Vercel rewrites                                                     | `apps/website/vercel.json:25-38`                                                                                                           |
-| L12 | P2  | Maintainability | Pre-publish runs build only, not test/lint                                    | `packages/tweaker/package.json:27`                                                                                                         |
+| L12 | P2  | Maintainability | Pre-publish runs build only, not test/lint                                    | `packages/panel/package.json:27`                                                                                                           |
 | L13 | P2  | Maintainability | Two large files (`interactive-jsx-example.tsx` 1820 lines, `App.tsx` 819)     | `apps/website/src/`                                                                                                                        |
 | L14 | P2  | Maintainability | Heavy synchronous `JSON.stringify` on every store tick                        | `apps/website/src/App.tsx:257-264, 716-720`                                                                                                |
 | L15 | P2  | DX              | `playwright.config.ts` references `process.env.CI` that's never set           | `apps/website/playwright.config.ts:16`                                                                                                     |
 | L16 | P2  | Maintainability | Zod duplicated transitively (v3 + v4)                                         | `bun.lock`                                                                                                                                 |
-| L17 | P2  | Security        | SVG accepted by `TweakerDropzone`                                             | `apps/website/src/built-in-items-panel.tsx:624`                                                                                            |
+| L17 | P2  | Security        | SVG accepted by `PicodashDropzone`                                            | `apps/website/src/built-in-items-panel.tsx:624`                                                                                            |
 | L18 | P2  | UX              | Reduced-motion not globally applied to Tailwind transitions                   | `apps/website/src/style.css:10-25`                                                                                                         |
-| L19 | P2  | Maintainability | Magic numbers in sparkline defaults                                           | `packages/tweaker/src/inputs/sparkline.tsx:66-67`                                                                                          |
-| L20 | P2  | Maintainability | Unused destructured props in `chart.tsx` chartItemProps                       | `packages/tweaker/src/inputs/chart.tsx:323-342`                                                                                            |
-| L21 | P2  | Maintainability | `feature-panel.tsx` has its own `joinClassNames` helper                       | `packages/tweaker/src/feature-panel.tsx:159-161`                                                                                           |
-| L22 | P2  | Maintainability | `JSON.stringify` roundtrip for memoization keys                               | `packages/tweaker/src/inputs/select.tsx:37-39`, `packages/tweaker/src/inputs/segmented.tsx:37-38`                                          |
-| L23 | P2  | Maintainability | `@standard-schema/spec`, `bumpp`, `@typescript/native-preview` bypass catalog | `packages/tweaker/package.json:33, 52-53`                                                                                                  |
-| L24 | P2  | DX              | Many validation error messages are unhelpful to end users                     | `packages/tweaker/src/tweaker-validation.ts:335-352, 381`                                                                                  |
-| L25 | P2  | UX              | Sparkline exposes only `aria-label`                                           | `packages/tweaker/src/inputs/sparkline.tsx:417-421`                                                                                        |
+| L19 | P2  | Maintainability | Magic numbers in sparkline defaults                                           | `packages/panel/src/inputs/sparkline.tsx:66-67`                                                                                            |
+| L20 | P2  | Maintainability | Unused destructured props in `chart.tsx` chartItemProps                       | `packages/panel/src/inputs/chart.tsx:323-342`                                                                                              |
+| L21 | P2  | Maintainability | `feature-panel.tsx` has its own `joinClassNames` helper                       | `packages/panel/src/feature-panel.tsx:159-161`                                                                                             |
+| L22 | P2  | Maintainability | `JSON.stringify` roundtrip for memoization keys                               | `packages/panel/src/inputs/select.tsx:37-39`, `packages/panel/src/inputs/segmented.tsx:37-38`                                              |
+| L23 | P2  | Maintainability | `@standard-schema/spec`, `bumpp`, `@typescript/native-preview` bypass catalog | `packages/panel/package.json:33, 52-53`                                                                                                    |
+| L24 | P2  | DX              | Many validation error messages are unhelpful to end users                     | `packages/panel/src/picodash-validation.ts:335-352, 381`                                                                                   |
+| L25 | P2  | UX              | Sparkline exposes only `aria-label`                                           | `packages/panel/src/inputs/sparkline.tsx:417-421`                                                                                          |
 
 ---
 
@@ -79,13 +79,13 @@ The detailed findings in §3 remain the original audit record. Their recommendat
 
 #### S1 — `localStorage.setItem` is not wrapped in try/catch _(P0)_
 
-**Location:** `packages/tweaker/src/panel-persistence.ts:50-60`
+**Location:** `packages/panel/src/panel-persistence.ts:50-60`
 
 ```ts
 setItem(name, value) {
   if (typeof window === 'undefined') return
 
-  const parsed = tweakerPersistedStateSchema.safeParse(value.state)
+  const parsed = picodashPersistedStateSchema.safeParse(value.state)
   if (!parsed.success) return
 
   window.localStorage.setItem(                      // ← not guarded
@@ -95,7 +95,7 @@ setItem(name, value) {
 }
 ```
 
-**Impact:** The read path (`getItem`, lines 37-48) is wrapped in `try/catch` and silently returns `null` on failure; the write path is not. A `QuotaExceededError` (storage full, Safari/WebKit private browsing, browser storage disabled, cross-origin embedding) will propagate up through Zustand's `persist` middleware and likely crash the next render of any tree containing a `TweakerProvider` with `persistLayout`. The asymmetric guarding is suspicious and easy to miss.
+**Impact:** The read path (`getItem`, lines 37-48) is wrapped in `try/catch` and silently returns `null` on failure; the write path is not. A `QuotaExceededError` (storage full, Safari/WebKit private browsing, browser storage disabled, cross-origin embedding) will propagate up through Zustand's `persist` middleware and likely crash the next render of any tree containing a `PicodashProvider` with `persistLayout`. The asymmetric guarding is suspicious and easy to miss.
 
 **Recommendation:**
 
@@ -108,7 +108,7 @@ try {
 }
 ```
 
-Consider surfacing the failure via an optional `onPersistError` callback on `TweakerProviderProps` so consumers can log it.
+Consider surfacing the failure via an optional `onPersistError` callback on `PicodashProviderProps` so consumers can log it.
 
 ---
 
@@ -126,39 +126,39 @@ createRoot(document.getElementById('root')!).render(
 
 **Impact:** A single thrown error during render — e.g. `chart.tsx:29` already throws `'useChart must be used within a <ChartContainer />'` on context misuse, and `recharts` itself throws on bad-shape data — unmounts the entire app to a blank screen with no recovery path. There is no `componentDidCatch` or `getDerivedStateFromError` anywhere in `apps/website/src`.
 
-**Recommendation:** Add at least one top-level error boundary wrapping `<App />` (or each route) that renders a fallback UI with a "reload" action. Consider per-panel boundaries inside `TweakerProvider` so a single misbehaving panel doesn't kill the page.
+**Recommendation:** Add at least one top-level error boundary wrapping `<App />` (or each route) that renders a fallback UI with a "reload" action. Consider per-panel boundaries inside `PicodashProvider` so a single misbehaving panel doesn't kill the page.
 
 ---
 
 #### P3 — Silent error swallowing in persistence read _(P1)_
 
-**Location:** `packages/tweaker/src/panel-persistence.ts:37-48`
+**Location:** `packages/panel/src/panel-persistence.ts:37-48`
 
 **Impact:** All read failures (parse errors, schema mismatches, IO errors) return `null` with no logging, telemetry, or diagnostic surface. If a user reports "my panel keeps snapping back to top-right," there is no way to discover that persisted state is being discarded. This is the inevitable counterpart to S1's write path, but it deserves its own remediation regardless.
 
-**Recommendation:** Add an optional `onPersistError?: (error, context) => void` hook on `TweakerProviderProps`. Default behavior remains silent for backward compatibility, but consumers (and the demo site) can wire it to `console.warn` or telemetry.
+**Recommendation:** Add an optional `onPersistError?: (error, context) => void` hook on `PicodashProviderProps`. Default behavior remains silent for backward compatibility, but consumers (and the demo site) can wire it to `console.warn` or telemetry.
 
 ---
 
 #### P4 — Async sparkline errors silently dropped _(P1)_
 
-**Location:** `packages/tweaker/src/inputs/sparkline.tsx:342, 349, 357`
+**Location:** `packages/panel/src/inputs/sparkline.tsx:342, 349, 357`
 
 ```ts
 void consume().catch(() => undefined)
 ```
 
-**Impact:** When a user-supplied async iterable source throws, the error is dropped with no UI signal. The sparkline simply stops emitting. `TweakerSparklineProps` has no `onError` callback.
+**Impact:** When a user-supplied async iterable source throws, the error is dropped with no UI signal. The sparkline simply stops emitting. `PicodashSparklineProps` has no `onError` callback.
 
-**Recommendation:** Add `onError?: (error: unknown) => void` to `TweakerSparklineProps`. Render a visible "source error" state on the canvas (or expose a `hasError` field via a ref/callback) so users don't see a frozen chart with no feedback.
+**Recommendation:** Add `onError?: (error: unknown) => void` to `PicodashSparklineProps`. Render a visible "source error" state on the canvas (or expose a `hasError` field via a ref/callback) so users don't see a frozen chart with no feedback.
 
 ---
 
 #### P12 — TOCTOU window in simple store setters _(P1)_
 
-**Location:** `packages/tweaker/src/tweaker-panel-store.ts:436-489` (resetters), `:501-535` (`setFieldDefault`, `setFieldValue`, `setFieldValues`)
+**Location:** `packages/panel/src/picodash-panel-store.ts:436-489` (resetters), `:501-535` (`setFieldDefault`, `setFieldValue`, `setFieldValues`)
 
-**Impact:** These actions read state via `getStoreState()`, compute results, and then call `set(...)` separately. Between read and commit, any synchronous code path that interleaves could see stale validation. `acceptRepairProposal` and `applyTweakerConstraintRepair` already re-validate **inside** the commit function to defend against drift — the simpler setters do not.
+**Impact:** These actions read state via `getStoreState()`, compute results, and then call `set(...)` separately. Between read and commit, any synchronous code path that interleaves could see stale validation. `acceptRepairProposal` and `applyPicodashConstraintRepair` already re-validate **inside** the commit function to defend against drift — the simpler setters do not.
 
 In practice, JS is single-threaded and React batches, so this is unlikely to bite typical callers. But any consumer that does:
 
@@ -199,13 +199,13 @@ store.getState().setFieldValue('x', value)
 
 ---
 
-#### L17 — SVG accepted by `TweakerDropzone` _(P2)_
+#### L17 — SVG accepted by `PicodashDropzone` _(P2)_
 
 **Location:** `apps/website/src/built-in-items-panel.tsx:624`
 
-**Impact:** The demo accepts `.svg` in its dropzone whitelist. SVG files can carry inline `<script>` blocks and `onload=` event handlers. `TweakerMediaPreview` renders them via `<img src="...">`, which **does not** execute scripts in any modern browser. The risk materializes only if a future change swaps `<img>` for `<object>`, `<iframe>`, `<div innerHTML>`, or `useSVG`.
+**Impact:** The demo accepts `.svg` in its dropzone whitelist. SVG files can carry inline `<script>` blocks and `onload=` event handlers. `PicodashMediaPreview` renders them via `<img src="...">`, which **does not** execute scripts in any modern browser. The risk materializes only if a future change swaps `<img>` for `<object>`, `<iframe>`, `<div innerHTML>`, or `useSVG`.
 
-**Recommendation:** Document the constraint in `TweakerMediaPreview` and `TweakerDropzone`: "SVG previews are safe only when rendered via `<img>`. Do not render user-supplied SVG inline." Consider whether SVG should be removed from the demo's default accept-list.
+**Recommendation:** Document the constraint in `PicodashMediaPreview` and `PicodashDropzone`: "SVG previews are safe only when rendered via `<img>`. Do not render user-supplied SVG inline." Consider whether SVG should be removed from the demo's default accept-list.
 
 ---
 
@@ -226,7 +226,7 @@ store.getState().setFieldValue('x', value)
 - SBOM generation
 - Secret scanning
 
-The `playwright.config.ts:16` references `process.env.CI` that is never set in the current state — suggesting CI was planned or previously existed but is not configured now. The `tweaker` package is publishable to npm via `npm publish`, which runs only `prepublishOnly: vp run build`. No vulnerability scan, license check, or test runs before release.
+The `playwright.config.ts:16` references `process.env.CI` that is never set in the current state — suggesting CI was planned or previously existed but is not configured now. The `@picodash/panel` package is publishable to npm via `npm publish`, which runs only `prepublishOnly: vp run build`. No vulnerability scan, license check, or test runs before release.
 
 **Recommendation:** Add `.github/workflows/ci.yml` running `bun install`, `vp check`, `vp run -r test`, `vp run -r build`, `bun run --filter website test:e2e`. Add `.github/dependabot.yml` for npm and Actions updates. Add a scheduled audit workflow (`bun audit --severity high`). Add a `prepublishOnly` chain that runs `vp check && vp test` before build.
 
@@ -249,7 +249,7 @@ The `playwright.config.ts:16` references `process.env.CI` that is never set in t
 
 #### P2 — Three `@dnd-kit/*` packages declared but never imported _(P1)_
 
-**Location:** `packages/tweaker/package.json:31-33`
+**Location:** `packages/panel/package.json:31-33`
 
 ```json
 "@dnd-kit/abstract": "catalog:",
@@ -257,17 +257,17 @@ The `playwright.config.ts:16` references `process.env.CI` that is never set in t
 "@dnd-kit/react": "catalog:",
 ```
 
-**Impact:** Grep across `packages/tweaker/src/` returns zero imports for any `@dnd-kit/*` specifier. The actual drag-and-drop uses `motion/react`'s `Reorder` primitive plus a custom `usePointerReorderSession`. These three deps (plus transitive `@dnd-kit/utilities`, etc.) ship in every consumer's bundle for no benefit. Worse, `AGENTS.md` and `SKILL.md` imply `@dnd-kit` is in use — a real documentation-drift trap.
+**Impact:** Grep across `packages/panel/src/` returns zero imports for any `@dnd-kit/*` specifier. The actual drag-and-drop uses `motion/react`'s `Reorder` primitive plus a custom `usePointerReorderSession`. These three deps (plus transitive `@dnd-kit/utilities`, etc.) ship in every consumer's bundle for no benefit. Worse, `AGENTS.md` and `SKILL.md` imply `@dnd-kit` is in use — a real documentation-drift trap.
 
-**Recommendation:** Remove the three declarations from `packages/tweaker/package.json`. Update any internal docs that imply `@dnd-kit` is the DnD primitive. If a migration to `@dnd-kit` is planned, track it in an issue and reference the issue from a TODO in `package.json`, not as a silent dep.
+**Recommendation:** Remove the three declarations from `packages/panel/package.json`. Update any internal docs that imply `@dnd-kit` is the DnD primitive. If a migration to `@dnd-kit` is planned, track it in an issue and reference the issue from a TODO in `package.json`, not as a silent dep.
 
 ---
 
 #### P5 — No source maps from `vp pack` _(P1)_
 
-**Location:** `packages/tweaker/vite.config.ts:5-17`
+**Location:** `packages/panel/vite.config.ts:5-17`
 
-**Impact:** The library's published `dist/` contains `index.mjs`, `index.d.mts`, and `style.css` — no `.map` files. Consumers debugging into `tweaker` will see minified / bundled code with no source mapping. For a published library that other engineers will integrate and debug through, this is a meaningful DX regression.
+**Impact:** The library's published `dist/` contains `index.mjs`, `index.d.mts`, and `style.css` — no `.map` files. Consumers debugging into `@picodash/panel` will see minified / bundled code with no source mapping. For a published library that other engineers will integrate and debug through, this is a meaningful DX regression.
 
 **Recommendation:** Add `sourcemap: true` to the `pack` config:
 
@@ -291,27 +291,27 @@ pack: {
 2. **No bundle-size budget** — no `size-limit`, `bundlesize`, or `vite build --reportCompressedSize` check. Published `dist/index.mjs` could grow unbounded without notice.
 3. **No license check** — no `license-checker` or equivalent. The catalog is MIT-heavy today but nothing prevents GPL/AGPL from sneaking in via transitive deps.
 
-**Recommendation:** Add a `test.coverage` block to `packages/tweaker/vite.config.ts` with thresholds (lines/branches/functions ≥ 80% as a starting baseline). Add `size-limit` config or a `bundlesize` JSON. Add `license-checker --production --failOn "GPL;AGPL"` to a `check:licenses` script invoked from `ready`.
+**Recommendation:** Add a `test.coverage` block to `packages/panel/vite.config.ts` with thresholds (lines/branches/functions ≥ 80% as a starting baseline). Add `size-limit` config or a `bundlesize` JSON. Add `license-checker --production --failOn "GPL;AGPL"` to a `check:licenses` script invoked from `ready`.
 
 ---
 
 #### L1 — Inline `parse`/`validate` foot-gun _(P2)_
 
-**Location:** `packages/tweaker/src/tweaker-panel-context.tsx:96-112`
+**Location:** `packages/panel/src/picodash-panel-context.tsx:96-112`
 
-**Impact:** The `useRegisterTweakerItem` registration effect's dependency array lists every prop including `parse` and `validate`. Consumers who pass inline arrow functions for these (a natural pattern) will cause an unmount/mount cycle on every parent render, which in turn re-fires `registerItem` → `analyzeTweakerFieldConstraint` → potentially raises a `repairProposal`. This is correctness-preserving but a real perf foot-gun for unwary users. It's documented only obliquely in `AGENTS.md` ("Preserve synchronous parser/validator behavior") and not in user-facing docs.
+**Impact:** The `useRegisterPicodashItem` registration effect's dependency array lists every prop including `parse` and `validate`. Consumers who pass inline arrow functions for these (a natural pattern) will cause an unmount/mount cycle on every parent render, which in turn re-fires `registerItem` → `analyzePicodashFieldConstraint` → potentially raises a `repairProposal`. This is correctness-preserving but a real perf foot-gun for unwary users. It's documented only obliquely in `AGENTS.md` ("Preserve synchronous parser/validator behavior") and not in user-facing docs.
 
-**Recommendation:** Document the constraint in `packages/tweaker/README.md`: "If you pass a custom `parse` or `validate`, memoize it with `useCallback` or hoist it to module scope." Consider a `useTweakerParser` / `useTweakerValidator` helper that auto-memoizes, or use `useEvent` / `useRef` to make the effect robust to inline functions.
+**Recommendation:** Document the constraint in `packages/panel/README.md`: "If you pass a custom `parse` or `validate`, memoize it with `useCallback` or hoist it to module scope." Consider a `usePicodashParser` / `usePicodashValidator` helper that auto-memoizes, or use `useEvent` / `useRef` to make the effect robust to inline functions.
 
 ---
 
 #### L2 — No `"use client"` note for Next.js consumers _(P2)_
 
-**Location:** `packages/tweaker/README.md`
+**Location:** `packages/panel/README.md`
 
-**Impact:** No `.tsx` file in `src/` carries a `"use client"` directive — correct for Vite consumers, but Next.js App Router consumers will hit "use server" boundary errors when they import `TweakerProvider` into a server component. The package targets React 19 + Vite, so this is the consumer's responsibility, but it's worth a one-line note.
+**Impact:** No `.tsx` file in `src/` carries a `"use client"` directive — correct for Vite consumers, but Next.js App Router consumers will hit "use server" boundary errors when they import `PicodashProvider` into a server component. The package targets React 19 + Vite, so this is the consumer's responsibility, but it's worth a one-line note.
 
-**Recommendation:** Add a "Framework integration" subsection to `packages/tweaker/README.md` noting that Next.js App Router users must place `"use client"` at the top of any module that imports from `tweaker`.
+**Recommendation:** Add a "Framework integration" subsection to `packages/panel/README.md` noting that Next.js App Router users must place `"use client"` at the top of any module that imports from `@picodash/panel`.
 
 ---
 
@@ -382,7 +382,7 @@ reuseExistingServer: !process.env.CI,
 
 #### L24 — Validation error messages are unhelpful to end users _(P2)_
 
-**Location:** `packages/tweaker/src/tweaker-validation.ts:335-352, 381`
+**Location:** `packages/panel/src/picodash-validation.ts:335-352, 381`
 
 ```ts
 'Parser returned an invalid result.'
@@ -392,7 +392,7 @@ reuseExistingServer: !process.env.CI,
 
 **Impact:** These are fallback messages for developer-authored parsers/validators that return malformed shapes (e.g. a parser returning `{ output: 'string' }` instead of `{ output: { value: 'string' } }`). They're fine for devs but won't help end users debug custom validation. Mixed with the much better user-facing errors like `'quality must be draft, balanced, or final'` from the README example.
 
-**Recommendation:** Split the messages into dev-mode (`console.warn`) and user-mode (rendered) tiers. Tag the dev-fallback messages with `[tweaker]` prefixes so they're identifiable in support tickets.
+**Recommendation:** Split the messages into dev-mode (`console.warn`) and user-mode (rendered) tiers. Tag the dev-fallback messages with `[picodash]` prefixes so they're identifiable in support tickets.
 
 ---
 
@@ -400,7 +400,7 @@ reuseExistingServer: !process.env.CI,
 
 #### P8 — No keyboard-accessible item reorder _(P1)_
 
-**Location:** `packages/tweaker/src/tweaker-control.tsx:349-361`
+**Location:** `packages/panel/src/picodash-control.tsx:349-361`
 
 **Impact:** The drag handle is a `<button>` with `aria-label="Reorder ${label}"` and `aria-disabled={!reorderable}`, but `onPointerDown={beginReorder}` is pointer-only. There is no keyboard-driven reorder (e.g. Space-to-pick-up, arrow-keys-to-move, Space-to-drop). Keyboard users cannot reorder items in any panel — a real ARIA authoring-practices gap for sortable lists.
 
@@ -459,11 +459,11 @@ projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }]
 
 #### L25 — Sparkline exposes only `aria-label` _(P2)_
 
-**Location:** `packages/tweaker/src/inputs/sparkline.tsx:417-421`
+**Location:** `packages/panel/src/inputs/sparkline.tsx:417-421`
 
 **Impact:** The SVG has `role="img"` and `aria-label`, but no `aria-describedby` to communicate series names, current value, min/max, or units. For a streaming numeric chart used as the sole representation of a value, this is a thin description.
 
-**Recommendation:** Accept an optional `accessibilityDescription?: (state) => string` prop, or accept an `aria-describedby` ID pointing at a consumer-rendered description. Document the recommended pattern in `packages/tweaker/README.md`.
+**Recommendation:** Accept an optional `accessibilityDescription?: (state) => string` prop, or accept an `aria-describedby` ID pointing at a consumer-rendered description. Document the recommended pattern in `packages/panel/README.md`.
 
 ---
 
@@ -473,7 +473,7 @@ projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }]
 
 **Location:** `apps/website/tsconfig.json:1-30`
 
-**Impact:** The website's `tsconfig.json` has neither `"strict": true` nor an `extends` of a strict base. The only linting flags set are `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `erasableSyntaxOnly`. **All of the following are off:** `noImplicitAny`, `strictNullChecks`, `strictFunctionTypes`, `strictBindCallApply`, `strictPropertyInitialization`, `noImplicitThis`, `alwaysStrict`, `useUnknownInCatchVariables`, `exactOptionalPropertyTypes`. For a public-facing demo meant to model best practices for the `tweaker` package, this is a notable omission. The root `tsconfig.json` is a minimal 9-line Node-next config and does not propagate strictness either. (The `tweaker` package's own `tsconfig.json` does set `"strict": true` — so the gap is website-only.)
+**Impact:** The website's `tsconfig.json` has neither `"strict": true` nor an `extends` of a strict base. The only linting flags set are `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `erasableSyntaxOnly`. **All of the following are off:** `noImplicitAny`, `strictNullChecks`, `strictFunctionTypes`, `strictBindCallApply`, `strictPropertyInitialization`, `noImplicitThis`, `alwaysStrict`, `useUnknownInCatchVariables`, `exactOptionalPropertyTypes`. For a public-facing demo meant to model best practices for the `@picodash/panel` package, this is a notable omission. The root `tsconfig.json` is a minimal 9-line Node-next config and does not propagate strictness either. (The `@picodash/panel` package's own `tsconfig.json` does set `"strict": true` — so the gap is website-only.)
 
 **Recommendation:** Add `"strict": true` to `apps/website/tsconfig.json`. Fix any resulting type errors. Consider extracting a shared `tsconfig.base.json` at the root for consistency.
 
@@ -484,13 +484,13 @@ projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }]
 **Location:**
 
 - `package.json:12-13` (catalog: `@types/node: ^24`, `typescript: ^5`)
-- `packages/tweaker/package.json:49` (`@types/node: ^25.6.2`)
-- `packages/tweaker/package.json:58` (`typescript: ^6.0.3`)
+- `packages/panel/package.json:49` (`@types/node: ^25.6.2`)
+- `packages/panel/package.json:58` (`typescript: ^6.0.3`)
 - `apps/website/package.json:37` (`typescript: ~6.0.2`)
 
 **Impact:** The catalog exists to enforce version consistency across workspace packages. Two of the most consequential deps bypass it entirely and at different majors:
 
-- `@types/node`: catalog says `^24`, tweaker declares `^25.6.2`. Resolved types differ across packages; downstream type inference can disagree depending on which `node_modules` is consulted.
+- `@types/node`: catalog says `^24`, picodash declares `^25.6.2`. Resolved types differ across packages; downstream type inference can disagree depending on which `node_modules` is consulted.
 - `typescript`: catalog says `^5`, but both packages declare v6 directly. TypeScript 6.0.x is **not a stable release** at the time of audit — it appears to be tied to the `@typescript/native-preview` dev toolchain. The catalog entry is effectively dead.
 
 This means contributors using different package managers (or `vp install` on different days) could see different type-check results. It also makes the catalog misleading — readers expect it to be the source of truth.
@@ -499,19 +499,19 @@ This means contributors using different package managers (or `vp install` on dif
 
 ---
 
-#### P7 — Stale `packages/panel/` directory _(P1)_
+#### P7 — Retired `packages/tweaker/` directory _(P1)_
 
-**Location:** `packages/panel/`
+**Location:** `packages/tweaker/`
 
 ```
-packages/panel/
+packages/tweaker/
 ├── dist/          ← gitignored build artifacts
 └── node_modules/  ← gitignored deps
 ```
 
-**Impact:** Zero source files. `git ls-files packages/panel` returns empty — nothing is tracked. `AGENTS.md` explicitly says "Do not document `packages/panel` or `apps/demo` as active workspace products," confirming retirement. The directory exists only as on-disk cruft from a previous package layout. Not harmful but confusing for new contributors and tools that scan `packages/*`.
+**Impact:** Zero source files. `git ls-files packages/tweaker` returns empty — nothing is tracked. `AGENTS.md` explicitly says "Do not document `packages/tweaker` or `apps/demo` as active workspace products," confirming retirement. The directory exists only as on-disk cruft from a previous package layout. Not harmful but confusing for new contributors and tools that scan `packages/*`.
 
-**Recommendation:** `rm -rf packages/panel`. Optionally add a note to `AGENTS.md` change log explaining the retirement.
+**Recommendation:** `rm -rf packages/tweaker`. Optionally add a note to `AGENTS.md` change log explaining the retirement.
 
 ---
 
@@ -520,9 +520,9 @@ packages/panel/
 **Location:**
 
 - `vite.config.ts:11` — `sortTailwindcss.functions: ['clsx']`
-- `packages/tweaker/vite.config.ts:28` — `sortTailwindcss.functions: ['joinClassNames']`
+- `packages/panel/vite.config.ts:28` — `sortTailwindcss.functions: ['joinClassNames']`
 
-**Impact:** When `vp check --fix` runs across the workspace, it applies different class-sort heuristics depending on which config governs the file. Files edited while the tweaker config is active will sort class names assuming `joinClassNames(...)`, while root-governed files sort assuming `clsx(...)`. The two helpers exist for the same purpose (`cn` in the website, `joinClassNames` in the package), and the formatter doesn't know to apply both.
+**Impact:** When `vp check --fix` runs across the workspace, it applies different class-sort heuristics depending on which config governs the file. Files edited while the picodash config is active will sort class names assuming `joinClassNames(...)`, while root-governed files sort assuming `clsx(...)`. The two helpers exist for the same purpose (`cn` in the website, `joinClassNames` in the package), and the formatter doesn't know to apply both.
 
 **Recommendation:** Update both configs to `sortTailwindcss.functions: ['clsx', 'joinClassNames']` so the formatter recognizes both regardless of which file it's processing.
 
@@ -532,36 +532,36 @@ packages/panel/
 
 **Locations:**
 
-- `decimalPlaces`: `packages/tweaker/src/number-format.ts:38-46`, `packages/tweaker/src/inputs/slider.tsx:159-164`, `packages/tweaker/src/inputs/range.tsx:231-236` — three implementations, all slightly different in how they handle exponent notation.
+- `decimalPlaces`: `packages/panel/src/number-format.ts:38-46`, `packages/panel/src/inputs/slider.tsx:159-164`, `packages/panel/src/inputs/range.tsx:231-236` — three implementations, all slightly different in how they handle exponent notation.
 - `finiteOr`: `gradient.tsx:495-497`, `xy-pad.tsx:407-409`, `range.tsx:222-224` (inlined), `vector3.tsx:215` (inlined).
 - `clamp`: `panel-snapping.ts:237`, `gradient.tsx:503`, `xy-pad.tsx:403`.
 - `isUnknownRecord`: `dropzone.tsx:550-552`, `gradient.tsx:499-501` (identical implementations).
 
 **Impact:** Drift risk. The three `decimalPlaces` implementations already disagree on edge cases (scientific notation, very small numbers). When a bug is found in one copy, the others don't get fixed.
 
-**Recommendation:** Consolidate all four into `packages/tweaker/src/utils.ts` (or a new `packages/tweaker/src/number-utils.ts`) and import from there. Add unit tests for the canonical implementations.
+**Recommendation:** Consolidate all four into `packages/panel/src/utils.ts` (or a new `packages/panel/src/number-utils.ts`) and import from there. Add unit tests for the canonical implementations.
 
 ---
 
 #### L8 — No migration strategy for `:v1` storage key _(P2)_
 
-**Location:** `packages/tweaker/src/panel-persistence.ts:5`
+**Location:** `packages/panel/src/panel-persistence.ts:5`
 
 ```ts
-export const panelLayoutStorageKey = 'tweaker-panel:provider-layout:v1'
+export const panelLayoutStorageKey = 'picodash-panel:provider-layout:v1'
 ```
 
 **Impact:** The storage key includes a literal `:v1` suffix and the envelope stores a `version` field, but no migration code consumes the version. On a schema-breaking change, the old `:v1` data would either be silently discarded (read returns `null`) or — on write — would throw if the storage is at quota (see S1). There is no documented upgrade path.
 
-**Recommendation:** Add a `migrate(persistedState, version): State` function to the persist config. When bumping the storage key version, write a migration that transforms v1 to v2 and document the policy in `packages/tweaker/README.md`.
+**Recommendation:** Add a `migrate(persistedState, version): State` function to the persist config. When bumping the storage key version, write a migration that transforms v1 to v2 and document the policy in `packages/panel/README.md`.
 
 ---
 
 #### L9 — `replaceRegisteredFieldValues` bypasses validation _(P2)_
 
-**Location:** `packages/tweaker/src/tweaker-panel-store.ts:498-500, 672-693`
+**Location:** `packages/panel/src/picodash-panel-store.ts:498-500, 672-693`
 
-**Impact:** This action writes raw values without `resolveTweakerFieldValue`. It's safe today because the only caller is `applyTweakerPanelImport` (which pre-validates), but it's exposed via the public `TweakerPanelState` type and reachable via `tweaker/advanced`. A future direct caller could corrupt state.
+**Impact:** This action writes raw values without `resolvePicodashFieldValue`. It's safe today because the only caller is `applyPicodashPanelImport` (which pre-validates), but it's exposed via the public `PicodashPanelState` type and reachable via `@picodash/panel/advanced`. A future direct caller could corrupt state.
 
 **Recommendation:** Either (a) add a `.__internal` prefix to the action name to signal its scope, (b) gate it behind a `source: 'import'` parameter that callers must acknowledge, or (c) document the precondition in a JSDoc and add a dev-mode assertion that the caller pre-validated.
 
@@ -603,7 +603,7 @@ export const panelLayoutStorageKey = 'tweaker-panel:provider-layout:v1'
 
 #### L12 — Pre-publish runs build only, not test/lint _(P2)_
 
-**Location:** `packages/tweaker/package.json:27`
+**Location:** `packages/panel/package.json:27`
 
 ```json
 "prepublishOnly": "vp run build"
@@ -649,7 +649,7 @@ export const panelLayoutStorageKey = 'tweaker-panel:provider-layout:v1'
 
 #### L19 — Magic numbers in sparkline defaults _(P2)_
 
-**Location:** `packages/tweaker/src/inputs/sparkline.tsx:66-67, 96, 119, 625`
+**Location:** `packages/panel/src/inputs/sparkline.tsx:66-67, 96, 119, 625`
 
 ```ts
 const sparklineWidth = 320
@@ -660,13 +660,13 @@ const height = 96
 
 **Impact:** The SVG `viewBox` is locked to `0 0 320 88` but the visible height is configurable — non-obvious why these specific numbers were chosen.
 
-**Recommendation:** Extract to named constants at the top of the file with comments. Consider exporting them via `tweaker/advanced` so consumers can build matching layouts.
+**Recommendation:** Extract to named constants at the top of the file with comments. Consider exporting them via `@picodash/panel/advanced` so consumers can build matching layouts.
 
 ---
 
 #### L20 — Unused destructured props in `chart.tsx` _(P2)_
 
-**Location:** `packages/tweaker/src/inputs/chart.tsx:323-342`
+**Location:** `packages/panel/src/inputs/chart.tsx:323-342`
 
 **Impact:** A long list of `_areaChartProps`, `_barChartProps`, etc. prefixed with `_` to intentionally strip before forwarding. Visually noisy.
 
@@ -676,7 +676,7 @@ const height = 96
 
 #### L21 — `feature-panel.tsx` has its own `joinClassNames` helper _(P2)_
 
-**Location:** `packages/tweaker/src/feature-panel.tsx:159-161`
+**Location:** `packages/panel/src/feature-panel.tsx:159-161`
 
 **Impact:** Inconsistent with the rest of the codebase, which uses `cn` from `utils.ts`. Two helpers doing the same thing.
 
@@ -686,7 +686,7 @@ const height = 96
 
 #### L22 — `JSON.stringify` roundtrip for memoization keys _(P2)_
 
-**Locations:** `packages/tweaker/src/inputs/select.tsx:37-39`, `packages/tweaker/src/inputs/segmented.tsx:37-38`
+**Locations:** `packages/panel/src/inputs/select.tsx:37-39`, `packages/panel/src/inputs/segmented.tsx:37-38`
 
 ```ts
 const optionValuesKey = JSON.stringify(options.map((o) => o.value))
@@ -703,7 +703,7 @@ JSON.parse(optionValuesKey) as string[]
 
 #### L23 — `@standard-schema/spec`, `bumpp`, `@typescript/native-preview` bypass catalog _(P2)_
 
-**Location:** `packages/tweaker/package.json:33, 52-53`
+**Location:** `packages/panel/package.json:33, 52-53`
 
 **Impact:** Three direct deps bypass the workspace catalog. `@standard-schema/spec: ^1.1.0` is a runtime contract (real dep), `bumpp: ^11.1.0` is a version-bump tool with no `release` script using it, and `@typescript/native-preview: 7.0.0-dev.20260509.2` is a calendar-pinned dev toolchain used by `pack.dts.tsgo: true`. The calendar pin will reproduce identically on any machine (pin is exact), but a fresh install months later may surface registry-rotation issues if the dev version is yanked.
 
@@ -719,7 +719,7 @@ JSON.parse(optionValuesKey) as string[]
 
 **Impact:** The actual implementation uses `motion/react` Reorder and a custom pointer reorder session. Any agent or contributor reading the docs will reach for the wrong abstraction.
 
-**Recommendation:** After removing the `@dnd-kit/*` deps (P2), add a "Drag and reorder" subsection to `packages/tweaker/README.md` describing the actual implementation (`motion/react` Reorder + custom pointer session, pointer-only today with keyboard reorder on the roadmap — see P8).
+**Recommendation:** After removing the `@dnd-kit/*` deps (P2), add a "Drag and reorder" subsection to `packages/panel/README.md` describing the actual implementation (`motion/react` Reorder + custom pointer session, pointer-only today with keyboard reorder on the roadmap — see P8).
 
 ---
 
@@ -729,17 +729,17 @@ These deserve explicit recognition so they're not regressed in future refactors.
 
 ### Source hygiene
 
-- **Zero `any` types** in `packages/tweaker/src/`.
+- **Zero `any` types** in `packages/panel/src/`.
 - **Zero `console.log` / `console.warn` / `console.error`** in production source.
 - **Zero `TODO`, `FIXME`, `XXX`, `HACK`, `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `eslint-disable*` directives** in either `src/` or `apps/website/src/`.
-- **No `dangerouslySetInnerHTML`** in the `tweaker` package.
+- **No `dangerouslySetInnerHTML`** in the `@picodash/panel` package.
 - **No `eval`, `new Function`, no string-argument `setTimeout`** for code execution.
 - **No `postMessage` handlers**, no `window.message` listeners — package has no cross-origin attack surface.
 
 ### Validation discipline
 
-- **Atomic batch writes** in `writeFieldValues` (`packages/tweaker/src/tweaker-panel-store.ts:752-772`): if any field fails, the entire batch is rejected. State references remain stable.
-- **Async parser/validator rejection** (`packages/tweaker/src/tweaker-validation.ts:102-103`): if a parser/validator returns a Promise, the result is `{ errors: [unsupportedAsyncError], success: false }`. Matches README/SKILL contract.
+- **Atomic batch writes** in `writeFieldValues` (`packages/panel/src/picodash-panel-store.ts:752-772`): if any field fails, the entire batch is rejected. State references remain stable.
+- **Async parser/validator rejection** (`packages/panel/src/picodash-validation.ts:102-103`): if a parser/validator returns a Promise, the result is `{ errors: [unsupportedAsyncError], success: false }`. Matches README/SKILL contract.
 - **JSON compatibility enforced at the validation boundary** via `jsonCompatibilityError` with `WeakSet` cycle detection — rejects `Date`, `Map`, `Set`, class instances, `Symbol`, functions, non-finite numbers.
 - **Standard Schema v1 protocol** correctly consumed via `validator['~standard'].validate(value)`.
 - **Sync `parse`/`validate`** is enforced (Promise results are explicitly rejected with a clear error).
@@ -747,13 +747,13 @@ These deserve explicit recognition so they're not regressed in future refactors.
 
 ### Accessibility strengths
 
-- **Roving tabindex** in `TweakerMatrix2D` with arrow-key navigation (`packages/tweaker/src/inputs/matrix-2d.tsx:151-171, 257-283`). Supports both `radio` and `toggle` roles.
-- **Two visually-hidden `<input type="range">`** sliders in `TweakerXYPad` (`packages/tweaker/src/inputs/xy-pad.tsx:271-306`) for keyboard users, with `aria-controls` pointing at the pad.
+- **Roving tabindex** in `PicodashMatrix2D` with arrow-key navigation (`packages/panel/src/inputs/matrix-2d.tsx:151-171, 257-283`). Supports both `radio` and `toggle` roles.
+- **Two visually-hidden `<input type="range">`** sliders in `PicodashXYPad` (`packages/panel/src/inputs/xy-pad.tsx:271-306`) for keyboard users, with `aria-controls` pointing at the pad.
 - **`<button role="switch" aria-checked>`** in `ui.tsx:197-216`.
 - **Radix dialogs** with focus trapping and `onCloseAutoFocus` to restore focus to triggers.
 - **Live regions** `role="status" aria-live="polite"` for action announcements and dropzone rejection messages.
-- **`role="alert"`** for inline field errors (`packages/tweaker/src/tweaker-control.tsx:425`).
-- **Excellent keyboard support** in `TweakerGradient` slider handles (arrow keys = 1%, shift+arrow = 10%, `Home`/`End` = edges, `Delete`/`Backspace` = remove stop).
+- **`role="alert"`** for inline field errors (`packages/panel/src/picodash-control.tsx:425`).
+- **Excellent keyboard support** in `PicodashGradient` slider handles (arrow keys = 1%, shift+arrow = 10%, `Home`/`End` = edges, `Delete`/`Backspace` = remove stop).
 - **`useReducedMotion()`** consulted in 5 components; CSS `motion-reduce:` on collapsible disclosures.
 
 ### Persistence strengths
@@ -766,10 +766,10 @@ These deserve explicit recognition so they're not regressed in future refactors.
 ### Resource cleanup
 
 - All `window.addEventListener` with `capture: true` cleaned up via returned destructors.
-- `ResizeObserver.disconnect()` called in `use-panel-layout.ts`, `tweaker-reorder-list.tsx`, `xy-pad.tsx`.
+- `ResizeObserver.disconnect()` called in `use-panel-layout.ts`, `picodash-reorder-list.tsx`, `xy-pad.tsx`.
 - `IntersectionObserver` cleaned up in `sparkline.tsx`.
-- `URL.revokeObjectURL` called for all synthesized blob URLs (in `tweaker-panel-actions.tsx` and `dropzone.tsx`).
-- `matchMedia` listener cleaned up in `tweaker-provider.tsx:299-301`.
+- `URL.revokeObjectURL` called for all synthesized blob URLs (in `picodash-panel-actions.tsx` and `dropzone.tsx`).
+- `matchMedia` listener cleaned up in `picodash-provider.tsx:299-301`.
 
 ### Security posture (website)
 
@@ -781,10 +781,10 @@ These deserve explicit recognition so they're not regressed in future refactors.
 
 ### Test coverage (positive)
 
-- **Strict-write discipline** is thoroughly unit-tested (`packages/tweaker/tests/validation.test.ts:89-115, 150-173`): rejected writes don't notify subscribers and leave `state.values` referentially stable.
-- **Malformed parser result handling** is table-driven (`packages/tweaker/tests/validation.test.ts:592-639`).
-- **Reorder geometry** is heavily exercised with pointer offsets, leading-edge crossing, tall-item handling, multi-row reversals, elastic overshoot (`packages/tweaker/tests/index.test.tsx:655-829`).
-- **CSS theme contract** enforced declaratively (`packages/tweaker/tests/theme-contract.test.ts:37-66`): verifies every `--(?:_)?tweaker-*` token is declared, referenced, has no public-component-family prefix, and appears in `README.md`.
+- **Strict-write discipline** is thoroughly unit-tested (`packages/panel/tests/validation.test.ts:89-115, 150-173`): rejected writes don't notify subscribers and leave `state.values` referentially stable.
+- **Malformed parser result handling** is table-driven (`packages/panel/tests/validation.test.ts:592-639`).
+- **Reorder geometry** is heavily exercised with pointer offsets, leading-edge crossing, tall-item handling, multi-row reversals, elastic overshoot (`packages/panel/tests/index.test.tsx:655-829`).
+- **CSS theme contract** enforced declaratively (`packages/panel/tests/theme-contract.test.ts:37-66`): verifies every `--(?:_)?picodash-*` token is declared, referenced, has no public-component-family prefix, and appears in `README.md`.
 - **E2E** is exceptionally thorough for Chromium: routing, interactive JSX editors, drag-reorder with explicit threshold itineraries and direction reversals, import/export with JSON+YAML, repair-review flow, theme switching, accessibility assertions on portaled surfaces, pointer-velocity sparkline visibility resume behavior, and pixel-level geometry assertions.
 
 ### Architectural strengths
@@ -792,7 +792,7 @@ These deserve explicit recognition so they're not regressed in future refactors.
 - **Workspace catalog exists** and is used for the majority of deps — the bypass cases are the exception, not the rule.
 - **Engine pinning** (`engines: { bun: ">=1.3.14", node: ">=22.12.0" }`) and `packageManager: "bun@1.3.14"`.
 - **`overrides.vite: "catalog:"` and `overrides.vitest: "catalog:"`** — strong dedupe of the Vite family.
-- **Website aliases `tweaker` to its source** (`apps/website/vite.config.ts:11-19`) — eliminates a class of publish-order bugs.
+- **Website aliases `@picodash/panel` to its source** (`apps/website/vite.config.ts:11-19`) — eliminates a class of publish-order bugs.
 - **`dedupe: ['react', 'react-dom']`** in the website config — prevents the classic twin-React bug.
 - **Provider uses `useMemo`** on context values to minimize re-renders.
 - **`useShallow`** correctly used for object/array selectors throughout.
@@ -813,7 +813,7 @@ These items were implemented in the focused remediation and merged in PR #33.
 | S4       | Website TypeScript strict mode is enabled.                                                                                                                                                                     |
 | S5       | TypeScript and Node types are catalog-owned at the versions already resolved by the workspace.                                                                                                                 |
 | P2       | Unused `@dnd-kit/*` dependencies were removed. Documentation reflects the actual Motion-based reorder implementation.                                                                                          |
-| P4       | `TweakerSparkline` exposes `onSourceError(error: unknown)` and safely handles rejection, cancellation, source replacement, callback replacement, and synchronous source-factory failures.                      |
+| P4       | `PicodashSparkline` exposes `onSourceError(error: unknown)` and safely handles rejection, cancellation, source replacement, callback replacement, and synchronous source-factory failures.                     |
 | P5       | Published library bundles include source maps.                                                                                                                                                                 |
 | P8       | Root and nested lists support keyboard reordering with Space/Enter, arrow keys, Escape cancellation, pinned-band constraints, movement boundaries, live announcements, and pointer/keyboard session exclusion. |
 | P14      | Every route exposes a visible-on-focus skip link targeting its main content.                                                                                                                                   |
@@ -836,7 +836,7 @@ These items are intentionally not part of the completed remediation. They should
 | P3       | Keep malformed persistence reads silent and do not add a new provider callback API solely for this review.                                                      |
 | S3       | Dedicated CodeQL, Snyk, OSV, SBOM, and license-scanning services were not added. Reassess them against the current CI/audit baseline and repository policy.     |
 | P6       | Do not impose arbitrary 80% coverage, bundle-size, or license thresholds before establishing baselines.                                                         |
-| P7       | Treat `packages/panel/` as untracked local debris in the main checkout, not as a repository remediation.                                                        |
+| P7       | Treat `packages/tweaker/` as untracked local debris in the main checkout, not as a repository remediation.                                                      |
 | P9       | Additional browser, axe, and visual-regression coverage remains optional follow-up work after the existing Chromium baseline is stable.                         |
 | P10      | Keep subtree-specific Tailwind sort functions unless an actual formatting conflict demonstrates a need to combine them.                                         |
 | P11      | Do not add HSTS preload or `includeSubDomains` until the production custom-domain policy is confirmed.                                                          |

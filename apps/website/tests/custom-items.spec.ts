@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { tweakerMotionTokens } from '../../../packages/tweaker/src/theme.ts'
+import { picodashMotionTokens } from '../../../packages/panel/src/theme.ts'
 import { requiredBox } from './helpers.ts'
 
 const builtInGroupLabels = {
@@ -28,7 +28,7 @@ async function changeDemoThemes(
 ) {
   await page.evaluate((nextThemes) => {
     window.dispatchEvent(
-      new CustomEvent('tweaker-demo-theme-change', {
+      new CustomEvent('picodash-demo-theme-change', {
         detail: nextThemes,
       }),
     )
@@ -37,13 +37,13 @@ async function changeDemoThemes(
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/state-lab')
-  await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Picodash State Lab' })).toBeVisible()
   await expect(page.locator('[data-state-lab]')).toHaveCSS('position', 'relative')
 })
 
-test('controls registered panels through useTweakerPanel', async ({ page }) => {
-  const scenePanel = page.locator('[data-tweaker-panel-id="scene-controls"]')
-  const hiddenPanel = page.locator('[data-tweaker-panel-id="initially-hidden"]')
+test('controls registered panels through usePicodashPanel', async ({ page }) => {
+  const scenePanel = page.locator('[data-picodash-panel-id="scene-controls"]')
+  const hiddenPanel = page.locator('[data-picodash-panel-id="initially-hidden"]')
   const sceneController = page.locator('[data-panel-controller="Scene Controls"]')
   const hiddenController = page.locator('[data-panel-controller="Initially Hidden"]')
   const sceneItems = scenePanel.locator('[data-item-id]')
@@ -67,7 +67,7 @@ test('controls registered panels through useTweakerPanel', async ({ page }) => {
   expect(sceneCloseBox.x - (sceneActionsBox.x + sceneActionsBox.width)).toBeLessThanOrEqual(8)
   await expect(
     page
-      .locator('[data-tweaker-panel-id="custom-items"]')
+      .locator('[data-picodash-panel-id="custom-items"]')
       .getByRole('button', { name: 'Close panel Custom Items' }),
   ).toHaveCount(0)
 
@@ -149,26 +149,26 @@ test('routes the gallery, its compatibility alias, state lab, and unknown paths 
   await expect(page.locator('main')).toHaveAttribute('data-product-route', 'gallery')
   await expect(page.locator('main')).toHaveCSS('overflow', 'hidden')
   await expect(page.locator('[data-interactive-jsx-example]')).toBeVisible()
-  await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
+  await expect(page.locator('[data-picodash-panel-id="built-in-items"]')).toBeVisible()
 
   await page.goto('/gallery/')
 
   await expect(page.locator('main')).toHaveAttribute('data-product-route', 'gallery')
   await expect(page.locator('main')).toHaveCSS('overflow', 'hidden')
-  await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Picodash State Lab' })).toHaveCount(0)
   await expect(page.locator('[data-interactive-jsx-example]')).toBeVisible()
   await expect(page.getByRole('tab', { name: 'Code' })).toBeVisible()
-  await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
-  await expect(page.locator('[data-tweaker-panel-id="scene-controls"]')).toHaveCount(0)
-  await expect(page.locator('[data-tweaker-panel-id="custom-items"]')).toHaveCount(0)
+  await expect(page.locator('[data-picodash-panel-id="built-in-items"]')).toBeVisible()
+  await expect(page.locator('[data-picodash-panel-id="scene-controls"]')).toHaveCount(0)
+  await expect(page.locator('[data-picodash-panel-id="custom-items"]')).toHaveCount(0)
 
   await page.goto('/state-lab')
 
   await expect(page.locator('main')).toHaveAttribute('data-product-route', 'state-lab')
-  await expect(page.getByRole('heading', { name: 'Tweaker State Lab' })).toBeVisible()
-  await expect(page.locator('[data-tweaker-panel-id="scene-controls"]')).toBeVisible()
-  await expect(page.locator('[data-tweaker-panel-id="built-in-items"]')).toBeVisible()
-  await expect(page.locator('[data-tweaker-panel-id="custom-items"]')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Picodash State Lab' })).toBeVisible()
+  await expect(page.locator('[data-picodash-panel-id="scene-controls"]')).toBeVisible()
+  await expect(page.locator('[data-picodash-panel-id="built-in-items"]')).toBeVisible()
+  await expect(page.locator('[data-picodash-panel-id="custom-items"]')).toBeVisible()
 
   await page.goto('/missing-product-page')
 
@@ -176,12 +176,12 @@ test('routes the gallery, its compatibility alias, state lab, and unknown paths 
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Page not found' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Open gallery' })).toHaveAttribute('href', '/')
-  await expect(page.locator('[data-tweaker-panel-id]')).toHaveCount(0)
+  await expect(page.locator('[data-picodash-panel-id]')).toHaveCount(0)
 })
 
 test('lets the desktop custom-items panel size itself to its content', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1000 })
-  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const panel = page.locator('[data-picodash-panel-id="custom-items"]')
   const group = panel.locator('[data-group-id="custom-examples"]')
 
   await expect(panel).toHaveCSS('top', '32px')
@@ -213,9 +213,9 @@ test('retains invalid custom-item drafts and validates through a Zod Standard Sc
 test('reviews repairable custom-item imports before committing them atomically', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const panel = page.locator('[data-picodash-panel-id="custom-items"]')
   const input = panel.locator('[data-validated-preset-name]')
-  const importInput = panel.locator('input[data-tweaker-panel-import]')
+  const importInput = panel.locator('input[data-picodash-panel-import]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Custom Items' })
   const repairFile = {
     buffer: Buffer.from('{"presetName":"x"}'),
@@ -341,9 +341,9 @@ test('dismisses only the topmost repair dialog on Escape', async ({ page }) => {
 test('keeps a repair review open when import constraints change before acceptance', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="custom-items"]')
+  const panel = page.locator('[data-picodash-panel-id="custom-items"]')
   const input = panel.locator('[data-validated-preset-name]')
-  const importInput = panel.locator('input[data-tweaker-panel-import]')
+  const importInput = panel.locator('input[data-picodash-panel-import]')
   const repairFile = {
     buffer: Buffer.from('{"presetName":"x"}'),
     mimeType: 'application/json',
@@ -362,7 +362,7 @@ test('keeps a repair review open when import constraints change before acceptanc
     const state = customItemPanelStore.getState()
     const items = Object.values(
       state.items,
-    ) as import('../../../packages/tweaker/src/tweaker-panel-types.ts').TweakerItemRegistration[]
+    ) as import('../../../packages/panel/src/picodash-panel-types.ts').PicodashItemRegistration[]
     const item = items.find((registeredItem) => registeredItem.field === 'presetName')
     if (!item) {
       throw new Error(
@@ -417,8 +417,8 @@ for (const scenario of [
   },
 ] as const) {
   test(`previews and commits ${scenario.name} while all groups are collapsed`, async ({ page }) => {
-    const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-    const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+    const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+    const rootList = panel.locator('[data-picodash-reorder-list="root"]')
 
     await collapseCustomGroups(panel, Object.keys(builtInGroupLabels) as CustomGroupId[])
     expect(await itemOrder(rootList, 'root')).toEqual(initialBuiltInRootOrder)
@@ -450,8 +450,8 @@ for (const scenario of [
   },
 ] as const) {
   test(`previews and commits ${scenario.name}`, async ({ page }) => {
-    const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-    const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+    const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+    const rootList = panel.locator('[data-picodash-reorder-list="root"]')
 
     await collapseCustomGroups(panel, [
       'common-items',
@@ -485,8 +485,8 @@ test('previews and commits an expanded group downward across another expanded gr
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 1200 })
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const rootList = panel.locator('[data-picodash-reorder-list="root"]')
 
   await collapseCustomGroups(panel, ['common-items', 'chart-items', 'visualization-items'])
   await expect(panel.locator('[data-group-id="spatial-items"]')).toHaveAttribute(
@@ -519,8 +519,8 @@ test('previews and commits an expanded group downward across another expanded gr
 test('moves an expanded Common group upward across multiple collapsed groups from third', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const rootList = panel.locator('[data-picodash-reorder-list="root"]')
 
   await collapseCustomGroups(panel, Object.keys(builtInGroupLabels) as CustomGroupId[])
   await exerciseLivePreviewDrag({
@@ -548,7 +548,7 @@ test('moves an expanded Common group upward across multiple collapsed groups fro
     })
     .click()
   await expect(common).toHaveAttribute('data-collapsed', 'false')
-  await expect(common.locator('[data-tweaker-reorder-list="common-items"]')).toBeVisible()
+  await expect(common.locator('[data-picodash-reorder-list="common-items"]')).toBeVisible()
 
   await exerciseLivePreviewDrag({
     expectedOrder: initialBuiltInRootOrder,
@@ -565,8 +565,8 @@ test('moves an expanded Common group upward across multiple collapsed groups fro
 test('reverses an expanded root group across collapsed groups and a root item', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const rootList = panel.locator('[data-picodash-reorder-list="root"]')
 
   await collapseCustomGroups(panel, [
     'common-items',
@@ -596,8 +596,8 @@ test('reverses an expanded root group across collapsed groups and a root item', 
 })
 
 test('settles group disclosure changes before measuring a root drag', async ({ page }) => {
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const rootList = panel.locator('[data-picodash-reorder-list="root"]')
 
   await collapseCustomGroups(panel, ['media-items'], { settle: false })
 
@@ -665,9 +665,9 @@ for (const scenario of [
   test(`reorders grouped controls ${scenario.name} in one direction without changing root order`, async ({
     page,
   }) => {
-    const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-    const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
-    const commonList = panel.locator('[data-tweaker-reorder-list="common-items"]')
+    const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+    const rootList = panel.locator('[data-picodash-reorder-list="root"]')
+    const commonList = panel.locator('[data-picodash-reorder-list="common-items"]')
 
     await exerciseLivePreviewDrag({
       ...scenario,
@@ -688,8 +688,8 @@ for (const scenario of [
 test('reorders an auto-grown Text textarea in both directions without losing its value or height', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-  const list = panel.locator('[data-tweaker-reorder-list="common-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const list = panel.locator('[data-picodash-reorder-list="common-items"]')
   const row = panel.locator('[data-item-id="multilineText"]')
   const textarea = row.getByRole('textbox')
   const initialOrder = [
@@ -764,9 +764,9 @@ test('reorders an auto-grown Text textarea in both directions without losing its
 })
 
 test('reverses a nested control across multiple siblings in both directions', async ({ page }) => {
-  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
-  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
-  const renderingList = panel.locator('[data-tweaker-reorder-list="scene-rendering"]')
+  const panel = page.locator('[data-picodash-panel-id="scene-controls"]')
+  const rootList = panel.locator('[data-picodash-reorder-list="root"]')
+  const renderingList = panel.locator('[data-picodash-reorder-list="scene-rendering"]')
 
   await exerciseThresholdItinerary({
     list: renderingList,
@@ -793,11 +793,11 @@ test('reverses a nested control across multiple siblings in both directions', as
 test('reorders root and nested items from the keyboard with commit and cancellation', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
-  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
-  const renderingList = panel.locator('[data-tweaker-reorder-list="scene-rendering"]')
-  const builtInPanel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-  const builtInRootList = builtInPanel.locator('[data-tweaker-reorder-list="root"]')
+  const panel = page.locator('[data-picodash-panel-id="scene-controls"]')
+  const rootList = panel.locator('[data-picodash-reorder-list="root"]')
+  const renderingList = panel.locator('[data-picodash-reorder-list="scene-rendering"]')
+  const builtInPanel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const builtInRootList = builtInPanel.locator('[data-picodash-reorder-list="root"]')
   const qualityGrip = panel.getByRole('button', { name: 'Reorder Quality', exact: true })
   const mediaGrip = builtInPanel.getByRole('button', {
     name: 'Reorder Media and files',
@@ -866,7 +866,7 @@ test('reorders root and nested items from the keyboard with commit and cancellat
 
 test('ignores a second keyboard pickup while a reorder session is active', async ({ page }) => {
   await page.goto('/')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const mediaGrip = panel.getByRole('button', {
     name: 'Reorder Media and files',
     exact: true,
@@ -895,7 +895,7 @@ test('ignores a second keyboard pickup while a reorder session is active', async
 
 test('preserves an active keyboard reorder when the panel width changes', async ({ page }) => {
   await page.goto('/')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const mediaGrip = panel.getByRole('button', {
     name: 'Reorder Media and files',
     exact: true,
@@ -915,7 +915,7 @@ test('preserves an active keyboard reorder when the panel width changes', async 
 
 test('blocks pointer pickup while a keyboard reorder session is active', async ({ page }) => {
   await page.goto('/')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const mediaGrip = panel.getByRole('button', {
     name: 'Reorder Media and files',
     exact: true,
@@ -952,7 +952,7 @@ test('blocks pointer pickup while a keyboard reorder session is active', async (
 
 test('blocks keyboard pickup while a pointer reorder session is active', async ({ page }) => {
   await page.goto('/')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const commonGroup = panel.locator('[data-group-id="common-items"]')
   const commonGrip = commonGroup.getByRole('button', {
     name: 'Reorder Common inputs',
@@ -976,7 +976,7 @@ test('keeps keyboard and pointer reorder sessions exclusive across nested lists'
   page,
 }) => {
   await page.goto('/')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const mediaGrip = panel.getByRole('button', {
     name: 'Reorder Media and files',
     exact: true,
@@ -1016,7 +1016,7 @@ test('keyboard reordering preserves hidden root slots on commit and cancellation
   page,
 }) => {
   await page.goto('/')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const mediaGrip = panel.getByRole('button', {
     name: 'Reorder Media and files',
     exact: true,
@@ -1050,7 +1050,7 @@ test('allows an active keyboard reorder to cancel after its siblings become hidd
   page,
 }) => {
   await page.goto('/')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const mediaGrip = panel.getByRole('button', {
     name: 'Reorder Media and files',
     exact: true,
@@ -1077,7 +1077,7 @@ test('rolls back an active keyboard reorder when the picked-up item becomes hidd
   page,
 }) => {
   await page.goto('/')
-  const panel = page.locator('[data-tweaker-panel-id="built-in-items"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
   const example = page.locator('[data-interactive-jsx-example]')
   const mediaGrip = panel.getByRole('button', {
     name: 'Reorder Media and files',
@@ -1097,8 +1097,8 @@ test('rolls back an active keyboard reorder when the picked-up item becomes hidd
 test('avoids Camera height before Quality covers it and retains avoidance on a 1px reversal', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
-  const list = panel.locator('[data-tweaker-reorder-list="scene-rendering"]')
+  const panel = page.locator('[data-picodash-panel-id="scene-controls"]')
+  const list = panel.locator('[data-picodash-reorder-list="scene-rendering"]')
   const quality = panel.locator('[data-item-id="quality"]')
   const cameraHeight = panel.locator('[data-item-id="cameraHeight"]')
   const grip = quality.getByRole('button', { name: 'Reorder Quality', exact: true })
@@ -1183,8 +1183,8 @@ for (const collapsed of [false, true]) {
   test(`renders singleton Scene placement bands as static while groups are ${collapsed ? 'collapsed' : 'expanded'}`, async ({
     page,
   }) => {
-    const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
-    const list = panel.locator('[data-tweaker-reorder-list="root"]')
+    const panel = page.locator('[data-picodash-panel-id="scene-controls"]')
+    const list = panel.locator('[data-picodash-reorder-list="root"]')
     const essentials = panel.locator('[data-group-id="scene-essentials"]')
     const rendering = panel.locator('[data-group-id="scene-rendering"]')
     const summary = panel.locator('[data-item-id="scene-summary"]')
@@ -1337,12 +1337,12 @@ test('renders static square slots for non-reorderable items', async ({ page }) =
   await expect(fixedControl).toHaveAttribute('data-reorderable', 'false')
   await expect(fixedControl).toHaveCSS('padding-left', '0px')
   await expect(fixedSlot).toHaveAttribute('aria-disabled', 'true')
-  await expect(fixedSlot.locator('[data-tweaker-reorder-indicator="static"]')).toHaveCount(1)
+  await expect(fixedSlot.locator('[data-picodash-reorder-indicator="static"]')).toHaveCount(1)
   await expect(fixedSlot.locator('svg')).toHaveCount(0)
 
   await expect(reorderableControl).toHaveAttribute('data-reorderable', 'true')
   await expect(reorderableSlot).toHaveAttribute('aria-disabled', 'false')
-  await expect(reorderableSlot.locator('[data-tweaker-reorder-indicator="grip"]')).toHaveCount(1)
+  await expect(reorderableSlot.locator('[data-picodash-reorder-indicator="grip"]')).toHaveCount(1)
   await expect(reorderableSlot.locator('svg')).toHaveCount(1)
 })
 
@@ -1357,11 +1357,11 @@ test('keeps the portaled Select interactive without blocking the surrounding pag
   await trigger.focus()
   await trigger.press('Enter')
 
-  const content = page.locator('[data-tweaker-theme="dark"][data-placement]')
+  const content = page.locator('[data-picodash-theme="dark"][data-placement]')
   await expect(content).toBeVisible()
-  await expect(content).toHaveAttribute('data-tweaker-theme', 'dark')
+  await expect(content).toHaveAttribute('data-picodash-theme', 'dark')
   await expect(content).toHaveCSS('pointer-events', 'auto')
-  await expect(page.locator('[data-tweaker-container]')).toHaveCSS('pointer-events', 'none')
+  await expect(page.locator('[data-picodash-container]')).toHaveCSS('pointer-events', 'none')
   const finalOption = page.getByRole('option', { name: 'Final' })
   await expect(finalOption).toBeVisible()
 
@@ -1405,7 +1405,7 @@ test('keeps panel typography and dropzone geometry at the baseline', async ({ pa
 
 test('fits Scene Controls without a default vertical scrollbar', async ({ page }) => {
   const body = page.locator(
-    '[data-tweaker-panel-id="scene-controls"] [data-tweaker-reorder-list="root"]',
+    '[data-picodash-panel-id="scene-controls"] [data-picodash-reorder-list="root"]',
   )
 
   await expect
@@ -1519,7 +1519,7 @@ test('updates common, spatial, and gradient values through accessible controls',
 
 test('renders safe media, serializable drop metadata, and a Recharts SVG', async ({ page }) => {
   const preview = page.locator('[data-item-id="previewAsset"]')
-  await expect(preview.getByRole('img', { name: 'Tweaker mark' })).toHaveAttribute(
+  await expect(preview.getByRole('img', { name: 'Picodash mark' })).toHaveAttribute(
     'src',
     /favicon\.svg$/,
   )
@@ -1585,16 +1585,16 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
 test('applies simultaneous named themes to panels and every portaled surface', async ({ page }) => {
   await page.goto('/state-lab?providerTheme=ocean&customTheme=plum')
 
-  const scenePanel = page.locator('[data-tweaker-panel-id="scene-controls"]')
-  const customPanel = page.locator('[data-tweaker-panel-id="custom-items"]')
-  const builtInPanel = page.locator('[data-tweaker-panel-id="built-in-items"]')
-  await expect(page.locator('[data-tweaker-container]')).toHaveAttribute(
-    'data-tweaker-theme',
+  const scenePanel = page.locator('[data-picodash-panel-id="scene-controls"]')
+  const customPanel = page.locator('[data-picodash-panel-id="custom-items"]')
+  const builtInPanel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  await expect(page.locator('[data-picodash-container]')).toHaveAttribute(
+    'data-picodash-theme',
     'ocean',
   )
-  await expect(scenePanel).toHaveAttribute('data-tweaker-theme', 'ocean')
-  await expect(builtInPanel).toHaveAttribute('data-tweaker-theme', 'ocean')
-  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
+  await expect(scenePanel).toHaveAttribute('data-picodash-theme', 'ocean')
+  await expect(builtInPanel).toHaveAttribute('data-picodash-theme', 'ocean')
+  await expect(customPanel).toHaveAttribute('data-picodash-theme', 'plum')
   await expect(scenePanel).toHaveCSS('background-color', 'rgb(7, 38, 52)')
   await expect(builtInPanel).toHaveCSS('background-color', /0\.72/)
   await expect(customPanel).toHaveCSS('background-color', 'rgb(54, 19, 62)')
@@ -1609,7 +1609,7 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   const qualityTrigger = page.locator('[data-item-id="quality"] [aria-haspopup="listbox"]')
   await expect(qualityTrigger).toHaveCSS('border-bottom-color', 'rgb(91, 158, 171)')
   await qualityTrigger.click()
-  const selectContent = page.locator('[data-tweaker-theme="ocean"][data-placement]')
+  const selectContent = page.locator('[data-picodash-theme="ocean"][data-placement]')
   await expect(selectContent).toHaveCSS('background-color', 'rgb(11, 55, 72)')
   await expect(selectContent).toHaveCSS('border-radius', '8px')
   const finalOption = page.getByRole('option', { name: 'Final' })
@@ -1620,7 +1620,7 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await page.mouse.move(0, 0)
   await alignment.getByRole('button', { name: 'Help for Matrix2D' }).hover()
   await expect(page.getByRole('tooltip')).toBeVisible()
-  const tooltip = page.locator('[data-tweaker-theme="ocean"][data-placement]')
+  const tooltip = page.locator('[data-picodash-theme="ocean"][data-placement]')
   await expect(tooltip).toHaveCSS('background-color', 'rgb(11, 55, 72)')
   await expect(tooltip).toHaveCSS('border-radius', '8px')
 
@@ -1633,18 +1633,18 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   const previewButton = dropzone.getByRole('button', { name: 'View themed.png' })
   await previewButton.click()
   const viewer = page.getByRole('dialog')
-  await expect(viewer).toHaveAttribute('data-tweaker-theme', 'ocean')
+  await expect(viewer).toHaveAttribute('data-picodash-theme', 'ocean')
   await expect(viewer.locator('figure')).toHaveCSS('border-radius', '8px')
   await page.keyboard.press('Escape')
 
   const customActions = customPanel.getByRole('button', { name: 'Open actions for Custom Items' })
   await customActions.click()
   const menu = page.getByRole('menu', { name: 'Actions for Custom Items' })
-  await expect(menu).toHaveAttribute('data-tweaker-theme', 'plum')
+  await expect(menu).toHaveAttribute('data-picodash-theme', 'plum')
   const copySubmenuTrigger = menu.getByRole('menuitem', { name: 'Copy' })
   await copySubmenuTrigger.focus()
   await copySubmenuTrigger.press('ArrowRight')
-  const themedMenus = page.locator('[data-tweaker-theme="plum"][role="menu"]')
+  const themedMenus = page.locator('[data-picodash-theme="plum"][role="menu"]')
   await expect(themedMenus).toHaveCount(2)
   await expect(themedMenus.nth(1)).toHaveCSS('pointer-events', 'auto')
   await page.keyboard.press('Escape')
@@ -1652,9 +1652,9 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await customActions.click()
   await menu.getByRole('menuitem', { name: 'Reset…' }).click()
   const dialog = page.getByRole('alertdialog', { name: 'Reset Custom Items?' })
-  await expect(dialog).toHaveAttribute('data-tweaker-theme', 'plum')
+  await expect(dialog).toHaveAttribute('data-picodash-theme', 'plum')
   await expect(
-    page.locator('[data-tweaker-theme="plum"][data-slot="alert-dialog-overlay"]'),
+    page.locator('[data-picodash-theme="plum"][data-slot="alert-dialog-overlay"]'),
   ).toHaveCount(1)
   await dialog.getByRole('button', { name: 'Cancel' }).click()
 })
@@ -1664,10 +1664,10 @@ test('updates inherited panel themes at runtime while preserving explicit overri
 }) => {
   await changeDemoThemes(page, { custom: 'plum' })
 
-  const scenePanel = page.locator('[data-tweaker-panel-id="scene-controls"]')
-  const customPanel = page.locator('[data-tweaker-panel-id="custom-items"]')
-  await expect(scenePanel).toHaveAttribute('data-tweaker-theme', 'dark')
-  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
+  const scenePanel = page.locator('[data-picodash-panel-id="scene-controls"]')
+  const customPanel = page.locator('[data-picodash-panel-id="custom-items"]')
+  await expect(scenePanel).toHaveAttribute('data-picodash-theme', 'dark')
+  await expect(customPanel).toHaveAttribute('data-picodash-theme', 'plum')
 
   await changeDemoThemes(page, { provider: 'ocean' })
 
@@ -1675,11 +1675,11 @@ test('updates inherited panel themes at runtime while preserving explicit overri
     'data-demo-provider-theme',
     'ocean',
   )
-  await expect(scenePanel).toHaveAttribute('data-tweaker-theme', 'ocean')
-  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'plum')
+  await expect(scenePanel).toHaveAttribute('data-picodash-theme', 'ocean')
+  await expect(customPanel).toHaveAttribute('data-picodash-theme', 'plum')
 
   await changeDemoThemes(page, { custom: null })
-  await expect(customPanel).toHaveAttribute('data-tweaker-theme', 'ocean')
+  await expect(customPanel).toHaveAttribute('data-picodash-theme', 'ocean')
 })
 
 test('animates transient visual paths and switches deterministic signal mode', async ({ page }) => {
@@ -1706,7 +1706,7 @@ test('animates transient visual paths and switches deterministic signal mode', a
   expect(bottomGap).toBeLessThanOrEqual(12)
   const initialVelocityXPath = await velocityXPath.getAttribute('d')
   const initialVelocityYPath = await velocityYPath.getAttribute('d')
-  const headingBox = await requiredBox(page.getByRole('heading', { name: 'Tweaker State Lab' }))
+  const headingBox = await requiredBox(page.getByRole('heading', { name: 'Picodash State Lab' }))
 
   // The listener targets the full viewport, so motion over unrelated page content
   // updates the display without the chart needing to capture pointer events.
@@ -1760,7 +1760,7 @@ test('resumes pointer velocity decay when document visibility returns', async ({
   await expect(display).toBeVisible()
 
   const initialVelocityXPath = await velocityXPath.getAttribute('d')
-  const headingBox = await requiredBox(page.getByRole('heading', { name: 'Tweaker State Lab' }))
+  const headingBox = await requiredBox(page.getByRole('heading', { name: 'Picodash State Lab' }))
 
   await page.mouse.move(headingBox.x + 4, headingBox.y + 4)
   await page.mouse.move(
@@ -1789,7 +1789,7 @@ test('resumes pointer velocity decay when document visibility returns', async ({
 })
 
 test('supports keyboard typeahead across panel actions and format submenus', async ({ page }) => {
-  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const panel = page.locator('[data-picodash-panel-id="scene-controls"]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
   const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
 
@@ -1826,13 +1826,13 @@ test('keeps tall panel action menus scrollable within the available viewport hei
 }) => {
   await page.setViewportSize({ width: 640, height: 240 })
   await page
-    .locator('[data-tweaker-panel-id="custom-items"]')
+    .locator('[data-picodash-panel-id="custom-items"]')
     .evaluate((element: HTMLElement) => (element.style.display = 'none'))
   await page
-    .locator('[data-tweaker-panel-id="built-in-items"]')
+    .locator('[data-picodash-panel-id="built-in-items"]')
     .evaluate((element: HTMLElement) => (element.style.display = 'none'))
 
-  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const panel = page.locator('[data-picodash-panel-id="scene-controls"]')
   await panel.getByRole('button', { name: 'Open actions for Scene Controls' }).click()
 
   const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
@@ -1856,12 +1856,12 @@ test('keeps tall panel action menus scrollable within the available viewport hei
 test('keeps the panel action menu contained and manages collapsible groups', async ({ page }) => {
   await page.setViewportSize({ width: 640, height: 480 })
   await page
-    .locator('[data-tweaker-panel-id="custom-items"]')
+    .locator('[data-picodash-panel-id="custom-items"]')
     .evaluate((element: HTMLElement) => (element.style.display = 'none'))
   await page
-    .locator('[data-tweaker-panel-id="built-in-items"]')
+    .locator('[data-picodash-panel-id="built-in-items"]')
     .evaluate((element: HTMLElement) => (element.style.display = 'none'))
-  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const panel = page.locator('[data-picodash-panel-id="scene-controls"]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
   const essentials = panel.locator('[data-group-id="scene-essentials"]')
   const rendering = panel.locator('[data-group-id="scene-rendering"]')
@@ -1880,9 +1880,9 @@ test('keeps the panel action menu contained and manages collapsible groups', asy
   await trigger.click()
   const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
   await expect(menu).toBeVisible()
-  await expect(menu).toHaveAttribute('data-tweaker-theme', 'dark')
+  await expect(menu).toHaveAttribute('data-picodash-theme', 'dark')
   await expect(menu).toHaveCSS('pointer-events', 'auto')
-  await expect(page.locator('[data-tweaker-container]')).toHaveCSS('pointer-events', 'none')
+  await expect(page.locator('[data-picodash-container]')).toHaveCSS('pointer-events', 'none')
   const menuBox = await requiredBox(menu)
   expect(menuBox.x).toBeGreaterThanOrEqual(0)
   expect(menuBox.y).toBeGreaterThanOrEqual(0)
@@ -1916,12 +1916,12 @@ test('keeps the panel action menu contained and manages collapsible groups', asy
 test('confirms registered-field resets without changing group disclosure', async ({ page }) => {
   await page.setViewportSize({ width: 640, height: 480 })
   await page
-    .locator('[data-tweaker-panel-id="custom-items"]')
+    .locator('[data-picodash-panel-id="custom-items"]')
     .evaluate((element: HTMLElement) => (element.style.display = 'none'))
   await page
-    .locator('[data-tweaker-panel-id="built-in-items"]')
+    .locator('[data-picodash-panel-id="built-in-items"]')
     .evaluate((element: HTMLElement) => (element.style.display = 'none'))
-  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const panel = page.locator('[data-picodash-panel-id="scene-controls"]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
   const quality = panel.locator('[data-item-id="quality"] [aria-haspopup="listbox"]')
   const rendering = panel.locator('[data-group-id="scene-rendering"]')
@@ -1934,7 +1934,7 @@ test('confirms registered-field resets without changing group disclosure', async
   await trigger.click()
   await page.getByRole('menuitem', { name: 'Reset…' }).click()
   const dialog = page.getByRole('alertdialog', { name: 'Reset Scene Controls?' })
-  await expect(dialog).toHaveAttribute('data-tweaker-theme', 'dark')
+  await expect(dialog).toHaveAttribute('data-picodash-theme', 'dark')
   const resetDescriptionId = await dialog.getAttribute('aria-describedby')
   expect(resetDescriptionId).toBeTruthy()
   await expect(page.locator(`[id="${resetDescriptionId}"]`)).toContainText(
@@ -1960,7 +1960,7 @@ test('confirms registered-field resets without changing group disclosure', async
 
 test('copies and exports registered panel values as JSON and YAML', async ({ context, page }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const panel = page.locator('[data-picodash-panel-id="scene-controls"]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
   const status = panel.locator('span[role="status"]')
 
@@ -2004,7 +2004,7 @@ test('copies and exports registered panel values as JSON and YAML', async ({ con
 test('imports JSON and YAML atomically and reports invalid files without mutation', async ({
   page,
 }) => {
-  const panel = page.locator('[data-tweaker-panel-id="scene-controls"]')
+  const panel = page.locator('[data-picodash-panel-id="scene-controls"]')
   const trigger = panel.getByRole('button', { name: 'Open actions for Scene Controls' })
   const status = panel.locator('span[role="status"]')
   const summary = page.locator('[data-item-id="scene-summary"]')
@@ -2155,7 +2155,7 @@ async function exerciseLivePreviewDrag({
 
   const pointerX = gripBox.x + gripBox.width / 2
   const pointerY = gripBox.y + gripBox.height / 2
-  const rootList = panel.locator('[data-tweaker-reorder-list="root"]')
+  const rootList = panel.locator('[data-picodash-reorder-list="root"]')
   const initialScrollTop = await rootList.evaluate((element) => element.scrollTop)
 
   await page.mouse.move(pointerX, pointerY)
@@ -2402,10 +2402,10 @@ async function expectSiblingAt(locator: import('@playwright/test').Locator, expe
 
 function constrainPointerOffset(value: number, min: number, max: number) {
   if (value < min) {
-    return min - Math.min((min - value) * tweakerMotionTokens.dragElastic, 1)
+    return min - Math.min((min - value) * picodashMotionTokens.dragElastic, 1)
   }
   if (value > max) {
-    return max + Math.min((value - max) * tweakerMotionTokens.dragElastic, 1)
+    return max + Math.min((value - max) * picodashMotionTokens.dragElastic, 1)
   }
   return value
 }
@@ -2636,7 +2636,7 @@ async function builtInDraggingId(page: Page) {
 
 async function activeDisclosureTransitionCount(panel: import('@playwright/test').Locator) {
   return panel
-    .locator('[data-tweaker-group-disclosure]')
+    .locator('[data-picodash-group-disclosure]')
     .evaluateAll((disclosures) =>
       disclosures.reduce(
         (count, disclosure) =>

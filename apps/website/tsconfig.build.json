@@ -3,8 +3,8 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
-      "tweaker": ["../../packages/tweaker/src/index.ts"],
-      "tweaker/advanced": ["../../packages/tweaker/src/advanced.ts"]
+      "@picodash/panel": ["../../packages/panel/src/index.ts"],
+      "@picodash/panel/advanced": ["../../packages/panel/src/advanced.ts"]
     }
   }
 }

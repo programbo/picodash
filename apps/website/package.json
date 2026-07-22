@@ -10,6 +10,7 @@
     "preview": "vp preview --host 127.0.0.1 --port ${WEBSITE_PORT:-6031} --strictPort"
   },
   "dependencies": {
+    "@picodash/panel": "workspace:*",
     "clsx": "catalog:",
     "highlight.js": "catalog:",
     "lucide-react": "catalog:",
@@ -18,7 +19,6 @@
     "react-dom": "catalog:",
     "react-json-view-lite": "catalog:",
     "tailwind-merge": "catalog:",
-    "tweaker": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

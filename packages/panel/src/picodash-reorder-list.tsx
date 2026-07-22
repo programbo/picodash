@@ -1,0 +1,731 @@
+import { motion, Reorder } from 'motion/react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react'
+import { useStore } from 'zustand'
+import { useShallow } from 'zustand/react/shallow'
+import { PicodashGroupContextProvider } from './picodash-group-context.js'
+import { usePicodashPanelStoreApi } from './picodash-panel-context.js'
+import {
+  bandForItem,
+  keyboardReorderInteractionId,
+  orderedItemsForParent,
+  orderSnapshotForParent,
+  orderPicodashChildren,
+  partitionPicodashChildrenByBand,
+  reorderValuesForPointer,
+  rootGroupId,
+  type PicodashOrderBand,
+} from './picodash-order.js'
+import { picodashMotionTokens } from './theme.js'
+import { cn } from './utils.js'
+import type {
+  PicodashGroupContextValue,
+  PicodashPanelStore,
+  PicodashReorderItemLayout,
+  PicodashReorderItemMotion,
+} from './picodash-panel-types.js'
+
+export function PicodashReorderList({
+  children,
+  className,
+  fixedPlacement = false,
+  parentId,
+  ref,
+}: {
+  children: ReactNode
+  className?: string
+  fixedPlacement?: boolean
+  parentId: string
+  ref?: RefObject<HTMLDivElement | null>
+}) {
+  const store = usePicodashPanelStoreApi()
+  const bandById = useStore(
+    store,
+    useShallow((state) =>
+      Object.fromEntries(
+        orderedItemsForParent(state, parentId).map(({ item }) => [item.id, bandForItem(item)]),
+      ),
+    ),
+  )
+  const partitionedChildren = useMemo(
+    () => partitionPicodashChildrenByBand(children, bandById),
+    [bandById, children],
+  )
+  const fixedRoot = fixedPlacement && parentId === rootGroupId
+
+  if (!fixedRoot) {
+    return (
+      <PicodashReorderListSurface
+        ref={ref}
+        className={cn(className, parentId === rootGroupId && 'scroll-fade')}
+        parentId={parentId}
+        scrollport={parentId === rootGroupId ? 'body' : undefined}
+      >
+        {children}
+      </PicodashReorderListSurface>
+    )
+  }
+
+  return (
+    <motion.div
+      ref={ref}
+      className={cn(className, 'flex min-h-0 flex-col overflow-hidden pb-0.75')}
+      data-picodash-reorder-list={parentId}
+    >
+      <PicodashReorderListSurface band="start" parentId={parentId}>
+        {partitionedChildren.start}
+      </PicodashReorderListSurface>
+      <PicodashReorderListSurface
+        band="auto"
+        className="scroll-fade min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
+        parentId={parentId}
+        scrollport="auto"
+      >
+        {partitionedChildren.auto}
+      </PicodashReorderListSurface>
+      <PicodashReorderListSurface band="end" parentId={parentId}>
+        {partitionedChildren.end}
+      </PicodashReorderListSurface>
+    </motion.div>
+  )
+}
+
+function PicodashReorderListSurface({
+  band,
+  children,
+  className,
+  parentId,
+  ref,
+  scrollport,
+}: {
+  band?: PicodashOrderBand
+  children: ReactNode
+  className?: string
+  parentId: string
+  ref?: RefObject<HTMLDivElement | null>
+  scrollport?: 'auto' | 'body'
+}) {
+  const store = usePicodashPanelStoreApi()
+  const fallbackRef = useRef<HTMLDivElement | null>(null)
+  const listRef = ref ?? fallbackRef
+  const dragConstraintsRef = useRef<HTMLDivElement | null>(null)
+  const itemMotionByIdRef = useRef(new Map<string, PicodashReorderItemMotion>())
+  const pendingFlipRectsRef = useRef<Map<string, number> | null>(null)
+  const [keyboardAnnouncement, setKeyboardAnnouncement] = useState<{
+    itemId: string
+    message: string
+  } | null>(null)
+  const [keyboardSession, setKeyboardSession] = useState<{
+    initialOrder: string[]
+    initialVisibleOrder: string[]
+    itemId: string
+    label: string
+  } | null>(null)
+  const keyboardSessionRef = useRef(keyboardSession)
+  const registeredValues = useStore(
+    store,
+    useShallow((state) =>
+      orderedItemsForParent(state, parentId)
+        .filter((entry) => band === undefined || bandForItem(entry.item) === band)
+        .map((entry) => entry.item.id),
+    ),
+  )
+  const draggingId = useStore(store, (state) => state.interaction.draggingId)
+  const keyboardReorderActive = useStore(
+    store,
+    (state) => state.interaction.activeIds[keyboardReorderInteractionId] === true,
+  )
+  const captureFlipRects = useCallback(() => {
+    const groupElement = dragConstraintsRef.current
+    if (!groupElement) return
+
+    pendingFlipRectsRef.current = new Map(
+      directReorderItems(groupElement)
+        .map((element) => {
+          const id = reorderItemId(element)
+          return id && itemMotionByIdRef.current.has(id)
+            ? ([id, element.getBoundingClientRect().y] as const)
+            : null
+        })
+        .filter((entry): entry is readonly [string, number] => entry !== null),
+    )
+  }, [])
+  const { previewOrder, values, valuesRef } = useSynchronizedVisibleOrder(
+    registeredValues,
+    draggingId,
+    captureFlipRects,
+  )
+  const layoutVersion = useReorderListLayoutVersion(
+    listRef,
+    store,
+    draggingId,
+    keyboardReorderActive,
+  )
+  const { beginItemReorder, commitPendingOrder, synchronizeVisualOffset } =
+    usePointerReorderSession({
+      dragConstraintsRef,
+      listRef,
+      parentId,
+      previewOrder,
+      store,
+      valuesRef,
+    })
+  const announceKeyboardReorder = useCallback((itemId: string, message: string) => {
+    setKeyboardAnnouncement(null)
+    requestAnimationFrame(() => setKeyboardAnnouncement({ itemId, message }))
+  }, [])
+  const beginKeyboardReorder = useCallback(
+    (itemId: string, label: string) => {
+      if (keyboardSession || !valuesRef.current.includes(itemId)) return
+      const state = store.getState()
+      if (
+        state.interaction.draggingId ||
+        state.interaction.activeIds[keyboardReorderInteractionId]
+      ) {
+        return
+      }
+      state.setInteractionActive(keyboardReorderInteractionId, true)
+      setKeyboardSession({
+        initialOrder: orderSnapshotForParent(state, parentId),
+        initialVisibleOrder: [...valuesRef.current],
+        itemId,
+        label,
+      })
+      const item = state.items[itemId]
+      const bandItems = valuesRef.current.filter((id) => {
+        const candidate = state.items[id]
+        return (
+          candidate !== undefined &&
+          !candidate.hidden &&
+          candidate.parentId === item?.parentId &&
+          candidate.pin === item?.pin
+        )
+      })
+      announceKeyboardReorder(
+        itemId,
+        `${label} picked up. Position ${bandItems.indexOf(itemId) + 1} of ${bandItems.length}.`,
+      )
+    },
+    [announceKeyboardReorder, keyboardSession, parentId, store, valuesRef],
+  )
+  const moveKeyboardReorder = useCallback(
+    (itemId: string, direction: -1 | 1) => {
+      if (keyboardSession?.itemId !== itemId) return
+      const state = store.getState()
+      const item = state.items[itemId]
+      if (!item) return
+      const bandItems = valuesRef.current.filter((id) => {
+        const candidate = state.items[id]
+        return (
+          candidate !== undefined &&
+          !candidate.hidden &&
+          candidate.parentId === item.parentId &&
+          candidate.pin === item.pin
+        )
+      })
+      const currentBandIndex = bandItems.indexOf(itemId)
+      const nextBandIndex = currentBandIndex + direction
+      if (currentBandIndex < 0 || nextBandIndex < 0 || nextBandIndex >= bandItems.length) {
+        announceKeyboardReorder(
+          itemId,
+          `${keyboardSession.label} is already ${direction < 0 ? 'first' : 'last'}.`,
+        )
+        return
+      }
+      const targetId = bandItems[nextBandIndex]!
+      const currentIndex = valuesRef.current.indexOf(itemId)
+      const targetIndex = valuesRef.current.indexOf(targetId)
+      const nextOrder = [...valuesRef.current]
+      nextOrder.splice(currentIndex, 1)
+      nextOrder.splice(targetIndex, 0, itemId)
+      previewOrder(nextOrder)
+      store.getState().moveItemRelativeTo(itemId, targetId, direction < 0 ? 'before' : 'after')
+      announceKeyboardReorder(
+        itemId,
+        `${keyboardSession.label} moved to position ${nextBandIndex + 1} of ${bandItems.length}.`,
+      )
+    },
+    [announceKeyboardReorder, keyboardSession, parentId, previewOrder, store, valuesRef],
+  )
+  const cancelKeyboardReorder = useCallback(
+    (itemId: string) => {
+      if (keyboardSession?.itemId !== itemId) return
+      previewOrder(keyboardSession.initialVisibleOrder)
+      restoreKeyboardReorderOrder(store, parentId, keyboardSession.initialOrder)
+      store.getState().setInteractionActive(keyboardReorderInteractionId, false)
+      announceKeyboardReorder(itemId, `${keyboardSession.label} reorder cancelled.`)
+      setKeyboardSession(null)
+    },
+    [announceKeyboardReorder, keyboardSession, parentId, previewOrder, store],
+  )
+  const commitKeyboardReorder = useCallback(
+    (itemId: string) => {
+      if (keyboardSession?.itemId !== itemId) return
+      store.getState().setInteractionActive(keyboardReorderInteractionId, false)
+      announceKeyboardReorder(itemId, `${keyboardSession.label} dropped.`)
+      setKeyboardSession(null)
+    },
+    [announceKeyboardReorder, keyboardSession],
+  )
+  useEffect(() => {
+    if (keyboardSession && !registeredValues.includes(keyboardSession.itemId)) {
+      restoreKeyboardReorderOrder(store, parentId, keyboardSession.initialOrder)
+      store.getState().setInteractionActive(keyboardReorderInteractionId, false)
+      setKeyboardSession(null)
+    }
+  }, [keyboardSession, parentId, registeredValues, store])
+  useLayoutEffect(() => {
+    keyboardSessionRef.current = keyboardSession
+  }, [keyboardSession])
+  useEffect(
+    () => () => {
+      const activeSession = keyboardSessionRef.current
+      if (activeSession) {
+        restoreKeyboardReorderOrder(store, parentId, activeSession.initialOrder)
+        store.getState().setInteractionActive(keyboardReorderInteractionId, false)
+      }
+    },
+    [parentId, store],
+  )
+  useLayoutEffect(() => {
+    const pendingFlipRects = pendingFlipRectsRef.current
+    pendingFlipRectsRef.current = null
+    if (pendingFlipRects) {
+      const activeId = store.getState().interaction.draggingId
+      const groupElement = dragConstraintsRef.current
+      if (groupElement) {
+        for (const itemElement of directReorderItems(groupElement)) {
+          const id = reorderItemId(itemElement)
+          const itemMotion = id ? itemMotionByIdRef.current.get(id) : undefined
+          const previousVisualY = id ? pendingFlipRects.get(id) : undefined
+          if (!id || id === activeId || !itemMotion || previousVisualY === undefined) continue
+
+          const currentVisualY = itemElement.getBoundingClientRect().y
+          const currentLogicalY = currentVisualY - itemMotion.getOffset()
+          itemMotion.animateFrom(previousVisualY - currentLogicalY)
+        }
+      }
+    }
+    synchronizeVisualOffset()
+  }, [store, synchronizeVisualOffset, values])
+  const registerItemMotion = useCallback((itemId: string, motion: PicodashReorderItemMotion) => {
+    itemMotionByIdRef.current.set(itemId, motion)
+    return () => {
+      if (itemMotionByIdRef.current.get(itemId) === motion) {
+        itemMotionByIdRef.current.delete(itemId)
+      }
+    }
+  }, [])
+  const groupContext = useMemo<PicodashGroupContextValue>(
+    () => ({
+      beginItemReorder,
+      beginKeyboardReorder,
+      cancelKeyboardReorder,
+      commitPendingOrder,
+      commitKeyboardReorder,
+      dragConstraintsRef,
+      keyboardAnnouncement,
+      keyboardReorderItemId: keyboardSession?.itemId ?? null,
+      listRef,
+      moveKeyboardReorder,
+      parentId,
+      registerItemMotion,
+    }),
+    [
+      beginItemReorder,
+      beginKeyboardReorder,
+      cancelKeyboardReorder,
+      commitKeyboardReorder,
+      commitPendingOrder,
+      keyboardAnnouncement,
+      keyboardSession?.itemId,
+      listRef,
+      moveKeyboardReorder,
+      parentId,
+      registerItemMotion,
+    ],
+  )
+  const orderedChildren = useMemo(() => orderPicodashChildren(children, values), [children, values])
+
+  return (
+    <motion.div
+      ref={listRef}
+      className={className}
+      data-picodash-reorder-lane={band}
+      data-picodash-reorder-list={band === undefined ? parentId : undefined}
+      data-picodash-scrollport={scrollport}
+      layoutScroll
+    >
+      <Reorder.Group<string[], 'div'>
+        ref={dragConstraintsRef}
+        as="div"
+        axis="y"
+        className={cn(
+          'grid h-auto min-h-max grid-cols-[auto_minmax(4.5rem,max-content)_minmax(0,1fr)_max-content] gap-y-1',
+          parentId === rootGroupId && band === undefined && 'pb-0.75',
+        )}
+        key={layoutVersion}
+        values={values}
+        onReorder={() => {}}
+      >
+        <PicodashGroupContextProvider value={groupContext}>
+          {orderedChildren}
+        </PicodashGroupContextProvider>
+      </Reorder.Group>
+    </motion.div>
+  )
+}
+
+function useSynchronizedVisibleOrder(
+  registeredValues: string[],
+  draggingId: string | null,
+  captureFlipRects: () => void,
+) {
+  const [values, setValues] = useState(registeredValues)
+  const valuesRef = useRef(values)
+
+  useLayoutEffect(() => {
+    if (draggingId) return
+    if (!arraysEqual(valuesRef.current, registeredValues)) {
+      valuesRef.current = registeredValues
+      setValues(registeredValues)
+    }
+  }, [draggingId, registeredValues])
+
+  useLayoutEffect(() => {
+    valuesRef.current = values
+  }, [values])
+
+  const previewOrder = useCallback(
+    (nextValues: string[]) => {
+      if (arraysEqual(valuesRef.current, nextValues)) return false
+
+      captureFlipRects()
+      valuesRef.current = nextValues
+      setValues(nextValues)
+      return true
+    },
+    [captureFlipRects],
+  )
+
+  return { previewOrder, values, valuesRef }
+}
+
+function useReorderListLayoutVersion(
+  listRef: RefObject<HTMLDivElement | null>,
+  store: PicodashPanelStore,
+  draggingId: string | null,
+  keyboardReorderActive: boolean,
+) {
+  const [layoutVersion, setLayoutVersion] = useState(0)
+  const listWidthRef = useRef<number | null>(null)
+  const layoutWidthRef = useRef<number | null>(null)
+
+  useLayoutEffect(() => {
+    const listElement = listRef.current
+    if (!listElement) return
+
+    const updateListWidth = () => {
+      const nextWidth = listElement.clientWidth
+      listWidthRef.current = nextWidth
+      if (layoutWidthRef.current === null) {
+        layoutWidthRef.current = nextWidth
+        return
+      }
+      const interaction = store.getState().interaction
+      if (
+        interaction.draggingId ||
+        interaction.activeIds[keyboardReorderInteractionId] ||
+        layoutWidthRef.current === nextWidth
+      )
+        return
+
+      layoutWidthRef.current = nextWidth
+      setLayoutVersion((version) => version + 1)
+    }
+
+    updateListWidth()
+    const resizeObserver = new ResizeObserver(updateListWidth)
+    resizeObserver.observe(listElement)
+    return () => {
+      resizeObserver.disconnect()
+      listWidthRef.current = null
+      layoutWidthRef.current = null
+    }
+  }, [listRef, store])
+
+  useLayoutEffect(() => {
+    if (draggingId || keyboardReorderActive) return
+
+    const currentWidth = listRef.current?.clientWidth ?? listWidthRef.current
+    if (currentWidth === null || layoutWidthRef.current === currentWidth) return
+
+    listWidthRef.current = currentWidth
+    layoutWidthRef.current = currentWidth
+    setLayoutVersion((version) => version + 1)
+  }, [draggingId, keyboardReorderActive, listRef])
+
+  return layoutVersion
+}
+
+function usePointerReorderSession({
+  dragConstraintsRef,
+  listRef,
+  parentId,
+  previewOrder,
+  store,
+  valuesRef,
+}: {
+  dragConstraintsRef: RefObject<HTMLDivElement | null>
+  listRef: RefObject<HTMLDivElement | null>
+  parentId: string
+  previewOrder: (values: string[]) => boolean
+  store: PicodashPanelStore
+  valuesRef: RefObject<string[]>
+}) {
+  const pendingStoreOrderRef = useRef<string[] | null>(null)
+  const removePointerTrackingRef = useRef<(() => void) | null>(null)
+  const reorderSessionRef = useRef<{
+    initialBandOrder: string[]
+    initialOrder: string[]
+    initialVisibleOrder: string[]
+    initialItemOffsetTop: number
+    itemElement: HTMLElement
+    itemId: string
+    lastVisualOffset: number
+    latestPointerOffset: number
+    layouts: PicodashReorderItemLayout[]
+    maxPointerOffset: number
+    minPointerOffset: number
+    scrollContainer: HTMLElement | null
+    setVisualOffset: (offset: number) => void
+    startPointerY: number
+    startScrollTop: number
+  } | null>(null)
+
+  const stopPointerTracking = useCallback(() => {
+    removePointerTrackingRef.current?.()
+    removePointerTrackingRef.current = null
+  }, [])
+
+  useEffect(() => stopPointerTracking, [stopPointerTracking])
+
+  const synchronizeVisualOffset = useCallback(() => {
+    const session = reorderSessionRef.current
+    if (!session) return
+    const desiredLogicalTop = session.initialItemOffsetTop + session.latestPointerOffset
+    const currentSlotTop = session.itemElement.offsetTop - session.lastVisualOffset
+    const nextVisualOffset = desiredLogicalTop - currentSlotTop
+    session.lastVisualOffset = nextVisualOffset
+    session.setVisualOffset(nextVisualOffset)
+  }, [])
+
+  const updatePendingItemReorder = useCallback(
+    (itemId: string, pointerY: number) => {
+      const session = reorderSessionRef.current
+      if (!session || session.itemId !== itemId) return
+
+      const scrollOffset = (session.scrollContainer?.scrollTop ?? 0) - session.startScrollTop
+      const pointerOffset = pointerY - session.startPointerY + scrollOffset
+      const visualPointerOffset = constrainReorderPointerOffset(
+        pointerOffset,
+        session.minPointerOffset,
+        session.maxPointerOffset,
+      )
+      session.latestPointerOffset = visualPointerOffset
+      synchronizeVisualOffset()
+      const nextOrder = reorderValuesForPointer(
+        session.initialBandOrder,
+        itemId,
+        session.layouts,
+        pointerOffset,
+      )
+      const queuedBandOrder = [...nextOrder]
+      const nextFullOrder = session.initialOrder.map((id) =>
+        session.initialBandOrder.includes(id) ? (queuedBandOrder.shift() ?? id) : id,
+      )
+      const queuedVisibleBandOrder = [...nextOrder]
+      const nextVisibleOrder = session.initialVisibleOrder.map((id) =>
+        session.initialBandOrder.includes(id) ? (queuedVisibleBandOrder.shift() ?? id) : id,
+      )
+      pendingStoreOrderRef.current = nextFullOrder
+      previewOrder(nextVisibleOrder)
+    },
+    [previewOrder, synchronizeVisualOffset],
+  )
+
+  const beginItemReorder = useCallback(
+    (
+      itemId: string,
+      pointerY: number,
+      pointerId: number,
+      setVisualOffset: (offset: number) => void,
+    ) => {
+      const groupElement = dragConstraintsRef.current
+      if (!groupElement) return
+
+      stopPointerTracking()
+      const initialOrder = orderSnapshotForParent(store.getState(), parentId)
+      pendingStoreOrderRef.current = initialOrder
+      setVisualOffset(0)
+      const itemElements = Array.from(groupElement.children).filter(
+        (element): element is HTMLElement => element instanceof HTMLElement,
+      )
+      finishSiblingDisclosureTransitions(itemElements)
+      groupElement.getBoundingClientRect()
+      const itemElement = itemElements.find((element) => element.dataset.itemId === itemId)
+      if (!itemElement) return
+      const groupRect = groupElement.getBoundingClientRect()
+      const itemRect = itemElement.getBoundingClientRect()
+      const itemBand = itemElement.dataset.orderBand
+      const idsInBand = new Set(
+        itemElements
+          .filter((element) => element.dataset.orderBand === itemBand)
+          .map((element) => element.dataset.itemId)
+          .filter((id): id is string => Boolean(id)),
+      )
+      const layouts = itemElements
+        .map((element) => {
+          const id = element.dataset.itemId
+          if (!id || !idsInBand.has(id)) return null
+          const rect = element.getBoundingClientRect()
+          return { id, max: rect.bottom, min: rect.top }
+        })
+        .filter((layout): layout is PicodashReorderItemLayout => layout !== null)
+      const scrollContainer =
+        listRef.current?.closest<HTMLElement>('[data-picodash-scrollport]') ?? null
+
+      reorderSessionRef.current = {
+        initialBandOrder: valuesRef.current.filter((id) => idsInBand.has(id)),
+        initialItemOffsetTop: itemElement.offsetTop,
+        initialOrder,
+        initialVisibleOrder: [...valuesRef.current],
+        itemElement,
+        itemId,
+        lastVisualOffset: 0,
+        latestPointerOffset: 0,
+        layouts,
+        maxPointerOffset: groupRect.bottom - itemRect.bottom,
+        minPointerOffset: groupRect.top - itemRect.top,
+        scrollContainer,
+        setVisualOffset,
+        startPointerY: pointerY,
+        startScrollTop: scrollContainer?.scrollTop ?? 0,
+      }
+
+      const trackPointer = (event: PointerEvent) => {
+        if (event.pointerId === pointerId) updatePendingItemReorder(itemId, event.clientY)
+      }
+      const stopTrackingPointer = (event: PointerEvent) => {
+        if (event.pointerId !== pointerId) return
+        // Auto-scroll can update scrollTop after the final pointermove capture.
+        // Recompute from the release coordinate and latest scroll before Motion
+        // fires onDragEnd and commits the pending order.
+        updatePendingItemReorder(itemId, event.clientY)
+        stopPointerTracking()
+      }
+      const cancelTrackingPointer = (event: PointerEvent) => {
+        if (event.pointerId !== pointerId) return
+        const session = reorderSessionRef.current
+        if (session) {
+          session.setVisualOffset(0)
+          previewOrder(session.initialVisibleOrder)
+        }
+        pendingStoreOrderRef.current = null
+        reorderSessionRef.current = null
+        stopPointerTracking()
+      }
+      window.addEventListener('pointermove', trackPointer, true)
+      window.addEventListener('pointercancel', cancelTrackingPointer, true)
+      window.addEventListener('pointerup', stopTrackingPointer, true)
+      removePointerTrackingRef.current = () => {
+        window.removeEventListener('pointermove', trackPointer, true)
+        window.removeEventListener('pointercancel', cancelTrackingPointer, true)
+        window.removeEventListener('pointerup', stopTrackingPointer, true)
+      }
+    },
+    [
+      dragConstraintsRef,
+      listRef,
+      previewOrder,
+      stopPointerTracking,
+      updatePendingItemReorder,
+      valuesRef,
+    ],
+  )
+
+  const commitPendingOrder = useCallback(() => {
+    stopPointerTracking()
+    reorderSessionRef.current = null
+    const pendingStoreOrder = pendingStoreOrderRef.current
+    pendingStoreOrderRef.current = null
+    if (!pendingStoreOrder) return
+
+    store.getState().setOrder(parentId, pendingStoreOrder)
+  }, [parentId, stopPointerTracking, store])
+
+  return { beginItemReorder, commitPendingOrder, synchronizeVisualOffset }
+}
+
+export function constrainReorderPointerOffset(value: number, min: number, max: number) {
+  if (value < min) {
+    return min - Math.min((min - value) * picodashMotionTokens.dragElastic, 1)
+  }
+  if (value > max) {
+    return max + Math.min((value - max) * picodashMotionTokens.dragElastic, 1)
+  }
+  return value
+}
+
+function arraysEqual(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function finishSiblingDisclosureTransitions(itemElements: HTMLElement[]) {
+  for (const itemElement of itemElements) {
+    if (itemElement.dataset.itemKind !== 'group') continue
+
+    const disclosure = itemElement.querySelector<HTMLElement>(
+      ':scope > [data-picodash-group-disclosure]',
+    )
+    for (const animation of disclosure?.getAnimations() ?? []) {
+      if (
+        'transitionProperty' in animation &&
+        animation.transitionProperty === 'grid-template-rows'
+      ) {
+        animation.finish()
+      }
+    }
+  }
+}
+
+export function restoreKeyboardReorderOrder(
+  store: PicodashPanelStore,
+  parentId: string,
+  order: string[],
+) {
+  store.setState((state) => ({
+    order: {
+      ...state.order,
+      [parentId]: [...order],
+    },
+  }))
+}
+
+function directReorderItems(groupElement: HTMLElement) {
+  return Array.from(groupElement.children).filter(
+    (element): element is HTMLElement => element instanceof HTMLElement,
+  )
+}
+
+function reorderItemId(element: HTMLElement) {
+  return element.dataset.itemId
+}

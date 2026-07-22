@@ -1,21 +1,25 @@
 import type { ReactNode } from 'react'
-import { TweakerSparkline, type TweakerSparklineProps, type TweakerSparklineSource } from 'tweaker'
+import {
+  PicodashSparkline,
+  type PicodashSparklineProps,
+  type PicodashSparklineSource,
+} from '@picodash/panel'
 import { decayPointerVelocity } from './pointer-velocity-sampling'
 
 export const velocitySeries = [
   {
     dataKey: 'x',
     label: 'X velocity',
-    stroke: 'var(--tweaker-color-accent)',
+    stroke: 'var(--picodash-color-accent)',
   },
   {
     dataKey: 'y',
     label: 'Y velocity',
-    stroke: 'var(--tweaker-color-warning)',
+    stroke: 'var(--picodash-color-warning)',
   },
 ] as const
 
-export const mouseVelocityStream: TweakerSparklineSource = {
+export const mouseVelocityStream: PicodashSparklineSource = {
   subscribe(emit, options) {
     let previous: { time: number; x: number; y: number } | undefined
     let velocityX = 0
@@ -86,7 +90,7 @@ export function StreamingSparklineItem({
   showBaseline,
   ...itemProps
 }: Pick<
-  TweakerSparklineProps,
+  PicodashSparklineProps,
   | 'contentLayout'
   | 'description'
   | 'disabled'
@@ -107,7 +111,7 @@ export function StreamingSparklineItem({
     : ({ autoscale: false, maxValue, minValue } as const)
 
   return (
-    <TweakerSparkline
+    <PicodashSparkline
       {...itemProps}
       {...scaleProps}
       id="sparkline"

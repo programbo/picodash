@@ -9,13 +9,13 @@ import { cn } from '@/lib/utils'
 hljs.registerLanguage('bash', bash)
 hljs.registerLanguage('typescript', typescript)
 
-const installSource = `bun add tweaker`
+const installSource = `bun add @picodash/panel`
 
-const stylesheetSource = `import 'tweaker/style.css'`
+const stylesheetSource = `import '@picodash/panel/style.css'`
 
-const storeSource = `import { createTweakerPanelStore } from 'tweaker'
+const storeSource = `import { createPicodashPanelStore } from '@picodash/panel'
 
-export const settingsStore = createTweakerPanelStore({
+export const settingsStore = createPicodashPanelStore({
   panelId: 'site-settings',
   initialValues: {
     opacity: 1,
@@ -24,7 +24,7 @@ export const settingsStore = createTweakerPanelStore({
   },
 })`
 
-const selectorSource = `const opacity = useTweakerPanelStoreSelector(
+const selectorSource = `const opacity = usePicodashPanelStoreSelector(
   settingsStore,
   (state) =>
     typeof state.values.opacity === 'number'
@@ -32,13 +32,13 @@ const selectorSource = `const opacity = useTweakerPanelStoreSelector(
       : 1,
 )
 
-const showGrid = useTweakerPanelStoreSelector(
+const showGrid = usePicodashPanelStoreSelector(
   settingsStore,
   (state) => state.values.showGrid === true,
 )`
 
 const controllerSource = `function SettingsPanelActions() {
-  const panel = useTweakerPanel('site-settings')
+  const panel = usePicodashPanel('site-settings')
 
   return (
     <div>
@@ -52,7 +52,7 @@ const controllerSource = `function SettingsPanelActions() {
   )
 }
 
-<TweakerPanel
+<PicodashPanel
   close={{ behavior: 'deregister' }}
   store={settingsStore}
   title="Site settings"
@@ -62,9 +62,9 @@ const controllerSource = `function SettingsPanelActions() {
   }}
 >
   {/* Items remain mounted and registered while hidden. */}
-</TweakerPanel>`
+</PicodashPanel>`
 
-const boundarySource = `const canvasStore = createTweakerPanelStore({
+const boundarySource = `const canvasStore = createPicodashPanelStore({
   panelId: 'canvas-tools',
 })
 
@@ -73,36 +73,36 @@ function BoundedPanels() {
   const canvasRef = useRef<HTMLDivElement>(null)
 
   return (
-    <TweakerProvider panelBoundary={mainRef} persistLayout>
+    <PicodashProvider panelBoundary={mainRef} persistLayout>
       <main ref={mainRef}>
         <div ref={canvasRef}>{/* Canvas */}</div>
       </main>
 
-      <TweakerPanel
+      <PicodashPanel
         store={settingsStore}
         collapsible
         defaultPlacement={{ mode: 'fixed', position: 'left' }}
       >
-        <TweakerGroup id="session" label="Session" pin="start">
+        <PicodashGroup id="session" label="Session" pin="start">
           {/* Always-visible items */}
-        </TweakerGroup>
+        </PicodashGroup>
         {/* The auto lane scrolls */}
-        <TweakerGroup id="status" label="Status" pin="end">
+        <PicodashGroup id="status" label="Status" pin="end">
           {/* Always-visible items */}
-        </TweakerGroup>
-      </TweakerPanel>
+        </PicodashGroup>
+      </PicodashPanel>
 
-      <TweakerPanel
+      <PicodashPanel
         store={canvasStore}
         boundary={canvasRef}
         defaultPlacement={{ mode: 'fixed', position: 'bottom-right' }}
       />
-    </TweakerProvider>
+    </PicodashProvider>
   )
 }
 
 function PlacementActions() {
-  const panel = useTweakerPanel('site-settings')
+  const panel = usePicodashPanel('site-settings')
 
   return (
     <button
@@ -115,7 +115,7 @@ function PlacementActions() {
   )
 }`
 
-const panelSource = `<TweakerProvider
+const panelSource = `<PicodashProvider
   persistLayout
   storageKey="my-site:tweaker-layout:v1"
   theme="system"
@@ -127,14 +127,14 @@ const panelSource = `<TweakerProvider
     {/* Your website */}
   </main>
 
-  <TweakerPanel
+  <PicodashPanel
     store={settingsStore}
     title="Site settings"
     width={360}
     collapsible
   >
-    <TweakerGroup id="appearance" label="Appearance">
-      <TweakerSlider
+    <PicodashGroup id="appearance" label="Appearance">
+      <PicodashSlider
         field="opacity"
         label="Opacity"
         defaultValue={1}
@@ -142,12 +142,12 @@ const panelSource = `<TweakerProvider
         max={1}
         step={0.01}
       />
-      <TweakerSwitch
+      <PicodashSwitch
         field="showGrid"
         label="Show grid"
         defaultValue
       />
-      <TweakerSelect
+      <PicodashSelect
         field="quality"
         label="Quality"
         defaultValue="balanced"
@@ -157,23 +157,23 @@ const panelSource = `<TweakerProvider
           { label: 'Final', value: 'final' },
         ]}
       />
-    </TweakerGroup>
-  </TweakerPanel>
-</TweakerProvider>`
+    </PicodashGroup>
+  </PicodashPanel>
+</PicodashProvider>`
 
 const completeSource = `import {
-  createTweakerPanelStore,
-  TweakerGroup,
-  TweakerPanel,
-  TweakerProvider,
-  TweakerSelect,
-  TweakerSlider,
-  TweakerSwitch,
-  useTweakerPanelStoreSelector,
-} from 'tweaker'
-import 'tweaker/style.css'
+  createPicodashPanelStore,
+  PicodashGroup,
+  PicodashPanel,
+  PicodashProvider,
+  PicodashSelect,
+  PicodashSlider,
+  PicodashSwitch,
+  usePicodashPanelStoreSelector,
+} from '@picodash/panel'
+import '@picodash/panel/style.css'
 
-const settingsStore = createTweakerPanelStore({
+const settingsStore = createPicodashPanelStore({
   panelId: 'site-settings',
   initialValues: {
     opacity: 1,
@@ -183,20 +183,20 @@ const settingsStore = createTweakerPanelStore({
 })
 
 export function SitePreview() {
-  const opacity = useTweakerPanelStoreSelector(
+  const opacity = usePicodashPanelStoreSelector(
     settingsStore,
     (state) =>
       typeof state.values.opacity === 'number'
         ? state.values.opacity
         : 1,
   )
-  const showGrid = useTweakerPanelStoreSelector(
+  const showGrid = usePicodashPanelStoreSelector(
     settingsStore,
     (state) => state.values.showGrid === true,
   )
 
   return (
-    <TweakerProvider
+    <PicodashProvider
       persistLayout
       storageKey="my-site:tweaker-layout:v1"
       theme="system"
@@ -208,14 +208,14 @@ export function SitePreview() {
         {/* Your website */}
       </main>
 
-      <TweakerPanel
+      <PicodashPanel
         store={settingsStore}
         title="Site settings"
         width={360}
         collapsible
       >
-        <TweakerGroup id="appearance" label="Appearance">
-          <TweakerSlider
+        <PicodashGroup id="appearance" label="Appearance">
+          <PicodashSlider
             field="opacity"
             label="Opacity"
             defaultValue={1}
@@ -223,12 +223,12 @@ export function SitePreview() {
             max={1}
             step={0.01}
           />
-          <TweakerSwitch
+          <PicodashSwitch
             field="showGrid"
             label="Show grid"
             defaultValue
           />
-          <TweakerSelect
+          <PicodashSelect
             field="quality"
             label="Quality"
             defaultValue="balanced"
@@ -238,9 +238,9 @@ export function SitePreview() {
               { label: 'Final', value: 'final' },
             ]}
           />
-        </TweakerGroup>
-      </TweakerPanel>
-    </TweakerProvider>
+        </PicodashGroup>
+      </PicodashPanel>
+    </PicodashProvider>
   )
 }`
 
@@ -253,13 +253,13 @@ if (!result.success) {
   console.error(result.errors)
 }`
 
-const reactiveSource = `<TweakerSwitch
+const reactiveSource = `<PicodashSwitch
   field="extendedRange"
   label="Extended range"
   defaultValue={false}
 />
 
-<TweakerSlider
+<PicodashSlider
   field="exposure"
   label="Exposure"
   defaultValue={1}
@@ -270,17 +270,17 @@ const reactiveSource = `<TweakerSwitch
   visible={(state) => state.values.quality !== 'draft'}
 />`
 
-const isolatedSource = `<TweakerPanel
+const isolatedSource = `<PicodashPanel
   id="debug-tools"
   title="Debug tools"
   initialValues={{ outlines: false }}
 >
-  <TweakerSwitch
+  <PicodashSwitch
     field="outlines"
     label="Show outlines"
     defaultValue={false}
   />
-</TweakerPanel>`
+</PicodashPanel>`
 
 const guideLinks = [
   { href: '#usage-install', label: 'Install and import CSS' },
@@ -307,7 +307,7 @@ export function UsageGuide() {
         <article className="min-w-0">
           <header className="border-b border-white/10 pb-8">
             <h1 className="text-2xl font-medium tracking-tight text-zinc-50 sm:text-3xl">
-              Add a reactive Tweaker panel
+              Add a reactive Picodash panel
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
               Create one stable store, select the values your page uses, and render field components
@@ -323,10 +323,10 @@ export function UsageGuide() {
               title="Install the package and import its stylesheet"
             >
               <p>
-                Add <Code>tweaker</Code> with your project&apos;s package manager. Import the
+                Add <Code>picodash</Code> with your project&apos;s package manager. Import the
                 package stylesheet once from your application entry point.
               </p>
-              <CodeBlock language="bash" label="Install Tweaker" source={installSource} />
+              <CodeBlock language="bash" label="Install Picodash" source={installSource} />
               <CodeBlock
                 language="typescript"
                 label="Application entry"
@@ -358,8 +358,8 @@ export function UsageGuide() {
 
             <GuideStep id="usage-render" number="04" title="Render the provider and panel">
               <p>
-                Place one <Code>TweakerProvider</Code> around the page and its panels. Pass the
-                store to <Code>TweakerPanel</Code>, then add groups and field-backed items.
+                Place one <Code>PicodashProvider</Code> around the page and its panels. Pass the
+                store to <Code>PicodashPanel</Code>, then add groups and field-backed items.
               </p>
               <CodeBlock language="typescript" label="Panel composition" source={panelSource} />
               <Callout>
@@ -438,7 +438,7 @@ export function UsageGuide() {
 
               <Recipe title="Control panel visibility from application UI">
                 <p>
-                  Call <Code>useTweakerPanel</Code> beneath the provider with a stable panel ID. It
+                  Call <Code>usePicodashPanel</Code> beneath the provider with a stable panel ID. It
                   returns <Code>null</Code> until registration, then exposes reactive visibility and
                   methods to show, hide, toggle, or activate the panel. Activation also raises a
                   hidden panel to the front. Add <Code>close</Code> for a header button that hides
@@ -501,7 +501,7 @@ export function UsageGuide() {
             <SectionHeading eyebrow="Agent checklist" title="Implementation constraints" />
             <ol className="mt-5 grid gap-3 text-sm leading-6 text-zinc-300">
               <ConstraintItem>
-                Import only from <Code>tweaker</Code> unless a low-level advanced API is explicitly
+                Import only from <Code>picodash</Code> unless a low-level advanced API is explicitly
                 required.
               </ConstraintItem>
               <ConstraintItem>
@@ -517,7 +517,7 @@ export function UsageGuide() {
               </ConstraintItem>
               <ConstraintItem>
                 In a Next.js App Router project, add <Code>&apos;use client&apos;</Code> to modules
-                that render Tweaker components.
+                that render Picodash components.
               </ConstraintItem>
               <ConstraintItem>
                 Keep panel values JSON-compatible and keep high-frequency visual samples outside the

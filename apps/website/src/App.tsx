@@ -2,31 +2,31 @@ import { Activity, Braces, Layers3, ListTree, MousePointer2 } from 'lucide-react
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { z } from 'zod'
 import {
-  createTweakerPanelStore,
-  TweakerDisplay,
-  TweakerGroup,
-  TweakerItem,
-  TweakerNumber,
-  TweakerPanel,
-  TweakerProvider,
-  TweakerSelect,
-  TweakerSlider,
-  TweakerSwitch,
-  useTweakerPanel,
-  useTweakerPanelStoreSelector,
-  useTweakerTheme,
-  type TweakerGradientValue,
-  type TweakerPanelCloseDetails,
-  type TweakerPanelController,
-  type TweakerSliderMark,
-  type TweakerValue,
-} from 'tweaker'
+  createPicodashPanelStore,
+  PicodashDisplay,
+  PicodashGroup,
+  PicodashItem,
+  PicodashNumber,
+  PicodashPanel,
+  PicodashProvider,
+  PicodashSelect,
+  PicodashSlider,
+  PicodashSwitch,
+  usePicodashPanel,
+  usePicodashPanelStoreSelector,
+  usePicodashTheme,
+  type PicodashGradientValue,
+  type PicodashPanelCloseDetails,
+  type PicodashPanelController,
+  type PicodashSliderMark,
+  type PicodashValue,
+} from '@picodash/panel'
 import {
   gradientCssValue,
-  useTweakerProviderSelector,
-  type TweakerPanelRegistration,
-  type TweakerPanelState,
-} from 'tweaker/advanced'
+  usePicodashProviderSelector,
+  type PicodashPanelRegistration,
+  type PicodashPanelState,
+} from '@picodash/panel/advanced'
 import {
   Badge,
   Card,
@@ -40,7 +40,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from 'tweaker/ui'
+} from '@picodash/panel/ui'
 import {
   BuiltInItemsPanel,
   builtInItemsPanelId,
@@ -75,7 +75,7 @@ const customItemDefaults = {
   signalMode: 'waveform',
 }
 
-const scenePanelStore = createTweakerPanelStore({
+const scenePanelStore = createPicodashPanelStore({
   initialMeta: {
     canEdit: true,
     opacityMax: 1,
@@ -87,7 +87,7 @@ const scenePanelStore = createTweakerPanelStore({
   panelId: scenePanelId,
 })
 
-export const customItemPanelStore = createTweakerPanelStore({
+export const customItemPanelStore = createPicodashPanelStore({
   initialValues: customItemDefaults,
   panelId: outputPanelId,
 })
@@ -104,7 +104,7 @@ const bloomEnabledStates = { enabled: true }
 const bloomDisabledStates = { enabled: false }
 
 type PanelSnapshot = Pick<
-  TweakerPanelState,
+  PicodashPanelState,
   'collapsedGroups' | 'fields' | 'interaction' | 'items' | 'meta' | 'order' | 'panelId' | 'values'
 >
 
@@ -113,7 +113,7 @@ type PanelSnapshots = Record<string, PanelSnapshot | undefined>
 type ProviderSnapshot = {
   panelOrder: string[]
   panelRects: Record<string, unknown>
-  panels: Record<string, TweakerPanelRegistration>
+  panels: Record<string, PicodashPanelRegistration>
 }
 
 type ProductRoute = 'gallery' | 'not-found' | 'panel-geometry-lab' | 'state-lab'
@@ -133,7 +133,7 @@ export function App() {
   return (
     <>
       <a
-        className="bg-primary text-primary-foreground fixed top-2 left-2 z-(--tweaker-layer-viewer) -translate-y-16 px-3 py-2 text-sm font-medium transition-transform focus:translate-y-0 focus:outline-none"
+        className="bg-primary text-primary-foreground fixed top-2 left-2 z-(--picodash-layer-viewer) -translate-y-16 px-3 py-2 text-sm font-medium transition-transform focus:translate-y-0 focus:outline-none"
         href="#main-content"
       >
         Skip to main content
@@ -159,8 +159,8 @@ function DemoApp({ route }: { route: Extract<ProductRoute, 'gallery' | 'state-la
       }))
     }
 
-    window.addEventListener('tweaker-demo-theme-change', handleThemeChange)
-    return () => window.removeEventListener('tweaker-demo-theme-change', handleThemeChange)
+    window.addEventListener('picodash-demo-theme-change', handleThemeChange)
+    return () => window.removeEventListener('picodash-demo-theme-change', handleThemeChange)
   }, [])
 
   return (
@@ -173,9 +173,9 @@ function DemoApp({ route }: { route: Extract<ProductRoute, 'gallery' | 'state-la
       }
       data-product-route={route}
     >
-      <TweakerProvider
+      <PicodashProvider
         persistLayout
-        storageKey="tweaker-demo:panel-layout:v1"
+        storageKey="picodash-demo:panel-layout:v1"
         theme={themes.provider ?? 'dark'}
       >
         <DemoExperience
@@ -185,7 +185,7 @@ function DemoApp({ route }: { route: Extract<ProductRoute, 'gallery' | 'state-la
           onBuiltInExampleConfigChange={setBuiltInExampleConfig}
           onProviderThemeChange={(provider) => setThemes((current) => ({ ...current, provider }))}
         />
-      </TweakerProvider>
+      </PicodashProvider>
     </main>
   )
 }
@@ -239,7 +239,7 @@ function NotFoundPage() {
             Page not found
           </h1>
           <p className="text-muted-foreground">
-            That Tweaker page does not exist. Return to the interactive gallery.
+            That Picodash page does not exist. Return to the interactive gallery.
           </p>
         </div>
         <nav aria-label="Page not found">
@@ -277,21 +277,21 @@ function DemoExperience({
     'none' | 'present' | 'removed'
   >('none')
   const [initiallyHiddenPanelMounted, setInitiallyHiddenPanelMounted] = useState(true)
-  const [lastPanelClose, setLastPanelClose] = useState<TweakerPanelCloseDetails | null>(null)
-  const resolvedProviderTheme = useTweakerTheme()
-  const scenePanelController = useTweakerPanel(scenePanelId)
-  const initiallyHiddenPanelController = useTweakerPanel(initiallyHiddenPanelId)
-  const missingPanelController = useTweakerPanel('not-registered')
-  const panelOrder = useTweakerProviderSelector((state) => state.panelOrder)
-  const panelRects = useTweakerProviderSelector((state) => state.panelRects)
-  const providerPanels = useTweakerProviderSelector((state) => state.panels)
+  const [lastPanelClose, setLastPanelClose] = useState<PicodashPanelCloseDetails | null>(null)
+  const resolvedProviderTheme = usePicodashTheme()
+  const scenePanelController = usePicodashPanel(scenePanelId)
+  const initiallyHiddenPanelController = usePicodashPanel(initiallyHiddenPanelId)
+  const missingPanelController = usePicodashPanel('not-registered')
+  const panelOrder = usePicodashProviderSelector((state) => state.panelOrder)
+  const panelRects = usePicodashProviderSelector((state) => state.panelRects)
+  const providerPanels = usePicodashProviderSelector((state) => state.panels)
   const providerState = useMemo<ProviderSnapshot>(
     () => ({ panelOrder, panelRects, panels: providerPanels }),
     [panelOrder, panelRects, providerPanels],
   )
-  const scenePanelState = useTweakerPanelStoreSelector(scenePanelStore, (state) => state)
-  const customItemPanelState = useTweakerPanelStoreSelector(customItemPanelStore, (state) => state)
-  const builtInItemsPanelState = useTweakerPanelStoreSelector(
+  const scenePanelState = usePicodashPanelStoreSelector(scenePanelStore, (state) => state)
+  const customItemPanelState = usePicodashPanelStoreSelector(customItemPanelStore, (state) => state)
+  const builtInItemsPanelState = usePicodashPanelStoreSelector(
     builtInItemsPanelStore,
     (state) => state,
   )
@@ -311,7 +311,7 @@ function DemoExperience({
     panelSnapshots[outputPanelId],
   ].filter((panel): panel is PanelSnapshot => panel !== undefined)
   const totals = useMemo(() => panelTotals(panels), [panels])
-  const recordPanelClose = (details: TweakerPanelCloseDetails) => {
+  const recordPanelClose = (details: PicodashPanelCloseDetails) => {
     setLastPanelClose(details)
     setCloseCallbackPortalState(document.getElementById(details.panelId) ? 'present' : 'removed')
   }
@@ -324,7 +324,7 @@ function DemoExperience({
         data-demo-background
         style={{
           backgroundImage: gradientCssValue(
-            backgroundGradient as TweakerGradientValue,
+            backgroundGradient as PicodashGradientValue,
             typeof backgroundRotation === 'number' ? backgroundRotation : 135,
           ),
         }}
@@ -341,12 +341,12 @@ function DemoExperience({
                 </Badge>
                 <div>
                   <h1 className="font-heading text-foreground text-3xl font-medium tracking-normal">
-                    Tweaker State Lab
+                    Picodash State Lab
                   </h1>
                   <div className="prose prose-invert prose-p:my-0 prose-code:bg-muted prose-code:text-foreground text-muted-foreground prose-code:rounded-md prose-code:px-1.5 prose-code:py-0.5 mt-2 max-w-2xl">
                     <p>
                       Inspect the panel store while trying common, spatial, media, and live-data{' '}
-                      <code>TweakerItem</code> compositions.
+                      <code>PicodashItem</code> compositions.
                     </p>
                   </div>
                 </div>
@@ -421,7 +421,7 @@ function DemoExperience({
 
             <Tabs defaultSelectedKey="provider" className="grid gap-4">
               <TabsList className="grid w-full grid-cols-4 lg:w-fit">
-                <TabsTrigger id="provider">TweakerState</TabsTrigger>
+                <TabsTrigger id="provider">PicodashState</TabsTrigger>
                 <TabsTrigger id={scenePanelId}>Scene</TabsTrigger>
                 <TabsTrigger id={builtInItemsPanelId}>Built-in Items</TabsTrigger>
                 <TabsTrigger id={outputPanelId}>Custom Items</TabsTrigger>
@@ -476,7 +476,7 @@ function DemoExperience({
       )}
 
       {showStateLab ? (
-        <TweakerPanel
+        <PicodashPanel
           close
           store={scenePanelStore}
           theme={themes.scene}
@@ -487,8 +487,8 @@ function DemoExperience({
           className="top-4 right-4 lg:top-8 lg:right-120"
           onClose={recordPanelClose}
         >
-          <TweakerGroup id="scene-essentials" label="Essentials" pin="start">
-            <TweakerSlider
+          <PicodashGroup id="scene-essentials" label="Essentials" pin="start">
+            <PicodashSlider
               field="opacity"
               label={(state) => `Opacity (${stringFromMeta(state, 'unit', '%')})`}
               defaultValue={sceneDefaults.opacity}
@@ -505,7 +505,7 @@ function DemoExperience({
               status={(state) => (Number(state.values.opacity ?? 0) > 0.9 ? 'warning' : undefined)}
               formatOptions={{ style: 'percent' }}
             />
-            <TweakerSlider
+            <PicodashSlider
               field="exposure"
               label="Exposure"
               defaultValue={sceneDefaults.exposure}
@@ -517,16 +517,16 @@ function DemoExperience({
                 Math.abs(Number(state.values.exposure ?? 0)) > 1.5 ? 'alert' : undefined
               }
             />
-            <TweakerSwitch
+            <PicodashSwitch
               field="bloom"
               label="Bloom"
               defaultValue={sceneDefaults.bloom}
               states={(state) => (state.values.bloom ? bloomEnabledStates : bloomDisabledStates)}
             />
-          </TweakerGroup>
+          </PicodashGroup>
 
-          <TweakerGroup id="scene-rendering" label="Rendering" reorderable>
-            <TweakerSelect
+          <PicodashGroup id="scene-rendering" label="Rendering" reorderable>
+            <PicodashSelect
               field="quality"
               label="Quality"
               defaultValue={sceneDefaults.quality}
@@ -536,7 +536,7 @@ function DemoExperience({
                 { label: 'Final', value: 'final' },
               ]}
             />
-            <TweakerNumber
+            <PicodashNumber
               field="cameraHeight"
               label="Camera height"
               defaultValue={sceneDefaults.cameraHeight}
@@ -545,7 +545,7 @@ function DemoExperience({
               step={1}
               formatOptions={{ style: 'unit', unit: 'meter', unitDisplay: 'short' }}
             />
-            <TweakerSlider
+            <PicodashSlider
               field="shadowSoftness"
               label="Shadow softness"
               defaultValue={sceneDefaults.shadowSoftness}
@@ -555,7 +555,7 @@ function DemoExperience({
               marks={1}
               formatValue={(value) => value.toFixed(2)}
             />
-            <TweakerNumber
+            <PicodashNumber
               field="maxBounces"
               label="Max bounces"
               defaultValue={sceneDefaults.maxBounces}
@@ -563,12 +563,12 @@ function DemoExperience({
               max={16}
               step={1}
             />
-            <TweakerSwitch
+            <PicodashSwitch
               field="motionBlur"
               label="Motion blur"
               defaultValue={sceneDefaults.motionBlur}
             />
-            <TweakerSelect
+            <PicodashSelect
               field="textureQuality"
               label="Texture quality"
               defaultValue={sceneDefaults.textureQuality}
@@ -579,7 +579,7 @@ function DemoExperience({
                 { label: 'Ultra', value: 'ultra' },
               ]}
             />
-            <TweakerSlider
+            <PicodashSlider
               field="renderScale"
               label="Render scale"
               defaultValue={sceneDefaults.renderScale}
@@ -590,9 +590,9 @@ function DemoExperience({
               visible={(state) => state.values.quality !== 'draft'}
               formatValue={(value) => `${value.toFixed(2)}x`}
             />
-          </TweakerGroup>
+          </PicodashGroup>
 
-          <TweakerDisplay
+          <PicodashDisplay
             id="scene-summary"
             label="Summary"
             pin="end"
@@ -600,13 +600,13 @@ function DemoExperience({
               `${Math.round(numberFromValue(state.values.opacity, 0) * 100)}% opacity / ${stringFromValue(state.values.quality, 'balanced')}`
             }
           />
-        </TweakerPanel>
+        </PicodashPanel>
       ) : null}
 
       <BuiltInItemsPanel config={builtInExampleConfig} />
 
       {showStateLab ? (
-        <TweakerPanel
+        <PicodashPanel
           store={customItemPanelStore}
           theme={themes.custom}
           title="Custom Items"
@@ -615,16 +615,16 @@ function DemoExperience({
           width="23rem"
           className="top-136 right-4 w-92 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-auto lg:bottom-auto lg:left-8"
         >
-          <TweakerGroup id="custom-examples" label="App-local examples">
+          <PicodashGroup id="custom-examples" label="App-local examples">
             <ValidatedPresetNameItem />
             <MouseVelocitySparklineItem />
             <WaveformSpectrumItem />
-          </TweakerGroup>
-        </TweakerPanel>
+          </PicodashGroup>
+        </PicodashPanel>
       ) : null}
 
       {showStateLab && initiallyHiddenPanelMounted ? (
-        <TweakerPanel
+        <PicodashPanel
           close={{ behavior: 'deregister' }}
           id={initiallyHiddenPanelId}
           title="Initially Hidden"
@@ -636,8 +636,12 @@ function DemoExperience({
             setInitiallyHiddenPanelMounted(false)
           }}
         >
-          <TweakerDisplay id="hidden-panel-status" label="Status" value="Registered while hidden" />
-        </TweakerPanel>
+          <PicodashDisplay
+            id="hidden-panel-status"
+            label="Status"
+            value="Registered while hidden"
+          />
+        </PicodashPanel>
       ) : null}
     </>
   )
@@ -645,7 +649,7 @@ function DemoExperience({
 
 function ValidatedPresetNameItem() {
   return (
-    <TweakerItem<string>
+    <PicodashItem<string>
       contentLayout="block"
       defaultValue="Studio"
       description="This app-local item passes a Zod schema directly through the Standard Schema contract."
@@ -658,7 +662,7 @@ function ValidatedPresetNameItem() {
         <input
           aria-describedby={item.fieldState?.errors.length ? item.errorId : undefined}
           aria-invalid={Boolean(item.fieldState?.errors.length)}
-          className="border-input bg-tweaker-control text-foreground focus-visible:ring-ring col-span-full h-8 w-full rounded-md border px-2 text-sm outline-none focus-visible:ring-2"
+          className="border-input bg-picodash-control text-foreground focus-visible:ring-ring col-span-full h-8 w-full rounded-md border px-2 text-sm outline-none focus-visible:ring-2"
           data-validated-preset-name
           disabled={item.disabled}
           id={item.inputId}
@@ -671,7 +675,7 @@ function ValidatedPresetNameItem() {
           onChange={(event) => item.setInput(event.target.value)}
         />
       )}
-    </TweakerItem>
+    </PicodashItem>
   )
 }
 
@@ -706,7 +710,7 @@ function PanelControllerExample({
   controller,
   label,
 }: {
-  controller: TweakerPanelController | null
+  controller: PicodashPanelController | null
   label: string
 }) {
   const buttonClassName =
@@ -892,7 +896,7 @@ function KeyValue({ label, value }: { label: string; value: string }) {
   )
 }
 
-function panelSnapshotFromState(state: TweakerPanelState): PanelSnapshot {
+function panelSnapshotFromState(state: PicodashPanelState): PanelSnapshot {
   return {
     collapsedGroups: state.collapsedGroups,
     fields: state.fields,
@@ -946,20 +950,20 @@ function lastValue<T>(values: T[]) {
   return values.length > 0 ? values[values.length - 1] : undefined
 }
 
-function numberFromMeta(state: TweakerPanelState, key: string, fallback: number) {
+function numberFromMeta(state: PicodashPanelState, key: string, fallback: number) {
   const value = state.meta[key]
   return typeof value === 'number' ? value : fallback
 }
 
-function stringFromMeta(state: TweakerPanelState, key: string, fallback: string) {
+function stringFromMeta(state: PicodashPanelState, key: string, fallback: string) {
   return stringFromValue(state.meta[key], fallback)
 }
 
-function numberFromValue(value: TweakerValue | undefined, fallback: number) {
+function numberFromValue(value: PicodashValue | undefined, fallback: number) {
   return typeof value === 'number' ? value : fallback
 }
 
-function stringFromValue(value: TweakerValue | undefined, fallback: string) {
+function stringFromValue(value: PicodashValue | undefined, fallback: string) {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
     return String(value)
   }
@@ -967,14 +971,14 @@ function stringFromValue(value: TweakerValue | undefined, fallback: string) {
 }
 
 function marksFromMeta(
-  state: TweakerPanelState,
+  state: PicodashPanelState,
   key: string,
-  fallback: TweakerSliderMark[],
-): TweakerSliderMark[] {
+  fallback: PicodashSliderMark[],
+): PicodashSliderMark[] {
   const value = state.meta[key]
   if (!Array.isArray(value)) return fallback
 
   return value.length > 0 && value.every((mark) => typeof mark === 'number')
-    ? (value as TweakerSliderMark[])
+    ? (value as PicodashSliderMark[])
     : fallback
 }

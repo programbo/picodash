@@ -1,11 +1,11 @@
 ---
-name: tweaker
-description: Use the promoted Tweaker package with application-owned stores and composable panels.
+name: picodash
+description: Use the promoted Picodash package with application-owned stores and composable panels.
 ---
 
-# Tweaker Package Usage
+# Picodash Package Usage
 
-This workspace uses the promoted `tweaker` API only.
+This workspace uses the promoted `@picodash/panel` API only.
 
 The workspace website serves the interactive control gallery at `/` and the live store inspector at `/state-lab`.
 
@@ -13,16 +13,16 @@ The workspace website serves the interactive control gallery at `/` and the live
 
 ```tsx
 import {
-  createTweakerPanelStore,
-  TweakerItem,
-  TweakerPanel,
-  TweakerProvider,
-  useTweakerPanelStoreSelector,
-} from 'tweaker'
-import 'tweaker/style.css'
+  createPicodashPanelStore,
+  PicodashItem,
+  PicodashPanel,
+  PicodashProvider,
+  usePicodashPanelStoreSelector,
+} from '@picodash/panel'
+import '@picodash/panel/style.css'
 ```
 
-Use package-owned shadcn components through `tweaker/ui` rather than adding another generated copy
+Use package-owned shadcn components through `@picodash/panel/ui` rather than adding another generated copy
 to a consuming workspace. This surface uses React Aria prop and state conventions.
 
 ## Quick Start Pattern
@@ -30,9 +30,9 @@ to a consuming workspace. This surface uses React Aria prop and state convention
 1. Create a stable store once.
 
 ```ts
-import { createTweakerPanelStore } from 'tweaker'
+import { createPicodashPanelStore } from '@picodash/panel'
 
-export const settingsStore = createTweakerPanelStore({
+export const settingsStore = createPicodashPanelStore({
   panelId: 'settings',
   initialValues: {
     quality: 'balanced',
@@ -44,34 +44,39 @@ export const settingsStore = createTweakerPanelStore({
 
 2. Read values with selectors inside the component that consumes them.
 
-3. Render `TweakerProvider` and `TweakerPanel`.
+3. Render `PicodashProvider` and `PicodashPanel`.
 
 ```tsx
-import { TweakerPanel, TweakerProvider, TweakerSwitch, useTweakerPanelStoreSelector } from 'tweaker'
+import {
+  PicodashPanel,
+  PicodashProvider,
+  PicodashSwitch,
+  usePicodashPanelStoreSelector,
+} from '@picodash/panel'
 import { settingsStore } from './settings-store'
 
 export function SiteControls() {
-  const exposure = useTweakerPanelStoreSelector(settingsStore, (state) => {
+  const exposure = usePicodashPanelStoreSelector(settingsStore, (state) => {
     return typeof state.values.exposure === 'number' ? state.values.exposure : 1
   })
 
   return (
-    <TweakerProvider theme="system" persistLayout storageKey="my-site:tweaker-layout:v1">
+    <PicodashProvider theme="system" persistLayout storageKey="my-site:tweaker-layout:v1">
       <main style={{ opacity: exposure }}>App content</main>
 
-      <TweakerPanel store={settingsStore} title="Settings" defaultPlacement="top-right">
-        <TweakerSwitch field="showGrid" label="Show grid" defaultValue />
-      </TweakerPanel>
-    </TweakerProvider>
+      <PicodashPanel store={settingsStore} title="Settings" defaultPlacement="top-right">
+        <PicodashSwitch field="showGrid" label="Show grid" defaultValue />
+      </PicodashPanel>
+    </PicodashProvider>
   )
 }
 ```
 
 ## API Expectations
 
-- Use `createTweakerPanelStore` for application-owned state.
-- Use `TweakerPanel` with `store` for app-owned modes.
-- Use `useTweakerPanel(panelId)` beneath `TweakerProvider` for reactive visibility and imperative
+- Use `createPicodashPanelStore` for application-owned state.
+- Use `PicodashPanel` with `store` for app-owned modes.
+- Use `usePicodashPanel(panelId)` beneath `PicodashProvider` for reactive visibility and imperative
   `show`, `hide`, `toggle`, `setVisible`, show-and-raise `activate`, and `setPlacement` behavior.
   The controller's reactive `placement` reports floating, magnetic, or fixed state.
 - Use `defaultVisible={false}` for an initially hidden but registered panel; visibility is not
@@ -81,19 +86,19 @@ export function SiteControls() {
   optional observer and does not replace the default close behavior.
 - Use `setFieldValue` / `setFieldValues` for strict app writes.
 - Use `setFieldInput` for interactive editors that should retain transient drafts.
-- Use `TweakerItem`, `TweakerGroup`, and built-in items for custom compositions.
-- Use `tweaker/advanced` only when a task needs focused provider state through
-  `useTweakerProviderSelector`, imperative provider access through `useTweakerProviderStoreApi`, or
-  contextual panel access through `useTweakerPanelSelector` / `useTweakerPanelStoreApi`.
-- Use `tweaker/ui` for shared `aria-rhea` Button, Card, Tabs, overlay, and form primitives.
-- Do not use `useTweakerPanel(panelId)` to discover panel values. Panel data remains owned by the
-  store passed to `TweakerPanel`.
+- Use `PicodashItem`, `PicodashGroup`, and built-in items for custom compositions.
+- Use `@picodash/panel/advanced` only when a task needs focused provider state through
+  `usePicodashProviderSelector`, imperative provider access through `usePicodashProviderStoreApi`, or
+  contextual panel access through `usePicodashPanelSelector` / `usePicodashPanelStoreApi`.
+- Use `@picodash/panel/ui` for shared `aria-rhea` Button, Card, Tabs, overlay, and form primitives.
+- Do not use `usePicodashPanel(panelId)` to discover panel values. Panel data remains owned by the
+  store passed to `PicodashPanel`.
 - Preserve corner strings for legacy `defaultPlacement` usage. Use the placement object for new
   magnetic or fixed declarations, for example
   `defaultPlacement={{ mode: 'fixed', position: 'right' }}`. The magnetic edge type is
-  `TweakerPanelSnapPosition`; do not reintroduce the old dock-position name.
-- Prefer `TweakerProvider panelBoundary={mainRef}` when all panels share an application surface.
-  Use `TweakerPanel boundary={canvasRef}` only for a panel-specific surface, and
+  `PicodashPanelSnapPosition`; do not reintroduce the old dock-position name.
+- Prefer `PicodashProvider panelBoundary={mainRef}` when all panels share an application surface.
+  Use `PicodashPanel boundary={canvasRef}` only for a panel-specific surface, and
   `boundary={null}` to explicitly restore viewport bounds. Accept Elements and React refs, not CSS
   selector strings.
 - Keep `portalContainer` and boundaries conceptually separate: the portal chooses render
@@ -101,7 +106,7 @@ export function SiteControls() {
   geometry.
 - Fixed `left` and `right` placements fill the effective boundary height. Start/end pinned lanes
   remain visible while only the auto lane scrolls. Every root scrollport receives the bundled
-  `scroll-fade` utility from `tweaker/style.css`.
+  `scroll-fade` utility from `@picodash/panel/style.css`.
 
 ## Validation and State
 
@@ -113,23 +118,23 @@ export function SiteControls() {
 
 ## Framework and Accessibility Notes
 
-- In Next.js App Router projects, add `'use client'` to modules that render Tweaker components.
+- In Next.js App Router projects, add `'use client'` to modules that render Picodash components.
 - Reorder with Space/Enter, Arrow Up/Down, and Escape as well as pointer dragging.
 
 ## Migration Note
 
-This repository is on the promoted API. Legacy schema-driven `useTweaker` and old persistence are not migrated.
+This repository is on the promoted API. Legacy schema-driven registration and old persistence are not migrated.
 
 ## Local Development
 
 - `bun install`
 - `bun run dev`
 - `bun run website`
-- `bun run --filter tweaker check`
-- `bun run --filter tweaker test`
+- `bun run --filter @picodash/panel check`
+- `bun run --filter @picodash/panel test`
 - `bun run --filter website test:e2e`
 - `bun audit --audit-level=high`
-- `bun run --cwd packages/tweaker release:check`
+- `bun run --cwd packages/panel release:check`
 - `bun run ready`
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`.

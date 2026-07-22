@@ -134,73 +134,73 @@
   --sidebar-ring: oklch(0.56 0.021 213.5);
 }
 
-:where([data-tweaker-theme='light']) {
+:where([data-picodash-theme='light']) {
   color-scheme: light;
-  --tweaker-color-canvas: oklch(0.963 0.002 197.1);
-  --tweaker-color-surface: oklch(1 0 0);
-  --tweaker-color-surface-raised: oklch(0.987 0.002 197.1);
-  --tweaker-color-surface-muted: oklch(0.925 0.005 214.3);
-  --tweaker-color-text: oklch(0.218 0.008 223.9);
-  --tweaker-color-text-strong: oklch(0.148 0.004 228.8);
-  --tweaker-color-text-muted: oklch(0.473 0.014 214.4);
-  --tweaker-color-border: oklch(0.148 0.004 228.8 / 14%);
-  --tweaker-color-control: oklch(0.148 0.004 228.8 / 20%);
-  --tweaker-color-focus: oklch(0.56 0.12 221);
-  --tweaker-color-accent: oklch(0.218 0.008 223.9);
-  --tweaker-color-accent-text: oklch(0.987 0.002 197.1);
-  --tweaker-color-success: oklch(0.49 0.14 163.223);
-  --tweaker-color-info: oklch(0.5 0.15 232.661);
-  --tweaker-color-warning: oklch(0.58 0.16 84.429);
-  --tweaker-color-alert: oklch(0.55 0.17 55.934);
-  --tweaker-color-danger: oklch(0.55 0.19 22.216);
-  --tweaker-color-overlay: oklch(0.148 0.004 228.8 / 55%);
-  --tweaker-shadow-panel: 0 25px 50px -12px rgb(15 23 42 / 0.22);
-  --tweaker-shadow-viewer: 0 25px 50px -12px rgb(15 23 42 / 0.35);
-  --tweaker-shadow-inner: inset 0 2px 4px rgb(15 23 42 / 0.12);
+  --picodash-color-canvas: oklch(0.963 0.002 197.1);
+  --picodash-color-surface: oklch(1 0 0);
+  --picodash-color-surface-raised: oklch(0.987 0.002 197.1);
+  --picodash-color-surface-muted: oklch(0.925 0.005 214.3);
+  --picodash-color-text: oklch(0.218 0.008 223.9);
+  --picodash-color-text-strong: oklch(0.148 0.004 228.8);
+  --picodash-color-text-muted: oklch(0.473 0.014 214.4);
+  --picodash-color-border: oklch(0.148 0.004 228.8 / 14%);
+  --picodash-color-control: oklch(0.148 0.004 228.8 / 20%);
+  --picodash-color-focus: oklch(0.56 0.12 221);
+  --picodash-color-accent: oklch(0.218 0.008 223.9);
+  --picodash-color-accent-text: oklch(0.987 0.002 197.1);
+  --picodash-color-success: oklch(0.49 0.14 163.223);
+  --picodash-color-info: oklch(0.5 0.15 232.661);
+  --picodash-color-warning: oklch(0.58 0.16 84.429);
+  --picodash-color-alert: oklch(0.55 0.17 55.934);
+  --picodash-color-danger: oklch(0.55 0.19 22.216);
+  --picodash-color-overlay: oklch(0.148 0.004 228.8 / 55%);
+  --picodash-shadow-panel: 0 25px 50px -12px rgb(15 23 42 / 0.22);
+  --picodash-shadow-viewer: 0 25px 50px -12px rgb(15 23 42 / 0.35);
+  --picodash-shadow-inner: inset 0 2px 4px rgb(15 23 42 / 0.12);
 }
 
-:where([data-tweaker-theme='ocean']) {
-  --tweaker-color-canvas: rgb(2 18 28);
-  --tweaker-color-surface: rgb(7 38 52);
-  --tweaker-color-surface-raised: rgb(11 55 72);
-  --tweaker-color-surface-muted: rgb(17 78 96);
-  --tweaker-color-text: rgb(220 248 255);
-  --tweaker-color-text-strong: rgb(255 255 255);
-  --tweaker-color-text-muted: rgb(139 195 207);
-  --tweaker-color-border: rgb(75 138 151);
-  --tweaker-color-control: rgb(91 158 171);
-  --tweaker-color-focus: rgb(89 214 239);
-  --tweaker-color-accent: rgb(61 214 230);
-  --tweaker-color-accent-text: rgb(2 18 28);
-  --tweaker-color-success: rgb(75 255 185);
-  --tweaker-color-info: rgb(112 200 255);
-  --tweaker-color-warning: rgb(255 214 102);
-  --tweaker-color-alert: rgb(255 183 77);
-  --tweaker-color-danger: rgb(255 112 112);
-  --tweaker-color-overlay: rgb(0 36 60 / 85%);
-  --tweaker-radius-surface: 8px;
-  --tweaker-radius-control: 6px;
+:where([data-picodash-theme='ocean']) {
+  --picodash-color-canvas: rgb(2 18 28);
+  --picodash-color-surface: rgb(7 38 52);
+  --picodash-color-surface-raised: rgb(11 55 72);
+  --picodash-color-surface-muted: rgb(17 78 96);
+  --picodash-color-text: rgb(220 248 255);
+  --picodash-color-text-strong: rgb(255 255 255);
+  --picodash-color-text-muted: rgb(139 195 207);
+  --picodash-color-border: rgb(75 138 151);
+  --picodash-color-control: rgb(91 158 171);
+  --picodash-color-focus: rgb(89 214 239);
+  --picodash-color-accent: rgb(61 214 230);
+  --picodash-color-accent-text: rgb(2 18 28);
+  --picodash-color-success: rgb(75 255 185);
+  --picodash-color-info: rgb(112 200 255);
+  --picodash-color-warning: rgb(255 214 102);
+  --picodash-color-alert: rgb(255 183 77);
+  --picodash-color-danger: rgb(255 112 112);
+  --picodash-color-overlay: rgb(0 36 60 / 85%);
+  --picodash-radius-surface: 8px;
+  --picodash-radius-control: 6px;
 }
 
-:where([data-tweaker-theme='plum']) {
-  --tweaker-color-canvas: rgb(29 9 34);
-  --tweaker-color-surface: rgb(54 19 62);
-  --tweaker-color-surface-raised: rgb(75 27 85);
-  --tweaker-color-surface-muted: rgb(101 43 112);
-  --tweaker-color-text: rgb(253 236 255);
-  --tweaker-color-text-strong: rgb(255 255 255);
-  --tweaker-color-text-muted: rgb(207 156 213);
-  --tweaker-color-border: rgb(139 73 148);
-  --tweaker-color-control: rgb(157 91 166);
-  --tweaker-color-focus: rgb(238 139 247);
-  --tweaker-color-accent: rgb(241 159 248);
-  --tweaker-color-accent-text: rgb(29 9 34);
-  --tweaker-color-success: rgb(128 230 168);
-  --tweaker-color-info: rgb(131 199 253);
-  --tweaker-color-warning: rgb(248 205 118);
-  --tweaker-color-alert: rgb(255 196 106);
-  --tweaker-color-danger: rgb(255 126 110);
-  --tweaker-color-overlay: rgb(38 12 48 / 88%);
-  --tweaker-radius-surface: 12px;
-  --tweaker-radius-control: 9px;
+:where([data-picodash-theme='plum']) {
+  --picodash-color-canvas: rgb(29 9 34);
+  --picodash-color-surface: rgb(54 19 62);
+  --picodash-color-surface-raised: rgb(75 27 85);
+  --picodash-color-surface-muted: rgb(101 43 112);
+  --picodash-color-text: rgb(253 236 255);
+  --picodash-color-text-strong: rgb(255 255 255);
+  --picodash-color-text-muted: rgb(207 156 213);
+  --picodash-color-border: rgb(139 73 148);
+  --picodash-color-control: rgb(157 91 166);
+  --picodash-color-focus: rgb(238 139 247);
+  --picodash-color-accent: rgb(241 159 248);
+  --picodash-color-accent-text: rgb(29 9 34);
+  --picodash-color-success: rgb(128 230 168);
+  --picodash-color-info: rgb(131 199 253);
+  --picodash-color-warning: rgb(248 205 118);
+  --picodash-color-alert: rgb(255 196 106);
+  --picodash-color-danger: rgb(255 126 110);
+  --picodash-color-overlay: rgb(38 12 48 / 88%);
+  --picodash-radius-surface: 12px;
+  --picodash-radius-control: 9px;
 }

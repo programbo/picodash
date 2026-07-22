@@ -1,8 +1,8 @@
-# Contributing to Tweaker
+# Contributing to Picodash
 
 ## Public-preview status
 
-Tweaker is currently a public preview. Pull requests are temporarily disabled
+Picodash is currently a public preview. Pull requests are temporarily disabled
 while the API, documentation, and maintenance workflow settle. Please do not
 prepare or send a pull request yet; it will not be reviewed or accepted.
 

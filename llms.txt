@@ -1,26 +1,26 @@
-Tweaker
+Picodash
 
-Active graph: packages/tweaker + apps/website.
+Active graph: packages/panel + apps/website.
 
 Project status: public preview; Issues are available for feedback, and pull requests are currently disabled.
 
 Package import surface:
-- tweaker
-- tweaker/advanced
-- tweaker/ui
-- tweaker/style.css
+- picodash
+- @picodash/panel/advanced
+- @picodash/panel/ui
+- @picodash/panel/style.css
 
 What it provides:
-- application-owned panel stores via createTweakerPanelStore
-- TweakerProvider, TweakerPanel, TweakerItem, built-in inputs and charts
-- centralized shadcn aria-rhea primitives via tweaker/ui
-- provider-scoped panel visibility, activation, reactive placement, and runtime setPlacement via useTweakerPanel
-- floating, magnetic, and fixed panel placement; magnetic edges use TweakerPanelSnapPosition
+- application-owned panel stores via createPicodashPanelStore
+- PicodashProvider, PicodashPanel, PicodashItem, built-in inputs and charts
+- centralized shadcn aria-rhea primitives via @picodash/panel/ui
+- provider-scoped panel visibility, activation, reactive placement, and runtime setPlacement via usePicodashPanel
+- floating, magnetic, and fixed panel placement; magnetic edges use PicodashPanelSnapPosition
 - viewport-default geometry with provider panelBoundary and per-panel boundary Element/ref overrides
 - collapsible fixed sidebars with pinned start/end lanes and a scroll-faded auto lane
-- explicit application-owned reads via useTweakerPanelStoreSelector(store, selector)
-- advanced provider access via useTweakerProviderSelector and useTweakerProviderStoreApi
-- contextual advanced panel access via useTweakerPanelSelector and useTweakerPanelStoreApi
+- explicit application-owned reads via usePicodashPanelStoreSelector(store, selector)
+- advanced provider access via usePicodashProviderSelector and usePicodashProviderStoreApi
+- contextual advanced panel access via usePicodashPanelSelector and usePicodashPanelStoreApi
 - optional panel close buttons with hide or deregister behavior
 - strict programmatic writes, sync validation, JSON-compatible values
 - pointer and keyboard item reordering with same-band constraints
@@ -35,7 +35,7 @@ Workspace pages:
 - /state-lab
 
 Important migration:
-- old schema-driven `useTweaker` and old persistence are retired; map legacy `panel` specifiers to `tweaker` imports.
+- The old schema-driven registration API and old persistence are retired; map legacy `panel` specifiers to `@picodash/panel` imports.
 - no compatibility facade is provided.
 - Gearmo is a known breaking consumer requiring separate migration planning.
 
@@ -47,7 +47,7 @@ Ports:
 
 Docs to keep aligned:
 - README.md
-- packages/tweaker/README.md
+- packages/panel/README.md
 - CONTRIBUTING.md
 - SECURITY.md
 - RELEASING.md
@@ -57,6 +57,6 @@ Docs to keep aligned:
 
 Verification:
 - bun audit --audit-level=high
-- bun run --cwd packages/tweaker release:check
+- bun run --cwd packages/panel release:check
 - bun run ready
 - GitHub CI runs parallel quality and E2E jobs for pull requests and main pushes

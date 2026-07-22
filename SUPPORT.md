@@ -1,6 +1,6 @@
 # Support
 
-Tweaker is a public preview and does not currently provide a guaranteed
+Picodash is a public preview and does not currently provide a guaranteed
 support response time.
 
 - Open an issue for a reproducible bug.
