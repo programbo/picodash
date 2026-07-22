@@ -37,7 +37,7 @@ The detailed findings in §3 remain the original audit record. Their recommendat
 | P4  | P1  | Stability       | Async sparkline errors silently dropped                                       | `packages/panel/src/inputs/sparkline.tsx:342, 349, 357`                                                                                    |
 | P5  | P1  | Maintainability | No source maps from `vp pack`                                                 | `packages/panel/vite.config.ts:5-17`                                                                                                       |
 | P6  | P1  | Maintainability | No coverage threshold / bundle-size budget / license check                    | `package.json:51`                                                                                                                          |
-| P7  | P1  | Maintainability | Stale `packages/panel/` directory                                             | `packages/panel/`                                                                                                                          |
+| P7  | P1  | Maintainability | Retired `packages/tweaker/` directory                                         | `packages/tweaker/`                                                                                                                        |
 | P8  | P1  | UX / A11y       | No keyboard-accessible item reorder                                           | `packages/panel/src/picodash-control.tsx:349-361`                                                                                          |
 | P9  | P1  | UX / A11y       | Chromium-only E2E; no axe audit, no visual regression                         | `apps/website/playwright.config.ts:19-24`                                                                                                  |
 | P10 | P1  | Maintainability | Tailwind sort-function mismatch                                               | `vite.config.ts:11`, `packages/panel/vite.config.ts:28`                                                                                    |
@@ -499,19 +499,19 @@ This means contributors using different package managers (or `vp install` on dif
 
 ---
 
-#### P7 — Stale `packages/panel/` directory _(P1)_
+#### P7 — Retired `packages/tweaker/` directory _(P1)_
 
-**Location:** `packages/panel/`
+**Location:** `packages/tweaker/`
 
 ```
-packages/panel/
+packages/tweaker/
 ├── dist/          ← gitignored build artifacts
 └── node_modules/  ← gitignored deps
 ```
 
-**Impact:** Zero source files. `git ls-files packages/panel` returns empty — nothing is tracked. `AGENTS.md` explicitly says "Do not document `packages/panel` or `apps/demo` as active workspace products," confirming retirement. The directory exists only as on-disk cruft from a previous package layout. Not harmful but confusing for new contributors and tools that scan `packages/*`.
+**Impact:** Zero source files. `git ls-files packages/tweaker` returns empty — nothing is tracked. `AGENTS.md` explicitly says "Do not document `packages/tweaker` or `apps/demo` as active workspace products," confirming retirement. The directory exists only as on-disk cruft from a previous package layout. Not harmful but confusing for new contributors and tools that scan `packages/*`.
 
-**Recommendation:** `rm -rf packages/panel`. Optionally add a note to `AGENTS.md` change log explaining the retirement.
+**Recommendation:** `rm -rf packages/tweaker`. Optionally add a note to `AGENTS.md` change log explaining the retirement.
 
 ---
 
@@ -836,7 +836,7 @@ These items are intentionally not part of the completed remediation. They should
 | P3       | Keep malformed persistence reads silent and do not add a new provider callback API solely for this review.                                                      |
 | S3       | Dedicated CodeQL, Snyk, OSV, SBOM, and license-scanning services were not added. Reassess them against the current CI/audit baseline and repository policy.     |
 | P6       | Do not impose arbitrary 80% coverage, bundle-size, or license thresholds before establishing baselines.                                                         |
-| P7       | Treat `packages/panel/` as untracked local debris in the main checkout, not as a repository remediation.                                                        |
+| P7       | Treat `packages/tweaker/` as untracked local debris in the main checkout, not as a repository remediation.                                                      |
 | P9       | Additional browser, axe, and visual-regression coverage remains optional follow-up work after the existing Chromium baseline is stable.                         |
 | P10      | Keep subtree-specific Tailwind sort functions unless an actual formatting conflict demonstrates a need to combine them.                                         |
 | P11      | Do not add HSTS preload or `includeSubDomains` until the production custom-domain policy is confirmed.                                                          |
