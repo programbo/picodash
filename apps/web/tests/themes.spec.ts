@@ -20,37 +20,62 @@ test('switches and persists the site panel theme from the Themes tab', async ({ 
   await expect(provider).toHaveAttribute('data-picodash-theme', 'ocean')
   await expect(page.locator('[data-theme-code]')).toContainText("data-picodash-theme='ocean'")
 
-  await page.locator('[data-theme-choice="cyber"]').click()
-  await expect(provider).toHaveAttribute('data-picodash-theme', 'cyber')
-  await expect(page.locator('[data-theme-code]')).toContainText("data-picodash-theme='cyber'")
-  await expect(page.locator('[data-theme-code]')).not.toContainText('--cyber')
+  await page.locator('[data-theme-choice="tron"]').click()
+  await expect(provider).toHaveAttribute('data-picodash-theme', 'tron')
+  await expect(page.locator('[data-theme-code]')).toContainText("data-picodash-theme='tron'")
+  await expect(page.locator('[data-theme-code]')).not.toContainText('--tron')
   await expect(page.locator('[data-theme-code]')).not.toContainText('neon')
-  const cyberPanel = page.locator('[data-picodash-panel]')
+  const tronPanel = page.locator('[data-picodash-panel]')
   expect(
-    await cyberPanel.evaluate((element) =>
+    await tronPanel.evaluate((element) =>
       getComputedStyle(element).getPropertyValue('--picodash-color-surface').trim(),
     ),
   ).toMatch(/lab\(/)
   expect(
-    await cyberPanel.evaluate((element) =>
+    await tronPanel.evaluate((element) =>
       getComputedStyle(element).getPropertyValue('--picodash-color-text').trim(),
     ),
   ).toMatch(/lab\(/)
   expect(
-    await cyberPanel.evaluate((element) =>
+    await tronPanel.evaluate((element) =>
       getComputedStyle(element).getPropertyValue('--picodash-color-border').trim(),
     ),
   ).toMatch(/lab\(/)
   expect(
-    await cyberPanel.evaluate((element) =>
+    await tronPanel.evaluate((element) =>
       getComputedStyle(element).getPropertyValue('--picodash-theme-border-shadow'),
     ),
+  ).toContain('lab(')
+  expect(
+    await tronPanel.evaluate((element) => getComputedStyle(element).boxShadow),
+  ).toContain('lab(')
+  for (const selector of [
+    "[data-item-id='text'] [data-slot='input']",
+    "[data-item-id='multilineText'] [data-slot='textarea']",
+    "[data-item-id='select'] [data-slot='select-trigger']",
+    "[id='xyPad:input:pad']",
+    "[data-item-id='previewAsset'] .border-picodash-control",
+    '[data-picodash-chart]',
+  ]) {
+    expect(
+      await page.locator(selector).evaluate((element) => getComputedStyle(element).boxShadow),
+    ).toContain('lab(')
+  }
+  expect(
+    await page
+      .locator("[data-item-id='slider'] [data-slot='slider-thumb']")
+      .evaluate((element) => getComputedStyle(element, '::before').boxShadow),
   ).toContain('lab(')
   expect(
     await page
       .locator('[data-picodash-panel] h2')
       .evaluate((element) => getComputedStyle(element).textShadow),
   ).not.toBe('none')
+  expect(
+    await page
+      .locator('[id="text:label"]')
+      .evaluate((element) => getComputedStyle(element).textShadow),
+  ).toBe('none')
   expect(
     await page
       .locator('[id="sparkline:label"]')
@@ -79,8 +104,21 @@ test('switches and persists the site panel theme from the Themes tab', async ({ 
   ).toBe('none')
 
   await page.reload()
-  await expect(provider).toHaveAttribute('data-picodash-theme', 'cyber')
-  await expect(page.locator('[data-theme-choice="cyber"]')).toHaveAttribute('aria-current', 'page')
+  await expect(provider).toHaveAttribute('data-picodash-theme', 'tron')
+  await expect(page.locator('[data-theme-choice="tron"]')).toHaveAttribute('aria-current', 'page')
+})
+
+test('migrates the persisted Cyber example to Tron', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('picodash-demo:provider-theme:v1', 'cyber')
+  })
+  await page.goto('/themes')
+
+  await expect(page.locator('[data-picodash-provider-content]')).toHaveAttribute(
+    'data-picodash-theme',
+    'tron',
+  )
+  await expect(page.locator('[data-theme-choice="tron"]')).toHaveAttribute('aria-current', 'page')
 })
 
 test('keeps System swatches tied to the system color scheme', async ({ page }) => {

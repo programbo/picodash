@@ -64,7 +64,7 @@ export function DemoProvider({
     if (initialThemes.provider !== undefined) return
 
     try {
-      const persistedTheme = window.localStorage.getItem(providerThemeStorageKey)
+      const persistedTheme = normalizeDemoTheme(window.localStorage.getItem(providerThemeStorageKey))
       if (!persistedTheme) return
 
       setThemeOverrides((current) =>
@@ -178,5 +178,10 @@ function mergeThemes(routeThemes: DemoThemes, overrides: DemoThemeOverrides): De
 }
 
 function themeValue(key: keyof DemoThemes, routeThemes: DemoThemes, overrides: DemoThemeOverrides) {
-  return Object.hasOwn(overrides, key) ? (overrides[key] ?? undefined) : routeThemes[key]
+  const theme = Object.hasOwn(overrides, key) ? (overrides[key] ?? undefined) : routeThemes[key]
+  return normalizeDemoTheme(theme)
+}
+
+function normalizeDemoTheme(theme: string | null | undefined) {
+  return theme === 'cyber' ? 'tron' : (theme ?? undefined)
 }

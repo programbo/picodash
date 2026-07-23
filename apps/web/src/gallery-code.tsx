@@ -982,7 +982,7 @@ export function GalleryCode() {
                 <InlineSelect
                   ariaLabel="Provider theme"
                   value={providerTheme}
-                  values={['dark', 'light', 'ocean', 'plum', 'cyber', 'contrast']}
+                  values={['dark', 'light', 'ocean', 'plum', 'tron', 'contrast']}
                   onChange={onProviderThemeChange}
                 />
                 <Punctuation>&quot;</Punctuation>

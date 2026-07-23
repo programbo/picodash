@@ -291,7 +291,7 @@ function App() {
 }
 ```
 
-The `ocean`, `plum`, `cyber`, and `contrast` recipes used by the interactive gallery remain demo-only examples.
+The `ocean`, `plum`, `tron`, and `contrast` recipes used by the interactive gallery remain demo-only examples.
 
 ## Theme token contract
 
