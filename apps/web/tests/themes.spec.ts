@@ -49,6 +49,15 @@ test('switches and persists the site panel theme from the Themes tab', async ({ 
   expect(
     await tronPanel.evaluate((element) => getComputedStyle(element).boxShadow),
   ).toContain('lab(')
+  await page.locator("[data-item-id='select'] [data-slot='select-trigger']").click()
+  const tronSelect = page.locator("[data-slot='select-content'][data-picodash-theme='tron']")
+  await expect(tronSelect).toBeVisible()
+  expect(
+    await tronSelect.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--picodash-color-surface'),
+    ),
+  ).toMatch(/lab\(/)
+  await page.keyboard.press('Escape')
   for (const selector of [
     "[data-item-id='text'] [data-slot='input']",
     "[data-item-id='multilineText'] [data-slot='textarea']",
@@ -183,6 +192,14 @@ test('renders the high-contrast example on the panel only', async ({ page }) => 
   expect(
     await panel.locator('h2').evaluate((element) => getComputedStyle(element).textShadow),
   ).not.toBe('none')
+  await page.locator("[data-item-id='select'] [data-slot='select-trigger']").click()
+  const contrastSelect = page.locator("[data-slot='select-content'][data-picodash-theme='contrast']")
+  await expect(contrastSelect).toBeVisible()
+  expect(
+    await contrastSelect.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--picodash-color-text'),
+    ),
+  ).toMatch(/rgb\(0 0 0\)/)
   expect(
     await page
       .locator('[data-theme-guide]')

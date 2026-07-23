@@ -150,7 +150,10 @@ const themeDefinitions: readonly ThemeDefinition[] = [
     family: 'custom',
     id: 'tron',
     label: 'Tron',
-    source: `:where([data-picodash-panel][data-picodash-theme='tron']) {
+    source: `:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) {
   color-scheme: dark;
   --picodash-theme-font-family: 'Avenir Next', Avenir, 'Century Gothic', Futura, ui-sans-serif, sans-serif;
   --picodash-theme-data-font-family: 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', ui-monospace, monospace;
@@ -187,7 +190,10 @@ const themeDefinitions: readonly ThemeDefinition[] = [
   --picodash-theme-heading-shadow: 0 0 0.5rem oklch(0.82 0.17 201 / 42%);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) :is(h1, h2, h3, [data-picodash-theme-text]) {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) :is(h1, h2, h3, [data-picodash-theme-text]) {
   font-family: var(--picodash-theme-font-family);
   font-weight: 600;
   letter-spacing: 0.11em;
@@ -201,61 +207,103 @@ const themeDefinitions: readonly ThemeDefinition[] = [
   box-shadow: var(--picodash-shadow-panel);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) .border-picodash-control:not(input):not(textarea):not(button) {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) .border-picodash-control:not(input):not(textarea):not(button) {
   box-shadow: var(--picodash-theme-control-shadow);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) :is(input.border-picodash-control, textarea.border-picodash-control, button[data-slot='select-trigger']) {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) :is(input.border-picodash-control, textarea.border-picodash-control, button[data-slot='select-trigger']) {
   box-shadow: var(--picodash-theme-underline-shadow);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) [data-slot='slider-thumb']::before {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) [data-slot='slider-thumb']::before {
   box-shadow: var(--picodash-theme-active-shadow), var(--picodash-shadow-sm);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) [data-slot='slider-thumb'] {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) [data-slot='slider-thumb'] {
   box-shadow: none;
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) :is([data-slot='switch'][data-selected], [data-slot='toggle-group-item'][data-selected], [data-interactive-tabs] [data-selected]) {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) :is([data-slot='switch'][data-selected], [data-slot='toggle-group-item'][data-selected], [data-interactive-tabs] [data-selected]) {
   box-shadow: var(--picodash-theme-active-shadow);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) [id$=':pad'] > span {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) [id$=':pad'] > span {
   box-shadow: var(--picodash-theme-active-shadow);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) input[type='range']::-webkit-slider-thumb {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) input[type='range']::-webkit-slider-thumb {
   box-shadow: var(--picodash-theme-active-shadow);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) input[type='range']::-moz-range-thumb {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) input[type='range']::-moz-range-thumb {
   box-shadow: var(--picodash-theme-active-shadow);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) [data-item-id] {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) [data-item-id] {
   text-shadow: none;
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) label {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) label {
   overflow: visible;
   text-overflow: clip;
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) [data-item-id='segmented'] [data-slot='toggle-group'] {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) [data-item-id='segmented'] [data-slot='toggle-group'] {
   overflow: visible;
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) .font-mono {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) .font-mono {
   font-family: var(--picodash-theme-data-font-family);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) [data-interactive-tabs] {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) [data-interactive-tabs] {
   border-color: oklch(0.82 0.17 201 / 30%);
   box-shadow: var(--picodash-theme-control-shadow);
 }
 
-:where([data-picodash-panel][data-picodash-theme='tron']) :is(.recharts-cartesian-axis-tick-value, .recharts-polar-angle-axis-tick-value, .recharts-polar-radius-axis-tick-value) {
+:where(
+  [data-picodash-panel][data-picodash-theme='tron'],
+  [data-picodash-container] [data-picodash-theme='tron']
+) :is(.recharts-cartesian-axis-tick-value, .recharts-polar-angle-axis-tick-value, .recharts-polar-radius-axis-tick-value) {
   fill: var(--picodash-color-text-muted);
 }`,
   },
@@ -265,7 +313,8 @@ const themeDefinitions: readonly ThemeDefinition[] = [
     label: 'Contrast',
     source: `:where(
   [data-picodash-panel][data-picodash-theme='contrast'],
-  [data-picodash-panel][data-picodash-theme='contrast'] [data-picodash-theme='contrast']
+  [data-picodash-panel][data-picodash-theme='contrast'] [data-picodash-theme='contrast'],
+  [data-picodash-container] [data-picodash-theme='contrast']
 ) {
   color-scheme: light;
   --picodash-theme-font-family: 'Avenir Next', Avenir, 'Trebuchet MS', sans-serif;
@@ -298,28 +347,43 @@ const themeDefinitions: readonly ThemeDefinition[] = [
   --picodash-theme-heading-shadow: 0px 0px 0 rgb(0 0 0 / 28%);
 }
 
-:where([data-picodash-panel][data-picodash-theme='contrast']) :is(h1, h2, h3, [data-picodash-theme-text]) {
+:where(
+  [data-picodash-panel][data-picodash-theme='contrast'],
+  [data-picodash-container] [data-picodash-theme='contrast']
+) :is(h1, h2, h3, [data-picodash-theme-text]) {
   font-family: var(--picodash-theme-font-family);
   font-weight: 900;
   letter-spacing: -0.02em;
   text-shadow: var(--picodash-theme-heading-shadow);
 }
 
-:where([data-picodash-panel][data-picodash-theme='contrast']) :is(.text-picodash-text, .text-picodash-strong) {
+:where(
+  [data-picodash-panel][data-picodash-theme='contrast'],
+  [data-picodash-container] [data-picodash-theme='contrast']
+) :is(.text-picodash-text, .text-picodash-strong) {
   font-weight: 700;
   text-shadow: var(--picodash-theme-text-shadow);
 }
 
-:where([data-picodash-panel][data-picodash-theme='contrast']) .font-mono {
+:where(
+  [data-picodash-panel][data-picodash-theme='contrast'],
+  [data-picodash-container] [data-picodash-theme='contrast']
+) .font-mono {
   font-family: var(--picodash-theme-font-family);
   font-weight: 700;
 }
 
-:where([data-picodash-panel][data-picodash-theme='contrast']) .border-picodash-border {
+:where(
+  [data-picodash-panel][data-picodash-theme='contrast'],
+  [data-picodash-container] [data-picodash-theme='contrast']
+) .border-picodash-border {
   box-shadow: var(--picodash-theme-border-shadow);
 }
 
-:where([data-picodash-panel][data-picodash-theme='contrast']) [data-interactive-tabs] {
+:where(
+  [data-picodash-panel][data-picodash-theme='contrast'],
+  [data-picodash-container] [data-picodash-theme='contrast']
+) [data-interactive-tabs] {
   border-color: rgb(0 0 0);
   box-shadow: var(--picodash-theme-border-shadow);
 }`,
