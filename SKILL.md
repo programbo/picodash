@@ -125,16 +125,37 @@ export function SiteControls() {
 
 This repository is on the promoted API. Legacy schema-driven registration and old persistence are not migrated.
 
+## Workspace App Surfaces
+
+- `apps/web` (Next.js): canonical route-based showcase app, started with `bun run web`.
+- `apps/website` (Vite): legacy showcase app, started with `bun run website`.
+
+`apps/web` route topology:
+
+- `/`, `/gallery` (compatibility redirect), `/store`, `/usage`, `/more-examples`
+- `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items`
+- `/panel-geometry-lab` and not-found fallback.
+
 ## Local Development
 
 - `bun install`
 - `bun run dev`
 - `bun run website`
+- `bun run web`
 - `bun run --filter @picodash/panel check`
 - `bun run --filter @picodash/panel test`
 - `bun run --filter website test:e2e`
+- `bun run --filter @picodash/web check`
+- `bun run --filter @picodash/web test:e2e`
 - `bun audit --audit-level=high`
 - `bun run --cwd packages/panel release:check`
 - `bun run ready`
+
+Focused validation:
+
+- `WEBSITE_PORT=6035 bun run web`
+- `WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e`
+- `WEBSITE_PORT=6035 bun run website`
+- `WEBSITE_PORT=6035 bun run --filter website test:e2e`
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`.

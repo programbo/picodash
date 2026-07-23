@@ -1,6 +1,6 @@
 Picodash
 
-Active graph: packages/panel + apps/website.
+Active graph: packages/panel + apps/web + apps/website.
 
 Project status: public preview; Issues are available for feedback, and pull requests are currently disabled.
 
@@ -30,9 +30,14 @@ What it provides:
 - import/export and repair flows
 
 Workspace pages:
-- / (interactive gallery)
-- /gallery (compatibility alias)
-- /state-lab
+- /, /gallery (compatibility redirect), /store, /usage, /more-examples
+- /state-lab/provider, /state-lab/scene, /state-lab/built-in-items, /state-lab/custom-items
+- /panel-geometry-lab
+- /state-lab (legacy canonical alias in path-mapped source)
+
+App surface mapping:
+- apps/web: Next.js route-based source app
+- apps/website: legacy Vite source app with matching route behavior
 
 Important migration:
 - The old schema-driven registration API and old persistence are retired; map legacy `panel` specifiers to `@picodash/panel` imports.
@@ -59,4 +64,8 @@ Verification:
 - bun audit --audit-level=high
 - bun run --cwd packages/panel release:check
 - bun run ready
+- bun run web
+- bun run --filter @picodash/web check
+- bun run --filter @picodash/web test:e2e
+- bun run website
 - GitHub CI runs parallel quality and E2E jobs for pull requests and main pushes

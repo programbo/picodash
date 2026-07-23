@@ -32,18 +32,9 @@
     "#lib/*": "./src/lib/*.ts"
   },
   "exports": {
-    ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
-    },
-    "./advanced": {
-      "types": "./dist/advanced.d.mts",
-      "import": "./dist/advanced.mjs"
-    },
-    "./ui": {
-      "types": "./dist/ui.d.mts",
-      "import": "./dist/ui.mjs"
-    },
+    ".": "./dist/index.mjs",
+    "./advanced": "./dist/advanced.mjs",
+    "./ui": "./dist/ui.mjs",
     "./package.json": "./package.json",
     "./style.css": "./dist/style.css"
   },

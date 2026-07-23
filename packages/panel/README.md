@@ -5,7 +5,18 @@ A composable React inspector-panel package with application-owned state, synchro
 > **Public preview:** The package API is still evolving. See the repository's
 > [release policy](https://github.com/programbo/picodash/blob/main/RELEASING.md) before depending on a versioned release.
 
-The workspace website presents the interactive control gallery at `/` and the live store inspector at `/state-lab`.
+The workspace website surface is split by app:
+
+- `apps/web`: Next.js App Router source app for public docs and route-based topology.
+- `apps/website`: legacy Vite source app with equivalent route behavior.
+
+`apps/web` route topology:
+
+- `/` and `/gallery` (redirect) render the gallery root.
+- `/store`, `/usage`, `/more-examples` render gallery routes.
+- `/panel-geometry-lab` renders layout geometry fixtures.
+- `/state-lab/{provider,scene,built-in-items,custom-items}` renders state-lab tabs.
+- missing paths render the 404 page.
 
 ## Migration boundary
 

@@ -22,7 +22,11 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 ## Repository Topology
 
 - `packages/panel`: the promoted public package and default API surface.
-- `apps/website`: interactive gallery at `/` and the `/state-lab` demo app. `/gallery` remains a compatibility alias.
+- `apps/web`: Next.js app-router source of the same interactive gallery and State Lab experiences.
+- `apps/website`: legacy Vite showcase with the same route shape and feature behavior.
+
+`apps/web` routes: `/`, `/store`, `/usage`, `/more-examples`, `/state-lab/{provider,scene,built-in-items,custom-items}`,
+`/panel-geometry-lab`, `/gallery` (redirect), and 404.
 
 ## Active API Model
 
@@ -47,10 +51,13 @@ independent of portal ownership.
 - `bun install`
 - `bun run dev`
 - `bun run website`
+- `bun run web`
 - `bun run --filter @picodash/panel check`
 - `bun run --filter @picodash/panel test`
 - `bun run --filter @picodash/panel build`
 - `bun run --filter website test:e2e`
+- `bun run --filter @picodash/web check`
+- `bun run --filter @picodash/web test:e2e`
 - `bun audit --audit-level=high`
 - `bun run --cwd packages/panel release:check`
 - `bun run ready`
@@ -77,7 +84,7 @@ This worktree is in the `picodash` port registry range `6030-6039`.
 - `6030`: website dev and Playwright harness server.
 - `6031`: website preview server.
 - `6032-6034`: available for additional local services.
-- `6035`: this worktree override via `WEBSITE_PORT`.
+- `6035`: this worktree override via `WEBSITE_PORT` for web and website app dev/check/test.
 - `6036-6039`: available for future local services.
 
 Assign new local services only from the available slots in this range.
@@ -86,6 +93,8 @@ For this worktree:
 
 ```bash
 WEBSITE_PORT=6035 bun run website
+WEBSITE_PORT=6035 bun run web
+WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
 WEBSITE_PORT=6035 bun run --filter website test:e2e
 ```
 

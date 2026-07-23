@@ -1,6 +1,6 @@
 # Picodash
 
-Monorepo for the promoted [Picodash] package and its web showcase (`apps/website`).
+Monorepo for the promoted [Picodash] package and its web showcase apps (`apps/web`, `apps/website`).
 
 > **Public preview:** Picodash is currently available for reading, evaluation, and issue feedback.
 > Pull requests are temporarily disabled while the API and maintenance workflow settle.
@@ -8,7 +8,19 @@ Monorepo for the promoted [Picodash] package and its web showcase (`apps/website
 ## Active product topology
 
 - `packages/panel`: published package API for application-owned inspector panels.
-- `apps/website`: the interactive gallery at `/` and the `/state-lab` demo surface, both built with the promoted package.
+- `apps/web`: canonical Next.js app-router showcase for the same interactive product experiences.
+- `apps/website`: legacy Vite showcase with the same route shape and feature examples.
+
+### `apps/web` route topology
+
+- `/` and `/gallery` render the gallery root (with `/gallery` redirecting to `/`).
+- `/store`, `/usage`, `/more-examples` render gallery detail routes.
+- `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` render State Lab tabs.
+- `/panel-geometry-lab` renders geometry fixture route.
+- unknown paths render the app's 404 page.
+
+Relationship: `apps/web` is the Next.js source app for route-based demos, while `apps/website` remains the existing Vite-based source with the same public route behavior.
+
 - Legacy `/demo` integration and old schema-driven API are not part of this workspace and should not be documented as active APIs.
 
 ## Breaking migration notes
@@ -218,13 +230,26 @@ WEBSITE_PORT=6035 bun run --filter website test:e2e
 bun install
 bun run dev
 bun run website
+bun run web
 bun run --filter @picodash/panel check
 bun run --filter @picodash/panel test
 bun run --filter @picodash/panel build
 bun run --filter website test:e2e
+bun run --filter @picodash/web check
+bun run --filter @picodash/web test:e2e
+bun run --filter @picodash/web build
 bun audit --audit-level=high
 bun run --cwd packages/panel release:check
 bun run ready
+```
+
+Focused checks:
+
+```bash
+WEBSITE_PORT=6035 bun run web
+WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
+WEBSITE_PORT=6035 bun run website
+WEBSITE_PORT=6035 bun run --filter website test:e2e
 ```
 
 `bun run ready` remains the full verification gate:
