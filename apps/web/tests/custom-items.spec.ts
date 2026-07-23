@@ -141,10 +141,10 @@ test('controls registered panels through usePicodashPanel', async ({ page }) => 
   )
 })
 
-test('routes the gallery, state lab, and unknown paths explicitly', async ({ page }) => {
+test('routes the home, state lab, and unknown paths explicitly', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.locator('main')).toHaveAttribute('data-product-route', 'gallery')
+  await expect(page.locator('main')).toHaveAttribute('data-product-route', 'home')
   await expect(page.locator('main')).toHaveCSS('overflow', 'hidden')
   await expect(page.locator('[data-interactive-jsx-example]')).toBeVisible()
   await expect(page.locator('[data-picodash-panel-id="built-in-items"]')).toBeVisible()
@@ -168,7 +168,7 @@ test('routes the gallery, state lab, and unknown paths explicitly', async ({ pag
   await expect(page.locator('main')).toHaveAttribute('data-product-route', 'not-found')
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Page not found' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Open gallery' })).toHaveAttribute('href', '/')
+  await expect(page.getByRole('link', { name: 'Open home' })).toHaveAttribute('href', '/')
   await expect(page.locator('[data-picodash-panel-id]')).toHaveCount(0)
 })
 

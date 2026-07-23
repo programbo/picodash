@@ -6,14 +6,14 @@ import 'react-json-view-lite/dist/index.css'
 import { usePicodashPanelStoreSelector } from '@picodash/panel'
 import type { PicodashPanelState } from '@picodash/panel/advanced'
 import { builtInItemsPanelStore } from '@/built-in-items-panel'
-import { GalleryFrame } from '@/gallery-frame'
+import { HomeFrame } from '@/home-frame'
 
-export function GalleryStore() {
+export function HomeStore() {
   const panelState = usePicodashPanelStoreSelector(builtInItemsPanelStore, (state) => state)
   const panelStoreSnapshot = useMemo(() => snapshotForDisplay(panelState), [panelState])
 
   return (
-    <GalleryFrame
+    <HomeFrame
       activeTab="store"
       toolbar={
         <span className="flex items-center gap-2 self-end font-mono text-[11px] text-zinc-400 sm:self-auto">
@@ -35,7 +35,7 @@ export function GalleryStore() {
           style={storeJsonStyles}
         />
       </div>
-    </GalleryFrame>
+    </HomeFrame>
   )
 }
 

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
-import { GalleryStore } from '@/gallery-store'
+import { HomeStore } from '@/home-store'
 
 export const metadata: Metadata = {
   title: 'Store',
 }
 
 export default function StorePage() {
-  return <GalleryStore />
+  return <HomeStore />
 }
