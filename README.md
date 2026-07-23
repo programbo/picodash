@@ -12,7 +12,7 @@ Monorepo for the promoted [Picodash] package and its web showcase app (`apps/web
 
 ### `apps/web` route topology
 
-- `/` and `/gallery` render the gallery root (with `/gallery` redirecting to `/`).
+- `/` renders the gallery root.
 - `/store`, `/usage`, `/more-examples` render gallery detail routes.
 - `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` are debugging-only routes.
 - `/panel-geometry-lab` is a debugging-only route.

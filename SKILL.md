@@ -133,7 +133,7 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 
 `apps/web` route topology:
 
-- `/`, `/gallery` (compatibility redirect), `/store`, `/usage`, `/more-examples`
+- `/`, `/store`, `/usage`, `/more-examples`
 - `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` (debugging-only)
 - `/panel-geometry-lab` (debugging-only) and not-found fallback.
 

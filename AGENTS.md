@@ -25,7 +25,7 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 - `apps/web`: Next.js app-router source of the same interactive gallery and State Lab experiences.
 
 `apps/web` routes: `/`, `/store`, `/usage`, `/more-examples`, `/state-lab/{provider,scene,built-in-items,custom-items}`,
-`/panel-geometry-lab` (debugging-only), `/gallery` (compatibility redirect to `/`), and 404.
+`/panel-geometry-lab` (debugging-only), and 404.
 `/state-lab` and `/panel-geometry-lab` are retained as debugging routes and are not treated as public website pages.
 
 `/demo` is deprecated legacy and not an active route/API in this workspace.

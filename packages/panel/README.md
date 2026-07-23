@@ -7,11 +7,11 @@ A composable React inspector-panel package with application-owned state, synchro
 
 The workspace website surface is provided by the Next.js App Router app:
 
-- `apps/web`: source app for public docs and route-based topology.
+- `apps/web`: Next.js App Router source app for public docs and route-based topology.
 
 `apps/web` route topology:
 
-- `/` and `/gallery` (redirect) render the gallery root.
+- `/` renders the gallery root.
 - `/store`, `/usage`, `/more-examples` render gallery routes.
 - `/panel-geometry-lab` is a debugging-only route for layout geometry fixtures.
 - `/state-lab/{provider,scene,built-in-items,custom-items}` are debugging-only state-lab routes.

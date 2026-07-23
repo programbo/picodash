@@ -50,9 +50,13 @@ test('seeds query themes in the server render', async ({ request }) => {
   expect(html).toContain('data-picodash-theme="ocean"')
 })
 
-test('preserves redirects, geometry fixtures, and the not-found page', async ({ page }) => {
-  await page.goto('/gallery')
-  await expect(page).toHaveURL('/')
+test('preserves the route boundary, geometry fixtures, and the not-found page', async ({
+  page,
+}) => {
+  const galleryResponse = await page.goto('/gallery')
+  expect(galleryResponse?.status()).toBe(404)
+  expect(page.url()).toMatch(/\/gallery\/?$/)
+  await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
 
   await page.goto('/panel-geometry-lab?fixture=peer')
   await expect(page.locator('[data-geometry-fixture="snap-peer"]')).toBeVisible()

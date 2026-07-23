@@ -30,7 +30,7 @@ What it provides:
 - import/export and repair flows
 
 Workspace pages (canonical `apps/web`):
-- /, /gallery (compatibility redirect), /store, /usage, /more-examples
+- /, /store, /usage, /more-examples
 - /state-lab/provider, /state-lab/scene, /state-lab/built-in-items, /state-lab/custom-items (debugging-only)
 - /panel-geometry-lab (debugging-only)
 - /state-lab (legacy canonical alias in path-mapped source; debug surface only)
