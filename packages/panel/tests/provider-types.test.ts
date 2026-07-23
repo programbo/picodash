@@ -1,5 +1,4 @@
 import { createElement } from 'react'
-import { expect, test } from 'vite-plus/test'
 import type {
   PicodashProviderProps,
   PicodashTheme,
@@ -40,7 +39,3 @@ const invalidCustomTheme: PicodashProviderProps<AppTheme> = {
 
 void invalidBuiltinTheme
 void invalidCustomTheme
-
-test('keeps provider theme type assertions in the test compilation', () => {
-  expect(true).toBe(true)
-})
