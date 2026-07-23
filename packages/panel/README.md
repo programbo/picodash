@@ -11,8 +11,8 @@ The workspace website surface is provided by the Next.js App Router app:
 
 `apps/web` route topology:
 
-- `/` renders the home root.
-- `/store`, `/usage`, `/more-examples` render home routes.
+- `/` renders the gallery root.
+- `/store`, `/usage`, `/more-examples` render gallery routes.
 - `/panel-geometry-lab` is a debugging-only route for layout geometry fixtures.
 - `/state-lab/{provider,scene,built-in-items,custom-items}` are debugging-only state-lab routes.
 - missing paths render the 404 page.

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
-import { HomeMoreExamples } from '@/home-more-examples'
+import { GalleryMoreExamples } from '@/gallery-more-examples'
 
 export const metadata: Metadata = {
   title: 'More examples',
 }
 
 export default function MoreExamplesPage() {
-  return <HomeMoreExamples />
+  return <GalleryMoreExamples />
 }

@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { DemoProvider, type DemoThemes } from '@/demo-provider'
 
-export function HomeProvider({ children }: Readonly<{ children: ReactNode }>) {
+export function GalleryProvider({ children }: Readonly<{ children: ReactNode }>) {
   const searchParams = useSearchParams()
 
   return (

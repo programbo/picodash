@@ -32,7 +32,7 @@ import {
 } from '@/built-in-items-panel'
 import { shadcnChartTypes } from '@/custom-items/shadcn-chart'
 import { useDemoContext } from '@/demo-provider'
-import { HomeFrame } from '@/home-frame'
+import { GalleryFrame } from '@/gallery-frame'
 import { GuideSideNav } from '@/guide-side-nav'
 import { cn } from '@/lib/utils'
 
@@ -737,7 +737,7 @@ type BooleanConfigKey = {
     : never
 }[keyof BuiltInItemsExampleConfig]
 
-export function HomeCode() {
+export function GalleryCode() {
   const {
     builtInExampleConfig: config,
     setBuiltInExampleConfig: onConfigChange,
@@ -903,7 +903,7 @@ export function HomeCode() {
   }
 
   return (
-    <HomeFrame
+    <GalleryFrame
       activeTab="code"
       toolbar={
         <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
@@ -1219,7 +1219,7 @@ export function HomeCode() {
           </pre>
         </div>
       </div>
-    </HomeFrame>
+    </GalleryFrame>
   )
 }
 

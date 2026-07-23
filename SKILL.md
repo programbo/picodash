@@ -7,7 +7,7 @@ description: Use the promoted Picodash package with application-owned stores and
 
 This workspace uses the promoted `@picodash/panel` API only.
 
-The workspace website serves the canonical interactive control home at `/` (Next app routes listed below),
+The workspace website serves the canonical interactive control gallery at `/` (Next app routes listed below),
 with `/state-lab` and `/panel-geometry-lab` reserved for debugging workflows.
 `/demo` is deprecated legacy and is not an active route or API surface.
 

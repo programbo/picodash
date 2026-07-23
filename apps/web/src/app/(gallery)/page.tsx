@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
-import { HomeCode } from '@/home-code'
+import { GalleryCode } from '@/gallery-code'
 
 export const metadata: Metadata = {
   title: 'Code',
 }
 
 export default function CodePage() {
-  return <HomeCode />
+  return <GalleryCode />
 }
