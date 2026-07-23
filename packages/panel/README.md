@@ -256,7 +256,7 @@ available from the main entrypoint.
 ## Release verification
 
 Pull requests and pushes to `main` run parallel quality and E2E jobs. The quality job runs
-`bun audit --audit-level=high`, workspace checks, and unit tests; the E2E job builds the workspace
+`bun audit --audit-level=high`, the panel package build, workspace checks, and unit tests; the E2E job builds the workspace
 and runs the Playwright end-to-end suite. Package publication independently runs package checks,
 tests, and the build, which includes source maps.
 

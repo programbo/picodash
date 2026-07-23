@@ -65,7 +65,7 @@ independent of portal ownership.
 `bun run ready` is the full gate:
 
 ```bash
-vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e
+vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e
 ```
 
 GitHub CI runs parallel `quality` and `e2e` jobs for pull requests and pushes to `main`. The quality
