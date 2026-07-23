@@ -24,10 +24,6 @@
   ],
   "rewrites": [
     {
-      "source": "/gallery",
-      "destination": "/index.html"
-    },
-    {
       "source": "/state-lab",
       "destination": "/index.html"
     },

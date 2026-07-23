@@ -9,8 +9,8 @@ This workspace uses the promoted `@picodash/panel` API only.
 
 The workspace website serves the canonical interactive control gallery at `/` (Next app routes listed below),
 with `/state-lab` and `/panel-geometry-lab` reserved for debugging workflows.
-Legacy `apps/website` supports the public root-aligned gallery routes (`/`, `/gallery`) plus debugging-only
-`/state-lab` and `/panel-geometry-lab`.
+Deprecated `apps/website` retains its root gallery route (`/`) plus debugging-only `/state-lab` and
+`/panel-geometry-lab`; no compatibility routes are maintained.
 `/demo` is deprecated legacy and is not an active route or API surface.
 
 ## Preferred Imports
@@ -132,17 +132,17 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 ## Workspace App Surfaces
 
 - `apps/web` (Next.js): canonical route-based showcase app, started with `bun run web`.
-- `apps/website` (Vite): legacy showcase app, started with `bun run website`.
+- `apps/website` (Vite): deprecated showcase app, started with `bun run website`.
 
 `apps/web` route topology:
 
-- `/`, `/gallery` (compatibility redirect), `/store`, `/usage`, `/more-examples`
+- `/`, `/store`, `/usage`, `/more-examples`
 - `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` (debugging-only)
 - `/panel-geometry-lab` (debugging-only) and not-found fallback.
 
 `apps/website` route subset:
 
-- `/`, `/gallery` (alias), `/state-lab` (debugging-only), `/panel-geometry-lab` (debugging-only), and not-found fallback.
+- `/`, `/state-lab` (debugging-only), `/panel-geometry-lab` (debugging-only), and not-found fallback.
 
 ## Local Development
 
