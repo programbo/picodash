@@ -46,9 +46,9 @@ test('switches and persists the site panel theme from the Themes tab', async ({ 
       getComputedStyle(element).getPropertyValue('--picodash-theme-border-shadow'),
     ),
   ).toContain('lab(')
-  expect(
-    await tronPanel.evaluate((element) => getComputedStyle(element).boxShadow),
-  ).toContain('lab(')
+  expect(await tronPanel.evaluate((element) => getComputedStyle(element).boxShadow)).toContain(
+    'lab(',
+  )
   await page.locator("[data-item-id='select'] [data-slot='select-trigger']").click()
   const tronSelect = page.locator("[data-slot='select-content'][data-picodash-theme='tron']")
   await expect(tronSelect).toBeVisible()
@@ -136,7 +136,9 @@ test('keeps System swatches tied to the system color scheme', async ({ page }) =
 
   const systemSwatches = page.locator('[data-theme-nav-swatch="system"]')
   await expect
-    .poll(() => systemSwatches.first().evaluate((element) => (element as HTMLElement).style.backgroundColor))
+    .poll(() =>
+      systemSwatches.first().evaluate((element) => (element as HTMLElement).style.backgroundColor),
+    )
     .toBe('oklch(0.963 0.002 197.1)')
   const lightSwatches = await systemSwatches.evaluateAll((elements) =>
     elements.map((element) => (element as HTMLElement).style.backgroundColor),
@@ -193,7 +195,9 @@ test('renders the high-contrast example on the panel only', async ({ page }) => 
     await panel.locator('h2').evaluate((element) => getComputedStyle(element).textShadow),
   ).not.toBe('none')
   await page.locator("[data-item-id='select'] [data-slot='select-trigger']").click()
-  const contrastSelect = page.locator("[data-slot='select-content'][data-picodash-theme='contrast']")
+  const contrastSelect = page.locator(
+    "[data-slot='select-content'][data-picodash-theme='contrast']",
+  )
   await expect(contrastSelect).toBeVisible()
   expect(
     await contrastSelect.evaluate((element) =>
