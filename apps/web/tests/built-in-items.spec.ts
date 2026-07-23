@@ -1,5 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test'
-import { requiredBox } from './helpers.ts'
+import { requiredBox } from './helpers'
 
 const builtInItems = [
   { component: 'PicodashText', id: 'text', label: 'Text' },
@@ -156,7 +156,7 @@ test('keeps the expanded panel header toggle transparent until hover', async ({ 
   const hoveredBackground = await toggle.evaluate(
     (element) => getComputedStyle(element).backgroundColor,
   )
-  expect(hoveredBackground).not.toMatch(/\/\s*0\.5\s*\)$/)
+  expect(hoveredBackground).not.toMatch(/,\s*0\.5\s*\)$/)
 })
 
 test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {
@@ -647,6 +647,7 @@ test('presents canonical built-in examples in order with API help and variant de
   const textHelp = panel
     .locator('[data-item-id="text"]')
     .getByRole('button', { name: 'Help for Text' })
+  await textHelp.scrollIntoViewIfNeeded()
   await page.mouse.move(0, 0)
   await textHelp.hover()
   await expect(page.getByRole('tooltip')).toContainText('type PicodashTextProps = {')

@@ -8,6 +8,7 @@ import {
   PicodashPanel,
   PicodashProvider,
   usePicodashPanel,
+  usePicodashPanelStoreSelector,
   type PicodashPanelFixedPosition,
 } from '@picodash/panel'
 
@@ -467,9 +468,16 @@ function ChangingConstraintFixture() {
 
 function KeyboardUnmountFixture() {
   const [mounted, setMounted] = useState(true)
+  const rootOrder = usePicodashPanelStoreSelector(
+    keyboardUnmountPanelStore,
+    (state) => state.order.root,
+  )
 
   return (
     <>
+      <output data-keyboard-unmount-root-order hidden>
+        {rootOrder.join(',')}
+      </output>
       <button className="fixed top-2 left-2 z-50" type="button" onClick={() => setMounted(false)}>
         Unmount keyboard fixture
       </button>

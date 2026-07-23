@@ -42,12 +42,11 @@
   },
   "type": "module",
   "scripts": {
-    "ready": "vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e && bun run --filter @picodash/web test:e2e",
-    "dev": "bun run --filter website dev",
-    "website": "bun run --filter website dev",
+    "ready": "vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter @picodash/web test:e2e",
+    "dev": "bun run --filter @picodash/web dev",
     "web": "bun run --filter @picodash/web dev",
     "picodash": "vp run @picodash/panel#dev",
-    "test:e2e": "bun run --filter website test:e2e",
+    "test:e2e": "bun run --filter @picodash/web test:e2e",
     "prepare": "vp config"
   },
   "devDependencies": {

@@ -37,34 +37,6 @@
         "typescript": "catalog:",
       },
     },
-    "apps/website": {
-      "name": "website",
-      "version": "0.0.0",
-      "dependencies": {
-        "@picodash/panel": "workspace:*",
-        "clsx": "catalog:",
-        "highlight.js": "catalog:",
-        "lucide-react": "catalog:",
-        "motion": "catalog:",
-        "react": "catalog:",
-        "react-dom": "catalog:",
-        "react-json-view-lite": "catalog:",
-        "tailwind-merge": "catalog:",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@playwright/test": "catalog:",
-        "@tailwindcss/postcss": "catalog:",
-        "@tailwindcss/typography": "catalog:",
-        "@types/react": "catalog:",
-        "@types/react-dom": "catalog:",
-        "postcss": "catalog:",
-        "tailwindcss": "catalog:",
-        "typescript": "catalog:",
-        "vite": "catalog:",
-        "vite-plus": "catalog:",
-      },
-    },
     "packages/panel": {
       "name": "@picodash/panel",
       "version": "0.0.0",
@@ -1277,8 +1249,6 @@
     "vite": ["@voidzero-dev/vite-plus-core@0.1.24", "", { "dependencies": { "@oxc-project/runtime": "0.133.0", "@oxc-project/types": "0.133.0", "lightningcss": "1.32.0", "postcss": "8.5.15" }, "optionalDependencies": { "@tsdown/css": "0.22.1", "@types/node": "25.9.3", "fsevents": "2.3.3", "jiti": "2.7.0", "typescript": "6.0.3", "yaml": "2.9.0" } }, "sha512-iXPGBABnQnrDMx89H6MOCGcTZp+QW+3rY4YMVKdE6ydchSvPk2O3MI2vgaRVfOtWJ2IjnxSnf1n2yjP67ZBRFQ=="],
 
     "vite-plus": ["vite-plus@0.1.24", "", { "dependencies": { "@oxc-project/types": "0.133.0", "@oxlint/plugins": "1.61.0", "@voidzero-dev/vite-plus-core": "0.1.24", "@voidzero-dev/vite-plus-test": "0.1.24", "oxfmt": "0.52.0", "oxlint": "1.67.0", "oxlint-tsgolint": "0.23.0" }, "optionalDependencies": { "@voidzero-dev/vite-plus-darwin-arm64": "0.1.24", "@voidzero-dev/vite-plus-darwin-x64": "0.1.24", "@voidzero-dev/vite-plus-linux-arm64-gnu": "0.1.24", "@voidzero-dev/vite-plus-linux-arm64-musl": "0.1.24", "@voidzero-dev/vite-plus-linux-x64-gnu": "0.1.24", "@voidzero-dev/vite-plus-linux-x64-musl": "0.1.24", "@voidzero-dev/vite-plus-win32-arm64-msvc": "0.1.24", "@voidzero-dev/vite-plus-win32-x64-msvc": "0.1.24" }, "bin": { "vp": "bin/vp", "oxfmt": "bin/oxfmt", "oxlint": "bin/oxlint" } }, "sha512-b3fr6WtCiEhetjuzW/4KcEMOAMuZxoxZATWaXKmPzOLf1upG+pzKJOFZTb94D6wiPBlwcjxoaUtF7C3uAN+VjQ=="],
-
-    "website": ["website@workspace:apps/website"],
 
     "which": ["which@4.0.0", "", { "dependencies": { "isexe": "3.1.5" }, "bin": { "node-which": "bin/which.js" } }, "sha512-GlaYyEb07DPxYCKhKzplCWBJtvxZcZMrL+4UkrTSJHHPyZU4mYYTv3qaOe77H7EODLSSopAUFAc6W8U4yqvscg=="],
 

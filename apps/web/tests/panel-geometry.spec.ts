@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { requiredBox } from './helpers.ts'
+import { requiredBox } from './helpers'
 
 const storageKey = 'picodash-geometry-lab:panel-layout:v1'
 const safeInset = 8
@@ -566,11 +566,12 @@ async function expectEdgeInsets(
 }
 
 async function keyboardUnmountRootOrder(page: Page) {
-  return page.evaluate(async () => {
-    const modulePath = ['/src', 'panel-geometry-lab.tsx'].join('/')
-    const { keyboardUnmountPanelStore } = await import(modulePath)
-    return keyboardUnmountPanelStore.getState().order.root
-  })
+  return page
+    .locator('[data-keyboard-unmount-root-order]')
+    .textContent()
+    .then((value) => {
+      return value?.split(',').filter(Boolean) ?? []
+    })
 }
 
 async function movePointerOutside(page: Page, locator: Locator) {

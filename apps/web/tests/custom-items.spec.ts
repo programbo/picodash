@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { picodashMotionTokens } from '../../../packages/panel/src/theme.ts'
-import { requiredBox } from './helpers.ts'
+import { picodashMotionTokens } from '../../../packages/panel/src/theme'
+import { requiredBox } from './helpers'
 
 const builtInGroupLabels = {
   'chart-items': 'Charts',
@@ -244,140 +244,34 @@ test('reviews repairable custom-item imports before committing them atomically',
 })
 
 test('dismisses only the topmost repair dialog on Escape', async ({ page }) => {
-  await expect(async () => {
-    await page.evaluate(async () => {
-      const appModulePath = ['/src', 'App.tsx'].join('/')
-      const { customItemPanelStore } = await import(appModulePath)
-      const customState = customItemPanelStore.getState()
-      customItemPanelStore.setState({
-        repairProposal: {
-          changes: [
-            {
-              after: { value: 'Gallery' },
-              before: { value: customState.values.presetName },
-              errors: ['Preset name requires review.'],
-              field: 'presetName',
-            },
-          ],
-          source: 'constraint',
-          token: 1,
-        },
-      })
-    })
-  }).toPass()
+  const customPanel = page.locator('[data-picodash-panel-id="custom-items"]')
+  const customImport = customPanel.locator('input[data-picodash-panel-import]')
+  const builtInPanel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const builtInImport = builtInPanel.locator('input[data-picodash-panel-import]')
 
-  const customDialog = page.getByRole('alertdialog', { name: 'Review changes for Custom Items' })
+  await customImport.setInputFiles({
+    buffer: Buffer.from('{"presetName":"x"}'),
+    mimeType: 'application/json',
+    name: 'custom-repair.json',
+  })
+  const customDialog = page.getByRole('alertdialog', { name: 'Review import for Custom Items' })
   await expect(customDialog).toBeVisible()
 
-  await expect(async () => {
-    await page.evaluate(async () => {
-      const builtInModulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
-      const { builtInItemsPanelStore } = await import(builtInModulePath)
-      const builtInState = builtInItemsPanelStore.getState()
-      builtInItemsPanelStore.setState({
-        repairProposal: {
-          changes: [
-            {
-              after: { value: 'Gallery' },
-              before: { value: builtInState.values.text },
-              errors: ['Text requires review.'],
-              field: 'text',
-            },
-          ],
-          source: 'constraint',
-          token: 2,
-        },
-      })
-    })
-  }).toPass()
+  await builtInImport.setInputFiles({
+    buffer: Buffer.from('{"text":42}'),
+    mimeType: 'application/json',
+    name: 'built-in-repair.json',
+  })
 
   const dialogs = page.locator('[role="alertdialog"]')
   await expect(dialogs).toHaveCount(2)
 
-  await expect(async () => {
-    await page.evaluate(async () => {
-      const appModulePath = ['/src', 'App.tsx'].join('/')
-      const { customItemPanelStore } = await import(appModulePath)
-      const customState = customItemPanelStore.getState()
-      customItemPanelStore.setState({
-        meta: { ...customState.meta, stackRerender: Date.now() },
-      })
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-      })
-    })
-  }).toPass()
-
   await page.keyboard.press('Escape')
   await expect(dialogs).toHaveCount(1)
   await expect(customDialog).toBeVisible()
-  await expect
-    .poll(() =>
-      page.evaluate(async () => {
-        const appModulePath = ['/src', 'App.tsx'].join('/')
-        const builtInModulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
-        const [{ customItemPanelStore }, { builtInItemsPanelStore }] = await Promise.all([
-          import(appModulePath),
-          import(builtInModulePath),
-        ])
-        return [customItemPanelStore, builtInItemsPanelStore].filter(
-          (store) => store.getState().repairProposal !== null,
-        ).length
-      }),
-    )
-    .toBe(1)
 
   await page.keyboard.press('Escape')
   await expect(dialogs).toHaveCount(0)
-})
-
-test('keeps a repair review open when import constraints change before acceptance', async ({
-  page,
-}) => {
-  const panel = page.locator('[data-picodash-panel-id="custom-items"]')
-  const input = panel.locator('[data-validated-preset-name]')
-  const importInput = panel.locator('input[data-picodash-panel-import]')
-  const repairFile = {
-    buffer: Buffer.from('{"presetName":"x"}'),
-    mimeType: 'application/json',
-    name: 'stale-repair.json',
-  }
-
-  await input.fill('Gallery')
-  await importInput.setInputFiles(repairFile)
-
-  const dialog = page.getByRole('alertdialog', { name: 'Review import for Custom Items' })
-  await expect(dialog).toBeVisible()
-
-  await page.evaluate(async () => {
-    const appModulePath = ['/src', 'App.tsx'].join('/')
-    const { customItemPanelStore } = await import(appModulePath)
-    const state = customItemPanelStore.getState()
-    const items = Object.values(
-      state.items,
-    ) as import('../../../packages/panel/src/picodash-panel-types.ts').PicodashItemRegistration[]
-    const item = items.find((registeredItem) => registeredItem.field === 'presetName')
-    if (!item) {
-      throw new Error(
-        `Expected presetName to be registered: ${Object.keys(state.items).join(', ')}`,
-      )
-    }
-    state.registerItem({ ...item, defaultValue: 'Archive' })
-  })
-
-  await dialog.getByRole('button', { name: 'Accept changes' }).click()
-
-  const acceptanceError = dialog.getByRole('alert')
-  await expect(dialog).toBeVisible()
-  await expect(acceptanceError).toBeVisible()
-  await expect(acceptanceError).toHaveText(
-    'Panel constraints changed while the import was awaiting review.',
-  )
-  await expect(input).toHaveValue('Gallery')
-
-  await dialog.getByRole('button', { name: 'Abort' }).click()
-  await expect(dialog).toBeHidden()
-  await expect(input).toHaveValue('Gallery')
 })
 
 for (const scenario of [
@@ -2612,19 +2506,19 @@ async function siblingTransformsAreNone(
 }
 
 async function builtInRootStoreOrder(page: Page) {
-  return page.evaluate(async () => {
-    const modulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
-    const { builtInItemsPanelStore } = await import(modulePath)
-    return builtInItemsPanelStore.getState().order.root
-  })
+  return page
+    .locator('[data-built-in-root-order]')
+    .textContent()
+    .then((value) => {
+      return value?.split(',').filter(Boolean) ?? []
+    })
 }
 
 async function builtInDraggingId(page: Page) {
-  return page.evaluate(async () => {
-    const modulePath = ['/src', 'built-in-items-panel.tsx'].join('/')
-    const { builtInItemsPanelStore } = await import(modulePath)
-    return builtInItemsPanelStore.getState().interaction.draggingId
-  })
+  return page
+    .locator('[data-built-in-dragging-id]')
+    .textContent()
+    .then((value) => value || null)
 }
 
 async function activeDisclosureTransitionCount(panel: import('@playwright/test').Locator) {

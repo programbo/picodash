@@ -1,6 +1,6 @@
 # Picodash
 
-Monorepo for the promoted [Picodash] package and its web showcase apps (`apps/web`, `apps/website`).
+Monorepo for the promoted [Picodash] package and its web showcase app (`apps/web`).
 
 > **Public preview:** Picodash is currently available for reading, evaluation, and issue feedback.
 > Pull requests are temporarily disabled while the API and maintenance workflow settle.
@@ -9,7 +9,6 @@ Monorepo for the promoted [Picodash] package and its web showcase apps (`apps/we
 
 - `packages/panel`: published package API for application-owned inspector panels.
 - `apps/web`: canonical Next.js app-router showcase for the same interactive product experiences.
-- `apps/website`: deprecated Vite showcase retained for debugging workflows.
 
 ### `apps/web` route topology
 
@@ -19,13 +18,6 @@ Monorepo for the promoted [Picodash] package and its web showcase apps (`apps/we
 - `/panel-geometry-lab` is a debugging-only route.
 - unknown paths render the app's 404 page.
 
-- `apps/web` is the canonical Next.js route-based app with the full route topology.
-- `apps/website` is deprecated and supports only its root and debugging route subset (`/`, `/state-lab`, `/panel-geometry-lab`) with unknown-path fallback.
-
-### `apps/website` route subset
-
-- `/` renders the gallery route.
-- `/state-lab` and `/panel-geometry-lab` are debugging-only routes.
 - `/demo` is deprecated legacy and not an active route/API in this workspace.
 
 ## Breaking migration notes
@@ -215,18 +207,17 @@ Repairs from imports and constraint propagation are reviewable through the built
 
 `ports` allocation owns `6030-6039`.
 
-- `6030`: `apps/website` dev and Playwright web server.
-- `6031`: `apps/website` preview.
-- `6035`: this worktree override via `WEBSITE_PORT`.
-- `6032-6034` and `6036-6039`: available.
+- `6035`: this worktree dev and Playwright web server via `WEBSITE_PORT`.
+- `6036`: this worktree production start server.
+- `6030-6034` and `6037-6039`: available.
 
 Use the next available port in this range for new local services and document it.
 
 For this worktree:
 
 ```bash
-WEBSITE_PORT=6035 bun run website
-WEBSITE_PORT=6035 bun run --filter website test:e2e
+WEBSITE_PORT=6035 bun run web
+WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
 ```
 
 ## Current commands
@@ -234,12 +225,10 @@ WEBSITE_PORT=6035 bun run --filter website test:e2e
 ```bash
 bun install
 bun run dev
-bun run website
 bun run web
 bun run --filter @picodash/panel check
 bun run --filter @picodash/panel test
 bun run --filter @picodash/panel build
-bun run --filter website test:e2e
 bun run --filter @picodash/web check
 bun run --filter @picodash/web test:e2e
 vp run @picodash/panel#build && bun run --filter @picodash/web build
@@ -253,14 +242,12 @@ Focused checks:
 ```bash
 WEBSITE_PORT=6035 bun run web
 WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
-WEBSITE_PORT=6035 bun run website
-WEBSITE_PORT=6035 bun run --filter website test:e2e
 ```
 
 `bun run ready` remains the full verification gate:
 
 ```bash
-vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e && bun run --filter @picodash/web test:e2e
+vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter @picodash/web test:e2e
 ```
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`. The quality job
