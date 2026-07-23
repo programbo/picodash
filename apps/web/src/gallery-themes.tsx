@@ -7,7 +7,7 @@ import { Check, Copy } from 'lucide-react'
 import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { usePicodashTheme } from '@picodash/panel'
 import { useDemoContext } from '@/demo-provider'
-import { GalleryFrame } from '@/gallery-frame'
+import { HomeFrame } from '@/home-frame'
 import { cn } from '@/lib/utils'
 
 hljs.registerLanguage('css', css)
@@ -362,7 +362,7 @@ export function GalleryThemes() {
   }
 
   return (
-    <GalleryFrame
+    <HomeFrame
       activeTab="themes"
       toolbar={
         <span className="self-end font-mono text-[11px] text-zinc-500 sm:self-auto">
@@ -425,7 +425,7 @@ export function GalleryThemes() {
           </article>
         </div>
       </div>
-    </GalleryFrame>
+    </HomeFrame>
   )
 }
 
