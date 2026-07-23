@@ -5,6 +5,7 @@ export default defineConfig({
     '*': 'vp check --fix',
   },
   fmt: {
+    ignorePatterns: ['apps/web/next-env.d.ts'],
     singleQuote: true,
     semi: false,
     sortTailwindcss: {
