@@ -156,7 +156,7 @@ test('keeps the expanded panel header toggle transparent until hover', async ({ 
   const hoveredBackground = await toggle.evaluate(
     (element) => getComputedStyle(element).backgroundColor,
   )
-  expect(hoveredBackground).not.toMatch(/\/\s*0\.5\s*\)$/)
+  expect(hoveredBackground).not.toMatch(/,\s*0\.5\s*\)$/)
 })
 
 test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {
