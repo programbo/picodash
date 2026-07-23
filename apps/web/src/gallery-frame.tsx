@@ -5,7 +5,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@picodash/panel/ui'
 import { useDemoContext } from '@/demo-provider'
 
-export type GalleryTab = 'code' | 'more-examples' | 'store' | 'usage'
+export type GalleryTab = 'code' | 'more-examples' | 'store' | 'themes' | 'usage'
 
 export function GalleryFrame({
   activeTab,
@@ -68,6 +68,13 @@ export function GalleryFrame({
                 <span className="size-2 bg-amber-200" />
                 More examples
               </TabsTrigger>
+              <TabsTrigger
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-emerald-200 sm:text-xs"
+                id="themes"
+              >
+                <span className="size-2 bg-emerald-300" />
+                Themes
+              </TabsTrigger>
             </TabsList>
             {toolbar}
           </div>
@@ -97,6 +104,8 @@ function pathForGalleryTab(tab: string) {
       return '/usage'
     case 'more-examples':
       return '/more-examples'
+    case 'themes':
+      return '/themes'
     default:
       return '/'
   }

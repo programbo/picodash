@@ -165,19 +165,10 @@ test('keeps provider state usable when layout persistence writes fail', () => {
   expect(store.getState().panelLayouts.scene).toEqual({ x: 24, y: 32 })
 })
 
-test('applies explicit and system-resolved themes to the provider carrier', () => {
+test('applies explicit and server-resolved themes to the provider carrier', () => {
+  expect(renderProvider('dark')).toContain('data-picodash-theme="dark"')
   expect(renderProvider('light')).toContain('data-picodash-theme="light"')
-
-  Object.defineProperty(globalThis, 'window', {
-    configurable: true,
-    value: {
-      matchMedia: (query: string) => ({
-        matches: query.includes('light'),
-      }),
-    },
-  })
-
-  expect(renderProvider('system')).toContain('data-picodash-theme="light"')
+  expect(renderProvider('system')).toContain('data-picodash-theme="dark"')
 })
 
 function renderProvider(theme: 'dark' | 'light' | 'system') {

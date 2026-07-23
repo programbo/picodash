@@ -134,31 +134,6 @@
   --sidebar-ring: oklch(0.56 0.021 213.5);
 }
 
-:where([data-picodash-theme='light']) {
-  color-scheme: light;
-  --picodash-color-canvas: oklch(0.963 0.002 197.1);
-  --picodash-color-surface: oklch(1 0 0);
-  --picodash-color-surface-raised: oklch(0.987 0.002 197.1);
-  --picodash-color-surface-muted: oklch(0.925 0.005 214.3);
-  --picodash-color-text: oklch(0.218 0.008 223.9);
-  --picodash-color-text-strong: oklch(0.148 0.004 228.8);
-  --picodash-color-text-muted: oklch(0.473 0.014 214.4);
-  --picodash-color-border: oklch(0.148 0.004 228.8 / 14%);
-  --picodash-color-control: oklch(0.148 0.004 228.8 / 20%);
-  --picodash-color-focus: oklch(0.56 0.12 221);
-  --picodash-color-accent: oklch(0.218 0.008 223.9);
-  --picodash-color-accent-text: oklch(0.987 0.002 197.1);
-  --picodash-color-success: oklch(0.49 0.14 163.223);
-  --picodash-color-info: oklch(0.5 0.15 232.661);
-  --picodash-color-warning: oklch(0.58 0.16 84.429);
-  --picodash-color-alert: oklch(0.55 0.17 55.934);
-  --picodash-color-danger: oklch(0.55 0.19 22.216);
-  --picodash-color-overlay: oklch(0.148 0.004 228.8 / 55%);
-  --picodash-shadow-panel: 0 25px 50px -12px rgb(15 23 42 / 0.22);
-  --picodash-shadow-viewer: 0 25px 50px -12px rgb(15 23 42 / 0.35);
-  --picodash-shadow-inner: inset 0 2px 4px rgb(15 23 42 / 0.12);
-}
-
 :where([data-picodash-theme='ocean']) {
   --picodash-color-canvas: rgb(2 18 28);
   --picodash-color-surface: rgb(7 38 52);

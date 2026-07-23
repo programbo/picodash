@@ -2,11 +2,11 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react'
 import { createStore, useStore, type StateCreator, type StoreApi } from 'zustand'
@@ -88,16 +88,17 @@ export interface PicodashProviderContextValue {
   store: PicodashStore
 }
 
-export type PicodashTheme = 'dark' | 'light' | 'system' | (string & {})
+export type PicodashTheme = 'dark' | 'light' | 'system'
+export type PicodashThemeOption<CustomTheme extends string = never> = PicodashTheme | CustomTheme
 export type PicodashResolvedTheme = string
 
-export interface PicodashProviderProps {
+export interface PicodashProviderProps<CustomTheme extends string = never> {
   children: ReactNode
   panelBoundary?: PicodashPanelBoundary | null
   persistLayout?: boolean
   portalContainer?: HTMLElement | null
   storageKey?: string
-  theme?: PicodashTheme
+  theme?: PicodashThemeOption<CustomTheme>
 }
 
 const PicodashContext = createContext<PicodashProviderContextValue | null>(null)
@@ -383,14 +384,14 @@ export function useRegisterPicodashPanel({
   }, [boundary, id, store])
 }
 
-export function PicodashProvider({
+export function PicodashProvider<CustomTheme extends string = never>({
   children,
   panelBoundary = null,
   persistLayout = true,
   portalContainer: portalContainerProp,
   storageKey = panelLayoutStorageKey,
   theme: themePreference = picodashDefaultTheme,
-}: PicodashProviderProps) {
+}: PicodashProviderProps<CustomTheme>) {
   const [containerElement, setContainerElement] = useState<HTMLDivElement | null>(null)
   const storeRef = useRef<PicodashStore | null>(null)
   const theme = useResolvedPicodashTheme(themePreference)
@@ -481,32 +482,35 @@ function placementsEqual(
   return left?.mode === right?.mode && left?.position === right?.position
 }
 
-function useResolvedPicodashTheme(theme: PicodashTheme): PicodashResolvedTheme {
-  const [systemTheme, setSystemTheme] = useState<'dark' | 'light'>(() => preferredSystemTheme())
-
-  useEffect(() => {
-    if (
-      theme !== 'system' ||
-      typeof window === 'undefined' ||
-      typeof window.matchMedia !== 'function'
-    ) {
-      return
-    }
-
-    const query = window.matchMedia('(prefers-color-scheme: dark)')
-    const updateTheme = () => setSystemTheme(query.matches ? 'dark' : 'light')
-    updateTheme()
-    query.addEventListener('change', updateTheme)
-    return () => query.removeEventListener('change', updateTheme)
-  }, [theme])
+function useResolvedPicodashTheme<CustomTheme extends string>(
+  theme: PicodashThemeOption<CustomTheme>,
+): PicodashResolvedTheme {
+  const systemTheme = useSyncExternalStore(
+    theme === 'system' ? subscribeToSystemTheme : emptySystemThemeSubscription,
+    readSystemTheme,
+    serverSystemTheme,
+  )
 
   return theme === 'system' ? systemTheme : theme
 }
 
-function preferredSystemTheme(): 'dark' | 'light' {
-  return typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-color-scheme: light)').matches
-    ? 'light'
-    : 'dark'
+function subscribeToSystemTheme(onStoreChange: () => void) {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {}
+
+  const query = window.matchMedia('(prefers-color-scheme: dark)')
+  query.addEventListener('change', onStoreChange)
+  return () => query.removeEventListener('change', onStoreChange)
+}
+
+function emptySystemThemeSubscription() {
+  return () => {}
+}
+
+function readSystemTheme(): 'dark' | 'light' {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'dark'
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+function serverSystemTheme(): 'dark' {
+  return 'dark'
 }

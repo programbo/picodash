@@ -22,6 +22,7 @@ export type {
   PicodashProviderProps,
   PicodashResolvedTheme,
   PicodashTheme,
+  PicodashThemeOption,
 } from './picodash-provider.js'
 
 export {

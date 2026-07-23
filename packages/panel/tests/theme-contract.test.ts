@@ -53,7 +53,17 @@ test('keeps the public theme contract declared, used, documented, and semantic',
   const referencedTokens = new Set(source.match(tokenPattern) ?? [])
   const publicTokens = declarations.filter((token) => !token.startsWith('--_picodash-'))
 
-  expect(declarations.length).toBe(declaredTokens.size)
+  const duplicateDeclarations = declarations.filter(
+    (token, index) => declarations.indexOf(token) !== index,
+  )
+  expect(
+    duplicateDeclarations.every(
+      (token) =>
+        token.startsWith('--picodash-color-') ||
+        token.startsWith('--picodash-radius-') ||
+        token.startsWith('--picodash-shadow-'),
+    ),
+  ).toBe(true)
   expect([...referencedTokens].filter((token) => !declaredTokens.has(token))).toEqual([])
 
   for (const token of declaredTokens) {
@@ -70,6 +80,30 @@ test('keeps the public theme contract declared, used, documented, and semantic',
   ).toEqual([])
 
   expect(publicTokens.filter((token) => !readme.includes(`\`${token}\``))).toEqual([])
+
+  expect(styles).toContain(":where([data-picodash-theme='dark'])")
+  expect(styles).toContain(":where([data-picodash-theme='light'])")
+  expect(styles).toMatch(/:where\(\[data-picodash-theme='dark'\]\)[\s\S]*color-scheme:\s*dark/)
+  expect(styles).toMatch(/:where\(\[data-picodash-theme='light'\]\)[\s\S]*color-scheme:\s*light/)
+
+  const recipeTokens = [...new Set(publicTokens)].filter(
+    (token) =>
+      token.startsWith('--picodash-color-') ||
+      token === '--picodash-radius-surface' ||
+      token === '--picodash-radius-control' ||
+      token === '--picodash-shadow-panel' ||
+      token === '--picodash-shadow-viewer' ||
+      token === '--picodash-shadow-inner',
+  )
+  for (const theme of ['dark', 'light']) {
+    const selector = `:where([data-picodash-theme='${theme}'])`
+    const start = styles.indexOf(selector)
+    const block = styles.slice(start, styles.indexOf('\n}', start))
+
+    for (const token of recipeTokens) {
+      expect(block).toContain(`${token}:`)
+    }
+  }
 })
 
 function filesBelow(directory: string): string[] {

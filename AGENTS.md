@@ -24,7 +24,7 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 - `packages/panel`: the promoted public package and default API surface.
 - `apps/web`: Next.js app-router source of the same interactive gallery and State Lab experiences.
 
-`apps/web` routes: `/`, `/store`, `/usage`, `/more-examples`, `/state-lab/{provider,scene,built-in-items,custom-items}`,
+`apps/web` routes: `/`, `/store`, `/usage`, `/themes`, `/more-examples`, `/state-lab/{provider,scene,built-in-items,custom-items}`,
 `/panel-geometry-lab` (debugging-only), and 404.
 `/state-lab` and `/panel-geometry-lab` are retained as debugging routes and are not treated as public website pages.
 
@@ -41,6 +41,12 @@ notifying the host. Application code reads panel values from its explicit store 
 access uses `usePicodashProviderSelector` / `usePicodashProviderStoreApi`, while contextual panel
 access uses `usePicodashPanelSelector` / `usePicodashPanelStoreApi`. Legacy schema-driven
 registration flow is retired.
+
+`@picodash/panel/style.css` ships complete `dark` and `light` theme recipes. `PicodashProvider
+theme="system"` follows `prefers-color-scheme` and reacts to preference changes. Consumers define
+named themes by overriding semantic `--picodash-*` tokens under `data-picodash-theme`; the provider
+can take a generic custom theme union such as `PicodashProvider<'brand' | 'contrast'>`.
+The web gallery's `ocean` and `plum` recipes are demo-only.
 
 Panel placement supports floating, magnetic, and fixed modes. `PicodashPanelSnapPosition` names
 magnetic edges, while fixed docking uses the six side/corner positions. `usePicodashPanel` owns

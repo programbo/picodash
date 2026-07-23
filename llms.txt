@@ -25,12 +25,14 @@ What it provides:
 - strict programmatic writes, sync validation, JSON-compatible values
 - pointer and keyboard item reordering with same-band constraints
 - observable async sparkline source failures
+- complete package dark/light themes, system color-scheme resolution, and CSS custom themes via `data-picodash-theme`
+- strict custom provider theme unions through `PicodashProvider<CustomTheme>`
 - theme/portal aware styling
 - lazy Recharts and react-dropzone implementations behind stable public components
 - import/export and repair flows
 
 Workspace pages (canonical `apps/web`):
-- /, /store, /usage, /more-examples
+- /, /store, /usage, /more-examples, /themes
 - /state-lab/provider, /state-lab/scene, /state-lab/built-in-items, /state-lab/custom-items (debugging-only)
 - /panel-geometry-lab (debugging-only)
 - /state-lab (legacy canonical alias in path-mapped source; debug surface only)

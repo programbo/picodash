@@ -114,6 +114,35 @@ All package usage should be built on `PicodashProvider` + panel stores.
 - Styling import: `import '@picodash/panel/style.css'`.
 - No separate dist stylesheet import should be documented (the package export maps that path).
 
+### Themes
+
+`@picodash/panel/style.css` ships complete `dark` and `light` Picodash themes. Use
+`theme="system"` to follow the operating system's `prefers-color-scheme` setting; the provider
+updates its resolved theme when that setting changes.
+
+Consumer themes are CSS-only and use the emitted `data-picodash-theme` attribute:
+
+```css
+:where([data-picodash-theme='brand']) {
+  --picodash-color-surface: #172033;
+  --picodash-color-text: #f4f7ff;
+  --picodash-color-accent: #8ab4ff;
+}
+```
+
+Theme names can be made strict and autocomplete-friendly with the provider generic:
+
+```tsx
+type AppTheme = 'brand' | 'contrast'
+
+function App() {
+  return <PicodashProvider<AppTheme> theme="brand">...</PicodashProvider>
+}
+```
+
+The generic extends the built-in `dark`, `light`, and `system` options. The gallery's `ocean` and
+`plum` recipes are demo-only examples, not package-provided themes.
+
 ### Panel visibility and activation
 
 Use `usePicodashPanel(panelId)` beneath `PicodashProvider` to control a registered panel. The hook
