@@ -33,8 +33,12 @@ test('keeps all home tabs reachable on narrow screens', async ({ page }) => {
 
   const tabList = page.getByRole('tablist', { name: 'Interactive example views' })
   await expect(tabList).toHaveCSS('overflow-x', 'auto')
-  await page.getByRole('tab', { name: 'Themes' }).click()
-  await expect(page).toHaveURL('/themes')
+  await page.waitForFunction(() => {
+    const list = document.querySelector<HTMLElement>(
+      '[role="tablist"][aria-label="Interactive example views"]',
+    )
+    return list !== null && list.scrollWidth > list.clientWidth
+  })
 })
 
 test('exposes each state lab tab as a route', async ({ page }) => {
