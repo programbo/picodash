@@ -982,7 +982,7 @@ export function HomeCode() {
                 <InlineSelect
                   ariaLabel="Provider theme"
                   value={providerTheme}
-                  values={['dark', 'light', 'ocean', 'plum']}
+                  values={['dark', 'light', 'ocean', 'plum', 'tron', 'contrast']}
                   onChange={onProviderThemeChange}
                 />
                 <Punctuation>&quot;</Punctuation>

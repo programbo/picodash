@@ -264,9 +264,34 @@ tests, and the build, which includes source maps.
 ## Themability
 
 - Themes resolve as panel override, provider theme, then `"dark"` fallback.
-- Supported provider themes: `"dark"`, `"light"`, `"system"`, plus named custom themes.
+- The package stylesheet ships complete `"dark"` and `"light"` themes.
+- `"system"` follows `prefers-color-scheme` and updates when the system preference changes.
+- Supported provider themes are `"dark"`, `"light"`, `"system"`, plus names supplied through the
+  provider generic.
 - Theme names are emitted through `data-picodash-theme` on provider and portal surfaces.
 - `usePicodashTheme()` returns the resolved name for custom controls.
+
+Define custom themes in consumer CSS by overriding the semantic token roles:
+
+```css
+:where([data-picodash-theme='brand']) {
+  --picodash-color-surface: #172033;
+  --picodash-color-text: #f4f7ff;
+  --picodash-color-accent: #8ab4ff;
+}
+```
+
+Use a provider generic to make the custom names part of the strict `theme` prop type:
+
+```tsx
+type AppTheme = 'brand' | 'contrast'
+
+function App() {
+  return <PicodashProvider<AppTheme> theme="brand">...</PicodashProvider>
+}
+```
+
+The `ocean`, `plum`, `tron`, and `contrast` recipes used by the interactive gallery remain demo-only examples.
 
 ## Theme token contract
 

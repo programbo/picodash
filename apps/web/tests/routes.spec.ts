@@ -21,6 +21,24 @@ test('routes home tabs without recreating the persistent demo shell', async ({ p
   await expect(
     page.getByRole('heading', { name: 'More complex Picodash compositions' }),
   ).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Themes' }).click()
+  await expect(page).toHaveURL('/themes')
+  await expect(page.locator('[data-theme-guide]')).toBeVisible()
+})
+
+test('keeps all home tabs reachable on narrow screens', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 })
+  await page.goto('/')
+
+  const tabList = page.getByRole('tablist', { name: 'Interactive example views' })
+  await expect(tabList).toHaveCSS('overflow-x', 'auto')
+  await page.waitForFunction(() => {
+    const list = document.querySelector<HTMLElement>(
+      '[role="tablist"][aria-label="Interactive example views"]',
+    )
+    return list !== null && list.scrollWidth > list.clientWidth
+  })
 })
 
 test('exposes each state lab tab as a route', async ({ page }) => {
@@ -48,6 +66,21 @@ test('seeds query themes in the server render', async ({ request }) => {
   expect(response.ok()).toBe(true)
   expect(html).toContain('data-demo-provider-theme="ocean"')
   expect(html).toContain('data-picodash-theme="ocean"')
+})
+
+test('resolves system theme changes from the browser color scheme', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.goto('/state-lab/provider?providerTheme=system')
+
+  expect(
+    await page.evaluate(() => window.matchMedia('(prefers-color-scheme: light)').matches),
+  ).toBe(true)
+
+  const providerTheme = page.locator('[data-demo-provider-theme]')
+  await expect(providerTheme).toHaveAttribute('data-demo-provider-theme', 'light')
+
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await expect(providerTheme).toHaveAttribute('data-demo-provider-theme', 'dark')
 })
 
 test('preserves the route boundary, geometry fixtures, and the not-found page', async ({

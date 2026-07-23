@@ -43,6 +43,7 @@ type DemoContextValue = {
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null)
+const providerThemeStorageKey = 'picodash-demo:provider-theme:v1'
 
 export function DemoProvider({
   children,
@@ -60,6 +61,23 @@ export function DemoProvider({
   const route = pathname.startsWith('/state-lab') ? 'state-lab' : 'home'
 
   useEffect(() => {
+    if (initialThemes.provider !== undefined) return
+
+    try {
+      const persistedTheme = normalizeDemoTheme(
+        window.localStorage.getItem(providerThemeStorageKey),
+      )
+      if (!persistedTheme) return
+
+      setThemeOverrides((current) =>
+        Object.hasOwn(current, 'provider') ? current : { ...current, provider: persistedTheme },
+      )
+    } catch {
+      // Browser storage can be disabled; the in-memory theme still works.
+    }
+  }, [initialThemes.provider])
+
+  useEffect(() => {
     const handleThemeChange = (event: Event) => {
       const detail = (event as CustomEvent<DemoThemeOverrides>).detail
       setThemeOverrides((current) => ({ ...current, ...detail }))
@@ -73,7 +91,14 @@ export function DemoProvider({
     () => ({
       builtInExampleConfig,
       setBuiltInExampleConfig,
-      setProviderTheme: (provider) => setThemeOverrides((current) => ({ ...current, provider })),
+      setProviderTheme: (provider) => {
+        setThemeOverrides((current) => ({ ...current, provider }))
+        try {
+          window.localStorage.setItem(providerThemeStorageKey, provider)
+        } catch {
+          // Browser storage can be disabled; the in-memory theme still works.
+        }
+      },
       themes,
     }),
     [builtInExampleConfig, themes],
@@ -155,5 +180,10 @@ function mergeThemes(routeThemes: DemoThemes, overrides: DemoThemeOverrides): De
 }
 
 function themeValue(key: keyof DemoThemes, routeThemes: DemoThemes, overrides: DemoThemeOverrides) {
-  return Object.hasOwn(overrides, key) ? (overrides[key] ?? undefined) : routeThemes[key]
+  const theme = Object.hasOwn(overrides, key) ? (overrides[key] ?? undefined) : routeThemes[key]
+  return normalizeDemoTheme(theme)
+}
+
+function normalizeDemoTheme(theme: string | null | undefined) {
+  return theme === 'cyber' ? 'tron' : (theme ?? undefined)
 }

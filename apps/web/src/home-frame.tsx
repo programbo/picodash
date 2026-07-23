@@ -5,7 +5,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@picodash/panel/ui'
 import { useDemoContext } from '@/demo-provider'
 
-export type HomeTab = 'code' | 'more-examples' | 'store' | 'usage'
+export type HomeTab = 'code' | 'more-examples' | 'store' | 'themes' | 'usage'
 
 export function HomeFrame({
   activeTab,
@@ -35,7 +35,7 @@ export function HomeFrame({
           <div className="flex flex-col gap-2 border-b border-white/10 bg-white/4 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <TabsList
               aria-label="Interactive example views"
-              className="h-7 gap-2 rounded-none p-0 sm:gap-4"
+              className="h-7 max-w-full min-w-0 [scrollbar-width:thin] gap-2 overflow-x-auto overflow-y-visible rounded-none p-0 sm:gap-4"
               variant="line"
             >
               <TabsTrigger
@@ -66,6 +66,13 @@ export function HomeFrame({
                 <span className="size-2 bg-amber-200" />
                 More examples
               </TabsTrigger>
+              <TabsTrigger
+                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-emerald-200 sm:text-xs"
+                id="themes"
+              >
+                <span className="size-2 bg-emerald-300" />
+                Themes
+              </TabsTrigger>
             </TabsList>
             {toolbar}
           </div>
@@ -95,6 +102,8 @@ function pathForHomeTab(tab: string) {
       return '/usage'
     case 'more-examples':
       return '/more-examples'
+    case 'themes':
+      return '/themes'
     default:
       return '/'
   }

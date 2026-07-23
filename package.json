@@ -55,6 +55,7 @@
   },
   "overrides": {
     "fast-uri": "3.1.4",
+    "postcss": "catalog:",
     "sharp": "0.35.3",
     "vite": "catalog:",
     "vitest": "catalog:"

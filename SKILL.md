@@ -93,6 +93,11 @@ export function SiteControls() {
   `usePicodashProviderSelector`, imperative provider access through `usePicodashProviderStoreApi`, or
   contextual panel access through `usePicodashPanelSelector` / `usePicodashPanelStoreApi`.
 - Use `@picodash/panel/ui` for shared `aria-rhea` Button, Card, Tabs, overlay, and form primitives.
+- Use the package's complete `dark` and `light` themes directly, or use `theme="system"` to follow
+  `prefers-color-scheme` and its changes.
+- Define custom themes by overriding semantic `--picodash-*` tokens under
+  `data-picodash-theme`, and use `PicodashProvider<'brand' | 'contrast'>` when strict custom theme
+  names are useful.
 - Do not use `usePicodashPanel(panelId)` to discover panel values. Panel data remains owned by the
   store passed to `PicodashPanel`.
 - Preserve corner strings for legacy `defaultPlacement` usage. Use the placement object for new
@@ -133,7 +138,7 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 
 `apps/web` route topology:
 
-- `/`, `/store`, `/usage`, `/more-examples`
+- `/`, `/store`, `/usage`, `/more-examples`, `/themes`
 - `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` (debugging-only)
 - `/panel-geometry-lab` (debugging-only) and not-found fallback.
 
