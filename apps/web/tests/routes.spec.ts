@@ -24,7 +24,17 @@ test('routes home tabs without recreating the persistent demo shell', async ({ p
 
   await page.getByRole('tab', { name: 'Themes' }).click()
   await expect(page).toHaveURL('/themes')
-  await expect(page.getByRole('heading', { name: 'Themes you can read and reuse' })).toBeVisible()
+  await expect(page.locator('[data-theme-guide]')).toBeVisible()
+})
+
+test('keeps all home tabs reachable on narrow screens', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 })
+  await page.goto('/')
+
+  const tabList = page.getByRole('tablist', { name: 'Interactive example views' })
+  await expect(tabList).toHaveCSS('overflow-x', 'auto')
+  await page.getByRole('tab', { name: 'Themes' }).click()
+  await expect(page).toHaveURL('/themes')
 })
 
 test('exposes each state lab tab as a route', async ({ page }) => {

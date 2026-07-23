@@ -199,7 +199,7 @@ test('renders the high-contrast example on the panel only', async ({ page }) => 
     await contrastSelect.evaluate((element) =>
       getComputedStyle(element).getPropertyValue('--picodash-color-text'),
     ),
-  ).toMatch(/rgb\(0 0 0\)/)
+  ).toMatch(/(?:rgb\(0 0 0\)|#000)/)
   expect(
     await page
       .locator('[data-theme-guide]')
