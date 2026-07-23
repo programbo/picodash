@@ -9,22 +9,22 @@ Monorepo for the promoted [Picodash] package and its web showcase apps (`apps/we
 
 - `packages/panel`: published package API for application-owned inspector panels.
 - `apps/web`: canonical Next.js app-router showcase for the same interactive product experiences.
-- `apps/website`: legacy Vite showcase with a reduced route surface.
+- `apps/website`: deprecated Vite showcase retained for debugging workflows.
 
 ### `apps/web` route topology
 
-- `/` and `/gallery` render the gallery root (with `/gallery` redirecting to `/`).
+- `/` renders the gallery root.
 - `/store`, `/usage`, `/more-examples` render gallery detail routes.
 - `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` are debugging-only routes.
 - `/panel-geometry-lab` is a debugging-only route.
 - unknown paths render the app's 404 page.
 
 - `apps/web` is the canonical Next.js route-based app with the full route topology.
-- `apps/website` is legacy and supports its existing route subset (`/`, `/gallery`, `/state-lab`, `/panel-geometry-lab`) with debugging-only surfaces and unknown-path fallback.
+- `apps/website` is deprecated and supports only its root and debugging route subset (`/`, `/state-lab`, `/panel-geometry-lab`) with unknown-path fallback.
 
 ### `apps/website` route subset
 
-- `/` and `/gallery` (alias) render the gallery route.
+- `/` renders the gallery route.
 - `/state-lab` and `/panel-geometry-lab` are debugging-only routes.
 - `/demo` is deprecated legacy and not an active route/API in this workspace.
 

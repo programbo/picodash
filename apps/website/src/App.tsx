@@ -214,7 +214,6 @@ function resolveProductRoute(pathname: string): ProductRoute {
 
   switch (normalizedPathname) {
     case '/':
-    case '/gallery':
       return 'gallery'
     case '/state-lab':
       return 'state-lab'

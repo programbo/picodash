@@ -8,11 +8,11 @@ A composable React inspector-panel package with application-owned state, synchro
 The workspace website surface is split by app:
 
 - `apps/web`: Next.js App Router source app for public docs and route-based topology.
-- `apps/website`: legacy Vite source app with a reduced route set.
+- `apps/website`: deprecated Vite source app retained for debugging workflows.
 
 `apps/web` route topology:
 
-- `/` and `/gallery` (redirect) render the gallery root.
+- `/` renders the gallery root.
 - `/store`, `/usage`, `/more-examples` render gallery routes.
 - `/panel-geometry-lab` is a debugging-only route for layout geometry fixtures.
 - `/state-lab/{provider,scene,built-in-items,custom-items}` are debugging-only state-lab routes.
@@ -22,7 +22,7 @@ The workspace website surface is split by app:
 
 `apps/website` route subset:
 
-- `/` and `/gallery` (alias) render the gallery route.
+- `/` renders the gallery route.
 - `/state-lab` and `/panel-geometry-lab` are debugging-only routes.
 - unknown paths render the legacy 404.
 
