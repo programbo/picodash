@@ -22,7 +22,7 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 ## Repository Topology
 
 - `packages/panel`: the promoted public package and default API surface.
-- `apps/web`: Next.js app-router source of the same interactive gallery and State Lab experiences.
+- `apps/web`: Next.js app-router source of the same interactive home and State Lab experiences.
 
 `apps/web` routes: `/`, `/store`, `/usage`, `/themes`, `/more-examples`, `/state-lab/{provider,scene,built-in-items,custom-items}`,
 `/panel-geometry-lab` (debugging-only), and 404.

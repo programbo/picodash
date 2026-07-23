@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
 
-test('routes gallery tabs without recreating the persistent demo shell', async ({ page }) => {
+test('routes home tabs without recreating the persistent demo shell', async ({ page }) => {
   await page.goto('/')
 
   const shell = page.locator('[data-persistent-demo-shell]')
-  await expect(shell).toHaveAttribute('data-product-route', 'gallery')
+  await expect(shell).toHaveAttribute('data-product-route', 'home')
   await shell.evaluate((element) => element.setAttribute('data-persistence-probe', 'kept'))
 
   await page.getByRole('tab', { name: 'Store' }).click()
@@ -58,9 +58,9 @@ test('resolves system theme changes from the browser color scheme', async ({ pag
   await page.emulateMedia({ colorScheme: 'light' })
   await page.goto('/state-lab/provider?providerTheme=system')
 
-  expect(await page.evaluate(() => window.matchMedia('(prefers-color-scheme: light)').matches)).toBe(
-    true,
-  )
+  expect(
+    await page.evaluate(() => window.matchMedia('(prefers-color-scheme: light)').matches),
+  ).toBe(true)
 
   const providerTheme = page.locator('[data-demo-provider-theme]')
   await expect(providerTheme).toHaveAttribute('data-demo-provider-theme', 'light')
@@ -83,5 +83,5 @@ test('preserves the route boundary, geometry fixtures, and the not-found page', 
   const response = await page.goto('/missing-page')
   expect(response?.status()).toBe(404)
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Open gallery' })).toHaveAttribute('href', '/')
+  await expect(page.getByRole('link', { name: 'Open home' })).toHaveAttribute('href', '/')
 })

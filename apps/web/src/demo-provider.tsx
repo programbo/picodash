@@ -58,13 +58,15 @@ export function DemoProvider({
     defaultBuiltInItemsExampleConfig,
   )
   const themes = mergeThemes(initialThemes, themeOverrides)
-  const route = pathname.startsWith('/state-lab') ? 'state-lab' : 'gallery'
+  const route = pathname.startsWith('/state-lab') ? 'state-lab' : 'home'
 
   useEffect(() => {
     if (initialThemes.provider !== undefined) return
 
     try {
-      const persistedTheme = normalizeDemoTheme(window.localStorage.getItem(providerThemeStorageKey))
+      const persistedTheme = normalizeDemoTheme(
+        window.localStorage.getItem(providerThemeStorageKey),
+      )
       if (!persistedTheme) return
 
       setThemeOverrides((current) =>
@@ -113,7 +115,7 @@ export function DemoProvider({
       <main
         id="main-content"
         className={
-          route === 'gallery'
+          route === 'home'
             ? 'dark bg-background text-foreground relative h-svh overflow-hidden'
             : 'dark bg-background text-foreground relative min-h-svh overflow-x-hidden'
         }
