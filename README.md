@@ -140,8 +140,8 @@ function App() {
 }
 ```
 
-The generic extends the built-in `dark`, `light`, and `system` options. The gallery's `ocean` and
-`plum` recipes are demo-only examples, not package-provided themes.
+The generic extends the built-in `dark`, `light`, and `system` options. The gallery's `ocean`,
+`plum`, `cyber`, and `contrast` recipes are demo-only examples, not package-provided themes.
 
 ### Panel visibility and activation
 

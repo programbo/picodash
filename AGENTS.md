@@ -46,7 +46,7 @@ registration flow is retired.
 theme="system"` follows `prefers-color-scheme` and reacts to preference changes. Consumers define
 named themes by overriding semantic `--picodash-*` tokens under `data-picodash-theme`; the provider
 can take a generic custom theme union such as `PicodashProvider<'brand' | 'contrast'>`.
-The web gallery's `ocean` and `plum` recipes are demo-only.
+The web gallery's `ocean`, `plum`, `cyber`, and `contrast` recipes are demo-only.
 
 Panel placement supports floating, magnetic, and fixed modes. `PicodashPanelSnapPosition` names
 magnetic edges, while fixed docking uses the six side/corner positions. `usePicodashPanel` owns

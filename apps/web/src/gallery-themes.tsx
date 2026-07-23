@@ -2,6 +2,7 @@
 
 import hljs from 'highlight.js/lib/core'
 import css from 'highlight.js/lib/languages/css'
+import typescript from 'highlight.js/lib/languages/typescript'
 import { Check, Copy } from 'lucide-react'
 import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { usePicodashTheme } from '@picodash/panel'
@@ -10,9 +11,10 @@ import { GalleryFrame } from '@/gallery-frame'
 import { cn } from '@/lib/utils'
 
 hljs.registerLanguage('css', css)
+hljs.registerLanguage('typescript', typescript)
 
 type ThemeFamily = 'builtin' | 'custom'
-type ThemeId = 'dark' | 'light' | 'system' | 'ocean' | 'plum'
+type ThemeId = 'contrast' | 'cyber' | 'dark' | 'light' | 'system' | 'ocean' | 'plum'
 
 type ThemeDefinition = {
   family: ThemeFamily
@@ -144,9 +146,165 @@ const themeDefinitions: readonly ThemeDefinition[] = [
   --picodash-radius-control: 9px;
 }`,
   },
+  {
+    family: 'custom',
+    id: 'cyber',
+    label: 'Cyber',
+    source: `:where([data-picodash-panel][data-picodash-theme='cyber']) {
+  color-scheme: dark;
+  --picodash-color-canvas: oklch(0.12 0 0);
+  --picodash-color-surface: oklch(0.16 0 0);
+  --picodash-color-surface-raised: oklch(0.2 0 0);
+  --picodash-color-surface-muted: oklch(0.24 0 0);
+  --picodash-color-text: oklch(0.98 0 0);
+  --picodash-color-text-strong: oklch(1 0 0);
+  --picodash-color-text-muted: oklch(0.9 0 0);
+  --picodash-opacity-muted: 0.9;
+  --picodash-opacity-subtle: 0.7;
+  --picodash-color-border: oklch(1 0 0 / 32%);
+  --picodash-color-control: oklch(1 0 0 / 16%);
+  --picodash-color-focus: oklch(0.78 0.22 195);
+  --picodash-color-accent: oklch(0.78 0.22 195);
+  --picodash-color-accent-text: oklch(0.12 0 0);
+  --picodash-color-success: oklch(0.82 0.22 145);
+  --picodash-color-info: oklch(0.78 0.22 195);
+  --picodash-color-warning: oklch(0.88 0.2 95);
+  --picodash-color-alert: oklch(0.78 0.22 55);
+  --picodash-color-danger: oklch(0.72 0.28 330);
+  --picodash-color-overlay: oklch(0.12 0 0 / 92%);
+  --picodash-radius-surface: 0;
+  --picodash-radius-control: 0;
+  --picodash-shadow-panel: 0 25px 50px -12px oklch(0 0 0 / 65%), 0 0 2rem oklch(0.78 0.22 195 / 22%);
+  --picodash-shadow-viewer: 0 25px 50px -12px oklch(0 0 0 / 72%);
+  --picodash-shadow-inner: inset 0 2px 4px oklch(0 0 0 / 45%);
+  --picodash-theme-font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', monospace;
+  --picodash-font-family: var(--picodash-theme-font-family);
+  --picodash-theme-border-shadow: 0 0 0.35rem oklch(0.78 0.22 195 / 92%), 0 0 1rem oklch(0.78 0.22 195 / 58%), 0 0 1.5rem oklch(0.72 0.28 330 / 38%);
+  --picodash-theme-text-shadow: 0 0 0.35rem oklch(0.78 0.22 195 / 95%), 0 0 1.25rem oklch(0.78 0.22 195 / 62%);
+  --picodash-theme-heading-shadow: 0 0 0.3rem oklch(1 0 0 / 95%), 0 0 0.8rem oklch(0.78 0.22 195 / 92%), 0 0 1.8rem oklch(0.72 0.28 330 / 62%);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) :is(h1, h2, h3, [data-picodash-theme-text]) {
+  font-family: var(--picodash-theme-font-family);
+  letter-spacing: 0.045em;
+  text-shadow: var(--picodash-theme-heading-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) [data-item-id] {
+  text-shadow: none;
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) [data-item-id] :is(label, output, button, input, textarea, [data-slot='select-value'], .text-picodash-strong) {
+  text-shadow: var(--picodash-theme-text-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) label {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) [data-item-id='segmented'] [data-slot='toggle-group'] {
+  overflow: visible;
+  box-shadow: var(--picodash-theme-border-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) .text-picodash-strong {
+  text-shadow: var(--picodash-theme-text-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) .font-mono {
+  font-family: var(--picodash-theme-font-family);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) .border-picodash-border {
+  box-shadow: var(--picodash-theme-border-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) [data-interactive-tabs] {
+  border-color: oklch(1 0 0 / 55%);
+  box-shadow: var(--picodash-theme-border-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) :is(.recharts-cartesian-axis-tick-value, .recharts-polar-angle-axis-tick-value, .recharts-polar-radius-axis-tick-value) {
+  fill: var(--picodash-color-text-strong);
+}`,
+  },
+  {
+    family: 'custom',
+    id: 'contrast',
+    label: 'Contrast',
+    source: `:where(
+  [data-picodash-panel][data-picodash-theme='contrast'],
+  [data-picodash-panel][data-picodash-theme='contrast'] [data-picodash-theme='contrast']
+) {
+  color-scheme: light;
+  --picodash-theme-font-family: 'Avenir Next', Avenir, 'Trebuchet MS', sans-serif;
+  --picodash-font-family: var(--picodash-theme-font-family);
+  --picodash-color-canvas: rgb(255 255 255);
+  --picodash-color-surface: rgb(255 255 255);
+  --picodash-color-surface-raised: rgb(250 250 250);
+  --picodash-color-surface-muted: rgb(238 238 238);
+  --picodash-color-text: rgb(0 0 0);
+  --picodash-color-text-strong: rgb(0 0 0);
+  --picodash-color-text-muted: rgb(54 54 54);
+  --picodash-color-border: rgb(0 0 0);
+  --picodash-color-control: rgb(0 0 0 / 72%);
+  --picodash-color-focus: rgb(0 76 153);
+  --picodash-color-accent: rgb(0 0 0);
+  --picodash-color-accent-text: rgb(255 255 255);
+  --picodash-color-success: rgb(0 104 56);
+  --picodash-color-info: rgb(0 76 153);
+  --picodash-color-warning: rgb(128 72 0);
+  --picodash-color-alert: rgb(142 36 0);
+  --picodash-color-danger: rgb(144 0 0);
+  --picodash-color-overlay: rgb(255 255 255 / 92%);
+  --picodash-radius-surface: 0;
+  --picodash-radius-control: 0;
+  --picodash-shadow-panel: 6px 6px 0 rgb(0 0 0);
+  --picodash-shadow-viewer: 8px 8px 0 rgb(0 0 0);
+  --picodash-shadow-inner: inset 0 0 0 1px rgb(0 0 0 / 14%);
+  --picodash-theme-border-shadow: 3px 3px 0 rgb(0 0 0 / 82%);
+  --picodash-theme-text-shadow: 1px 1px 0 rgb(0 0 0 / 30%);
+  --picodash-theme-heading-shadow: 2px 2px 0 rgb(0 0 0 / 28%);
+}
+
+:where([data-picodash-panel][data-picodash-theme='contrast']) :is(h1, h2, h3, [data-picodash-theme-text]) {
+  font-family: var(--picodash-theme-font-family);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-shadow: var(--picodash-theme-heading-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='contrast']) :is(.text-picodash-text, .text-picodash-strong) {
+  font-weight: 800;
+  text-shadow: var(--picodash-theme-text-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='contrast']) .font-mono {
+  font-family: var(--picodash-theme-font-family);
+  font-weight: 700;
+}
+
+:where([data-picodash-panel][data-picodash-theme='contrast']) .border-picodash-border {
+  box-shadow: var(--picodash-theme-border-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='contrast']) [data-interactive-tabs] {
+  border-color: rgb(0 0 0);
+  box-shadow: var(--picodash-theme-border-shadow);
+}`,
+  },
 ]
 
 const colorFunctionPattern = /(?:oklch|rgb)\([^)]*\)/g
+const highlightedCodeClasses = [
+  '[&_.hljs-attr]:text-sky-200 [&_.hljs-built_in]:text-cyan-200',
+  '[&_.hljs-class_]:text-cyan-200 [&_.hljs-comment]:text-zinc-500',
+  '[&_.hljs-keyword]:text-violet-300 [&_.hljs-literal]:text-rose-300',
+  '[&_.hljs-meta]:text-violet-200 [&_.hljs-number]:text-rose-200',
+  '[&_.hljs-string]:text-amber-200 [&_.hljs-title.function]:text-cyan-200',
+  '[&_.hljs-type]:text-cyan-200',
+].join(' ')
 
 export function GalleryThemes() {
   const { setProviderTheme, themes } = useDemoContext()
@@ -156,7 +314,6 @@ export function GalleryThemes() {
     themeDefinitions.find((theme) => theme.id === 'dark')!
   const currentTheme = themeDefinitionFor(resolvedProviderTheme) ?? themeDefinitions[0]
   const selectedThemeId = (themes.provider ?? 'dark') as ThemeId
-  const family = themeFamilyFor(selectedThemeId)
   const [copyStatus, setCopyStatus] = useState<'copied' | 'error' | 'idle'>('idle')
 
   const selectTheme = (theme: ThemeDefinition) => {
@@ -208,18 +365,7 @@ export function GalleryThemes() {
           </aside>
 
           <article className="min-w-0">
-            <header className="border-b border-white/10 pb-8">
-              <p className="font-mono text-[11px] tracking-[0.18em] text-emerald-200 uppercase">
-                {family === 'builtin' ? 'Package recipes' : 'Consumer recipes'}
-              </p>
-              <h1 className="mt-3 text-2xl font-medium tracking-tight text-zinc-50 sm:text-3xl">
-                Themes you can read and reuse
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-                Every swatch is a real value from the CSS below. Choose a surface, then copy the
-                semantic token recipe into your own stylesheet.
-              </p>
-            </header>
+            <ThemeSetupGuide />
 
             <section className="relative mt-8 min-w-0" data-theme-code>
               <button
@@ -250,6 +396,64 @@ export function GalleryThemes() {
         </div>
       </div>
     </GalleryFrame>
+  )
+}
+
+function ThemeSetupGuide() {
+  const cssLines = [
+    '/* app.css */',
+    '/* after @picodash/panel/style.css */',
+    ":where([data-picodash-theme='brand']) {",
+    '  --picodash-color-accent:',
+    '    oklch(0.72 0.14 190);',
+    '}',
+  ]
+  const providerLines = [
+    '// provider.tsx — add the custom name',
+    "type AppTheme = 'brand'",
+    '',
+    '<PicodashProvider<AppTheme> theme="brand">',
+    '  {children}',
+    '</PicodashProvider>',
+  ]
+
+  return (
+    <header className="border-b border-white/10 pb-8" data-theme-guide>
+      <p className="max-w-2xl text-sm leading-6 text-zinc-300">
+        Put your semantic token recipe in the app stylesheet after the Picodash stylesheet. Add the
+        custom name to the provider’s TypeScript union, then pass it to the <code>theme</code> prop.
+      </p>
+      <div className="mt-5 grid gap-px overflow-hidden border border-white/10 bg-white/10 sm:grid-cols-2">
+        <div className="min-w-0 bg-black/25 p-3 sm:p-4">
+          <p className="mb-2 font-mono text-[10px] tracking-[0.16em] text-emerald-200 uppercase">
+            CSS · app stylesheet
+          </p>
+          <pre className="min-w-0 overflow-x-auto font-mono text-[11px] leading-5 text-zinc-300">
+            <code className={cn('block min-w-max', highlightedCodeClasses)}>
+              {cssLines.map((line, index) => (
+                <span key={`${line}-${index}`} className="block min-h-5">
+                  {renderHighlightedLine(line)}
+                </span>
+              ))}
+            </code>
+          </pre>
+        </div>
+        <div className="min-w-0 bg-black/25 p-3 sm:p-4">
+          <p className="mb-2 font-mono text-[10px] tracking-[0.16em] text-emerald-200 uppercase">
+            TypeScript · provider
+          </p>
+          <pre className="min-w-0 overflow-x-auto font-mono text-[11px] leading-5 text-zinc-300">
+            <code className={cn('block min-w-max', highlightedCodeClasses)}>
+              {providerLines.map((line, index) => (
+                <span key={`${line}-${index}`} className="block min-h-5">
+                  {line ? renderHighlightedLine(line, 'typescript') : '\u00a0'}
+                </span>
+              ))}
+            </code>
+          </pre>
+        </div>
+      </div>
+    </header>
   )
 }
 
@@ -313,16 +517,7 @@ function ThemeCodeBlock({ source }: { source: string }) {
 
   return (
     <pre className="min-w-0 overflow-x-auto border border-white/10 bg-black/25 p-3 font-mono text-xs leading-6 text-zinc-300 sm:p-4">
-      <code
-        className={cn(
-          'block min-w-max',
-          '[&_.hljs-attr]:text-sky-200 [&_.hljs-built_in]:text-cyan-200',
-          '[&_.hljs-comment]:text-zinc-600 [&_.hljs-keyword]:text-violet-300',
-          '[&_.hljs-literal]:text-rose-300 [&_.hljs-number]:text-rose-200',
-          '[&_.hljs-string]:text-amber-200 [&_.hljs-title.function]:text-cyan-200',
-          '[&_.hljs-type]:text-cyan-200',
-        )}
-      >
+      <code className={cn('block min-w-max', highlightedCodeClasses)}>
         {sourceLines.map((line, index) => (
           <span key={`${line}-${index}`} className="block min-h-6">
             {renderHighlightedLine(line)}
@@ -333,12 +528,12 @@ function ThemeCodeBlock({ source }: { source: string }) {
   )
 }
 
-function renderHighlightedLine(line: string) {
+function renderHighlightedLine(line: string, language = 'css') {
   const fragments: ReactNode[] = []
   let cursor = 0
   let colorIndex = 0
 
-  for (const match of line.matchAll(colorFunctionPattern)) {
+  for (const match of language === 'css' ? line.matchAll(colorFunctionPattern) : []) {
     const color = match[0]
     const start = match.index ?? cursor
     const before = line.slice(cursor, start)
@@ -350,7 +545,7 @@ function renderHighlightedLine(line: string) {
       fragments.push(
         <span
           key={`prefix-${start}`}
-          dangerouslySetInnerHTML={{ __html: hljs.highlight(prefix, { language: 'css' }).value }}
+          dangerouslySetInnerHTML={{ __html: hljs.highlight(prefix, { language }).value }}
         />,
       )
     }
@@ -366,7 +561,7 @@ function renderHighlightedLine(line: string) {
       />,
       <span
         key={`color-${start}`}
-        dangerouslySetInnerHTML={{ __html: hljs.highlight(color, { language: 'css' }).value }}
+        dangerouslySetInnerHTML={{ __html: hljs.highlight(color, { language }).value }}
       />,
     )
     cursor = start + color.length
@@ -378,7 +573,7 @@ function renderHighlightedLine(line: string) {
     fragments.push(
       <span
         key="remainder"
-        dangerouslySetInnerHTML={{ __html: hljs.highlight(remainder, { language: 'css' }).value }}
+        dangerouslySetInnerHTML={{ __html: hljs.highlight(remainder, { language }).value }}
       />,
     )
   }
@@ -413,10 +608,6 @@ function serverSystemColorScheme(): 'dark' {
 
 function themeDefinitionFor(theme: string) {
   return themeDefinitions.find((definition) => definition.id === theme)
-}
-
-function themeFamilyFor(theme: ThemeId): ThemeFamily {
-  return themeDefinitions.find((definition) => definition.id === theme)?.family ?? 'builtin'
 }
 
 function colorSwatchesForSource(source: string) {

@@ -179,3 +179,162 @@
   --picodash-radius-surface: 12px;
   --picodash-radius-control: 9px;
 }
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) {
+  color-scheme: dark;
+  --picodash-theme-font-family:
+    ui-monospace, 'SFMono-Regular', 'Cascadia Code', 'Roboto Mono', monospace;
+  --picodash-font-family: var(--picodash-theme-font-family);
+  --picodash-color-canvas: oklch(0.12 0 0);
+  --picodash-color-surface: oklch(0.16 0 0);
+  --picodash-color-surface-raised: oklch(0.2 0 0);
+  --picodash-color-surface-muted: oklch(0.24 0 0);
+  --picodash-opacity-muted: 0.9;
+  --picodash-opacity-subtle: 0.7;
+  --picodash-color-text: oklch(0.98 0 0);
+  --picodash-color-text-strong: oklch(1 0 0);
+  --picodash-color-text-muted: oklch(0.9 0 0);
+  --picodash-color-border: oklch(1 0 0 / 32%);
+  --picodash-color-control: oklch(1 0 0 / 16%);
+  --picodash-color-focus: oklch(0.78 0.22 195);
+  --picodash-color-accent: oklch(0.78 0.22 195);
+  --picodash-color-accent-text: oklch(0.12 0 0);
+  --picodash-color-success: oklch(0.82 0.22 145);
+  --picodash-color-info: oklch(0.78 0.22 195);
+  --picodash-color-warning: oklch(0.88 0.2 95);
+  --picodash-color-alert: oklch(0.78 0.22 55);
+  --picodash-color-danger: oklch(0.72 0.28 330);
+  --picodash-color-overlay: oklch(0.12 0 0 / 92%);
+  --picodash-radius-surface: 0;
+  --picodash-radius-control: 0;
+  --picodash-shadow-panel:
+    0 25px 50px -12px oklch(0 0 0 / 65%), 0 0 2rem oklch(0.78 0.22 195 / 22%);
+  --picodash-shadow-viewer: 0 25px 50px -12px oklch(0 0 0 / 72%);
+  --picodash-shadow-inner: inset 0 2px 4px oklch(0 0 0 / 45%);
+  --picodash-theme-border-shadow:
+    0 0 0.35rem oklch(0.78 0.22 195 / 92%), 0 0 1rem oklch(0.78 0.22 195 / 58%),
+    0 0 1.5rem oklch(0.72 0.28 330 / 38%);
+  --picodash-theme-text-shadow:
+    0 0 0.35rem oklch(0.78 0.22 195 / 95%), 0 0 1.25rem oklch(0.78 0.22 195 / 62%);
+  --picodash-theme-heading-shadow:
+    0 0 0.3rem oklch(1 0 0 / 95%), 0 0 0.8rem oklch(0.78 0.22 195 / 92%),
+    0 0 1.8rem oklch(0.72 0.28 330 / 62%);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber'])
+  :is(h1, h2, h3, [data-picodash-theme-text]) {
+  font-family: var(--picodash-theme-font-family);
+  letter-spacing: 0.045em;
+  text-shadow: var(--picodash-theme-heading-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) [data-item-id] {
+  text-shadow: none;
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber'])
+  [data-item-id]
+  :is(label, output, button, input, textarea, [data-slot='select-value'], .text-picodash-strong) {
+  text-shadow: var(--picodash-theme-text-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) label {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber'])
+  [data-item-id='segmented']
+  [data-slot='toggle-group'] {
+  overflow: visible;
+  box-shadow: var(--picodash-theme-border-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) .text-picodash-strong {
+  text-shadow: var(--picodash-theme-text-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) .font-mono {
+  font-family: var(--picodash-theme-font-family);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) .border-picodash-border {
+  box-shadow: var(--picodash-theme-border-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber']) [data-interactive-tabs] {
+  border-color: oklch(1 0 0 / 55%);
+  box-shadow: var(--picodash-theme-border-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='cyber'])
+  :is(
+    .recharts-cartesian-axis-tick-value,
+    .recharts-polar-angle-axis-tick-value,
+    .recharts-polar-radius-axis-tick-value
+  ) {
+  fill: var(--picodash-color-text-strong);
+}
+
+:where(
+  [data-picodash-panel][data-picodash-theme='contrast'],
+  [data-picodash-panel][data-picodash-theme='contrast'] [data-picodash-theme='contrast']
+) {
+  color-scheme: light;
+  --picodash-theme-font-family: 'Avenir Next', Avenir, 'Trebuchet MS', sans-serif;
+  --picodash-font-family: var(--picodash-theme-font-family);
+  --picodash-color-canvas: rgb(255 255 255);
+  --picodash-color-surface: rgb(255 255 255);
+  --picodash-color-surface-raised: rgb(250 250 250);
+  --picodash-color-surface-muted: rgb(238 238 238);
+  --picodash-color-text: rgb(0 0 0);
+  --picodash-color-text-strong: rgb(0 0 0);
+  --picodash-color-text-muted: rgb(54 54 54);
+  --picodash-color-border: rgb(0 0 0);
+  --picodash-color-control: rgb(0 0 0 / 72%);
+  --picodash-color-focus: rgb(0 76 153);
+  --picodash-color-accent: rgb(0 0 0);
+  --picodash-color-accent-text: rgb(255 255 255);
+  --picodash-color-success: rgb(0 104 56);
+  --picodash-color-info: rgb(0 76 153);
+  --picodash-color-warning: rgb(128 72 0);
+  --picodash-color-alert: rgb(142 36 0);
+  --picodash-color-danger: rgb(144 0 0);
+  --picodash-color-overlay: rgb(255 255 255 / 92%);
+  --picodash-radius-surface: 0;
+  --picodash-radius-control: 0;
+  --picodash-shadow-panel: 6px 6px 0 rgb(0 0 0);
+  --picodash-shadow-viewer: 8px 8px 0 rgb(0 0 0);
+  --picodash-shadow-inner: inset 0 0 0 1px rgb(0 0 0 / 14%);
+  --picodash-theme-border-shadow: 3px 3px 0 rgb(0 0 0 / 82%);
+  --picodash-theme-text-shadow: 1px 1px 0 rgb(0 0 0 / 30%);
+  --picodash-theme-heading-shadow: 2px 2px 0 rgb(0 0 0 / 28%);
+}
+
+:where([data-picodash-panel][data-picodash-theme='contrast'])
+  :is(h1, h2, h3, [data-picodash-theme-text]) {
+  font-family: var(--picodash-theme-font-family);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-shadow: var(--picodash-theme-heading-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='contrast'])
+  :is(.text-picodash-text, .text-picodash-strong) {
+  font-weight: 800;
+  text-shadow: var(--picodash-theme-text-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='contrast']) .font-mono {
+  font-family: var(--picodash-theme-font-family);
+  font-weight: 700;
+}
+
+:where([data-picodash-panel][data-picodash-theme='contrast']) .border-picodash-border {
+  box-shadow: var(--picodash-theme-border-shadow);
+}
+
+:where([data-picodash-panel][data-picodash-theme='contrast']) [data-interactive-tabs] {
+  border-color: rgb(0 0 0);
+  box-shadow: var(--picodash-theme-border-shadow);
+}
