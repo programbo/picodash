@@ -5,14 +5,14 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@picodash/panel/ui'
 import { useDemoContext } from '@/demo-provider'
 
-export type GalleryTab = 'code' | 'more-examples' | 'store' | 'usage'
+export type HomeTab = 'code' | 'more-examples' | 'store' | 'usage'
 
-export function GalleryFrame({
+export function HomeFrame({
   activeTab,
   children,
   toolbar,
 }: {
-  activeTab: GalleryTab
+  activeTab: HomeTab
   children: ReactNode
   toolbar: ReactNode
 }) {
@@ -30,9 +30,7 @@ export function GalleryFrame({
           className="min-w-0 gap-0 overflow-hidden border border-white/12 bg-zinc-950/78 shadow-2xl shadow-black/35 backdrop-blur-xl"
           data-interactive-tabs
           selectedKey={activeTab}
-          onSelectionChange={(key) =>
-            router.push(withCurrentSearch(pathForGalleryTab(String(key))))
-          }
+          onSelectionChange={(key) => router.push(withCurrentSearch(pathForHomeTab(String(key))))}
         >
           <div className="flex flex-col gap-2 border-b border-white/10 bg-white/4 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <TabsList
@@ -81,7 +79,7 @@ export function GalleryFrame({
   )
 }
 
-export function GalleryTextToolbar() {
+export function HomeTextToolbar() {
   return (
     <span className="self-end font-mono text-[11px] text-zinc-500 sm:self-auto">
       React + TypeScript
@@ -89,7 +87,7 @@ export function GalleryTextToolbar() {
   )
 }
 
-function pathForGalleryTab(tab: string) {
+function pathForHomeTab(tab: string) {
   switch (tab) {
     case 'store':
       return '/store'

@@ -14,7 +14,7 @@ export default function NotFound() {
             Page not found
           </h1>
           <p className="text-muted-foreground">
-            That Picodash page does not exist. Return to the interactive gallery.
+            That Picodash page does not exist. Return to the Picodash home page.
           </p>
         </div>
         <nav aria-label="Page not found">
@@ -22,7 +22,7 @@ export default function NotFound() {
             className="bg-primary text-primary-foreground inline-flex h-9 items-center px-4 text-sm font-medium"
             href="/"
           >
-            Open gallery
+            Open home
           </Link>
         </nav>
       </section>
