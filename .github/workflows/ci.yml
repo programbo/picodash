@@ -38,7 +38,7 @@ jobs:
         run: bun audit --audit-level=high
 
       - name: Run lint, type-check, and unit tests
-        run: vp check && vp run -r test
+        run: vp run @picodash/panel#build && vp check && vp run -r test
 
   e2e:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -64,7 +64,11 @@ jobs:
         run: bun run --cwd apps/website playwright install --with-deps chromium
 
       - name: Build and run E2E tests
-        run: vp run -r build && bun run --filter website test:e2e
+        run: >-
+          vp run @picodash/panel#build &&
+          vp run @picodash/web#build &&
+          vp run website#build &&
+          bun run --filter website test:e2e
 
       - name: Upload Playwright artifacts
         if: failure()
