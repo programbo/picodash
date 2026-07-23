@@ -82,7 +82,7 @@ in `RELEASING.md`.
 This worktree is in the `picodash` port registry range `6030-6039`.
 
 - `6030-6034`: available for additional local services.
-- `6035`: this worktree override via `WEBSITE_PORT` for web app dev/check/test.
+- `6035`: this worktree override via `WEBSITE_PORT` for web development and the Playwright/E2E server.
 - `6036`: this worktree production start server.
 - `6037-6039`: available for future local services.
 
