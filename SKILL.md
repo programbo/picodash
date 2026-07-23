@@ -9,7 +9,8 @@ This workspace uses the promoted `@picodash/panel` API only.
 
 The workspace website serves the canonical interactive control gallery at `/` (Next app routes listed below),
 with `/state-lab` and `/panel-geometry-lab` reserved for debugging workflows.
-Legacy `apps/website` supports only the public root-aligned gallery routes (`/` and `/gallery`).
+Legacy `apps/website` supports the public root-aligned gallery routes (`/`, `/gallery`) plus debugging-only
+`/state-lab` and `/panel-geometry-lab`.
 `/demo` is deprecated legacy and is not an active route or API surface.
 
 ## Preferred Imports
@@ -141,7 +142,7 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 
 `apps/website` route subset:
 
-- `/`, `/gallery` (compatibility redirect), and not-found fallback.
+- `/`, `/gallery` (alias), `/state-lab` (debugging-only), `/panel-geometry-lab` (debugging-only), and not-found fallback.
 
 ## Local Development
 

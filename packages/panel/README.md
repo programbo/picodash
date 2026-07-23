@@ -22,8 +22,8 @@ The workspace website surface is split by app:
 
 `apps/website` route subset:
 
-- `/` and `/gallery` render the gallery route.
-- no `/state-lab` or `/panel-geometry-lab` debug routes are part of the legacy public subset.
+- `/` and `/gallery` (alias) render the gallery route.
+- `/state-lab` and `/panel-geometry-lab` are debugging-only routes.
 - unknown paths render the legacy 404.
 
 ## Migration boundary

@@ -38,7 +38,7 @@ Workspace pages (canonical `apps/web`):
 `/demo` is deprecated legacy and not an active route or API here.
 
 Legacy `apps/website` route subset:
-- /, /gallery (compatibility redirect)
+- /, /gallery (alias), /state-lab (debugging-only), /panel-geometry-lab (debugging-only)
 
 App surface mapping:
 - apps/web: Next.js route-based source app

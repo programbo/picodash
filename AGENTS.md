@@ -31,7 +31,7 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 
 `apps/website` route subset:
 
-`/`, `/gallery` (redirect), and 404.
+`/`, `/gallery` (alias), `/state-lab` (debugging-only), `/panel-geometry-lab` (debugging-only), and 404.
 
 `/demo` is deprecated legacy and not an active route/API in this workspace.
 

@@ -20,10 +20,12 @@ Monorepo for the promoted [Picodash] package and its web showcase apps (`apps/we
 - unknown paths render the app's 404 page.
 
 - `apps/web` is the canonical Next.js route-based app with the full route topology.
-- `apps/website` is legacy and only supports its existing route subset (`/`, `/gallery`) and unknown-path fallback.
+- `apps/website` is legacy and supports its existing route subset (`/`, `/gallery`, `/state-lab`, `/panel-geometry-lab`) with debugging-only surfaces and unknown-path fallback.
 
 ### `apps/website` route subset
 
+- `/` and `/gallery` (alias) render the gallery route.
+- `/state-lab` and `/panel-geometry-lab` are debugging-only routes.
 - `/demo` is deprecated legacy and not an active route/API in this workspace.
 
 ## Breaking migration notes
