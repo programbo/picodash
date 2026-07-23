@@ -61,14 +61,15 @@ jobs:
             args: ['--frozen-lockfile']
 
       - name: Install Chromium
-        run: bun run --cwd apps/website playwright install --with-deps chromium
+        run: bun run --cwd apps/web playwright install --with-deps chromium
 
       - name: Build and run E2E tests
         run: >-
           vp run @picodash/panel#build &&
           vp run @picodash/web#build &&
           vp run website#build &&
-          bun run --filter website test:e2e
+          bun run --filter website test:e2e &&
+          bun run --filter @picodash/web test:e2e
 
       - name: Upload Playwright artifacts
         if: failure()

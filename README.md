@@ -9,7 +9,7 @@ Monorepo for the promoted [Picodash] package and its web showcase apps (`apps/we
 
 - `packages/panel`: published package API for application-owned inspector panels.
 - `apps/web`: canonical Next.js app-router showcase for the same interactive product experiences.
-- `apps/website`: legacy Vite showcase with the same route shape and feature examples.
+- `apps/website`: legacy Vite showcase with a reduced route surface.
 
 ### `apps/web` route topology
 
@@ -19,7 +19,10 @@ Monorepo for the promoted [Picodash] package and its web showcase apps (`apps/we
 - `/panel-geometry-lab` renders geometry fixture route.
 - unknown paths render the app's 404 page.
 
-Relationship: `apps/web` is the Next.js source app for route-based demos, while `apps/website` remains the existing Vite-based source with the same public route behavior.
+- `apps/web` is the canonical Next.js route-based app with the full route topology.
+- `apps/website` is legacy and only supports its existing route subset (`/`, `/gallery`, `/state-lab`, `/panel-geometry-lab`) and unknown-path fallback.
+
+### `apps/website` route subset
 
 - Legacy `/demo` integration and old schema-driven API are not part of this workspace and should not be documented as active APIs.
 

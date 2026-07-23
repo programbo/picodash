@@ -29,15 +29,18 @@ What it provides:
 - lazy Recharts and react-dropzone implementations behind stable public components
 - import/export and repair flows
 
-Workspace pages:
+Workspace pages (canonical `apps/web`):
 - /, /gallery (compatibility redirect), /store, /usage, /more-examples
 - /state-lab/provider, /state-lab/scene, /state-lab/built-in-items, /state-lab/custom-items
 - /panel-geometry-lab
 - /state-lab (legacy canonical alias in path-mapped source)
 
+Legacy `apps/website` route subset:
+- /, /gallery (compatibility redirect), /state-lab, /panel-geometry-lab
+
 App surface mapping:
 - apps/web: Next.js route-based source app
-- apps/website: legacy Vite source app with matching route behavior
+- apps/website: legacy Vite source app with a reduced route set
 
 Important migration:
 - The old schema-driven registration API and old persistence are retired; map legacy `panel` specifiers to `@picodash/panel` imports.

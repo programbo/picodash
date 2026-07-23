@@ -7,7 +7,8 @@ description: Use the promoted Picodash package with application-owned stores and
 
 This workspace uses the promoted `@picodash/panel` API only.
 
-The workspace website serves the interactive control gallery at `/` and the live store inspector at `/state-lab`.
+The workspace website serves the canonical interactive control gallery at `/` (Next app routes listed below),
+and the legacy `apps/website` surface only supports `/`, `/gallery`, `/state-lab`, and `/panel-geometry-lab`.
 
 ## Preferred Imports
 
@@ -135,6 +136,10 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 - `/`, `/gallery` (compatibility redirect), `/store`, `/usage`, `/more-examples`
 - `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items`
 - `/panel-geometry-lab` and not-found fallback.
+
+`apps/website` route subset:
+
+- `/`, `/gallery` (compatibility redirect), `/state-lab`, `/panel-geometry-lab`, and not-found fallback.
 
 ## Local Development
 

@@ -23,10 +23,14 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 
 - `packages/panel`: the promoted public package and default API surface.
 - `apps/web`: Next.js app-router source of the same interactive gallery and State Lab experiences.
-- `apps/website`: legacy Vite showcase with the same route shape and feature behavior.
+- `apps/website`: legacy Vite showcase with a reduced route set.
 
 `apps/web` routes: `/`, `/store`, `/usage`, `/more-examples`, `/state-lab/{provider,scene,built-in-items,custom-items}`,
 `/panel-geometry-lab`, `/gallery` (redirect), and 404.
+
+`apps/website` route subset:
+
+`/`, `/gallery` (redirect), `/state-lab`, `/panel-geometry-lab`, and 404.
 
 ## Active API Model
 
