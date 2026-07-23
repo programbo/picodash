@@ -7,7 +7,11 @@ description: Use the promoted Picodash package with application-owned stores and
 
 This workspace uses the promoted `@picodash/panel` API only.
 
-The workspace website serves the interactive control gallery at `/` and the live store inspector at `/state-lab`.
+The workspace website serves the canonical interactive control gallery at `/` (Next app routes listed below),
+with `/state-lab` and `/panel-geometry-lab` reserved for debugging workflows.
+Legacy `apps/website` supports the public root-aligned gallery routes (`/`, `/gallery`) plus debugging-only
+`/state-lab` and `/panel-geometry-lab`.
+`/demo` is deprecated legacy and is not an active route or API surface.
 
 ## Preferred Imports
 
@@ -125,16 +129,42 @@ export function SiteControls() {
 
 This repository is on the promoted API. Legacy schema-driven registration and old persistence are not migrated.
 
+## Workspace App Surfaces
+
+- `apps/web` (Next.js): canonical route-based showcase app, started with `bun run web`.
+- `apps/website` (Vite): legacy showcase app, started with `bun run website`.
+
+`apps/web` route topology:
+
+- `/`, `/gallery` (compatibility redirect), `/store`, `/usage`, `/more-examples`
+- `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` (debugging-only)
+- `/panel-geometry-lab` (debugging-only) and not-found fallback.
+
+`apps/website` route subset:
+
+- `/`, `/gallery` (alias), `/state-lab` (debugging-only), `/panel-geometry-lab` (debugging-only), and not-found fallback.
+
 ## Local Development
 
 - `bun install`
 - `bun run dev`
 - `bun run website`
+- `bun run web`
 - `bun run --filter @picodash/panel check`
 - `bun run --filter @picodash/panel test`
 - `bun run --filter website test:e2e`
+- `bun run --filter @picodash/web check`
+- `bun run --filter @picodash/web test:e2e`
 - `bun audit --audit-level=high`
 - `bun run --cwd packages/panel release:check`
 - `bun run ready`
+
+Focused validation:
+
+- `vp run @picodash/panel#build` before workspace-wide checks or builds.
+- `WEBSITE_PORT=6035 bun run web`
+- `WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e`
+- `WEBSITE_PORT=6035 bun run website`
+- `WEBSITE_PORT=6035 bun run --filter website test:e2e`
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`.

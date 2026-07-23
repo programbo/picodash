@@ -1,6 +1,6 @@
 # Picodash
 
-Monorepo for the promoted [Picodash] package and its web showcase (`apps/website`).
+Monorepo for the promoted [Picodash] package and its web showcase apps (`apps/web`, `apps/website`).
 
 > **Public preview:** Picodash is currently available for reading, evaluation, and issue feedback.
 > Pull requests are temporarily disabled while the API and maintenance workflow settle.
@@ -8,8 +8,25 @@ Monorepo for the promoted [Picodash] package and its web showcase (`apps/website
 ## Active product topology
 
 - `packages/panel`: published package API for application-owned inspector panels.
-- `apps/website`: the interactive gallery at `/` and the `/state-lab` demo surface, both built with the promoted package.
-- Legacy `/demo` integration and old schema-driven API are not part of this workspace and should not be documented as active APIs.
+- `apps/web`: canonical Next.js app-router showcase for the same interactive product experiences.
+- `apps/website`: legacy Vite showcase with a reduced route surface.
+
+### `apps/web` route topology
+
+- `/` and `/gallery` render the gallery root (with `/gallery` redirecting to `/`).
+- `/store`, `/usage`, `/more-examples` render gallery detail routes.
+- `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` are debugging-only routes.
+- `/panel-geometry-lab` is a debugging-only route.
+- unknown paths render the app's 404 page.
+
+- `apps/web` is the canonical Next.js route-based app with the full route topology.
+- `apps/website` is legacy and supports its existing route subset (`/`, `/gallery`, `/state-lab`, `/panel-geometry-lab`) with debugging-only surfaces and unknown-path fallback.
+
+### `apps/website` route subset
+
+- `/` and `/gallery` (alias) render the gallery route.
+- `/state-lab` and `/panel-geometry-lab` are debugging-only routes.
+- `/demo` is deprecated legacy and not an active route/API in this workspace.
 
 ## Breaking migration notes
 
@@ -218,19 +235,32 @@ WEBSITE_PORT=6035 bun run --filter website test:e2e
 bun install
 bun run dev
 bun run website
+bun run web
 bun run --filter @picodash/panel check
 bun run --filter @picodash/panel test
 bun run --filter @picodash/panel build
 bun run --filter website test:e2e
+bun run --filter @picodash/web check
+bun run --filter @picodash/web test:e2e
+vp run @picodash/panel#build && bun run --filter @picodash/web build
 bun audit --audit-level=high
 bun run --cwd packages/panel release:check
 bun run ready
 ```
 
+Focused checks:
+
+```bash
+WEBSITE_PORT=6035 bun run web
+WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
+WEBSITE_PORT=6035 bun run website
+WEBSITE_PORT=6035 bun run --filter website test:e2e
+```
+
 `bun run ready` remains the full verification gate:
 
 ```bash
-vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e
+vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e && bun run --filter @picodash/web test:e2e
 ```
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`. The quality job

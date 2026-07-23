@@ -5,7 +5,26 @@ A composable React inspector-panel package with application-owned state, synchro
 > **Public preview:** The package API is still evolving. See the repository's
 > [release policy](https://github.com/programbo/picodash/blob/main/RELEASING.md) before depending on a versioned release.
 
-The workspace website presents the interactive control gallery at `/` and the live store inspector at `/state-lab`.
+The workspace website surface is split by app:
+
+- `apps/web`: Next.js App Router source app for public docs and route-based topology.
+- `apps/website`: legacy Vite source app with a reduced route set.
+
+`apps/web` route topology:
+
+- `/` and `/gallery` (redirect) render the gallery root.
+- `/store`, `/usage`, `/more-examples` render gallery routes.
+- `/panel-geometry-lab` is a debugging-only route for layout geometry fixtures.
+- `/state-lab/{provider,scene,built-in-items,custom-items}` are debugging-only state-lab routes.
+- missing paths render the 404 page.
+
+`/demo` is deprecated legacy and is not an active route or API surface in this workspace.
+
+`apps/website` route subset:
+
+- `/` and `/gallery` (alias) render the gallery route.
+- `/state-lab` and `/panel-geometry-lab` are debugging-only routes.
+- unknown paths render the legacy 404.
 
 ## Migration boundary
 
@@ -245,7 +264,7 @@ available from the main entrypoint.
 ## Release verification
 
 Pull requests and pushes to `main` run parallel quality and E2E jobs. The quality job runs
-`bun audit --audit-level=high`, workspace checks, and unit tests; the E2E job builds the workspace
+`bun audit --audit-level=high`, the panel package build, workspace checks, and unit tests; the E2E job builds the workspace
 and runs the Playwright end-to-end suite. Package publication independently runs package checks,
 tests, and the build, which includes source maps.
 

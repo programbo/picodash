@@ -38,7 +38,7 @@ jobs:
         run: bun audit --audit-level=high
 
       - name: Run lint, type-check, and unit tests
-        run: vp check && vp run -r test
+        run: vp run @picodash/panel#build && vp check && vp run -r test
 
   e2e:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -61,15 +61,22 @@ jobs:
             args: ['--frozen-lockfile']
 
       - name: Install Chromium
-        run: bun run --cwd apps/website playwright install --with-deps chromium
+        run: bun run --cwd apps/web playwright install --with-deps chromium
 
       - name: Build and run E2E tests
-        run: vp run -r build && bun run --filter website test:e2e
+        run: >-
+          vp run @picodash/panel#build &&
+          vp run @picodash/web#build &&
+          vp run website#build &&
+          bun run --filter website test:e2e &&
+          bun run --filter @picodash/web test:e2e
 
       - name: Upload Playwright artifacts
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: playwright-failures
-          path: apps/website/test-results
+          path: |
+            apps/website/test-results
+            apps/web/test-results
           retention-days: 7

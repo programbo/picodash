@@ -1,6 +1,6 @@
 Picodash
 
-Active graph: packages/panel + apps/website.
+Active graph: packages/panel + apps/web + apps/website.
 
 Project status: public preview; Issues are available for feedback, and pull requests are currently disabled.
 
@@ -29,10 +29,20 @@ What it provides:
 - lazy Recharts and react-dropzone implementations behind stable public components
 - import/export and repair flows
 
-Workspace pages:
-- / (interactive gallery)
-- /gallery (compatibility alias)
-- /state-lab
+Workspace pages (canonical `apps/web`):
+- /, /gallery (compatibility redirect), /store, /usage, /more-examples
+- /state-lab/provider, /state-lab/scene, /state-lab/built-in-items, /state-lab/custom-items (debugging-only)
+- /panel-geometry-lab (debugging-only)
+- /state-lab (legacy canonical alias in path-mapped source; debug surface only)
+
+`/demo` is deprecated legacy and not an active route or API here.
+
+Legacy `apps/website` route subset:
+- /, /gallery (alias), /state-lab (debugging-only), /panel-geometry-lab (debugging-only)
+
+App surface mapping:
+- apps/web: Next.js route-based source app
+- apps/website: legacy Vite source app with a reduced route set
 
 Important migration:
 - The old schema-driven registration API and old persistence are retired; map legacy `panel` specifiers to `@picodash/panel` imports.
@@ -56,7 +66,12 @@ Docs to keep aligned:
 - llms.txt
 
 Verification:
+- vp run @picodash/panel#build before workspace-wide checks or builds
 - bun audit --audit-level=high
 - bun run --cwd packages/panel release:check
 - bun run ready
+- bun run web
+- bun run --filter @picodash/web check
+- bun run --filter @picodash/web test:e2e
+- bun run website
 - GitHub CI runs parallel quality and E2E jobs for pull requests and main pushes

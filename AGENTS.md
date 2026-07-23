@@ -22,7 +22,18 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 ## Repository Topology
 
 - `packages/panel`: the promoted public package and default API surface.
-- `apps/website`: interactive gallery at `/` and the `/state-lab` demo app. `/gallery` remains a compatibility alias.
+- `apps/web`: Next.js app-router source of the same interactive gallery and State Lab experiences.
+- `apps/website`: legacy Vite showcase with a reduced route set.
+
+`apps/web` routes: `/`, `/store`, `/usage`, `/more-examples`, `/state-lab/{provider,scene,built-in-items,custom-items}`,
+`/panel-geometry-lab` (debugging-only), `/gallery` (compatibility redirect to `/`), and 404.
+`/state-lab` and `/panel-geometry-lab` are retained as debugging routes and are not treated as public website pages.
+
+`apps/website` route subset:
+
+`/`, `/gallery` (alias), `/state-lab` (debugging-only), `/panel-geometry-lab` (debugging-only), and 404.
+
+`/demo` is deprecated legacy and not an active route/API in this workspace.
 
 ## Active API Model
 
@@ -47,10 +58,13 @@ independent of portal ownership.
 - `bun install`
 - `bun run dev`
 - `bun run website`
+- `bun run web`
 - `bun run --filter @picodash/panel check`
 - `bun run --filter @picodash/panel test`
 - `bun run --filter @picodash/panel build`
 - `bun run --filter website test:e2e`
+- `bun run --filter @picodash/web check`
+- `bun run --filter @picodash/web test:e2e`
 - `bun audit --audit-level=high`
 - `bun run --cwd packages/panel release:check`
 - `bun run ready`
@@ -58,7 +72,7 @@ independent of portal ownership.
 `bun run ready` is the full gate:
 
 ```bash
-vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e
+vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e && bun run --filter @picodash/web test:e2e
 ```
 
 GitHub CI runs parallel `quality` and `e2e` jobs for pull requests and pushes to `main`. The quality
@@ -77,7 +91,7 @@ This worktree is in the `picodash` port registry range `6030-6039`.
 - `6030`: website dev and Playwright harness server.
 - `6031`: website preview server.
 - `6032-6034`: available for additional local services.
-- `6035`: this worktree override via `WEBSITE_PORT`.
+- `6035`: this worktree override via `WEBSITE_PORT` for web and website app dev/check/test.
 - `6036-6039`: available for future local services.
 
 Assign new local services only from the available slots in this range.
@@ -86,6 +100,8 @@ For this worktree:
 
 ```bash
 WEBSITE_PORT=6035 bun run website
+WEBSITE_PORT=6035 bun run web
+WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
 WEBSITE_PORT=6035 bun run --filter website test:e2e
 ```
 
