@@ -42,7 +42,7 @@
   },
   "type": "module",
   "scripts": {
-    "ready": "vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e",
+    "ready": "vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e && bun run --filter @picodash/web test:e2e",
     "dev": "bun run --filter website dev",
     "website": "bun run --filter website dev",
     "web": "bun run --filter @picodash/web dev",
