@@ -258,7 +258,7 @@ WEBSITE_PORT=6035 bun run --filter website test:e2e
 `bun run ready` remains the full verification gate:
 
 ```bash
-vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e
+vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter website test:e2e && bun run --filter @picodash/web test:e2e
 ```
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`. The quality job
