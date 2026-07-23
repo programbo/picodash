@@ -17,6 +17,7 @@ import {
   PicodashText,
   PicodashVector3,
   PicodashXYPad,
+  usePicodashPanelStoreSelector,
   type PicodashMatrix2DOption,
   type PicodashPanelCorner,
   type PicodashPanelFixedPosition,
@@ -517,6 +518,15 @@ export function BuiltInItemsPanel({
 }: {
   config?: BuiltInItemsExampleConfig
 }) {
+  const rootOrder = usePicodashPanelStoreSelector(
+    builtInItemsPanelStore,
+    (state) => state.order.root,
+  )
+  const draggingId = usePicodashPanelStoreSelector(
+    builtInItemsPanelStore,
+    (state) => state.interaction.draggingId,
+  )
+
   return (
     <PicodashPanel
       store={builtInItemsPanelStore}
@@ -527,6 +537,12 @@ export function BuiltInItemsPanel({
       className="top-4 right-4 max-w-[calc(100dvw-2rem)] bg-(--picodash-color-surface)/72 backdrop-blur-xl lg:top-8 lg:right-8"
       data-example-width={config.panelWidth}
     >
+      <output data-built-in-root-order hidden>
+        {rootOrder.join(',')}
+      </output>
+      <output data-built-in-dragging-id hidden>
+        {draggingId ?? ''}
+      </output>
       <PicodashGroup
         {...config.groupProps['common-items']}
         id="common-items"
