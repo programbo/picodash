@@ -26,11 +26,14 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 - `apps/website`: legacy Vite showcase with a reduced route set.
 
 `apps/web` routes: `/`, `/store`, `/usage`, `/more-examples`, `/state-lab/{provider,scene,built-in-items,custom-items}`,
-`/panel-geometry-lab`, `/gallery` (redirect), and 404.
+`/panel-geometry-lab` (debugging-only), `/gallery` (compatibility redirect to `/`), and 404.
+`/state-lab` and `/panel-geometry-lab` are retained as debugging routes and are not treated as public website pages.
 
 `apps/website` route subset:
 
-`/`, `/gallery` (redirect), `/state-lab`, `/panel-geometry-lab`, and 404.
+`/`, `/gallery` (redirect), and 404.
+
+`/demo` is deprecated legacy and not an active route/API in this workspace.
 
 ## Active API Model
 

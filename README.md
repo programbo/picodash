@@ -15,16 +15,16 @@ Monorepo for the promoted [Picodash] package and its web showcase apps (`apps/we
 
 - `/` and `/gallery` render the gallery root (with `/gallery` redirecting to `/`).
 - `/store`, `/usage`, `/more-examples` render gallery detail routes.
-- `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` render State Lab tabs.
-- `/panel-geometry-lab` renders geometry fixture route.
+- `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` are debugging-only routes.
+- `/panel-geometry-lab` is a debugging-only route.
 - unknown paths render the app's 404 page.
 
 - `apps/web` is the canonical Next.js route-based app with the full route topology.
-- `apps/website` is legacy and only supports its existing route subset (`/`, `/gallery`, `/state-lab`, `/panel-geometry-lab`) and unknown-path fallback.
+- `apps/website` is legacy and only supports its existing route subset (`/`, `/gallery`) and unknown-path fallback.
 
 ### `apps/website` route subset
 
-- Legacy `/demo` integration and old schema-driven API are not part of this workspace and should not be documented as active APIs.
+- `/demo` is deprecated legacy and not an active route/API in this workspace.
 
 ## Breaking migration notes
 

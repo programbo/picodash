@@ -14,15 +14,16 @@ The workspace website surface is split by app:
 
 - `/` and `/gallery` (redirect) render the gallery root.
 - `/store`, `/usage`, `/more-examples` render gallery routes.
-- `/panel-geometry-lab` renders layout geometry fixtures.
-- `/state-lab/{provider,scene,built-in-items,custom-items}` renders state-lab tabs.
+- `/panel-geometry-lab` is a debugging-only route for layout geometry fixtures.
+- `/state-lab/{provider,scene,built-in-items,custom-items}` are debugging-only state-lab routes.
 - missing paths render the 404 page.
+
+`/demo` is deprecated legacy and is not an active route or API surface in this workspace.
 
 `apps/website` route subset:
 
 - `/` and `/gallery` render the gallery route.
-- `/state-lab` renders the legacy state-lab surface.
-- `/panel-geometry-lab` renders geometry fixtures.
+- no `/state-lab` or `/panel-geometry-lab` debug routes are part of the legacy public subset.
 - unknown paths render the legacy 404.
 
 ## Migration boundary
