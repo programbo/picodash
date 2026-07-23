@@ -1,6 +1,6 @@
 Picodash
 
-Active graph: packages/panel + apps/web + apps/website.
+Active graph: packages/panel + apps/web.
 
 Project status: public preview; Issues are available for feedback, and pull requests are currently disabled.
 
@@ -37,12 +37,8 @@ Workspace pages (canonical `apps/web`):
 
 `/demo` is deprecated legacy and not an active route or API here.
 
-Legacy `apps/website` route subset:
-- /, /gallery (alias), /state-lab (debugging-only), /panel-geometry-lab (debugging-only)
-
 App surface mapping:
 - apps/web: Next.js route-based source app
-- apps/website: legacy Vite source app with a reduced route set
 
 Important migration:
 - The old schema-driven registration API and old persistence are retired; map legacy `panel` specifiers to `@picodash/panel` imports.
@@ -50,10 +46,9 @@ Important migration:
 - Gearmo is a known breaking consumer requiring separate migration planning.
 
 Ports:
-- 6030 website dev
-- 6031 website preview
-- 6035 this worktree via WEBSITE_PORT
-- remaining 6032-6034 and 6036-6039 available
+- 6035 this worktree dev and Playwright server via WEBSITE_PORT
+- 6036 this worktree production start server
+- remaining 6030-6034 and 6037-6039 available
 
 Docs to keep aligned:
 - README.md
@@ -73,5 +68,4 @@ Verification:
 - bun run web
 - bun run --filter @picodash/web check
 - bun run --filter @picodash/web test:e2e
-- bun run website
 - GitHub CI runs parallel quality and E2E jobs for pull requests and main pushes

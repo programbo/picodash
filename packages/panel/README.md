@@ -5,10 +5,9 @@ A composable React inspector-panel package with application-owned state, synchro
 > **Public preview:** The package API is still evolving. See the repository's
 > [release policy](https://github.com/programbo/picodash/blob/main/RELEASING.md) before depending on a versioned release.
 
-The workspace website surface is split by app:
+The workspace website surface is provided by the Next.js App Router app:
 
-- `apps/web`: Next.js App Router source app for public docs and route-based topology.
-- `apps/website`: legacy Vite source app with a reduced route set.
+- `apps/web`: source app for public docs and route-based topology.
 
 `apps/web` route topology:
 
@@ -19,12 +18,6 @@ The workspace website surface is split by app:
 - missing paths render the 404 page.
 
 `/demo` is deprecated legacy and is not an active route or API surface in this workspace.
-
-`apps/website` route subset:
-
-- `/` and `/gallery` (alias) render the gallery route.
-- `/state-lab` and `/panel-geometry-lab` are debugging-only routes.
-- unknown paths render the legacy 404.
 
 ## Migration boundary
 
