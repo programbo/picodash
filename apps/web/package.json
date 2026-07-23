@@ -1,0 +1,39 @@
+{
+  "name": "@picodash/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "panel:build": "bun run --filter @picodash/panel build",
+    "dev": "bun run panel:build && next dev --hostname 127.0.0.1 --port ${WEBSITE_PORT:-6035}",
+    "build": "bun run panel:build && next build",
+    "check": "bun run panel:build && tsc --noEmit",
+    "test": "playwright test",
+    "test:e2e": "playwright test",
+    "start": "next start --hostname 127.0.0.1 --port ${WEBSITE_PORT:-6036}"
+  },
+  "dependencies": {
+    "@picodash/panel": "workspace:*",
+    "clsx": "catalog:",
+    "highlight.js": "catalog:",
+    "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "next": "16.2.11",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-json-view-lite": "catalog:",
+    "tailwind-merge": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@playwright/test": "catalog:",
+    "@tailwindcss/postcss": "catalog:",
+    "@tailwindcss/typography": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "postcss": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
+  }
+}
