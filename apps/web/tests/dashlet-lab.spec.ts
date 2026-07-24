@@ -12,6 +12,7 @@ const builtInIds = [
   'segmented',
   'vector3',
   'alignment',
+  'alignmentPreset',
   'xyPad',
   'gradient',
   'previewAsset',
@@ -119,6 +120,13 @@ test('exercises form and direct-manipulation Dashlets through their accessible c
   await topLeft.focus()
   await page.keyboard.press('Space')
   await expect(topLeft).toBeChecked()
+
+  const bottomRight = builtInItem(builtIns, 'alignmentPreset').getByRole('radio', {
+    name: 'Bottom right',
+  })
+  await bottomRight.focus()
+  await page.keyboard.press('Space')
+  await expect(bottomRight).toBeChecked()
 
   const xyPadX = builtInItem(builtIns, 'xyPad').getByRole('slider', {
     name: 'Two-dimensional value, X axis',

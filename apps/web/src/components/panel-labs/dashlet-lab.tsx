@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import * as z from 'zod/mini'
 import {
   createPicodashPanelStore,
+  PicodashAlignment,
   PicodashDisplay,
   PicodashDropzone,
   PicodashGradient,
@@ -349,6 +350,7 @@ function BuiltInDashlets({
           selectionRole="radio"
           validationMessage="Alignment must be one of the nine supported positions."
         />
+        <PicodashAlignment field="alignmentPreset" label="Alignment" />
       </PicodashGroup>
 
       <PicodashGroup id="spatial-items" label="Direct manipulation">
