@@ -34,15 +34,15 @@ import {
   percentFormatOptions,
   segmentedOptions,
   sliderMarks,
-} from '@/built-in-items-panel'
+} from '@/components/items/built-in/built-in-items-panel'
 import {
   ShadcnChartItem,
   shadcnChartTypes,
   type ShadcnChartType,
-} from '@/custom-items/shadcn-chart'
-import { MouseVelocitySparklineItem } from '@/custom-items/mouse-velocity-sparkline'
-import { StreamingSparklineItem } from '@/custom-items/streaming-sparkline'
-import { WaveformSpectrumItem } from '@/custom-items/waveform-spectrum'
+} from '@/components/items/custom/shadcn-chart'
+import { MouseVelocitySparklineItem } from '@/components/items/custom/mouse-velocity-sparkline'
+import { StreamingSparklineItem } from '@/components/items/custom/streaming-sparkline'
+import { WaveformSpectrumItem } from '@/components/items/custom/waveform-spectrum'
 
 const builtInPanelId = 'dashlet-lab-built-ins'
 const examplesPanelId = 'dashlet-lab-examples'

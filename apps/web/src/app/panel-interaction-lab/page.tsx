@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { PanelInteractionLab } from '@/panel-interaction-lab'
+import { PanelInteractionLab } from '@/components/panel-labs/panel-interaction-lab'
 
 export const metadata: Metadata = {
   title: 'Panel interaction lab',
