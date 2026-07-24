@@ -5,8 +5,8 @@ import {
   createValidatedPanelPersistStorage,
   legacyPanelLayoutStorageKey,
   panelLayoutStorageKey,
-} from '../src/panel-persistence.ts'
-import { createPicodashStore, PicodashProvider } from '../src/picodash-provider.tsx'
+} from '../src/state/persistence/panel-persistence.ts'
+import { createPicodashStore, PicodashProvider } from '../src/state/provider/picodash-provider.tsx'
 import { installFakeLocalStorage } from './helpers.ts'
 
 const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
@@ -162,6 +162,13 @@ test('keeps provider state usable when layout persistence writes fail', () => {
     }),
   ).not.toThrow()
   expect(() => storage.removeItem?.('layout')).not.toThrow()
+  expect(store.getState().panelLayouts.scene).toEqual({ x: 24, y: 32 })
+})
+
+test('accepts an initial layout write when no current layout exists', () => {
+  const store = createPicodashStore({ persistLayout: false })
+
+  expect(() => store.getState().setPanelLayout('scene', { x: 24, y: 32 })).not.toThrow()
   expect(store.getState().panelLayouts.scene).toEqual({ x: 24, y: 32 })
 })
 

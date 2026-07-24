@@ -4,13 +4,13 @@ export {
   picodashLayerTokens,
   picodashMotionTokens,
   picodashThemeAttribute,
-} from './theme.js'
+} from './lib/theme/theme.js'
 export {
   createValidatedPanelPersistStorage,
   emptyPicodashPersistedState,
   panelLayoutStorageKey,
-} from './panel-persistence.js'
-export { picodashPersistedStateSchema } from './picodash-persisted-state-schema.js'
+} from './state/persistence/panel-persistence.js'
+export { picodashPersistedStateSchema } from './state/persistence/picodash-persisted-state-schema.js'
 
 export {
   createPicodashStore,
@@ -18,20 +18,20 @@ export {
   useRegisterPicodashPanel,
   usePicodashProviderSelector,
   usePicodashProviderStoreApi,
-} from './picodash-provider.js'
+} from './state/provider/picodash-provider.js'
 export type {
   PicodashPanelRegistration,
   PicodashPanelRegistrationInput,
   PicodashPersistedState,
   PicodashState,
   PicodashStore,
-} from './picodash-provider.js'
+} from './state/provider/picodash-provider.js'
 
 export {
   useRegisterPicodashItem,
   usePicodashPanelSelector,
   usePicodashPanelStoreApi,
-} from './picodash-panel.js'
+} from './components/panel/PicodashPanel.js'
 export type {
   PicodashControlStates,
   PicodashControlStateValue,
@@ -51,13 +51,13 @@ export type {
   PicodashRepairProposal,
   PicodashReorderItemLayout,
   PicodashReorderItemMotion,
-} from './picodash-panel-types.js'
+} from './state/panel/picodash-panel-types.js'
 
 export {
   dataAttributesForStates,
   useResolvedPanelProp,
   usePicodashItem,
-} from './picodash-control.js'
+} from './components/panel/PicodashItem.js'
 export {
   bandForItem,
   hasVisibleReorderableSibling,
@@ -67,7 +67,7 @@ export {
   orderIndexForItem,
   reorderValuesForPointer,
   useOrderedPicodashChildren,
-} from './picodash-order.js'
+} from './state/order/picodash-order.js'
 
 export {
   appendPicodashSparklineSamples,
@@ -122,9 +122,9 @@ export {
   jsonCompatibilityError,
   jsonValuesEqual,
   resolvePicodashFieldValue,
-} from './picodash-validation.js'
+} from './validation/picodash-validation.js'
 export type {
   PicodashConstraintAnalysis,
   PicodashConstraintRepair,
   PicodashFieldContract,
-} from './picodash-validation.js'
+} from './validation/picodash-validation.js'

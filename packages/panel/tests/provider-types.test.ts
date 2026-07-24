@@ -4,8 +4,8 @@ import type {
   PicodashProviderProps,
   PicodashTheme,
   PicodashThemeOption,
-} from '../src/picodash-provider.tsx'
-import { PicodashProvider } from '../src/picodash-provider.tsx'
+} from '../src/state/provider/picodash-provider.tsx'
+import { PicodashProvider } from '../src/state/provider/picodash-provider.tsx'
 
 type AppTheme = 'brand' | 'contrast'
 

@@ -5,11 +5,11 @@ import {
   useResolvedPanelProp,
   type ReactiveProp,
   type PicodashInputItemProps,
-} from '../picodash-control.js'
-import type { PicodashPanelState } from '../picodash-panel.js'
-import { formatNumericValue } from '../number-format.js'
-import type { PicodashParser } from '../picodash-validation.js'
-import { canonicalPicodashValue, invalidPicodashValue } from './built-in-validation.js'
+} from '../components/panel/PicodashItem.js'
+import type { PicodashPanelState } from '../components/panel/PicodashPanel.js'
+import { formatNumericValue } from '../lib/formatting/number-format.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
+import { canonicalPicodashValue, invalidPicodashValue } from './internal/built-in-validation.js'
 
 export type PicodashSliderMark =
   | number

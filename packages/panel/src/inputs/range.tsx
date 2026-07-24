@@ -1,15 +1,15 @@
 import { useMemo } from 'react'
 import { Slider, SliderThumb, SliderTrack } from '../components/ui/slider.js'
-import { formatNumericValue } from '../number-format.js'
+import { formatNumericValue } from '../lib/formatting/number-format.js'
 import {
   PicodashItem,
   useResolvedPanelProp,
   type ReactiveProp,
   type PicodashInputItemProps,
-} from '../picodash-control.js'
-import { picodashGeometryTokens } from '../theme.js'
-import type { PicodashParser } from '../picodash-validation.js'
-import { canonicalPicodashValue, strictImportShape } from './built-in-validation.js'
+} from '../components/panel/PicodashItem.js'
+import { picodashGeometryTokens } from '../lib/theme/theme.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
+import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
 export type PicodashRangeValue = [low: number, high: number]
 

@@ -4,8 +4,8 @@ import {
   useResolvedPanelProp,
   type ReactiveProp,
   type PicodashInputItemProps,
-} from '../picodash-control.js'
-import type { PicodashParser } from '../picodash-validation.js'
+} from '../components/panel/PicodashItem.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
 import {
   Select,
   SelectContent,
@@ -17,7 +17,7 @@ import {
   canonicalPicodashValue,
   invalidPicodashValue,
   unsetPicodashValue,
-} from './built-in-validation.js'
+} from './internal/built-in-validation.js'
 
 export type PicodashSelectOption =
   | string

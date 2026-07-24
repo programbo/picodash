@@ -1,6 +1,6 @@
 import { connection } from 'next/server'
 import type { ReactNode } from 'react'
-import { HomeProvider } from '@/home-provider'
+import { HomeProvider } from '@/components/providers/home-provider'
 
 export default async function HomeLayout({ children }: Readonly<{ children: ReactNode }>) {
   await connection()

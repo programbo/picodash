@@ -1,8 +1,8 @@
 import { useReducedMotion, useSpring } from 'motion/react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { PicodashItem, type PicodashDisplayItemProps } from '../picodash-control.js'
-import type { PicodashValue } from '../picodash-panel.js'
-import type { DistributiveOmit } from './built-in-validation.js'
+import { PicodashItem, type PicodashDisplayItemProps } from '../components/panel/PicodashItem.js'
+import type { PicodashValue } from '../components/panel/PicodashPanel.js'
+import type { DistributiveOmit } from './internal/built-in-validation.js'
 
 export type PicodashSparklineDatum = number | Readonly<Record<string, number>>
 

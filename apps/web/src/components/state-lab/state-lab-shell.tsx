@@ -1,0 +1,29 @@
+'use client'
+
+import { usePathname } from 'next/navigation'
+import type { ReactNode } from 'react'
+import { StateLabApp, type StateLabTab } from '@/components/state-lab/state-lab-app'
+
+export function StateLabShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
+
+  return (
+    <>
+      <StateLabApp activeTab={stateLabTabFromPathname(pathname)} />
+      {children}
+    </>
+  )
+}
+
+function stateLabTabFromPathname(pathname: string): StateLabTab {
+  switch (pathname) {
+    case '/state-lab/scene':
+      return 'scene'
+    case '/state-lab/built-in-items':
+      return 'built-in-items'
+    case '/state-lab/custom-items':
+      return 'custom-items'
+    default:
+      return 'provider'
+  }
+}

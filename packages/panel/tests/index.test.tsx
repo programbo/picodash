@@ -5,7 +5,8 @@ import * as advancedApi from '../src/advanced.ts'
 import * as publicApi from '../src/index.ts'
 import * as uiApi from '../src/ui.ts'
 import { createPicodashPanelStore, FeaturePanel } from '../src/index.ts'
-import { panelLayoutStorageKey } from '../src/panel-persistence.ts'
+import { formatNumericValue } from '../src/lib/formatting/number-format.ts'
+import { panelLayoutStorageKey } from '../src/state/persistence/panel-persistence.ts'
 import { installFakeLocalStorage, readPersistedPanelLayouts } from './helpers.ts'
 import {
   clampPanelPosition,
@@ -20,7 +21,7 @@ import {
   snapPanelPosition,
   translationFromTransform,
   type PanelRect,
-} from '../src/panel-snapping.ts'
+} from '../src/geometry/panel-snapping.ts'
 import {
   hasVisibleReorderableSibling,
   itemCanReorder,
@@ -28,31 +29,31 @@ import {
   orderIndexForItem,
   panelShellDragProps,
   reorderValuesForPointer,
-} from '../src/picodash-panel.tsx'
+} from '../src/components/panel/PicodashPanel.tsx'
 import {
   orderSnapshotForParent,
   orderPicodashChildren,
   partitionPicodashChildrenByBand,
-} from '../src/picodash-order.tsx'
+} from '../src/state/order/picodash-order.tsx'
 import {
   createPicodashStore,
   modalZIndexForState,
   panelZIndexForState,
   portalLayerZIndexForState,
   portalLayerZIndexValue,
-} from '../src/picodash-provider.tsx'
+} from '../src/state/provider/picodash-provider.tsx'
 import {
   constrainReorderPointerOffset,
   restoreKeyboardReorderOrder,
-} from '../src/picodash-reorder-list.tsx'
-import { PicodashReorderIndicator } from '../src/picodash-reorder-indicator.tsx'
+} from '../src/components/panel/reorder/PicodashReorderList.tsx'
+import { PicodashReorderIndicator } from '../src/components/panel/reorder/PicodashReorderIndicator.tsx'
 import {
   picodashDefaultTheme,
   picodashGeometryTokens,
   picodashLayerTokens,
   picodashMotionTokens,
   picodashThemeAttribute,
-} from '../src/theme.ts'
+} from '../src/lib/theme/theme.ts'
 
 test('keeps the public and advanced hook surfaces explicit', () => {
   expect(publicApi.usePicodashPanel).toBeTypeOf('function')
@@ -94,6 +95,11 @@ test('renders the shared Select without PicodashProvider', () => {
   expect(markup).toContain('aria-label="Standalone choice"')
   expect(markup).toContain('data-picodash-theme="dark"')
   expect(markup).toContain('data-slot="select-trigger"')
+})
+
+test('clamps inferred number-format fraction digits to Intl support', () => {
+  expect(() => formatNumericValue(1e-101)).not.toThrow()
+  expect(formatNumericValue(1e-101)).toBe('0')
 })
 
 test('forwards drag behavior to the movable shell only for non-fixed panels', () => {
