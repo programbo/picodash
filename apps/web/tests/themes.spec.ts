@@ -210,3 +210,30 @@ test('renders the high-contrast example on the panel only', async ({ page }) => 
       .evaluate((element) => getComputedStyle(element).textShadow),
   ).toBe('none')
 })
+
+test('applies the high-contrast theme to fixed panel toggles', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('[data-picodash-panel-id="built-in-items"]')).toBeVisible()
+
+  const example = page.locator('[data-interactive-jsx-example]')
+  await example.getByLabel('Provider theme').selectOption('contrast')
+  await expect(page.locator('[data-demo-provider-theme]')).toHaveAttribute(
+    'data-demo-provider-theme',
+    'contrast',
+  )
+  await example.getByLabel('Panel placement mode').selectOption('fixed')
+  await example.getByLabel('Panel placement position').selectOption('top-right')
+
+  const toggle = page.locator('[data-picodash-fixed-toggle]')
+  await expect(toggle).toHaveAttribute('data-picodash-theme', 'contrast')
+  await expect(toggle).toHaveCSS('color', 'rgb(0, 0, 0)')
+  await expect(toggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+
+  await toggle.click()
+
+  await expect(toggle).toHaveAccessibleName('Expand panel Built-in Items')
+  await expect(toggle).not.toHaveCSS('color', 'rgb(255, 255, 255)')
+  await expect
+    .poll(() => toggle.evaluate((element) => getComputedStyle(element).backgroundColor))
+    .toMatch(/0\.72\)$/)
+})
