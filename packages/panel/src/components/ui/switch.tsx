@@ -21,7 +21,7 @@ function Switch({
       data-slot="switch"
       data-size={size}
       className={cn(
-        'peer group/switch relative inline-flex h-(--_picodash-switch-height) w-(--_picodash-switch-width) shrink-0 items-center rounded-full border border-transparent bg-picodash-control transition-colors duration-(--picodash-duration-fast) outline-none after:absolute after:-inset-x-3 after:-inset-y-2 data-focus-visible:ring-2 data-focus-visible:ring-picodash-focus data-selected:bg-picodash-accent data-disabled:cursor-not-allowed data-disabled:opacity-(--picodash-opacity-disabled) data-readonly:cursor-default aria-invalid:border-picodash-danger aria-invalid:ring-2 aria-invalid:ring-picodash-danger/20',
+        'peer group/switch bg-picodash-control data-focus-visible:ring-picodash-focus data-selected:bg-picodash-accent aria-invalid:border-picodash-danger aria-invalid:ring-picodash-danger/20 relative inline-flex h-(--_picodash-switch-height) w-(--_picodash-switch-width) shrink-0 items-center rounded-full border border-transparent transition-colors duration-(--picodash-duration-fast) outline-none after:absolute after:-inset-x-3 after:-inset-y-2 aria-invalid:ring-2 data-disabled:cursor-not-allowed data-disabled:opacity-(--picodash-opacity-disabled) data-focus-visible:ring-2 data-readonly:cursor-default',
         className,
       )}
       {...props}

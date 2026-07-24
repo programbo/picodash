@@ -308,7 +308,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
         aria-invalid={fieldState?.errors.length ? true : undefined}
         aria-labelledby={label ? labelId : undefined}
         className={cn(
-          'group/control relative isolate col-span-full grid min-h-10 shrink-0 grid-cols-subgrid items-start gap-x-(--picodash-space-1) gap-y-(--picodash-space-0-5) select-none rounded-picodash-control border border-l-2 border-transparent bg-transparent py-(--picodash-space-1) pr-(--picodash-space-1-5) text-picodash-text outline-none transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--picodash-duration-fast) data-[dragging=true]:z-(--picodash-layer-drag)! data-[dragging=true]:border-picodash-focus data-[dragging=true]:bg-(--_picodash-row-drag) data-[dragging=true]:shadow-picodash-panel data-[dragging=true]:backdrop-blur-(--picodash-blur-surface) data-[focused=true]:border-picodash-focus/60 data-[hovered=true]:bg-(--_picodash-row-hover) data-[status=alert]:border-l-(--_picodash-color-alert-border) data-[status=alert]:bg-picodash-alert-subtle data-[status=error]:border-l-(--_picodash-color-danger-border) data-[status=error]:bg-picodash-danger-subtle data-[status=info]:border-l-(--_picodash-color-info-border) data-[status=info]:bg-picodash-info-subtle data-[status=warning]:border-l-(--_picodash-color-warning-border) data-[status=warning]:bg-picodash-warning-subtle',
+          'group/control rounded-picodash-control text-picodash-text data-[dragging=true]:border-picodash-focus data-[dragging=true]:shadow-picodash-panel data-[focused=true]:border-picodash-focus/60 data-[status=alert]:bg-picodash-alert-subtle data-[status=error]:bg-picodash-danger-subtle data-[status=info]:bg-picodash-info-subtle data-[status=warning]:bg-picodash-warning-subtle relative isolate col-span-full grid min-h-10 shrink-0 grid-cols-subgrid items-start gap-x-(--picodash-space-1) gap-y-(--picodash-space-0-5) border border-l-2 border-transparent bg-transparent py-(--picodash-space-1) pr-(--picodash-space-1-5) transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--picodash-duration-fast) outline-none select-none data-[dragging=true]:z-(--picodash-layer-drag)! data-[dragging=true]:bg-(--_picodash-row-drag) data-[dragging=true]:backdrop-blur-(--picodash-blur-surface) data-[hovered=true]:bg-(--_picodash-row-hover) data-[status=alert]:border-l-(--_picodash-color-alert-border) data-[status=error]:border-l-(--_picodash-color-danger-border) data-[status=info]:border-l-(--_picodash-color-info-border) data-[status=warning]:border-l-(--_picodash-color-warning-border)',
           !showReorderSlot && 'pl-(--picodash-space-1-5)',
           className,
         )}
@@ -390,7 +390,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
             aria-pressed={keyboardReorderActive}
             className={cn(
               buttonVariants({ size: 'icon', variant: 'ghost' }),
-              'relative z-10 col-start-1 size-(--picodash-control-height-xs) shrink-0 cursor-grab self-center text-picodash-muted opacity-(--picodash-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
+              'text-picodash-muted relative z-10 col-start-1 size-(--picodash-control-height-xs) shrink-0 cursor-grab self-center opacity-(--picodash-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
             )}
             type="button"
             onKeyDown={(event) => handleReorderKeyDown(event, labelText ?? 'Item')}
@@ -415,7 +415,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
           {label ? (
             <Label
               className={cn(
-                'min-w-0 truncate text-picodash-muted',
+                'text-picodash-muted min-w-0 truncate',
                 disabledOrReadOnly && 'opacity-(--picodash-opacity-muted)',
               )}
               htmlFor={field ? inputId : undefined}
@@ -484,7 +484,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
           <div
             id={descriptionId}
             className={cn(
-              'text-(length:--picodash-font-size-sm) leading-(--picodash-line-tight) font-(--picodash-font-light) text-picodash-muted pt-1.5',
+              'text-picodash-muted pt-1.5 text-(length:--picodash-font-size-sm) leading-(--picodash-line-tight) font-(--picodash-font-light)',
               contentLayout === 'inline' && 'col-span-2 col-start-3 row-start-2',
               contentLayout === 'block' && 'col-span-3 col-start-2 row-start-3',
               contentLayout === 'full' && 'col-span-4 col-start-1 row-start-3',

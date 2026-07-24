@@ -8,7 +8,7 @@ function ScrollArea({ className, children, ...props }: React.ComponentProps<'div
     <div
       data-slot="scroll-area"
       className={cn(
-        'relative [scrollbar-width:thin] [scrollbar-color:var(--picodash-color-border)_transparent] overflow-auto outline-none focus-visible:ring-[3px] focus-visible:ring-picodash-focus/50 focus-visible:outline-1',
+        'focus-visible:ring-picodash-focus/50 relative scrollbar-thin [scrollbar-color:var(--picodash-color-border)_transparent] overflow-auto outline-none focus-visible:ring-[3px] focus-visible:outline-1',
         className,
       )}
       {...props}

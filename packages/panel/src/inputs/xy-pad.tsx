@@ -220,7 +220,7 @@ function XYPadSurface({
           aria-disabled={unavailable || undefined}
           aria-label={ariaLabel}
           className={cn(
-            'relative aspect-2/1 min-h-(--picodash-field-surface-min-height) touch-none overflow-hidden rounded-picodash-control border border-picodash-control bg-(--_picodash-xy-background) outline-none',
+            'rounded-picodash-control border-picodash-control relative aspect-2/1 min-h-(--picodash-field-surface-min-height) touch-none overflow-hidden border bg-(--_picodash-xy-background) outline-none',
             'before:absolute before:inset-y-0 before:left-1/2 before:w-(--picodash-border-thin) before:bg-(--_picodash-xy-grid) after:absolute after:inset-x-0 after:top-1/2 after:h-(--picodash-border-thin) after:bg-(--_picodash-xy-grid)',
             unavailable
               ? 'cursor-not-allowed opacity-(--picodash-opacity-disabled)'

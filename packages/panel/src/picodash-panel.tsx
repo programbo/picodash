@@ -449,7 +449,7 @@ export function PicodashPanel({
             }
             aria-hidden={fixedPlacement && panelCollapsed ? true : undefined}
             className={cn(
-              'pointer-events-auto relative flex min-h-0 max-h-[calc(100dvh-1rem)] w-(--picodash-panel-width) max-w-[calc(100dvw-2rem)] flex-col overflow-hidden rounded-picodash-surface border border-picodash-border bg-picodash-surface text-picodash-text shadow-picodash-panel ring-1 ring-(--_picodash-panel-ring)',
+              'rounded-picodash-surface border-picodash-border bg-picodash-surface text-picodash-text shadow-picodash-panel pointer-events-auto relative flex max-h-[calc(100dvh-1rem)] min-h-0 w-(--picodash-panel-width) max-w-[calc(100dvw-2rem)] flex-col overflow-hidden border ring-1 ring-(--_picodash-panel-ring)',
               fixedPlacement && fixedPanelEdgeClassNames[placement.position],
               className,
             )}
@@ -519,7 +519,7 @@ export function PicodashPanel({
                     aria-label={`${panelCollapsed ? 'Expand' : 'Collapse'} panel ${titleText}`}
                     className={cn(
                       buttonVariants({ size: 'icon', variant: 'ghost' }),
-                      'size-(--picodash-icon-lg) shrink-0 text-picodash-muted aria-expanded:bg-transparent! aria-expanded:hover:bg-picodash-surface-muted!',
+                      'text-picodash-muted aria-expanded:hover:bg-picodash-surface-muted! size-(--picodash-icon-lg) shrink-0 aria-expanded:bg-transparent!',
                     )}
                     type="button"
                     onClick={() => togglePanelCollapsed()}
@@ -551,7 +551,7 @@ export function PicodashPanel({
                     aria-label={`Close panel ${titleText}`}
                     className={cn(
                       buttonVariants({ size: 'icon', variant: 'ghost' }),
-                      'size-(--picodash-icon-lg) shrink-0 text-picodash-muted',
+                      'text-picodash-muted size-(--picodash-icon-lg) shrink-0',
                     )}
                     type="button"
                     onClick={() => {
@@ -644,11 +644,11 @@ function FixedPanelToggle({
       aria-label={`${collapsed ? 'Expand' : 'Collapse'} panel ${panelTitle}`}
       className={cn(
         buttonVariants({ size: 'icon', variant: 'ghost' }),
-        'pointer-events-auto absolute z-10 size-(--picodash-control-height-md) shrink-0 text-picodash-muted',
+        'text-picodash-muted pointer-events-auto absolute z-10 size-(--picodash-control-height-md) shrink-0',
         'transition-[background-color,color] motion-reduce:transition-none',
         collapsed
           ? 'bg-(--picodash-color-surface)/72! backdrop-blur-xl hover:bg-(--picodash-color-surface)/82! focus-visible:bg-(--picodash-color-surface)/82!'
-          : 'bg-transparent! hover:bg-picodash-surface-muted/50!',
+          : 'hover:bg-picodash-surface-muted/50! bg-transparent!',
         fixedTogglePositionClassName(position, collapsed),
       )}
       data-picodash-fixed-toggle=""

@@ -47,7 +47,7 @@ function ToggleGroup({
       orientation={orientation}
       style={{ '--gap': `calc(var(--spacing) * ${spacing})` } as React.CSSProperties}
       className={cn(
-        'group/toggle-group flex w-fit flex-row items-center gap-(--gap) data-[spacing=0]:data-[variant=outline]:rounded-2xl data-vertical:flex-col data-vertical:items-stretch',
+        'group/toggle-group flex w-fit flex-row items-center gap-(--gap) data-vertical:flex-col data-vertical:items-stretch data-[spacing=0]:data-[variant=outline]:rounded-2xl',
         className,
       )}
       {...props}
@@ -75,7 +75,7 @@ function ToggleGroupItem({
       data-size={context.size || size}
       data-spacing={context.spacing}
       className={cn(
-        'shrink-0 group-data-[spacing=0]/toggle-group:rounded-none group-data-[spacing=0]/toggle-group:px-2 group-data-[spacing=0]/toggle-group:shadow-none data-focused:z-10 data-focus-visible:z-10 group-data-[spacing=0]/toggle-group:has-data-[icon=inline-end]:pr-1.5 group-data-[spacing=0]/toggle-group:has-data-[icon=inline-start]:pl-1.5 group-data-horizontal/toggle-group:data-[spacing=0]:first:rounded-l-picodash-control group-data-vertical/toggle-group:data-[spacing=0]:first:rounded-t-picodash-control group-data-horizontal/toggle-group:data-[spacing=0]:last:rounded-r-picodash-control group-data-vertical/toggle-group:data-[spacing=0]:last:rounded-b-picodash-control data-selected:bg-picodash-accent group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:border-l-0 group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:border-t-0 group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-l group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-t',
+        'group-data-horizontal/toggle-group:data-[spacing=0]:first:rounded-l-picodash-control group-data-vertical/toggle-group:data-[spacing=0]:first:rounded-t-picodash-control group-data-horizontal/toggle-group:data-[spacing=0]:last:rounded-r-picodash-control group-data-vertical/toggle-group:data-[spacing=0]:last:rounded-b-picodash-control data-selected:bg-picodash-accent shrink-0 group-data-[spacing=0]/toggle-group:rounded-none group-data-[spacing=0]/toggle-group:px-2 group-data-[spacing=0]/toggle-group:shadow-none group-data-[spacing=0]/toggle-group:has-data-[icon=inline-end]:pr-1.5 group-data-[spacing=0]/toggle-group:has-data-[icon=inline-start]:pl-1.5 data-focus-visible:z-10 data-focused:z-10 group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:border-l-0 group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:border-t-0 group-data-horizontal/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-l group-data-vertical/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-t',
         toggleVariants({
           variant: context.variant || variant,
           size: context.size || size,

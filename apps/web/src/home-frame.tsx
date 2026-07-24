@@ -35,7 +35,7 @@ export function HomeFrame({
           <div className="flex flex-col gap-2 border-b border-white/10 bg-white/4 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <TabsList
               aria-label="Interactive example views"
-              className="h-7 max-w-full min-w-0 [scrollbar-width:thin] gap-2 overflow-x-auto overflow-y-visible rounded-none p-0 sm:gap-4"
+              className="h-7 max-w-full min-w-0 scrollbar-thin gap-2 overflow-x-auto overflow-y-visible rounded-none p-0 sm:gap-4"
               variant="line"
             >
               <TabsTrigger

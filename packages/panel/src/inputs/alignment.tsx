@@ -100,9 +100,9 @@ const picodashAlignmentMatrixOptions = Array.from({ length: columns }, (_, rowIn
           <AlignmentIcon aria-hidden="true" className="size-(--picodash-icon-sm)" strokeWidth={2} />
         ),
         className: cn(
-          'relative flex size-(--picodash-control-height-md) p-(--picodash-space-1) text-picodash-muted transition-colors duration-(--picodash-duration-fast) hover:bg-picodash-surface-muted hover:text-picodash-text data-[state=on]:bg-picodash-accent data-[state=on]:text-picodash-accent-text',
-          columnIndex !== 0 && 'border-l border-picodash-control',
-          rowIndex !== 0 && 'border-t border-picodash-control',
+          'text-picodash-muted hover:bg-picodash-surface-muted hover:text-picodash-text data-[state=on]:bg-picodash-accent data-[state=on]:text-picodash-accent-text relative flex size-(--picodash-control-height-md) p-(--picodash-space-1) transition-colors duration-(--picodash-duration-fast)',
+          columnIndex !== 0 && 'border-picodash-control border-l',
+          rowIndex !== 0 && 'border-picodash-control border-t',
           alignmentRowClasses[rowIndex],
           alignmentColumnClasses[columnIndex],
         ),

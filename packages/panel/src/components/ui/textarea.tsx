@@ -9,7 +9,7 @@ function Textarea({ className, ...props }: React.ComponentProps<typeof TextareaP
       data-slot="textarea"
       className={composeRenderProps(className, (className) =>
         cn(
-          'field-sizing-content flex min-h-(--picodash-control-height-lg) w-full resize-y rounded-picodash-control border-0 border-b border-picodash-control bg-transparent px-(--picodash-space-2-5) py-(--picodash-space-1-5) text-(length:--picodash-font-size-lg) leading-(--picodash-line-normal) text-picodash-text shadow-none outline-none transition-colors duration-(--picodash-duration-fast) placeholder:text-picodash-muted data-focused:bg-picodash-canvas data-focus-visible:ring-2 data-focus-visible:ring-picodash-focus data-disabled:cursor-not-allowed data-disabled:opacity-(--picodash-opacity-disabled) aria-invalid:border-picodash-danger aria-invalid:ring-2 aria-invalid:ring-picodash-danger/20',
+          'rounded-picodash-control border-picodash-control text-picodash-text placeholder:text-picodash-muted data-focused:bg-picodash-canvas data-focus-visible:ring-picodash-focus aria-invalid:border-picodash-danger aria-invalid:ring-picodash-danger/20 flex field-sizing-content min-h-(--picodash-control-height-lg) w-full resize-y border-0 border-b bg-transparent px-(--picodash-space-2-5) py-(--picodash-space-1-5) text-(length:--picodash-font-size-lg) leading-(--picodash-line-normal) shadow-none transition-colors duration-(--picodash-duration-fast) outline-none aria-invalid:ring-2 data-disabled:cursor-not-allowed data-disabled:opacity-(--picodash-opacity-disabled) data-focus-visible:ring-2',
           className,
         ),
       )}

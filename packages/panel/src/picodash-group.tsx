@@ -129,7 +129,7 @@ export function PicodashGroup({
       {...stateAttributes}
       as="section"
       className={cn(
-        'group/picodash-section relative isolate col-span-full shrink-0 select-none rounded-picodash-control border border-l-2 border-picodash-border/80 border-l-transparent bg-(--_picodash-color-well) transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--picodash-duration-fast) data-[dragging=true]:z-(--picodash-layer-drag)! data-[dragging=true]:border-picodash-focus data-[dragging=true]:bg-(--_picodash-group-drag) data-[dragging=true]:shadow-picodash-panel data-[dragging=true]:backdrop-blur-(--picodash-blur-surface) data-[focused=true]:border-picodash-focus/60 data-[hovered=true]:border-l-picodash-surface-muted/80 data-[status=alert]:border-l-(--_picodash-color-alert-border) data-[status=alert]:bg-picodash-alert-subtle data-[status=error]:border-l-(--_picodash-color-danger-border) data-[status=error]:bg-picodash-danger-subtle data-[status=info]:border-l-(--_picodash-color-info-border) data-[status=info]:bg-picodash-info-subtle data-[status=warning]:border-l-(--_picodash-color-warning-border) data-[status=warning]:bg-picodash-warning-subtle',
+        'group/picodash-section rounded-picodash-control border-picodash-border/80 data-[dragging=true]:border-picodash-focus data-[dragging=true]:shadow-picodash-panel data-[focused=true]:border-picodash-focus/60 data-[hovered=true]:border-l-picodash-surface-muted/80 data-[status=alert]:bg-picodash-alert-subtle data-[status=error]:bg-picodash-danger-subtle data-[status=info]:bg-picodash-info-subtle data-[status=warning]:bg-picodash-warning-subtle relative isolate col-span-full shrink-0 border border-l-2 border-l-transparent bg-(--_picodash-color-well) transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--picodash-duration-fast) select-none data-[dragging=true]:z-(--picodash-layer-drag)! data-[dragging=true]:bg-(--_picodash-group-drag) data-[dragging=true]:backdrop-blur-(--picodash-blur-surface) data-[status=alert]:border-l-(--_picodash-color-alert-border) data-[status=error]:border-l-(--_picodash-color-danger-border) data-[status=info]:border-l-(--_picodash-color-info-border) data-[status=warning]:border-l-(--_picodash-color-warning-border)',
         className,
       )}
       data-active={active ? 'true' : 'false'}
@@ -198,7 +198,7 @@ export function PicodashGroup({
     >
       <div
         className={cn(
-          'group-data-[hovered=true]/picodash-section:bg-picodash-surface-muted/80 flex min-h-(--picodash-control-height-md) items-center gap-0 rounded-t-picodash-control py-(--picodash-space-1) pr-(--picodash-space-1-5) transition-colors duration-(--picodash-duration-fast) group-data-[collapsed=true]/picodash-section:rounded-b-picodash-control',
+          'group-data-[hovered=true]/picodash-section:bg-picodash-surface-muted/80 rounded-t-picodash-control group-data-[collapsed=true]/picodash-section:rounded-b-picodash-control flex min-h-(--picodash-control-height-md) items-center gap-0 py-(--picodash-space-1) pr-(--picodash-space-1-5) transition-colors duration-(--picodash-duration-fast)',
           !showReorderSlot && 'pl-(--picodash-space-1-5)',
         )}
         onPointerEnter={() => store.getState().setHoveredItem(id)}
@@ -212,7 +212,7 @@ export function PicodashGroup({
             aria-pressed={keyboardReorderActive}
             className={cn(
               buttonVariants({ size: 'icon', variant: 'ghost' }),
-              'size-(--picodash-control-height-xs) shrink-0 cursor-grab text-picodash-muted opacity-(--picodash-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
+              'text-picodash-muted size-(--picodash-control-height-xs) shrink-0 cursor-grab opacity-(--picodash-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
             )}
             type="button"
             onKeyDown={(event) => handleReorderKeyDown(event, labelText)}
@@ -236,7 +236,7 @@ export function PicodashGroup({
           aria-expanded={!collapsed}
           className={cn(
             buttonVariants({ size: 'sm', variant: 'ghost' }),
-            'min-w-0 flex-1 justify-start pr-(--picodash-space-1) pl-0 text-(length:--picodash-font-size-lg) text-picodash-muted aria-expanded:bg-transparent',
+            'text-picodash-muted min-w-0 flex-1 justify-start pr-(--picodash-space-1) pl-0 text-(length:--picodash-font-size-lg) aria-expanded:bg-transparent',
             !collapsible && 'pointer-events-none',
           )}
           type="button"

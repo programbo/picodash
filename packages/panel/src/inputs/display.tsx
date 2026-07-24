@@ -29,7 +29,7 @@ export function PicodashDisplay({
       {(control) => (
         <div
           className={cn(
-            'col-span-2 min-h-0 px-(--picodash-space-1) py-(--picodash-space-0-5) text-(length:--picodash-font-size-lg) leading-(--picodash-line-normal) text-picodash-text',
+            'text-picodash-text col-span-2 min-h-0 px-(--picodash-space-1) py-(--picodash-space-0-5) text-(length:--picodash-font-size-lg) leading-(--picodash-line-normal)',
             control.value === undefined && value === undefined && 'text-picodash-muted',
           )}
         >

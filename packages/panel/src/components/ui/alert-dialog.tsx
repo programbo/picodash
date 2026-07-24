@@ -34,7 +34,7 @@ function AlertDialogOverlay({
     <ModalOverlayPrimitive
       data-slot="alert-dialog-overlay"
       className={cn(
-        'fixed inset-0 isolate z-50 bg-black/30 duration-100 data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 supports-backdrop-filter:backdrop-blur-sm',
+        'data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm',
         className,
       )}
       {...props}
@@ -130,7 +130,7 @@ function AlertDialog({
         data-picodash-theme={picodashTheme}
         style={style}
         className={cn(
-          'group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full -translate-x-1/2 -translate-y-1/2 gap-6 rounded-[min(var(--radius-4xl),24px)] bg-picodash-surface-raised p-6 text-picodash-text shadow-xl ring-1 ring-picodash-text/5 duration-100 outline-none data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-md dark:ring-picodash-text/10',
+          'group/alert-dialog-content bg-picodash-surface-raised text-picodash-text ring-picodash-text/5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 dark:ring-picodash-text/10 fixed top-1/2 left-1/2 z-50 grid w-full -translate-x-1/2 -translate-y-1/2 gap-6 rounded-[min(var(--radius-4xl),24px)] p-6 shadow-xl ring-1 duration-100 outline-none data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-md',
           className,
         )}
       >
@@ -139,7 +139,7 @@ function AlertDialog({
           data-slot="alert-dialog"
           data-picodash-theme={picodashTheme}
           role="alertdialog"
-          className="[display:inherit] [gap:inherit] outline-none"
+          className="[display:inherit] gap-[inherit] outline-none"
         >
           <AlertDialogDescriptionContext.Provider value={registerDescription}>
             {children}
@@ -194,7 +194,7 @@ function AlertDialogMedia({ className, ...props }: React.ComponentProps<'div'>) 
     <div
       data-slot="alert-dialog-media"
       className={cn(
-        "mb-2 inline-flex size-16 items-center justify-center rounded-full bg-picodash-surface-muted sm:group-data-[size=default]/alert-dialog-content:row-span-2 *:[svg:not([class*='size-'])]:size-8",
+        "bg-picodash-surface-muted mb-2 inline-flex size-16 items-center justify-center rounded-full sm:group-data-[size=default]/alert-dialog-content:row-span-2 *:[svg:not([class*='size-'])]:size-8",
         className,
       )}
       {...props}
@@ -237,7 +237,7 @@ function AlertDialogDescription({
       id={descriptionId}
       data-slot="alert-dialog-description"
       className={cn(
-        'text-sm text-balance text-picodash-muted md:text-pretty *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-picodash-text',
+        'text-picodash-muted *:[a]:hover:text-picodash-text text-sm text-balance md:text-pretty *:[a]:underline *:[a]:underline-offset-3',
         className,
       )}
       {...props}

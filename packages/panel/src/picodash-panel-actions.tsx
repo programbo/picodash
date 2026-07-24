@@ -715,9 +715,13 @@ function RepairReviewDialog({
             </h3>
             <dl className="grid grid-cols-[auto_1fr] gap-x-(--picodash-space-2) gap-y-(--picodash-space-1) text-(length:--picodash-font-size-lg)">
               <dt className="text-picodash-muted">{beforeLabel}</dt>
-              <dd className="min-w-0 font-mono break-words">{formatFieldOutput(change.before)}</dd>
+              <dd className="min-w-0 font-mono wrap-break-word">
+                {formatFieldOutput(change.before)}
+              </dd>
               <dt className="text-picodash-muted">Proposed</dt>
-              <dd className="min-w-0 font-mono break-words">{formatFieldOutput(change.after)}</dd>
+              <dd className="min-w-0 font-mono wrap-break-word">
+                {formatFieldOutput(change.after)}
+              </dd>
             </dl>
             <ul className="list-disc pl-(--picodash-space-4) text-(length:--picodash-font-size-lg) text-(--picodash-color-danger)">
               {change.errors.map((error) => (
