@@ -130,7 +130,7 @@ export default function DropzoneImplementation({
               ? 'Choose files or drop them here'
               : 'Choose a file or drop it here',
             className: cn(
-              'box-border flex min-h-(--picodash-field-surface-min-height) cursor-pointer flex-col items-center justify-center gap-(--picodash-space-1) rounded-picodash-control border border-dashed border-picodash-control bg-(--_picodash-color-well) px-(--picodash-space-3) py-(--picodash-space-4) text-center text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) text-picodash-muted outline-none focus-visible:ring-2 focus-visible:ring-picodash-focus focus-visible:ring-offset-1 focus-visible:ring-offset-picodash-canvas',
+              'rounded-picodash-control border-picodash-control text-picodash-muted focus-visible:ring-picodash-focus focus-visible:ring-offset-picodash-canvas box-border flex min-h-(--picodash-field-surface-min-height) cursor-pointer flex-col items-center justify-center gap-(--picodash-space-1) border border-dashed bg-(--_picodash-color-well) px-(--picodash-space-3) py-(--picodash-space-4) text-center text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
               isDragActive &&
                 'border-picodash-focus bg-picodash-surface-muted/60 text-picodash-text',
               isDragAccept && 'border-picodash-success/80 bg-picodash-success-subtle',

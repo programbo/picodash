@@ -56,7 +56,7 @@ function DropdownMenu({
       crossOffset={popoverProps?.crossOffset ?? 0}
       UNSTABLE_portalContainer={portalContainer ?? undefined}
       className={cn(
-        'dark z-50 max-h-(--available-height) w-(--trigger-width) min-w-32 origin-(--trigger-anchor-point) overflow-x-hidden overflow-y-auto rounded-2xl p-1 text-picodash-text shadow-lg ring-1 ring-picodash-text/5 duration-100 outline-none data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:overflow-hidden data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot$=-item]:data-focused:bg-picodash-text/10 dark:ring-picodash-text/10 animate-none! relative bg-picodash-surface-raised/70 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-picodash-text/10 **:data-[slot$=-item]:data-highlighted:bg-picodash-text/10 **:data-[slot$=-separator]:bg-picodash-text/5 **:data-[slot$=-trigger]:focus:bg-picodash-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-picodash-text/10! **:data-[variant=destructive]:focus:bg-picodash-text/10! **:data-[variant=destructive]:text-picodash-text! **:data-[variant=destructive]:**:text-picodash-text!',
+        'dark text-picodash-text ring-picodash-text/5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot$=-item]:data-focused:bg-picodash-text/10 dark:ring-picodash-text/10 bg-picodash-surface-raised/70 **:data-[slot$=-item]:focus:bg-picodash-text/10 **:data-[slot$=-item]:data-highlighted:bg-picodash-text/10 **:data-[slot$=-separator]:bg-picodash-text/5 **:data-[slot$=-trigger]:focus:bg-picodash-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-picodash-text/10! **:data-[variant=destructive]:focus:bg-picodash-text/10! **:data-[variant=destructive]:text-picodash-text! **:data-[variant=destructive]:**:text-picodash-text! relative z-50 max-h-(--available-height) w-(--trigger-width) min-w-32 origin-(--trigger-anchor-point) animate-none! overflow-x-hidden overflow-y-auto rounded-2xl p-1 shadow-lg ring-1 duration-100 outline-none before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 data-exiting:overflow-hidden',
         popoverClassName,
       )}
       style={popoverStyle}
@@ -94,7 +94,7 @@ function DropdownMenuLabel({
     <HeaderPrimitive
       data-slot="dropdown-menu-label"
       data-inset={inset}
-      className={cn('px-2 py-1 text-xs text-picodash-muted data-inset:pl-7', className)}
+      className={cn('text-picodash-muted px-2 py-1 text-xs data-inset:pl-7', className)}
       {...props}
     />
   )
@@ -175,7 +175,7 @@ function DropdownMenuSubTrigger({
       data-inset={inset}
       textValue={typeof children === 'string' ? children : props.textValue}
       className={cn(
-        "flex min-h-7 cursor-default items-center gap-2 rounded-xl px-2 py-1.5 text-sm outline-hidden select-none focus:bg-picodash-surface-muted focus:text-picodash-text not-data-[variant=destructive]:focus:**:text-picodash-text data-inset:pl-7 data-open:bg-picodash-surface-muted data-open:text-picodash-text [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "focus:bg-picodash-surface-muted focus:text-picodash-text not-data-[variant=destructive]:focus:**:text-picodash-text data-open:bg-picodash-surface-muted data-open:text-picodash-text flex min-h-7 cursor-default items-center gap-2 rounded-xl px-2 py-1.5 text-sm outline-hidden select-none data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
@@ -198,7 +198,7 @@ function DropdownMenuSubContent({
   return (
     <DropdownMenu
       popoverClassName={cn(
-        'dark w-auto min-w-[96px] rounded-2xl p-1 text-picodash-text shadow-lg ring-1 ring-picodash-text/5 duration-100 dark:ring-picodash-text/10 animate-none! relative bg-picodash-surface-raised/70 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-picodash-text/10 **:data-[slot$=-item]:data-highlighted:bg-picodash-text/10 **:data-[slot$=-separator]:bg-picodash-text/5 **:data-[slot$=-trigger]:focus:bg-picodash-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-picodash-text/10! **:data-[variant=destructive]:focus:bg-picodash-text/10! **:data-[variant=destructive]:text-picodash-text! **:data-[variant=destructive]:**:text-picodash-text!',
+        'dark text-picodash-text ring-picodash-text/5 dark:ring-picodash-text/10 bg-picodash-surface-raised/70 **:data-[slot$=-item]:focus:bg-picodash-text/10 **:data-[slot$=-item]:data-highlighted:bg-picodash-text/10 **:data-[slot$=-separator]:bg-picodash-text/5 **:data-[slot$=-trigger]:focus:bg-picodash-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-picodash-text/10! **:data-[variant=destructive]:focus:bg-picodash-text/10! **:data-[variant=destructive]:text-picodash-text! **:data-[variant=destructive]:**:text-picodash-text! relative w-auto min-w-24 animate-none! rounded-2xl p-1 shadow-lg ring-1 duration-100 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150',
         popoverClassName,
       )}
       popoverProps={{
@@ -219,7 +219,7 @@ function DropdownMenuSeparator({
   return (
     <SeparatorPrimitive
       data-slot="dropdown-menu-separator"
-      className={cn('-mx-1 my-1 h-px bg-picodash-border/50', className)}
+      className={cn('bg-picodash-border/50 -mx-1 my-1 h-px', className)}
       {...props}
     />
   )
@@ -230,7 +230,7 @@ function DropdownMenuShortcut({ className, ...props }: React.ComponentProps<'spa
     <span
       data-slot="dropdown-menu-shortcut"
       className={cn(
-        'ml-auto text-xs tracking-widest text-picodash-muted group-focus/dropdown-menu-item:text-picodash-text',
+        'text-picodash-muted group-focus/dropdown-menu-item:text-picodash-text ml-auto text-xs tracking-widest',
         className,
       )}
       {...props}

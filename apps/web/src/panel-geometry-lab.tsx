@@ -107,7 +107,7 @@ function RelativeConstraintFixture() {
       `}</style>
       <section
         ref={setBoundaryElement}
-        className="review-probe-context absolute top-20 left-[120px] h-[360px] w-[520px] border border-white/15"
+        className="review-probe-context absolute top-20 left-30 h-90 w-130 border border-white/15"
         data-geometry-boundary="relative-constraints"
       >
         {boundaryElement ? (
@@ -150,7 +150,7 @@ function ReviewRegressionFixture() {
         className="fixed inset-0 overflow-auto"
         data-geometry-scroll-portal
       >
-        <div className="h-[1200px] w-px" aria-hidden="true" />
+        <div className="h-300 w-px" aria-hidden="true" />
         {portalContainer ? (
           <PicodashProvider persistLayout={false} portalContainer={portalContainer} theme="dark">
             <ReviewRegressionControls />

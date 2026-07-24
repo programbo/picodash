@@ -42,6 +42,8 @@
   },
   "type": "module",
   "scripts": {
+    "lint": "vp lint packages/panel/src --fix && vp lint apps/web/src --fix",
+    "format": "vp fmt . --write",
     "ready": "vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter @picodash/web test:e2e",
     "dev": "bun run --filter @picodash/web dev",
     "web": "bun run --filter @picodash/web dev",
@@ -51,6 +53,7 @@
   },
   "devDependencies": {
     "@tsdown/css": "catalog:",
+    "oxlint-tailwindcss": "1.3.5",
     "vite-plus": "catalog:"
   },
   "overrides": {

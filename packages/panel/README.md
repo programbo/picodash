@@ -296,6 +296,15 @@ type ActionMenuConfirmation = readonly [message: string, title?: string, buttonL
 - Reorder handles support pointer dragging and keyboard pick-up with Space/Enter, movement with
   Arrow Up/Down, dropping with Space/Enter, and cancellation with Escape.
 
+## Local verification
+
+From the workspace root:
+
+```bash
+bun run --filter @picodash/panel lint
+bun run --filter @picodash/panel format
+```
+
 ## Release verification
 
 Pull requests and pushes to `main` run parallel quality and E2E jobs. The quality job runs

@@ -197,8 +197,8 @@ function GradientEditor({
           aria-valuemin={0}
           aria-valuenow={Math.round(stop.position * 100)}
           className={cn(
-            'absolute top-full z-(--picodash-layer-raised) size-(--picodash-icon-md) -translate-x-1/2 -translate-y-1/2 touch-none rounded-full border-2 border-picodash-canvas shadow-picodash-sm ring-1 ring-picodash-border outline-none focus-visible:ring-2 focus-visible:ring-picodash-focus',
-            selectedStop?.id === stop.id && 'ring-2 ring-picodash-accent',
+            'border-picodash-canvas shadow-picodash-sm ring-picodash-border focus-visible:ring-picodash-focus absolute top-full z-(--picodash-layer-raised) size-(--picodash-icon-md) -translate-x-1/2 -translate-y-1/2 touch-none rounded-full border-2 ring-1 outline-none focus-visible:ring-2',
+            selectedStop?.id === stop.id && 'ring-picodash-accent ring-2',
             unavailable
               ? 'cursor-not-allowed opacity-(--picodash-opacity-muted)'
               : 'cursor-ew-resize',

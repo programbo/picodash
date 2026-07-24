@@ -101,7 +101,7 @@ export function PicodashRange({
             <Slider<PicodashRangeValue>
               id={control.inputId}
               aria-label="Range"
-              className="relative flex h-(--picodash-control-height-xs) min-w-0 touch-none items-center select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-(--picodash-opacity-disabled)"
+              className="relative flex h-(--picodash-control-height-xs) min-w-0 touch-none items-center select-none data-disabled:opacity-(--picodash-opacity-disabled) data-[disabled]:cursor-not-allowed"
               isDisabled={control.disabled || control.readOnly || min === max}
               maxValue={max}
               minValue={min}

@@ -135,7 +135,7 @@ export function PicodashMatrix2D<TValue extends PicodashValue>({
                     }
                     aria-pressed={selectionRole === 'toggle' ? selected : undefined}
                     className={cn(
-                      'outline-none focus-visible:z-(--picodash-layer-raised) focus-visible:ring-2 focus-visible:ring-picodash-focus disabled:pointer-events-none disabled:opacity-(--picodash-opacity-disabled-soft)',
+                      'focus-visible:ring-picodash-focus outline-none focus-visible:z-(--picodash-layer-raised) focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-(--picodash-opacity-disabled-soft)',
                       className,
                     )}
                     data-column={columnIndex}

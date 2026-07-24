@@ -123,7 +123,7 @@ export function TooltipContent({
       data-picodash-theme={theme}
       data-picodash-token-offset={usesTokenOffset ? 'true' : undefined}
       className={cn(
-        'z-(--picodash-layer-tooltip) max-w-64 rounded-picodash-surface border border-picodash-border bg-picodash-surface-raised px-(--picodash-space-2-5) py-(--picodash-space-2) text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) text-picodash-text shadow-[0_10px_15px_-3px_rgb(0_0_0/0.25),0_4px_6px_-4px_rgb(0_0_0/0.25)] outline-none data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95',
+        'rounded-picodash-surface border-picodash-border bg-picodash-surface-raised text-picodash-text data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 z-(--picodash-layer-tooltip) max-w-64 border px-(--picodash-space-2-5) py-(--picodash-space-2) text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) shadow-[0_10px_15px_-3px_rgb(0_0_0/0.25),0_4px_6px_-4px_rgb(0_0_0/0.25)] outline-none',
         className,
       )}
       containerPadding={collisionPadding}

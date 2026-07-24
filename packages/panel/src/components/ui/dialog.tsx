@@ -55,7 +55,7 @@ function DialogOverlay({
     <ModalOverlayPrimitive
       data-slot="dialog-overlay"
       className={cn(
-        'fixed inset-0 isolate z-50 bg-black/30 duration-100 data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 supports-backdrop-filter:backdrop-blur-sm',
+        'data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm',
         className,
       )}
       {...props}
@@ -111,7 +111,7 @@ function Dialog({
         data-picodash-theme={picodashTheme}
         style={style}
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-[min(var(--radius-4xl),24px)] bg-picodash-surface-raised p-6 text-sm text-picodash-text shadow-xl ring-1 ring-picodash-text/5 duration-100 outline-none data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 sm:max-w-md dark:ring-picodash-text/10',
+          'bg-picodash-surface-raised text-picodash-text ring-picodash-text/5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 dark:ring-picodash-text/10 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-[min(var(--radius-4xl),24px)] p-6 text-sm shadow-xl ring-1 duration-100 outline-none sm:max-w-md',
           className,
         )}
       >
@@ -119,7 +119,7 @@ function Dialog({
           aria-describedby={descriptionIds.length > 0 ? descriptionIds.join(' ') : undefined}
           data-slot="dialog"
           data-picodash-theme={picodashTheme}
-          className="[display:inherit] [gap:inherit] outline-none"
+          className="[display:inherit] gap-[inherit] outline-none"
         >
           <DialogDescriptionContext.Provider value={registerDescription}>
             {children}
@@ -195,7 +195,7 @@ function DialogDescription({
       id={descriptionId}
       data-slot="dialog-description"
       className={cn(
-        'text-sm text-picodash-muted *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-picodash-text',
+        'text-picodash-muted *:[a]:hover:text-picodash-text text-sm *:[a]:underline *:[a]:underline-offset-3',
         className,
       )}
       {...props}

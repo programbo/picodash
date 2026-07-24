@@ -69,7 +69,7 @@ function SelectValue<T extends object>({ className, children, ...props }: Select
   return (
     <SelectValuePrimitive
       data-slot="select-value"
-      className={cn('flex flex-1 text-left data-placeholder:text-picodash-muted', className)}
+      className={cn('data-placeholder:text-picodash-muted flex flex-1 text-left', className)}
       {...props}
     >
       {typeof children === 'function'
@@ -94,7 +94,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex h-(--picodash-control-height-sm) w-full items-center justify-between gap-(--picodash-space-1) rounded-picodash-control border-0 border-b border-picodash-control bg-transparent py-(--picodash-space-0-5) pr-1 pl-(--picodash-space-1-5) text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) text-picodash-text whitespace-nowrap shadow-none outline-none transition-colors duration-(--picodash-duration-fast) data-hovered:bg-picodash-canvas data-focus-visible:ring-2 data-focus-visible:ring-picodash-focus data-disabled:cursor-not-allowed data-disabled:opacity-(--picodash-opacity-disabled) aria-invalid:border-picodash-danger aria-invalid:ring-2 aria-invalid:ring-picodash-danger/20 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-(--picodash-space-1) [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-(--picodash-icon-sm)",
+        "rounded-picodash-control border-picodash-control text-picodash-text data-hovered:bg-picodash-canvas data-focus-visible:ring-picodash-focus aria-invalid:border-picodash-danger aria-invalid:ring-picodash-danger/20 flex h-(--picodash-control-height-sm) w-full items-center justify-between gap-(--picodash-space-1) border-0 border-b bg-transparent py-(--picodash-space-0-5) pr-1 pl-(--picodash-space-1-5) text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) whitespace-nowrap shadow-none transition-colors duration-(--picodash-duration-fast) outline-none aria-invalid:ring-2 data-disabled:cursor-not-allowed data-disabled:opacity-(--picodash-opacity-disabled) data-focus-visible:ring-2 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-(--picodash-space-1) [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-(--picodash-icon-sm)",
         className,
       )}
       {...props}
@@ -203,7 +203,7 @@ function SelectPopoverSurface({
       containerPadding={picodashGeometryTokens.selectCollisionPadding}
       UNSTABLE_portalContainer={portalContainer ?? undefined}
       className={cn(
-        'pointer-events-auto isolate z-(--picodash-layer-select) max-h-(--available-height) w-(--trigger-width) min-w-(--trigger-width) origin-(--trigger-anchor-point) overflow-hidden rounded-picodash-surface border border-picodash-border bg-picodash-surface-raised text-picodash-text shadow-(--picodash-shadow-md) duration-100 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2',
+        'rounded-picodash-surface border-picodash-border bg-picodash-surface-raised text-picodash-text data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 pointer-events-auto isolate z-(--picodash-layer-select) max-h-(--available-height) w-(--trigger-width) min-w-(--trigger-width) origin-(--trigger-anchor-point) overflow-hidden border shadow-(--picodash-shadow-md) duration-100',
         className,
       )}
       style={composeRenderProps(style, (style) => ({
@@ -257,7 +257,7 @@ function SelectLabel({ className, ...props }: React.ComponentProps<typeof Header
   return (
     <HeaderPrimitive
       data-slot="select-label"
-      className={cn('px-2 py-1 text-xs text-picodash-muted', className)}
+      className={cn('text-picodash-muted px-2 py-1 text-xs', className)}
       {...props}
     />
   )
@@ -273,7 +273,7 @@ function SelectItem({
       data-slot="select-item"
       textValue={typeof children === 'string' ? children : undefined}
       className={cn(
-        "relative flex h-(--picodash-control-height-md) w-full cursor-default items-center gap-(--picodash-space-1) rounded-picodash-control pr-8 pl-8 text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) outline-hidden select-none data-focused:bg-picodash-surface-muted data-focused:text-picodash-text data-disabled:pointer-events-none data-disabled:opacity-(--picodash-opacity-disabled) [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-(--picodash-icon-sm)",
+        "rounded-picodash-control data-focused:bg-picodash-surface-muted data-focused:text-picodash-text relative flex h-(--picodash-control-height-md) w-full cursor-default items-center gap-(--picodash-space-1) pr-8 pl-8 text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-(--picodash-opacity-disabled) [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-(--picodash-icon-sm)",
         className,
       )}
       {...props}
@@ -294,7 +294,7 @@ function SelectSeparator({ className, ...props }: React.ComponentProps<typeof Se
   return (
     <SeparatorPrimitive
       data-slot="select-separator"
-      className={cn('pointer-events-none -mx-1 my-1 h-px bg-picodash-border', className)}
+      className={cn('bg-picodash-border pointer-events-none -mx-1 my-1 h-px', className)}
       {...props}
     />
   )
@@ -305,7 +305,7 @@ function SelectEmpty({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="select-empty"
       className={cn(
-        'hidden w-full justify-center py-2 text-center text-sm text-picodash-muted group-data-empty/select-list:flex',
+        'text-picodash-muted hidden w-full justify-center py-2 text-center text-sm group-data-empty/select-list:flex',
         className,
       )}
       {...props}
