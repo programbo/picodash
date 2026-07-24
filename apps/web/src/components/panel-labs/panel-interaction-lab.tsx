@@ -127,7 +127,7 @@ function InteractionControls({
 
   return (
     <section
-      className="fixed bottom-3 left-1/2 z-50 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-wrap justify-center gap-2 rounded-lg border border-white/15 bg-zinc-950/90 p-2 text-xs shadow-xl"
+      className="fixed bottom-3 left-1/2 z-1100 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 flex-wrap justify-center gap-2 rounded-lg border border-white/15 bg-zinc-950/90 p-2 text-xs shadow-xl"
       data-interaction-fixture="controllers"
     >
       <PlacementButton
