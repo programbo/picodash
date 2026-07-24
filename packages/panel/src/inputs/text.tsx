@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
-import { PicodashItem, type PicodashInputItemProps } from '../picodash-control.js'
+import { PicodashItem, type PicodashInputItemProps } from '../components/panel/PicodashItem.js'
 import { Input } from '../components/ui/input.js'
 import { Textarea } from '../components/ui/textarea.js'
-import type { PicodashParser } from '../picodash-validation.js'
-import { canonicalPicodashValue, invalidPicodashValue } from './built-in-validation.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
+import { canonicalPicodashValue, invalidPicodashValue } from './internal/built-in-validation.js'
 
 export interface PicodashTextProps extends Omit<
   PicodashInputItemProps<string>,

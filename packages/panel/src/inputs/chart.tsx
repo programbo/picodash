@@ -21,9 +21,9 @@ import type {
   XAxis,
   YAxis,
 } from 'recharts'
-import { PicodashItem, type PicodashDisplayItemProps } from '../picodash-control.js'
-import type { PicodashValue } from '../picodash-panel.js'
-import type { DistributiveOmit } from './built-in-validation.js'
+import { PicodashItem, type PicodashDisplayItemProps } from '../components/panel/PicodashItem.js'
+import type { PicodashValue } from '../components/panel/PicodashPanel.js'
+import type { DistributiveOmit } from './internal/built-in-validation.js'
 
 export type PicodashChartDataRow = Record<string, unknown>
 export type PicodashChartTooltipProps = ComponentProps<typeof ChartTooltip>
@@ -131,7 +131,7 @@ export type PicodashChartProps =
   | PicodashRadialChartProps
 
 const defaultInitialDimension = { height: 144, width: 320 }
-const LazyPicodashChartImplementation = lazy(() => import('./chart-implementation.js'))
+const LazyPicodashChartImplementation = lazy(() => import('./internal/chart-implementation.js'))
 
 export function PicodashChart({
   accessibilityLayer = true,

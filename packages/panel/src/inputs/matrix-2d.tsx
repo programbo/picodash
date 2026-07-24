@@ -4,12 +4,12 @@ import {
   useResolvedPanelProp,
   type ReactiveProp,
   type PicodashInputItemProps,
-} from '../picodash-control.js'
-import type { PicodashValue } from '../picodash-panel.js'
-import type { PicodashParser } from '../picodash-validation.js'
-import { jsonCompatibilityError, jsonValuesEqual } from '../picodash-validation.js'
-import { cn } from '../utils.js'
-import { canonicalPicodashValue, invalidPicodashValue } from './built-in-validation.js'
+} from '../components/panel/PicodashItem.js'
+import type { PicodashValue } from '../components/panel/PicodashPanel.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
+import { jsonCompatibilityError, jsonValuesEqual } from '../validation/picodash-validation.js'
+import { cn } from '../utilities/utils.js'
+import { canonicalPicodashValue, invalidPicodashValue } from './internal/built-in-validation.js'
 
 export type PicodashMatrix2DDirection = 'down' | 'left' | 'right' | 'up'
 export type PicodashMatrix2DSelectionRole = 'radio' | 'toggle'

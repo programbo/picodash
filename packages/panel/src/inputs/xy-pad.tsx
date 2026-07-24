@@ -1,16 +1,16 @@
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react'
 import { useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react'
-import { picodashGeometryTokens, picodashMotionTokens } from '../theme.js'
+import { picodashGeometryTokens, picodashMotionTokens } from '../lib/theme/theme.js'
 import {
   PicodashItem,
   useResolvedPanelProp,
   type ReactiveProp,
   type PicodashItemContextValue,
   type PicodashInputItemProps,
-} from '../picodash-control.js'
-import type { PicodashParser } from '../picodash-validation.js'
-import { cn } from '../utils.js'
-import { canonicalPicodashValue, strictImportShape } from './built-in-validation.js'
+} from '../components/panel/PicodashItem.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
+import { cn } from '../utilities/utils.js'
+import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
 export type PicodashXYValue = { x: number; y: number }
 

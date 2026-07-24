@@ -5,10 +5,10 @@ import {
   type ReactiveProp,
   type PicodashItemContextValue,
   type PicodashInputItemProps,
-} from '../picodash-control.js'
+} from '../components/panel/PicodashItem.js'
 import { Input } from '../components/ui/input.js'
-import type { PicodashParser } from '../picodash-validation.js'
-import { canonicalPicodashValue, strictImportShape } from './built-in-validation.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
+import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
 export type PicodashVector3Value = {
   x: number

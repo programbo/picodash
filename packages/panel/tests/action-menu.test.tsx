@@ -23,8 +23,8 @@ import {
 import {
   actionMenuConfirmationForDestructive,
   resolvePicodashPanelActionMenu,
-} from '../src/picodash-panel-actions.tsx'
-import { panelShouldRenderHeader } from '../src/picodash-panel.tsx'
+} from '../src/components/panel/actions/PicodashPanelActions.tsx'
+import { panelShouldRenderHeader } from '../src/components/panel/PicodashPanel.tsx'
 
 test('exports the composable action-menu surface', () => {
   expect(ActionMenuItem).toBeTypeOf('function')

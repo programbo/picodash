@@ -2,7 +2,7 @@ import { expect, test } from 'vite-plus/test'
 import { picodashAlignmentValues } from '../src/inputs/alignment.tsx'
 import { segmentedEnabledOptionValues } from '../src/inputs/segmented.tsx'
 import { selectOptionValues } from '../src/inputs/select.tsx'
-import { collapsibleGroupsForState } from '../src/picodash-panel-action-state.ts'
+import { collapsibleGroupsForState } from '../src/state/panel/picodash-panel-action-state.ts'
 import {
   importPicodashPanelDocument,
   parsePicodashPanelDocument,
@@ -10,13 +10,13 @@ import {
   picodashPanelDocumentFilename,
   picodashPanelDocumentFormatFromFilename,
   validatePicodashPanelDocument,
-} from '../src/picodash-panel-documents.ts'
-import { createPicodashPanelStore } from '../src/picodash-panel-store.ts'
+} from '../src/lib/docs/picodash-panel-documents.ts'
+import { createPicodashPanelStore } from '../src/state/panel/picodash-panel-store.ts'
 import type {
   PicodashItemRegistration,
   PicodashPanelStore,
   PicodashValue,
-} from '../src/picodash-panel-types.ts'
+} from '../src/state/panel/picodash-panel-types.ts'
 
 test('aggregates visible collapsible groups using defaults and explicit state', () => {
   const store = createPicodashPanelStore({ panelId: 'inspect' })

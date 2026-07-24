@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { GalleryThemes } from '@/gallery-themes'
+import { GalleryThemes } from '@/components/home/gallery-themes'
 
 export const metadata: Metadata = {
   title: 'Themes',
