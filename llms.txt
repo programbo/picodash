@@ -22,6 +22,16 @@ What it provides:
 - advanced provider access via usePicodashProviderSelector and usePicodashProviderStoreApi
 - contextual advanced panel access via usePicodashPanelSelector and usePicodashPanelStoreApi
 - optional panel close buttons with hide or deregister behavior
+- action-menu API is public/composable on `PicodashPanel`:
+  - `actionMenu` undefined => default menu
+  - `actionMenu = false` => no action menu
+  - `actionMenu` as `readonly ReactElement[]` => root submenu with default trigger
+  - `actionMenu` as `ActionSubmenu` => replaces root submenu trigger
+- Public exports include `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`,
+  `CopySubmenu`, `ExportSubmenu`, `CopyJsonItem`, `CopyYamlItem`, `ExportJsonItem`,
+  `ExportYamlItem`, `ExpandAllItem`, `CollapseAllItem`, `ImportItem`, `ResetItem`.
+- `destructive` tuple: `[message, title?, buttonLabel?]`, with default `title = label` and
+  `buttonLabel = 'Confirm'`.
 - strict programmatic writes, sync validation, JSON-compatible values
 - pointer and keyboard item reordering with same-band constraints
 - observable async sparkline source failures

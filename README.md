@@ -156,6 +156,56 @@ Set `close` to add a header close button immediately after the action menu. `clo
 removes the registration and portal so an optional `onClose({ panelId, behavior })` observer can
 unmount the host component. The callback observes the built-in behavior rather than replacing it.
 
+### Panel action menu (public API)
+
+`PicodashPanel` supports a composable `actionMenu` prop:
+
+```tsx
+import {
+  ActionMenuItem,
+  ActionSubmenu,
+  ActionMenuSeparator,
+  CopySubmenu,
+  ExportSubmenu,
+  PicodashPanel,
+  PicodashPanelActionMenu,
+} from '@picodash/panel'
+```
+
+- `actionMenu: undefined` uses the default menu.
+- `actionMenu: false` hides the header menu.
+- `actionMenu: readonly ReactElement[]` renders those items in a root `ActionSubmenu`.
+- `actionMenu` as a single `ActionSubmenu` replaces the root trigger.
+
+Default menu (undefined) includes the same internal rows as built-ins:
+
+- `Expand all`
+- `Collapse all`
+- `Copy JSON`
+- `Copy YAML`
+- `Export JSON`
+- `Export YAML`
+- `Import…`
+- `Reset…`
+
+`CopySubmenu` and `ExportSubmenu` are provided and can be reused to match default nesting.
+
+Icons are React component constructors typed as `LucideIcon` so icon imports stay tree-shakeable:
+
+- `ActionMenuItemProps.icon?: LucideIcon`
+- `ActionSubmenuProps.icon?: LucideIcon`
+
+`destructive` is a 3-tuple for confirmation:
+
+```ts
+type ActionMenuConfirmation = readonly [message: string, title?: string, buttonLabel?: string]
+```
+
+Defaults:
+
+- `title` defaults to the row `label`.
+- `buttonLabel` defaults to `'Confirm'`.
+
 ### Placement and panel boundaries
 
 Panels support floating, magnetic, and fixed placement. Existing corner strings remain valid for

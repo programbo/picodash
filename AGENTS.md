@@ -42,6 +42,19 @@ access uses `usePicodashProviderSelector` / `usePicodashProviderStoreApi`, while
 access uses `usePicodashPanelSelector` / `usePicodashPanelStoreApi`. Legacy schema-driven
 registration flow is retired.
 
+`PicodashPanel` exposes public action-menu composition. `actionMenu` is part of the public
+`PicodashPanel` API:
+
+- `undefined` => built-in default action menu.
+- `false` => menu hidden.
+- `readonly ReactElement[]` => wrapped by a root `ActionSubmenu` with the default trigger.
+- `ActionSubmenu` root element => replaces the default root trigger.
+
+Public exports include `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`,
+`CopySubmenu`, `ExportSubmenu`, and built-in item components.
+`destructive` for `ActionMenuItem` is the tuple `[message, title?, buttonLabel?]`
+with defaults `title = label` and `buttonLabel = 'Confirm'`.
+
 `@picodash/panel/style.css` ships complete `dark` and `light` theme recipes. `PicodashProvider
 theme="system"` follows `prefers-color-scheme` and reacts to preference changes. Consumers define
 named themes by overriding semantic `--picodash-*` tokens under `data-picodash-theme`; the provider

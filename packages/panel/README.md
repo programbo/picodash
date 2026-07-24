@@ -239,6 +239,48 @@ Recharts is loaded lazily when a chart is rendered. The Dropzone implementation 
 `react-dropzone` only when that control is rendered; both public components and their types remain
 available from the main entrypoint.
 
+### Action menu
+
+`PicodashPanel` exposes `actionMenu` as a composable contract and exports the menu primitives:
+
+- `ActionMenuItem`
+- `ActionMenuSeparator`
+- `ActionSubmenu`
+- `CopySubmenu`
+- `ExportSubmenu`
+- `ExpandAllItem`, `CollapseAllItem`, `CopyJsonItem`, `CopyYamlItem`,
+  `ExportJsonItem`, `ExportYamlItem`, `ImportItem`, `ResetItem`
+
+`actionMenu` behavior:
+
+- `undefined` (default): built-in menu with up to eight rows (conditionally showing `Expand all` /
+  `Collapse all`, then `Copy JSON`, `Copy YAML`, `Export JSON`, `Export YAML`, `Import…`, `Reset…`).
+- `false`: hide the menu.
+- `readonly ReactElement[]`: create a root menu populated by your array.
+- single `ActionSubmenu` root: replace the default trigger and root label/action.
+
+Built-ins:
+
+- `CopySubmenu` (`Clipboard`) and `ExportSubmenu` (`Download`) are available for composition.
+- `Import…` and `Reset…` are row items; `Reset…` is destructive.
+- `Expand all` / `Collapse all` appear when collapsible group state exists and may be hidden otherwise.
+
+`ActionMenuItemProps` and `ActionSubmenuProps` use `LucideIcon` for icon props:
+
+```ts
+type ActionMenuItemProps = { icon?: LucideIcon; ... }
+type ActionSubmenuProps = { icon?: LucideIcon; ... }
+```
+
+`destructive` uses a tuple and defaults row confirm strings:
+
+```ts
+type ActionMenuConfirmation = readonly [message: string, title?: string, buttonLabel?: string]
+```
+
+- `title` defaults to the row label.
+- `buttonLabel` defaults to `'Confirm'`.
+
 ## Items and layout
 
 `PicodashItem` is the shared row shell for built-in and custom controls.
