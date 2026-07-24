@@ -591,6 +591,8 @@ test('reset validates every default atomically and clears stale field state on s
 
 test('malformed parser results return field errors without throwing or mutating accepted values', () => {
   const invalidResults = [
+    undefined,
+    null,
     { success: true },
     { output: null, success: true },
     { output: {}, success: true },

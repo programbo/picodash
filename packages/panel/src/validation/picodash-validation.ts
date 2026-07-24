@@ -317,10 +317,13 @@ function runContract(
 ): ContractAttempt {
   let parsed: unknown
   try {
-    parsed = contract.parse?.(input, context) ?? {
-      output: { value: input as PicodashValue },
-      success: true,
-    }
+    parsed =
+      contract.parse === undefined
+        ? {
+            output: { value: input as PicodashValue },
+            success: true,
+          }
+        : contract.parse(input, context)
   } catch (error) {
     return { errors: [errorMessage(error, 'Parser failed.')] }
   }
