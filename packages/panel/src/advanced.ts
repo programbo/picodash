@@ -9,8 +9,8 @@ export {
   createValidatedPanelPersistStorage,
   emptyPicodashPersistedState,
   panelLayoutStorageKey,
-  picodashPersistedStateSchema,
 } from './panel-persistence.js'
+export { picodashPersistedStateSchema } from './picodash-persisted-state-schema.js'
 
 export {
   createPicodashStore,

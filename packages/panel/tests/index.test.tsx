@@ -72,6 +72,12 @@ test('keeps the public and advanced hook surfaces explicit', () => {
   expect('usePicodashStoreApi' in advancedApi).toBe(false)
 })
 
+test('preserves classic Zod composition on the advanced persistence schema', () => {
+  const partialSchema = advancedApi.picodashPersistedStateSchema.partial()
+
+  expect(partialSchema.safeParse({}).success).toBe(true)
+})
+
 test('renders the shared Select without PicodashProvider', () => {
   const markup = renderToStaticMarkup(
     <uiApi.Select aria-label="Standalone choice" defaultSelectedKey="first">
