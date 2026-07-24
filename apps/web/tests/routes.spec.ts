@@ -83,6 +83,16 @@ test('resolves system theme changes from the browser color scheme', async ({ pag
   await expect(providerTheme).toHaveAttribute('data-demo-provider-theme', 'dark')
 })
 
+test('exposes isolated debugging labs on their singular routes', async ({ page }) => {
+  await page.goto('/panel-interaction-lab')
+  await expect(page).toHaveURL('/panel-interaction-lab')
+  await expect(page.locator('[data-product-route="panel-interaction-lab"]')).toHaveCount(1)
+
+  await page.goto('/dashlet-lab')
+  await expect(page).toHaveURL('/dashlet-lab')
+  await expect(page.locator('[data-product-route="dashlet-lab"]')).toHaveCount(1)
+})
+
 test('preserves the route boundary, geometry fixtures, and the not-found page', async ({
   page,
 }) => {

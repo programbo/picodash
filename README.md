@@ -16,6 +16,7 @@ Monorepo for the promoted [Picodash] package and its web showcase app (`apps/web
 - `/store`, `/usage`, `/more-examples` render home detail routes.
 - `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` are debugging-only routes.
 - `/panel-geometry-lab` is a debugging-only route.
+- `/panel-interaction-lab` and `/dashlet-lab` are isolated debugging-only routes, not public website pages.
 - unknown paths render the app's 404 page.
 
 - `/demo` is deprecated legacy and not an active route/API in this workspace.
@@ -337,4 +338,5 @@ vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build &&
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`. The quality job
 runs the audit, workspace checks, and unit tests; the E2E job builds the workspace and runs the
-Playwright end-to-end suite. Publishing the package also runs its check, test, and build commands.
+Playwright end-to-end suite. `apps/web/tests/routes.spec.ts` asserts the route markers for the
+isolated debugging labs. Publishing the package also runs its check, test, and build commands.

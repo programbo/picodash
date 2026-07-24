@@ -25,8 +25,8 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 - `apps/web`: Next.js app-router source of the same interactive home and State Lab experiences.
 
 `apps/web` routes: `/`, `/store`, `/usage`, `/themes`, `/more-examples`, `/state-lab/{provider,scene,built-in-items,custom-items}`,
-`/panel-geometry-lab` (debugging-only), and 404.
-`/state-lab` and `/panel-geometry-lab` are retained as debugging routes and are not treated as public website pages.
+`/panel-geometry-lab`, `/panel-interaction-lab`, `/dashlet-lab` (debugging-only), and 404.
+`/state-lab`, `/panel-geometry-lab`, `/panel-interaction-lab`, and `/dashlet-lab` are retained as debugging routes and are not treated as public website pages.
 
 `/demo` is deprecated legacy and not an active route/API in this workspace.
 
@@ -143,6 +143,7 @@ Update all five files together when command surface, entrypoints, or architectur
 ## Verification Discipline
 
 - Run the narrowest useful commands first, then the required full check before handoff.
+- Keep `apps/web/tests/routes.spec.ts` asserting isolated lab paths and their `data-product-route` markers.
 - Avoid changing generated outputs (`dist/`) directly.
 - Do not run broad tests unless requested by user/task scope.
 

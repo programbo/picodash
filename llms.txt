@@ -45,6 +45,7 @@ Workspace pages (canonical `apps/web`):
 - /, /store, /usage, /more-examples, /themes
 - /state-lab/provider, /state-lab/scene, /state-lab/built-in-items, /state-lab/custom-items (debugging-only)
 - /panel-geometry-lab (debugging-only)
+- /panel-interaction-lab, /dashlet-lab (isolated debugging-only routes; not public website pages)
 - /state-lab (legacy canonical alias in path-mapped source; debug surface only)
 
 `/demo` is deprecated legacy and not an active route or API here.
@@ -86,4 +87,5 @@ Verification:
 - bun run web
 - bun run --filter @picodash/web check
 - bun run --filter @picodash/web test:e2e
+- apps/web/tests/routes.spec.ts asserts the isolated lab routes and data-product-route markers
 - GitHub CI runs parallel quality and E2E jobs for pull requests and main pushes
