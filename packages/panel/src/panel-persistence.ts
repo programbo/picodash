@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as z from 'zod/mini'
 import type { PersistStorage } from 'zustand/middleware'
 import type { PicodashPersistedState } from './picodash-provider.js'
 
@@ -13,18 +13,20 @@ const legacyPanelLayoutStorageKeys = new Map([
 ])
 
 const panelPositionSchema = z.object({
-  dock: z
-    .object({
-      horizontal: z.enum(['left', 'right']).optional(),
-      vertical: z.enum(['bottom', 'top']).optional(),
-    })
-    .nullable()
-    .default(null),
-  placement: z
-    .discriminatedUnion('mode', [
+  dock: z._default(
+    z.nullable(
+      z.object({
+        horizontal: z.optional(z.enum(['left', 'right'])),
+        vertical: z.optional(z.enum(['bottom', 'top'])),
+      }),
+    ),
+    null,
+  ),
+  placement: z.optional(
+    z.discriminatedUnion('mode', [
       z.object({
         mode: z.literal('floating'),
-        position: z.enum(['bottom-left', 'bottom-right', 'top-left', 'top-right']).optional(),
+        position: z.optional(z.enum(['bottom-left', 'bottom-right', 'top-left', 'top-right'])),
       }),
       z.object({
         mode: z.literal('magnetic'),
@@ -43,19 +45,19 @@ const panelPositionSchema = z.object({
         mode: z.literal('fixed'),
         position: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left', 'right']),
       }),
-    ])
-    .optional(),
-  x: z.number().finite(),
-  y: z.number().finite(),
+    ]),
+  ),
+  x: z.number(),
+  y: z.number(),
 })
 
 export const picodashPersistedStateSchema = z.object({
-  panelLayouts: z.record(z.string(), panelPositionSchema).default({}),
+  panelLayouts: z._default(z.record(z.string(), panelPositionSchema), {}),
 })
 
 const persistedStorageValueSchema = z.object({
   state: z.unknown(),
-  version: z.number().optional(),
+  version: z.optional(z.number()),
 })
 
 export function emptyPicodashPersistedState(): PicodashPersistedState {
