@@ -8,13 +8,19 @@ import {
   FileText,
   RotateCcw,
   Upload,
+  type LucideIcon,
 } from 'lucide-react'
 import {
+  cloneElement,
+  createContext,
+  isValidElement,
+  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
   type ComponentProps,
+  type ReactElement,
   type ReactNode,
   type RefObject,
 } from 'react'
@@ -63,10 +69,68 @@ import { usePicodashTheme } from './picodash-theme-context.js'
 import type { PicodashConstraintRepair, PicodashFieldOutput } from './picodash-validation.js'
 import { cn } from './utils.js'
 
+export type ActionMenuConfirmation = readonly [
+  message: string,
+  title?: string,
+  buttonLabel?: string,
+]
+export type PicodashPanelActionMenu =
+  | false
+  | readonly ReactElement[]
+  | ReactElement<ActionSubmenuProps, typeof ActionSubmenu>
+
+export interface ActionMenuItemProps extends Omit<
+  ComponentProps<typeof DropdownMenuItem>,
+  'children' | 'className' | 'isDisabled' | 'onAction' | 'textValue'
+> {
+  destructive?: ActionMenuConfirmation
+  disabled?: boolean
+  icon?: LucideIcon
+  label: string
+  onAction?: () => void | Promise<void>
+}
+
+export interface ActionSubmenuProps {
+  children: ReactNode
+  icon?: LucideIcon
+  label: string
+  triggerLabel?: string
+}
+
+export type ActionMenuSeparatorProps = Omit<
+  ComponentProps<typeof DropdownMenuSeparator>,
+  'children' | 'className'
+>
+
+interface PendingActionConfirmation {
+  description: ReactNode
+  label: string
+  onAction: () => void | Promise<void>
+  title: ReactNode
+}
+
+interface ActionMenuContextValue {
+  announce: (message: string) => void
+  copyValues: (format: PicodashPanelDocumentFormat) => Promise<void>
+  exportValues: (format: PicodashPanelDocumentFormat) => void
+  groups: ReturnType<typeof collapsibleGroupsForState>
+  importInputRef: RefObject<HTMLInputElement | null>
+  panelId: string
+  panelTitle: string
+  requestConfirmation: (confirmation: PendingActionConfirmation) => void
+  store: ReturnType<typeof usePicodashPanelStoreApi>
+  triggerRef: RefObject<HTMLButtonElement | null>
+}
+
+const ActionMenuContext = createContext<ActionMenuContextValue | null>(null)
+const ActionSubmenuRootContext = createContext(false)
+
 export function PicodashPanelActions({
+  actionMenu,
   panelId,
   panelTitle,
 }: {
+  actionMenu?: PicodashPanelActionMenu
   panelId: string
   panelTitle: string
 }) {
@@ -74,10 +138,9 @@ export function PicodashPanelActions({
   const theme = usePicodashTheme()
   const { portalContainer, store: providerStore } = usePicodashProviderContext()
   const modalZIndex = useStore(providerStore, modalZIndexForState)
-  const menuZIndex = useStore(providerStore, (state) => portalLayerZIndexForState(state, 3))
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const importInputRef = useRef<HTMLInputElement | null>(null)
-  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [confirmation, setConfirmation] = useState<PendingActionConfirmation | null>(null)
   const [importRepair, setImportRepair] = useState<{
     analysis: Extract<PicodashPanelImportAnalysis, { status: 'repair' }>
     filename: string
@@ -94,9 +157,6 @@ export function PicodashPanelActions({
     () => collapsibleGroupsForState({ collapsedGroups, items }),
     [collapsedGroups, items],
   )
-  const allExpanded = groups.every((group) => !group.collapsed)
-  const allCollapsed = groups.every((group) => group.collapsed)
-
   const announce = (message: string) => {
     setStatus('')
     requestAnimationFrame(() => setStatus(message))
@@ -148,71 +208,27 @@ export function PicodashPanelActions({
     }
   }
 
-  return (
-    <>
-      <DropdownMenuTrigger>
-        <Button
-          ref={triggerRef}
-          aria-label={`Open actions for ${panelTitle}`}
-          className="text-picodash-muted ml-auto size-(--picodash-icon-lg) shrink-0"
-          size="icon"
-          variant="ghost"
-          onPointerDown={(event) => event.stopPropagation()}
-        >
-          <Ellipsis className="size-(--picodash-icon-sm)" aria-hidden="true" />
-        </Button>
-        <DropdownMenu
-          data-picodash-theme={theme}
-          aria-label={`Actions for ${panelTitle}`}
-          portalContainer={portalContainer}
-          popoverClassName={menuContentClassName}
-          popoverProps={{
-            containerPadding: picodashGeometryTokens.menuCollisionPadding,
-            offset: picodashGeometryTokens.menuSideOffset,
-            shouldFlip: true,
-          }}
-          popoverStyle={{
-            zIndex: portalLayerZIndexValue('--picodash-layer-menu', menuZIndex),
-          }}
-        >
-          {groups.length > 0 ? (
-            <>
-              <MenuItem
-                disabled={allExpanded}
-                icon={<ChevronsUpDown aria-hidden="true" />}
-                label="Expand all"
-                onSelect={() => store.getState().setAllCollapsibleGroupsCollapsed(false)}
-              />
-              <MenuItem
-                disabled={allCollapsed}
-                icon={<ChevronsDownUp aria-hidden="true" />}
-                label="Collapse all"
-                onSelect={() => store.getState().setAllCollapsibleGroupsCollapsed(true)}
-              />
-              <MenuSeparator />
-            </>
-          ) : null}
+  const context: ActionMenuContextValue = {
+    announce,
+    copyValues,
+    exportValues,
+    groups,
+    importInputRef,
+    panelId,
+    panelTitle,
+    requestConfirmation: setConfirmation,
+    store,
+    triggerRef,
+  }
+  const resolvedActionMenu = resolvePicodashPanelActionMenu(actionMenu, panelTitle)
 
-          <MenuSub label="Copy" icon={<Clipboard aria-hidden="true" />}>
-            <FormatMenuItems verb="Copy" onSelect={copyValues} />
-          </MenuSub>
-          <MenuSub label="Export" icon={<Download aria-hidden="true" />}>
-            <FormatMenuItems verb="Export" onSelect={exportValues} />
-          </MenuSub>
-          <MenuItem
-            icon={<Upload aria-hidden="true" />}
-            label="Import…"
-            onSelect={() => importInputRef.current?.click()}
-          />
-          <MenuSeparator />
-          <MenuItem
-            destructive
-            icon={<RotateCcw aria-hidden="true" />}
-            label="Reset…"
-            onSelect={() => setResetDialogOpen(true)}
-          />
-        </DropdownMenu>
-      </DropdownMenuTrigger>
+  return (
+    <ActionMenuContext.Provider value={context}>
+      {resolvedActionMenu ? (
+        <ActionSubmenuRootContext.Provider value>
+          {resolvedActionMenu}
+        </ActionSubmenuRootContext.Provider>
+      ) : null}
 
       <input
         ref={importInputRef}
@@ -237,9 +253,9 @@ export function PicodashPanelActions({
 
       <AlertDialog
         data-picodash-theme={theme}
-        isOpen={resetDialogOpen}
+        isOpen={confirmation !== null}
         onOpenChange={(nextOpen) => {
-          setResetDialogOpen(nextOpen)
+          if (!nextOpen) setConfirmation(null)
           if (!nextOpen) requestAnimationFrame(() => triggerRef.current?.focus())
         }}
         portalContainer={portalContainer}
@@ -254,11 +270,10 @@ export function PicodashPanelActions({
       >
         <div className="grid gap-(--picodash-space-1)">
           <AlertDialogTitle className="text-(length:--picodash-font-size-xl) leading-(--picodash-line-normal) font-(--picodash-font-semibold)">
-            Reset {panelTitle}?
+            {confirmation?.title}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-picodash-muted text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight)">
-            This restores every registered field to its default value. Panel position, order,
-            groups, and metadata stay unchanged.
+            {confirmation?.description}
           </AlertDialogDescription>
         </div>
         <div className="flex justify-end gap-(--picodash-space-2)">
@@ -271,15 +286,10 @@ export function PicodashPanelActions({
               'bg-(--picodash-color-danger) text-(--picodash-color-canvas) hover:bg-(--picodash-color-danger)/90',
             )}
             onPress={() => {
-              const result = store.getState().resetRegisteredFields()
-              announce(
-                result.success
-                  ? 'Reset all registered panel values.'
-                  : `Reset failed: ${formatFieldErrors(result.errors)}`,
-              )
+              if (confirmation) void confirmation.onAction()
             }}
           >
-            Reset values
+            {confirmation?.label}
           </AlertDialogAction>
         </div>
       </AlertDialog>
@@ -302,7 +312,7 @@ export function PicodashPanelActions({
           setImportRepair(null)
         }}
       />
-    </>
+    </ActionMenuContext.Provider>
   )
 }
 
@@ -335,55 +345,106 @@ const menuContentClassName =
 const menuItemClassName =
   'relative flex h-(--picodash-control-height-md) cursor-default items-center gap-(--picodash-space-2) rounded-picodash-control px-(--picodash-space-2) text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) outline-none select-none data-disabled:pointer-events-none data-disabled:opacity-(--picodash-opacity-disabled) data-focused:bg-picodash-surface-muted data-focused:text-picodash-text [&>svg]:size-(--picodash-icon-sm) [&>svg]:shrink-0'
 
-function MenuItem({
-  destructive = false,
+export function ActionMenuItem({
+  destructive,
   disabled,
-  icon,
+  icon: Icon,
   label,
-  onSelect,
+  onAction,
   ...props
-}: Omit<ComponentProps<typeof DropdownMenuItem>, 'children' | 'onAction' | 'textValue'> & {
-  destructive?: boolean
-  disabled?: boolean
-  icon?: ReactNode
-  label: string
-  onSelect?: () => void
-}) {
+}: ActionMenuItemProps) {
+  const { requestConfirmation } = useActionMenuContext()
+  const confirmation = actionMenuConfirmationForDestructive(destructive, label, onAction)
+
   return (
     <DropdownMenuItem
       className={cn(menuItemClassName, destructive && 'text-picodash-danger')}
       isDisabled={disabled}
-      onAction={onSelect}
+      onAction={() => {
+        if (!onAction) return
+        if (confirmation) {
+          requestConfirmation(confirmation)
+          return
+        }
+        void onAction()
+      }}
       textValue={label}
       {...props}
     >
-      {icon}
+      {Icon ? <Icon aria-hidden="true" /> : null}
       <span className="min-w-0 flex-1">{label}</span>
     </DropdownMenuItem>
   )
 }
 
-function MenuSeparator() {
-  return <DropdownMenuSeparator className="bg-picodash-border my-(--picodash-space-1) h-px" />
+export function actionMenuConfirmationForDestructive(
+  destructive: ActionMenuItemProps['destructive'],
+  label: string,
+  onAction: ActionMenuItemProps['onAction'],
+): PendingActionConfirmation | null {
+  if (!destructive || !onAction) return null
+  return {
+    description: destructive[0],
+    label: destructive[2] ?? 'Confirm',
+    onAction,
+    title: destructive[1] ?? label,
+  }
 }
 
-function MenuSub({
-  children,
-  icon,
-  label,
-}: {
-  children: ReactNode
-  icon: ReactNode
-  label: string
-}) {
+export function ActionMenuSeparator(props: ActionMenuSeparatorProps) {
+  return (
+    <DropdownMenuSeparator className="bg-picodash-border my-(--picodash-space-1) h-px" {...props} />
+  )
+}
+
+export function ActionSubmenu({ children, icon: Icon, label, triggerLabel }: ActionSubmenuProps) {
+  const root = useContext(ActionSubmenuRootContext)
+  const { triggerRef } = useActionMenuContext()
   const theme = usePicodashTheme()
-  const { store } = usePicodashProviderContext()
+  const { portalContainer, store } = usePicodashProviderContext()
   const menuZIndex = useStore(store, (state) => portalLayerZIndexForState(state, 3))
+
+  if (root) {
+    const TriggerIcon = Icon ?? Ellipsis
+
+    return (
+      <DropdownMenuTrigger>
+        <Button
+          ref={triggerRef}
+          aria-label={triggerLabel ?? `Open ${label}`}
+          className="text-picodash-muted ml-auto size-(--picodash-icon-lg) shrink-0"
+          size="icon"
+          variant="ghost"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <TriggerIcon className="size-(--picodash-icon-sm)" aria-hidden="true" />
+        </Button>
+        <DropdownMenu
+          data-picodash-theme={theme}
+          aria-label={label}
+          portalContainer={portalContainer}
+          popoverClassName={menuContentClassName}
+          popoverProps={{
+            containerPadding: picodashGeometryTokens.menuCollisionPadding,
+            offset: picodashGeometryTokens.menuSideOffset,
+            shouldFlip: true,
+          }}
+          popoverStyle={{
+            zIndex: portalLayerZIndexValue('--picodash-layer-menu', menuZIndex),
+          }}
+        >
+          <ActionSubmenuRootContext.Provider value={false}>
+            {children}
+          </ActionSubmenuRootContext.Provider>
+        </DropdownMenu>
+      </DropdownMenuTrigger>
+    )
+  }
 
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger className={menuItemClassName} textValue={label}>
-        {icon}
+        {Icon ? <Icon aria-hidden="true" /> : null}
         <span className="min-w-0 flex-1">{label}</span>
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent
@@ -404,31 +465,176 @@ function MenuSub({
   )
 }
 
-function FormatMenuItems({
-  onSelect,
-  verb,
-}: {
-  onSelect: (format: PicodashPanelDocumentFormat) => void | Promise<void>
-  verb: string
-}) {
+export function ExpandAllItem() {
+  const { groups, store } = useActionMenuContext()
+
+  return (
+    <ActionMenuItem
+      disabled={groups.every((group) => !group.collapsed)}
+      icon={ChevronsUpDown}
+      label="Expand all"
+      onAction={() => store.getState().setAllCollapsibleGroupsCollapsed(false)}
+    />
+  )
+}
+
+export function CollapseAllItem() {
+  const { groups, store } = useActionMenuContext()
+
+  return (
+    <ActionMenuItem
+      disabled={groups.every((group) => group.collapsed)}
+      icon={ChevronsDownUp}
+      label="Collapse all"
+      onAction={() => store.getState().setAllCollapsibleGroupsCollapsed(true)}
+    />
+  )
+}
+
+export function CopyJsonItem() {
+  const { copyValues } = useActionMenuContext()
+
+  return <ActionMenuItem icon={FileJson} label="Copy JSON" onAction={() => copyValues('json')} />
+}
+
+export function CopyYamlItem() {
+  const { copyValues } = useActionMenuContext()
+
+  return <ActionMenuItem icon={FileText} label="Copy YAML" onAction={() => copyValues('yaml')} />
+}
+
+export function ExportJsonItem() {
+  const { exportValues } = useActionMenuContext()
+
+  return (
+    <ActionMenuItem icon={FileJson} label="Export JSON" onAction={() => exportValues('json')} />
+  )
+}
+
+export function ExportYamlItem() {
+  const { exportValues } = useActionMenuContext()
+
+  return (
+    <ActionMenuItem icon={FileText} label="Export YAML" onAction={() => exportValues('yaml')} />
+  )
+}
+
+export function ImportItem() {
+  const { importInputRef } = useActionMenuContext()
+
+  return (
+    <ActionMenuItem
+      icon={Upload}
+      label="Import…"
+      onAction={() => importInputRef.current?.click()}
+    />
+  )
+}
+
+export function ResetItem() {
+  const { announce, panelTitle, store } = useActionMenuContext()
+
+  return (
+    <ActionMenuItem
+      destructive={[
+        'This restores every registered field to its default value. Panel position, order, groups, and metadata stay unchanged.',
+        `Reset ${panelTitle}?`,
+        'Reset values',
+      ]}
+      icon={RotateCcw}
+      label="Reset…"
+      onAction={() => {
+        const result = store.getState().resetRegisteredFields()
+        announce(
+          result.success
+            ? 'Reset all registered panel values.'
+            : `Reset failed: ${formatFieldErrors(result.errors)}`,
+        )
+      }}
+    />
+  )
+}
+
+export function CopySubmenu() {
+  return (
+    <ActionSubmenu icon={Clipboard} label="Copy">
+      <CopyJsonItem />
+      <CopyYamlItem />
+    </ActionSubmenu>
+  )
+}
+
+export function ExportSubmenu() {
+  return (
+    <ActionSubmenu icon={Download} label="Export">
+      <ExportJsonItem />
+      <ExportYamlItem />
+    </ActionSubmenu>
+  )
+}
+
+function DefaultActionMenuItems() {
+  const { groups } = useActionMenuContext()
+
   return (
     <>
-      <MenuItem
-        icon={<FileJson aria-hidden="true" />}
-        label={`${verb} JSON`}
-        onSelect={() => {
-          void onSelect('json')
-        }}
-      />
-      <MenuItem
-        icon={<FileText aria-hidden="true" />}
-        label={`${verb} YAML`}
-        onSelect={() => {
-          void onSelect('yaml')
-        }}
-      />
+      {groups.length > 0 ? (
+        <>
+          <ExpandAllItem />
+          <CollapseAllItem />
+          <ActionMenuSeparator />
+        </>
+      ) : null}
+      <CopySubmenu />
+      <ExportSubmenu />
+      <ImportItem />
+      <ActionMenuSeparator />
+      <ResetItem />
     </>
   )
+}
+
+export function resolvePicodashPanelActionMenu(
+  actionMenu: PicodashPanelActionMenu | undefined,
+  panelTitle: string,
+): ReactElement<ActionSubmenuProps, typeof ActionSubmenu> | null {
+  if (actionMenu === false) return null
+  if (actionMenu === undefined) {
+    return (
+      <ActionSubmenu
+        label={`Actions for ${panelTitle}`}
+        triggerLabel={`Open actions for ${panelTitle}`}
+      >
+        <DefaultActionMenuItems />
+      </ActionSubmenu>
+    )
+  }
+  if (Array.isArray(actionMenu)) {
+    const keyedActionMenu = actionMenu.map((item, index) =>
+      item.key === null ? cloneElement(item, { key: index }) : item,
+    )
+
+    return (
+      <ActionSubmenu
+        label={`Actions for ${panelTitle}`}
+        triggerLabel={`Open actions for ${panelTitle}`}
+      >
+        {keyedActionMenu}
+      </ActionSubmenu>
+    )
+  }
+  if (isValidElement<ActionSubmenuProps>(actionMenu) && actionMenu.type === ActionSubmenu) {
+    return actionMenu as ReactElement<ActionSubmenuProps, typeof ActionSubmenu>
+  }
+  throw new TypeError('PicodashPanel actionMenu must be false, an item array, or an ActionSubmenu.')
+}
+
+function useActionMenuContext() {
+  const context = useContext(ActionMenuContext)
+  if (!context) {
+    throw new Error('Action menu components must be rendered through PicodashPanel actionMenu.')
+  }
+  return context
 }
 
 function errorMessage(error: unknown) {

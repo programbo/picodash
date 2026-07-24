@@ -86,6 +86,16 @@ export function SiteControls() {
 - Use `close` for a provider-managed hide button, or `close={{ behavior: 'deregister' }}` when the
   host will unmount after the provider removes the registration and portal. `onClose` is an
   optional observer and does not replace the default close behavior.
+- The panel action menu is public and composable through `PicodashPanel`’s `actionMenu` prop.
+  `undefined` gives the default menu, `false` hides it, and custom values may be:
+  - an array of rows (`readonly ReactElement[]`) wrapped by the default root action submenu, or
+  - a root `ActionSubmenu` element that replaces the default root trigger.
+- Exported menu primitives include `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`,
+  `CopySubmenu`, `ExportSubmenu`, and the built-in row exports (`CopyJsonItem`, `CopyYamlItem`,
+  `ExportJsonItem`, `ExportYamlItem`, `ExpandAllItem`, `CollapseAllItem`, `ImportItem`,
+  `ResetItem`).
+- Destructive rows use `destructive={[message, title?, buttonLabel?]}`.
+  `title` defaults to the row label; `buttonLabel` defaults to `'Confirm'`.
 - Use `setFieldValue` / `setFieldValues` for strict app writes.
 - Use `setFieldInput` for interactive editors that should retain transient drafts.
 - Use `PicodashItem`, `PicodashGroup`, and built-in items for custom compositions.

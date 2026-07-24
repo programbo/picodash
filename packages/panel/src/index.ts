@@ -26,11 +26,29 @@ export type {
 } from './picodash-provider.js'
 
 export {
+  ActionMenuItem,
+  ActionMenuSeparator,
+  ActionSubmenu,
+  CollapseAllItem,
+  CopyJsonItem,
+  CopySubmenu,
+  CopyYamlItem,
   createPicodashPanelStore,
+  ExpandAllItem,
+  ExportJsonItem,
+  ExportSubmenu,
+  ExportYamlItem,
+  ImportItem,
   PicodashPanel,
+  ResetItem,
   usePicodashPanelStoreSelector,
 } from './picodash-panel.js'
 export type {
+  ActionMenuConfirmation,
+  ActionMenuItemProps,
+  ActionMenuSeparatorProps,
+  ActionSubmenuProps,
+  PicodashPanelActionMenu,
   PicodashPanelBoundary,
   PicodashFieldState,
   PicodashPanelCloseBehavior,

@@ -1,6 +1,7 @@
 import type { HTMLMotionProps } from 'motion/react'
 import type { ReactNode, RefObject } from 'react'
 import type { StoreApi } from 'zustand'
+import type { PicodashPanelActionMenu } from './picodash-panel-actions.js'
 import type {
   PicodashConstraintRepair,
   PicodashFieldOutput,
@@ -148,6 +149,12 @@ interface PicodashPanelBaseProps extends Omit<
   HTMLMotionProps<'aside'>,
   'children' | 'dragConstraints' | 'id' | 'onClose' | 'title'
 > {
+  /**
+   * Omit to render the built-in actions. Pass false to remove the menu, an array to replace its
+   * rows under the default ellipsis trigger, or an ActionSubmenu to replace the root trigger and
+   * menu together.
+   */
+  actionMenu?: PicodashPanelActionMenu
   children?: ReactNode
   boundary?: PicodashPanelBoundary | null
   close?: boolean | PicodashPanelCloseOptions

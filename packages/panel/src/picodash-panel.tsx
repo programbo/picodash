@@ -60,6 +60,28 @@ import type {
 
 export { createPicodashPanelStore } from './picodash-panel-store.js'
 export {
+  ActionMenuItem,
+  ActionMenuSeparator,
+  ActionSubmenu,
+  CollapseAllItem,
+  CopyJsonItem,
+  CopySubmenu,
+  CopyYamlItem,
+  ExpandAllItem,
+  ExportJsonItem,
+  ExportSubmenu,
+  ExportYamlItem,
+  ImportItem,
+  ResetItem,
+} from './picodash-panel-actions.js'
+export type {
+  ActionMenuConfirmation,
+  ActionMenuItemProps,
+  ActionMenuSeparatorProps,
+  ActionSubmenuProps,
+  PicodashPanelActionMenu,
+} from './picodash-panel-actions.js'
+export {
   useRegisterPicodashItem,
   usePicodashPanelSelector,
   usePicodashPanelStoreApi,
@@ -106,6 +128,7 @@ export type {
 export function PicodashPanel({
   _dragX,
   _dragY,
+  actionMenu,
   boundary,
   children,
   className,
@@ -460,7 +483,13 @@ export function PicodashPanel({
                 : props.transition
             }
           >
-            {title || close || (fixedPlacement && collapsible) ? (
+            {panelShouldRenderHeader({
+              actionMenu,
+              close,
+              collapsible,
+              fixedPlacement,
+              title,
+            }) ? (
               <div
                 className={cn(
                   'border-picodash-border flex h-9.25 shrink-0 items-center gap-(--picodash-space-1) border-b py-(--picodash-space-2) pr-(--picodash-space-3) select-none',
@@ -512,7 +541,11 @@ export function PicodashPanel({
                 ) : (
                   <span className="min-w-0 flex-1" />
                 )}
-                <PicodashPanelActions panelId={panelId} panelTitle={titleText} />
+                <PicodashPanelActions
+                  actionMenu={actionMenu}
+                  panelId={panelId}
+                  panelTitle={titleText}
+                />
                 {close ? (
                   <button
                     aria-label={`Close panel ${titleText}`}
@@ -768,6 +801,22 @@ type PanelShellDragProps = Pick<
   | 'onMeasureDragConstraints'
   | 'whileDrag'
 >
+
+export function panelShouldRenderHeader({
+  actionMenu,
+  close,
+  collapsible,
+  fixedPlacement,
+  title,
+}: {
+  actionMenu: PicodashPanelProps['actionMenu']
+  close: PicodashPanelProps['close']
+  collapsible: boolean
+  fixedPlacement: boolean
+  title: PicodashPanelProps['title']
+}) {
+  return Boolean(title || close || actionMenu !== false || (fixedPlacement && collapsible))
+}
 
 export function panelShellDragProps(
   fixedPlacement: boolean,
