@@ -5,6 +5,7 @@ import * as advancedApi from '../src/advanced.ts'
 import * as publicApi from '../src/index.ts'
 import * as uiApi from '../src/ui.ts'
 import { createPicodashPanelStore, FeaturePanel } from '../src/index.ts'
+import { formatNumericValue } from '../src/lib/formatting/number-format.ts'
 import { panelLayoutStorageKey } from '../src/state/persistence/panel-persistence.ts'
 import { installFakeLocalStorage, readPersistedPanelLayouts } from './helpers.ts'
 import {
@@ -94,6 +95,11 @@ test('renders the shared Select without PicodashProvider', () => {
   expect(markup).toContain('aria-label="Standalone choice"')
   expect(markup).toContain('data-picodash-theme="dark"')
   expect(markup).toContain('data-slot="select-trigger"')
+})
+
+test('clamps inferred number-format fraction digits to Intl support', () => {
+  expect(() => formatNumericValue(1e-101)).not.toThrow()
+  expect(formatNumericValue(1e-101)).toBe('0')
 })
 
 test('forwards drag behavior to the movable shell only for non-fixed panels', () => {

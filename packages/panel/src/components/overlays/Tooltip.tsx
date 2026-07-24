@@ -73,6 +73,17 @@ export function TooltipTrigger({ children }: { asChild?: boolean; children: Reac
 
 type AriaTooltipProps = ComponentProps<typeof AriaTooltip>
 
+function tooltipPlacement(
+  side: 'top' | 'right' | 'bottom' | 'left',
+  align: 'start' | 'center' | 'end',
+): AriaTooltipProps['placement'] {
+  if (side === 'left' || side === 'right') return side
+
+  if (align === 'start') return `${side} left`
+  if (align === 'end') return `${side} right`
+  return side
+}
+
 export function TooltipContent({
   align = 'center',
   alignOffset = 0,
@@ -110,8 +121,7 @@ export function TooltipContent({
   const { portalContainer, store } = usePicodashProviderContext()
   const zIndexFloor = useStore(store, (state) => portalLayerZIndexForState(state, 1))
   const usesTokenOffset = sideOffset === undefined
-  const placement =
-    `${side}${align === 'center' ? '' : ` ${align}`}` as AriaTooltipProps['placement']
+  const placement = tooltipPlacement(side, align)
 
   return (
     <AriaTooltip

@@ -188,7 +188,7 @@ export function createPicodashStore({
           current?.dock?.vertical === layout.dock?.vertical &&
           placementsEqual(current?.placement, layout.placement) &&
           current?.x === layout.x &&
-          current.y === layout.y
+          current?.y === layout.y
         ) {
           return state
         }

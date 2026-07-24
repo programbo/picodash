@@ -20,9 +20,11 @@ function numberFormatOptions(
 ) {
   if (hasExplicitPrecision(formatOptions)) return formatOptions
 
+  const inferredMaximumFractionDigits = Math.max(fractionDigits(value), fractionDigits(step))
+
   return {
     ...formatOptions,
-    maximumFractionDigits: Math.max(fractionDigits(value), fractionDigits(step)),
+    maximumFractionDigits: Math.min(inferredMaximumFractionDigits, 100),
   } satisfies Intl.NumberFormatOptions
 }
 

@@ -165,6 +165,13 @@ test('keeps provider state usable when layout persistence writes fail', () => {
   expect(store.getState().panelLayouts.scene).toEqual({ x: 24, y: 32 })
 })
 
+test('accepts an initial layout write when no current layout exists', () => {
+  const store = createPicodashStore({ persistLayout: false })
+
+  expect(() => store.getState().setPanelLayout('scene', { x: 24, y: 32 })).not.toThrow()
+  expect(store.getState().panelLayouts.scene).toEqual({ x: 24, y: 32 })
+})
+
 test('applies explicit and server-resolved themes to the provider carrier', () => {
   expect(renderProvider('dark')).toContain('data-picodash-theme="dark"')
   expect(renderProvider('light')).toContain('data-picodash-theme="light"')
