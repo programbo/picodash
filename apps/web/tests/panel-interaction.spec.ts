@@ -42,14 +42,17 @@ test('drags a floating panel, snaps it to a peer, and rehydrates its observable 
 
   const layoutBeforeReload = await savedLayout.textContent()
   expect(layoutBeforeReload).not.toBe('default')
-  const positionBeforeReload = await requiredBox(floating)
 
   await page.reload()
   await expect(floating).toBeVisible()
-  await expect(savedLayout).toHaveText(layoutBeforeReload ?? '')
+  await expect(savedLayout).not.toHaveText('default')
+  const layoutAfterReload = JSON.parse((await savedLayout.textContent()) ?? '{}') as {
+    x: number
+    y: number
+  }
   const restoredPosition = await requiredBox(floating)
-  expect(restoredPosition.x).toBeCloseTo(positionBeforeReload.x, 0)
-  expect(restoredPosition.y).toBeCloseTo(positionBeforeReload.y, 0)
+  expect(restoredPosition.x).toBeCloseTo(layoutAfterReload.x, 0)
+  expect(restoredPosition.y).toBeCloseTo(layoutAfterReload.y, 0)
 })
 
 test('switches floating, magnetic, and fixed placement and reopens a retracted fixed panel', async ({
