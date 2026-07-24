@@ -1,5 +1,6 @@
 import './styles.css'
 
+export { PicodashLogo } from './components/PicodashLogo.js'
 export {
   picodashDefaultTheme,
   picodashGeometryTokens,

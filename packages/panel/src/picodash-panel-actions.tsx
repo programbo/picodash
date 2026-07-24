@@ -283,7 +283,7 @@ export function PicodashPanelActions({
           <AlertDialogAction
             className={cn(
               buttonVariants({ size: 'sm' }),
-              'bg-(--picodash-color-danger) text-(--picodash-color-canvas) hover:bg-(--picodash-color-danger)/90',
+              'bg-picodash-danger text-picodash-canvas hover:bg-(--picodash-color-danger)/90',
             )}
             onPress={() => {
               if (confirmation) void confirmation.onAction()
@@ -723,7 +723,7 @@ function RepairReviewDialog({
                 {formatFieldOutput(change.after)}
               </dd>
             </dl>
-            <ul className="list-disc pl-(--picodash-space-4) text-(length:--picodash-font-size-lg) text-(--picodash-color-danger)">
+            <ul className="text-picodash-danger list-disc pl-(--picodash-space-4) text-(length:--picodash-font-size-lg)">
               {change.errors.map((error) => (
                 <li key={error}>{error}</li>
               ))}
@@ -732,10 +732,7 @@ function RepairReviewDialog({
         ))}
       </div>
       {acceptError ? (
-        <p
-          role="alert"
-          className="text-(length:--picodash-font-size-lg) text-(--picodash-color-danger)"
-        >
+        <p role="alert" className="text-picodash-danger text-(length:--picodash-font-size-lg)">
           {acceptError}
         </p>
       ) : null}
