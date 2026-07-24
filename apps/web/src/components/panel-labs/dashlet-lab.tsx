@@ -403,9 +403,11 @@ function BuiltInDashlets({
         <PicodashDisplay
           id="display"
           label="Display"
-          value={(state) =>
-            `Slider ${state.values.slider ?? 0} / switch ${state.values.switch ? 'on' : 'off'}`
-          }
+          value={(state) => {
+            const slider = typeof state.values.slider === 'number' ? state.values.slider : 0
+
+            return `Slider ${slider} / switch ${state.values.switch ? 'on' : 'off'}`
+          }}
         />
       </PicodashGroup>
     </PicodashPanel>
