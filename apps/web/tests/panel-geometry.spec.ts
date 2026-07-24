@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { requiredBox } from './helpers'
+import { labURL } from './urls'
 
 const storageKey = 'picodash-geometry-lab:panel-layout:v1'
 const safeInset = 8
@@ -20,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 test('shrinks and restores a tall panel during a held drag while preserving its top', async ({
   page,
 }) => {
-  await page.goto('/panel-geometry-lab?fixture=drag')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=drag`)
   await expect(page.locator('[data-panel-geometry-lab]')).toBeVisible()
   const panel = geometryPanel(page, 'tall')
   const header = panel.locator('[data-picodash-panel-header]')
@@ -72,7 +73,7 @@ test('shrinks and restores a tall panel during a held drag while preserving its 
 })
 
 test('retains peer-edge snapping while projecting panel bounds', async ({ page }) => {
-  await page.goto('/panel-geometry-lab?fixture=peer')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=peer`)
   const source = geometryPanel(page, 'snap-source')
   const peer = geometryPanel(page, 'snap-peer')
   const sourceBox = await requiredBox(source)
@@ -103,7 +104,7 @@ test('retains peer-edge snapping while projecting panel bounds', async ({ page }
 test('expanding a collapsed panel keeps its undocked top and contains its bottom', async ({
   page,
 }) => {
-  await page.goto('/panel-geometry-lab?fixture=panel-expansion')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=panel-expansion`)
   const panel = geometryPanel(page, 'panel-expansion')
   const initial = await requiredBox(panel)
 
@@ -118,7 +119,7 @@ test('expanding a collapsed panel keeps its undocked top and contains its bottom
 })
 
 test('group, nested-group, and expand-all growth preserve an undocked top', async ({ page }) => {
-  await page.goto('/panel-geometry-lab?fixture=groups')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=groups`)
   const panel = geometryPanel(page, 'groups')
   const initialTop = (await requiredBox(panel)).y
   const outer = panel.locator('[data-group-id="outer-group"]')
@@ -160,7 +161,7 @@ test('a bottom-docked panel grows upward and survives reduced motion', async ({ 
     },
   })
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('/panel-geometry-lab?fixture=bottom')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=bottom`)
   const panel = geometryPanel(page, 'bottom')
   const initial = await requiredBox(panel)
   await expectBottom(panel, 600 - safeInset)
@@ -178,7 +179,7 @@ test('a bottom-docked panel grows upward and survives reduced motion', async ({ 
 test('a fresh bottom-positioned panel expands upward before layout is persisted', async ({
   page,
 }) => {
-  await page.goto('/panel-geometry-lab?fixture=bottom')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=bottom`)
   const panel = geometryPanel(page, 'bottom')
   const initial = await requiredBox(panel)
   await expectBottom(panel, 600 - defaultPlacementInset)
@@ -194,7 +195,7 @@ test('a fresh bottom-positioned panel expands upward before layout is persisted'
 })
 
 test('keeps custom bottom and horizontal placement insets independent', async ({ page }) => {
-  await page.goto('/panel-geometry-lab?fixture=custom-bottom')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=custom-bottom`)
   const panel = geometryPanel(page, 'custom-bottom')
 
   await expect
@@ -210,7 +211,7 @@ test('keeps custom bottom and horizontal placement insets independent', async ({
 
 test('tracks responsive bottom inset and anchor changes before persistence', async ({ page }) => {
   await page.setViewportSize({ width: 1100, height: 600 })
-  await page.goto('/panel-geometry-lab?fixture=responsive')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=responsive`)
   const panel = geometryPanel(page, 'responsive')
   await expectEdgeInsets(panel, { bottom: 80, right: 16 })
 
@@ -222,7 +223,7 @@ test('tracks responsive bottom inset and anchor changes before persistence', asy
 })
 
 test('tracks live placement constraint changes before persistence', async ({ page }) => {
-  await page.goto('/panel-geometry-lab?fixture=changing-constraint')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=changing-constraint`)
   const panel = geometryPanel(page, 'changing-constraint')
   await expectEdgeInsets(panel, { bottom: 80, right: 16 })
 
@@ -236,7 +237,7 @@ test('tracks live placement constraint changes before persistence', async ({ pag
 test('supports fixed placements, inherited boundaries, pinned lanes, and panel overrides', async ({
   page,
 }) => {
-  await page.goto('/panel-geometry-lab?fixture=fixed-boundaries')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=fixed-boundaries`)
   const boundary = page.locator('[data-geometry-boundary="provider"]')
   const overrideBoundary = page.locator('[data-geometry-boundary="override"]')
   const panel = geometryPanel(page, 'fixed-boundary')
@@ -298,7 +299,7 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
 test('handles deferred corners, ordinary class constraints, and viewport panels in a scrolling portal', async ({
   page,
 }) => {
-  await page.goto('/panel-geometry-lab?fixture=review-regressions')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=review-regressions`)
   const panel = geometryPanel(page, 'review-regression')
   const portal = page.locator('[data-geometry-scroll-portal]')
   const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
@@ -355,7 +356,7 @@ test('handles deferred corners, ordinary class constraints, and viewport panels 
 test('resolves an unsaved corner and ancestor-scoped variable constraints against a custom boundary', async ({
   page,
 }) => {
-  await page.goto('/panel-geometry-lab?fixture=relative-constraints')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=relative-constraints`)
   const boundary = page.locator('[data-geometry-boundary="relative-constraints"]')
   const panel = geometryPanel(page, 'relative-constraint')
 
@@ -379,7 +380,7 @@ test('resolves an unsaved corner and ancestor-scoped variable constraints agains
 })
 
 test('retracts every fixed placement while preserving its reopening control', async ({ page }) => {
-  await page.goto('/panel-geometry-lab?fixture=fixed-boundaries')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=fixed-boundaries`)
   const boundary = page.locator('[data-geometry-boundary="provider"]')
   const panel = geometryPanel(page, 'fixed-boundary')
   const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
@@ -431,7 +432,7 @@ test('retracts every fixed placement while preserving its reopening control', as
 })
 
 test('rolls back an active keyboard reorder when its list unmounts', async ({ page }) => {
-  await page.goto('/panel-geometry-lab?fixture=keyboard-unmount')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=keyboard-unmount`)
   const panel = geometryPanel(page, 'keyboard-unmount')
   const secondGrip = panel.getByRole('button', {
     name: 'Reorder Second group',
@@ -449,7 +450,7 @@ test('rolls back an active keyboard reorder when its list unmounts', async ({ pa
 test('viewport shrink and growth constrain an undocked panel without moving its top', async ({
   page,
 }) => {
-  await page.goto('/panel-geometry-lab?fixture=groups')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=groups`)
   const panel = geometryPanel(page, 'groups')
   await panel.getByRole('button', { name: 'Open actions for Group expansion fixture' }).click()
   await page.getByRole('menuitem', { name: 'Expand all' }).click()
@@ -474,7 +475,7 @@ test('preserves a caller-provided max-height while applying viewport containment
   page,
 }) => {
   await page.setViewportSize({ width: 900, height: 800 })
-  await page.goto('/panel-geometry-lab?fixture=caller-max-height')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=caller-max-height`)
   const panel = geometryPanel(page, 'caller-max-height')
 
   await expect.poll(async () => (await requiredBox(panel)).height).toBe(200)
@@ -492,7 +493,7 @@ test('preserves a caller-provided max-height while applying viewport containment
 
 test('preserves a class-based max-height constraint', async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 800 })
-  await page.goto('/panel-geometry-lab?fixture=class-max-height')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=class-max-height`)
   const panel = geometryPanel(page, 'class-max-height')
 
   await expect.poll(async () => (await requiredBox(panel)).height).toBe(192)
@@ -509,7 +510,7 @@ test('anchors a bottom-docked panel using its caller-capped height', async ({ pa
       y: 500,
     },
   })
-  await page.goto('/panel-geometry-lab?fixture=bottom-max-height')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=bottom-max-height`)
   const panel = geometryPanel(page, 'bottom-max-height')
 
   await expect.poll(async () => (await requiredBox(panel)).height).toBe(200)
@@ -517,7 +518,7 @@ test('anchors a bottom-docked panel using its caller-capped height', async ({ pa
 })
 
 test('rebases a bottom-positioned panel while shrinking during a held drag', async ({ page }) => {
-  await page.goto('/panel-geometry-lab?fixture=bottom-drag')
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=bottom-drag`)
   const panel = geometryPanel(page, 'bottom-drag')
   const initial = await requiredBox(panel)
   const header = await requiredBox(panel.locator('[data-picodash-panel-header]'))

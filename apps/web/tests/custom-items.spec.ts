@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
 import { picodashMotionTokens } from '@picodash/panel/advanced'
 import { requiredBox } from './helpers'
+import { labURL } from './urls'
 
 const builtInGroupLabels = {
   'chart-items': 'Charts',
@@ -36,7 +37,7 @@ async function changeDemoThemes(
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/state-lab')
+  await page.goto(`${labURL}/lab/state`)
   await expect(page.getByRole('heading', { name: 'Picodash State Lab' })).toBeVisible()
   await expect(page.locator('[data-state-lab]')).toHaveCSS('position', 'relative')
 })
@@ -155,7 +156,7 @@ test('routes the home, state lab, and unknown paths explicitly', async ({ page }
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
   await expect(page.locator('[data-picodash-panel-id]')).toHaveCount(0)
 
-  await page.goto('/state-lab')
+  await page.goto(`${labURL}/lab/state`)
 
   await expect(page.locator('main')).toHaveAttribute('data-product-route', 'state-lab')
   await expect(page.getByRole('heading', { name: 'Picodash State Lab' })).toBeVisible()
@@ -1470,7 +1471,7 @@ test('renders safe media, serializable drop metadata, and a Recharts SVG', async
 })
 
 test('applies simultaneous named themes to panels and every portaled surface', async ({ page }) => {
-  await page.goto('/state-lab?providerTheme=ocean&customTheme=plum')
+  await page.goto(`${labURL}/lab/state?providerTheme=ocean&customTheme=plum`)
 
   const scenePanel = page.locator('[data-picodash-panel-id="scene-controls"]')
   const customPanel = page.locator('[data-picodash-panel-id="custom-items"]')

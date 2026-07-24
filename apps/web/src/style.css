@@ -233,8 +233,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   :is(h1, h2, h3, [data-picodash-theme-text]) {
   font-family: var(--picodash-theme-font-family);
@@ -254,8 +254,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   .border-picodash-control:not(input):not(textarea):not(button) {
   box-shadow: var(--picodash-theme-control-shadow);
@@ -265,8 +265,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   :is(
     input.border-picodash-control,
@@ -280,8 +280,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   [data-slot='slider-thumb']::before {
   box-shadow: var(--picodash-theme-active-shadow), var(--picodash-shadow-sm);
@@ -291,8 +291,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   [data-slot='slider-thumb'] {
   box-shadow: none;
@@ -302,8 +302,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   :is(
     [data-slot='switch'][data-selected],
@@ -317,8 +317,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   [id$=':pad']
   > span {
@@ -329,8 +329,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   input[type='range']::-webkit-slider-thumb {
   box-shadow: var(--picodash-theme-active-shadow);
@@ -340,8 +340,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   input[type='range']::-moz-range-thumb {
   box-shadow: var(--picodash-theme-active-shadow);
@@ -351,8 +351,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   [data-item-id] {
   text-shadow: none;
@@ -362,8 +362,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   label {
   overflow: visible;
@@ -374,8 +374,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   [data-item-id='segmented']
   [data-slot='toggle-group'] {
@@ -386,8 +386,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   .font-mono {
   font-family: var(--picodash-theme-data-font-family);
@@ -397,8 +397,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   [data-interactive-tabs] {
   border-color: oklch(0.82 0.17 201 / 30%);
@@ -409,8 +409,8 @@
     [data-picodash-panel][data-picodash-theme='tron'],
     [data-picodash-container] [data-picodash-theme='tron'],
     [data-picodash-theme='tron']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   :is(
     .recharts-cartesian-axis-tick-value,
@@ -425,8 +425,8 @@
   [data-picodash-panel][data-picodash-theme='contrast'] [data-picodash-theme='contrast'],
   [data-picodash-container] [data-picodash-theme='contrast'],
   [data-picodash-theme='contrast']:not([data-picodash-provider-content]):not(
-      [data-picodash-container]
-    )
+    [data-picodash-container]
+  )
 ) {
   color-scheme: light;
   --picodash-theme-font-family: 'Avenir Next', Avenir, 'Trebuchet MS', sans-serif;
@@ -463,8 +463,8 @@
     [data-picodash-panel][data-picodash-theme='contrast'],
     [data-picodash-container] [data-picodash-theme='contrast'],
     [data-picodash-theme='contrast']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   :is(h1, h2, h3, [data-picodash-theme-text]) {
   font-family: var(--picodash-theme-font-family);
@@ -477,8 +477,8 @@
     [data-picodash-panel][data-picodash-theme='contrast'],
     [data-picodash-container] [data-picodash-theme='contrast'],
     [data-picodash-theme='contrast']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   :is(.text-picodash-text, .text-picodash-strong) {
   font-weight: 700;
@@ -489,8 +489,8 @@
     [data-picodash-panel][data-picodash-theme='contrast'],
     [data-picodash-container] [data-picodash-theme='contrast'],
     [data-picodash-theme='contrast']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   .font-mono {
   font-family: var(--picodash-theme-font-family);
@@ -501,8 +501,8 @@
     [data-picodash-panel][data-picodash-theme='contrast'],
     [data-picodash-container] [data-picodash-theme='contrast'],
     [data-picodash-theme='contrast']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   .border-picodash-border {
   box-shadow: var(--picodash-theme-border-shadow);
@@ -512,8 +512,8 @@
     [data-picodash-panel][data-picodash-theme='contrast'],
     [data-picodash-container] [data-picodash-theme='contrast'],
     [data-picodash-theme='contrast']:not([data-picodash-provider-content]):not(
-        [data-picodash-container]
-      )
+      [data-picodash-container]
+    )
   )
   [data-interactive-tabs] {
   border-color: rgb(0 0 0);

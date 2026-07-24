@@ -131,13 +131,13 @@ function stateLabPanelForTab(tab: StateLabTab) {
 function stateLabPathForPanel(panelId: string) {
   switch (panelId) {
     case scenePanelId:
-      return '/state-lab/scene'
+      return '/lab/state/scene'
     case builtInItemsPanelId:
-      return '/state-lab/built-in-items'
+      return '/lab/state/built-in-items'
     case outputPanelId:
-      return '/state-lab/custom-items'
+      return '/lab/state/custom-items'
     default:
-      return '/state-lab/provider'
+      return '/lab/state/provider'
   }
 }
 

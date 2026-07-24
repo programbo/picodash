@@ -7,6 +7,50 @@ import { useDemoContext } from '@/components/providers/demo-provider'
 
 export type HomeTab = 'code' | 'more-examples' | 'store' | 'themes' | 'usage'
 
+const homeTabs = [
+  {
+    color: 'bg-cyan-300',
+    href: '/',
+    id: 'code',
+    label: 'Code',
+    selectedClassName: 'data-selected:text-cyan-200',
+  },
+  {
+    color: 'bg-violet-300',
+    href: '/store',
+    id: 'store',
+    label: 'Store',
+    selectedClassName: 'data-selected:text-violet-200',
+  },
+  {
+    color: 'bg-amber-200',
+    href: '/usage',
+    id: 'usage',
+    label: 'Usage',
+    selectedClassName: 'data-selected:text-amber-200',
+  },
+  {
+    color: 'bg-amber-200',
+    href: '/more-examples',
+    id: 'more-examples',
+    label: 'More examples',
+    selectedClassName: 'data-selected:text-amber-200',
+  },
+  {
+    color: 'bg-emerald-300',
+    href: '/themes',
+    id: 'themes',
+    label: 'Themes',
+    selectedClassName: 'data-selected:text-emerald-200',
+  },
+] as const satisfies readonly {
+  color: string
+  href: string
+  id: HomeTab
+  label: string
+  selectedClassName: string
+}[]
+
 export function HomeFrame({
   activeTab,
   children,
@@ -16,8 +60,8 @@ export function HomeFrame({
   children: ReactNode
   toolbar: ReactNode
 }) {
-  const router = useRouter()
   const { builtInExampleConfig } = useDemoContext()
+  const router = useRouter()
 
   return (
     <section
@@ -30,7 +74,10 @@ export function HomeFrame({
           className="min-w-0 gap-0 overflow-hidden border border-white/12 bg-zinc-950/78 shadow-2xl shadow-black/35 backdrop-blur-xl"
           data-interactive-tabs
           selectedKey={activeTab}
-          onSelectionChange={(key) => router.push(withCurrentSearch(pathForHomeTab(String(key))))}
+          onSelectionChange={(key) => {
+            const tab = homeTabs.find((item) => item.id === key)
+            if (tab) router.push(tab.href)
+          }}
         >
           <div className="flex flex-col gap-2 border-b border-white/10 bg-white/4 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <TabsList
@@ -38,41 +85,16 @@ export function HomeFrame({
               className="h-7 max-w-full min-w-0 scrollbar-thin gap-2 overflow-x-auto overflow-y-visible rounded-none p-0 sm:gap-4"
               variant="line"
             >
-              <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-cyan-200 sm:text-xs"
-                id="code"
-              >
-                <span className="size-2 bg-cyan-300" />
-                Code
-              </TabsTrigger>
-              <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-violet-200 sm:text-xs"
-                id="store"
-              >
-                <span className="size-2 bg-violet-300" />
-                Store
-              </TabsTrigger>
-              <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-amber-200 sm:text-xs"
-                id="usage"
-              >
-                <span className="size-2 bg-amber-200" />
-                Usage
-              </TabsTrigger>
-              <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-amber-200 sm:text-xs"
-                id="more-examples"
-              >
-                <span className="size-2 bg-amber-200" />
-                More examples
-              </TabsTrigger>
-              <TabsTrigger
-                className="h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 data-selected:text-emerald-200 sm:text-xs"
-                id="themes"
-              >
-                <span className="size-2 bg-emerald-300" />
-                Themes
-              </TabsTrigger>
+              {homeTabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.id}
+                  className={`h-7 flex-none rounded-none px-0 font-mono text-[10px] text-zinc-400 sm:text-xs ${tab.selectedClassName}`}
+                  id={tab.id}
+                >
+                  <span className={`size-2 ${tab.color}`} />
+                  {tab.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
             {toolbar}
           </div>
@@ -92,23 +114,4 @@ export function HomeTextToolbar() {
       React + TypeScript
     </span>
   )
-}
-
-function pathForHomeTab(tab: string) {
-  switch (tab) {
-    case 'store':
-      return '/store'
-    case 'usage':
-      return '/usage'
-    case 'more-examples':
-      return '/more-examples'
-    case 'themes':
-      return '/themes'
-    default:
-      return '/'
-  }
-}
-
-function withCurrentSearch(pathname: string) {
-  return `${pathname}${window.location.search}`
 }

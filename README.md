@@ -1,6 +1,6 @@
 # Picodash
 
-Monorepo for the promoted [Picodash] package and its web showcase app (`apps/web`).
+Monorepo for the promoted [Picodash] package, its production website, and local debugging labs.
 
 > **Public preview:** Picodash is currently available for reading, evaluation, and issue feedback.
 > Pull requests are temporarily disabled while the API and maintenance workflow settle.
@@ -8,18 +8,25 @@ Monorepo for the promoted [Picodash] package and its web showcase app (`apps/web
 ## Active product topology
 
 - `packages/panel`: published package API for application-owned inspector panels.
-- `apps/web`: canonical Next.js app-router showcase for the same interactive product experiences.
+- `apps/web`: production Next.js App Router website and public product experience.
+- `apps/lab`: local-only Next.js debugging app. It is exercised by E2E tests but is not a
+  production website or deployment target.
 
 ### `apps/web` route topology
 
 - `/` renders the home root.
-- `/store`, `/usage`, `/more-examples` render home detail routes.
-- `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` are debugging-only routes.
-- `/panel-geometry-lab` is a debugging-only route.
-- `/panel-interaction-lab` and `/dashlet-lab` are isolated debugging-only routes, not public website pages.
+- `/store`, `/usage`, `/themes`, `/more-examples` render public detail routes.
 - unknown paths render the app's 404 page.
 
-- `/demo` is deprecated legacy and not an active route/API in this workspace.
+### `apps/lab` route topology
+
+- `/` and `/lab` redirect to `/lab/state`.
+- `/lab/state/{provider,scene,built-in-items,custom-items}` expose the state fixtures.
+- `/lab/panel-geometry`, `/lab/panel-interaction`, and `/lab/dashlets` expose focused debugging
+  fixtures.
+
+The lab runs locally with `bun run lab`. `/demo` and the former debugging routes hosted by
+`apps/web` are not active production routes.
 
 ## Breaking migration notes
 
@@ -287,17 +294,17 @@ Repairs from imports and constraint propagation are reviewable through the built
 
 `ports` allocation owns `6030-6039`.
 
-- `6035`: this worktree dev and Playwright web server via `WEBSITE_PORT`.
+- `6034`: local-only lab server via `LAB_PORT`.
+- `6035`: production website development and Playwright web server via `WEBSITE_PORT`.
 - `6036`: this worktree production start server.
-- `6030-6034` and `6037-6039`: available.
+- `6030-6033` and `6037-6039`: available.
 
 Use the next available port in this range for new local services and document it.
 
 For this worktree:
 
 ```bash
-WEBSITE_PORT=6035 bun run web
-WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
+LAB_PORT=6034 WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
 ```
 
 ## Current commands
@@ -308,6 +315,11 @@ bun run lint
 bun run format
 bun run dev
 bun run web
+bun run lab
+bun run --filter @picodash/lab lint
+bun run --filter @picodash/lab format
+bun run --filter @picodash/lab check
+bun run --filter @picodash/lab build
 bun run --filter @picodash/web lint
 bun run --filter @picodash/web format
 bun run --filter @picodash/panel lint
@@ -326,8 +338,7 @@ bun run ready
 Focused checks:
 
 ```bash
-WEBSITE_PORT=6035 bun run web
-WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
+LAB_PORT=6034 WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
 ```
 
 `bun run ready` remains the full verification gate:
@@ -338,5 +349,6 @@ vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build &&
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`. The quality job
 runs the audit, workspace checks, and unit tests; the E2E job builds the workspace and runs the
-Playwright end-to-end suite. `apps/web/tests/routes.spec.ts` asserts the route markers for the
-isolated debugging labs. Publishing the package also runs its check, test, and build commands.
+Playwright end-to-end suite against both apps. The Playwright runner and specs remain under
+`apps/web/tests`; `routes.spec.ts` asserts the production route boundary and local lab route
+markers. Publishing the package also runs its check, test, and build commands.

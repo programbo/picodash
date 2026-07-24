@@ -7,8 +7,8 @@ description: Use the promoted Picodash package with application-owned stores and
 
 This workspace uses the promoted `@picodash/panel` API only.
 
-The workspace website serves the canonical interactive control home at `/` (Next app routes listed below),
-with `/state-lab`, `/panel-geometry-lab`, `/panel-interaction-lab`, and `/dashlet-lab` reserved for debugging workflows.
+The production website serves the canonical interactive control home at `/`. A separate local-only
+app exposes debugging workflows under `/lab/*`; those routes are not deployed with the website.
 `/demo` is deprecated legacy and is not an active route or API surface.
 
 ## Preferred Imports
@@ -144,13 +144,19 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 
 ## Workspace App Surfaces
 
-- `apps/web` (Next.js): canonical route-based showcase app, started with `bun run web`.
+- `apps/web` (Next.js): production website, started with `bun run web`.
+- `apps/lab` (Next.js): local-only debugging app, started with `bun run lab`.
 
 `apps/web` route topology:
 
 - `/`, `/store`, `/usage`, `/more-examples`, `/themes`
-- `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` (debugging-only)
-- `/panel-geometry-lab`, `/panel-interaction-lab`, `/dashlet-lab` (debugging-only; not public website pages), and not-found fallback.
+- not-found fallback for every other path.
+
+`apps/lab` route topology:
+
+- `/` and `/lab` redirect to `/lab/state`.
+- `/lab/state/{provider,scene,built-in-items,custom-items}`
+- `/lab/panel-geometry`, `/lab/panel-interaction`, `/lab/dashlets`
 
 ## Local Development
 
@@ -159,6 +165,11 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 - `bun run format`
 - `bun run dev`
 - `bun run web`
+- `bun run lab`
+- `bun run --filter @picodash/lab lint`
+- `bun run --filter @picodash/lab format`
+- `bun run --filter @picodash/lab check`
+- `bun run --filter @picodash/lab build`
 - `bun run --filter @picodash/web lint`
 - `bun run --filter @picodash/web format`
 - `bun run --filter @picodash/panel lint`
@@ -174,8 +185,8 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 Focused validation:
 
 - `vp run @picodash/panel#build` before workspace-wide checks or builds.
-- `WEBSITE_PORT=6035 bun run web`
-- `WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e`
-- `apps/web/tests/routes.spec.ts` verifies the isolated lab routes and `data-product-route` markers.
+- `LAB_PORT=6034 WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e`
+- `apps/web/tests/routes.spec.ts` verifies the production route boundary and local lab
+  `data-product-route` markers.
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`.
