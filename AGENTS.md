@@ -22,13 +22,16 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 ## Repository Topology
 
 - `packages/panel`: the promoted public package and default API surface.
-- `apps/web`: Next.js app-router source of the same interactive home and State Lab experiences.
+- `apps/web`: production Next.js App Router website and public product experience.
+- `apps/lab`: local-only Next.js debugging app, tested by the shared Playwright suite but not
+  deployed as part of the production website.
 
-`apps/web` routes: `/`, `/store`, `/usage`, `/themes`, `/more-examples`, `/state-lab/{provider,scene,built-in-items,custom-items}`,
-`/panel-geometry-lab`, `/panel-interaction-lab`, `/dashlet-lab` (debugging-only), and 404.
-`/state-lab`, `/panel-geometry-lab`, `/panel-interaction-lab`, and `/dashlet-lab` are retained as debugging routes and are not treated as public website pages.
+`apps/web` routes: `/`, `/store`, `/usage`, `/themes`, `/more-examples`, and 404.
+`apps/lab` routes: `/lab/state/{provider,scene,built-in-items,custom-items}`,
+`/lab/panel-geometry`, `/lab/panel-interaction`, and `/lab/dashlets`; `/` and `/lab` redirect to
+`/lab/state`.
 
-`/demo` is deprecated legacy and not an active route/API in this workspace.
+`/demo` and the former debugging routes hosted by `apps/web` are not active production routes.
 
 ## Active API Model
 
@@ -74,6 +77,11 @@ independent of portal ownership.
 - `bun run format`
 - `bun run dev`
 - `bun run web`
+- `bun run lab`
+- `bun run --filter @picodash/lab lint`
+- `bun run --filter @picodash/lab format`
+- `bun run --filter @picodash/lab check`
+- `bun run --filter @picodash/lab build`
 - `bun run --filter @picodash/web lint`
 - `bun run --filter @picodash/web format`
 - `bun run --filter @picodash/panel lint`
@@ -106,8 +114,9 @@ in `RELEASING.md`.
 
 This worktree is in the `picodash` port registry range `6030-6039`.
 
-- `6030-6034`: available for additional local services.
-- `6035`: this worktree override via `WEBSITE_PORT` for web development and the Playwright/E2E server.
+- `6030-6033`: available for additional local services.
+- `6034`: this worktree local lab server via `LAB_PORT`.
+- `6035`: this worktree override via `WEBSITE_PORT` for website development and the Playwright/E2E server.
 - `6036`: this worktree production start server.
 - `6037-6039`: available for future local services.
 
@@ -116,8 +125,7 @@ Assign new local services only from the available slots in this range.
 For this worktree:
 
 ```bash
-WEBSITE_PORT=6035 bun run web
-WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
+LAB_PORT=6034 WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
 ```
 
 ## Documentation Surfaces
@@ -143,7 +151,8 @@ Update all five files together when command surface, entrypoints, or architectur
 ## Verification Discipline
 
 - Run the narrowest useful commands first, then the required full check before handoff.
-- Keep `apps/web/tests/routes.spec.ts` asserting isolated lab paths and their `data-product-route` markers.
+- Keep `apps/web/tests/routes.spec.ts` asserting the production route boundary plus local lab paths
+  and their `data-product-route` markers.
 - Avoid changing generated outputs (`dist/`) directly.
 - Do not run broad tests unless requested by user/task scope.
 

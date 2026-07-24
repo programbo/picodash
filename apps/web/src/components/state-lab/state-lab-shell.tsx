@@ -17,11 +17,11 @@ export function StateLabShell({ children }: { children: ReactNode }) {
 
 function stateLabTabFromPathname(pathname: string): StateLabTab {
   switch (pathname) {
-    case '/state-lab/scene':
+    case '/lab/state/scene':
       return 'scene'
-    case '/state-lab/built-in-items':
+    case '/lab/state/built-in-items':
       return 'built-in-items'
-    case '/state-lab/custom-items':
+    case '/lab/state/custom-items':
       return 'custom-items'
     default:
       return 'provider'

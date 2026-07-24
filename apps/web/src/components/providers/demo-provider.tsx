@@ -57,8 +57,12 @@ export function DemoProvider({
   const [builtInExampleConfig, setBuiltInExampleConfig] = useState<BuiltInItemsExampleConfig>(
     defaultBuiltInItemsExampleConfig,
   )
-  const themes = mergeThemes(initialThemes, themeOverrides)
-  const route = pathname.startsWith('/state-lab') ? 'state-lab' : 'home'
+  const themes = useMemo(
+    () => mergeThemes(initialThemes, themeOverrides),
+    [initialThemes.custom, initialThemes.provider, initialThemes.scene, themeOverrides],
+  )
+  const route =
+    pathname === '/lab/state' || pathname.startsWith('/lab/state/') ? 'state-lab' : 'home'
 
   useEffect(() => {
     if (initialThemes.provider !== undefined) return

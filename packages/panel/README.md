@@ -5,20 +5,22 @@ A composable React inspector-panel package with application-owned state, synchro
 > **Public preview:** The package API is still evolving. See the repository's
 > [release policy](https://github.com/programbo/picodash/blob/main/RELEASING.md) before depending on a versioned release.
 
-The workspace website surface is provided by the Next.js App Router app:
+The workspace has separate production and local debugging Next.js App Router apps:
 
-- `apps/web`: Next.js App Router source app for public docs and route-based topology.
+- `apps/web`: production website for public docs and product pages.
+- `apps/lab`: local-only debugging app; it is exercised by E2E tests but is not a production
+  deployment target.
 
 `apps/web` route topology:
 
 - `/` renders the home root.
-- `/store`, `/usage`, `/more-examples` render home routes.
-- `/panel-geometry-lab` is a debugging-only route for layout geometry fixtures.
-- `/state-lab/{provider,scene,built-in-items,custom-items}` are debugging-only state-lab routes.
-- `/panel-interaction-lab` and `/dashlet-lab` are isolated debugging-only routes, outside the public website surface.
+- `/store`, `/usage`, `/themes`, `/more-examples` render public routes.
 - missing paths render the 404 page.
 
-`/demo` is deprecated legacy and is not an active route or API surface in this workspace.
+The local app redirects `/` and `/lab` to `/lab/state`, then serves state fixtures at
+`/lab/state/{provider,scene,built-in-items,custom-items}` and
+focused fixtures at `/lab/panel-geometry`, `/lab/panel-interaction`, and `/lab/dashlets`.
+`/demo` and the former debugging routes hosted by `apps/web` are not active production routes.
 
 ## Migration boundary
 
@@ -310,7 +312,8 @@ bun run --filter @picodash/panel format
 
 Pull requests and pushes to `main` run parallel quality and E2E jobs. The quality job runs
 `bun audit --audit-level=high`, the panel package build, workspace checks, and unit tests; the E2E job builds the workspace
-and runs the Playwright end-to-end suite, including `apps/web/tests/routes.spec.ts` route-marker checks.
+and runs the Playwright end-to-end suite against both apps, including
+`apps/web/tests/routes.spec.ts` production-boundary and local-lab route checks.
 Package publication independently runs package checks,
 tests, and the build, which includes source maps.
 

@@ -1,4 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test'
+import { labURL } from './urls'
 
 const builtInIds = [
   'text',
@@ -28,7 +29,7 @@ function builtInItem(panel: Locator, id: (typeof builtInIds)[number]) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/dashlet-lab')
+  await page.goto(`${labURL}/lab/dashlets`)
   await expect(page.locator('[data-dashlet-lab]')).toBeVisible()
   await expect(page.locator('[data-dashlet-panel="built-ins"]')).toBeVisible()
   await expect(page.locator('[data-dashlet-panel="examples"]')).toBeVisible()

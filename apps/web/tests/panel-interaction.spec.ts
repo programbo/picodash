@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { requiredBox } from './helpers'
+import { labURL } from './urls'
 
 const storageKey = 'picodash-panel-interaction-lab:layout:v1'
 const initialRootOrder = 'interaction-core,interaction-layout,interaction-root-status'
@@ -7,7 +8,7 @@ const reorderedRootOrder = 'interaction-layout,interaction-core,interaction-root
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1100, height: 820 })
-  await page.goto('/panel-interaction-lab')
+  await page.goto(`${labURL}/lab/panel-interaction`)
   await page.evaluate((key) => localStorage.removeItem(key), storageKey)
   await page.reload()
   await expect(page.locator('[data-panel-interaction-lab]')).toBeVisible()

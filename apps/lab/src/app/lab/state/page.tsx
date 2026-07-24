@@ -16,5 +16,5 @@ export default async function StateLabPage({
   }
 
   const search = query.toString()
-  redirect(`/state-lab/provider${search ? `?${search}` : ''}`)
+  redirect(`/lab/state/provider${search ? `?${search}` : ''}`)
 }

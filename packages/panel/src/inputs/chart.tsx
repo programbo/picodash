@@ -1,4 +1,12 @@
-import { lazy, Suspense, type ComponentProps, type CSSProperties } from 'react'
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type CSSProperties,
+} from 'react'
 import type {
   Area,
   AreaChart,
@@ -146,24 +154,62 @@ export function PicodashChart({
 }: PicodashChartProps) {
   const itemProps = chartItemProps(props)
   const surfaceStyle = { height } satisfies CSSProperties
+  const chartSurfaceRef = useRef<HTMLDivElement>(null)
+  const [shouldRenderChart, setShouldRenderChart] = useState(false)
+
+  useEffect(() => {
+    const chartSurface = chartSurfaceRef.current
+    if (!chartSurface) return
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setShouldRenderChart(true)
+      return
+    }
+
+    const scrollRoot = chartSurface.closest<HTMLElement>('[data-picodash-scrollport]')
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return
+
+        setShouldRenderChart(true)
+        observer.disconnect()
+      },
+      { root: scrollRoot },
+    )
+    const fallbackTimer = window.setTimeout(() => {
+      setShouldRenderChart(true)
+      observer.disconnect()
+    }, 1000)
+    observer.observe(chartSurface)
+
+    return () => {
+      window.clearTimeout(fallbackTimer)
+      observer.disconnect()
+    }
+  }, [])
 
   return (
     <PicodashItem {...itemProps} contentLayout={contentLayout} readOnly valueMode="display">
       <div
+        ref={chartSurfaceRef}
         className={`border-picodash-control rounded-picodash-control col-span-full min-h-(--picodash-field-surface-min-height) overflow-hidden border bg-(--_picodash-color-well) text-(length:--picodash-font-size-md) ${chartClassName ?? ''}`}
         data-picodash-chart={props.type}
         style={surfaceStyle}
       >
-        <Suspense fallback={<PicodashChartFallback />}>
-          <LazyPicodashChartImplementation
-            accessibilityLayer={accessibilityLayer}
-            data={data}
-            initialDimension={initialDimension}
-            legendProps={legendProps}
-            props={props}
-            tooltipProps={tooltipProps}
-          />
-        </Suspense>
+        {shouldRenderChart ? (
+          <Suspense fallback={<PicodashChartFallback />}>
+            <LazyPicodashChartImplementation
+              accessibilityLayer={accessibilityLayer}
+              data={data}
+              initialDimension={initialDimension}
+              legendProps={legendProps}
+              props={props}
+              tooltipProps={tooltipProps}
+            />
+          </Suspense>
+        ) : (
+          <PicodashChartFallback />
+        )}
       </div>
     </PicodashItem>
   )

@@ -5,18 +5,20 @@ const tailwindEntryPoints = workspaceCwd.endsWith('/packages/panel')
   ? [{ files: '**', use: 'src/styles.css' }]
   : workspaceCwd.endsWith('/apps/web')
     ? [{ files: '**', use: 'src/style.css' }]
-    : [
-        { files: 'packages/panel/**', use: 'packages/panel/src/styles.css' },
-        { files: 'apps/web/**', use: 'apps/web/src/style.css' },
-        { files: '**', use: 'apps/web/src/style.css' },
-      ]
+    : workspaceCwd.endsWith('/apps/lab')
+      ? [{ files: '**', use: '../web/src/style.css' }]
+      : [
+          { files: 'packages/panel/**', use: 'packages/panel/src/styles.css' },
+          { files: 'apps/web/**', use: 'apps/web/src/style.css' },
+          { files: '**', use: 'apps/web/src/style.css' },
+        ]
 
 export default defineConfig({
   staged: {
     '*': 'vp check --fix',
   },
   fmt: {
-    ignorePatterns: ['apps/web/next-env.d.ts'],
+    ignorePatterns: ['apps/web/next-env.d.ts', 'apps/lab/next-env.d.ts'],
     singleQuote: true,
     semi: false,
     sortTailwindcss: {

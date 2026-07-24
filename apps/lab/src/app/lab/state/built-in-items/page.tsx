@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Custom item state',
+  title: 'Built-in items state',
 }
 
-export default function CustomItemsStatePage() {
+export default function BuiltInItemsStatePage() {
   return null
 }

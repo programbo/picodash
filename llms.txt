@@ -1,6 +1,6 @@
 Picodash
 
-Active graph: packages/panel + apps/web.
+Active graph: packages/panel + apps/web + apps/lab.
 
 Project status: public preview; Issues are available for feedback, and pull requests are currently disabled.
 
@@ -41,17 +41,19 @@ What it provides:
 - lazy Recharts and react-dropzone implementations behind stable public components
 - import/export and repair flows
 
-Workspace pages (canonical `apps/web`):
+Production pages (`apps/web`):
 - /, /store, /usage, /more-examples, /themes
-- /state-lab/provider, /state-lab/scene, /state-lab/built-in-items, /state-lab/custom-items (debugging-only)
-- /panel-geometry-lab (debugging-only)
-- /panel-interaction-lab, /dashlet-lab (isolated debugging-only routes; not public website pages)
-- /state-lab (legacy canonical alias in path-mapped source; debug surface only)
 
-`/demo` is deprecated legacy and not an active route or API here.
+Local debugging pages (`apps/lab`, not deployed with the production website):
+- / and /lab redirect to /lab/state
+- /lab/state/provider, /lab/state/scene, /lab/state/built-in-items, /lab/state/custom-items
+- /lab/panel-geometry, /lab/panel-interaction, /lab/dashlets
+
+`/demo` and the former debugging routes hosted by `apps/web` are not active production routes.
 
 App surface mapping:
-- apps/web: Next.js route-based source app
+- apps/web: production Next.js website
+- apps/lab: local-only Next.js debugging app
 
 Important migration:
 - The old schema-driven registration API and old persistence are retired; map legacy `panel` specifiers to `@picodash/panel` imports.
@@ -59,9 +61,10 @@ Important migration:
 - Gearmo is a known breaking consumer requiring separate migration planning.
 
 Ports:
+- 6034 local lab server via LAB_PORT
 - 6035 this worktree dev and Playwright server via WEBSITE_PORT
 - 6036 this worktree production start server
-- remaining 6030-6034 and 6037-6039 available
+- remaining 6030-6033 and 6037-6039 available
 
 Docs to keep aligned:
 - README.md
@@ -85,7 +88,12 @@ Verification:
 - bun run --cwd packages/panel release:check
 - bun run ready
 - bun run web
+- bun run lab
+- bun run --filter @picodash/lab lint
+- bun run --filter @picodash/lab format
+- bun run --filter @picodash/lab check
+- bun run --filter @picodash/lab build
 - bun run --filter @picodash/web check
 - bun run --filter @picodash/web test:e2e
-- apps/web/tests/routes.spec.ts asserts the isolated lab routes and data-product-route markers
+- apps/web/tests/routes.spec.ts asserts the production route boundary and local lab route markers
 - GitHub CI runs parallel quality and E2E jobs for pull requests and main pushes
