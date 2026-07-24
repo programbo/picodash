@@ -46,6 +46,8 @@
     "dev": "vp pack --watch",
     "test": "vp test",
     "check": "vp check",
+    "lint": "vp lint src --fix",
+    "format": "vp fmt src --write",
     "release:check": "vp check && vp test && vp run build && bun pm pack --dry-run",
     "release:version": "bumpp --commit=false --tag=false --push=false",
     "prepublishOnly": "vp check && vp test && vp run build"

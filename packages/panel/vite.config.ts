@@ -31,12 +31,18 @@ export default defineConfig({
       typeAware: true,
       typeCheck: true,
     },
+    settings: {
+      tailwindcss: {
+        entryPoint: './src/styles.css',
+      },
+    },
   },
   fmt: {
     singleQuote: true,
     semi: false,
     sortTailwindcss: {
-      functions: ['joinClassNames'],
+      functions: ['clsx', 'cn', 'twMerge'],
+      stylesheet: './src/styles.css',
     },
   },
 })

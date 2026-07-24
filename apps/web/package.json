@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "lint": "vp lint src --fix",
+    "format": "vp fmt src --write",
     "panel:build": "bun run --filter @picodash/panel build",
     "dev": "bun run panel:build && next dev --hostname 127.0.0.1 --port ${WEBSITE_PORT:-6035}",
     "build": "bun run panel:build && next build",

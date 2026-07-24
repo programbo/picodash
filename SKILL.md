@@ -155,8 +155,14 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 ## Local Development
 
 - `bun install`
+- `bun run lint`
+- `bun run format`
 - `bun run dev`
 - `bun run web`
+- `bun run --filter @picodash/web lint`
+- `bun run --filter @picodash/web format`
+- `bun run --filter @picodash/panel lint`
+- `bun run --filter @picodash/panel format`
 - `bun run --filter @picodash/panel check`
 - `bun run --filter @picodash/panel test`
 - `bun run --filter @picodash/web check`

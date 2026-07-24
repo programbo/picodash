@@ -73,6 +73,12 @@ Docs to keep aligned:
 - llms.txt
 
 Verification:
+- bun run lint
+- bun run format
+- bun run --filter @picodash/web lint
+- bun run --filter @picodash/web format
+- bun run --filter @picodash/panel lint
+- bun run --filter @picodash/panel format
 - vp run @picodash/panel#build before workspace-wide checks or builds
 - bun audit --audit-level=high
 - bun run --cwd packages/panel release:check
