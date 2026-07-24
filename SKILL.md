@@ -8,7 +8,7 @@ description: Use the promoted Picodash package with application-owned stores and
 This workspace uses the promoted `@picodash/panel` API only.
 
 The workspace website serves the canonical interactive control home at `/` (Next app routes listed below),
-with `/state-lab` and `/panel-geometry-lab` reserved for debugging workflows.
+with `/state-lab`, `/panel-geometry-lab`, `/panel-interaction-lab`, and `/dashlet-lab` reserved for debugging workflows.
 `/demo` is deprecated legacy and is not an active route or API surface.
 
 ## Preferred Imports
@@ -150,7 +150,7 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 
 - `/`, `/store`, `/usage`, `/more-examples`, `/themes`
 - `/state-lab/provider`, `/state-lab/scene`, `/state-lab/built-in-items`, `/state-lab/custom-items` (debugging-only)
-- `/panel-geometry-lab` (debugging-only) and not-found fallback.
+- `/panel-geometry-lab`, `/panel-interaction-lab`, `/dashlet-lab` (debugging-only; not public website pages), and not-found fallback.
 
 ## Local Development
 
@@ -176,5 +176,6 @@ Focused validation:
 - `vp run @picodash/panel#build` before workspace-wide checks or builds.
 - `WEBSITE_PORT=6035 bun run web`
 - `WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e`
+- `apps/web/tests/routes.spec.ts` verifies the isolated lab routes and `data-product-route` markers.
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`.
