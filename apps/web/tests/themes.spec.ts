@@ -1,4 +1,15 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
+
+async function computedColorForToken(locator: Locator, token: string) {
+  return locator.evaluate((element, tokenName) => {
+    const probe = document.createElement('span')
+    probe.style.color = getComputedStyle(element).getPropertyValue(tokenName)
+    document.body.append(probe)
+    const color = getComputedStyle(probe).color
+    probe.remove()
+    return color
+  }, token)
+}
 
 test('switches and persists the site panel theme from the Themes tab', async ({ page }) => {
   await page.goto('/themes')
@@ -209,4 +220,63 @@ test('renders the high-contrast example on the panel only', async ({ page }) => 
       .locator('[data-theme-guide]')
       .evaluate((element) => getComputedStyle(element).textShadow),
   ).toBe('none')
+})
+
+test('applies the high-contrast theme to fixed panel toggles', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('[data-picodash-panel-id="built-in-items"]')).toBeVisible()
+
+  const example = page.locator('[data-interactive-jsx-example]')
+  await example.getByLabel('Provider theme').selectOption('contrast')
+  await expect(page.locator('[data-demo-provider-theme]')).toHaveAttribute(
+    'data-demo-provider-theme',
+    'contrast',
+  )
+  await example.getByLabel('Panel placement mode').selectOption('fixed')
+  await example.getByLabel('Panel placement position').selectOption('top-right')
+
+  const shell = page.locator(
+    '[data-picodash-panel-shell]:has([data-picodash-panel-id="built-in-items"])',
+  )
+  await expect(shell).toHaveAttribute('data-fixed-placement', 'top-right')
+  await expect
+    .poll(() =>
+      shell.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        return {
+          position: getComputedStyle(element).position,
+          right: Math.round(window.innerWidth - rect.right),
+          top: Math.round(rect.top),
+        }
+      }),
+    )
+    .toEqual({ position: 'absolute', right: 0, top: 0 })
+
+  const toggle = page.locator('[data-picodash-fixed-toggle]')
+  await expect(toggle).toHaveAttribute('data-picodash-theme', 'contrast')
+  await expect(toggle).toHaveCSS(
+    'color',
+    await computedColorForToken(toggle, '--picodash-color-text'),
+  )
+  await expect(toggle).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+
+  await toggle.click()
+
+  await expect(toggle).toHaveAccessibleName('Expand panel Built-in Items')
+  await expect(toggle).toHaveCSS(
+    'color',
+    await computedColorForToken(toggle, '--picodash-color-text-muted'),
+  )
+  const expectedRevealBackground = await toggle.evaluate((element) => {
+    const surface = getComputedStyle(element).getPropertyValue('--picodash-color-surface')
+    const probe = document.createElement('span')
+    probe.style.backgroundColor = `color-mix(in oklab, ${surface} 72%, transparent)`
+    document.body.append(probe)
+    const background = getComputedStyle(probe).backgroundColor
+    probe.remove()
+    return background
+  })
+  await expect
+    .poll(() => toggle.evaluate((element) => getComputedStyle(element).backgroundColor))
+    .toBe(expectedRevealBackground)
 })

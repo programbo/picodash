@@ -571,6 +571,7 @@ export function PicodashPanel({
               panelTitle={titleText}
               position={placement.position}
               reducedMotion={reducedMotion ?? false}
+              theme={theme}
               ref={fixedToggleRef}
               onToggle={togglePanelCollapsed}
             />
@@ -589,6 +590,7 @@ function FixedPanelToggle({
   panelTitle,
   position,
   reducedMotion,
+  theme,
   ref,
 }: {
   collapsed: boolean
@@ -597,6 +599,7 @@ function FixedPanelToggle({
   panelTitle: string
   position: PicodashPanelFixedPosition
   reducedMotion: boolean
+  theme: string
   ref: Ref<HTMLButtonElement>
 }) {
   const Icon = fixedToggleIcon(position, collapsed)
@@ -616,6 +619,7 @@ function FixedPanelToggle({
         fixedTogglePositionClassName(position, collapsed),
       )}
       data-picodash-fixed-toggle=""
+      data-picodash-theme={theme}
       layout="position"
       ref={ref}
       transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
