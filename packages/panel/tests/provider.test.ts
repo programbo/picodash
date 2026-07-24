@@ -5,8 +5,8 @@ import {
   createValidatedPanelPersistStorage,
   legacyPanelLayoutStorageKey,
   panelLayoutStorageKey,
-} from '../src/panel-persistence.ts'
-import { createPicodashStore, PicodashProvider } from '../src/picodash-provider.tsx'
+} from '../src/state/persistence/panel-persistence.ts'
+import { createPicodashStore, PicodashProvider } from '../src/state/provider/picodash-provider.tsx'
 import { installFakeLocalStorage } from './helpers.ts'
 
 const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')

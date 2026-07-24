@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { picodashMotionTokens } from '../../../packages/panel/src/theme'
+import { picodashMotionTokens } from '@picodash/panel/advanced'
 import { requiredBox } from './helpers'
 
 const builtInGroupLabels = {

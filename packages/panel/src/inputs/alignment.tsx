@@ -1,6 +1,6 @@
 import { TextAlignCenter, TextAlignEnd, TextAlignStart, type LucideIcon } from 'lucide-react'
-import type { PicodashInputItemProps } from '../picodash-control.js'
-import { cn } from '../utils.js'
+import type { PicodashInputItemProps } from '../components/panel/PicodashItem.js'
+import { cn } from '../utilities/utils.js'
 import { PicodashMatrix2D, type PicodashMatrix2DOption } from './matrix-2d.js'
 
 const alignmentRows = [

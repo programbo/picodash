@@ -13,13 +13,16 @@ import {
   PicodashItem,
   type PicodashItemContextValue,
   type PicodashInputItemProps,
-} from '../picodash-control.js'
-import { usePicodashPanelSelector, usePicodashPanelStoreApi } from '../picodash-panel.js'
+} from '../components/panel/PicodashItem.js'
+import {
+  usePicodashPanelSelector,
+  usePicodashPanelStoreApi,
+} from '../components/panel/PicodashPanel.js'
 import { Button } from '../components/ui/button.js'
 import { Input } from '../components/ui/input.js'
-import { cn } from '../utils.js'
-import type { PicodashParser } from '../picodash-validation.js'
-import { canonicalPicodashValue, strictImportShape } from './built-in-validation.js'
+import { cn } from '../utilities/utils.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
+import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
 export type PicodashGradientStop = { color: string; id: string; position: number }
 export type PicodashGradientValue = PicodashGradientStop[]

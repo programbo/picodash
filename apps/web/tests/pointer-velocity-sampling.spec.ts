@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import {
   advanceSparklineSamplingClock,
   decayPointerVelocity,
-} from '../src/custom-items/pointer-velocity-sampling'
+} from '@/utils/pointer-velocity-sampling'
 
 test('drops delayed pointer velocity intervals instead of backfilling history', () => {
   const sampleInterval = 1000 / 60

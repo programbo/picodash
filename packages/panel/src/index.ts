@@ -1,30 +1,30 @@
 import './styles.css'
 
-export { PicodashLogo } from './components/PicodashLogo.js'
+export { PicodashLogo } from './components/brand/PicodashLogo.js'
 export {
   picodashDefaultTheme,
   picodashGeometryTokens,
   picodashLayerTokens,
   picodashMotionTokens,
   picodashThemeAttribute,
-} from './theme.js'
-export { usePicodashTheme } from './picodash-theme-context.js'
-export { FeaturePanel } from './feature-panel.js'
+} from './lib/theme/theme.js'
+export { usePicodashTheme } from './lib/theme/picodash-theme-context.js'
+export { FeaturePanel } from './components/feature/FeaturePanel.js'
 export type {
   FeaturePanelItem,
   FeaturePanelItemStatus,
   FeaturePanelMetric,
   FeaturePanelProps,
-} from './feature-panel.js'
+} from './components/feature/FeaturePanel.js'
 
-export { PicodashProvider, usePicodashPanel } from './picodash-provider.js'
+export { PicodashProvider, usePicodashPanel } from './state/provider/picodash-provider.js'
 export type {
   PicodashPanelController,
   PicodashProviderProps,
   PicodashResolvedTheme,
   PicodashTheme,
   PicodashThemeOption,
-} from './picodash-provider.js'
+} from './state/provider/picodash-provider.js'
 
 export {
   ActionMenuItem,
@@ -43,7 +43,7 @@ export {
   PicodashPanel,
   ResetItem,
   usePicodashPanelStoreSelector,
-} from './picodash-panel.js'
+} from './components/panel/PicodashPanel.js'
 export type {
   ActionMenuConfirmation,
   ActionMenuItemProps,
@@ -65,9 +65,9 @@ export type {
   PicodashPin,
   PicodashStatus,
   PicodashValue,
-} from './picodash-panel.js'
+} from './components/panel/PicodashPanel.js'
 
-export { PicodashItem } from './picodash-control.js'
+export { PicodashItem } from './components/panel/PicodashItem.js'
 export type {
   ReactiveProp,
   PicodashDisplayItemProps,
@@ -76,9 +76,9 @@ export type {
   PicodashItemContextValue,
   PicodashItemProps,
   PicodashItemStates,
-} from './picodash-control.js'
-export { PicodashGroup } from './picodash-group.js'
-export type { PicodashGroupProps } from './picodash-group.js'
+} from './components/panel/PicodashItem.js'
+export { PicodashGroup } from './components/panel/PicodashGroup.js'
+export type { PicodashGroupProps } from './components/panel/PicodashGroup.js'
 
 export {
   PicodashAlignment,
@@ -179,4 +179,4 @@ export type {
   PicodashWriteFailure,
   PicodashWriteResult,
   PicodashWriteSuccess,
-} from './picodash-validation.js'
+} from './validation/picodash-validation.js'

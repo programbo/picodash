@@ -3,18 +3,18 @@ import { z } from 'zod'
 import {
   analyzePicodashPanelDocument,
   applyPicodashPanelImport,
-} from '../src/picodash-panel-documents.ts'
-import { createPicodashPanelStore } from '../src/picodash-panel-store.ts'
+} from '../src/lib/docs/picodash-panel-documents.ts'
+import { createPicodashPanelStore } from '../src/state/panel/picodash-panel-store.ts'
 import type {
   PicodashItemRegistration,
   PicodashPanelStore,
   PicodashValue,
-} from '../src/picodash-panel-types.ts'
+} from '../src/state/panel/picodash-panel-types.ts'
 import {
   jsonCompatibilityError,
   type PicodashParser,
   type PicodashValidator,
-} from '../src/picodash-validation.ts'
+} from '../src/validation/picodash-validation.ts'
 
 test('JSON compatibility accepts only arrays and plain records', () => {
   class CustomValue {

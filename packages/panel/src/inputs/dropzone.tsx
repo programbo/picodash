@@ -4,9 +4,9 @@ import {
   PicodashItem,
   type PicodashItemContextValue,
   type PicodashInputItemProps,
-} from '../picodash-control.js'
-import type { PicodashParser } from '../picodash-validation.js'
-import { canonicalPicodashValue, strictImportShape } from './built-in-validation.js'
+} from '../components/panel/PicodashItem.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
+import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
 export type PicodashDroppedFileMetadata = {
   id: string
@@ -48,7 +48,7 @@ export type PicodashDropzoneImplementationProps = {
   showPreviews: boolean
 }
 
-const LazyDropzoneImplementation = lazy(() => import('./dropzone-implementation.js'))
+const LazyDropzoneImplementation = lazy(() => import('./internal/dropzone-implementation.js'))
 
 export function PicodashDropzone({
   accept,

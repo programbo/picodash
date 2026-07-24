@@ -6,15 +6,15 @@ import {
   panelMaxWidthForBoundary,
   panelParticipatesInSnapping,
   projectPanelGeometry,
-} from '../src/panel-geometry.ts'
-import { snapPanelPosition, type PanelRect } from '../src/panel-snapping.ts'
+} from '../src/geometry/panel-geometry.ts'
+import { snapPanelPosition, type PanelRect } from '../src/geometry/panel-snapping.ts'
 import {
   nonFixedPanelMaxWidthForBoundary,
   panelHasCallerConstraint,
   panelUsesBottomConstraint,
   resolveFloatingCornerLayout,
   withoutCallerClassNames,
-} from '../src/use-panel-layout.ts'
+} from '../src/hooks/use-panel-layout.ts'
 
 test('detects bottom constraints with Typed OM and legacy computed-style fallback', () => {
   expect(

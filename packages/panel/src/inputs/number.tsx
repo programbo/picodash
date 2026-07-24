@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
-import { formatNumericValue } from '../number-format.js'
+import { formatNumericValue } from '../lib/formatting/number-format.js'
 import {
   PicodashItem,
   useResolvedPanelProp,
   type ReactiveProp,
   type PicodashItemContextValue,
   type PicodashInputItemProps,
-} from '../picodash-control.js'
+} from '../components/panel/PicodashItem.js'
 import { Input } from '../components/ui/input.js'
-import type { PicodashParser } from '../picodash-validation.js'
-import { canonicalPicodashValue, invalidPicodashValue } from './built-in-validation.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
+import { canonicalPicodashValue, invalidPicodashValue } from './internal/built-in-validation.js'
 
 export interface PicodashNumberProps extends Omit<
   PicodashInputItemProps<number>,

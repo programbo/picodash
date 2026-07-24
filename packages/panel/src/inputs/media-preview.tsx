@@ -5,14 +5,14 @@ import {
   useResolvedPanelProp,
   type ReactiveProp,
   type PicodashInputItemProps,
-} from '../picodash-control.js'
-import { cn } from '../utils.js'
-import type { PicodashParser } from '../picodash-validation.js'
+} from '../components/panel/PicodashItem.js'
+import { cn } from '../utilities/utils.js'
+import type { PicodashParser } from '../validation/picodash-validation.js'
 import {
   canonicalPicodashValue,
   invalidPicodashValue,
   unsetPicodashValue,
-} from './built-in-validation.js'
+} from './internal/built-in-validation.js'
 
 export type PicodashMediaObjectFit = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'
 

@@ -22,14 +22,14 @@ import {
 import { cn } from '#lib/utils'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '#components/ui/input-group'
 import { ChevronDownIcon, SearchIcon, CheckIcon } from 'lucide-react'
-import { picodashGeometryTokens } from '../../theme.js'
-import { usePicodashTheme } from '../../picodash-theme-context.js'
+import { picodashGeometryTokens } from '../../lib/theme/theme.js'
+import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import {
   portalLayerZIndexForState,
   portalLayerZIndexValue,
   useOptionalPicodashProviderContext,
   type PicodashProviderContextValue,
-} from '../../picodash-provider.js'
+} from '../../state/provider/picodash-provider.js'
 
 type SelectPopoverProps = Omit<
   React.ComponentProps<typeof PopoverPrimitive>,

@@ -4,10 +4,10 @@ import {
   useResolvedPanelProp,
   type ReactiveProp,
   type PicodashDisplayItemProps,
-} from '../picodash-control.js'
-import type { PicodashValue } from '../picodash-panel.js'
-import { cn } from '../utils.js'
-import type { DistributiveOmit } from './built-in-validation.js'
+} from '../components/panel/PicodashItem.js'
+import type { PicodashValue } from '../components/panel/PicodashPanel.js'
+import { cn } from '../utilities/utils.js'
+import type { DistributiveOmit } from './internal/built-in-validation.js'
 
 export type PicodashDisplayProps = DistributiveOmit<
   PicodashDisplayItemProps<PicodashValue>,

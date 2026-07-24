@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { HomeStore } from '@/home-store'
+import { HomeStore } from '@/components/home/home-store'
 
 export const metadata: Metadata = {
   title: 'Store',
