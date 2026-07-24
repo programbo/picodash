@@ -3,7 +3,7 @@
 import { Activity, Braces, Layers3, ListTree, MousePointer2 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ReactNode } from 'react'
-import { z } from 'zod'
+import * as z from 'zod/mini'
 import {
   createPicodashPanelStore,
   PicodashDisplay,
@@ -86,9 +86,11 @@ export const customItemPanelStore = createPicodashPanelStore({
 
 const presetNameSchema = z
   .string()
-  .trim()
-  .min(3, 'Preset name must contain at least 3 characters.')
-  .max(24, 'Preset name must contain at most 24 characters.')
+  .check(
+    z.trim(),
+    z.minLength(3, 'Preset name must contain at least 3 characters.'),
+    z.maxLength(24, 'Preset name must contain at most 24 characters.'),
+  )
 
 const opacityHighlightedStates = { highlighted: true }
 const opacityDefaultStates = { highlighted: false }
@@ -175,11 +177,15 @@ export function StateLabApp({ activeTab }: { activeTab: StateLabTab }) {
     }),
     [builtInItemsPanelState, customItemPanelState, scenePanelState],
   )
-  const panels = [
-    panelSnapshots[scenePanelId],
-    panelSnapshots[builtInItemsPanelId],
-    panelSnapshots[outputPanelId],
-  ].filter((panel): panel is PanelSnapshot => panel !== undefined)
+  const panels = useMemo(
+    () =>
+      [
+        panelSnapshots[scenePanelId],
+        panelSnapshots[builtInItemsPanelId],
+        panelSnapshots[outputPanelId],
+      ].filter((panel): panel is PanelSnapshot => panel !== undefined),
+    [panelSnapshots],
+  )
   const totals = useMemo(() => panelTotals(panels), [panels])
   const recordPanelClose = (details: PicodashPanelCloseDetails) => {
     setLastPanelClose(details)

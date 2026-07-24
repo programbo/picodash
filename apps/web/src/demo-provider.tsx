@@ -146,12 +146,14 @@ export function useDemoContext() {
 
 function DemoBackground() {
   const resolvedProviderTheme = usePicodashTheme()
-  const builtInItemsPanelState = usePicodashPanelStoreSelector(
+  const backgroundGradient = usePicodashPanelStoreSelector(
     builtInItemsPanelStore,
-    (state) => state,
+    (state) => state.values.gradient,
   )
-  const backgroundGradient = builtInItemsPanelState.values.gradient
-  const backgroundRotation = builtInItemsPanelState.values.gradientRotation
+  const backgroundRotation = usePicodashPanelStoreSelector(
+    builtInItemsPanelStore,
+    (state) => state.values.gradientRotation,
+  )
 
   return (
     <>

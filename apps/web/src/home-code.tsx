@@ -4,7 +4,7 @@ import hljs from 'highlight.js/lib/core'
 import typescript from 'highlight.js/lib/languages/typescript'
 import { Check, Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePicodashPanel, usePicodashPanelStoreSelector } from '@picodash/panel'
 import { Tooltip, TooltipTrigger } from '@picodash/panel/ui'
 import {
@@ -749,10 +749,16 @@ export function HomeCode() {
   const [copyStatus, setCopyStatus] = useState<'copied' | 'error' | 'idle'>('idle')
   const [showAllProps, setShowAllProps] = useState(false)
   const panelController = usePicodashPanel(builtInItemsPanelId)
-  const panelState = usePicodashPanelStoreSelector(builtInItemsPanelStore, (state) => state)
+  const focusedField = usePicodashPanelStoreSelector(
+    builtInItemsPanelStore,
+    (state) => state.interaction.focusedId,
+  )
+  const hoveredField = usePicodashPanelStoreSelector(
+    builtInItemsPanelStore,
+    (state) => state.interaction.hoveredId,
+  )
   const codeViewportRef = useRef<HTMLDivElement>(null)
   const declarationRefs = useRef(new Map<string, HTMLElement>())
-  const focusedField = panelState.interaction.focusedId
 
   useEffect(() => {
     const runtimePlacement = panelController?.placement
@@ -802,30 +808,39 @@ export function HomeCode() {
     })
   }, [focusedField])
 
-  const updateConfig = <Key extends keyof BuiltInItemsExampleConfig>(
-    key: Key,
-    value: BuiltInItemsExampleConfig[Key],
-  ) => {
-    onConfigChange({ ...config, [key]: value })
-  }
+  const updateConfig = useCallback(
+    function updateConfig<Key extends keyof BuiltInItemsExampleConfig>(
+      key: Key,
+      value: BuiltInItemsExampleConfig[Key],
+    ) {
+      onConfigChange({ ...config, [key]: value })
+    },
+    [config, onConfigChange],
+  )
 
-  const updateNumberConfig = (key: NumberConfigKey, value: number) => {
-    const pairedKey = pairedNumberBounds[key]
-    if (!pairedKey) {
-      updateConfig(key, value)
-      return
-    }
+  const updateNumberConfig = useCallback(
+    (key: NumberConfigKey, value: number) => {
+      const pairedKey = pairedNumberBounds[key]
+      if (!pairedKey) {
+        updateConfig(key, value)
+        return
+      }
 
-    const nextConfig = { ...config, [key]: value }
-    const editingMinimum = key.includes('Min')
-    if (editingMinimum && value > config[pairedKey]) nextConfig[pairedKey] = value
-    if (!editingMinimum && value < config[pairedKey]) nextConfig[pairedKey] = value
-    onConfigChange(nextConfig)
-  }
+      const nextConfig = { ...config, [key]: value }
+      const editingMinimum = key.includes('Min')
+      if (editingMinimum && value > config[pairedKey]) nextConfig[pairedKey] = value
+      if (!editingMinimum && value < config[pairedKey]) nextConfig[pairedKey] = value
+      onConfigChange(nextConfig)
+    },
+    [config, onConfigChange, updateConfig],
+  )
 
-  const updateStringConfig = (key: StringConfigKey, value: string) => {
-    onConfigChange({ ...config, [key]: value } as BuiltInItemsExampleConfig)
-  }
+  const updateStringConfig = useCallback(
+    (key: StringConfigKey, value: string) => {
+      onConfigChange({ ...config, [key]: value } as BuiltInItemsExampleConfig)
+    },
+    [config, onConfigChange],
+  )
 
   const updatePanelPlacement = (
     mode: BuiltInPanelPlacementMode,
@@ -841,51 +856,66 @@ export function HomeCode() {
     panelController?.setPlacement(placementForBuiltInItemsConfig(nextConfig))
   }
 
-  const updateItemProp: UpdateItemProp = (id, key, value) => {
-    onConfigChange({
-      ...config,
-      itemProps: {
-        ...config.itemProps,
-        [id]: { ...config.itemProps[id], [key]: value },
-      },
-    })
-  }
-
-  const updateGroupProp: UpdateGroupProp = (id, key, value) => {
-    onConfigChange({
-      ...config,
-      groupProps: {
-        ...config.groupProps,
-        [id]: { ...config.groupProps[id], [key]: value },
-      },
-    })
-  }
-
-  const commonInputLines = commonInputLinesForConfig(
-    config,
-    updateConfig,
-    updateItemProp,
-    updateNumberConfig,
-    updateStringConfig,
+  const updateItemProp = useCallback<UpdateItemProp>(
+    (id, key, value) => {
+      onConfigChange({
+        ...config,
+        itemProps: {
+          ...config.itemProps,
+          [id]: { ...config.itemProps[id], [key]: value },
+        },
+      })
+    },
+    [config, onConfigChange],
   )
-  const remainingGroups = remainingGroupsForConfig(
-    config,
-    updateConfig,
-    updateItemProp,
-    updateNumberConfig,
-    updateStringConfig,
+
+  const updateGroupProp = useCallback<UpdateGroupProp>(
+    (id, key, value) => {
+      onConfigChange({
+        ...config,
+        groupProps: {
+          ...config.groupProps,
+          [id]: { ...config.groupProps[id], [key]: value },
+        },
+      })
+    },
+    [config, onConfigChange],
   )
-  const codeComponentLinks = [
-    ...commonInputLines,
-    ...remainingGroups.flatMap((group) => group.lines),
-  ].map((line) => {
-    const controlId = controlIdForLine(line)
-    return {
-      component: line.name.replace(/^Picodash/, ''),
-      field: controlId,
-      href: `#code-${controlId}`,
-    }
-  })
+
+  const commonInputLines = useMemo(
+    () =>
+      commonInputLinesForConfig(
+        config,
+        updateConfig,
+        updateItemProp,
+        updateNumberConfig,
+        updateStringConfig,
+      ),
+    [config, updateConfig, updateItemProp, updateNumberConfig, updateStringConfig],
+  )
+  const remainingGroups = useMemo(
+    () =>
+      remainingGroupsForConfig(
+        config,
+        updateConfig,
+        updateItemProp,
+        updateNumberConfig,
+        updateStringConfig,
+      ),
+    [config, updateConfig, updateItemProp, updateNumberConfig, updateStringConfig],
+  )
+  const codeComponentLinks = useMemo(
+    () =>
+      [...commonInputLines, ...remainingGroups.flatMap((group) => group.lines)].map((line) => {
+        const controlId = controlIdForLine(line)
+        return {
+          component: line.name.replace(/^Picodash/, ''),
+          field: controlId,
+          href: `#code-${controlId}`,
+        }
+      }),
+    [commonInputLines, remainingGroups],
+  )
   const panelPlacementPosition = closestBuiltInPanelPlacementPosition(
     config.panelPlacementPosition,
     config.panelPlacementMode,
@@ -1137,8 +1167,8 @@ export function HomeCode() {
                 return (
                   <StaticControlLine
                     key={`${line.name}:${field}`}
-                    focused={panelState.interaction.focusedId === field}
-                    hovered={panelState.interaction.hoveredId === field}
+                    focused={focusedField === field}
+                    hovered={hoveredField === field}
                     elementRef={(element) => {
                       if (element) declarationRefs.current.set(field, element)
                       else declarationRefs.current.delete(field)
@@ -1187,8 +1217,8 @@ export function HomeCode() {
                     return (
                       <StaticControlLine
                         key={`${line.name}:${field}`}
-                        focused={panelState.interaction.focusedId === field}
-                        hovered={panelState.interaction.hoveredId === field}
+                        focused={focusedField === field}
+                        hovered={hoveredField === field}
                         elementRef={(element) => {
                           if (element) declarationRefs.current.set(field, element)
                           else declarationRefs.current.delete(field)

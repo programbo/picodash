@@ -15,7 +15,7 @@ import {
   createValidatedPanelPersistStorage,
   emptyPicodashPersistedState,
   panelLayoutStorageKey,
-  picodashPersistedStateSchema,
+  picodashPersistedStateMiniSchema,
 } from './panel-persistence.js'
 import {
   dockForSnapPosition,
@@ -334,7 +334,7 @@ export function createPicodashStore({
         panelLayouts: state.panelLayouts,
       }),
       merge: (persistedState, currentState) => {
-        const parsed = picodashPersistedStateSchema.safeParse(persistedState)
+        const parsed = picodashPersistedStateMiniSchema.safeParse(persistedState)
         return parsed.success ? { ...currentState, ...parsed.data } : currentState
       },
     }),
