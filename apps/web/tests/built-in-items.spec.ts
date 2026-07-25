@@ -335,7 +335,9 @@ test('keeps panels and the gradient fixed while the Code page and side navigatio
     (await requiredBox(toolbar)).y + (await requiredBox(toolbar)).height,
   )
 
-  await page.mouse.wheel(0, 10_000)
+  await page.evaluate(() => {
+    window.scrollTo({ top: document.documentElement.scrollHeight })
+  })
   await expect
     .poll(() =>
       page.evaluate(
