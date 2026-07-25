@@ -543,7 +543,7 @@ function GuideStep({
   title: string
 }) {
   return (
-    <section className="scroll-mt-6 py-9 first:pt-8" id={id}>
+    <section className="scroll-mt-24 py-9 first:pt-8 sm:scroll-mt-14" id={id}>
       <div className="grid items-baseline gap-4 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
         <span className="font-mono text-xs text-amber-200/70">{number}</span>
         <div className="min-w-0">

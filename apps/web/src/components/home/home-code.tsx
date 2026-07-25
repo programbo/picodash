@@ -1332,7 +1332,7 @@ function StaticControlLine({
       ref={elementRef}
       id={`code-${resolvedControlId}`}
       className={cn(
-        '-mx-2 block border-l-2 border-transparent px-2 transition-[background-color,border-color,box-shadow] duration-150',
+        '-mx-2 block scroll-mt-24 border-l-2 border-transparent px-2 transition-[background-color,border-color,box-shadow] duration-150 sm:scroll-mt-14',
         hovered && 'border-cyan-300/45 bg-cyan-300/8',
         focused &&
           'border-cyan-200 bg-cyan-300/12 shadow-[0_0_24px_rgb(34_211_238/0.08)] ring-1 ring-cyan-200/55 ring-inset',

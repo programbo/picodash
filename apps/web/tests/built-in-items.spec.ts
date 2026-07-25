@@ -258,6 +258,13 @@ test('provides a step-by-step Usage tab for adding a reactive panel', async ({ p
 
   await navigationPanel.getByRole('link', { name: /Create the store/ }).click()
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+  await expect
+    .poll(async () => {
+      const targetBox = await requiredBox(guide.locator('#usage-store'))
+      const toolbarBox = await requiredBox(toolbar)
+      return targetBox.y >= toolbarBox.y + toolbarBox.height
+    })
+    .toBe(true)
 
   await example.getByRole('tab', { name: 'Store' }).click()
   await expect(example.getByLabel('Live Built-in Items panel store')).toBeVisible()
@@ -330,6 +337,9 @@ test('keeps panels and the gradient fixed while the Code page and side navigatio
   await expect(example.locator('#code-shadcn-frame-chart')).toBeInViewport()
   await expect(codeNavigationBoundary).toHaveCSS('position', 'sticky')
   expect((await requiredBox(toolbar)).y).toBeCloseTo(0, 0)
+  expect((await requiredBox(example.locator('#code-shadcn-frame-chart'))).y).toBeGreaterThanOrEqual(
+    (await requiredBox(toolbar)).y + (await requiredBox(toolbar)).height,
+  )
   expect((await requiredBox(codeNavigationBoundary)).y).toBeCloseTo(48, 0)
   expect((await requiredBox(codeNavigationPanel)).y).toBeGreaterThan(
     (await requiredBox(toolbar)).y + (await requiredBox(toolbar)).height,
@@ -370,6 +380,9 @@ test('provides a More examples placeholder with shared section navigation', asyn
   await navigation.getByRole('link', { name: /Import and validation/ }).click()
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
   await expect(example.locator('#example-import-validation')).toBeInViewport()
+  expect(
+    (await requiredBox(example.locator('#example-import-validation'))).y,
+  ).toBeGreaterThanOrEqual((await requiredBox(example.locator('[data-home-toolbar]'))).height)
 })
 
 test('edits live provider, panel, and Common inputs props through highlighted JSX', async ({
