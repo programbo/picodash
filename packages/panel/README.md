@@ -308,6 +308,13 @@ bun run --filter @picodash/panel lint
 bun run --filter @picodash/panel format
 ```
 
+Workspace preview and production deployments use the root Vercel CLI scripts:
+
+```bash
+bun run deploy
+bun run deploy:prod
+```
+
 ## Release verification
 
 Pull requests and pushes to `main` run parallel quality and E2E jobs. The quality job runs

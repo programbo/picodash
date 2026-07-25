@@ -166,6 +166,8 @@ This repository is on the promoted API. Legacy schema-driven registration and ol
 - `bun run dev`
 - `bun run web`
 - `bun run lab`
+- `bun run deploy`
+- `bun run deploy:prod`
 - `bun run --filter @picodash/lab lint`
 - `bun run --filter @picodash/lab format`
 - `bun run --filter @picodash/lab check`
