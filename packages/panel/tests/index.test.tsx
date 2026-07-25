@@ -77,6 +77,18 @@ test('preserves classic Zod composition on the advanced persistence schema', () 
   const partialSchema = advancedApi.picodashPersistedStateSchema.partial()
 
   expect(partialSchema.safeParse({}).success).toBe(true)
+  expect(
+    advancedApi.picodashPersistedStateSchema.safeParse({
+      panelLayouts: {
+        inspect: {
+          dock: null,
+          placement: { mode: 'magnetic' },
+          x: 24,
+          y: 32,
+        },
+      },
+    }).success,
+  ).toBe(true)
 })
 
 test('renders the shared Select without PicodashProvider', () => {
