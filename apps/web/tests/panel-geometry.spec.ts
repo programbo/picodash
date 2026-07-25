@@ -66,8 +66,9 @@ test('shrinks and restores a tall panel during a held drag while preserving its 
     storageKey,
   )
   const persistedLayout = persisted?.state?.panelLayouts?.['geometry-tall']
-  expect(Object.keys(persistedLayout).sort()).toEqual(['dock', 'x', 'y'])
+  expect(Object.keys(persistedLayout).sort()).toEqual(['dock', 'placement', 'x', 'y'])
   expect(persistedLayout.dock?.horizontal).toBe('left')
+  expect(persistedLayout.placement).toEqual({ mode: 'floating' })
   expect(persistedLayout.y).toBe(Math.round(persistedTop))
   expect(JSON.stringify(persisted)).not.toMatch(/height|maxHeight/)
 })
@@ -164,7 +165,7 @@ test('a bottom-docked panel grows upward and survives reduced motion', async ({ 
   await page.goto(`${labURL}/lab/panel-geometry?fixture=bottom`)
   const panel = geometryPanel(page, 'bottom')
   const initial = await requiredBox(panel)
-  await expectBottom(panel, 600 - safeInset)
+  await expectBottom(panel, 600)
 
   await panel.getByRole('button', { name: 'Bottom group', exact: true }).click()
 
@@ -172,7 +173,7 @@ test('a bottom-docked panel grows upward and survives reduced motion', async ({ 
     'data-collapsed',
     'false',
   )
-  await expectBottom(panel, 600 - safeInset)
+  await expectBottom(panel, 600)
   await expect.poll(async () => (await requiredBox(panel)).y).toBeLessThan(initial.y - 250)
 })
 
@@ -263,8 +264,57 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
 
   await page.getByRole('button', { name: 'Magnetic' }).click()
   await expect(runtimePlacement).toHaveText('magnetic:top-left')
-  await page.getByRole('button', { name: 'Floating' }).click()
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'top-left')
+  await expectPanelAtBoundary(panel, boundary, 'top-left')
+  await expect(panel).toHaveCSS('border-top-left-radius', '0px')
+  await expect(panel.locator('[data-picodash-scrollport="auto"]')).toHaveClass(/scroll-fade/)
+  const magneticToggle = shell.locator('[data-picodash-fixed-toggle]')
+  await magneticToggle.click()
+  await expect(panel).toHaveAttribute('data-collapsed', 'true')
+  await expectCollapsedPanelBeyondBoundary(panel, boundary, 'top-left')
+  await magneticToggle.click()
+  await expect(panel).toHaveAttribute('data-collapsed', 'false')
+
+  const magneticHeader = panel.locator('[data-picodash-panel-header]')
+  const magneticHeaderBox = await requiredBox(magneticHeader)
+  await page.mouse.move(
+    magneticHeaderBox.x + magneticHeaderBox.width / 2,
+    magneticHeaderBox.y + magneticHeaderBox.height / 2,
+  )
+  await page.mouse.down()
+  await page.mouse.move(
+    magneticHeaderBox.x + magneticHeaderBox.width / 2 + 180,
+    magneticHeaderBox.y + magneticHeaderBox.height / 2 + 120,
+    { steps: 12 },
+  )
+  await page.mouse.up()
   await expect(runtimePlacement).toHaveText('floating:')
+  await expect(shell).not.toHaveAttribute('data-magnetic-placement')
+  await expect(panel.locator('[data-picodash-scrollport="body"]')).toHaveClass(/scroll-fade/)
+
+  const floatingBox = await requiredBox(panel)
+  const floatingHeaderBox = await requiredBox(magneticHeader)
+  const boundaryBox = await requiredBox(boundary)
+  const floatingStart = {
+    x: floatingHeaderBox.x + floatingHeaderBox.width / 2,
+    y: floatingHeaderBox.y + floatingHeaderBox.height / 2,
+  }
+  await page.mouse.move(floatingStart.x, floatingStart.y)
+  await page.mouse.down()
+  await page.mouse.move(
+    floatingStart.x + boundaryBox.x + safeInset - floatingBox.x,
+    floatingStart.y,
+    {
+      steps: 12,
+    },
+  )
+  await expect(panel).toHaveAttribute('data-picodash-panel-snapping', '')
+  await page.mouse.up()
+  await expect(runtimePlacement).toHaveText('floating:')
+  await expect
+    .poll(async () => Math.round((await requiredBox(panel)).x - (await requiredBox(boundary)).x))
+    .toBe(safeInset)
 
   await expectPanelAtBoundary(overridePanel, overrideBoundary, 'bottom-right')
 
@@ -303,7 +353,6 @@ test('handles deferred corners, ordinary class constraints, and viewport panels 
   const panel = geometryPanel(page, 'review-regression')
   const portal = page.locator('[data-geometry-scroll-portal]')
   const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
-
   await expect.poll(async () => (await requiredBox(panel)).width).toBe(220)
   await expect.poll(async () => (await requiredBox(panel)).height).toBe(180)
   await expect(panel).toHaveCSS('max-width', '220px')
@@ -514,7 +563,7 @@ test('anchors a bottom-docked panel using its caller-capped height', async ({ pa
   const panel = geometryPanel(page, 'bottom-max-height')
 
   await expect.poll(async () => (await requiredBox(panel)).height).toBe(200)
-  await expectBottom(panel, 600 - safeInset)
+  await expectBottom(panel, 600)
 })
 
 test('rebases a bottom-positioned panel while shrinking during a held drag', async ({ page }) => {

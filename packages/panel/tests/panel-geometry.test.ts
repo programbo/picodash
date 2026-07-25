@@ -7,9 +7,13 @@ import {
   panelParticipatesInSnapping,
   projectPanelGeometry,
 } from '../src/geometry/panel-geometry.ts'
-import { snapPanelPosition, type PanelRect } from '../src/geometry/panel-snapping.ts'
 import {
-  nonFixedPanelMaxWidthForBoundary,
+  positionForPanelLayout,
+  snapPanelPosition,
+  type PanelRect,
+} from '../src/geometry/panel-snapping.ts'
+import {
+  floatingPanelMaxWidthForBoundary,
   panelHasCallerConstraint,
   panelUsesBottomConstraint,
   resolveFloatingCornerLayout,
@@ -243,7 +247,9 @@ describe('fixed panel geometry', () => {
 
   test.each([
     ['top-left', rect(120, 80, 280, 240)],
+    ['top', rect(300, 80, 280, 240)],
     ['bottom-left', rect(120, 320, 280, 240)],
+    ['bottom', rect(300, 320, 280, 240)],
     ['top-right', rect(480, 80, 280, 240)],
     ['bottom-right', rect(480, 320, 280, 240)],
     ['left', rect(120, 80, 280, 240)],
@@ -259,11 +265,13 @@ describe('fixed panel geometry', () => {
   })
 
   test.each([
+    ['top', { x: 0, y: -240 }],
     ['top-left', { x: -280, y: 0 }],
     ['left', { x: -280, y: 0 }],
     ['top-right', { x: 280, y: 0 }],
     ['right', { x: 280, y: 0 }],
     ['bottom-left', { x: -280, y: 240 }],
+    ['bottom', { x: 0, y: 240 }],
     ['bottom-right', { x: 280, y: 240 }],
   ] as const)('retracts %s through its docked edge', (position, expected) => {
     expect(fixedPanelRetraction(position, { height: 240, width: 280 })).toEqual(expected)
@@ -280,26 +288,40 @@ describe('boundary width constraints', () => {
     expect(panelMaxWidthForBoundary(480, 220)).toBe(220)
   })
 
-  test('reserves placement-specific insets for a non-fixed panel', () => {
-    expect(
-      nonFixedPanelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY, {
-        mode: 'floating',
-        position: 'top-left',
-      }),
-    ).toBe(208)
-    expect(
-      nonFixedPanelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY, {
-        mode: 'magnetic',
-        position: 'left',
-      }),
-    ).toBe(224)
-    expect(
-      nonFixedPanelMaxWidthForBoundary(240, 200, {
-        mode: 'floating',
-        position: 'top-left',
-      }),
-    ).toBe(200)
+  test('reserves the floating inset while preserving a stricter caller width', () => {
+    expect(floatingPanelMaxWidthForBoundary(240, Number.POSITIVE_INFINITY)).toBe(208)
+    expect(floatingPanelMaxWidthForBoundary(240, 200)).toBe(200)
   })
+})
+
+test('keeps floating edge snaps offset while placing magnetic panels flush', () => {
+  const baseRect = rect(100, 80, 160, 120)
+  const containerRect = rect(0, 0, 500, 400)
+
+  expect(
+    positionForPanelLayout({
+      baseRect,
+      containerRect,
+      layout: {
+        dock: { horizontal: 'left', vertical: 'top' },
+        placement: { mode: 'floating' },
+        x: 8,
+        y: 8,
+      },
+    }),
+  ).toEqual({ x: -92, y: -72 })
+  expect(
+    positionForPanelLayout({
+      baseRect,
+      containerRect,
+      layout: {
+        dock: { horizontal: 'left', vertical: 'top' },
+        placement: { mode: 'magnetic', position: 'top-left' },
+        x: 8,
+        y: 8,
+      },
+    }),
+  ).toEqual({ x: -100, y: -80 })
 })
 
 test('detects ordinary caller class constraints from their computed-style effect', () => {
@@ -361,11 +383,12 @@ test('resolves an unsaved default floating corner against the live boundary', ()
   })
 })
 
-test('removes only retracted fixed panels from peer snapping', () => {
+test('removes retracted edge-attached panels from peer snapping', () => {
   expect(panelParticipatesInSnapping({ mode: 'fixed', position: 'left' }, true)).toBe(false)
   expect(panelParticipatesInSnapping({ mode: 'fixed', position: 'left' }, false)).toBe(true)
   expect(panelParticipatesInSnapping({ mode: 'floating' }, true)).toBe(true)
-  expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'right' }, true)).toBe(true)
+  expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'right' }, true)).toBe(false)
+  expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'right' }, false)).toBe(true)
 })
 
 function rect(left: number, top: number, width: number, height: number): PanelRect {

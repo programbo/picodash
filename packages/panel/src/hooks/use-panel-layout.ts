@@ -18,7 +18,6 @@ import {
   positionForPanelLayout,
   rectForPanelBoundary,
   rectFromElement,
-  SNAP_GAP,
   translationFromTransform,
   type PanelLayout,
   type PanelPosition,
@@ -77,13 +76,8 @@ export function resolveFloatingCornerLayout(
   }
 }
 
-export function nonFixedPanelMaxWidthForBoundary(
-  boundaryWidth: number,
-  callerMaxWidth: number,
-  placement: Exclude<PicodashPanelPlacement, { mode: 'fixed' }>,
-) {
-  const inset = placement.mode === 'floating' ? FLOATING_PLACEMENT_INSET : SNAP_GAP
-  return panelMaxWidthForBoundary(boundaryWidth - inset * 2, callerMaxWidth)
+export function floatingPanelMaxWidthForBoundary(boundaryWidth: number, callerMaxWidth: number) {
+  return panelMaxWidthForBoundary(boundaryWidth - FLOATING_PLACEMENT_INSET * 2, callerMaxWidth)
 }
 
 export function usePanelLayoutSynchronization({
@@ -292,7 +286,7 @@ export function usePanelLayoutSynchronization({
     if (!panelElement || !positionElement) return
     const containerRect = rectForPanelBoundary(boundaryElement)
 
-    if (placement.mode === 'fixed') {
+    if (placement.mode !== 'floating') {
       const measuredCallerMaxHeight = measureCallerMaxHeight(containerRect)
       const measuredCallerMaxWidth = measureCallerMaxWidth(containerRect)
       const appliedMaxHeight = Math.min(containerRect.height, measuredCallerMaxHeight)
@@ -336,10 +330,9 @@ export function usePanelLayoutSynchronization({
     }
 
     restoreCallerFixedDimensions()
-    const appliedMaxWidth = nonFixedPanelMaxWidthForBoundary(
+    const appliedMaxWidth = floatingPanelMaxWidthForBoundary(
       containerRect.width,
       measureCallerMaxWidth(containerRect),
-      placement,
     )
     if (appliedMaxWidthRef.current !== appliedMaxWidth) {
       appliedMaxWidthRef.current = appliedMaxWidth
@@ -394,21 +387,12 @@ export function usePanelLayoutSynchronization({
         typedBottom,
         typedTop,
       })
-    const effectiveSavedPosition =
-      resolveFloatingCornerLayout(
-        savedPosition,
-        baseRect,
-        containerRect,
-        boundaryElement ? placement : undefined,
-      ) ??
-      (placement.mode === 'magnetic'
-        ? {
-            dock: null,
-            placement,
-            x: layoutRect.left,
-            y: layoutRect.top,
-          }
-        : undefined)
+    const effectiveSavedPosition = resolveFloatingCornerLayout(
+      savedPosition,
+      baseRect,
+      containerRect,
+      boundaryElement ? placement : undefined,
+    )
     const targetPosition = positionForPanelLayout({
       baseRect,
       containerRect,

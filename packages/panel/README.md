@@ -196,6 +196,9 @@ const canvasRef = useRef<HTMLDivElement>(null)
   render, and fixed panels overlay rather than inset application content.
 - Floating panels remain constrained to the effective boundary. Magnetic and fixed placements
   follow its live edges; only panels with the same resolved boundary participate in peer snapping.
+- Floating edge snaps retain an 8px offset and remain floating. Magnetic panels attach flush and
+  adopt fixed edge styling, pinned-lane scrolling, and collapse/reopen behavior while attached.
+  Magnetic panels remain draggable and return to floating placement when pulled clear of the edge.
 - Fixed `left` and `right` panels fill the effective boundary height. Fixed corner panels keep
   content-driven height capped to that boundary.
 - Collapsible fixed panels retract into their edge or corner and leave an accessible arrow button
@@ -292,8 +295,8 @@ type ActionMenuConfirmation = readonly [message: string, title?: string, buttonL
 - `id` is required for non-field display rows.
 - `contentLayout` is `inline`, `block`, or `full`.
 - `PicodashGroup` supports `pin="start"` and `pin="end"` placement bands.
-- Fixed panels keep the start and end bands visible while only the auto band scrolls. Floating and
-  magnetic panels keep their existing single body scrollport.
+- Fixed and attached magnetic panels keep the start and end bands visible while only the auto band
+  scrolls. Floating panels keep their single body scrollport.
 - Each panel scrollport includes `scroll-fade` through `@picodash/panel/style.css`; consumers do not need a
   separate shadcn stylesheet import.
 - Reorder handles support pointer dragging and keyboard pick-up with Space/Enter, movement with

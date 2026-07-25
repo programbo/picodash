@@ -380,6 +380,20 @@ test('persists docked panel layout edges', () => {
   })
 })
 
+test('keeps explicitly floating edge snaps floating', () => {
+  const store = createPicodashStore({ persistLayout: false })
+  store.getState().registerPanel({ id: 'inspect' })
+
+  store.getState().setPanelLayout('inspect', {
+    dock: { horizontal: 'left', vertical: 'top' },
+    placement: { mode: 'floating' },
+    x: 8,
+    y: 8,
+  })
+
+  expect(store.getState().panels.inspect.placement).toEqual({ mode: 'floating' })
+})
+
 test('persists fixed placement while retaining the last non-fixed coordinates', () => {
   const storage = installFakeLocalStorage()
   const store = createPicodashStore()
