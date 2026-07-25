@@ -674,6 +674,7 @@ export function PicodashPanel({
             aria-hidden="true"
             className="pointer-events-none fixed inset-0 h-dvh w-dvw overflow-visible"
             data-picodash-magnetic-preview-layer=""
+            data-picodash-theme={theme}
             style={{ zIndex: Math.max(zIndex - 1, 0) }}
           >
             <motion.rect

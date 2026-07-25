@@ -850,6 +850,10 @@ test('settles a magnetic preview immediately with reduced motion', async ({ page
   await page.mouse.move(leftPointer.x, leftPointer.y)
   await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
   await expect(preview).toHaveAttribute('opacity', '1')
+  await expect(page.locator('[data-picodash-magnetic-preview-layer]')).toHaveAttribute(
+    'data-picodash-theme',
+    'dark',
+  )
   await expectMagneticPreviewAtBoundary(preview, boundary, 'left')
 
   await page.mouse.up()
