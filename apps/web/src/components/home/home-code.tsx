@@ -30,9 +30,9 @@ import {
   type BuiltInPanelPlacementMode,
   type BuiltInPanelPlacementPosition,
 } from '@/components/items/built-in/built-in-items-panel'
-import { GuideSideNav } from '@/components/docs/guide-side-nav'
+import { GuidePanelLayout } from '@/components/docs/guide-side-nav'
 import { shadcnChartTypes } from '@/components/items/custom/shadcn-chart'
-import { HomeFrame } from '@/components/home/home-frame'
+import { HomeContent, HomeFrame } from '@/components/home/home-frame'
 import { useDemoContext } from '@/components/providers/demo-provider'
 import { cn } from '@/lib/utils'
 
@@ -789,22 +789,19 @@ export function HomeCode() {
     const declaration = declarationRefs.current.get(focusedField)
     if (!viewport || !declaration) return
 
-    const viewportBounds = viewport.getBoundingClientRect()
+    const viewportBounds =
+      viewport.scrollHeight > viewport.clientHeight
+        ? viewport.getBoundingClientRect()
+        : { bottom: window.innerHeight, top: 0 }
     const declarationBounds = declaration.getBoundingClientRect()
     const isVisible =
       declarationBounds.top >= viewportBounds.top &&
       declarationBounds.bottom <= viewportBounds.bottom
     if (isVisible) return
 
-    const centeredTop =
-      viewport.scrollTop +
-      declarationBounds.top -
-      viewportBounds.top -
-      (viewport.clientHeight - declarationBounds.height) / 2
-
-    viewport.scrollTo({
+    declaration.scrollIntoView({
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-      top: Math.max(0, centeredTop),
+      block: 'center',
     })
   }, [focusedField])
 
@@ -971,23 +968,17 @@ export function HomeCode() {
         </div>
       }
     >
-      <div
-        ref={codeViewportRef}
-        className="max-h-[calc(100svh-15rem)] min-w-0 overflow-y-auto overscroll-contain scroll-smooth motion-reduce:scroll-auto"
-        data-code-guide
-      >
-        <div className="mx-auto grid max-w-5xl min-w-0 gap-8 p-4 sm:p-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10 lg:p-8">
-          <GuideSideNav
-            ariaLabel="Code components"
-            description="Jump to a live component declaration."
-            links={codeComponentLinks.map((link) => ({
-              href: link.href,
-              label: link.component,
-              meta: link.field,
-            }))}
-            title="Components"
-          />
-
+      <HomeContent ref={codeViewportRef} data-code-guide>
+        <GuidePanelLayout
+          ariaLabel="Code components"
+          items={codeComponentLinks.map((link) => ({
+            href: link.href,
+            label: link.component,
+            meta: link.field,
+          }))}
+          panelId="code-navigation"
+          title="Components"
+        >
           <pre
             aria-label="Interactive JSX example"
             className="min-w-0 overflow-x-auto font-mono text-[13px] leading-7 text-zinc-300 sm:text-sm"
@@ -1247,8 +1238,8 @@ export function HomeCode() {
               </CodeLine>
             </code>
           </pre>
-        </div>
-      </div>
+        </GuidePanelLayout>
+      </HomeContent>
     </HomeFrame>
   )
 }
@@ -1341,7 +1332,7 @@ function StaticControlLine({
       ref={elementRef}
       id={`code-${resolvedControlId}`}
       className={cn(
-        '-mx-2 block border-l-2 border-transparent px-2 transition-[background-color,border-color,box-shadow] duration-150',
+        '-mx-2 block scroll-mt-24 border-l-2 border-transparent px-2 transition-[background-color,border-color,box-shadow] duration-150 sm:scroll-mt-14',
         hovered && 'border-cyan-300/45 bg-cyan-300/8',
         focused &&
           'border-cyan-200 bg-cyan-300/12 shadow-[0_0_24px_rgb(34_211_238/0.08)] ring-1 ring-cyan-200/55 ring-inset',

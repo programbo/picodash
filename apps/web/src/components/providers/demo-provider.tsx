@@ -120,8 +120,8 @@ export function DemoProvider({
         id="main-content"
         className={
           route === 'home'
-            ? 'dark bg-background text-foreground relative h-svh overflow-hidden'
-            : 'dark bg-background text-foreground relative min-h-svh overflow-x-hidden'
+            ? 'dark bg-background text-foreground relative min-h-svh overflow-x-clip [&>[data-picodash-container]]:z-20'
+            : 'dark bg-background text-foreground relative min-h-svh overflow-x-hidden [&>[data-picodash-container]]:z-20'
         }
         data-product-route={route}
         data-persistent-demo-shell
@@ -163,7 +163,7 @@ function DemoBackground() {
     <>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none fixed inset-0"
         data-demo-background
         style={{
           backgroundImage: gradientCssValue(

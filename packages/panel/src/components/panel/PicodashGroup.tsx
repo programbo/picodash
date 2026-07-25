@@ -203,7 +203,7 @@ export function PicodashGroup({
         )}
         onPointerEnter={() => store.getState().setHoveredItem(id)}
       >
-        {showReorderSlot ? (
+        {showReorderSlot && (reorderable || keyboardReorderActive) ? (
           <button
             aria-description="Press Space or Enter to pick up. Use Arrow Up and Arrow Down to move. Press Space or Enter to drop, or Escape to cancel."
             aria-disabled={!reorderable}
@@ -214,6 +214,7 @@ export function PicodashGroup({
               buttonVariants({ size: 'icon', variant: 'ghost' }),
               'text-picodash-muted size-(--picodash-control-height-xs) shrink-0 cursor-grab opacity-(--picodash-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
             )}
+            data-picodash-reorder-slot="interactive"
             type="button"
             onKeyDown={(event) => handleReorderKeyDown(event, labelText)}
             onPointerCancel={cancelReorder}
@@ -221,6 +222,14 @@ export function PicodashGroup({
           >
             <PicodashReorderIndicator reorderable={reorderable} />
           </button>
+        ) : showReorderSlot ? (
+          <span
+            aria-hidden="true"
+            className="text-picodash-muted pointer-events-none inline-flex size-(--picodash-control-height-xs) shrink-0 items-center justify-center opacity-(--picodash-opacity-muted)"
+            data-picodash-reorder-slot="static"
+          >
+            <PicodashReorderIndicator reorderable={false} />
+          </span>
         ) : null}
         {keyboardAnnouncement ? (
           <span

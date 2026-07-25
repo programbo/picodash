@@ -25,7 +25,7 @@ test('keeps keyboard tab navigation functional when the home tab list overflows'
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 800 })
-  await page.goto('/')
+  await page.goto('/', { waitUntil: 'networkidle' })
 
   const tabList = page.getByRole('tablist', { name: 'Interactive example views' })
   await expect
@@ -33,9 +33,7 @@ test('keeps keyboard tab navigation functional when the home tab list overflows'
     .toBe(true)
 
   const codeTab = page.getByRole('tab', { name: 'Code' })
-  await codeTab.focus()
-  await expect(codeTab).toBeFocused()
-  await page.keyboard.press('End')
+  await codeTab.press('End')
 
   await expect(page).toHaveURL('/themes')
   await expect(page.getByRole('tab', { name: 'Themes' })).toHaveAttribute('aria-selected', 'true')

@@ -107,7 +107,7 @@ export type PicodashItemProps<TValue extends PicodashValue = PicodashValue> =
 const emptyStates: PicodashItemStates = {}
 const PicodashItemContext = createContext<PicodashItemContextValue | null>(null)
 const focusableControlSelector =
-  'button, input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
+  'a[href], button, input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
 
 function isFocusableControl(element: HTMLElement) {
   return (
@@ -132,6 +132,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   id,
   label: labelProp,
   onBlurCapture,
+  onClick,
   onFocusCapture,
   onPointerCancelCapture,
   onPointerDownCapture,
@@ -351,6 +352,15 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
           }
           onBlurCapture?.(event)
         }}
+        onClick={(event) => {
+          onClick?.(event)
+          if (event.defaultPrevented) return
+          if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return
+
+          const interactiveTarget =
+            event.target instanceof Element ? event.target.closest(focusableControlSelector) : null
+          if (!interactiveTarget) focusControl()
+        }}
         onFocusCapture={(event) => {
           store.getState().setFocusedItem(itemId)
           onFocusCapture?.(event)
@@ -381,7 +391,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
           className="group-data-[hovered=true]/picodash-section:bg-picodash-surface-muted/80 pointer-events-none absolute -inset-y-0.75 left-(--_picodash-nested-inset) z-0 w-6 transition-colors duration-(--picodash-duration-fast)"
           aria-hidden="true"
         />
-        {showReorderSlot ? (
+        {showReorderSlot && (reorderable || keyboardReorderActive) ? (
           <button
             aria-description="Press Space or Enter to pick up. Use Arrow Up and Arrow Down to move. Press Space or Enter to drop, or Escape to cancel."
             aria-disabled={!reorderable}
@@ -392,6 +402,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
               buttonVariants({ size: 'icon', variant: 'ghost' }),
               'text-picodash-muted relative z-10 col-start-1 size-(--picodash-control-height-xs) shrink-0 cursor-grab self-center opacity-(--picodash-opacity-muted) active:cursor-grabbing aria-disabled:cursor-default aria-disabled:opacity-100',
             )}
+            data-picodash-reorder-slot="interactive"
             type="button"
             onKeyDown={(event) => handleReorderKeyDown(event, labelText ?? 'Item')}
             onPointerCancel={cancelReorder}
@@ -399,6 +410,14 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
           >
             <PicodashReorderIndicator reorderable={reorderable} />
           </button>
+        ) : showReorderSlot ? (
+          <span
+            aria-hidden="true"
+            className="text-picodash-muted pointer-events-none relative z-10 col-start-1 inline-flex size-(--picodash-control-height-xs) shrink-0 items-center justify-center self-center opacity-(--picodash-opacity-muted)"
+            data-picodash-reorder-slot="static"
+          >
+            <PicodashReorderIndicator reorderable={false} />
+          </span>
         ) : null}
         {keyboardAnnouncement ? (
           <span
@@ -484,7 +503,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
           <div
             id={descriptionId}
             className={cn(
-              'text-picodash-muted pt-1.5 text-(length:--picodash-font-size-sm) leading-(--picodash-line-tight) font-(--picodash-font-light)',
+              'pt-1.5 text-(length:--picodash-font-size-sm) leading-(--picodash-line-tight) font-(--picodash-font-light) text-(--_picodash-color-description)',
               contentLayout === 'inline' && 'col-span-2 col-start-3 row-start-2',
               contentLayout === 'block' && 'col-span-3 col-start-2 row-start-3',
               contentLayout === 'full' && 'col-span-4 col-start-1 row-start-3',

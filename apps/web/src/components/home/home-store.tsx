@@ -6,7 +6,7 @@ import 'react-json-view-lite/dist/index.css'
 import { usePicodashPanelStoreSelector } from '@picodash/panel'
 import type { PicodashPanelState } from '@picodash/panel/advanced'
 import { builtInItemsPanelStore } from '@/components/items/built-in/built-in-items-panel'
-import { HomeFrame } from '@/components/home/home-frame'
+import { HomeContent, HomeFrame } from '@/components/home/home-frame'
 
 export function HomeStore() {
   const panelState = usePicodashPanelStoreSelector(builtInItemsPanelStore, (state) => state)
@@ -22,19 +22,17 @@ export function HomeStore() {
         </span>
       }
     >
-      <div
-        aria-label="Live Built-in Items panel store"
-        className="max-h-[calc(100svh-15rem)] min-w-0 overflow-auto p-4 sm:p-5"
-        data-live-store-viewer
-      >
-        <JsonView
-          aria-label="Collapsible live panel state"
-          clickToExpandNode
-          data={panelStoreSnapshot}
-          shouldExpandNode={expandStoreNode}
-          style={storeJsonStyles}
-        />
-      </div>
+      <HomeContent aria-label="Live Built-in Items panel store" data-live-store-viewer>
+        <div className="mx-auto max-w-5xl min-w-0 overflow-x-auto p-4 sm:p-6 lg:p-8">
+          <JsonView
+            aria-label="Collapsible live panel state"
+            clickToExpandNode
+            data={panelStoreSnapshot}
+            shouldExpandNode={expandStoreNode}
+            style={storeJsonStyles}
+          />
+        </div>
+      </HomeContent>
     </HomeFrame>
   )
 }

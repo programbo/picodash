@@ -6,7 +6,8 @@ import typescript from 'highlight.js/lib/languages/typescript'
 import { Check, Copy } from 'lucide-react'
 import { useState, useSyncExternalStore, type ReactNode } from 'react'
 import { usePicodashTheme } from '@picodash/panel'
-import { HomeFrame } from '@/components/home/home-frame'
+import { GuidePanelLayout } from '@/components/docs/guide-side-nav'
+import { HomeContent, HomeFrame } from '@/components/home/home-frame'
 import { useDemoContext } from '@/components/providers/demo-provider'
 import { cn } from '@/lib/utils'
 
@@ -203,10 +204,69 @@ const themeDefinitions: readonly ThemeDefinition[] = [
   text-shadow: var(--picodash-theme-heading-shadow);
 }
 
+@keyframes picodash-tron-panel-border-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
 [data-picodash-panel][data-picodash-theme='tron'] {
+  contain: paint;
+  isolation: isolate;
+  border-color: transparent !important;
   background-color: var(--picodash-color-surface) !important;
   backdrop-filter: none !important;
   box-shadow: var(--picodash-shadow-panel);
+}
+
+[data-picodash-panel][data-picodash-theme='tron']::before,
+[data-picodash-panel][data-picodash-theme='tron']::after {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  content: '';
+}
+
+[data-picodash-panel][data-picodash-theme='tron']::before {
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 30deg,
+    var(--picodash-color-accent) 72deg,
+    var(--picodash-color-info) 124deg,
+    var(--picodash-color-success) 180deg,
+    var(--picodash-color-warning) 236deg,
+    var(--picodash-color-danger) 292deg,
+    transparent 336deg 360deg
+  );
+  opacity: 0.9;
+  animation: picodash-tron-panel-border-spin 10s linear infinite;
+  will-change: transform;
+}
+
+[data-picodash-panel][data-picodash-theme='tron']::after {
+  inset: 1px;
+  background: var(--picodash-color-surface);
+}
+
+[data-picodash-panel][data-picodash-theme='tron'] > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-panel][data-picodash-theme='tron']::before {
+    animation: none;
+    transform: translate(-50%, -50%) rotate(24deg);
+    will-change: auto;
+  }
 }
 
 :where(
@@ -425,15 +485,21 @@ const highlightedCodeClasses = [
 export function GalleryThemes() {
   const { setProviderTheme, themes } = useDemoContext()
   const resolvedProviderTheme = usePicodashTheme()
+  const systemColorScheme = useSystemColorScheme()
   const systemTheme =
-    themeDefinitionFor(useSystemColorScheme()) ??
+    themeDefinitionFor(systemColorScheme ?? 'dark') ??
     themeDefinitions.find((theme) => theme.id === 'dark')!
+  const systemThemeDescription = systemColorScheme
+    ? `Your preferred theme is set to ${systemColorScheme}`
+    : 'No system theme set - defaulting to Dark'
   const currentTheme = themeDefinitionFor(resolvedProviderTheme) ?? themeDefinitions[0]
   const selectedThemeId = (themes.provider ?? 'dark') as ThemeId
   const [copyStatus, setCopyStatus] = useState<'copied' | 'error' | 'idle'>('idle')
 
   const selectTheme = (theme: ThemeDefinition) => {
-    setProviderTheme(theme.id)
+    if (theme.id !== selectedThemeId) {
+      setProviderTheme(theme.id)
+    }
     setCopyStatus('idle')
   }
 
@@ -456,30 +522,53 @@ export function GalleryThemes() {
         </span>
       }
     >
-      <div
-        className="max-h-[calc(100svh-9rem)] min-h-[calc(100svh-12rem)] min-w-0 overflow-y-auto overscroll-contain scroll-smooth motion-reduce:scroll-auto"
-        data-themes-guide
-      >
-        <div className="mx-auto grid max-w-5xl gap-8 p-4 sm:p-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10 lg:p-8">
-          <aside className="lg:sticky lg:top-8 lg:self-start">
-            <nav aria-label="Themes" className="grid gap-6">
-              <ThemeNavList
-                label="Built-in themes"
-                selectedThemeId={selectedThemeId}
-                systemTheme={systemTheme}
-                themes={themeDefinitions.filter((theme) => theme.family === 'builtin')}
-                onSelect={selectTheme}
-              />
-              <ThemeNavList
-                label="Example themes"
-                selectedThemeId={selectedThemeId}
-                systemTheme={systemTheme}
-                themes={themeDefinitions.filter((theme) => theme.family === 'custom')}
-                onSelect={selectTheme}
-              />
-            </nav>
-          </aside>
-
+      <HomeContent data-themes-guide>
+        <GuidePanelLayout
+          ariaLabel="Themes"
+          groups={[
+            {
+              id: 'builtin',
+              items: themeDefinitions
+                .filter((theme) => theme.family === 'builtin')
+                .map((theme) => ({
+                  content: (
+                    <ThemeNavButton
+                      selectedThemeId={selectedThemeId}
+                      systemTheme={systemTheme}
+                      theme={theme}
+                      onSelect={selectTheme}
+                    />
+                  ),
+                  description: theme.id === 'system' ? systemThemeDescription : undefined,
+                  id: theme.id,
+                  label: theme.label,
+                  rowLabel: theme.label,
+                })),
+              label: 'Built-in themes',
+            },
+            {
+              id: 'custom',
+              items: themeDefinitions
+                .filter((theme) => theme.family === 'custom')
+                .map((theme) => ({
+                  content: (
+                    <ThemeNavButton
+                      selectedThemeId={selectedThemeId}
+                      systemTheme={systemTheme}
+                      theme={theme}
+                      onSelect={selectTheme}
+                    />
+                  ),
+                  id: theme.id,
+                  label: theme.label,
+                  rowLabel: theme.label,
+                })),
+              label: 'Example themes',
+            },
+          ]}
+          panelId="themes-navigation"
+          title="Themes"
+        >
           <article className="min-w-0">
             <ThemeSetupGuide />
 
@@ -509,8 +598,8 @@ export function GalleryThemes() {
               <ThemeCodeBlock source={currentTheme.source} />
             </section>
           </article>
-        </div>
-      </div>
+        </GuidePanelLayout>
+      </HomeContent>
     </HomeFrame>
   )
 }
@@ -573,58 +662,46 @@ function ThemeSetupGuide() {
   )
 }
 
-function ThemeNavList({
-  label,
+function ThemeNavButton({
   selectedThemeId,
   systemTheme,
-  themes,
+  theme,
   onSelect,
 }: {
-  label: string
   selectedThemeId: ThemeId
   systemTheme: ThemeDefinition
-  themes: readonly ThemeDefinition[]
+  theme: ThemeDefinition
   onSelect: (theme: ThemeDefinition) => void
 }) {
+  const isSelected = selectedThemeId === theme.id
+  const source = theme.id === 'system' ? systemTheme.source : theme.source
+
   return (
-    <section>
-      <h2 className="font-mono text-[11px] tracking-widest text-emerald-200 uppercase">{label}</h2>
-      <div className="mt-2 grid gap-px border border-white/10 bg-white/10">
-        {themes.map((theme) => {
-          const isSelected = selectedThemeId === theme.id
-          const source = theme.id === 'system' ? systemTheme.source : theme.source
-          return (
-            <button
-              key={theme.id}
-              aria-current={isSelected ? 'page' : undefined}
-              className={cn(
-                'group flex items-center justify-between gap-3 bg-zinc-950 px-3 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:outline-none',
-                isSelected
-                  ? 'bg-emerald-200/10 text-zinc-50'
-                  : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100',
-              )}
-              data-theme-choice={theme.id}
-              type="button"
-              onClick={() => onSelect(theme)}
-            >
-              <span className="text-xs font-medium">{theme.label}</span>
-              <span className="flex gap-1" aria-hidden="true">
-                {colorSwatchesForSource(source)
-                  .slice(0, 6)
-                  .map((color, index) => (
-                    <span
-                      key={`${theme.id}-${color}-${index}`}
-                      className="size-3 rounded-full border border-white/20"
-                      data-theme-nav-swatch={theme.id}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-    </section>
+    <button
+      aria-label={theme.label}
+      aria-current={isSelected ? 'page' : undefined}
+      className={cn(
+        'group flex w-full items-center justify-end text-left transition-colors outline-none',
+        isSelected ? 'text-picodash-strong' : 'text-picodash-muted hover:text-picodash-strong',
+      )}
+      data-theme-choice={theme.id}
+      type="button"
+      onClick={() => onSelect(theme)}
+      onFocus={() => onSelect(theme)}
+    >
+      <span className="flex shrink-0 gap-1" aria-hidden="true">
+        {colorSwatchesForSource(source)
+          .slice(0, 6)
+          .map((color, index) => (
+            <span
+              key={`${theme.id}-${color}-${index}`}
+              className="size-3 rounded-full border border-white/20"
+              data-theme-nav-swatch={theme.id}
+              style={{ backgroundColor: color }}
+            />
+          ))}
+      </span>
+    </button>
   )
 }
 
@@ -697,7 +774,7 @@ function renderHighlightedLine(line: string, language = 'css') {
   return fragments
 }
 
-function useSystemColorScheme(): 'dark' | 'light' {
+function useSystemColorScheme(): 'dark' | 'light' | null {
   return useSyncExternalStore(
     subscribeToSystemColorScheme,
     readSystemColorScheme,
@@ -708,18 +785,23 @@ function useSystemColorScheme(): 'dark' | 'light' {
 function subscribeToSystemColorScheme(onStoreChange: () => void) {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {}
 
-  const query = window.matchMedia('(prefers-color-scheme: dark)')
-  query.addEventListener('change', onStoreChange)
-  return () => query.removeEventListener('change', onStoreChange)
+  const queries = [
+    window.matchMedia('(prefers-color-scheme: dark)'),
+    window.matchMedia('(prefers-color-scheme: light)'),
+  ]
+  queries.forEach((query) => query.addEventListener('change', onStoreChange))
+  return () => queries.forEach((query) => query.removeEventListener('change', onStoreChange))
 }
 
-function readSystemColorScheme(): 'dark' | 'light' {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'dark'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+function readSystemColorScheme(): 'dark' | 'light' | null {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return null
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark'
+  if (window.matchMedia('(prefers-color-scheme: light)').matches) return 'light'
+  return null
 }
 
-function serverSystemColorScheme(): 'dark' {
-  return 'dark'
+function serverSystemColorScheme(): null {
+  return null
 }
 
 function themeDefinitionFor(theme: string) {

@@ -16,7 +16,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className="dark">
+    <html
+      lang="en"
+      className="dark scroll-smooth motion-reduce:scroll-auto"
+      data-scroll-behavior="smooth"
+    >
       <body>{children}</body>
     </html>
   )

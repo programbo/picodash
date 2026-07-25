@@ -146,7 +146,8 @@ test('routes the home, state lab, and unknown paths explicitly', async ({ page }
   await page.goto('/')
 
   await expect(page.locator('main')).toHaveAttribute('data-product-route', 'home')
-  await expect(page.locator('main')).toHaveCSS('overflow', 'hidden')
+  await expect(page.locator('main')).toHaveCSS('overflow-x', 'clip')
+  await expect(page.locator('main')).toHaveCSS('overflow-y', 'visible')
   await expect(page.locator('[data-interactive-jsx-example]')).toBeVisible()
   await expect(page.locator('[data-picodash-panel-id="built-in-items"]')).toBeVisible()
 
@@ -743,13 +744,14 @@ test('reorders root and nested items from the keyboard with commit and cancellat
     'scene-summary',
   ])
 
-  const fixedGrip = builtInPanel
-    .locator('[data-item-id="shadcn-frame-chart"]')
-    .getByRole('button', { name: 'Reorder Chart', exact: true })
-  await expect(fixedGrip).toHaveAttribute('aria-disabled', 'true')
-  await fixedGrip.focus()
-  await fixedGrip.press('Space')
-  await expect(fixedGrip).toHaveAttribute('aria-pressed', 'false')
+  const fixedControl = builtInPanel.locator('[data-item-id="shadcn-frame-chart"]')
+  await expect(
+    fixedControl.getByRole('button', { name: 'Reorder Chart', exact: true }),
+  ).toHaveCount(0)
+  await expect(fixedControl.locator('[data-picodash-reorder-slot="static"]')).toHaveAttribute(
+    'aria-hidden',
+    'true',
+  )
 })
 
 test('ignores a second keyboard pickup while a reorder session is active', async ({ page }) => {
@@ -1212,10 +1214,7 @@ test('contains grip layers within their reorder items', async ({ page }) => {
 
 test('renders static square slots for non-reorderable items', async ({ page }) => {
   const fixedControl = page.locator('[data-item-id="shadcn-frame-chart"]')
-  const fixedSlot = fixedControl.getByRole('button', {
-    name: 'Reorder Chart',
-    exact: true,
-  })
+  const fixedSlot = fixedControl.locator('[data-picodash-reorder-slot="static"]')
   const reorderableControl = page.locator('[data-item-id="quality"]')
   const reorderableSlot = reorderableControl.getByRole('button', {
     name: 'Reorder Quality',
@@ -1224,12 +1223,15 @@ test('renders static square slots for non-reorderable items', async ({ page }) =
 
   await expect(fixedControl).toHaveAttribute('data-reorderable', 'false')
   await expect(fixedControl).toHaveCSS('padding-left', '0px')
-  await expect(fixedSlot).toHaveAttribute('aria-disabled', 'true')
+  await expect(fixedControl.getByRole('button', { name: 'Reorder Chart' })).toHaveCount(0)
+  await expect(fixedSlot).toHaveAttribute('aria-hidden', 'true')
   await expect(fixedSlot.locator('[data-picodash-reorder-indicator="static"]')).toHaveCount(1)
   await expect(fixedSlot.locator('svg')).toHaveCount(0)
+  await fixedSlot.evaluate((element) => (element as HTMLElement).focus())
+  await expect(fixedSlot).not.toBeFocused()
 
   await expect(reorderableControl).toHaveAttribute('data-reorderable', 'true')
-  await expect(reorderableSlot).toHaveAttribute('aria-disabled', 'false')
+  await expect(reorderableSlot).toHaveAttribute('data-picodash-reorder-slot', 'interactive')
   await expect(reorderableSlot.locator('[data-picodash-reorder-indicator="grip"]')).toHaveCount(1)
   await expect(reorderableSlot.locator('svg')).toHaveCount(1)
 })
