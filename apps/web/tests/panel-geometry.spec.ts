@@ -410,6 +410,52 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   expect((await requiredBox(pinnedEnd)).y).toBe(initialPinned.end)
 })
 
+test('keeps a width-changing magnetic attachment flush during a held drag', async ({ page }) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=fixed-boundaries`)
+  const boundary = page.locator('[data-geometry-boundary="provider"]')
+  const panel = geometryPanel(page, 'fixed-boundary')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+
+  await page.getByRole('button', { name: 'Magnetic' }).click()
+  const attachedHeaderBox = await requiredBox(header)
+  const attachedStart = {
+    x: attachedHeaderBox.x + attachedHeaderBox.width / 2,
+    y: attachedHeaderBox.y + attachedHeaderBox.height / 2,
+  }
+  await page.mouse.move(attachedStart.x, attachedStart.y)
+  await page.mouse.down()
+  await page.mouse.move(attachedStart.x + 180, attachedStart.y + 120, { steps: 12 })
+  await page.mouse.move(attachedStart.x + 240, attachedStart.y + 180, { steps: 4 })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await page.mouse.up()
+
+  await page.setViewportSize({ width: 376, height: 600 })
+  await expect.poll(async () => Math.round((await requiredBox(boundary)).width)).toBe(280)
+  await expect.poll(async () => Math.round((await requiredBox(panel)).width)).toBe(248)
+
+  const floatingBox = await requiredBox(panel)
+  const floatingHeaderBox = await requiredBox(header)
+  const boundaryBox = await requiredBox(boundary)
+  const floatingStart = {
+    x: floatingHeaderBox.x + floatingHeaderBox.width / 2,
+    y: floatingHeaderBox.y + floatingHeaderBox.height / 2,
+  }
+  const pointerX = floatingStart.x + boundaryBox.x + safeInset - floatingBox.x
+  await page.mouse.move(floatingStart.x, floatingStart.y)
+  await page.mouse.down()
+  await page.mouse.move(pointerX, floatingStart.y, { steps: 12 })
+
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+  await expectPanelAtBoundary(panel, boundary, 'left')
+  await expect
+    .poll(async () =>
+      Math.round((await requiredBox(boundary)).width - (await requiredBox(panel)).width),
+    )
+    .toBe(0)
+  await page.mouse.up()
+})
+
 test('handles deferred corners, ordinary class constraints, and viewport panels in a scrolling portal', async ({
   page,
 }) => {

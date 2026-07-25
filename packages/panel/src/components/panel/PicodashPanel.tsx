@@ -381,18 +381,31 @@ export function PicodashPanel({
     dragState.dock = snapped.dock
     if (dragState.placement.mode === 'magnetic') {
       const nextMagneticPosition = snapPositionForDock(snapped.dock)
-      if (dragMagneticPositionRef.current !== nextMagneticPosition) {
+      const magneticPositionChanged = dragMagneticPositionRef.current !== nextMagneticPosition
+      if (magneticPositionChanged) {
         dragMagneticPositionRef.current = nextMagneticPosition
         setDragMagneticPosition(nextMagneticPosition)
       }
       if (nextMagneticPosition) {
-        synchronizePlacementGeometry(
+        const previousBaseRect = dragState.baseRect
+        const synchronizedGeometry = synchronizePlacementGeometry(
           {
             mode: 'magnetic',
             position: nextMagneticPosition,
           },
           dragState.baseRect,
         )
+        if (magneticPositionChanged && synchronizedGeometry?.dragBaseRect) {
+          dragState.baseRect = synchronizedGeometry.dragBaseRect
+          dragState.startPosition = {
+            x:
+              dragState.startPosition.x -
+              (synchronizedGeometry.dragBaseRect.left - previousBaseRect.left),
+            y:
+              dragState.startPosition.y -
+              (synchronizedGeometry.dragBaseRect.top - previousBaseRect.top),
+          }
+        }
       }
     }
     panelElementRef.current?.toggleAttribute(

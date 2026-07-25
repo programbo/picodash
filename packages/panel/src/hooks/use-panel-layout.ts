@@ -15,6 +15,7 @@ import {
   clampPanelPosition,
   FLOATING_PLACEMENT_INSET,
   isPanelPlacementEdgeAttached,
+  offsetRect,
   positionForFloatingCorner,
   positionForPanelLayout,
   rectForPanelBoundary,
@@ -285,6 +286,8 @@ export function usePanelLayoutSynchronization({
       const positionElement = positionElementRef?.current ?? panelElement
       if (!panelElement || !positionElement) return null
       const containerRect = rectForPanelBoundary(boundaryElement)
+      const positionRectBeforeGeometry = dragBaseRect ? rectFromElement(positionElement) : undefined
+      let synchronizedDragBaseRect: PanelRect | undefined
 
       if (isPanelPlacementEdgeAttached(nextPlacement)) {
         const measuredCallerMaxHeight = measureCallerMaxHeight(containerRect)
@@ -308,8 +311,20 @@ export function usePanelLayoutSynchronization({
         positionElement.style.width = `${panelRect.width}px`
         positionElement.style.height = `${panelRect.height}px`
         const displayedPosition = { x: x.get(), y: y.get() }
+        if (dragBaseRect && positionRectBeforeGeometry) {
+          const positionRect = rectFromElement(positionElement)
+          const shiftedBaseRect = offsetRect(dragBaseRect, {
+            x: positionRect.left - positionRectBeforeGeometry.left,
+            y: positionRect.top - positionRectBeforeGeometry.top,
+          })
+          synchronizedDragBaseRect = {
+            ...shiftedBaseRect,
+            right: shiftedBaseRect.left + panelRect.width,
+            width: panelRect.width,
+          }
+        }
         const baseRect =
-          dragBaseRect ??
+          synchronizedDragBaseRect ??
           baseRectFromDisplayedRect(rectFromElement(positionElement), displayedPosition)
         const targetRect = fixedPanelRect({
           boundaryRect: containerRect,
@@ -337,7 +352,12 @@ export function usePanelLayoutSynchronization({
         positionElement.style.removeProperty('width')
       }
 
-      return { containerRect, panelElement, positionElement }
+      return {
+        containerRect,
+        dragBaseRect: synchronizedDragBaseRect,
+        panelElement,
+        positionElement,
+      }
     },
     [
       boundaryElement,
