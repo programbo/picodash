@@ -134,7 +134,7 @@ export function usePanelLayoutSynchronization({
     }
     const panelElement = panelElementRef.current
     if (panelElement) store.getState().setPanelRect(panelId, rectFromElement(panelElement))
-  }, [collapsed, panelElementRef, panelId, placement.mode, store])
+  }, [collapsed, panelElementRef, panelId, placement.mode, placement.position, store])
 
   const measureIntrinsicHeight = useCallback(() => {
     const panelElement = panelElementRef.current

@@ -37,7 +37,7 @@ const panelPositionSchema = z.object({
       }),
       z.object({
         mode: z.literal('magnetic'),
-        position: z.enum(panelMagneticPositionValues),
+        position: z.optional(z.enum(panelMagneticPositionValues)),
       }),
       z.object({
         mode: z.literal('fixed'),
