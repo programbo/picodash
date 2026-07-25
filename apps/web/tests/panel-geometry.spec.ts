@@ -315,15 +315,12 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
     x: floatingHeaderBox.x + floatingHeaderBox.width / 2,
     y: floatingHeaderBox.y + floatingHeaderBox.height / 2,
   }
+  let pointerX = floatingStart.x + boundaryBox.x + safeInset - floatingBox.x
   await page.mouse.move(floatingStart.x, floatingStart.y)
   await page.mouse.down()
-  await page.mouse.move(
-    floatingStart.x + boundaryBox.x + safeInset - floatingBox.x,
-    floatingStart.y,
-    {
-      steps: 12,
-    },
-  )
+  await page.mouse.move(pointerX, floatingStart.y, { steps: 12 })
+  pointerX += boundaryBox.x - (await requiredBox(panel)).x
+  await page.mouse.move(pointerX, floatingStart.y, { steps: 4 })
   await expect(panel).toHaveAttribute('data-picodash-panel-snapping', '')
   await expect(runtimePlacement).toHaveText('magnetic:')
   await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
@@ -365,6 +362,9 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   await expect
     .poll(async () => (await requiredBox(boundary)).height - (await requiredBox(panel)).height)
     .toBeGreaterThan(1)
+  await expect
+    .poll(async () => (await requiredBox(panel)).y - (await requiredBox(boundary)).y)
+    .toBeGreaterThan(50)
   await page.mouse.up()
   await expect(runtimePlacement).toHaveText('magnetic:')
 

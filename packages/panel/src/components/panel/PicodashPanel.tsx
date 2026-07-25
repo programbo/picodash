@@ -195,6 +195,7 @@ export function PicodashPanel({
     containerRect: PanelRect
     dock: PanelDock | null
     intrinsicHeight: number
+    offset: PanelPosition
     peerRects: PanelRect[]
     placement: PicodashPanelPlacement
     startPosition: PanelPosition
@@ -288,7 +289,22 @@ export function PicodashPanel({
       mode: 'magnetic',
       ...(dragMagneticPosition ? { position: dragMagneticPosition } : {}),
     })
-  }, [dragMagneticPosition, synchronizePlacementGeometry])
+    if (dragMagneticPosition !== null) return
+    const dragState = dragStateRef.current
+    const panelElement = panelElementRef.current
+    if (!dragState || !panelElement || dragState.placement.mode !== 'magnetic') return
+    const displayedPosition = { x: x.get(), y: y.get() }
+    const intrinsicHeight = measureIntrinsicHeight()
+    dragState.baseRect = rectWithHeight(
+      baseRectFromDisplayedRect(rectFromElement(panelElement), displayedPosition),
+      intrinsicHeight,
+    )
+    dragState.intrinsicHeight = intrinsicHeight
+    dragState.startPosition = {
+      x: displayedPosition.x - dragState.offset.x,
+      y: displayedPosition.y - dragState.offset.y,
+    }
+  }, [dragMagneticPosition, measureIntrinsicHeight, synchronizePlacementGeometry, x, y])
 
   useLayoutEffect(() => {
     if (layoutEdgePlacement) return
@@ -339,6 +355,7 @@ export function PicodashPanel({
       return
     }
 
+    dragState.offset = { x: info.offset.x, y: info.offset.y }
     const snapGap = dragState.placement.mode === 'magnetic' ? 0 : SNAP_GAP
     const snapped = snapPanelPosition({
       baseRect: dragState.baseRect,
@@ -427,6 +444,7 @@ export function PicodashPanel({
         containerRect: rectForPanelBoundary(resolvedBoundary),
         dock: null,
         intrinsicHeight,
+        offset: { x: 0, y: 0 },
         placement,
         peerRects: Object.entries(providerStore.getState().panelRects)
           .filter(
