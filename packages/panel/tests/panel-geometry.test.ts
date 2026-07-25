@@ -8,6 +8,8 @@ import {
   projectPanelGeometry,
 } from '../src/geometry/panel-geometry.ts'
 import {
+  isPanelPlacementFixedLike,
+  magneticSnapPositionForPointer,
   positionForPanelLayout,
   snapPanelPosition,
   type PanelRect,
@@ -87,6 +89,130 @@ test('projects a custom bottom inset independently from the other bounds', () =>
     left: 564,
     right: 884,
   })
+})
+
+test('uses a one-third-height cursor zone to distinguish magnetic corners from sides', () => {
+  const containerRect: PanelRect = {
+    bottom: 900,
+    height: 900,
+    left: 0,
+    right: 1200,
+    top: 0,
+    width: 1200,
+  }
+  const panelRect: PanelRect = {
+    bottom: 516,
+    height: 500,
+    left: 16,
+    right: 336,
+    top: 16,
+    width: 320,
+  }
+
+  expect(
+    magneticSnapPositionForPointer({
+      containerRect,
+      panelHeight: 500,
+      panelRect,
+      pointer: { x: 160, y: 299 },
+    }),
+  ).toBe('top-left')
+  expect(
+    magneticSnapPositionForPointer({
+      containerRect,
+      panelHeight: 500,
+      panelRect,
+      pointer: { x: 160, y: 301 },
+    }),
+  ).toBe('left')
+  expect(
+    magneticSnapPositionForPointer({
+      containerRect,
+      panelHeight: 500,
+      panelRect,
+      pointer: { x: 160, y: 599 },
+    }),
+  ).toBe('left')
+  expect(
+    magneticSnapPositionForPointer({
+      containerRect,
+      panelHeight: 500,
+      panelRect,
+      pointer: { x: 160, y: 601 },
+    }),
+  ).toBe('bottom-left')
+})
+
+test('caps the magnetic corner zone at the panel natural height', () => {
+  const containerRect: PanelRect = {
+    bottom: 900,
+    height: 900,
+    left: 0,
+    right: 1200,
+    top: 0,
+    width: 1200,
+  }
+  const panelRect: PanelRect = {
+    bottom: 216,
+    height: 200,
+    left: 16,
+    right: 336,
+    top: 16,
+    width: 320,
+  }
+
+  expect(
+    magneticSnapPositionForPointer({
+      containerRect,
+      panelHeight: 200,
+      panelRect,
+      pointer: { x: 160, y: 199 },
+    }),
+  ).toBe('top-left')
+  expect(
+    magneticSnapPositionForPointer({
+      containerRect,
+      panelHeight: 200,
+      panelRect,
+      pointer: { x: 160, y: 201 },
+    }),
+  ).toBe('left')
+})
+
+test('requires cursor edge intent to snap an intrinsically over-height magnetic panel vertically', () => {
+  const containerRect: PanelRect = {
+    bottom: 600,
+    height: 600,
+    left: 0,
+    right: 900,
+    top: 0,
+    width: 900,
+  }
+  const panelRect: PanelRect = {
+    bottom: 608,
+    height: 600,
+    left: 290,
+    right: 610,
+    top: 8,
+    width: 320,
+  }
+
+  expect(
+    magneticSnapPositionForPointer({
+      containerRect,
+      panelHeight: 900,
+      panelRect,
+      pointer: { x: 450, y: 300 },
+    }),
+  ).toBeNull()
+  expect(
+    magneticSnapPositionForPointer({
+      containerRect,
+      panelHeight: 900,
+      panelRect,
+      pointer: { x: 450, y: 599 },
+    }),
+  ).toBe('bottom')
 })
 
 test('honors a bottom inset larger than half the container', () => {
@@ -242,6 +368,61 @@ describe('panel geometry projection', () => {
   })
 })
 
+describe('directional viewport snapping', () => {
+  test('ignores an incidental bottom contact while moving toward the left edge', () => {
+    const snapped = snapPanelPosition({
+      baseRect: rect(255, 190, 300, 410),
+      containerRect: rect(0, 0, 900, 600),
+      options: { gap: 0, viewportDocks: ['left'] },
+      position: { x: -255, y: 0 },
+    })
+
+    expect(snapped.dock).toEqual({ horizontal: 'left' })
+    expect(snapped.position.x).toBe(-255)
+  })
+
+  test('does not infer a stationary top attachment while pulling away horizontally', () => {
+    const snapped = snapPanelPosition({
+      baseRect: rect(0, 0, 300, 402),
+      containerRect: rect(0, 0, 900, 600),
+      options: { gap: 0, viewportDocks: ['right'] },
+      position: { x: 180, y: 0 },
+    })
+
+    expect(snapped.dock).toBeNull()
+  })
+
+  test('retains an attached edge while the pointer continues outward past the threshold', () => {
+    const snapped = snapPanelPosition({
+      baseRect: rect(0, 190, 300, 410),
+      containerRect: rect(0, 0, 900, 600),
+      options: {
+        gap: 0,
+        retainedViewportDocks: ['left'],
+        viewportDocks: ['left'],
+      },
+      position: { x: -120, y: 0 },
+    })
+
+    expect(snapped.dock).toEqual({ horizontal: 'left' })
+    expect(snapped.position.x).toBe(0)
+  })
+
+  test('keeps peer snapping independent from magnetic viewport attachment', () => {
+    const snapped = snapPanelPosition({
+      baseRect: rect(100, 100, 200, 100),
+      containerRect: rect(0, 0, 900, 600),
+      options: { gap: 0, viewportDocks: [] },
+      peerRects: [rect(400, 100, 200, 100)],
+      position: { x: 100, y: 0 },
+    })
+
+    expect(snapped.dock).toBeNull()
+    expect(snapped.position).toEqual({ x: 100, y: 0 })
+    expect(snapped.snappedX).toBe(true)
+  })
+})
+
 describe('fixed panel geometry', () => {
   const boundaryRect = rect(120, 80, 640, 480)
 
@@ -256,6 +437,27 @@ describe('fixed panel geometry', () => {
     ['right', rect(480, 80, 280, 240)],
   ] as const)('places %s flush with its boundary', (position, expected) => {
     expect(fixedPanelRect({ boundaryRect, height: 240, position, width: 280 })).toEqual(expected)
+  })
+
+  test('preserves and contains the horizontal position of top and bottom attachments', () => {
+    expect(
+      fixedPanelRect({
+        boundaryRect,
+        height: 240,
+        horizontalPosition: 177,
+        position: 'top',
+        width: 280,
+      }).left,
+    ).toBe(177)
+    expect(
+      fixedPanelRect({
+        boundaryRect,
+        height: 240,
+        horizontalPosition: 900,
+        position: 'bottom',
+        width: 280,
+      }).left,
+    ).toBe(480)
   })
 
   test('caps fixed dimensions to the visible boundary', () => {
@@ -402,6 +604,17 @@ test('removes retracted edge-attached panels from peer snapping', () => {
   expect(panelParticipatesInSnapping({ mode: 'magnetic' }, true)).toBe(true)
   expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'right' }, true)).toBe(false)
   expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'right' }, false)).toBe(true)
+  expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'top' }, true)).toBe(true)
+  expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'bottom' }, true)).toBe(true)
+})
+
+test('treats only magnetic sides and corners as fixed-like surfaces', () => {
+  expect(isPanelPlacementFixedLike({ mode: 'fixed', position: 'left' })).toBe(true)
+  expect(isPanelPlacementFixedLike({ mode: 'magnetic', position: 'left' })).toBe(true)
+  expect(isPanelPlacementFixedLike({ mode: 'magnetic', position: 'top-left' })).toBe(true)
+  expect(isPanelPlacementFixedLike({ mode: 'magnetic', position: 'top' })).toBe(false)
+  expect(isPanelPlacementFixedLike({ mode: 'magnetic', position: 'bottom' })).toBe(false)
+  expect(isPanelPlacementFixedLike({ mode: 'magnetic' })).toBe(false)
 })
 
 function rect(left: number, top: number, width: number, height: number): PanelRect {

@@ -1,5 +1,5 @@
 import {
-  isPanelPlacementEdgeAttached,
+  isPanelPlacementFixedLike,
   SNAP_GAP,
   type PanelPosition,
   type PanelRect,
@@ -20,7 +20,7 @@ export interface PanelGeometryProjection {
 export const PANEL_MIN_VISIBLE_HEIGHT = 37
 
 export function panelParticipatesInSnapping(placement: PicodashPanelPlacement, collapsed: boolean) {
-  return !isPanelPlacementEdgeAttached(placement) || !collapsed
+  return !isPanelPlacementFixedLike(placement) || !collapsed
 }
 
 export function panelMaxWidthForBoundary(boundaryWidth: number, callerMaxWidth: number) {
@@ -33,22 +33,28 @@ export function panelMaxWidthForBoundary(boundaryWidth: number, callerMaxWidth: 
 export function fixedPanelRect({
   boundaryRect,
   height,
+  horizontalPosition,
   position,
   width,
 }: {
   boundaryRect: PanelRect
   height: number
+  horizontalPosition?: number
   position: PicodashPanelSnapPosition
   width: number
 }): PanelRect {
   const appliedWidth = Math.min(nonNegative(width), boundaryRect.width)
   const appliedHeight = Math.min(nonNegative(height), boundaryRect.height)
+  const centeredLeft = boundaryRect.left + (boundaryRect.width - appliedWidth) / 2
   const left =
     position.endsWith('right') || position === 'right'
       ? boundaryRect.right - appliedWidth
       : position.endsWith('left') || position === 'left'
         ? boundaryRect.left
-        : boundaryRect.left + (boundaryRect.width - appliedWidth) / 2
+        : Math.min(
+            Math.max(horizontalPosition ?? centeredLeft, boundaryRect.left),
+            boundaryRect.right - appliedWidth,
+          )
   const top =
     position.startsWith('bottom') || position === 'bottom'
       ? boundaryRect.bottom - appliedHeight

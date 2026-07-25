@@ -67,10 +67,11 @@ The web gallery's `ocean`, `plum`, `tron`, and `contrast` recipes are demo-only.
 Panel placement supports floating, magnetic, and fixed modes. `PicodashPanelSnapPosition` names
 magnetic edges, while fixed docking uses the six side/corner positions. `usePicodashPanel` owns
 runtime placement changes. Floating edge snaps retain their offset and stay floating. Magnetic
-panels sit flush and use fixed surface, pinned-lane, and collapse behavior while attached, but
-remain magnetic with floating styling and behavior when pulled clear. Snapping back to an edge or
-corner restores their attached fixed-like state, with the presentation changing during the drag as
-soon as the snap threshold is crossed. Geometry defaults to the viewport;
+drags keep the real panel natural-sized and floating-style while an animated outline previews the
+release target. Side targets commit flush, full-height, and fixed-like; corner targets commit flush,
+natural-height, and fixed-like. Top and bottom targets stay natural-height and floating-style,
+without fixed retraction. A 40px pull releases an attached magnetic panel without changing mode.
+Geometry defaults to the viewport;
 `PicodashProvider.panelBoundary`
 sets a shared Element/ref boundary and `PicodashPanel.boundary` can override it. Boundaries remain
 independent of portal ownership.
@@ -177,10 +178,11 @@ Update all five files together when command surface, entrypoints, or architectur
 - Preserve pointer and keyboard reorder parity, including same-band constraints and cancellation.
 - Preserve legacy corner-string placements and persisted floating/magnetic layouts when extending
   placement normalization.
-- Keep floating edge snaps offset and classified as floating; keep magnetic edges flush and
-  fixed-like while attached. Detached magnetic panels retain magnetic mode but use floating styling
-  and behavior until they snap back to an edge or corner. Switch magnetic presentation immediately
-  when a drag crosses the snap threshold.
+- Keep floating edge snaps offset and classified as floating. Magnetic drags use stable natural
+  panel geometry for pointer intent and animate an independent proxy; never resize or reposition
+  the real panel to infer intent. Commit only on release. Side targets are flush, full-height, and
+  fixed-like; corner targets are flush, natural-height, and fixed-like. Top and bottom targets stay
+  natural-height and floating-style. Keep magnetic mode through the 40px attached release.
 - Resolve panel boundaries in panel-override, provider-default, viewport order; `null` explicitly
   selects the viewport, while an unresolved ref falls through to the next boundary.
 - Keep fixed start/end lanes outside the auto-lane scrollport and apply the bundled `scroll-fade`

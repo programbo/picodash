@@ -13,6 +13,16 @@ const fixedPositions = [
   'left',
   'right',
 ] as const
+const magneticPositions = [
+  'top-left',
+  'top',
+  'top-right',
+  'right',
+  'bottom-right',
+  'bottom',
+  'bottom-left',
+  'left',
+] as const
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 600 })
@@ -265,6 +275,7 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   await page.getByRole('button', { name: 'Magnetic' }).click()
   await expect(runtimePlacement).toHaveText('magnetic:top-left')
   const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const preview = page.locator('[data-magnetic-snap-preview]')
   await expect(shell).toHaveAttribute('data-magnetic-placement', 'top-left')
   await expectPanelAtBoundary(panel, boundary, 'top-left')
   await expect(panel).toHaveCSS('border-top-left-radius', '0px')
@@ -318,19 +329,27 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   let pointerX = floatingStart.x + boundaryBox.x + safeInset - floatingBox.x
   await page.mouse.move(floatingStart.x, floatingStart.y)
   await page.mouse.down()
-  await page.mouse.move(pointerX, floatingStart.y, { steps: 12 })
+  let previousPanelX = floatingBox.x
+  for (let step = 1; step <= 12; step += 1) {
+    const nextPointerX = floatingStart.x + ((pointerX - floatingStart.x) * step) / 12
+    await page.mouse.move(nextPointerX, boundaryBox.y + boundaryBox.height / 2)
+    const nextPanelX = (await requiredBox(panel)).x
+    expect(nextPanelX).toBeLessThanOrEqual(previousPanelX + 1)
+    previousPanelX = nextPanelX
+  }
   pointerX += boundaryBox.x - (await requiredBox(panel)).x
-  await page.mouse.move(pointerX, floatingStart.y, { steps: 4 })
+  await page.mouse.move(pointerX, boundaryBox.y + boundaryBox.height / 2, { steps: 4 })
   await expect(panel).toHaveAttribute('data-picodash-panel-snapping', '')
   await expect(runtimePlacement).toHaveText('magnetic:')
-  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
-  await expect(magneticToggle).toBeVisible()
-  await expect(panel.locator('[data-picodash-scrollport="auto"]')).toHaveClass(/scroll-fade/)
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await expect(magneticToggle).toHaveCount(0)
+  await expect(panel.locator('[data-picodash-scrollport="body"]')).toHaveClass(/scroll-fade/)
   await expect
     .poll(async () => {
-      const panelBox = await requiredBox(panel)
+      const previewBox = await requiredBox(preview)
       const boundaryBox = await requiredBox(boundary)
-      return Math.round(boundaryBox.height - panelBox.height) || 0
+      return Math.round(boundaryBox.height - previewBox.height + 2) || 0
     })
     .toBe(0)
   await page.mouse.up()
@@ -350,6 +369,8 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
     attachedHeaderBox.y + attachedHeaderBox.height / 2 + 120,
     { steps: 12 },
   )
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  const detachedBox = await requiredBox(panel)
   await page.mouse.move(
     attachedHeaderBox.x + attachedHeaderBox.width / 2 + 240,
     attachedHeaderBox.y + attachedHeaderBox.height / 2 + 180,
@@ -363,8 +384,17 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
     .poll(async () => (await requiredBox(boundary)).height - (await requiredBox(panel)).height)
     .toBeGreaterThan(1)
   await expect
-    .poll(async () => (await requiredBox(panel)).y - (await requiredBox(boundary)).y)
-    .toBeGreaterThan(50)
+    .poll(async () => {
+      const panelBox = await requiredBox(panel)
+      const boundaryBox = await requiredBox(boundary)
+      return Math.min(
+        panelBox.y - boundaryBox.y,
+        boundaryBox.y + boundaryBox.height - panelBox.y - panelBox.height,
+      )
+    })
+    .toBeGreaterThanOrEqual(safeInset - 1)
+  const continuedBox = await requiredBox(panel)
+  expect(continuedBox.x).toBeGreaterThan(detachedBox.x)
   await page.mouse.up()
   await expect(runtimePlacement).toHaveText('magnetic:')
 
@@ -396,6 +426,713 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   await expect.poll(() => scrollport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
   expect((await requiredBox(pinnedStart)).y).toBe(initialPinned.start)
   expect((await requiredBox(pinnedEnd)).y).toBe(initialPinned.end)
+})
+
+test('previews the committed width when a constrained magnetic panel expands at an edge', async ({
+  page,
+}) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=fixed-boundaries`)
+  const boundary = page.locator('[data-geometry-boundary="provider"]')
+  const panel = geometryPanel(page, 'fixed-boundary')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  await page.getByRole('button', { name: 'Magnetic' }).click()
+  const attachedHeaderBox = await requiredBox(header)
+  const attachedStart = {
+    x: attachedHeaderBox.x + attachedHeaderBox.width / 2,
+    y: attachedHeaderBox.y + attachedHeaderBox.height / 2,
+  }
+  await page.mouse.move(attachedStart.x, attachedStart.y)
+  await page.mouse.down()
+  await page.mouse.move(attachedStart.x + 180, attachedStart.y + 120, { steps: 12 })
+  await page.mouse.move(attachedStart.x + 240, attachedStart.y + 180, { steps: 4 })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await page.mouse.up()
+
+  await page.setViewportSize({ width: 376, height: 600 })
+  await expect.poll(async () => Math.round((await requiredBox(boundary)).width)).toBe(280)
+  await expect.poll(async () => Math.round((await requiredBox(panel)).width)).toBe(248)
+
+  const floatingBox = await requiredBox(panel)
+  const floatingHeaderBox = await requiredBox(header)
+  const boundaryBox = await requiredBox(boundary)
+  const floatingStart = {
+    x: floatingHeaderBox.x + floatingHeaderBox.width / 2,
+    y: floatingHeaderBox.y + floatingHeaderBox.height / 2,
+  }
+  const pointerX = floatingStart.x + boundaryBox.x + safeInset - floatingBox.x
+  await page.mouse.move(floatingStart.x, floatingStart.y)
+  await page.mouse.down()
+  await page.mouse.move(pointerX, boundaryBox.y + boundaryBox.height / 2, { steps: 12 })
+
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await expect.poll(async () => Math.round((await requiredBox(panel)).width)).toBe(248)
+  await expect
+    .poll(async () =>
+      Math.round((await requiredBox(boundary)).width - (await requiredBox(preview)).width + 2),
+    )
+    .toBe(0)
+  await page.mouse.up()
+
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+  await expectPanelAtBoundary(panel, boundary, 'left')
+  await expect
+    .poll(async () =>
+      Math.round((await requiredBox(boundary)).width - (await requiredBox(panel)).width),
+    )
+    .toBe(0)
+})
+
+for (const position of magneticPositions) {
+  test(`previews, commits, and detaches a magnetic panel at ${position}`, async ({ page }) => {
+    await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+    const boundary = page.locator('[data-geometry-viewport]')
+    const panel = geometryPanel(page, 'magnetic-viewport')
+    const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+    const header = panel.locator('[data-picodash-panel-header]')
+    const preview = page.locator('[data-magnetic-snap-preview]')
+    const magneticToggle = shell.locator('[data-picodash-fixed-toggle]')
+    const runtimePlacement = page.locator('[data-runtime-placement]')
+
+    await detachMagneticPanel(page, panel, shell)
+    await expect(runtimePlacement).toHaveText('magnetic:')
+
+    const floatingBox = await requiredBox(panel)
+    const naturalHeight = floatingBox.height
+    const floatingHeaderBox = await requiredBox(header)
+    const boundaryBox = await requiredBox(boundary)
+    const floatingStart = center(floatingHeaderBox)
+    const target = magneticTarget(floatingBox, boundaryBox, position)
+    let pointerTarget = pointerForPanelTarget(floatingStart, floatingBox, target)
+    if (position === 'left' || position === 'right') {
+      pointerTarget.y = boundaryBox.y + boundaryBox.height / 2
+    }
+    if (position.includes('-')) {
+      pointerTarget = pointerAtBoundaryCorner(boundaryBox, position)
+    }
+
+    await page.mouse.move(floatingStart.x, floatingStart.y)
+    await page.mouse.down()
+    await page.mouse.move(pointerTarget.x, pointerTarget.y, { steps: 12 })
+
+    await expect(preview).toHaveAttribute('data-magnetic-snap-preview', position)
+    await expect(preview).toBeVisible()
+    await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+    await expect(runtimePlacement).toHaveText('magnetic:')
+    await expect(magneticToggle).toHaveCount(0)
+    await expect(panel.locator('[data-picodash-scrollport="body"]')).toHaveClass(/scroll-fade/)
+    await expectMagneticPreviewAtBoundary(preview, boundary, position)
+    await expect
+      .poll(async () => Math.abs((await requiredBox(panel)).height - naturalHeight))
+      .toBeLessThanOrEqual(1)
+    if (position === 'left' || position === 'right') {
+      await expect
+        .poll(async () => {
+          const [previewBox, boundaryBox] = await Promise.all([
+            requiredBox(preview),
+            requiredBox(boundary),
+          ])
+          return Math.abs(previewBox.height - boundaryBox.height)
+        })
+        .toBeLessThanOrEqual(2.1)
+    } else {
+      await expect
+        .poll(async () => Math.abs((await requiredBox(preview)).height - naturalHeight))
+        .toBeLessThanOrEqual(2.1)
+    }
+
+    await page.mouse.up()
+
+    await expect(runtimePlacement).toHaveText(`magnetic:${position}`)
+    await expect(shell).toHaveAttribute('data-magnetic-placement', position)
+    await expectMagneticPanelAtBoundary(panel, boundary, position)
+    if (position === 'top' || position === 'bottom') {
+      await expect
+        .poll(async () => Math.abs((await requiredBox(panel)).x - floatingBox.x))
+        .toBeLessThanOrEqual(1)
+    }
+    if (position === 'top' || position === 'bottom') {
+      await expect(magneticToggle).toHaveCount(0)
+      await expect(panel.locator('[data-picodash-scrollport="body"]')).toHaveClass(/scroll-fade/)
+      await expect(
+        panel.getByRole('button', { name: 'Collapse panel Magnetic viewport' }),
+      ).toBeVisible()
+    } else {
+      await expect(magneticToggle).toBeVisible()
+      await expect(panel.locator('[data-picodash-scrollport="auto"]')).toHaveClass(/scroll-fade/)
+    }
+
+    const attachedHeaderBox = await requiredBox(header)
+    const attachedStart = center(attachedHeaderBox)
+    const inward = magneticInwardDelta(position)
+    await page.mouse.move(attachedStart.x, attachedStart.y)
+    await page.mouse.down()
+    const detachedTarget = {
+      x: attachedStart.x + inward.x * 0.7,
+      y: attachedStart.y + inward.y * 0.7,
+    }
+    await movePointerAcrossFrames(page, attachedStart, detachedTarget, 10)
+
+    await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+    await expect(runtimePlacement).toHaveText(`magnetic:${position}`)
+    await expect(magneticToggle).toHaveCount(0)
+    await expect(panel.locator('[data-picodash-scrollport="body"]')).toHaveClass(/scroll-fade/)
+    const detachedBox = await requiredBox(panel)
+
+    await movePointerAcrossFrames(
+      page,
+      detachedTarget,
+      {
+        x: attachedStart.x + inward.x,
+        y: attachedStart.y + inward.y,
+      },
+      4,
+    )
+    const continuedBox = await requiredBox(panel)
+    expectMovementInDirection(detachedBox, continuedBox, inward)
+    await page.mouse.up()
+
+    await expect(runtimePlacement).toHaveText('magnetic:')
+    await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  })
+}
+
+test('retargets one magnetic proxy across every edge and corner during a held drag', async ({
+  page,
+}) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'magnetic-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  await detachMagneticPanel(page, panel, shell)
+  const floatingBox = await requiredBox(panel)
+  const boundaryBox = await requiredBox(boundary)
+  const start = center(await requiredBox(header))
+  const path = [
+    'left',
+    'top-left',
+    'top',
+    'top-right',
+    'right',
+    'bottom-right',
+    'bottom',
+    'bottom-left',
+    'left',
+  ] as const
+
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  for (const position of path) {
+    let target = pointerForPanelTarget(
+      start,
+      floatingBox,
+      magneticTarget(floatingBox, boundaryBox, position),
+    )
+    if (position === 'left' || position === 'right') {
+      target = {
+        x: position === 'left' ? boundaryBox.x + 1 : boundaryBox.x + boundaryBox.width - 1,
+        y: boundaryBox.y + boundaryBox.height / 2,
+      }
+    } else if (position === 'top' || position === 'bottom') {
+      target = {
+        x: boundaryBox.x + boundaryBox.width / 2,
+        y: position === 'top' ? boundaryBox.y + 1 : boundaryBox.y + boundaryBox.height - 1,
+      }
+    } else if (position.includes('-')) {
+      target = pointerAtBoundaryCorner(boundaryBox, position)
+    }
+    await page.mouse.move(target.x, target.y, { steps: 8 })
+    await expect(preview).toHaveAttribute('data-magnetic-snap-preview', position)
+    await expectMagneticPreviewAtBoundary(preview, boundary, position)
+    await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  }
+  await page.mouse.up()
+
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+  await expectMagneticPanelAtBoundary(panel, boundary, 'left')
+})
+
+test('can dismiss and reacquire the same magnetic preview without releasing the pointer', async ({
+  page,
+}) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'magnetic-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  await detachMagneticPanel(page, panel, shell)
+
+  const floatingBox = await requiredBox(panel)
+  const floatingStart = center(await requiredBox(header))
+  const boundaryBox = await requiredBox(boundary)
+  const leftTarget = magneticTarget(floatingBox, boundaryBox, 'left')
+  let pointer = {
+    ...pointerForPanelTarget(floatingStart, floatingBox, leftTarget),
+    y: boundaryBox.y + boundaryBox.height / 2,
+  }
+
+  await page.mouse.move(floatingStart.x, floatingStart.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x, pointer.y, { steps: 12 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await expectMagneticPreviewAtBoundary(preview, boundary, 'left')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+
+  await page.mouse.move(0, pointer.y, { steps: 4 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await expectMagneticPreviewAtBoundary(preview, boundary, 'left')
+
+  pointer = { x: 200, y: floatingStart.y }
+  await page.mouse.move(pointer.x, pointer.y, { steps: 8 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', '')
+  await expect
+    .poll(async () => Number(await preview.getAttribute('opacity')))
+    .toBeLessThanOrEqual(0.01)
+  await expect.poll(async () => (await requiredBox(panel)).x).toBeGreaterThan(24)
+
+  const detachedBox = await requiredBox(panel)
+  pointer = {
+    x: pointer.x + boundaryBox.x - detachedBox.x,
+    y: boundaryBox.y + boundaryBox.height / 2,
+  }
+  await page.mouse.move(pointer.x, pointer.y, { steps: 8 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await expectMagneticPreviewAtBoundary(preview, boundary, 'left')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await page.mouse.up()
+
+  await expect(page.locator('[data-runtime-placement]')).toHaveText('magnetic:left')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+})
+
+test('holds an attached magnetic panel until the pointer crosses its release distance', async ({
+  page,
+}) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'magnetic-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  await detachMagneticPanel(page, panel, shell)
+  const floatingBox = await requiredBox(panel)
+  const boundaryBox = await requiredBox(boundary)
+  const floatingStart = center(await requiredBox(header))
+  const leftTarget = magneticTarget(floatingBox, boundaryBox, 'left')
+  const pointer = {
+    ...pointerForPanelTarget(floatingStart, floatingBox, leftTarget),
+    y: boundaryBox.y + boundaryBox.height / 2,
+  }
+
+  await page.mouse.move(floatingStart.x, floatingStart.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x, pointer.y, { steps: 12 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+
+  const attachedStart = center(await requiredBox(header))
+  await page.mouse.move(attachedStart.x, attachedStart.y)
+  await page.mouse.down()
+  await page.mouse.move(attachedStart.x + 39, attachedStart.y, { steps: 4 })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+  await expectMagneticPanelAtBoundary(panel, boundary, 'left')
+
+  await page.mouse.move(attachedStart.x + 48, attachedStart.y, { steps: 4 })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await expect
+    .poll(async () => Math.round((await requiredBox(panel)).x - boundaryBox.x))
+    .toBeGreaterThanOrEqual(7)
+  await expect
+    .poll(async () => Math.round((await requiredBox(panel)).x - boundaryBox.x))
+    .toBeLessThanOrEqual(20)
+  await page.mouse.up()
+})
+
+test('applies the magnetic release distance diagonally from a corner', async ({ page }) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'magnetic-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  await detachMagneticPanel(page, panel, shell)
+  const start = center(await requiredBox(header))
+  const boundaryBox = await requiredBox(boundary)
+  const corner = pointerAtBoundaryCorner(boundaryBox, 'top-left')
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(corner.x, corner.y, { steps: 12 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'top-left')
+  await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'top-left')
+
+  const attachedStart = center(await requiredBox(header))
+  await page.mouse.move(attachedStart.x, attachedStart.y)
+  await page.mouse.down()
+  await page.mouse.move(attachedStart.x + 27, attachedStart.y + 27, { steps: 4 })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'top-left')
+  await expectMagneticPanelAtBoundary(panel, boundary, 'top-left')
+
+  await page.mouse.move(attachedStart.x + 31, attachedStart.y + 31, { steps: 4 })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await page.mouse.move(attachedStart.x + 80, attachedStart.y + 80, { steps: 4 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', '')
+  await page.mouse.up()
+  await expect(page.locator('[data-runtime-placement]')).toHaveText('magnetic:')
+})
+
+test('updates a held magnetic preview when the viewport boundary resizes', async ({ page }) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'magnetic-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  await detachMagneticPanel(page, panel, shell)
+  const start = center(await requiredBox(header))
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(1, 300, { steps: 12 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await expectMagneticPreviewAtBoundary(preview, boundary, 'left')
+
+  await page.setViewportSize({ width: 700, height: 500 })
+  await page.mouse.move(1, 250)
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await expectMagneticPreviewAtBoundary(preview, boundary, 'left')
+  await expect
+    .poll(async () => {
+      const [previewBox, boundaryBox] = await Promise.all([
+        requiredBox(preview),
+        requiredBox(boundary),
+      ])
+      return Math.abs(previewBox.height - boundaryBox.height)
+    })
+    .toBeLessThanOrEqual(2.1)
+  await page.mouse.up()
+
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+  await expectMagneticPanelAtBoundary(panel, boundary, 'left')
+})
+
+test('settles a magnetic preview immediately with reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'magnetic-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  await detachMagneticPanel(page, panel, shell)
+  const floatingBox = await requiredBox(panel)
+  const boundaryBox = await requiredBox(boundary)
+  const start = center(await requiredBox(header))
+  const leftPointer = {
+    ...pointerForPanelTarget(start, floatingBox, magneticTarget(floatingBox, boundaryBox, 'left')),
+    y: boundaryBox.y + boundaryBox.height / 2,
+  }
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(leftPointer.x, leftPointer.y)
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await expect(preview).toHaveAttribute('opacity', '1')
+  await expect(page.locator('[data-picodash-magnetic-preview-layer]')).toHaveAttribute(
+    'data-picodash-theme',
+    'dark',
+  )
+  await expectMagneticPreviewAtBoundary(preview, boundary, 'left')
+
+  await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+})
+
+for (const position of ['top', 'bottom'] as const) {
+  test(`keeps a ${position}-snapped magnetic panel floating-style and collapsible`, async ({
+    page,
+  }) => {
+    await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+    const boundary = page.locator('[data-geometry-viewport]')
+    const panel = geometryPanel(page, 'magnetic-viewport')
+    const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+    const header = panel.locator('[data-picodash-panel-header]')
+    const preview = page.locator('[data-magnetic-snap-preview]')
+
+    await detachMagneticPanel(page, panel, shell)
+    const floatingBox = await requiredBox(panel)
+    const boundaryBox = await requiredBox(boundary)
+    const start = center(await requiredBox(header))
+    const pointer = pointerForPanelTarget(
+      start,
+      floatingBox,
+      magneticTarget(floatingBox, boundaryBox, position),
+    )
+
+    await page.mouse.move(start.x, start.y)
+    await page.mouse.down()
+    await page.mouse.move(pointer.x, pointer.y, { steps: 12 })
+    await expect(preview).toHaveAttribute('data-magnetic-snap-preview', position)
+    await page.mouse.up()
+
+    await expect(shell).toHaveAttribute('data-magnetic-placement', position)
+    await expect(shell.locator('[data-picodash-fixed-toggle]')).toHaveCount(0)
+    await expect(panel.locator('[data-picodash-scrollport="body"]')).toHaveClass(/scroll-fade/)
+
+    const collapse = panel.getByRole('button', { name: 'Collapse panel Magnetic viewport' })
+    await collapse.click()
+    await expect(panel).toHaveAttribute('data-collapsed', 'true')
+    await expect(
+      panel.getByRole('button', { name: 'Expand panel Magnetic viewport' }),
+    ).toBeVisible()
+    await expect(shell.locator('[data-picodash-fixed-toggle]')).toHaveCount(0)
+  })
+}
+
+test('uses cursor edge intent for an intrinsically over-height magnetic panel', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.setViewportSize({ width: 900, height: 300 })
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport-tall`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'magnetic-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  const initialStart = center(await requiredBox(header))
+  await page.mouse.move(initialStart.x, initialStart.y)
+  await page.mouse.down()
+  await page.mouse.move(initialStart.x + 180, initialStart.y + 120, { steps: 12 })
+  await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+
+  const floatingBox = await requiredBox(panel)
+  const boundaryBox = await requiredBox(boundary)
+  const sideStart = center(await requiredBox(header))
+  const sidePointer = {
+    ...pointerForPanelTarget(
+      sideStart,
+      floatingBox,
+      magneticTarget(floatingBox, boundaryBox, 'left'),
+    ),
+    y: boundaryBox.y + boundaryBox.height / 2,
+  }
+  await page.mouse.move(sideStart.x, sideStart.y)
+  await page.mouse.down()
+  await page.mouse.move(sidePointer.x, sidePointer.y, { steps: 12 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+
+  const attachedStart = center(await requiredBox(header))
+  await page.mouse.move(attachedStart.x, attachedStart.y)
+  await page.mouse.down()
+  await page.mouse.move(attachedStart.x + 180, attachedStart.y, { steps: 12 })
+  await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+
+  const bottomStart = center(await requiredBox(header))
+  await page.mouse.move(bottomStart.x, bottomStart.y)
+  await page.mouse.down()
+  await page.mouse.move(
+    boundaryBox.x + boundaryBox.width / 2,
+    boundaryBox.y + boundaryBox.height - 1,
+    { steps: 12 },
+  )
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'bottom')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  const previewBox = await requiredBox(preview)
+  expect(previewBox.height).toBeGreaterThan((await requiredBox(panel)).height)
+  await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'bottom')
+  await expect
+    .poll(async () => Math.abs((await requiredBox(panel)).height - previewBox.height))
+    .toBeLessThanOrEqual(2.1)
+  await expect(shell.locator('[data-picodash-fixed-toggle]')).toHaveCount(0)
+})
+
+test('previews the committed width when the caller width equals the floating boundary limit', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.setViewportSize({ width: 332, height: 600 })
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-width`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'magnetic-width')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  const floatingBox = await requiredBox(panel)
+  expect(floatingBox.width).toBe(300)
+  const boundaryBox = await requiredBox(boundary)
+  const start = center(await requiredBox(header))
+  const pointer = {
+    ...pointerForPanelTarget(start, floatingBox, magneticTarget(floatingBox, boundaryBox, 'left')),
+    y: boundaryBox.y + boundaryBox.height / 2,
+  }
+
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x, pointer.y, { steps: 12 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  const previewBox = await requiredBox(preview)
+  expect(Math.abs(previewBox.width - floatingBox.width)).toBeLessThanOrEqual(2.1)
+  await page.mouse.up()
+
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+  await expect
+    .poll(async () => Math.abs((await requiredBox(panel)).width - previewBox.width))
+    .toBeLessThanOrEqual(2.1)
+})
+
+test('persists a magnetic detach when the pointer is released immediately', async ({ page }) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+  const panel = geometryPanel(page, 'magnetic-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const start = center(await requiredBox(panel.locator('[data-picodash-panel-header]')))
+
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(start.x + 180, start.y + 60, { steps: 12 })
+  await page.mouse.up()
+
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await waitForStablePanelPosition(panel)
+  const detachedBox = await requiredBox(panel)
+  const serializedLayout = await page.locator('[data-runtime-layout]').textContent()
+  const layout = JSON.parse(serializedLayout ?? 'null')
+  expect(layout).toMatchObject({
+    dock: null,
+    placement: { mode: 'magnetic' },
+    x: Math.round(detachedBox.x),
+    y: Math.round(detachedBox.y),
+  })
+})
+
+test('keeps a detached magnetic panel floating-like through viewport resizes', async ({ page }) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+  const panel = geometryPanel(page, 'magnetic-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+
+  await detachMagneticPanel(page, panel, shell)
+  const initial = await requiredBox(panel)
+
+  await page.setViewportSize({ width: 640, height: 420 })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await expect(page.locator('[data-runtime-placement]')).toHaveText('magnetic:')
+  await expectTop(panel, initial.y)
+  await expectBottomAtMost(panel, 420)
+
+  await page.setViewportSize({ width: 900, height: 600 })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await expectTop(panel, initial.y)
+  await expect
+    .poll(async () => Math.abs((await requiredBox(panel)).x - initial.x))
+    .toBeLessThanOrEqual(1)
+})
+
+for (const position of ['left', 'right'] as const) {
+  test(`keeps a magnetic ${position} lane attached while dragged along its edge`, async ({
+    page,
+  }) => {
+    await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+    const boundary = page.locator('[data-geometry-viewport]')
+    const panel = geometryPanel(page, 'magnetic-viewport')
+    const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+    const header = panel.locator('[data-picodash-panel-header]')
+    const preview = page.locator('[data-magnetic-snap-preview]')
+
+    await detachMagneticPanel(page, panel, shell)
+    const floatingBox = await requiredBox(panel)
+    const floatingStart = center(await requiredBox(header))
+    const boundaryBox = await requiredBox(boundary)
+    const target = magneticTarget(floatingBox, boundaryBox, position)
+    const pointer = {
+      ...pointerForPanelTarget(floatingStart, floatingBox, target),
+      y: boundaryBox.y + boundaryBox.height / 2,
+    }
+
+    await page.mouse.move(floatingStart.x, floatingStart.y)
+    await page.mouse.down()
+    await page.mouse.move(pointer.x, pointer.y, { steps: 12 })
+    await expect(preview).toHaveAttribute('data-magnetic-snap-preview', position)
+    await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+    await page.mouse.up()
+    await expect(shell).toHaveAttribute('data-magnetic-placement', position)
+
+    const attachedStart = center(await requiredBox(header))
+    const verticalDelta = position === 'left' ? 120 : -120
+    await page.mouse.move(attachedStart.x, attachedStart.y)
+    await page.mouse.down()
+    await page.mouse.move(attachedStart.x, attachedStart.y + verticalDelta, { steps: 8 })
+
+    await expect(shell).toHaveAttribute('data-magnetic-placement', position)
+    await expectMagneticPanelAtBoundary(panel, boundary, position)
+    await page.mouse.up()
+  })
+}
+
+test('re-arms vertical intent after a side-detached panel clears its original edge zone', async ({
+  page,
+}) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'magnetic-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  await detachMagneticPanel(page, panel, shell)
+  const floatingBox = await requiredBox(panel)
+  const boundaryBox = await requiredBox(boundary)
+  const floatingStart = center(await requiredBox(header))
+  const leftPointer = {
+    ...pointerForPanelTarget(
+      floatingStart,
+      floatingBox,
+      magneticTarget(floatingBox, boundaryBox, 'left'),
+    ),
+    y: boundaryBox.y + boundaryBox.height / 2,
+  }
+  await page.mouse.move(floatingStart.x, floatingStart.y)
+  await page.mouse.down()
+  await page.mouse.move(leftPointer.x, leftPointer.y, { steps: 12 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+
+  const attachedStart = center(await requiredBox(header))
+  await page.mouse.move(attachedStart.x, attachedStart.y)
+  await page.mouse.down()
+  await page.mouse.move(attachedStart.x + 80, attachedStart.y + 80, { steps: 12 })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', '')
+
+  await page.mouse.move(
+    boundaryBox.x + boundaryBox.width / 2,
+    boundaryBox.y + boundaryBox.height - 1,
+    { steps: 12 },
+  )
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'bottom')
+  await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'bottom')
 })
 
 test('handles deferred corners, ordinary class constraints, and viewport panels in a scrolling portal', async ({
@@ -772,6 +1509,233 @@ async function expectPanelAtBoundary(
       right: position.endsWith('right') || position === 'right' ? 0 : null,
       top: position.startsWith('top') || position === 'left' || position === 'right' ? 0 : null,
     })
+}
+
+async function detachMagneticPanel(page: Page, panel: Locator, shell: Locator) {
+  const headerBox = await requiredBox(panel.locator('[data-picodash-panel-header]'))
+  const start = center(headerBox)
+
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(start.x + 180, start.y + 100, { steps: 12 })
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await page.mouse.up()
+  await waitForStablePanelPosition(panel)
+  const detachedBox = await requiredBox(panel)
+  const serializedLayout = await panel.page().locator('[data-runtime-layout]').textContent()
+  const layout = JSON.parse(serializedLayout ?? 'null')
+  expect(layout).toMatchObject({
+    dock: null,
+    placement: { mode: 'magnetic' },
+    x: Math.round(detachedBox.x),
+    y: Math.round(detachedBox.y),
+  })
+  await expect
+    .poll(async () => {
+      const box = await requiredBox(panel)
+      return box.x > 100 && box.y > 50
+    })
+    .toBe(true)
+}
+
+function center(rect: { height: number; width: number; x: number; y: number }) {
+  return {
+    x: rect.x + rect.width / 2,
+    y: rect.y + rect.height / 2,
+  }
+}
+
+function magneticTarget(
+  panel: { height: number; width: number; x: number; y: number },
+  boundary: { height: number; width: number; x: number; y: number },
+  position: (typeof magneticPositions)[number],
+  inset = 0,
+) {
+  return {
+    x:
+      position.endsWith('left') || position === 'left'
+        ? boundary.x + inset
+        : position.endsWith('right') || position === 'right'
+          ? boundary.x + boundary.width - panel.width - inset
+          : panel.x,
+    y:
+      position.startsWith('top') || position === 'left' || position === 'right'
+        ? position === 'left' || position === 'right'
+          ? panel.y
+          : boundary.y + inset
+        : position.startsWith('bottom') || position === 'bottom'
+          ? boundary.y + boundary.height - panel.height - inset
+          : panel.y,
+  }
+}
+
+function pointerForPanelTarget(
+  pointerStart: { x: number; y: number },
+  panel: { x: number; y: number },
+  target: { x: number; y: number },
+) {
+  return {
+    x: pointerStart.x + target.x - panel.x,
+    y: pointerStart.y + target.y - panel.y,
+  }
+}
+
+function pointerAtBoundaryCorner(
+  boundary: { height: number; width: number; x: number; y: number },
+  position: (typeof magneticPositions)[number],
+) {
+  return {
+    x: position.endsWith('left') ? boundary.x + 1 : boundary.x + boundary.width - 1,
+    y: position.startsWith('top') ? boundary.y + 1 : boundary.y + boundary.height - 1,
+  }
+}
+
+function magneticInwardDelta(position: (typeof magneticPositions)[number]) {
+  return {
+    x:
+      position.endsWith('left') || position === 'left'
+        ? 180
+        : position.endsWith('right') || position === 'right'
+          ? -180
+          : 0,
+    y:
+      position === 'left' || position === 'right'
+        ? 0
+        : position.startsWith('top') || position === 'top'
+          ? 60
+          : position.startsWith('bottom') || position === 'bottom'
+            ? -60
+            : 0,
+  }
+}
+
+async function waitForStablePanelPosition(panel: Locator) {
+  let previous: { x: number; y: number } | undefined
+  await expect
+    .poll(
+      async () => {
+        const box = await requiredBox(panel)
+        const current = { x: box.x, y: box.y }
+        const stable =
+          previous !== undefined &&
+          Math.abs(current.x - previous.x) <= 0.5 &&
+          Math.abs(current.y - previous.y) <= 0.5
+        previous = current
+        return stable
+      },
+      { intervals: [50] },
+    )
+    .toBe(true)
+}
+
+async function movePointerAcrossFrames(
+  page: Page,
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  steps: number,
+) {
+  for (let step = 1; step <= steps; step += 1) {
+    await page.mouse.move(
+      start.x + ((end.x - start.x) * step) / steps,
+      start.y + ((end.y - start.y) * step) / steps,
+    )
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    )
+  }
+}
+
+function expectMovementInDirection(
+  before: { x: number; y: number },
+  after: { x: number; y: number },
+  direction: { x: number; y: number },
+) {
+  if (direction.x > 0) expect(after.x).toBeGreaterThan(before.x)
+  if (direction.x < 0) expect(after.x).toBeLessThan(before.x)
+  if (direction.y > 0) expect(after.y).toBeGreaterThan(before.y)
+  if (direction.y < 0) expect(after.y).toBeLessThan(before.y)
+}
+
+async function expectMagneticPanelAtBoundary(
+  panel: Locator,
+  boundary: Locator,
+  position: (typeof magneticPositions)[number],
+) {
+  await expect
+    .poll(async () => {
+      const panelBox = await requiredBox(panel)
+      const boundaryBox = await requiredBox(boundary)
+      return {
+        bottom:
+          position.startsWith('bottom') ||
+          position === 'bottom' ||
+          position === 'left' ||
+          position === 'right'
+            ? Math.round(boundaryBox.y + boundaryBox.height - panelBox.y - panelBox.height) || 0
+            : null,
+        left:
+          position.endsWith('left') || position === 'left'
+            ? Math.round(panelBox.x - boundaryBox.x) || 0
+            : null,
+        right:
+          position.endsWith('right') || position === 'right'
+            ? Math.round(boundaryBox.x + boundaryBox.width - panelBox.x - panelBox.width) || 0
+            : null,
+        top:
+          position.startsWith('top') ||
+          position === 'top' ||
+          position === 'left' ||
+          position === 'right'
+            ? Math.round(panelBox.y - boundaryBox.y) || 0
+            : null,
+      }
+    })
+    .toEqual({
+      bottom:
+        position.startsWith('bottom') ||
+        position === 'bottom' ||
+        position === 'left' ||
+        position === 'right'
+          ? 0
+          : null,
+      left: position.endsWith('left') || position === 'left' ? 0 : null,
+      right: position.endsWith('right') || position === 'right' ? 0 : null,
+      top:
+        position.startsWith('top') ||
+        position === 'top' ||
+        position === 'left' ||
+        position === 'right'
+          ? 0
+          : null,
+    })
+}
+
+async function expectMagneticPreviewAtBoundary(
+  preview: Locator,
+  boundary: Locator,
+  position: (typeof magneticPositions)[number],
+) {
+  await expect
+    .poll(async () => {
+      const previewBox = await requiredBox(preview)
+      const boundaryBox = await requiredBox(boundary)
+      const distances = [
+        ...(position.startsWith('bottom') || position === 'bottom'
+          ? [Math.abs(previewBox.y + previewBox.height - boundaryBox.y - boundaryBox.height)]
+          : []),
+        ...(position.endsWith('left') || position === 'left'
+          ? [Math.abs(previewBox.x - boundaryBox.x)]
+          : []),
+        ...(position.endsWith('right') || position === 'right'
+          ? [Math.abs(previewBox.x + previewBox.width - boundaryBox.x - boundaryBox.width)]
+          : []),
+        ...(position.startsWith('top') || position === 'top'
+          ? [Math.abs(previewBox.y - boundaryBox.y)]
+          : []),
+      ]
+      return Math.max(...distances)
+    })
+    .toBeLessThanOrEqual(1)
 }
 
 async function expectCornerInset(
