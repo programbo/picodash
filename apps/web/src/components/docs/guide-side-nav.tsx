@@ -1,48 +1,123 @@
-export type GuideSideNavLink = {
-  href: string
+'use client'
+
+import {
+  createPicodashPanelStore,
+  PicodashDisplay,
+  PicodashGroup,
+  PicodashPanel,
+} from '@picodash/panel'
+import { useRef, useState, type ReactNode } from 'react'
+
+export type GuideSideNavItem = {
+  content?: ReactNode
+  description?: ReactNode
+  href?: string
+  id?: string
   label: string
   meta?: string
+  rowLabel?: ReactNode
 }
 
-export function GuideSideNav({
+export type GuideSideNavGroup = {
+  id: string
+  items: readonly GuideSideNavItem[]
+  label: string
+}
+
+export function GuidePanelLayout({
   ariaLabel,
-  description,
-  links,
+  children,
+  groups,
+  items = [],
+  panelId,
   title,
 }: {
   ariaLabel: string
-  description: string
-  links: readonly GuideSideNavLink[]
+  children: ReactNode
+  groups?: readonly GuideSideNavGroup[]
+  items?: readonly GuideSideNavItem[]
+  panelId: string
   title: string
 }) {
+  const boundaryRef = useRef<HTMLDivElement>(null)
+  const [store] = useState(() => createPicodashPanelStore({ panelId }))
+
   return (
-    <aside className="lg:sticky lg:top-8 lg:self-start">
-      <p className="font-mono text-[11px] tracking-widest text-amber-200 uppercase">{title}</p>
-      <nav aria-label={ariaLabel} className="mt-4">
-        <ol className="grid max-h-[min(32rem,calc(100svh-22rem))] gap-px overflow-y-auto border border-white/10 bg-white/10">
-          {links.map((link, index) => (
-            <li key={link.href}>
-              <a
-                className="group flex gap-3 bg-zinc-950 px-3 py-2.5 text-xs leading-5 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:outline-none"
-                href={link.href}
-              >
-                <span className="font-mono text-amber-200/70">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <span className="min-w-0">
-                  <span className="block">{link.label}</span>
-                  {link.meta ? (
-                    <span className="block truncate font-mono text-[10px] text-zinc-600">
-                      {link.meta}
-                    </span>
-                  ) : null}
-                </span>
-              </a>
-            </li>
-          ))}
-        </ol>
-      </nav>
-      <p className="mt-4 text-xs leading-5 text-zinc-500">{description}</p>
-    </aside>
+    <div className="relative mx-auto max-w-5xl min-w-0">
+      <div
+        ref={boundaryRef}
+        className="pointer-events-none sticky top-18 h-[calc(100dvh-5.5rem)] sm:top-12 sm:h-[calc(100dvh-4rem)]"
+        data-guide-navigation-boundary={panelId}
+      />
+      <PicodashPanel
+        actionMenu={false}
+        aria-label={ariaLabel}
+        boundary={boundaryRef}
+        className="max-h-64 lg:max-h-[min(32rem,calc(100dvh-8rem))] [&_[data-picodash-reorder-list]>div]:grid-cols-[auto_minmax(1.5rem,max-content)_minmax(0,1fr)_max-content] [&_[id$=':description']]:text-right"
+        data-guide-navigation-panel={panelId}
+        defaultPlacement={{ mode: 'floating', position: 'top-left' }}
+        role="navigation"
+        store={store}
+        theme="sidenav"
+        title={title}
+        width={272}
+      >
+        {groups
+          ? groups.map((group, groupIndex) => {
+              const indexOffset = groups
+                .slice(0, groupIndex)
+                .reduce((total, precedingGroup) => total + precedingGroup.items.length, 0)
+
+              return (
+                <PicodashGroup
+                  key={group.id}
+                  id={`${panelId}-${group.id}`}
+                  label={group.label}
+                  reorderable={false}
+                >
+                  {renderGuideItems(panelId, group.items, indexOffset)}
+                </PicodashGroup>
+              )
+            })
+          : renderGuideItems(panelId, items)}
+      </PicodashPanel>
+
+      <div className="-mt-[calc(100dvh-5.5rem)] px-4 pt-72 pb-4 sm:-mt-[calc(100dvh-4rem)] sm:px-6 sm:pt-72 sm:pb-6 lg:p-8">
+        <div className="min-w-0 lg:ml-74" data-guide-content={panelId}>
+          {children}
+        </div>
+      </div>
+    </div>
   )
+}
+
+function renderGuideItems(panelId: string, items: readonly GuideSideNavItem[], indexOffset = 0) {
+  return items.map((item, index) => {
+    const itemIndex = indexOffset + index
+
+    return (
+      <PicodashDisplay
+        key={item.id ?? item.href ?? item.label}
+        description={item.description}
+        id={`${panelId}-${item.id ?? itemIndex + 1}`}
+        label={item.rowLabel ?? String(itemIndex + 1).padStart(2, '0')}
+        reorderable={false}
+        value={
+          item.content ?? (
+            <a
+              className="text-picodash-text hover:text-picodash-strong focus-visible:ring-picodash-focus block min-w-0 truncate whitespace-nowrap transition-colors outline-none focus-visible:ring-2"
+              href={item.href}
+            >
+              <span className="block truncate">{item.label}</span>
+              {item.meta ? (
+                <span className="text-picodash-muted block truncate font-mono text-[10px]">
+                  {item.meta}
+                </span>
+              ) : null}
+            </a>
+          )
+        }
+      />
+    )
+  })
 }

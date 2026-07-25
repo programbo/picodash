@@ -3,7 +3,8 @@ import bash from 'highlight.js/lib/languages/bash'
 import typescript from 'highlight.js/lib/languages/typescript'
 import { Check, Copy } from 'lucide-react'
 import { useState } from 'react'
-import { GuideSideNav } from '@/components/docs/guide-side-nav'
+import { GuidePanelLayout } from '@/components/docs/guide-side-nav'
+import { HomeContent } from '@/components/home/home-frame'
 import { cn } from '@/lib/utils'
 
 hljs.registerLanguage('bash', bash)
@@ -292,19 +293,14 @@ const guideLinks = [
 
 export function UsageGuide() {
   return (
-    <div
-      className="max-h-[calc(100svh-15rem)] min-w-0 overflow-y-auto overscroll-contain scroll-smooth motion-reduce:scroll-auto"
-      data-usage-guide
-    >
-      <div className="mx-auto grid max-w-5xl gap-8 p-4 sm:p-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10 lg:p-8">
-        <GuideSideNav
-          ariaLabel="Usage guide steps"
-          description="Examples use React, TypeScript, and an application-owned panel store."
-          links={guideLinks}
-          title="Usage"
-        />
-
-        <article className="min-w-0">
+    <HomeContent data-usage-guide>
+      <GuidePanelLayout
+        ariaLabel="Usage guide steps"
+        items={guideLinks}
+        panelId="usage-navigation"
+        title="Usage"
+      >
+        <article className="min-w-0" data-usage-article>
           <header className="border-b border-white/10 pb-8">
             <h1 className="text-2xl font-medium tracking-tight text-zinc-50 sm:text-3xl">
               Add a reactive Picodash panel
@@ -530,8 +526,8 @@ export function UsageGuide() {
             </ol>
           </section>
         </article>
-      </div>
-    </div>
+      </GuidePanelLayout>
+    </HomeContent>
   )
 }
 

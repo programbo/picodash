@@ -23,6 +23,14 @@ const builtInItems = [
   { component: 'PicodashDisplay', id: 'display', label: 'Display' },
 ] as const
 
+const usageGuideLinks = [
+  'Install and import CSS',
+  'Create the store',
+  'Read values in React',
+  'Render the panel',
+  'Verify the integration',
+] as const
+
 async function setBooleanSwitch(locator: Locator, value: boolean) {
   await expect(locator).toHaveAttribute('role', 'switch')
   if ((await locator.getAttribute('aria-checked')) !== String(value)) {
@@ -161,8 +169,24 @@ test('keeps the expanded panel header toggle transparent until hover', async ({ 
 
 test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {
   const example = page.locator('[data-interactive-jsx-example]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const toolbar = example.locator('[data-home-toolbar]')
 
   await page.setViewportSize({ width: 320, height: 844 })
+  await expect(toolbar).toHaveCSS('z-index', 'auto')
+  const panelHeaderBox = await requiredBox(panel.locator('[data-picodash-panel-header]'))
+  expect(
+    await page.evaluate(
+      ({ x, y }) => {
+        const panelElement = document.querySelector('[data-picodash-panel-id="built-in-items"]')
+        return panelElement?.contains(document.elementFromPoint(x, y)) ?? false
+      },
+      {
+        x: panelHeaderBox.x + panelHeaderBox.width / 2,
+        y: panelHeaderBox.y + panelHeaderBox.height / 2,
+      },
+    ),
+  ).toBe(true)
   await page.getByRole('button', { name: 'Collapse panel Built-in Items' }).click()
   await expect(example.getByRole('checkbox', { name: 'Show all props' })).toBeInViewport()
   await expect(example.getByRole('button', { name: 'Copy JSX' })).toBeInViewport()
@@ -171,35 +195,159 @@ test('provides a step-by-step Usage tab for adding a reactive panel', async ({ p
   await example.getByRole('tab', { name: 'Usage' }).click()
 
   const guide = example.locator('[data-usage-guide]')
+  const guideBoundary = guide.locator('[data-guide-navigation-boundary="usage-navigation"]')
+  const navigationPanel = page.locator('[data-guide-navigation-panel="usage-navigation"]')
   await expect(guide).toBeVisible()
+  await expect(guide).toHaveCSS('overflow-y', 'visible')
+  await expect(navigationPanel).toHaveAttribute('role', 'navigation')
+  await expect(navigationPanel).toHaveAccessibleName('Usage guide steps')
+  await expect(navigationPanel.locator('[data-item-id]')).toHaveCount(usageGuideLinks.length)
+  expect(await navigationPanel.locator('[id$=":label"]').allTextContents()).toEqual([
+    '01',
+    '02',
+    '03',
+    '04',
+    '05',
+  ])
+  expect(
+    await navigationPanel
+      .locator('[data-picodash-reorder-list] > div')
+      .evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ')[1]),
+  ).toBe('24px')
+  expect(
+    await navigationPanel.getByRole('link').evaluateAll((links) =>
+      links.map((link) => ({
+        text: link.textContent,
+        wraps: link.scrollWidth > link.clientWidth,
+      })),
+    ),
+  ).toEqual(
+    usageGuideLinks.map((label) => ({
+      text: label,
+      wraps: false,
+    })),
+  )
   await expect(guide.getByRole('heading', { name: 'Add a reactive Picodash panel' })).toBeVisible()
   await expect(guide.getByRole('heading', { name: 'Create a stable panel store' })).toBeVisible()
   await expect(guide.getByText('bun add @picodash/panel', { exact: true })).toBeVisible()
   await expect(guide.getByRole('heading', { name: 'Common integration patterns' })).toBeVisible()
   await expect(guide.getByRole('heading', { name: 'Implementation constraints' })).toBeVisible()
-  await expect(guide).toHaveCSS('scroll-behavior', 'smooth')
+  const renderPanelItem = navigationPanel.locator('[data-item-id="usage-navigation-4"]')
+  const renderPanelLink = renderPanelItem.getByRole('link', { name: 'Render the panel' })
+  const renderPanelItemBox = await requiredBox(renderPanelItem)
+  await page.mouse.click(
+    renderPanelItemBox.x + renderPanelItemBox.width - 3,
+    renderPanelItemBox.y + 2,
+  )
+  await expect(renderPanelLink).toBeFocused()
+  await expect
+    .poll(async () => {
+      const panelBox = await requiredBox(navigationPanel)
+      const boundaryBox = await requiredBox(guideBoundary)
+      const articleBox = await requiredBox(guide.locator('[data-usage-article]'))
+      return {
+        articleClearsPanel: articleBox.y >= panelBox.y + panelBox.height,
+        panelIsContained:
+          panelBox.x >= boundaryBox.x &&
+          panelBox.y >= boundaryBox.y &&
+          panelBox.x + panelBox.width <= boundaryBox.x + boundaryBox.width &&
+          panelBox.y + panelBox.height <= boundaryBox.y + boundaryBox.height,
+      }
+    })
+    .toEqual({ articleClearsPanel: true, panelIsContained: true })
 
-  await guide.getByRole('link', { name: /Create the store/ }).click()
-  await expect.poll(() => guide.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await navigationPanel.getByRole('link', { name: /Create the store/ }).click()
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
 
   await example.getByRole('tab', { name: 'Store' }).click()
   await expect(example.getByLabel('Live Built-in Items panel store')).toBeVisible()
 })
 
-test('provides sticky smooth-scroll component navigation in the Code tab', async ({ page }) => {
-  const example = page.locator('[data-interactive-jsx-example]')
-  const codeGuide = example.locator('[data-code-guide]')
-  const codeNavigation = codeGuide.getByRole('navigation', { name: 'Code components' })
+test('constrains the Usage navigation panel to the guide surface', async ({ page }) => {
+  await page.setViewportSize({ width: 1558, height: 1091 })
+  await page.getByRole('button', { name: 'Collapse panel Built-in Items' }).click()
+  await page.locator('[data-interactive-jsx-example]').getByRole('tab', { name: 'Usage' }).click()
 
+  const boundary = page.locator('[data-guide-navigation-boundary="usage-navigation"]')
+  const navigationPanel = page.locator('[data-guide-navigation-panel="usage-navigation"]')
+  const panelHeader = navigationPanel.locator('[data-picodash-panel-header]')
+  await expect(navigationPanel).toBeVisible()
+
+  const headerBox = await requiredBox(panelHeader)
+  const viewport = page.viewportSize()
+  if (!viewport) throw new Error('Expected a viewport for constrained panel dragging')
+  await page.mouse.move(headerBox.x + headerBox.width / 2, headerBox.y + headerBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(viewport.width - 1, viewport.height - 1, { steps: 12 })
+  await page.mouse.up()
+
+  await expect
+    .poll(async () => {
+      const panelBox = await requiredBox(navigationPanel)
+      const boundaryBox = await requiredBox(boundary)
+      return {
+        bottomOverflow: Math.max(
+          panelBox.y + panelBox.height - (boundaryBox.y + boundaryBox.height),
+          0,
+        ),
+        rightOverflow: Math.max(
+          panelBox.x + panelBox.width - (boundaryBox.x + boundaryBox.width),
+          0,
+        ),
+      }
+    })
+    .toEqual({ bottomOverflow: 0, rightOverflow: 0 })
+})
+
+test('keeps panels and the gradient fixed while the Code page and side navigation scroll', async ({
+  page,
+}) => {
+  const example = page.locator('[data-interactive-jsx-example]')
+  const background = page.locator('[data-demo-background]')
+  const codeGuide = example.locator('[data-code-guide]')
+  const codeNavigation = page.getByRole('navigation', { name: 'Code components' })
+  const codeNavigationBoundary = codeGuide.locator(
+    '[data-guide-navigation-boundary="code-navigation"]',
+  )
+  const codeNavigationPanel = page.locator('[data-guide-navigation-panel="code-navigation"]')
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const tabs = example.locator('[data-interactive-tabs]')
+  const toolbar = example.locator('[data-home-toolbar]')
+
+  await expect(background).toHaveCSS('position', 'fixed')
   await expect(codeNavigation).toBeVisible()
-  await expect(codeGuide).toHaveCSS('scroll-behavior', 'smooth')
+  await expect(codeGuide).toHaveCSS('overflow-y', 'visible')
   await expect(codeNavigation.getByRole('link')).toHaveCount(builtInItems.length)
+  await expect(tabs).toHaveCSS('backdrop-filter', 'none')
+  await expect(toolbar).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(toolbar).not.toHaveCSS('backdrop-filter', 'none')
+  await expect(toolbar).not.toHaveCSS('box-shadow', 'none')
+  await expect(toolbar).toHaveCSS('position', 'sticky')
+  const panelBoxBeforeScroll = await requiredBox(panel)
 
   await codeNavigation.getByRole('link', { name: /Chart shadcn-frame-chart/ }).click()
-  await expect.poll(() => codeGuide.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
   await expect(example.locator('#code-shadcn-frame-chart')).toBeInViewport()
+  await expect(codeNavigationBoundary).toHaveCSS('position', 'sticky')
+  expect((await requiredBox(toolbar)).y).toBeCloseTo(0, 0)
+  expect((await requiredBox(codeNavigationBoundary)).y).toBeCloseTo(48, 0)
+  expect((await requiredBox(codeNavigationPanel)).y).toBeGreaterThan(
+    (await requiredBox(toolbar)).y + (await requiredBox(toolbar)).height,
+  )
 
-  await expect(codeNavigation.locator('..')).toHaveCSS('position', 'sticky')
+  await page.mouse.wheel(0, 10_000)
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          Math.ceil(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight,
+      ),
+    )
+    .toBe(true)
+  const panelBoxAfterScroll = await requiredBox(panel)
+  expect(panelBoxAfterScroll.x).toBeCloseTo(panelBoxBeforeScroll.x, 0)
+  expect(panelBoxAfterScroll.y).toBeCloseTo(panelBoxBeforeScroll.y, 0)
+  expect((await requiredBox(toolbar)).y).toBeCloseTo(0, 0)
 })
 
 test('provides a More examples placeholder with shared section navigation', async ({ page }) => {
@@ -208,17 +356,17 @@ test('provides a More examples placeholder with shared section navigation', asyn
   await example.getByRole('tab', { name: 'More examples' }).click()
 
   const moreExamples = example.locator('[data-more-examples]')
-  const navigation = moreExamples.getByRole('navigation', { name: 'More examples' })
+  const navigation = page.getByRole('navigation', { name: 'More examples' })
   await expect(moreExamples).toBeVisible()
   await expect(
     moreExamples.getByRole('heading', { name: 'More complex Picodash compositions' }),
   ).toBeVisible()
   await expect(navigation.getByRole('link')).toHaveCount(4)
   await expect(moreExamples.getByText('Coming soon')).toHaveCount(4)
-  await expect(moreExamples).toHaveCSS('scroll-behavior', 'smooth')
+  await expect(moreExamples).toHaveCSS('overflow-y', 'visible')
 
   await navigation.getByRole('link', { name: /Import and validation/ }).click()
-  await expect.poll(() => moreExamples.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
   await expect(example.locator('#example-import-validation')).toBeInViewport()
 })
 
@@ -669,7 +817,6 @@ test('presents canonical built-in examples in order with API help and variant de
 
 test('mirrors panel hover and focus on the matching JSX declaration', async ({ page }) => {
   const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
-  const codeViewport = page.locator('[data-code-guide]')
   const declaration = page.locator('[data-jsx-control="multilineText"]')
   const row = panel.locator('[data-item-id="multilineText"]')
 
@@ -682,26 +829,18 @@ test('mirrors panel hover and focus on the matching JSX declaration', async ({ p
   await expect(declaration).toHaveCSS('box-shadow', /.+/)
 
   const vectorDeclaration = page.locator('[data-jsx-control="vector3"]')
-  await codeViewport.evaluate((element) => {
-    element.scrollTop = 0
-  })
+  await page.evaluate(() => window.scrollTo(0, 0))
   await panel
     .locator('[data-item-id="vector3"]')
     .getByRole('spinbutton', { name: 'X axis' })
     .focus()
 
-  await expect.poll(() => codeViewport.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
   await expect
     .poll(() =>
       vectorDeclaration.evaluate((element) => {
-        const viewport = element.closest('[data-code-guide]')
-        if (!viewport) return false
-        const viewportBounds = viewport.getBoundingClientRect()
         const declarationBounds = element.getBoundingClientRect()
-        return (
-          declarationBounds.top >= viewportBounds.top &&
-          declarationBounds.bottom <= viewportBounds.bottom
-        )
+        return declarationBounds.top >= 0 && declarationBounds.bottom <= window.innerHeight
       }),
     )
     .toBe(true)

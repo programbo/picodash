@@ -100,6 +100,11 @@
   --picodash-color-overlay: oklch(0 0 0 / 85%);
 
   /* Derived semantic roles keep custom themes internally consistent. */
+  --_picodash-color-description: color-mix(
+    in oklab,
+    var(--picodash-color-text-muted) 70%,
+    var(--picodash-color-text)
+  );
   --_picodash-color-surface-hover: var(--picodash-color-surface-muted);
   --_picodash-color-well: color-mix(in oklab, var(--picodash-color-surface-muted) 30%, transparent);
   --_picodash-color-success-strong: color-mix(

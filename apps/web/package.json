@@ -19,7 +19,7 @@
     "highlight.js": "catalog:",
     "lucide-react": "catalog:",
     "motion": "catalog:",
-    "next": "16.2.11",
+    "next": "16.3.0-preview.9",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-json-view-lite": "catalog:",

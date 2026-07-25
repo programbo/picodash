@@ -1,4 +1,5 @@
-import { GuideSideNav } from '@/components/docs/guide-side-nav'
+import { GuidePanelLayout } from '@/components/docs/guide-side-nav'
+import { HomeContent } from '@/components/home/home-frame'
 
 const exampleLinks = [
   { href: '#example-dependent-controls', label: 'Dependent controls' },
@@ -36,18 +37,13 @@ const exampleSections = [
 
 export function MoreExamples() {
   return (
-    <div
-      className="max-h-[calc(100svh-15rem)] min-w-0 overflow-y-auto overscroll-contain scroll-smooth motion-reduce:scroll-auto"
-      data-more-examples
-    >
-      <div className="mx-auto grid max-w-5xl gap-8 p-4 sm:p-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10 lg:p-8">
-        <GuideSideNav
-          ariaLabel="More examples"
-          description="Complex compositions will build on the same application-owned store model."
-          links={exampleLinks}
-          title="More examples"
-        />
-
+    <HomeContent data-more-examples>
+      <GuidePanelLayout
+        ariaLabel="More examples"
+        items={exampleLinks}
+        panelId="more-examples-navigation"
+        title="More examples"
+      >
         <article className="min-w-0">
           <header className="border-b border-white/10 pb-8">
             <h1 className="text-2xl font-medium tracking-tight text-zinc-50 sm:text-3xl">
@@ -82,7 +78,7 @@ export function MoreExamples() {
             ))}
           </div>
         </article>
-      </div>
-    </div>
+      </GuidePanelLayout>
+    </HomeContent>
   )
 }
