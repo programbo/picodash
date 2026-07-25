@@ -309,6 +309,13 @@ LAB_PORT=6034 WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
 
 ## Current commands
 
+The deployment scripts intentionally use a global Vercel CLI. Install it once before running
+either deployment command:
+
+```bash
+bun install --global vercel
+```
+
 ```bash
 bun install
 bun run lint

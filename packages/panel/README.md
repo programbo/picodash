@@ -308,9 +308,11 @@ bun run --filter @picodash/panel lint
 bun run --filter @picodash/panel format
 ```
 
-Workspace preview and production deployments use the root Vercel CLI scripts:
+Workspace preview and production deployments use the root scripts and require a globally installed
+Vercel CLI:
 
 ```bash
+bun install --global vercel
 bun run deploy
 bun run deploy:prod
 ```

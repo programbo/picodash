@@ -72,6 +72,9 @@ independent of portal ownership.
 
 ## Required Commands
 
+The deployment scripts require a globally installed Vercel CLI. Install it once with
+`bun install --global vercel`.
+
 - `bun install`
 - `bun run lint`
 - `bun run format`
