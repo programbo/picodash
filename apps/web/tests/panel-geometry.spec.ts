@@ -318,7 +318,14 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   let pointerX = floatingStart.x + boundaryBox.x + safeInset - floatingBox.x
   await page.mouse.move(floatingStart.x, floatingStart.y)
   await page.mouse.down()
-  await page.mouse.move(pointerX, floatingStart.y, { steps: 12 })
+  let previousPanelX = floatingBox.x
+  for (let step = 1; step <= 12; step += 1) {
+    const nextPointerX = floatingStart.x + ((pointerX - floatingStart.x) * step) / 12
+    await page.mouse.move(nextPointerX, floatingStart.y)
+    const nextPanelX = (await requiredBox(panel)).x
+    expect(nextPanelX).toBeLessThanOrEqual(previousPanelX + 1)
+    previousPanelX = nextPanelX
+  }
   pointerX += boundaryBox.x - (await requiredBox(panel)).x
   await page.mouse.move(pointerX, floatingStart.y, { steps: 4 })
   await expect(panel).toHaveAttribute('data-picodash-panel-snapping', '')
@@ -350,6 +357,8 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
     attachedHeaderBox.y + attachedHeaderBox.height / 2 + 120,
     { steps: 12 },
   )
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  const detachedBox = await requiredBox(panel)
   await page.mouse.move(
     attachedHeaderBox.x + attachedHeaderBox.width / 2 + 240,
     attachedHeaderBox.y + attachedHeaderBox.height / 2 + 180,
@@ -365,6 +374,9 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   await expect
     .poll(async () => (await requiredBox(panel)).y - (await requiredBox(boundary)).y)
     .toBeGreaterThan(50)
+  const continuedBox = await requiredBox(panel)
+  expect(continuedBox.x).toBeGreaterThan(detachedBox.x)
+  expect(continuedBox.y).toBeGreaterThan(detachedBox.y)
   await page.mouse.up()
   await expect(runtimePlacement).toHaveText('magnetic:')
 

@@ -285,12 +285,15 @@ export function PicodashPanel({
 
   useLayoutEffect(() => {
     if (dragMagneticPosition === undefined) return
-    synchronizePlacementGeometry({
-      mode: 'magnetic',
-      ...(dragMagneticPosition ? { position: dragMagneticPosition } : {}),
-    })
-    if (dragMagneticPosition !== null) return
     const dragState = dragStateRef.current
+    synchronizePlacementGeometry(
+      {
+        mode: 'magnetic',
+        ...(dragMagneticPosition ? { position: dragMagneticPosition } : {}),
+      },
+      dragState?.placement.mode === 'magnetic' ? dragState.baseRect : undefined,
+    )
+    if (dragMagneticPosition !== null) return
     const panelElement = panelElementRef.current
     if (!dragState || !panelElement || dragState.placement.mode !== 'magnetic') return
     const displayedPosition = { x: x.get(), y: y.get() }
@@ -383,10 +386,13 @@ export function PicodashPanel({
         setDragMagneticPosition(nextMagneticPosition)
       }
       if (nextMagneticPosition) {
-        synchronizePlacementGeometry({
-          mode: 'magnetic',
-          position: nextMagneticPosition,
-        })
+        synchronizePlacementGeometry(
+          {
+            mode: 'magnetic',
+            position: nextMagneticPosition,
+          },
+          dragState.baseRect,
+        )
       }
     }
     panelElementRef.current?.toggleAttribute(

@@ -280,7 +280,7 @@ export function usePanelLayoutSynchronization({
   )
 
   const synchronizePlacementGeometry = useCallback(
-    (nextPlacement: PicodashPanelPlacement) => {
+    (nextPlacement: PicodashPanelPlacement, dragBaseRect?: PanelRect) => {
       const panelElement = panelElementRef.current
       const positionElement = positionElementRef?.current ?? panelElement
       if (!panelElement || !positionElement) return null
@@ -308,10 +308,9 @@ export function usePanelLayoutSynchronization({
         positionElement.style.width = `${panelRect.width}px`
         positionElement.style.height = `${panelRect.height}px`
         const displayedPosition = { x: x.get(), y: y.get() }
-        const baseRect = baseRectFromDisplayedRect(
-          rectFromElement(positionElement),
-          displayedPosition,
-        )
+        const baseRect =
+          dragBaseRect ??
+          baseRectFromDisplayedRect(rectFromElement(positionElement), displayedPosition)
         const targetRect = fixedPanelRect({
           boundaryRect: containerRect,
           height: panelRect.height,
