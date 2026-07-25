@@ -16,7 +16,9 @@ What it provides:
 - centralized shadcn aria-rhea primitives via @picodash/panel/ui
 - provider-scoped panel visibility, activation, reactive placement, and runtime setPlacement via usePicodashPanel
 - floating, magnetic, and fixed panel placement; floating edge snaps stay offset, while magnetic
-  edges sit flush with fixed-like surfaces/collapse and can be dragged back to floating
+  panels retain their mode when detached, behave like floating panels off-edge, and sit flush with
+  fixed-like surfaces and collapse behavior when attached, switching presentation during drag as
+  soon as the snap threshold is crossed
 - viewport-default geometry with provider panelBoundary and per-panel boundary Element/ref overrides
 - collapsible fixed sidebars with pinned start/end lanes and a scroll-faded auto lane
 - explicit application-owned reads via usePicodashPanelStoreSelector(store, selector)

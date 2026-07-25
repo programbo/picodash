@@ -115,8 +115,9 @@ export function SiteControls() {
   `defaultPlacement={{ mode: 'fixed', position: 'right' }}`. The magnetic edge type is
   `PicodashPanelSnapPosition`; do not reintroduce the old dock-position name.
 - Keep floating edge snaps offset and floating. Attached magnetic panels sit flush, share fixed
-  surface, pinned-lane, and collapse behavior, stay draggable, and become floating when pulled
-  clear of their edge.
+  surface, pinned-lane, and collapse behavior, and stay draggable. Detached magnetic panels retain
+  magnetic mode but use floating styling and behavior until they snap back to an edge or corner.
+  Switch that presentation immediately when the drag crosses the snap threshold.
 - Prefer `PicodashProvider panelBoundary={mainRef}` when all panels share an application surface.
   Use `PicodashPanel boundary={canvasRef}` only for a panel-specific surface, and
   `boundary={null}` to explicitly restore viewport bounds. Accept Elements and React refs, not CSS

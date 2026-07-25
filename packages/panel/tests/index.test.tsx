@@ -77,6 +77,18 @@ test('preserves classic Zod composition on the advanced persistence schema', () 
   const partialSchema = advancedApi.picodashPersistedStateSchema.partial()
 
   expect(partialSchema.safeParse({}).success).toBe(true)
+  expect(
+    advancedApi.picodashPersistedStateSchema.safeParse({
+      panelLayouts: {
+        inspect: {
+          dock: null,
+          placement: { mode: 'magnetic' },
+          x: 24,
+          y: 32,
+        },
+      },
+    }).success,
+  ).toBe(true)
 })
 
 test('renders the shared Select without PicodashProvider', () => {
@@ -438,6 +450,27 @@ test('uses the measured panel position when runtime placement has no saved layou
     x: 240,
     y: 96,
   })
+})
+
+test('keeps detached runtime magnetic placement without an edge position', () => {
+  const store = createPicodashStore({ persistLayout: false })
+  store.getState().registerPanel({ id: 'inspect' })
+  store.getState().setPanelLayout('inspect', {
+    dock: { horizontal: 'left' },
+    placement: { mode: 'magnetic', position: 'left' },
+    x: 0,
+    y: 96,
+  })
+
+  store.getState().setPanelPlacement('inspect', { mode: 'magnetic' })
+
+  expect(store.getState().panelLayouts.inspect).toEqual({
+    dock: null,
+    placement: { mode: 'magnetic' },
+    x: 0,
+    y: 96,
+  })
+  expect(store.getState().panels.inspect.placement).toEqual({ mode: 'magnetic' })
 })
 
 test('moves runtime floating corner placement within the panel boundary', () => {

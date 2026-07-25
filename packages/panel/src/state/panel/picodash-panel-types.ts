@@ -125,7 +125,7 @@ export type PicodashPanelFixedPosition =
 
 export type PicodashPanelPlacement =
   | { mode: 'floating'; position?: PicodashPanelCorner }
-  | { mode: 'magnetic'; position: PicodashPanelSnapPosition }
+  | { mode: 'magnetic'; position?: PicodashPanelSnapPosition }
   | { mode: 'fixed'; position: PicodashPanelFixedPosition }
 
 /**

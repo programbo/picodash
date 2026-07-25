@@ -231,7 +231,10 @@ export function createPicodashStore({
               )
             : null
         const layout: PanelLayout = {
-          dock: placement.mode === 'magnetic' ? dockForSnapPosition(placement.position) : null,
+          dock:
+            placement.mode === 'magnetic' && placement.position
+              ? dockForSnapPosition(placement.position)
+              : null,
           placement,
           x: requestedFloatingPosition?.x ?? current?.x ?? measuredRect?.left ?? 0,
           y: requestedFloatingPosition?.y ?? current?.y ?? measuredRect?.top ?? 0,

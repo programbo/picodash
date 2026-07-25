@@ -29,6 +29,38 @@ test('supports a custom provider layout storage key', () => {
   expect(storage.getItem('picodash-panel:provider-layout:v1')).toBeNull()
 })
 
+test('persists and hydrates detached magnetic placement', () => {
+  const storage = installFakeLocalStorage()
+  const store = createPicodashStore()
+
+  store.getState().setPanelLayout('scene', {
+    dock: null,
+    placement: { mode: 'magnetic' },
+    x: 24,
+    y: 32,
+  })
+
+  expect(JSON.parse(storage.getItem(panelLayoutStorageKey) ?? '{}')).toMatchObject({
+    state: {
+      panelLayouts: {
+        scene: {
+          dock: null,
+          placement: { mode: 'magnetic' },
+          x: 24,
+          y: 32,
+        },
+      },
+    },
+  })
+
+  expect(createPicodashStore().getState().panelLayouts.scene).toEqual({
+    dock: null,
+    placement: { mode: 'magnetic' },
+    x: 24,
+    y: 32,
+  })
+})
+
 test('migrates provider layouts from the retired storage key', () => {
   const storage = installFakeLocalStorage()
   storage.setItem(
