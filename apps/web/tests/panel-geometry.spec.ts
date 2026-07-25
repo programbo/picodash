@@ -284,6 +284,11 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   )
   await page.mouse.down()
   await page.mouse.move(
+    magneticHeaderBox.x + magneticHeaderBox.width / 2 + 1,
+    magneticHeaderBox.y + magneticHeaderBox.height / 2 + 1,
+  )
+  await expectPanelAtBoundary(panel, boundary, 'top-left')
+  await page.mouse.move(
     magneticHeaderBox.x + magneticHeaderBox.width / 2 + 180,
     magneticHeaderBox.y + magneticHeaderBox.height / 2 + 120,
     { steps: 12 },

@@ -313,10 +313,11 @@ export function PicodashPanel({
       return
     }
 
+    const snapGap = dragState.placement.mode === 'magnetic' ? 0 : SNAP_GAP
     const snapped = snapPanelPosition({
       baseRect: dragState.baseRect,
       containerRect: dragState.containerRect,
-      options: { gap: dragState.placement.mode === 'magnetic' ? 0 : SNAP_GAP },
+      options: { gap: snapGap },
       peerRects: dragState.peerRects,
       position: {
         x: dragState.startPosition.x + info.offset.x,
@@ -327,6 +328,7 @@ export function PicodashPanel({
       anchor: snapped.dock?.vertical === 'bottom' ? 'bottom' : 'top',
       baseRect: dragState.baseRect,
       containerRect: dragState.containerRect,
+      inset: snapGap,
       intrinsicHeight: dragState.intrinsicHeight,
       position: snapped.position,
     })
