@@ -712,19 +712,19 @@ async function expectPanelAtBoundary(
       return {
         bottom:
           position.startsWith('bottom') || position === 'left' || position === 'right'
-            ? Math.round(boundaryBox.y + boundaryBox.height - panelBox.y - panelBox.height)
+            ? Math.round(boundaryBox.y + boundaryBox.height - panelBox.y - panelBox.height) || 0
             : null,
         left:
           position.endsWith('left') || position === 'left'
-            ? Math.round(panelBox.x - boundaryBox.x)
+            ? Math.round(panelBox.x - boundaryBox.x) || 0
             : null,
         right:
           position.endsWith('right') || position === 'right'
-            ? Math.round(boundaryBox.x + boundaryBox.width - panelBox.x - panelBox.width)
+            ? Math.round(boundaryBox.x + boundaryBox.width - panelBox.x - panelBox.width) || 0
             : null,
         top:
           position.startsWith('top') || position === 'left' || position === 'right'
-            ? Math.round(panelBox.y - boundaryBox.y)
+            ? Math.round(panelBox.y - boundaryBox.y) || 0
             : null,
       }
     })
