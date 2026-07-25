@@ -151,7 +151,7 @@ function ScenePanel() {
 ```ts
 type PicodashPanelPlacement =
   | { mode: 'floating'; position?: PicodashPanelCorner }
-  | { mode: 'magnetic'; position: PicodashPanelSnapPosition }
+  | { mode: 'magnetic'; position?: PicodashPanelSnapPosition }
   | { mode: 'fixed'; position: PicodashPanelFixedPosition }
 
 type PicodashPanelBoundary = Element | React.RefObject<Element | null>
