@@ -1,4 +1,9 @@
-import { SNAP_GAP, type PanelPosition, type PanelRect } from './panel-snapping.js'
+import {
+  isPanelPlacementEdgeAttached,
+  SNAP_GAP,
+  type PanelPosition,
+  type PanelRect,
+} from './panel-snapping.js'
 import type {
   PicodashPanelPlacement,
   PicodashPanelSnapPosition,
@@ -15,7 +20,7 @@ export interface PanelGeometryProjection {
 export const PANEL_MIN_VISIBLE_HEIGHT = 37
 
 export function panelParticipatesInSnapping(placement: PicodashPanelPlacement, collapsed: boolean) {
-  return placement.mode === 'floating' || !collapsed
+  return !isPanelPlacementEdgeAttached(placement) || !collapsed
 }
 
 export function panelMaxWidthForBoundary(boundaryWidth: number, callerMaxWidth: number) {

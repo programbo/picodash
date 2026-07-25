@@ -294,8 +294,8 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
     { steps: 12 },
   )
   await page.mouse.up()
-  await expect(runtimePlacement).toHaveText('floating:')
-  await expect(shell).not.toHaveAttribute('data-magnetic-placement')
+  await expect(runtimePlacement).toHaveText('magnetic:')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
   await expect(panel.locator('[data-picodash-scrollport="body"]')).toHaveClass(/scroll-fade/)
 
   const floatingBox = await requiredBox(panel)
@@ -316,10 +316,12 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   )
   await expect(panel).toHaveAttribute('data-picodash-panel-snapping', '')
   await page.mouse.up()
-  await expect(runtimePlacement).toHaveText('floating:')
+  await expect(runtimePlacement).toHaveText('magnetic:left')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+  await expect(panel.locator('[data-picodash-scrollport="auto"]')).toHaveClass(/scroll-fade/)
   await expect
     .poll(async () => Math.round((await requiredBox(panel)).x - (await requiredBox(boundary)).x))
-    .toBe(safeInset)
+    .toBe(0)
 
   await expectPanelAtBoundary(overridePanel, overrideBoundary, 'bottom-right')
 

@@ -24,6 +24,7 @@ import { useStore } from 'zustand'
 import { panelParticipatesInSnapping, rectWithHeight } from '../../geometry/panel-geometry.js'
 import {
   baseRectFromDisplayedRect,
+  isPanelPlacementEdgeAttached,
   normalizePicodashPanelPlacement,
   rectForPanelBoundary,
   rectFromElement,
@@ -219,7 +220,7 @@ export function PicodashPanel({
     (state) => state.panels[panelId]?.placement ?? normalizedDefaultPlacement,
   )
   const fixedPlacement = placement.mode === 'fixed'
-  const edgePlacement = placement.mode !== 'floating'
+  const edgePlacement = isPanelPlacementEdgeAttached(placement)
   const shellDragProps = panelShellDragProps(fixedPlacement, {
     _dragX,
     _dragY,
@@ -346,8 +347,8 @@ export function PicodashPanel({
     const dock = dragState?.dock ?? null
     const snapPosition = snapPositionForDock(dock)
     const nextPlacement: PicodashPanelPlacement =
-      dragState?.placement.mode === 'magnetic' && snapPosition
-        ? { mode: 'magnetic', position: snapPosition }
+      dragState?.placement.mode === 'magnetic'
+        ? { mode: 'magnetic', ...(snapPosition ? { position: snapPosition } : {}) }
         : { mode: 'floating' }
     dragStateRef.current = null
     panelElementRef.current?.removeAttribute('data-picodash-panel-snapping')
@@ -409,7 +410,9 @@ export function PicodashPanel({
           {...shellDragProps}
           data-picodash-panel-shell=""
           data-fixed-placement={fixedPlacement ? placement.position : undefined}
-          data-magnetic-placement={placement.mode === 'magnetic' ? placement.position : undefined}
+          data-magnetic-placement={
+            placement.mode === 'magnetic' ? (placement.position ?? '') : undefined
+          }
           className={cn(
             'pointer-events-none absolute h-fit w-fit max-w-[calc(100dvw-2rem)]',
             placementShellClassName(placement),
@@ -720,7 +723,7 @@ function fixedCollapsedTransform(position: PicodashPanelSnapPosition) {
 }
 
 function placementShellClassName(placement: PicodashPanelPlacement) {
-  if (placement.mode !== 'floating') return 'top-0 left-0'
+  if (isPanelPlacementEdgeAttached(placement)) return 'top-0 left-0'
   const position = placement.position ?? 'top-right'
   return panelPlacementClassNames[position]
 }

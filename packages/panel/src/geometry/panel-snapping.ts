@@ -53,6 +53,17 @@ export function normalizePicodashPanelPlacement(
   return typeof placement === 'string' ? { mode: 'floating', position: placement } : placement
 }
 
+export function isPanelPlacementEdgeAttached(
+  placement: PicodashPanelPlacement,
+): placement is
+  | { mode: 'magnetic'; position: PicodashPanelSnapPosition }
+  | Extract<PicodashPanelPlacement, { mode: 'fixed' }> {
+  return (
+    placement.mode === 'fixed' ||
+    (placement.mode === 'magnetic' && placement.position !== undefined)
+  )
+}
+
 export function dockForSnapPosition(position: PicodashPanelSnapPosition): PanelDock {
   switch (position) {
     case 'top-left':
@@ -224,9 +235,12 @@ export function positionForPanelLayout({
 
   const placement = layout.placement
   const fixed = placement?.mode === 'fixed'
-  const edgeAttached = placement?.mode === 'magnetic' || fixed
-  const dock = edgeAttached ? dockForSnapPosition(placement.position) : (layout.dock ?? null)
-  const inset = edgeAttached ? 0 : SNAP_GAP
+  const attachedPlacement =
+    placement && isPanelPlacementEdgeAttached(placement) ? placement : undefined
+  const dock = attachedPlacement
+    ? dockForSnapPosition(attachedPlacement.position)
+    : (layout.dock ?? null)
+  const inset = attachedPlacement ? 0 : SNAP_GAP
   const targetLeft =
     dock?.horizontal === 'left'
       ? containerRect.left + inset

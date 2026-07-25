@@ -322,6 +322,18 @@ test('keeps floating edge snaps offset while placing magnetic panels flush', () 
       },
     }),
   ).toEqual({ x: -100, y: -80 })
+  expect(
+    positionForPanelLayout({
+      baseRect,
+      containerRect,
+      layout: {
+        dock: null,
+        placement: { mode: 'magnetic' },
+        x: 8,
+        y: 8,
+      },
+    }),
+  ).toEqual({ x: -92, y: -72 })
 })
 
 test('detects ordinary caller class constraints from their computed-style effect', () => {
@@ -387,6 +399,7 @@ test('removes retracted edge-attached panels from peer snapping', () => {
   expect(panelParticipatesInSnapping({ mode: 'fixed', position: 'left' }, true)).toBe(false)
   expect(panelParticipatesInSnapping({ mode: 'fixed', position: 'left' }, false)).toBe(true)
   expect(panelParticipatesInSnapping({ mode: 'floating' }, true)).toBe(true)
+  expect(panelParticipatesInSnapping({ mode: 'magnetic' }, true)).toBe(true)
   expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'right' }, true)).toBe(false)
   expect(panelParticipatesInSnapping({ mode: 'magnetic', position: 'right' }, false)).toBe(true)
 })

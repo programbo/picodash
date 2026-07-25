@@ -440,6 +440,27 @@ test('uses the measured panel position when runtime placement has no saved layou
   })
 })
 
+test('keeps detached runtime magnetic placement without an edge position', () => {
+  const store = createPicodashStore({ persistLayout: false })
+  store.getState().registerPanel({ id: 'inspect' })
+  store.getState().setPanelLayout('inspect', {
+    dock: { horizontal: 'left' },
+    placement: { mode: 'magnetic', position: 'left' },
+    x: 0,
+    y: 96,
+  })
+
+  store.getState().setPanelPlacement('inspect', { mode: 'magnetic' })
+
+  expect(store.getState().panelLayouts.inspect).toEqual({
+    dock: null,
+    placement: { mode: 'magnetic' },
+    x: 0,
+    y: 96,
+  })
+  expect(store.getState().panels.inspect.placement).toEqual({ mode: 'magnetic' })
+})
+
 test('moves runtime floating corner placement within the panel boundary', () => {
   expect(
     positionForFloatingCorner('bottom-right', { height: 80, width: 100 }, rect(50, 20, 500, 300)),

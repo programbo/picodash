@@ -14,6 +14,7 @@ import {
   baseRectFromDisplayedRect,
   clampPanelPosition,
   FLOATING_PLACEMENT_INSET,
+  isPanelPlacementEdgeAttached,
   positionForFloatingCorner,
   positionForPanelLayout,
   rectForPanelBoundary,
@@ -286,7 +287,7 @@ export function usePanelLayoutSynchronization({
     if (!panelElement || !positionElement) return
     const containerRect = rectForPanelBoundary(boundaryElement)
 
-    if (placement.mode !== 'floating') {
+    if (isPanelPlacementEdgeAttached(placement)) {
       const measuredCallerMaxHeight = measureCallerMaxHeight(containerRect)
       const measuredCallerMaxWidth = measureCallerMaxWidth(containerRect)
       const appliedMaxHeight = Math.min(containerRect.height, measuredCallerMaxHeight)
