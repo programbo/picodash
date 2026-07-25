@@ -293,6 +293,11 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
     magneticHeaderBox.y + magneticHeaderBox.height / 2 + 120,
     { steps: 12 },
   )
+  await page.mouse.move(
+    magneticHeaderBox.x + magneticHeaderBox.width / 2 + 240,
+    magneticHeaderBox.y + magneticHeaderBox.height / 2 + 180,
+    { steps: 4 },
+  )
   await expect(runtimePlacement).toHaveText('magnetic:top-left')
   await expect(shell).toHaveAttribute('data-magnetic-placement', '')
   await expect(magneticToggle).toHaveCount(0)
@@ -348,6 +353,11 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
     attachedHeaderBox.x + attachedHeaderBox.width / 2 + 180,
     attachedHeaderBox.y + attachedHeaderBox.height / 2 + 120,
     { steps: 12 },
+  )
+  await page.mouse.move(
+    attachedHeaderBox.x + attachedHeaderBox.width / 2 + 240,
+    attachedHeaderBox.y + attachedHeaderBox.height / 2 + 180,
+    { steps: 4 },
   )
   await expect(runtimePlacement).toHaveText('magnetic:left')
   await expect(shell).toHaveAttribute('data-magnetic-placement', '')
