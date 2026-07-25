@@ -230,6 +230,11 @@ Panels support floating, magnetic, and fixed placement. Existing corner strings 
 Magnetic positions use `PicodashPanelSnapPosition`; fixed positions use
 `PicodashPanelFixedPosition`.
 
+Floating panels keep an 8px edge-snap offset and remain floating. Magnetic panels attach flush to
+their selected edge and, while attached, use the same edge styling, pinned-lane scrolling, and
+collapse/reopen behavior as fixed panels. Unlike fixed panels, an attached magnetic panel remains
+draggable; pulling it clear of the edge returns it to floating placement.
+
 Fixed positions are `top-left`, `bottom-left`, `top-right`, `bottom-right`, `left`, and `right`.
 The full-edge `left` and `right` positions fill the boundary height. In fixed panels, start- and
 end-pinned lanes remain visible while the auto lane scrolls. Every panel scrollport includes the

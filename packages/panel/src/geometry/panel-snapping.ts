@@ -224,11 +224,9 @@ export function positionForPanelLayout({
 
   const placement = layout.placement
   const fixed = placement?.mode === 'fixed'
-  const dock =
-    placement?.mode === 'magnetic' || placement?.mode === 'fixed'
-      ? dockForSnapPosition(placement.position)
-      : (layout.dock ?? null)
-  const inset = fixed ? 0 : SNAP_GAP
+  const edgeAttached = placement?.mode === 'magnetic' || fixed
+  const dock = edgeAttached ? dockForSnapPosition(placement.position) : (layout.dock ?? null)
+  const inset = edgeAttached ? 0 : SNAP_GAP
   const targetLeft =
     dock?.horizontal === 'left'
       ? containerRect.left + inset

@@ -1,7 +1,7 @@
 import { SNAP_GAP, type PanelPosition, type PanelRect } from './panel-snapping.js'
 import type {
-  PicodashPanelFixedPosition,
   PicodashPanelPlacement,
+  PicodashPanelSnapPosition,
 } from '../state/panel/picodash-panel-types.js'
 
 export type PanelVerticalAnchor = 'bottom' | 'top'
@@ -15,7 +15,7 @@ export interface PanelGeometryProjection {
 export const PANEL_MIN_VISIBLE_HEIGHT = 37
 
 export function panelParticipatesInSnapping(placement: PicodashPanelPlacement, collapsed: boolean) {
-  return placement.mode !== 'fixed' || !collapsed
+  return placement.mode === 'floating' || !collapsed
 }
 
 export function panelMaxWidthForBoundary(boundaryWidth: number, callerMaxWidth: number) {
@@ -33,7 +33,7 @@ export function fixedPanelRect({
 }: {
   boundaryRect: PanelRect
   height: number
-  position: PicodashPanelFixedPosition
+  position: PicodashPanelSnapPosition
   width: number
 }): PanelRect {
   const appliedWidth = Math.min(nonNegative(width), boundaryRect.width)
@@ -41,8 +41,13 @@ export function fixedPanelRect({
   const left =
     position.endsWith('right') || position === 'right'
       ? boundaryRect.right - appliedWidth
-      : boundaryRect.left
-  const top = position.startsWith('bottom') ? boundaryRect.bottom - appliedHeight : boundaryRect.top
+      : position.endsWith('left') || position === 'left'
+        ? boundaryRect.left
+        : boundaryRect.left + (boundaryRect.width - appliedWidth) / 2
+  const top =
+    position.startsWith('bottom') || position === 'bottom'
+      ? boundaryRect.bottom - appliedHeight
+      : boundaryRect.top
 
   return {
     bottom: top + appliedHeight,
@@ -55,14 +60,18 @@ export function fixedPanelRect({
 }
 
 export function fixedPanelRetraction(
-  position: PicodashPanelFixedPosition,
+  position: PicodashPanelSnapPosition,
   rect: Pick<PanelRect, 'height' | 'width'>,
 ): PanelPosition {
   switch (position) {
+    case 'bottom':
+      return { x: 0, y: rect.height }
     case 'bottom-left':
       return { x: -rect.width, y: rect.height }
     case 'bottom-right':
       return { x: rect.width, y: rect.height }
+    case 'top':
+      return { x: 0, y: -rect.height }
     case 'right':
     case 'top-right':
       return { x: rect.width, y: 0 }
