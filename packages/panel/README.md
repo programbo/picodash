@@ -199,7 +199,8 @@ const canvasRef = useRef<HTMLDivElement>(null)
 - Floating edge snaps retain an 8px offset and remain floating. Magnetic panels attach flush and
   adopt fixed edge styling, pinned-lane scrolling, and collapse/reopen behavior while attached.
   Magnetic panels remain magnetic when pulled clear, but use floating styling and behavior until
-  they snap back to an edge or corner.
+  they snap back to an edge or corner. Their presentation changes immediately when a drag crosses
+  the snap threshold rather than waiting for pointer release.
 - Fixed `left` and `right` panels fill the effective boundary height. Fixed corner panels keep
   content-driven height capped to that boundary.
 - Collapsible fixed panels retract into their edge or corner and leave an accessible arrow button

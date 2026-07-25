@@ -293,6 +293,10 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
     magneticHeaderBox.y + magneticHeaderBox.height / 2 + 120,
     { steps: 12 },
   )
+  await expect(runtimePlacement).toHaveText('magnetic:top-left')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await expect(magneticToggle).toHaveCount(0)
+  await expect(panel.locator('[data-picodash-scrollport="body"]')).toHaveClass(/scroll-fade/)
   await page.mouse.up()
   await expect(runtimePlacement).toHaveText('magnetic:')
   await expect(shell).toHaveAttribute('data-magnetic-placement', '')
@@ -315,6 +319,10 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
     },
   )
   await expect(panel).toHaveAttribute('data-picodash-panel-snapping', '')
+  await expect(runtimePlacement).toHaveText('magnetic:')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+  await expect(magneticToggle).toBeVisible()
+  await expect(panel.locator('[data-picodash-scrollport="auto"]')).toHaveClass(/scroll-fade/)
   await page.mouse.up()
   await expect(runtimePlacement).toHaveText('magnetic:left')
   await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')

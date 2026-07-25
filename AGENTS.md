@@ -69,7 +69,8 @@ magnetic edges, while fixed docking uses the six side/corner positions. `usePico
 runtime placement changes. Floating edge snaps retain their offset and stay floating. Magnetic
 panels sit flush and use fixed surface, pinned-lane, and collapse behavior while attached, but
 remain magnetic with floating styling and behavior when pulled clear. Snapping back to an edge or
-corner restores their attached fixed-like state. Geometry defaults to the viewport;
+corner restores their attached fixed-like state, with the presentation changing during the drag as
+soon as the snap threshold is crossed. Geometry defaults to the viewport;
 `PicodashProvider.panelBoundary`
 sets a shared Element/ref boundary and `PicodashPanel.boundary` can override it. Boundaries remain
 independent of portal ownership.
@@ -178,7 +179,8 @@ Update all five files together when command surface, entrypoints, or architectur
   placement normalization.
 - Keep floating edge snaps offset and classified as floating; keep magnetic edges flush and
   fixed-like while attached. Detached magnetic panels retain magnetic mode but use floating styling
-  and behavior until they snap back to an edge or corner.
+  and behavior until they snap back to an edge or corner. Switch magnetic presentation immediately
+  when a drag crosses the snap threshold.
 - Resolve panel boundaries in panel-override, provider-default, viewport order; `null` explicitly
   selects the viewport, while an unresolved ref falls through to the next boundary.
 - Keep fixed start/end lanes outside the auto-lane scrollport and apply the bundled `scroll-fade`

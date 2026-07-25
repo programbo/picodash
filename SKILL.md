@@ -117,6 +117,7 @@ export function SiteControls() {
 - Keep floating edge snaps offset and floating. Attached magnetic panels sit flush, share fixed
   surface, pinned-lane, and collapse behavior, and stay draggable. Detached magnetic panels retain
   magnetic mode but use floating styling and behavior until they snap back to an edge or corner.
+  Switch that presentation immediately when the drag crosses the snap threshold.
 - Prefer `PicodashProvider panelBoundary={mainRef}` when all panels share an application surface.
   Use `PicodashPanel boundary={canvasRef}` only for a panel-specific surface, and
   `boundary={null}` to explicitly restore viewport bounds. Accept Elements and React refs, not CSS

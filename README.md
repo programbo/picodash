@@ -234,7 +234,8 @@ Floating panels keep an 8px edge-snap offset and remain floating. Magnetic panel
 their selected edge and, while attached, use the same edge styling, pinned-lane scrolling, and
 collapse/reopen behavior as fixed panels. Unlike fixed panels, an attached magnetic panel remains
 draggable. Pulling it clear keeps magnetic placement active while restoring floating styling and
-behavior; snapping it back to an edge or corner restores its fixed-like attached state.
+behavior; snapping it back to an edge or corner restores its fixed-like attached state. These
+visual and interaction changes happen as soon as the drag crosses the snap threshold.
 
 Fixed positions are `top-left`, `bottom-left`, `top-right`, `bottom-right`, `left`, and `right`.
 The full-edge `left` and `right` positions fill the boundary height. In fixed panels, start- and
