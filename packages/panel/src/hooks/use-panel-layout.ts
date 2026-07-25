@@ -375,11 +375,12 @@ export function usePanelLayoutSynchronization({
   const syncDisplayedPositionToSavedLayout = useCallback(() => {
     if (!enabledRef.current) return
     if (synchronizationPausedRef?.current) return
-    const synchronizedGeometry = synchronizePlacementGeometry(placement)
+    const currentPlacement = store.getState().panels[panelId]?.placement ?? placement
+    const synchronizedGeometry = synchronizePlacementGeometry(currentPlacement)
     if (!synchronizedGeometry) return
     const { containerRect, panelElement, positionElement } = synchronizedGeometry
 
-    if (isPanelPlacementEdgeAttached(placement)) {
+    if (isPanelPlacementEdgeAttached(currentPlacement)) {
       requestAnimationFrame(updatePanelRect)
       return
     }
@@ -407,8 +408,8 @@ export function usePanelLayoutSynchronization({
     const floatingCorner =
       savedPosition?.placement?.mode === 'floating'
         ? savedPosition.placement.position
-        : savedPosition === undefined && boundaryElement && placement.mode === 'floating'
-          ? placement.position
+        : savedPosition === undefined && boundaryElement && currentPlacement.mode === 'floating'
+          ? currentPlacement.position
           : undefined
     const hasExplicitFloatingCorner = floatingCorner !== undefined
     const layoutRect = hasExplicitFloatingCorner
@@ -434,7 +435,7 @@ export function usePanelLayoutSynchronization({
       savedPosition,
       baseRect,
       containerRect,
-      boundaryElement ? placement : undefined,
+      boundaryElement ? currentPlacement : undefined,
     )
     const targetPosition = positionForPanelLayout({
       baseRect,

@@ -17,6 +17,8 @@ export interface PanelDock {
   vertical?: 'bottom' | 'top'
 }
 
+export type PanelDockEdge = 'bottom' | 'left' | 'right' | 'top'
+
 export interface PanelLayout extends PanelPosition {
   dock?: PanelDock | null
   placement?: PicodashPanelPlacement
@@ -33,7 +35,9 @@ export interface PanelRect {
 
 export interface PanelSnapOptions {
   gap?: number
+  retainedViewportDocks?: readonly PanelDockEdge[]
   threshold?: number
+  viewportDocks?: readonly PanelDockEdge[]
 }
 
 export interface PanelSnapResult {
@@ -284,30 +288,44 @@ export function snapPanelPosition({
   const gap = options?.gap ?? SNAP_GAP
   const threshold = options?.threshold ?? SNAP_THRESHOLD
   const candidateRect = offsetRect(baseRect, position)
-  const xCandidates: SnapCandidate[] = [
-    {
+  const viewportDocks = new Set(
+    options?.viewportDocks ?? (['bottom', 'left', 'right', 'top'] as const),
+  )
+  const retainedViewportDocks = new Set(options?.retainedViewportDocks)
+  const xCandidates: SnapCandidate[] = []
+  if (viewportDocks.has('left')) {
+    xCandidates.push({
       delta: containerRect.left + gap - candidateRect.left,
       dock: 'left',
+      retained: retainedViewportDocks.has('left'),
       viewport: true,
-    },
-    {
+    })
+  }
+  if (viewportDocks.has('right')) {
+    xCandidates.push({
       delta: containerRect.right - gap - candidateRect.right,
       dock: 'right',
+      retained: retainedViewportDocks.has('right'),
       viewport: true,
-    },
-  ]
-  const yCandidates: SnapCandidate[] = [
-    {
+    })
+  }
+  const yCandidates: SnapCandidate[] = []
+  if (viewportDocks.has('top')) {
+    yCandidates.push({
       delta: containerRect.top + gap - candidateRect.top,
       dock: 'top',
+      retained: retainedViewportDocks.has('top'),
       viewport: true,
-    },
-    {
+    })
+  }
+  if (viewportDocks.has('bottom')) {
+    yCandidates.push({
       delta: containerRect.bottom - gap - candidateRect.bottom,
       dock: 'bottom',
+      retained: retainedViewportDocks.has('bottom'),
       viewport: true,
-    },
-  ]
+    })
+  }
 
   for (const peerRect of peerRects ?? []) {
     xCandidates.push(
@@ -338,15 +356,25 @@ export function snapPanelPosition({
     position: snapped,
   })
   const dock: PanelDock = {}
+  const directionalViewportDocks = options?.viewportDocks !== undefined
   const safeLeft = containerRect.left + gap
   const safeRight = containerRect.right - gap
   const safeTop = containerRect.top + gap
-  if (almostEqual(projection.rect.left, safeLeft)) {
+  if (
+    (xSnap?.viewport && xSnap.dock === 'left') ||
+    (!directionalViewportDocks && almostEqual(projection.rect.left, safeLeft))
+  ) {
     dock.horizontal = 'left'
-  } else if (almostEqual(projection.rect.right, safeRight)) {
+  } else if (
+    (xSnap?.viewport && xSnap.dock === 'right') ||
+    (!directionalViewportDocks && almostEqual(projection.rect.right, safeRight))
+  ) {
     dock.horizontal = 'right'
   }
-  if (almostEqual(projection.rect.top, safeTop)) {
+  if (
+    (ySnap?.viewport && ySnap.dock === 'top') ||
+    (!directionalViewportDocks && almostEqual(projection.rect.top, safeTop))
+  ) {
     dock.vertical = 'top'
   } else if (ySnap?.viewport && ySnap.dock === 'bottom') {
     dock.vertical = 'bottom'
@@ -362,7 +390,8 @@ export function snapPanelPosition({
 
 interface SnapCandidate {
   delta: number
-  dock?: 'bottom' | 'left' | 'right' | 'top'
+  dock?: PanelDockEdge
+  retained?: boolean
   viewport?: boolean
 }
 
@@ -370,7 +399,7 @@ function nearestCandidateWithinThreshold(candidates: SnapCandidate[], threshold:
   let nearest: SnapCandidate | null = null
 
   for (const candidate of candidates) {
-    if (Math.abs(candidate.delta) > threshold) continue
+    if (!candidate.retained && Math.abs(candidate.delta) > threshold) continue
     if (nearest === null || Math.abs(candidate.delta) < Math.abs(nearest.delta)) {
       nearest = candidate
     }

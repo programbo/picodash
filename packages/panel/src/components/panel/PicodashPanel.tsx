@@ -24,6 +24,7 @@ import { useStore } from 'zustand'
 import { panelParticipatesInSnapping, rectWithHeight } from '../../geometry/panel-geometry.js'
 import {
   baseRectFromDisplayedRect,
+  dockForSnapPosition,
   isPanelPlacementEdgeAttached,
   normalizePicodashPanelPlacement,
   rectForPanelBoundary,
@@ -33,6 +34,7 @@ import {
   snapPanelPosition,
   snapPositionForDock,
   type PanelDock,
+  type PanelDockEdge,
   type PanelPosition,
   type PanelRect,
 } from '../../geometry/panel-snapping.js'
@@ -195,6 +197,7 @@ export function PicodashPanel({
     containerRect: PanelRect
     dock: PanelDock | null
     intrinsicHeight: number
+    lastRect: PanelRect
     offset: PanelPosition
     peerRects: PanelRect[]
     placement: PicodashPanelPlacement
@@ -363,7 +366,17 @@ export function PicodashPanel({
     const snapped = snapPanelPosition({
       baseRect: dragState.baseRect,
       containerRect: dragState.containerRect,
-      options: { gap: snapGap },
+      options: {
+        gap: snapGap,
+        retainedViewportDocks:
+          dragState.placement.mode === 'magnetic'
+            ? retainedViewportDocksForDrag(info.delta, dragState.dock)
+            : undefined,
+        viewportDocks:
+          dragState.placement.mode === 'magnetic'
+            ? viewportDocksForDrag(info.delta, dragState.dock)
+            : undefined,
+      },
       peerRects: dragState.peerRects,
       position: {
         x: dragState.startPosition.x + info.offset.x,
@@ -412,6 +425,13 @@ export function PicodashPanel({
       'data-picodash-panel-snapping',
       snapped.snappedX || snapped.snappedY,
     )
+    if (dragState.placement.mode === 'magnetic') {
+      requestAnimationFrame(() => {
+        if (dragStateRef.current === dragState && panelElementRef.current) {
+          dragState.lastRect = rectFromElement(panelElementRef.current)
+        }
+      })
+    }
     updatePanelRect()
     props.onDrag?.(event, info)
   }
@@ -435,7 +455,11 @@ export function PicodashPanel({
     y.set(displayedPosition.y)
 
     if (panelElement) {
-      const baseRect = baseRectFromDisplayedRect(rectFromElement(panelElement), displayedPosition)
+      const displayedRect =
+        nextPlacement.mode === 'magnetic' && nextPlacement.position === undefined && dragState
+          ? dragState.lastRect
+          : rectFromElement(panelElement)
+      const baseRect = baseRectFromDisplayedRect(displayedRect, displayedPosition)
       providerStore.getState().setPanelLayout(panelId, {
         dock,
         placement: nextPlacement,
@@ -461,8 +485,12 @@ export function PicodashPanel({
           intrinsicHeight,
         ),
         containerRect: rectForPanelBoundary(resolvedBoundary),
-        dock: null,
+        dock:
+          placement.mode === 'magnetic' && placement.position
+            ? dockForSnapPosition(placement.position)
+            : null,
         intrinsicHeight,
+        lastRect: rectFromElement(panelElement),
         offset: { x: 0, y: 0 },
         placement,
         peerRects: Object.entries(providerStore.getState().panelRects)
@@ -702,6 +730,7 @@ export function PicodashPanel({
           </motion.aside>
           {edgePlacement && collapsible ? (
             <FixedPanelToggle
+              animatePosition={fixedPlacement}
               collapsed={panelCollapsed}
               panelId={panelId}
               panelTitle={titleText}
@@ -720,6 +749,7 @@ export function PicodashPanel({
 }
 
 function FixedPanelToggle({
+  animatePosition,
   collapsed,
   onToggle,
   panelId,
@@ -729,6 +759,7 @@ function FixedPanelToggle({
   theme,
   ref,
 }: {
+  animatePosition: boolean
   collapsed: boolean
   onToggle: () => void
   panelId: string
@@ -756,7 +787,7 @@ function FixedPanelToggle({
       )}
       data-picodash-fixed-toggle=""
       data-picodash-theme={theme}
-      layout="position"
+      layout={animatePosition ? 'position' : false}
       ref={ref}
       transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       type="button"
@@ -805,6 +836,42 @@ function placementShellClassName(placement: PicodashPanelPlacement) {
   if (isPanelPlacementEdgeAttached(placement)) return 'top-0 left-0'
   const position = placement.position ?? 'top-right'
   return panelPlacementClassNames[position]
+}
+
+function viewportDocksForDrag(delta: PanelPosition, currentDock: PanelDock | null) {
+  const docks: PanelDockEdge[] = []
+  if (delta.x < 0) {
+    docks.push('left')
+  } else if (delta.x > 0) {
+    docks.push('right')
+  } else if (currentDock?.horizontal) {
+    docks.push(currentDock.horizontal)
+  }
+  if (delta.y < 0) {
+    docks.push('top')
+  } else if (delta.y > 0) {
+    docks.push('bottom')
+  } else if (currentDock?.vertical) {
+    docks.push(currentDock.vertical)
+  }
+  return docks
+}
+
+function retainedViewportDocksForDrag(delta: PanelPosition, currentDock: PanelDock | null) {
+  const docks: PanelDockEdge[] = []
+  if (
+    (currentDock?.horizontal === 'left' && delta.x <= 0) ||
+    (currentDock?.horizontal === 'right' && delta.x >= 0)
+  ) {
+    docks.push(currentDock.horizontal)
+  }
+  if (
+    (currentDock?.vertical === 'top' && delta.y <= 0) ||
+    (currentDock?.vertical === 'bottom' && delta.y >= 0)
+  ) {
+    docks.push(currentDock.vertical)
+  }
+  return docks
 }
 
 function useResolvedPanelBoundary(

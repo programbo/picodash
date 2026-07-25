@@ -242,6 +242,61 @@ describe('panel geometry projection', () => {
   })
 })
 
+describe('directional viewport snapping', () => {
+  test('ignores an incidental bottom contact while moving toward the left edge', () => {
+    const snapped = snapPanelPosition({
+      baseRect: rect(255, 190, 300, 410),
+      containerRect: rect(0, 0, 900, 600),
+      options: { gap: 0, viewportDocks: ['left'] },
+      position: { x: -255, y: 0 },
+    })
+
+    expect(snapped.dock).toEqual({ horizontal: 'left' })
+    expect(snapped.position.x).toBe(-255)
+  })
+
+  test('does not infer a stationary top attachment while pulling away horizontally', () => {
+    const snapped = snapPanelPosition({
+      baseRect: rect(0, 0, 300, 402),
+      containerRect: rect(0, 0, 900, 600),
+      options: { gap: 0, viewportDocks: ['right'] },
+      position: { x: 180, y: 0 },
+    })
+
+    expect(snapped.dock).toBeNull()
+  })
+
+  test('retains an attached edge while the pointer continues outward past the threshold', () => {
+    const snapped = snapPanelPosition({
+      baseRect: rect(0, 190, 300, 410),
+      containerRect: rect(0, 0, 900, 600),
+      options: {
+        gap: 0,
+        retainedViewportDocks: ['left'],
+        viewportDocks: ['left'],
+      },
+      position: { x: -120, y: 0 },
+    })
+
+    expect(snapped.dock).toEqual({ horizontal: 'left' })
+    expect(snapped.position.x).toBe(0)
+  })
+
+  test('keeps peer snapping independent from magnetic viewport attachment', () => {
+    const snapped = snapPanelPosition({
+      baseRect: rect(100, 100, 200, 100),
+      containerRect: rect(0, 0, 900, 600),
+      options: { gap: 0, viewportDocks: [] },
+      peerRects: [rect(400, 100, 200, 100)],
+      position: { x: 100, y: 0 },
+    })
+
+    expect(snapped.dock).toBeNull()
+    expect(snapped.position).toEqual({ x: 100, y: 0 })
+    expect(snapped.snappedX).toBe(true)
+  })
+})
+
 describe('fixed panel geometry', () => {
   const boundaryRect = rect(120, 80, 640, 480)
 
