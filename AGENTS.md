@@ -72,12 +72,17 @@ independent of portal ownership.
 
 ## Required Commands
 
+The deployment scripts require a globally installed Vercel CLI. Install it once with
+`bun install --global vercel`.
+
 - `bun install`
 - `bun run lint`
 - `bun run format`
 - `bun run dev`
 - `bun run web`
 - `bun run lab`
+- `bun run deploy`
+- `bun run deploy:prod`
 - `bun run --filter @picodash/lab lint`
 - `bun run --filter @picodash/lab format`
 - `bun run --filter @picodash/lab check`

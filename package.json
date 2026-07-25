@@ -48,6 +48,8 @@
     "dev": "bun run --filter @picodash/web dev",
     "web": "bun run --filter @picodash/web dev",
     "lab": "bun run --filter @picodash/lab dev",
+    "deploy": "vercel",
+    "deploy:prod": "vercel --prod",
     "picodash": "vp run @picodash/panel#dev",
     "test:e2e": "bun run --filter @picodash/web test:e2e",
     "prepare": "vp config"
