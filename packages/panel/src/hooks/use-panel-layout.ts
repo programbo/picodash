@@ -329,6 +329,13 @@ export function usePanelLayoutSynchronization({
         const targetRect = fixedPanelRect({
           boundaryRect: containerRect,
           height: panelRect.height,
+          horizontalPosition:
+            nextPlacement.mode === 'magnetic' &&
+            (nextPlacement.position === 'top' || nextPlacement.position === 'bottom')
+              ? dragBaseRect
+                ? dragBaseRect.left + displayedPosition.x
+                : store.getState().panelLayouts[panelId]?.x
+              : undefined,
           position: nextPlacement.position,
           width: panelRect.width,
         })
@@ -367,6 +374,8 @@ export function usePanelLayoutSynchronization({
       panelElementRef,
       positionElementRef,
       restoreCallerFixedDimensions,
+      panelId,
+      store,
       x,
       y,
     ],

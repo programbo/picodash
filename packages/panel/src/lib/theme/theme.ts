@@ -40,6 +40,12 @@ export const picodashMotionTokens = {
   quickFade: {
     duration: 0.16,
   } satisfies Transition,
+  magneticPreview: {
+    damping: 42,
+    mass: 0.45,
+    stiffness: 720,
+    type: 'spring',
+  } satisfies Transition,
   reorder: {
     damping: 30,
     mass: 0.55,

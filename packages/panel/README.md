@@ -196,11 +196,12 @@ const canvasRef = useRef<HTMLDivElement>(null)
   render, and fixed panels overlay rather than inset application content.
 - Floating panels remain constrained to the effective boundary. Magnetic and fixed placements
   follow its live edges; only panels with the same resolved boundary participate in peer snapping.
-- Floating edge snaps retain an 8px offset and remain floating. Magnetic panels attach flush and
-  adopt fixed edge styling, pinned-lane scrolling, and collapse/reopen behavior while attached.
-  Magnetic panels remain magnetic when pulled clear, but use floating styling and behavior until
-  they snap back to an edge or corner. Their presentation changes immediately when a drag crosses
-  the snap threshold rather than waiting for pointer release.
+- Floating edge snaps retain an 8px offset and remain floating. Magnetic drags keep the real panel
+  natural-sized and floating-style while an animated outline previews the release target. Side
+  targets are flush, full-height, and fixed-like after release; corner targets are flush,
+  natural-height, and fixed-like. Top and bottom targets remain natural-height and floating-style,
+  with ordinary internal collapse rather than fixed retraction. Pulling an attached magnetic panel
+  40px releases it without changing its magnetic mode. Reduced motion disables preview springs.
 - Fixed `left` and `right` panels fill the effective boundary height. Fixed corner panels keep
   content-driven height capped to that boundary.
 - Collapsible fixed panels retract into their edge or corner and leave an accessible arrow button

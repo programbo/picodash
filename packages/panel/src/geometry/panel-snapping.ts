@@ -47,6 +47,14 @@ export interface PanelSnapResult {
   snappedY: boolean
 }
 
+export interface MagneticSnapIntentInput {
+  containerRect: PanelRect
+  panelHeight: number
+  panelRect: PanelRect
+  pointer: PanelPosition
+  threshold?: number
+}
+
 export const SNAP_GAP = 8
 export const SNAP_THRESHOLD = 16
 export const FLOATING_PLACEMENT_INSET = 16
@@ -65,6 +73,21 @@ export function isPanelPlacementEdgeAttached(
   return (
     placement.mode === 'fixed' ||
     (placement.mode === 'magnetic' && placement.position !== undefined)
+  )
+}
+
+export function isPanelPlacementFixedLike(placement: PicodashPanelPlacement): placement is
+  | Extract<PicodashPanelPlacement, { mode: 'fixed' }>
+  | {
+      mode: 'magnetic'
+      position: Exclude<PicodashPanelSnapPosition, 'bottom' | 'top'>
+    } {
+  return (
+    placement.mode === 'fixed' ||
+    (placement.mode === 'magnetic' &&
+      placement.position !== undefined &&
+      placement.position !== 'top' &&
+      placement.position !== 'bottom')
   )
 }
 
@@ -98,6 +121,31 @@ export function snapPositionForDock(
   if (dock.horizontal === 'right' && dock.vertical === 'bottom') return 'bottom-right'
   if (dock.horizontal === 'left' && dock.vertical === 'bottom') return 'bottom-left'
   return dock.horizontal ?? dock.vertical ?? null
+}
+
+export function magneticSnapPositionForPointer({
+  containerRect,
+  panelHeight,
+  panelRect,
+  pointer,
+  threshold = SNAP_THRESHOLD,
+}: MagneticSnapIntentInput): PicodashPanelSnapPosition | null {
+  const horizontal = horizontalSnapIntent(panelRect, containerRect, pointer, threshold)
+  const pointerVertical = verticalPointerIntent(
+    pointer,
+    containerRect,
+    Math.min(containerRect.height / 3, panelHeight),
+  )
+  if (horizontal && pointerVertical) {
+    return snapPositionForDock({ horizontal, vertical: pointerVertical })
+  }
+  if (horizontal) return horizontal
+
+  const panelIsOverHeight = panelHeight >= containerRect.height - threshold
+  const vertical = panelIsOverHeight
+    ? pointerVertical
+    : verticalSnapIntent(panelRect, containerRect, pointer, threshold)
+  return vertical ?? null
 }
 
 export function placementForPanelLayout(
@@ -406,6 +454,50 @@ function nearestCandidateWithinThreshold(candidates: SnapCandidate[], threshold:
   }
 
   return nearest
+}
+
+function horizontalSnapIntent(
+  panelRect: PanelRect,
+  containerRect: PanelRect,
+  pointer: PanelPosition,
+  threshold: number,
+): PanelDock['horizontal'] {
+  const nearLeft = panelRect.left <= containerRect.left + threshold
+  const nearRight = panelRect.right >= containerRect.right - threshold
+  if (nearLeft && nearRight) {
+    return pointer.x <= containerRect.left + containerRect.width / 2 ? 'left' : 'right'
+  }
+  if (nearLeft) return 'left'
+  if (nearRight) return 'right'
+  return undefined
+}
+
+function verticalSnapIntent(
+  panelRect: PanelRect,
+  containerRect: PanelRect,
+  pointer: PanelPosition,
+  threshold: number,
+): PanelDock['vertical'] {
+  const nearTop = panelRect.top <= containerRect.top + threshold
+  const nearBottom = panelRect.bottom >= containerRect.bottom - threshold
+  if (nearTop && nearBottom) {
+    return pointer.y <= containerRect.top + containerRect.height / 2 ? 'top' : 'bottom'
+  }
+  if (nearTop) return 'top'
+  if (nearBottom) return 'bottom'
+  return undefined
+}
+
+function verticalPointerIntent(
+  pointer: PanelPosition,
+  containerRect: PanelRect,
+  zone: number,
+): PanelDock['vertical'] {
+  const distanceFromTop = pointer.y - containerRect.top
+  const distanceFromBottom = containerRect.bottom - pointer.y
+  if (distanceFromTop <= zone && distanceFromTop <= distanceFromBottom) return 'top'
+  if (distanceFromBottom <= zone) return 'bottom'
+  return undefined
 }
 
 function clamp(value: number, min: number, max: number) {

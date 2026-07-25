@@ -1,4 +1,5 @@
 import {
+  animate,
   motion,
   useDragControls,
   useMotionValue,
@@ -6,12 +7,10 @@ import {
   type MotionStyle,
 } from 'motion/react'
 import {
-  ArrowDown,
   ArrowDownLeft,
   ArrowDownRight,
   ArrowLeft,
   ArrowRight,
-  ArrowUp,
   ArrowUpLeft,
   ArrowUpRight,
   ChevronRight,
@@ -21,12 +20,21 @@ import {
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Ref } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from 'zustand'
-import { panelParticipatesInSnapping, rectWithHeight } from '../../geometry/panel-geometry.js'
+import {
+  fixedPanelRect,
+  panelParticipatesInSnapping,
+  rectWithHeight,
+} from '../../geometry/panel-geometry.js'
 import {
   baseRectFromDisplayedRect,
+  clampPanelPosition,
   dockForSnapPosition,
+  FLOATING_PLACEMENT_INSET,
   isPanelPlacementEdgeAttached,
+  isPanelPlacementFixedLike,
+  magneticSnapPositionForPointer,
   normalizePicodashPanelPlacement,
+  offsetRect,
   rectForPanelBoundary,
   rectFromElement,
   resolvePicodashPanelBoundary,
@@ -34,7 +42,6 @@ import {
   snapPanelPosition,
   snapPositionForDock,
   type PanelDock,
-  type PanelDockEdge,
   type PanelPosition,
   type PanelRect,
 } from '../../geometry/panel-snapping.js'
@@ -59,14 +66,18 @@ import { TooltipProvider } from '../overlays/Tooltip.js'
 import { buttonVariants } from '../ui/button.js'
 import { usePanelLayoutSynchronization } from '../../hooks/use-panel-layout.js'
 import { cn } from '../../utilities/utils.js'
+import { picodashMotionTokens } from '../../lib/theme/theme.js'
 import type {
   PicodashPanelCloseBehavior,
   PicodashPanelCloseDetails,
+  PicodashPanelFixedPosition,
   PicodashPanelPlacement,
   PicodashPanelProps,
   PicodashPanelSnapPosition,
   PicodashPanelStore,
 } from '../../state/panel/picodash-panel-types.js'
+
+const MAGNETIC_RELEASE_DISTANCE = 40
 
 export { createPicodashPanelStore } from '../../state/panel/picodash-panel-store.js'
 export {
@@ -184,6 +195,9 @@ export function PicodashPanel({
   const [dragMagneticPosition, setDragMagneticPosition] = useState<
     PicodashPanelSnapPosition | null | undefined
   >(undefined)
+  const [magneticPreviewPosition, setMagneticPreviewPosition] =
+    useState<PicodashPanelSnapPosition | null>(null)
+  const [magneticDragActive, setMagneticDragActive] = useState(false)
   const defaultVisibleRef = useRef(defaultVisible)
   const pendingDeregisterCloseRef = useRef<PicodashPanelCloseDetails | null>(null)
   const panelElementRef = useRef<HTMLElement | null>(null)
@@ -191,20 +205,31 @@ export function PicodashPanel({
   const fixedToggleRef = useRef<HTMLButtonElement | null>(null)
   const panelStoreRef = useRef<PicodashPanelStore | null>(injectedPanelStore ?? null)
   const bodyRef = useRef<HTMLDivElement | null>(null)
-  const dragMagneticPositionRef = useRef<PicodashPanelSnapPosition | null | undefined>(undefined)
+  const magneticPreviewPositionRef = useRef<PicodashPanelSnapPosition | null>(null)
+  const magneticPreviewTargetRef = useRef<PanelRect | null>(null)
   const dragStateRef = useRef<{
+    appliedOffset: PanelPosition
+    attachedDock: PanelDock | null
+    attachedReleased: boolean
     baseRect: PanelRect
     containerRect: PanelRect
     dock: PanelDock | null
+    floatingHeight: number
     intrinsicHeight: number
     lastRect: PanelRect
-    offset: PanelPosition
     peerRects: PanelRect[]
     placement: PicodashPanelPlacement
     startPosition: PanelPosition
+    verticalPreviewArmed: boolean
   } | null>(null)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
+  const previewX = useMotionValue(0)
+  const previewY = useMotionValue(0)
+  const previewWidth = useMotionValue(0)
+  const previewHeight = useMotionValue(0)
+  const previewOpacity = useMotionValue(0)
+  const previewAnimationRef = useRef<Array<{ stop: () => void }>>([])
   const normalizedDefaultPlacement = useMemo(
     () => normalizePicodashPanelPlacement(defaultPlacement),
     [defaultPlacement],
@@ -236,7 +261,10 @@ export function PicodashPanel({
       : placement
   const fixedPlacement = placement.mode === 'fixed'
   const layoutEdgePlacement = isPanelPlacementEdgeAttached(placement)
-  const edgePlacement = isPanelPlacementEdgeAttached(visualPlacement)
+  const fixedLikePosition = isPanelPlacementFixedLike(visualPlacement)
+    ? visualPlacement.position
+    : null
+  const edgePlacement = fixedLikePosition !== null
   const shellDragProps = panelShellDragProps(fixedPlacement, {
     _dragX,
     _dragY,
@@ -300,15 +328,14 @@ export function PicodashPanel({
     const panelElement = panelElementRef.current
     if (!dragState || !panelElement || dragState.placement.mode !== 'magnetic') return
     const displayedPosition = { x: x.get(), y: y.get() }
+    const panelRect = rectFromElement(panelElement)
     const intrinsicHeight = measureIntrinsicHeight()
-    dragState.baseRect = rectWithHeight(
-      baseRectFromDisplayedRect(rectFromElement(panelElement), displayedPosition),
-      intrinsicHeight,
-    )
+    dragState.baseRect = baseRectFromDisplayedRect(panelRect, displayedPosition)
+    dragState.floatingHeight = panelRect.height
     dragState.intrinsicHeight = intrinsicHeight
     dragState.startPosition = {
-      x: displayedPosition.x - dragState.offset.x,
-      y: displayedPosition.y - dragState.offset.y,
+      x: displayedPosition.x - dragState.appliedOffset.x,
+      y: displayedPosition.y - dragState.appliedOffset.y,
     }
   }, [dragMagneticPosition, measureIntrinsicHeight, synchronizePlacementGeometry, x, y])
 
@@ -339,6 +366,13 @@ export function PicodashPanel({
     onClose?.(details)
   }, [deregistered, onClose])
 
+  useEffect(
+    () => () => {
+      for (const animation of previewAnimationRef.current) animation.stop()
+    },
+    [],
+  )
+
   const togglePanelCollapsed = () => {
     const nextCollapsed = !panelCollapsed
     if (!panelParticipatesInSnapping(placement, nextCollapsed)) {
@@ -354,6 +388,57 @@ export function PicodashPanel({
     setCollapsed(nextCollapsed)
   }
 
+  const updateMagneticPreview = (
+    position: PicodashPanelSnapPosition | null,
+    targetRect: PanelRect,
+    panelRect: PanelRect,
+  ) => {
+    const previousPosition = magneticPreviewPositionRef.current
+    const previewWasHidden = previousPosition === null
+    const destination = position ? targetRect : panelRect
+    if (
+      previousPosition === position &&
+      (position === null || panelRectsAlmostEqual(magneticPreviewTargetRef.current, destination))
+    ) {
+      return
+    }
+
+    for (const animation of previewAnimationRef.current) animation.stop()
+    previewAnimationRef.current = []
+    if (previewWasHidden && position) {
+      previewX.set(panelRect.left)
+      previewY.set(panelRect.top)
+      previewWidth.set(panelRect.width)
+      previewHeight.set(panelRect.height)
+    }
+    if (magneticPreviewPositionRef.current !== position) {
+      magneticPreviewPositionRef.current = position
+      setMagneticPreviewPosition(position)
+    }
+    magneticPreviewTargetRef.current = destination
+
+    if (reducedMotion) {
+      previewX.set(destination.left)
+      previewY.set(destination.top)
+      previewWidth.set(destination.width)
+      previewHeight.set(destination.height)
+      previewOpacity.set(position ? 1 : 0)
+      return
+    }
+
+    const transition = picodashMotionTokens.magneticPreview
+    previewAnimationRef.current = [
+      animate(previewX, destination.left, transition),
+      animate(previewY, destination.top, transition),
+      animate(previewWidth, destination.width, transition),
+      animate(previewHeight, destination.height, transition),
+      animate(previewOpacity, position ? 1 : 0, {
+        duration: position ? 0.12 : 0.1,
+        ease: 'easeOut',
+      }),
+    ]
+  }
+
   const handleDrag: NonNullable<PicodashPanelProps['onDrag']> = (event, info) => {
     const dragState = dragStateRef.current
     if (!dragState) {
@@ -361,22 +446,105 @@ export function PicodashPanel({
       return
     }
 
-    dragState.offset = { x: info.offset.x, y: info.offset.y }
-    const snapGap = dragState.placement.mode === 'magnetic' ? 0 : SNAP_GAP
+    dragState.containerRect = rectForPanelBoundary(resolvedBoundary)
+    if (dragState.placement.mode === 'magnetic') {
+      if (
+        dragState.attachedDock &&
+        !dragState.attachedReleased &&
+        magneticReleaseDistance(info.offset, dragState.attachedDock) <= MAGNETIC_RELEASE_DISTANCE
+      ) {
+        dragState.appliedOffset = { x: 0, y: 0 }
+        dragState.dock = dragState.attachedDock
+        synchronizePlacementGeometry(dragState.placement, dragState.baseRect)
+        const panelRect = panelElementRef.current
+          ? rectFromElement(panelElementRef.current)
+          : dragState.lastRect
+        updateMagneticPreview(null, panelRect, panelRect)
+        props.onDrag?.(event, info)
+        return
+      }
+
+      if (dragState.attachedDock && !dragState.attachedReleased) {
+        dragState.attachedReleased = true
+        dragState.dock = null
+        setDragMagneticPosition(null)
+        synchronizePlacementGeometry({ mode: 'magnetic' }, dragState.baseRect)
+      }
+
+      const appliedOffset = dragState.attachedDock
+        ? offsetAfterMagneticRelease(info.offset, dragState.attachedDock)
+        : info.offset
+      dragState.appliedOffset = appliedOffset
+      const candidatePosition = {
+        x: dragState.startPosition.x + appliedOffset.x,
+        y: dragState.startPosition.y + appliedOffset.y,
+      }
+      const candidateRect = offsetRect(dragState.baseRect, candidatePosition)
+      const pointer = dragPointerClientPosition(event, info.point)
+      const detectedPreviewPosition = magneticSnapPositionForPointer({
+        containerRect: dragState.containerRect,
+        panelHeight: dragState.intrinsicHeight,
+        panelRect: candidateRect,
+        pointer,
+      })
+      if (
+        !dragState.verticalPreviewArmed &&
+        detectedPreviewPosition !== 'top' &&
+        detectedPreviewPosition !== 'bottom'
+      ) {
+        dragState.verticalPreviewArmed = true
+      }
+      const previewPosition =
+        !dragState.verticalPreviewArmed &&
+        (detectedPreviewPosition === 'top' || detectedPreviewPosition === 'bottom')
+          ? null
+          : detectedPreviewPosition
+      const floatingSnap = snapPanelPosition({
+        baseRect: dragState.baseRect,
+        containerRect: dragState.containerRect,
+        options: {
+          gap: SNAP_GAP,
+          viewportDocks: [],
+        },
+        peerRects: dragState.peerRects,
+        position: candidatePosition,
+      })
+      const projection = applyProjection({
+        anchor: 'top',
+        baseRect: dragState.baseRect,
+        containerRect: dragState.containerRect,
+        inset: SNAP_GAP,
+        intrinsicHeight: dragState.floatingHeight,
+        position: clampPanelPosition(
+          floatingSnap.position,
+          dragState.baseRect,
+          insetPanelRect(dragState.containerRect, SNAP_GAP),
+        ),
+      })
+      const previewRect = previewPosition
+        ? magneticPreviewRect(
+            previewPosition,
+            projection.rect,
+            dragState.containerRect,
+            dragState.floatingHeight,
+          )
+        : projection.rect
+      updateMagneticPreview(previewPosition, previewRect, projection.rect)
+      dragState.dock = previewPosition ? dockForSnapPosition(previewPosition) : null
+      panelElementRef.current?.toggleAttribute(
+        'data-picodash-panel-snapping',
+        previewPosition !== null,
+      )
+      dragState.lastRect = projection.rect
+      updatePanelRect()
+      props.onDrag?.(event, info)
+      return
+    }
+
+    dragState.appliedOffset = { x: info.offset.x, y: info.offset.y }
     const snapped = snapPanelPosition({
       baseRect: dragState.baseRect,
       containerRect: dragState.containerRect,
-      options: {
-        gap: snapGap,
-        retainedViewportDocks:
-          dragState.placement.mode === 'magnetic'
-            ? retainedViewportDocksForDrag(info.delta, dragState.dock)
-            : undefined,
-        viewportDocks:
-          dragState.placement.mode === 'magnetic'
-            ? viewportDocksForDrag(info.delta, dragState.dock)
-            : undefined,
-      },
       peerRects: dragState.peerRects,
       position: {
         x: dragState.startPosition.x + info.offset.x,
@@ -387,51 +555,15 @@ export function PicodashPanel({
       anchor: snapped.dock?.vertical === 'bottom' ? 'bottom' : 'top',
       baseRect: dragState.baseRect,
       containerRect: dragState.containerRect,
-      inset: snapGap,
+      inset: SNAP_GAP,
       intrinsicHeight: dragState.intrinsicHeight,
       position: snapped.position,
     })
     dragState.dock = snapped.dock
-    if (dragState.placement.mode === 'magnetic') {
-      const nextMagneticPosition = snapPositionForDock(snapped.dock)
-      const magneticPositionChanged = dragMagneticPositionRef.current !== nextMagneticPosition
-      if (magneticPositionChanged) {
-        dragMagneticPositionRef.current = nextMagneticPosition
-        setDragMagneticPosition(nextMagneticPosition)
-      }
-      if (nextMagneticPosition) {
-        const previousBaseRect = dragState.baseRect
-        const synchronizedGeometry = synchronizePlacementGeometry(
-          {
-            mode: 'magnetic',
-            position: nextMagneticPosition,
-          },
-          dragState.baseRect,
-        )
-        if (magneticPositionChanged && synchronizedGeometry?.dragBaseRect) {
-          dragState.baseRect = synchronizedGeometry.dragBaseRect
-          dragState.startPosition = {
-            x:
-              dragState.startPosition.x -
-              (synchronizedGeometry.dragBaseRect.left - previousBaseRect.left),
-            y:
-              dragState.startPosition.y -
-              (synchronizedGeometry.dragBaseRect.top - previousBaseRect.top),
-          }
-        }
-      }
-    }
     panelElementRef.current?.toggleAttribute(
       'data-picodash-panel-snapping',
       snapped.snappedX || snapped.snappedY,
     )
-    if (dragState.placement.mode === 'magnetic') {
-      requestAnimationFrame(() => {
-        if (dragStateRef.current === dragState && panelElementRef.current) {
-          dragState.lastRect = rectFromElement(panelElementRef.current)
-        }
-      })
-    }
     updatePanelRect()
     props.onDrag?.(event, info)
   }
@@ -445,8 +577,14 @@ export function PicodashPanel({
         ? { mode: 'magnetic', ...(snapPosition ? { position: snapPosition } : {}) }
         : { mode: 'floating' }
     dragStateRef.current = null
-    dragMagneticPositionRef.current = undefined
     setDragMagneticPosition(undefined)
+    magneticPreviewPositionRef.current = null
+    magneticPreviewTargetRef.current = null
+    setMagneticPreviewPosition(null)
+    setMagneticDragActive(false)
+    previewOpacity.set(0)
+    for (const animation of previewAnimationRef.current) animation.stop()
+    previewAnimationRef.current = []
     panelElementRef.current?.removeAttribute('data-picodash-panel-snapping')
 
     const panelElement = panelElementRef.current
@@ -475,23 +613,29 @@ export function PicodashPanel({
   const handleDragStart: NonNullable<PicodashPanelProps['onDragStart']> = (event, info) => {
     const panelElement = panelElementRef.current
     if (panelElement) {
-      dragMagneticPositionRef.current =
-        placement.mode === 'magnetic' ? (placement.position ?? null) : undefined
       const displayedPosition = { x: x.get(), y: y.get() }
       const intrinsicHeight = measureIntrinsicHeight()
+      const initialDock =
+        placement.mode === 'magnetic' && placement.position
+          ? dockForSnapPosition(placement.position)
+          : null
+      const panelRect = rectFromElement(panelElement)
       dragStateRef.current = {
-        baseRect: rectWithHeight(
-          baseRectFromDisplayedRect(rectFromElement(panelElement), displayedPosition),
-          intrinsicHeight,
-        ),
+        appliedOffset: { x: 0, y: 0 },
+        attachedDock: initialDock,
+        attachedReleased: initialDock === null,
+        baseRect:
+          placement.mode === 'magnetic'
+            ? baseRectFromDisplayedRect(panelRect, displayedPosition)
+            : rectWithHeight(
+                baseRectFromDisplayedRect(panelRect, displayedPosition),
+                intrinsicHeight,
+              ),
         containerRect: rectForPanelBoundary(resolvedBoundary),
-        dock:
-          placement.mode === 'magnetic' && placement.position
-            ? dockForSnapPosition(placement.position)
-            : null,
+        dock: initialDock,
+        floatingHeight: panelRect.height,
         intrinsicHeight,
-        lastRect: rectFromElement(panelElement),
-        offset: { x: 0, y: 0 },
+        lastRect: panelRect,
         placement,
         peerRects: Object.entries(providerStore.getState().panelRects)
           .filter(
@@ -501,6 +645,18 @@ export function PicodashPanel({
           )
           .map(([, rect]) => rect),
         startPosition: displayedPosition,
+        verticalPreviewArmed: !initialDock?.horizontal || initialDock.vertical !== undefined,
+      }
+      if (placement.mode === 'magnetic') {
+        magneticPreviewPositionRef.current = null
+        magneticPreviewTargetRef.current = null
+        setMagneticPreviewPosition(null)
+        setMagneticDragActive(true)
+        previewX.set(panelRect.left)
+        previewY.set(panelRect.top)
+        previewWidth.set(panelRect.width)
+        previewHeight.set(panelRect.height)
+        previewOpacity.set(0)
       }
     }
 
@@ -513,6 +669,31 @@ export function PicodashPanel({
   return createPortal(
     <PicodashThemeContextProvider theme={theme}>
       <PicodashPanelContextProvider store={panelStore}>
+        {magneticDragActive ? (
+          <motion.svg
+            aria-hidden="true"
+            className="pointer-events-none fixed inset-0 h-dvh w-dvw overflow-visible"
+            data-picodash-magnetic-preview-layer=""
+            style={{ zIndex: Math.max(zIndex - 1, 0) }}
+          >
+            <motion.rect
+              data-magnetic-snap-preview={magneticPreviewPosition ?? ''}
+              fill="var(--picodash-color-accent)"
+              fillOpacity={0.08}
+              height={previewHeight}
+              opacity={previewOpacity}
+              rx={12}
+              stroke="var(--picodash-color-accent)"
+              strokeDasharray="8 6"
+              strokeOpacity={0.72}
+              strokeWidth={2}
+              vectorEffect="non-scaling-stroke"
+              width={previewWidth}
+              x={previewX}
+              y={previewY}
+            />
+          </motion.svg>
+        ) : null}
         <motion.div
           {...shellDragProps}
           data-picodash-panel-shell=""
@@ -572,16 +753,16 @@ export function PicodashPanel({
           <motion.aside
             {...props}
             animate={
-              edgePlacement
+              fixedLikePosition
                 ? panelCollapsed
-                  ? fixedCollapsedTransform(visualPlacement.position)
+                  ? fixedCollapsedTransform(fixedLikePosition)
                   : { x: '0%', y: '0%' }
                 : props.animate
             }
             aria-hidden={edgePlacement && panelCollapsed ? true : undefined}
             className={cn(
               'rounded-picodash-surface border-picodash-border bg-picodash-surface text-picodash-text shadow-picodash-panel pointer-events-auto relative flex max-h-[calc(100dvh-1rem)] min-h-0 w-(--picodash-panel-width) max-w-[calc(100dvw-2rem)] flex-col overflow-hidden border ring-1 ring-(--_picodash-panel-ring)',
-              edgePlacement && fixedPanelEdgeClassNames[visualPlacement.position],
+              fixedLikePosition && fixedPanelEdgeClassNames[fixedLikePosition],
               className,
             )}
             data-collapsed={panelCollapsed ? 'true' : 'false'}
@@ -606,12 +787,21 @@ export function PicodashPanel({
               } as MotionStyle & { '--picodash-panel-width'?: string }
             }
             transition={
-              edgePlacement
+              placement.mode === 'magnetic'
                 ? {
-                    duration: reducedMotion ? 0 : 0.2,
-                    ease: [0.16, 1, 0.3, 1],
+                    ...(edgePlacement
+                      ? {
+                          duration: reducedMotion ? 0 : 0.2,
+                          ease: [0.16, 1, 0.3, 1],
+                        }
+                      : props.transition),
                   }
-                : props.transition
+                : edgePlacement
+                  ? {
+                      duration: reducedMotion ? 0 : 0.2,
+                      ease: [0.16, 1, 0.3, 1],
+                    }
+                  : props.transition
             }
           >
             {panelShouldRenderHeader({
@@ -628,11 +818,11 @@ export function PicodashPanel({
                   collapsible && !edgePlacement
                     ? 'pl-(--picodash-space-1)'
                     : 'pl-(--picodash-space-3)',
-                  edgePlacement &&
-                    fixedPositionUsesLeftEdge(visualPlacement.position) &&
+                  fixedLikePosition &&
+                    fixedPositionUsesLeftEdge(fixedLikePosition) &&
                     'pr-(--picodash-control-height-md)',
-                  edgePlacement &&
-                    !fixedPositionUsesLeftEdge(visualPlacement.position) &&
+                  fixedLikePosition &&
+                    !fixedPositionUsesLeftEdge(fixedLikePosition) &&
                     'pl-(--picodash-control-height-md)',
                 )}
                 data-picodash-panel-header=""
@@ -728,13 +918,13 @@ export function PicodashPanel({
             </div>
             <PicodashPanelConstraintRepairDialog panelTitle={titleText} />
           </motion.aside>
-          {edgePlacement && collapsible ? (
+          {fixedLikePosition && collapsible ? (
             <FixedPanelToggle
               animatePosition={fixedPlacement}
               collapsed={panelCollapsed}
               panelId={panelId}
               panelTitle={titleText}
-              position={visualPlacement.position}
+              position={fixedLikePosition}
               reducedMotion={reducedMotion ?? false}
               theme={theme}
               ref={fixedToggleRef}
@@ -764,7 +954,7 @@ function FixedPanelToggle({
   onToggle: () => void
   panelId: string
   panelTitle: string
-  position: PicodashPanelSnapPosition
+  position: PicodashPanelFixedPosition
   reducedMotion: boolean
   theme: string
   ref: Ref<HTMLButtonElement>
@@ -799,16 +989,14 @@ function FixedPanelToggle({
   )
 }
 
-function fixedToggleIcon(position: PicodashPanelSnapPosition, collapsed: boolean): LucideIcon {
-  if (position === 'top') return collapsed ? ArrowDown : ArrowUp
-  if (position === 'bottom') return collapsed ? ArrowUp : ArrowDown
+function fixedToggleIcon(position: PicodashPanelFixedPosition, collapsed: boolean): LucideIcon {
   if (position === 'bottom-left') return collapsed ? ArrowUpRight : ArrowDownLeft
   if (position === 'bottom-right') return collapsed ? ArrowUpLeft : ArrowDownRight
   if (fixedPositionUsesLeftEdge(position)) return collapsed ? ArrowRight : ArrowLeft
   return collapsed ? ArrowLeft : ArrowRight
 }
 
-function fixedTogglePositionClassName(position: PicodashPanelSnapPosition, collapsed: boolean) {
+function fixedTogglePositionClassName(position: PicodashPanelFixedPosition, collapsed: boolean) {
   if (!collapsed) {
     return fixedPositionUsesLeftEdge(position)
       ? 'top-[0.1875rem] right-[0.1875rem]'
@@ -816,17 +1004,14 @@ function fixedTogglePositionClassName(position: PicodashPanelSnapPosition, colla
   }
   if (position === 'bottom-left') return 'bottom-0 left-0'
   if (position === 'bottom-right') return 'right-0 bottom-0'
-  if (position === 'bottom') return 'bottom-0 left-0'
   return fixedPositionUsesLeftEdge(position) ? 'top-0 left-0' : 'top-0 right-0'
 }
 
-function fixedPositionUsesLeftEdge(position: PicodashPanelSnapPosition) {
+function fixedPositionUsesLeftEdge(position: PicodashPanelFixedPosition) {
   return position === 'left' || position.endsWith('-left')
 }
 
-function fixedCollapsedTransform(position: PicodashPanelSnapPosition) {
-  if (position === 'top') return { x: '0%', y: '-100%' }
-  if (position === 'bottom') return { x: '0%', y: '100%' }
+function fixedCollapsedTransform(position: PicodashPanelFixedPosition) {
   if (position === 'bottom-left') return { x: '-100%', y: '100%' }
   if (position === 'bottom-right') return { x: '100%', y: '100%' }
   return fixedPositionUsesLeftEdge(position) ? { x: '-100%', y: '0%' } : { x: '100%', y: '0%' }
@@ -838,40 +1023,96 @@ function placementShellClassName(placement: PicodashPanelPlacement) {
   return panelPlacementClassNames[position]
 }
 
-function viewportDocksForDrag(delta: PanelPosition, currentDock: PanelDock | null) {
-  const docks: PanelDockEdge[] = []
-  if (delta.x < 0) {
-    docks.push('left')
-  } else if (delta.x > 0) {
-    docks.push('right')
-  } else if (currentDock?.horizontal) {
-    docks.push(currentDock.horizontal)
-  }
-  if (delta.y < 0) {
-    docks.push('top')
-  } else if (delta.y > 0) {
-    docks.push('bottom')
-  } else if (currentDock?.vertical) {
-    docks.push(currentDock.vertical)
-  }
-  return docks
+function dragPointerClientPosition(
+  event: MouseEvent | PointerEvent | TouchEvent,
+  fallbackPagePoint: PanelPosition,
+) {
+  if ('clientX' in event) return { x: event.clientX, y: event.clientY }
+  const touch = event.touches[0] ?? event.changedTouches[0]
+  return touch
+    ? { x: touch.clientX, y: touch.clientY }
+    : {
+        x: fallbackPagePoint.x - window.scrollX,
+        y: fallbackPagePoint.y - window.scrollY,
+      }
 }
 
-function retainedViewportDocksForDrag(delta: PanelPosition, currentDock: PanelDock | null) {
-  const docks: PanelDockEdge[] = []
-  if (
-    (currentDock?.horizontal === 'left' && delta.x <= 0) ||
-    (currentDock?.horizontal === 'right' && delta.x >= 0)
-  ) {
-    docks.push(currentDock.horizontal)
+function magneticReleaseDistance(offset: PanelPosition, dock: PanelDock) {
+  const inward = magneticInwardOffset(offset, dock)
+  return Math.hypot(inward.x, inward.y)
+}
+
+function offsetAfterMagneticRelease(offset: PanelPosition, dock: PanelDock) {
+  const inward = magneticInwardOffset(offset, dock)
+  const distance = Math.hypot(inward.x, inward.y)
+  if (distance <= MAGNETIC_RELEASE_DISTANCE) return { x: 0, y: 0 }
+  const resistanceRatio = MAGNETIC_RELEASE_DISTANCE / distance
+  return {
+    x: offset.x - inward.x * resistanceRatio,
+    y: offset.y - inward.y * resistanceRatio,
   }
-  if (
-    (currentDock?.vertical === 'top' && delta.y <= 0) ||
-    (currentDock?.vertical === 'bottom' && delta.y >= 0)
-  ) {
-    docks.push(currentDock.vertical)
+}
+
+function magneticInwardOffset(offset: PanelPosition, dock: PanelDock): PanelPosition {
+  let x = 0
+  let y = 0
+  if (dock.horizontal === 'left') {
+    x = Math.max(offset.x, 0)
+  } else if (dock.horizontal === 'right') {
+    x = Math.min(offset.x, 0)
   }
-  return docks
+  if (dock.vertical === 'top') {
+    y = Math.max(offset.y, 0)
+  } else if (dock.vertical === 'bottom') {
+    y = Math.min(offset.y, 0)
+  }
+  return { x, y }
+}
+
+function magneticPreviewRect(
+  position: PicodashPanelSnapPosition,
+  panelRect: PanelRect,
+  containerRect: PanelRect,
+  intrinsicHeight: number,
+) {
+  const floatingWidthLimit = Math.max(containerRect.width - FLOATING_PLACEMENT_INSET * 2, 0)
+  const width =
+    Math.abs(panelRect.width - floatingWidthLimit) <= 1 ? containerRect.width : panelRect.width
+  return fixedPanelRect({
+    boundaryRect: containerRect,
+    height:
+      position === 'left' || position === 'right'
+        ? containerRect.height
+        : Math.min(intrinsicHeight, containerRect.height),
+    horizontalPosition: position === 'top' || position === 'bottom' ? panelRect.left : undefined,
+    position,
+    width,
+  })
+}
+
+function panelRectsAlmostEqual(left: PanelRect | null, right: PanelRect) {
+  return (
+    left !== null &&
+    Math.abs(left.left - right.left) < 0.5 &&
+    Math.abs(left.top - right.top) < 0.5 &&
+    Math.abs(left.width - right.width) < 0.5 &&
+    Math.abs(left.height - right.height) < 0.5
+  )
+}
+
+function insetPanelRect(rect: PanelRect, inset: number): PanelRect {
+  const left = rect.left + inset
+  const top = rect.top + inset
+  const right = Math.max(left, rect.right - inset)
+  const bottom = Math.max(top, rect.bottom - inset)
+  return {
+    bottom,
+    height: bottom - top,
+    left,
+    right,
+    top,
+    width: right - left,
+  }
 }
 
 function useResolvedPanelBoundary(
@@ -955,8 +1196,6 @@ const panelPlacementClassNames = {
 } as const
 
 const fixedPanelEdgeClassNames = {
-  top: 'rounded-t-none',
-  bottom: 'rounded-b-none',
   'bottom-left': 'rounded-bl-none',
   'bottom-right': 'rounded-br-none',
   'top-left': 'rounded-tl-none',

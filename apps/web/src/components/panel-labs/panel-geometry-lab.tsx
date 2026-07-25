@@ -59,6 +59,9 @@ export function PanelGeometryLab({ fixture = 'drag' }: { fixture?: string }) {
   if (fixture === 'magnetic-viewport') {
     return <MagneticViewportFixture />
   }
+  if (fixture === 'magnetic-viewport-tall') {
+    return <MagneticViewportFixture tall />
+  }
   if (fixture === 'review-regressions') {
     return <ReviewRegressionFixture />
   }
@@ -93,7 +96,7 @@ export function PanelGeometryLab({ fixture = 'drag' }: { fixture?: string }) {
   )
 }
 
-function MagneticViewportFixture() {
+function MagneticViewportFixture({ tall = false }: { tall?: boolean }) {
   return (
     <main
       id="main-content"
@@ -112,7 +115,7 @@ function MagneticViewportFixture() {
           defaultPlacement={{ mode: 'magnetic', position: 'top-left' }}
           data-geometry-fixture="magnetic-viewport"
         >
-          <TallContent prefix="magnetic-viewport" count={10} />
+          <TallContent prefix="magnetic-viewport" count={tall ? 32 : 10} />
         </PicodashPanel>
       </PicodashProvider>
     </main>
