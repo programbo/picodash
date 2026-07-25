@@ -25,7 +25,7 @@ test('keeps keyboard tab navigation functional when the home tab list overflows'
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 800 })
-  await page.goto('/')
+  await page.goto('/', { waitUntil: 'networkidle' })
 
   const tabList = page.getByRole('tablist', { name: 'Interactive example views' })
   await expect
