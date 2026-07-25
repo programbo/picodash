@@ -323,6 +323,13 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
   await expect(magneticToggle).toBeVisible()
   await expect(panel.locator('[data-picodash-scrollport="auto"]')).toHaveClass(/scroll-fade/)
+  await expect
+    .poll(async () => {
+      const panelBox = await requiredBox(panel)
+      const boundaryBox = await requiredBox(boundary)
+      return Math.round(boundaryBox.height - panelBox.height) || 0
+    })
+    .toBe(0)
   await page.mouse.up()
   await expect(runtimePlacement).toHaveText('magnetic:left')
   await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
@@ -330,6 +337,27 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   await expect
     .poll(async () => Math.round((await requiredBox(panel)).x - (await requiredBox(boundary)).x))
     .toBe(0)
+
+  const attachedHeaderBox = await requiredBox(magneticHeader)
+  await page.mouse.move(
+    attachedHeaderBox.x + attachedHeaderBox.width / 2,
+    attachedHeaderBox.y + attachedHeaderBox.height / 2,
+  )
+  await page.mouse.down()
+  await page.mouse.move(
+    attachedHeaderBox.x + attachedHeaderBox.width / 2 + 180,
+    attachedHeaderBox.y + attachedHeaderBox.height / 2 + 120,
+    { steps: 12 },
+  )
+  await expect(runtimePlacement).toHaveText('magnetic:left')
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  await expect(magneticToggle).toHaveCount(0)
+  await expect(panel.locator('[data-picodash-scrollport="body"]')).toHaveClass(/scroll-fade/)
+  await expect
+    .poll(async () => (await requiredBox(boundary)).height - (await requiredBox(panel)).height)
+    .toBeGreaterThan(1)
+  await page.mouse.up()
+  await expect(runtimePlacement).toHaveText('magnetic:')
 
   await expectPanelAtBoundary(overridePanel, overrideBoundary, 'bottom-right')
 
