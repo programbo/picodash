@@ -275,6 +275,7 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   await expectCollapsedPanelBeyondBoundary(panel, boundary, 'top-left')
   await magneticToggle.click()
   await expect(panel).toHaveAttribute('data-collapsed', 'false')
+  await expectPanelAtBoundary(panel, boundary, 'top-left')
 
   const magneticHeader = panel.locator('[data-picodash-panel-header]')
   const magneticHeaderBox = await requiredBox(magneticHeader)
@@ -339,9 +340,7 @@ test('supports fixed placements, inherited boundaries, pinned lanes, and panel o
   await expect(runtimePlacement).toHaveText('magnetic:left')
   await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
   await expect(panel.locator('[data-picodash-scrollport="auto"]')).toHaveClass(/scroll-fade/)
-  await expect
-    .poll(async () => Math.round((await requiredBox(panel)).x - (await requiredBox(boundary)).x))
-    .toBe(0)
+  await expectPanelAtBoundary(panel, boundary, 'left')
 
   const attachedHeaderBox = await requiredBox(magneticHeader)
   await page.mouse.move(
