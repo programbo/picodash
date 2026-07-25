@@ -182,6 +182,39 @@ export function usePanelLayoutSynchronization({
     [callerMaxWidth, constraintClassName, panelElementRef],
   )
 
+  const measureEdgeAttachedPanelSize = useCallback(
+    (containerRect: PanelRect, intrinsicHeight: number) => {
+      const panelElement = panelElementRef.current
+      const fullHeight = Math.min(containerRect.height, measureCallerMaxHeight(containerRect))
+      const maxWidth = panelMaxWidthForBoundary(
+        containerRect.width,
+        measureCallerMaxWidth(containerRect),
+      )
+      const width = panelElement
+        ? withPanelMeasurementProbe(panelElement, (probeElement, probeContainer) => {
+            probeContainer.style.setProperty(
+              'height',
+              `${Math.max(containerRect.height, 0)}px`,
+              'important',
+            )
+            probeContainer.style.setProperty(
+              'width',
+              `${Math.max(containerRect.width, 0)}px`,
+              'important',
+            )
+            probeElement.style.setProperty('max-width', `${maxWidth}px`, 'important')
+            return rectFromElement(probeElement).width
+          })
+        : 0
+      return {
+        fullHeight,
+        naturalHeight: Math.min(intrinsicHeight, fullHeight),
+        width,
+      }
+    },
+    [measureCallerMaxHeight, measureCallerMaxWidth, panelElementRef],
+  )
+
   const restoreCallerMaxHeight = useCallback(() => {
     const panelElement = panelElementRef.current
     if (!panelElement) return
@@ -575,6 +608,7 @@ export function usePanelLayoutSynchronization({
 
   return {
     applyProjection,
+    measureEdgeAttachedPanelSize,
     measureIntrinsicHeight,
     scheduleSynchronization,
     synchronizePlacementGeometry,

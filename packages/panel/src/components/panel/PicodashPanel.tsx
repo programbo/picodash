@@ -29,7 +29,6 @@ import {
   baseRectFromDisplayedRect,
   clampPanelPosition,
   dockForSnapPosition,
-  FLOATING_PLACEMENT_INSET,
   isPanelPlacementEdgeAttached,
   isPanelPlacementFixedLike,
   magneticSnapPositionForPointer,
@@ -209,8 +208,11 @@ export function PicodashPanel({
   const magneticPreviewTargetRef = useRef<PanelRect | null>(null)
   const dragStateRef = useRef<{
     appliedOffset: PanelPosition
+    attachedFullHeight: number
     attachedDock: PanelDock | null
+    attachedNaturalHeight: number
     attachedReleased: boolean
+    attachedWidth: number
     baseRect: PanelRect
     containerRect: PanelRect
     dock: PanelDock | null
@@ -285,6 +287,7 @@ export function PicodashPanel({
     typeof close === 'object' ? close.behavior : 'hide'
   const {
     applyProjection,
+    measureEdgeAttachedPanelSize,
     measureIntrinsicHeight,
     scheduleSynchronization,
     synchronizePlacementGeometry,
@@ -330,6 +333,10 @@ export function PicodashPanel({
     const displayedPosition = { x: x.get(), y: y.get() }
     const panelRect = rectFromElement(panelElement)
     const intrinsicHeight = measureIntrinsicHeight()
+    const attachedSize = measureEdgeAttachedPanelSize(dragState.containerRect, intrinsicHeight)
+    dragState.attachedFullHeight = attachedSize.fullHeight
+    dragState.attachedNaturalHeight = attachedSize.naturalHeight
+    dragState.attachedWidth = attachedSize.width
     dragState.baseRect = baseRectFromDisplayedRect(panelRect, displayedPosition)
     dragState.floatingHeight = panelRect.height
     dragState.intrinsicHeight = intrinsicHeight
@@ -337,7 +344,14 @@ export function PicodashPanel({
       x: displayedPosition.x - dragState.appliedOffset.x,
       y: displayedPosition.y - dragState.appliedOffset.y,
     }
-  }, [dragMagneticPosition, measureIntrinsicHeight, synchronizePlacementGeometry, x, y])
+  }, [
+    dragMagneticPosition,
+    measureEdgeAttachedPanelSize,
+    measureIntrinsicHeight,
+    synchronizePlacementGeometry,
+    x,
+    y,
+  ])
 
   useLayoutEffect(() => {
     if (layoutEdgePlacement) return
@@ -446,7 +460,20 @@ export function PicodashPanel({
       return
     }
 
-    dragState.containerRect = rectForPanelBoundary(resolvedBoundary)
+    const nextContainerRect = rectForPanelBoundary(resolvedBoundary)
+    if (
+      nextContainerRect.width !== dragState.containerRect.width ||
+      nextContainerRect.height !== dragState.containerRect.height
+    ) {
+      const attachedSize = measureEdgeAttachedPanelSize(
+        nextContainerRect,
+        dragState.intrinsicHeight,
+      )
+      dragState.attachedFullHeight = attachedSize.fullHeight
+      dragState.attachedNaturalHeight = attachedSize.naturalHeight
+      dragState.attachedWidth = attachedSize.width
+    }
+    dragState.containerRect = nextContainerRect
     if (dragState.placement.mode === 'magnetic') {
       if (
         dragState.attachedDock &&
@@ -522,12 +549,11 @@ export function PicodashPanel({
         ),
       })
       const previewRect = previewPosition
-        ? magneticPreviewRect(
-            previewPosition,
-            projection.rect,
-            dragState.containerRect,
-            dragState.floatingHeight,
-          )
+        ? magneticPreviewRect(previewPosition, projection.rect, dragState.containerRect, {
+            fullHeight: dragState.attachedFullHeight,
+            naturalHeight: dragState.attachedNaturalHeight,
+            width: dragState.attachedWidth,
+          })
         : projection.rect
       updateMagneticPreview(previewPosition, previewRect, projection.rect)
       dragState.dock = previewPosition ? dockForSnapPosition(previewPosition) : null
@@ -615,6 +641,8 @@ export function PicodashPanel({
     if (panelElement) {
       const displayedPosition = { x: x.get(), y: y.get() }
       const intrinsicHeight = measureIntrinsicHeight()
+      const containerRect = rectForPanelBoundary(resolvedBoundary)
+      const attachedSize = measureEdgeAttachedPanelSize(containerRect, intrinsicHeight)
       const initialDock =
         placement.mode === 'magnetic' && placement.position
           ? dockForSnapPosition(placement.position)
@@ -622,8 +650,11 @@ export function PicodashPanel({
       const panelRect = rectFromElement(panelElement)
       dragStateRef.current = {
         appliedOffset: { x: 0, y: 0 },
+        attachedFullHeight: attachedSize.fullHeight,
         attachedDock: initialDock,
+        attachedNaturalHeight: attachedSize.naturalHeight,
         attachedReleased: initialDock === null,
+        attachedWidth: attachedSize.width,
         baseRect:
           placement.mode === 'magnetic'
             ? baseRectFromDisplayedRect(panelRect, displayedPosition)
@@ -631,7 +662,7 @@ export function PicodashPanel({
                 baseRectFromDisplayedRect(panelRect, displayedPosition),
                 intrinsicHeight,
               ),
-        containerRect: rectForPanelBoundary(resolvedBoundary),
+        containerRect,
         dock: initialDock,
         floatingHeight: panelRect.height,
         intrinsicHeight,
@@ -1074,20 +1105,21 @@ function magneticPreviewRect(
   position: PicodashPanelSnapPosition,
   panelRect: PanelRect,
   containerRect: PanelRect,
-  intrinsicHeight: number,
+  attachedSize: {
+    fullHeight: number
+    naturalHeight: number
+    width: number
+  },
 ) {
-  const floatingWidthLimit = Math.max(containerRect.width - FLOATING_PLACEMENT_INSET * 2, 0)
-  const width =
-    Math.abs(panelRect.width - floatingWidthLimit) <= 1 ? containerRect.width : panelRect.width
   return fixedPanelRect({
     boundaryRect: containerRect,
     height:
       position === 'left' || position === 'right'
-        ? containerRect.height
-        : Math.min(intrinsicHeight, containerRect.height),
+        ? attachedSize.fullHeight
+        : attachedSize.naturalHeight,
     horizontalPosition: position === 'top' || position === 'bottom' ? panelRect.left : undefined,
     position,
-    width,
+    width: attachedSize.width,
   })
 }
 

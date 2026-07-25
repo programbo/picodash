@@ -36,6 +36,9 @@ const fixedOverridePanelStore = createPicodashPanelStore({ panelId: 'geometry-fi
 const magneticViewportPanelStore = createPicodashPanelStore({
   panelId: 'geometry-magnetic-viewport',
 })
+const magneticWidthPanelStore = createPicodashPanelStore({
+  panelId: 'geometry-magnetic-width',
+})
 const reviewRegressionPanelStore = createPicodashPanelStore({
   panelId: 'geometry-review-regression',
 })
@@ -61,6 +64,9 @@ export function PanelGeometryLab({ fixture = 'drag' }: { fixture?: string }) {
   }
   if (fixture === 'magnetic-viewport-tall') {
     return <MagneticViewportFixture tall />
+  }
+  if (fixture === 'magnetic-width') {
+    return <MagneticWidthFixture />
   }
   if (fixture === 'review-regressions') {
     return <ReviewRegressionFixture />
@@ -91,6 +97,30 @@ export function PanelGeometryLab({ fixture = 'drag' }: { fixture?: string }) {
         {fixture === 'class-max-height' ? <ClassMaxHeightFixture /> : null}
         {fixture === 'bottom-max-height' ? <BottomMaxHeightFixture /> : null}
         {fixture === 'bottom-drag' ? <BottomDragFixture /> : null}
+      </PicodashProvider>
+    </main>
+  )
+}
+
+function MagneticWidthFixture() {
+  return (
+    <main
+      id="main-content"
+      className="dark bg-background text-foreground min-h-svh"
+      data-panel-geometry-lab
+      data-product-route="panel-geometry-lab"
+    >
+      <div className="pointer-events-none fixed inset-0" data-geometry-viewport />
+      <PicodashProvider persistLayout={false} theme="dark">
+        <PicodashPanel
+          store={magneticWidthPanelStore}
+          title="Magnetic width"
+          width={300}
+          defaultPlacement={{ mode: 'magnetic' }}
+          data-geometry-fixture="magnetic-width"
+        >
+          <TallContent prefix="magnetic-width" count={4} />
+        </PicodashPanel>
       </PicodashProvider>
     </main>
   )

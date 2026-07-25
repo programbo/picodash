@@ -904,6 +904,7 @@ for (const position of ['top', 'bottom'] as const) {
 test('uses cursor edge intent for an intrinsically over-height magnetic panel', async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.setViewportSize({ width: 900, height: 300 })
   await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-viewport-tall`)
   const boundary = page.locator('[data-geometry-viewport]')
@@ -955,9 +956,50 @@ test('uses cursor edge intent for an intrinsically over-height magnetic panel', 
   )
   await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'bottom')
   await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  const previewBox = await requiredBox(preview)
+  expect(previewBox.height).toBeGreaterThan((await requiredBox(panel)).height)
   await page.mouse.up()
   await expect(shell).toHaveAttribute('data-magnetic-placement', 'bottom')
+  await expect
+    .poll(async () => Math.abs((await requiredBox(panel)).height - previewBox.height))
+    .toBeLessThanOrEqual(2.1)
   await expect(shell.locator('[data-picodash-fixed-toggle]')).toHaveCount(0)
+})
+
+test('previews the committed width when the caller width equals the floating boundary limit', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.setViewportSize({ width: 332, height: 600 })
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=magnetic-width`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'magnetic-width')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-magnetic-snap-preview]')
+
+  await expect(shell).toHaveAttribute('data-magnetic-placement', '')
+  const floatingBox = await requiredBox(panel)
+  expect(floatingBox.width).toBe(300)
+  const boundaryBox = await requiredBox(boundary)
+  const start = center(await requiredBox(header))
+  const pointer = {
+    ...pointerForPanelTarget(start, floatingBox, magneticTarget(floatingBox, boundaryBox, 'left')),
+    y: boundaryBox.y + boundaryBox.height / 2,
+  }
+
+  await page.mouse.move(start.x, start.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x, pointer.y, { steps: 12 })
+  await expect(preview).toHaveAttribute('data-magnetic-snap-preview', 'left')
+  const previewBox = await requiredBox(preview)
+  expect(Math.abs(previewBox.width - floatingBox.width)).toBeLessThanOrEqual(2.1)
+  await page.mouse.up()
+
+  await expect(shell).toHaveAttribute('data-magnetic-placement', 'left')
+  await expect
+    .poll(async () => Math.abs((await requiredBox(panel)).width - previewBox.width))
+    .toBeLessThanOrEqual(2.1)
 })
 
 test('persists a magnetic detach when the pointer is released immediately', async ({ page }) => {
