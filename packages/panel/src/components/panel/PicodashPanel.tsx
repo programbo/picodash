@@ -790,6 +790,9 @@ export function PicodashPanel({
         },
       })
     }
+    if (dragState?.placement.mode === 'hybrid' && nextPlacement.disposition.kind !== 'docked') {
+      synchronizePlacementGeometry(nextPlacement)
+    }
     updatePanelRect()
     scheduleSynchronization()
     props.onDragEnd?.(event, info)
