@@ -1338,16 +1338,23 @@ for (const position of ['full-left', 'full-right'] as const) {
     await expect(shell).toHaveAttribute('data-hybrid-placement', position)
     await expectHybridPanelAtBoundary(panel, boundary, position)
 
-    await page.mouse.move(attachedStart.x, attachedStart.y + 40)
+    await page.mouse.up()
+    await expect(shell).toHaveAttribute('data-hybrid-placement', position)
+    await expectHybridPanelAtBoundary(panel, boundary, position)
+
+    const retryStart = center(await requiredBox(header))
+    await page.mouse.move(retryStart.x, retryStart.y)
+    await page.mouse.down()
+    await page.mouse.move(retryStart.x, retryStart.y + 40)
     await expect(shell).toHaveAttribute('data-hybrid-placement', '')
     await expect(page.locator('[data-runtime-placement]')).toHaveText('hybrid:')
     await expect
-      .poll(async () => Math.abs(center(await requiredBox(header)).y - (attachedStart.y + 40)))
+      .poll(async () => Math.abs(center(await requiredBox(header)).y - (retryStart.y + 40)))
       .toBeLessThanOrEqual(1)
 
-    await page.mouse.move(attachedStart.x, attachedStart.y + 48, { steps: 4 })
+    await page.mouse.move(retryStart.x, retryStart.y + 48, { steps: 4 })
     await expect
-      .poll(async () => Math.abs(center(await requiredBox(header)).y - (attachedStart.y + 48)))
+      .poll(async () => Math.abs(center(await requiredBox(header)).y - (retryStart.y + 48)))
       .toBeLessThanOrEqual(1)
     await page.mouse.up()
   })

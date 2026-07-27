@@ -741,7 +741,9 @@ export function PicodashPanel({
     }
     const hybridTargetPosition =
       dragState?.placement.mode === 'hybrid'
-        ? committedHybridPosition(dragState.targetPosition, hybridPreviewPositionRef.current)
+        ? dragState.attachedReleased
+          ? committedHybridPosition(dragState.targetPosition, hybridPreviewPositionRef.current)
+          : placementPosition(dragState.placement)
         : null
     const nextPlacement: PicodashPanelPlacement =
       dragState?.placement.mode === 'hybrid'
