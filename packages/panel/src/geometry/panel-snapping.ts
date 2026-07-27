@@ -304,6 +304,34 @@ export function clampPanelPosition(
   }
 }
 
+/**
+ * Supplies the initial saved coordinate for a placement that constrains only
+ * one axis. A panel with no persisted layout should begin centred along its
+ * free axis, while later layouts retain the user's preferred coordinate.
+ */
+export function initialPreferredCoordinatesForPlacement({
+  baseRect,
+  containerRect,
+  placement,
+}: {
+  baseRect: PanelRect
+  containerRect: PanelRect
+  placement: PicodashPanelPlacement
+}): PanelPosition {
+  if (placement.disposition.kind === 'free') {
+    return {
+      x: baseRect.left - containerRect.left,
+      y: baseRect.top - containerRect.top,
+    }
+  }
+
+  const edges = dockForSnapPosition(placement.disposition.position)
+  return {
+    x: edges.horizontal ? 0 : (containerRect.width - baseRect.width) / 2,
+    y: edges.vertical ? 0 : (containerRect.height - baseRect.height) / 2,
+  }
+}
+
 export function positionForPanelLayout({
   baseRect,
   containerRect,

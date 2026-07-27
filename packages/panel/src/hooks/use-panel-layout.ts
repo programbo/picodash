@@ -13,6 +13,7 @@ import {
 import {
   baseRectFromDisplayedRect,
   clampPanelPosition,
+  initialPreferredCoordinatesForPlacement,
   isPanelPlacementFixedLike,
   offsetRect,
   positionForPanelLayout,
@@ -475,10 +476,11 @@ export function usePanelLayoutSynchronization({
       savedPosition ??
       ({
         placement: currentPlacement,
-        preferredCoordinates: {
-          x: layoutRect.left - containerRect.left,
-          y: layoutRect.top - containerRect.top,
-        },
+        preferredCoordinates: initialPreferredCoordinatesForPlacement({
+          baseRect,
+          containerRect,
+          placement: currentPlacement,
+        }),
       } satisfies PanelLayout)
     const targetPosition = positionForPanelLayout({
       baseRect,

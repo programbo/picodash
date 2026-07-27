@@ -12,6 +12,7 @@ import {
   DEFAULT_SNAP_OFFSET,
   DEFAULT_SNAP_PROXIMITY,
   hybridDockPositionForPointer,
+  initialPreferredCoordinatesForPlacement,
   isPanelPlacementFixedLike,
   positionForPanelLayout,
   resolvePicodashPanelPlacementOptions,
@@ -589,6 +590,40 @@ test('keeps snapped panels offset while placing docked panels flush', () => {
       },
     }),
   ).toEqual({ x: -92, y: -72 })
+})
+
+test('centers the free axis for fresh single-edge snapped placements', () => {
+  const baseRect = rect(100, 80, 160, 120)
+  const containerRect = rect(20, 30, 500, 400)
+
+  expect(
+    initialPreferredCoordinatesForPlacement({
+      baseRect,
+      containerRect,
+      placement: { disposition: { kind: 'snapped', position: 'top' }, mode: 'floating' },
+    }),
+  ).toEqual({ x: 170, y: 0 })
+  expect(
+    initialPreferredCoordinatesForPlacement({
+      baseRect,
+      containerRect,
+      placement: { disposition: { kind: 'snapped', position: 'bottom' }, mode: 'floating' },
+    }),
+  ).toEqual({ x: 170, y: 0 })
+  expect(
+    initialPreferredCoordinatesForPlacement({
+      baseRect,
+      containerRect,
+      placement: { disposition: { kind: 'snapped', position: 'left' }, mode: 'floating' },
+    }),
+  ).toEqual({ x: 0, y: 140 })
+  expect(
+    initialPreferredCoordinatesForPlacement({
+      baseRect,
+      containerRect,
+      placement: { disposition: { kind: 'snapped', position: 'right' }, mode: 'floating' },
+    }),
+  ).toEqual({ x: 0, y: 140 })
 })
 
 test('detects ordinary caller class constraints from their computed-style effect', () => {
