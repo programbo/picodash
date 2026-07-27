@@ -730,10 +730,14 @@ export function PicodashPanel({
     if (dragState?.placement.mode === 'floating') {
       applyFloatingDrag(dragState, info.offset)
     }
+    const hybridTargetPosition =
+      dragState?.placement.mode === 'hybrid'
+        ? committedHybridPosition(dragState.targetPosition, hybridPreviewPositionRef.current)
+        : null
     const nextPlacement: PicodashPanelPlacement =
       dragState?.placement.mode === 'hybrid'
         ? hybridPlacementForPosition(
-            isHybridPosition(dragState.targetPosition) ? dragState.targetPosition : null,
+            isHybridPosition(hybridTargetPosition) ? hybridTargetPosition : null,
           )
         : {
             disposition:
@@ -1293,6 +1297,14 @@ function hybridPlacementForPosition(
   return position === 'bottom' || position === 'top'
     ? { disposition: { kind: 'snapped', position }, mode: 'hybrid' }
     : { disposition: { kind: 'docked', position }, mode: 'hybrid' }
+}
+
+function committedHybridPosition(
+  target: PicodashPanelDockedPosition | PicodashPanelSnappedPosition | null,
+  preview: PicodashPanelHybridDockPosition | null,
+) {
+  if (target === null || target === 'bottom' || target === 'top') return target
+  return target === preview ? target : null
 }
 
 function isHybridPosition(

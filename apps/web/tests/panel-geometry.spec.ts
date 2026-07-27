@@ -529,6 +529,7 @@ test('previews the committed width when a constrained hybrid panel expands at an
   await page.mouse.move(attachedStart.x + 80, attachedStart.y + 60, { steps: 12 })
   await expect(shell).toHaveAttribute('data-hybrid-placement', '')
   await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-hybrid-placement', '')
 
   await page.setViewportSize({ width: 376, height: 600 })
   await expect.poll(async () => Math.round((await requiredBox(boundary)).width)).toBe(280)
