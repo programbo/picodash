@@ -802,6 +802,14 @@ export function PicodashPanel({
     }
     if (dragState?.placement.mode === 'hybrid' && nextPlacement.disposition.kind !== 'docked') {
       synchronizePlacementGeometry(nextPlacement)
+      requestAnimationFrame(() => {
+        const currentPlacement = providerStore.getState().panels[panelId]?.placement
+        if (currentPlacement?.mode !== 'hybrid' || currentPlacement.disposition.kind === 'docked') {
+          return
+        }
+        synchronizePlacementGeometry(currentPlacement)
+        updatePanelRect()
+      })
     }
     updatePanelRect()
     scheduleSynchronization()
