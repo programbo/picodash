@@ -195,8 +195,11 @@ The deployment scripts require a globally installed Vercel CLI. Install it once 
 Focused validation:
 
 - `vp run @picodash/panel#build` before workspace-wide checks or builds.
-- `LAB_PORT=6034 WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e`
+- `LAB_PORT=6032 WEBSITE_PORT=6033 bun run --filter @picodash/web test:e2e`
 - `apps/web/tests/routes.spec.ts` verifies the production route boundary and local lab
   `data-product-route` markers.
+
+If an allocated port is occupied while an agent needs to briefly run a server, find a free port in
+`6034-6039` and pass it through the relevant environment variable.
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`.

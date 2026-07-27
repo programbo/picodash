@@ -301,19 +301,22 @@ Repairs from imports and constraint propagation are reviewable through the built
 
 ## Ports
 
-`ports` allocation owns `6030-6039`.
+The shared project defaults are:
 
-- `6034`: local-only lab server via `LAB_PORT`.
-- `6035`: production website development and Playwright web server via `WEBSITE_PORT`.
-- `6036`: this worktree production start server.
-- `6030-6033` and `6037-6039`: available.
+- `6030`: web development server via `WEBSITE_PORT`.
+- `6031`: web production preview (`start`) server via `WEBSITE_PORT`.
+- `6032`: local-only lab development server via `LAB_PORT`.
+- `6033`: web E2E server via `WEBSITE_PORT`.
 
-Use the next available port in this range for new local services and document it.
+Ports `6034-6039` can be temporarily allocated to worktrees so development and E2E servers can
+run without conflicting with the shared project servers. If an agent needs to briefly run a server
+and its allocated port is occupied, it should find a free port in `6034-6039` and pass that port
+through the relevant environment variable.
 
 For this worktree:
 
 ```bash
-LAB_PORT=6034 WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
+LAB_PORT=6032 WEBSITE_PORT=6033 bun run --filter @picodash/web test:e2e
 ```
 
 ## Current commands
@@ -356,7 +359,7 @@ bun run ready
 Focused checks:
 
 ```bash
-LAB_PORT=6034 WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
+LAB_PORT=6032 WEBSITE_PORT=6033 bun run --filter @picodash/web test:e2e
 ```
 
 `bun run ready` remains the full verification gate:
