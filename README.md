@@ -317,12 +317,18 @@ Repairs from imports and constraint propagation are reviewable through the built
 
 `ports` allocation owns `6030-6039`.
 
-- `6034`: local-only lab server via `LAB_PORT`.
-- `6035`: production website development and Playwright web server via `WEBSITE_PORT`.
-- `6036`: this worktree production start server.
-- `6030-6033` and `6037-6039`: available.
+- `6030`: web development server via `WEBSITE_PORT`.
+- `6031`: web production preview (`start`) server via `WEBSITE_PORT`.
+- `6032`: local lab development server via `LAB_PORT`.
+- `6033`: web E2E server via `WEBSITE_PORT`.
 
-Use the next available port in this range for new local services and document it.
+Ports `6034-6039` can be temporarily allocated to worktrees so development and E2E servers can
+run without conflicting with the shared project servers. If an agent needs to briefly run a server
+and its allocated port is occupied, it should find a free port in `6034-6039` and pass that port
+through the relevant environment variable.
+
+Assign new local services only from the available slots in `6034-6039`, and document it
+if the service becomes a part of the project.
 
 For this worktree:
 
