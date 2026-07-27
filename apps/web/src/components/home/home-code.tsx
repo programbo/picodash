@@ -35,6 +35,7 @@ import { shadcnChartTypes } from '@/components/items/custom/shadcn-chart'
 import { HomeContent, HomeFrame } from '@/components/home/home-frame'
 import { useDemoContext } from '@/components/providers/demo-provider'
 import { cn } from '@/lib/utils'
+import { positionForPlacement } from '@/lib/panel-placement'
 
 hljs.registerLanguage('typescript', typescript)
 
@@ -765,8 +766,9 @@ export function HomeCode() {
     if (!runtimePlacement) return
 
     const panelPlacementMode = runtimePlacement.mode
-    const panelPlacementPosition = runtimePlacement.position
-      ? closestBuiltInPanelPlacementPosition(runtimePlacement.position, panelPlacementMode)
+    const runtimePosition = positionForPlacement(runtimePlacement)
+    const panelPlacementPosition = runtimePosition
+      ? closestBuiltInPanelPlacementPosition(runtimePosition, panelPlacementMode)
       : closestBuiltInPanelPlacementPosition(config.panelPlacementPosition, panelPlacementMode)
     if (
       config.panelPlacementMode === panelPlacementMode &&
@@ -917,6 +919,7 @@ export function HomeCode() {
     config.panelPlacementPosition,
     config.panelPlacementMode,
   )
+  const panelPlacement = placementForBuiltInItemsConfig(config)
   const panelPlacementPositions = [...builtInPanelPlacementPositions[config.panelPlacementMode]]
 
   const copySource = async () => {
@@ -994,7 +997,7 @@ export function HomeCode() {
               <CodeLine indent={1}>
                 <Prop>storageKey</Prop>
                 <Punctuation>=&quot;</Punctuation>
-                <StringValue>picodash-demo:panel-layout:v1</StringValue>
+                <StringValue>picodash-demo:panel-layout:v2</StringValue>
                 <Punctuation>&quot;</Punctuation>
               </CodeLine>
               <CodeLine indent={1}>
@@ -1071,7 +1074,7 @@ export function HomeCode() {
                   ariaLabel="Panel placement mode"
                   className="w-20"
                   value={config.panelPlacementMode}
-                  values={['floating', 'magnetic', 'fixed']}
+                  values={['floating', 'hybrid', 'fixed']}
                   onChange={(value) =>
                     updatePanelPlacement(value as BuiltInPanelPlacementMode, panelPlacementPosition)
                   }
@@ -1079,6 +1082,16 @@ export function HomeCode() {
                 <Punctuation>&apos;,</Punctuation>
               </CodeLine>
               <CodeLine indent={3}>
+                <Prop>disposition</Prop>
+                <Punctuation>: &#123;</Punctuation>
+              </CodeLine>
+              <CodeLine indent={4}>
+                <Prop>kind</Prop>
+                <Punctuation>: &apos;</Punctuation>
+                <StringValue>{panelPlacement.disposition.kind}</StringValue>
+                <Punctuation>&apos;,</Punctuation>
+              </CodeLine>
+              <CodeLine indent={4}>
                 <Prop>position</Prop>
                 <Punctuation>: &apos;</Punctuation>
                 <InlineSelect
@@ -1094,6 +1107,9 @@ export function HomeCode() {
                   }
                 />
                 <Punctuation>&apos;,</Punctuation>
+              </CodeLine>
+              <CodeLine indent={3}>
+                <Punctuation>&#125;,</Punctuation>
               </CodeLine>
               <CodeLine indent={2}>
                 <Punctuation>&#125;&#125;</Punctuation>
@@ -1728,6 +1744,10 @@ function sourceForExample(
   showAllProps = false,
 ) {
   const panelPlacement = placementForBuiltInItemsConfig(config)
+  const serializedPanelPlacement = JSON.stringify(panelPlacement, null, 2).replaceAll(
+    '\n',
+    '\n      ',
+  )
   const noopBooleanUpdate = () => undefined
   const noopItemUpdate: UpdateItemProp = () => undefined
   const noopNumberUpdate = () => undefined
@@ -1789,7 +1809,7 @@ ${serializeControls(group.lines)}
 
   return `<PicodashProvider
   persistLayout
-  storageKey="picodash-demo:panel-layout:v1"
+  storageKey="picodash-demo:panel-layout:v2"
   theme={${JSON.stringify(providerTheme)}}
 >
   <PicodashPanel
@@ -1797,7 +1817,7 @@ ${serializeControls(group.lines)}
     title={${JSON.stringify(config.panelTitle)}}
     collapsible={${config.panelCollapsible}}
     width={${config.panelWidth}}
-    defaultPlacement={{ mode: ${JSON.stringify(panelPlacement.mode)}, position: ${JSON.stringify(panelPlacement.position)} }}${
+    defaultPlacement={${serializedPanelPlacement}}${
       showAllProps
         ? `
     className="bg-(--picodash-color-surface)/72 top-4 right-4 max-w-[calc(100dvw-2rem)] backdrop-blur-xl lg:top-8 lg:right-8"`

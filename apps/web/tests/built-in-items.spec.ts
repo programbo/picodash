@@ -101,7 +101,7 @@ test('keeps the non-fixed panel background attached to the panel at and away fro
   expect(initialPanelBox.x).toBeLessThanOrEqual(16)
   expect(initialShellBox.width).toBeCloseTo(initialPanelBox.width, 0)
 
-  await placementMode.selectOption('magnetic')
+  await placementMode.selectOption('hybrid')
   await expect(placementPosition).toHaveValue('top-left')
   await expect(shell).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
   await expect(shell).toHaveCSS('backdrop-filter', 'none')
@@ -139,14 +139,14 @@ test('reflects persisted panel placement in the interactive JSX controls after r
   )
 
   await placementMode.selectOption('fixed')
-  await placementPosition.selectOption('right')
-  await expect(panelShell).toHaveAttribute('data-fixed-placement', 'right')
+  await placementPosition.selectOption('full-right')
+  await expect(panelShell).toHaveAttribute('data-fixed-placement', 'full-right')
 
   await page.reload()
 
   await expect(placementMode).toHaveValue('fixed')
-  await expect(placementPosition).toHaveValue('right')
-  await expect(panelShell).toHaveAttribute('data-fixed-placement', 'right')
+  await expect(placementPosition).toHaveValue('full-right')
+  await expect(panelShell).toHaveAttribute('data-fixed-placement', 'full-right')
 })
 
 test('keeps the expanded panel header toggle transparent until hover', async ({ page }) => {
@@ -401,15 +401,9 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
   await expect(example.locator('[data-interactive-tabs]')).toHaveClass(/bg-zinc-950\/78/)
   await expect(placementMode).toHaveValue('floating')
   await expect(placementPosition).toHaveValue('top-right')
-  await expect(placementPosition.locator('option')).toHaveText([
-    'top-left',
-    'top-right',
-    'bottom-left',
-    'bottom-right',
-  ])
-
-  await placementMode.selectOption('magnetic')
-  await expect(placementPosition).toHaveValue('top-right')
+  await expect(example.getByText('disposition', { exact: true })).toBeVisible()
+  await expect(example.getByText('kind', { exact: true })).toBeVisible()
+  await expect(example.getByText('snapped', { exact: true })).toBeVisible()
   await expect(placementPosition.locator('option')).toHaveText([
     'top-left',
     'top',
@@ -420,23 +414,40 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
     'bottom-left',
     'left',
   ])
+
+  await placementMode.selectOption('hybrid')
+  await expect(placementPosition).toHaveValue('top-right')
+  await expect(placementPosition.locator('option')).toHaveText([
+    'top-left',
+    'top',
+    'top-right',
+    'full-right',
+    'bottom-right',
+    'bottom',
+    'bottom-left',
+    'full-left',
+  ])
   await placementPosition.selectOption('bottom')
+  await expect(example.getByText('snapped', { exact: true })).toBeVisible()
   await placementMode.selectOption('fixed')
   await expect(placementPosition).toHaveValue('bottom-left')
+  await expect(example.getByText('docked', { exact: true })).toBeVisible()
   await expect(placementPosition.locator('option')).toHaveText([
     'top-left',
     'top-right',
     'bottom-left',
     'bottom-right',
-    'left',
-    'right',
+    'full-left',
+    'full-right',
+    'middle-left',
+    'middle-right',
   ])
   await expect(panelShell).toHaveAttribute('data-fixed-placement', 'bottom-left')
 
-  await placementPosition.selectOption('right')
-  await expect(panelShell).toHaveAttribute('data-fixed-placement', 'right')
+  await placementPosition.selectOption('full-right')
+  await expect(panelShell).toHaveAttribute('data-fixed-placement', 'full-right')
   await placementMode.selectOption('floating')
-  await expect(placementPosition).toHaveValue('top-right')
+  await expect(placementPosition).toHaveValue('right')
   await expect(panelShell).not.toHaveAttribute('data-fixed-placement')
 
   const showAllProps = example.getByRole('checkbox', { name: 'Show all props' })
@@ -557,7 +568,9 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
     .toContain('title={"Live Built-ins"}')
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toContain('defaultPlacement={{ mode: "floating", position: "top-right" }}')
+    .toMatch(
+      /defaultPlacement=\{\{\n\s+"disposition": \{\n\s+"kind": "snapped",\n\s+"position": "right"\n\s+\},\n\s+"mode": "floating"\n\s+\}\}/,
+    )
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toContain('label={"Everyday controls"}')
@@ -714,7 +727,7 @@ test('keeps the JSX left aligned until viewport centering clears the panel', asy
           }
         : null
     })
-    .toEqual({ contentLeft: 32, gap: 16 })
+    .toEqual({ contentLeft: 32, gap: 40 })
 
   await page.setViewportSize({ width: 2476, height: 1000 })
   await expect

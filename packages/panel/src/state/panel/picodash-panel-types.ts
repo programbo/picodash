@@ -105,7 +105,7 @@ export type PicodashPanelStore = StoreApi<PicodashPanelState>
 
 export type PicodashPanelCorner = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
 
-export type PicodashPanelSnapPosition =
+export type PicodashPanelSnappedPosition =
   | 'top-left'
   | 'top'
   | 'top-right'
@@ -115,23 +115,53 @@ export type PicodashPanelSnapPosition =
   | 'bottom-left'
   | 'left'
 
-export type PicodashPanelFixedPosition =
-  | 'top-left'
-  | 'top-right'
-  | 'bottom-left'
-  | 'bottom-right'
-  | 'left'
-  | 'right'
+export type PicodashPanelDockedPosition =
+  | PicodashPanelCorner
+  | 'full-left'
+  | 'full-right'
+  | 'middle-left'
+  | 'middle-right'
+
+export type PicodashPanelHybridDockPosition = PicodashPanelCorner | 'full-left' | 'full-right'
+
+export type PicodashPanelFreeDisposition = { kind: 'free' }
+export type PicodashPanelSnappedDisposition<
+  Position extends PicodashPanelSnappedPosition = PicodashPanelSnappedPosition,
+> = {
+  kind: 'snapped'
+  position: Position
+}
+export type PicodashPanelDockedDisposition<
+  Position extends PicodashPanelDockedPosition = PicodashPanelDockedPosition,
+> = {
+  kind: 'docked'
+  position: Position
+}
 
 export type PicodashPanelPlacement =
-  | { mode: 'floating'; position?: PicodashPanelCorner }
-  | { mode: 'magnetic'; position?: PicodashPanelSnapPosition }
-  | { mode: 'fixed'; position: PicodashPanelFixedPosition }
+  | {
+      disposition: PicodashPanelFreeDisposition | PicodashPanelSnappedDisposition
+      mode: 'floating'
+    }
+  | {
+      disposition: PicodashPanelDockedDisposition
+      mode: 'fixed'
+    }
+  | {
+      disposition:
+        | PicodashPanelFreeDisposition
+        | PicodashPanelSnappedDisposition<'bottom' | 'top'>
+        | PicodashPanelDockedDisposition<PicodashPanelHybridDockPosition>
+      mode: 'hybrid'
+    }
 
-/**
- * The four original corner strings remain accepted as shorthand for floating placement.
- */
-export type PicodashPanelDefaultPlacement = PicodashPanelCorner | PicodashPanelPlacement
+export type PicodashPanelDefaultPlacement = PicodashPanelPlacement
+
+export interface PicodashPanelPlacementOptions {
+  detachThresholdMultiplier?: number
+  snapOffset?: number
+  snapProximity?: number
+}
 
 export type PicodashPanelBoundary = Element | RefObject<Element | null>
 export type PicodashPanelCloseBehavior = 'deregister' | 'hide'
@@ -163,6 +193,7 @@ interface PicodashPanelBaseProps extends Omit<
   defaultPlacement?: PicodashPanelDefaultPlacement
   defaultVisible?: boolean
   onClose?: (details: PicodashPanelCloseDetails) => void
+  placementOptions?: PicodashPanelPlacementOptions
   theme?: string
   title?: ReactNode
   width?: number | string

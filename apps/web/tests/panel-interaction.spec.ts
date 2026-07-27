@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { requiredBox } from './helpers'
 import { labURL } from './urls'
 
-const storageKey = 'picodash-panel-interaction-lab:layout:v1'
+const storageKey = 'picodash-panel-interaction-lab:layout:v2'
 const initialRootOrder = 'interaction-core,interaction-layout,interaction-root-status'
 const reorderedRootOrder = 'interaction-layout,interaction-core,interaction-root-status'
 
@@ -48,24 +48,23 @@ test('drags a floating panel, snaps it to a peer, and rehydrates its observable 
   await expect(floating).toBeVisible()
   await expect(savedLayout).not.toHaveText('default')
   const layoutAfterReload = JSON.parse((await savedLayout.textContent()) ?? '{}') as {
-    x: number
-    y: number
+    preferredCoordinates: { x: number; y: number }
   }
   const restoredPosition = await requiredBox(floating)
-  expect(restoredPosition.x).toBeCloseTo(layoutAfterReload.x, 0)
-  expect(restoredPosition.y).toBeCloseTo(layoutAfterReload.y, 0)
+  expect(restoredPosition.x).toBeCloseTo(layoutAfterReload.preferredCoordinates.x, 0)
+  expect(restoredPosition.y).toBeCloseTo(layoutAfterReload.preferredCoordinates.y, 0)
 })
 
-test('switches floating, magnetic, and fixed placement and reopens a retracted fixed panel', async ({
+test('switches floating, hybrid, and fixed placement and reopens a retracted fixed panel', async ({
   page,
 }) => {
   const floating = interactionPanel(page, 'floating')
   const fixed = interactionPanel(page, 'fixed')
 
-  await page.getByRole('button', { name: 'Make magnetic' }).click()
-  await expect(floating.getByText('magnetic:top', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Make hybrid' }).click()
+  await expect(floating.getByText('hybrid:top', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Dock floating panel' }).click()
-  await expect(floating.getByText('fixed:right', { exact: true })).toBeVisible()
+  await expect(floating.getByText('fixed:full-right', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Make floating' }).click()
   await expect(floating.getByText('floating:top-right', { exact: true })).toBeVisible()
 

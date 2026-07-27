@@ -64,13 +64,13 @@ named themes by overriding semantic `--picodash-*` tokens under `data-picodash-t
 can take a generic custom theme union such as `PicodashProvider<'brand' | 'contrast'>`.
 The web gallery's `ocean`, `plum`, `tron`, and `contrast` recipes are demo-only.
 
-Panel placement supports floating, magnetic, and fixed modes. `PicodashPanelSnapPosition` names
-magnetic edges, while fixed docking uses the six side/corner positions. `usePicodashPanel` owns
-runtime placement changes. Floating edge snaps retain their offset and stay floating. Magnetic
-drags keep the real panel natural-sized and floating-style while an animated outline previews the
-release target. Side targets commit flush, full-height, and fixed-like; corner targets commit flush,
-natural-height, and fixed-like. Top and bottom targets stay natural-height and floating-style,
-without fixed retraction. A 40px pull releases an attached magnetic panel without changing mode.
+Panel placement separates stable floating, fixed, and hybrid modes from free, snapped, and docked
+dispositions. Floating supports free/all-edge snaps; Fixed supports corner, full-side, and
+middle-side docks; Hybrid supports free, top/bottom snaps, and corner/full-side docks. Snaps are
+offset and floating-like. Docks are flush and fixed-like. Hybrid side/corner intent animates an
+independent proxy and commits only on release; full sides fill the boundary and corners retain
+intrinsic height. Docked Hybrid panels resist detachment according to placement options and remain
+Hybrid after becoming free.
 Geometry defaults to the viewport;
 `PicodashProvider.panelBoundary`
 sets a shared Element/ref boundary and `PicodashPanel.boundary` can override it. Boundaries remain
@@ -157,7 +157,7 @@ Update all five files together when command surface, entrypoints, or architectur
   consume `@picodash/panel/ui` and do not keep their own `components.json` or generated copies.
 - `@picodash/panel/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve the
   provider portal/theme/z-index contract, while nested submenus inherit their parent overlay.
-- Do not document `packages/tweaker` or `apps/demo` as active workspace products.
+- Do not document retired package paths or `apps/demo` as active workspace products.
 
 ## Verification Discipline
 
@@ -176,13 +176,12 @@ Update all five files together when command surface, entrypoints, or architectur
 - Preserve synchronous parser/validator behavior; promise-based contracts are not supported.
 - Keep custom parser/validator callback identities stable across renders.
 - Preserve pointer and keyboard reorder parity, including same-band constraints and cancellation.
-- Preserve legacy corner-string placements and persisted floating/magnetic layouts when extending
-  placement normalization.
-- Keep floating edge snaps offset and classified as floating. Magnetic drags use stable natural
-  panel geometry for pointer intent and animate an independent proxy; never resize or reposition
-  the real panel to infer intent. Commit only on release. Side targets are flush, full-height, and
-  fixed-like; corner targets are flush, natural-height, and fixed-like. Top and bottom targets stay
-  natural-height and floating-style. Keep magnetic mode through the 40px attached release.
+- Persist only canonical placement, disposition, and boundary-relative coordinate records. Invalid
+  or obsolete records start from declared defaults; do not add compatibility migrations.
+- Keep snaps offset and floating-like. Hybrid docking intent uses contained unsnapped panel geometry
+  plus pointer position and animates an independent proxy; never infer intent from proxy or docked
+  geometry. Full-side docks are flush and full-height; corner docks are flush and intrinsic-height.
+  Keep Hybrid mode through detachment.
 - Resolve panel boundaries in panel-override, provider-default, viewport order; `null` explicitly
   selects the viewport, while an unresolved ref falls through to the next boundary.
 - Keep fixed start/end lanes outside the auto-lane scrollport and apply the bundled `scroll-fade`

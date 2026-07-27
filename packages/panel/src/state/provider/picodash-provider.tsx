@@ -18,9 +18,7 @@ import {
   picodashPersistedStateMiniSchema,
 } from '../persistence/panel-persistence.js'
 import {
-  dockForSnapPosition,
   placementForPanelLayout,
-  positionForFloatingCorner,
   rectForPanelBoundary,
   type PanelLayout,
   type PanelRect,
@@ -140,6 +138,7 @@ export function createPicodashStore({
     },
     registerPanel(panel: PicodashPanelRegistrationInput) {
       set((state) => {
+        const layout = state.panelLayouts[panel.id]
         const panelOrder = state.panelOrder.includes(panel.id)
           ? state.panelOrder
           : [...state.panelOrder, panel.id]
@@ -148,14 +147,12 @@ export function createPicodashStore({
           ({
             boundary: panel.boundary ?? null,
             id: panel.id,
-            placement: placementForPanelLayout(
-              state.panelLayouts[panel.id],
-              panel.defaultPlacement,
-            ),
+            placement: placementForPanelLayout(layout, panel.defaultPlacement),
             visible: panel.visible ?? true,
           } satisfies PicodashPanelRegistration)
 
         return {
+          panelLayouts: state.panelLayouts,
           panelOrder,
           panels: {
             ...state.panels,
@@ -184,21 +181,14 @@ export function createPicodashStore({
       set((state) => {
         const current = state.panelLayouts[panelId]
         if (
-          current?.dock?.horizontal === layout.dock?.horizontal &&
-          current?.dock?.vertical === layout.dock?.vertical &&
           placementsEqual(current?.placement, layout.placement) &&
-          current?.x === layout.x &&
-          current?.y === layout.y
+          current?.preferredCoordinates.x === layout.preferredCoordinates.x &&
+          current?.preferredCoordinates.y === layout.preferredCoordinates.y
         ) {
           return state
         }
 
         const panel = state.panels[panelId]
-        const placement = layout.placement
-          ? layout.placement
-          : layout.dock
-            ? placementForPanelLayout(layout)
-            : ({ mode: 'floating' } satisfies PicodashPanelPlacement)
         return {
           panelLayouts: {
             ...state.panelLayouts,
@@ -207,9 +197,9 @@ export function createPicodashStore({
           panels: panel
             ? {
                 ...state.panels,
-                [panelId]: placementsEqual(panel.placement, placement)
+                [panelId]: placementsEqual(panel.placement, layout.placement)
                   ? panel
-                  : { ...panel, placement },
+                  : { ...panel, placement: layout.placement },
               }
             : state.panels,
         }
@@ -222,22 +212,17 @@ export function createPicodashStore({
 
         const current = state.panelLayouts[panelId]
         const measuredRect = state.panelRects[panelId]
-        const requestedFloatingPosition =
-          placement.mode === 'floating' && placement.position && measuredRect
-            ? positionForFloatingCorner(
-                placement.position,
-                measuredRect,
-                rectForPanelBoundary(panel.boundary),
-              )
-            : null
+        const boundaryRect = rectForPanelBoundary(panel.boundary)
         const layout: PanelLayout = {
-          dock:
-            placement.mode === 'magnetic' && placement.position
-              ? dockForSnapPosition(placement.position)
-              : null,
           placement,
-          x: requestedFloatingPosition?.x ?? current?.x ?? measuredRect?.left ?? 0,
-          y: requestedFloatingPosition?.y ?? current?.y ?? measuredRect?.top ?? 0,
+          preferredCoordinates:
+            current?.preferredCoordinates ??
+            (measuredRect
+              ? {
+                  x: measuredRect.left - boundaryRect.left,
+                  y: measuredRect.top - boundaryRect.top,
+                }
+              : { x: 0, y: 0 }),
         }
         return {
           panelLayouts: {
@@ -482,7 +467,13 @@ function placementsEqual(
   left: PicodashPanelPlacement | undefined,
   right: PicodashPanelPlacement | undefined,
 ) {
-  return left?.mode === right?.mode && left?.position === right?.position
+  if (left?.mode !== right?.mode || left?.disposition.kind !== right?.disposition.kind) {
+    return false
+  }
+  if (!left || !right || left.disposition.kind === 'free') return true
+  return (
+    right?.disposition.kind !== 'free' && left.disposition.position === right.disposition.position
+  )
 }
 
 function useResolvedPicodashTheme<CustomTheme extends string>(

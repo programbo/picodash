@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { floatingPlacement } from '../../lib/panel-placement'
 import * as z from 'zod/mini'
 import {
   createPicodashPanelStore,
@@ -270,7 +271,7 @@ function BuiltInDashlets({
   return (
     <PicodashPanel
       data-dashlet-panel="built-ins"
-      defaultPlacement="top-left"
+      defaultPlacement={floatingPlacement('top-left')}
       drag={false}
       style={{ top: '24rem' }}
       store={dashletLabBuiltInStore}
@@ -420,7 +421,7 @@ function ExampleDashlets() {
   return (
     <PicodashPanel
       data-dashlet-panel="examples"
-      defaultPlacement="top-right"
+      defaultPlacement={floatingPlacement('top-right')}
       drag={false}
       style={{ top: '24rem' }}
       store={dashletLabExamplesStore}
@@ -441,7 +442,7 @@ function LifecycleDashlet() {
     <PicodashPanel
       close={{ behavior: 'deregister' }}
       data-dashlet-panel="lifecycle"
-      defaultPlacement="bottom-left"
+      defaultPlacement={floatingPlacement('bottom-left')}
       drag={false}
       id={lifecyclePanelId}
       title="Lifecycle Dashlet"

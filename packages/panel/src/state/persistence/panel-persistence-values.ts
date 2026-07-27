@@ -1,26 +1,29 @@
-export const panelDockHorizontalValues = ['left', 'right'] as const
-export const panelDockVerticalValues = ['bottom', 'top'] as const
-export const panelFloatingPositionValues = [
+export const panelSnappedPositionValues = [
   'bottom-left',
-  'bottom-right',
-  'top-left',
-  'top-right',
-] as const
-export const panelMagneticPositionValues = [
-  'top-left',
-  'top',
-  'top-right',
-  'right',
   'bottom-right',
   'bottom',
-  'bottom-left',
-  'left',
-] as const
-export const panelFixedPositionValues = [
-  'top-left',
-  'top-right',
-  'bottom-left',
-  'bottom-right',
   'left',
   'right',
+  'top',
+  'top-left',
+  'top-right',
 ] as const
+export const panelDockedPositionValues = [
+  'bottom-left',
+  'bottom-right',
+  'full-left',
+  'full-right',
+  'middle-left',
+  'middle-right',
+  'top-left',
+  'top-right',
+] as const
+export const panelHybridDockPositionValues = [
+  'bottom-left',
+  'bottom-right',
+  'full-left',
+  'full-right',
+  'top-left',
+  'top-right',
+] as const
+export const panelHybridSnapPositionValues = ['bottom', 'top'] as const
