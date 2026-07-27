@@ -2,55 +2,55 @@ import * as z from 'zod/mini'
 import type { PersistStorage } from 'zustand/middleware'
 import type { PicodashPersistedState } from '../provider/picodash-provider.js'
 import {
-  panelDockHorizontalValues,
-  panelDockVerticalValues,
-  panelFixedPositionValues,
-  panelFloatingPositionValues,
-  panelMagneticPositionValues,
+  panelDockedPositionValues,
+  panelHybridDockPositionValues,
+  panelHybridSnapPositionValues,
+  panelSnappedPositionValues,
 } from './panel-persistence-values.js'
 
-export const panelLayoutStorageKey = 'picodash-panel:provider-layout:v1'
-export const legacyPanelLayoutStorageKey = 'tweaker-panel:provider-layout:v1'
+export const panelLayoutStorageKey = 'picodash-panel:provider-layout:v2'
 
-const legacyPanelLayoutStorageKeys = new Map([
-  [panelLayoutStorageKey, legacyPanelLayoutStorageKey],
-  ['picodash-demo:panel-layout:v1', 'tweaker-demo:panel-layout:v1'],
-  ['picodash-geometry-lab:panel-layout:v1', 'tweaker-geometry-lab:panel-layout:v1'],
-  ['picodash-geometry-lab:fixed-boundaries:v1', 'tweaker-geometry-lab:fixed-boundaries:v1'],
-])
-
-const panelPositionSchema = z.object({
-  dock: z._default(
-    z.nullable(
+const pointSchema = z.object({ x: z.number(), y: z.number() })
+const freeDispositionSchema = z.object({ kind: z.literal('free') })
+const snappedDispositionSchema = z.object({
+  kind: z.literal('snapped'),
+  position: z.enum(panelSnappedPositionValues),
+})
+const dockedDispositionSchema = z.object({
+  kind: z.literal('docked'),
+  position: z.enum(panelDockedPositionValues),
+})
+const panelPlacementSchema = z.discriminatedUnion('mode', [
+  z.object({
+    disposition: z.union([freeDispositionSchema, snappedDispositionSchema]),
+    mode: z.literal('floating'),
+  }),
+  z.object({
+    disposition: dockedDispositionSchema,
+    mode: z.literal('fixed'),
+  }),
+  z.object({
+    disposition: z.union([
+      freeDispositionSchema,
       z.object({
-        horizontal: z.optional(z.enum(panelDockHorizontalValues)),
-        vertical: z.optional(z.enum(panelDockVerticalValues)),
+        kind: z.literal('snapped'),
+        position: z.enum(panelHybridSnapPositionValues),
       }),
-    ),
-    null,
-  ),
-  placement: z.optional(
-    z.discriminatedUnion('mode', [
       z.object({
-        mode: z.literal('floating'),
-        position: z.optional(z.enum(panelFloatingPositionValues)),
-      }),
-      z.object({
-        mode: z.literal('magnetic'),
-        position: z.optional(z.enum(panelMagneticPositionValues)),
-      }),
-      z.object({
-        mode: z.literal('fixed'),
-        position: z.enum(panelFixedPositionValues),
+        kind: z.literal('docked'),
+        position: z.enum(panelHybridDockPositionValues),
       }),
     ]),
-  ),
-  x: z.number(),
-  y: z.number(),
+    mode: z.literal('hybrid'),
+  }),
+])
+const panelLayoutSchema = z.object({
+  placement: panelPlacementSchema,
+  preferredCoordinates: pointSchema,
 })
 
 export const picodashPersistedStateMiniSchema = z.object({
-  panelLayouts: z._default(z.record(z.string(), panelPositionSchema), {}),
+  panelLayouts: z._default(z.record(z.string(), panelLayoutSchema), {}),
 })
 
 const persistedStorageValueSchema = z.object({
@@ -68,38 +68,29 @@ export function createValidatedPanelPersistStorage(): PersistStorage<PicodashPer
       if (typeof window === 'undefined') return null
 
       try {
-        const legacyStorageKey = legacyPanelLayoutStorageKeys.get(name)
-        const storageKeys = legacyStorageKey ? [name, legacyStorageKey] : [name]
-        for (const storageKey of storageKeys) {
-          const raw = window.localStorage.getItem(storageKey)
-          if (!raw) continue
+        const raw = window.localStorage.getItem(name)
+        if (!raw) return null
 
-          let parsedJson: unknown
-          try {
-            parsedJson = JSON.parse(raw)
-          } catch {
-            continue
-          }
-
-          const parsed = persistedStorageValueSchema.safeParse(parsedJson)
-          if (!parsed.success) continue
-
-          const state = picodashPersistedStateMiniSchema.safeParse(parsed.data.state)
-          if (!state.success) continue
-
-          if (storageKey !== name) {
-            try {
-              window.localStorage.setItem(
-                name,
-                JSON.stringify({ state: state.data, version: parsed.data.version }),
-              )
-            } catch {
-              // Migration is best-effort. The valid legacy state still hydrates the provider.
-            }
-          }
-          return { state: state.data, version: parsed.data.version }
+        let parsedJson: unknown
+        try {
+          parsedJson = JSON.parse(raw)
+        } catch {
+          removeInvalidStoredLayout(name)
+          return null
         }
-        return null
+
+        const parsed = persistedStorageValueSchema.safeParse(parsedJson)
+        if (!parsed.success) {
+          removeInvalidStoredLayout(name)
+          return null
+        }
+
+        const state = picodashPersistedStateMiniSchema.safeParse(parsed.data.state)
+        if (!state.success) {
+          removeInvalidStoredLayout(name)
+          return null
+        }
+        return { state: state.data, version: parsed.data.version }
       } catch {
         return null
       }
@@ -121,15 +112,19 @@ export function createValidatedPanelPersistStorage(): PersistStorage<PicodashPer
     },
     removeItem(name) {
       if (typeof window === 'undefined') return
-      const legacyStorageKey = legacyPanelLayoutStorageKeys.get(name)
-      const storageKeys = legacyStorageKey ? [name, legacyStorageKey] : [name]
-      for (const storageKey of storageKeys) {
-        try {
-          window.localStorage.removeItem(storageKey)
-        } catch {
-          // Keep provider state usable when browser storage is unavailable.
-        }
+      try {
+        window.localStorage.removeItem(name)
+      } catch {
+        // Keep provider state usable when browser storage is unavailable.
       }
     },
+  }
+}
+
+function removeInvalidStoredLayout(name: string) {
+  try {
+    window.localStorage.removeItem(name)
+  } catch {
+    // Invalid persistence is ignored when browser storage is unavailable.
   }
 }

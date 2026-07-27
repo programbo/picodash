@@ -128,7 +128,7 @@ export function DemoProvider({
       >
         <PicodashProvider
           persistLayout
-          storageKey="picodash-demo:panel-layout:v1"
+          storageKey="picodash-demo:panel-layout:v2"
           theme={themes.provider ?? 'dark'}
         >
           <DemoContext value={contextValue}>

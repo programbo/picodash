@@ -1,38 +1,52 @@
 import { z } from 'zod'
 import {
-  panelDockHorizontalValues,
-  panelDockVerticalValues,
-  panelFixedPositionValues,
-  panelFloatingPositionValues,
-  panelMagneticPositionValues,
+  panelDockedPositionValues,
+  panelHybridDockPositionValues,
+  panelHybridSnapPositionValues,
+  panelSnappedPositionValues,
 } from './panel-persistence-values.js'
 
-const panelPositionSchema = z.object({
-  dock: z
-    .object({
-      horizontal: z.enum(panelDockHorizontalValues).optional(),
-      vertical: z.enum(panelDockVerticalValues).optional(),
-    })
-    .nullable()
-    .default(null),
-  placement: z
-    .discriminatedUnion('mode', [
-      z.object({
-        mode: z.literal('floating'),
-        position: z.enum(panelFloatingPositionValues).optional(),
-      }),
-      z.object({
-        mode: z.literal('magnetic'),
-        position: z.enum(panelMagneticPositionValues).optional(),
-      }),
-      z.object({
-        mode: z.literal('fixed'),
-        position: z.enum(panelFixedPositionValues),
-      }),
-    ])
-    .optional(),
+const pointSchema = z.object({
   x: z.number().finite(),
   y: z.number().finite(),
+})
+
+const freeDispositionSchema = z.object({ kind: z.literal('free') })
+const snappedDispositionSchema = z.object({
+  kind: z.literal('snapped'),
+  position: z.enum(panelSnappedPositionValues),
+})
+const dockedDispositionSchema = z.object({
+  kind: z.literal('docked'),
+  position: z.enum(panelDockedPositionValues),
+})
+
+const panelPositionSchema = z.object({
+  placement: z.discriminatedUnion('mode', [
+    z.object({
+      disposition: z.union([freeDispositionSchema, snappedDispositionSchema]),
+      mode: z.literal('floating'),
+    }),
+    z.object({
+      disposition: dockedDispositionSchema,
+      mode: z.literal('fixed'),
+    }),
+    z.object({
+      disposition: z.union([
+        freeDispositionSchema,
+        z.object({
+          kind: z.literal('snapped'),
+          position: z.enum(panelHybridSnapPositionValues),
+        }),
+        z.object({
+          kind: z.literal('docked'),
+          position: z.enum(panelHybridDockPositionValues),
+        }),
+      ]),
+      mode: z.literal('hybrid'),
+    }),
+  ]),
+  preferredCoordinates: pointSchema,
 })
 
 export const picodashPersistedStateSchema = z.object({

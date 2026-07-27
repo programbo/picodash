@@ -63,10 +63,17 @@ export function SiteControls() {
   })
 
   return (
-    <PicodashProvider theme="system" persistLayout storageKey="my-site:tweaker-layout:v1">
+    <PicodashProvider theme="system" persistLayout storageKey="my-site:picodash-layout:v2">
       <main style={{ opacity: exposure }}>App content</main>
 
-      <PicodashPanel store={settingsStore} title="Settings" defaultPlacement="top-right">
+      <PicodashPanel
+        store={settingsStore}
+        title="Settings"
+        defaultPlacement={{
+          mode: 'floating',
+          disposition: { kind: 'snapped', position: 'top-right' },
+        }}
+      >
         <PicodashSwitch field="showGrid" label="Show grid" defaultValue />
       </PicodashPanel>
     </PicodashProvider>
@@ -80,7 +87,8 @@ export function SiteControls() {
 - Use `PicodashPanel` with `store` for app-owned modes.
 - Use `usePicodashPanel(panelId)` beneath `PicodashProvider` for reactive visibility and imperative
   `show`, `hide`, `toggle`, `setVisible`, show-and-raise `activate`, and `setPlacement` behavior.
-  The controller's reactive `placement` reports floating, magnetic, or fixed state.
+  The controller's reactive `placement` reports stable floating, fixed, or hybrid mode plus its
+  live free, snapped, or docked disposition.
 - Use `defaultVisible={false}` for an initially hidden but registered panel; visibility is not
   persisted with layout.
 - Use `close` for a provider-managed hide button, or `close={{ behavior: 'deregister' }}` when the
@@ -110,15 +118,15 @@ export function SiteControls() {
   names are useful.
 - Do not use `usePicodashPanel(panelId)` to discover panel values. Panel data remains owned by the
   store passed to `PicodashPanel`.
-- Preserve corner strings for legacy `defaultPlacement` usage. Use the placement object for new
-  magnetic or fixed declarations, for example
-  `defaultPlacement={{ mode: 'fixed', position: 'right' }}`. The magnetic edge type is
-  `PicodashPanelSnapPosition`; do not reintroduce the old dock-position name.
-- Keep floating edge snaps offset and floating. During magnetic drags, keep the real panel
-  natural-sized and floating-style; preview the release target with an animated outline. Commit
-  only on release. Side targets are flush, full-height, and fixed-like; corner targets are flush,
-  natural-height, and fixed-like. Top and bottom targets stay natural-height and floating-style,
-  without fixed retraction. A 40px pull releases attached magnetic panels without changing mode.
+- Use explicit placement objects. Floating supports free/all-edge snaps, Fixed supports
+  corner/full/middle-side docks, and Hybrid supports free, top/bottom snaps, and corner/full-side
+  docks.
+- Keep Floating and Hybrid top/bottom snaps offset and floating-like. Hybrid side/corner drags keep
+  the real panel natural-sized and use a proxy for the release target. Dock full sides flush at full
+  height and corners flush at intrinsic height. Detach docked Hybrid panels after
+  `snapProximity × detachThresholdMultiplier` without changing mode.
+- Persist boundary-relative preferred coordinates. Derive constrained geometry at render time and
+  keep peer alignment independent from container placement.
 - Prefer `PicodashProvider panelBoundary={mainRef}` when all panels share an application surface.
   Use `PicodashPanel boundary={canvasRef}` only for a panel-specific surface, and
   `boundary={null}` to explicitly restore viewport bounds. Accept Elements and React refs, not CSS
@@ -126,7 +134,7 @@ export function SiteControls() {
 - Keep `portalContainer` and boundaries conceptually separate: the portal chooses render
   ownership, while the boundary constrains floating, snapping, fixed docking, and collapse-toggle
   geometry.
-- Fixed `left` and `right` placements fill the effective boundary height. Start/end pinned lanes
+- Fixed `full-left` and `full-right` placements fill the effective boundary height. Start/end pinned lanes
   remain visible while only the auto lane scrolls. Every root scrollport receives the bundled
   `scroll-fade` utility from `@picodash/panel/style.css`.
 
@@ -145,7 +153,8 @@ export function SiteControls() {
 
 ## Migration Note
 
-This repository is on the promoted API. Legacy schema-driven registration and old persistence are not migrated.
+This repository is on the promoted API. Only canonical Picodash persistence records hydrate;
+invalid or obsolete records start from declared defaults.
 
 ## Workspace App Surfaces
 

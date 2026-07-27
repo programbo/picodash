@@ -22,8 +22,14 @@ import {
   type PicodashPanelPlacement,
 } from '@picodash/panel'
 import { usePicodashProviderSelector } from '@picodash/panel/advanced'
+import {
+  fixedPlacement,
+  floatingPlacement,
+  hybridPlacement,
+  positionForPlacement,
+} from '../../lib/panel-placement'
 
-const storageKey = 'picodash-panel-interaction-lab:layout:v1'
+const storageKey = 'picodash-panel-interaction-lab:layout:v2'
 
 const interactionStore = createPicodashPanelStore({
   initialValues: { label: 'Baseline' },
@@ -133,17 +139,17 @@ function InteractionControls({
       <PlacementButton
         controller={floating}
         label="Make floating"
-        placement={{ mode: 'floating', position: 'top-right' }}
+        placement={floatingPlacement('top-right')}
       />
       <PlacementButton
         controller={floating}
-        label="Make magnetic"
-        placement={{ mode: 'magnetic', position: 'top' }}
+        label="Make hybrid"
+        placement={hybridPlacement('top')}
       />
       <PlacementButton
         controller={floating}
         label="Dock floating panel"
-        placement={{ mode: 'fixed', position: 'right' }}
+        placement={fixedPlacement('full-right')}
       />
       <PanelLifecycleButtons controller={lifecycle} label="Lifecycle" />
       <PanelLifecycleButtons controller={deregister} label="Deregistration" />
@@ -257,7 +263,7 @@ function InteractionDashletPanel({
       store={interactionStore}
       title="Interaction Dashlets"
       width={330}
-      defaultPlacement="top-left"
+      defaultPlacement={floatingPlacement('top-left')}
       theme="light"
       data-interaction-fixture="dashlets"
       actionMenu={
@@ -323,7 +329,7 @@ function DashletStateReadouts() {
 function FloatingPanel() {
   const panel = usePicodashPanel('interaction-floating')
   const placement = panel
-    ? `${panel.placement.mode}:${panel.placement.position ?? ''}`
+    ? `${panel.placement.mode}:${positionForPlacement(panel.placement) ?? ''}`
     : 'unregistered'
 
   return (
@@ -331,7 +337,7 @@ function FloatingPanel() {
       store={floatingStore}
       title="Floating interaction panel"
       width={250}
-      defaultPlacement="top-right"
+      defaultPlacement={floatingPlacement('top-right')}
       data-interaction-fixture="floating"
     >
       <PicodashDisplay id="floating-status" label="Placement" value={placement} />
@@ -345,7 +351,7 @@ function PeerPanel() {
       store={peerStore}
       title="Snap peer"
       width={250}
-      defaultPlacement={{ mode: 'magnetic', position: 'top' }}
+      defaultPlacement={fixedPlacement('middle-right')}
       data-interaction-fixture="peer"
       actionMenu={[<ActionMenuItem key="ping-peer" label="Ping peer" />]}
     >
@@ -361,7 +367,7 @@ function FixedPanel() {
       title="Fixed interaction panel"
       width={250}
       collapsible
-      defaultPlacement={{ mode: 'fixed', position: 'bottom-left' }}
+      defaultPlacement={fixedPlacement('bottom-left')}
       data-interaction-fixture="fixed"
     >
       <PicodashDisplay id="fixed-status" label="Dock" value="Retract and reopen" />
@@ -377,7 +383,7 @@ function LifecyclePanel({ onClose }: { onClose: () => void }) {
       width={240}
       close
       defaultVisible={false}
-      defaultPlacement="bottom-left"
+      defaultPlacement={floatingPlacement('bottom-left')}
       onClose={onClose}
       data-interaction-fixture="lifecycle"
     >
@@ -394,7 +400,7 @@ function DeregisterPanel({ onClose }: { onClose: () => void }) {
       width={240}
       close={{ behavior: 'deregister' }}
       defaultVisible={false}
-      defaultPlacement="bottom-right"
+      defaultPlacement={floatingPlacement('bottom-right')}
       onClose={onClose}
       data-interaction-fixture="deregister"
     >
@@ -410,7 +416,7 @@ function QuietPanel() {
       title="No actions panel"
       width={220}
       actionMenu={false}
-      defaultPlacement="bottom-right"
+      defaultPlacement={floatingPlacement('bottom-right')}
       data-interaction-fixture="no-actions"
     >
       <PicodashDisplay id="quiet-status" label="Menu" value="Hidden" />

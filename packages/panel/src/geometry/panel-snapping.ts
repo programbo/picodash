@@ -3,8 +3,11 @@ import type {
   PicodashPanelBoundary,
   PicodashPanelCorner,
   PicodashPanelDefaultPlacement,
+  PicodashPanelDockedPosition,
+  PicodashPanelHybridDockPosition,
   PicodashPanelPlacement,
-  PicodashPanelSnapPosition,
+  PicodashPanelPlacementOptions,
+  PicodashPanelSnappedPosition,
 } from '../state/panel/picodash-panel-types.js'
 
 export interface PanelPosition {
@@ -19,9 +22,9 @@ export interface PanelDock {
 
 export type PanelDockEdge = 'bottom' | 'left' | 'right' | 'top'
 
-export interface PanelLayout extends PanelPosition {
-  dock?: PanelDock | null
-  placement?: PicodashPanelPlacement
+export interface PanelLayout {
+  placement: PicodashPanelPlacement
+  preferredCoordinates: PanelPosition
 }
 
 export interface PanelRect {
@@ -47,51 +50,67 @@ export interface PanelSnapResult {
   snappedY: boolean
 }
 
-export interface MagneticSnapIntentInput {
+export interface HybridDockIntentInput {
   containerRect: PanelRect
-  panelHeight: number
+  headerHeight?: number
+  intrinsicHeight?: number
   panelRect: PanelRect
   pointer: PanelPosition
-  threshold?: number
+  snapOffset?: number
+  snapProximity?: number
 }
 
-export const SNAP_GAP = 8
-export const SNAP_THRESHOLD = 16
-export const FLOATING_PLACEMENT_INSET = 16
+export const DEFAULT_SNAP_OFFSET = 8
+export const DEFAULT_SNAP_PROXIMITY = 16
+export const DEFAULT_DETACH_THRESHOLD_MULTIPLIER = 2.5
+export const SNAP_GAP = DEFAULT_SNAP_OFFSET
+export const SNAP_THRESHOLD = DEFAULT_SNAP_PROXIMITY
+export const FLOATING_PLACEMENT_INSET = DEFAULT_SNAP_OFFSET
+export const DEFAULT_PANEL_PLACEMENT = {
+  disposition: { kind: 'snapped', position: 'top-right' },
+  mode: 'floating',
+} as const satisfies PicodashPanelPlacement
+
+export interface ResolvedPicodashPanelPlacementOptions {
+  detachThresholdMultiplier: number
+  snapOffset: number
+  snapProximity: number
+}
 
 export function normalizePicodashPanelPlacement(
-  placement: PicodashPanelDefaultPlacement = 'top-right',
+  placement: PicodashPanelDefaultPlacement = DEFAULT_PANEL_PLACEMENT,
 ): PicodashPanelPlacement {
-  return typeof placement === 'string' ? { mode: 'floating', position: placement } : placement
+  return placement
 }
 
-export function isPanelPlacementEdgeAttached(
-  placement: PicodashPanelPlacement,
-): placement is
-  | { mode: 'magnetic'; position: PicodashPanelSnapPosition }
-  | Extract<PicodashPanelPlacement, { mode: 'fixed' }> {
-  return (
-    placement.mode === 'fixed' ||
-    (placement.mode === 'magnetic' && placement.position !== undefined)
-  )
+export function resolvePicodashPanelPlacementOptions(
+  options: PicodashPanelPlacementOptions | undefined,
+): ResolvedPicodashPanelPlacementOptions {
+  return {
+    detachThresholdMultiplier: nonNegativeFinite(
+      options?.detachThresholdMultiplier,
+      DEFAULT_DETACH_THRESHOLD_MULTIPLIER,
+    ),
+    snapOffset: nonNegativeFinite(options?.snapOffset, DEFAULT_SNAP_OFFSET),
+    snapProximity: nonNegativeFinite(options?.snapProximity, DEFAULT_SNAP_PROXIMITY),
+  }
 }
 
-export function isPanelPlacementFixedLike(placement: PicodashPanelPlacement): placement is
-  | Extract<PicodashPanelPlacement, { mode: 'fixed' }>
-  | {
-      mode: 'magnetic'
-      position: Exclude<PicodashPanelSnapPosition, 'bottom' | 'top'>
-    } {
-  return (
-    placement.mode === 'fixed' ||
-    (placement.mode === 'magnetic' &&
-      placement.position !== undefined &&
-      placement.position !== 'top' &&
-      placement.position !== 'bottom')
-  )
+export function isPanelPlacementEdgeAttached(placement: PicodashPanelPlacement) {
+  return placement.disposition.kind !== 'free'
 }
 
-export function dockForSnapPosition(position: PicodashPanelSnapPosition): PanelDock {
+export function isPanelPlacementFixedLike(placement: PicodashPanelPlacement) {
+  return placement.disposition.kind === 'docked'
+}
+
+export function placementPosition(placement: PicodashPanelPlacement) {
+  return placement.disposition.kind === 'free' ? null : placement.disposition.position
+}
+
+export function dockForSnapPosition(
+  position: PicodashPanelDockedPosition | PicodashPanelSnappedPosition,
+): PanelDock {
   switch (position) {
     case 'top-left':
       return { horizontal: 'left', vertical: 'top' }
@@ -100,6 +119,8 @@ export function dockForSnapPosition(position: PicodashPanelSnapPosition): PanelD
     case 'top-right':
       return { horizontal: 'right', vertical: 'top' }
     case 'right':
+    case 'full-right':
+    case 'middle-right':
       return { horizontal: 'right' }
     case 'bottom-right':
       return { horizontal: 'right', vertical: 'bottom' }
@@ -108,13 +129,15 @@ export function dockForSnapPosition(position: PicodashPanelSnapPosition): PanelD
     case 'bottom-left':
       return { horizontal: 'left', vertical: 'bottom' }
     case 'left':
+    case 'full-left':
+    case 'middle-left':
       return { horizontal: 'left' }
   }
 }
 
 export function snapPositionForDock(
   dock: PanelDock | null | undefined,
-): PicodashPanelSnapPosition | null {
+): PicodashPanelSnappedPosition | null {
   if (!dock) return null
   if (dock.horizontal === 'left' && dock.vertical === 'top') return 'top-left'
   if (dock.horizontal === 'right' && dock.vertical === 'top') return 'top-right'
@@ -123,39 +146,49 @@ export function snapPositionForDock(
   return dock.horizontal ?? dock.vertical ?? null
 }
 
-export function magneticSnapPositionForPointer({
+export function hybridDockPositionForPointer({
   containerRect,
-  panelHeight,
+  headerHeight,
+  intrinsicHeight,
   panelRect,
   pointer,
-  threshold = SNAP_THRESHOLD,
-}: MagneticSnapIntentInput): PicodashPanelSnapPosition | null {
-  const horizontal = horizontalSnapIntent(panelRect, containerRect, pointer, threshold)
-  const pointerVertical = verticalPointerIntent(
-    pointer,
-    containerRect,
-    Math.min(containerRect.height / 3, panelHeight),
-  )
-  if (horizontal && pointerVertical) {
-    return snapPositionForDock({ horizontal, vertical: pointerVertical })
-  }
-  if (horizontal) return horizontal
+  snapOffset = DEFAULT_SNAP_OFFSET,
+  snapProximity = DEFAULT_SNAP_PROXIMITY,
+}: HybridDockIntentInput): PicodashPanelHybridDockPosition | 'bottom' | 'top' | null {
+  const targetProximity = Math.max(snapOffset, snapProximity)
+  const horizontal = horizontalSnapIntent(panelRect, containerRect, pointer, targetProximity)
+  if (horizontal) {
+    const topIntentEdge =
+      containerRect.top + Math.max(targetProximity, (headerHeight ?? targetProximity / 2) * 2)
+    if (pointer.y <= topIntentEdge && panelRect.top <= topIntentEdge) {
+      return horizontal === 'left' ? 'top-left' : 'top-right'
+    }
 
-  const panelIsOverHeight = panelHeight >= containerRect.height - threshold
-  const vertical = panelIsOverHeight
-    ? pointerVertical
-    : verticalSnapIntent(panelRect, containerRect, pointer, threshold)
-  return vertical ?? null
+    const midpoint = containerRect.top + containerRect.height / 2
+    if (pointer.y > midpoint && panelRect.top > midpoint && panelRect.bottom >= midpoint) {
+      return horizontal === 'left' ? 'bottom-left' : 'bottom-right'
+    }
+
+    return horizontal === 'left' ? 'full-left' : 'full-right'
+  }
+
+  if (intrinsicHeight !== undefined && intrinsicHeight >= containerRect.height) {
+    return verticalPointerIntent(pointer, containerRect, targetProximity) ?? null
+  }
+
+  const nearTop = panelRect.top <= containerRect.top + targetProximity
+  const nearBottom = panelRect.bottom >= containerRect.bottom - targetProximity
+  if (nearTop && nearBottom) {
+    return verticalPointerIntent(pointer, containerRect, targetProximity) ?? null
+  }
+  return verticalSnapIntent(panelRect, containerRect, pointer, targetProximity) ?? null
 }
 
 export function placementForPanelLayout(
   layout: PanelLayout | undefined,
-  defaultPlacement: PicodashPanelDefaultPlacement = 'top-right',
+  defaultPlacement: PicodashPanelDefaultPlacement = DEFAULT_PANEL_PLACEMENT,
 ): PicodashPanelPlacement {
-  if (layout?.placement) return layout.placement
-  const snapPosition = snapPositionForDock(layout?.dock)
-  if (snapPosition) return { mode: 'magnetic', position: snapPosition }
-  return layout ? { mode: 'floating' } : normalizePicodashPanelPlacement(defaultPlacement)
+  return layout?.placement ?? normalizePicodashPanelPlacement(defaultPlacement)
 }
 
 export function resolvePicodashPanelBoundary(
@@ -176,7 +209,7 @@ export function positionForFloatingCorner(
   position: PicodashPanelCorner,
   panelRect: Pick<PanelRect, 'height' | 'width'>,
   boundaryRect: PanelRect,
-  inset = FLOATING_PLACEMENT_INSET,
+  inset = DEFAULT_SNAP_OFFSET,
 ): PanelPosition {
   return {
     x: position.endsWith('left')
@@ -274,39 +307,71 @@ export function clampPanelPosition(
   }
 }
 
+/**
+ * Supplies the initial saved coordinate for a placement that constrains only
+ * one axis. A panel with no persisted layout should begin centred along its
+ * free axis, while later layouts retain the user's preferred coordinate.
+ */
+export function initialPreferredCoordinatesForPlacement({
+  baseRect,
+  containerRect,
+  placement,
+}: {
+  baseRect: PanelRect
+  containerRect: PanelRect
+  placement: PicodashPanelPlacement
+}): PanelPosition {
+  if (placement.disposition.kind === 'free') {
+    return {
+      x: baseRect.left - containerRect.left,
+      y: baseRect.top - containerRect.top,
+    }
+  }
+
+  const edges = dockForSnapPosition(placement.disposition.position)
+  return {
+    x: edges.horizontal ? 0 : (containerRect.width - baseRect.width) / 2,
+    y: edges.vertical ? 0 : (containerRect.height - baseRect.height) / 2,
+  }
+}
+
 export function positionForPanelLayout({
   baseRect,
   containerRect,
   layout,
+  snapOffset = DEFAULT_SNAP_OFFSET,
 }: {
   baseRect: PanelRect
   containerRect: PanelRect
   layout: PanelLayout | undefined
+  snapOffset?: number
 }): PanelPosition {
   if (!layout) return { x: 0, y: 0 }
 
-  const placement = layout.placement
-  const fixed = placement?.mode === 'fixed'
-  const attachedPlacement =
-    placement && isPanelPlacementEdgeAttached(placement) ? placement : undefined
-  const dock = attachedPlacement
-    ? dockForSnapPosition(attachedPlacement.position)
-    : (layout.dock ?? null)
-  const inset = attachedPlacement ? 0 : SNAP_GAP
-  const targetLeft =
-    dock?.horizontal === 'left'
+  const { disposition } = layout.placement
+  const preferredLeft = containerRect.left + layout.preferredCoordinates.x
+  const preferredTop = containerRect.top + layout.preferredCoordinates.y
+  if (disposition.kind === 'free') {
+    return { x: preferredLeft - baseRect.left, y: preferredTop - baseRect.top }
+  }
+
+  const position = disposition.position
+  const inset = disposition.kind === 'snapped' ? snapOffset : 0
+  const edges = dockForSnapPosition(position)
+  const targetLeft = edges.horizontal
+    ? edges.horizontal === 'left'
       ? containerRect.left + inset
-      : dock?.horizontal === 'right'
-        ? containerRect.right - inset - baseRect.width
-        : layout.x
-  const targetTop =
-    dock?.vertical === 'top'
+      : containerRect.right - inset - baseRect.width
+    : preferredLeft
+  const targetTop = edges.vertical
+    ? edges.vertical === 'top'
       ? containerRect.top + inset
-      : dock?.vertical === 'bottom'
-        ? containerRect.bottom - inset - baseRect.height
-        : fixed
-          ? containerRect.top
-          : layout.y
+      : containerRect.bottom - inset - baseRect.height
+    : position.startsWith('middle')
+      ? containerRect.top + (containerRect.height - baseRect.height) / 2
+      : disposition.kind === 'docked' && position.startsWith('full')
+        ? containerRect.top
+        : preferredTop
 
   return {
     x: targetLeft - baseRect.left,
@@ -514,4 +579,8 @@ function matrixValues(serializedValues: string) {
 
 function finitePosition(x: number, y: number): PanelPosition {
   return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : { x: 0, y: 0 }
+}
+
+function nonNegativeFinite(value: number | undefined, fallback: number) {
+  return value === undefined || !Number.isFinite(value) ? fallback : Math.max(value, 0)
 }

@@ -81,10 +81,8 @@ test('preserves classic Zod composition on the advanced persistence schema', () 
     advancedApi.picodashPersistedStateSchema.safeParse({
       panelLayouts: {
         inspect: {
-          dock: null,
-          placement: { mode: 'magnetic' },
-          x: 24,
-          y: 32,
+          placement: { disposition: { kind: 'free' }, mode: 'hybrid' },
+          preferredCoordinates: { x: 24, y: 32 },
         },
       },
     }).success,
@@ -219,7 +217,10 @@ test('tracks registered panels in the global picodash store', () => {
   expect(store.getState().panels.inspect).toEqual({
     boundary: null,
     id: 'inspect',
-    placement: { mode: 'floating', position: 'top-right' },
+    placement: {
+      disposition: { kind: 'snapped', position: 'top-right' },
+      mode: 'floating',
+    },
     visible: true,
   })
   expect(store.getState().panelOrder).toEqual(['inspect'])
@@ -313,19 +314,29 @@ test('ignores visibility actions for unknown or unregistered panels', () => {
   expect(store.getState().panelOrder).toEqual([])
 })
 
-test('hydrates valid persisted panel layouts', () => {
+test('hydrates canonical persisted panel layouts', () => {
   const storage = installFakeLocalStorage()
   storage.setItem(
     panelLayoutStorageKey,
     JSON.stringify({
-      state: { panelLayouts: { inspect: { x: 42, y: -12 } } },
+      state: {
+        panelLayouts: {
+          inspect: {
+            placement: { disposition: { kind: 'free' }, mode: 'floating' },
+            preferredCoordinates: { x: 42, y: -12 },
+          },
+        },
+      },
       version: 0,
     }),
   )
 
   const store = createPicodashStore()
 
-  expect(store.getState().panelLayouts.inspect).toEqual({ dock: null, x: 42, y: -12 })
+  expect(store.getState().panelLayouts.inspect).toEqual({
+    placement: { disposition: { kind: 'free' }, mode: 'floating' },
+    preferredCoordinates: { x: 42, y: -12 },
+  })
 })
 
 test('ignores invalid persisted panel layouts', () => {
@@ -369,26 +380,40 @@ test('persists manual panel layout without persisting measured rect changes', ()
   const storage = installFakeLocalStorage()
   const store = createPicodashStore()
 
-  store.getState().setPanelLayout('inspect', { x: 24, y: 32 })
+  store.getState().setPanelLayout('inspect', {
+    placement: { disposition: { kind: 'free' }, mode: 'floating' },
+    preferredCoordinates: { x: 24, y: 32 },
+  })
   store.getState().setPanelRect('inspect', rect(24, 32, 100, 80))
 
   expect(readPersistedPanelLayouts(storage, panelLayoutStorageKey)).toEqual({
-    inspect: { dock: null, x: 24, y: 32 },
+    inspect: {
+      placement: { disposition: { kind: 'free' }, mode: 'floating' },
+      preferredCoordinates: { x: 24, y: 32 },
+    },
   })
 })
 
-test('persists docked panel layout edges', () => {
+test('persists docked panel placement and preferred coordinates', () => {
   const storage = installFakeLocalStorage()
   const store = createPicodashStore()
 
   store.getState().setPanelLayout('inspect', {
-    dock: { horizontal: 'right', vertical: 'top' },
-    x: 700,
-    y: 8,
+    placement: {
+      disposition: { kind: 'docked', position: 'top-right' },
+      mode: 'hybrid',
+    },
+    preferredCoordinates: { x: 700, y: 8 },
   })
 
   expect(readPersistedPanelLayouts(storage, panelLayoutStorageKey)).toEqual({
-    inspect: { dock: { horizontal: 'right', vertical: 'top' }, x: 700, y: 8 },
+    inspect: {
+      placement: {
+        disposition: { kind: 'docked', position: 'top-right' },
+        mode: 'hybrid',
+      },
+      preferredCoordinates: { x: 700, y: 8 },
+    },
   })
 })
 
@@ -397,43 +422,52 @@ test('keeps explicitly floating edge snaps floating', () => {
   store.getState().registerPanel({ id: 'inspect' })
 
   store.getState().setPanelLayout('inspect', {
-    dock: { horizontal: 'left', vertical: 'top' },
-    placement: { mode: 'floating' },
-    x: 8,
-    y: 8,
+    placement: {
+      disposition: { kind: 'snapped', position: 'top-left' },
+      mode: 'floating',
+    },
+    preferredCoordinates: { x: 8, y: 8 },
   })
 
-  expect(store.getState().panels.inspect.placement).toEqual({ mode: 'floating' })
+  expect(store.getState().panels.inspect.placement).toEqual({
+    disposition: { kind: 'snapped', position: 'top-left' },
+    mode: 'floating',
+  })
 })
 
-test('persists fixed placement while retaining the last non-fixed coordinates', () => {
+test('persists fixed placement while retaining preferred coordinates', () => {
   const storage = installFakeLocalStorage()
   const store = createPicodashStore()
   store.getState().registerPanel({ id: 'inspect' })
-  store.getState().setPanelLayout('inspect', { x: 24, y: 32 })
+  store.getState().setPanelLayout('inspect', {
+    placement: { disposition: { kind: 'free' }, mode: 'floating' },
+    preferredCoordinates: { x: 24, y: 32 },
+  })
 
-  store.getState().setPanelPlacement('inspect', { mode: 'fixed', position: 'right' })
+  store.getState().setPanelPlacement('inspect', {
+    disposition: { kind: 'docked', position: 'full-right' },
+    mode: 'fixed',
+  })
 
   expect(store.getState().panels.inspect.placement).toEqual({
+    disposition: { kind: 'docked', position: 'full-right' },
     mode: 'fixed',
-    position: 'right',
   })
   expect(readPersistedPanelLayouts(storage, panelLayoutStorageKey)).toEqual({
     inspect: {
-      dock: null,
-      placement: { mode: 'fixed', position: 'right' },
-      x: 24,
-      y: 32,
+      placement: {
+        disposition: { kind: 'docked', position: 'full-right' },
+        mode: 'fixed',
+      },
+      preferredCoordinates: { x: 24, y: 32 },
     },
   })
 
-  store.getState().setPanelPlacement('inspect', { mode: 'floating' })
+  store.getState().setPanelPlacement('inspect', { disposition: { kind: 'free' }, mode: 'floating' })
 
   expect(store.getState().panelLayouts.inspect).toEqual({
-    dock: null,
-    placement: { mode: 'floating' },
-    x: 24,
-    y: 32,
+    placement: { disposition: { kind: 'free' }, mode: 'floating' },
+    preferredCoordinates: { x: 24, y: 32 },
   })
 })
 
@@ -442,61 +476,77 @@ test('uses the measured panel position when runtime placement has no saved layou
   store.getState().registerPanel({ id: 'inspect' })
   store.getState().setPanelRect('inspect', rect(240, 96, 100, 80))
 
-  store.getState().setPanelPlacement('inspect', { mode: 'magnetic', position: 'top' })
+  store.getState().setPanelPlacement('inspect', {
+    disposition: { kind: 'snapped', position: 'top' },
+    mode: 'hybrid',
+  })
 
   expect(store.getState().panelLayouts.inspect).toEqual({
-    dock: { vertical: 'top' },
-    placement: { mode: 'magnetic', position: 'top' },
-    x: 240,
-    y: 96,
+    placement: {
+      disposition: { kind: 'snapped', position: 'top' },
+      mode: 'hybrid',
+    },
+    preferredCoordinates: { x: 240, y: 96 },
   })
 })
 
-test('keeps detached runtime magnetic placement without an edge position', () => {
+test('keeps detached runtime hybrid placement free', () => {
   const store = createPicodashStore({ persistLayout: false })
   store.getState().registerPanel({ id: 'inspect' })
   store.getState().setPanelLayout('inspect', {
-    dock: { horizontal: 'left' },
-    placement: { mode: 'magnetic', position: 'left' },
-    x: 0,
-    y: 96,
+    placement: {
+      disposition: { kind: 'docked', position: 'full-left' },
+      mode: 'hybrid',
+    },
+    preferredCoordinates: { x: 0, y: 96 },
   })
 
-  store.getState().setPanelPlacement('inspect', { mode: 'magnetic' })
+  store.getState().setPanelPlacement('inspect', { disposition: { kind: 'free' }, mode: 'hybrid' })
 
   expect(store.getState().panelLayouts.inspect).toEqual({
-    dock: null,
-    placement: { mode: 'magnetic' },
-    x: 0,
-    y: 96,
+    placement: { disposition: { kind: 'free' }, mode: 'hybrid' },
+    preferredCoordinates: { x: 0, y: 96 },
   })
-  expect(store.getState().panels.inspect.placement).toEqual({ mode: 'magnetic' })
+  expect(store.getState().panels.inspect.placement).toEqual({
+    disposition: { kind: 'free' },
+    mode: 'hybrid',
+  })
 })
 
 test('moves runtime floating corner placement within the panel boundary', () => {
   expect(
     positionForFloatingCorner('bottom-right', { height: 80, width: 100 }, rect(50, 20, 500, 300)),
-  ).toEqual({ x: 434, y: 224 })
+  ).toEqual({ x: 442, y: 232 })
 })
 
 test('retains an explicit floating corner request while a retracted fixed panel is unmeasured', () => {
   const store = createPicodashStore({ persistLayout: false })
   store.getState().registerPanel({ id: 'inspect' })
-  store.getState().setPanelLayout('inspect', { x: 24, y: 32 })
-  store.getState().setPanelPlacement('inspect', { mode: 'fixed', position: 'right' })
+  store.getState().setPanelLayout('inspect', {
+    placement: { disposition: { kind: 'free' }, mode: 'floating' },
+    preferredCoordinates: { x: 24, y: 32 },
+  })
+  store.getState().setPanelPlacement('inspect', {
+    disposition: { kind: 'docked', position: 'full-right' },
+    mode: 'fixed',
+  })
   store.getState().setPanelRect('inspect', null)
 
-  store.getState().setPanelPlacement('inspect', { mode: 'floating', position: 'bottom-right' })
+  store.getState().setPanelPlacement('inspect', {
+    disposition: { kind: 'snapped', position: 'bottom-right' },
+    mode: 'floating',
+  })
 
   expect(store.getState().panelLayouts.inspect).toEqual({
-    dock: null,
-    placement: { mode: 'floating', position: 'bottom-right' },
-    x: 24,
-    y: 32,
+    placement: {
+      disposition: { kind: 'snapped', position: 'bottom-right' },
+      mode: 'floating',
+    },
+    preferredCoordinates: { x: 24, y: 32 },
   })
 })
 
-test('hydrates legacy docks as magnetic placement when a panel registers', () => {
+test('ignores obsolete dock records when a panel registers', () => {
   const storage = installFakeLocalStorage()
   storage.setItem(
     panelLayoutStorageKey,
@@ -518,12 +568,13 @@ test('hydrates legacy docks as magnetic placement when a panel registers', () =>
   store.getState().registerPanel({ id: 'inspect' })
 
   expect(store.getState().panels.inspect.placement).toEqual({
-    mode: 'magnetic',
-    position: 'bottom-left',
+    disposition: { kind: 'snapped', position: 'top-right' },
+    mode: 'floating',
   })
+  expect(store.getState().panelLayouts).toEqual({})
 })
 
-test('keeps legacy undocked layouts floating when a declaration now has a fixed default', () => {
+test('uses the declared default when an obsolete undocked record cannot hydrate', () => {
   const storage = installFakeLocalStorage()
   storage.setItem(
     panelLayoutStorageKey,
@@ -534,27 +585,41 @@ test('keeps legacy undocked layouts floating when a declaration now has a fixed 
   )
   const store = createPicodashStore()
 
-  store
-    .getState()
-    .registerPanel({ id: 'inspect', defaultPlacement: { mode: 'fixed', position: 'right' } })
+  store.getState().registerPanel({
+    id: 'inspect',
+    defaultPlacement: {
+      disposition: { kind: 'docked', position: 'full-right' },
+      mode: 'fixed',
+    },
+  })
 
-  expect(store.getState().panels.inspect.placement).toEqual({ mode: 'floating' })
+  expect(store.getState().panels.inspect.placement).toEqual({
+    disposition: { kind: 'docked', position: 'full-right' },
+    mode: 'fixed',
+  })
+  expect(store.getState().panelLayouts).toEqual({})
 })
 
-test('normalizes placement and converts magnetic edges without dock terminology in public types', () => {
-  expect(normalizePicodashPanelPlacement('bottom-right')).toEqual({
-    mode: 'floating',
-    position: 'bottom-right',
-  })
+test('normalizes canonical placement without public dock aliases', () => {
+  const placement = {
+    disposition: { kind: 'snapped' as const, position: 'bottom-right' as const },
+    mode: 'floating' as const,
+  }
+  expect(normalizePicodashPanelPlacement(placement)).toBe(placement)
   expect(dockForSnapPosition('top-right')).toEqual({ horizontal: 'right', vertical: 'top' })
   expect(snapPositionForDock({ horizontal: 'left' })).toBe('left')
   expect(
     placementForPanelLayout({
-      dock: { horizontal: 'right', vertical: 'bottom' },
-      x: 0,
-      y: 0,
+      placement: {
+        disposition: { kind: 'docked', position: 'bottom-right' },
+        mode: 'hybrid',
+      },
+      preferredCoordinates: { x: 0, y: 0 },
     }),
-  ).toEqual({ mode: 'magnetic', position: 'bottom-right' })
+  ).toEqual({
+    disposition: { kind: 'docked', position: 'bottom-right' },
+    mode: 'hybrid',
+  })
 })
 
 test('tracks panel boundary identity separately from persisted layout', () => {
@@ -658,12 +723,14 @@ test('docked edge overrides saved coordinates for panel layout position', () => 
       baseRect: rect(200, 100, 100, 80),
       containerRect: rect(0, 0, 500, 400),
       layout: {
-        dock: { horizontal: 'right', vertical: 'top' },
-        x: 240,
-        y: 260,
+        placement: {
+          disposition: { kind: 'docked', position: 'top-right' },
+          mode: 'hybrid',
+        },
+        preferredCoordinates: { x: 240, y: 260 },
       },
     }),
-  ).toEqual({ x: 192, y: -92 })
+  ).toEqual({ x: 200, y: -100 })
 })
 
 test('chooses the nearest snap candidate on each axis', () => {

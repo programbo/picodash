@@ -4,6 +4,7 @@ import { Activity, Braces, Layers3, ListTree, MousePointer2 } from 'lucide-react
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, type ReactNode } from 'react'
 import * as z from 'zod/mini'
+import { floatingPlacement } from '../../lib/panel-placement'
 import {
   createPicodashPanelStore,
   PicodashDisplay,
@@ -343,7 +344,7 @@ export function StateLabApp({ activeTab }: { activeTab: StateLabTab }) {
         theme={themes.scene}
         title="Scene Controls"
         collapsible
-        defaultPlacement="top-right"
+        defaultPlacement={floatingPlacement()}
         width={368}
         className="top-4 right-4 lg:top-8 lg:right-120"
         onClose={recordPanelClose}
@@ -468,7 +469,7 @@ export function StateLabApp({ activeTab }: { activeTab: StateLabTab }) {
         theme={themes.custom}
         title="Custom Items"
         collapsible
-        defaultPlacement="bottom-right"
+        defaultPlacement={floatingPlacement()}
         width="23rem"
         className="top-136 right-4 w-92 max-w-[calc(100dvw-2rem)] lg:top-8 lg:right-auto lg:bottom-auto lg:left-8"
       >
@@ -485,7 +486,7 @@ export function StateLabApp({ activeTab }: { activeTab: StateLabTab }) {
           id={initiallyHiddenPanelId}
           title="Initially Hidden"
           defaultVisible={false}
-          defaultPlacement="bottom-left"
+          defaultPlacement={floatingPlacement('bottom-left')}
           width={240}
           onClose={(details) => {
             recordPanelClose(details)
