@@ -1353,9 +1353,7 @@ for (const position of ['full-left', 'full-right'] as const) {
   })
 }
 
-test('re-arms vertical intent after a side-detached panel clears its original edge zone', async ({
-  page,
-}) => {
+test('can retarget a side-detached panel to a bottom corner in the same drag', async ({ page }) => {
   await page.goto(`${labURL}/lab/panel-geometry?fixture=hybrid-viewport`)
   const boundary = page.locator('[data-geometry-viewport]')
   const panel = geometryPanel(page, 'hybrid-viewport')
@@ -1390,16 +1388,13 @@ test('re-arms vertical intent after a side-detached panel clears its original ed
   await expect(preview).toHaveAttribute('data-hybrid-dock-preview', '')
 
   await page.mouse.move(
-    boundaryBox.x + boundaryBox.width / 2,
+    boundaryBox.x + boundaryBox.width - 1,
     boundaryBox.y + boundaryBox.height - 1,
     { steps: 12 },
   )
-  await expect(preview).toHaveAttribute('data-hybrid-dock-preview', '')
-  await expect
-    .poll(async () => Number(await preview.getAttribute('opacity')))
-    .toBeLessThanOrEqual(0.01)
+  await expect(preview).toHaveAttribute('data-hybrid-dock-preview', 'bottom-right')
   await page.mouse.up()
-  await expect(shell).toHaveAttribute('data-hybrid-placement', 'bottom')
+  await expect(shell).toHaveAttribute('data-hybrid-placement', 'bottom-right')
 })
 
 test('handles deferred corners, ordinary class constraints, and viewport panels in a scrolling portal', async ({

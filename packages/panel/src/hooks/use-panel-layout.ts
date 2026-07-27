@@ -140,6 +140,33 @@ export function usePanelLayoutSynchronization({
     return Math.max(panelRect.height, chromeHeight + contentElement.scrollHeight)
   }, [contentElementRef, panelElementRef])
 
+  const measureIntrinsicHeightWithoutFixedSide = useCallback(() => {
+    const panelElement = panelElementRef.current
+    if (!panelElement) return 0
+
+    const positionElement = positionElementRef?.current
+    const panelHeight = panelElement.style.getPropertyValue('height')
+    const panelHeightPriority = panelElement.style.getPropertyPriority('height')
+    const positionHeight = positionElement?.style.getPropertyValue('height')
+    const positionHeightPriority = positionElement?.style.getPropertyPriority('height')
+
+    applyCallerDimension(panelElement, 'height', callerHeight)
+    positionElement?.style.removeProperty('height')
+    try {
+      return measureIntrinsicHeight()
+    } finally {
+      restoreInlineStyleProperty(panelElement, 'height', panelHeight, panelHeightPriority)
+      if (positionElement) {
+        restoreInlineStyleProperty(
+          positionElement,
+          'height',
+          positionHeight ?? '',
+          positionHeightPriority ?? '',
+        )
+      }
+    }
+  }, [callerHeight, measureIntrinsicHeight, panelElementRef, positionElementRef])
+
   const measureCallerMaxHeight = useCallback(
     (containerRect: PanelRect) => {
       const panelElement = panelElementRef.current
@@ -608,6 +635,7 @@ export function usePanelLayoutSynchronization({
     applyProjection,
     measureEdgeAttachedPanelSize,
     measureIntrinsicHeight,
+    measureIntrinsicHeightWithoutFixedSide,
     scheduleSynchronization,
     synchronizePlacementGeometry,
     updatePanelRect,
@@ -768,6 +796,19 @@ function applyCallerDimension(
     panelElement.style[property] = resolvedCallerMaxHeight
   } else {
     panelElement.style.removeProperty(cssProperty)
+  }
+}
+
+function restoreInlineStyleProperty(
+  element: HTMLElement,
+  property: string,
+  value: string,
+  priority: string,
+) {
+  if (value) {
+    element.style.setProperty(property, value, priority)
+  } else {
+    element.style.removeProperty(property)
   }
 }
 

@@ -327,6 +327,7 @@ export function PicodashPanel({
     applyProjection,
     measureEdgeAttachedPanelSize,
     measureIntrinsicHeight,
+    measureIntrinsicHeightWithoutFixedSide,
     scheduleSynchronization,
     synchronizePlacementGeometry,
     updatePanelRect,
@@ -642,8 +643,15 @@ export function PicodashPanel({
       })
       const previewPosition =
         intentPosition === 'top' || intentPosition === 'bottom' ? null : intentPosition
+      const releasedFromFullSide = releasesDownward && dragState.attachedReleased
+      const pointerTargetsVerticalEdge =
+        pointer.y <= dragState.containerRect.top + resolvedPlacementOptions.snapProximity ||
+        pointer.y >= dragState.containerRect.bottom - resolvedPlacementOptions.snapProximity
       const verticalSnapIntent =
-        intentPosition === 'top' || intentPosition === 'bottom' ? intentPosition : null
+        (intentPosition === 'top' || intentPosition === 'bottom') &&
+        (!releasedFromFullSide || pointerTargetsVerticalEdge)
+          ? intentPosition
+          : null
       const ordinarySnap = snapPanelPosition({
         baseRect: liveBaseRect,
         containerRect: dragState.containerRect,
@@ -676,7 +684,7 @@ export function PicodashPanel({
         inset: resolvedPlacementOptions.snapOffset,
         intrinsicHeight: dragState.floatingHeight,
         position:
-          previewPosition && !(releasesDownward && dragState.attachedReleased)
+          previewPosition && !releasedFromFullSide
             ? clampPanelPosition(
                 ordinarySnap.position,
                 liveBaseRect,
@@ -793,7 +801,14 @@ export function PicodashPanel({
     const panelElement = panelElementRef.current
     if (panelElement) {
       const displayedPosition = { x: x.get(), y: y.get() }
-      const intrinsicHeight = measureIntrinsicHeight()
+      const isFullSideHybridDock =
+        placement.mode === 'hybrid' &&
+        placement.disposition.kind === 'docked' &&
+        (placement.disposition.position === 'full-left' ||
+          placement.disposition.position === 'full-right')
+      const intrinsicHeight = isFullSideHybridDock
+        ? measureIntrinsicHeightWithoutFixedSide()
+        : measureIntrinsicHeight()
       const containerRect = rectForPanelBoundary(resolvedBoundary)
       const attachedSize = measureEdgeAttachedPanelSize(containerRect, intrinsicHeight)
       const initialDock =
@@ -822,13 +837,7 @@ export function PicodashPanel({
               ),
         containerRect,
         dock: initialDock,
-        floatingHeight:
-          placement.mode === 'hybrid' &&
-          placement.disposition.kind === 'docked' &&
-          (placement.disposition.position === 'full-left' ||
-            placement.disposition.position === 'full-right')
-            ? attachedSize.naturalHeight
-            : panelRect.height,
+        floatingHeight: isFullSideHybridDock ? attachedSize.naturalHeight : panelRect.height,
         headerHeight:
           headerElementRef.current?.getBoundingClientRect().height ??
           resolvedPlacementOptions.snapProximity / 2,
