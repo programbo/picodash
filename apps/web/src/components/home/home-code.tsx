@@ -1730,6 +1730,10 @@ function sourceForExample(
   showAllProps = false,
 ) {
   const panelPlacement = placementForBuiltInItemsConfig(config)
+  const serializedPanelPlacement = JSON.stringify(panelPlacement, null, 2).replaceAll(
+    '\n',
+    '\n      ',
+  )
   const noopBooleanUpdate = () => undefined
   const noopItemUpdate: UpdateItemProp = () => undefined
   const noopNumberUpdate = () => undefined
@@ -1799,7 +1803,7 @@ ${serializeControls(group.lines)}
     title={${JSON.stringify(config.panelTitle)}}
     collapsible={${config.panelCollapsible}}
     width={${config.panelWidth}}
-    defaultPlacement={${JSON.stringify(panelPlacement)}}${
+    defaultPlacement={${serializedPanelPlacement}}${
       showAllProps
         ? `
     className="bg-(--picodash-color-surface)/72 top-4 right-4 max-w-[calc(100dvw-2rem)] backdrop-blur-xl lg:top-8 lg:right-8"`

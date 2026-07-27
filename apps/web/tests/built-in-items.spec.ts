@@ -563,8 +563,8 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
     .toContain('title={"Live Built-ins"}')
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toContain(
-      'defaultPlacement={{"disposition":{"kind":"snapped","position":"right"},"mode":"floating"}}',
+    .toMatch(
+      /defaultPlacement=\{\{\n\s+"disposition": \{\n\s+"kind": "snapped",\n\s+"position": "right"\n\s+\},\n\s+"mode": "floating"\n\s+\}\}/,
     )
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
