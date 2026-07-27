@@ -7,11 +7,11 @@
     "lint": "vp lint src --fix",
     "format": "vp fmt src --write",
     "panel:build": "bun run --filter @picodash/panel build",
-    "dev": "bun run panel:build && next dev --hostname 127.0.0.1 --port ${WEBSITE_PORT:-6035}",
+    "dev": "bun run panel:build && next dev --hostname 127.0.0.1 --port ${WEBSITE_PORT:-6030}",
     "build": "bun run panel:build && next build",
     "check": "bun run panel:build && tsc --noEmit",
     "test:e2e": "playwright test",
-    "start": "next start --hostname 127.0.0.1 --port ${WEBSITE_PORT:-6036}"
+    "start": "next start --hostname 127.0.0.1 --port ${WEBSITE_PORT:-6031}"
   },
   "dependencies": {
     "@picodash/panel": "workspace:*",

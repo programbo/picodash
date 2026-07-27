@@ -1,8 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const websitePort = servicePort('WEBSITE_PORT', '6035')
+const websitePort = servicePort('WEBSITE_PORT', '6033')
 const websiteURL = `http://127.0.0.1:${websitePort}`
-const labPort = servicePort('LAB_PORT', '6034')
+const labPort = servicePort('LAB_PORT', '6032')
 const labURL = `http://127.0.0.1:${labPort}`
 
 function servicePort(name: string, fallback: string) {
@@ -22,13 +22,13 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: 'bun run --filter @picodash/web dev',
+      command: `WEBSITE_PORT=${websitePort} bun run --filter @picodash/web dev`,
       url: websiteURL,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },
     {
-      command: 'bun run --filter @picodash/lab dev',
+      command: `LAB_PORT=${labPort} bun run --filter @picodash/lab dev`,
       url: `${labURL}/lab/state`,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
