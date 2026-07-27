@@ -919,6 +919,7 @@ export function HomeCode() {
     config.panelPlacementPosition,
     config.panelPlacementMode,
   )
+  const panelPlacement = placementForBuiltInItemsConfig(config)
   const panelPlacementPositions = [...builtInPanelPlacementPositions[config.panelPlacementMode]]
 
   const copySource = async () => {
@@ -1081,6 +1082,16 @@ export function HomeCode() {
                 <Punctuation>&apos;,</Punctuation>
               </CodeLine>
               <CodeLine indent={3}>
+                <Prop>disposition</Prop>
+                <Punctuation>: &#123;</Punctuation>
+              </CodeLine>
+              <CodeLine indent={4}>
+                <Prop>kind</Prop>
+                <Punctuation>: &apos;</Punctuation>
+                <StringValue>{panelPlacement.disposition.kind}</StringValue>
+                <Punctuation>&apos;,</Punctuation>
+              </CodeLine>
+              <CodeLine indent={4}>
                 <Prop>position</Prop>
                 <Punctuation>: &apos;</Punctuation>
                 <InlineSelect
@@ -1096,6 +1107,9 @@ export function HomeCode() {
                   }
                 />
                 <Punctuation>&apos;,</Punctuation>
+              </CodeLine>
+              <CodeLine indent={3}>
+                <Punctuation>&#125;,</Punctuation>
               </CodeLine>
               <CodeLine indent={2}>
                 <Punctuation>&#125;&#125;</Punctuation>

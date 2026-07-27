@@ -401,6 +401,9 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
   await expect(example.locator('[data-interactive-tabs]')).toHaveClass(/bg-zinc-950\/78/)
   await expect(placementMode).toHaveValue('floating')
   await expect(placementPosition).toHaveValue('top-right')
+  await expect(example.getByText('disposition', { exact: true })).toBeVisible()
+  await expect(example.getByText('kind', { exact: true })).toBeVisible()
+  await expect(example.getByText('snapped', { exact: true })).toBeVisible()
   await expect(placementPosition.locator('option')).toHaveText([
     'top-left',
     'top',
@@ -425,8 +428,10 @@ test('edits live provider, panel, and Common inputs props through highlighted JS
     'full-left',
   ])
   await placementPosition.selectOption('bottom')
+  await expect(example.getByText('snapped', { exact: true })).toBeVisible()
   await placementMode.selectOption('fixed')
   await expect(placementPosition).toHaveValue('bottom-left')
+  await expect(example.getByText('docked', { exact: true })).toBeVisible()
   await expect(placementPosition.locator('option')).toHaveText([
     'top-left',
     'top-right',
