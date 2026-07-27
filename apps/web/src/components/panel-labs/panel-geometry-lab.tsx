@@ -9,11 +9,17 @@ import {
   PicodashProvider,
   usePicodashPanel,
   usePicodashPanelStoreSelector,
-  type PicodashPanelFixedPosition,
+  type PicodashPanelDockedPosition,
 } from '@picodash/panel'
 import { usePicodashProviderSelector } from '@picodash/panel/advanced'
+import {
+  fixedPlacement,
+  floatingPlacement,
+  hybridPlacement,
+  positionForPlacement,
+} from '../../lib/panel-placement'
 
-const storageKey = 'picodash-geometry-lab:panel-layout:v1'
+const storageKey = 'picodash-geometry-lab:panel-layout:v2'
 
 const tallPanelStore = createPicodashPanelStore({ panelId: 'geometry-tall' })
 const peerPanelStore = createPicodashPanelStore({ panelId: 'geometry-peer' })
@@ -33,11 +39,11 @@ const bottomCappedPanelStore = createPicodashPanelStore({ panelId: 'geometry-bot
 const bottomDragPanelStore = createPicodashPanelStore({ panelId: 'geometry-bottom-drag' })
 const fixedBoundaryPanelStore = createPicodashPanelStore({ panelId: 'geometry-fixed-boundary' })
 const fixedOverridePanelStore = createPicodashPanelStore({ panelId: 'geometry-fixed-override' })
-const magneticViewportPanelStore = createPicodashPanelStore({
-  panelId: 'geometry-magnetic-viewport',
+const hybridViewportPanelStore = createPicodashPanelStore({
+  panelId: 'geometry-hybrid-viewport',
 })
-const magneticWidthPanelStore = createPicodashPanelStore({
-  panelId: 'geometry-magnetic-width',
+const hybridWidthPanelStore = createPicodashPanelStore({
+  panelId: 'geometry-hybrid-width',
 })
 const reviewRegressionPanelStore = createPicodashPanelStore({
   panelId: 'geometry-review-regression',
@@ -51,22 +57,24 @@ const fixedPositions = [
   'bottom-left',
   'top-right',
   'bottom-right',
-  'left',
-  'right',
-] as const satisfies readonly PicodashPanelFixedPosition[]
+  'full-left',
+  'full-right',
+  'middle-left',
+  'middle-right',
+] as const satisfies readonly PicodashPanelDockedPosition[]
 
 export function PanelGeometryLab({ fixture = 'drag' }: { fixture?: string }) {
   if (fixture === 'fixed-boundaries') {
     return <FixedBoundaryFixture />
   }
-  if (fixture === 'magnetic-viewport') {
-    return <MagneticViewportFixture />
+  if (fixture === 'hybrid-viewport') {
+    return <HybridViewportFixture />
   }
-  if (fixture === 'magnetic-viewport-tall') {
-    return <MagneticViewportFixture tall />
+  if (fixture === 'hybrid-viewport-tall') {
+    return <HybridViewportFixture tall />
   }
-  if (fixture === 'magnetic-width') {
-    return <MagneticWidthFixture />
+  if (fixture === 'hybrid-width') {
+    return <HybridWidthFixture />
   }
   if (fixture === 'review-regressions') {
     return <ReviewRegressionFixture />
@@ -102,7 +110,7 @@ export function PanelGeometryLab({ fixture = 'drag' }: { fixture?: string }) {
   )
 }
 
-function MagneticWidthFixture() {
+function HybridWidthFixture() {
   return (
     <main
       id="main-content"
@@ -113,20 +121,26 @@ function MagneticWidthFixture() {
       <div className="pointer-events-none fixed inset-0" data-geometry-viewport />
       <PicodashProvider persistLayout={false} theme="dark">
         <PicodashPanel
-          store={magneticWidthPanelStore}
-          title="Magnetic width"
+          className="top-20 left-50"
+          store={hybridWidthPanelStore}
+          title="Hybrid width"
           width={300}
-          defaultPlacement={{ mode: 'magnetic' }}
-          data-geometry-fixture="magnetic-width"
+          defaultPlacement={hybridPlacement()}
+          placementOptions={{
+            detachThresholdMultiplier: 2,
+            snapOffset: 24,
+            snapProximity: 32,
+          }}
+          data-geometry-fixture="hybrid-width"
         >
-          <TallContent prefix="magnetic-width" count={4} />
+          <TallContent prefix="hybrid-width" count={4} />
         </PicodashPanel>
       </PicodashProvider>
     </main>
   )
 }
 
-function MagneticViewportFixture({ tall = false }: { tall?: boolean }) {
+function HybridViewportFixture({ tall = false }: { tall?: boolean }) {
   return (
     <main
       id="main-content"
@@ -136,32 +150,32 @@ function MagneticViewportFixture({ tall = false }: { tall?: boolean }) {
     >
       <div className="pointer-events-none fixed inset-0" data-geometry-viewport />
       <PicodashProvider persistLayout={false} theme="dark">
-        <MagneticViewportPlacement />
+        <HybridViewportPlacement />
         <PicodashPanel
-          store={magneticViewportPanelStore}
-          title="Magnetic viewport"
+          store={hybridViewportPanelStore}
+          title="Hybrid viewport"
           width={300}
           collapsible
-          defaultPlacement={{ mode: 'magnetic', position: 'top-left' }}
-          data-geometry-fixture="magnetic-viewport"
+          defaultPlacement={hybridPlacement('top-left')}
+          data-geometry-fixture="hybrid-viewport"
         >
-          <TallContent prefix="magnetic-viewport" count={tall ? 32 : 10} />
+          <TallContent prefix="hybrid-viewport" count={tall ? 32 : 10} />
         </PicodashPanel>
       </PicodashProvider>
     </main>
   )
 }
 
-function MagneticViewportPlacement() {
-  const panel = usePicodashPanel('geometry-magnetic-viewport')
+function HybridViewportPlacement() {
+  const panel = usePicodashPanel('geometry-hybrid-viewport')
   const layout = usePicodashProviderSelector(
-    (state) => state.panelLayouts['geometry-magnetic-viewport'],
+    (state) => state.panelLayouts['geometry-hybrid-viewport'],
   )
   return (
     <>
       <output className="sr-only" data-runtime-placement>
         {panel
-          ? `${panel.placement.mode}:${'position' in panel.placement ? (panel.placement.position ?? '') : ''}`
+          ? `${panel.placement.mode}:${positionForPlacement(panel.placement) ?? ''}`
           : 'unregistered'}
       </output>
       <output className="sr-only" data-runtime-layout>
@@ -207,7 +221,7 @@ function RelativeConstraintFixture() {
               title="Relative constraints"
               width={480}
               className="review-relative-constraint"
-              defaultPlacement={{ mode: 'floating', position: 'bottom-right' }}
+              defaultPlacement={floatingPlacement('bottom-right')}
               data-geometry-fixture="relative-constraint"
             >
               <TallContent prefix="relative-constraint" count={32} />
@@ -245,7 +259,7 @@ function ReviewRegressionFixture() {
               width={320}
               className="review-panel-constraint"
               collapsible
-              defaultPlacement={{ mode: 'fixed', position: 'left' }}
+              defaultPlacement={fixedPlacement('full-left')}
               data-geometry-fixture="review-regression"
             >
               <TallContent prefix="review-regression" count={24} />
@@ -264,13 +278,13 @@ function ReviewRegressionControls() {
       <button
         type="button"
         className="fixed top-2 left-1/2 z-50 -translate-x-1/2 rounded bg-black px-3 py-2 text-xs"
-        onClick={() => panel?.setPlacement({ mode: 'floating', position: 'bottom-right' })}
+        onClick={() => panel?.setPlacement(floatingPlacement('bottom-right'))}
       >
         Float bottom-right
       </button>
       <output data-review-regression-placement hidden>
         {panel
-          ? `${panel.placement.mode}:${'position' in panel.placement ? (panel.placement.position ?? '') : ''}`
+          ? `${panel.placement.mode}:${positionForPlacement(panel.placement) ?? ''}`
           : 'unregistered'}
       </output>
     </>
@@ -296,7 +310,7 @@ function FixedBoundaryFixture() {
         <PicodashProvider
           panelBoundary={mainBoundaryRef}
           persistLayout
-          storageKey="picodash-geometry-lab:fixed-boundaries:v1"
+          storageKey="picodash-geometry-lab:fixed-boundaries:v2"
           theme="dark"
         >
           <FixedPlacementControls />
@@ -313,7 +327,7 @@ function FixedBoundaryFixture() {
             title="Provider boundary"
             width={300}
             collapsible
-            defaultPlacement={{ mode: 'fixed', position: 'left' }}
+            defaultPlacement={fixedPlacement('full-left')}
             data-geometry-fixture="fixed-boundary"
           >
             <PicodashGroup id="fixed-start" label="Pinned start" pin="start">
@@ -331,7 +345,7 @@ function FixedBoundaryFixture() {
             width={240}
             collapsible
             boundary={canvasBoundaryRef}
-            defaultPlacement={{ mode: 'fixed', position: 'bottom-right' }}
+            defaultPlacement={fixedPlacement('bottom-right')}
             data-geometry-fixture="fixed-override"
           >
             <PicodashDisplay id="fixed-override-value" label="Boundary" value="Panel override" />
@@ -345,9 +359,9 @@ function FixedBoundaryFixture() {
 function FixedPlacementControls() {
   const panel = usePicodashPanel('geometry-fixed-boundary')
   const fixedPosition =
-    panel?.placement.mode === 'fixed' ? panel.placement.position : fixedPositions[0]
+    panel?.placement.mode === 'fixed' ? panel.placement.disposition.position : fixedPositions[0]
   const placementLabel = panel
-    ? `${panel.placement.mode}:${'position' in panel.placement ? (panel.placement.position ?? '') : ''}`
+    ? `${panel.placement.mode}:${positionForPlacement(panel.placement) ?? ''}`
     : 'unregistered'
 
   return (
@@ -358,10 +372,9 @@ function FixedPlacementControls() {
         className="rounded border border-white/20 bg-zinc-900 px-2 py-1"
         value={fixedPosition}
         onChange={(event) => {
-          panel?.setPlacement({
-            mode: 'fixed',
-            position: event.currentTarget.value as PicodashPanelFixedPosition,
-          })
+          panel?.setPlacement(
+            fixedPlacement(event.currentTarget.value as PicodashPanelDockedPosition),
+          )
         }}
       >
         {fixedPositions.map((position) => (
@@ -373,14 +386,14 @@ function FixedPlacementControls() {
       <button
         type="button"
         className="rounded border border-white/20 px-2 py-1"
-        onClick={() => panel?.setPlacement({ mode: 'magnetic', position: 'top-left' })}
+        onClick={() => panel?.setPlacement(hybridPlacement('top-left'))}
       >
-        Magnetic
+        Hybrid
       </button>
       <button
         type="button"
         className="rounded border border-white/20 px-2 py-1"
-        onClick={() => panel?.setPlacement({ mode: 'floating' })}
+        onClick={() => panel?.setPlacement(floatingPlacement())}
       >
         Floating
       </button>
@@ -397,7 +410,7 @@ function DragFixture() {
       store={tallPanelStore}
       title="Tall geometry panel"
       width={320}
-      defaultPlacement="top-left"
+      defaultPlacement={floatingPlacement('top-left')}
       data-geometry-fixture="tall"
     >
       <TallContent prefix="tall" count={24} />
@@ -412,7 +425,7 @@ function PeerFixture() {
         store={tallPanelStore}
         title="Snap source"
         width={280}
-        defaultPlacement="top-left"
+        defaultPlacement={floatingPlacement('top-left')}
         data-geometry-fixture="snap-source"
       >
         <TallContent prefix="snap" count={3} />
@@ -421,7 +434,7 @@ function PeerFixture() {
         store={peerPanelStore}
         title="Snap peer"
         width={280}
-        defaultPlacement="top-right"
+        defaultPlacement={floatingPlacement('top-right')}
         data-geometry-fixture="snap-peer"
       >
         <TallContent prefix="peer" count={3} />
@@ -438,7 +451,7 @@ function PanelExpansionFixture() {
       width={320}
       collapsible
       defaultCollapsed
-      defaultPlacement="top-left"
+      defaultPlacement={floatingPlacement('top-left')}
       className="top-20 left-24"
       data-geometry-fixture="panel-expansion"
     >
@@ -453,7 +466,7 @@ function GroupExpansionFixture() {
       store={expansionPanelStore}
       title="Group expansion fixture"
       width={320}
-      defaultPlacement="top-left"
+      defaultPlacement={floatingPlacement('top-left')}
       className="top-20 left-24"
       data-geometry-fixture="groups"
     >
@@ -476,7 +489,7 @@ function BottomExpansionFixture() {
       store={bottomPanelStore}
       title="Bottom docked fixture"
       width={320}
-      defaultPlacement="bottom-left"
+      defaultPlacement={floatingPlacement('bottom-left')}
       data-geometry-fixture="bottom"
     >
       <PicodashGroup id="bottom-group" label="Bottom group" defaultCollapsed>
@@ -492,7 +505,7 @@ function CustomBottomFixture() {
       store={customBottomPanelStore}
       title="Custom bottom inset fixture"
       width={320}
-      defaultPlacement="bottom-right"
+      defaultPlacement={floatingPlacement()}
       className="right-4 bottom-20"
       data-geometry-fixture="custom-bottom"
     >
@@ -507,7 +520,7 @@ function ResponsiveConstraintFixture() {
       store={responsivePanelStore}
       title="Responsive constraint fixture"
       width={320}
-      defaultPlacement="top-right"
+      defaultPlacement={floatingPlacement()}
       className="top-4 right-4 bottom-auto lg:top-auto lg:bottom-20 xl:bottom-4"
       data-geometry-fixture="responsive"
     >
@@ -541,7 +554,7 @@ function ChangingConstraintFixture() {
         store={changingConstraintPanelStore}
         title="Changing constraint fixture"
         width={320}
-        defaultPlacement="bottom-right"
+        defaultPlacement={floatingPlacement()}
         className={className}
         data-geometry-fixture="changing-constraint"
       >
@@ -571,7 +584,7 @@ function KeyboardUnmountFixture() {
           store={keyboardUnmountPanelStore}
           title="Keyboard unmount fixture"
           width={320}
-          defaultPlacement="top-right"
+          defaultPlacement={floatingPlacement('top-right')}
           data-geometry-fixture="keyboard-unmount"
         >
           <PicodashGroup id="first-group" label="First group">
@@ -592,7 +605,7 @@ function CallerMaxHeightFixture() {
       store={cappedPanelStore}
       title="Caller max-height fixture"
       width={320}
-      defaultPlacement="top-left"
+      defaultPlacement={floatingPlacement('top-left')}
       data-geometry-fixture="caller-max-height"
       style={{ maxHeight: 200 }}
     >
@@ -607,7 +620,7 @@ function ClassMaxHeightFixture() {
       store={classCappedPanelStore}
       title="Class max-height fixture"
       width={320}
-      defaultPlacement="top-left"
+      defaultPlacement={floatingPlacement('top-left')}
       className="max-h-48"
       data-geometry-fixture="class-max-height"
     >
@@ -622,7 +635,7 @@ function BottomMaxHeightFixture() {
       store={bottomCappedPanelStore}
       title="Bottom max-height fixture"
       width={320}
-      defaultPlacement="bottom-left"
+      defaultPlacement={floatingPlacement('bottom-left')}
       data-geometry-fixture="bottom-max-height"
       style={{ maxHeight: 200 }}
     >
@@ -637,7 +650,7 @@ function BottomDragFixture() {
       store={bottomDragPanelStore}
       title="Bottom drag fixture"
       width={320}
-      defaultPlacement="bottom-left"
+      defaultPlacement={floatingPlacement('bottom-left')}
       data-geometry-fixture="bottom-drag"
     >
       <TallContent prefix="bottom-drag" count={24} />

@@ -13,10 +13,8 @@ import {
 import {
   baseRectFromDisplayedRect,
   clampPanelPosition,
-  FLOATING_PLACEMENT_INSET,
-  isPanelPlacementEdgeAttached,
+  isPanelPlacementFixedLike,
   offsetRect,
-  positionForFloatingCorner,
   positionForPanelLayout,
   rectForPanelBoundary,
   rectFromElement,
@@ -24,6 +22,7 @@ import {
   type PanelLayout,
   type PanelPosition,
   type PanelRect,
+  type ResolvedPicodashPanelPlacementOptions,
 } from '../geometry/panel-snapping.js'
 import type { PicodashStore } from '../state/provider/picodash-provider.js'
 import type { PicodashPanelPlacement } from '../state/panel/picodash-panel-types.js'
@@ -62,24 +61,12 @@ export function withoutCallerClassNames(appliedClassName: string, callerClassNam
     .join(' ')
 }
 
-export function resolveFloatingCornerLayout(
-  layout: PanelLayout | undefined,
-  panelRect: Pick<PanelRect, 'height' | 'width'>,
-  boundaryRect: PanelRect,
-  fallbackPlacement?: PicodashPanelPlacement,
-): PanelLayout | undefined {
-  const placement = layout?.placement ?? (layout === undefined ? fallbackPlacement : undefined)
-  if (placement?.mode !== 'floating' || !placement.position) return layout
-  const effectiveLayout = layout ?? { dock: null, x: 0, y: 0 }
-  return {
-    ...effectiveLayout,
-    placement,
-    ...positionForFloatingCorner(placement.position, panelRect, boundaryRect),
-  }
-}
-
-export function floatingPanelMaxWidthForBoundary(boundaryWidth: number, callerMaxWidth: number) {
-  return panelMaxWidthForBoundary(boundaryWidth - FLOATING_PLACEMENT_INSET * 2, callerMaxWidth)
+export function floatingPanelMaxWidthForBoundary(
+  boundaryWidth: number,
+  callerMaxWidth: number,
+  snapOffset: number,
+) {
+  return panelMaxWidthForBoundary(boundaryWidth - snapOffset * 2, callerMaxWidth)
 }
 
 export function usePanelLayoutSynchronization({
@@ -94,6 +81,7 @@ export function usePanelLayoutSynchronization({
   panelElementRef,
   panelId,
   placement,
+  placementOptions,
   positionElementRef,
   synchronizationPausedRef,
   store,
@@ -111,6 +99,7 @@ export function usePanelLayoutSynchronization({
   panelElementRef: RefObject<HTMLElement | null>
   panelId: string
   placement: PicodashPanelPlacement
+  placementOptions: ResolvedPicodashPanelPlacementOptions
   positionElementRef?: RefObject<HTMLElement | null>
   synchronizationPausedRef?: RefObject<unknown>
   store: PicodashStore
@@ -135,7 +124,7 @@ export function usePanelLayoutSynchronization({
     }
     const panelElement = panelElementRef.current
     if (panelElement) store.getState().setPanelRect(panelId, rectFromElement(panelElement))
-  }, [collapsed, panelElementRef, panelId, placement.mode, placement.position, store])
+  }, [collapsed, panelElementRef, panelId, placement, store])
 
   const measureIntrinsicHeight = useCallback(() => {
     const panelElement = panelElementRef.current
@@ -185,7 +174,12 @@ export function usePanelLayoutSynchronization({
   const measureEdgeAttachedPanelSize = useCallback(
     (containerRect: PanelRect, intrinsicHeight: number) => {
       const panelElement = panelElementRef.current
-      const fullHeight = Math.min(containerRect.height, measureCallerMaxHeight(containerRect))
+      const fullHeight = containerRect.height
+      const naturalHeight = Math.min(
+        intrinsicHeight,
+        containerRect.height,
+        measureCallerMaxHeight(containerRect),
+      )
       const maxWidth = panelMaxWidthForBoundary(
         containerRect.width,
         measureCallerMaxWidth(containerRect),
@@ -208,7 +202,7 @@ export function usePanelLayoutSynchronization({
         : 0
       return {
         fullHeight,
-        naturalHeight: Math.min(intrinsicHeight, fullHeight),
+        naturalHeight,
         width,
       }
     },
@@ -238,6 +232,7 @@ export function usePanelLayoutSynchronization({
       inset,
       intrinsicHeight = baseRect.height,
       position,
+      useProvidedBaseRect = false,
       useProjectedPosition = false,
     }: {
       anchor: PanelVerticalAnchor
@@ -247,6 +242,7 @@ export function usePanelLayoutSynchronization({
       inset?: number
       intrinsicHeight?: number
       position: PanelPosition
+      useProvidedBaseRect?: boolean
       useProjectedPosition?: boolean
     }): PanelGeometryProjection => {
       const panelElement = panelElementRef.current
@@ -277,8 +273,12 @@ export function usePanelLayoutSynchronization({
         appliedMaxHeightRef.current = appliedMaxHeight
         panelElement.style.maxHeight = `${appliedMaxHeight}px`
       }
-      const appliedPosition =
-        useProjectedPosition && panelElement && positionElement && positionElement !== panelElement
+      const appliedPosition = useProvidedBaseRect
+        ? projection.position
+        : useProjectedPosition &&
+            panelElement &&
+            positionElement &&
+            positionElement !== panelElement
           ? (() => {
               const currentPosition = { x: x.get(), y: y.get() }
               const projectedBaseRect = basePanelRectFromPositionElement(
@@ -322,10 +322,14 @@ export function usePanelLayoutSynchronization({
       const positionRectBeforeGeometry = dragBaseRect ? rectFromElement(positionElement) : undefined
       let synchronizedDragBaseRect: PanelRect | undefined
 
-      if (isPanelPlacementEdgeAttached(nextPlacement)) {
+      if (nextPlacement.disposition.kind === 'docked') {
+        const dockedPosition = nextPlacement.disposition.position
         const measuredCallerMaxHeight = measureCallerMaxHeight(containerRect)
         const measuredCallerMaxWidth = measureCallerMaxWidth(containerRect)
-        const appliedMaxHeight = Math.min(containerRect.height, measuredCallerMaxHeight)
+        const fillsSide = dockedPosition === 'full-left' || dockedPosition === 'full-right'
+        const appliedMaxHeight = fillsSide
+          ? containerRect.height
+          : Math.min(containerRect.height, measuredCallerMaxHeight)
         const appliedMaxWidth = Math.min(containerRect.width, measuredCallerMaxWidth)
         if (appliedMaxHeightRef.current !== appliedMaxHeight) {
           appliedMaxHeightRef.current = appliedMaxHeight
@@ -335,8 +339,8 @@ export function usePanelLayoutSynchronization({
           appliedMaxWidthRef.current = appliedMaxWidth
           panelElement.style.maxWidth = `${appliedMaxWidth}px`
         }
-        if (nextPlacement.position === 'left' || nextPlacement.position === 'right') {
-          panelElement.style.height = `${appliedMaxHeight}px`
+        if (fillsSide) {
+          panelElement.style.setProperty('height', `${appliedMaxHeight}px`, 'important')
         } else {
           applyCallerDimension(panelElement, 'height', callerHeight)
         }
@@ -352,6 +356,8 @@ export function usePanelLayoutSynchronization({
           })
           synchronizedDragBaseRect = {
             ...shiftedBaseRect,
+            bottom: shiftedBaseRect.top + panelRect.height,
+            height: panelRect.height,
             right: shiftedBaseRect.left + panelRect.width,
             width: panelRect.width,
           }
@@ -362,14 +368,7 @@ export function usePanelLayoutSynchronization({
         const targetRect = fixedPanelRect({
           boundaryRect: containerRect,
           height: panelRect.height,
-          horizontalPosition:
-            nextPlacement.mode === 'magnetic' &&
-            (nextPlacement.position === 'top' || nextPlacement.position === 'bottom')
-              ? dragBaseRect
-                ? dragBaseRect.left + displayedPosition.x
-                : store.getState().panelLayouts[panelId]?.x
-              : undefined,
-          position: nextPlacement.position,
+          position: dockedPosition,
           width: panelRect.width,
         })
         const targetPosition = {
@@ -383,6 +382,7 @@ export function usePanelLayoutSynchronization({
         const appliedMaxWidth = floatingPanelMaxWidthForBoundary(
           containerRect.width,
           measureCallerMaxWidth(containerRect),
+          placementOptions.snapOffset,
         )
         if (appliedMaxWidthRef.current !== appliedMaxWidth) {
           appliedMaxWidthRef.current = appliedMaxWidth
@@ -405,6 +405,7 @@ export function usePanelLayoutSynchronization({
       measureCallerMaxHeight,
       measureCallerMaxWidth,
       panelElementRef,
+      placementOptions.snapOffset,
       positionElementRef,
       restoreCallerFixedDimensions,
       panelId,
@@ -422,7 +423,7 @@ export function usePanelLayoutSynchronization({
     if (!synchronizedGeometry) return
     const { containerRect, panelElement, positionElement } = synchronizedGeometry
 
-    if (isPanelPlacementEdgeAttached(currentPlacement)) {
+    if (isPanelPlacementFixedLike(currentPlacement)) {
       requestAnimationFrame(updatePanelRect)
       return
     }
@@ -447,14 +448,11 @@ export function usePanelLayoutSynchronization({
     const appliedPosition = translationFromTransform(getComputedStyle(positionElement).transform)
     const intrinsicHeight = measureIntrinsicHeight()
     const savedPosition = store.getState().panelLayouts[panelId]
-    const floatingCorner =
-      savedPosition?.placement?.mode === 'floating'
-        ? savedPosition.placement.position
-        : savedPosition === undefined && boundaryElement && currentPlacement.mode === 'floating'
-          ? currentPlacement.position
-          : undefined
-    const hasExplicitFloatingCorner = floatingCorner !== undefined
-    const layoutRect = hasExplicitFloatingCorner
+    const snappedPosition =
+      currentPlacement.disposition.kind === 'snapped'
+        ? currentPlacement.disposition.position
+        : undefined
+    const layoutRect = snappedPosition
       ? basePanelRectFromPositionElement(panelElement, positionElement, appliedPosition)
       : baseRectFromDisplayedRect(displayedRect, appliedPosition)
     const baseRect = rectWithHeight(layoutRect, intrinsicHeight)
@@ -473,34 +471,33 @@ export function usePanelLayoutSynchronization({
         typedBottom,
         typedTop,
       })
-    const effectiveSavedPosition = resolveFloatingCornerLayout(
-      savedPosition,
-      baseRect,
-      containerRect,
-      boundaryElement ? currentPlacement : undefined,
-    )
+    const effectiveSavedPosition =
+      savedPosition ??
+      ({
+        placement: currentPlacement,
+        preferredCoordinates: {
+          x: layoutRect.left - containerRect.left,
+          y: layoutRect.top - containerRect.top,
+        },
+      } satisfies PanelLayout)
     const targetPosition = positionForPanelLayout({
       baseRect,
       containerRect,
       layout: effectiveSavedPosition,
+      snapOffset: placementOptions.snapOffset,
     })
     applyProjection({
-      anchor:
-        savedPosition?.dock?.vertical === 'bottom' ||
-        floatingCorner?.startsWith('bottom') ||
-        startsBottomPositioned
-          ? 'bottom'
-          : 'top',
+      anchor: snappedPosition?.startsWith('bottom') || startsBottomPositioned ? 'bottom' : 'top',
       baseRect,
-      bottomInset: floatingCorner?.startsWith('bottom')
-        ? FLOATING_PLACEMENT_INSET
+      bottomInset: snappedPosition?.startsWith('bottom')
+        ? placementOptions.snapOffset
         : startsBottomPositioned
           ? Math.max(containerRect.bottom - layoutRect.bottom, 0)
           : undefined,
       containerRect,
       intrinsicHeight,
       position: targetPosition,
-      useProjectedPosition: hasExplicitFloatingCorner,
+      useProjectedPosition: snappedPosition !== undefined,
     })
     requestAnimationFrame(updatePanelRect)
   }, [
@@ -510,6 +507,7 @@ export function usePanelLayoutSynchronization({
     panelElementRef,
     panelId,
     placement,
+    placementOptions.snapOffset,
     positionElementRef,
     restoreCallerMaxHeight,
     store,
@@ -533,12 +531,10 @@ export function usePanelLayoutSynchronization({
     callerMaxHeight,
     constraintClassName,
     enabled,
-    savedLayout?.dock?.horizontal,
-    savedLayout?.dock?.vertical,
     savedLayout?.placement?.mode,
-    savedLayout?.placement?.position,
-    savedLayout?.x,
-    savedLayout?.y,
+    savedLayout?.placement?.disposition,
+    savedLayout?.preferredCoordinates.x,
+    savedLayout?.preferredCoordinates.y,
     syncDisplayedPositionToSavedLayout,
   ])
 

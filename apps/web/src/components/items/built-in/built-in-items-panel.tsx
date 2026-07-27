@@ -19,10 +19,9 @@ import {
   PicodashXYPad,
   usePicodashPanelStoreSelector,
   type PicodashMatrix2DOption,
-  type PicodashPanelCorner,
-  type PicodashPanelFixedPosition,
+  type PicodashPanelDockedPosition,
   type PicodashPanelPlacement,
-  type PicodashPanelSnapPosition,
+  type PicodashPanelSnappedPosition,
 } from '@picodash/panel'
 import { ShadcnChartItem } from '@/components/items/custom/shadcn-chart'
 import { StreamingSparklineItem } from '@/components/items/custom/streaming-sparkline'
@@ -35,9 +34,17 @@ export type BuiltInMatrixSelectionRole = 'radio' | 'toggle'
 export type BuiltInPanelPlacementMode = PicodashPanelPlacement['mode']
 
 export const builtInPanelPlacementPositions = {
-  fixed: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left', 'right'],
-  floating: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
-  magnetic: [
+  fixed: [
+    'top-left',
+    'top-right',
+    'bottom-left',
+    'bottom-right',
+    'full-left',
+    'full-right',
+    'middle-left',
+    'middle-right',
+  ],
+  floating: [
     'top-left',
     'top',
     'top-right',
@@ -47,15 +54,31 @@ export const builtInPanelPlacementPositions = {
     'bottom-left',
     'left',
   ],
-} as const satisfies Record<BuiltInPanelPlacementMode, readonly PicodashPanelSnapPosition[]>
+  hybrid: [
+    'top-left',
+    'top',
+    'top-right',
+    'full-right',
+    'bottom-right',
+    'bottom',
+    'bottom-left',
+    'full-left',
+  ],
+} as const satisfies Record<BuiltInPanelPlacementMode, readonly BuiltInPanelPlacementPosition[]>
 
-export type BuiltInPanelPlacementPosition = PicodashPanelSnapPosition
+export type BuiltInPanelPlacementPosition =
+  | PicodashPanelDockedPosition
+  | PicodashPanelSnappedPosition
 
 const panelPlacementPoints = {
   'bottom-left': [0, 1],
   'bottom-right': [1, 1],
   bottom: [0.5, 1],
+  'full-left': [0, 0.5],
+  'full-right': [1, 0.5],
   left: [0, 0.5],
+  'middle-left': [0, 0.5],
+  'middle-right': [1, 0.5],
   right: [1, 0.5],
   'top-left': [0, 0],
   'top-right': [1, 0],
@@ -751,7 +774,28 @@ export function placementForBuiltInItemsConfig(
 ): PicodashPanelPlacement {
   const { panelPlacementMode: mode } = config
   const position = closestBuiltInPanelPlacementPosition(config.panelPlacementPosition, mode)
-  if (mode === 'fixed') return { mode, position: position as PicodashPanelFixedPosition }
-  if (mode === 'magnetic') return { mode, position }
-  return { mode, position: position as PicodashPanelCorner }
+  if (mode === 'fixed') {
+    return {
+      disposition: { kind: 'docked', position: position as PicodashPanelDockedPosition },
+      mode,
+    }
+  }
+  if (mode === 'hybrid') {
+    return position === 'bottom' || position === 'top'
+      ? { disposition: { kind: 'snapped', position }, mode }
+      : {
+          disposition: {
+            kind: 'docked',
+            position: position as Exclude<
+              PicodashPanelDockedPosition,
+              'middle-left' | 'middle-right'
+            >,
+          },
+          mode,
+        }
+  }
+  return {
+    disposition: { kind: 'snapped', position: position as PicodashPanelSnappedPosition },
+    mode,
+  }
 }

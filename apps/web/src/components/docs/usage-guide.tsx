@@ -82,7 +82,10 @@ function BoundedPanels() {
       <PicodashPanel
         store={settingsStore}
         collapsible
-        defaultPlacement={{ mode: 'fixed', position: 'left' }}
+        defaultPlacement={{
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-left' },
+        }}
       >
         <PicodashGroup id="session" label="Session" pin="start">
           {/* Always-visible items */}
@@ -96,7 +99,10 @@ function BoundedPanels() {
       <PicodashPanel
         store={canvasStore}
         boundary={canvasRef}
-        defaultPlacement={{ mode: 'fixed', position: 'bottom-right' }}
+        defaultPlacement={{
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'bottom-right' },
+        }}
       />
     </PicodashProvider>
   )
@@ -108,7 +114,10 @@ function PlacementActions() {
   return (
     <button
       onClick={() =>
-        panel?.setPlacement({ mode: 'fixed', position: 'right' })
+        panel?.setPlacement({
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-right' },
+        })
       }
     >
       Dock right
@@ -118,7 +127,7 @@ function PlacementActions() {
 
 const panelSource = `<PicodashProvider
   persistLayout
-  storageKey="my-site:tweaker-layout:v1"
+  storageKey="my-site:picodash-layout:v2"
   theme="system"
 >
   <main
@@ -199,7 +208,7 @@ export function SitePreview() {
   return (
     <PicodashProvider
       persistLayout
-      storageKey="my-site:tweaker-layout:v1"
+      storageKey="my-site:picodash-layout:v2"
       theme="system"
     >
       <main

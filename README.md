@@ -69,14 +69,17 @@ export function App() {
   })
 
   return (
-    <PicodashProvider persistLayout storageKey="my-app:tweaker-layout:v1" theme="system">
+    <PicodashProvider persistLayout storageKey="my-app:picodash-layout:v2" theme="system">
       <main style={{ filter: `blur(${exposure * 0.2}px)` }}>Scene preview</main>
 
       <PicodashPanel
         store={sceneStore}
         title="Scene"
         collapsible
-        defaultPlacement="top-right"
+        defaultPlacement={{
+          mode: 'floating',
+          disposition: { kind: 'snapped', position: 'top-right' },
+        }}
         width={360}
       >
         <PicodashSwitch field="bloom" label="Bloom" defaultValue={true} />
@@ -216,43 +219,54 @@ Defaults:
 
 ### Placement and panel boundaries
 
-Panels support floating, magnetic, and fixed placement. Existing corner strings remain valid for
-`defaultPlacement`; use the object form for magnetic snapping and fixed sidebars:
+Panel placement separates a stable `mode` (`floating`, `fixed`, or `hybrid`) from its live
+`disposition` (`free`, `snapped`, or `docked`):
 
 ```tsx
 <PicodashPanel
   store={sceneStore}
   collapsible
-  defaultPlacement={{ mode: 'fixed', position: 'right' }}
+  defaultPlacement={{
+    mode: 'hybrid',
+    disposition: { kind: 'docked', position: 'full-right' },
+  }}
+  placementOptions={{
+    snapOffset: 8,
+    snapProximity: 16,
+    detachThresholdMultiplier: 2.5,
+  }}
 />
 ```
 
-Magnetic positions use `PicodashPanelSnapPosition`; fixed positions use
-`PicodashPanelFixedPosition`.
+Floating panels may be free or snapped to any edge or corner. Snaps retain the panel's preferred
+coordinate on the unsnapped axis and use `snapOffset`. Fixed panels dock flush at a corner,
+`full-left`, `full-right`, `middle-left`, or `middle-right`; full sides fill the boundary height,
+while corners and middle sides keep their intrinsic height.
 
-Floating panels keep an 8px edge-snap offset and remain floating. During a magnetic drag, the panel
-keeps its natural size and floating presentation while an animated outline previews the target;
-the target is committed only on release. Side targets are flush, full-height, and fixed-like after
-release. Corner targets are flush and fixed-like at the panel's natural height. Top and bottom
-targets are flush and retain natural height, floating scrolling, and ordinary internal collapse
-rather than fixed retraction. An attached magnetic panel remains draggable and releases after a
-40px pull, without changing out of magnetic mode. Reduced-motion preferences disable preview
-springs.
+Hybrid panels remain Hybrid while moving between dispositions. Free and top/bottom-snapped Hybrid
+panels behave like Floating panels. Side and corner candidates show an animated proxy and dock only
+on release; corners retain intrinsic height and full sides fill the boundary. A docked Hybrid panel
+resists detachment for `snapProximity × detachThresholdMultiplier`, then immediately becomes free
+without changing mode. Reduced-motion preferences disable proxy springs.
 
-Fixed positions are `top-left`, `bottom-left`, `top-right`, `bottom-right`, `left`, and `right`.
-The full-edge `left` and `right` positions fill the boundary height. In fixed panels, start- and
-end-pinned lanes remain visible while the auto lane scrolls. Every panel scrollport includes the
-bundled `scroll-fade` utility through `@picodash/panel/style.css`.
+`collapsible/defaultCollapsed` is one capability and state. Free or snapped panels collapse their
+body into the header; docked panels retract beyond their boundary and expose Reveal. The collapsed
+state survives disposition changes. Fixed panels are not draggable by default; `drag={false}` can
+disable dragging in the other modes.
+
+In docked panels, start- and end-pinned lanes remain visible while the auto lane scrolls. Every
+panel scrollport includes the bundled `scroll-fade` utility through
+`@picodash/panel/style.css`.
 
 The viewport is the default geometry boundary. Set `panelBoundary` on `PicodashProvider` to
 constrain every panel to an `Element` or React ref, then use a panel's `boundary` prop for an
 override. `boundary={null}` explicitly restores the viewport. Boundaries do not change portal
 ownership or resize application content; fixed panels overlay their boundary.
 
-`usePicodashPanel(panelId)` also exposes reactive `placement` and `setPlacement()`. Runtime placement
-changes join coordinates and magnetic/fixed edge state in provider layout persistence when
-`persistLayout` is enabled. Selectors are not accepted as boundary inputs; resolve one to an
-`Element` or use a ref.
+`usePicodashPanel(panelId)` also exposes reactive `placement` and `setPlacement()`. Runtime
+placement and boundary-relative preferred coordinates persist when `persistLayout` is enabled.
+Only canonical Picodash placement records hydrate; invalid or obsolete records start from declared
+defaults. Selectors are not accepted as boundary inputs; resolve one to an `Element` or use a ref.
 
 ### Advanced hook boundary
 

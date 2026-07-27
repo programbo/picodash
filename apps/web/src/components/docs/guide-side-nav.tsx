@@ -7,6 +7,7 @@ import {
   PicodashPanel,
 } from '@picodash/panel'
 import { useRef, useState, type ReactNode } from 'react'
+import { floatingPlacement } from '../../lib/panel-placement'
 
 export type GuideSideNavItem = {
   content?: ReactNode
@@ -55,7 +56,7 @@ export function GuidePanelLayout({
         boundary={boundaryRef}
         className="max-h-64 lg:max-h-[min(32rem,calc(100dvh-8rem))] [&_[data-picodash-reorder-list]>div]:grid-cols-[auto_minmax(1.5rem,max-content)_minmax(0,1fr)_max-content] [&_[id$=':description']]:text-right"
         data-guide-navigation-panel={panelId}
-        defaultPlacement={{ mode: 'floating', position: 'top-left' }}
+        defaultPlacement={floatingPlacement('top-left')}
         role="navigation"
         store={store}
         theme="sidenav"

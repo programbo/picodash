@@ -86,8 +86,16 @@ function ScenePanel() {
   })
 
   return (
-    <PicodashProvider theme="system" persistLayout storageKey="my-app:tweaker-layout:v1">
-      <PicodashPanel store={sceneStore} title="Scene" defaultPlacement="top-right" width={360}>
+    <PicodashProvider theme="system" persistLayout storageKey="my-app:picodash-layout:v2">
+      <PicodashPanel
+        store={sceneStore}
+        title="Scene"
+        defaultPlacement={{
+          mode: 'floating',
+          disposition: { kind: 'snapped', position: 'top-right' },
+        }}
+        width={360}
+      >
         <PicodashGroup id="render" label="Render">
           <PicodashSwitch field="bloom" label="Bloom" defaultValue={true} />
           <PicodashSlider
@@ -146,20 +154,32 @@ function ScenePanel() {
 
 ## Placement and boundaries
 
-`defaultPlacement` accepts the existing corner strings or a placement object:
+`defaultPlacement` uses an explicit mode and disposition:
 
 ```ts
 type PicodashPanelPlacement =
-  | { mode: 'floating'; position?: PicodashPanelCorner }
-  | { mode: 'magnetic'; position?: PicodashPanelSnapPosition }
-  | { mode: 'fixed'; position: PicodashPanelFixedPosition }
+  | {
+      mode: 'floating'
+      disposition: { kind: 'free' } | { kind: 'snapped'; position: PicodashPanelSnappedPosition }
+    }
+  | {
+      mode: 'fixed'
+      disposition: { kind: 'docked'; position: PicodashPanelDockedPosition }
+    }
+  | {
+      mode: 'hybrid'
+      disposition:
+        | { kind: 'free' }
+        | { kind: 'snapped'; position: 'top' | 'bottom' }
+        | { kind: 'docked'; position: PicodashPanelHybridDockPosition }
+    }
 
 type PicodashPanelBoundary = Element | React.RefObject<Element | null>
 ```
 
-`PicodashPanelSnapPosition` replaces the former dock-position name and covers all four edges and
-four corners. `PicodashPanelFixedPosition` supports `top-left`, `bottom-left`, `top-right`,
-`bottom-right`, `left`, and `right`.
+`PicodashPanelSnappedPosition` covers all four edges and corners.
+`PicodashPanelDockedPosition` covers corners, `full-left`, `full-right`, `middle-left`, and
+`middle-right`. Hybrid docking is restricted to corners and full sides.
 
 Use a provider boundary when panels should share the same working area, and a panel override only
 when one panel belongs to a different surface:
@@ -177,13 +197,19 @@ const canvasRef = useRef<HTMLDivElement>(null)
   <PicodashPanel
     store={sceneStore}
     collapsible
-    defaultPlacement={{ mode: 'fixed', position: 'left' }}
+    defaultPlacement={{
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'full-left' },
+    }}
   />
 
   <PicodashPanel
     store={canvasStore}
     boundary={canvasRef}
-    defaultPlacement={{ mode: 'fixed', position: 'bottom-right' }}
+    defaultPlacement={{
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'bottom-right' },
+    }}
   />
 </PicodashProvider>
 ```
@@ -194,22 +220,21 @@ const canvasRef = useRef<HTMLDivElement>(null)
   package.
 - Boundaries control geometry only. `portalContainer` independently controls where panel portals
   render, and fixed panels overlay rather than inset application content.
-- Floating panels remain constrained to the effective boundary. Magnetic and fixed placements
-  follow its live edges; only panels with the same resolved boundary participate in peer snapping.
-- Floating edge snaps retain an 8px offset and remain floating. Magnetic drags keep the real panel
-  natural-sized and floating-style while an animated outline previews the release target. Side
-  targets are flush, full-height, and fixed-like after release; corner targets are flush,
-  natural-height, and fixed-like. Top and bottom targets remain natural-height and floating-style,
-  with ordinary internal collapse rather than fixed retraction. Pulling an attached magnetic panel
-  40px releases it without changing its magnetic mode. Reduced motion disables preview springs.
-- Fixed `left` and `right` panels fill the effective boundary height. Fixed corner panels keep
-  content-driven height capped to that boundary.
-- Collapsible fixed panels retract into their edge or corner and leave an accessible arrow button
-  visible for reopening.
+- Floating panels remain constrained to the effective boundary. Only panels with the same resolved
+  boundary participate in peer snapping, and peer alignment never creates a container placement.
+- Floating snaps use `placementOptions.snapOffset` (default `8`) and become active within
+  `snapProximity` (default `16`). Preferred boundary-relative coordinates retain the unsnapped axis.
+- Hybrid top/bottom snaps are offset and floating-like. Side/corner targets show a proxy, then dock
+  flush on release. Full sides fill the boundary; corners retain intrinsic height. Docked Hybrid
+  panels detach after `snapProximity × detachThresholdMultiplier` (default `2.5`) and remain Hybrid.
+- Fixed full sides fill the effective boundary height. Fixed corners and middle sides retain
+  intrinsic height, with middle sides centered vertically.
+- `collapsible/defaultCollapsed` collapses free/snapped bodies and retracts docked panels. The same
+  collapsed state survives disposition changes.
 - `usePicodashPanel(panelId).setPlacement(...)` changes placement at runtime. Returning to floating
-  restores the last non-fixed coordinates.
-- Placement persists with provider layout only when `persistLayout` is enabled. Existing stored
-  floating and magnetic layouts continue to hydrate.
+  restores preferred coordinates subject to boundary containment.
+- Placement persists with provider layout only when `persistLayout` is enabled. Only canonical
+  Picodash placement records hydrate; invalid or obsolete records start from declared defaults.
 
 ## Validation and value contracts
 
@@ -298,7 +323,7 @@ type ActionMenuConfirmation = readonly [message: string, title?: string, buttonL
 - `id` is required for non-field display rows.
 - `contentLayout` is `inline`, `block`, or `full`.
 - `PicodashGroup` supports `pin="start"` and `pin="end"` placement bands.
-- Fixed and attached magnetic panels keep the start and end bands visible while only the auto band
+- Fixed and docked Hybrid panels keep the start and end bands visible while only the auto band
   scrolls. Floating panels keep their single body scrollport.
 - Each panel scrollport includes `scroll-fade` through `@picodash/panel/style.css`; consumers do not need a
   separate shadcn stylesheet import.

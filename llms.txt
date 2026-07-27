@@ -15,12 +15,12 @@ What it provides:
 - PicodashProvider, PicodashPanel, PicodashItem, built-in inputs and charts
 - centralized shadcn aria-rhea primitives via @picodash/panel/ui
 - provider-scoped panel visibility, activation, reactive placement, and runtime setPlacement via usePicodashPanel
-- floating, magnetic, and fixed panel placement; floating edge snaps stay offset, while magnetic
-  drags keep the real panel floating-style and show an animated target outline; side and corner
-  targets commit fixed-like on release, while natural-height top/bottom targets remain
-  floating-style; attached magnetic panels release after 40px without changing mode
+- floating, fixed, and hybrid placement modes with free, snapped, and docked dispositions; snaps
+  stay offset and floating-like, while Hybrid side/corner targets use an animated proxy and dock
+  fixed-like on release; docked Hybrid panels resist detachment and remain Hybrid after becoming free
 - viewport-default geometry with provider panelBoundary and per-panel boundary Element/ref overrides
-- collapsible fixed sidebars with pinned start/end lanes and a scroll-faded auto lane
+- unified body collapse for free/snapped panels and whole-panel retraction for docked panels,
+  with pinned start/end lanes and a scroll-faded auto lane in fixed-like layouts
 - explicit application-owned reads via usePicodashPanelStoreSelector(store, selector)
 - advanced provider access via usePicodashProviderSelector and usePicodashProviderStoreApi
 - contextual advanced panel access via usePicodashPanelSelector and usePicodashPanelStoreApi
@@ -59,8 +59,9 @@ App surface mapping:
 - apps/lab: local-only Next.js debugging app
 
 Important migration:
-- The old schema-driven registration API and old persistence are retired; map legacy `panel` specifiers to `@picodash/panel` imports.
-- no compatibility facade is provided.
+- The old schema-driven registration API and persistence formats are retired; map old `panel` specifiers to `@picodash/panel` imports.
+- Only canonical Picodash layout records hydrate; invalid or obsolete records start from declared defaults.
+- No compatibility facade is provided.
 - Gearmo is a known breaking consumer requiring separate migration planning.
 
 Ports:
