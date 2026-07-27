@@ -944,6 +944,52 @@ test('holds an attached hybrid panel until the pointer reaches its release dista
   await page.mouse.up()
 })
 
+test('preserves preferred coordinates when an attached hybrid drag does not detach', async ({
+  page,
+}) => {
+  await page.goto(`${labURL}/lab/panel-geometry?fixture=hybrid-viewport`)
+  const boundary = page.locator('[data-geometry-viewport]')
+  const panel = geometryPanel(page, 'hybrid-viewport')
+  const shell = page.locator('[data-picodash-panel-shell]').filter({ has: panel })
+  const header = panel.locator('[data-picodash-panel-header]')
+  const preview = page.locator('[data-hybrid-dock-preview]')
+
+  await detachHybridPanel(page, panel, shell)
+  const floatingBox = await requiredBox(panel)
+  const boundaryBox = await requiredBox(boundary)
+  const floatingStart = center(await requiredBox(header))
+  const leftTarget = hybridTarget(floatingBox, boundaryBox, 'full-left')
+  const pointer = {
+    ...pointerForPanelTarget(floatingStart, floatingBox, leftTarget),
+    y: boundaryBox.y + boundaryBox.height / 2,
+  }
+
+  await page.mouse.move(floatingStart.x, floatingStart.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x, pointer.y, { steps: 12 })
+  await expect(preview).toHaveAttribute('data-hybrid-dock-preview', 'full-left')
+  await page.mouse.up()
+  await expect(shell).toHaveAttribute('data-hybrid-placement', 'full-left')
+
+  const preferredCoordinates = await page
+    .locator('[data-runtime-layout]')
+    .evaluate((element) => JSON.parse(element.textContent ?? 'null').preferredCoordinates)
+  const attachedStart = center(await requiredBox(header))
+  await page.mouse.move(attachedStart.x, attachedStart.y)
+  await page.mouse.down()
+  await page.mouse.move(attachedStart.x + 39, attachedStart.y, { steps: 4 })
+  await expect(shell).toHaveAttribute('data-hybrid-placement', 'full-left')
+  await page.mouse.up()
+
+  await expect
+    .poll(() =>
+      page
+        .locator('[data-runtime-layout]')
+        .evaluate((element) => JSON.parse(element.textContent ?? 'null').preferredCoordinates),
+    )
+    .toEqual(preferredCoordinates)
+})
+
 test('applies the hybrid release distance diagonally from a corner', async ({ page }) => {
   await page.goto(`${labURL}/lab/panel-geometry?fixture=hybrid-viewport`)
   const boundary = page.locator('[data-geometry-viewport]')

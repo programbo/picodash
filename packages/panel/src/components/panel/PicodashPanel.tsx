@@ -782,12 +782,22 @@ export function PicodashPanel({
     if (panelElement) {
       const displayedRect = dragState?.lastRect ?? rectFromElement(panelElement)
       const containerRect = rectForPanelBoundary(resolvedBoundary)
+      const preservesAttachedHybridCoordinates =
+        dragState?.placement.mode === 'hybrid' &&
+        dragState.attachedDock !== null &&
+        !dragState.attachedReleased
+      const currentLayout = providerStore.getState().panelLayouts[panelId]
       providerStore.getState().setPanelLayout(panelId, {
         placement: nextPlacement,
-        preferredCoordinates: {
-          x: Math.round(displayedRect.left - containerRect.left),
-          y: Math.round(displayedRect.top - containerRect.top),
-        },
+        preferredCoordinates: preservesAttachedHybridCoordinates
+          ? (currentLayout?.preferredCoordinates ?? {
+              x: Math.round(displayedRect.left - containerRect.left),
+              y: Math.round(displayedRect.top - containerRect.top),
+            })
+          : {
+              x: Math.round(displayedRect.left - containerRect.left),
+              y: Math.round(displayedRect.top - containerRect.top),
+            },
       })
     }
     if (dragState?.placement.mode === 'hybrid' && nextPlacement.disposition.kind !== 'docked') {
