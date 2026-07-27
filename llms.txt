@@ -65,10 +65,12 @@ Important migration:
 - Gearmo is a known breaking consumer requiring separate migration planning.
 
 Ports:
-- 6034 local lab server via LAB_PORT
-- 6035 this worktree dev and Playwright server via WEBSITE_PORT
-- 6036 this worktree production start server
-- remaining 6030-6033 and 6037-6039 available
+- 6030 web development server via WEBSITE_PORT
+- 6031 web production preview (start) server via WEBSITE_PORT
+- 6032 local lab development server via LAB_PORT
+- 6033 web E2E server via WEBSITE_PORT
+- 6034-6039 can be temporarily allocated to worktrees for non-conflicting development and E2E servers
+- if an allocated port is occupied, agents should find a free port in 6034-6039 for brief server runs
 
 Docs to keep aligned:
 - README.md

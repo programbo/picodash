@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "vp lint src --fix",
     "format": "vp fmt src --write",
-    "dev": "bun run panel:build && next dev --hostname 127.0.0.1 --port ${LAB_PORT:-6034}",
+    "dev": "bun run panel:build && next dev --hostname 127.0.0.1 --port ${LAB_PORT:-6032}",
     "build": "bun run panel:build && next build",
     "check": "bun run panel:build && tsc --noEmit",
     "panel:build": "bun run --filter @picodash/panel build",

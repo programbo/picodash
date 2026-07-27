@@ -123,20 +123,24 @@ in `RELEASING.md`.
 
 ## Port Allocation
 
-This worktree is in the `picodash` port registry range `6030-6039`.
+The shared project defaults are:
 
-- `6030-6033`: available for additional local services.
-- `6034`: this worktree local lab server via `LAB_PORT`.
-- `6035`: this worktree override via `WEBSITE_PORT` for website development and the Playwright/E2E server.
-- `6036`: this worktree production start server.
-- `6037-6039`: available for future local services.
+- `6030`: web development server via `WEBSITE_PORT`.
+- `6031`: web production preview (`start`) server via `WEBSITE_PORT`.
+- `6032`: local lab development server via `LAB_PORT`.
+- `6033`: web E2E server via `WEBSITE_PORT`.
 
-Assign new local services only from the available slots in this range.
+Ports `6034-6039` can be temporarily allocated to worktrees so development and E2E servers can
+run without conflicting with the shared project servers. If an agent needs to briefly run a server
+and its allocated port is occupied, it should find a free port in `6034-6039` and pass that port
+through the relevant environment variable.
+
+Assign new local services only from the available slots in `6034-6039`.
 
 For this worktree:
 
 ```bash
-LAB_PORT=6034 WEBSITE_PORT=6035 bun run --filter @picodash/web test:e2e
+LAB_PORT=6032 WEBSITE_PORT=6033 bun run --filter @picodash/web test:e2e
 ```
 
 ## Documentation Surfaces
