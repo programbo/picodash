@@ -185,6 +185,35 @@ test('requires the panel side to reach proximity before hybrid dock intent is ac
   ).toBeNull()
 })
 
+test('uses the floating snap offset when it exceeds hybrid snap proximity', () => {
+  const containerRect: PanelRect = {
+    bottom: 600,
+    height: 600,
+    left: 0,
+    right: 900,
+    top: 0,
+    width: 900,
+  }
+  const panelRect: PanelRect = {
+    bottom: 324,
+    height: 200,
+    left: 24,
+    right: 344,
+    top: 124,
+    width: 320,
+  }
+
+  expect(
+    hybridDockPositionForPointer({
+      containerRect,
+      panelRect,
+      pointer: { x: 184, y: 300 },
+      snapOffset: 24,
+      snapProximity: 16,
+    }),
+  ).toBe('full-left')
+})
+
 test('uses pointer intent to snap an intrinsically over-height hybrid panel vertically', () => {
   const containerRect: PanelRect = {
     bottom: 600,

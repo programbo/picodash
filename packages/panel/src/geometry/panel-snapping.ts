@@ -56,6 +56,7 @@ export interface HybridDockIntentInput {
   intrinsicHeight?: number
   panelRect: PanelRect
   pointer: PanelPosition
+  snapOffset?: number
   snapProximity?: number
 }
 
@@ -151,12 +152,14 @@ export function hybridDockPositionForPointer({
   intrinsicHeight,
   panelRect,
   pointer,
+  snapOffset = DEFAULT_SNAP_OFFSET,
   snapProximity = DEFAULT_SNAP_PROXIMITY,
 }: HybridDockIntentInput): PicodashPanelHybridDockPosition | 'bottom' | 'top' | null {
-  const horizontal = horizontalSnapIntent(panelRect, containerRect, pointer, snapProximity)
+  const targetProximity = Math.max(snapOffset, snapProximity)
+  const horizontal = horizontalSnapIntent(panelRect, containerRect, pointer, targetProximity)
   if (horizontal) {
     const topIntentEdge =
-      containerRect.top + Math.max(snapProximity, (headerHeight ?? snapProximity / 2) * 2)
+      containerRect.top + Math.max(targetProximity, (headerHeight ?? targetProximity / 2) * 2)
     if (pointer.y <= topIntentEdge && panelRect.top <= topIntentEdge) {
       return horizontal === 'left' ? 'top-left' : 'top-right'
     }
@@ -170,15 +173,15 @@ export function hybridDockPositionForPointer({
   }
 
   if (intrinsicHeight !== undefined && intrinsicHeight >= containerRect.height) {
-    return verticalPointerIntent(pointer, containerRect, snapProximity) ?? null
+    return verticalPointerIntent(pointer, containerRect, targetProximity) ?? null
   }
 
-  const nearTop = panelRect.top <= containerRect.top + snapProximity
-  const nearBottom = panelRect.bottom >= containerRect.bottom - snapProximity
+  const nearTop = panelRect.top <= containerRect.top + targetProximity
+  const nearBottom = panelRect.bottom >= containerRect.bottom - targetProximity
   if (nearTop && nearBottom) {
-    return verticalPointerIntent(pointer, containerRect, snapProximity) ?? null
+    return verticalPointerIntent(pointer, containerRect, targetProximity) ?? null
   }
-  return verticalSnapIntent(panelRect, containerRect, pointer, snapProximity) ?? null
+  return verticalSnapIntent(panelRect, containerRect, pointer, targetProximity) ?? null
 }
 
 export function placementForPanelLayout(

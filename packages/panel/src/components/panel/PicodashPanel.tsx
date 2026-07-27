@@ -637,6 +637,7 @@ export function PicodashPanel({
         intrinsicHeight: dragState.intrinsicHeight,
         panelRect: containedProjection.rect,
         pointer,
+        snapOffset: resolvedPlacementOptions.snapOffset,
         snapProximity: resolvedPlacementOptions.snapProximity,
       })
       const previewPosition =
