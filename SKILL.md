@@ -183,6 +183,8 @@ The deployment scripts require a globally installed Vercel CLI. Install it once 
 - `bun run dev`
 - `bun run web`
 - `bun run lab`
+- `bun run port:reserve`
+- `bun run port:release`
 - `bun run deploy`
 - `bun run deploy:prod`
 - `bun run --filter @picodash/lab lint`
@@ -210,5 +212,10 @@ Focused validation:
 
 If an allocated port is occupied while an agent needs to briefly run a server, find a free port in
 `6034-6039` and pass it through the relevant environment variable.
+
+For new worktrees, use `bun run port:reserve` to claim the lowest available port in `6034-6039`.
+It writes the allocation as `<PORT>:<DATETIME>:<WORKTREE_DIR>` to
+`/Volumes/Jove/Developer/Projects/picodash/.worktree-ports` and sets both `WEBSITE_PORT` and
+`LAB_PORT` in the worktree's `.env.local`. Use `bun run port:release` after the PR is merged.
 
 GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`.
