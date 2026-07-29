@@ -1,13 +1,30 @@
+import { execFile } from 'node:child_process'
 import { open, readFile, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { promisify } from 'node:util'
 
-const projectRoot = '/Volumes/Jove/Developer/Projects/picodash'
-const portsFile =
-  process.env.PICODASH_WORKTREE_PORTS_FILE ?? path.join(projectRoot, '.worktree-ports')
+const execFileAsync = promisify(execFile)
 const worktreeDir = path.resolve(process.env.PICODASH_WORKTREE_DIR ?? process.cwd())
 const envFile = process.env.PICODASH_WORKTREE_ENV_FILE ?? path.join(worktreeDir, '.env.local')
-const lockFile = `${portsFile}.lock`
 const availablePorts = [6034, 6035, 6036, 6037, 6038, 6039]
+
+async function resolvePortsFile() {
+  if (process.env.PICODASH_WORKTREE_PORTS_FILE) {
+    return path.resolve(process.env.PICODASH_WORKTREE_PORTS_FILE)
+  }
+
+  const { stdout } = await execFileAsync(
+    'git',
+    ['-C', worktreeDir, 'rev-parse', '--git-common-dir'],
+    { encoding: 'utf8' },
+  )
+  const gitCommonDir = path.resolve(worktreeDir, stdout.trim())
+
+  return path.join(path.dirname(gitCommonDir), '.worktree-ports')
+}
+
+const portsFile = await resolvePortsFile()
+const lockFile = `${portsFile}.lock`
 
 function usage() {
   console.error('Usage: node scripts/worktree-ports.mjs <reserve|release>')
