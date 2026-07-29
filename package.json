@@ -52,6 +52,8 @@
     "deploy:prod": "vercel --prod",
     "picodash": "vp run @picodash/panel#dev",
     "test:e2e": "bun run --filter @picodash/web test:e2e",
+    "port:reserve": "node scripts/worktree-ports.mjs reserve",
+    "port:release": "node scripts/worktree-ports.mjs release",
     "prepare": "vp config"
   },
   "devDependencies": {
