@@ -7,8 +7,6 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import { Input } from '../components/ui/input.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
-import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
 export type PicodashVector3Value = {
   x: number
@@ -44,31 +42,8 @@ export function PicodashVector3({
     () => normalizeVector3Value(defaultValue, zeroVector, bounds.min, bounds.max),
     [bounds.max, bounds.min, defaultValue],
   )
-  const { x: defaultX, y: defaultY, z: defaultZ } = normalizedDefaultValue
-  const parse = useMemo<PicodashParser<PicodashVector3Value>>(
-    () => (input, context) => {
-      const error =
-        'Vector value must contain exactly finite x, y, and z coordinates within bounds.'
-      const isObject = typeof input === 'object' && input !== null && !Array.isArray(input)
-      const shapeError = strictImportShape(context, isObject, error)
-      if (shapeError) return shapeError
-      const value = normalizeVector3Value(
-        input,
-        { x: defaultX, y: defaultY, z: defaultZ },
-        bounds.min,
-        bounds.max,
-      )
-      return canonicalPicodashValue(input, value, error)
-    },
-    [bounds.max, bounds.min, defaultX, defaultY, defaultZ],
-  )
-
   return (
-    <PicodashItem<PicodashVector3Value>
-      {...controlProps}
-      defaultValue={normalizedDefaultValue}
-      parse={parse}
-    >
+    <PicodashItem<PicodashVector3Value> {...controlProps}>
       {(control) => {
         const value = normalizeVector3Value(
           control.value,

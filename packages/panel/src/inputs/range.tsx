@@ -8,8 +8,6 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import { picodashGeometryTokens } from '../lib/theme/theme.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
-import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
 export type PicodashRangeValue = [low: number, high: number]
 
@@ -62,29 +60,8 @@ export function PicodashRange({
       }),
     [defaultValue, max, min, step],
   )
-  const [defaultLow, defaultHigh] = normalizedDefaultValue
-  const parse = useMemo<PicodashParser<PicodashRangeValue>>(
-    () => (input, context) => {
-      const error = 'Range value must be a canonical two-number tuple within its bounds.'
-      const shapeError = strictImportShape(context, Array.isArray(input), error)
-      if (shapeError) return shapeError
-      const value = normalizeRangeValue(input, {
-        fallback: [defaultLow, defaultHigh],
-        max,
-        min,
-        step,
-      })
-      return canonicalPicodashValue(input, value, error)
-    },
-    [defaultHigh, defaultLow, max, min, step],
-  )
-
   return (
-    <PicodashItem<PicodashRangeValue>
-      {...controlProps}
-      defaultValue={normalizedDefaultValue}
-      parse={parse}
-    >
+    <PicodashItem<PicodashRangeValue> {...controlProps}>
       {(control) => {
         const value = normalizeRangeValue(control.value, {
           fallback: normalizedDefaultValue,

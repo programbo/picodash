@@ -35,9 +35,6 @@ export {
 export type {
   PicodashControlStates,
   PicodashControlStateValue,
-  PicodashInteractionState,
-  PicodashItemKind,
-  PicodashItemRegistration,
   PicodashPanelCloseBehavior,
   PicodashPanelCloseDetails,
   PicodashPanelCloseOptions,
@@ -52,8 +49,6 @@ export type {
   PicodashPanelPlacementOptions,
   PicodashPanelSnappedDisposition,
   PicodashPanelSnappedPosition,
-  PicodashPanelState,
-  PicodashRepairProposal,
   PicodashReorderItemLayout,
   PicodashReorderItemMotion,
 } from './state/panel/picodash-panel-types.js'
@@ -120,16 +115,3 @@ export type {
   PicodashXYBounds,
   PicodashXYLabelMetrics,
 } from './inputs/index.js'
-
-export {
-  analyzePicodashFieldConstraint,
-  applyPicodashConstraintRepair,
-  jsonCompatibilityError,
-  jsonValuesEqual,
-  resolvePicodashFieldValue,
-} from './validation/picodash-validation.js'
-export type {
-  PicodashConstraintAnalysis,
-  PicodashConstraintRepair,
-  PicodashFieldContract,
-} from './validation/picodash-validation.js'

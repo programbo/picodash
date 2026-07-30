@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
+import { useEffect, useState, type KeyboardEvent } from 'react'
 import { formatNumericValue } from '../lib/formatting/number-format.js'
 import {
   PicodashItem,
@@ -8,8 +8,6 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import { Input } from '../components/ui/input.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
-import { canonicalPicodashValue, invalidPicodashValue } from './internal/built-in-validation.js'
 
 export interface PicodashNumberProps extends Omit<
   PicodashInputItemProps<number>,
@@ -41,22 +39,9 @@ export function PicodashNumber({
     typeof defaultValue === 'number' && Number.isFinite(defaultValue)
       ? clampNumber(defaultValue, bounds.min, bounds.max)
       : undefined
-  const parse = useMemo<PicodashParser<number>>(
-    () => (input, context) => {
-      const error = 'Number value must be finite and within its configured bounds.'
-      if (typeof input === 'number' && Number.isFinite(input)) {
-        return canonicalPicodashValue(input, clampNumber(input, bounds.min, bounds.max), error)
-      }
-      if (context.source === 'import') return invalidPicodashValue(error)
-      return normalizedDefault === undefined
-        ? { errors: [error], repair: { unset: true }, success: false }
-        : { errors: [error], repair: { value: normalizedDefault }, success: false }
-    },
-    [bounds.max, bounds.min, normalizedDefault],
-  )
 
   return (
-    <PicodashItem<number> {...controlProps} defaultValue={normalizedDefault} parse={parse}>
+    <PicodashItem<number> {...controlProps}>
       {(control) => (
         <FormattedNumberInput
           control={control}

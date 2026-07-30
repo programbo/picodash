@@ -239,10 +239,7 @@ export type PicodashChartImplementationProps = {
   tooltipProps: false | PicodashChartTooltipProps | undefined
 }
 
-export type ChartSpecificProps = DistributiveOmit<
-  PicodashChartProps,
-  keyof PicodashChartBaseProps | keyof PicodashChartItemProps
->
+export type ChartSpecificProps = DistributiveOmit<PicodashChartProps, keyof PicodashChartBaseProps>
 
 function chartItemProps(props: ChartSpecificProps): PicodashChartItemProps {
   const {

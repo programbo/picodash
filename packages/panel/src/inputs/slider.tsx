@@ -1,4 +1,5 @@
-import { useMemo, type ReactNode } from 'react'
+import type { PicodashStoreState } from '@picodash/store'
+import type { ReactNode } from 'react'
 import { Slider, SliderThumb, SliderTrack } from '../components/ui/slider.js'
 import {
   PicodashItem,
@@ -6,10 +7,8 @@ import {
   type ReactiveProp,
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
-import type { PicodashPanelState } from '../components/panel/PicodashPanel.js'
+import type { AnyPicodashValues } from '../state/panel/picodash-panel-types.js'
 import { formatNumericValue } from '../lib/formatting/number-format.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
-import { canonicalPicodashValue, invalidPicodashValue } from './internal/built-in-validation.js'
 
 export type PicodashSliderMark =
   | number
@@ -26,7 +25,7 @@ export interface PicodashSliderProps extends Omit<
 > {
   defaultValue?: number
   formatOptions?: ReactiveProp<Intl.NumberFormatOptions>
-  formatValue?: (value: number, state: PicodashPanelState) => ReactNode
+  formatValue?: (value: number, state: PicodashStoreState<AnyPicodashValues>) => ReactNode
   marks?: ReactiveProp<PicodashSliderMarks>
   max?: ReactiveProp<number>
   min?: ReactiveProp<number>
@@ -51,26 +50,15 @@ export function PicodashSlider({
   const formatOptions = useResolvedPanelProp(formatOptionsProp)
   const marks = marksFromProp(useResolvedPanelProp(marksProp, []), min, max)
   const formattedValue = useResolvedPanelProp((state) => {
-    const raw = controlProps.field === undefined ? defaultValue : state.values[controlProps.field]
+    const raw =
+      controlProps.field === undefined ? defaultValue : state.values[controlProps.field.key]
     const value =
       typeof raw === 'number' ? normalizeSliderValue(raw, min, max, step) : normalizedDefault
     return formatValue?.(value, state) ?? formatNumericValue(value, { formatOptions, step })
   })
-  const parse = useMemo<PicodashParser<number>>(
-    () => (input, context) => {
-      const error = 'Slider value must be a finite number aligned to its bounds and step.'
-      if (typeof input !== 'number' || !Number.isFinite(input)) {
-        return context.source === 'import'
-          ? invalidPicodashValue(error)
-          : { errors: [error], repair: { value: normalizedDefault }, success: false }
-      }
-      return canonicalPicodashValue(input, normalizeSliderValue(input, min, max, step), error)
-    },
-    [max, min, normalizedDefault, step],
-  )
 
   return (
-    <PicodashItem<number> {...controlProps} defaultValue={normalizedDefault} parse={parse}>
+    <PicodashItem<number> {...controlProps}>
       {(control) => {
         const value =
           typeof control.value === 'number'

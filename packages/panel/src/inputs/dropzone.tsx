@@ -6,8 +6,6 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import { EmptyState } from '../components/dashlet/states.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
-import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
 export type PicodashDroppedFileMetadata = {
   id: string
@@ -68,23 +66,9 @@ export function PicodashDropzone({
     () => normalizePicodashDropzoneValue(defaultValue),
     [defaultValue],
   )
-  const parse = useMemo<PicodashParser<PicodashDropzoneValue>>(
-    () => (input, context) => {
-      const error = 'Dropzone value must be an array of canonical serializable file metadata.'
-      const shapeError = strictImportShape(context, Array.isArray(input), error)
-      if (shapeError) return shapeError
-      return canonicalPicodashValue(input, normalizePicodashDropzoneValue(input), error)
-    },
-    [],
-  )
 
   return (
-    <PicodashItem<PicodashDropzoneValue>
-      {...controlProps}
-      contentLayout={contentLayout}
-      defaultValue={normalizedDefault}
-      parse={parse}
-    >
+    <PicodashItem<PicodashDropzoneValue> {...controlProps} contentLayout={contentLayout}>
       {(control) => (
         <Suspense fallback={<PicodashDropzoneFallback multiple={multiple} />}>
           <LazyDropzoneImplementation

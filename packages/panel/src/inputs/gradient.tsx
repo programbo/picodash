@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
+import type { PicodashField } from '@picodash/store'
 import {
   useEffect,
   useId,
@@ -21,8 +22,6 @@ import {
 import { Button } from '../components/ui/button.js'
 import { Input } from '../components/ui/input.js'
 import { cn } from '../utilities/utils.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
-import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
 export type PicodashGradientStop = { color: string; id: string; position: number }
 export type PicodashGradientValue = PicodashGradientStop[]
@@ -34,7 +33,7 @@ export interface PicodashGradientProps extends Omit<
   defaultValue?: PicodashGradientValue
   defaultRotation?: number
   gradientClassName?: string
-  rotationField?: string
+  rotationField?: PicodashField<Record<string, number>, string>
 }
 
 const fallbackGradient: PicodashGradientValue = [
@@ -49,58 +48,29 @@ export function PicodashGradient({
   rotationField,
   ...controlProps
 }: PicodashGradientProps) {
-  const gradientItemId = controlProps.id ?? controlProps.field
+  const gradientItemId = controlProps.id ?? controlProps.field.key
   const normalizedDefault = useMemo(() => normalizePicodashGradient(defaultValue), [defaultValue])
   const normalizedDefaultRotation = normalizeGradientRotation(defaultRotation)
   const store = usePicodashPanelStoreApi()
   const storedRotation = usePicodashPanelSelector((state) =>
-    rotationField ? state.values[rotationField] : undefined,
+    rotationField ? state.values[rotationField.key] : undefined,
   )
   const rotation =
     typeof storedRotation === 'number'
       ? normalizeGradientRotation(storedRotation)
       : normalizedDefaultRotation
-  const parse = useMemo<PicodashParser<PicodashGradientValue>>(
-    () => (input, context) => {
-      const error = 'Gradient value must be a canonical array of at least two color stops.'
-      const shapeError = strictImportShape(context, Array.isArray(input), error)
-      if (shapeError) return shapeError
-      return canonicalPicodashValue(input, normalizePicodashGradient(input), error)
-    },
-    [],
-  )
-  const rotationParse = useMemo<PicodashParser<number>>(
-    () => (input, context) => {
-      const error = 'Gradient rotation must be a finite number from 0 through 359.'
-      const shapeError = strictImportShape(
-        context,
-        typeof input === 'number' && Number.isFinite(input),
-        error,
-      )
-      if (shapeError) return shapeError
-      return canonicalPicodashValue(input, normalizeGradientRotation(Number(input)), error)
-    },
-    [],
-  )
 
   return (
     <>
       {rotationField ? (
         <PicodashItem<number>
-          id={gradientRotationRegistrationId(gradientItemId, rotationField)}
+          id={gradientRotationRegistrationId(gradientItemId, rotationField.key)}
           field={rotationField}
-          defaultValue={normalizedDefaultRotation}
-          parse={rotationParse}
           reorderable={false}
           visible={false}
         />
       ) : null}
-      <PicodashItem<PicodashGradientValue>
-        {...controlProps}
-        contentLayout={contentLayout}
-        defaultValue={normalizedDefault}
-        parse={parse}
-      >
+      <PicodashItem<PicodashGradientValue> {...controlProps} contentLayout={contentLayout}>
         {(control) => (
           <GradientEditor
             className={gradientClassName}

@@ -27,8 +27,8 @@ import {
 import { picodashMotionTokens } from '../../../lib/theme/theme.js'
 import { cn } from '../../../utilities/utils.js'
 import type {
+  AnyPicodashStore,
   PicodashGroupContextValue,
-  PicodashPanelStore,
   PicodashReorderItemLayout,
   PicodashReorderItemMotion,
 } from '../../../state/panel/picodash-panel-types.js'
@@ -421,7 +421,7 @@ function useSynchronizedVisibleOrder(
 
 function useReorderListLayoutVersion(
   listRef: RefObject<HTMLDivElement | null>,
-  store: PicodashPanelStore,
+  store: AnyPicodashStore,
   draggingId: string | null,
   keyboardReorderActive: boolean,
 ) {
@@ -488,7 +488,7 @@ function usePointerReorderSession({
   listRef: RefObject<HTMLDivElement | null>
   parentId: string
   previewOrder: (values: string[]) => boolean
-  store: PicodashPanelStore
+  store: AnyPicodashStore
   valuesRef: RefObject<string[]>
 }) {
   const pendingStoreOrderRef = useRef<string[] | null>(null)
@@ -669,7 +669,7 @@ function usePointerReorderSession({
     pendingStoreOrderRef.current = null
     if (!pendingStoreOrder) return
 
-    store.getState().setOrder(parentId, pendingStoreOrder)
+    store.getState().setItemOrder(parentId, pendingStoreOrder)
   }, [parentId, stopPointerTracking, store])
 
   return { beginItemReorder, commitPendingOrder, synchronizeVisualOffset }
@@ -708,16 +708,11 @@ function finishSiblingDisclosureTransitions(itemElements: HTMLElement[]) {
 }
 
 export function restoreKeyboardReorderOrder(
-  store: PicodashPanelStore,
+  store: AnyPicodashStore,
   parentId: string,
   order: string[],
 ) {
-  store.setState((state) => ({
-    order: {
-      ...state.order,
-      [parentId]: [...order],
-    },
-  }))
+  store.getState().setItemOrder(parentId, order)
 }
 
 function directReorderItems(groupElement: HTMLElement) {

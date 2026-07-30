@@ -1,10 +1,18 @@
 import { Children, cloneElement, isValidElement, useMemo, type ReactNode } from 'react'
 import { useStore } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
+import {
+  bandForPicodashItem,
+  orderedPicodashItemIds,
+  picodashItemCanReorder,
+  type PicodashField,
+  type PicodashJsonValue,
+  type PicodashRegisteredItem,
+} from '@picodash/store'
 import type {
-  PicodashItemRegistration,
-  PicodashPanelState,
-  PicodashPanelStore,
+  AnyPicodashStore,
+  AnyPicodashStoreState,
+  AnyPicodashValues,
   PicodashPin,
   PicodashReorderItemLayout,
 } from '../panel/picodash-panel-types.js'
@@ -32,13 +40,11 @@ export function partitionPicodashChildrenByBand(
   return partition
 }
 
-export function bandForItem(item: Pick<PicodashItemRegistration, 'pin'>): PicodashOrderBand {
-  return item.pin ?? 'auto'
-}
+export const bandForItem = bandForPicodashItem
 
 export function hasVisibleReorderableSibling(
-  state: Pick<PicodashPanelState, 'items'>,
-  item: Pick<PicodashItemRegistration, 'id' | 'parentId' | 'pin'>,
+  state: Pick<AnyPicodashStoreState, 'items'>,
+  item: Pick<PicodashRegisteredItem<AnyPicodashValues>, 'id' | 'parentId' | 'pin'>,
 ) {
   return Object.values(state.items).some(
     (sibling) =>
@@ -50,13 +56,12 @@ export function hasVisibleReorderableSibling(
   )
 }
 
-export function itemCanReorder(state: Pick<PicodashPanelState, 'items'>, itemId: string) {
-  const item = state.items[itemId]
-  return Boolean(item?.reorderable && !item.hidden && hasVisibleReorderableSibling(state, item))
+export function itemCanReorder(state: Pick<AnyPicodashStoreState, 'items'>, itemId: string) {
+  return picodashItemCanReorder(state.items, itemId)
 }
 
 export function orderedItemsForParent(
-  state: Pick<PicodashPanelState, 'items' | 'order'>,
+  state: Pick<AnyPicodashStoreState, 'itemMetadata' | 'items'>,
   parentId: string,
 ) {
   return orderedItemIdsForParent(state, parentId)
@@ -65,26 +70,22 @@ export function orderedItemsForParent(
 }
 
 export function orderedItemIdsForParent(
-  state: Pick<PicodashPanelState, 'items' | 'order'>,
+  state: Pick<AnyPicodashStoreState, 'itemMetadata' | 'items'>,
   parentId: string,
 ) {
-  const children = Object.values(state.items).filter((item) => item.parentId === parentId)
-  const childIds = new Set(children.map((item) => item.id))
-  const orderedIds = state.order[parentId]?.filter((id) => childIds.has(id)) ?? []
-  const missing = children.filter((item) => !orderedIds.includes(item.id)).map((item) => item.id)
-  return normalizeParentOrder([...orderedIds, ...missing], state.items, parentId)
+  return [...orderedPicodashItemIds(state.items, state.itemMetadata.order, parentId)]
 }
 
 export function orderSnapshotForParent(
-  state: Pick<PicodashPanelState, 'items' | 'order'>,
+  state: Pick<AnyPicodashStoreState, 'itemMetadata' | 'items'>,
   parentId: string,
 ) {
-  return state.order[parentId]
-    ? [...state.order[parentId]]
+  return state.itemMetadata.order[parentId]
+    ? [...state.itemMetadata.order[parentId]]
     : orderedItemIdsForParent(state, parentId)
 }
 
-export function orderIndexForItem(state: PicodashPanelState, itemId: string) {
+export function orderIndexForItem(state: AnyPicodashStoreState, itemId: string) {
   const item = state.items[itemId]
   if (!item) return 0
   const index = orderedItemsForParent(state, item.parentId)
@@ -129,7 +130,7 @@ export function reorderValuesForPointer(
 }
 
 export function useOrderedPicodashChildren(
-  store: PicodashPanelStore,
+  store: AnyPicodashStore,
   children: ReactNode,
   parentId: string,
 ) {
@@ -165,7 +166,7 @@ export function orderPicodashChildren(children: ReactNode, orderedIds: string[])
 
 export function normalizeAllOrders(
   order: Record<string, string[]>,
-  items: Record<string, PicodashItemRegistration>,
+  items: Record<string, PicodashRegisteredItem<AnyPicodashValues>>,
 ) {
   const parentIds = new Set<string>([rootGroupId])
   for (const item of Object.values(items)) {
@@ -183,7 +184,7 @@ export function normalizeAllOrders(
 
 export function normalizeParentOrder(
   orderedIds: string[],
-  items: Record<string, PicodashItemRegistration>,
+  items: Record<string, PicodashRegisteredItem<AnyPicodashValues>>,
   parentId: string,
 ) {
   const children = Object.values(items).filter((item) => item.parentId === parentId)
@@ -204,7 +205,8 @@ export function normalizeParentOrder(
 }
 
 type PicodashChildProps = {
-  field?: unknown
+  field?: PicodashField<Record<string, PicodashJsonValue>, string>
+  fields?: Readonly<Record<string, unknown>>
   id?: unknown
 }
 
@@ -213,7 +215,7 @@ function itemIdFromPicodashChild(child: ReactNode) {
 
   const { field, id } = child.props
   if (typeof id === 'string') return id
-  if (typeof field === 'string') return field
+  if (field && typeof field === 'object' && typeof field.key === 'string') return field.key
   return undefined
 }
 

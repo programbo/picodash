@@ -71,6 +71,7 @@
       "name": "@picodash/panel",
       "version": "0.0.0",
       "dependencies": {
+        "@picodash/store": "workspace:*",
         "@standard-schema/spec": "^1.1.0",
         "class-variance-authority": "catalog:",
         "clsx": "catalog:",

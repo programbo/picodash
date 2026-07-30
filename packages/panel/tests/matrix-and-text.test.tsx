@@ -1,5 +1,6 @@
 import { isValidElement } from 'react'
 import { expect, test } from 'vite-plus/test'
+import { createPicodashStore } from '@picodash/store'
 import {
   findFirstEnabledMatrix2DPosition,
   findMatrix2DValuePosition,
@@ -52,14 +53,25 @@ test('PicodashText selects the input primitive from multiline', () => {
   expect(picodashTextControlKind(false)).toBe('input')
   expect(picodashTextControlKind(true)).toBe('textarea')
 
-  const singleLine = <PicodashText field="title" defaultValue="Untitled" />
-  const multiline = <PicodashText field="notes" defaultValue="" multiline />
+  const store = createPicodashStore<{ notes: string; title: string }>({
+    fields: {
+      notes: { defaultValue: '' },
+      title: { defaultValue: 'Untitled' },
+    },
+    panelId: 'text-primitives',
+  })
+  const singleLine = <PicodashText field={store.fields.title} defaultValue="Untitled" />
+  const multiline = <PicodashText field={store.fields.notes} defaultValue="" multiline />
   expect(isValidElement(singleLine)).toBe(true)
   expect(isValidElement(multiline)).toBe(true)
   expect(multiline.props.multiline).toBe(true)
 })
 
 test('PicodashMatrix2D exposes controlled values and arbitrary option/container props', () => {
+  const store = createPicodashStore<{ density: { density: string } }>({
+    fields: { density: { defaultValue: { density: 'compact' } } },
+    panelId: 'matrix-props',
+  })
   const element = (
     <PicodashMatrix2D
       containerProps={{
@@ -69,7 +81,7 @@ test('PicodashMatrix2D exposes controlled values and arbitrary option/container 
         style: { width: 180 },
       }}
       defaultValue={{ density: 'compact' }}
-      field="density"
+      field={store.fields.density}
       options={matrixOptions}
     />
   )
@@ -116,7 +128,14 @@ test('PicodashMatrix2D navigation follows spatial rows and skips disabled option
 })
 
 test('PicodashAlignment remains a styled 3x3 Matrix2D preset', () => {
-  const element = PicodashAlignment({ defaultValue: 'bottom-right', field: 'alignment' })
+  const store = createPicodashStore<{ alignment: PicodashAlignmentValue }>({
+    fields: { alignment: { defaultValue: 'center' } },
+    panelId: 'alignment-preset',
+  })
+  const element = PicodashAlignment({
+    defaultValue: 'bottom-right',
+    field: store.fields.alignment,
+  })
   const props = element.props as {
     containerProps: { 'aria-label': string; className: string }
     defaultValue: PicodashAlignmentValue

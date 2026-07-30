@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js'
 import {
   PicodashItem,
@@ -6,9 +6,7 @@ import {
   type ReactiveProp,
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
 import { cn } from '../utilities/utils.js'
-import { canonicalPicodashValue, invalidPicodashValue } from './internal/built-in-validation.js'
 
 export type PicodashSegmentedOption =
   | string
@@ -34,27 +32,9 @@ export function PicodashSegmented({
 }: PicodashSegmentedProps) {
   const options = useResolvedPanelProp(optionsProp, []) ?? []
   const normalizedDefaultValue = normalizeSegmentedValue(defaultValue, options)
-  const enabledValuesKey = JSON.stringify(segmentedEnabledOptionValues(options))
-  const enabledValues = useMemo(() => JSON.parse(enabledValuesKey) as string[], [enabledValuesKey])
-  const parse = useMemo<PicodashParser<string>>(
-    () => (input, context) => {
-      if (typeof input === 'string' && enabledValues.includes(input)) {
-        return { output: { value: input }, success: true }
-      }
-      const error =
-        enabledValues.length === 0
-          ? 'Segmented control has no enabled options.'
-          : 'Segmented value must match one of its enabled options.'
-      if (context.source === 'import' || enabledValues.length === 0) {
-        return invalidPicodashValue(error)
-      }
-      return canonicalPicodashValue(input, normalizedDefaultValue ?? enabledValues[0]!, error)
-    },
-    [enabledValues, normalizedDefaultValue],
-  )
 
   return (
-    <PicodashItem<string> {...controlProps} defaultValue={normalizedDefaultValue} parse={parse}>
+    <PicodashItem<string> {...controlProps}>
       {(control) => {
         const value = normalizeSegmentedValue(control.value, options, normalizedDefaultValue) ?? ''
 

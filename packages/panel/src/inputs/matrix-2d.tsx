@@ -1,4 +1,4 @@
-import { useMemo, type ComponentPropsWithoutRef, type KeyboardEvent, type ReactNode } from 'react'
+import { type ComponentPropsWithoutRef, type KeyboardEvent, type ReactNode } from 'react'
 import {
   PicodashItem,
   useResolvedPanelProp,
@@ -6,10 +6,7 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import type { PicodashValue } from '../components/panel/PicodashPanel.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
-import { jsonCompatibilityError, jsonValuesEqual } from '../validation/picodash-validation.js'
 import { cn } from '../utilities/utils.js'
-import { canonicalPicodashValue, invalidPicodashValue } from './internal/built-in-validation.js'
 
 export type PicodashMatrix2DDirection = 'down' | 'left' | 'right' | 'up'
 export type PicodashMatrix2DSelectionRole = 'radio' | 'toggle'
@@ -51,36 +48,16 @@ export function PicodashMatrix2D<TValue extends PicodashValue>({
   defaultValue,
   options: optionsProp,
   selectionRole = 'toggle',
-  validationMessage = 'Matrix value must match one of its enabled options.',
+  validationMessage: _validationMessage = 'Matrix value must match one of its enabled options.',
   ...controlProps
 }: PicodashMatrix2DProps<TValue>) {
   const options =
     useResolvedPanelProp<readonly (readonly PicodashMatrix2DOption<TValue>[])[]>(optionsProp, []) ??
     []
   const normalizedDefault = normalizeMatrix2DValue(defaultValue, options)
-  const parse = useMemo<PicodashParser<TValue>>(
-    () => (input, context) => {
-      const position = findMatrix2DValuePosition(input, options)
-      if (position) {
-        const optionValue = options[position.row]?.[position.column]?.value
-        if (optionValue !== undefined) {
-          return canonicalPicodashValue(input, optionValue, validationMessage)
-        }
-      }
-
-      const error = enabledMatrix2DOptions(options).length
-        ? validationMessage
-        : 'Matrix has no enabled options.'
-      if (context.source === 'import' || normalizedDefault === undefined) {
-        return invalidPicodashValue(error)
-      }
-      return canonicalPicodashValue(input, normalizedDefault, error)
-    },
-    [normalizedDefault, options, validationMessage],
-  )
 
   return (
-    <PicodashItem<TValue> {...controlProps} defaultValue={normalizedDefault} parse={parse}>
+    <PicodashItem<TValue> {...controlProps}>
       {(control) => {
         const value = normalizeMatrix2DValue(control.value, options, normalizedDefault)
         const selectedPosition = findMatrix2DValuePosition(value, options)
@@ -283,8 +260,14 @@ function matrix2DDirectionForKey(key: string): PicodashMatrix2DDirection | undef
 }
 
 function matrix2DValuesEqual(left: unknown, right: PicodashValue) {
-  return (
-    jsonCompatibilityError(left) === undefined &&
-    jsonValuesEqual({ value: left as PicodashValue }, { value: right })
-  )
+  return isJsonCompatible(left) && JSON.stringify(left) === JSON.stringify(right)
+}
+
+function isJsonCompatible(value: unknown): value is PicodashValue {
+  if (value === null) return true
+  if (typeof value === 'boolean' || typeof value === 'string') return true
+  if (typeof value === 'number') return Number.isFinite(value)
+  if (Array.isArray(value)) return value.every(isJsonCompatible)
+  if (typeof value !== 'object') return false
+  return Object.values(value).every(isJsonCompatible)
 }

@@ -73,7 +73,7 @@ export function PicodashGroup({
   const childListRef = useRef<HTMLDivElement | null>(null)
   const interaction = usePicodashPanelSelector((state) => state.interaction)
   const collapsed = usePicodashPanelSelector(
-    (state) => state.collapsedGroups[id] ?? defaultCollapsed,
+    (state) => state.itemMetadata.collapsed[id] ?? defaultCollapsed,
   )
   const label = useResolvedPanelProp(labelProp, id)
   const collapsible = useResolvedPanelProp(collapsibleProp, true) ?? true
@@ -251,7 +251,7 @@ export function PicodashGroup({
           type="button"
           onClick={() => {
             if (collapsible) {
-              store.getState().setGroupCollapsed(id, !collapsed)
+              store.getState().setItemCollapsed(id, !collapsed)
             }
           }}
         >

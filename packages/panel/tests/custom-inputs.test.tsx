@@ -1,6 +1,7 @@
 import { isValidElement } from 'react'
 import { expect, test } from 'vite-plus/test'
-import { picodashAlignmentValues } from '../src/inputs/alignment.tsx'
+import { createPicodashStore } from '@picodash/store'
+import { picodashAlignmentValues, type PicodashAlignmentValue } from '../src/inputs/alignment.tsx'
 import { restoreDropzoneViewerFocus } from '../src/inputs/dropzone.tsx'
 import { projectPicodashRangeFill } from '../src/inputs/range.tsx'
 import { gradientRotationRegistrationId } from '../src/inputs/gradient.tsx'
@@ -59,25 +60,56 @@ import {
   PicodashVector3,
   PicodashXYPad,
   type PicodashItemContentLayout,
+  type PicodashDropzoneValue,
+  type PicodashGradientValue,
+  type PicodashRangeValue,
+  type PicodashVector3Value,
+  type PicodashXYValue,
 } from '../src/index.ts'
 
 test('exports valid elements for every custom input', () => {
   const layout: PicodashItemContentLayout = 'block'
+  const store = createPicodashStore<{
+    alignment: PicodashAlignmentValue
+    dropzone: PicodashDropzoneValue
+    gradient: PicodashGradientValue
+    matrix: string
+    media: string
+    range: PicodashRangeValue
+    segmented: string
+    text: string
+    vector: PicodashVector3Value
+    xy: PicodashXYValue
+  }>({
+    fields: {
+      alignment: { defaultValue: 'center' },
+      dropzone: { defaultValue: [] },
+      gradient: { defaultValue: [] },
+      matrix: { defaultValue: 'one' },
+      media: { defaultValue: '' },
+      range: { defaultValue: [0, 1] },
+      segmented: { defaultValue: 'one' },
+      text: { defaultValue: '' },
+      vector: { defaultValue: { x: 0, y: 0, z: 0 } },
+      xy: { defaultValue: { x: 0, y: 0 } },
+    },
+    panelId: 'custom-input-elements',
+  })
   const elements = [
-    <PicodashSegmented key="segmented" field="segmented" options={['one', 'two']} />,
-    <PicodashAlignment key="alignment" field="alignment" />,
+    <PicodashSegmented key="segmented" field={store.fields.segmented} options={['one', 'two']} />,
+    <PicodashAlignment key="alignment" field={store.fields.alignment} />,
     <PicodashMatrix2D
       key="matrix"
-      field="matrix"
+      field={store.fields.matrix}
       options={[[{ children: 'One', value: 'one' }]]}
     />,
-    <PicodashVector3 key="vector" field="vector" />,
-    <PicodashRange key="range" field="range" />,
-    <PicodashText key="text" field="text" />,
-    <PicodashXYPad key="xy" contentLayout={layout} field="xy" />,
-    <PicodashGradient key="gradient" field="gradient" />,
-    <PicodashMediaPreview key="media" alt="Preview" field="media" />,
-    <PicodashDropzone key="dropzone" field="dropzone" />,
+    <PicodashVector3 key="vector" field={store.fields.vector} />,
+    <PicodashRange key="range" field={store.fields.range} />,
+    <PicodashText key="text" field={store.fields.text} />,
+    <PicodashXYPad key="xy" contentLayout={layout} field={store.fields.xy} />,
+    <PicodashGradient key="gradient" field={store.fields.gradient} />,
+    <PicodashMediaPreview key="media" alt="Preview" field={store.fields.media} />,
+    <PicodashDropzone key="dropzone" field={store.fields.dropzone} />,
     <PicodashSparkline key="sparkline" id="sparkline" data={[1, 3, 2]} />,
     <PicodashSparkline
       key="autoscale-sparkline"

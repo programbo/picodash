@@ -9,9 +9,7 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import { Surface } from '../components/dashlet/visualization.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
 import { cn } from '../utilities/utils.js'
-import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
 export type PicodashXYValue = { x: number; y: number }
 
@@ -77,26 +75,8 @@ export function PicodashXYPad({
     () => normalizePicodashXYValue(defaultValue, bounds),
     [bounds, defaultValue],
   )
-  const { x: defaultX, y: defaultY } = initialValue
-  const parse = useMemo<PicodashParser<PicodashXYValue>>(
-    () => (input, context) => {
-      const error = 'XY value must contain exactly finite x and y coordinates within bounds.'
-      const isObject = typeof input === 'object' && input !== null && !Array.isArray(input)
-      const shapeError = strictImportShape(context, isObject, error)
-      if (shapeError) return shapeError
-      const value = normalizePicodashXYValue(input, bounds, { x: defaultX, y: defaultY })
-      return canonicalPicodashValue(input, value, error)
-    },
-    [bounds, defaultX, defaultY],
-  )
-
   return (
-    <PicodashItem<PicodashXYValue>
-      {...controlProps}
-      contentLayout={contentLayout}
-      defaultValue={initialValue}
-      parse={parse}
-    >
+    <PicodashItem<PicodashXYValue> {...controlProps} contentLayout={contentLayout}>
       {(control) => (
         <XYPadSurface
           ariaLabel={ariaLabel}

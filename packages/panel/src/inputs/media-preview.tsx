@@ -1,5 +1,5 @@
 import { ImageOff } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   PicodashItem,
   useResolvedPanelProp,
@@ -9,12 +9,6 @@ import {
 import { EmptyState } from '../components/dashlet/states.js'
 import { Surface } from '../components/dashlet/visualization.js'
 import { cn } from '../utilities/utils.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
-import {
-  canonicalPicodashValue,
-  invalidPicodashValue,
-  unsetPicodashValue,
-} from './internal/built-in-validation.js'
 
 export type PicodashMediaObjectFit = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'
 
@@ -39,40 +33,15 @@ export function PicodashMediaPreview({
   ...controlProps
 }: PicodashMediaPreviewProps) {
   const src = useResolvedPanelProp(srcProp)
-  const normalizedDefaultValue = normalizePicodashMediaUrl(controlProps.defaultValue)
-  const parse = useMemo<PicodashParser<string>>(
-    () => (input, context) => {
-      const normalized = normalizePicodashMediaUrl(input)
-      if (normalized !== undefined) {
-        return canonicalPicodashValue(
-          input,
-          normalized,
-          'Media URL must be trimmed and use a safe image URL scheme.',
-        )
-      }
-      const error = 'Media URL must be a safe HTTP, HTTPS, blob, or supported image data URL.'
-      return context.source === 'import'
-        ? invalidPicodashValue(error)
-        : unsetPicodashValue(input, error)
-    },
-    [],
-  )
-
   return (
-    <PicodashItem<string>
-      {...controlProps}
-      contentLayout={contentLayout}
-      defaultValue={normalizedDefaultValue}
-      parse={parse}
-      readOnly
-    >
+    <PicodashItem<string> {...controlProps} contentLayout={contentLayout} readOnly>
       {(control) => (
         <MediaPreviewSurface
           alt={alt}
           className={imageClassName}
           fallback={fallback}
           objectFit={objectFit}
-          src={normalizePicodashMediaUrl(src ?? control.value ?? normalizedDefaultValue)}
+          src={normalizePicodashMediaUrl(src ?? control.value)}
         />
       )}
     </PicodashItem>

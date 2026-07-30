@@ -1,22 +1,22 @@
-import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useStore } from 'zustand'
-import type {
-  PicodashItemRegistration,
-  PicodashPanelState,
-  PicodashPanelStore,
-} from './picodash-panel-types.js'
+import type { PicodashItemRegistration, PicodashStore, PicodashStoreState } from '@picodash/store'
+import type { AnyPicodashStore, AnyPicodashValues } from './picodash-panel-types.js'
 
-const PicodashPanelContext = createContext<PicodashPanelStore | null>(null)
-const itemOwnersByStore = new WeakMap<PicodashPanelStore, Map<string, symbol>>()
+const PicodashPanelContext = createContext<AnyPicodashStore | null>(null)
 
-export function PicodashPanelContextProvider({
+export function PicodashPanelContextProvider<TValues extends object>({
   children,
   store,
 }: {
   children: ReactNode
-  store: PicodashPanelStore
+  store: PicodashStore<TValues>
 }) {
-  return <PicodashPanelContext.Provider value={store}>{children}</PicodashPanelContext.Provider>
+  return (
+    <PicodashPanelContext.Provider value={store as unknown as AnyPicodashStore}>
+      {children}
+    </PicodashPanelContext.Provider>
+  )
 }
 
 export function usePicodashPanelStoreApi() {
@@ -25,86 +25,46 @@ export function usePicodashPanelStoreApi() {
   return store
 }
 
-export function usePicodashPanelSelector<T>(selector: (state: PicodashPanelState) => T) {
+export function usePicodashPanelSelector<T>(
+  selector: (state: PicodashStoreState<AnyPicodashValues>) => T,
+) {
   return useStore(usePicodashPanelStoreApi(), selector)
 }
 
-export function usePicodashPanelStoreSelector<T>(
-  store: PicodashPanelStore,
-  selector: (state: PicodashPanelState) => T,
-) {
-  return useStore(store, selector)
-}
-
-export function useRegisterPicodashItem(item: PicodashItemRegistration) {
-  const ownerRef = useRef(Symbol('picodash-item-owner'))
+export function useRegisterPicodashItem(item: PicodashItemRegistration<AnyPicodashValues>) {
   const {
     collapsible,
     defaultCollapsed,
-    defaultValue,
     field,
+    fields,
     hidden,
     id,
     kind,
     label,
-    parse,
     parentId,
     pin,
     reorderable,
-    validate,
-    valueMode,
   } = item
   const store = usePicodashPanelStoreApi()
 
   useEffect(() => {
-    let owners = itemOwnersByStore.get(store)
-    if (owners === undefined) {
-      owners = new Map()
-      itemOwnersByStore.set(store, owners)
+    const result = store.getState().registerItem(item)
+    if (!result.success) {
+      throw new Error(result.errors.map((error) => error.message).join(' '))
     }
-    const existingOwner = owners.get(id)
-    if (existingOwner !== undefined && existingOwner !== ownerRef.current) {
-      throw new Error(`Picodash item IDs must be unique within a panel. Duplicate ID: "${id}".`)
-    }
-    owners.set(id, ownerRef.current)
-    return () => {
-      if (owners?.get(id) === ownerRef.current) owners.delete(id)
-    }
-  }, [id, store])
-
-  useEffect(() => {
-    store.getState().registerItem({
-      collapsible,
-      defaultCollapsed,
-      defaultValue,
-      field,
-      hidden,
-      id,
-      kind,
-      label,
-      parse,
-      parentId,
-      pin,
-      reorderable,
-      validate,
-      valueMode,
-    })
   }, [
     collapsible,
     defaultCollapsed,
-    defaultValue,
     field,
+    fields,
     hidden,
     id,
     kind,
     label,
-    parse,
     parentId,
     pin,
     reorderable,
     store,
-    validate,
-    valueMode,
   ])
 
   useEffect(() => {

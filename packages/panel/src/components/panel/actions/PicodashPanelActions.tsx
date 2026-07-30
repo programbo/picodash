@@ -27,6 +27,23 @@ import {
 import { useStore } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 import {
+  applyPicodashPanelImport,
+  preparePicodashPanelImport,
+  serializePicodashPanelValues,
+  picodashPanelDocumentFilename,
+  picodashPanelDocumentFormatFromFilename,
+  picodashPanelDocumentMimeType,
+  picodashPanelImportAccept,
+  PicodashPanelImportError,
+  type PicodashFieldOutput,
+  type PicodashJsonValue,
+  type PicodashPanelImportAnalysis,
+  type PicodashPanelImportChange,
+  type PicodashPanelDocumentFormat,
+  type PicodashRepairChange,
+} from '@picodash/store'
+import type { AnyPicodashValues } from '../../../state/panel/picodash-panel-types.js'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -44,19 +61,6 @@ import {
   DropdownMenuTrigger,
 } from '../../ui/dropdown-menu.js'
 import { collapsibleGroupsForState } from '../../../state/panel/picodash-panel-action-state.js'
-import {
-  applyPicodashPanelImport,
-  preparePicodashPanelImport,
-  serializePicodashPanelValues,
-  picodashPanelDocumentFilename,
-  picodashPanelDocumentFormatFromFilename,
-  picodashPanelDocumentMimeType,
-  picodashPanelImportAccept,
-  PicodashPanelImportError,
-  type PicodashPanelImportAnalysis,
-  type PicodashPanelImportChange,
-  type PicodashPanelDocumentFormat,
-} from '../../../lib/docs/picodash-panel-documents.js'
 import { usePicodashPanelStoreApi } from '../../../state/panel/picodash-panel-context.js'
 import {
   modalZIndexForState,
@@ -65,10 +69,6 @@ import {
   usePicodashProviderContext,
 } from '../../../state/provider/picodash-provider.js'
 import { picodashGeometryTokens } from '../../../lib/theme/theme.js'
-import type {
-  PicodashConstraintRepair,
-  PicodashFieldOutput,
-} from '../../../validation/picodash-validation.js'
 import { cn } from '../../../utilities/utils.js'
 
 export type ActionMenuConfirmation = readonly [
@@ -143,20 +143,20 @@ export function PicodashPanelActions({
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const [confirmation, setConfirmation] = useState<PendingActionConfirmation | null>(null)
   const [importRepair, setImportRepair] = useState<{
-    analysis: Extract<PicodashPanelImportAnalysis, { status: 'repair' }>
+    analysis: Extract<PicodashPanelImportAnalysis<AnyPicodashValues>, { status: 'repair' }>
     filename: string
   } | null>(null)
   const [status, setStatus] = useState('')
-  const { collapsedGroups, items } = useStore(
+  const { itemMetadata, items } = useStore(
     store,
     useShallow((state) => ({
-      collapsedGroups: state.collapsedGroups,
+      itemMetadata: state.itemMetadata,
       items: state.items,
     })),
   )
   const groups = useMemo(
-    () => collapsibleGroupsForState({ collapsedGroups, items }),
-    [collapsedGroups, items],
+    () => collapsibleGroupsForState({ itemMetadata, items }),
+    [itemMetadata, items],
   )
   const announce = (message: string) => {
     setStatus('')
@@ -470,7 +470,7 @@ export function ExpandAllItem() {
       disabled={groups.every((group) => !group.collapsed)}
       icon={ChevronsUpDown}
       label="Expand all"
-      onAction={() => store.getState().setAllCollapsibleGroupsCollapsed(false)}
+      onAction={() => store.getState().setAllCollapsibleItemsCollapsed(false)}
     />
   )
 }
@@ -483,7 +483,7 @@ export function CollapseAllItem() {
       disabled={groups.every((group) => group.collapsed)}
       icon={ChevronsDownUp}
       label="Collapse all"
-      onAction={() => store.getState().setAllCollapsibleGroupsCollapsed(true)}
+      onAction={() => store.getState().setAllCollapsibleItemsCollapsed(true)}
     />
   )
 }
@@ -649,7 +649,10 @@ function RepairReviewDialog({
   title,
 }: {
   beforeLabel: string
-  changes: readonly (PicodashPanelImportChange | PicodashConstraintRepair)[]
+  changes: readonly (
+    | PicodashPanelImportChange<AnyPicodashValues>
+    | PicodashRepairChange<AnyPicodashValues>
+  )[]
   description: string
   onAbort: () => void
   onAccept: () => void
@@ -700,31 +703,34 @@ function RepairReviewDialog({
         className="grid min-h-0 gap-(--picodash-space-2) overflow-y-auto"
         aria-label="Proposed value changes"
       >
-        {changes.map((change) => (
-          <section
-            key={change.field}
-            className="border-picodash-border grid gap-(--picodash-space-1) border p-(--picodash-space-2)"
-          >
-            <h3 className="text-(length:--picodash-font-size-lg) font-(--picodash-font-semibold)">
-              {change.field}
-            </h3>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-(--picodash-space-2) gap-y-(--picodash-space-1) text-(length:--picodash-font-size-lg)">
-              <dt className="text-picodash-muted">{beforeLabel}</dt>
-              <dd className="min-w-0 font-mono wrap-break-word">
-                {formatFieldOutput(change.before)}
-              </dd>
-              <dt className="text-picodash-muted">Proposed</dt>
-              <dd className="min-w-0 font-mono wrap-break-word">
-                {formatFieldOutput(change.after)}
-              </dd>
-            </dl>
-            <ul className="text-picodash-danger list-disc pl-(--picodash-space-4) text-(length:--picodash-font-size-lg)">
-              {change.errors.map((error) => (
-                <li key={error}>{error}</li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        {changes.map((change) => {
+          const field = typeof change.field === 'string' ? change.field : change.field.key
+          return (
+            <section
+              key={field}
+              className="border-picodash-border grid gap-(--picodash-space-1) border p-(--picodash-space-2)"
+            >
+              <h3 className="text-(length:--picodash-font-size-lg) font-(--picodash-font-semibold)">
+                {field}
+              </h3>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-(--picodash-space-2) gap-y-(--picodash-space-1) text-(length:--picodash-font-size-lg)">
+                <dt className="text-picodash-muted">{beforeLabel}</dt>
+                <dd className="min-w-0 font-mono wrap-break-word">
+                  {formatFieldOutput(change.before)}
+                </dd>
+                <dt className="text-picodash-muted">Proposed</dt>
+                <dd className="min-w-0 font-mono wrap-break-word">
+                  {formatFieldOutput(change.after)}
+                </dd>
+              </dl>
+              <ul className="text-picodash-danger list-disc pl-(--picodash-space-4) text-(length:--picodash-font-size-lg)">
+                {change.errors.map((error) => (
+                  <li key={error}>{error}</li>
+                ))}
+              </ul>
+            </section>
+          )
+        })}
       </div>
       {acceptError ? (
         <p role="alert" className="text-picodash-danger text-(length:--picodash-font-size-lg)">
@@ -754,17 +760,17 @@ function RepairReviewDialog({
   )
 }
 
-function formatFieldOutput(output: PicodashFieldOutput) {
+function formatFieldOutput(output: PicodashFieldOutput<PicodashJsonValue>) {
   return 'unset' in output ? '(unset)' : JSON.stringify(output.value)
 }
 
-function formatFieldErrors(errors: Record<string, readonly string[]>) {
+function formatFieldErrors(errors: Partial<Record<string, readonly string[]>>) {
   return Object.entries(errors)
-    .flatMap(([field, fieldErrors]) => fieldErrors.map((error) => `${field}: ${error}`))
+    .flatMap(([field, fieldErrors]) => (fieldErrors ?? []).map((error) => `${field}: ${error}`))
     .join(' ')
 }
 
-function repairProposalCopy(source: 'constraint' | 'default' | 'initial' | undefined) {
+function repairProposalCopy(source: 'adapter' | 'initial' | undefined) {
   if (source === 'initial') {
     return {
       beforeLabel: 'Initial',
@@ -773,18 +779,10 @@ function repairProposalCopy(source: 'constraint' | 'default' | 'initial' | undef
       title: 'Review initial values',
     }
   }
-  if (source === 'default') {
-    return {
-      beforeLabel: 'Default',
-      description:
-        'The field defaults need repair before they satisfy the registered field contracts. Accept the proposed values, or retain the declared defaults and show their validation errors.',
-      title: 'Review default values',
-    }
-  }
   return {
     beforeLabel: 'Current',
     description:
-      'The panel constraints changed and the current values need repair. Accept the proposed values, or keep the current values and show their validation errors.',
+      'The external value adapter supplied values that need repair. Accept the proposed values, or keep the last valid panel values.',
     title: 'Review changes',
   }
 }

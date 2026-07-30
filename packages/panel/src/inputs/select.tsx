@@ -1,11 +1,10 @@
-import { useMemo, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import {
   PicodashItem,
   useResolvedPanelProp,
   type ReactiveProp,
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
-import type { PicodashParser } from '../validation/picodash-validation.js'
 import {
   Select,
   SelectContent,
@@ -13,11 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select.js'
-import {
-  canonicalPicodashValue,
-  invalidPicodashValue,
-  unsetPicodashValue,
-} from './internal/built-in-validation.js'
 
 export type PicodashSelectOption =
   | string
@@ -41,32 +35,10 @@ export function PicodashSelect({
   ...controlProps
 }: PicodashSelectProps) {
   const options = useResolvedPanelProp(optionsProp, []) ?? []
-  const optionValuesKey = JSON.stringify(selectOptionValues(options))
-  const optionValues = useMemo(() => JSON.parse(optionValuesKey) as string[], [optionValuesKey])
   const normalizedDefaultValue = normalizeSelectValue(defaultValue, options)
-  const parse = useMemo<PicodashParser<string>>(
-    () => (input, context) => {
-      if (typeof input === 'string' && optionValues.includes(input)) {
-        return { output: { value: input }, success: true }
-      }
-      const error =
-        optionValues.length === 0
-          ? 'Select has no available options, so its field must be unset.'
-          : 'Select value must match one of its options.'
-      if (context.source === 'import') return invalidPicodashValue(error)
-      const fallback =
-        normalizedDefaultValue !== undefined && optionValues.includes(normalizedDefaultValue)
-          ? normalizedDefaultValue
-          : optionValues[0]
-      return fallback === undefined
-        ? unsetPicodashValue(input, error)
-        : canonicalPicodashValue(input, fallback, error)
-    },
-    [normalizedDefaultValue, optionValues],
-  )
 
   return (
-    <PicodashItem<string> {...controlProps} defaultValue={normalizedDefaultValue} parse={parse}>
+    <PicodashItem<string> {...controlProps}>
       {(control) => {
         const value = normalizeSelectValue(control.value, options, normalizedDefaultValue)
 

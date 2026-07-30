@@ -1,6 +1,13 @@
 import { Info, RotateCcw } from 'lucide-react'
 import { Reorder, useReducedMotion, useTransform, type HTMLMotionProps } from 'motion/react'
 import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react'
+import type {
+  PicodashField,
+  PicodashFieldState,
+  PicodashItemBinding,
+  PicodashItemRegistration,
+  PicodashStoreState,
+} from '@picodash/store'
 import { Button, buttonVariants } from '../ui/button.js'
 import { Label } from '../ui/label.js'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../overlays/Tooltip.js'
@@ -9,11 +16,11 @@ import {
   usePicodashPanelSelector,
   usePicodashPanelStoreApi,
   type PicodashControlStates,
-  type PicodashPanelState,
   type PicodashPin,
   type PicodashStatus,
   type PicodashValue,
 } from './PicodashPanel.js'
+import type { AnyPicodashValues } from '../../state/panel/picodash-panel-types.js'
 import {
   disabledReorderItemLayout,
   reducedMotionReorderTransition,
@@ -25,18 +32,17 @@ import {
 import { rootGroupId } from '../../state/order/picodash-order.js'
 import { PicodashReorderIndicator } from './reorder/PicodashReorderIndicator.js'
 import { picodashMotionTokens } from '../../lib/theme/theme.js'
-import type { PicodashParser, PicodashValidator } from '../../validation/picodash-validation.js'
 import { cn, toDataValue, toKebabCase } from '../../utilities/utils.js'
 
-export type ReactiveProp<T> = T | ((state: PicodashPanelState) => T)
+export type ReactiveProp<T> = T | ((state: PicodashStoreState<AnyPicodashValues>) => T)
 export type PicodashItemContentLayout = 'inline' | 'block' | 'full'
 export type PicodashItemStates = PicodashControlStates
 
 export interface PicodashItemContextValue<TValue extends PicodashValue = PicodashValue> {
   disabled: boolean
   errorId: string
-  field?: string
-  fieldState?: PicodashPanelState['fields'][string]
+  field?: PicodashField<Record<string, TValue>, string>
+  fieldState?: PicodashFieldState<TValue>
   id: string
   inputId: string
   readOnly: boolean
@@ -64,24 +70,20 @@ export interface PicodashItemBaseProps<TValue extends PicodashValue> extends Omi
 }
 
 interface PicodashFieldItemValueProps<TValue extends PicodashValue> {
-  defaultValue?: TValue
-  field: string
+  field: PicodashField<Record<string, TValue>, string>
+  fields?: never
   id?: string
   onValueChange?: (value: TValue, item: PicodashItemContextValue<TValue>) => void
-  parse?: PicodashParser<TValue>
   readOnly?: ReactiveProp<boolean>
-  validate?: PicodashValidator<TValue>
   valueMode?: 'input' | 'display'
 }
 
 interface PicodashNonFieldItemValueProps {
-  defaultValue?: never
   field?: never
+  fields?: never
   id: string
   onValueChange?: never
-  parse?: never
   readOnly?: ReactiveProp<boolean>
-  validate?: never
   valueMode?: 'display'
 }
 
@@ -124,7 +126,6 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   className,
   contentClassName,
   contentLayout = 'inline',
-  defaultValue,
   description: descriptionProp,
   disabled: disabledProp,
   field,
@@ -140,19 +141,18 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   onPointerLeave,
   onPointerUpCapture,
   onValueChange,
-  parse,
   pin: pinProp,
   readOnly: readOnlyProp,
   reorderable: reorderableProp,
   states: statesProp,
   status: statusProp,
   transformTemplate: transformTemplateProp,
-  validate,
   valueMode,
   visible: visibleProp,
   ...props
 }: PicodashItemProps<TValue>) {
-  const itemId = id ?? field
+  const fieldKey = field?.key
+  const itemId = id ?? fieldKey
   if (itemId === undefined) {
     throw new Error('PicodashItem requires `id` when `field` is omitted.')
   }
@@ -163,10 +163,12 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   const controlContentRef = useRef<HTMLDivElement | null>(null)
   const store = usePicodashPanelStoreApi()
   const value = usePicodashPanelSelector((state) =>
-    field === undefined ? undefined : (state.values[field] as TValue | undefined),
+    fieldKey === undefined ? undefined : (state.values[fieldKey] as TValue | undefined),
   )
   const fieldState = usePicodashPanelSelector((state) =>
-    field === undefined ? undefined : state.fields[field],
+    fieldKey === undefined
+      ? undefined
+      : (state.fieldStates[fieldKey] as PicodashFieldState<TValue> | undefined),
   )
   const interaction = usePicodashPanelSelector((state) => state.interaction)
   const label = useResolvedPanelProp(labelProp)
@@ -241,12 +243,17 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
         if (!result.success) return
       }
       const canonicalValue =
-        field === undefined ? (candidate as TValue) : (store.getState().values[field] as TValue)
+        fieldKey === undefined
+          ? (candidate as TValue)
+          : (store.getState().values[fieldKey] as TValue)
       onValueChange?.(canonicalValue, {
         disabled,
         errorId,
         field,
-        fieldState: field === undefined ? undefined : store.getState().fields[field],
+        fieldState:
+          fieldKey === undefined
+            ? undefined
+            : (store.getState().fieldStates[fieldKey] as PicodashFieldState<TValue> | undefined),
         id: itemId,
         inputId,
         readOnly,
@@ -255,7 +262,18 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
         value: canonicalValue,
       })
     },
-    [disabled, errorId, field, inputId, itemId, onValueChange, readOnly, resetValue, store],
+    [
+      disabled,
+      errorId,
+      field,
+      fieldKey,
+      inputId,
+      itemId,
+      onValueChange,
+      readOnly,
+      resetValue,
+      store,
+    ],
   )
 
   const itemContext = useMemo<PicodashItemContextValue<TValue>>(
@@ -275,19 +293,15 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   )
 
   useRegisterPicodashItem({
-    defaultValue,
-    field,
+    ...(field ? { field: field as PicodashItemBinding<AnyPicodashValues> } : {}),
     hidden: !visible,
     id: itemId,
-    kind: 'control',
+    kind: 'item',
     label: labelText,
-    parse,
     parentId,
     pin,
     reorderable: configuredReorderable,
-    validate: validate as PicodashValidator | undefined,
-    valueMode: resolvedValueMode,
-  })
+  } as PicodashItemRegistration<AnyPicodashValues>)
 
   if (!visible) return null
 
@@ -531,7 +545,9 @@ export function useResolvedPanelProp<T>(
 ): T | undefined {
   const value = prop === undefined ? fallback : prop
   return usePicodashPanelSelector((state) =>
-    typeof value === 'function' ? (value as (state: PicodashPanelState) => T)(state) : value,
+    typeof value === 'function'
+      ? (value as (state: PicodashStoreState<AnyPicodashValues>) => T)(state)
+      : value,
   )
 }
 

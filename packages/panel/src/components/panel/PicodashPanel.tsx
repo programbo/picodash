@@ -21,6 +21,7 @@ import {
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Ref } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from 'zustand'
+import type { PicodashStore } from '@picodash/store'
 import {
   fixedPanelRect,
   panelParticipatesInSnapping,
@@ -55,7 +56,6 @@ import {
   PicodashPanelActions,
   PicodashPanelConstraintRepairDialog,
 } from './actions/PicodashPanelActions.js'
-import { createPicodashPanelStore } from '../../state/panel/picodash-panel-store.js'
 import { rootGroupId } from '../../state/order/picodash-order.js'
 import { PicodashReorderList } from './reorder/PicodashReorderList.js'
 import {
@@ -75,10 +75,8 @@ import type {
   PicodashPanelPlacement,
   PicodashPanelProps,
   PicodashPanelSnappedPosition,
-  PicodashPanelStore,
 } from '../../state/panel/picodash-panel-types.js'
 
-export { createPicodashPanelStore } from '../../state/panel/picodash-panel-store.js'
 export {
   ActionMenuItem,
   ActionMenuSeparator,
@@ -105,7 +103,6 @@ export {
   useRegisterPicodashItem,
   usePicodashPanelSelector,
   usePicodashPanelStoreApi,
-  usePicodashPanelStoreSelector,
 } from '../../state/panel/picodash-panel-context.js'
 export {
   bandForItem,
@@ -121,11 +118,7 @@ export { PicodashReorderList } from './reorder/PicodashReorderList.js'
 export type {
   PicodashControlStates,
   PicodashControlStateValue,
-  PicodashFieldState,
   PicodashGroupContextValue,
-  PicodashInteractionState,
-  PicodashItemKind,
-  PicodashItemRegistration,
   PicodashPin,
   PicodashPanelCloseBehavior,
   PicodashPanelCloseDetails,
@@ -142,8 +135,6 @@ export type {
   PicodashPanelProps,
   PicodashPanelSnappedDisposition,
   PicodashPanelSnappedPosition,
-  PicodashPanelState,
-  PicodashPanelStore,
   PicodashReorderItemLayout,
   PicodashReorderItemMotion,
   PicodashStatus,
@@ -154,7 +145,7 @@ type PicodashPanelDragHandler = NonNullable<PicodashPanelProps['onDrag']>
 type PicodashPanelDragEvent = Parameters<PicodashPanelDragHandler>[0]
 type PicodashPanelDragInfo = Parameters<PicodashPanelDragHandler>[1]
 
-export function PicodashPanel({
+export function PicodashPanel<TValues extends object>({
   _dragX,
   _dragY,
   actionMenu,
@@ -176,9 +167,6 @@ export function PicodashPanel({
   dragPropagation,
   dragSnapToOrigin,
   dragTransition,
-  id,
-  initialMeta,
-  initialValues,
   onClose,
   onDirectionLock,
   onDragTransitionEnd,
@@ -186,20 +174,17 @@ export function PicodashPanel({
   onMeasureDragConstraints,
   onPointerDownCapture,
   placementOptions,
-  store: injectedPanelStore,
+  store,
   style,
   theme: themeProp,
   title,
   whileDrag,
   width,
   ...props
-}: PicodashPanelProps) {
+}: PicodashPanelProps<TValues>) {
   const { panelBoundary, portalContainer, store: providerStore } = usePicodashProviderContext()
   const theme = useResolvedPicodashTheme(themeProp)
-  const panelId = injectedPanelStore?.getState().panelId ?? id
-  if (panelId === undefined) {
-    throw new Error('PicodashPanel requires either an id or an application-owned store.')
-  }
+  const panelId = store.getState().panelId
   const panelDragControls = useDragControls()
   const reducedMotion = useReducedMotion()
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
@@ -220,7 +205,7 @@ export function PicodashPanel({
     panelRect: PanelRect
   } | null>(null)
   const fixedToggleRef = useRef<HTMLButtonElement | null>(null)
-  const panelStoreRef = useRef<PicodashPanelStore | null>(injectedPanelStore ?? null)
+  const panelStoreRef = useRef<PicodashStore<TValues>>(store)
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const hybridPreviewPositionRef = useRef<PicodashPanelHybridDockPosition | null>(null)
   const hybridPreviewTargetRef = useRef<PanelRect | null>(null)
@@ -276,12 +261,8 @@ export function PicodashPanel({
   )
   const resolvedBoundary = useResolvedPanelBoundary(boundary, panelBoundary)
 
-  if (!panelStoreRef.current) {
-    panelStoreRef.current = createPicodashPanelStore({ initialMeta, initialValues, panelId })
-  }
-
   const panelStore = panelStoreRef.current
-  if (injectedPanelStore && panelStore !== injectedPanelStore) {
+  if (panelStore !== store) {
     throw new Error('PicodashPanel store cannot be changed after the panel mounts.')
   }
   const panelCollapsed = collapsible && collapsed

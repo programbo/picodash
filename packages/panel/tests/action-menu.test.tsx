@@ -1,5 +1,6 @@
 import { CircleGauge } from 'lucide-react'
 import { expect, test } from 'vite-plus/test'
+import { createPicodashStore } from '@picodash/store'
 import {
   ActionMenuItem,
   ActionMenuSeparator,
@@ -147,12 +148,16 @@ const replacementMenu: PicodashPanelActionMenu = [
   <ActionSubmenu key="tools" {...submenuProps} />,
 ]
 const rootSubmenu: PicodashPanelActionMenu = <ActionSubmenu {...submenuProps} />
+const actionMenuStore = createPicodashStore({
+  fields: {},
+  panelId: 'action-menu',
+})
 
 void (
   <>
-    <PicodashPanel actionMenu={false} id="disabled" />
-    <PicodashPanel actionMenu={replacementMenu} id="replacement" />
-    <PicodashPanel actionMenu={rootSubmenu} id="submenu" />
+    <PicodashPanel actionMenu={false} store={actionMenuStore} />
+    <PicodashPanel actionMenu={replacementMenu} store={actionMenuStore} />
+    <PicodashPanel actionMenu={rootSubmenu} store={actionMenuStore} />
   </>
 )
 
