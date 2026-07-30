@@ -1,30 +1,47 @@
 # @picodash/store
 
-The framework-independent, typed state foundation for one Picodash Panel.
+The framework-independent, typed per-Panel state engine for Picodash.
 
 > **Public preview:** The package API is still evolving. See the repository's
-> [release policy](https://github.com/programbo/picodash/blob/main/RELEASING.md) before depending
-> on a versioned release.
+> [release policy](https://github.com/programbo/picodash/blob/main/RELEASING.md) before depending on a versioned release.
 
-## Create a Store
+## What this package owns today
 
-Declare every field and its reset default when creating the Store:
+`@picodash/store` owns typed values, contracts, mutation semantics, and repair
+proposals for one Panel:
+
+- fields and stable handles (`store.fields.<key>`),
+- JSON-compatible state with defaults and optional initial values,
+- synchronous `parse` / `validate` contracts (including Standard Schema validators),
+- strict single and atomic multi-field writes,
+- interactive draft tracking via `setFieldInput`,
+- reset and repair workflows,
+- strict subscription and selector access.
+
+`@picodash/panel` integrations (typed handles in built-ins, adapter wiring,
+and compound Dashlet field orchestration) are currently being migrated from
+string-field, in-panel wiring; that layer is intentionally documented as the
+next phase.
+
+## Quick start
 
 ```ts
 import { createPicodashStore } from '@picodash/store'
 
-const scene = createPicodashStore({
+const sceneStore = createPicodashStore({
   panelId: 'scene-controls',
   fields: {
     bloom: { defaultValue: true },
     exposure: { defaultValue: 1.2 },
     quality: { defaultValue: 'balanced' },
   },
+  initialValues: {
+    quality: 'final',
+  },
 })
-```
 
-Primitive defaults infer as `boolean`, `number`, and `string`. Supply an explicit value record for
-literal unions or structured values:
+const state = sceneStore.getState()
+```
 
 ```ts
 type SceneValues = {
@@ -33,8 +50,8 @@ type SceneValues = {
   viewport: { width: number; height: number }
 }
 
-const scene = createPicodashStore<SceneValues>({
-  panelId: 'scene-controls',
+const monitorStore = createPicodashStore<SceneValues>({
+  panelId: 'monitor',
   fields: {
     bloom: { defaultValue: true },
     quality: { defaultValue: 'balanced' },
@@ -46,11 +63,72 @@ const scene = createPicodashStore<SceneValues>({
 })
 ```
 
-`scene.getState()` exposes the Panel ID and current typed value record. `scene.fields` contains one
-stable typed handle per declared field, such as `scene.fields.exposure`. Each handle carries its
-typed key and owning Store identity. Values must be JSON-compatible. Defaults and initial values
-are cloned when the Store is created, so later changes to caller-owned objects cannot alter Store
-state.
+## API surface (shipped)
 
-This initial package surface does not yet include writes, validation, repair, ordering, adapters,
-or React bindings.
+```ts
+sceneStore.fields.exposure.key
+sceneStore.fields.quality
+sceneStore.ownsField(sceneStore.fields.exposure)
+sceneStore.subscribe((next, previous) => { ... })
+sceneStore.getInitialState()
+sceneStore.getState()
+const sceneState = sceneStore.getState()
+
+sceneState.setFieldValue(sceneStore.fields.bloom, false)
+sceneState.setFieldInput(sceneStore.fields.exposure, '2.0')
+sceneState.setFieldValues({
+  bloom: true,
+  exposure: 1.5,
+})
+sceneState.resetFieldValue(sceneStore.fields.quality)
+sceneState.resetFields()
+sceneState.acceptRepairProposal()
+sceneState.abortRepairProposal()
+```
+
+- `createPicodashStore` returns a frozen API and `getState()` read surface.
+- Store methods are synchronous and non-async.
+- Promise-based parsers/validators are rejected with clear validation errors.
+- `setFieldValues` validates all candidates before any mutation.
+- `getInitialState` and `getState` are initially identical in this release,
+  preserving SSR-safe startup state.
+
+## Validation contract
+
+A field definition accepts:
+
+- `defaultValue` (required),
+- optional `parse` (returns `{ success, output|errors, repair? }`),
+- optional `validate` (function validator or `Standard Schema v1` object).
+
+Outputs and initial values are cloned for JSON compatibility on storage boundaries.
+The `repair` path marks unresolved values as pending and can be:
+
+- accepted with `acceptRepairProposal()`,
+- or reverted with `abortRepairProposal()`.
+
+`setFieldInput` stores draft values while preserving canonical validation state.
+
+## React helper
+
+Import from `@picodash/store/react` for typed selector subscriptions:
+
+```ts
+import { usePicodashStoreSelector } from '@picodash/store/react'
+```
+
+## Migration alignment
+
+Canonical agent-first direction in this repo still treats:
+
+- `@picodash/store` as the per-Panel state foundation,
+- `@picodash/panel` as the rendering, registry, and surface layer,
+- typed field-handles in panel built-ins and compound Dashlets as migration work
+  tracked in `docs/internal/e2e-migration-ledger.md`.
+
+## Further docs
+
+- [PRODUCT.md](../../PRODUCT.md)
+- [CONTEXT.md](../../CONTEXT.md)
+- [TESTING.md](../../TESTING.md)
+- [agent-first-plan.md](../../agent-first-plan.md)

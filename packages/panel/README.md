@@ -5,8 +5,13 @@ A composable React inspector-panel package with application-owned state, synchro
 > **Public preview:** The package API is still evolving. See the repository's
 > [release policy](https://github.com/programbo/picodash/blob/main/RELEASING.md) before depending on a versioned release.
 
+Designed for AI-assisted implementation of unobtrusive control panels and monitoring dashboards.
+The package assumes a panel/state boundary from `@picodash/store` and focuses this layer on rendering,
+registry, layout, and user-facing composition APIs.
+
 The workspace has separate production and local debugging Next.js App Router apps:
 
+- `packages/store`: typed state foundation for each panel (`@picodash/store`) (in this repo, migrated first).
 - `apps/web`: production website for public docs and product pages.
 - `apps/lab`: local-only debugging app; it is exercised by E2E tests but is not a production
   deployment target.
@@ -28,6 +33,14 @@ focused fixtures at `/lab/panel-geometry`, `/lab/panel-interaction`, and `/lab/d
 - This package is the promoted API. Old schema-driven specifiers and behavior (schema-driven registration and the old persistence shape) are retired.
 - Legacy `panel` imports map to `@picodash/panel` imports in this repository context.
 - There is no compatibility package facade and no npm deprecation migration helper here.
+
+Compound dashlets currently compose through:
+
+- `@picodash/panel/dashlet` for shell structures (`Frame`, `Header`, `Body`, `Toolbar`, etc.).
+- `@picodash/panel/ui` for interactive tokens-aware primitives.
+
+Panel built-ins are still normalizing typed field-handle integration from `@picodash/store`; field
+string-based compatibility remains during this migration phase.
 
 ## Imports and styles
 
@@ -54,6 +67,15 @@ import { Button, Card, Tabs, TabsContent, TabsList, TabsTrigger } from '@picodas
 These components use the `aria-rhea` React Aria contracts, including `id`, `selectedKey`,
 `onSelectionChange`, `isDisabled`, `onAction`, and `data-selected`. Add or update shared shadcn
 components from `packages/panel`; consuming workspaces should not install duplicate copies.
+
+Structural dashlet exports are from `@picodash/panel/dashlet`:
+
+```tsx
+import { Frame, Header, Heading, Body, Footer, Toolbar } from '@picodash/panel/dashlet'
+```
+
+Use `/dashlet` for shell/structure and `/ui` for control-building blocks. For the migration window,
+prefer string-based `field` names in built-ins where needed until handle-based wiring completes.
 
 ### Third-party dashlet UI toolkit
 

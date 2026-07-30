@@ -5,11 +5,19 @@ description: Use the promoted Picodash package with application-owned stores and
 
 # Picodash Package Usage
 
-This workspace uses the promoted `@picodash/panel` API only.
+This workspace uses the promoted `@picodash/panel` API and `@picodash/store` as the typed panel
+state foundation.
 
 The production website serves the canonical interactive control home at `/`. A separate local-only
 app exposes debugging workflows under `/lab/*`; those routes are not deployed with the website.
 `/demo` is deprecated legacy and is not an active route or API surface.
+
+Canonical references:
+
+- [PRODUCT.md](PRODUCT.md)
+- [CONTEXT.md](CONTEXT.md)
+- [TESTING.md](TESTING.md)
+- [agent-first-plan.md](agent-first-plan.md)
 
 ## Preferred Imports
 
@@ -26,6 +34,9 @@ import '@picodash/panel/style.css'
 
 Use package-owned shadcn components through `@picodash/panel/ui` rather than adding another generated copy
 to a consuming workspace. This surface uses React Aria prop and state conventions.
+
+Use `@picodash/panel/dashlet` for compound panel shells (`Frame`, `Body`, `Toolbar`, and related stateful
+structures), and reserve `/ui` for low-level controls and primitives.
 
 ## Quick Start Pattern
 
@@ -85,6 +96,8 @@ export function SiteControls() {
 
 - Use `createPicodashPanelStore` for application-owned state.
 - Use `PicodashPanel` with `store` for app-owned modes.
+- Use `@picodash/store` for typed store construction (`createPicodashStore`) when a custom state engine is
+  required outside built-in panel helpers.
 - Use `usePicodashPanel(panelId)` beneath `PicodashProvider` for reactive visibility and imperative
   `show`, `hide`, `toggle`, `setVisible`, show-and-raise `activate`, and `setPlacement` behavior.
   The controller's reactive `placement` reports stable floating, fixed, or hybrid mode plus its
@@ -160,10 +173,11 @@ export function SiteControls() {
 - In Next.js App Router projects, add `'use client'` to modules that render Picodash components.
 - Reorder with Space/Enter, Arrow Up/Down, and Escape as well as pointer dragging.
 
-## Migration Note
+## Migration Notes
 
 This repository is on the promoted API. Only canonical Picodash persistence records hydrate;
 invalid or obsolete records start from declared defaults.
+Field-handle migration for built-ins and compound dashlets is tracked in `docs/internal/e2e-migration-ledger.md`.
 
 ## Workspace App Surfaces
 

@@ -22,6 +22,8 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 ## Repository Topology
 
 - `packages/panel`: the promoted public package and default API surface.
+- `packages/store`: typed panel state foundation (`@picodash/store`) that owns field schemas, strict
+  mutation and reset contracts, and repair pathways.
 - `apps/web`: production Next.js App Router website and public product experience.
 - `apps/lab`: local-only Next.js debugging app, tested by the shared Playwright suite but not
   deployed as part of the production website.
@@ -168,6 +170,10 @@ Update all five files together when command surface, entrypoints, or architectur
 
 - `@picodash/panel` exports remain package-owned and are used via `@picodash/panel`, `@picodash/panel/advanced`,
   `@picodash/panel/ui`, and `@picodash/panel/style.css`.
+- `@picodash/panel/dashlet` is the structural dashlet exports surface for panel shell composition.
+- `@picodash/store` exports include `createPicodashStore` and `@picodash/store/react` selector API
+  (`usePicodashStoreSelector`) for typed subscriptions; field-handle adapters in panel/dashlet wiring
+  are still being migrated.
 - Shared shadcn components live only under `packages/panel/src/components/ui`; workspace apps
   consume `@picodash/panel/ui` and do not keep their own `components.json` or generated copies.
 - `@picodash/panel/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve

@@ -2,13 +2,18 @@ Picodash
 
 Active graph: packages/panel + apps/web + apps/lab.
 
+Current architecture baseline: `@picodash/store` provides typed state/validation foundations;
+`@picodash/panel` provides rendering, registry, layout, and control surfaces.
+
 Project status: public preview; Issues are available for feedback, and pull requests are currently disabled.
 
 Package import surface:
 - picodash
 - @picodash/panel/advanced
+- @picodash/panel/dashlet
 - @picodash/panel/ui
 - @picodash/panel/style.css
+- @picodash/store
 
 What it provides:
 - application-owned panel stores via createPicodashPanelStore
@@ -16,12 +21,15 @@ What it provides:
 - centralized shadcn aria-rhea primitives via @picodash/panel/ui
 - third-party dashlets can compose the same first-party Button, Card, Input, Select, Slider, Tabs,
   overlay, and form primitives; every public primitive has a named *Props type
+  and the structural shell components in `@picodash/panel/dashlet`.
 - use component variant/size props and semantic --picodash-* tokens; raw implementation variant
   helpers and internal component paths are not part of the public UI contract
 - public visualization tokens include --picodash-color-well, --picodash-color-data-1,
   --picodash-color-data-2, --picodash-color-data-3, --picodash-color-data-4, and
   --picodash-color-data-5
 - provider-scoped panel visibility, activation, reactive placement, and runtime setPlacement via usePicodashPanel
+- typed store behavior and strict contracts from @picodash/store (fields, setFieldValue(s), validate/parse,
+  repair proposals).
 - floating, fixed, and hybrid placement modes with free, snapped, and docked dispositions; snaps
   stay offset and floating-like, while Hybrid side/corner targets use an animated proxy and dock
   fixed-like on release; docked Hybrid panels resist detachment and remain Hybrid after becoming free
@@ -70,6 +78,7 @@ Important migration:
 - Only canonical Picodash layout records hydrate; invalid or obsolete records start from declared defaults.
 - No compatibility facade is provided.
 - Gearmo is a known breaking consumer requiring separate migration planning.
+- Typed field-handle integration in built-ins and compound dashlets is still migrating; track state in `docs/internal/e2e-migration-ledger.md`.
 
 Ports:
 - 6030 web development server via WEBSITE_PORT

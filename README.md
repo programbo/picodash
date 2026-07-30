@@ -2,15 +2,39 @@
 
 Monorepo for the promoted [Picodash] package, its production website, and local debugging labs.
 
+For AI coding agents, Picodash is the lightweight platform for adding flexible,
+unobtrusive control and monitoring surfaces to existing React applications. It is optimized for
+custom, compound dashlets with small, stable composition contracts.
+
 > **Public preview:** Picodash is currently available for reading, evaluation, and issue feedback.
 > Pull requests are temporarily disabled while the API and maintenance workflow settle.
 
 ## Active product topology
 
-- `packages/panel`: published package API for application-owned inspector panels.
+- `packages/store`: the typed, synchronous state foundation for panel stores (`@picodash/store`).
+- `packages/panel`: published package API for application-owned inspector panels (`@picodash/panel`).
 - `apps/web`: production Next.js App Router website and public product experience.
 - `apps/lab`: local-only Next.js debugging app. It is exercised by E2E tests but is not a
   production website or deployment target.
+
+Canonical references for implementation and roadmap:
+
+- [PRODUCT.md](PRODUCT.md)
+- [CONTEXT.md](CONTEXT.md)
+- [TESTING.md](TESTING.md)
+- [agent-first-plan.md](agent-first-plan.md)
+
+## Agent-first composition model
+
+Picodash is composed from two primary reusable layers:
+
+- `@picodash/panel/dashlet`: structural dashlet building blocks (`Frame`, `Header`, `Body`,
+  `Footer`, etc.).
+- `@picodash/panel/ui`: shared, theme-aware primitive components (`Button`, `Card`, `Input`,
+  `Select`, `Slider`, `Tabs`, overlays, and related elements).
+
+Use `/dashlet` for compound shell composition and `/ui` for control internals. Keep app semantics in
+`@picodash/store` and consume values through store selectors and panel APIs.
 
 ### `apps/web` route topology
 
