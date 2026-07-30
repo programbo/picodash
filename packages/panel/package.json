@@ -34,6 +34,7 @@
   "exports": {
     ".": "./dist/index.mjs",
     "./advanced": "./dist/advanced.mjs",
+    "./dashlet": "./dist/dashlet.mjs",
     "./ui": "./dist/ui.mjs",
     "./package.json": "./package.json",
     "./style.css": "./dist/style.css"
