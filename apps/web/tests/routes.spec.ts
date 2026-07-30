@@ -1,5 +1,4 @@
 import { expect, test, type Page } from '@playwright/test'
-import { labURL } from './urls'
 
 async function expectSharedHomeLayout(page: Page) {
   const content = page.locator('[data-home-content]')
@@ -69,17 +68,6 @@ test('routes home tabs without recreating the persistent demo shell', async ({ p
   })
   await expect(page.getByRole('heading', { name: 'Add a reactive Picodash panel' })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Components' }).click()
-  await expect(page).toHaveURL('/usage/components')
-  await expectSharedHomeLayout(page)
-  await expectGuidePanel(page, {
-    accessibleName: 'Components guide',
-    itemCount: 5,
-    panelId: 'components-navigation',
-  })
-  await expect(page.locator('[data-persistence-probe="kept"]')).toHaveCount(1)
-  await expect(page.getByRole('heading', { name: 'Compose Picodash components' })).toBeVisible()
-
   await page.getByRole('tab', { name: 'More examples' }).click()
   await expect(page).toHaveURL('/more-examples')
   await expectSharedHomeLayout(page)
@@ -128,72 +116,37 @@ test('serves the standalone documentation route', async ({ page }) => {
   await expect(page.locator('[data-persistent-demo-shell]')).toHaveCount(0)
 })
 
-test('exposes each state lab tab as a route', async ({ page }) => {
-  await page.goto(`${labURL}/lab/state?providerTheme=ocean&sceneTheme=plum`)
-  await expect(page).toHaveURL(`${labURL}/lab/state/provider?providerTheme=ocean&sceneTheme=plum`)
-  await expect(page.getByRole('heading', { name: 'Picodash State Lab' })).toBeVisible()
-  await expect(page.locator('[data-demo-provider-theme="ocean"]')).toHaveCount(1)
-
-  await page.getByRole('tab', { name: 'Scene' }).click()
-  await expect(page).toHaveURL(`${labURL}/lab/state/scene?providerTheme=ocean&sceneTheme=plum`)
-
-  await page.getByRole('tab', { name: 'Built-in Items' }).click()
-  await expect(page).toHaveURL(
-    `${labURL}/lab/state/built-in-items?providerTheme=ocean&sceneTheme=plum`,
-  )
-
-  await page.getByRole('tab', { name: 'Custom Items' }).click()
-  await expect(page).toHaveURL(
-    `${labURL}/lab/state/custom-items?providerTheme=ocean&sceneTheme=plum`,
-  )
-})
-
-test('seeds query themes in the server render', async ({ request }) => {
-  const response = await request.get(
-    `${labURL}/lab/state/provider?providerTheme=ocean&sceneTheme=plum&customTheme=light`,
-  )
-  const html = await response.text()
-
-  expect(response.ok()).toBe(true)
-  expect(html).toContain('data-demo-provider-theme="ocean"')
-  expect(html).toContain('data-picodash-theme="ocean"')
-})
-
-test('resolves system theme changes from the browser color scheme', async ({ page }) => {
-  await page.emulateMedia({ colorScheme: 'light' })
-  await page.goto(`${labURL}/lab/state/provider?providerTheme=system`)
-
-  expect(
-    await page.evaluate(() => window.matchMedia('(prefers-color-scheme: light)').matches),
-  ).toBe(true)
-
-  const providerTheme = page.locator('[data-demo-provider-theme]')
-  await expect(providerTheme).toHaveAttribute('data-demo-provider-theme', 'light')
-
-  await page.emulateMedia({ colorScheme: 'dark' })
-  await expect(providerTheme).toHaveAttribute('data-demo-provider-theme', 'dark')
-})
-
-test('exposes isolated debugging labs on their singular routes', async ({ page }) => {
-  await page.goto(`${labURL}/lab/panel-interaction`)
-  await expect(page).toHaveURL(`${labURL}/lab/panel-interaction`)
-  await expect(page.locator('[data-product-route="panel-interaction-lab"]')).toHaveCount(1)
-
-  await page.goto(`${labURL}/lab/dashlets`)
-  await expect(page).toHaveURL(`${labURL}/lab/dashlets`)
-  await expect(page.locator('[data-product-route="dashlet-lab"]')).toHaveCount(1)
-})
-
-test('keeps lab routes out of the product app and preserves both not-found boundaries', async ({
+test('serves the catalog-backed reference routes and permanent legacy redirect', async ({
   page,
   request,
 }) => {
+  for (const [path, heading] of [
+    ['/docs/reference/dashlets', 'Built-in Panel controls'],
+    ['/docs/reference/dashlet-components', 'Dashlet anatomy components'],
+    ['/docs/reference/ui', 'UI foundations'],
+  ] as const) {
+    await page.goto(path)
+    await expect(page.locator('[data-docs-reference]')).toHaveCount(1)
+    await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible()
+    await expect(
+      page.getByRole('table', { name: 'Machine-readable component contracts' }),
+    ).toBeVisible()
+  }
+
+  const redirect = await request.get('/usage/components', { maxRedirects: 0 })
+  expect(redirect.status()).toBe(308)
+  expect(redirect.headers().location).toBe('/docs/reference/dashlet-components')
+})
+
+test('keeps Lab and retired routes out of the public website', async ({ page, request }) => {
   const galleryResponse = await page.goto('/gallery')
   expect(galleryResponse?.status()).toBe(404)
   expect(page.url()).toMatch(/\/gallery\/?$/)
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
 
   for (const path of [
+    '/lab',
+    '/lab/state',
     '/state-lab',
     '/panel-geometry-lab',
     '/panel-interaction-lab',
@@ -201,10 +154,4 @@ test('keeps lab routes out of the product app and preserves both not-found bound
   ]) {
     expect((await request.get(path)).status()).toBe(404)
   }
-
-  await page.goto(`${labURL}/lab/panel-geometry?fixture=peer`)
-  await expect(page.locator('[data-geometry-fixture="snap-peer"]')).toBeVisible()
-
-  const response = await page.goto(`${labURL}/missing-page`)
-  expect(response?.status()).toBe(404)
 })

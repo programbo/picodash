@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const websitePort = servicePort('WEBSITE_PORT', '6033')
-const websiteURL = `http://127.0.0.1:${websitePort}`
+const labPort = servicePort('LAB_PORT', '6032')
+const labURL = `http://127.0.0.1:${labPort}`
 
 function servicePort(name: string, fallback: string) {
   const port = process.env[name] ?? fallback
@@ -14,13 +14,14 @@ function servicePort(name: string, fallback: string) {
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
+  reporter: [['list'], ['./tests/test-budget-reporter.ts']],
   use: {
-    baseURL: websiteURL,
+    baseURL: labURL,
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: `WEBSITE_PORT=${websitePort} bun run --filter @picodash/web dev`,
-    url: websiteURL,
+    command: `LAB_PORT=${labPort} bun run --filter @picodash/lab dev`,
+    url: `${labURL}/lab`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },
