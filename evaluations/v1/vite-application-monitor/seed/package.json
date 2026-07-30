@@ -10,7 +10,7 @@
     "acceptance": "bun run build && node --test acceptance/architecture.test.mjs && playwright test --config acceptance/playwright.config.ts"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^7.0.0",
+    "@vitejs/plugin-react": "^5.1.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "vite": "^7.0.0"
