@@ -618,17 +618,14 @@ function DebugScenario() {
         </div>
 
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <button
+          <PicodashPanelTrigger
+            action="activate"
             className="rounded-sm border border-emerald-300/35 bg-emerald-300/10 px-3 py-2.5 text-sm font-medium text-emerald-100 transition-colors hover:bg-emerald-300/18 disabled:cursor-not-allowed disabled:opacity-45"
             disabled={!policyAllowed || controlPanel?.visible}
-            type="button"
-            onClick={() => {
-              controlPanel?.show()
-              logAction('Launch panel')
-            }}
+            store={debugStore}
           >
             Launch debug panel
-          </button>
+          </PicodashPanelTrigger>
           <button
             className="rounded-sm border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-medium text-zinc-100 transition-colors hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-45"
             disabled={!controlPanel?.visible}
