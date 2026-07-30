@@ -6,9 +6,12 @@ import type {
   ButtonProps,
   CardProps,
   ItemSurfaceProps,
+  MeterProps,
+  ProgressBarProps,
   SelectProps,
   SliderProps,
   ToggleProps,
+  ToolbarProps,
 } from '../src/ui.ts'
 
 test('exports the composable UI toolkit without implementation variant helpers', () => {
@@ -20,6 +23,13 @@ test('exports the composable UI toolkit without implementation variant helpers',
   expect(ui.ItemSurface).toBeTypeOf('function')
   expect(ui.ItemLegend).toBeTypeOf('function')
   expect(ui.ItemEmptyState).toBeTypeOf('function')
+  expect(ui.Meter).toBeTypeOf('function')
+  expect(ui.MeterTrack).toBeTypeOf('function')
+  expect(ui.MeterFill).toBeTypeOf('function')
+  expect(ui.ProgressBar).toBeTypeOf('function')
+  expect(ui.ProgressTrack).toBeTypeOf('function')
+  expect(ui.ProgressFill).toBeTypeOf('function')
+  expect(ui.Toolbar).toBeTypeOf('function')
 
   expect('buttonVariants' in ui).toBe(false)
   expect('badgeVariants' in ui).toBe(false)
@@ -41,6 +51,18 @@ test('publishes named prop contracts for composition and React Aria interaction'
     maxValue: 1,
     minValue: 0,
   }
+  const meter: Pick<MeterProps, 'value' | 'aria-label'> = {
+    'aria-label': 'Storage used',
+    value: 50,
+  }
+  const progress: Pick<ProgressBarProps, 'isIndeterminate' | 'aria-label'> = {
+    'aria-label': 'Uploading',
+    isIndeterminate: true,
+  }
+  const toolbar: Pick<ToolbarProps, 'orientation' | 'aria-label'> = {
+    'aria-label': 'Formatting',
+    orientation: 'horizontal',
+  }
   const toggle: Pick<ToggleProps, 'isSelected' | 'onChange'> = {
     isSelected: true,
     onChange: () => undefined,
@@ -54,6 +76,9 @@ test('publishes named prop contracts for composition and React Aria interaction'
   expect(card).toEqual({ size: 'sm' })
   expect(select.selectedKey).toBe('first')
   expect(slider).toEqual({ maxValue: 1, minValue: 0 })
+  expect(meter.value).toBe(50)
+  expect(progress.isIndeterminate).toBe(true)
+  expect(toolbar.orientation).toBe('horizontal')
   expect(toggle.isSelected).toBe(true)
   expect(surface).toEqual({ size: 'field', variant: 'dashed' })
 })

@@ -56,6 +56,10 @@ export {
   InputGroupTextarea,
 } from './input-group.js'
 export { Label } from './label.js'
+export { Meter, MeterFill, MeterTrack } from './meter.js'
+export type { MeterFillProps, MeterProps, MeterTrackProps } from './meter.js'
+export { ProgressBar, ProgressFill, ProgressTrack } from './progress-bar.js'
+export type { ProgressBarProps, ProgressFillProps, ProgressTrackProps } from './progress-bar.js'
 export { ScrollArea } from './scroll-area.js'
 export {
   Select,
@@ -79,6 +83,8 @@ export { Textarea } from './textarea.js'
 export { Toggle } from './toggle.js'
 export { ToggleGroup, ToggleGroupItem } from './toggle-group.js'
 export { Tooltip, TooltipTrigger } from './tooltip.js'
+export { Toolbar } from './toolbar.js'
+export type { ToolbarProps } from './toolbar.js'
 
 /**
  * Props for the public UI primitives. These aliases keep consumer code on the
