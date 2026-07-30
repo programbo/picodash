@@ -12,7 +12,7 @@ import {
 
 import { cn } from '#lib/utils'
 import { Button } from '#components/ui/button'
-import { useResolvedPicodashTheme } from '../../lib/theme/picodash-theme-context.js'
+import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import {
   portalLayerZIndexForState,
   portalLayerZIndexValue,
@@ -35,14 +35,12 @@ function AlertDialogTrigger({ ...props }: AlertDialogTriggerPrimitiveProps) {
 function AlertDialogOverlay({
   className,
   children,
-  'data-picodash-theme': picodashTheme,
   ...props
 }: Omit<ModalOverlayPrimitiveProps, 'className' | 'children'> & {
   className?: string
   children: React.ReactNode
-  'data-picodash-theme'?: string
 }) {
-  const theme = useResolvedPicodashTheme(picodashTheme)
+  const theme = usePicodashTheme()
   return (
     <ModalOverlayPrimitive
       data-slot="alert-dialog-overlay"
@@ -70,7 +68,6 @@ function AlertDialog({
   overlayStyle,
   portalContainer,
   style,
-  'data-picodash-theme': picodashTheme,
   ...props
 }: Omit<ModalOverlayPrimitiveProps, 'className' | 'children' | 'style'> &
   Pick<React.ComponentProps<typeof ModalPrimitive>, 'isDismissable'> & {
@@ -81,9 +78,7 @@ function AlertDialog({
     overlayStyle?: React.CSSProperties
     portalContainer?: Element | null
     style?: React.CSSProperties
-    'data-picodash-theme'?: string
   }) {
-  const theme = useResolvedPicodashTheme(picodashTheme)
   const provider = useOptionalPicodashProviderContext()
   const providerState = React.useSyncExternalStore(
     provider?.store.subscribe ?? standaloneProviderSubscribe,
@@ -147,7 +142,6 @@ function AlertDialog({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       shouldCloseOnInteractOutside={() => false}
-      data-picodash-theme={theme}
       className={overlayClassName}
       style={{
         ...overlayStyle,
@@ -158,7 +152,6 @@ function AlertDialog({
       <ModalPrimitive
         data-slot="alert-dialog-content"
         data-size={size}
-        data-picodash-theme={theme}
         style={{
           ...style,
           ...(resolvedZIndex === undefined ? {} : { zIndex: resolvedZIndex }),
@@ -171,7 +164,6 @@ function AlertDialog({
         <AlertDialogPrimitive
           aria-describedby={descriptionIds.length > 0 ? descriptionIds.join(' ') : undefined}
           data-slot="alert-dialog"
-          data-picodash-theme={theme}
           role="alertdialog"
           className="[display:inherit] gap-[inherit] outline-none"
         >

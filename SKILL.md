@@ -122,6 +122,9 @@ export function SiteControls() {
 - Define custom themes by overriding semantic `--picodash-*` tokens under
   `data-picodash-theme`, and use `PicodashProvider<'brand' | 'contrast'>` when strict custom theme
   names are useful.
+- Establish theme scope at `PicodashProvider` or override it at `PicodashPanel`. Dashlets and
+  shared UI primitives inherit semantic tokens; only portaled overlay roots repeat the resolved
+  theme outside that DOM ancestry.
 - Do not use `usePicodashPanel(panelId)` to discover panel values. Panel data remains owned by the
   store passed to `PicodashPanel`.
 - Use explicit placement objects. Floating supports free/all-edge snaps, Fixed supports

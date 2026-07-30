@@ -14,7 +14,6 @@ import {
 import { ItemSurface } from '../../components/ui/item-surface.js'
 import { picodashMotionTokens } from '../../lib/theme/theme.js'
 import { usePicodashProviderContext } from '../../state/provider/picodash-provider.js'
-import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import { cn } from '../../utilities/utils.js'
 import {
   normalizePicodashDropzoneValue,
@@ -300,7 +299,6 @@ function DropzoneImageViewer({
 }) {
   const prefersReducedMotion = useReducedMotion()
   const { portalContainer } = usePicodashProviderContext()
-  const theme = usePicodashTheme()
   const present = open && preview
   const enterTransition: Transition = prefersReducedMotion
     ? { duration: 0 }
@@ -312,7 +310,6 @@ function DropzoneImageViewer({
         <Dialog
           key="dropzone-image-viewer"
           className="pointer-events-auto z-(--picodash-layer-viewer)! w-[min(92vw,80rem)] max-w-none! gap-0! rounded-none! bg-transparent! p-0! shadow-none! ring-0!"
-          data-picodash-theme={theme}
           isOpen
           overlayClassName="pointer-events-auto z-(--picodash-layer-viewer)! bg-(--picodash-color-overlay)! backdrop-blur-(--picodash-blur-overlay)!"
           overlayStyle={{ zIndex: 'var(--picodash-layer-viewer)' }}
@@ -324,7 +321,6 @@ function DropzoneImageViewer({
           }}
         >
           <motion.figure
-            data-picodash-theme={theme}
             className="shadow-picodash-viewer rounded-picodash-surface border-picodash-control m-0 grid w-full gap-0 overflow-hidden border bg-(--_picodash-viewer-background) text-(--picodash-color-text-strong) outline-none"
             initial={prefersReducedMotion ? false : picodashMotionTokens.viewerSurfaceInitial}
             animate={picodashMotionTokens.viewerSurfaceAnimate}

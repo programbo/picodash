@@ -65,7 +65,6 @@ import {
   usePicodashProviderContext,
 } from '../../../state/provider/picodash-provider.js'
 import { picodashGeometryTokens } from '../../../lib/theme/theme.js'
-import { usePicodashTheme } from '../../../lib/theme/picodash-theme-context.js'
 import type {
   PicodashConstraintRepair,
   PicodashFieldOutput,
@@ -138,7 +137,6 @@ export function PicodashPanelActions({
   panelTitle: string
 }) {
   const store = usePicodashPanelStoreApi()
-  const theme = usePicodashTheme()
   const { portalContainer, store: providerStore } = usePicodashProviderContext()
   const modalZIndex = useStore(providerStore, modalZIndexForState)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
@@ -255,7 +253,6 @@ export function PicodashPanelActions({
       </span>
 
       <AlertDialog
-        data-picodash-theme={theme}
         isOpen={confirmation !== null}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) setConfirmation(null)
@@ -403,7 +400,6 @@ export function ActionMenuSeparator(props: ActionMenuSeparatorProps) {
 export function ActionSubmenu({ children, icon: Icon, label, triggerLabel }: ActionSubmenuProps) {
   const root = useContext(ActionSubmenuRootContext)
   const { triggerRef } = useActionMenuContext()
-  const theme = usePicodashTheme()
   const { portalContainer, store } = usePicodashProviderContext()
   const menuZIndex = useStore(store, (state) => portalLayerZIndexForState(state, 3))
 
@@ -423,7 +419,6 @@ export function ActionSubmenu({ children, icon: Icon, label, triggerLabel }: Act
           <TriggerIcon className="size-(--picodash-icon-sm)" aria-hidden="true" />
         </Button>
         <DropdownMenu
-          data-picodash-theme={theme}
           aria-label={label}
           portalContainer={portalContainer}
           popoverClassName={menuContentClassName}
@@ -451,7 +446,6 @@ export function ActionSubmenu({ children, icon: Icon, label, triggerLabel }: Act
         <span className="min-w-0 flex-1">{label}</span>
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent
-        data-picodash-theme={theme}
         popoverClassName={menuContentClassName}
         popoverProps={{
           containerPadding: picodashGeometryTokens.menuCollisionPadding,
@@ -663,7 +657,6 @@ function RepairReviewDialog({
   returnFocusRef?: RefObject<HTMLElement | null>
   title: string
 }) {
-  const theme = usePicodashTheme()
   const { portalContainer, store: providerStore } = usePicodashProviderContext()
   const modalZIndex = useStore(providerStore, modalZIndexForState)
   const [acceptError, setAcceptError] = useState('')
@@ -678,7 +671,6 @@ function RepairReviewDialog({
 
   return (
     <AlertDialog
-      data-picodash-theme={theme}
       isOpen={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen && open) onAbort()

@@ -43,12 +43,9 @@ function Select<T extends object, M extends 'single' | 'multiple' = 'single'>({
   className,
   ...props
 }: SelectProps<T, M>) {
-  const theme = usePicodashTheme()
-
   return (
     <SelectPrimitive
       data-slot="select"
-      data-picodash-theme={theme}
       className={composeRenderProps(className, (className) => cn('min-w-0', className))}
       {...props}
     />

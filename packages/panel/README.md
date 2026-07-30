@@ -405,7 +405,9 @@ tests, and the build, which includes source maps.
 - `"system"` follows `prefers-color-scheme` and updates when the system preference changes.
 - Supported provider themes are `"dark"`, `"light"`, `"system"`, plus names supplied through the
   provider generic.
-- Theme names are emitted through `data-picodash-theme` on provider and portal surfaces.
+- `PicodashProvider` establishes the root `data-picodash-theme` scope, and `PicodashPanel` can
+  override it for one panel. Dashlets and shared UI primitives inherit semantic tokens; portaled
+  overlays repeat the resolved theme only on their portal root.
 - `usePicodashTheme()` returns the resolved name for custom controls.
 
 Define custom themes in consumer CSS by overriding the semantic token roles:

@@ -89,7 +89,7 @@ test('preserves classic Zod composition on the advanced persistence schema', () 
   ).toBe(true)
 })
 
-test('renders the shared Select without PicodashProvider', () => {
+test('renders the shared Select without creating a nested theme boundary', () => {
   const markup = renderToStaticMarkup(
     <uiApi.Select aria-label="Standalone choice" defaultSelectedKey="first">
       <uiApi.SelectTrigger>
@@ -103,7 +103,7 @@ test('renders the shared Select without PicodashProvider', () => {
   )
 
   expect(markup).toContain('aria-label="Standalone choice"')
-  expect(markup).toContain('data-picodash-theme="dark"')
+  expect(markup).not.toContain('data-picodash-theme')
   expect(markup).toContain('data-slot="select-trigger"')
 })
 
@@ -129,7 +129,7 @@ test('forwards drag behavior to the movable shell only for non-fixed panels', ()
   expect(panelShellDragProps(true, dragProps)).toEqual({})
 })
 
-test('creates feature panel elements', () => {
+test('creates feature panel elements without creating a nested theme boundary', () => {
   const element = (
     <FeaturePanel
       title="Release Panel"
@@ -144,6 +144,7 @@ test('creates feature panel elements', () => {
   expect(element.props.items).toEqual([
     { label: 'Build health', value: 'Passing', status: 'success' },
   ])
+  expect(FeaturePanel(element.props).props['data-picodash-theme']).toBeUndefined()
 })
 
 test('exports the package theme carrier, motion, and layer contracts', () => {

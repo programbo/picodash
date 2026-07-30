@@ -16,7 +16,7 @@ import {
 import { cn } from '#lib/utils'
 import { Button } from '#components/ui/button'
 import { XIcon } from 'lucide-react'
-import { useResolvedPicodashTheme } from '../../lib/theme/picodash-theme-context.js'
+import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import {
   portalLayerZIndexForState,
   portalLayerZIndexValue,
@@ -56,14 +56,12 @@ function DialogClose({
 function DialogOverlay({
   className,
   children,
-  'data-picodash-theme': picodashTheme,
   ...props
 }: Omit<ModalOverlayPrimitiveProps, 'className' | 'children'> & {
   className?: string
   children: React.ReactNode
-  'data-picodash-theme'?: string
 }) {
-  const theme = useResolvedPicodashTheme(picodashTheme)
+  const theme = usePicodashTheme()
   return (
     <ModalOverlayPrimitive
       data-slot="dialog-overlay"
@@ -88,7 +86,6 @@ function Dialog({
   overlayStyle,
   portalContainer,
   style,
-  'data-picodash-theme': picodashTheme,
   ...props
 }: Omit<ModalOverlayPrimitiveProps, 'className' | 'children' | 'style'> &
   Pick<React.ComponentProps<typeof ModalPrimitive>, 'isDismissable'> & {
@@ -99,9 +96,7 @@ function Dialog({
     overlayStyle?: React.CSSProperties
     portalContainer?: Element | null
     style?: React.CSSProperties
-    'data-picodash-theme'?: string
   }) {
-  const theme = useResolvedPicodashTheme(picodashTheme)
   const provider = useOptionalPicodashProviderContext()
   const providerState = React.useSyncExternalStore(
     provider?.store.subscribe ?? standaloneProviderSubscribe,
@@ -130,7 +125,6 @@ function Dialog({
     <DialogOverlay
       isDismissable={isDismissable}
       {...props}
-      data-picodash-theme={theme}
       className={overlayClassName}
       style={{
         ...overlayStyle,
@@ -140,7 +134,6 @@ function Dialog({
     >
       <ModalPrimitive
         data-slot="dialog-content"
-        data-picodash-theme={theme}
         style={{
           ...style,
           ...(resolvedZIndex === undefined ? {} : { zIndex: resolvedZIndex }),
@@ -153,7 +146,6 @@ function Dialog({
         <DialogPrimitive
           aria-describedby={descriptionIds.length > 0 ? descriptionIds.join(' ') : undefined}
           data-slot="dialog"
-          data-picodash-theme={theme}
           className="[display:inherit] gap-[inherit] outline-none"
         >
           <DialogDescriptionContext.Provider value={registerDescription}>

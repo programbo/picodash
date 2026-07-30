@@ -1506,18 +1506,24 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   const previewButton = dropzone.getByRole('button', { name: 'View themed.png' })
   await previewButton.click()
   const viewer = page.getByRole('dialog')
-  await expect(viewer).toHaveAttribute('data-picodash-theme', 'ocean')
+  const viewerOverlay = page.locator('[data-slot="dialog-overlay"]').filter({ has: viewer })
+  await expect(viewerOverlay).toHaveAttribute('data-picodash-theme', 'ocean')
+  await expect(viewer).not.toHaveAttribute('data-picodash-theme', /.+/)
   await expect(viewer.locator('figure')).toHaveCSS('border-radius', '8px')
   await page.keyboard.press('Escape')
 
   const customActions = customPanel.getByRole('button', { name: 'Open actions for Custom Items' })
   await customActions.click()
   const menu = page.getByRole('menu', { name: 'Actions for Custom Items' })
-  await expect(menu).toHaveAttribute('data-picodash-theme', 'plum')
+  const menuSurface = page.locator('[data-slot="dropdown-menu-content"]').filter({ has: menu })
+  await expect(menuSurface).toHaveAttribute('data-picodash-theme', 'plum')
+  await expect(menu).not.toHaveAttribute('data-picodash-theme', /.+/)
   const copySubmenuTrigger = menu.getByRole('menuitem', { name: 'Copy' })
   await copySubmenuTrigger.focus()
   await copySubmenuTrigger.press('ArrowRight')
-  const themedMenus = page.locator('[data-picodash-theme="plum"][role="menu"]')
+  const themedMenus = page.locator(
+    '[data-slot="dropdown-menu-content"][data-picodash-theme="plum"]',
+  )
   await expect(themedMenus).toHaveCount(2)
   await expect(themedMenus.nth(1)).toHaveCSS('pointer-events', 'auto')
   await page.keyboard.press('Escape')
@@ -1525,9 +1531,11 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await customActions.click()
   await menu.getByRole('menuitem', { name: 'Reset…' }).click()
   const dialog = page.getByRole('alertdialog', { name: 'Reset Custom Items?' })
-  await expect(dialog).toHaveAttribute('data-picodash-theme', 'plum')
+  await expect(dialog).not.toHaveAttribute('data-picodash-theme', /.+/)
   await expect(
-    page.locator('[data-picodash-theme="plum"][data-slot="alert-dialog-overlay"]'),
+    page
+      .locator('[data-picodash-theme="plum"][data-slot="alert-dialog-overlay"]')
+      .filter({ has: dialog }),
   ).toHaveCount(1)
   await dialog.getByRole('button', { name: 'Cancel' }).click()
 })
@@ -1692,8 +1700,10 @@ test('keeps the panel action menu contained and manages collapsible groups', asy
 
   await trigger.click()
   const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
+  const menuSurface = page.locator('[data-slot="dropdown-menu-content"]').filter({ has: menu })
   await expect(menu).toBeVisible()
-  await expect(menu).toHaveAttribute('data-picodash-theme', 'dark')
+  await expect(menuSurface).toHaveAttribute('data-picodash-theme', 'dark')
+  await expect(menu).not.toHaveAttribute('data-picodash-theme', /.+/)
   await expect(menu).toHaveCSS('pointer-events', 'auto')
   await expect(page.locator('[data-picodash-container]')).toHaveCSS('pointer-events', 'none')
   const menuBox = await requiredBox(menu)
@@ -1747,7 +1757,9 @@ test('confirms registered-field resets without changing group disclosure', async
   await trigger.click()
   await page.getByRole('menuitem', { name: 'Reset…' }).click()
   const dialog = page.getByRole('alertdialog', { name: 'Reset Scene Controls?' })
-  await expect(dialog).toHaveAttribute('data-picodash-theme', 'dark')
+  const dialogOverlay = page.locator('[data-slot="alert-dialog-overlay"]').filter({ has: dialog })
+  await expect(dialogOverlay).toHaveAttribute('data-picodash-theme', 'dark')
+  await expect(dialog).not.toHaveAttribute('data-picodash-theme', /.+/)
   const resetDescriptionId = await dialog.getAttribute('aria-describedby')
   expect(resetDescriptionId).toBeTruthy()
   await expect(page.locator(`[id="${resetDescriptionId}"]`)).toContainText(

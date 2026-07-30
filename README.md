@@ -155,6 +155,11 @@ Consumer themes are CSS-only and use the emitted `data-picodash-theme` attribute
 }
 ```
 
+`PicodashProvider` establishes the root theme scope, and `PicodashPanel` can override it for one
+panel. Dashlets and shared UI primitives inherit semantic tokens from that scope. Portaled overlays
+repeat the resolved theme only on their portal root so panel overrides survive outside the panel
+DOM tree.
+
 Theme names can be made strict and autocomplete-friendly with the provider generic:
 
 ```tsx

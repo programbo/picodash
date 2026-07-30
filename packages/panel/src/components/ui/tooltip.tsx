@@ -7,7 +7,7 @@ import {
 } from 'react-aria-components'
 
 import { cn } from '#lib/utils'
-import { useResolvedPicodashTheme } from '../../lib/theme/picodash-theme-context.js'
+import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import {
   portalLayerZIndexForState,
   portalLayerZIndexValue,
@@ -42,7 +42,6 @@ function Tooltip({
   children,
   portalContainer,
   style,
-  'data-picodash-theme': picodashTheme,
   ...props
 }: Omit<React.ComponentProps<typeof TooltipPrimitive>, 'children' | 'className'> & {
   className?: string
@@ -50,9 +49,8 @@ function Tooltip({
   arrowClassName?: string
   portalContainer?: Element | null
   style?: React.ComponentProps<typeof TooltipPrimitive>['style']
-  'data-picodash-theme'?: string
 }) {
-  const theme = useResolvedPicodashTheme(picodashTheme)
+  const theme = usePicodashTheme()
   const provider = useOptionalPicodashProviderContext()
   const providerState = React.useSyncExternalStore(
     provider?.store.subscribe ?? standaloneProviderSubscribe,

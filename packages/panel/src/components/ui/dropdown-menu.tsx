@@ -42,7 +42,6 @@ function DropdownMenuTrigger({ ...props }: React.ComponentProps<typeof MenuTrigg
 }
 
 function DropdownMenu({
-  'data-picodash-theme': picodashTheme,
   className,
   children,
   popoverClassName,
@@ -53,18 +52,17 @@ function DropdownMenu({
 }: Omit<MenuPrimitiveProps<object>, 'children' | 'className' | 'style'> & {
   children?: React.ReactNode
   className?: string
-  'data-picodash-theme'?: string
   popoverClassName?: string
   popoverProps?: Omit<
     PopoverPrimitiveProps,
     'children' | 'className' | 'style' | 'UNSTABLE_portalContainer'
-  > & { 'data-picodash-theme'?: string }
+  >
   popoverStyle?: PopoverPrimitiveProps['style']
   portalContainer?: Element | null
 }) {
   const parentContext = React.useContext(DropdownMenuContext)
   const inheritedTheme = usePicodashTheme()
-  const theme = picodashTheme ?? parentContext?.theme ?? inheritedTheme
+  const theme = parentContext?.theme ?? inheritedTheme
   const provider = useOptionalPicodashProviderContext()
   const providerState = React.useSyncExternalStore(
     provider?.store.subscribe ?? standaloneProviderSubscribe,
@@ -87,12 +85,10 @@ function DropdownMenu({
       : effectiveZIndexFloor === undefined
         ? undefined
         : portalLayerZIndexValue('--picodash-layer-menu', effectiveZIndexFloor)
-  const popoverTheme = popoverProps?.['data-picodash-theme'] ?? theme
-
   return (
     <DropdownMenuContext.Provider
       value={{
-        theme: popoverTheme,
+        theme,
         portalContainer: resolvedPortalContainer,
         zIndexFloor: effectiveZIndexFloor,
       }}
@@ -100,7 +96,7 @@ function DropdownMenu({
       <PopoverPrimitive
         {...popoverProps}
         data-slot="dropdown-menu-content"
-        data-picodash-theme={popoverTheme}
+        data-picodash-theme={theme}
         placement={popoverProps?.placement ?? 'bottom start'}
         offset={popoverProps?.offset ?? 4}
         crossOffset={popoverProps?.crossOffset ?? 0}
@@ -127,7 +123,6 @@ function DropdownMenu({
         }
       >
         <MenuPrimitive
-          data-picodash-theme={theme}
           className={cn(
             'max-h-[inherit] overflow-x-hidden overflow-y-auto outline-hidden',
             className,

@@ -47,7 +47,7 @@ What it provides:
 - observable async sparkline source failures
 - complete package dark/light themes, system color-scheme resolution, and CSS custom themes via `data-picodash-theme`
 - strict custom provider theme unions through `PicodashProvider<CustomTheme>`
-- theme/portal aware styling
+- provider-root and optional panel-level theme scopes, with inherited primitives and portal-root carriers
 - lazy Recharts and react-dropzone implementations behind stable public components
 - import/export and repair flows
 

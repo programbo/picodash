@@ -62,6 +62,9 @@ with defaults `title = label` and `buttonLabel = 'Confirm'`.
 theme="system"` follows `prefers-color-scheme` and reacts to preference changes. Consumers define
 named themes by overriding semantic `--picodash-*` tokens under `data-picodash-theme`; the provider
 can take a generic custom theme union such as `PicodashProvider<'brand' | 'contrast'>`.
+Theme scope belongs to `PicodashProvider` and optional `PicodashPanel` overrides. Dashlets and
+shared UI primitives inherit semantic tokens; only detached panel-owned siblings and portaled
+overlay roots repeat the resolved theme outside that DOM ancestry.
 The web gallery's `ocean`, `plum`, `tron`, and `contrast` recipes are demo-only.
 
 Panel placement separates stable floating, fixed, and hybrid modes from free, snapped, and docked
@@ -166,8 +169,9 @@ Update all five files together when command surface, entrypoints, or architectur
   `@picodash/panel/ui`, and `@picodash/panel/style.css`.
 - Shared shadcn components live only under `packages/panel/src/components/ui`; workspace apps
   consume `@picodash/panel/ui` and do not keep their own `components.json` or generated copies.
-- `@picodash/panel/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve the
-  provider portal/theme/z-index contract, while nested submenus inherit their parent overlay.
+- `@picodash/panel/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve
+  the provider portal and z-index contract and carry the nearest provider/panel theme at the portal
+  root, while their inner primitives and nested submenus inherit.
 - Third-party dashlets compose package-owned UI primitives through `@picodash/panel/ui`; each public
   primitive has a named `*Props` type. Prefer semantic `--picodash-*` tokens and component
   `variant`/`size` props over internal classes or raw variant helpers. Bespoke visualizations should
