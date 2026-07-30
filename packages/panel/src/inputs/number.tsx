@@ -8,6 +8,7 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import { Input } from '../components/ui/input.js'
+import { picodashNumberPresentation } from './internal/presentation-contracts.js'
 
 export interface PicodashNumberProps extends Omit<
   PicodashInputItemProps<number>,
@@ -41,7 +42,7 @@ export function PicodashNumber({
       : undefined
 
   return (
-    <PicodashItem<number> {...controlProps}>
+    <PicodashItem<number> {...controlProps} presentation={picodashNumberPresentation}>
       {(control) => (
         <FormattedNumberInput
           control={control}

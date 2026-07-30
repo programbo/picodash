@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select.js'
+import { picodashSelectPresentation } from './internal/presentation-contracts.js'
 
 export type PicodashSelectOption =
   | string
@@ -38,7 +39,7 @@ export function PicodashSelect({
   const normalizedDefaultValue = normalizeSelectValue(defaultValue, options)
 
   return (
-    <PicodashItem<string> {...controlProps}>
+    <PicodashItem<string> {...controlProps} presentation={picodashSelectPresentation}>
       {(control) => {
         const value = normalizeSelectValue(control.value, options, normalizedDefaultValue)
 

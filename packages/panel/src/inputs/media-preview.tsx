@@ -9,6 +9,7 @@ import {
 import { EmptyState } from '../components/dashlet/states.js'
 import { Surface } from '../components/dashlet/visualization.js'
 import { cn } from '../utilities/utils.js'
+import { picodashMediaPresentation } from './internal/presentation-contracts.js'
 
 export type PicodashMediaObjectFit = 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'
 
@@ -34,7 +35,13 @@ export function PicodashMediaPreview({
 }: PicodashMediaPreviewProps) {
   const src = useResolvedPanelProp(srcProp)
   return (
-    <PicodashItem<string> {...controlProps} contentLayout={contentLayout} readOnly>
+    <PicodashItem<string>
+      {...controlProps}
+      contentLayout={contentLayout}
+      presentation={picodashMediaPresentation}
+      readOnly
+      valueMode="display"
+    >
       {(control) => (
         <MediaPreviewSurface
           alt={alt}

@@ -70,14 +70,36 @@ export type {
 
 export { PicodashItem } from './components/panel/PicodashItem.js'
 export type {
+  PicodashCompoundItemContext,
+  PicodashCompoundDisplayFieldContext,
+  PicodashCompoundFieldContext,
+  PicodashCompoundInputFieldContext,
+  PicodashCompoundItemFields,
+  PicodashCompoundItemProps,
+  PicodashDisplayFieldContext,
   ReactiveProp,
   PicodashDisplayItemProps,
+  PicodashDisplayItemContextValue,
+  PicodashInputFieldContext,
   PicodashInputItemProps,
+  PicodashItemBindingContext,
   PicodashItemContentLayout,
   PicodashItemContextValue,
+  PicodashItemFieldBinding,
+  PicodashItemFieldContext,
   PicodashItemProps,
   PicodashItemStates,
 } from './components/panel/PicodashItem.js'
+export {
+  PicodashPanelLauncher,
+  PicodashPanelTrigger,
+} from './components/panel/PicodashPanelTrigger.js'
+export type {
+  PicodashPanelIdentity,
+  PicodashPanelLauncherItem,
+  PicodashPanelLauncherProps,
+  PicodashPanelTriggerProps,
+} from './components/panel/PicodashPanelTrigger.js'
 export { PicodashGroup } from './components/panel/PicodashGroup.js'
 export type { PicodashGroupProps } from './components/panel/PicodashGroup.js'
 

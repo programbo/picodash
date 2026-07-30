@@ -22,6 +22,10 @@ import {
 import { Button } from '../components/ui/button.js'
 import { Input } from '../components/ui/input.js'
 import { cn } from '../utilities/utils.js'
+import {
+  picodashGradientPresentation,
+  picodashNumberPresentation,
+} from './internal/presentation-contracts.js'
 
 export type PicodashGradientStop = { color: string; id: string; position: number }
 export type PicodashGradientValue = PicodashGradientStop[]
@@ -66,11 +70,16 @@ export function PicodashGradient({
         <PicodashItem<number>
           id={gradientRotationRegistrationId(gradientItemId, rotationField.key)}
           field={rotationField}
+          presentation={picodashNumberPresentation}
           reorderable={false}
           visible={false}
         />
       ) : null}
-      <PicodashItem<PicodashGradientValue> {...controlProps} contentLayout={contentLayout}>
+      <PicodashItem<PicodashGradientValue>
+        {...controlProps}
+        contentLayout={contentLayout}
+        presentation={picodashGradientPresentation}
+      >
         {(control) => (
           <GradientEditor
             className={gradientClassName}

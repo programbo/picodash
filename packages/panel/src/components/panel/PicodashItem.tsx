@@ -1,11 +1,14 @@
 import { Info, RotateCcw } from 'lucide-react'
 import { Reorder, useReducedMotion, useTransform, type HTMLMotionProps } from 'motion/react'
 import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react'
+import { useShallow } from 'zustand/react/shallow'
+import { picodashPresentationContractsEqual } from '@picodash/store'
 import type {
   PicodashField,
   PicodashFieldState,
   PicodashItemBinding,
   PicodashItemRegistration,
+  PicodashPresentationContract,
   PicodashStoreState,
 } from '@picodash/store'
 import { Button, buttonVariants } from '../ui/button.js'
@@ -20,7 +23,7 @@ import {
   type PicodashStatus,
   type PicodashValue,
 } from './PicodashPanel.js'
-import type { AnyPicodashValues } from '../../state/panel/picodash-panel-types.js'
+import type { AnyPicodashStore, AnyPicodashValues } from '../../state/panel/picodash-panel-types.js'
 import {
   disabledReorderItemLayout,
   reducedMotionReorderTransition,
@@ -38,24 +41,105 @@ export type ReactiveProp<T> = T | ((state: PicodashStoreState<AnyPicodashValues>
 export type PicodashItemContentLayout = 'inline' | 'block' | 'full'
 export type PicodashItemStates = PicodashControlStates
 
-export interface PicodashItemContextValue<TValue extends PicodashValue = PicodashValue> {
+export interface PicodashItemFieldContext<TValue extends PicodashValue = PicodashValue> {
   disabled: boolean
-  errorId: string
-  field?: PicodashField<Record<string, TValue>, string>
-  fieldState?: PicodashFieldState<TValue>
-  id: string
-  inputId: string
+  dirty: boolean
+  draftValue?: unknown
+  errors: readonly string[]
+  field: PicodashField<Record<string, TValue>, string>
+  fieldState: PicodashFieldState<TValue>
   readOnly: boolean
-  resetValue: () => void
-  setInput: (candidate: unknown) => void
+  touched: boolean
   value: TValue | undefined
 }
 
-export interface PicodashItemBaseProps<TValue extends PicodashValue> extends Omit<
+export interface PicodashInputFieldContext<
+  TValue extends PicodashValue = PicodashValue,
+> extends PicodashItemFieldContext<TValue> {
+  resetValue: () => void
+  setInput: (candidate: unknown) => void
+}
+
+export interface PicodashDisplayFieldContext<
+  TValue extends PicodashValue = PicodashValue,
+> extends PicodashItemFieldContext<TValue> {
+  readOnly: true
+}
+
+export interface PicodashCompoundFieldContext<
+  TValue extends PicodashValue = PicodashValue,
+> extends PicodashItemFieldContext<TValue> {
+  errorId: string
+  inputId: string
+  labelId: string
+}
+
+export interface PicodashCompoundInputFieldContext<
+  TValue extends PicodashValue = PicodashValue,
+> extends PicodashCompoundFieldContext<TValue> {
+  reset: () => void
+  setInput: (candidate: unknown) => void
+}
+
+export interface PicodashCompoundDisplayFieldContext<
+  TValue extends PicodashValue = PicodashValue,
+> extends PicodashCompoundFieldContext<TValue> {
+  readOnly: true
+}
+
+export interface PicodashItemContextValue<
+  TValue extends PicodashValue = PicodashValue,
+> extends PicodashInputFieldContext<TValue> {
+  errorId: string
+  id: string
+  inputId: string
+}
+
+export interface PicodashDisplayItemContextValue<
+  TValue extends PicodashValue = PicodashValue,
+> extends PicodashDisplayFieldContext<TValue> {
+  errorId: string
+  id: string
+  inputId: string
+}
+
+export type PicodashItemFieldBinding<TValue extends PicodashValue = PicodashValue> =
+  | PicodashField<Record<string, TValue>, string>
+  | {
+      field: PicodashField<Record<string, TValue>, string>
+      mode?: 'display' | 'input'
+      presentation?: PicodashPresentationContract<TValue>
+    }
+
+type PicodashBindingValue<TBinding> =
+  TBinding extends PicodashField<infer TValues, infer TKey>
+    ? TValues[TKey] & PicodashValue
+    : TBinding extends { field: PicodashField<infer TValues, infer TKey> }
+      ? TValues[TKey] & PicodashValue
+      : never
+
+export type PicodashItemBindingContext<TBinding> = TBinding extends { mode: 'display' }
+  ? PicodashCompoundDisplayFieldContext<PicodashBindingValue<TBinding>>
+  : PicodashCompoundInputFieldContext<PicodashBindingValue<TBinding>>
+
+export type PicodashCompoundItemFields = Readonly<
+  Record<string, PicodashItemFieldBinding<PicodashValue>>
+>
+
+export interface PicodashCompoundItemContext<TFields extends PicodashCompoundItemFields> {
+  disabled: boolean
+  errorId: string
+  fields: { readonly [TAlias in keyof TFields]: PicodashItemBindingContext<TFields[TAlias]> }
+  id: string
+  inputId: string
+  readOnly: boolean
+  reset: () => void
+}
+
+export interface PicodashItemBaseProps extends Omit<
   HTMLMotionProps<'div'>,
   'children' | 'defaultValue' | 'id' | 'layout' | 'value'
 > {
-  children?: ReactNode | ((item: PicodashItemContextValue<TValue>) => ReactNode)
   contentClassName?: string
   contentLayout?: PicodashItemContentLayout
   description?: ReactiveProp<ReactNode>
@@ -70,41 +154,71 @@ export interface PicodashItemBaseProps<TValue extends PicodashValue> extends Omi
 }
 
 interface PicodashFieldItemValueProps<TValue extends PicodashValue> {
+  children?: ReactNode | ((item: PicodashItemContextValue<TValue>) => ReactNode)
   field: PicodashField<Record<string, TValue>, string>
   fields?: never
   id?: string
   onValueChange?: (value: TValue, item: PicodashItemContextValue<TValue>) => void
   readOnly?: ReactiveProp<boolean>
-  valueMode?: 'input' | 'display'
+  presentation?: PicodashPresentationContract<TValue>
+  valueMode?: 'input'
 }
 
 interface PicodashNonFieldItemValueProps {
+  children?: ReactNode
   field?: never
   fields?: never
   id: string
   onValueChange?: never
+  presentation?: never
   readOnly?: ReactiveProp<boolean>
   valueMode?: 'display'
 }
 
 export type PicodashInputItemProps<TValue extends PicodashValue = PicodashValue> =
-  PicodashItemBaseProps<TValue> & PicodashFieldItemValueProps<TValue>
+  PicodashItemBaseProps & PicodashFieldItemValueProps<TValue>
 
 export type PicodashDisplayItemProps<TValue extends PicodashValue = PicodashValue> =
-  PicodashItemBaseProps<TValue> &
+  PicodashItemBaseProps &
     (
-      | (Omit<
-          PicodashFieldItemValueProps<TValue>,
-          'defaultValue' | 'onValueChange' | 'parse' | 'validate' | 'valueMode'
-        > & {
+      | {
+          children?: ReactNode | ((item: PicodashDisplayItemContextValue<TValue>) => ReactNode)
+          field: PicodashField<Record<string, TValue>, string>
+          fields?: never
+          id?: string
+          onValueChange?: never
+          presentation?: PicodashPresentationContract<TValue>
+          readOnly?: ReactiveProp<boolean>
+          valueMode: 'display'
+        }
+      | {
+          children?: ReactNode | ((item: PicodashDisplayItemContextValue<TValue>) => ReactNode)
+          field?: never
+          fields?: never
+          id: string
+          onValueChange?: never
+          presentation?: never
+          readOnly?: ReactiveProp<boolean>
           valueMode?: 'display'
-        })
-      | PicodashNonFieldItemValueProps
+        }
     )
 
 export type PicodashItemProps<TValue extends PicodashValue = PicodashValue> =
   | PicodashInputItemProps<TValue>
-  | (PicodashItemBaseProps<TValue> & PicodashNonFieldItemValueProps)
+  | PicodashDisplayItemProps<TValue>
+  | (PicodashItemBaseProps & PicodashNonFieldItemValueProps)
+
+export type PicodashCompoundItemProps<TFields extends PicodashCompoundItemFields> =
+  PicodashItemBaseProps & {
+    children?: ReactNode | ((item: PicodashCompoundItemContext<TFields>) => ReactNode)
+    field?: never
+    fields: TFields
+    id: string
+    onValueChange?: never
+    presentation?: never
+    readOnly?: ReactiveProp<boolean>
+    valueMode?: never
+  }
 
 const emptyStates: PicodashItemStates = {}
 const PicodashItemContext = createContext<PicodashItemContextValue | null>(null)
@@ -121,7 +235,19 @@ function isFocusableControl(element: HTMLElement) {
   )
 }
 
-export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
+export function PicodashItem<TFields extends PicodashCompoundItemFields>(
+  props: PicodashCompoundItemProps<TFields>,
+): ReactNode
+export function PicodashItem<TValue extends PicodashValue = PicodashValue>(
+  props: PicodashDisplayItemProps<TValue>,
+): ReactNode
+export function PicodashItem<TValue extends PicodashValue = PicodashValue>(
+  props: PicodashInputItemProps<TValue>,
+): ReactNode
+export function PicodashItem(
+  props: PicodashItemBaseProps & PicodashNonFieldItemValueProps,
+): ReactNode
+export function PicodashItem({
   children,
   className,
   contentClassName,
@@ -129,6 +255,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   description: descriptionProp,
   disabled: disabledProp,
   field,
+  fields,
   help: helpProp,
   id,
   label: labelProp,
@@ -142,6 +269,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   onPointerUpCapture,
   onValueChange,
   pin: pinProp,
+  presentation,
   readOnly: readOnlyProp,
   reorderable: reorderableProp,
   states: statesProp,
@@ -150,7 +278,7 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   valueMode,
   visible: visibleProp,
   ...props
-}: PicodashItemProps<TValue>) {
+}: PicodashItemProps | PicodashCompoundItemProps<PicodashCompoundItemFields>) {
   const fieldKey = field?.key
   const itemId = id ?? fieldKey
   if (itemId === undefined) {
@@ -162,15 +290,33 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   const errorId = `${itemId}:errors`
   const controlContentRef = useRef<HTMLDivElement | null>(null)
   const store = usePicodashPanelStoreApi()
+  const stableFieldsRef = useRef<PicodashCompoundItemFields | undefined>(undefined)
+  const stableFields = stabilizePicodashCompoundItemFields(stableFieldsRef.current, fields)
+  stableFieldsRef.current = stableFields
+  const resolvedBindings = useMemo(() => resolveCompoundBindings(stableFields), [stableFields])
   const value = usePicodashPanelSelector((state) =>
-    fieldKey === undefined ? undefined : (state.values[fieldKey] as TValue | undefined),
+    fieldKey === undefined ? undefined : (state.values[fieldKey] as PicodashValue | undefined),
   )
   const fieldState = usePicodashPanelSelector((state) =>
     fieldKey === undefined
       ? undefined
-      : (state.fieldStates[fieldKey] as PicodashFieldState<TValue> | undefined),
+      : (state.fieldStates[fieldKey] as PicodashFieldState<PicodashValue> | undefined),
   )
-  const interaction = usePicodashPanelSelector((state) => state.interaction)
+  const compoundValues = usePicodashPanelSelector(
+    useShallow((state) =>
+      resolvedBindings.map(
+        (binding) => state.values[binding.field.key] as PicodashValue | undefined,
+      ),
+    ),
+  )
+  const compoundFieldStates = usePicodashPanelSelector(
+    useShallow((state) =>
+      resolvedBindings.map(
+        (binding) =>
+          state.fieldStates[binding.field.key] as PicodashFieldState<PicodashValue> | undefined,
+      ),
+    ),
+  )
   const label = useResolvedPanelProp(labelProp)
   const description = useResolvedPanelProp(descriptionProp)
   const help = useResolvedPanelProp(helpProp)
@@ -178,15 +324,29 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   const configuredReadOnly = useResolvedPanelProp(readOnlyProp, false) ?? false
   const resolvedValueMode = field === undefined ? valueMode : (valueMode ?? 'input')
   const readOnly = resolvedValueMode === 'display' || configuredReadOnly
+  const registrationField = useMemo(
+    () =>
+      field
+        ? ({
+            field,
+            mode: resolvedValueMode,
+            ...(presentation ? { presentation } : {}),
+          } as PicodashItemBinding<AnyPicodashValues>)
+        : undefined,
+    [field, presentation, resolvedValueMode],
+  )
   const pin = useResolvedPanelProp(pinProp)
   const configuredReorderable = useResolvedPanelProp(reorderableProp, true) ?? true
   const states = useResolvedPanelProp(statesProp, emptyStates) ?? emptyStates
   const status = useResolvedPanelProp(statusProp)
   const visible = useResolvedPanelProp(visibleProp, true) ?? true
   const labelText = typeof label === 'string' ? label : undefined
-  const active = Object.keys(interaction.activeIds).some((activeId) =>
-    activeId.endsWith(`:${itemId}`),
+  const active = usePicodashPanelSelector((state) =>
+    Object.keys(state.interaction.activeIds).some((activeId) => activeId.endsWith(`:${itemId}`)),
   )
+  const dragging = usePicodashPanelSelector((state) => state.interaction.draggingId === itemId)
+  const focused = usePicodashPanelSelector((state) => state.interaction.focusedId === itemId)
+  const hovered = usePicodashPanelSelector((state) => state.interaction.hoveredId === itemId)
   const prefersReducedMotion = useReducedMotion()
   const {
     beginReorder,
@@ -211,10 +371,14 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
   const showReorderSlot = reorderable || keyboardReorderActive || parentId !== rootGroupId
 
   const resetValue = useCallback(() => {
-    if (field !== undefined) {
+    if (!disabled && !readOnly && field !== undefined) {
       store.getState().resetFieldValue(field)
     }
-  }, [field, store])
+  }, [disabled, field, readOnly, store])
+
+  const resetCompound = useCallback(() => {
+    resetPicodashCompoundItemFields(store, stableFields, disabled, configuredReadOnly)
+  }, [configuredReadOnly, disabled, stableFields, store])
 
   const focusControl = useCallback(() => {
     const content = controlContentRef.current
@@ -244,8 +408,8 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
       }
       const canonicalValue =
         fieldKey === undefined
-          ? (candidate as TValue)
-          : (store.getState().values[fieldKey] as TValue)
+          ? (candidate as PicodashValue)
+          : (store.getState().values[fieldKey] as PicodashValue)
       onValueChange?.(canonicalValue, {
         disabled,
         errorId,
@@ -253,14 +417,16 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
         fieldState:
           fieldKey === undefined
             ? undefined
-            : (store.getState().fieldStates[fieldKey] as PicodashFieldState<TValue> | undefined),
+            : (store.getState().fieldStates[fieldKey] as
+                | PicodashFieldState<PicodashValue>
+                | undefined),
         id: itemId,
         inputId,
         readOnly,
         resetValue,
         setInput,
         value: canonicalValue,
-      })
+      } as PicodashItemContextValue)
     },
     [
       disabled,
@@ -276,24 +442,113 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
     ],
   )
 
-  const itemContext = useMemo<PicodashItemContextValue<TValue>>(
-    () => ({
-      disabled,
-      errorId,
-      field,
-      fieldState,
-      id: itemId,
-      inputId,
-      readOnly,
-      resetValue,
-      setInput,
-      value,
-    }),
+  const itemContext = useMemo<PicodashItemContextValue>(
+    () =>
+      ({
+        disabled,
+        dirty: fieldState?.dirty ?? false,
+        draftValue: fieldState?.draftValue,
+        errorId,
+        errors: fieldState?.errors ?? [],
+        field,
+        fieldState:
+          fieldState ??
+          ({
+            defaultValue: value,
+            dirty: false,
+            errors: [],
+            touched: false,
+          } as PicodashFieldState<PicodashValue>),
+        id: itemId,
+        inputId,
+        readOnly,
+        resetValue,
+        setInput,
+        touched: fieldState?.touched ?? false,
+        value,
+      }) as PicodashItemContextValue,
     [disabled, errorId, field, fieldState, inputId, itemId, readOnly, resetValue, setInput, value],
   )
 
+  const compoundContext = useMemo<PicodashCompoundItemContext<PicodashCompoundItemFields>>(
+    () => ({
+      disabled,
+      errorId,
+      fields: Object.fromEntries(
+        resolvedBindings.map((binding, index) => {
+          const state = compoundFieldStates[index] as PicodashFieldState<PicodashValue>
+          const ids = picodashCompoundFieldIds(itemId, binding.alias)
+          const shared = {
+            disabled,
+            dirty: state.dirty,
+            draftValue: state.draftValue,
+            ...ids,
+            errors: state.errors,
+            field: binding.field,
+            fieldState: state,
+            readOnly: configuredReadOnly || binding.mode === 'display',
+            touched: state.touched,
+            value: compoundValues[index],
+          }
+          return [
+            binding.alias,
+            binding.mode === 'display'
+              ? { ...shared, readOnly: true }
+              : {
+                  ...shared,
+                  readOnly: configuredReadOnly,
+                  reset: () => {
+                    if (!disabled && !configuredReadOnly) {
+                      store.getState().resetFieldValue(binding.field)
+                    }
+                  },
+                  setInput: (candidate: unknown) => {
+                    setPicodashCompoundItemFieldInput(
+                      store,
+                      binding.field,
+                      candidate,
+                      disabled,
+                      configuredReadOnly,
+                    )
+                  },
+                },
+          ]
+        }),
+      ) as PicodashCompoundItemContext<PicodashCompoundItemFields>['fields'],
+      id: itemId,
+      inputId,
+      readOnly:
+        configuredReadOnly ||
+        (resolvedBindings.length > 0 &&
+          resolvedBindings.every((binding) => binding.mode === 'display')),
+      reset: resetCompound,
+    }),
+    [
+      configuredReadOnly,
+      disabled,
+      errorId,
+      inputId,
+      itemId,
+      compoundFieldStates,
+      compoundValues,
+      resetCompound,
+      resolvedBindings,
+      store,
+    ],
+  )
+
   useRegisterPicodashItem({
-    ...(field ? { field: field as PicodashItemBinding<AnyPicodashValues> } : {}),
+    ...(registrationField
+      ? {
+          field: registrationField,
+        }
+      : stableFields
+        ? {
+            fields: stableFields as Readonly<
+              Record<string, PicodashItemBinding<AnyPicodashValues>>
+            >,
+          }
+        : {}),
     hidden: !visible,
     id: itemId,
     kind: 'item',
@@ -307,6 +562,9 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
 
   const stateAttributes = dataAttributesForStates(states)
   const disabledOrReadOnly = disabled || readOnly
+  const aggregateFieldStates = fieldState ? [fieldState] : compoundFieldStates
+  const itemDirty = aggregateFieldStates.some((state) => state?.dirty)
+  const itemErrors = aggregateFieldStates.flatMap((state) => state?.errors ?? [])
 
   return (
     <PicodashItemContext.Provider value={itemContext as unknown as PicodashItemContextValue}>
@@ -315,12 +573,12 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
         {...stateAttributes}
         as="div"
         aria-describedby={
-          [description ? descriptionId : undefined, fieldState?.errors.length ? errorId : undefined]
+          [description ? descriptionId : undefined, itemErrors.length ? errorId : undefined]
             .filter(Boolean)
             .join(' ') || undefined
         }
-        aria-errormessage={fieldState?.errors.length ? errorId : undefined}
-        aria-invalid={fieldState?.errors.length ? true : undefined}
+        aria-errormessage={itemErrors.length ? errorId : undefined}
+        aria-invalid={itemErrors.length ? true : undefined}
         aria-labelledby={label ? labelId : undefined}
         className={cn(
           'group/control rounded-picodash-control text-picodash-text data-[dragging=true]:border-picodash-focus data-[dragging=true]:shadow-picodash-panel data-[focused=true]:border-picodash-focus/60 data-[status=alert]:bg-picodash-alert-subtle data-[status=error]:bg-picodash-danger-subtle data-[status=info]:bg-picodash-info-subtle data-[status=warning]:bg-picodash-warning-subtle relative isolate col-span-full grid min-h-10 shrink-0 grid-cols-subgrid items-start gap-x-(--picodash-space-1) gap-y-(--picodash-space-0-5) border border-l-2 border-transparent bg-transparent py-(--picodash-space-1) pr-(--picodash-space-1-5) transition-[background-color,border-color,box-shadow,backdrop-filter] duration-(--picodash-duration-fast) outline-none select-none data-[dragging=true]:z-(--picodash-layer-drag)! data-[dragging=true]:bg-(--_picodash-row-drag) data-[dragging=true]:backdrop-blur-(--picodash-blur-surface) data-[hovered=true]:bg-(--_picodash-row-hover) data-[status=alert]:border-l-(--_picodash-color-alert-border) data-[status=error]:border-l-(--_picodash-color-danger-border) data-[status=info]:border-l-(--_picodash-color-info-border) data-[status=warning]:border-l-(--_picodash-color-warning-border)',
@@ -330,10 +588,10 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
         data-active={active ? 'true' : 'false'}
         data-item-id={itemId}
         data-content-layout={contentLayout}
-        data-dirty={fieldState?.dirty ? 'true' : 'false'}
-        data-dragging={interaction.draggingId === itemId ? 'true' : 'false'}
-        data-focused={interaction.focusedId === itemId ? 'true' : 'false'}
-        data-hovered={interaction.hoveredId === itemId ? 'true' : 'false'}
+        data-dirty={itemDirty ? 'true' : 'false'}
+        data-dragging={dragging ? 'true' : 'false'}
+        data-focused={focused ? 'true' : 'false'}
+        data-hovered={hovered ? 'true' : 'false'}
         data-item-kind="control"
         data-order-band={pin ?? 'auto'}
         data-parent-id={parentId}
@@ -500,16 +758,24 @@ export function PicodashItem<TValue extends PicodashValue = PicodashValue>({
             contentClassName,
           )}
         >
-          {typeof children === 'function' ? children(itemContext) : children}
+          {typeof children === 'function'
+            ? fields
+              ? (
+                  children as (
+                    item: PicodashCompoundItemContext<PicodashCompoundItemFields>,
+                  ) => ReactNode
+                )(compoundContext)
+              : (children as (item: PicodashItemContextValue) => ReactNode)(itemContext)
+            : children}
         </div>
 
-        {fieldState?.errors.length ? (
+        {itemErrors.length ? (
           <div
             className="text-picodash-danger col-span-3 col-start-2 text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight)"
             id={errorId}
             role="alert"
           >
-            {fieldState.errors.join(' ')}
+            {itemErrors.join(' ')}
           </div>
         ) : null}
 
@@ -537,6 +803,125 @@ export function usePicodashItem<TValue extends PicodashValue = PicodashValue>() 
     throw new Error('usePicodashItem must be used inside PicodashItem.')
   }
   return context as unknown as PicodashItemContextValue<TValue>
+}
+
+interface ResolvedCompoundBinding {
+  alias: string
+  field: PicodashField<AnyPicodashValues, string>
+  mode: 'display' | 'input'
+  presentation?: PicodashPresentationContract
+}
+
+function resolveCompoundBindings(
+  fields: PicodashCompoundItemFields | undefined,
+): readonly ResolvedCompoundBinding[] {
+  if (!fields) return []
+  return Object.entries(fields).flatMap(([alias, binding]) => {
+    const resolved = resolveCompoundBinding(alias, binding)
+    return resolved === undefined ? [] : [resolved]
+  })
+}
+
+function resolveCompoundBinding(
+  alias: string,
+  binding: PicodashItemFieldBinding | undefined,
+): ResolvedCompoundBinding | undefined {
+  if (binding === undefined) return undefined
+  if ('key' in binding) {
+    return {
+      alias,
+      field: binding as PicodashField<AnyPicodashValues, string>,
+      mode: 'input',
+    }
+  }
+  return {
+    alias,
+    field: binding.field as PicodashField<AnyPicodashValues, string>,
+    mode: binding.mode ?? 'input',
+    presentation: binding.presentation,
+  }
+}
+
+export function picodashCompoundFieldIds(itemId: string, alias: string) {
+  const prefix = `${itemId}:${alias}`
+  return {
+    errorId: `${prefix}:errors`,
+    inputId: `${prefix}:input`,
+    labelId: `${prefix}:label`,
+  } as const
+}
+
+export function stabilizePicodashCompoundItemFields(
+  previous: PicodashCompoundItemFields | undefined,
+  next: PicodashCompoundItemFields | undefined,
+): PicodashCompoundItemFields | undefined {
+  if (previous === next || next === undefined) return next
+  if (previous === undefined) return next
+
+  const previousAliases = Object.keys(previous)
+  const nextAliases = Object.keys(next)
+  if (
+    previousAliases.length !== nextAliases.length ||
+    nextAliases.some((alias) => !Object.hasOwn(previous, alias))
+  ) {
+    return next
+  }
+
+  for (const alias of nextAliases) {
+    const previousBinding = resolveCompoundBinding(alias, previous[alias])
+    const nextBinding = resolveCompoundBinding(alias, next[alias])
+    if (
+      previousBinding === undefined ||
+      nextBinding === undefined ||
+      previousBinding.field !== nextBinding.field ||
+      previousBinding.mode !== nextBinding.mode ||
+      !presentationContractsEqual(previousBinding.presentation, nextBinding.presentation)
+    ) {
+      return next
+    }
+  }
+  return previous
+}
+
+function presentationContractsEqual(
+  left: PicodashPresentationContract | undefined,
+  right: PicodashPresentationContract | undefined,
+) {
+  if (left === right) return true
+  if (left === undefined || right === undefined) return false
+  return picodashPresentationContractsEqual(left, right)
+}
+
+export function resetPicodashCompoundItemFields(
+  store: AnyPicodashStore,
+  fields: PicodashCompoundItemFields | undefined,
+  disabled = false,
+  readOnly = false,
+) {
+  if (disabled || readOnly) return
+
+  const defaults = Object.fromEntries(
+    resolveCompoundBindings(fields)
+      .filter((binding) => binding.mode === 'input')
+      .flatMap((binding) => {
+        const state = store.getState().fieldStates[binding.field.key]
+        return state === undefined || state.defaultValue === undefined
+          ? []
+          : [[binding.field.key, state.defaultValue] as const]
+      }),
+  )
+  if (Object.keys(defaults).length > 0) store.getState().setFieldValues(defaults)
+}
+
+export function setPicodashCompoundItemFieldInput(
+  store: AnyPicodashStore,
+  field: PicodashField<AnyPicodashValues, string>,
+  candidate: unknown,
+  disabled = false,
+  readOnly = false,
+) {
+  if (disabled || readOnly) return
+  store.getState().setFieldInput(field, candidate)
 }
 
 export function useResolvedPanelProp<T>(

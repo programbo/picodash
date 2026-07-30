@@ -8,6 +8,7 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import { picodashGeometryTokens } from '../lib/theme/theme.js'
+import { picodashRangePresentation } from './internal/presentation-contracts.js'
 
 export type PicodashRangeValue = [low: number, high: number]
 
@@ -61,7 +62,7 @@ export function PicodashRange({
     [defaultValue, max, min, step],
   )
   return (
-    <PicodashItem<PicodashRangeValue> {...controlProps}>
+    <PicodashItem<PicodashRangeValue> {...controlProps} presentation={picodashRangePresentation}>
       {(control) => {
         const value = normalizeRangeValue(control.value, {
           fallback: normalizedDefaultValue,

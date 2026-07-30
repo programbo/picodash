@@ -1,4 +1,4 @@
-import { type ComponentPropsWithoutRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useMemo, type ComponentPropsWithoutRef, type KeyboardEvent, type ReactNode } from 'react'
 import {
   PicodashItem,
   useResolvedPanelProp,
@@ -7,6 +7,7 @@ import {
 } from '../components/panel/PicodashItem.js'
 import type { PicodashValue } from '../components/panel/PicodashPanel.js'
 import { cn } from '../utilities/utils.js'
+import { picodashPresentationForValue } from './internal/presentation-contracts.js'
 
 export type PicodashMatrix2DDirection = 'down' | 'left' | 'right' | 'up'
 export type PicodashMatrix2DSelectionRole = 'radio' | 'toggle'
@@ -55,9 +56,18 @@ export function PicodashMatrix2D<TValue extends PicodashValue>({
     useResolvedPanelProp<readonly (readonly PicodashMatrix2DOption<TValue>[])[]>(optionsProp, []) ??
     []
   const normalizedDefault = normalizeMatrix2DValue(defaultValue, options)
+  const presentation = useMemo(
+    () =>
+      picodashPresentationForValue(
+        'Matrix2D',
+        'matrix-2d:value',
+        normalizedDefault ?? enabledMatrix2DOptions(options)[0]?.value,
+      ),
+    [normalizedDefault, options],
+  )
 
   return (
-    <PicodashItem<TValue> {...controlProps}>
+    <PicodashItem<TValue> {...controlProps} presentation={presentation}>
       {(control) => {
         const value = normalizeMatrix2DValue(control.value, options, normalizedDefault)
         const selectedPosition = findMatrix2DValuePosition(value, options)

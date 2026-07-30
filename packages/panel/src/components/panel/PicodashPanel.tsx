@@ -51,6 +51,10 @@ import {
   useRegisterPicodashPanel,
   usePicodashProviderContext,
 } from '../../state/provider/picodash-provider.js'
+import {
+  focusPicodashPanelTrigger,
+  hasPicodashPanelTrigger,
+} from '../../state/provider/picodash-panel-triggers.js'
 import { PicodashPanelContextProvider } from '../../state/panel/picodash-panel-context.js'
 import {
   PicodashPanelActions,
@@ -76,6 +80,7 @@ import type {
   PicodashPanelProps,
   PicodashPanelSnappedPosition,
 } from '../../state/panel/picodash-panel-types.js'
+import { publishDismissiblePanelWithoutTriggerDiagnostic } from '../../state/panel/picodash-panel-diagnostics.js'
 
 export {
   ActionMenuItem,
@@ -205,6 +210,7 @@ export function PicodashPanel<TValues extends object>({
     panelRect: PanelRect
   } | null>(null)
   const fixedToggleRef = useRef<HTMLButtonElement | null>(null)
+  const publishedNoTriggerRef = useRef(false)
   const panelStoreRef = useRef<PicodashStore<TValues>>(store)
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const hybridPreviewPositionRef = useRef<PicodashPanelHybridDockPosition | null>(null)
@@ -364,6 +370,17 @@ export function PicodashPanel<TValues extends object>({
     pendingDeregisterCloseRef.current = null
     onClose?.(details)
   }, [deregistered, onClose])
+
+  useEffect(() => {
+    if (!close || publishedNoTriggerRef.current) return
+    const timeout = window.setTimeout(() => {
+      if (hasPicodashPanelTrigger(providerStore, panelId)) return
+      publishedNoTriggerRef.current = true
+      const diagnostic = publishDismissiblePanelWithoutTriggerDiagnostic(panelStore)
+      if (process.env.NODE_ENV !== 'production') console.warn(diagnostic.message)
+    }, 0)
+    return () => window.clearTimeout(timeout)
+  }, [close, panelId, panelStore, providerStore])
 
   useEffect(
     () => () => {
@@ -1158,6 +1175,9 @@ export function PicodashPanel<TValues extends object>({
                         providerStore.getState().setPanelVisible(panelId, false)
                         onClose?.({ behavior: closeBehavior, panelId })
                       }
+                      requestAnimationFrame(() => {
+                        focusPicodashPanelTrigger(providerStore, panelId)
+                      })
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
                   >

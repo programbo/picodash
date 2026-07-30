@@ -7,6 +7,7 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import { Input } from '../components/ui/input.js'
+import { picodashVector3Presentation } from './internal/presentation-contracts.js'
 
 export type PicodashVector3Value = {
   x: number
@@ -43,7 +44,10 @@ export function PicodashVector3({
     [bounds.max, bounds.min, defaultValue],
   )
   return (
-    <PicodashItem<PicodashVector3Value> {...controlProps}>
+    <PicodashItem<PicodashVector3Value>
+      {...controlProps}
+      presentation={picodashVector3Presentation}
+    >
       {(control) => {
         const value = normalizeVector3Value(
           control.value,

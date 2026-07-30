@@ -9,6 +9,7 @@ import {
 } from '../components/panel/PicodashItem.js'
 import type { AnyPicodashValues } from '../state/panel/picodash-panel-types.js'
 import { formatNumericValue } from '../lib/formatting/number-format.js'
+import { picodashSliderPresentation } from './internal/presentation-contracts.js'
 
 export type PicodashSliderMark =
   | number
@@ -58,7 +59,7 @@ export function PicodashSlider({
   })
 
   return (
-    <PicodashItem<number> {...controlProps}>
+    <PicodashItem<number> {...controlProps} presentation={picodashSliderPresentation}>
       {(control) => {
         const value =
           typeof control.value === 'number'

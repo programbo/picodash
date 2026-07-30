@@ -1,6 +1,7 @@
 import { PicodashItem, type PicodashInputItemProps } from '../components/panel/PicodashItem.js'
 import { Input } from '../components/ui/input.js'
 import { Textarea } from '../components/ui/textarea.js'
+import { picodashStringPresentation } from './internal/presentation-contracts.js'
 
 export interface PicodashTextProps extends Omit<
   PicodashInputItemProps<string>,
@@ -20,7 +21,7 @@ export function PicodashText({
   const normalizedDefault = typeof defaultValue === 'string' ? defaultValue : undefined
 
   return (
-    <PicodashItem<string> {...controlProps}>
+    <PicodashItem<string> {...controlProps} presentation={picodashStringPresentation}>
       {(control) => {
         const draftValue = control.fieldState?.draftValue
         const value =

@@ -1,5 +1,6 @@
 import { Switch } from '../components/ui/switch.js'
 import { PicodashItem, type PicodashInputItemProps } from '../components/panel/PicodashItem.js'
+import { picodashBooleanPresentation } from './internal/presentation-contracts.js'
 
 export interface PicodashSwitchProps extends Omit<
   PicodashInputItemProps<boolean>,
@@ -12,7 +13,7 @@ export function PicodashSwitch({ defaultValue = false, ...controlProps }: Picoda
   const normalizedDefault = typeof defaultValue === 'boolean' ? defaultValue : false
 
   return (
-    <PicodashItem<boolean> {...controlProps}>
+    <PicodashItem<boolean> {...controlProps} presentation={picodashBooleanPresentation}>
       {(control) => (
         <Switch
           aria-labelledby={`${control.id}:label`}

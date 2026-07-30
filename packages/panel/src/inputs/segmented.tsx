@@ -7,6 +7,7 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import { cn } from '../utilities/utils.js'
+import { picodashSegmentedPresentation } from './internal/presentation-contracts.js'
 
 export type PicodashSegmentedOption =
   | string
@@ -34,7 +35,7 @@ export function PicodashSegmented({
   const normalizedDefaultValue = normalizeSegmentedValue(defaultValue, options)
 
   return (
-    <PicodashItem<string> {...controlProps}>
+    <PicodashItem<string> {...controlProps} presentation={picodashSegmentedPresentation}>
       {(control) => {
         const value = normalizeSegmentedValue(control.value, options, normalizedDefaultValue) ?? ''
 

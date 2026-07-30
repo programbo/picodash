@@ -6,6 +6,7 @@ import {
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
 import { EmptyState } from '../components/dashlet/states.js'
+import { picodashDropzonePresentation } from './internal/presentation-contracts.js'
 
 export type PicodashDroppedFileMetadata = {
   id: string
@@ -68,7 +69,11 @@ export function PicodashDropzone({
   )
 
   return (
-    <PicodashItem<PicodashDropzoneValue> {...controlProps} contentLayout={contentLayout}>
+    <PicodashItem<PicodashDropzoneValue>
+      {...controlProps}
+      contentLayout={contentLayout}
+      presentation={picodashDropzonePresentation}
+    >
       {(control) => (
         <Suspense fallback={<PicodashDropzoneFallback multiple={multiple} />}>
           <LazyDropzoneImplementation

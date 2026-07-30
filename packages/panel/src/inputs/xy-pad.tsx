@@ -10,6 +10,7 @@ import {
 } from '../components/panel/PicodashItem.js'
 import { Surface } from '../components/dashlet/visualization.js'
 import { cn } from '../utilities/utils.js'
+import { picodashXYPresentation } from './internal/presentation-contracts.js'
 
 export type PicodashXYValue = { x: number; y: number }
 
@@ -76,7 +77,11 @@ export function PicodashXYPad({
     [bounds, defaultValue],
   )
   return (
-    <PicodashItem<PicodashXYValue> {...controlProps} contentLayout={contentLayout}>
+    <PicodashItem<PicodashXYValue>
+      {...controlProps}
+      contentLayout={contentLayout}
+      presentation={picodashXYPresentation}
+    >
       {(control) => (
         <XYPadSurface
           ariaLabel={ariaLabel}
