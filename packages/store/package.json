@@ -25,6 +25,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.mjs",
+    "./react": "./dist/react.mjs",
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -47,10 +48,19 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/react-test-renderer": "^19.1.0",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "bumpp": "^12.0.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-test-renderer": "^19.2.0",
     "typescript": "catalog:",
     "vite-plus": "catalog:",
     "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=19"
   }
 }
