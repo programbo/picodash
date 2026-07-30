@@ -1,6 +1,5 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
 import {
   createContext,
   useContext,
@@ -48,7 +47,6 @@ export function DemoProvider({
   children: ReactNode
   initialThemes?: DemoThemes
 }) {
-  const pathname = usePathname()
   const [themeOverrides, setThemeOverrides] = useState<DemoThemeOverrides>({})
   const [builtInExampleConfig, setBuiltInExampleConfig] = useState<BuiltInItemsExampleConfig>(
     defaultBuiltInItemsExampleConfig,
@@ -57,9 +55,6 @@ export function DemoProvider({
     () => mergeThemes(initialThemes, themeOverrides),
     [initialThemes.custom, initialThemes.provider, initialThemes.scene, themeOverrides],
   )
-  const route =
-    pathname === '/lab/state' || pathname.startsWith('/lab/state/') ? 'state-lab' : 'home'
-
   useEffect(() => {
     if (initialThemes.provider !== undefined) return
 
@@ -114,12 +109,8 @@ export function DemoProvider({
       </a>
       <main
         id="main-content"
-        className={
-          route === 'home'
-            ? 'dark bg-background text-foreground relative min-h-svh overflow-x-clip [&>[data-picodash-container]]:z-20'
-            : 'dark bg-background text-foreground relative min-h-svh overflow-x-hidden [&>[data-picodash-container]]:z-20'
-        }
-        data-product-route={route}
+        className="dark bg-background text-foreground relative min-h-svh overflow-x-clip [&>[data-picodash-container]]:z-20"
+        data-product-route="home"
         data-persistent-demo-shell
       >
         <PicodashProvider
