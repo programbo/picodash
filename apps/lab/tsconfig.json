@@ -15,7 +15,8 @@
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["../web/src/*"]
+      "@/*": ["../web/src/*"],
+      "@lab/*": ["./src/*"]
     },
     "noUnusedLocals": true,
     "noUnusedParameters": true

@@ -1,5 +1,10 @@
-import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
+import { ContractLab } from '@lab/components/contract-lab/contract-lab'
 
-export default function LabIndexPage() {
-  redirect('/lab/state')
+export const metadata: Metadata = {
+  title: 'Contract Lab',
+}
+
+export default function ContractLabPage() {
+  return <ContractLab />
 }
