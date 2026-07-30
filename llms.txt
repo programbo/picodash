@@ -78,6 +78,8 @@ Ports:
 - 6033 web E2E server via WEBSITE_PORT
 - 6034-6039 can be temporarily allocated to worktrees for non-conflicting development and E2E servers
 - if an allocated port is occupied, agents should find a free port in 6034-6039 for brief server runs
+- `bun run port:reserve` claims the lowest available worktree port and writes both WEBSITE_PORT and LAB_PORT to the worktree `.env.local`
+- `bun run port:release` removes the current worktree reservation after its PR is merged
 
 Docs to keep aligned:
 - README.md
@@ -103,6 +105,8 @@ Verification:
 - bun run ready
 - bun run web
 - bun run lab
+- bun run port:reserve
+- bun run port:release
 - bun run deploy
 - bun run deploy:prod
 - bun run --filter @picodash/lab lint

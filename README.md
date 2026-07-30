@@ -341,6 +341,12 @@ run without conflicting with the shared project servers. If an agent needs to br
 and its allocated port is occupied, it should find a free port in `6034-6039` and pass that port
 through the relevant environment variable.
 
+For a new worktree, run `bun run port:reserve` to claim the lowest available port and write it to
+both `WEBSITE_PORT` and `LAB_PORT` in that worktree's `.env.local`. The reservation is recorded in
+`/Volumes/Jove/Developer/Projects/picodash/.worktree-ports` as
+`<PORT>:<DATETIME>:<WORKTREE_DIR>`. Run `bun run port:release` after the PR is merged to remove
+the reservation and clear those local environment values.
+
 For this worktree:
 
 ```bash
@@ -363,6 +369,8 @@ bun run format
 bun run dev
 bun run web
 bun run lab
+bun run port:reserve
+bun run port:release
 bun run deploy
 bun run deploy:prod
 bun run --filter @picodash/lab lint

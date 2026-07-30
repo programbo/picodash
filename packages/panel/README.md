@@ -369,9 +369,16 @@ type ActionMenuConfirmation = readonly [message: string, title?: string, buttonL
 From the workspace root:
 
 ```bash
+bun run port:reserve
+bun run port:release
 bun run --filter @picodash/panel lint
 bun run --filter @picodash/panel format
 ```
+
+`port:reserve` allocates the lowest available port in `6034-6039` for the current worktree and
+writes it to both `WEBSITE_PORT` and `LAB_PORT` in `.env.local`. The reservation is stored in
+`/Volumes/Jove/Developer/Projects/picodash/.worktree-ports`; run `port:release` after the PR is
+merged to remove it.
 
 Workspace preview and production deployments use the root scripts and require a globally installed
 Vercel CLI:

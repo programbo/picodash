@@ -137,6 +137,13 @@ through the relevant environment variable.
 
 Assign new local services only from the available slots in `6034-6039`.
 
+When creating a new worktree, run `bun run port:reserve` from the worktree. The command updates
+the local project file `/Volumes/Jove/Developer/Projects/picodash/.worktree-ports` with a line in
+the form `<PORT>:<DATETIME>:<WORKTREE_DIR>`, choosing the lowest port in `6034-6039` that is not
+already claimed by another worktree. It also writes that port to both `WEBSITE_PORT` and
+`LAB_PORT` in the worktree's `.env.local`. After the PR is merged, run `bun run port:release` from
+the worktree to remove its allocation line and clear those two local port settings.
+
 For this worktree:
 
 ```bash
