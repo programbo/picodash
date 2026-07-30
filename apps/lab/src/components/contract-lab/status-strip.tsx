@@ -4,6 +4,7 @@ export interface ContractLabStatusStripProps {
   readonly diagnosticCount: number
   readonly lastOperation: ContractLabOperation
   readonly presetLabel: string
+  readonly primaryPanelVisible: boolean
   readonly ready: boolean
   readonly specimenAvailable: boolean
 }
@@ -12,6 +13,7 @@ export function ContractLabStatusStrip({
   diagnosticCount,
   lastOperation,
   presetLabel,
+  primaryPanelVisible,
   ready,
   specimenAvailable,
 }: ContractLabStatusStripProps) {
@@ -29,6 +31,11 @@ export function ContractLabStatusStrip({
           label="Specimen"
           value={specimenAvailable ? 'available' : 'offline'}
           state={specimenAvailable}
+        />
+        <StatusDatum
+          label="Primary panel"
+          value={primaryPanelVisible ? 'open' : 'hidden'}
+          state={primaryPanelVisible}
         />
         <StatusDatum label="Last operation" value={lastOperation.replace('-', ' ')} />
         <StatusDatum

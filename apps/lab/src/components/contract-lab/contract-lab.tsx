@@ -20,6 +20,9 @@ export function ContractLab() {
   const [state, dispatch] = useReducer(contractLabReducer, undefined, createInitialContractLabState)
   const [hydrated, setHydrated] = useState(false)
   const [specimenAvailable, setSpecimenAvailable] = useState(true)
+  const [consoleDiagnosticCount, setConsoleDiagnosticCount] = useState(0)
+  const [specimenDiagnosticCount, setSpecimenDiagnosticCount] = useState(0)
+  const [primaryPanelVisible, setPrimaryPanelVisible] = useState(true)
   const preset = useMemo(
     () =>
       CONTRACT_LAB_PRESETS.find((candidate) => candidate.id === state.activePreset) ??
@@ -67,11 +70,12 @@ export function ContractLab() {
       data-product-route="contract-lab"
     >
       <ContractLabStatusStrip
-        diagnosticCount={0}
+        diagnosticCount={consoleDiagnosticCount + specimenDiagnosticCount}
         lastOperation={state.lastOperation}
         presetLabel={preset.label}
         ready={hydrated}
         specimenAvailable={specimenAvailable}
+        primaryPanelVisible={primaryPanelVisible}
       />
 
       <div className="relative isolate overflow-hidden">
@@ -82,6 +86,7 @@ export function ContractLab() {
         <div className="relative mx-auto grid max-w-[110rem] gap-4 p-4 sm:p-6 lg:grid-cols-[21rem_minmax(0,1fr)] lg:items-start">
           <ContractLabConsole
             activePreset={state.activePreset}
+            onDiagnosticCountChange={setConsoleDiagnosticCount}
             onLoadPreset={loadPreset}
             onReset={resetLab}
             onToggleSpecimen={() => setSpecimenAvailable((available) => !available)}
@@ -90,7 +95,13 @@ export function ContractLab() {
           />
 
           {specimenAvailable ? (
-            <ContractLabSpecimenHost preset={preset} revision={state.specimenRevision} />
+            <ContractLabSpecimenHost
+              key={`${preset.id}:${state.specimenRevision}`}
+              onDiagnosticCountChange={setSpecimenDiagnosticCount}
+              onPrimaryVisibilityChange={setPrimaryPanelVisible}
+              preset={preset}
+              revision={state.specimenRevision}
+            />
           ) : (
             <section
               aria-labelledby="contract-lab-offline-title"
