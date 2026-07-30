@@ -8,7 +8,7 @@ import {
   type PicodashItemContextValue,
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
-import { ItemSurface } from '../components/ui/item-surface.js'
+import { Surface } from '../components/dashlet/visualization.js'
 import type { PicodashParser } from '../validation/picodash-validation.js'
 import { cn } from '../utilities/utils.js'
 import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
@@ -215,7 +215,7 @@ function XYPadSurface({
   return (
     <div className="col-span-full grid gap-(--picodash-space-1-5)">
       <div className="focus-within:ring-picodash-focus focus-within:ring-offset-picodash-canvas rounded-picodash-control focus-within:ring-2 focus-within:ring-offset-1">
-        <ItemSurface
+        <Surface
           ref={padRef}
           aria-describedby={instructionsId}
           aria-disabled={unavailable || undefined}
@@ -269,7 +269,7 @@ function XYPadSurface({
           >
             X {formatXYValue(value.x, bounds.step)} · Y {formatXYValue(value.y, bounds.step)}
           </motion.output>
-        </ItemSurface>
+        </Surface>
         <input
           aria-controls={padId}
           aria-describedby={instructionsId}

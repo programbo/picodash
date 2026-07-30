@@ -1,7 +1,7 @@
 import { useReducedMotion, useSpring } from 'motion/react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { PicodashItem, type PicodashDisplayItemProps } from '../components/panel/PicodashItem.js'
-import { ItemSurface } from '../components/ui/item-surface.js'
+import { Surface } from '../components/dashlet/visualization.js'
 import type { PicodashValue } from '../components/panel/PicodashPanel.js'
 import type { DistributiveOmit } from './internal/built-in-validation.js'
 
@@ -446,7 +446,7 @@ export function PicodashSparkline({
 
   return (
     <PicodashItem {...itemProps} contentLayout={contentLayout} readOnly valueMode="display">
-      <ItemSurface
+      <Surface
         ref={setSurface}
         className="col-span-full"
         size="field"
@@ -505,7 +505,7 @@ export function PicodashSparkline({
             )
           })}
         </svg>
-      </ItemSurface>
+      </Surface>
     </PicodashItem>
   )
 }

@@ -188,22 +188,6 @@ export type InputGroupTextProps = React.ComponentProps<
 export type InputGroupTextareaProps = React.ComponentProps<
   typeof import('./input-group.js').InputGroupTextarea
 >
-export {
-  ItemCaption,
-  ItemEmptyState,
-  ItemLegend,
-  ItemLegendItem,
-  ItemLegendSwatch,
-  ItemSurface,
-} from './item-primitives.js'
-export type {
-  ItemCaptionProps,
-  ItemEmptyStateProps,
-  ItemLegendItemProps,
-  ItemLegendProps,
-  ItemLegendSwatchProps,
-  ItemSurfaceProps,
-} from './item-primitives.js'
 export type LabelProps = React.ComponentProps<typeof import('./label.js').Label>
 export type ScrollAreaProps = React.ComponentProps<typeof import('./scroll-area.js').ScrollArea>
 export type SelectProps = React.ComponentProps<typeof import('./select.js').Select>

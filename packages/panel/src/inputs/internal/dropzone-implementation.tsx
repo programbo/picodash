@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../components/ui/dialog.js'
-import { ItemSurface } from '../../components/ui/item-surface.js'
+import { Surface } from '../../components/dashlet/visualization.js'
 import { picodashMotionTokens } from '../../lib/theme/theme.js'
 import { usePicodashProviderContext } from '../../state/provider/picodash-provider.js'
 import { cn } from '../../utilities/utils.js'
@@ -124,7 +124,7 @@ export default function DropzoneImplementation({
   return (
     <>
       <div className="col-span-full grid gap-(--picodash-space-1-5)">
-        <ItemSurface
+        <Surface
           {...getRootProps({
             'aria-label': multiple
               ? 'Choose files or drop them here'
@@ -157,7 +157,7 @@ export default function DropzoneImplementation({
                 ? 'Select one or more files'
                 : 'Select one file'}
           </span>
-        </ItemSurface>
+        </Surface>
 
         <div
           className="min-h-4 text-(length:--picodash-font-size-sm) leading-(--picodash-line-tight)"

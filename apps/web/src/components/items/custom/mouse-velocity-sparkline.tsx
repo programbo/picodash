@@ -1,7 +1,7 @@
 import { motion, useMotionValue, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, type RefObject } from 'react'
 import { PicodashItem } from '@picodash/panel'
-import { ItemCaption, ItemLegend, ItemLegendItem, ItemSurface } from '@picodash/panel/ui'
+import { Caption, Legend, LegendItem, Surface } from '@picodash/panel/dashlet'
 import {
   advanceSparklineSamplingClock,
   decayPointerVelocity,
@@ -224,7 +224,7 @@ export function MouseVelocitySparklineItem({
       reorderable={false}
     >
       <div className="col-span-full grid gap-1.5">
-        <ItemSurface
+        <Surface
           className="pointer-events-none h-24"
           size="field"
           data-pointer-velocity-display
@@ -260,20 +260,20 @@ export function MouseVelocitySparklineItem({
               vectorEffect="non-scaling-stroke"
             />
           </svg>
-          <ItemCaption className="pointer-events-none absolute top-1.5 left-2 font-mono text-[9px] tracking-widest uppercase">
+          <Caption className="pointer-events-none absolute top-1.5 left-2 font-mono text-[9px] tracking-widest uppercase">
             px / sec
-          </ItemCaption>
+          </Caption>
           <motion.span
             className="text-picodash-muted pointer-events-none absolute right-2 bottom-1.5 font-mono text-[9px] tabular-nums"
             data-pointer-velocity-fps
           >
             {fpsLabel}
           </motion.span>
-        </ItemSurface>
-        <ItemLegend className="font-mono text-[9px] tracking-wider uppercase">
-          <ItemLegendItem color="var(--picodash-color-data-1)">X velocity</ItemLegendItem>
-          <ItemLegendItem color="var(--picodash-color-data-3)">Y velocity</ItemLegendItem>
-        </ItemLegend>
+        </Surface>
+        <Legend className="font-mono text-[9px] tracking-wider uppercase">
+          <LegendItem color="var(--picodash-color-data-1)">X velocity</LegendItem>
+          <LegendItem color="var(--picodash-color-data-3)">Y velocity</LegendItem>
+        </Legend>
       </div>
     </PicodashItem>
   )

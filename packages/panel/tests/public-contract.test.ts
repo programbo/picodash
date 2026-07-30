@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vite-plus/test'
+import * as dashlet from '../src/dashlet.ts'
 import * as ui from '../src/ui.ts'
+import type { DataListProps, MetricProps, StatusProps, SurfaceProps } from '../src/dashlet.ts'
 import type {
   ButtonProps,
   CardProps,
-  ItemSurfaceProps,
   MeterProps,
   ProgressBarProps,
   SelectProps,
@@ -20,9 +21,6 @@ test('exports the composable UI toolkit without implementation variant helpers',
   expect(ui.Select).toBeTypeOf('function')
   expect(ui.Slider).toBeTypeOf('function')
   expect(ui.Toggle).toBeTypeOf('function')
-  expect(ui.ItemSurface).toBeTypeOf('function')
-  expect(ui.ItemLegend).toBeTypeOf('function')
-  expect(ui.ItemEmptyState).toBeTypeOf('function')
   expect(ui.Meter).toBeTypeOf('function')
   expect(ui.MeterTrack).toBeTypeOf('function')
   expect(ui.MeterFill).toBeTypeOf('function')
@@ -31,6 +29,12 @@ test('exports the composable UI toolkit without implementation variant helpers',
   expect(ui.ProgressFill).toBeTypeOf('function')
   expect(ui.Toolbar).toBeTypeOf('function')
 
+  expect('ItemSurface' in ui).toBe(false)
+  expect('ItemCaption' in ui).toBe(false)
+  expect('ItemLegend' in ui).toBe(false)
+  expect('ItemLegendItem' in ui).toBe(false)
+  expect('ItemLegendSwatch' in ui).toBe(false)
+  expect('ItemEmptyState' in ui).toBe(false)
   expect('buttonVariants' in ui).toBe(false)
   expect('badgeVariants' in ui).toBe(false)
   expect('tabsListVariants' in ui).toBe(false)
@@ -67,7 +71,7 @@ test('publishes named prop contracts for composition and React Aria interaction'
     isSelected: true,
     onChange: () => undefined,
   }
-  const surface: Pick<ItemSurfaceProps, 'variant' | 'size'> = {
+  const surface: Pick<SurfaceProps, 'variant' | 'size'> = {
     size: 'field',
     variant: 'dashed',
   }
@@ -83,7 +87,35 @@ test('publishes named prop contracts for composition and React Aria interaction'
   expect(surface).toEqual({ size: 'field', variant: 'dashed' })
 })
 
-test('marks the published UI entry as a client boundary at the source entry', () => {
-  const entryPath = fileURLToPath(new URL('../src/ui.ts', import.meta.url))
-  expect(readFileSync(entryPath, 'utf8')).toMatch(/^['"]use client['"]\s*$/m)
+test('supports the canonical dashlet namespace with no implementation helpers or Item aliases', () => {
+  expect(dashlet.Frame).toBeTypeOf('function')
+  expect(dashlet.Metric).toBeTypeOf('function')
+  expect(dashlet.Status).toBeTypeOf('function')
+  expect(dashlet.DataList).toBeTypeOf('function')
+  expect(dashlet.Surface).toBeTypeOf('function')
+  expect(dashlet.Legend).toBeTypeOf('function')
+  expect(dashlet.EmptyState).toBeTypeOf('function')
+
+  expect('ItemSurface' in dashlet).toBe(false)
+  expect('ItemEmptyState' in dashlet).toBe(false)
+  expect('surfaceVariants' in dashlet).toBe(false)
+
+  const metric: Pick<MetricProps, 'align'> = { align: 'end' }
+  const status: Pick<StatusProps, 'tone'> = { tone: 'success' }
+  const list: Pick<DataListProps, 'density'> = { density: 'compact' }
+
+  expect(metric.align).toBe('end')
+  expect(status.tone).toBe('success')
+  expect(list.density).toBe('compact')
+})
+
+test('marks published component entries as client boundaries at their source entries', () => {
+  const entryPaths = [
+    fileURLToPath(new URL('../src/dashlet.ts', import.meta.url)),
+    fileURLToPath(new URL('../src/ui.ts', import.meta.url)),
+  ]
+
+  for (const entryPath of entryPaths) {
+    expect(readFileSync(entryPath, 'utf8')).toMatch(/^['"]use client['"]\s*$/m)
+  }
 })

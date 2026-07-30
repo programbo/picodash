@@ -6,8 +6,8 @@ import {
   type ReactiveProp,
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
-import { ItemEmptyState } from '../components/ui/item-empty-state.js'
-import { ItemSurface } from '../components/ui/item-surface.js'
+import { EmptyState } from '../components/dashlet/states.js'
+import { Surface } from '../components/dashlet/visualization.js'
 import { cn } from '../utilities/utils.js'
 import type { PicodashParser } from '../validation/picodash-validation.js'
 import {
@@ -98,19 +98,19 @@ function MediaPreviewSurface({
 
   if (!src || failed) {
     return (
-      <ItemEmptyState className="col-span-full aspect-video" role="status">
+      <EmptyState className="col-span-full aspect-video" role="status">
         {fallback ?? (
           <>
             <ImageOff className="size-(--picodash-icon-md) shrink-0" aria-hidden="true" />
             <span>{failed ? 'Preview could not be loaded' : 'No preview available'}</span>
           </>
         )}
-      </ItemEmptyState>
+      </EmptyState>
     )
   }
 
   return (
-    <ItemSurface className="col-span-full aspect-video" size="field">
+    <Surface className="col-span-full aspect-video" size="field">
       <img
         alt={alt}
         className={cn('size-full', objectFitClassName(objectFit), className)}
@@ -119,7 +119,7 @@ function MediaPreviewSurface({
         src={src}
         onError={() => setFailed(true)}
       />
-    </ItemSurface>
+    </Surface>
   )
 }
 

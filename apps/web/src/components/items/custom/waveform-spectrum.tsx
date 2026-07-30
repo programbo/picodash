@@ -1,7 +1,8 @@
 import { motion, useMotionValue, useReducedMotion, type MotionValue } from 'motion/react'
 import { useEffect } from 'react'
 import { PicodashItem } from '@picodash/panel'
-import { ItemCaption, ItemSurface, ToggleGroup, ToggleGroupItem } from '@picodash/panel/ui'
+import { Caption, Surface } from '@picodash/panel/dashlet'
+import { ToggleGroup, ToggleGroupItem } from '@picodash/panel/ui'
 
 type SignalMode = 'spectrum' | 'waveform'
 
@@ -75,9 +76,9 @@ function SignalSurface({
   return (
     <div className="col-span-full grid gap-2">
       <div className="flex items-center justify-between gap-3">
-        <ItemCaption className="font-mono text-[9px] tracking-widest uppercase">
+        <Caption className="font-mono text-[9px] tracking-widest uppercase">
           deterministic oscillator
-        </ItemCaption>
+        </Caption>
         <ToggleGroup
           aria-label="Signal visualization mode"
           className="bg-picodash-surface-muted/35 border-picodash-control rounded-picodash-control inline-flex overflow-hidden border p-(--picodash-space-0-5)"
@@ -101,7 +102,7 @@ function SignalSurface({
           ))}
         </ToggleGroup>
       </div>
-      <ItemSurface className="h-28" size="field">
+      <Surface className="h-28" size="field">
         <svg
           aria-label={`Synthetic signal ${mode}`}
           className="size-full"
@@ -125,7 +126,7 @@ function SignalSurface({
             vectorEffect="non-scaling-stroke"
           />
         </svg>
-      </ItemSurface>
+      </Surface>
     </div>
   )
 }

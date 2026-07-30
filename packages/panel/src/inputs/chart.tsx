@@ -30,8 +30,8 @@ import type {
   YAxis,
 } from 'recharts'
 import { PicodashItem, type PicodashDisplayItemProps } from '../components/panel/PicodashItem.js'
-import { ItemEmptyState } from '../components/ui/item-empty-state.js'
-import { ItemSurface } from '../components/ui/item-surface.js'
+import { EmptyState } from '../components/dashlet/states.js'
+import { Surface } from '../components/dashlet/visualization.js'
 import type { PicodashValue } from '../components/panel/PicodashPanel.js'
 import type { DistributiveOmit } from './internal/built-in-validation.js'
 
@@ -192,7 +192,7 @@ export function PicodashChart({
 
   return (
     <PicodashItem {...itemProps} contentLayout={contentLayout} readOnly valueMode="display">
-      <ItemSurface
+      <Surface
         ref={chartSurfaceRef}
         className={`col-span-full text-(length:--picodash-font-size-md) ${chartClassName ?? ''}`}
         size="field"
@@ -213,20 +213,20 @@ export function PicodashChart({
         ) : (
           <PicodashChartFallback />
         )}
-      </ItemSurface>
+      </Surface>
     </PicodashItem>
   )
 }
 
 function PicodashChartFallback() {
   return (
-    <ItemEmptyState
+    <EmptyState
       aria-label="Loading chart"
       className="size-full min-h-0 rounded-none border-0 bg-transparent"
       role="status"
     >
       <span className="sr-only">Loading chart</span>
-    </ItemEmptyState>
+    </EmptyState>
   )
 }
 

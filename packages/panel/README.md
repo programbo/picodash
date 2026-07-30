@@ -36,7 +36,8 @@ focused fixtures at `/lab/panel-geometry`, `/lab/panel-interaction`, and `/lab/d
 
 Compound dashlets currently compose through:
 
-- `@picodash/panel/dashlet` for shell structures (`Frame`, `Header`, `Body`, `Toolbar`, etc.).
+- `@picodash/panel/dashlet` for semantic anatomy, readouts, structured data, visualization, and
+  state elements.
 - `@picodash/panel/ui` for interactive tokens-aware primitives.
 
 Panel built-ins are still normalizing typed field-handle integration from `@picodash/store`; field
@@ -68,14 +69,15 @@ These components use the `aria-rhea` React Aria contracts, including `id`, `sele
 `onSelectionChange`, `isDisabled`, `onAction`, and `data-selected`. Add or update shared shadcn
 components from `packages/panel`; consuming workspaces should not install duplicate copies.
 
-Structural dashlet exports are from `@picodash/panel/dashlet`:
+Semantic Dashlet composition exports are from `@picodash/panel/dashlet`:
 
 ```tsx
-import { Frame, Header, Heading, Body, Footer, Toolbar } from '@picodash/panel/dashlet'
+import * as Dashlet from '@picodash/panel/dashlet'
 ```
 
-Use `/dashlet` for shell/structure and `/ui` for control-building blocks. For the migration window,
-prefer string-based `field` names in built-ins where needed until handle-based wiring completes.
+Use `/dashlet` for compound Dashlet composition and `/ui` for accessible interactive controls. For
+the migration window, prefer string-based `field` names in built-ins where needed until
+handle-based wiring completes.
 
 ### Third-party dashlet UI toolkit
 
@@ -103,9 +105,9 @@ Every exported primitive has a named `*Props` type, and interaction props follow
 attributes). Prefer component `variant` and `size` props over importing implementation-level
 class helpers. Import `@picodash/panel/style.css` once at the application root; its semantic
 `--picodash-*` tokens provide the light, dark, system, and consumer-defined theme contract for
-custom markup and visualizations. Use `ItemSurface`, `ItemCaption`, `ItemLegend`,
-`ItemLegendItem`, and `ItemEmptyState` for common visualization and empty-state compositions. For
-visualization surfaces, use the public
+custom markup and visualizations. Use `Dashlet.Surface`, `Dashlet.Caption`, `Dashlet.Legend`,
+`Dashlet.LegendItem`, and `Dashlet.EmptyState` for common visualization and empty-state
+compositions. For visualization surfaces, use the public
 `--picodash-color-well` token and the `--picodash-color-data-1`, `--picodash-color-data-2`,
 `--picodash-color-data-3`, `--picodash-color-data-4`, and `--picodash-color-data-5` palette. Root
 overlays retain the provider portal/theme contract, while nested menus stay in their parent

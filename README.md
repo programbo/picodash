@@ -28,13 +28,13 @@ Canonical references for implementation and roadmap:
 
 Picodash is composed from two primary reusable layers:
 
-- `@picodash/panel/dashlet`: structural dashlet building blocks (`Frame`, `Header`, `Body`,
-  `Footer`, etc.).
+- `@picodash/panel/dashlet`: semantic Dashlet anatomy, readouts, structured data, visualization,
+  and state elements (`Frame`, `Metric`, `DataList`, `Surface`, `EmptyState`, etc.).
 - `@picodash/panel/ui`: shared, theme-aware primitive components (`Button`, `Card`, `Input`,
   `Select`, `Slider`, `Tabs`, overlays, and related elements).
 
-Use `/dashlet` for compound shell composition and `/ui` for control internals. Keep app semantics in
-`@picodash/store` and consume values through store selectors and panel APIs.
+Use `/dashlet` for compound Dashlet composition and `/ui` for accessible interactive controls. Keep
+app semantics in `@picodash/store` and consume values through store selectors and panel APIs.
 
 ### `apps/web` route topology
 
@@ -158,9 +158,9 @@ and the other form, overlay, and layout primitives). Every exported primitive ha
 `*Props` type, and all interaction props use the package's React Aria contracts. Use component
 `variant` and `size` props rather than implementation-level class helpers. Import the package
 stylesheet once and build custom surfaces from semantic `--picodash-*` tokens so they follow
-dark, light, system, and consumer-defined themes. Visualization dashlets can use `ItemSurface`,
-`ItemCaption`, `ItemLegend`, `ItemLegendItem`, and `ItemEmptyState` alongside the public
-`--picodash-color-well` surface token and the `--picodash-color-data-1`,
+dark, light, system, and consumer-defined themes. Visualization dashlets can use `Surface`,
+`Caption`, `Legend`, `LegendItem`, and `EmptyState` from `@picodash/panel/dashlet` alongside the
+public `--picodash-color-well` surface token and the `--picodash-color-data-1`,
 `--picodash-color-data-2`, `--picodash-color-data-3`, `--picodash-color-data-4`, and
 `--picodash-color-data-5` palette; provider overlays keep their portal and theme carrier behavior.
 
