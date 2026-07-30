@@ -11,13 +11,9 @@ import {
   type ReactNode,
   type SetStateAction,
 } from 'react'
-import {
-  PicodashProvider,
-  usePicodashPanelStoreSelector,
-  usePicodashTheme,
-  type PicodashGradientValue,
-} from '@picodash/panel'
+import { PicodashProvider, usePicodashTheme, type PicodashGradientValue } from '@picodash/panel'
 import { gradientCssValue } from '@picodash/panel/advanced'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 import {
   BuiltInItemsPanel,
   builtInItemsPanelStore,
@@ -150,11 +146,11 @@ export function useDemoContext() {
 
 function DemoBackground() {
   const resolvedProviderTheme = usePicodashTheme()
-  const backgroundGradient = usePicodashPanelStoreSelector(
+  const backgroundGradient = usePicodashStoreSelector(
     builtInItemsPanelStore,
     (state) => state.values.gradient,
   )
-  const backgroundRotation = usePicodashPanelStoreSelector(
+  const backgroundRotation = usePicodashStoreSelector(
     builtInItemsPanelStore,
     (state) => state.values.gradientRotation,
   )

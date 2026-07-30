@@ -3,13 +3,14 @@
 import { useMemo } from 'react'
 import { darkStyles, JsonView } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
-import { usePicodashPanelStoreSelector } from '@picodash/panel'
-import type { PicodashPanelState } from '@picodash/panel/advanced'
+import type { PicodashStoreState } from '@picodash/store'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 import { builtInItemsPanelStore } from '@/components/items/built-in/built-in-items-panel'
+import type { BuiltInItemValues } from '@/components/items/built-in/built-in-items-panel'
 import { HomeContent, HomeFrame } from '@/components/home/home-frame'
 
 export function HomeStore() {
-  const panelState = usePicodashPanelStoreSelector(builtInItemsPanelStore, (state) => state)
+  const panelState = usePicodashStoreSelector(builtInItemsPanelStore, (state) => state)
   const panelStoreSnapshot = useMemo(() => snapshotForDisplay(panelState), [panelState])
 
   return (
@@ -37,29 +38,31 @@ export function HomeStore() {
   )
 }
 
-function snapshotForDisplay(state: PicodashPanelState) {
+function snapshotForDisplay(state: PicodashStoreState<BuiltInItemValues>) {
   return {
     panelId: state.panelId,
     values: state.values,
-    meta: state.meta,
-    order: state.order,
-    collapsedGroups: state.collapsedGroups,
-    fields: state.fields,
+    fieldStates: state.fieldStates,
+    itemMetadata: state.itemMetadata,
     items: Object.fromEntries(
       Object.entries(state.items).map(([id, item]) => [
         id,
         {
+          bindings: item.bindings.map((binding) => ({
+            alias: binding.alias,
+            field: binding.field.key,
+            mode: binding.mode,
+            presentation: binding.presentation,
+          })),
+          collapsible: item.collapsible,
+          defaultCollapsed: item.defaultCollapsed,
+          hidden: item.hidden,
           id: item.id,
           kind: item.kind,
-          field: item.field,
           label: item.label,
           parentId: item.parentId,
           pin: item.pin,
           reorderable: item.reorderable,
-          hidden: item.hidden,
-          collapsible: item.collapsible,
-          defaultCollapsed: item.defaultCollapsed,
-          valueMode: item.valueMode,
         },
       ]),
     ),

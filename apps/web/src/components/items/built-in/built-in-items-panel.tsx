@@ -1,6 +1,5 @@
 import { TextAlignCenter, TextAlignEnd, TextAlignStart, type LucideIcon } from 'lucide-react'
 import {
-  createPicodashPanelStore,
   PicodashDisplay,
   PicodashDropzone,
   PicodashGradient,
@@ -17,12 +16,18 @@ import {
   PicodashText,
   PicodashVector3,
   PicodashXYPad,
-  usePicodashPanelStoreSelector,
+  type PicodashDropzoneValue,
+  type PicodashGradientValue,
   type PicodashMatrix2DOption,
   type PicodashPanelDockedPosition,
   type PicodashPanelPlacement,
+  type PicodashRangeValue,
   type PicodashPanelSnappedPosition,
+  type PicodashVector3Value,
+  type PicodashXYValue,
 } from '@picodash/panel'
+import { createPicodashStore, type PicodashJsonValue, type PicodashParser } from '@picodash/store'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 import { ShadcnChartItem } from '@/components/items/custom/shadcn-chart'
 import { StreamingSparklineItem } from '@/components/items/custom/streaming-sparkline'
 
@@ -349,10 +354,187 @@ export const builtInItemDefaults = {
   xyPad: { x: 0.68, y: 0.32 },
 }
 
-export const builtInItemsPanelStore = createPicodashPanelStore({
-  initialValues: builtInItemDefaults,
+export type AlignmentValue =
+  | 'bottom-center'
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'center'
+  | 'middle-left'
+  | 'middle-right'
+  | 'top-center'
+  | 'top-left'
+  | 'top-right'
+
+export interface BuiltInItemValues {
+  alignment: AlignmentValue
+  display: string
+  droppedFiles: PicodashDropzoneValue
+  gradient: PicodashGradientValue
+  gradientRotation: number
+  multilineText: string
+  number: number
+  previewAsset: string
+  range: PicodashRangeValue
+  segmented: string
+  select: string
+  slider: number
+  sliderMarks: number
+  switch: boolean
+  text: string
+  vector3: PicodashVector3Value
+  xyPad: PicodashXYValue
+}
+
+const stringParser = parserFor<string>(
+  (value): value is string => typeof value === 'string',
+  'Value must be a string.',
+)
+const finiteNumberParser = parserFor<number>(
+  (value): value is number => typeof value === 'number' && Number.isFinite(value),
+  'Value must be a finite number.',
+)
+
+export const builtInItemsPanelStore = createPicodashStore<BuiltInItemValues>({
+  fields: {
+    alignment: {
+      defaultValue: builtInItemDefaults.alignment,
+      parse: parserFor<AlignmentValue>(
+        (value): value is AlignmentValue =>
+          typeof value === 'string' &&
+          [
+            'bottom-center',
+            'bottom-left',
+            'bottom-right',
+            'center',
+            'middle-left',
+            'middle-right',
+            'top-center',
+            'top-left',
+            'top-right',
+          ].includes(value),
+        'Alignment must be one of the supported matrix positions.',
+      ),
+    },
+    display: { defaultValue: builtInItemDefaults.display, parse: stringParser },
+    droppedFiles: {
+      defaultValue: builtInItemDefaults.droppedFiles,
+      parse: parserFor<PicodashDropzoneValue>(
+        isDroppedFileMetadataList,
+        'Dropped files must be a list of serializable file metadata records.',
+      ),
+    },
+    gradient: {
+      defaultValue: builtInItemDefaults.gradient,
+      parse: parserFor<PicodashGradientValue>(
+        isGradientValue,
+        'Gradient stops must include a string id, hex color, and finite position.',
+      ),
+    },
+    gradientRotation: {
+      defaultValue: builtInItemDefaults.gradientRotation,
+      parse: finiteNumberParser,
+    },
+    multilineText: { defaultValue: builtInItemDefaults.multilineText, parse: stringParser },
+    number: { defaultValue: builtInItemDefaults.number, parse: finiteNumberParser },
+    previewAsset: { defaultValue: builtInItemDefaults.previewAsset, parse: stringParser },
+    range: {
+      defaultValue: builtInItemDefaults.range,
+      parse: parserFor<PicodashRangeValue>(
+        (value): value is PicodashRangeValue =>
+          Array.isArray(value) &&
+          value.length === 2 &&
+          value.every((entry) => typeof entry === 'number' && Number.isFinite(entry)),
+        'Range must contain two finite numbers.',
+      ),
+    },
+    segmented: { defaultValue: builtInItemDefaults.segmented, parse: stringParser },
+    select: { defaultValue: builtInItemDefaults.select, parse: stringParser },
+    slider: { defaultValue: builtInItemDefaults.slider, parse: finiteNumberParser },
+    sliderMarks: { defaultValue: builtInItemDefaults.sliderMarks, parse: finiteNumberParser },
+    switch: {
+      defaultValue: builtInItemDefaults.switch,
+      parse: parserFor<boolean>(
+        (value): value is boolean => typeof value === 'boolean',
+        'Value must be a boolean.',
+      ),
+    },
+    text: { defaultValue: builtInItemDefaults.text, parse: stringParser },
+    vector3: {
+      defaultValue: builtInItemDefaults.vector3,
+      parse: parserFor<PicodashVector3Value>(
+        isVector3Value,
+        'Vector3 must contain finite x, y, and z coordinates.',
+      ),
+    },
+    xyPad: {
+      defaultValue: builtInItemDefaults.xyPad,
+      parse: parserFor<PicodashXYValue>(
+        isXYValue,
+        'XY value must contain finite x and y coordinates.',
+      ),
+    },
+  },
   panelId: builtInItemsPanelId,
 })
+
+function parserFor<TValue extends PicodashJsonValue>(
+  accepts: (input: unknown) => input is TValue,
+  message: string,
+): PicodashParser<TValue, false> {
+  return ((input: unknown) =>
+    accepts(input)
+      ? { output: { value: input }, success: true }
+      : { errors: [message], success: false }) as PicodashParser<TValue, false>
+}
+
+function isFiniteCoordinate(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isXYValue(value: unknown): value is PicodashXYValue {
+  if (typeof value !== 'object' || value === null) return false
+  const candidate = value as Record<string, unknown>
+  return isFiniteCoordinate(candidate.x) && isFiniteCoordinate(candidate.y)
+}
+
+function isVector3Value(value: unknown): value is PicodashVector3Value {
+  if (!isXYValue(value)) return false
+  return isFiniteCoordinate((value as Record<string, unknown>).z)
+}
+
+function isGradientValue(value: unknown): value is PicodashGradientValue {
+  return (
+    Array.isArray(value) &&
+    value.length >= 2 &&
+    value.every((entry) => {
+      if (typeof entry !== 'object' || entry === null) return false
+      const stop = entry as Record<string, unknown>
+      return (
+        typeof stop.id === 'string' &&
+        typeof stop.color === 'string' &&
+        /^#[\da-f]{6}$/i.test(stop.color) &&
+        isFiniteCoordinate(stop.position)
+      )
+    })
+  )
+}
+
+function isDroppedFileMetadataList(value: unknown): value is PicodashDropzoneValue {
+  return (
+    Array.isArray(value) &&
+    value.every((entry) => {
+      if (typeof entry !== 'object' || entry === null) return false
+      const file = entry as Record<string, unknown>
+      return (
+        typeof file.id === 'string' &&
+        typeof file.name === 'string' &&
+        typeof file.type === 'string' &&
+        isFiniteCoordinate(file.lastModified) &&
+        isFiniteCoordinate(file.size)
+      )
+    })
+  )
+}
 
 const alignmentRows = [
   { className: 'items-start', label: 'Top', value: 'top' },
@@ -373,7 +555,14 @@ const alignmentColumns = [
 
 type AlignmentPosition =
   `${(typeof alignmentRows)[number]['value']}-${(typeof alignmentColumns)[number]['value']}`
-type AlignmentValue = Exclude<AlignmentPosition, 'middle-center'> | 'center'
+type InferredAlignmentValue = Exclude<AlignmentPosition, 'middle-center'> | 'center'
+
+const alignmentTypeCheck: AlignmentValue extends InferredAlignmentValue
+  ? InferredAlignmentValue extends AlignmentValue
+    ? true
+    : never
+  : never = true
+void alignmentTypeCheck
 
 export const alignmentOptions = alignmentRows.map((row, rowIndex) =>
   alignmentColumns.map((column, columnIndex) => ({
@@ -414,65 +603,58 @@ export const builtInPropTypes = {
   | PicodashRadarChartProps
   | PicodashRadialChartProps`,
   PicodashDisplay: `type PicodashDisplayProps = {
-  id: string
+  field?: PicodashField<Values, keyof Values>
+  id?: string
   label?: ReactNode
   value?: ReactiveProp<ReactNode>
   fallback?: ReactNode
 }`,
   PicodashDropzone: `type PicodashDropzoneProps = {
-  field: string
+  field: PicodashField<Values, keyof Values>
   accept?: Accept
   maxFiles?: number
   maxSize?: number
   showPreviews?: boolean
 }`,
   PicodashGradient: `type PicodashGradientProps = {
-  field: string
-  defaultValue?: GradientStop[]
-  defaultRotation?: number
-  rotationField?: string
+  field: PicodashField<Values, keyof Values>
+  rotationField?: PicodashField<Values, keyof Values>
 }`,
   PicodashMatrix2D: `type PicodashMatrix2DProps<T> = {
-  field: string
-  defaultValue?: T
+  field: PicodashField<Values, keyof Values>
   options: Matrix2DOption<T>[][]
   containerProps?: ComponentProps<"div">
   selectionRole?: "radio" | "toggle"
   validationMessage?: string
 }`,
   PicodashMediaPreview: `type PicodashMediaPreviewProps = {
-  field: string
+  field: PicodashField<Values, keyof Values>
   src?: ReactiveProp<string>
   alt: string
   objectFit?: CSSProperties["objectFit"]
 }`,
   PicodashNumber: `type PicodashNumberProps = {
-  field: string
-  defaultValue?: number
+  field: PicodashField<Values, keyof Values>
   min?: ReactiveProp<number>
   max?: ReactiveProp<number>
   step?: ReactiveProp<number>
 }`,
   PicodashRange: `type PicodashRangeProps = {
-  field: string
-  defaultValue?: [number, number]
+  field: PicodashField<Values, keyof Values>
   min?: ReactiveProp<number>
   max?: ReactiveProp<number>
   step?: ReactiveProp<number>
 }`,
   PicodashSegmented: `type PicodashSegmentedProps = {
-  field: string
-  defaultValue?: string
+  field: PicodashField<Values, keyof Values>
   options: SegmentedOption[]
 }`,
   PicodashSelect: `type PicodashSelectProps = {
-  field: string
-  defaultValue?: string
+  field: PicodashField<Values, keyof Values>
   options: ReactiveProp<SelectOption[]>
 }`,
   PicodashSlider: `type PicodashSliderProps = {
-  field: string
-  defaultValue?: number
+  field: PicodashField<Values, keyof Values>
   min?: ReactiveProp<number>
   max?: ReactiveProp<number>
   step?: ReactiveProp<number>
@@ -496,25 +678,21 @@ export const builtInPropTypes = {
   | { autoscale?: false; minValue?: number; maxValue?: number }
 )`,
   PicodashSwitch: `type PicodashSwitchProps = {
-  field: string
-  defaultValue?: boolean
+  field: PicodashField<Values, keyof Values>
 }`,
   PicodashText: `type PicodashTextProps = {
-  field: string
-  defaultValue?: string
+  field: PicodashField<Values, keyof Values>
   placeholder?: string
   multiline?: boolean
 }`,
   PicodashVector3: `type PicodashVector3Props = {
-  field: string
-  defaultValue?: { x: number; y: number; z: number }
+  field: PicodashField<Values, keyof Values>
   min?: ReactiveProp<number>
   max?: ReactiveProp<number>
   step?: ReactiveProp<number>
 }`,
   PicodashXYPad: `type PicodashXYPadProps = {
-  field: string
-  defaultValue?: { x: number; y: number }
+  field: PicodashField<Values, keyof Values>
   xMin?: ReactiveProp<number>
   xMax?: ReactiveProp<number>
   yMin?: ReactiveProp<number>
@@ -541,11 +719,11 @@ export function BuiltInItemsPanel({
 }: {
   config?: BuiltInItemsExampleConfig
 }) {
-  const rootOrder = usePicodashPanelStoreSelector(
+  const rootOrder = usePicodashStoreSelector(
     builtInItemsPanelStore,
-    (state) => state.order.root,
+    (state) => state.itemMetadata.order.root ?? [],
   )
-  const draggingId = usePicodashPanelStoreSelector(
+  const draggingId = usePicodashStoreSelector(
     builtInItemsPanelStore,
     (state) => state.interaction.draggingId,
   )
@@ -574,26 +752,23 @@ export function BuiltInItemsPanel({
       >
         <PicodashText
           {...config.itemProps.text}
-          field="text"
+          field={builtInItemsPanelStore.fields.text}
           label="Text"
-          defaultValue={builtInItemDefaults.text}
           help={propTypeHelp('PicodashText')}
           placeholder="Enter text"
         />
         <PicodashText
           {...config.itemProps.multilineText}
-          field="multilineText"
+          field={builtInItemsPanelStore.fields.multilineText}
           label="Text"
-          defaultValue={builtInItemDefaults.multilineText}
           help={propTypeHelp('PicodashText')}
           multiline={config.multiline}
           placeholder="Enter longer text"
         />
         <PicodashNumber
           {...config.itemProps.number}
-          field="number"
+          field={builtInItemsPanelStore.fields.number}
           label="Number"
-          defaultValue={builtInItemDefaults.number}
           help={propTypeHelp('PicodashNumber')}
           min={config.numberMin}
           max={config.numberMax}
@@ -601,24 +776,21 @@ export function BuiltInItemsPanel({
         />
         <PicodashSwitch
           {...config.itemProps.switch}
-          field="switch"
+          field={builtInItemsPanelStore.fields.switch}
           label="Switch"
-          defaultValue={builtInItemDefaults.switch}
           help={propTypeHelp('PicodashSwitch')}
         />
         <PicodashSelect
           {...config.itemProps.select}
-          field="select"
+          field={builtInItemsPanelStore.fields.select}
           label="Select"
-          defaultValue={builtInItemDefaults.select}
           help={propTypeHelp('PicodashSelect')}
           options={densityOptions}
         />
         <PicodashSlider
           {...config.itemProps.slider}
-          field="slider"
+          field={builtInItemsPanelStore.fields.slider}
           label="Slider"
-          defaultValue={builtInItemDefaults.slider}
           help={propTypeHelp('PicodashSlider')}
           min={config.sliderMin}
           max={config.sliderMax}
@@ -626,9 +798,8 @@ export function BuiltInItemsPanel({
         />
         <PicodashSlider
           {...config.itemProps.sliderMarks}
-          field="sliderMarks"
+          field={builtInItemsPanelStore.fields.sliderMarks}
           label="Slider"
-          defaultValue={builtInItemDefaults.sliderMarks}
           help={propTypeHelp('PicodashSlider')}
           min={config.sliderMarksMin}
           max={config.sliderMarksMax}
@@ -638,9 +809,8 @@ export function BuiltInItemsPanel({
         />
         <PicodashRange
           {...config.itemProps.range}
-          field="range"
+          field={builtInItemsPanelStore.fields.range}
           label="Range"
-          defaultValue={builtInItemDefaults.range}
           help={propTypeHelp('PicodashRange')}
           min={config.rangeMin}
           max={config.rangeMax}
@@ -648,17 +818,15 @@ export function BuiltInItemsPanel({
         />
         <PicodashSegmented
           {...config.itemProps.segmented}
-          field="segmented"
+          field={builtInItemsPanelStore.fields.segmented}
           label="Segmented"
-          defaultValue={builtInItemDefaults.segmented}
           help={propTypeHelp('PicodashSegmented')}
           options={segmentedOptions}
         />
         <PicodashVector3
           {...config.itemProps.vector3}
-          field="vector3"
+          field={builtInItemsPanelStore.fields.vector3}
           label="Vector3"
-          defaultValue={builtInItemDefaults.vector3}
           help={propTypeHelp('PicodashVector3')}
           max={config.vectorMax}
           min={config.vectorMin}
@@ -666,9 +834,8 @@ export function BuiltInItemsPanel({
         />
         <PicodashMatrix2D
           {...config.itemProps.alignment}
-          field="alignment"
+          field={builtInItemsPanelStore.fields.alignment}
           label="Matrix2D"
-          defaultValue={builtInItemDefaults.alignment}
           help={propTypeHelp('PicodashMatrix2D')}
           containerProps={alignmentContainerProps}
           options={alignmentOptions}
@@ -684,9 +851,8 @@ export function BuiltInItemsPanel({
       >
         <PicodashXYPad
           {...config.itemProps.xyPad}
-          field="xyPad"
+          field={builtInItemsPanelStore.fields.xyPad}
           label="XYPad"
-          defaultValue={builtInItemDefaults.xyPad}
           help={propTypeHelp('PicodashXYPad')}
           step={config.xyPadStep}
           xMax={config.xyPadXMax}
@@ -696,12 +862,10 @@ export function BuiltInItemsPanel({
         />
         <PicodashGradient
           {...config.itemProps.gradient}
-          defaultRotation={builtInItemDefaults.gradientRotation}
-          field="gradient"
+          field={builtInItemsPanelStore.fields.gradient}
           label="Gradient"
-          defaultValue={builtInItemDefaults.gradient}
           help={propTypeHelp('PicodashGradient')}
-          rotationField="gradientRotation"
+          rotationField={builtInItemsPanelStore.fields.gradientRotation}
         />
       </PicodashGroup>
 
@@ -709,7 +873,7 @@ export function BuiltInItemsPanel({
         <PicodashMediaPreview
           {...config.itemProps.previewAsset}
           alt="Picodash mark"
-          field="previewAsset"
+          field={builtInItemsPanelStore.fields.previewAsset}
           label="MediaPreview"
           help={propTypeHelp('PicodashMediaPreview')}
           src="/favicon.svg"
@@ -717,7 +881,7 @@ export function BuiltInItemsPanel({
         <PicodashDropzone
           {...config.itemProps.droppedFiles}
           accept={{ 'image/*': ['.avif', '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp'] }}
-          field="droppedFiles"
+          field={builtInItemsPanelStore.fields.droppedFiles}
           label="Dropzone"
           help={propTypeHelp('PicodashDropzone')}
           maxFiles={config.dropzoneMaxFiles}
@@ -759,10 +923,9 @@ export function BuiltInItemsPanel({
         />
         <PicodashDisplay
           {...config.itemProps.display}
-          id="display"
+          field={builtInItemsPanelStore.fields.display}
           label="Display"
           help={propTypeHelp('PicodashDisplay')}
-          value={builtInItemDefaults.display}
         />
       </PicodashGroup>
     </PicodashPanel>

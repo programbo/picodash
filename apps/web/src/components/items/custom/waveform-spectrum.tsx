@@ -3,13 +3,18 @@ import { useEffect } from 'react'
 import { PicodashItem } from '@picodash/panel'
 import { Caption, Surface } from '@picodash/panel/dashlet'
 import { ToggleGroup, ToggleGroupItem } from '@picodash/panel/ui'
+import type { PicodashField } from '@picodash/store'
 
-type SignalMode = 'spectrum' | 'waveform'
+export type SignalMode = 'spectrum' | 'waveform'
 
 const width = 320
 const height = 96
 
-export function WaveformSpectrumItem() {
+export function WaveformSpectrumItem({
+  field,
+}: {
+  field: PicodashField<Record<string, SignalMode>, string>
+}) {
   const path = useMotionValue(waveformPath(0))
   const prefersReducedMotion = useReducedMotion()
 
@@ -17,9 +22,8 @@ export function WaveformSpectrumItem() {
     <PicodashItem<SignalMode>
       id="signal-visualizer"
       contentLayout="block"
-      defaultValue="waveform"
       description="A deterministic synthetic signal rendered straight into an SVG path MotionValue."
-      field="signalMode"
+      field={field}
       label="Signal view"
       reorderable={false}
     >

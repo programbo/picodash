@@ -5,14 +5,14 @@ import typescript from 'highlight.js/lib/languages/typescript'
 import { Check, Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { usePicodashPanel, usePicodashPanelStoreSelector } from '@picodash/panel'
+import { usePicodashPanel } from '@picodash/panel'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 import { Tooltip, TooltipTrigger } from '@picodash/panel/ui'
 import {
   alignmentContainerProps,
   alignmentOptions,
   builtInItemsPanelId,
   builtInPropTypes,
-  builtInItemDefaults,
   builtInItemsPanelStore,
   builtInPanelPlacementPositions,
   closestBuiltInPanelPlacementPosition,
@@ -115,26 +115,16 @@ function commonInputLinesForConfig(
     {
       name: 'PicodashText',
       props: {
-        field: { kind: 'string', value: 'text' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.text' },
         label: { kind: 'string', value: 'Text' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.text,
-          kind: 'expression',
-          value: 'builtInItemDefaults.text',
-        },
         placeholder: { kind: 'string', value: 'Enter text' },
       },
     },
     {
       name: 'PicodashText',
       props: {
-        field: { kind: 'string', value: 'multilineText' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.multilineText' },
         label: { kind: 'string', value: 'Text' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.multilineText,
-          kind: 'expression',
-          value: 'builtInItemDefaults.multilineText',
-        },
         multiline: editableBoolean('multiline', 'Multiline text'),
         placeholder: { kind: 'string', value: 'Enter longer text' },
       },
@@ -142,13 +132,8 @@ function commonInputLinesForConfig(
     {
       name: 'PicodashNumber',
       props: {
-        field: { kind: 'string', value: 'number' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.number' },
         label: { kind: 'string', value: 'Number' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.number,
-          kind: 'expression',
-          value: 'builtInItemDefaults.number',
-        },
         min: editableNumber('numberMin', 'Number minimum'),
         max: editableNumber('numberMax', 'Number maximum'),
         step: editableNumber('numberStep', 'Number step', 0.01, 100),
@@ -157,38 +142,23 @@ function commonInputLinesForConfig(
     {
       name: 'PicodashSwitch',
       props: {
-        field: { kind: 'string', value: 'switch' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.switch' },
         label: { kind: 'string', value: 'Switch' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.switch,
-          kind: 'expression',
-          value: 'builtInItemDefaults.switch',
-        },
       },
     },
     {
       name: 'PicodashSelect',
       props: {
-        field: { kind: 'string', value: 'select' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.select' },
         label: { kind: 'string', value: 'Select' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.select,
-          kind: 'expression',
-          value: 'builtInItemDefaults.select',
-        },
         options: { jsonValue: densityOptions, kind: 'expression', value: 'densityOptions' },
       },
     },
     {
       name: 'PicodashSlider',
       props: {
-        field: { kind: 'string', value: 'slider' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.slider' },
         label: { kind: 'string', value: 'Slider' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.slider,
-          kind: 'expression',
-          value: 'builtInItemDefaults.slider',
-        },
         min: editableNumber('sliderMin', 'Slider minimum'),
         max: editableNumber('sliderMax', 'Slider maximum'),
         step: editableNumber('sliderStep', 'Slider step', 0.01, 100),
@@ -197,13 +167,8 @@ function commonInputLinesForConfig(
     {
       name: 'PicodashSlider',
       props: {
-        field: { kind: 'string', value: 'sliderMarks' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.sliderMarks' },
         label: { kind: 'string', value: 'Slider' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.sliderMarks,
-          kind: 'expression',
-          value: 'builtInItemDefaults.sliderMarks',
-        },
         min: editableNumber('sliderMarksMin', 'Marked slider minimum', -10, 10),
         max: editableNumber('sliderMarksMax', 'Marked slider maximum', -10, 10),
         step: editableNumber('sliderMarksStep', 'Marked slider step', 0.001, 1),
@@ -218,13 +183,8 @@ function commonInputLinesForConfig(
     {
       name: 'PicodashRange',
       props: {
-        field: { kind: 'string', value: 'range' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.range' },
         label: { kind: 'string', value: 'Range' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.range,
-          kind: 'expression',
-          value: 'builtInItemDefaults.range',
-        },
         min: editableNumber('rangeMin', 'Range minimum'),
         max: editableNumber('rangeMax', 'Range maximum'),
         step: editableNumber('rangeStep', 'Range step', 0.01, 100),
@@ -233,13 +193,8 @@ function commonInputLinesForConfig(
     {
       name: 'PicodashSegmented',
       props: {
-        field: { kind: 'string', value: 'segmented' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.segmented' },
         label: { kind: 'string', value: 'Segmented' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.segmented,
-          kind: 'expression',
-          value: 'builtInItemDefaults.segmented',
-        },
         options: {
           jsonValue: segmentedOptions,
           kind: 'expression',
@@ -250,13 +205,8 @@ function commonInputLinesForConfig(
     {
       name: 'PicodashVector3',
       props: {
-        field: { kind: 'string', value: 'vector3' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.vector3' },
         label: { kind: 'string', value: 'Vector3' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.vector3,
-          kind: 'expression',
-          value: 'builtInItemDefaults.vector3',
-        },
         min: editableNumber('vectorMin', 'Vector3 minimum'),
         max: editableNumber('vectorMax', 'Vector3 maximum'),
         step: editableNumber('vectorStep', 'Vector3 step', 0.01, 100),
@@ -265,13 +215,8 @@ function commonInputLinesForConfig(
     {
       name: 'PicodashMatrix2D',
       props: {
-        field: { kind: 'string', value: 'alignment' },
+        field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.alignment' },
         label: { kind: 'string', value: 'Matrix2D' },
-        defaultValue: {
-          jsonValue: builtInItemDefaults.alignment,
-          kind: 'expression',
-          value: 'builtInItemDefaults.alignment',
-        },
         containerProps: {
           jsonValue: alignmentContainerProps,
           kind: 'expression',
@@ -351,13 +296,8 @@ function remainingGroupsForConfig(
         {
           name: 'PicodashXYPad',
           props: {
-            field: { kind: 'string', value: 'xyPad' },
+            field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.xyPad' },
             label: { kind: 'string', value: 'XYPad' },
-            defaultValue: {
-              jsonValue: builtInItemDefaults.xyPad,
-              kind: 'expression',
-              value: 'builtInItemDefaults.xyPad',
-            },
             step: editableNumber('xyPadStep', 'XYPad step', 0.001, 1),
             xMin: editableNumber('xyPadXMin', 'XYPad X minimum', -100, 100),
             xMax: editableNumber('xyPadXMax', 'XYPad X maximum', -100, 100),
@@ -368,19 +308,12 @@ function remainingGroupsForConfig(
         {
           name: 'PicodashGradient',
           props: {
-            field: { kind: 'string', value: 'gradient' },
+            field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.gradient' },
             label: { kind: 'string', value: 'Gradient' },
-            defaultValue: {
-              jsonValue: builtInItemDefaults.gradient,
+            rotationField: {
               kind: 'expression',
-              value: 'builtInItemDefaults.gradient',
+              value: 'builtInItemsPanelStore.fields.gradientRotation',
             },
-            defaultRotation: {
-              jsonValue: builtInItemDefaults.gradientRotation,
-              kind: 'expression',
-              value: 'builtInItemDefaults.gradientRotation',
-            },
-            rotationField: { kind: 'string', value: 'gradientRotation' },
           },
         },
       ],
@@ -393,7 +326,7 @@ function remainingGroupsForConfig(
           controlId: 'previewAsset',
           name: 'PicodashMediaPreview',
           props: {
-            field: { kind: 'string', value: 'previewAsset' },
+            field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.previewAsset' },
             label: { kind: 'string', value: 'MediaPreview' },
             alt: { kind: 'string', value: 'Picodash mark' },
             src: { kind: 'string', value: '/favicon.svg' },
@@ -403,7 +336,7 @@ function remainingGroupsForConfig(
           controlId: 'droppedFiles',
           name: 'PicodashDropzone',
           props: {
-            field: { kind: 'string', value: 'droppedFiles' },
+            field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.droppedFiles' },
             label: { kind: 'string', value: 'Dropzone' },
             accept: {
               jsonValue: { 'image/*': ['.avif', '.gif', '.jpeg', '.jpg', '.png', '.svg', '.webp'] },
@@ -495,13 +428,8 @@ function remainingGroupsForConfig(
           controlId: 'display',
           name: 'PicodashDisplay',
           props: {
-            id: { kind: 'string', value: 'display' },
+            field: { kind: 'expression', value: 'builtInItemsPanelStore.fields.display' },
             label: { kind: 'string', value: 'Display' },
-            value: {
-              jsonValue: builtInItemDefaults.display,
-              kind: 'expression',
-              value: 'builtInItemDefaults.display',
-            },
           },
         },
       ],
@@ -750,11 +678,11 @@ export function HomeCode() {
   const [copyStatus, setCopyStatus] = useState<'copied' | 'error' | 'idle'>('idle')
   const [showAllProps, setShowAllProps] = useState(false)
   const panelController = usePicodashPanel(builtInItemsPanelId)
-  const focusedField = usePicodashPanelStoreSelector(
+  const focusedField = usePicodashStoreSelector(
     builtInItemsPanelStore,
     (state) => state.interaction.focusedId,
   )
-  const hoveredField = usePicodashPanelStoreSelector(
+  const hoveredField = usePicodashStoreSelector(
     builtInItemsPanelStore,
     (state) => state.interaction.hoveredId,
   )
@@ -1341,7 +1269,7 @@ function StaticControlLine({
   const displayedProps = Object.entries(propsForLine({ controlId, name, props })).filter(
     ([, value]) => showAllProps || !value.hidden,
   )
-  const resolvedControlId = String(controlId ?? props.field?.value ?? props.id?.value ?? name)
+  const resolvedControlId = controlIdForLine({ controlId, name, props })
 
   return (
     <span
@@ -1467,7 +1395,10 @@ function hiddenProp(value: StaticPropValue): StaticPropValue {
 }
 
 function controlIdForLine(line: CommonInputLine) {
-  return String(line.controlId ?? line.props.field?.value ?? line.props.id?.value ?? line.name)
+  const identifier = String(
+    line.controlId ?? line.props.field?.value ?? line.props.id?.value ?? line.name,
+  )
+  return identifier.split('.').at(-1) ?? identifier
 }
 
 function InlineText({

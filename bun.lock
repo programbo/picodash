@@ -16,6 +16,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@picodash/panel": "workspace:*",
+        "@picodash/store": "workspace:*",
         "clsx": "catalog:",
         "highlight.js": "catalog:",
         "lucide-react": "catalog:",
@@ -44,6 +45,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@picodash/panel": "workspace:*",
+        "@picodash/store": "workspace:*",
         "clsx": "catalog:",
         "highlight.js": "catalog:",
         "lucide-react": "catalog:",
