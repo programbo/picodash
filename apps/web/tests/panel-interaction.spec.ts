@@ -222,6 +222,7 @@ test('raises overlays opened inside a dialog above its modal layer', async ({ pa
   const dialog = page.getByRole('dialog', { name: 'Nested overlay fixture' })
   const dialogOverlay = page.locator('[data-slot="dialog-overlay"]').filter({ has: dialog })
   const dialogZIndex = await computedZIndex(dialogOverlay)
+  expect(dialogZIndex).toBe(5000)
 
   await dialog.getByRole('button', { name: 'Open nested menu' }).click()
   const menu = page.getByRole('menu', { name: 'Open nested menu' })

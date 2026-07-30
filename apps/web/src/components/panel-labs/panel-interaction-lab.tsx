@@ -144,7 +144,7 @@ function NestedOverlayFixture() {
       <Button className={`${triggerClassName} fixed right-3 bottom-3 z-1100`}>
         Open nested overlays
       </Button>
-      <Dialog>
+      <Dialog overlayStyle={{ zIndex: 5000 }}>
         <DialogTitle>Nested overlay fixture</DialogTitle>
         <div className="grid gap-3">
           <DropdownMenuTrigger>

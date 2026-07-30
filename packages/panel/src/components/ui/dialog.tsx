@@ -120,7 +120,7 @@ function Dialog({
       parentZIndex,
     })
   const resolvedOverlayZIndex = overlayStyle?.zIndex ?? resolvedZIndex
-  const childLayerZIndex = resolvedZIndex ?? resolvedOverlayZIndex ?? 'var(--picodash-layer-dialog)'
+  const childLayerZIndex = resolvedOverlayZIndex ?? 'var(--picodash-layer-dialog)'
 
   const [descriptionIds, setDescriptionIds] = React.useState<readonly string[]>([])
   const registerDescription = React.useCallback((descriptionId: string) => {
