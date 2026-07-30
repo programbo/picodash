@@ -1,13 +1,36 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { createPicodashFields, picodashOwnerOwnsField } from './fields.js'
+import {
+  initialPicodashInteractionState,
+  removePicodashItemInteraction,
+  setPicodashDraggingItem,
+  setPicodashFocusedItem,
+  setPicodashHoveredItem,
+  setPicodashInteractionActive,
+} from './interaction.js'
+import {
+  picodashRegisteredItemsEqual,
+  picodashRootItemId,
+  registeredWritableFields,
+  resolvePicodashItemRegistration,
+} from './items.js'
 import { clonePicodashValue } from './json.js'
+import {
+  movePicodashItemRelativeTo,
+  movePicodashItemToIndex,
+  normalizePicodashOrders,
+  normalizePicodashParentOrder,
+  picodashItemCanReorder,
+} from './order.js'
 import type {
   PicodashField,
   PicodashFieldDefinition,
   PicodashFieldOutput,
   PicodashInferredFieldDefinition,
   PicodashInferredStoreOptions,
+  PicodashItemMetadata,
   PicodashJsonValue,
+  PicodashRegisteredItem,
   PicodashRepairChange,
   PicodashRepairProposal,
   PicodashStore,
@@ -22,7 +45,10 @@ import { resolvePicodashFieldValue } from './validation.js'
 
 type Values = Record<string, PicodashJsonValue>
 type State = PicodashStoreState<Values>
-type DataState = Pick<State, 'fieldStates' | 'panelId' | 'repairProposal' | 'values'>
+type DataState = Pick<
+  State,
+  'fieldStates' | 'interaction' | 'itemMetadata' | 'items' | 'panelId' | 'repairProposal' | 'values'
+>
 
 export function createPicodashStore<
   TValues extends object = never,
@@ -39,6 +65,7 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
   const options = untypedOptions as PicodashStoreOptions<Values>
   const owner = Object.freeze({})
   const fields = createPicodashFields(options.fields, owner)
+  const knownItems: Record<string, PicodashRegisteredItem<Values>> = {}
   const definitionEntries = Object.entries(options.fields)
   const definitionKeys = new Set(definitionEntries.map(([key]) => key))
   const definitions = Object.fromEntries(
@@ -99,6 +126,9 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
 
   let initialData: DataState = {
     fieldStates,
+    interaction: initialPicodashInteractionState,
+    itemMetadata: cloneItemMetadata(options.initialItemMetadata),
+    items: {},
     panelId: options.panelId,
     repairProposal: null,
     values,
@@ -209,6 +239,123 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
       internalStore.setState((current) => applyOutputs(current, outputs, 'reset'))
       return { success: true }
     },
+    resetRegisteredFields() {
+      const state = internalStore.getState()
+      const outputs: Record<string, PicodashFieldOutput<PicodashJsonValue>> = {}
+      const errors: Record<string, readonly string[]> = {}
+      for (const field of registeredWritableFields(state.items)) {
+        const key = field.key
+        const result = resolveFromState(state, key, state.fieldStates[key]!.defaultValue, 'reset')
+        if (result.success) outputs[key] = result.output
+        else errors[key] = result.errors
+      }
+      if (Object.keys(errors).length > 0) return { errors, success: false }
+      internalStore.setState((current) => applyOutputs(current, outputs, 'reset'))
+      return { success: true }
+    },
+    registerItem(registration) {
+      const state = internalStore.getState()
+      const result = resolvePicodashItemRegistration(
+        registration,
+        (field): field is PicodashField<Values, string> => picodashOwnerOwnsField(owner, field),
+        state.items,
+      )
+      if (!result.success) return result
+
+      const item = result.item
+      const mountedItem = state.items[item.id]
+      if (mountedItem !== undefined) {
+        return picodashRegisteredItemsEqual(mountedItem, item)
+          ? { success: true }
+          : {
+              errors: [
+                {
+                  code: 'duplicate-item-id',
+                  itemId: item.id,
+                  message: `Item "${item.id}" is already registered with a different contract.`,
+                },
+              ],
+              success: false,
+            }
+      }
+      const previous = knownItems[item.id]
+      knownItems[item.id] = item
+      internalStore.setState((current) => {
+        const items = { ...current.items, [item.id]: item }
+        let order = current.itemMetadata.order
+        if (previous !== undefined && previous.parentId !== item.parentId) {
+          order = {
+            ...order,
+            [previous.parentId]: (order[previous.parentId] ?? []).filter((id) => id !== item.id),
+          }
+        }
+        if (!(order[item.parentId] ?? []).includes(item.id)) {
+          order = {
+            ...order,
+            [item.parentId]: [...(order[item.parentId] ?? []), item.id],
+          }
+        }
+        order = normalizePicodashOrders(order, items, knownItems)
+
+        let collapsed = current.itemMetadata.collapsed
+        if (item.collapsible && !Object.prototype.hasOwnProperty.call(collapsed, item.id)) {
+          collapsed = { ...collapsed, [item.id]: item.defaultCollapsed }
+        }
+        return {
+          itemMetadata: { collapsed, order },
+          items,
+        }
+      })
+      return { success: true }
+    },
+    moveItemRelativeTo(itemId, overId, position) {
+      internalStore.setState((state) => {
+        const order = movePicodashItemRelativeTo(
+          state.items,
+          state.itemMetadata.order,
+          itemId,
+          overId,
+          position,
+        )
+        return order === state.itemMetadata.order
+          ? state
+          : { itemMetadata: { ...state.itemMetadata, order } }
+      })
+    },
+    moveItemToIndex(itemId, index) {
+      internalStore.setState((state) => {
+        const order = movePicodashItemToIndex(state.items, state.itemMetadata.order, itemId, index)
+        return order === state.itemMetadata.order
+          ? state
+          : { itemMetadata: { ...state.itemMetadata, order } }
+      })
+    },
+    setAllCollapsibleItemsCollapsed(collapsed) {
+      internalStore.setState((state) => {
+        const itemIds = Object.values(state.items)
+          .filter((item) => item.collapsible && !item.hidden)
+          .map((item) => item.id)
+        if (
+          itemIds.every(
+            (itemId) =>
+              (state.itemMetadata.collapsed[itemId] ??
+                state.items[itemId]?.defaultCollapsed ??
+                false) === collapsed,
+          )
+        ) {
+          return state
+        }
+        return {
+          itemMetadata: {
+            ...state.itemMetadata,
+            collapsed: {
+              ...state.itemMetadata.collapsed,
+              ...Object.fromEntries(itemIds.map((itemId) => [itemId, collapsed])),
+            },
+          },
+        }
+      })
+    },
     setFieldInput(field, input) {
       const key = ownedFieldKey(field)
       if (key === undefined) return foreignFieldResult(field)
@@ -239,6 +386,75 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
     },
     setFieldValues(candidates) {
       return writeValues(candidates, 'programmatic')
+    },
+    setFocusedItem(itemId) {
+      internalStore.setState((state) => {
+        const interaction = setPicodashFocusedItem(state.interaction, itemId)
+        return interaction === state.interaction ? state : { interaction }
+      })
+    },
+    setHoveredItem(itemId) {
+      internalStore.setState((state) => {
+        const interaction = setPicodashHoveredItem(state.interaction, itemId)
+        return interaction === state.interaction ? state : { interaction }
+      })
+    },
+    setInteractionActive(interactionId, active) {
+      internalStore.setState((state) => {
+        const interaction = setPicodashInteractionActive(state.interaction, interactionId, active)
+        return interaction === state.interaction ? state : { interaction }
+      })
+    },
+    setItemCollapsed(itemId, collapsed) {
+      internalStore.setState((state) => {
+        const item = state.items[itemId]
+        if (item === undefined || !item.collapsible) return state
+        if ((state.itemMetadata.collapsed[itemId] ?? item.defaultCollapsed) === collapsed) {
+          return state
+        }
+        return {
+          itemMetadata: {
+            ...state.itemMetadata,
+            collapsed: { ...state.itemMetadata.collapsed, [itemId]: collapsed },
+          },
+        }
+      })
+    },
+    setDraggingItem(itemId) {
+      internalStore.setState((state) => {
+        if (itemId !== null && !picodashItemCanReorder(state.items, itemId)) return state
+        const interaction = setPicodashDraggingItem(state.interaction, itemId)
+        return interaction === state.interaction ? state : { interaction }
+      })
+    },
+    setItemOrder(parentId, itemIds) {
+      internalStore.setState((state) => {
+        const nextParentOrder = normalizePicodashParentOrder(itemIds, knownItems, parentId, true)
+        const previousParentOrder = state.itemMetadata.order[parentId] ?? []
+        if (
+          previousParentOrder.length === nextParentOrder.length &&
+          previousParentOrder.every((id, index) => nextParentOrder[index] === id)
+        ) {
+          return state
+        }
+        return {
+          itemMetadata: {
+            ...state.itemMetadata,
+            order: { ...state.itemMetadata.order, [parentId]: nextParentOrder },
+          },
+        }
+      })
+    },
+    unregisterItem(itemId) {
+      internalStore.setState((state) => {
+        if (state.items[itemId] === undefined) return state
+        const items = { ...state.items }
+        delete items[itemId]
+        return {
+          interaction: removePicodashItemInteraction(state.interaction, itemId),
+          items,
+        }
+      })
     },
   }
 
@@ -403,4 +619,25 @@ function deepEqual(left: PicodashJsonValue, right: PicodashJsonValue): boolean {
     )
   }
   return false
+}
+
+function cloneItemMetadata(metadata: PicodashItemMetadata | undefined): PicodashItemMetadata {
+  const collapsed: Record<string, boolean> = {}
+  for (const [itemId, value] of Object.entries(metadata?.collapsed ?? {})) {
+    if (typeof value !== 'boolean') {
+      throw new TypeError(`Invalid collapsed metadata for Picodash item "${itemId}".`)
+    }
+    collapsed[itemId] = value
+  }
+
+  const order: Record<string, readonly string[]> = {
+    [picodashRootItemId]: [],
+  }
+  for (const [parentId, itemIds] of Object.entries(metadata?.order ?? {})) {
+    if (!Array.isArray(itemIds) || itemIds.some((itemId) => typeof itemId !== 'string')) {
+      throw new TypeError(`Invalid order metadata for Picodash parent "${parentId}".`)
+    }
+    order[parentId] = [...new Set(itemIds)]
+  }
+  return { collapsed, order }
 }

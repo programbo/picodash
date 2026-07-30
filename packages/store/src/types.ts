@@ -80,6 +80,9 @@ export interface PicodashField<
 
 export interface PicodashStoreState<TValues extends object> {
   readonly fieldStates: PicodashFieldStates<TValues>
+  readonly interaction: PicodashInteractionState
+  readonly itemMetadata: PicodashItemMetadata
+  readonly items: Readonly<Record<string, PicodashRegisteredItem<TValues>>>
   readonly panelId: string
   readonly repairProposal: PicodashRepairProposal<TValues> | null
   readonly values: TValues
@@ -89,6 +92,11 @@ export interface PicodashStoreState<TValues extends object> {
     field: PicodashField<TValues, TKey>,
   ) => PicodashWriteResult<TValues>
   resetFields: () => PicodashWriteResult<TValues>
+  resetRegisteredFields: () => PicodashWriteResult<TValues>
+  registerItem: (item: PicodashItemRegistration<TValues>) => PicodashItemRegistrationResult
+  moveItemRelativeTo: (itemId: string, overId: string, position: 'after' | 'before') => void
+  moveItemToIndex: (itemId: string, index: number) => void
+  setAllCollapsibleItemsCollapsed: (collapsed: boolean) => void
   setFieldInput: <TKey extends Extract<keyof TValues, string>>(
     field: PicodashField<TValues, TKey>,
     input: unknown,
@@ -98,6 +106,13 @@ export interface PicodashStoreState<TValues extends object> {
     value: TValues[TKey],
   ) => PicodashWriteResult<TValues>
   setFieldValues: (values: Partial<TValues>) => PicodashWriteResult<TValues>
+  setFocusedItem: (itemId: string | null) => void
+  setHoveredItem: (itemId: string | null) => void
+  setInteractionActive: (interactionId: string, active: boolean) => void
+  setItemCollapsed: (itemId: string, collapsed: boolean) => void
+  setDraggingItem: (itemId: string | null) => void
+  setItemOrder: (parentId: string, itemIds: readonly string[]) => void
+  unregisterItem: (itemId: string) => void
 }
 
 export interface PicodashStore<TValues extends object> {
@@ -160,8 +175,99 @@ export interface PicodashRepairProposal<TValues extends object> {
   readonly source: 'initial'
 }
 
+export type PicodashItemBindingMode = 'display' | 'input'
+export type PicodashItemPin = 'end' | 'start'
+export type PicodashItemOrderBand = 'auto' | PicodashItemPin
+export type PicodashItemKind = 'group' | 'item'
+
+export type PicodashItemBinding<TValues extends object> =
+  | PicodashOwnedField<TValues>
+  | {
+      readonly field: PicodashOwnedField<TValues>
+      readonly mode: PicodashItemBindingMode
+    }
+
+interface PicodashItemRegistrationBase {
+  readonly collapsible?: boolean
+  readonly defaultCollapsed?: boolean
+  readonly hidden?: boolean
+  readonly id: string
+  readonly kind?: PicodashItemKind
+  readonly label?: string
+  readonly parentId?: string
+  readonly pin?: PicodashItemPin
+  readonly reorderable?: boolean
+}
+
+export type PicodashItemRegistration<TValues extends object> = PicodashItemRegistrationBase &
+  (
+    | {
+        readonly field: PicodashItemBinding<TValues>
+        readonly fields?: never
+      }
+    | {
+        readonly field?: never
+        readonly fields: Readonly<Record<string, PicodashItemBinding<TValues>>>
+      }
+    | {
+        readonly field?: never
+        readonly fields?: never
+      }
+  )
+
+export interface PicodashRegisteredItemBinding<TValues extends object> {
+  readonly alias: string
+  readonly field: PicodashOwnedField<TValues>
+  readonly mode: PicodashItemBindingMode
+}
+
+export interface PicodashRegisteredItem<TValues extends object> extends Required<
+  Pick<
+    PicodashItemRegistrationBase,
+    'collapsible' | 'defaultCollapsed' | 'hidden' | 'id' | 'kind' | 'parentId' | 'reorderable'
+  >
+> {
+  readonly bindings: readonly PicodashRegisteredItemBinding<TValues>[]
+  readonly label?: string
+  readonly pin?: PicodashItemPin
+}
+
+export type PicodashItemRegistrationErrorCode =
+  | 'conflicting-field-mode'
+  | 'duplicate-field-binding'
+  | 'duplicate-item-id'
+  | 'foreign-field'
+
+export interface PicodashItemRegistrationError {
+  readonly alias?: string
+  readonly code: PicodashItemRegistrationErrorCode
+  readonly field?: string
+  readonly itemId: string
+  readonly message: string
+}
+
+export type PicodashItemRegistrationResult =
+  | { readonly success: true }
+  | {
+      readonly errors: readonly PicodashItemRegistrationError[]
+      readonly success: false
+    }
+
+export interface PicodashInteractionState {
+  readonly activeIds: Readonly<Record<string, true>>
+  readonly draggingId: string | null
+  readonly focusedId: string | null
+  readonly hoveredId: string | null
+}
+
+export interface PicodashItemMetadata {
+  readonly collapsed: Readonly<Record<string, boolean>>
+  readonly order: Readonly<Record<string, readonly string[]>>
+}
+
 export interface PicodashStoreOptions<TValues extends object> {
   readonly fields: PicodashFieldDefinitions<TValues>
+  readonly initialItemMetadata?: PicodashItemMetadata
   readonly initialValues?: Partial<JsonCompatibleRecord<TValues>>
   readonly panelId: string
 }
@@ -170,6 +276,7 @@ export interface PicodashInferredStoreOptions<
   TDefinitions extends Record<string, PicodashInferredFieldDefinition>,
 > {
   readonly fields: TDefinitions
+  readonly initialItemMetadata?: PicodashItemMetadata
   readonly initialValues?: Partial<PicodashValuesFromDefinitions<TDefinitions>>
   readonly panelId: string
 }

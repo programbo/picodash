@@ -1,3 +1,39 @@
+export { createPicodashDiagnosticChannel } from './diagnostics.js'
+export type { PicodashDiagnosticChannel, PicodashDiagnosticListener } from './diagnostics.js'
+export {
+  createPicodashDiagnostic,
+  createPicodashError,
+  getPicodashDocumentationUrl,
+  isPicodashDiagnostic,
+  normalizePicodashDiagnostic,
+  normalizePicodashError,
+  PICODASH_DIAGNOSTICS_VERSION,
+  PICODASH_ERROR_CODES,
+  PicodashError,
+} from './errors.js'
+export type {
+  PicodashDiagnostic,
+  PicodashDiagnosticIdentity,
+  PicodashDiagnosticInput,
+  PicodashDiagnosticSeverity,
+  PicodashErrorCode,
+} from './errors.js'
+export {
+  picodashRegisteredItemsEqual,
+  picodashRootItemId,
+  registeredWritableFields,
+  resolvePicodashItemRegistration,
+} from './items.js'
+export {
+  bandForPicodashItem,
+  movePicodashItemRelativeTo,
+  movePicodashItemToIndex,
+  normalizePicodashOrders,
+  normalizePicodashParentOrder,
+  orderedPicodashItemIds,
+  picodashItemCanReorder,
+  visibleOrderedPicodashItemIds,
+} from './order.js'
 export { createPicodashStore } from './store.js'
 export type {
   PicodashField,
@@ -10,6 +46,17 @@ export type {
   PicodashFunctionValidator,
   PicodashInferredFieldDefinition,
   PicodashInferredStoreOptions,
+  PicodashInteractionState,
+  PicodashItemBinding,
+  PicodashItemBindingMode,
+  PicodashItemKind,
+  PicodashItemMetadata,
+  PicodashItemOrderBand,
+  PicodashItemPin,
+  PicodashItemRegistration,
+  PicodashItemRegistrationError,
+  PicodashItemRegistrationErrorCode,
+  PicodashItemRegistrationResult,
   PicodashJsonPrimitive,
   PicodashJsonValue,
   PicodashOwnedField,
@@ -17,6 +64,8 @@ export type {
   PicodashParseResult,
   PicodashRepairChange,
   PicodashRepairProposal,
+  PicodashRegisteredItem,
+  PicodashRegisteredItemBinding,
   PicodashStandardSchemaValidator,
   PicodashStore,
   PicodashStoreOptions,
