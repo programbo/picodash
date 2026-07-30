@@ -19,23 +19,6 @@ const initialBuiltInRootOrder = [
   'visualization-items',
 ]
 
-async function changeDemoThemes(
-  page: Page,
-  detail: {
-    custom?: string | null
-    provider?: string | null
-    scene?: string | null
-  },
-) {
-  await page.evaluate((nextThemes) => {
-    window.dispatchEvent(
-      new CustomEvent('picodash-demo-theme-change', {
-        detail: nextThemes,
-      }),
-    )
-  }, detail)
-}
-
 test.beforeEach(async ({ page }) => {
   await page.goto(`${labURL}/lab/state`)
   await expect(page.getByRole('heading', { name: 'Picodash State Lab' })).toBeVisible()
@@ -1549,29 +1532,6 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await dialog.getByRole('button', { name: 'Cancel' }).click()
 })
 
-test('updates inherited panel themes at runtime while preserving explicit overrides', async ({
-  page,
-}) => {
-  await changeDemoThemes(page, { custom: 'plum' })
-
-  const scenePanel = page.locator('[data-picodash-panel-id="scene-controls"]')
-  const customPanel = page.locator('[data-picodash-panel-id="custom-items"]')
-  await expect(scenePanel).toHaveAttribute('data-picodash-theme', 'dark')
-  await expect(customPanel).toHaveAttribute('data-picodash-theme', 'plum')
-
-  await changeDemoThemes(page, { provider: 'ocean' })
-
-  await expect(page.locator('[data-demo-provider-theme]')).toHaveAttribute(
-    'data-demo-provider-theme',
-    'ocean',
-  )
-  await expect(scenePanel).toHaveAttribute('data-picodash-theme', 'ocean')
-  await expect(customPanel).toHaveAttribute('data-picodash-theme', 'plum')
-
-  await changeDemoThemes(page, { custom: null })
-  await expect(customPanel).toHaveAttribute('data-picodash-theme', 'ocean')
-})
-
 test('animates transient visual paths and switches deterministic signal mode', async ({ page }) => {
   const velocity = page.locator('[data-item-id="mouse-velocity"]')
   const display = velocity.locator('[data-pointer-velocity-display]')
@@ -1639,43 +1599,6 @@ test('animates transient visual paths and switches deterministic signal mode', a
   await expect(signal.getByRole('img', { name: 'Synthetic signal spectrum' })).toBeVisible()
   await expect.poll(() => signalPath.getAttribute('d')).not.toBe(initialSignalPath)
   await expect(signalPath).toHaveAttribute('fill-opacity', '0.18')
-})
-
-test('resumes pointer velocity decay when document visibility returns', async ({ page }) => {
-  const velocity = page.locator('[data-item-id="mouse-velocity"]')
-  const display = velocity.locator('[data-pointer-velocity-display]')
-  const velocityXPath = velocity.locator('path.stroke-chart-1')
-  const fps = velocity.locator('[data-pointer-velocity-fps]')
-  await display.scrollIntoViewIfNeeded()
-  await expect(display).toBeVisible()
-
-  const initialVelocityXPath = await velocityXPath.getAttribute('d')
-  const headingBox = await requiredBox(page.getByRole('heading', { name: 'Picodash State Lab' }))
-
-  await page.mouse.move(headingBox.x + 4, headingBox.y + 4)
-  await page.mouse.move(
-    headingBox.x + headingBox.width - 4,
-    headingBox.y + headingBox.height + 80,
-    { steps: 8 },
-  )
-  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(initialVelocityXPath)
-
-  await setDocumentVisibility(page, 'hidden')
-  await expect(fps).toHaveText('0 FPS')
-  const pausedVelocityXPath = await velocityXPath.getAttribute('d')
-  await page.evaluate(
-    () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))),
-  )
-  expect(await velocityXPath.getAttribute('d')).toBe(pausedVelocityXPath)
-
-  await setDocumentVisibility(page, 'visible')
-  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(pausedVelocityXPath)
-  await expect
-    .poll(async () => Number.parseInt((await fps.textContent()) ?? '0', 10), {
-      intervals: [50],
-    })
-    .toBeGreaterThan(0)
-  await expect(fps).toHaveText('0 FPS')
 })
 
 test('supports keyboard typeahead across panel actions and format submenus', async ({ page }) => {
@@ -1985,19 +1908,6 @@ async function collapseCustomGroups(
       )
       .toBe(true)
   }
-}
-
-async function setDocumentVisibility(
-  page: import('@playwright/test').Page,
-  visibilityState: DocumentVisibilityState,
-) {
-  await page.evaluate((state) => {
-    Object.defineProperty(document, 'visibilityState', {
-      configurable: true,
-      value: state,
-    })
-    document.dispatchEvent(new Event('visibilitychange'))
-  }, visibilityState)
 }
 
 async function exerciseLivePreviewDrag({

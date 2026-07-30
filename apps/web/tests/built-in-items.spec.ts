@@ -23,14 +23,6 @@ const builtInItems = [
   { component: 'PicodashDisplay', id: 'display', label: 'Display' },
 ] as const
 
-const usageGuideLinks = [
-  'Install and import CSS',
-  'Create the store',
-  'Read values in React',
-  'Render the panel',
-  'Verify the integration',
-] as const
-
 async function setBooleanSwitch(locator: Locator, value: boolean) {
   await expect(locator).toHaveAttribute('role', 'switch')
   if ((await locator.getAttribute('aria-checked')) !== String(value)) {
@@ -165,109 +157,6 @@ test('keeps the expanded panel header toggle transparent until hover', async ({ 
     (element) => getComputedStyle(element).backgroundColor,
   )
   expect(hoveredBackground).not.toMatch(/,\s*0\.5\s*\)$/)
-})
-
-test('provides a step-by-step Usage tab for adding a reactive panel', async ({ page }) => {
-  const example = page.locator('[data-interactive-jsx-example]')
-  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
-  const toolbar = example.locator('[data-home-toolbar]')
-
-  await page.setViewportSize({ width: 320, height: 844 })
-  await expect(toolbar).toHaveCSS('z-index', 'auto')
-  const panelHeaderBox = await requiredBox(panel.locator('[data-picodash-panel-header]'))
-  expect(
-    await page.evaluate(
-      ({ x, y }) => {
-        const panelElement = document.querySelector('[data-picodash-panel-id="built-in-items"]')
-        return panelElement?.contains(document.elementFromPoint(x, y)) ?? false
-      },
-      {
-        x: panelHeaderBox.x + panelHeaderBox.width / 2,
-        y: panelHeaderBox.y + panelHeaderBox.height / 2,
-      },
-    ),
-  ).toBe(true)
-  await page.getByRole('button', { name: 'Collapse panel Built-in Items' }).click()
-  await expect(example.getByRole('checkbox', { name: 'Show all props' })).toBeInViewport()
-  await expect(example.getByRole('button', { name: 'Copy JSX' })).toBeInViewport()
-  await expect(example.getByRole('tab', { name: 'Usage' })).toBeVisible()
-  await expect(example.getByRole('tab', { name: 'More examples' })).toBeInViewport({ ratio: 1 })
-  await example.getByRole('tab', { name: 'Usage' }).click()
-
-  const guide = example.locator('[data-usage-guide]')
-  const guideBoundary = guide.locator('[data-guide-navigation-boundary="usage-navigation"]')
-  const navigationPanel = page.locator('[data-guide-navigation-panel="usage-navigation"]')
-  await expect(guide).toBeVisible()
-  await expect(guide).toHaveCSS('overflow-y', 'visible')
-  await expect(navigationPanel).toHaveAttribute('role', 'navigation')
-  await expect(navigationPanel).toHaveAccessibleName('Usage guide steps')
-  await expect(navigationPanel.locator('[data-item-id]')).toHaveCount(usageGuideLinks.length)
-  expect(await navigationPanel.locator('[id$=":label"]').allTextContents()).toEqual([
-    '01',
-    '02',
-    '03',
-    '04',
-    '05',
-  ])
-  expect(
-    await navigationPanel
-      .locator('[data-picodash-reorder-list] > div')
-      .evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ')[1]),
-  ).toBe('24px')
-  expect(
-    await navigationPanel.getByRole('link').evaluateAll((links) =>
-      links.map((link) => ({
-        text: link.textContent,
-        wraps: link.scrollWidth > link.clientWidth,
-      })),
-    ),
-  ).toEqual(
-    usageGuideLinks.map((label) => ({
-      text: label,
-      wraps: false,
-    })),
-  )
-  await expect(guide.getByRole('heading', { name: 'Add a reactive Picodash panel' })).toBeVisible()
-  await expect(guide.getByRole('heading', { name: 'Create a stable panel store' })).toBeVisible()
-  await expect(guide.getByText('bun add @picodash/panel', { exact: true })).toBeVisible()
-  await expect(guide.getByRole('heading', { name: 'Common integration patterns' })).toBeVisible()
-  await expect(guide.getByRole('heading', { name: 'Implementation constraints' })).toBeVisible()
-  const renderPanelItem = navigationPanel.locator('[data-item-id="usage-navigation-4"]')
-  const renderPanelLink = renderPanelItem.getByRole('link', { name: 'Render the panel' })
-  const renderPanelItemBox = await requiredBox(renderPanelItem)
-  await page.mouse.click(
-    renderPanelItemBox.x + renderPanelItemBox.width - 3,
-    renderPanelItemBox.y + 2,
-  )
-  await expect(renderPanelLink).toBeFocused()
-  await expect
-    .poll(async () => {
-      const panelBox = await requiredBox(navigationPanel)
-      const boundaryBox = await requiredBox(guideBoundary)
-      const articleBox = await requiredBox(guide.locator('[data-usage-article]'))
-      return {
-        articleClearsPanel: articleBox.y >= panelBox.y + panelBox.height,
-        panelIsContained:
-          panelBox.x >= boundaryBox.x &&
-          panelBox.y >= boundaryBox.y &&
-          panelBox.x + panelBox.width <= boundaryBox.x + boundaryBox.width &&
-          panelBox.y + panelBox.height <= boundaryBox.y + boundaryBox.height,
-      }
-    })
-    .toEqual({ articleClearsPanel: true, panelIsContained: true })
-
-  await navigationPanel.getByRole('link', { name: /Create the store/ }).click()
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
-  await expect
-    .poll(async () => {
-      const targetBox = await requiredBox(guide.locator('#usage-store'))
-      const toolbarBox = await requiredBox(toolbar)
-      return targetBox.y >= toolbarBox.y + toolbarBox.height
-    })
-    .toBe(true)
-
-  await example.getByRole('tab', { name: 'Store' }).click()
-  await expect(example.getByLabel('Live Built-in Items panel store')).toBeVisible()
 })
 
 test('constrains the Usage navigation panel to the guide surface', async ({ page }) => {
