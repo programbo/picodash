@@ -12,10 +12,14 @@ import {
 
 import { cn } from '#lib/utils'
 import { Button } from '#components/ui/button'
+import {
+  PortalLayerZIndexProvider,
+  resolvePortalLayerZIndex,
+  useParentPortalLayerZIndex,
+} from '../../lib/portal/portal-layer-context.js'
 import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import {
   portalLayerZIndexForState,
-  portalLayerZIndexValue,
   useOptionalPicodashProviderContext,
 } from '../../state/provider/picodash-provider.js'
 
@@ -85,13 +89,20 @@ function AlertDialog({
     provider?.store.getState ?? standaloneProviderSnapshot,
     provider?.store.getState ?? standaloneProviderSnapshot,
   )
-  const zIndexFloor = portalLayerZIndexForState(providerState, 4)
+  const parentZIndex = useParentPortalLayerZIndex()
+  const zIndexFloor = provider ? portalLayerZIndexForState(providerState, 4) : undefined
   const resolvedPortalContainer =
     portalContainer === undefined ? provider?.portalContainer : portalContainer
   const resolvedZIndex =
     style?.zIndex ??
-    (provider ? portalLayerZIndexValue('--picodash-layer-dialog', zIndexFloor) : undefined)
+    resolvePortalLayerZIndex({
+      cssVariable: '--picodash-layer-dialog',
+      floor: zIndexFloor,
+      parentOffset: 4,
+      parentZIndex,
+    })
   const resolvedOverlayZIndex = overlayStyle?.zIndex ?? resolvedZIndex
+  const childLayerZIndex = resolvedZIndex ?? resolvedOverlayZIndex ?? 'var(--picodash-layer-dialog)'
   const [descriptionIds, setDescriptionIds] = React.useState<readonly string[]>([])
   const dialogId = React.useRef(Symbol('alert-dialog')).current
   const isKeyboardDismissDisabledRef = React.useRef(isKeyboardDismissDisabled)
@@ -168,7 +179,9 @@ function AlertDialog({
           className="[display:inherit] gap-[inherit] outline-none"
         >
           <AlertDialogDescriptionContext.Provider value={registerDescription}>
-            {children}
+            <PortalLayerZIndexProvider zIndex={childLayerZIndex}>
+              {children}
+            </PortalLayerZIndexProvider>
           </AlertDialogDescriptionContext.Provider>
         </AlertDialogPrimitive>
       </ModalPrimitive>

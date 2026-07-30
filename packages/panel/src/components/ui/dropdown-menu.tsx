@@ -20,10 +20,14 @@ import {
 
 import { cn } from '#lib/utils'
 import { CheckIcon, ChevronRightIcon } from 'lucide-react'
+import {
+  PortalLayerZIndexProvider,
+  resolvePortalLayerZIndex,
+  useParentPortalLayerZIndex,
+} from '../../lib/portal/portal-layer-context.js'
 import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import {
   portalLayerZIndexForState,
-  portalLayerZIndexValue,
   useOptionalPicodashProviderContext,
 } from '../../state/provider/picodash-provider.js'
 
@@ -63,13 +67,14 @@ function DropdownMenu({
   const parentContext = React.useContext(DropdownMenuContext)
   const inheritedTheme = usePicodashTheme()
   const theme = parentContext?.theme ?? inheritedTheme
+  const parentLayerZIndex = useParentPortalLayerZIndex()
   const provider = useOptionalPicodashProviderContext()
   const providerState = React.useSyncExternalStore(
     provider?.store.subscribe ?? standaloneProviderSubscribe,
     provider?.store.getState ?? standaloneProviderSnapshot,
     provider?.store.getState ?? standaloneProviderSnapshot,
   )
-  const zIndexFloor = portalLayerZIndexForState(providerState, 3)
+  const zIndexFloor = provider ? portalLayerZIndexForState(providerState, 3) : undefined
   // React Aria mounts nested submenus into their parent popover's internal
   // container. Forwarding the provider's full-screen portal here would place
   // the submenu behind the root underlay and break pointer interaction.
@@ -82,9 +87,13 @@ function DropdownMenu({
   const resolvedZIndex =
     popoverStyle && typeof popoverStyle !== 'function' && popoverStyle.zIndex !== undefined
       ? popoverStyle.zIndex
-      : effectiveZIndexFloor === undefined
-        ? undefined
-        : portalLayerZIndexValue('--picodash-layer-menu', effectiveZIndexFloor)
+      : resolvePortalLayerZIndex({
+          cssVariable: '--picodash-layer-menu',
+          floor: effectiveZIndexFloor,
+          parentOffset: 3,
+          parentZIndex: parentContext ? undefined : parentLayerZIndex,
+        })
+  const childLayerZIndex = resolvedZIndex ?? 'var(--picodash-layer-menu)'
   return (
     <DropdownMenuContext.Provider
       value={{
@@ -93,45 +102,47 @@ function DropdownMenu({
         zIndexFloor: effectiveZIndexFloor,
       }}
     >
-      <PopoverPrimitive
-        {...popoverProps}
-        data-slot="dropdown-menu-content"
-        data-picodash-theme={theme}
-        placement={popoverProps?.placement ?? 'bottom start'}
-        offset={popoverProps?.offset ?? 4}
-        crossOffset={popoverProps?.crossOffset ?? 0}
-        UNSTABLE_portalContainer={resolvedPortalContainer ?? undefined}
-        className={cn(
-          'text-picodash-text ring-picodash-text/5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot$=-item]:data-focused:bg-picodash-text/10 bg-picodash-surface-raised/70 **:data-[slot$=-item]:focus:bg-picodash-text/10 **:data-[slot$=-item]:data-highlighted:bg-picodash-text/10 **:data-[slot$=-separator]:bg-picodash-text/5 **:data-[slot$=-trigger]:focus:bg-picodash-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-picodash-text/10! **:data-[variant=destructive]:focus:bg-picodash-text/10! **:data-[variant=destructive]:text-picodash-text! **:data-[variant=destructive]:**:text-picodash-text! rounded-picodash-surface pointer-events-auto relative z-(--picodash-layer-menu) max-h-(--available-height) w-(--trigger-width) min-w-32 origin-(--trigger-anchor-point) animate-none! overflow-x-hidden overflow-y-auto p-1 shadow-(--picodash-shadow-md) ring-1 duration-(--picodash-duration-fast) outline-none before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-(--picodash-blur-surface) before:backdrop-saturate-150 data-exiting:overflow-hidden',
-          popoverClassName,
-        )}
-        style={
-          typeof popoverStyle === 'function'
-            ? (values) => {
-                const style = popoverStyle(values)
-                return {
-                  ...style,
-                  ...(style?.zIndex === undefined && resolvedZIndex !== undefined
-                    ? { zIndex: resolvedZIndex }
-                    : {}),
-                }
-              }
-            : {
-                ...popoverStyle,
-                ...(resolvedZIndex === undefined ? {} : { zIndex: resolvedZIndex }),
-              }
-        }
-      >
-        <MenuPrimitive
+      <PortalLayerZIndexProvider zIndex={childLayerZIndex}>
+        <PopoverPrimitive
+          {...popoverProps}
+          data-slot="dropdown-menu-content"
+          data-picodash-theme={theme}
+          placement={popoverProps?.placement ?? 'bottom start'}
+          offset={popoverProps?.offset ?? 4}
+          crossOffset={popoverProps?.crossOffset ?? 0}
+          UNSTABLE_portalContainer={resolvedPortalContainer ?? undefined}
           className={cn(
-            'max-h-[inherit] overflow-x-hidden overflow-y-auto outline-hidden',
-            className,
+            'text-picodash-text ring-picodash-text/5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot$=-item]:data-focused:bg-picodash-text/10 bg-picodash-surface-raised/70 **:data-[slot$=-item]:focus:bg-picodash-text/10 **:data-[slot$=-item]:data-highlighted:bg-picodash-text/10 **:data-[slot$=-separator]:bg-picodash-text/5 **:data-[slot$=-trigger]:focus:bg-picodash-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-picodash-text/10! **:data-[variant=destructive]:focus:bg-picodash-text/10! **:data-[variant=destructive]:text-picodash-text! **:data-[variant=destructive]:**:text-picodash-text! rounded-picodash-surface pointer-events-auto relative z-(--picodash-layer-menu) max-h-(--available-height) w-(--trigger-width) min-w-32 origin-(--trigger-anchor-point) animate-none! overflow-x-hidden overflow-y-auto p-1 shadow-(--picodash-shadow-md) ring-1 duration-(--picodash-duration-fast) outline-none before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-(--picodash-blur-surface) before:backdrop-saturate-150 data-exiting:overflow-hidden',
+            popoverClassName,
           )}
-          {...menuProps}
+          style={
+            typeof popoverStyle === 'function'
+              ? (values) => {
+                  const style = popoverStyle(values)
+                  return {
+                    ...style,
+                    ...(style?.zIndex === undefined && resolvedZIndex !== undefined
+                      ? { zIndex: resolvedZIndex }
+                      : {}),
+                  }
+                }
+              : {
+                  ...popoverStyle,
+                  ...(resolvedZIndex === undefined ? {} : { zIndex: resolvedZIndex }),
+                }
+          }
         >
-          {children}
-        </MenuPrimitive>
-      </PopoverPrimitive>
+          <MenuPrimitive
+            className={cn(
+              'max-h-[inherit] overflow-x-hidden overflow-y-auto outline-hidden',
+              className,
+            )}
+            {...menuProps}
+          >
+            {children}
+          </MenuPrimitive>
+        </PopoverPrimitive>
+      </PortalLayerZIndexProvider>
     </DropdownMenuContext.Provider>
   )
 }

@@ -10,10 +10,13 @@ import {
 } from 'react'
 import { useStore } from 'zustand'
 import { Tooltip as AriaTooltip, TooltipTrigger as AriaTooltipTrigger } from '../ui/tooltip.js'
+import {
+  resolvePortalLayerZIndex,
+  useParentPortalLayerZIndex,
+} from '../../lib/portal/portal-layer-context.js'
 import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import {
   portalLayerZIndexForState,
-  portalLayerZIndexValue,
   usePicodashProviderContext,
 } from '../../state/provider/picodash-provider.js'
 import { cn } from '../../utilities/utils.js'
@@ -118,8 +121,15 @@ export function TooltipContent({
   style?: CSSProperties
 }) {
   const theme = usePicodashTheme()
+  const parentZIndex = useParentPortalLayerZIndex()
   const { portalContainer, store } = usePicodashProviderContext()
   const zIndexFloor = useStore(store, (state) => portalLayerZIndexForState(state, 1))
+  const resolvedZIndex = resolvePortalLayerZIndex({
+    cssVariable: '--picodash-layer-tooltip',
+    floor: zIndexFloor,
+    parentOffset: 1,
+    parentZIndex,
+  })
   const usesTokenOffset = sideOffset === undefined
   const placement = tooltipPlacement(side, align)
 
@@ -141,7 +151,7 @@ export function TooltipContent({
       shouldFlip={avoidCollisions}
       style={{
         ...style,
-        zIndex: portalLayerZIndexValue('--picodash-layer-tooltip', zIndexFloor),
+        zIndex: style?.zIndex ?? resolvedZIndex,
       }}
     >
       {children}

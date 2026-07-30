@@ -7,10 +7,13 @@ import {
 } from 'react-aria-components'
 
 import { cn } from '#lib/utils'
+import {
+  resolvePortalLayerZIndex,
+  useParentPortalLayerZIndex,
+} from '../../lib/portal/portal-layer-context.js'
 import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import {
   portalLayerZIndexForState,
-  portalLayerZIndexValue,
   useOptionalPicodashProviderContext,
 } from '../../state/provider/picodash-provider.js'
 
@@ -51,21 +54,25 @@ function Tooltip({
   style?: React.ComponentProps<typeof TooltipPrimitive>['style']
 }) {
   const theme = usePicodashTheme()
+  const parentZIndex = useParentPortalLayerZIndex()
   const provider = useOptionalPicodashProviderContext()
   const providerState = React.useSyncExternalStore(
     provider?.store.subscribe ?? standaloneProviderSubscribe,
     provider?.store.getState ?? standaloneProviderSnapshot,
     provider?.store.getState ?? standaloneProviderSnapshot,
   )
-  const zIndexFloor = portalLayerZIndexForState(providerState, 1)
+  const zIndexFloor = provider ? portalLayerZIndexForState(providerState, 1) : undefined
   const resolvedPortalContainer =
     portalContainer === undefined ? provider?.portalContainer : portalContainer
   const resolvedZIndex =
     typeof style === 'object' && style?.zIndex !== undefined
       ? style.zIndex
-      : provider
-        ? portalLayerZIndexValue('--picodash-layer-tooltip', zIndexFloor)
-        : undefined
+      : resolvePortalLayerZIndex({
+          cssVariable: '--picodash-layer-tooltip',
+          floor: zIndexFloor,
+          parentOffset: 1,
+          parentZIndex,
+        })
 
   return (
     <TooltipPrimitive

@@ -217,6 +217,29 @@ test('collapses groups, resets values, runs custom actions, and carries theme th
   await expect(interactionPanel(page, 'no-actions').getByRole('button')).toHaveCount(0)
 })
 
+test('raises overlays opened inside a dialog above its modal layer', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open nested overlays' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Nested overlay fixture' })
+  const dialogOverlay = page.locator('[data-slot="dialog-overlay"]').filter({ has: dialog })
+  const dialogZIndex = await computedZIndex(dialogOverlay)
+
+  await dialog.getByRole('button', { name: 'Open nested menu' }).click()
+  const menu = page.getByRole('menu', { name: 'Open nested menu' })
+  const menuSurface = page.locator('[data-slot="dropdown-menu-content"]').filter({ has: menu })
+  expect(await computedZIndex(menuSurface)).toBeGreaterThan(dialogZIndex)
+  await menu.getByRole('menuitem', { name: 'Nested action' }).click()
+
+  await dialog.getByRole('button', { name: 'Nested dialog select' }).click()
+  const select = page.locator('[data-slot="select-content"]')
+  expect(await computedZIndex(select)).toBeGreaterThan(dialogZIndex)
+  await page.getByRole('option', { name: 'Second option' }).click()
+
+  await dialog.getByRole('button', { name: 'Show nested tooltip' }).hover()
+  const tooltip = page.getByRole('tooltip', { name: 'Nested tooltip' })
+  await expect(tooltip).toBeVisible()
+  expect(await computedZIndex(tooltip)).toBeGreaterThan(dialogZIndex)
+})
+
 test('hides by default close without losing state, then deregisters explicitly', async ({
   page,
 }) => {
@@ -255,6 +278,10 @@ test('hides by default close without losing state, then deregisters explicitly',
 
 function interactionPanel(page: Page, fixture: string) {
   return page.locator(`[data-interaction-fixture="${fixture}"][data-picodash-panel]`)
+}
+
+async function computedZIndex(locator: Locator) {
+  return Number.parseInt(await locator.evaluate((element) => getComputedStyle(element).zIndex), 10)
 }
 
 async function dragPanel(page: Page, source: Locator, delta: { x: number; y: number }) {

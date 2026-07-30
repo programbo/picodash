@@ -23,6 +23,22 @@ import {
 } from '@picodash/panel'
 import { usePicodashProviderSelector } from '@picodash/panel/advanced'
 import {
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogTrigger,
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Tooltip,
+  TooltipTrigger,
+} from '@picodash/panel/ui'
+import {
   fixedPlacement,
   floatingPlacement,
   hybridPlacement,
@@ -90,10 +106,13 @@ export function PanelInteractionLab({ fixture = 'all' }: { fixture?: string }) {
             />
           ) : null}
           {shows('dashlets') ? (
-            <InteractionDashletPanel
-              actionMarker={actionMarker}
-              onClear={() => setActionMarker('cleared')}
-            />
+            <>
+              <InteractionDashletPanel
+                actionMarker={actionMarker}
+                onClear={() => setActionMarker('cleared')}
+              />
+              <NestedOverlayFixture />
+            </>
           ) : null}
           {shows('floating') ? <FloatingPanel /> : null}
           {shows('peer') ? <PeerPanel /> : null}
@@ -113,6 +132,45 @@ export function PanelInteractionLab({ fixture = 'all' }: { fixture?: string }) {
         </PicodashProvider>
       ) : null}
     </main>
+  )
+}
+
+function NestedOverlayFixture() {
+  const triggerClassName =
+    'rounded border border-white/15 bg-zinc-950 px-2 py-1 text-xs text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300'
+
+  return (
+    <DialogTrigger>
+      <Button className={`${triggerClassName} fixed right-3 bottom-3 z-1100`}>
+        Open nested overlays
+      </Button>
+      <Dialog>
+        <DialogTitle>Nested overlay fixture</DialogTitle>
+        <div className="grid gap-3">
+          <DropdownMenuTrigger>
+            <Button className={triggerClassName}>Open nested menu</Button>
+            <DropdownMenu aria-label="Nested dialog menu">
+              <DropdownMenuItem id="nested-action">Nested action</DropdownMenuItem>
+            </DropdownMenu>
+          </DropdownMenuTrigger>
+
+          <Select aria-label="Nested dialog select" defaultSelectedKey="first">
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem id="first">First option</SelectItem>
+              <SelectItem id="second">Second option</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <TooltipTrigger>
+            <Button className={triggerClassName}>Show nested tooltip</Button>
+            <Tooltip>Nested tooltip</Tooltip>
+          </TooltipTrigger>
+        </div>
+      </Dialog>
+    </DialogTrigger>
   )
 }
 
