@@ -12,8 +12,14 @@ test('creates typed values from widened primitive defaults', () => {
     panelId: 'scene',
   })
 
-  expect(store.getState()).toEqual({
+  expect(store.getState()).toMatchObject({
+    fieldStates: {
+      bloom: { defaultValue: true, dirty: false, errors: [], touched: false },
+      exposure: { defaultValue: 1.2, dirty: false, errors: [], touched: false },
+      label: { defaultValue: 'Scene', dirty: false, errors: [], touched: false },
+    },
     panelId: 'scene',
+    repairProposal: null,
     values: { bloom: true, exposure: 1.2, label: 'Scene' },
   })
   expectTypeOf(store).toEqualTypeOf<
@@ -62,10 +68,11 @@ test('creates stable field handles with key and value inference', () => {
   expect(store.fields).toBe(fields)
   expect(store.fields.exposure).toBe(fields.exposure)
   expect(store.fields.exposure).toEqual({ key: 'exposure' })
-  expect(store.fields.exposure.store).toBe(store)
   expect(Object.keys(store.fields.exposure)).toEqual(['key'])
   expect(Object.isFrozen(store.fields)).toBe(true)
   expect(Object.isFrozen(store.fields.exposure)).toBe(true)
+  expect(store.ownsField(store.fields.exposure)).toBe(true)
+  expect(store).not.toHaveProperty('setState')
   expectTypeOf(store.fields.exposure).toEqualTypeOf<
     PicodashField<{ bloom: boolean; exposure: number }, 'exposure'>
   >()
@@ -82,8 +89,33 @@ test('gives same-shaped Stores distinct runtime-owned handles', () => {
   })
 
   expect(first.fields.exposure).not.toBe(second.fields.exposure)
-  expect(first.fields.exposure.store).toBe(first)
-  expect(second.fields.exposure.store).toBe(second)
+  expect(first.ownsField(first.fields.exposure)).toBe(true)
+  expect(first.ownsField(second.fields.exposure)).toBe(false)
+  expect(second.ownsField(second.fields.exposure)).toBe(true)
+})
+
+test('builds one complete initial snapshot for SSR consumers', () => {
+  const store = createPicodashStore<{ count: number; title: string }>({
+    fields: {
+      count: { defaultValue: 1 },
+      title: {
+        defaultValue: 'Fallback',
+        validate: (value) =>
+          value.length > 0 ? { success: true } : { errors: ['Required.'], success: false },
+      },
+    },
+    initialValues: { count: 2, title: '' },
+    panelId: 'ssr',
+  })
+
+  expect(store.getInitialState()).toBe(store.getState())
+  expect(store.getInitialState()).toMatchObject({
+    fieldStates: {
+      count: { defaultValue: 1, dirty: true, errors: [], touched: false },
+      title: { defaultValue: 'Fallback', dirty: false, errors: ['Required.'], touched: false },
+    },
+    values: { count: 2, title: 'Fallback' },
+  })
 })
 
 test('isolates caller-owned defaults and initial values', () => {

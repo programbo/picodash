@@ -42,6 +42,7 @@
     "prepublishOnly": "vp check && vp test && vp run build"
   },
   "dependencies": {
+    "@standard-schema/spec": "^1.1.0",
     "zustand": "catalog:"
   },
   "devDependencies": {
@@ -49,6 +50,7 @@
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "bumpp": "^12.0.0",
     "typescript": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "zod": "catalog:"
   }
 }

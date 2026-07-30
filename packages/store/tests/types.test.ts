@@ -1,4 +1,5 @@
 import { expectTypeOf, test } from 'vite-plus/test'
+import { z } from 'zod'
 import { createPicodashStore } from '../src/index.ts'
 
 test('requires every explicit value field and checks its value type', () => {
@@ -49,4 +50,42 @@ test('constrains initial values to declared fields and value types', () => {
     },
     panelId: 'wrong-initial-value',
   })
+})
+
+test('types single writes by owned handles and batch writes by value records', () => {
+  const store = createPicodashStore<{
+    count: number
+    mode: 'safe' | 'fast'
+  }>({
+    fields: {
+      count: { defaultValue: 1 },
+      mode: { defaultValue: 'safe' },
+    },
+    panelId: 'writes',
+  })
+
+  store.getState().setFieldValue(store.fields.mode, 'fast')
+  store.getState().setFieldValues({ count: 2, mode: 'safe' })
+
+  // @ts-expect-error A field handle constrains its value.
+  store.getState().setFieldValue(store.fields.mode, 'unknown')
+  // @ts-expect-error Batch writes reject unknown fields.
+  store.getState().setFieldValues({ missing: true })
+  // @ts-expect-error Single-field APIs do not accept string keys.
+  store.getState().resetFieldValue('mode')
+  expectTypeOf(store).not.toHaveProperty('setState')
+})
+
+test('Standard Schema output drives inferred field values', () => {
+  const store = createPicodashStore({
+    fields: {
+      mode: {
+        defaultValue: 'safe',
+        validate: z.enum(['safe', 'fast']),
+      },
+    },
+    panelId: 'schema-inference',
+  })
+
+  expectTypeOf(store.getState().values.mode).toEqualTypeOf<'safe' | 'fast'>()
 })

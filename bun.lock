@@ -110,6 +110,7 @@
       "name": "@picodash/store",
       "version": "0.0.0",
       "dependencies": {
+        "@standard-schema/spec": "^1.1.0",
         "zustand": "catalog:",
       },
       "devDependencies": {
@@ -118,6 +119,7 @@
         "bumpp": "^12.0.0",
         "typescript": "catalog:",
         "vite-plus": "catalog:",
+        "zod": "catalog:",
       },
     },
   },
