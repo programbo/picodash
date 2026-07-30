@@ -158,6 +158,40 @@ test('retains the last valid record and diagnoses invalid host snapshots', () =>
   expect(store.getState().diagnostics).toBe(store.diagnostics.getSnapshot())
 })
 
+test('clears adapter errors when the host recovers to the last valid record', () => {
+  const external = createExternalValues({ count: 2, title: 'Host' })
+  const store = createExternalStore(external)
+
+  external.setSnapshot({ count: -4, title: 'Invalid' })
+  external.notify()
+  expect(store.getState().fieldStates.count.errors).not.toHaveLength(0)
+  expect(store.getState().repairProposal).not.toBeNull()
+
+  external.setSnapshot({ count: 2, title: 'Host' })
+  external.notify()
+
+  expect(store.getState().values).toEqual({ count: 2, title: 'Host' })
+  expect(store.getState().fieldStates.count.errors).toEqual([])
+  expect(store.getState().repairProposal).toBeNull()
+})
+
+test('reports adapter rejection separately from a stale import plan', () => {
+  const external = createExternalValues({ count: 2, title: 'Host' }, () => false)
+  const store = createExternalStore(external)
+  store.getState().registerItem({
+    fields: { count: store.fields.count, title: store.fields.title },
+    id: 'fields',
+  })
+  const analysis = store.getState().analyzePanelDocument({ count: 4, title: 'Import' })
+  if (analysis.status === 'invalid') throw new Error('Expected a valid import.')
+
+  expect(store.getState().applyPanelImport(analysis)).toMatchObject({
+    diagnostic: { code: PICODASH_ERROR_CODES.REJECTED_WRITE },
+    reason: 'adapter-rejected',
+    success: false,
+  })
+})
+
 test.each([
   {
     code: PICODASH_ERROR_CODES.REJECTED_WRITE,

@@ -274,7 +274,12 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
         new Set(current.plan.resetFields),
       )
       if (!result.success) {
-        return { analysis: current, reason: 'stale', success: false }
+        return {
+          analysis: current,
+          diagnostic: result.diagnostic,
+          reason: 'adapter-rejected',
+          success: false,
+        }
       }
       return { analysis: current, success: true, values: current.values }
     },
@@ -713,7 +718,13 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
     diagnosticChannel.clear(PICODASH_ERROR_CODES.INVALID_ADAPTER_SNAPSHOT)
     const current = internalStore.getState()
     const next = applyOutputs(current, resolution.outputs, 'adapter')
-    if (!deepEqual(next.values, current.values)) internalStore.setState(next)
+    if (
+      !deepEqual(next.values, current.values) ||
+      !picodashFieldStatesEqual(next.fieldStates, current.fieldStates) ||
+      next.repairProposal !== current.repairProposal
+    ) {
+      internalStore.setState(next)
+    }
   }
 
   function resolveAdapterSnapshot(snapshot: unknown, state: DataState): AdapterSnapshotResolution {
@@ -940,6 +951,28 @@ function applyOutputs(
 
 function stringArraysEqual(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((value, index) => right[index] === value)
+}
+
+function picodashFieldStatesEqual(
+  left: State['fieldStates'],
+  right: State['fieldStates'],
+): boolean {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+  return (
+    leftKeys.length === rightKeys.length &&
+    leftKeys.every((key) => {
+      const leftField = left[key]!
+      const rightField = right[key]
+      return (
+        rightField !== undefined &&
+        leftField.dirty === rightField.dirty &&
+        leftField.touched === rightField.touched &&
+        stringArraysEqual(leftField.errors, rightField.errors) &&
+        Object.is(leftField.draftValue, rightField.draftValue)
+      )
+    })
+  )
 }
 
 function outputsEqual(

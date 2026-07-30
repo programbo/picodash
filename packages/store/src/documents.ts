@@ -53,7 +53,8 @@ export type PicodashPanelImportApplyResult<TValues extends object> =
     }
   | {
       readonly analysis: PicodashPanelImportAnalysis<TValues>
-      readonly reason: 'invalid' | 'repair-required' | 'stale'
+      readonly diagnostic?: import('./errors.js').PicodashDiagnostic
+      readonly reason: 'adapter-rejected' | 'invalid' | 'repair-required' | 'stale'
       readonly success: false
     }
 
@@ -270,6 +271,9 @@ export function applyPicodashPanelImport<TValues extends object>(
   }
   if (result.reason === 'repair-required' && result.analysis.status === 'repair') {
     throw new PicodashPanelRepairRequiredError(result.analysis)
+  }
+  if (result.reason === 'adapter-rejected') {
+    throw new Error(result.diagnostic?.summary ?? 'The external value adapter rejected the import.')
   }
   throw new Error('Panel constraints changed while the import was awaiting review.')
 }
