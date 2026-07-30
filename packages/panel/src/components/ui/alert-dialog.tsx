@@ -48,7 +48,7 @@ function AlertDialogOverlay({
       data-slot="alert-dialog-overlay"
       data-picodash-theme={theme}
       className={cn(
-        'data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 fixed inset-0 isolate z-(--picodash-layer-dialog) bg-(--picodash-color-overlay) duration-100 supports-backdrop-filter:backdrop-blur-(--picodash-blur-overlay)',
+        'data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 pointer-events-auto fixed inset-0 isolate z-(--picodash-layer-dialog) bg-(--picodash-color-overlay) duration-100 supports-backdrop-filter:backdrop-blur-(--picodash-blur-overlay)',
         className,
       )}
       {...props}

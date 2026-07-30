@@ -78,6 +78,7 @@ function Tooltip({
       crossOffset={crossOffset}
       UNSTABLE_portalContainer={resolvedPortalContainer ?? undefined}
       className={cn(
+        'pointer-events-auto',
         'rounded-picodash-surface border-picodash-border bg-picodash-text text-picodash-canvas data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:rounded-picodash-control z-(--picodash-layer-tooltip) inline-flex w-fit max-w-xs origin-(--trigger-anchor-point) items-center gap-(--picodash-space-1-5) border px-(--picodash-space-3) py-(--picodash-space-1-5) text-(length:--picodash-font-size-lg) shadow-(--picodash-shadow-md) has-data-[slot=kbd]:pr-(--picodash-space-1-5) **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate',
         className,
       )}
