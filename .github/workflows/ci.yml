@@ -37,8 +37,40 @@ jobs:
       - name: Audit high-severity vulnerabilities
         run: bun audit --audit-level=high
 
-      - name: Run lint, type-check, and unit tests
-        run: vp run @picodash/panel#build && vp check && vp run -r test
+      - name: Check release packages
+        run: bun run release:check
+
+      - name: Check workspace and run unit tests
+        run: vp check && vp run -r test && vp run -r build
+
+      - name: Check documentation and agent artifacts
+        run: bun run artifacts:check
+
+  evaluations:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
+
+      - name: Validate evaluation manifests and clean seeds
+        run: bun run evaluations:check
+
+      - name: Build isolated Next.js and Vite seeds
+        run: bun run evaluations:build
 
   web-e2e:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -65,9 +97,10 @@ jobs:
 
       - name: Build and run website E2E tests
         run: >-
+          vp run @picodash/store#build &&
           vp run @picodash/panel#build &&
           vp run @picodash/web#build &&
-          bun run --filter @picodash/web test:e2e
+          bun run test:e2e:web
 
       - name: Upload Playwright artifacts
         if: failure()
@@ -103,9 +136,11 @@ jobs:
 
       - name: Build and run Contract Lab E2E tests
         run: >-
+          vp run @picodash/store#build &&
           vp run @picodash/panel#build &&
           vp run @picodash/lab#build &&
-          bun run --filter @picodash/lab test:e2e
+          bun run test:e2e:lab:cap &&
+          bun run test:e2e:lab
 
       - name: Upload Playwright artifacts
         if: failure()
