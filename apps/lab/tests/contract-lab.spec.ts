@@ -1,5 +1,22 @@
 import { expect, test, type Page } from '@playwright/test'
 
+const consoleErrors = new WeakMap<Page, string[]>()
+
+test.beforeEach(async ({ page }) => {
+  const errors: string[] = []
+  consoleErrors.set(page, errors)
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text())
+  })
+  page.on('pageerror', (error) => {
+    errors.push(error.message)
+  })
+})
+
+test.afterEach(async ({ page }) => {
+  expect(consoleErrors.get(page) ?? [], 'unexpected browser errors').toEqual([])
+})
+
 const presets = [
   ['placement', 'Placement'],
   ['interaction', 'Interaction'],
@@ -12,6 +29,9 @@ const presets = [
 async function openLab(page: Page) {
   await page.goto('/lab')
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText(
+    'Diagnosticsclear',
+  )
 }
 
 async function loadPreset(page: Page, preset: (typeof presets)[number][0]) {
@@ -53,14 +73,10 @@ test('publishes a stable driver and independent host status', async ({ page }) =
     .toBe(1)
 
   await page.getByRole('button', { name: 'Primary panel' }).click()
-  await expect(
-    page.locator('[data-contract-lab-primary-visible="false"]'),
-  ).toHaveCount(1)
+  await expect(page.locator('[data-contract-lab-primary-visible="false"]')).toHaveCount(1)
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('hidden')
   await page.getByRole('button', { name: 'Primary panel' }).click()
-  await expect(
-    page.locator('[data-contract-lab-primary-visible="true"]'),
-  ).toHaveCount(1)
+  await expect(page.locator('[data-contract-lab-primary-visible="true"]')).toHaveCount(1)
 
   await page.getByRole('button', { name: 'Take offline' }).press('Enter')
   await expect(page.locator('[data-contract-lab-specimen]')).toHaveCount(0)
@@ -109,6 +125,7 @@ test('exercises focus, keyboard ordering, collapse, deregister, and remount', as
 
   const panel = page.locator('[data-picodash-panel-id="contract-interaction-primary"]')
   const exposure = panel.locator('[data-item-id="exposure"] input')
+  await expect(exposure).toHaveAccessibleName('Exposure')
   await exposure.focus()
   await expect(exposure).toBeFocused()
 
@@ -123,6 +140,12 @@ test('exercises focus, keyboard ordering, collapse, deregister, and remount', as
         .evaluateAll((items) => items.map((item) => item.getAttribute('data-item-id'))),
     )
     .toEqual(['enabled', 'frameHealth', 'exposure', 'note'])
+
+  const enabledSwitch = panel.getByRole('switch', { name: 'Pinned input' })
+  const switchBox = await enabledSwitch.boundingBox()
+  if (!switchBox) throw new Error('Pointer target is unavailable')
+  await page.mouse.click(switchBox.x + switchBox.width / 2, switchBox.y + switchBox.height / 2)
+  await expect(enabledSwitch).not.toBeChecked()
 
   await panel.getByRole('button', { name: 'Collapse panel Interaction Contract' }).click()
   await expect(panel).toHaveAttribute('data-collapsed', 'true')
@@ -204,6 +227,44 @@ test('exercises theme recipes through public controls and DOM', async ({ page })
     .getByRole('radio', { name: 'contrast', exact: true })
     .click()
   await expect(page.locator('[data-theme-probe]')).toHaveAttribute('data-theme-probe', 'contrast')
+})
+
+test('keeps the placement boundary usable on mobile and at browser zoom', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await openLab(page)
+  await loadPreset(page, 'placement')
+
+  const panel = page.locator('[data-picodash-panel-id="contract-placement-primary"]')
+  await expect(panel).toBeVisible()
+  await expect(panel.getByRole('radio', { name: 'hybrid', exact: true })).toBeVisible()
+  const bounds = await panel.boundingBox()
+  expect(bounds).not.toBeNull()
+  expect(bounds!.x).toBeGreaterThanOrEqual(0)
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390)
+
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = '1.5'
+  })
+  await expect(panel).toBeVisible()
+  await panel.getByRole('radio', { name: 'floating', exact: true }).click()
+  await expect(panel.getByRole('radio', { name: 'floating', exact: true })).toBeChecked()
+})
+
+test('follows system theme changes and remains operable with reduced motion', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
+  await openLab(page)
+  await loadPreset(page, 'themes')
+
+  const panel = page.locator('[data-picodash-panel-id="contract-themes-primary"]')
+  const systemTheme = panel.getByRole('radio', { name: 'system', exact: true })
+  await systemTheme.click()
+  await expect(systemTheme).toBeChecked()
+  await expect(panel).toHaveAttribute('data-theme-probe', 'system')
+
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
+  await expect(systemTheme).toBeChecked()
+  await panel.getByRole('button', { name: 'Collapse panel Theme Contract' }).click()
+  await expect(panel).toHaveAttribute('data-collapsed', 'true')
 })
 
 test('resets to the canonical placement preset through the public driver', async ({ page }) => {
