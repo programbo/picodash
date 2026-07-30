@@ -244,7 +244,7 @@ export function MouseVelocitySparklineItem({
               vectorEffect="non-scaling-stroke"
             />
             <motion.path
-              className="stroke-chart-1"
+              data-pointer-velocity-axis="x"
               d={pathX}
               fill="none"
               stroke="var(--picodash-color-data-1)"
@@ -252,7 +252,7 @@ export function MouseVelocitySparklineItem({
               vectorEffect="non-scaling-stroke"
             />
             <motion.path
-              className="stroke-chart-3"
+              data-pointer-velocity-axis="y"
               d={pathY}
               fill="none"
               stroke="var(--picodash-color-data-3)"

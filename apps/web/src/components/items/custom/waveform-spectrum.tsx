@@ -116,7 +116,7 @@ function SignalSurface({
             vectorEffect="non-scaling-stroke"
           />
           <motion.path
-            className="stroke-chart-2"
+            data-signal-path
             d={path}
             fill={mode === 'spectrum' ? 'var(--picodash-color-data-2)' : 'none'}
             fillOpacity={mode === 'spectrum' ? 0.18 : 0}

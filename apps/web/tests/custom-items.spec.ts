@@ -1538,14 +1538,35 @@ test('applies simultaneous named themes to panels and every portaled surface', a
       .filter({ has: dialog }),
   ).toHaveCount(1)
   await dialog.getByRole('button', { name: 'Cancel' }).click()
+
+  for (const [selector, token] of [
+    ['[data-pointer-velocity-axis="x"]', '--picodash-color-data-1'],
+    ['[data-pointer-velocity-axis="y"]', '--picodash-color-data-3'],
+    ['[data-signal-path]', '--picodash-color-data-2'],
+  ] as const) {
+    const path = customPanel.locator(selector)
+    await expect(path).toHaveAttribute('stroke', `var(${token})`)
+    const strokes = await path.evaluate((element, property) => {
+      const probe = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      probe.setAttribute('stroke', `var(${property})`)
+      element.parentElement?.append(probe)
+      const result = {
+        actual: getComputedStyle(element).stroke,
+        semantic: getComputedStyle(probe).stroke,
+      }
+      probe.remove()
+      return result
+    }, token)
+    expect(strokes.actual).toBe(strokes.semantic)
+  }
 })
 
 test('animates transient visual paths and switches deterministic signal mode', async ({ page }) => {
   const velocity = page.locator('[data-item-id="mouse-velocity"]')
   const display = velocity.locator('[data-pointer-velocity-display]')
   const description = velocity.getByText('Move anywhere in the full viewport.', { exact: false })
-  const velocityXPath = velocity.locator('path.stroke-chart-1')
-  const velocityYPath = velocity.locator('path.stroke-chart-3')
+  const velocityXPath = velocity.locator('[data-pointer-velocity-axis="x"]')
+  const velocityYPath = velocity.locator('[data-pointer-velocity-axis="y"]')
   const fps = velocity.locator('[data-pointer-velocity-fps]')
   await display.scrollIntoViewIfNeeded()
   await expect(display).toBeVisible()
@@ -1597,7 +1618,7 @@ test('animates transient visual paths and switches deterministic signal mode', a
   await expect(fps).toHaveText('0 FPS')
 
   const signal = page.locator('[data-item-id="signal-visualizer"]')
-  const signalPath = signal.locator('path.stroke-chart-2')
+  const signalPath = signal.locator('[data-signal-path]')
   const initialSignalPath = await signalPath.getAttribute('d')
   await signal.getByRole('radio', { name: 'Show spectrum' }).click()
   await expect(signal.getByRole('radio', { name: 'Show spectrum' })).toHaveAttribute(
