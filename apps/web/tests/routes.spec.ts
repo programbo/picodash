@@ -77,6 +77,7 @@ test('routes home tabs without recreating the persistent demo shell', async ({ p
     itemCount: 5,
     panelId: 'components-navigation',
   })
+  await expect(page.locator('[data-persistence-probe="kept"]')).toHaveCount(1)
   await expect(page.getByRole('heading', { name: 'Compose Picodash components' })).toBeVisible()
 
   await page.getByRole('tab', { name: 'More examples' }).click()
