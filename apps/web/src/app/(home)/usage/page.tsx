@@ -1,10 +1,5 @@
-import type { Metadata } from 'next'
-import { HomeUsage } from '@/components/home/home-usage'
-
-export const metadata: Metadata = {
-  title: 'Usage',
-}
+import { permanentRedirect } from 'next/navigation'
 
 export default function UsagePage() {
-  return <HomeUsage />
+  permanentRedirect('/docs/get-started/manual')
 }

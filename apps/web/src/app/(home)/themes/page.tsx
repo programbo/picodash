@@ -1,10 +1,5 @@
-import type { Metadata } from 'next'
-import { GalleryThemes } from '@/components/home/gallery-themes'
-
-export const metadata: Metadata = {
-  title: 'Themes',
-}
+import { permanentRedirect } from 'next/navigation'
 
 export default function ThemesPage() {
-  return <GalleryThemes />
+  permanentRedirect('/docs/guides/dashlet-themes')
 }

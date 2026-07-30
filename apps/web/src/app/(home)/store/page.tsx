@@ -1,10 +1,5 @@
-import type { Metadata } from 'next'
-import { HomeStore } from '@/components/home/home-store'
-
-export const metadata: Metadata = {
-  title: 'Store',
-}
+import { permanentRedirect } from 'next/navigation'
 
 export default function StorePage() {
-  return <HomeStore />
+  permanentRedirect('/docs/reference/store')
 }

@@ -1,10 +1,5 @@
-import type { Metadata } from 'next'
-import { HomeMoreExamples } from '@/components/home/home-more-examples'
-
-export const metadata: Metadata = {
-  title: 'More examples',
-}
+import { permanentRedirect } from 'next/navigation'
 
 export default function MoreExamplesPage() {
-  return <HomeMoreExamples />
+  permanentRedirect('/examples')
 }
