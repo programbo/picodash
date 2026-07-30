@@ -106,6 +106,20 @@
         "react-dom": ">=19",
       },
     },
+    "packages/store": {
+      "name": "@picodash/store",
+      "version": "0.0.0",
+      "dependencies": {
+        "zustand": "catalog:",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "@typescript/native-preview": "7.0.0-dev.20260707.2",
+        "bumpp": "^12.0.0",
+        "typescript": "catalog:",
+        "vite-plus": "catalog:",
+      },
+    },
   },
   "overrides": {
     "brace-expansion": "5.0.8",
@@ -417,6 +431,8 @@
     "@picodash/lab": ["@picodash/lab@workspace:apps/lab"],
 
     "@picodash/panel": ["@picodash/panel@workspace:packages/panel"],
+
+    "@picodash/store": ["@picodash/store@workspace:packages/store"],
 
     "@picodash/web": ["@picodash/web@workspace:apps/web"],
 
