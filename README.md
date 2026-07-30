@@ -16,6 +16,7 @@ Monorepo for the promoted [Picodash] package, its production website, and local 
 
 - `/` renders the home root.
 - `/store`, `/usage`, `/usage/components`, `/themes`, `/more-examples` render public detail routes.
+- `/docs` renders the standalone documentation planning surface.
 - unknown paths render the app's 404 page.
 
 ### `apps/lab` route topology

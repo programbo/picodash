@@ -172,7 +172,7 @@ invalid or obsolete records start from declared defaults.
 
 `apps/web` route topology:
 
-- `/`, `/store`, `/usage`, `/usage/components`, `/more-examples`, `/themes`
+- `/`, `/store`, `/usage`, `/usage/components`, `/more-examples`, `/themes`, `/docs`
 - not-found fallback for every other path.
 
 `apps/lab` route topology:

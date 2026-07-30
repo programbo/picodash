@@ -118,6 +118,16 @@ test('keeps all home tabs reachable on narrow screens', async ({ page }) => {
   })
 })
 
+test('serves the standalone documentation route', async ({ page }) => {
+  await page.goto('/docs')
+
+  await expect(page.locator('[data-product-route="docs"]')).toHaveCount(1)
+  await expect(page.getByRole('link', { name: 'Picodash' }).locator('svg')).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Documentation' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Introduction', level: 1 })).toBeVisible()
+  await expect(page.locator('[data-persistent-demo-shell]')).toHaveCount(0)
+})
+
 test('exposes each state lab tab as a route', async ({ page }) => {
   await page.goto(`${labURL}/lab/state?providerTheme=ocean&sceneTheme=plum`)
   await expect(page).toHaveURL(`${labURL}/lab/state/provider?providerTheme=ocean&sceneTheme=plum`)

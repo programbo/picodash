@@ -26,7 +26,8 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 - `apps/lab`: local-only Next.js debugging app, tested by the shared Playwright suite but not
   deployed as part of the production website.
 
-`apps/web` routes: `/`, `/store`, `/usage`, `/usage/components`, `/themes`, `/more-examples`, and 404.
+`apps/web` routes: `/`, `/store`, `/usage`, `/usage/components`, `/themes`, `/more-examples`,
+`/docs`, and 404.
 `apps/lab` routes: `/lab/state/{provider,scene,built-in-items,custom-items}`,
 `/lab/panel-geometry`, `/lab/panel-interaction`, and `/lab/dashlets`; `/` and `/lab` redirect to
 `/lab/state`.
