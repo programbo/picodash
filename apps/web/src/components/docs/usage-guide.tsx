@@ -10,32 +10,31 @@ import { cn } from '@/lib/utils'
 hljs.registerLanguage('bash', bash)
 hljs.registerLanguage('typescript', typescript)
 
-const installSource = `bun add @picodash/panel`
+const installSource = `bun add @picodash/panel @picodash/store`
 
 const stylesheetSource = `import '@picodash/panel/style.css'`
 
-const storeSource = `import { createPicodashPanelStore } from '@picodash/panel'
+const storeSource = `import { createPicodashStore } from '@picodash/store'
 
-export const settingsStore = createPicodashPanelStore({
+export const settingsStore = createPicodashStore({
   panelId: 'site-settings',
-  initialValues: {
-    opacity: 1,
-    showGrid: true,
-    quality: 'balanced',
+  fields: {
+    opacity: { defaultValue: 1 },
+    showGrid: { defaultValue: true },
+    quality: { defaultValue: 'balanced' },
   },
 })`
 
-const selectorSource = `const opacity = usePicodashPanelStoreSelector(
+const selectorSource = `import { usePicodashStoreSelector } from '@picodash/store/react'
+
+const opacity = usePicodashStoreSelector(
   settingsStore,
-  (state) =>
-    typeof state.values.opacity === 'number'
-      ? state.values.opacity
-      : 1,
+  (state) => state.values.opacity,
 )
 
-const showGrid = usePicodashPanelStoreSelector(
+const showGrid = usePicodashStoreSelector(
   settingsStore,
-  (state) => state.values.showGrid === true,
+  (state) => state.values.showGrid,
 )`
 
 const controllerSource = `function SettingsPanelActions() {
@@ -65,7 +64,8 @@ const controllerSource = `function SettingsPanelActions() {
   {/* Items remain mounted and registered while hidden. */}
 </PicodashPanel>`
 
-const boundarySource = `const canvasStore = createPicodashPanelStore({
+const boundarySource = `const canvasStore = createPicodashStore({
+  fields: {},
   panelId: 'canvas-tools',
 })
 
@@ -145,22 +145,19 @@ const panelSource = `<PicodashProvider
   >
     <PicodashGroup id="appearance" label="Appearance">
       <PicodashSlider
-        field="opacity"
+        field={settingsStore.fields.opacity}
         label="Opacity"
-        defaultValue={1}
         min={0.2}
         max={1}
         step={0.01}
       />
       <PicodashSwitch
-        field="showGrid"
+        field={settingsStore.fields.showGrid}
         label="Show grid"
-        defaultValue
       />
       <PicodashSelect
-        field="quality"
+        field={settingsStore.fields.quality}
         label="Quality"
-        defaultValue="balanced"
         options={[
           { label: 'Draft', value: 'draft' },
           { label: 'Balanced', value: 'balanced' },
@@ -172,37 +169,34 @@ const panelSource = `<PicodashProvider
 </PicodashProvider>`
 
 const completeSource = `import {
-  createPicodashPanelStore,
   PicodashGroup,
   PicodashPanel,
   PicodashProvider,
   PicodashSelect,
   PicodashSlider,
   PicodashSwitch,
-  usePicodashPanelStoreSelector,
 } from '@picodash/panel'
+import { createPicodashStore } from '@picodash/store'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 import '@picodash/panel/style.css'
 
-const settingsStore = createPicodashPanelStore({
+const settingsStore = createPicodashStore({
   panelId: 'site-settings',
-  initialValues: {
-    opacity: 1,
-    showGrid: true,
-    quality: 'balanced',
+  fields: {
+    opacity: { defaultValue: 1 },
+    showGrid: { defaultValue: true },
+    quality: { defaultValue: 'balanced' },
   },
 })
 
 export function SitePreview() {
-  const opacity = usePicodashPanelStoreSelector(
+  const opacity = usePicodashStoreSelector(
     settingsStore,
-    (state) =>
-      typeof state.values.opacity === 'number'
-        ? state.values.opacity
-        : 1,
+    (state) => state.values.opacity,
   )
-  const showGrid = usePicodashPanelStoreSelector(
+  const showGrid = usePicodashStoreSelector(
     settingsStore,
-    (state) => state.values.showGrid === true,
+    (state) => state.values.showGrid,
   )
 
   return (
@@ -226,22 +220,19 @@ export function SitePreview() {
       >
         <PicodashGroup id="appearance" label="Appearance">
           <PicodashSlider
-            field="opacity"
+            field={settingsStore.fields.opacity}
             label="Opacity"
-            defaultValue={1}
             min={0.2}
             max={1}
             step={0.01}
           />
           <PicodashSwitch
-            field="showGrid"
+            field={settingsStore.fields.showGrid}
             label="Show grid"
-            defaultValue
           />
           <PicodashSelect
-            field="quality"
+            field={settingsStore.fields.quality}
             label="Quality"
-            defaultValue="balanced"
             options={[
               { label: 'Draft', value: 'draft' },
               { label: 'Balanced', value: 'balanced' },
@@ -264,15 +255,13 @@ if (!result.success) {
 }`
 
 const reactiveSource = `<PicodashSwitch
-  field="extendedRange"
+  field={settingsStore.fields.extendedRange}
   label="Extended range"
-  defaultValue={false}
 />
 
 <PicodashSlider
-  field="exposure"
+  field={settingsStore.fields.exposure}
   label="Exposure"
-  defaultValue={1}
   min={0}
   max={(state) =>
     state.values.extendedRange === true ? 2 : 1
@@ -280,15 +269,20 @@ const reactiveSource = `<PicodashSwitch
   visible={(state) => state.values.quality !== 'draft'}
 />`
 
-const isolatedSource = `<PicodashPanel
-  id="debug-tools"
+const isolatedSource = `const debugStore = createPicodashStore({
+  panelId: 'debug-tools',
+  fields: {
+    outlines: { defaultValue: false },
+  },
+})
+
+<PicodashPanel
+  store={debugStore}
   title="Debug tools"
-  initialValues={{ outlines: false }}
 >
   <PicodashSwitch
-    field="outlines"
+    field={debugStore.fields.outlines}
     label="Show outlines"
-    defaultValue={false}
   />
 </PicodashPanel>`
 
@@ -329,8 +323,9 @@ export function UsageGuide() {
               title="Install the package and import its stylesheet"
             >
               <p>
-                Add <Code>picodash</Code> with your project&apos;s package manager. Import the
-                package stylesheet once from your application entry point.
+                Add <Code>@picodash/panel</Code> and <Code>@picodash/store</Code> with your
+                project&apos;s package manager. Import the panel stylesheet once from your
+                application entry point.
               </p>
               <CodeBlock language="bash" label="Install Picodash" source={installSource} />
               <CodeBlock
@@ -348,8 +343,9 @@ export function UsageGuide() {
               </p>
               <CodeBlock language="typescript" label="settings-store.ts" source={storeSource} />
               <Callout>
-                <Code>initialValues</Code> seeds the accepted application state. Each item&apos;s{' '}
-                <Code>defaultValue</Code> is its reset value. Keep both JSON-compatible.
+                Each field definition&apos;s <Code>defaultValue</Code> is its reset value. Use{' '}
+                <Code>initialValues</Code> only to hydrate accepted application state. Keep both
+                JSON-compatible.
               </Callout>
             </GuideStep>
 
@@ -433,11 +429,10 @@ export function UsageGuide() {
                 />
               </Recipe>
 
-              <Recipe title="Use an internal store for an isolated panel">
+              <Recipe title="Use a dedicated store for an isolated panel">
                 <p>
-                  Omit the external store only when surrounding application code does not need
-                  direct access to the values. Internal-store mode requires a stable <Code>id</Code>
-                  and accepts <Code>initialValues</Code>.
+                  Even an isolated panel has an explicit store. Create it once, declare its fields,
+                  and pass the same stable store to the panel and its field-backed items.
                 </p>
                 <CodeBlock language="typescript" label="Isolated panel" source={isolatedSource} />
               </Recipe>
@@ -507,8 +502,9 @@ export function UsageGuide() {
             <SectionHeading eyebrow="Agent checklist" title="Implementation constraints" />
             <ol className="mt-5 grid gap-3 text-sm leading-6 text-zinc-300">
               <ConstraintItem>
-                Import only from <Code>picodash</Code> unless a low-level advanced API is explicitly
-                required.
+                Import panels and controls from <Code>@picodash/panel</Code>, stores from{' '}
+                <Code>@picodash/store</Code>, and React selectors from{' '}
+                <Code>@picodash/store/react</Code>.
               </ConstraintItem>
               <ConstraintItem>
                 Create application-owned stores once at module scope; do not recreate them during

@@ -24,14 +24,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   )
 }`
 
-const panelSource = `import {
-  createPicodashPanelStore,
-  PicodashPanel,
-} from '@picodash/panel'
+const panelSource = `import { PicodashPanel } from '@picodash/panel'
+import { createPicodashStore } from '@picodash/store'
 
-const settingsStore = createPicodashPanelStore({
+const settingsStore = createPicodashStore({
   panelId: 'settings',
-  initialValues: { quality: 'balanced' },
+  fields: {
+    quality: { defaultValue: 'balanced' },
+  },
 })
 
 export function SettingsPanel() {
@@ -61,22 +61,19 @@ const groupSource = `import {
   pin="start"
 >
   <PicodashSlider
-    field="opacity"
+    field={settingsStore.fields.opacity}
     label="Opacity"
-    defaultValue={1}
     min={0}
     max={1}
     step={0.01}
   />
   <PicodashSwitch
-    field="showGrid"
+    field={settingsStore.fields.showGrid}
     label="Show grid"
-    defaultValue
   />
   <PicodashSelect
-    field="quality"
+    field={settingsStore.fields.quality}
     label="Quality"
-    defaultValue="balanced"
     options={[
       { label: 'Draft', value: 'draft' },
       { label: 'Balanced', value: 'balanced' },
@@ -108,18 +105,21 @@ const actionMenuSource = `import {
 />`
 
 const compositionSource = `import {
-  createPicodashPanelStore,
   PicodashGroup,
   PicodashPanel,
   PicodashProvider,
   PicodashSlider,
   PicodashSwitch,
 } from '@picodash/panel'
+import { createPicodashStore } from '@picodash/store'
 import '@picodash/panel/style.css'
 
-const panelStore = createPicodashPanelStore({
+const panelStore = createPicodashStore({
   panelId: 'display-settings',
-  initialValues: { opacity: 1, showGrid: true },
+  fields: {
+    opacity: { defaultValue: 1 },
+    showGrid: { defaultValue: true },
+  },
 })
 
 export function DisplaySettings() {
@@ -132,17 +132,15 @@ export function DisplaySettings() {
       >
         <PicodashGroup id="appearance" label="Appearance">
           <PicodashSlider
-            field="opacity"
+            field={panelStore.fields.opacity}
             label="Opacity"
-            defaultValue={1}
             min={0.2}
             max={1}
             step={0.01}
           />
           <PicodashSwitch
-            field="showGrid"
+            field={panelStore.fields.showGrid}
             label="Show grid"
-            defaultValue
           />
         </PicodashGroup>
       </PicodashPanel>
@@ -210,10 +208,9 @@ export function ComponentsGuide() {
                 title="PicodashPanel owns a movable surface"
               >
                 <p>
-                  A panel is the compositional surface for groups and items. Prefer an external{' '}
-                  <Code>createPicodashPanelStore</Code> when application code also reads or writes
-                  the values. For an isolated panel, use its <Code>id</Code> with{' '}
-                  <Code>initialValues</Code> instead.
+                  A panel is the compositional surface for groups and items. Create an
+                  application-owned <Code>createPicodashStore</Code>, declare every field and its
+                  reset default there, and pass that store to the panel.
                 </p>
                 <GuideCodeBlock label="settings-panel.tsx" source={panelSource} />
                 <ul className="grid gap-2 text-sm leading-6 text-zinc-300">

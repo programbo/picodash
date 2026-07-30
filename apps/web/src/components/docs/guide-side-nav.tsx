@@ -1,11 +1,7 @@
 'use client'
 
-import {
-  createPicodashPanelStore,
-  PicodashDisplay,
-  PicodashGroup,
-  PicodashPanel,
-} from '@picodash/panel'
+import { PicodashDisplay, PicodashGroup, PicodashPanel } from '@picodash/panel'
+import { createPicodashStore } from '@picodash/store'
 import Link from 'next/link'
 import { useRef, useState, type ReactNode } from 'react'
 import { floatingPlacement } from '../../lib/panel-placement'
@@ -42,7 +38,7 @@ export function GuidePanelLayout({
   title: string
 }) {
   const boundaryRef = useRef<HTMLDivElement>(null)
-  const [store] = useState(() => createPicodashPanelStore({ panelId }))
+  const [store] = useState(() => createPicodashStore({ fields: {}, panelId }))
 
   return (
     <div className="relative mx-auto max-w-5xl min-w-0">

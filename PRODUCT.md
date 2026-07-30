@@ -4,13 +4,27 @@ Picodash is the fastest reliable way to add flexible, unobtrusive control and mo
 interfaces to an existing React application without building bespoke state, interaction, and
 presentation infrastructure.
 
+Picodash is productized around an agent-first workflow: a human developer supervises an AI coding
+agent that composes or migrates Dashlets against explicit host contracts.
+
 ## Audience and Beachhead
 
-The primary implementer is an AI coding agent supervised by a human developer. The initial
-beachhead is an existing React application that needs an overlay surface for controls, operational
-readouts, visualizations, previews, or actions.
+The primary implementer is an AI coding agent supervised by a human developer.
 
-Picodash targets React 19. Next.js App Router and Vite are the verified host environments.
+The initial beachhead is an existing React application that needs an overlay surface for controls,
+operational readouts, visualizations, previews, or actions.
+
+## Supported Environments
+
+Picodash targets React 19.
+
+Verified host integrations are:
+
+- Next.js App Router
+- Vite apps/workflows
+
+The product contract assumes host-owned routing and data transport. Picodash owns the control-plane UI,
+state validation, interaction contracts, placement, persistence, and diagnostics.
 
 ## Product Difference
 
@@ -21,17 +35,29 @@ application.
 
 ## Exposure Policy
 
-Every host application explicitly chooses who can access its Panels: developers, authenticated
-operators, or end users. Picodash does not infer an audience or make a Panel public merely because
-it is installed.
+Every host explicitly chooses who can access each Panel:
+
+- developers
+- authenticated operators
+- end users
+
+Picodash does not infer an audience.
 
 ## Canonical Experience
 
-The canonical Panel is initially visible, snapped unobtrusively to a corner, collapsible,
-dismissible, non-layout-shifting, and explicitly reopenable. Hosts may choose another experience,
-but examples and guidance start from this safe baseline.
+The canonical Panel pattern is initially visible, snapped to a corner, collapsible, dismissible,
+non-layout-shifting, and explicitly reopenable. Hosts may choose alternate placements and interaction
+policies, but examples and default guidance begin with this stable baseline.
 
 ## Accessibility
 
-Picodash targets WCAG 2.2 Level AA across its components, interaction patterns, guidance, and
-examples. This is an engineering target, not a claim of third-party certification.
+Picodash targets WCAG 2.2 Level AA across components, interaction patterns, guidance, and examples.
+This is an engineering target, not a claim of third-party certification.
+
+## Domain Language
+
+- `Panel`: the concrete place where controls and readouts render; exposed through `PicodashPanel`.
+- `Dashlet`: a unit of control, readout, visualization, preview, action, or compound composition.
+- `Picodash Store`: the per-Panel typed state engine for values, contracts, interaction state, and
+  repairs.
+- `Dashboard`: the application-level composition of one or more Panels and their Dashlets.

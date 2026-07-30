@@ -1,25 +1,51 @@
-# Agent-first Store and Dashlet boundaries
+# ADR 0001: Agent-first store and Dashlet boundaries
 
-Picodash will place the complete state engine for one Panel in `@picodash/store`, with React
-selectors and controlled bindings in `@picodash/store/react`. Typed JSX is the canonical authoring
-representation, fields are referenced through typed handles rather than strings, and external
-state integrates through synchronous whole-record adapters so every write shares one atomic,
-validated path. Provider-owned state remains separate and owns cross-Panel visibility, placement,
-activation, z-order, and layout persistence.
+## Status
 
-A Dashboard remains an application composition rather than a Picodash component.
-`@picodash/panel/dashlet` owns the semantic, theme-aware anatomy for custom Dashlets, while
-`@picodash/panel/ui` remains the lower-level accessible foundation. These boundaries let agents
-compose intent-revealing interfaces without coupling the state engine to React or turning the UI
-foundation into an application component library.
+Accepted.
+
+## Decision
+
+`@picodash/store` owns the complete per-Panel state engine:
+
+- typed field definitions and stable field handles,
+- JSON-compatible values and defaults,
+- parse/validate contracts,
+- draft and interaction state,
+- ordered registration and reset/repair workflows,
+- import/export and atomic multi-field mutation paths.
+
+`@picodash/store/react` provides synchronous whole-record adapter wiring for host frameworks and
+external stores. All state writes share one atomic, validated setter path.
+
+`@picodash/panel` owns rendering, registration side-effects, provider/layout orchestration, portals,
+themes, geometry, and overlays.
+
+## Domain model
+
+Typed JSX remains the canonical authoring representation.
+
+- Panels are represented by `PicodashPanel` and receive typed store instances.
+- Dashlets bind to typed field handles rather than string identifiers.
+- Field handles are owned by the store, so they are stable and type-safe across composition.
+
+Provider-owned state remains separate from per-Panel state:
+
+- Provider owns panel registration visibility, activation, z-order, and persisted layout records.
+- Panel/Store state owns values, contracts, interaction state, drafts, ordering, and repair.
+
+## Boundaries
+
+- `@picodash/panel/dashlet` is the semantic custom-Dashlet surface and anatomy.
+- `@picodash/panel/ui` remains the lower-level accessible foundation and React Aria contract layer.
 
 ## Rejected alternatives
 
-- Keeping the per-Panel engine inside `@picodash/panel` would couple reusable state and validation
-  to the rendering package.
-- String field identifiers and component-owned defaults would weaken type-guided authoring and
-  permit contracts to drift between Dashlets.
-- Per-field external adapters would make compound writes, reset, repair, and import non-atomic.
-- A first-class Dashboard component would impose application structure that belongs to the host.
-- Keeping semantic Dashlet anatomy in `/ui` would blur intent-level composition with low-level
-  primitives.
+- Keeping per-Panel engine inside `@picodash/panel` would couple render and state migration work and
+  weaken host portability.
+- String field identifiers would weaken type-level guarantees and allow contract drift between authoring
+  and rendered components.
+- Per-field adapters would split mutation paths and break atomic resets, imports, and repairs.
+- First-class Dashboard component abstractions would overstep composition responsibility and constrain host
+  layout ownership.
+- Moving semantic Dashlet anatomy into `/ui` would blur component-level intent with low-level primitives.

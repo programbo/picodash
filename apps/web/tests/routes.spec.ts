@@ -114,6 +114,24 @@ test('serves the standalone documentation route', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Documentation' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Introduction', level: 1 })).toBeVisible()
   await expect(page.locator('[data-persistent-demo-shell]')).toHaveCount(0)
+
+  for (const [path, heading] of [
+    ['/docs/get-started/manual', 'Manual setup'],
+    ['/docs/get-started/agent', 'Agent playbook'],
+    ['/docs/concepts/state-ownership', 'Concept: state ownership'],
+    ['/docs/concepts/panel-placement', 'Concept: panel placement'],
+    ['/docs/concepts/dashlet-anatomy', 'Concept: dashlet anatomy'],
+    ['/docs/guides/custom-dashlets', 'Guide: custom dashlets'],
+    ['/docs/guides/compound-dashlets', 'Guide: compound dashlets'],
+    ['/docs/guides/dashlet-themes', 'Guide: dashlet themes'],
+    ['/docs/guides/dashlet-accessibility', 'Guide: dashlet accessibility'],
+    ['/docs/reference/store', 'Store reference'],
+    ['/docs/reference/panel', 'Panel reference'],
+    ['/docs/reference/diagnostics', 'Diagnostics reference'],
+  ] as const) {
+    await page.goto(path)
+    await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible()
+  }
 })
 
 test('serves the catalog-backed reference routes and permanent legacy redirect', async ({
