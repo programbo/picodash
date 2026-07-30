@@ -52,7 +52,7 @@ What it provides:
 - import/export and repair flows
 
 Production pages (`apps/web`):
-- /, /store, /usage, /usage/components, /more-examples, /themes
+- /, /store, /usage, /usage/components, /more-examples, /themes, /docs
 
 Local debugging pages (`apps/lab`, not deployed with the production website):
 - / and /lab redirect to /lab/state

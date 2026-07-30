@@ -15,6 +15,7 @@ The workspace has separate production and local debugging Next.js App Router app
 
 - `/` renders the home root.
 - `/store`, `/usage`, `/usage/components`, `/themes`, `/more-examples` render public routes.
+- `/docs` renders the standalone documentation planning surface.
 - missing paths render the 404 page.
 
 The local app redirects `/` and `/lab` to `/lab/state`, then serves state fixtures at
