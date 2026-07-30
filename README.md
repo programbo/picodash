@@ -106,9 +106,7 @@ export function App() {
   return (
     <PicodashProvider persistLayout storageKey="my-app:picodash-layout:v2" theme="system">
       <main style={{ filter: `blur(${exposure * 0.2}px)` }}>Scene preview</main>
-      <PicodashPanelTrigger store={sceneStore}>
-        Open Scene Controls
-      </PicodashPanelTrigger>
+      <PicodashPanelTrigger store={sceneStore}>Open Scene Controls</PicodashPanelTrigger>
 
       <PicodashPanel
         defaultVisible={false}

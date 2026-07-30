@@ -48,7 +48,7 @@ export const settingsStore = createPicodashStore({
     quality: { defaultValue: 'balanced' },
     showGrid: { defaultValue: true },
     exposure: { defaultValue: 1 },
-  }
+  },
 })
 ```
 
