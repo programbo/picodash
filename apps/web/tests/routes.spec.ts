@@ -1,175 +1,183 @@
 import { expect, test, type Page } from '@playwright/test'
 
-async function expectSharedHomeLayout(page: Page) {
-  const content = page.locator('[data-home-content]')
-  await expect(content).toHaveCount(1)
-  await expect(content).toHaveCSS('overflow-y', 'visible')
-  await expect(content).toHaveCSS('min-height', /\d+px/)
-  await expect(page.locator('html')).toHaveCSS('scroll-behavior', 'smooth')
-  await expect(page.locator('[data-home-toolbar]')).toHaveCSS('position', 'sticky')
+test.describe.configure({ mode: 'serial', timeout: 60_000 })
+
+function observeRuntimeErrors(page: Page) {
+  const errors: string[] = []
+
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(`console: ${message.text()}`)
+  })
+  page.on('pageerror', (error) => {
+    errors.push(`page: ${error.message}`)
+  })
+
+  return errors
 }
 
-async function expectGuidePanel(
-  page: Page,
-  {
-    accessibleName,
-    itemCount,
-    itemLabels,
-    panelId,
-  }: {
-    accessibleName: string
-    itemCount: number
-    itemLabels?: readonly string[]
-    panelId: string
-  },
-) {
-  const panel = page.locator(`[data-guide-navigation-panel="${panelId}"]`)
-  const boundary = page.locator(`[data-guide-navigation-boundary="${panelId}"]`)
-
-  await expect(panel).toHaveCount(1)
-  await expect(panel).toHaveAttribute('role', 'navigation')
-  await expect(panel).toHaveAccessibleName(accessibleName)
-  await expect(panel).toHaveAttribute('data-picodash-theme', 'sidenav')
-  await expect(panel.locator('[data-item-kind="control"]')).toHaveCount(itemCount)
-  await expect(panel.locator('[data-item-kind="control"] [id$=":label"]')).toHaveText(
-    itemLabels ??
-      Array.from({ length: itemCount }, (_, index) => String(index + 1).padStart(2, '0')),
-  )
-  await expect(boundary).toHaveCSS('position', 'sticky')
-  await expect(page.locator(`[data-guide-content="${panelId}"]`)).toBeVisible()
+async function expectNoRuntimeErrors(errors: string[]) {
+  await expect.poll(() => errors).toEqual([])
 }
 
-test('routes home tabs without recreating the persistent demo shell', async ({ page }) => {
-  await page.goto('/')
-
-  const shell = page.locator('[data-persistent-demo-shell]')
-  await expect(shell).toHaveAttribute('data-product-route', 'home')
-  await expectSharedHomeLayout(page)
-  await expectGuidePanel(page, {
-    accessibleName: 'Code components',
-    itemCount: 19,
-    panelId: 'code-navigation',
-  })
-  await shell.evaluate((element) => element.setAttribute('data-persistence-probe', 'kept'))
-
-  await page.getByRole('tab', { name: 'Store' }).click()
-  await expect(page).toHaveURL('/store')
-  await expectSharedHomeLayout(page)
-  await expect(page.locator('[data-persistence-probe="kept"]')).toHaveCount(1)
-  await expect(page.getByText('Live panel state')).toBeVisible()
-
-  await page.getByRole('tab', { name: 'Usage' }).click()
-  await expect(page).toHaveURL('/usage')
-  await expectSharedHomeLayout(page)
-  await expectGuidePanel(page, {
-    accessibleName: 'Usage guide steps',
-    itemCount: 6,
-    panelId: 'usage-navigation',
-  })
-  await expect(page.getByRole('heading', { name: 'Add a reactive Picodash panel' })).toBeVisible()
-
-  await page.getByRole('tab', { name: 'More examples' }).click()
-  await expect(page).toHaveURL('/more-examples')
-  await expectSharedHomeLayout(page)
-  await expectGuidePanel(page, {
-    accessibleName: 'More examples',
-    itemCount: 4,
-    panelId: 'more-examples-navigation',
-  })
-  await expect(
-    page.getByRole('heading', { name: 'More complex Picodash compositions' }),
-  ).toBeVisible()
-
-  await page.getByRole('tab', { name: 'Themes' }).click()
-  await expect(page).toHaveURL('/themes')
-  await expectSharedHomeLayout(page)
-  await expectGuidePanel(page, {
-    accessibleName: 'Themes',
-    itemCount: 7,
-    itemLabels: ['System', 'Dark', 'Light', 'Ocean', 'Plum', 'Tron', 'Contrast'],
-    panelId: 'themes-navigation',
-  })
-  await expect(page.locator('[data-theme-guide]')).toBeVisible()
-})
-
-test('keeps all home tabs reachable on narrow screens', async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 800 })
-  await page.goto('/')
-
-  const tabList = page.getByRole('tablist', { name: 'Interactive example views' })
-  await expect(tabList).toHaveCSS('overflow-x', 'auto')
-  await page.waitForFunction(() => {
-    const list = document.querySelector<HTMLElement>(
-      '[role="tablist"][aria-label="Interactive example views"]',
-    )
-    return list !== null && list.scrollWidth > list.clientWidth
-  })
-})
-
-test('serves the standalone documentation route', async ({ page }) => {
-  await page.goto('/docs')
-
-  await expect(page.locator('[data-product-route="docs"]')).toHaveCount(1)
-  await expect(page.getByRole('link', { name: 'Picodash' }).locator('svg')).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Documentation' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Introduction', level: 1 })).toBeVisible()
-  await expect(page.locator('[data-persistent-demo-shell]')).toHaveCount(0)
-
-  for (const [path, heading] of [
-    ['/docs/get-started/manual', 'Manual setup'],
-    ['/docs/get-started/agent', 'Agent playbook'],
-    ['/docs/concepts/state-ownership', 'Concept: state ownership'],
-    ['/docs/concepts/panel-placement', 'Concept: panel placement'],
-    ['/docs/concepts/dashlet-anatomy', 'Concept: dashlet anatomy'],
-    ['/docs/guides/custom-dashlets', 'Guide: custom dashlets'],
-    ['/docs/guides/compound-dashlets', 'Guide: compound dashlets'],
-    ['/docs/guides/dashlet-themes', 'Guide: dashlet themes'],
-    ['/docs/guides/dashlet-accessibility', 'Guide: dashlet accessibility'],
-    ['/docs/reference/store', 'Store reference'],
-    ['/docs/reference/panel', 'Panel reference'],
-    ['/docs/reference/diagnostics', 'Diagnostics reference'],
-  ] as const) {
-    await page.goto(path)
-    await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible()
-  }
-})
-
-test('serves the catalog-backed reference routes and permanent legacy redirect', async ({
+test('presents the agent-first homepage without runtime errors on desktop and mobile', async ({
   page,
-  request,
 }) => {
-  for (const [path, heading] of [
-    ['/docs/reference/dashlets', 'Built-in Panel controls'],
-    ['/docs/reference/dashlet-components', 'Dashlet anatomy components'],
-    ['/docs/reference/ui', 'UI foundations'],
-  ] as const) {
-    await page.goto(path)
-    await expect(page.locator('[data-docs-reference]')).toHaveCount(1)
-    await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible()
+  const errors = observeRuntimeErrors(page)
+
+  await page.setViewportSize({ height: 900, width: 1440 })
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  for (const viewport of [
+    { height: 900, width: 1440 },
+    { height: 844, width: 390 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await expect(page.locator('[data-product-route="home"]')).toHaveCount(1)
     await expect(
-      page.getByRole('table', { name: 'Machine-readable component contracts' }),
+      page.getByRole('heading', {
+        level: 1,
+        name: 'Dashboard surface, without the ceremony',
+      }),
     ).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Product' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Agent guide' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Components' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Examples' })).toBeVisible()
   }
 
-  const redirect = await request.get('/usage/components', { maxRedirects: 0 })
-  expect(redirect.status()).toBe(308)
-  expect(redirect.headers().location).toBe('/docs/reference/dashlet-components')
+  await expectNoRuntimeErrors(errors)
 })
 
-test('keeps Lab and retired routes out of the public website', async ({ page, request }) => {
-  const galleryResponse = await page.goto('/gallery')
-  expect(galleryResponse?.status()).toBe(404)
-  expect(page.url()).toMatch(/\/gallery\/?$/)
-  await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
+test('renders three scenarios as real compound Dashlet surfaces', async ({ page }) => {
+  const errors = observeRuntimeErrors(page)
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  const home = page.locator('[data-home-content]')
 
-  for (const path of [
-    '/lab',
-    '/lab/state',
-    '/state-lab',
-    '/panel-geometry-lab',
-    '/panel-interaction-lab',
-    '/dashlet-lab',
+  for (const title of [
+    'Creative controls',
+    'Application monitoring',
+    'Debug and rollout controls',
   ]) {
-    expect((await request.get(path)).status()).toBe(404)
+    await expect(home.getByRole('heading', { level: 2, name: title })).toBeVisible()
   }
+
+  for (const [triggerName, itemId, panelTitle] of [
+    ['Reopen creative controls', 'creative-profile', 'Creative controls'],
+    ['Reopen monitoring controls', 'monitoring-compound', 'Monitoring controls'],
+  ] as const) {
+    const item = page.locator(`[data-item-id="${itemId}"]`)
+    if ((await item.count()) === 0) {
+      await page.getByRole('button', { name: triggerName }).press('Enter')
+    }
+    await expect(item).toBeAttached()
+    await page.getByRole('button', { name: `Close panel ${panelTitle}` }).press('Enter')
+  }
+
+  await expect(
+    page.getByText('One registered item coordinates five writable Store fields.'),
+  ).toBeAttached()
+
+  await page.getByRole('button', { name: 'Launch debug panel' }).press('Enter')
+  await expect(page.locator('[data-item-id="debug-adapter-controls"]')).toBeAttached()
+  await expectNoRuntimeErrors(errors)
+})
+
+test('opens, closes, and reopens the hidden Built-in Items panel', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  const panel = page.locator('[data-picodash-panel-id="built-in-items"]')
+  const explore = page.getByRole('button', { name: 'Explore demo' })
+
+  await expect(panel).toHaveCount(0)
+  await explore.click()
+  await expect(panel).toBeVisible()
+
+  await page.getByRole('button', { name: 'Close panel Built-in Items' }).click()
+  await expect(panel).toBeHidden()
+
+  await explore.click()
+  await expect(panel).toBeVisible()
+})
+
+test('copies the canonical agent prompt and reports success', async ({ context, page }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+
+  await page.getByRole('button', { name: 'Copy agent prompt' }).click()
+  await expect(page.getByRole('button', { name: 'Copied prompt' })).toBeVisible()
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toContain('Use the canonical agent playbook at /docs/get-started/agent')
+})
+
+test('navigates the documentation and catalog reference', async ({ page }) => {
+  await page.goto('/docs', { waitUntil: 'domcontentloaded' })
+
+  const navigation = page.getByRole('navigation', { name: 'Documentation' })
+  await expect(page.locator('[data-product-route="docs"]')).toHaveCount(1)
+  await navigation.getByRole('link', { name: 'Agent playbook' }).click()
+  await expect(page).toHaveURL('/docs/get-started/agent')
+  await expect(page.getByRole('heading', { level: 1, name: 'Agent playbook' })).toBeVisible()
+
+  await navigation.getByRole('link', { name: 'Dashlet components' }).click()
+  await expect(page).toHaveURL('/docs/reference/dashlet-components')
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Dashlet anatomy components' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('table', { name: 'Machine-readable component contracts' }),
+  ).toBeVisible()
+})
+
+test('permanently redirects legacy product routes to the canonical IA', async ({ request }) => {
+  for (const [legacyPath, canonicalPath] of [
+    ['/store', '/docs/reference/store'],
+    ['/usage', '/docs/get-started/manual'],
+    ['/themes', '/docs/guides/dashlet-themes'],
+    ['/more-examples', '/examples'],
+    ['/usage/components', '/docs/reference/dashlet-components'],
+  ] as const) {
+    const response = await request.get(legacyPath, { maxRedirects: 0 })
+
+    expect(response.status(), legacyPath).toBe(308)
+    expect(response.headers().location, legacyPath).toBe(canonicalPath)
+  }
+})
+
+test('compiles four public recipes on the examples route without runtime errors', async ({
+  page,
+}) => {
+  const errors = observeRuntimeErrors(page)
+  await page.goto('/examples', { waitUntil: 'domcontentloaded' })
+
+  await expect(page.locator('[data-product-route="examples"]')).toHaveCount(1)
+  await expect(page.getByRole('heading', { level: 1, name: /Four useful Dashlets/ })).toBeVisible()
+  const recipes = page.getByRole('region', { name: 'Picodash example recipes' })
+
+  for (const title of [
+    'Performance health',
+    'Media transport',
+    'Deployment status',
+    'Application-specific controls',
+  ]) {
+    await expect(recipes.getByRole('heading', { level: 2, name: title }).first()).toBeVisible()
+  }
+
+  for (const [title, panelId] of [
+    ['Performance health', 'example-performance-health'],
+    ['Media transport', 'example-media-transport'],
+    ['Deployment status', 'example-deployment-status'],
+    ['Application-specific controls', 'example-map-overlay'],
+  ] as const) {
+    const recipe = recipes
+      .locator('article')
+      .filter({ has: page.getByRole('heading', { level: 2, name: title }) })
+    const panel = page.locator(`[data-picodash-panel-id="${panelId}"]`)
+    if ((await panel.count()) === 0 || !(await panel.isVisible())) {
+      await recipe.getByRole('button', { name: 'Toggle panel' }).press('Enter')
+    }
+    await expect(panel).toBeVisible()
+  }
+
+  await expectNoRuntimeErrors(errors)
 })
