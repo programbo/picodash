@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "vite-application-monitor",
+  "version": "1.0.0",
+  "framework": "vite-react",
+  "seedDirectory": "seed",
+  "prompt": "prompt.md",
+  "acceptanceCommand": "bun run acceptance",
+  "rubric": "rubric.md",
+  "expectedDecisions": "expected-decisions.md"
+}

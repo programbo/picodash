@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "next-debug-feature-controls",
+  "version": "1.0.0",
+  "framework": "next-app-router",
+  "seedDirectory": "seed",
+  "prompt": "prompt.md",
+  "acceptanceCommand": "bun run acceptance",
+  "rubric": "rubric.md",
+  "expectedDecisions": "expected-decisions.md"
+}

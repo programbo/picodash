@@ -26,6 +26,7 @@ export default defineConfig({
     },
   },
   lint: {
+    ignorePatterns: ['evaluations/**'],
     jsPlugins: [
       { name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' },
       { name: 'tailwindcss', specifier: 'oxlint-tailwindcss' },
