@@ -12,7 +12,7 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        'group/card bg-picodash-surface text-picodash-text ring-picodash-text/5 dark:ring-picodash-text/10 flex flex-col gap-(--card-spacing) overflow-hidden rounded-[min(var(--radius-4xl),24px)] py-(--card-spacing) text-sm shadow-sm ring-1 [--card-spacing:--spacing(5)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] *:[img:first-child]:rounded-t-[min(var(--radius-4xl),24px)] *:[img:last-child]:rounded-b-[min(var(--radius-4xl),24px)]',
+        'group/card bg-picodash-surface text-picodash-text ring-picodash-border rounded-picodash-surface shadow-picodash-sm *:[img:first-child]:rounded-t-picodash-surface *:[img:last-child]:rounded-b-picodash-surface flex flex-col gap-(--card-spacing) overflow-hidden py-(--card-spacing) text-(length:--picodash-font-size-lg) ring-1 [--card-spacing:var(--picodash-space-5)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:var(--picodash-space-4)]',
         className,
       )}
       {...props}
@@ -25,7 +25,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card-header"
       className={cn(
-        'group/card-header @container/card-header grid auto-rows-min items-start gap-1.5 rounded-t-[min(var(--radius-4xl),24px)] px-(--card-spacing) has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-(--card-spacing)',
+        'group/card-header rounded-t-picodash-surface @container/card-header grid auto-rows-min items-start gap-(--picodash-space-1-5) px-(--card-spacing) has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-(--card-spacing)',
         className,
       )}
       {...props}
@@ -35,7 +35,14 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
 
 function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div data-slot="card-title" className={cn('text-base font-medium', className)} {...props} />
+    <div
+      data-slot="card-title"
+      className={cn(
+        'text-(length:--picodash-font-size-xl) leading-(--picodash-line-normal) font-(--picodash-font-medium)',
+        className,
+      )}
+      {...props}
+    />
   )
 }
 
@@ -43,7 +50,10 @@ function CardDescription({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card-description"
-      className={cn('text-picodash-muted text-sm', className)}
+      className={cn(
+        'text-picodash-muted text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight)',
+        className,
+      )}
       {...props}
     />
   )
@@ -70,7 +80,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card-footer"
       className={cn(
-        'flex items-center rounded-b-[min(var(--radius-4xl),24px)] px-(--card-spacing) [.border-t]:pt-(--card-spacing)',
+        'rounded-b-picodash-surface flex items-center px-(--card-spacing) [.border-t]:pt-(--card-spacing)',
         className,
       )}
       {...props}

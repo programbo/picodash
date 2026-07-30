@@ -30,6 +30,8 @@ import type {
   YAxis,
 } from 'recharts'
 import { PicodashItem, type PicodashDisplayItemProps } from '../components/panel/PicodashItem.js'
+import { ItemEmptyState } from '../components/ui/item-empty-state.js'
+import { ItemSurface } from '../components/ui/item-surface.js'
 import type { PicodashValue } from '../components/panel/PicodashPanel.js'
 import type { DistributiveOmit } from './internal/built-in-validation.js'
 
@@ -190,9 +192,10 @@ export function PicodashChart({
 
   return (
     <PicodashItem {...itemProps} contentLayout={contentLayout} readOnly valueMode="display">
-      <div
+      <ItemSurface
         ref={chartSurfaceRef}
-        className={`border-picodash-control rounded-picodash-control col-span-full min-h-(--picodash-field-surface-min-height) overflow-hidden border bg-(--_picodash-color-well) text-(length:--picodash-font-size-md) ${chartClassName ?? ''}`}
+        className={`col-span-full text-(length:--picodash-font-size-md) ${chartClassName ?? ''}`}
+        size="field"
         data-picodash-chart={props.type}
         style={surfaceStyle}
       >
@@ -210,20 +213,20 @@ export function PicodashChart({
         ) : (
           <PicodashChartFallback />
         )}
-      </div>
+      </ItemSurface>
     </PicodashItem>
   )
 }
 
 function PicodashChartFallback() {
   return (
-    <div
+    <ItemEmptyState
       aria-label="Loading chart"
-      className="text-picodash-muted flex size-full min-h-(--picodash-field-surface-min-height) items-center justify-center"
+      className="size-full min-h-0 rounded-none border-0 bg-transparent"
       role="status"
     >
       <span className="sr-only">Loading chart</span>
-    </div>
+    </ItemEmptyState>
   )
 }
 

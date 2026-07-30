@@ -12,6 +12,20 @@ import {
 
 import { cn } from '#lib/utils'
 import { Button } from '#components/ui/button'
+import {
+  PortalLayerZIndexProvider,
+  resolvePortalLayerZIndex,
+  useParentPortalLayerZIndex,
+} from '../../lib/portal/portal-layer-context.js'
+import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
+import {
+  portalLayerZIndexForState,
+  useOptionalPicodashProviderContext,
+} from '../../state/provider/picodash-provider.js'
+
+const standaloneProviderState = { panelOrder: [] as string[] }
+const standaloneProviderSubscribe = () => () => undefined
+const standaloneProviderSnapshot = () => standaloneProviderState
 
 const AlertDialogDescriptionContext = React.createContext<
   ((descriptionId: string) => () => void) | null
@@ -30,11 +44,13 @@ function AlertDialogOverlay({
   className?: string
   children: React.ReactNode
 }) {
+  const theme = usePicodashTheme()
   return (
     <ModalOverlayPrimitive
       data-slot="alert-dialog-overlay"
+      data-picodash-theme={theme}
       className={cn(
-        'data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm',
+        'data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 pointer-events-auto fixed inset-0 isolate z-(--picodash-layer-dialog) bg-(--picodash-color-overlay) duration-100 supports-backdrop-filter:backdrop-blur-(--picodash-blur-overlay)',
         className,
       )}
       {...props}
@@ -56,9 +72,8 @@ function AlertDialog({
   overlayStyle,
   portalContainer,
   style,
-  'data-picodash-theme': picodashTheme,
   ...props
-}: Omit<ModalOverlayPrimitiveProps, 'className' | 'children'> &
+}: Omit<ModalOverlayPrimitiveProps, 'className' | 'children' | 'style'> &
   Pick<React.ComponentProps<typeof ModalPrimitive>, 'isDismissable'> & {
     className?: string
     size?: 'default' | 'sm'
@@ -67,8 +82,27 @@ function AlertDialog({
     overlayStyle?: React.CSSProperties
     portalContainer?: Element | null
     style?: React.CSSProperties
-    'data-picodash-theme'?: string
   }) {
+  const provider = useOptionalPicodashProviderContext()
+  const providerState = React.useSyncExternalStore(
+    provider?.store.subscribe ?? standaloneProviderSubscribe,
+    provider?.store.getState ?? standaloneProviderSnapshot,
+    provider?.store.getState ?? standaloneProviderSnapshot,
+  )
+  const parentZIndex = useParentPortalLayerZIndex()
+  const zIndexFloor = provider ? portalLayerZIndexForState(providerState, 4) : undefined
+  const resolvedPortalContainer =
+    portalContainer === undefined ? provider?.portalContainer : portalContainer
+  const resolvedZIndex =
+    style?.zIndex ??
+    resolvePortalLayerZIndex({
+      cssVariable: '--picodash-layer-dialog',
+      floor: zIndexFloor,
+      parentOffset: 4,
+      parentZIndex,
+    })
+  const resolvedOverlayZIndex = overlayStyle?.zIndex ?? resolvedZIndex
+  const childLayerZIndex = resolvedOverlayZIndex ?? 'var(--picodash-layer-dialog)'
   const [descriptionIds, setDescriptionIds] = React.useState<readonly string[]>([])
   const dialogId = React.useRef(Symbol('alert-dialog')).current
   const isKeyboardDismissDisabledRef = React.useRef(isKeyboardDismissDisabled)
@@ -119,30 +153,35 @@ function AlertDialog({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       shouldCloseOnInteractOutside={() => false}
-      data-picodash-theme={picodashTheme}
       className={overlayClassName}
-      style={overlayStyle}
-      UNSTABLE_portalContainer={portalContainer ?? undefined}
+      style={{
+        ...overlayStyle,
+        ...(resolvedOverlayZIndex === undefined ? {} : { zIndex: resolvedOverlayZIndex }),
+      }}
+      UNSTABLE_portalContainer={resolvedPortalContainer ?? undefined}
     >
       <ModalPrimitive
         data-slot="alert-dialog-content"
         data-size={size}
-        data-picodash-theme={picodashTheme}
-        style={style}
+        style={{
+          ...style,
+          ...(resolvedZIndex === undefined ? {} : { zIndex: resolvedZIndex }),
+        }}
         className={cn(
-          'group/alert-dialog-content bg-picodash-surface-raised text-picodash-text ring-picodash-text/5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 dark:ring-picodash-text/10 fixed top-1/2 left-1/2 z-50 grid w-full -translate-x-1/2 -translate-y-1/2 gap-6 rounded-[min(var(--radius-4xl),24px)] p-6 shadow-xl ring-1 duration-100 outline-none data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-md',
+          'group/alert-dialog-content bg-picodash-surface-raised text-picodash-text ring-picodash-text/5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 rounded-picodash-surface fixed top-1/2 left-1/2 z-(--picodash-layer-dialog) grid w-full -translate-x-1/2 -translate-y-1/2 gap-6 p-6 shadow-(--picodash-shadow-md) ring-1 duration-(--picodash-duration-fast) outline-none data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-md',
           className,
         )}
       >
         <AlertDialogPrimitive
           aria-describedby={descriptionIds.length > 0 ? descriptionIds.join(' ') : undefined}
           data-slot="alert-dialog"
-          data-picodash-theme={picodashTheme}
           role="alertdialog"
           className="[display:inherit] gap-[inherit] outline-none"
         >
           <AlertDialogDescriptionContext.Provider value={registerDescription}>
-            {children}
+            <PortalLayerZIndexProvider zIndex={childLayerZIndex}>
+              {children}
+            </PortalLayerZIndexProvider>
           </AlertDialogDescriptionContext.Provider>
         </AlertDialogPrimitive>
       </ModalPrimitive>

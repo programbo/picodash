@@ -26,7 +26,7 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 - `apps/lab`: local-only Next.js debugging app, tested by the shared Playwright suite but not
   deployed as part of the production website.
 
-`apps/web` routes: `/`, `/store`, `/usage`, `/themes`, `/more-examples`, and 404.
+`apps/web` routes: `/`, `/store`, `/usage`, `/usage/components`, `/themes`, `/more-examples`, and 404.
 `apps/lab` routes: `/lab/state/{provider,scene,built-in-items,custom-items}`,
 `/lab/panel-geometry`, `/lab/panel-interaction`, and `/lab/dashlets`; `/` and `/lab` redirect to
 `/lab/state`.
@@ -62,6 +62,9 @@ with defaults `title = label` and `buttonLabel = 'Confirm'`.
 theme="system"` follows `prefers-color-scheme` and reacts to preference changes. Consumers define
 named themes by overriding semantic `--picodash-*` tokens under `data-picodash-theme`; the provider
 can take a generic custom theme union such as `PicodashProvider<'brand' | 'contrast'>`.
+Theme scope belongs to `PicodashProvider` and optional `PicodashPanel` overrides. Dashlets and
+shared UI primitives inherit semantic tokens; only detached panel-owned siblings and portaled
+overlay roots repeat the resolved theme outside that DOM ancestry.
 The web gallery's `ocean`, `plum`, `tron`, and `contrast` recipes are demo-only.
 
 Panel placement separates stable floating, fixed, and hybrid modes from free, snapped, and docked
@@ -166,8 +169,14 @@ Update all five files together when command surface, entrypoints, or architectur
   `@picodash/panel/ui`, and `@picodash/panel/style.css`.
 - Shared shadcn components live only under `packages/panel/src/components/ui`; workspace apps
   consume `@picodash/panel/ui` and do not keep their own `components.json` or generated copies.
-- `@picodash/panel/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve the
-  provider portal/theme/z-index contract, while nested submenus inherit their parent overlay.
+- `@picodash/panel/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve
+  the provider portal and z-index contract and carry the nearest provider/panel theme at the portal
+  root, while their inner primitives and nested submenus inherit.
+- Third-party dashlets compose package-owned UI primitives through `@picodash/panel/ui`; each public
+  primitive has a named `*Props` type. Prefer semantic `--picodash-*` tokens and component
+  `variant`/`size` props over internal classes or raw variant helpers. Bespoke visualizations should
+  use `--picodash-color-well`, `--picodash-color-data-1`, `--picodash-color-data-2`,
+  `--picodash-color-data-3`, `--picodash-color-data-4`, and `--picodash-color-data-5`.
 - Do not document retired package paths or `apps/demo` as active workspace products.
 
 ## Verification Discipline

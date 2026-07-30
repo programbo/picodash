@@ -11,9 +11,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../components/ui/dialog.js'
+import { ItemSurface } from '../../components/ui/item-surface.js'
 import { picodashMotionTokens } from '../../lib/theme/theme.js'
 import { usePicodashProviderContext } from '../../state/provider/picodash-provider.js'
-import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import { cn } from '../../utilities/utils.js'
 import {
   normalizePicodashDropzoneValue,
@@ -124,13 +124,13 @@ export default function DropzoneImplementation({
   return (
     <>
       <div className="col-span-full grid gap-(--picodash-space-1-5)">
-        <div
+        <ItemSurface
           {...getRootProps({
             'aria-label': multiple
               ? 'Choose files or drop them here'
               : 'Choose a file or drop it here',
             className: cn(
-              'rounded-picodash-control border-picodash-control text-picodash-muted focus-visible:ring-picodash-focus focus-visible:ring-offset-picodash-canvas box-border flex min-h-(--picodash-field-surface-min-height) cursor-pointer flex-col items-center justify-center gap-(--picodash-space-1) border border-dashed bg-(--_picodash-color-well) px-(--picodash-space-3) py-(--picodash-space-4) text-center text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+              'focus-visible:ring-picodash-focus focus-visible:ring-offset-picodash-canvas box-border flex cursor-pointer flex-col items-center justify-center gap-(--picodash-space-1) px-(--picodash-space-3) py-(--picodash-space-4) text-center text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
               isDragActive &&
                 'border-picodash-focus bg-picodash-surface-muted/60 text-picodash-text',
               isDragAccept && 'border-picodash-success/80 bg-picodash-success-subtle',
@@ -142,6 +142,8 @@ export default function DropzoneImplementation({
             id: control.inputId,
             role: 'button',
           })}
+          size="field"
+          variant="dashed"
         >
           <input {...getInputProps()} />
           <UploadCloud className="size-(--picodash-icon-lg)" aria-hidden="true" />
@@ -155,7 +157,7 @@ export default function DropzoneImplementation({
                 ? 'Select one or more files'
                 : 'Select one file'}
           </span>
-        </div>
+        </ItemSurface>
 
         <div
           className="min-h-4 text-(length:--picodash-font-size-sm) leading-(--picodash-line-tight)"
@@ -297,7 +299,6 @@ function DropzoneImageViewer({
 }) {
   const prefersReducedMotion = useReducedMotion()
   const { portalContainer } = usePicodashProviderContext()
-  const theme = usePicodashTheme()
   const present = open && preview
   const enterTransition: Transition = prefersReducedMotion
     ? { duration: 0 }
@@ -309,7 +310,6 @@ function DropzoneImageViewer({
         <Dialog
           key="dropzone-image-viewer"
           className="pointer-events-auto z-(--picodash-layer-viewer)! w-[min(92vw,80rem)] max-w-none! gap-0! rounded-none! bg-transparent! p-0! shadow-none! ring-0!"
-          data-picodash-theme={theme}
           isOpen
           overlayClassName="pointer-events-auto z-(--picodash-layer-viewer)! bg-(--picodash-color-overlay)! backdrop-blur-(--picodash-blur-overlay)!"
           overlayStyle={{ zIndex: 'var(--picodash-layer-viewer)' }}
@@ -321,7 +321,6 @@ function DropzoneImageViewer({
           }}
         >
           <motion.figure
-            data-picodash-theme={theme}
             className="shadow-picodash-viewer rounded-picodash-surface border-picodash-control m-0 grid w-full gap-0 overflow-hidden border bg-(--_picodash-viewer-background) text-(--picodash-color-text-strong) outline-none"
             initial={prefersReducedMotion ? false : picodashMotionTokens.viewerSurfaceInitial}
             animate={picodashMotionTokens.viewerSurfaceAnimate}

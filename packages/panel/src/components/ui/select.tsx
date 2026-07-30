@@ -22,11 +22,15 @@ import {
 import { cn } from '#lib/utils'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '#components/ui/input-group'
 import { ChevronDownIcon, SearchIcon, CheckIcon } from 'lucide-react'
+import {
+  PortalLayerZIndexProvider,
+  resolvePortalLayerZIndex,
+  useParentPortalLayerZIndex,
+} from '../../lib/portal/portal-layer-context.js'
 import { picodashGeometryTokens } from '../../lib/theme/theme.js'
 import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
 import {
   portalLayerZIndexForState,
-  portalLayerZIndexValue,
   useOptionalPicodashProviderContext,
   type PicodashProviderContextValue,
 } from '../../state/provider/picodash-provider.js'
@@ -43,12 +47,9 @@ function Select<T extends object, M extends 'single' | 'multiple' = 'single'>({
   className,
   ...props
 }: SelectProps<T, M>) {
-  const theme = usePicodashTheme()
-
   return (
     <SelectPrimitive
       data-slot="select"
-      data-picodash-theme={theme}
       className={composeRenderProps(className, (className) => cn('min-w-0', className))}
       {...props}
     />
@@ -139,6 +140,7 @@ function SelectPopover({
   ...props
 }: SelectPopoverProps) {
   const theme = usePicodashTheme()
+  const parentZIndex = useParentPortalLayerZIndex()
   const provider = useOptionalPicodashProviderContext()
   const surfaceProps: SelectPopoverSurfaceProps = {
     ...props,
@@ -149,6 +151,7 @@ function SelectPopover({
     placement,
     style,
     theme,
+    parentZIndex,
   }
 
   return provider ? (
@@ -176,6 +179,7 @@ function ProviderSelectPopover({
 }
 
 type SelectPopoverSurfaceProps = SelectPopoverProps & {
+  parentZIndex?: React.CSSProperties['zIndex']
   portalContainer?: HTMLElement | null
   theme: string
   zIndexFloor?: number
@@ -186,6 +190,7 @@ function SelectPopoverSurface({
   children,
   placement,
   offset,
+  parentZIndex,
   crossOffset,
   portalContainer,
   style,
@@ -193,29 +198,38 @@ function SelectPopoverSurface({
   zIndexFloor,
   ...props
 }: SelectPopoverSurfaceProps) {
+  const resolvedZIndex = resolvePortalLayerZIndex({
+    cssVariable: '--picodash-layer-select',
+    floor: zIndexFloor,
+    parentOffset: 2,
+    parentZIndex,
+  })
+
   return (
-    <PopoverPrimitive
-      data-slot="select-content"
-      data-picodash-theme={theme}
-      placement={placement}
-      offset={offset}
-      crossOffset={crossOffset}
-      containerPadding={picodashGeometryTokens.selectCollisionPadding}
-      UNSTABLE_portalContainer={portalContainer ?? undefined}
-      className={cn(
-        'rounded-picodash-surface border-picodash-border bg-picodash-surface-raised text-picodash-text data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 pointer-events-auto isolate z-(--picodash-layer-select) max-h-(--available-height) w-(--trigger-width) min-w-(--trigger-width) origin-(--trigger-anchor-point) overflow-hidden border shadow-(--picodash-shadow-md) duration-100',
-        className,
-      )}
-      style={composeRenderProps(style, (style) => ({
-        ...style,
-        ...(zIndexFloor === undefined
-          ? {}
-          : { zIndex: portalLayerZIndexValue('--picodash-layer-select', zIndexFloor) }),
-      }))}
-      {...props}
-    >
-      {children}
-    </PopoverPrimitive>
+    <PortalLayerZIndexProvider zIndex={resolvedZIndex ?? 'var(--picodash-layer-select)'}>
+      <PopoverPrimitive
+        data-slot="select-content"
+        data-picodash-theme={theme}
+        placement={placement}
+        offset={offset}
+        crossOffset={crossOffset}
+        containerPadding={picodashGeometryTokens.selectCollisionPadding}
+        UNSTABLE_portalContainer={portalContainer ?? undefined}
+        className={cn(
+          'rounded-picodash-surface border-picodash-border bg-picodash-surface-raised text-picodash-text data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 pointer-events-auto isolate z-(--picodash-layer-select) max-h-(--available-height) w-(--trigger-width) min-w-(--trigger-width) origin-(--trigger-anchor-point) overflow-hidden border shadow-(--picodash-shadow-md) duration-100',
+          className,
+        )}
+        style={composeRenderProps(style, (style) => ({
+          ...style,
+          ...(style?.zIndex === undefined && resolvedZIndex !== undefined
+            ? { zIndex: resolvedZIndex }
+            : {}),
+        }))}
+        {...props}
+      >
+        {children}
+      </PopoverPrimitive>
+    </PortalLayerZIndexProvider>
   )
 }
 

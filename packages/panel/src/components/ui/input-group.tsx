@@ -12,7 +12,7 @@ function InputGroup({ className, ...props }: GroupProps) {
     <Group
       data-slot="input-group"
       className={cn(
-        'group/input-group bg-picodash-control/50 has-[[data-slot=input-group-control]:focus-visible]:border-picodash-focus has-[[data-slot=input-group-control]:focus-visible]:ring-picodash-focus/30 has-[[data-slot][aria-invalid=true]]:border-picodash-danger has-[[data-slot][aria-invalid=true]]:ring-picodash-danger/20 dark:has-[[data-slot][aria-invalid=true]]:ring-picodash-danger/40 relative flex h-8 w-full min-w-0 items-center rounded-2xl border border-transparent transition-[color,box-shadow] duration-200 outline-none in-data-[slot=combobox-content]:focus-within:border-inherit in-data-[slot=combobox-content]:focus-within:ring-0 has-[[data-slot=input-group-control]:focus-visible]:ring-3 has-[[data-slot][aria-invalid=true]]:ring-3 has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>textarea]:h-auto has-[>[data-align=block-end]]:[&>input]:pt-3 has-[>[data-align=block-start]]:[&>input]:pb-3 has-[>[data-align=inline-end]]:[&>input]:pr-1.5 has-[>[data-align=inline-start]]:[&>input]:pl-1.5',
+        'group/input-group bg-picodash-well has-[[data-slot=input-group-control]:focus-visible]:border-picodash-focus has-[[data-slot=input-group-control]:focus-visible]:ring-picodash-focus/30 has-[[data-slot][aria-invalid=true]]:border-picodash-danger has-[[data-slot][aria-invalid=true]]:ring-picodash-danger/20 rounded-picodash-control relative flex h-(--picodash-control-height-md) w-full min-w-0 items-center border border-transparent transition-[color,box-shadow] duration-(--picodash-duration-fast) outline-none in-data-[slot=combobox-content]:focus-within:border-inherit in-data-[slot=combobox-content]:focus-within:ring-0 has-[[data-slot=input-group-control]:focus-visible]:ring-3 has-[[data-slot][aria-invalid=true]]:ring-3 has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>textarea]:h-auto has-[>[data-align=block-end]]:[&>input]:pt-(--picodash-space-3) has-[>[data-align=block-start]]:[&>input]:pb-(--picodash-space-3) has-[>[data-align=inline-end]]:[&>input]:pr-(--picodash-space-1-5) has-[>[data-align=inline-start]]:[&>input]:pl-(--picodash-space-1-5)',
         className,
       )}
       {...props}
@@ -21,16 +21,18 @@ function InputGroup({ className, ...props }: GroupProps) {
 }
 
 const inputGroupAddonVariants = cva(
-  "flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium text-picodash-muted select-none group-data-[disabled=true]/input-group:opacity-50 **:data-[slot=kbd]:rounded-2xl **:data-[slot=kbd]:bg-picodash-muted/10 **:data-[slot=kbd]:px-1.5 [&>svg:not([class*='size-'])]:size-4",
+  "flex h-auto cursor-text items-center justify-center gap-(--picodash-space-2) py-(--picodash-space-1-5) text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) font-(--picodash-font-medium) text-picodash-muted select-none group-data-[disabled=true]/input-group:opacity-(--picodash-opacity-disabled) **:data-[slot=kbd]:rounded-picodash-control **:data-[slot=kbd]:bg-picodash-muted/10 **:data-[slot=kbd]:px-(--picodash-space-1-5) [&>svg:not([class*='size-'])]:size-(--picodash-icon-md)",
   {
     variants: {
       align: {
-        'inline-start': 'order-first pl-2 has-[>button]:ml-[-0.3rem] has-[>kbd]:ml-[-0.15rem]',
-        'inline-end': 'order-last pr-2 has-[>button]:mr-[-0.3rem] has-[>kbd]:mr-[-0.15rem]',
+        'inline-start':
+          'order-first pl-(--picodash-space-2) has-[>button]:ml-[calc(-1*var(--picodash-space-1))] has-[>kbd]:ml-[calc(-1*var(--picodash-space-0-5))]',
+        'inline-end':
+          'order-last pr-(--picodash-space-2) has-[>button]:mr-[calc(-1*var(--picodash-space-1))] has-[>kbd]:mr-[calc(-1*var(--picodash-space-0-5))]',
         'block-start':
-          'order-first w-full justify-start px-2.5 pt-2 group-has-[>input]/input-group:pt-2 [.border-b]:pb-2',
+          'order-first w-full justify-start px-(--picodash-space-2-5) pt-(--picodash-space-2) group-has-[>input]/input-group:pt-(--picodash-space-2) [.border-b]:pb-(--picodash-space-2)',
         'block-end':
-          'order-last w-full justify-start px-2.5 pb-2 group-has-[>input]/input-group:pb-2 [.border-t]:pt-2',
+          'order-last w-full justify-start px-(--picodash-space-2-5) pb-(--picodash-space-2) group-has-[>input]/input-group:pb-(--picodash-space-2) [.border-t]:pt-(--picodash-space-2)',
       },
     },
     defaultVariants: {
@@ -61,19 +63,23 @@ function InputGroupAddon({
   )
 }
 
-const inputGroupButtonVariants = cva('flex items-center gap-2 rounded-2xl text-sm shadow-none', {
-  variants: {
-    size: {
-      xs: "h-6 gap-1 rounded-xl px-1.5 [&>svg:not([class*='size-'])]:size-3.5",
-      sm: '',
-      'icon-xs': 'size-6 rounded-xl p-0 has-[>svg]:p-0',
-      'icon-sm': 'size-8 p-0 has-[>svg]:p-0',
+const inputGroupButtonVariants = cva(
+  'flex items-center gap-(--picodash-space-2) rounded-picodash-control text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) shadow-none',
+  {
+    variants: {
+      size: {
+        xs: "h-(--picodash-control-height-xs) gap-(--picodash-space-1) rounded-picodash-control px-(--picodash-space-1-5) [&>svg:not([class*='size-'])]:size-(--picodash-icon-xs)",
+        sm: '',
+        'icon-xs':
+          'size-(--picodash-control-height-xs) rounded-picodash-control p-0 has-[>svg]:p-0',
+        'icon-sm': 'size-(--picodash-control-height-md) p-0 has-[>svg]:p-0',
+      },
+    },
+    defaultVariants: {
+      size: 'xs',
     },
   },
-  defaultVariants: {
-    size: 'xs',
-  },
-})
+)
 
 function InputGroupButton({
   className,
@@ -100,7 +106,7 @@ function InputGroupText({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
       className={cn(
-        "text-picodash-muted flex items-center gap-2 text-sm [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+        "text-picodash-muted flex items-center gap-(--picodash-space-2) text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-(--picodash-icon-md)",
         className,
       )}
       {...props}
@@ -113,7 +119,7 @@ function InputGroupInput({ className, ...props }: React.ComponentProps<'input'>)
     <Input
       data-slot="input-group-control"
       className={cn(
-        'flex-1 rounded-none border-0 bg-transparent shadow-none ring-0 focus-visible:ring-0 aria-invalid:ring-0 dark:bg-transparent',
+        'flex-1 rounded-none border-0 bg-transparent shadow-none ring-0 focus-visible:ring-0 aria-invalid:ring-0',
         className,
       )}
       {...props}
@@ -126,7 +132,7 @@ function InputGroupTextarea({ className, ...props }: React.ComponentProps<'texta
     <Textarea
       data-slot="input-group-control"
       className={cn(
-        'flex-1 resize-none rounded-none border-0 bg-transparent py-2 shadow-none ring-0 focus-visible:ring-0 aria-invalid:ring-0 dark:bg-transparent',
+        'flex-1 resize-none rounded-none border-0 bg-transparent py-(--picodash-space-2) shadow-none ring-0 focus-visible:ring-0 aria-invalid:ring-0',
         className,
       )}
       {...props}

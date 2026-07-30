@@ -5,6 +5,7 @@ import {
   type PicodashItemContextValue,
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
+import { ItemEmptyState } from '../components/ui/item-empty-state.js'
 import type { PicodashParser } from '../validation/picodash-validation.js'
 import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
 
@@ -107,14 +108,14 @@ export function PicodashDropzone({
 function PicodashDropzoneFallback({ multiple }: { multiple: boolean }) {
   return (
     <div className="col-span-full grid gap-(--picodash-space-1-5)" role="status">
-      <div
+      <ItemEmptyState
         aria-label={multiple ? 'Loading file dropzone' : 'Loading single-file dropzone'}
-        className="rounded-picodash-control border-picodash-control text-picodash-muted box-border flex min-h-(--picodash-field-surface-min-height) flex-col items-center justify-center border border-dashed bg-(--_picodash-color-well) px-(--picodash-space-3) py-(--picodash-space-4) text-center text-(length:--picodash-font-size-lg)"
+        className="box-border"
       >
         <span className="sr-only">
           {multiple ? 'Loading file dropzone' : 'Loading single-file dropzone'}
         </span>
-      </div>
+      </ItemEmptyState>
       <div className="min-h-4" aria-hidden="true" />
     </div>
   )

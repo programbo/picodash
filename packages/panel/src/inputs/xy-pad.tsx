@@ -8,6 +8,7 @@ import {
   type PicodashItemContextValue,
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
+import { ItemSurface } from '../components/ui/item-surface.js'
 import type { PicodashParser } from '../validation/picodash-validation.js'
 import { cn } from '../utilities/utils.js'
 import { canonicalPicodashValue, strictImportShape } from './internal/built-in-validation.js'
@@ -214,13 +215,13 @@ function XYPadSurface({
   return (
     <div className="col-span-full grid gap-(--picodash-space-1-5)">
       <div className="focus-within:ring-picodash-focus focus-within:ring-offset-picodash-canvas rounded-picodash-control focus-within:ring-2 focus-within:ring-offset-1">
-        <div
+        <ItemSurface
           ref={padRef}
           aria-describedby={instructionsId}
           aria-disabled={unavailable || undefined}
           aria-label={ariaLabel}
           className={cn(
-            'rounded-picodash-control border-picodash-control relative aspect-2/1 min-h-(--picodash-field-surface-min-height) touch-none overflow-hidden border bg-(--_picodash-xy-background) outline-none',
+            'bg-picodash-surface-muted/50 relative aspect-2/1 touch-none outline-none',
             'before:absolute before:inset-y-0 before:left-1/2 before:w-(--picodash-border-thin) before:bg-(--_picodash-xy-grid) after:absolute after:inset-x-0 after:top-1/2 after:h-(--picodash-border-thin) after:bg-(--_picodash-xy-grid)',
             unavailable
               ? 'cursor-not-allowed opacity-(--picodash-opacity-disabled)'
@@ -252,6 +253,7 @@ function XYPadSurface({
               event.currentTarget.releasePointerCapture(event.pointerId)
             }
           }}
+          size="field"
         >
           <motion.span
             ref={thumbRef}
@@ -267,7 +269,7 @@ function XYPadSurface({
           >
             X {formatXYValue(value.x, bounds.step)} · Y {formatXYValue(value.y, bounds.step)}
           </motion.output>
-        </div>
+        </ItemSurface>
         <input
           aria-controls={padId}
           aria-describedby={instructionsId}

@@ -19,23 +19,6 @@ const initialBuiltInRootOrder = [
   'visualization-items',
 ]
 
-async function changeDemoThemes(
-  page: Page,
-  detail: {
-    custom?: string | null
-    provider?: string | null
-    scene?: string | null
-  },
-) {
-  await page.evaluate((nextThemes) => {
-    window.dispatchEvent(
-      new CustomEvent('picodash-demo-theme-change', {
-        detail: nextThemes,
-      }),
-    )
-  }, detail)
-}
-
 test.beforeEach(async ({ page }) => {
   await page.goto(`${labURL}/lab/state`)
   await expect(page.getByRole('heading', { name: 'Picodash State Lab' })).toBeVisible()
@@ -1523,18 +1506,24 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   const previewButton = dropzone.getByRole('button', { name: 'View themed.png' })
   await previewButton.click()
   const viewer = page.getByRole('dialog')
-  await expect(viewer).toHaveAttribute('data-picodash-theme', 'ocean')
+  const viewerOverlay = page.locator('[data-slot="dialog-overlay"]').filter({ has: viewer })
+  await expect(viewerOverlay).toHaveAttribute('data-picodash-theme', 'ocean')
+  await expect(viewer).not.toHaveAttribute('data-picodash-theme', /.+/)
   await expect(viewer.locator('figure')).toHaveCSS('border-radius', '8px')
   await page.keyboard.press('Escape')
 
   const customActions = customPanel.getByRole('button', { name: 'Open actions for Custom Items' })
   await customActions.click()
   const menu = page.getByRole('menu', { name: 'Actions for Custom Items' })
-  await expect(menu).toHaveAttribute('data-picodash-theme', 'plum')
+  const menuSurface = page.locator('[data-slot="dropdown-menu-content"]').filter({ has: menu })
+  await expect(menuSurface).toHaveAttribute('data-picodash-theme', 'plum')
+  await expect(menu).not.toHaveAttribute('data-picodash-theme', /.+/)
   const copySubmenuTrigger = menu.getByRole('menuitem', { name: 'Copy' })
   await copySubmenuTrigger.focus()
   await copySubmenuTrigger.press('ArrowRight')
-  const themedMenus = page.locator('[data-picodash-theme="plum"][role="menu"]')
+  const themedMenus = page.locator(
+    '[data-slot="dropdown-menu-content"][data-picodash-theme="plum"]',
+  )
   await expect(themedMenus).toHaveCount(2)
   await expect(themedMenus.nth(1)).toHaveCSS('pointer-events', 'auto')
   await page.keyboard.press('Escape')
@@ -1542,42 +1531,42 @@ test('applies simultaneous named themes to panels and every portaled surface', a
   await customActions.click()
   await menu.getByRole('menuitem', { name: 'Reset…' }).click()
   const dialog = page.getByRole('alertdialog', { name: 'Reset Custom Items?' })
-  await expect(dialog).toHaveAttribute('data-picodash-theme', 'plum')
+  await expect(dialog).not.toHaveAttribute('data-picodash-theme', /.+/)
   await expect(
-    page.locator('[data-picodash-theme="plum"][data-slot="alert-dialog-overlay"]'),
+    page
+      .locator('[data-picodash-theme="plum"][data-slot="alert-dialog-overlay"]')
+      .filter({ has: dialog }),
   ).toHaveCount(1)
   await dialog.getByRole('button', { name: 'Cancel' }).click()
-})
 
-test('updates inherited panel themes at runtime while preserving explicit overrides', async ({
-  page,
-}) => {
-  await changeDemoThemes(page, { custom: 'plum' })
-
-  const scenePanel = page.locator('[data-picodash-panel-id="scene-controls"]')
-  const customPanel = page.locator('[data-picodash-panel-id="custom-items"]')
-  await expect(scenePanel).toHaveAttribute('data-picodash-theme', 'dark')
-  await expect(customPanel).toHaveAttribute('data-picodash-theme', 'plum')
-
-  await changeDemoThemes(page, { provider: 'ocean' })
-
-  await expect(page.locator('[data-demo-provider-theme]')).toHaveAttribute(
-    'data-demo-provider-theme',
-    'ocean',
-  )
-  await expect(scenePanel).toHaveAttribute('data-picodash-theme', 'ocean')
-  await expect(customPanel).toHaveAttribute('data-picodash-theme', 'plum')
-
-  await changeDemoThemes(page, { custom: null })
-  await expect(customPanel).toHaveAttribute('data-picodash-theme', 'ocean')
+  for (const [selector, token] of [
+    ['[data-pointer-velocity-axis="x"]', '--picodash-color-data-1'],
+    ['[data-pointer-velocity-axis="y"]', '--picodash-color-data-3'],
+    ['[data-signal-path]', '--picodash-color-data-2'],
+  ] as const) {
+    const path = customPanel.locator(selector)
+    await expect(path).toHaveAttribute('stroke', `var(${token})`)
+    const strokes = await path.evaluate((element, property) => {
+      const probe = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      probe.setAttribute('stroke', `var(${property})`)
+      element.parentElement?.append(probe)
+      const result = {
+        actual: getComputedStyle(element).stroke,
+        semantic: getComputedStyle(probe).stroke,
+      }
+      probe.remove()
+      return result
+    }, token)
+    expect(strokes.actual).toBe(strokes.semantic)
+  }
 })
 
 test('animates transient visual paths and switches deterministic signal mode', async ({ page }) => {
   const velocity = page.locator('[data-item-id="mouse-velocity"]')
   const display = velocity.locator('[data-pointer-velocity-display]')
   const description = velocity.getByText('Move anywhere in the full viewport.', { exact: false })
-  const velocityXPath = velocity.locator('path.stroke-chart-1')
-  const velocityYPath = velocity.locator('path.stroke-chart-3')
+  const velocityXPath = velocity.locator('[data-pointer-velocity-axis="x"]')
+  const velocityYPath = velocity.locator('[data-pointer-velocity-axis="y"]')
   const fps = velocity.locator('[data-pointer-velocity-fps]')
   await display.scrollIntoViewIfNeeded()
   await expect(display).toBeVisible()
@@ -1629,7 +1618,7 @@ test('animates transient visual paths and switches deterministic signal mode', a
   await expect(fps).toHaveText('0 FPS')
 
   const signal = page.locator('[data-item-id="signal-visualizer"]')
-  const signalPath = signal.locator('path.stroke-chart-2')
+  const signalPath = signal.locator('[data-signal-path]')
   const initialSignalPath = await signalPath.getAttribute('d')
   await signal.getByRole('radio', { name: 'Show spectrum' }).click()
   await expect(signal.getByRole('radio', { name: 'Show spectrum' })).toHaveAttribute(
@@ -1639,43 +1628,6 @@ test('animates transient visual paths and switches deterministic signal mode', a
   await expect(signal.getByRole('img', { name: 'Synthetic signal spectrum' })).toBeVisible()
   await expect.poll(() => signalPath.getAttribute('d')).not.toBe(initialSignalPath)
   await expect(signalPath).toHaveAttribute('fill-opacity', '0.18')
-})
-
-test('resumes pointer velocity decay when document visibility returns', async ({ page }) => {
-  const velocity = page.locator('[data-item-id="mouse-velocity"]')
-  const display = velocity.locator('[data-pointer-velocity-display]')
-  const velocityXPath = velocity.locator('path.stroke-chart-1')
-  const fps = velocity.locator('[data-pointer-velocity-fps]')
-  await display.scrollIntoViewIfNeeded()
-  await expect(display).toBeVisible()
-
-  const initialVelocityXPath = await velocityXPath.getAttribute('d')
-  const headingBox = await requiredBox(page.getByRole('heading', { name: 'Picodash State Lab' }))
-
-  await page.mouse.move(headingBox.x + 4, headingBox.y + 4)
-  await page.mouse.move(
-    headingBox.x + headingBox.width - 4,
-    headingBox.y + headingBox.height + 80,
-    { steps: 8 },
-  )
-  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(initialVelocityXPath)
-
-  await setDocumentVisibility(page, 'hidden')
-  await expect(fps).toHaveText('0 FPS')
-  const pausedVelocityXPath = await velocityXPath.getAttribute('d')
-  await page.evaluate(
-    () => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))),
-  )
-  expect(await velocityXPath.getAttribute('d')).toBe(pausedVelocityXPath)
-
-  await setDocumentVisibility(page, 'visible')
-  await expect.poll(() => velocityXPath.getAttribute('d')).not.toBe(pausedVelocityXPath)
-  await expect
-    .poll(async () => Number.parseInt((await fps.textContent()) ?? '0', 10), {
-      intervals: [50],
-    })
-    .toBeGreaterThan(0)
-  await expect(fps).toHaveText('0 FPS')
 })
 
 test('supports keyboard typeahead across panel actions and format submenus', async ({ page }) => {
@@ -1769,8 +1721,10 @@ test('keeps the panel action menu contained and manages collapsible groups', asy
 
   await trigger.click()
   const menu = page.getByRole('menu', { name: 'Actions for Scene Controls' })
+  const menuSurface = page.locator('[data-slot="dropdown-menu-content"]').filter({ has: menu })
   await expect(menu).toBeVisible()
-  await expect(menu).toHaveAttribute('data-picodash-theme', 'dark')
+  await expect(menuSurface).toHaveAttribute('data-picodash-theme', 'dark')
+  await expect(menu).not.toHaveAttribute('data-picodash-theme', /.+/)
   await expect(menu).toHaveCSS('pointer-events', 'auto')
   await expect(page.locator('[data-picodash-container]')).toHaveCSS('pointer-events', 'none')
   const menuBox = await requiredBox(menu)
@@ -1824,7 +1778,9 @@ test('confirms registered-field resets without changing group disclosure', async
   await trigger.click()
   await page.getByRole('menuitem', { name: 'Reset…' }).click()
   const dialog = page.getByRole('alertdialog', { name: 'Reset Scene Controls?' })
-  await expect(dialog).toHaveAttribute('data-picodash-theme', 'dark')
+  const dialogOverlay = page.locator('[data-slot="alert-dialog-overlay"]').filter({ has: dialog })
+  await expect(dialogOverlay).toHaveAttribute('data-picodash-theme', 'dark')
+  await expect(dialog).not.toHaveAttribute('data-picodash-theme', /.+/)
   const resetDescriptionId = await dialog.getAttribute('aria-describedby')
   expect(resetDescriptionId).toBeTruthy()
   await expect(page.locator(`[id="${resetDescriptionId}"]`)).toContainText(
@@ -1985,19 +1941,6 @@ async function collapseCustomGroups(
       )
       .toBe(true)
   }
-}
-
-async function setDocumentVisibility(
-  page: import('@playwright/test').Page,
-  visibilityState: DocumentVisibilityState,
-) {
-  await page.evaluate((state) => {
-    Object.defineProperty(document, 'visibilityState', {
-      configurable: true,
-      value: state,
-    })
-    document.dispatchEvent(new Event('visibilitychange'))
-  }, visibilityState)
 }
 
 async function exerciseLivePreviewDrag({

@@ -153,7 +153,9 @@ test('collapses groups, resets values, runs custom actions, and carries theme th
   )
   await trigger.click()
   const menu = page.getByRole('menu', { name: 'Lab actions' })
-  await expect(menu).toHaveAttribute('data-picodash-theme', 'light')
+  const menuSurface = page.locator('[data-slot="dropdown-menu-content"]').filter({ has: menu })
+  await expect(menuSurface).toHaveAttribute('data-picodash-theme', 'light')
+  await expect(menu).not.toHaveAttribute('data-picodash-theme', /.+/)
   await menu.getByRole('menuitem', { name: 'Collapse all' }).click()
   await expect(coreToggle).toHaveAttribute('aria-expanded', 'false')
   await expect(layoutToggle).toHaveAttribute('aria-expanded', 'false')
@@ -166,7 +168,11 @@ test('collapses groups, resets values, runs custom actions, and carries theme th
   await trigger.click()
   await menu.getByRole('menuitem', { name: 'Reset…' }).click()
   const resetDialog = page.getByRole('alertdialog', { name: 'Reset Interaction Dashlets?' })
-  await expect(resetDialog).toHaveAttribute('data-picodash-theme', 'light')
+  const resetOverlay = page.locator('[data-slot="alert-dialog-overlay"]').filter({
+    has: resetDialog,
+  })
+  await expect(resetOverlay).toHaveAttribute('data-picodash-theme', 'light')
+  await expect(resetDialog).not.toHaveAttribute('data-picodash-theme', /.+/)
   await resetDialog.getByRole('button', { name: 'Reset values' }).click()
   await expect(label).toHaveValue('Baseline')
   await expect(
@@ -202,11 +208,37 @@ test('collapses groups, resets values, runs custom actions, and carries theme th
   await trigger.click()
   await menu.getByRole('menuitem', { name: 'Clear marker…' }).click()
   const dialog = page.getByRole('alertdialog', { name: 'Clear interaction marker?' })
-  await expect(dialog).toHaveAttribute('data-picodash-theme', 'light')
+  const dialogOverlay = page.locator('[data-slot="alert-dialog-overlay"]').filter({ has: dialog })
+  await expect(dialogOverlay).toHaveAttribute('data-picodash-theme', 'light')
+  await expect(dialog).not.toHaveAttribute('data-picodash-theme', /.+/)
   await dialog.getByRole('button', { name: 'Clear marker' }).click()
   await expect(dialog).toBeHidden()
   await expect(panel.getByText('cleared', { exact: true })).toBeVisible()
   await expect(interactionPanel(page, 'no-actions').getByRole('button')).toHaveCount(0)
+})
+
+test('raises overlays opened inside a dialog above its modal layer', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open nested overlays' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Nested overlay fixture' })
+  const dialogOverlay = page.locator('[data-slot="dialog-overlay"]').filter({ has: dialog })
+  const dialogZIndex = await computedZIndex(dialogOverlay)
+  expect(dialogZIndex).toBe(5000)
+
+  await dialog.getByRole('button', { name: 'Open nested menu' }).click()
+  const menu = page.getByRole('menu', { name: 'Open nested menu' })
+  const menuSurface = page.locator('[data-slot="dropdown-menu-content"]').filter({ has: menu })
+  expect(await computedZIndex(menuSurface)).toBeGreaterThan(dialogZIndex)
+  await menu.getByRole('menuitem', { name: 'Nested action' }).click()
+
+  await dialog.getByRole('button', { name: 'Nested dialog select' }).click()
+  const select = page.locator('[data-slot="select-content"]')
+  expect(await computedZIndex(select)).toBeGreaterThan(dialogZIndex)
+  await page.getByRole('option', { name: 'Second option' }).click()
+
+  await dialog.getByRole('button', { name: 'Show nested tooltip' }).hover()
+  const tooltip = page.getByRole('tooltip', { name: 'Nested tooltip' })
+  await expect(tooltip).toBeVisible()
+  expect(await computedZIndex(tooltip)).toBeGreaterThan(dialogZIndex)
 })
 
 test('hides by default close without losing state, then deregisters explicitly', async ({
@@ -247,6 +279,10 @@ test('hides by default close without losing state, then deregisters explicitly',
 
 function interactionPanel(page: Page, fixture: string) {
   return page.locator(`[data-interaction-fixture="${fixture}"][data-picodash-panel]`)
+}
+
+async function computedZIndex(locator: Locator) {
+  return Number.parseInt(await locator.evaluate((element) => getComputedStyle(element).zIndex), 10)
 }
 
 async function dragPanel(page: Page, source: Locator, delta: { x: number; y: number }) {

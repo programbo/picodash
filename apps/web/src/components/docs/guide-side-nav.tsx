@@ -6,6 +6,7 @@ import {
   PicodashGroup,
   PicodashPanel,
 } from '@picodash/panel'
+import Link from 'next/link'
 import { useRef, useState, type ReactNode } from 'react'
 import { floatingPlacement } from '../../lib/panel-placement'
 
@@ -103,22 +104,33 @@ function renderGuideItems(panelId: string, items: readonly GuideSideNavItem[], i
         id={`${panelId}-${item.id ?? itemIndex + 1}`}
         label={item.rowLabel ?? String(itemIndex + 1).padStart(2, '0')}
         reorderable={false}
-        value={
-          item.content ?? (
-            <a
-              className="text-picodash-text hover:text-picodash-strong focus-visible:ring-picodash-focus block min-w-0 truncate whitespace-nowrap transition-colors outline-none focus-visible:ring-2"
-              href={item.href}
-            >
-              <span className="block truncate">{item.label}</span>
-              {item.meta ? (
-                <span className="text-picodash-muted block truncate font-mono text-[10px]">
-                  {item.meta}
-                </span>
-              ) : null}
-            </a>
-          )
-        }
+        value={item.content ?? <GuideLink item={item} />}
       />
     )
   })
+}
+
+function GuideLink({ item }: { item: GuideSideNavItem }) {
+  const content = (
+    <>
+      <span className="block truncate">{item.label}</span>
+      {item.meta ? (
+        <span className="text-picodash-muted block truncate font-mono text-[10px]">
+          {item.meta}
+        </span>
+      ) : null}
+    </>
+  )
+  const className =
+    'text-picodash-text hover:text-picodash-strong focus-visible:ring-picodash-focus block min-w-0 truncate whitespace-nowrap transition-colors outline-none focus-visible:ring-2'
+
+  return item.href?.startsWith('/') ? (
+    <Link className={className} href={item.href}>
+      {content}
+    </Link>
+  ) : (
+    <a className={className} href={item.href}>
+      {content}
+    </a>
+  )
 }

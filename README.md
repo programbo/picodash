@@ -15,7 +15,7 @@ Monorepo for the promoted [Picodash] package, its production website, and local 
 ### `apps/web` route topology
 
 - `/` renders the home root.
-- `/store`, `/usage`, `/themes`, `/more-examples` render public detail routes.
+- `/store`, `/usage`, `/usage/components`, `/themes`, `/more-examples` render public detail routes.
 - unknown paths render the app's 404 page.
 
 ### `apps/lab` route topology
@@ -125,6 +125,20 @@ All package usage should be built on `PicodashProvider` + panel stores.
 - Styling import: `import '@picodash/panel/style.css'`.
 - No separate dist stylesheet import should be documented (the package export maps that path).
 
+### Bespoke dashlets
+
+Third-party dashlets can compose the same first-party elements as built-ins from
+`@picodash/panel/ui` (`Button`, `Card`, `Input`, `Label`, `Select`, `Slider`, `Tabs`, `Tooltip`,
+and the other form, overlay, and layout primitives). Every exported primitive has a named
+`*Props` type, and all interaction props use the package's React Aria contracts. Use component
+`variant` and `size` props rather than implementation-level class helpers. Import the package
+stylesheet once and build custom surfaces from semantic `--picodash-*` tokens so they follow
+dark, light, system, and consumer-defined themes. Visualization dashlets can use `ItemSurface`,
+`ItemCaption`, `ItemLegend`, `ItemLegendItem`, and `ItemEmptyState` alongside the public
+`--picodash-color-well` surface token and the `--picodash-color-data-1`,
+`--picodash-color-data-2`, `--picodash-color-data-3`, `--picodash-color-data-4`, and
+`--picodash-color-data-5` palette; provider overlays keep their portal and theme carrier behavior.
+
 ### Themes
 
 `@picodash/panel/style.css` ships complete `dark` and `light` Picodash themes. Use
@@ -140,6 +154,11 @@ Consumer themes are CSS-only and use the emitted `data-picodash-theme` attribute
   --picodash-color-accent: #8ab4ff;
 }
 ```
+
+`PicodashProvider` establishes the root theme scope, and `PicodashPanel` can override it for one
+panel. Dashlets and shared UI primitives inherit semantic tokens from that scope. Portaled overlays
+repeat the resolved theme only on their portal root so panel overrides survive outside the panel
+DOM tree.
 
 Theme names can be made strict and autocomplete-friendly with the provider generic:
 

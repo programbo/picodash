@@ -14,6 +14,13 @@ What it provides:
 - application-owned panel stores via createPicodashPanelStore
 - PicodashProvider, PicodashPanel, PicodashItem, built-in inputs and charts
 - centralized shadcn aria-rhea primitives via @picodash/panel/ui
+- third-party dashlets can compose the same first-party Button, Card, Input, Select, Slider, Tabs,
+  overlay, and form primitives; every public primitive has a named *Props type
+- use component variant/size props and semantic --picodash-* tokens; raw implementation variant
+  helpers and internal component paths are not part of the public UI contract
+- public visualization tokens include --picodash-color-well, --picodash-color-data-1,
+  --picodash-color-data-2, --picodash-color-data-3, --picodash-color-data-4, and
+  --picodash-color-data-5
 - provider-scoped panel visibility, activation, reactive placement, and runtime setPlacement via usePicodashPanel
 - floating, fixed, and hybrid placement modes with free, snapped, and docked dispositions; snaps
   stay offset and floating-like, while Hybrid side/corner targets use an animated proxy and dock
@@ -40,12 +47,12 @@ What it provides:
 - observable async sparkline source failures
 - complete package dark/light themes, system color-scheme resolution, and CSS custom themes via `data-picodash-theme`
 - strict custom provider theme unions through `PicodashProvider<CustomTheme>`
-- theme/portal aware styling
+- provider-root and optional panel-level theme scopes, with inherited primitives and portal-root carriers
 - lazy Recharts and react-dropzone implementations behind stable public components
 - import/export and repair flows
 
 Production pages (`apps/web`):
-- /, /store, /usage, /more-examples, /themes
+- /, /store, /usage, /usage/components, /more-examples, /themes
 
 Local debugging pages (`apps/lab`, not deployed with the production website):
 - / and /lab redirect to /lab/state

@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '#lib/utils'
 
 const badgeVariants = cva(
-  'group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-2xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-all focus-visible:border-picodash-focus focus-visible:ring-[3px] focus-visible:ring-picodash-focus/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-picodash-danger aria-invalid:ring-picodash-danger/20 dark:aria-invalid:ring-picodash-danger/40 [&>svg]:pointer-events-none [&>svg]:size-3!',
+  'group/badge inline-flex h-(--picodash-control-height-xs) w-fit shrink-0 items-center justify-center gap-(--picodash-space-1) overflow-hidden rounded-picodash-control border border-transparent px-(--picodash-space-2) py-(--picodash-space-0-5) text-(length:--picodash-font-size-sm) leading-(--picodash-line-tight) font-(--picodash-font-medium) whitespace-nowrap transition-colors duration-(--picodash-duration-fast) focus-visible:border-picodash-focus focus-visible:ring-2 focus-visible:ring-picodash-focus/50 has-data-[icon=inline-end]:pr-(--picodash-space-1-5) has-data-[icon=inline-start]:pl-(--picodash-space-1-5) aria-invalid:border-picodash-danger aria-invalid:ring-2 aria-invalid:ring-picodash-danger/20 [&>svg]:pointer-events-none [&>svg]:size-(--picodash-icon-xs)',
   {
     variants: {
       variant: {
@@ -11,11 +11,10 @@ const badgeVariants = cva(
         secondary:
           'bg-picodash-surface-muted text-picodash-text [a]:hover:bg-picodash-surface-muted/80',
         destructive:
-          'bg-picodash-danger/10 text-picodash-danger focus-visible:ring-picodash-danger/20 dark:bg-picodash-danger/20 dark:focus-visible:ring-picodash-danger/40 [a]:hover:bg-picodash-danger/20',
+          'bg-picodash-danger-subtle text-picodash-danger focus-visible:ring-picodash-danger/20 [a]:hover:bg-picodash-danger/20',
         outline:
           'border-picodash-border text-picodash-text [a]:hover:bg-picodash-surface-muted [a]:hover:text-picodash-muted',
-        ghost:
-          'hover:bg-picodash-surface-muted hover:text-picodash-muted dark:hover:bg-picodash-surface-muted/50',
+        ghost: 'hover:bg-picodash-surface-muted hover:text-picodash-muted',
         link: 'text-picodash-accent underline-offset-4 hover:underline',
       },
     },

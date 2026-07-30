@@ -14,7 +14,7 @@ The workspace has separate production and local debugging Next.js App Router app
 `apps/web` route topology:
 
 - `/` renders the home root.
-- `/store`, `/usage`, `/themes`, `/more-examples` render public routes.
+- `/store`, `/usage`, `/usage/components`, `/themes`, `/more-examples` render public routes.
 - missing paths render the 404 page.
 
 The local app redirects `/` and `/lab` to `/lab/state`, then serves state fixtures at
@@ -53,6 +53,40 @@ import { Button, Card, Tabs, TabsContent, TabsList, TabsTrigger } from '@picodas
 These components use the `aria-rhea` React Aria contracts, including `id`, `selectedKey`,
 `onSelectionChange`, `isDisabled`, `onAction`, and `data-selected`. Add or update shared shadcn
 components from `packages/panel`; consuming workspaces should not install duplicate copies.
+
+### Third-party dashlet UI toolkit
+
+Use `@picodash/panel/ui` to compose bespoke dashlets from the same first-party, theme-aware
+elements used by Picodash's built-ins:
+
+```tsx
+import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@picodash/panel/ui'
+import type { ButtonProps, CardProps, SelectProps } from '@picodash/panel/ui'
+```
+
+Every exported primitive has a named `*Props` type, and interaction props follow React Aria
+(`isDisabled`, `selectedKey`, `onSelectionChange`, `onAction`, and related `data-*` state
+attributes). Prefer component `variant` and `size` props over importing implementation-level
+class helpers. Import `@picodash/panel/style.css` once at the application root; its semantic
+`--picodash-*` tokens provide the light, dark, system, and consumer-defined theme contract for
+custom markup and visualizations. Use `ItemSurface`, `ItemCaption`, `ItemLegend`,
+`ItemLegendItem`, and `ItemEmptyState` for common visualization and empty-state compositions. For
+visualization surfaces, use the public
+`--picodash-color-well` token and the `--picodash-color-data-1`, `--picodash-color-data-2`,
+`--picodash-color-data-3`, `--picodash-color-data-4`, and `--picodash-color-data-5` palette. Root
+overlays retain the provider portal/theme contract, while nested menus stay in their parent
+overlay.
 
 ## Quick start
 
@@ -371,7 +405,9 @@ tests, and the build, which includes source maps.
 - `"system"` follows `prefers-color-scheme` and updates when the system preference changes.
 - Supported provider themes are `"dark"`, `"light"`, `"system"`, plus names supplied through the
   provider generic.
-- Theme names are emitted through `data-picodash-theme` on provider and portal surfaces.
+- `PicodashProvider` establishes the root `data-picodash-theme` scope, and `PicodashPanel` can
+  override it for one panel. Dashlets and shared UI primitives inherit semantic tokens; portaled
+  overlays repeat the resolved theme only on their portal root.
 - `usePicodashTheme()` returns the resolved name for custom controls.
 
 Define custom themes in consumer CSS by overriding the semantic token roles:

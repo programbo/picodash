@@ -7,6 +7,19 @@ import {
 } from 'react-aria-components'
 
 import { cn } from '#lib/utils'
+import {
+  resolvePortalLayerZIndex,
+  useParentPortalLayerZIndex,
+} from '../../lib/portal/portal-layer-context.js'
+import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
+import {
+  portalLayerZIndexForState,
+  useOptionalPicodashProviderContext,
+} from '../../state/provider/picodash-provider.js'
+
+const standaloneProviderState = { panelOrder: [] as string[] }
+const standaloneProviderSubscribe = () => () => undefined
+const standaloneProviderSnapshot = () => standaloneProviderState
 
 function TooltipTrigger({
   delay = 0,
@@ -31,30 +44,71 @@ function Tooltip({
   crossOffset = 0,
   children,
   portalContainer,
+  style,
   ...props
 }: Omit<React.ComponentProps<typeof TooltipPrimitive>, 'children' | 'className'> & {
   className?: string
   children?: React.ReactNode
   arrowClassName?: string
   portalContainer?: Element | null
+  style?: React.ComponentProps<typeof TooltipPrimitive>['style']
 }) {
+  const theme = usePicodashTheme()
+  const parentZIndex = useParentPortalLayerZIndex()
+  const provider = useOptionalPicodashProviderContext()
+  const providerState = React.useSyncExternalStore(
+    provider?.store.subscribe ?? standaloneProviderSubscribe,
+    provider?.store.getState ?? standaloneProviderSnapshot,
+    provider?.store.getState ?? standaloneProviderSnapshot,
+  )
+  const zIndexFloor = provider ? portalLayerZIndexForState(providerState, 1) : undefined
+  const resolvedPortalContainer =
+    portalContainer === undefined ? provider?.portalContainer : portalContainer
+  const resolvedZIndex =
+    typeof style === 'object' && style?.zIndex !== undefined
+      ? style.zIndex
+      : resolvePortalLayerZIndex({
+          cssVariable: '--picodash-layer-tooltip',
+          floor: zIndexFloor,
+          parentOffset: 1,
+          parentZIndex,
+        })
+
   return (
     <TooltipPrimitive
       data-slot="tooltip-content"
+      data-picodash-theme={theme}
       placement={placement}
       offset={offset}
       crossOffset={crossOffset}
-      UNSTABLE_portalContainer={portalContainer ?? undefined}
+      UNSTABLE_portalContainer={resolvedPortalContainer ?? undefined}
       className={cn(
-        'rounded-picodash-surface bg-picodash-text text-picodash-canvas data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 z-50 inline-flex w-fit max-w-xs origin-(--trigger-anchor-point) items-center gap-1.5 px-3 py-1.5 text-xs has-data-[slot=kbd]:pr-1.5 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-50 **:data-[slot=kbd]:rounded-lg',
+        'pointer-events-auto',
+        'rounded-picodash-surface border-picodash-border bg-picodash-text text-picodash-canvas data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:rounded-picodash-control z-(--picodash-layer-tooltip) inline-flex w-fit max-w-xs origin-(--trigger-anchor-point) items-center gap-(--picodash-space-1-5) border px-(--picodash-space-3) py-(--picodash-space-1-5) text-(length:--picodash-font-size-lg) shadow-(--picodash-shadow-md) has-data-[slot=kbd]:pr-(--picodash-space-1-5) **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate',
         className,
       )}
+      style={
+        typeof style === 'function'
+          ? (values) => {
+              const resolvedStyle = style(values)
+              return {
+                ...resolvedStyle,
+                ...(resolvedStyle?.zIndex === undefined && resolvedZIndex !== undefined
+                  ? { zIndex: resolvedZIndex }
+                  : {}),
+              }
+            }
+          : {
+              ...style,
+              ...(resolvedZIndex === undefined ? {} : { zIndex: resolvedZIndex }),
+            }
+      }
       {...props}
     >
       {children}
       <OverlayArrow
         className={cn(
-          'bg-picodash-text fill-picodash-text z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-xs',
+          'bg-picodash-text fill-picodash-text size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-xs',
           arrowClassName,
         )}
         style={({ placement, defaultStyle }) => ({
