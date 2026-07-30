@@ -8,6 +8,7 @@ export type PicodashJsonValue =
 
 export type PicodashValidationSource =
   | 'default'
+  | 'import'
   | 'initial'
   | 'interactive'
   | 'programmatic'
@@ -86,6 +87,15 @@ export interface PicodashStoreState<TValues extends object> {
   readonly panelId: string
   readonly repairProposal: PicodashRepairProposal<TValues> | null
   readonly values: TValues
+  analyzePanelDocument: (
+    document: unknown,
+  ) => import('./documents.js').PicodashPanelImportAnalysis<TValues>
+  applyPanelImport: (
+    analysis: Exclude<
+      import('./documents.js').PicodashPanelImportAnalysis<TValues>,
+      { status: 'invalid' }
+    >,
+  ) => import('./documents.js').PicodashPanelImportApplyResult<TValues>
   abortRepairProposal: () => void
   acceptRepairProposal: () => PicodashWriteResult<TValues>
   resetFieldValue: <TKey extends Extract<keyof TValues, string>>(

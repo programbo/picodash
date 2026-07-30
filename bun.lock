@@ -111,6 +111,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@standard-schema/spec": "^1.1.0",
+        "yaml": "catalog:",
         "zustand": "catalog:",
       },
       "devDependencies": {
@@ -129,7 +130,6 @@
       },
       "peerDependencies": {
         "react": ">=19",
-        "react-dom": ">=19",
       },
     },
   },

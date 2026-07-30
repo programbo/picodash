@@ -1,4 +1,9 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
+import {
+  analyzePicodashPanelDocumentState,
+  samePicodashPanelImportOutputs,
+  type PicodashPanelImportAnalysis,
+} from './documents.js'
 import { createPicodashFields, picodashOwnerOwnsField } from './fields.js'
 import {
   initialPicodashInteractionState,
@@ -216,6 +221,33 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
         repairProposal: null,
       }))
       return { success: true }
+    },
+    analyzePanelDocument(document) {
+      return analyzeDocument(document, internalStore.getState())
+    },
+    applyPanelImport(analysis) {
+      const current = analyzeDocument(analysis.plan.document, internalStore.getState())
+      if (current.status === 'invalid') {
+        return { analysis: current, reason: 'invalid', success: false }
+      }
+      if (
+        !samePicodashPanelImportOutputs(analysis.plan.outputs, current.plan.outputs) ||
+        !stringArraysEqual(analysis.plan.resetFields, current.plan.resetFields)
+      ) {
+        return { analysis: current, reason: 'stale', success: false }
+      }
+      if (analysis.status === 'valid' && current.status === 'repair') {
+        return { analysis: current, reason: 'repair-required', success: false }
+      }
+      internalStore.setState((state) =>
+        applyOutputs(
+          state,
+          current.plan.outputs as Record<string, PicodashFieldOutput<PicodashJsonValue>>,
+          'import',
+          new Set(current.plan.resetFields),
+        ),
+      )
+      return { analysis: current, success: true, values: current.values }
     },
     resetFieldValue(field) {
       const key = ownedFieldKey(field)
@@ -497,6 +529,17 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
     )
   }
 
+  function analyzeDocument(
+    document: unknown,
+    state: DataState,
+  ): PicodashPanelImportAnalysis<Values> {
+    return analyzePicodashPanelDocumentState(document, state, {
+      resolve(field, input, source) {
+        return resolveFromState(state, field, input, source)
+      },
+    })
+  }
+
   function writeValues(
     candidates: Partial<Values>,
     source: PicodashValidationSource,
@@ -551,6 +594,7 @@ function applyOutputs(
   state: DataState,
   outputs: Record<string, PicodashFieldOutput<PicodashJsonValue>>,
   source: PicodashValidationSource,
+  resetFields: ReadonlySet<string> = new Set(),
 ): DataState {
   if (Object.keys(outputs).length === 0) return state
   const values = { ...state.values }
@@ -563,7 +607,12 @@ function applyOutputs(
       ...previous,
       dirty: !outputsEqual(output, { value: previous.defaultValue }),
       errors: [],
-      touched: source === 'reset' ? false : source === 'initial' ? previous.touched : true,
+      touched:
+        source === 'reset' || resetFields.has(key)
+          ? false
+          : source === 'initial'
+            ? previous.touched
+            : true,
     }
     delete (nextField as { draftValue?: unknown }).draftValue
     fieldStates[key] = nextField
@@ -580,6 +629,10 @@ function applyOutputs(
         : { ...state.repairProposal, changes: remainingRepairs },
     values,
   }
+}
+
+function stringArraysEqual(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => right[index] === value)
 }
 
 function outputsEqual(
