@@ -197,12 +197,63 @@ export type PicodashItemPin = 'end' | 'start'
 export type PicodashItemOrderBand = 'auto' | PicodashItemPin
 export type PicodashItemKind = 'group' | 'item'
 
+/**
+ * A serializable, intentionally shallow description of values a mounted
+ * presentation can render or edit. Durable parsing and validation belong to
+ * the field definition; this descriptor only checks presentation
+ * compatibility.
+ *
+ * `media` and `visualization` distinguish semantic object consumers. They
+ * validate only that the value is a JSON object; object shape remains the
+ * field validator's responsibility.
+ */
+export type PicodashPresentationValueContract<TValue = PicodashJsonValue> = TValue extends boolean
+  ? { readonly allowUnset?: boolean; readonly kind: 'boolean' }
+  : TValue extends number
+    ? { readonly allowUnset?: boolean; readonly finite?: boolean; readonly kind: 'number' }
+    : TValue extends string
+      ? {
+          readonly allowUnset?: boolean
+          readonly kind: 'string'
+          readonly values?: readonly TValue[]
+        }
+      : TValue extends null
+        ? { readonly allowUnset?: boolean; readonly kind: 'null' }
+        : TValue extends readonly unknown[]
+          ?
+              | {
+                  readonly allowUnset?: boolean
+                  readonly kind: 'array'
+                }
+              | {
+                  readonly allowUnset?: boolean
+                  readonly kind: 'tuple'
+                  readonly length: number
+                }
+          : TValue extends object
+            ? {
+                readonly allowUnset?: boolean
+                readonly kind: 'media' | 'object' | 'visualization'
+              }
+            : never
+
+export interface PicodashPresentationContract<TValue = PicodashJsonValue> {
+  readonly accepts: PicodashPresentationValueContract<TValue>
+  /** Stable package-qualified component identity, for example `@picodash/panel/Slider`. */
+  readonly component: string
+  /** Stable versioned identity for this component constraint, for example `slider:number:v1`. */
+  readonly id: string
+}
+
 export type PicodashItemBinding<TValues extends object> =
   | PicodashOwnedField<TValues>
   | {
-      readonly field: PicodashOwnedField<TValues>
-      readonly mode: PicodashItemBindingMode
-    }
+      [TKey in Extract<keyof TValues, string>]: {
+        readonly field: PicodashField<TValues, TKey>
+        readonly mode?: PicodashItemBindingMode
+        readonly presentation?: PicodashPresentationContract<TValues[TKey]>
+      }
+    }[Extract<keyof TValues, string>]
 
 interface PicodashItemRegistrationBase {
   readonly collapsible?: boolean
@@ -236,6 +287,7 @@ export interface PicodashRegisteredItemBinding<TValues extends object> {
   readonly alias: string
   readonly field: PicodashOwnedField<TValues>
   readonly mode: PicodashItemBindingMode
+  readonly presentation?: PicodashPresentationContract
 }
 
 export interface PicodashRegisteredItem<TValues extends object> extends Required<
@@ -251,13 +303,17 @@ export interface PicodashRegisteredItem<TValues extends object> extends Required
 
 export type PicodashItemRegistrationErrorCode =
   | 'conflicting-field-mode'
+  | 'conflicting-presentation-contract'
   | 'duplicate-field-binding'
   | 'duplicate-item-id'
   | 'foreign-field'
+  | 'incompatible-field-presentation'
+  | 'invalid-presentation-contract'
 
 export interface PicodashItemRegistrationError {
   readonly alias?: string
   readonly code: PicodashItemRegistrationErrorCode
+  readonly diagnostic?: import('./errors.js').PicodashDiagnostic
   readonly field?: string
   readonly itemId: string
   readonly message: string

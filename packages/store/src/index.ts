@@ -1,6 +1,13 @@
 export { createPicodashDiagnosticChannel } from './diagnostics.js'
 export type { PicodashDiagnosticChannel, PicodashDiagnosticListener } from './diagnostics.js'
 export {
+  normalizePicodashPresentationContract,
+  picodashPresentationAcceptsValue,
+  picodashPresentationContractsCompatible,
+  picodashPresentationContractsEqual,
+} from './presentation.js'
+export type { PicodashPresentationFieldValues } from './presentation.js'
+export {
   createPicodashDiagnostic,
   createPicodashError,
   getPicodashDocumentationUrl,
@@ -86,6 +93,8 @@ export type {
   PicodashJsonValue,
   PicodashOwnedField,
   PicodashParser,
+  PicodashPresentationContract,
+  PicodashPresentationValueContract,
   PicodashParseResult,
   PicodashRepairChange,
   PicodashRepairProposal,

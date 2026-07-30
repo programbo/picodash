@@ -74,6 +74,15 @@ test('rejects foreign, duplicate, and conflicting field bindings without mutatio
       {
         alias: 'secondary',
         code: 'duplicate-field-binding',
+        diagnostic: {
+          code: 'PICODASH_DUPLICATE_BINDING',
+          identity: {
+            bindingId: 'secondary',
+            fieldKey: 'count',
+            itemId: 'duplicate',
+            panelId: 'first',
+          },
+        },
         field: 'count',
         itemId: 'duplicate',
       },

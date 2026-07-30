@@ -322,8 +322,21 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
         registration,
         (field): field is PicodashField<Values, string> => picodashOwnerOwnsField(owner, field),
         state.items,
+        {
+          fieldValues: (field) => ({
+            currentValue: state.values[field.key] as PicodashJsonValue | undefined,
+            defaultValue: state.fieldStates[field.key]!.defaultValue as PicodashJsonValue,
+            hasCurrentValue: Object.prototype.hasOwnProperty.call(state.values, field.key),
+          }),
+          panelId: options.panelId,
+        },
       )
-      if (!result.success) return result
+      if (!result.success) {
+        for (const error of result.errors) {
+          if (error.diagnostic !== undefined) diagnosticChannel.publish(error.diagnostic)
+        }
+        return result
+      }
 
       const item = result.item
       const mountedItem = state.items[item.id]
