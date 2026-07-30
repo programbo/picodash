@@ -121,7 +121,7 @@ export function DemoProvider({
           <DemoContext value={contextValue}>
             <DemoBackground />
             {children}
-            <BuiltInItemsPanel config={builtInExampleConfig} />
+            <BuiltInItemsPanel config={builtInExampleConfig} defaultVisible={false} />
           </DemoContext>
         </PicodashProvider>
       </main>

@@ -716,8 +716,10 @@ function propTypeHelp(component: BuiltInComponentName) {
 
 export function BuiltInItemsPanel({
   config = defaultBuiltInItemsExampleConfig,
+  defaultVisible = false,
 }: {
   config?: BuiltInItemsExampleConfig
+  defaultVisible?: boolean
 }) {
   const rootOrder = usePicodashStoreSelector(
     builtInItemsPanelStore,
@@ -732,8 +734,10 @@ export function BuiltInItemsPanel({
     <PicodashPanel
       store={builtInItemsPanelStore}
       title={config.panelTitle}
+      close
       collapsible={config.panelCollapsible}
       defaultPlacement={placementForBuiltInItemsConfig(config)}
+      defaultVisible={defaultVisible}
       width={config.panelWidth}
       className="top-4 right-4 max-w-[calc(100dvw-2rem)] bg-(--picodash-color-surface)/72 backdrop-blur-xl lg:top-8 lg:right-8"
       data-example-width={config.panelWidth}
