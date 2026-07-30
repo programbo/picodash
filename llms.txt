@@ -9,6 +9,7 @@ Project status: public preview; Issues are available for feedback, and pull requ
 
 Package import surface:
 - picodash
+- @picodash/panel/catalog
 - @picodash/panel/advanced
 - @picodash/panel/dashlet
 - @picodash/panel/ui
@@ -16,7 +17,7 @@ Package import surface:
 - @picodash/store
 
 What it provides:
-- application-owned panel stores via createPicodashPanelStore
+- application-owned panel stores via createPicodashStore
 - PicodashProvider, PicodashPanel, PicodashItem, built-in inputs and charts
 - centralized shadcn aria-rhea primitives via @picodash/panel/ui
 - third-party dashlets can compose the same first-party Button, Card, Input, Select, Slider, Tabs,
@@ -36,7 +37,7 @@ What it provides:
 - viewport-default geometry with provider panelBoundary and per-panel boundary Element/ref overrides
 - unified body collapse for free/snapped panels and whole-panel retraction for docked panels,
   with pinned start/end lanes and a scroll-faded auto lane in fixed-like layouts
-- explicit application-owned reads via usePicodashPanelStoreSelector(store, selector)
+- explicit application-owned reads via usePicodashStoreSelector(store, selector)
 - advanced provider access via usePicodashProviderSelector and usePicodashProviderStoreApi
 - contextual advanced panel access via usePicodashPanelSelector and usePicodashPanelStoreApi
 - optional panel close buttons with hide or deregister behavior
@@ -60,25 +61,27 @@ What it provides:
 - import/export and repair flows
 
 Production pages (`apps/web`):
-- /, /store, /usage, /usage/components, /more-examples, /themes, /docs
+- `/`, `/examples`, and `/docs` plus canonical docs routes:
+  - `/docs/get-started/{manual,agent}`
+  - `/docs/concepts/{state-ownership,panel-placement,dashlet-anatomy}`
+  - `/docs/guides/{custom-dashlets,compound-dashlets,dashlet-themes,dashlet-accessibility}`
+  - `/docs/reference/{store,panel,dashlet-components,dashlets,ui,diagnostics}`
+- `/store`, `/usage`, `/themes`, `/more-examples` are compatibility routes.
+- `/usage/components` redirects to `/docs/reference/dashlet-components`.
 
 Local debugging pages (`apps/lab`, not deployed with the production website):
-- / and /lab redirect to /lab/state
-- /lab/state/provider, /lab/state/scene, /lab/state/built-in-items, /lab/state/custom-items
-- /lab/panel-geometry, /lab/panel-interaction, /lab/dashlets
+- `/` and `/lab` route to the same local Contract Lab surface
+- /lab is the active Contract Lab route and debug surface
 
-`/demo` and the former debugging routes hosted by `apps/web` are not active production routes.
+Only the listed `/apps/web` routes are active production routes.
 
 App surface mapping:
 - apps/web: production Next.js website
 - apps/lab: local-only Next.js debugging app
 
-Important migration:
-- The old schema-driven registration API and persistence formats are retired; map old `panel` specifiers to `@picodash/panel` imports.
+API boundary:
 - Only canonical Picodash layout records hydrate; invalid or obsolete records start from declared defaults.
-- No compatibility facade is provided.
-- Gearmo is a known breaking consumer requiring separate migration planning.
-- Typed field-handle integration in built-ins and compound dashlets is still migrating; track state in `docs/internal/e2e-migration-ledger.md`.
+- Built-ins and compound Dashlets use typed `store.fields` handles as the public field contract.
 
 Ports:
 - 6030 web development server via WEBSITE_PORT
@@ -123,6 +126,7 @@ Verification:
 - bun run --filter @picodash/lab check
 - bun run --filter @picodash/lab build
 - bun run --filter @picodash/web check
-- bun run --filter @picodash/web test:e2e
+- bun run test:e2e:web
+- bun run test:e2e:lab
 - apps/web/tests/routes.spec.ts asserts the production route boundary and local lab route markers
 - GitHub CI runs parallel quality and E2E jobs for pull requests and main pushes

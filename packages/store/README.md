@@ -5,6 +5,9 @@ The framework-independent, typed per-Panel state engine for Picodash.
 > **Public preview:** The package API is still evolving. See the repository's
 > [release policy](https://github.com/programbo/picodash/blob/main/RELEASING.md) before depending on a versioned release.
 
+Defaults are defined on store fields and carried into panel components through `usePicodashStoreSelector` and
+`store.fields.<key>` handles. The documentation examples use component props without per-control `defaultValue`.
+
 ## What this package owns today
 
 `@picodash/store` owns typed values, contracts, mutation semantics, and repair
@@ -19,9 +22,7 @@ proposals for one Panel:
 - strict subscription and selector access.
 
 `@picodash/panel` integrations (typed handles in built-ins, adapter wiring,
-and compound Dashlet field orchestration) are currently being migrated from
-string-field, in-panel wiring; that layer is intentionally documented as the
-next phase.
+and compound Dashlet field orchestration) use typed `store.fields` handles as their control contract.
 
 ## Quick start
 
@@ -123,8 +124,7 @@ Canonical agent-first direction in this repo still treats:
 
 - `@picodash/store` as the per-Panel state foundation,
 - `@picodash/panel` as the rendering, registry, and surface layer,
-- typed field-handles in panel built-ins and compound Dashlets as migration work
-  tracked in `docs/internal/e2e-migration-ledger.md`.
+- typed field-handles as the control contract between panel surfaces and store values.
 
 ## Further docs
 

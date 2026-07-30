@@ -11,7 +11,7 @@ registry, layout, and user-facing composition APIs.
 
 The workspace has separate production and local debugging Next.js App Router apps:
 
-- `packages/store`: typed state foundation for each panel (`@picodash/store`) (in this repo, migrated first).
+- `packages/store`: typed state foundation for each panel (`@picodash/store`).
 - `apps/web`: production website for public docs and product pages.
 - `apps/lab`: local-only debugging app; it is exercised by E2E tests but is not a production
   deployment target.
@@ -19,29 +19,33 @@ The workspace has separate production and local debugging Next.js App Router app
 `apps/web` route topology:
 
 - `/` renders the home root.
-- `/store`, `/usage`, `/usage/components`, `/themes`, `/more-examples` render public routes.
-- `/docs` renders the standalone documentation planning surface.
+- `/examples` renders the curated example gallery.
+- `/docs` is the docs umbrella route.
+- canonical docs routes:
+  - `/docs/get-started/{manual,agent}`
+  - `/docs/concepts/{state-ownership,panel-placement,dashlet-anatomy}`
+  - `/docs/guides/{custom-dashlets,compound-dashlets,dashlet-themes,dashlet-accessibility}`
+  - `/docs/reference/{store,panel,dashlet-components,dashlets,ui,diagnostics}`
+- `/store`, `/usage`, `/themes`, `/more-examples` are compatibility routes that redirect into docs.
+- `/usage/components` redirects to `/docs/reference/dashlet-components`.
 - missing paths render the 404 page.
 
-The local app redirects `/` and `/lab` to `/lab/state`, then serves state fixtures at
-`/lab/state/{provider,scene,built-in-items,custom-items}` and
-focused fixtures at `/lab/panel-geometry`, `/lab/panel-interaction`, and `/lab/dashlets`.
-`/demo` and the former debugging routes hosted by `apps/web` are not active production routes.
+The local app routes `/` and `/lab` to the Contract Lab route.
+Only the web routes above are active production `apps/web` routes.
 
-## Migration boundary
+## Pre-release API boundary
 
-- This package is the promoted API. Old schema-driven specifiers and behavior (schema-driven registration and the old persistence shape) are retired.
-- Legacy `panel` imports map to `@picodash/panel` imports in this repository context.
-- There is no compatibility package facade and no npm deprecation migration helper here.
+This package is the promoted public API. Pre-release development does not maintain a compatibility
+facade for retired schema-driven registration or persistence shapes.
 
-Compound dashlets currently compose through:
+Compound dashlets compose through:
 
 - `@picodash/panel/dashlet` for semantic anatomy, readouts, structured data, visualization, and
   state elements.
 - `@picodash/panel/ui` for interactive tokens-aware primitives.
 
-Panel built-ins are still normalizing typed field-handle integration from `@picodash/store`; field
-string-based compatibility remains during this migration phase.
+Panel built-ins and compound dashlets are typed around `store.fields` handles from
+`@picodash/store`.
 
 ## Imports and styles
 
@@ -49,13 +53,8 @@ Next.js App Router modules that render Picodash components must be client compon
 `'use client'` to the consuming module; the package does not force that boundary on every import.
 
 ```tsx
-import {
-  createPicodashPanelStore,
-  PicodashPanel,
-  PicodashProvider,
-  PicodashGroup,
-  usePicodashPanelStoreSelector,
-} from '@picodash/panel'
+import { PicodashPanel, PicodashProvider, PicodashGroup } from '@picodash/panel'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 import '@picodash/panel/style.css'
 ```
 
@@ -75,9 +74,7 @@ Semantic Dashlet composition exports are from `@picodash/panel/dashlet`:
 import * as Dashlet from '@picodash/panel/dashlet'
 ```
 
-Use `/dashlet` for compound Dashlet composition and `/ui` for accessible interactive controls. For
-the migration window, prefer string-based `field` names in built-ins where needed until
-handle-based wiring completes.
+Use `/dashlet` for compound Dashlet composition and `/ui` for accessible interactive controls.
 
 ### Third-party dashlet UI toolkit
 
@@ -117,7 +114,6 @@ overlay.
 
 ```tsx
 import {
-  createPicodashPanelStore,
   PicodashGroup,
   PicodashNumber,
   PicodashPanel,
@@ -125,28 +121,33 @@ import {
   PicodashSelect,
   PicodashSlider,
   PicodashSwitch,
-  usePicodashPanelStoreSelector,
+  PicodashPanelTrigger,
 } from '@picodash/panel'
+import { createPicodashStore } from '@picodash/store'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 import '@picodash/panel/style.css'
 
-const sceneStore = createPicodashPanelStore({
+const sceneStore = createPicodashStore({
   panelId: 'scene',
-  initialValues: {
-    bloom: true,
-    quality: 'balanced',
-    exposure: 1.2,
-    opacity: 0.72,
+  fields: {
+    bloom: { defaultValue: true },
+    quality: { defaultValue: 'balanced' },
+    exposure: { defaultValue: 1.2 },
+    opacity: { defaultValue: 0.72 },
   },
 })
 
 function ScenePanel() {
-  const exposure = usePicodashPanelStoreSelector(sceneStore, (state) => {
+  const exposure = usePicodashStoreSelector(sceneStore, (state) => {
     return typeof state.values.exposure === 'number' ? state.values.exposure : 1
   })
 
   return (
     <PicodashProvider theme="system" persistLayout storageKey="my-app:picodash-layout:v2">
+      <PicodashPanelTrigger store={sceneStore}>Open Scene</PicodashPanelTrigger>
+
       <PicodashPanel
+        defaultVisible={false}
         store={sceneStore}
         title="Scene"
         defaultPlacement={{
@@ -156,20 +157,18 @@ function ScenePanel() {
         width={360}
       >
         <PicodashGroup id="render" label="Render">
-          <PicodashSwitch field="bloom" label="Bloom" defaultValue={true} />
+          <PicodashSwitch field={sceneStore.fields.bloom} label="Bloom" />
           <PicodashSlider
-            field="exposure"
+            field={sceneStore.fields.exposure}
             label="Exposure"
-            defaultValue={1.2}
             min={0.2}
             max={3}
             step={0.05}
             formatOptions={{ style: 'decimal', maximumFractionDigits: 2 }}
           />
           <PicodashSelect
-            field="quality"
+            field={sceneStore.fields.quality}
             label="Quality"
-            defaultValue="balanced"
             options={[
               { label: 'Draft', value: 'draft' },
               { label: 'Balanced', value: 'balanced' },
@@ -177,9 +176,8 @@ function ScenePanel() {
             ]}
           />
           <PicodashNumber
-            field="opacity"
+            field={sceneStore.fields.opacity}
             label="Opacity"
-            defaultValue={0.72}
             min={0}
             max={1}
             step={0.01}
@@ -195,9 +193,9 @@ function ScenePanel() {
 
 ## Panel store model
 
-- `createPicodashPanelStore({ panelId, initialValues, initialMeta })` creates application-owned store state.
+- `createPicodashStore` creates application-owned store state.
 - `PicodashPanel` may render that store via `store` prop.
-- `usePicodashPanelStoreSelector` reads store slices without recreating local mirrors.
+- `usePicodashStoreSelector` reads store slices without recreating local mirrors.
 - `usePicodashPanel(panelId)` returns a registered panel controller with reactive `visible` state
   and `placement` plus `show`, `hide`, `toggle`, `setVisible`, show-and-raise `activate`, and
   `setPlacement` methods.
@@ -207,7 +205,6 @@ function ScenePanel() {
 - `close` adds a header close button that hides by default. Use
   `close={{ behavior: 'deregister' }}` to remove the provider registration and rendered portal;
   optional `onClose` observes the completed default behavior and can unmount the host component.
-- Internal-store panels are supported with `PicodashPanel id + initialValues/initialMeta`; this mode is UI-local unless app state is injected.
 - `setFieldValue` and `setFieldValues` are strict and atomic.
 - `setFieldInput` is the interactive path that may keep non-persisted drafts with validation feedback while preserving canonical values.
 
@@ -244,7 +241,9 @@ Use a provider boundary when panels should share the same working area, and a pa
 when one panel belongs to a different surface:
 
 ```tsx
-const canvasStore = createPicodashPanelStore({ panelId: 'canvas-tools' })
+import { createPicodashStore } from '@picodash/store'
+
+const canvasStore = createPicodashStore({ panelId: 'canvas-tools' })
 const mainRef = useRef<HTMLElement>(null)
 const canvasRef = useRef<HTMLDivElement>(null)
 
@@ -471,7 +470,6 @@ Use `@picodash/panel/advanced` for low-level helpers and internals:
 
 ```tsx
 import {
-  createPicodashStore,
   picodashPersistedStateSchema,
   usePicodashPanelSelector,
   usePicodashPanelStoreApi,
@@ -483,9 +481,8 @@ import {
 
 The provider hooks expose global registration/layout state. The panel hooks use the nearest
 rendered `PicodashPanel` context and are intended for low-level custom integrations. Prefer the main
-entrypoint's explicit `usePicodashPanelStoreSelector(store, selector)` in application components.
+entrypoint's explicit `usePicodashStoreSelector(store, selector)` in application components.
 
 ## Known breaking impact
 
-- External consumer `Gearmo` is the known downstream requiring a separate migration path.
 - No automatic migrator exists for old schema-driven persistence.

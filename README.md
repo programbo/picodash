@@ -39,30 +39,28 @@ app semantics in `@picodash/store` and consume values through store selectors an
 ### `apps/web` route topology
 
 - `/` renders the home root.
-- `/store`, `/usage`, `/usage/components`, `/themes`, `/more-examples` render public detail routes.
-- `/docs` renders the standalone documentation planning surface.
+- `/examples` renders the curated example gallery.
+- `/docs` is the canonical docs umbrella route.
+- Canonical docs routes are:
+  - `/docs/get-started/{manual,agent}`
+  - `/docs/concepts/{state-ownership,panel-placement,dashlet-anatomy}`
+  - `/docs/guides/{custom-dashlets,compound-dashlets,dashlet-themes,dashlet-accessibility}`
+  - `/docs/reference/{store,panel,dashlet-components,dashlets,ui,diagnostics}`
+- `/store`, `/usage`, `/themes`, `/more-examples` are compatibility routes that redirect to canonical docs surface entries.
+- `/usage/components` redirects to `/docs/reference/dashlet-components`.
 - unknown paths render the app's 404 page.
 
 ### `apps/lab` route topology
 
-- `/` and `/lab` redirect to `/lab/state`.
-- `/lab/state/{provider,scene,built-in-items,custom-items}` expose the state fixtures.
-- `/lab/panel-geometry`, `/lab/panel-interaction`, and `/lab/dashlets` expose focused debugging
-  fixtures.
+- `/` and `/lab` both route to the local Contract Lab surface, including provider/scene state and debug workflows.
+- Diagnostics and fixture markers are asserted under local lab routing.
 
-The lab runs locally with `bun run lab`. `/demo` and the former debugging routes hosted by
-`apps/web` are not active production routes.
-
-## Breaking migration notes
-
-- Legacy panel imports and specs now map to `@picodash/panel` imports. The prior schema-driven registration API and its persistence contracts are retired and are not migrated.
-- If your app imported `panel` in this workspace, map it directly to `@picodash/panel` specifiers (`@picodash/panel`, `@picodash/panel/advanced`, `@picodash/panel/ui`, `@picodash/panel/style.css`).
-- External consumer `Gearmo` is a known breaking downstream that requires its own migration planning and coordination.
+The lab runs locally with `bun run lab`. The production route surface is limited to the web routes above.
 
 ## Install and style import
 
 ```bash
-bun add @picodash/panel
+bun add @picodash/panel @picodash/store
 ```
 
 ```tsx
@@ -73,31 +71,47 @@ import '@picodash/panel/style.css'
 
 ```tsx
 import {
-  createPicodashPanelStore,
   PicodashPanel,
   PicodashProvider,
   PicodashSlider,
   PicodashSwitch,
   PicodashText,
-  usePicodashPanelStoreSelector,
+  PicodashPanelTrigger,
 } from '@picodash/panel'
+import { createPicodashStore } from '@picodash/store'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 import '@picodash/panel/style.css'
 
-const sceneStore = createPicodashPanelStore({
+const sceneStore = createPicodashStore({
   panelId: 'scene-controls',
-  initialValues: { bloom: true, exposure: 1.2, quality: 'balanced' },
+  fields: {
+    bloom: { defaultValue: true },
+    exposure: { defaultValue: 1.2 },
+    quality: {
+      defaultValue: 'balanced',
+      parse: (input) => {
+        return input === 'draft' || input === 'balanced' || input === 'final'
+          ? { success: true, output: input }
+          : { success: false, errors: ['quality must be draft, balanced, or final'] }
+      },
+    },
+  },
 })
 
 export function App() {
-  const exposure = usePicodashPanelStoreSelector(sceneStore, (state) => {
+  const exposure = usePicodashStoreSelector(sceneStore, (state) => {
     return typeof state.values.exposure === 'number' ? state.values.exposure : 1
   })
 
   return (
     <PicodashProvider persistLayout storageKey="my-app:picodash-layout:v2" theme="system">
       <main style={{ filter: `blur(${exposure * 0.2}px)` }}>Scene preview</main>
+      <PicodashPanelTrigger store={sceneStore}>
+        Open Scene Controls
+      </PicodashPanelTrigger>
 
       <PicodashPanel
+        defaultVisible={false}
         store={sceneStore}
         title="Scene"
         collapsible
@@ -107,26 +121,15 @@ export function App() {
         }}
         width={360}
       >
-        <PicodashSwitch field="bloom" label="Bloom" defaultValue={true} />
+        <PicodashSwitch field={sceneStore.fields.bloom} label="Bloom" />
         <PicodashSlider
-          field="exposure"
+          field={sceneStore.fields.exposure}
           label="Exposure"
-          defaultValue={1.2}
           min={0.2}
           max={2.5}
           step={0.05}
         />
-        <PicodashText
-          field="quality"
-          label="Quality"
-          defaultValue="balanced"
-          // keep value domain tight and JSON-compatible
-          parse={(input) => {
-            return input === 'draft' || input === 'balanced' || input === 'final'
-              ? { success: true, output: { value: input } }
-              : { success: false, errors: ['quality must be draft, balanced, or final'] }
-          }}
-        />
+        <PicodashText field={sceneStore.fields.quality} label="Quality" />
       </PicodashPanel>
 
       <p>Current exposure: {exposure}</p>
@@ -139,9 +142,9 @@ export function App() {
 
 All package usage should be built on `PicodashProvider` + panel stores.
 
-- Store ownership and strict writes: `createPicodashPanelStore`, `setFieldValue`, `setFieldValues`.
+- Store ownership and strict writes: `createPicodashStore`, `setFieldValue`, `setFieldValues`.
 - UI controls and panels: `PicodashPanel`, `PicodashItem`, and built-in inputs/visualization components.
-- State selectors and panel UI control: `usePicodashPanelStoreSelector`, `usePicodashPanel`.
+- State selectors and panel UI control: `usePicodashStoreSelector`, `usePicodashPanel`.
 - Validation contracts: synchronous `parse`/`validate` per field and optional Standard Schema validators.
 - Advanced tools: `@picodash/panel/advanced` for focused provider/panel selectors, imperative store access,
   helpers, ordering and persistence wiring.
@@ -205,6 +208,8 @@ returns `null` until registration and otherwise exposes reactive `visible` state
 `hide`, `toggle`, `setVisible`, and show-and-raise `activate` methods. Set
 `defaultVisible={false}` when a panel should register without initially appearing. Visibility is
 transient; persisted provider layout still contains position and docking only.
+`PicodashPanelTrigger` and `PicodashPanelLauncher` are the preferred launch controls for
+button-driven or menu-driven panel openings.
 
 Set `close` to add a header close button immediately after the action menu. `close` and
 `close={{ behavior: 'hide' }}` hide through the provider; `close={{ behavior: 'deregister' }}`
@@ -315,7 +320,7 @@ defaults. Selectors are not accepted as boundary inputs; resolve one to an `Elem
 ### Advanced hook boundary
 
 The main entrypoint keeps application ownership explicit: use
-`usePicodashPanelStoreSelector(store, selector)` for panel values and `usePicodashPanel(panelId)` only
+`usePicodashStoreSelector(store, selector)` for panel values and `usePicodashPanel(panelId)` only
 for provider-managed visibility and activation. `@picodash/panel/advanced` exposes
 `usePicodashProviderSelector`, `usePicodashProviderStoreApi`, `usePicodashPanelSelector`, and
 `usePicodashPanelStoreApi` for low-level integrations. The contextual panel hooks must run beneath
@@ -355,7 +360,7 @@ Repairs from imports and constraint propagation are reviewable through the built
 - `RELEASING.md`: package versioning and release checklist.
 - `SKILL.md`: agent workflow guidance.
 - `AGENTS.md`: verification and port conventions.
-- `llms.txt`: short topology and migration summary.
+- `llms.txt`: compact topology and agent-facing API index.
 
 ## Ports
 
@@ -380,7 +385,8 @@ the reservation and clear those local environment values.
 For this worktree:
 
 ```bash
-LAB_PORT=6032 WEBSITE_PORT=6033 bun run --filter @picodash/web test:e2e
+LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:web
+LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:lab
 ```
 
 ## Current commands
@@ -415,7 +421,8 @@ bun run --filter @picodash/panel check
 bun run --filter @picodash/panel test
 bun run --filter @picodash/panel build
 bun run --filter @picodash/web check
-bun run --filter @picodash/web test:e2e
+bun run test:e2e:web
+bun run test:e2e:lab
 vp run @picodash/panel#build && bun run --filter @picodash/web build
 bun audit --audit-level=high
 bun run --cwd packages/panel release:check
@@ -425,17 +432,20 @@ bun run ready
 Focused checks:
 
 ```bash
-LAB_PORT=6032 WEBSITE_PORT=6033 bun run --filter @picodash/web test:e2e
+LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:web
+LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:lab
 ```
 
 `bun run ready` remains the full verification gate:
 
 ```bash
-vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter @picodash/web test:e2e
+bun run audit:high && bun run release:check && bun run artifacts:check && bun run evaluations:check && vp check && vp run -r test && vp run -r build && bun run evaluations:build && bun run test:e2e:lab:cap && bun run test:e2e:lab && bun run test:e2e:web
 ```
 
-GitHub CI runs parallel quality and E2E jobs for pull requests and pushes to `main`. The quality job
-runs the audit, workspace checks, and unit tests; the E2E job builds the workspace and runs the
-Playwright end-to-end suite against both apps. The Playwright runner and specs remain under
-`apps/web/tests`; `routes.spec.ts` asserts the production route boundary and local lab route
-markers. Publishing the package also runs its check, test, and build commands.
+For the RELEASE-01 flow, publish/deploy remains separate from `bun run ready`:
+
+- `bun run ready` verifies the workspace and package checks for release-readiness.
+- `bun run deploy` / `bun run deploy:prod` performs deployment after release verification.
+
+GitHub CI runs independent quality, evaluation, Web E2E, and Lab E2E jobs for pull requests and
+pushes to `main`. Publishing the package also runs its check, test, and build commands.

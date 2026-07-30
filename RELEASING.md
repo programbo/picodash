@@ -45,6 +45,10 @@ Picodash uses Semantic Versioning with a deliberate pre-1.0 policy:
     token.
 11. Install the published package in a clean example project and verify the
     documented entrypoints and stylesheet import.
+12. Keep a single changelog cut for each release:
+    - add a date-stamped section like `## [0.1.0] - YYYY-MM-DD` above `Unreleased`;
+    - move curated `Unreleased` bullets into the new section;
+    - keep `## [Unreleased]` as the staging area for the next set of changes.
 
 The first release is deliberately manual so the package name, metadata,
 account ownership, and clean-install path can be verified. Automation can be

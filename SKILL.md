@@ -10,7 +10,8 @@ state foundation.
 
 The production website serves the canonical interactive control home at `/`. A separate local-only
 app exposes debugging workflows under `/lab/*`; those routes are not deployed with the website.
-`/demo` is deprecated legacy and is not an active route or API surface.
+Legacy web routes are compatibility surfaces, and the active `/apps/web` surface follows the current
+topology below.
 
 Canonical references:
 
@@ -22,13 +23,9 @@ Canonical references:
 ## Preferred Imports
 
 ```tsx
-import {
-  createPicodashPanelStore,
-  PicodashItem,
-  PicodashPanel,
-  PicodashProvider,
-  usePicodashPanelStoreSelector,
-} from '@picodash/panel'
+import { PicodashItem, PicodashPanel, PicodashProvider } from '@picodash/panel'
+import { createPicodashStore } from '@picodash/store'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 import '@picodash/panel/style.css'
 ```
 
@@ -43,15 +40,15 @@ structures), and reserve `/ui` for low-level controls and primitives.
 1. Create a stable store once.
 
 ```ts
-import { createPicodashPanelStore } from '@picodash/panel'
+import { createPicodashStore } from '@picodash/store'
 
-export const settingsStore = createPicodashPanelStore({
+export const settingsStore = createPicodashStore({
   panelId: 'settings',
-  initialValues: {
-    quality: 'balanced',
-    showGrid: true,
-    exposure: 1,
-  },
+  fields: {
+    quality: { defaultValue: 'balanced' },
+    showGrid: { defaultValue: true },
+    exposure: { defaultValue: 1 },
+  }
 })
 ```
 
@@ -62,22 +59,27 @@ export const settingsStore = createPicodashPanelStore({
 ```tsx
 import {
   PicodashPanel,
+  PicodashPanelTrigger,
   PicodashProvider,
   PicodashSwitch,
-  usePicodashPanelStoreSelector,
 } from '@picodash/panel'
 import { settingsStore } from './settings-store'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 
 export function SiteControls() {
-  const exposure = usePicodashPanelStoreSelector(settingsStore, (state) => {
+  const exposure = usePicodashStoreSelector(settingsStore, (state) => {
     return typeof state.values.exposure === 'number' ? state.values.exposure : 1
   })
 
   return (
     <PicodashProvider theme="system" persistLayout storageKey="my-site:picodash-layout:v2">
       <main style={{ opacity: exposure }}>App content</main>
+      <PicodashPanelTrigger store={settingsStore} variant="outline">
+        Open settings panel
+      </PicodashPanelTrigger>
 
       <PicodashPanel
+        defaultVisible={false}
         store={settingsStore}
         title="Settings"
         defaultPlacement={{
@@ -85,7 +87,7 @@ export function SiteControls() {
           disposition: { kind: 'snapped', position: 'top-right' },
         }}
       >
-        <PicodashSwitch field="showGrid" label="Show grid" defaultValue />
+        <PicodashSwitch field={settingsStore.fields.showGrid} label="Show grid" />
       </PicodashPanel>
     </PicodashProvider>
   )
@@ -94,14 +96,15 @@ export function SiteControls() {
 
 ## API Expectations
 
-- Use `createPicodashPanelStore` for application-owned state.
+- Use `createPicodashStore` for application-owned state.
 - Use `PicodashPanel` with `store` for app-owned modes.
-- Use `@picodash/store` for typed store construction (`createPicodashStore`) when a custom state engine is
-  required outside built-in panel helpers.
+- Use `@picodash/store` for typed store construction (`createPicodashStore`) to define application-owned
+  validation and value contracts used with built-in and custom dashlets.
 - Use `usePicodashPanel(panelId)` beneath `PicodashProvider` for reactive visibility and imperative
   `show`, `hide`, `toggle`, `setVisible`, show-and-raise `activate`, and `setPlacement` behavior.
   The controller's reactive `placement` reports stable floating, fixed, or hybrid mode plus its
   live free, snapped, or docked disposition.
+- Use `PicodashPanelTrigger` or `PicodashPanelLauncher` for explicit user-facing launch points.
 - Use `defaultVisible={false}` for an initially hidden but registered panel; visibility is not
   persisted with layout.
 - Use `close` for a provider-managed hide button, or `close={{ behavior: 'deregister' }}` when the
@@ -177,7 +180,7 @@ export function SiteControls() {
 
 This repository is on the promoted API. Only canonical Picodash persistence records hydrate;
 invalid or obsolete records start from declared defaults.
-Field-handle migration for built-ins and compound dashlets is tracked in `docs/internal/e2e-migration-ledger.md`.
+Built-ins and compound dashlets use typed field handles from `@picodash/store`.
 
 ## Workspace App Surfaces
 
@@ -186,14 +189,21 @@ Field-handle migration for built-ins and compound dashlets is tracked in `docs/i
 
 `apps/web` route topology:
 
-- `/`, `/store`, `/usage`, `/usage/components`, `/more-examples`, `/themes`, `/docs`
+- `/` renders the home page.
+- `/examples` is the curated example gallery.
+- `/docs` is the docs umbrella route.
+- Canonical docs routes:
+  - `/docs/get-started/{manual,agent}`
+  - `/docs/concepts/{state-ownership,panel-placement,dashlet-anatomy}`
+  - `/docs/guides/{custom-dashlets,compound-dashlets,dashlet-themes,dashlet-accessibility}`
+  - `/docs/reference/{store,panel,dashlet-components,dashlets,ui,diagnostics}`
+- `/store`, `/usage`, `/themes`, `/more-examples` are compatibility routes.
+- `/usage/components` redirects to `/docs/reference/dashlet-components`.
 - not-found fallback for every other path.
 
 `apps/lab` route topology:
 
-- `/` and `/lab` redirect to `/lab/state`.
-- `/lab/state/{provider,scene,built-in-items,custom-items}`
-- `/lab/panel-geometry`, `/lab/panel-interaction`, `/lab/dashlets`
+- `/` and `/lab` both route to the local Contract Lab surface.
 
 ## Local Development
 
@@ -221,7 +231,8 @@ The deployment scripts require a globally installed Vercel CLI. Install it once 
 - `bun run --filter @picodash/panel check`
 - `bun run --filter @picodash/panel test`
 - `bun run --filter @picodash/web check`
-- `bun run --filter @picodash/web test:e2e`
+- `bun run test:e2e:web`
+- `bun run test:e2e:lab`
 - `bun audit --audit-level=high`
 - `bun run --cwd packages/panel release:check`
 - `bun run ready`
@@ -229,7 +240,8 @@ The deployment scripts require a globally installed Vercel CLI. Install it once 
 Focused validation:
 
 - `vp run @picodash/panel#build` before workspace-wide checks or builds.
-- `LAB_PORT=6032 WEBSITE_PORT=6033 bun run --filter @picodash/web test:e2e`
+- `LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:web`
+- `LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:lab`
 - `apps/web/tests/routes.spec.ts` verifies the production route boundary and local lab
   `data-product-route` markers.
 

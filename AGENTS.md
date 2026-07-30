@@ -28,22 +28,24 @@ Keep this file current whenever workspace structure, scripts, architecture, publ
 - `apps/lab`: local-only Next.js debugging app, tested by the shared Playwright suite but not
   deployed as part of the production website.
 
-`apps/web` routes: `/`, `/store`, `/usage`, `/usage/components`, `/themes`, `/more-examples`,
-`/docs`, and 404.
-`apps/lab` routes: `/lab/state/{provider,scene,built-in-items,custom-items}`,
-`/lab/panel-geometry`, `/lab/panel-interaction`, and `/lab/dashlets`; `/` and `/lab` redirect to
-`/lab/state`.
+`apps/web` routes: `/`, `/examples`, `/docs`, `/docs/get-started/{manual,agent}`,
+`/docs/concepts/{state-ownership,panel-placement,dashlet-anatomy}`,
+`/docs/guides/{custom-dashlets,compound-dashlets,dashlet-themes,dashlet-accessibility}`,
+`/docs/reference/{store,panel,dashlet-components,dashlets,ui,diagnostics}`, plus compatibility
+routes `/store`, `/usage`, `/themes`, `/more-examples` and `/usage/components` redirect.
+`apps/lab` routes: `/lab` is the active Contract Lab route; `/` and `/lab` route to the same
+local lab surface.
 
 `/demo` and the former debugging routes hosted by `apps/web` are not active production routes.
 
 ## Active API Model
 
-The workspace API is application-owned panel state using the `createPicodashPanelStore` model.
+The workspace API is application-owned panel state using the `createPicodashStore` model.
 Provider descendants may control registered panel visibility and activation with `usePicodashPanel`;
 that visibility is transient and separate from persisted layout. `PicodashPanel close` hides by
 default, while the explicit `deregister` close behavior removes the registration and portal before
 notifying the host. Application code reads panel values from its explicit store with
-`usePicodashPanelStoreSelector`; panel IDs do not provide global value lookup. Advanced provider
+`usePicodashStoreSelector`; panel IDs do not provide global value lookup. Advanced provider
 access uses `usePicodashProviderSelector` / `usePicodashProviderStoreApi`, while contextual panel
 access uses `usePicodashPanelSelector` / `usePicodashPanelStoreApi`. Legacy schema-driven
 registration flow is retired.
@@ -107,7 +109,8 @@ The deployment scripts require a globally installed Vercel CLI. Install it once 
 - `bun run --filter @picodash/panel test`
 - `bun run --filter @picodash/panel build`
 - `bun run --filter @picodash/web check`
-- `bun run --filter @picodash/web test:e2e`
+- `bun run test:e2e:web`
+- `bun run test:e2e:lab`
 - `bun audit --audit-level=high`
 - `bun run --cwd packages/panel release:check`
 - `bun run ready`
@@ -115,13 +118,12 @@ The deployment scripts require a globally installed Vercel CLI. Install it once 
 `bun run ready` is the full gate:
 
 ```bash
-vp run @picodash/panel#build && vp check && vp run -r test && vp run -r build && bun run --filter @picodash/web test:e2e
+bun run audit:high && bun run release:check && bun run artifacts:check && bun run evaluations:check && vp check && vp run -r test && vp run -r build && bun run evaluations:build && bun run test:e2e:lab:cap && bun run test:e2e:lab && bun run test:e2e:web
 ```
 
-GitHub CI runs parallel `quality` and `e2e` jobs for pull requests and pushes to `main`. The quality
-job audits high-severity vulnerabilities, checks the workspace, and runs unit tests. The E2E job
-builds the workspace and runs the Playwright end-to-end suite. Package publication runs the package
-check, tests, and build before publishing.
+GitHub CI runs independent `quality`, `evaluations`, `web-e2e`, and `lab-e2e` jobs for pull requests
+and pushes to `main`. Package publication runs the package check, tests, and build before
+publishing.
 
 The repository is currently a public preview: Issues are available for feedback, while pull
 requests are disabled until the contribution workflow reopens. Versioning and release guidance is
@@ -153,7 +155,8 @@ the worktree to remove its allocation line and clear those two local port settin
 For this worktree:
 
 ```bash
-LAB_PORT=6032 WEBSITE_PORT=6033 bun run --filter @picodash/web test:e2e
+LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:web
+LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:lab
 ```
 
 ## Documentation Surfaces
@@ -171,9 +174,10 @@ Update all five files together when command surface, entrypoints, or architectur
 - `@picodash/panel` exports remain package-owned and are used via `@picodash/panel`, `@picodash/panel/advanced`,
   `@picodash/panel/ui`, and `@picodash/panel/style.css`.
 - `@picodash/panel/dashlet` is the structural dashlet exports surface for panel shell composition.
+- `@picodash/panel/catalog` is the public catalog utility surface.
 - `@picodash/store` exports include `createPicodashStore` and `@picodash/store/react` selector API
-  (`usePicodashStoreSelector`) for typed subscriptions; field-handle adapters in panel/dashlet wiring
-  are still being migrated.
+  (`usePicodashStoreSelector`) for typed subscriptions; panel/dashlet integrations use typed
+  `store.fields` handles as the canonical control contract.
 - Shared shadcn components live only under `packages/panel/src/components/ui`; workspace apps
   consume `@picodash/panel/ui` and do not keep their own `components.json` or generated copies.
 - `@picodash/panel/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve
