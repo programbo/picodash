@@ -5,7 +5,10 @@ import {
   createValidatedPanelPersistStorage,
   panelLayoutStorageKey,
 } from '../src/state/persistence/panel-persistence.ts'
-import { createPicodashStore, PicodashProvider } from '../src/state/provider/picodash-provider.tsx'
+import {
+  createPicodashProviderStore,
+  PicodashProvider,
+} from '../src/state/provider/picodash-provider.tsx'
 import { installFakeLocalStorage } from './helpers.ts'
 
 const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
@@ -31,7 +34,7 @@ afterEach(() => {
 
 test('supports a custom provider layout storage key', () => {
   const storage = installFakeLocalStorage()
-  const store = createPicodashStore({ storageKey: 'custom-panel-layout' })
+  const store = createPicodashProviderStore({ storageKey: 'custom-panel-layout' })
 
   store.getState().setPanelLayout('scene', freeLayout(24, 32))
 
@@ -41,7 +44,7 @@ test('supports a custom provider layout storage key', () => {
 
 test('persists and hydrates free hybrid placement', () => {
   const storage = installFakeLocalStorage()
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   store.getState().setPanelLayout('scene', {
     placement: { disposition: { kind: 'free' }, mode: 'hybrid' },
@@ -59,7 +62,7 @@ test('persists and hydrates free hybrid placement', () => {
     },
   })
 
-  expect(createPicodashStore().getState().panelLayouts.scene).toEqual({
+  expect(createPicodashProviderStore().getState().panelLayouts.scene).toEqual({
     placement: { disposition: { kind: 'free' }, mode: 'hybrid' },
     preferredCoordinates: { x: 24, y: 32 },
   })
@@ -75,7 +78,7 @@ test('ignores retired provider layout storage keys', () => {
     }),
   )
 
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   expect(store.getState().panelLayouts).toEqual({})
   expect(storage.getItem(panelLayoutStorageKey)).toBeNull()
@@ -128,7 +131,7 @@ test('rejects obsolete placement payloads stored under the current key', () => {
     }),
   )
 
-  expect(createPicodashStore().getState().panelLayouts).toEqual({})
+  expect(createPicodashProviderStore().getState().panelLayouts).toEqual({})
   expect(storage.getItem(panelLayoutStorageKey)).toBeNull()
 })
 
@@ -144,7 +147,7 @@ test('can disable provider layout persistence without accessing local storage', 
     },
   })
 
-  const store = createPicodashStore({ persistLayout: false })
+  const store = createPicodashProviderStore({ persistLayout: false })
   store.getState().setPanelLayout('scene', freeLayout(24, 32))
 
   expect(store.getState().panelLayouts.scene).toEqual(freeLayout(24, 32))
@@ -167,7 +170,7 @@ test('keeps provider state usable when layout persistence writes fail', () => {
     },
   })
 
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
   const storage = createValidatedPanelPersistStorage()
 
   expect(() => store.getState().setPanelLayout('scene', freeLayout(24, 32))).not.toThrow()
@@ -182,7 +185,7 @@ test('keeps provider state usable when layout persistence writes fail', () => {
 })
 
 test('accepts an initial layout write when no current layout exists', () => {
-  const store = createPicodashStore({ persistLayout: false })
+  const store = createPicodashProviderStore({ persistLayout: false })
 
   expect(() => store.getState().setPanelLayout('scene', freeLayout(24, 32))).not.toThrow()
   expect(store.getState().panelLayouts.scene).toEqual(freeLayout(24, 32))

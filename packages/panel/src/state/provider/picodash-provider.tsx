@@ -60,7 +60,7 @@ export interface PicodashPersistedState {
   panelLayouts: Record<string, PanelLayout>
 }
 
-export interface PicodashState {
+export interface PicodashProviderState {
   panelLayouts: Record<string, PanelLayout>
   panelOrder: string[]
   panelRects: Record<string, PanelRect>
@@ -76,14 +76,14 @@ export interface PicodashState {
   unregisterPanel: (panelId: string) => void
 }
 
-export type PicodashStore = StoreApi<PicodashState>
+export type PicodashProviderStore = StoreApi<PicodashProviderState>
 
 export interface PicodashProviderContextValue {
   containerElement: HTMLDivElement | null
   panelBoundary: PicodashPanelBoundary | null
   portalContainer: HTMLElement | null
   theme: PicodashResolvedTheme
-  store: PicodashStore
+  store: PicodashProviderStore
 }
 
 export type PicodashTheme = 'dark' | 'light' | 'system'
@@ -102,14 +102,14 @@ export interface PicodashProviderProps<CustomTheme extends string = never> {
 const PicodashContext = createContext<PicodashProviderContextValue | null>(null)
 const panelZIndexBase = picodashLayerTokens.panelBase
 
-export function createPicodashStore({
+export function createPicodashProviderStore({
   persistLayout = true,
   storageKey = panelLayoutStorageKey,
 }: {
   persistLayout?: boolean
   storageKey?: string
-} = {}): PicodashStore {
-  const createState: StateCreator<PicodashState> = (set) => ({
+} = {}): PicodashProviderStore {
+  const createState: StateCreator<PicodashProviderState> = (set) => ({
     ...emptyPicodashPersistedState(),
     panelOrder: [],
     panelRects: {},
@@ -311,11 +311,11 @@ export function createPicodashStore({
   })
 
   if (!persistLayout) {
-    return createStore<PicodashState>()(createState)
+    return createStore<PicodashProviderState>()(createState)
   }
 
-  return createStore<PicodashState>()(
-    persist<PicodashState, [], [], PicodashPersistedState>(createState, {
+  return createStore<PicodashProviderState>()(
+    persist<PicodashProviderState, [], [], PicodashPersistedState>(createState, {
       name: storageKey,
       storage: createValidatedPanelPersistStorage(),
       partialize: (state): PicodashPersistedState => ({
@@ -329,13 +329,16 @@ export function createPicodashStore({
   )
 }
 
-export function panelZIndexForState(state: Pick<PicodashState, 'panelOrder'>, panelId: string) {
+export function panelZIndexForState(
+  state: Pick<PicodashProviderState, 'panelOrder'>,
+  panelId: string,
+) {
   const index = state.panelOrder.indexOf(panelId)
   return panelZIndexBase + (index < 0 ? 0 : index)
 }
 
 export function portalLayerZIndexForState(
-  state: Pick<PicodashState, 'panelOrder'>,
+  state: Pick<PicodashProviderState, 'panelOrder'>,
   offset: number,
 ) {
   const highestPanelZIndex = panelZIndexBase + Math.max(0, state.panelOrder.length - 1)
@@ -346,7 +349,7 @@ export function portalLayerZIndexValue(cssVariable: string, floor: number) {
   return `max(var(${cssVariable}), ${floor})`
 }
 
-export function modalZIndexForState(state: Pick<PicodashState, 'panelOrder'>) {
+export function modalZIndexForState(state: Pick<PicodashProviderState, 'panelOrder'>) {
   return portalLayerZIndexForState(state, 4)
 }
 
@@ -381,11 +384,11 @@ export function PicodashProvider<CustomTheme extends string = never>({
   theme: themePreference = picodashDefaultTheme,
 }: PicodashProviderProps<CustomTheme>) {
   const [containerElement, setContainerElement] = useState<HTMLDivElement | null>(null)
-  const storeRef = useRef<PicodashStore | null>(null)
+  const storeRef = useRef<PicodashProviderStore | null>(null)
   const theme = useResolvedPicodashTheme(themePreference)
 
   if (!storeRef.current) {
-    storeRef.current = createPicodashStore({ persistLayout, storageKey })
+    storeRef.current = createPicodashProviderStore({ persistLayout, storageKey })
   }
   const store = storeRef.current
   const portalContainer = portalContainerProp ?? containerElement
@@ -438,7 +441,7 @@ export function usePicodashProviderStoreApi() {
   return usePicodashProviderContext().store
 }
 
-export function usePicodashProviderSelector<T>(selector: (state: PicodashState) => T) {
+export function usePicodashProviderSelector<T>(selector: (state: PicodashProviderState) => T) {
   return useStore(usePicodashProviderStoreApi(), selector)
 }
 

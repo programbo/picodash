@@ -13,7 +13,7 @@ export {
 export { picodashPersistedStateSchema } from './state/persistence/picodash-persisted-state-schema.js'
 
 export {
-  createPicodashStore,
+  createPicodashProviderStore,
   panelZIndexForState,
   useRegisterPicodashPanel,
   usePicodashProviderSelector,
@@ -23,8 +23,8 @@ export type {
   PicodashPanelRegistration,
   PicodashPanelRegistrationInput,
   PicodashPersistedState,
-  PicodashState,
-  PicodashStore,
+  PicodashProviderState,
+  PicodashProviderStore,
 } from './state/provider/picodash-provider.js'
 
 export {

@@ -36,7 +36,7 @@ import {
   partitionPicodashChildrenByBand,
 } from '../src/state/order/picodash-order.tsx'
 import {
-  createPicodashStore,
+  createPicodashProviderStore,
   modalZIndexForState,
   panelZIndexForState,
   portalLayerZIndexForState,
@@ -61,10 +61,12 @@ test('keeps the public and advanced hook surfaces explicit', () => {
   expect(publicApi.usePicodashTheme).toBeTypeOf('function')
   expect('usePicodashPanelSelector' in publicApi).toBe(false)
 
+  expect(advancedApi.createPicodashProviderStore).toBeTypeOf('function')
   expect(advancedApi.usePicodashPanelSelector).toBeTypeOf('function')
   expect(advancedApi.usePicodashPanelStoreApi).toBeTypeOf('function')
   expect(advancedApi.usePicodashProviderSelector).toBeTypeOf('function')
   expect(advancedApi.usePicodashProviderStoreApi).toBeTypeOf('function')
+  expect('createPicodashStore' in advancedApi).toBe(false)
   expect('usePicodashGroupContext' in advancedApi).toBe(false)
   expect('usePicodashPanel' in advancedApi).toBe(false)
   expect('usePicodashPanelState' in advancedApi).toBe(false)
@@ -210,8 +212,8 @@ test('renders a static square instead of a grip for non-reorderable item slots',
   expect(reorderGrip).toContain('<svg')
 })
 
-test('tracks registered panels in the global picodash store', () => {
-  const store = createPicodashStore()
+test('tracks registered panels in the Picodash provider store', () => {
+  const store = createPicodashProviderStore()
 
   store.getState().registerPanel({ id: 'inspect' })
 
@@ -233,7 +235,7 @@ test('tracks registered panels in the global picodash store', () => {
 })
 
 test('raises the most recently interacted panel above earlier panels', () => {
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   store.getState().registerPanel({ id: 'scene' })
   store.getState().registerPanel({ id: 'output' })
@@ -263,7 +265,7 @@ test('raises the most recently interacted panel above earlier panels', () => {
 })
 
 test('controls transient panel visibility without changing stacking order', () => {
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   store.getState().registerPanel({ id: 'scene' })
   store.getState().registerPanel({ id: 'output', visible: false })
@@ -284,7 +286,7 @@ test('controls transient panel visibility without changing stacking order', () =
 })
 
 test('shows and raises a hidden panel when activated', () => {
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   store.getState().registerPanel({ id: 'scene', visible: false })
   store.getState().registerPanel({ id: 'output' })
@@ -295,7 +297,7 @@ test('shows and raises a hidden panel when activated', () => {
 })
 
 test('ignores visibility actions for unknown or unregistered panels', () => {
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
   const initialState = store.getState()
 
   initialState.setPanelVisible('missing', false)
@@ -332,7 +334,7 @@ test('hydrates canonical persisted panel layouts', () => {
     }),
   )
 
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   expect(store.getState().panelLayouts.inspect).toEqual({
     placement: { disposition: { kind: 'free' }, mode: 'floating' },
@@ -350,7 +352,7 @@ test('ignores invalid persisted panel layouts', () => {
     }),
   )
 
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   expect(store.getState().panelLayouts).toEqual({})
 })
@@ -374,12 +376,12 @@ test('ignores persisted fixed placements with unsupported positions', () => {
     }),
   )
 
-  expect(createPicodashStore().getState().panelLayouts).toEqual({})
+  expect(createPicodashProviderStore().getState().panelLayouts).toEqual({})
 })
 
 test('persists manual panel layout without persisting measured rect changes', () => {
   const storage = installFakeLocalStorage()
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   store.getState().setPanelLayout('inspect', {
     placement: { disposition: { kind: 'free' }, mode: 'floating' },
@@ -397,7 +399,7 @@ test('persists manual panel layout without persisting measured rect changes', ()
 
 test('persists docked panel placement and preferred coordinates', () => {
   const storage = installFakeLocalStorage()
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   store.getState().setPanelLayout('inspect', {
     placement: {
@@ -419,7 +421,7 @@ test('persists docked panel placement and preferred coordinates', () => {
 })
 
 test('keeps explicitly floating edge snaps floating', () => {
-  const store = createPicodashStore({ persistLayout: false })
+  const store = createPicodashProviderStore({ persistLayout: false })
   store.getState().registerPanel({ id: 'inspect' })
 
   store.getState().setPanelLayout('inspect', {
@@ -438,7 +440,7 @@ test('keeps explicitly floating edge snaps floating', () => {
 
 test('persists fixed placement while retaining preferred coordinates', () => {
   const storage = installFakeLocalStorage()
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
   store.getState().registerPanel({ id: 'inspect' })
   store.getState().setPanelLayout('inspect', {
     placement: { disposition: { kind: 'free' }, mode: 'floating' },
@@ -473,7 +475,7 @@ test('persists fixed placement while retaining preferred coordinates', () => {
 })
 
 test('uses the measured panel position when runtime placement has no saved layout', () => {
-  const store = createPicodashStore({ persistLayout: false })
+  const store = createPicodashProviderStore({ persistLayout: false })
   store.getState().registerPanel({ id: 'inspect' })
   store.getState().setPanelRect('inspect', rect(240, 96, 100, 80))
 
@@ -492,7 +494,7 @@ test('uses the measured panel position when runtime placement has no saved layou
 })
 
 test('keeps detached runtime hybrid placement free', () => {
-  const store = createPicodashStore({ persistLayout: false })
+  const store = createPicodashProviderStore({ persistLayout: false })
   store.getState().registerPanel({ id: 'inspect' })
   store.getState().setPanelLayout('inspect', {
     placement: {
@@ -521,7 +523,7 @@ test('moves runtime floating corner placement within the panel boundary', () => 
 })
 
 test('retains an explicit floating corner request while a retracted fixed panel is unmeasured', () => {
-  const store = createPicodashStore({ persistLayout: false })
+  const store = createPicodashProviderStore({ persistLayout: false })
   store.getState().registerPanel({ id: 'inspect' })
   store.getState().setPanelLayout('inspect', {
     placement: { disposition: { kind: 'free' }, mode: 'floating' },
@@ -564,7 +566,7 @@ test('ignores obsolete dock records when a panel registers', () => {
       version: 0,
     }),
   )
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   store.getState().registerPanel({ id: 'inspect' })
 
@@ -584,7 +586,7 @@ test('uses the declared default when an obsolete undocked record cannot hydrate'
       version: 0,
     }),
   )
-  const store = createPicodashStore()
+  const store = createPicodashProviderStore()
 
   store.getState().registerPanel({
     id: 'inspect',
@@ -624,7 +626,7 @@ test('normalizes canonical placement without public dock aliases', () => {
 })
 
 test('tracks panel boundary identity separately from persisted layout', () => {
-  const store = createPicodashStore({ persistLayout: false })
+  const store = createPicodashProviderStore({ persistLayout: false })
   const boundary = { getBoundingClientRect: () => ({}) } as unknown as Element
   store.getState().registerPanel({ boundary, id: 'inspect' })
   store.getState().setPanelRect('inspect', rect(8, 8, 100, 80))

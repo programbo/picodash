@@ -25,7 +25,7 @@ import {
   type PanelRect,
   type ResolvedPicodashPanelPlacementOptions,
 } from '../geometry/panel-snapping.js'
-import type { PicodashStore } from '../state/provider/picodash-provider.js'
+import type { PicodashProviderStore } from '../state/provider/picodash-provider.js'
 import type { PicodashPanelPlacement } from '../state/panel/picodash-panel-types.js'
 
 export function panelUsesBottomConstraint({
@@ -103,7 +103,7 @@ export function usePanelLayoutSynchronization({
   placementOptions: ResolvedPicodashPanelPlacementOptions
   positionElementRef?: RefObject<HTMLElement | null>
   synchronizationPausedRef?: RefObject<unknown>
-  store: PicodashStore
+  store: PicodashProviderStore
   x: MotionValue<number>
   y: MotionValue<number>
 }) {
