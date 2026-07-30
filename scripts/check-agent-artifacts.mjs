@@ -3,6 +3,10 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const catalogModuleUrl = new URL('../packages/panel/src/catalog.ts', import.meta.url)
+const { picodashCatalog, picodashCatalogEntrypoints, picodashCatalogRecipeIds } = await import(
+  catalogModuleUrl
+)
 
 const artifactContracts = {
   'README.md': ['@picodash/store', '@picodash/panel/dashlet'],
@@ -27,8 +31,20 @@ const retiredArtifactTerms = [
 
 const retiredApiTerms = ['createPicodashPanelStore', 'usePicodashPanelStoreSelector']
 const typedFieldExampleArtifacts = ['README.md', 'packages/panel/README.md', 'SKILL.md']
+const catalogDocumentationArtifacts = [
+  'README.md',
+  'packages/panel/README.md',
+  'SKILL.md',
+  'llms.txt',
+]
+const catalogReferencePaths = {
+  '@picodash/panel': '/docs/reference/dashlets',
+  '@picodash/panel/dashlet': '/docs/reference/dashlet-components',
+  '@picodash/panel/ui': '/docs/reference/ui',
+}
 
 const errors = []
+const artifactContents = new Map()
 
 for (const [relativePath, requiredTerms] of Object.entries(artifactContracts)) {
   const contents = await readFile(path.join(repositoryRoot, relativePath), 'utf8').catch(() => null)
@@ -36,6 +52,7 @@ for (const [relativePath, requiredTerms] of Object.entries(artifactContracts)) {
     errors.push(`${relativePath}: required agent/documentation artifact is missing`)
     continue
   }
+  artifactContents.set(relativePath, contents)
 
   for (const term of requiredTerms) {
     if (!contents.includes(term)) {
@@ -63,6 +80,69 @@ for (const [relativePath, requiredTerms] of Object.entries(artifactContracts)) {
         )
       }
     }
+  }
+}
+
+function containsExactPackageToken(contents, packageName) {
+  const escapedPackageName = packageName.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(?<![\\w@/.-])${escapedPackageName}(?![\\w/.-])`).test(contents)
+}
+
+for (const relativePath of catalogDocumentationArtifacts) {
+  const contents = artifactContents.get(relativePath)
+  if (contents === undefined) continue
+
+  for (const entrypoint of picodashCatalogEntrypoints) {
+    if (!containsExactPackageToken(contents, entrypoint)) {
+      errors.push(
+        `${relativePath}: does not document catalog entrypoint ${JSON.stringify(entrypoint)}`,
+      )
+    }
+  }
+}
+
+const catalogEntrypoints = new Set(picodashCatalogEntrypoints)
+const catalogRecipeIds = new Set(picodashCatalogRecipeIds)
+const catalogAnchors = new Set()
+
+for (const catalogEntry of picodashCatalog) {
+  if (!catalogEntrypoints.has(catalogEntry.entrypoint)) {
+    errors.push(
+      `packages/panel/src/catalog.ts: ${catalogEntry.id} uses undeclared entrypoint ${JSON.stringify(catalogEntry.entrypoint)}`,
+    )
+  }
+
+  const expectedReferencePath = catalogReferencePaths[catalogEntry.entrypoint]
+  if (!catalogEntry.referenceAnchor.startsWith(`${expectedReferencePath}#`)) {
+    errors.push(
+      `packages/panel/src/catalog.ts: ${catalogEntry.id} must reference ${expectedReferencePath}`,
+    )
+  }
+
+  if (catalogAnchors.has(catalogEntry.referenceAnchor)) {
+    errors.push(
+      `packages/panel/src/catalog.ts: duplicate reference anchor ${catalogEntry.referenceAnchor}`,
+    )
+  }
+  catalogAnchors.add(catalogEntry.referenceAnchor)
+
+  for (const recipeId of catalogEntry.recipeIds) {
+    if (!catalogRecipeIds.has(recipeId)) {
+      errors.push(
+        `packages/panel/src/catalog.ts: ${catalogEntry.id} uses undeclared recipe ${JSON.stringify(recipeId)}`,
+      )
+    }
+  }
+}
+
+for (const referencePath of new Set(Object.values(catalogReferencePaths))) {
+  const pagePath = path.join(repositoryRoot, 'apps/web/src/app', referencePath.slice(1), 'page.tsx')
+  const pageExists = await readFile(pagePath, 'utf8').then(
+    () => true,
+    () => false,
+  )
+  if (!pageExists) {
+    errors.push(`${referencePath}: catalog reference page is missing`)
   }
 }
 
@@ -95,6 +175,6 @@ if (errors.length > 0) {
   process.exitCode = 1
 } else {
   console.log(
-    `Agent artifacts match ${Object.keys(artifactContracts).length} documentation contracts and ${Object.keys(packageExportContracts).length} package export manifests.`,
+    `Agent artifacts match ${Object.keys(artifactContracts).length} documentation contracts, ${picodashCatalog.length} catalog entries, and ${Object.keys(packageExportContracts).length} package export manifests.`,
   )
 }

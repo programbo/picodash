@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import type { PicodashCatalogEntry } from '@picodash/panel/catalog'
+import { picodashCatalog, type PicodashCatalogEntry } from '@picodash/panel/catalog'
 
 import {
   type CatalogReferencePageConfig,
@@ -17,6 +17,18 @@ export function CatalogReferencePage({
   entries: readonly PicodashCatalogEntry[]
 }) {
   const relatedPages = getCatalogReferencePages(config.key)
+  const configuredEntryOrder = new Map(entries.map((entry, index) => [entry.id, index]))
+  const referenceEntries = picodashCatalog
+    .filter((entry) => entry.referenceAnchor.startsWith(`${config.href}#`))
+    .toSorted((left, right) => {
+      const leftIndex = configuredEntryOrder.get(left.id)
+      const rightIndex = configuredEntryOrder.get(right.id)
+
+      if (leftIndex !== undefined && rightIndex !== undefined) return leftIndex - rightIndex
+      if (leftIndex !== undefined) return -1
+      if (rightIndex !== undefined) return 1
+      return left.exportName.localeCompare(right.exportName)
+    })
 
   return (
     <main className="bg-picodash-canvas text-picodash-text min-h-screen" data-docs-reference>
@@ -76,26 +88,39 @@ export function CatalogReferencePage({
                   Props
                 </th>
                 <th scope="col" className="px-4 py-3 whitespace-nowrap">
+                  Variants + recipes
+                </th>
+                <th scope="col" className="px-4 py-3 whitespace-nowrap">
                   Theme contract
                 </th>
               </tr>
             </thead>
 
             <tbody>
-              {entries.map((entry) => {
+              {referenceEntries.map((entry) => {
                 const capabilityLabels = getCapabilityLabels(entry.capabilities)
                 const requiredThemes = toDelimitedList(entry.theme.requirements)
+                const referenceId = entry.referenceAnchor.slice(
+                  entry.referenceAnchor.indexOf('#') + 1,
+                )
 
                 return (
                   <tr
+                    id={referenceId}
                     key={entry.id}
-                    className="border-picodash-border border-b border-dashed last:border-b-0"
+                    className="border-picodash-border scroll-mt-6 border-b border-dashed last:border-b-0"
                   >
                     <td className="min-w-[13rem] px-4 py-3 align-top">
                       <p className="text-picodash-strong font-medium">{entry.exportName}</p>
                       <code className="text-picodash-muted mt-1 block font-mono text-[11px]">
                         {entry.id}
                       </code>
+                      <Link
+                        href={entry.referenceAnchor}
+                        className="text-picodash-muted hover:text-picodash-text focus-visible:ring-picodash-focus mt-1 block w-fit rounded-sm font-mono text-[11px] outline-none focus-visible:ring-2"
+                      >
+                        {entry.referenceAnchor}
+                      </Link>
                     </td>
                     <td className="text-picodash-muted min-w-[8rem] px-4 py-3 align-top">
                       {entry.category}
@@ -126,6 +151,14 @@ export function CatalogReferencePage({
                       <code className="break-anywhere text-picodash-muted font-mono text-[11px]">
                         {toDelimitedList(entry.importantProps)}
                       </code>
+                    </td>
+                    <td className="min-w-[12rem] px-4 py-3 align-top">
+                      <p className="text-picodash-muted font-mono text-[11px]">
+                        variants: {toDelimitedList(entry.variants)}
+                      </p>
+                      <p className="text-picodash-muted mt-1 font-mono text-[11px]">
+                        recipes: {toDelimitedList(entry.recipeIds)}
+                      </p>
                     </td>
                     <td className="min-w-[14rem] px-4 py-3 align-top">
                       <p className="text-picodash-muted font-mono text-[11px]">{requiredThemes}</p>

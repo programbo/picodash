@@ -127,6 +127,16 @@ const dataThemeTokens = [
   '--picodash-color-data-5',
 ]
 
+const catalogReferencePaths = {
+  '@picodash/panel': '/docs/reference/dashlets',
+  '@picodash/panel/dashlet': '/docs/reference/dashlet-components',
+  '@picodash/panel/ui': '/docs/reference/ui',
+} as const satisfies Record<PicodashCatalogEntrypoint, string>
+
+function referenceAnchor(entrypoint: PicodashCatalogEntrypoint, id: string) {
+  return `${catalogReferencePaths[entrypoint]}#${id}`
+}
+
 function entry(input: CatalogEntryInput): PicodashCatalogEntry {
   return {
     ...input,
@@ -168,7 +178,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'multiline', 'placeholder'],
     variants: ['single-line', 'multiline'],
     theme: { semanticTokens: controlThemeTokens },
-    referenceAnchor: '/docs#picodash-text',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-text'),
     recipeIds: ['basic-control'],
   }),
   entry({
@@ -183,7 +193,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'min', 'max', 'step', 'format'],
     variants: [],
     theme: { semanticTokens: controlThemeTokens },
-    referenceAnchor: '/docs#picodash-number',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-number'),
     recipeIds: ['basic-control'],
   }),
   entry({
@@ -198,7 +208,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'min', 'max', 'step', 'marks', 'format'],
     variants: [],
     theme: { semanticTokens: controlThemeTokens },
-    referenceAnchor: '/docs#picodash-slider',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-slider'),
     recipeIds: ['basic-control'],
   }),
   entry({
@@ -213,7 +223,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'description'],
     variants: [],
     theme: { semanticTokens: controlThemeTokens },
-    referenceAnchor: '/docs#picodash-switch',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-switch'),
     recipeIds: ['basic-control'],
   }),
   entry({
@@ -228,7 +238,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'options', 'placeholder'],
     variants: [],
     theme: { semanticTokens: controlThemeTokens },
-    referenceAnchor: '/docs#picodash-select',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-select'),
     recipeIds: ['choice-control'],
   }),
   entry({
@@ -243,7 +253,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'options', 'orientation'],
     variants: ['horizontal', 'vertical'],
     theme: { semanticTokens: controlThemeTokens },
-    referenceAnchor: '/docs#picodash-segmented',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-segmented'),
     recipeIds: ['choice-control'],
   }),
   entry({
@@ -258,7 +268,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'min', 'max', 'step'],
     variants: [],
     theme: { semanticTokens: controlThemeTokens },
-    referenceAnchor: '/docs#picodash-vector-3',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-vector-3'),
     recipeIds: ['spatial-control'],
   }),
   entry({
@@ -273,7 +283,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'min', 'max', 'step'],
     variants: [],
     theme: { semanticTokens: controlThemeTokens },
-    referenceAnchor: '/docs#picodash-range',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-range'),
     recipeIds: ['spatial-control'],
   }),
   entry({
@@ -288,7 +298,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'bounds'],
     variants: [],
     theme: { semanticTokens: [...controlThemeTokens, '--picodash-color-well'] },
-    referenceAnchor: '/docs#picodash-xy-pad',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-xy-pad'),
     recipeIds: ['spatial-control'],
   }),
   entry({
@@ -303,7 +313,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label'],
     variants: [],
     theme: { semanticTokens: controlThemeTokens },
-    referenceAnchor: '/docs#picodash-alignment',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-alignment'),
     recipeIds: ['spatial-control'],
   }),
   entry({
@@ -318,7 +328,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'options', 'selectionRole'],
     variants: ['radio', 'toggle'],
     theme: { semanticTokens: controlThemeTokens },
-    referenceAnchor: '/docs#picodash-matrix-2d',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-matrix-2d'),
     recipeIds: ['choice-control'],
   }),
   entry({
@@ -333,7 +343,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'accept', 'maxFiles', 'maxSize'],
     variants: [],
     theme: { semanticTokens: [...controlThemeTokens, '--picodash-color-well'] },
-    referenceAnchor: '/docs#picodash-dropzone',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-dropzone'),
     recipeIds: ['media-inspector'],
   }),
   entry({
@@ -348,7 +358,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'alt', 'objectFit'],
     variants: ['contain', 'cover', 'fill', 'none', 'scale-down'],
     theme: { semanticTokens: dataThemeTokens },
-    referenceAnchor: '/docs#picodash-media-preview',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-media-preview'),
     recipeIds: ['media-inspector'],
   }),
   entry({
@@ -362,7 +372,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     accessibility: { nameRequirement: 'visible-label', labelProp: 'label' },
     importantProps: ['id', 'label', 'value', 'format'],
     variants: [],
-    referenceAnchor: '/docs#picodash-display',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-display'),
     recipeIds: ['structured-summary'],
   }),
   entry({
@@ -377,7 +387,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['id', 'label', 'data', 'series', 'maxPoints', 'continuous', 'autoscale'],
     variants: [],
     theme: { semanticTokens: dataThemeTokens },
-    referenceAnchor: '/docs#picodash-sparkline',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-sparkline'),
     recipeIds: ['live-monitor'],
   }),
   entry({
@@ -392,7 +402,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['id', 'label', 'type', 'data'],
     variants: ['area', 'bar', 'line', 'pie', 'radar', 'radial'],
     theme: { semanticTokens: dataThemeTokens },
-    referenceAnchor: '/docs#picodash-chart',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-chart'),
     recipeIds: ['visualization-card', 'live-monitor'],
   }),
   entry({
@@ -407,7 +417,7 @@ const builtInEntries: PicodashCatalogEntry[] = [
     importantProps: ['field', 'label', 'rotationField', 'maxStops'],
     variants: [],
     theme: { semanticTokens: [...controlThemeTokens, ...dataThemeTokens] },
-    referenceAnchor: '/docs#picodash-gradient',
+    referenceAnchor: referenceAnchor('@picodash/panel', 'picodash-gradient'),
     recipeIds: ['spatial-control'],
   }),
 ]
@@ -575,9 +585,10 @@ const dashletEntries: PicodashCatalogEntry[] = dashletDefinitions.map(
             ? dataThemeTokens
             : commonThemeTokens,
       },
-      referenceAnchor: `/docs#dashlet-${exportName
-        .replaceAll(/([a-z])([A-Z])/g, '$1-$2')
-        .toLowerCase()}`,
+      referenceAnchor: referenceAnchor(
+        '@picodash/panel/dashlet',
+        `dashlet-${exportName.replaceAll(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`,
+      ),
       recipeIds: [recipeId],
     }),
 )
@@ -851,9 +862,10 @@ const uiEntries: PicodashCatalogEntry[] = uiDefinitions.map(
               ? controlThemeTokens
               : commonThemeTokens,
       },
-      referenceAnchor: `/docs#ui-${exportName
-        .replaceAll(/([a-z])([A-Z])/g, '$1-$2')
-        .toLowerCase()}`,
+      referenceAnchor: referenceAnchor(
+        '@picodash/panel/ui',
+        `ui-${exportName.replaceAll(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`,
+      ),
       recipeIds: [recipeId],
     }),
 )

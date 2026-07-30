@@ -25,6 +25,7 @@ describe('Picodash component catalog', () => {
           Object.isFrozen(entry.nesting.allowedParents) &&
           Object.isFrozen(entry.accessibility) &&
           Object.isFrozen(entry.importantProps) &&
+          Object.isFrozen(entry.variants) &&
           Object.isFrozen(entry.theme) &&
           Object.isFrozen(entry.theme.semanticTokens) &&
           Object.isFrozen(entry.recipeIds),
@@ -85,6 +86,11 @@ describe('Picodash component catalog', () => {
 
   test('uses valid reference anchors, recipe IDs, and semantic theme tokens', () => {
     const recipeIds = new Set(picodashCatalogRecipeIds)
+    const referencePaths = {
+      '@picodash/panel': '/docs/reference/dashlets',
+      '@picodash/panel/dashlet': '/docs/reference/dashlet-components',
+      '@picodash/panel/ui': '/docs/reference/ui',
+    }
     const semanticTokens = new Set([
       '--picodash-color-accent',
       '--picodash-color-border',
@@ -103,7 +109,10 @@ describe('Picodash component catalog', () => {
     ])
 
     for (const entry of picodashCatalog) {
-      expect(entry.referenceAnchor).toMatch(/^\/docs#[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      expect(entry.referenceAnchor).toMatch(
+        /^\/docs\/reference\/(?:dashlets|dashlet-components|ui)#[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      )
+      expect(entry.referenceAnchor.startsWith(`${referencePaths[entry.entrypoint]}#`)).toBe(true)
       expect(entry.recipeIds.length).toBeGreaterThan(0)
       expect(entry.recipeIds.every((recipeId) => recipeIds.has(recipeId))).toBe(true)
       expect(entry.theme.requirements).toContain('inherits-provider-theme')
