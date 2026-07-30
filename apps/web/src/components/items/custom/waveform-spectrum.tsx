@@ -1,7 +1,7 @@
 import { motion, useMotionValue, useReducedMotion, type MotionValue } from 'motion/react'
 import { useEffect } from 'react'
 import { PicodashItem } from '@picodash/panel'
-import { ToggleGroup, ToggleGroupItem } from '@picodash/panel/ui'
+import { ItemCaption, ItemSurface, ToggleGroup, ToggleGroupItem } from '@picodash/panel/ui'
 
 type SignalMode = 'spectrum' | 'waveform'
 
@@ -75,12 +75,12 @@ function SignalSurface({
   return (
     <div className="col-span-full grid gap-2">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-muted-foreground font-mono text-[9px] tracking-widest uppercase">
+        <ItemCaption className="font-mono text-[9px] tracking-widest uppercase">
           deterministic oscillator
-        </p>
+        </ItemCaption>
         <ToggleGroup
           aria-label="Signal visualization mode"
-          className="bg-muted/35 border-input inline-flex overflow-hidden rounded-md border p-0.5"
+          className="bg-picodash-surface-muted/35 border-picodash-control rounded-picodash-control inline-flex overflow-hidden border p-(--picodash-space-0-5)"
           disallowEmptySelection
           isDisabled={unavailable}
           selectedKeys={[mode]}
@@ -93,7 +93,7 @@ function SignalSurface({
             <ToggleGroupItem
               key={value}
               aria-label={`Show ${value}`}
-              className="text-muted-foreground hover:text-foreground focus-visible:ring-ring data-selected:bg-primary data-selected:text-primary-foreground h-6 px-2 text-[10px] font-medium capitalize outline-none focus-visible:ring-2 disabled:opacity-50"
+              className="text-picodash-muted hover:text-picodash-text focus-visible:ring-picodash-focus data-selected:bg-picodash-accent data-selected:text-picodash-accent-text h-(--picodash-control-height-xs) px-(--picodash-space-2) text-[10px] font-medium capitalize outline-none focus-visible:ring-2 disabled:opacity-(--picodash-opacity-disabled)"
               id={value}
             >
               {value}
@@ -101,7 +101,7 @@ function SignalSurface({
           ))}
         </ToggleGroup>
       </div>
-      <div className="bg-muted/25 border-input h-28 overflow-hidden rounded-md border">
+      <ItemSurface className="h-28" size="field">
         <svg
           aria-label={`Synthetic signal ${mode}`}
           className="size-full"
@@ -110,7 +110,7 @@ function SignalSurface({
           viewBox={`0 0 ${width} ${height}`}
         >
           <path
-            className="stroke-border"
+            stroke="var(--picodash-color-border)"
             d={`M 0 ${height / 2} H ${width}`}
             strokeDasharray="3 5"
             vectorEffect="non-scaling-stroke"
@@ -118,13 +118,14 @@ function SignalSurface({
           <motion.path
             className="stroke-chart-2"
             d={path}
-            fill={mode === 'spectrum' ? 'var(--chart-2)' : 'none'}
+            fill={mode === 'spectrum' ? 'var(--picodash-color-data-2)' : 'none'}
             fillOpacity={mode === 'spectrum' ? 0.18 : 0}
+            stroke="var(--picodash-color-data-2)"
             strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
           />
         </svg>
-      </div>
+      </ItemSurface>
     </div>
   )
 }

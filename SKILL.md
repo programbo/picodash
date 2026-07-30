@@ -110,7 +110,13 @@ export function SiteControls() {
 - Use `@picodash/panel/advanced` only when a task needs focused provider state through
   `usePicodashProviderSelector`, imperative provider access through `usePicodashProviderStoreApi`, or
   contextual panel access through `usePicodashPanelSelector` / `usePicodashPanelStoreApi`.
-- Use `@picodash/panel/ui` for shared `aria-rhea` Button, Card, Tabs, overlay, and form primitives.
+- Use `@picodash/panel/ui` for shared `aria-rhea` Button, Card, Tabs, overlay, and form primitives
+  when composing bespoke dashlets. Import named `*Props` types from the same entrypoint, use
+  component `variant`/`size` props instead of raw class helpers, and style custom surfaces with
+  semantic `--picodash-*` tokens from the package stylesheet, including
+  `--picodash-color-well`, `--picodash-color-data-1`, `--picodash-color-data-2`,
+  `--picodash-color-data-3`, `--picodash-color-data-4`, and `--picodash-color-data-5` for
+  visualization surfaces.
 - Use the package's complete `dark` and `light` themes directly, or use `theme="system"` to follow
   `prefers-color-scheme` and its changes.
 - Define custom themes by overriding semantic `--picodash-*` tokens under
@@ -163,7 +169,7 @@ invalid or obsolete records start from declared defaults.
 
 `apps/web` route topology:
 
-- `/`, `/store`, `/usage`, `/more-examples`, `/themes`
+- `/`, `/store`, `/usage`, `/usage/components`, `/more-examples`, `/themes`
 - not-found fallback for every other path.
 
 `apps/lab` route topology:

@@ -64,10 +64,20 @@ test('routes home tabs without recreating the persistent demo shell', async ({ p
   await expectSharedHomeLayout(page)
   await expectGuidePanel(page, {
     accessibleName: 'Usage guide steps',
-    itemCount: 5,
+    itemCount: 6,
     panelId: 'usage-navigation',
   })
   await expect(page.getByRole('heading', { name: 'Add a reactive Picodash panel' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Components' }).click()
+  await expect(page).toHaveURL('/usage/components')
+  await expectSharedHomeLayout(page)
+  await expectGuidePanel(page, {
+    accessibleName: 'Components guide',
+    itemCount: 5,
+    panelId: 'components-navigation',
+  })
+  await expect(page.getByRole('heading', { name: 'Compose Picodash components' })).toBeVisible()
 
   await page.getByRole('tab', { name: 'More examples' }).click()
   await expect(page).toHaveURL('/more-examples')

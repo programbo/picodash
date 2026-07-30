@@ -1,6 +1,7 @@
 import { motion, useMotionValue, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, type RefObject } from 'react'
 import { PicodashItem } from '@picodash/panel'
+import { ItemCaption, ItemLegend, ItemLegendItem, ItemSurface } from '@picodash/panel/ui'
 import {
   advanceSparklineSamplingClock,
   decayPointerVelocity,
@@ -223,8 +224,9 @@ export function MouseVelocitySparklineItem({
       reorderable={false}
     >
       <div className="col-span-full grid gap-1.5">
-        <div
-          className="bg-muted/25 border-input pointer-events-none relative h-24 overflow-hidden rounded-md border"
+        <ItemSurface
+          className="pointer-events-none h-24"
+          size="field"
           data-pointer-velocity-display
           ref={displayRef}
         >
@@ -236,8 +238,8 @@ export function MouseVelocitySparklineItem({
             viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
           >
             <path
-              className="stroke-border"
               d={`M 0 ${baseline} H ${viewBoxWidth}`}
+              stroke="var(--picodash-color-border)"
               strokeDasharray="3 4"
               vectorEffect="non-scaling-stroke"
             />
@@ -245,6 +247,7 @@ export function MouseVelocitySparklineItem({
               className="stroke-chart-1"
               d={pathX}
               fill="none"
+              stroke="var(--picodash-color-data-1)"
               strokeWidth="1.6"
               vectorEffect="non-scaling-stroke"
             />
@@ -252,28 +255,25 @@ export function MouseVelocitySparklineItem({
               className="stroke-chart-3"
               d={pathY}
               fill="none"
+              stroke="var(--picodash-color-data-3)"
               strokeWidth="1.6"
               vectorEffect="non-scaling-stroke"
             />
           </svg>
-          <span className="text-muted-foreground pointer-events-none absolute top-1.5 left-2 font-mono text-[9px] tracking-widest uppercase">
+          <ItemCaption className="pointer-events-none absolute top-1.5 left-2 font-mono text-[9px] tracking-widest uppercase">
             px / sec
-          </span>
+          </ItemCaption>
           <motion.span
-            className="text-muted-foreground pointer-events-none absolute right-2 bottom-1.5 font-mono text-[9px] tabular-nums"
+            className="text-picodash-muted pointer-events-none absolute right-2 bottom-1.5 font-mono text-[9px] tabular-nums"
             data-pointer-velocity-fps
           >
             {fpsLabel}
           </motion.span>
-        </div>
-        <div className="text-muted-foreground flex gap-3 font-mono text-[9px] tracking-wider uppercase">
-          <span className="flex items-center gap-1.5">
-            <span className="bg-chart-1 h-px w-3" aria-hidden="true" /> X velocity
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="bg-chart-3 h-px w-3" aria-hidden="true" /> Y velocity
-          </span>
-        </div>
+        </ItemSurface>
+        <ItemLegend className="font-mono text-[9px] tracking-wider uppercase">
+          <ItemLegendItem color="var(--picodash-color-data-1)">X velocity</ItemLegendItem>
+          <ItemLegendItem color="var(--picodash-color-data-3)">Y velocity</ItemLegendItem>
+        </ItemLegend>
       </div>
     </PicodashItem>
   )

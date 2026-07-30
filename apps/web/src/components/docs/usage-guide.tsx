@@ -293,6 +293,7 @@ const isolatedSource = `<PicodashPanel
 </PicodashPanel>`
 
 const guideLinks = [
+  { href: '/usage/components', label: 'Components', meta: 'Provider · Panel · Groups · Actions' },
   { href: '#usage-install', label: 'Install and import CSS' },
   { href: '#usage-store', label: 'Create the store' },
   { href: '#usage-select', label: 'Read values in React' },
@@ -647,7 +648,7 @@ function CodeBlock({
 
 function Callout({ children }: { children: React.ReactNode }) {
   return (
-    <p className="border-l-2 border-amber-200/50 bg-amber-200/5 px-3 py-2.5 text-xs leading-5 text-zinc-400">
+    <p className="border-l-2 border-amber-200/50 bg-amber-200/5 px-3 py-2.5 text-xs leading-5 text-amber-50">
       {children}
     </p>
   )

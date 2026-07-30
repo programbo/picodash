@@ -16,26 +16,27 @@ const buttonVariants = cva(
       variant: {
         default: 'bg-picodash-accent text-picodash-accent-text hover:bg-picodash-accent/80',
         outline:
-          'border-picodash-border bg-picodash-canvas hover:bg-picodash-surface-muted hover:text-picodash-text aria-expanded:bg-picodash-surface-muted aria-expanded:text-picodash-text dark:bg-transparent dark:hover:bg-picodash-control/30',
+          'border-picodash-border bg-picodash-canvas hover:bg-picodash-surface-muted hover:text-picodash-text aria-expanded:bg-picodash-surface-muted aria-expanded:text-picodash-text',
         secondary:
           'bg-picodash-surface-muted text-picodash-text hover:bg-[color-mix(in_oklch,var(--picodash-color-surface-muted),var(--picodash-color-text)_5%)] aria-expanded:bg-picodash-surface-muted aria-expanded:text-picodash-text',
         ghost:
-          'hover:bg-picodash-surface-muted hover:text-picodash-text aria-expanded:bg-picodash-surface-muted aria-expanded:text-picodash-text dark:hover:bg-picodash-surface-muted/50',
+          'hover:bg-picodash-surface-muted hover:text-picodash-text aria-expanded:bg-picodash-surface-muted aria-expanded:text-picodash-text',
         subtle: 'bg-picodash-surface-muted text-picodash-text hover:bg-picodash-surface-muted/80',
         destructive:
-          'bg-picodash-danger/10 text-picodash-danger hover:bg-picodash-danger/20 focus-visible:border-picodash-danger/40 focus-visible:ring-picodash-danger/20 dark:bg-picodash-danger/20 dark:hover:bg-picodash-danger/30 dark:focus-visible:ring-picodash-danger/40',
+          'bg-picodash-danger-subtle text-picodash-danger hover:bg-picodash-danger/20 focus-visible:border-picodash-danger/40 focus-visible:ring-picodash-danger/20',
         link: 'text-picodash-accent underline-offset-4 hover:underline',
       },
       size: {
         default: 'h-(--picodash-control-height-lg) px-(--picodash-space-3)',
-        xs: "h-6 gap-1 px-2.5 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
+        xs: "h-(--picodash-control-height-xs) gap-(--picodash-space-1) px-(--picodash-space-2-5) text-(length:--picodash-font-size-sm) has-data-[icon=inline-end]:pr-(--picodash-space-2) has-data-[icon=inline-start]:pl-(--picodash-space-2) [&_svg:not([class*='size-'])]:size-(--picodash-icon-xs)",
         sm: 'h-(--picodash-control-height-md) px-(--picodash-space-2-5)',
         md: 'h-(--picodash-control-height-lg) px-(--picodash-space-3)',
-        lg: 'h-9 gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3',
-        icon: 'size-8',
-        'icon-xs': "size-6 [&_svg:not([class*='size-'])]:size-3",
-        'icon-sm': 'size-7',
-        'icon-lg': 'size-9',
+        lg: 'h-(--picodash-control-height-lg) gap-(--picodash-space-1-5) px-(--picodash-space-4) has-data-[icon=inline-end]:pr-(--picodash-space-3) has-data-[icon=inline-start]:pl-(--picodash-space-3)',
+        icon: 'size-(--picodash-control-height-lg)',
+        'icon-xs':
+          "size-(--picodash-control-height-xs) [&_svg:not([class*='size-'])]:size-(--picodash-icon-xs)",
+        'icon-sm': 'size-(--picodash-control-height-sm)',
+        'icon-lg': 'size-(--picodash-control-height-lg)',
       },
     },
     defaultVariants: {

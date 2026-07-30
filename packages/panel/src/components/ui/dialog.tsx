@@ -16,6 +16,16 @@ import {
 import { cn } from '#lib/utils'
 import { Button } from '#components/ui/button'
 import { XIcon } from 'lucide-react'
+import { useResolvedPicodashTheme } from '../../lib/theme/picodash-theme-context.js'
+import {
+  portalLayerZIndexForState,
+  portalLayerZIndexValue,
+  useOptionalPicodashProviderContext,
+} from '../../state/provider/picodash-provider.js'
+
+const standaloneProviderState = { panelOrder: [] as string[] }
+const standaloneProviderSubscribe = () => () => undefined
+const standaloneProviderSnapshot = () => standaloneProviderState
 
 const DialogDescriptionContext = React.createContext<
   ((descriptionId: string) => () => void) | null
@@ -46,16 +56,20 @@ function DialogClose({
 function DialogOverlay({
   className,
   children,
+  'data-picodash-theme': picodashTheme,
   ...props
 }: Omit<ModalOverlayPrimitiveProps, 'className' | 'children'> & {
   className?: string
   children: React.ReactNode
+  'data-picodash-theme'?: string
 }) {
+  const theme = useResolvedPicodashTheme(picodashTheme)
   return (
     <ModalOverlayPrimitive
       data-slot="dialog-overlay"
+      data-picodash-theme={theme}
       className={cn(
-        'data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 fixed inset-0 isolate z-50 bg-black/30 duration-100 supports-backdrop-filter:backdrop-blur-sm',
+        'data-entering:animate-in data-entering:fade-in-0 data-exiting:animate-out data-exiting:fade-out-0 fixed inset-0 isolate z-(--picodash-layer-dialog) bg-(--picodash-color-overlay) duration-100 supports-backdrop-filter:backdrop-blur-(--picodash-blur-overlay)',
         className,
       )}
       {...props}
@@ -76,7 +90,7 @@ function Dialog({
   style,
   'data-picodash-theme': picodashTheme,
   ...props
-}: Omit<ModalOverlayPrimitiveProps, 'className' | 'children'> &
+}: Omit<ModalOverlayPrimitiveProps, 'className' | 'children' | 'style'> &
   Pick<React.ComponentProps<typeof ModalPrimitive>, 'isDismissable'> & {
     className?: string
     children: React.ReactNode
@@ -87,6 +101,21 @@ function Dialog({
     style?: React.CSSProperties
     'data-picodash-theme'?: string
   }) {
+  const theme = useResolvedPicodashTheme(picodashTheme)
+  const provider = useOptionalPicodashProviderContext()
+  const providerState = React.useSyncExternalStore(
+    provider?.store.subscribe ?? standaloneProviderSubscribe,
+    provider?.store.getState ?? standaloneProviderSnapshot,
+    provider?.store.getState ?? standaloneProviderSnapshot,
+  )
+  const zIndexFloor = portalLayerZIndexForState(providerState, 4)
+  const resolvedPortalContainer =
+    portalContainer === undefined ? provider?.portalContainer : portalContainer
+  const resolvedZIndex =
+    style?.zIndex ??
+    (provider ? portalLayerZIndexValue('--picodash-layer-dialog', zIndexFloor) : undefined)
+  const resolvedOverlayZIndex = overlayStyle?.zIndex ?? resolvedZIndex
+
   const [descriptionIds, setDescriptionIds] = React.useState<readonly string[]>([])
   const registerDescription = React.useCallback((descriptionId: string) => {
     setDescriptionIds((currentIds) =>
@@ -101,24 +130,30 @@ function Dialog({
     <DialogOverlay
       isDismissable={isDismissable}
       {...props}
-      data-picodash-theme={picodashTheme}
+      data-picodash-theme={theme}
       className={overlayClassName}
-      style={overlayStyle}
-      UNSTABLE_portalContainer={portalContainer ?? undefined}
+      style={{
+        ...overlayStyle,
+        ...(resolvedOverlayZIndex === undefined ? {} : { zIndex: resolvedOverlayZIndex }),
+      }}
+      UNSTABLE_portalContainer={resolvedPortalContainer ?? undefined}
     >
       <ModalPrimitive
         data-slot="dialog-content"
-        data-picodash-theme={picodashTheme}
-        style={style}
+        data-picodash-theme={theme}
+        style={{
+          ...style,
+          ...(resolvedZIndex === undefined ? {} : { zIndex: resolvedZIndex }),
+        }}
         className={cn(
-          'bg-picodash-surface-raised text-picodash-text ring-picodash-text/5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 dark:ring-picodash-text/10 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-[min(var(--radius-4xl),24px)] p-6 text-sm shadow-xl ring-1 duration-100 outline-none sm:max-w-md',
+          'bg-picodash-surface-raised text-picodash-text ring-picodash-text/5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-exiting:zoom-out-95 rounded-picodash-surface fixed top-1/2 left-1/2 z-(--picodash-layer-dialog) grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 p-6 text-sm shadow-(--picodash-shadow-md) ring-1 duration-(--picodash-duration-fast) outline-none sm:max-w-md',
           className,
         )}
       >
         <DialogPrimitive
           aria-describedby={descriptionIds.length > 0 ? descriptionIds.join(' ') : undefined}
           data-slot="dialog"
-          data-picodash-theme={picodashTheme}
+          data-picodash-theme={theme}
           className="[display:inherit] gap-[inherit] outline-none"
         >
           <DialogDescriptionContext.Provider value={registerDescription}>

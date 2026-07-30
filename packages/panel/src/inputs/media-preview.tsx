@@ -6,6 +6,8 @@ import {
   type ReactiveProp,
   type PicodashInputItemProps,
 } from '../components/panel/PicodashItem.js'
+import { ItemEmptyState } from '../components/ui/item-empty-state.js'
+import { ItemSurface } from '../components/ui/item-surface.js'
 import { cn } from '../utilities/utils.js'
 import type { PicodashParser } from '../validation/picodash-validation.js'
 import {
@@ -96,22 +98,19 @@ function MediaPreviewSurface({
 
   if (!src || failed) {
     return (
-      <div
-        className="border-picodash-control text-picodash-muted rounded-picodash-control col-span-full flex aspect-video min-h-(--picodash-field-surface-min-height) items-center justify-center gap-(--picodash-space-2) border border-dashed bg-(--_picodash-color-well) px-(--picodash-space-3) text-center text-(length:--picodash-font-size-lg)"
-        role="status"
-      >
+      <ItemEmptyState className="col-span-full aspect-video" role="status">
         {fallback ?? (
           <>
             <ImageOff className="size-(--picodash-icon-md) shrink-0" aria-hidden="true" />
             <span>{failed ? 'Preview could not be loaded' : 'No preview available'}</span>
           </>
         )}
-      </div>
+      </ItemEmptyState>
     )
   }
 
   return (
-    <div className="border-picodash-control rounded-picodash-control col-span-full aspect-video min-h-(--picodash-field-surface-min-height) overflow-hidden border bg-(--_picodash-color-well)">
+    <ItemSurface className="col-span-full aspect-video" size="field">
       <img
         alt={alt}
         className={cn('size-full', objectFitClassName(objectFit), className)}
@@ -120,7 +119,7 @@ function MediaPreviewSurface({
         src={src}
         onError={() => setFailed(true)}
       />
-    </div>
+    </ItemSurface>
   )
 }
 

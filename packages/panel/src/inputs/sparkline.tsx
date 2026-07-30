@@ -1,6 +1,7 @@
 import { useReducedMotion, useSpring } from 'motion/react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { PicodashItem, type PicodashDisplayItemProps } from '../components/panel/PicodashItem.js'
+import { ItemSurface } from '../components/ui/item-surface.js'
 import type { PicodashValue } from '../components/panel/PicodashPanel.js'
 import type { DistributiveOmit } from './internal/built-in-validation.js'
 
@@ -445,9 +446,10 @@ export function PicodashSparkline({
 
   return (
     <PicodashItem {...itemProps} contentLayout={contentLayout} readOnly valueMode="display">
-      <div
+      <ItemSurface
         ref={setSurface}
-        className="border-picodash-control rounded-picodash-control col-span-full min-h-(--picodash-field-surface-min-height) overflow-hidden border bg-(--_picodash-color-well)"
+        className="col-span-full"
+        size="field"
         data-autoscale={autoscale ? 'true' : 'false'}
         data-continuous={continuous ? 'true' : 'false'}
         data-max-points={pointLimit}
@@ -503,7 +505,7 @@ export function PicodashSparkline({
             )
           })}
         </svg>
-      </div>
+      </ItemSurface>
     </PicodashItem>
   )
 }

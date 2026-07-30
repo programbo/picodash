@@ -18,9 +18,9 @@ const frameData = [
 const areaSeries = [
   {
     dataKey: 'gpu',
-    fill: 'var(--chart-1)',
+    fill: 'var(--picodash-color-data-1)',
     fillOpacity: 0.28,
-    stroke: 'var(--chart-1)',
+    stroke: 'var(--picodash-color-data-1)',
     strokeWidth: 2,
     type: 'monotone',
   },
@@ -29,7 +29,7 @@ const areaSeries = [
 const barSeries = [
   {
     dataKey: 'gpu',
-    fill: 'var(--chart-1)',
+    fill: 'var(--picodash-color-data-1)',
     radius: [3, 3, 0, 0] as [number, number, number, number],
   },
 ] as const
@@ -38,7 +38,7 @@ const frameSeries = [
   {
     dataKey: 'target',
     dot: false,
-    stroke: 'var(--chart-4)',
+    stroke: 'var(--picodash-color-data-4)',
     strokeDasharray: '4 4',
     strokeWidth: 1,
     type: 'linear',
@@ -47,7 +47,7 @@ const frameSeries = [
     activeDot: { r: 3 },
     dataKey: 'gpu',
     dot: false,
-    stroke: 'var(--chart-1)',
+    stroke: 'var(--picodash-color-data-1)',
     strokeWidth: 2,
     type: 'monotone',
   },
@@ -56,16 +56,16 @@ const frameSeries = [
 const radarSeries = [
   {
     dataKey: 'gpu',
-    fill: 'var(--chart-1)',
+    fill: 'var(--picodash-color-data-1)',
     fillOpacity: 0.28,
-    stroke: 'var(--chart-1)',
+    stroke: 'var(--picodash-color-data-1)',
   },
 ] as const
 
 const radialSeries = [
   {
     dataKey: 'gpu',
-    fill: 'var(--chart-1)',
+    fill: 'var(--picodash-color-data-1)',
   },
 ] as const
 
@@ -142,7 +142,7 @@ export function ShadcnChartItem({
         pieChartProps={{ margin: { bottom: 4, top: 4 } }}
         pieProps={{
           dataKey: 'gpu',
-          fill: 'var(--chart-1)',
+          fill: 'var(--picodash-color-data-1)',
           innerRadius: 28,
           nameKey: 'frame',
           outerRadius: 55,

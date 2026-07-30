@@ -89,6 +89,7 @@
   --picodash-color-text-muted: oklch(0.723 0.014 214.4);
   --picodash-color-border: oklch(1 0 0 / 10%);
   --picodash-color-control: oklch(1 0 0 / 15%);
+  --picodash-color-well: color-mix(in oklab, var(--picodash-color-surface-muted) 30%, transparent);
   --picodash-color-focus: oklch(0.56 0.021 213.5);
   --picodash-color-accent: oklch(0.925 0.005 214.3);
   --picodash-color-accent-text: oklch(0.218 0.008 223.9);
@@ -98,6 +99,12 @@
   --picodash-color-alert: oklch(0.75 0.183 55.934);
   --picodash-color-danger: oklch(0.704 0.191 22.216);
   --picodash-color-overlay: oklch(0 0 0 / 85%);
+  /* Five stable roles for consumer-authored charts and data visualizations. */
+  --picodash-color-data-1: oklch(0.74 0.16 220);
+  --picodash-color-data-2: oklch(0.76 0.16 155);
+  --picodash-color-data-3: oklch(0.82 0.17 88);
+  --picodash-color-data-4: oklch(0.74 0.17 325);
+  --picodash-color-data-5: oklch(0.76 0.17 42);
 
   /* Derived semantic roles keep custom themes internally consistent. */
   --_picodash-color-description: color-mix(
@@ -106,7 +113,7 @@
     var(--picodash-color-text)
   );
   --_picodash-color-surface-hover: var(--picodash-color-surface-muted);
-  --_picodash-color-well: color-mix(in oklab, var(--picodash-color-surface-muted) 30%, transparent);
+  --_picodash-color-well: var(--picodash-color-well);
   --_picodash-color-success-strong: color-mix(
     in oklab,
     var(--picodash-color-success) 70%,
@@ -171,11 +178,6 @@
   --_picodash-switch-width: calc(
     var(--_picodash-switch-height) + var(--_picodash-switch-thumb-translate)
   );
-  --_picodash-xy-background: color-mix(
-    in oklab,
-    var(--picodash-color-surface-muted) 50%,
-    transparent
-  );
   --_picodash-xy-grid: color-mix(in oklab, var(--picodash-color-border) 70%, transparent);
   --_picodash-viewer-background: color-mix(in oklab, var(--picodash-color-canvas) 75%, transparent);
   --_picodash-viewer-preview-scrim: color-mix(
@@ -207,6 +209,7 @@
   --picodash-color-text-muted: oklch(0.723 0.014 214.4);
   --picodash-color-border: oklch(1 0 0 / 10%);
   --picodash-color-control: oklch(1 0 0 / 15%);
+  --picodash-color-well: color-mix(in oklab, var(--picodash-color-surface-muted) 30%, transparent);
   --picodash-color-focus: oklch(0.56 0.021 213.5);
   --picodash-color-accent: oklch(0.925 0.005 214.3);
   --picodash-color-accent-text: oklch(0.218 0.008 223.9);
@@ -216,6 +219,11 @@
   --picodash-color-alert: oklch(0.75 0.183 55.934);
   --picodash-color-danger: oklch(0.704 0.191 22.216);
   --picodash-color-overlay: oklch(0 0 0 / 85%);
+  --picodash-color-data-1: oklch(0.74 0.16 220);
+  --picodash-color-data-2: oklch(0.76 0.16 155);
+  --picodash-color-data-3: oklch(0.82 0.17 88);
+  --picodash-color-data-4: oklch(0.74 0.17 325);
+  --picodash-color-data-5: oklch(0.76 0.17 42);
   --picodash-radius-surface: 0;
   --picodash-radius-control: 0;
   --picodash-shadow-panel: 0 25px 50px -12px rgb(0 0 0 / 0.3);
@@ -235,6 +243,7 @@
   --picodash-color-text-muted: oklch(0.473 0.014 214.4);
   --picodash-color-border: oklch(0.148 0.004 228.8 / 14%);
   --picodash-color-control: oklch(0.148 0.004 228.8 / 20%);
+  --picodash-color-well: color-mix(in oklab, var(--picodash-color-surface-muted) 30%, transparent);
   --picodash-color-focus: oklch(0.56 0.12 221);
   --picodash-color-accent: oklch(0.218 0.008 223.9);
   --picodash-color-accent-text: oklch(0.987 0.002 197.1);
@@ -244,6 +253,11 @@
   --picodash-color-alert: oklch(0.55 0.17 55.934);
   --picodash-color-danger: oklch(0.55 0.19 22.216);
   --picodash-color-overlay: oklch(0.148 0.004 228.8 / 55%);
+  --picodash-color-data-1: oklch(0.58 0.16 220);
+  --picodash-color-data-2: oklch(0.57 0.15 155);
+  --picodash-color-data-3: oklch(0.62 0.16 88);
+  --picodash-color-data-4: oklch(0.59 0.17 325);
+  --picodash-color-data-5: oklch(0.59 0.17 42);
   --picodash-radius-surface: 0;
   --picodash-radius-control: 0;
   --picodash-shadow-panel: 0 25px 50px -12px rgb(15 23 42 / 0.22);
@@ -258,9 +272,11 @@
   --color-picodash-surface-raised: var(--picodash-color-surface-raised);
   --color-picodash-surface-muted: var(--picodash-color-surface-muted);
   --color-picodash-text: var(--picodash-color-text);
+  --color-picodash-text-strong: var(--picodash-color-text-strong);
   --color-picodash-muted: var(--picodash-color-text-muted);
   --color-picodash-border: var(--picodash-color-border);
   --color-picodash-control: var(--picodash-color-control);
+  --color-picodash-well: var(--picodash-color-well);
   --color-picodash-focus: var(--picodash-color-focus);
   --color-picodash-accent: var(--picodash-color-accent);
   --color-picodash-accent-text: var(--picodash-color-accent-text);
@@ -274,6 +290,11 @@
   --color-picodash-alert-subtle: var(--_picodash-color-alert-subtle);
   --color-picodash-danger: var(--picodash-color-danger);
   --color-picodash-danger-subtle: var(--_picodash-color-danger-subtle);
+  --color-picodash-data-1: var(--picodash-color-data-1);
+  --color-picodash-data-2: var(--picodash-color-data-2);
+  --color-picodash-data-3: var(--picodash-color-data-3);
+  --color-picodash-data-4: var(--picodash-color-data-4);
+  --color-picodash-data-5: var(--picodash-color-data-5);
   --radius-picodash-surface: var(--picodash-radius-surface);
   --radius-picodash-control: var(--picodash-radius-control);
   --shadow-picodash-sm: var(--picodash-shadow-sm);

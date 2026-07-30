@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../../components/ui/dialog.js'
+import { ItemSurface } from '../../components/ui/item-surface.js'
 import { picodashMotionTokens } from '../../lib/theme/theme.js'
 import { usePicodashProviderContext } from '../../state/provider/picodash-provider.js'
 import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
@@ -124,13 +125,13 @@ export default function DropzoneImplementation({
   return (
     <>
       <div className="col-span-full grid gap-(--picodash-space-1-5)">
-        <div
+        <ItemSurface
           {...getRootProps({
             'aria-label': multiple
               ? 'Choose files or drop them here'
               : 'Choose a file or drop it here',
             className: cn(
-              'rounded-picodash-control border-picodash-control text-picodash-muted focus-visible:ring-picodash-focus focus-visible:ring-offset-picodash-canvas box-border flex min-h-(--picodash-field-surface-min-height) cursor-pointer flex-col items-center justify-center gap-(--picodash-space-1) border border-dashed bg-(--_picodash-color-well) px-(--picodash-space-3) py-(--picodash-space-4) text-center text-(length:--picodash-font-size-lg) leading-(--picodash-line-tight) outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
+              'focus-visible:ring-picodash-focus focus-visible:ring-offset-picodash-canvas box-border cursor-pointer gap-(--picodash-space-1) px-(--picodash-space-3) py-(--picodash-space-4) leading-(--picodash-line-tight) outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
               isDragActive &&
                 'border-picodash-focus bg-picodash-surface-muted/60 text-picodash-text',
               isDragAccept && 'border-picodash-success/80 bg-picodash-success-subtle',
@@ -142,6 +143,8 @@ export default function DropzoneImplementation({
             id: control.inputId,
             role: 'button',
           })}
+          size="field"
+          variant="dashed"
         >
           <input {...getInputProps()} />
           <UploadCloud className="size-(--picodash-icon-lg)" aria-hidden="true" />
@@ -155,7 +158,7 @@ export default function DropzoneImplementation({
                 ? 'Select one or more files'
                 : 'Select one file'}
           </span>
-        </div>
+        </ItemSurface>
 
         <div
           className="min-h-4 text-(length:--picodash-font-size-sm) leading-(--picodash-line-tight)"
