@@ -7,6 +7,7 @@ export type PicodashJsonValue =
   | { readonly [key: string]: PicodashJsonValue }
 
 export type PicodashValidationSource =
+  | 'adapter'
   | 'default'
   | 'import'
   | 'initial'
@@ -80,6 +81,7 @@ export interface PicodashField<
 }
 
 export interface PicodashStoreState<TValues extends object> {
+  readonly diagnostics: readonly import('./errors.js').PicodashDiagnostic[]
   readonly fieldStates: PicodashFieldStates<TValues>
   readonly interaction: PicodashInteractionState
   readonly itemMetadata: PicodashItemMetadata
@@ -126,6 +128,7 @@ export interface PicodashStoreState<TValues extends object> {
 }
 
 export interface PicodashStore<TValues extends object> {
+  readonly diagnostics: import('./diagnostics.js').PicodashDiagnosticChannel
   readonly fields: PicodashFields<TValues>
   getInitialState: () => PicodashStoreState<TValues>
   getState: () => PicodashStoreState<TValues>
@@ -169,7 +172,11 @@ export type PicodashWriteErrors<TValues extends object> = Partial<{
 
 export type PicodashWriteResult<TValues extends object = Record<string, PicodashJsonValue>> =
   | { readonly success: true }
-  | { readonly errors: PicodashWriteErrors<TValues>; readonly success: false }
+  | {
+      readonly diagnostic?: import('./errors.js').PicodashDiagnostic
+      readonly errors: PicodashWriteErrors<TValues>
+      readonly success: false
+    }
 
 export type PicodashRepairChange<TValues extends object> = {
   [TKey in Extract<keyof TValues, string>]: {
@@ -182,7 +189,7 @@ export type PicodashRepairChange<TValues extends object> = {
 
 export interface PicodashRepairProposal<TValues extends object> {
   readonly changes: readonly PicodashRepairChange<TValues>[]
-  readonly source: 'initial'
+  readonly source: 'adapter' | 'initial'
 }
 
 export type PicodashItemBindingMode = 'display' | 'input'
@@ -276,6 +283,7 @@ export interface PicodashItemMetadata {
 }
 
 export interface PicodashStoreOptions<TValues extends object> {
+  readonly adapter?: import('./adapter.js').PicodashValueAdapter<TValues>
   readonly fields: PicodashFieldDefinitions<TValues>
   readonly initialItemMetadata?: PicodashItemMetadata
   readonly initialValues?: Partial<JsonCompatibleRecord<TValues>>
@@ -285,6 +293,9 @@ export interface PicodashStoreOptions<TValues extends object> {
 export interface PicodashInferredStoreOptions<
   TDefinitions extends Record<string, PicodashInferredFieldDefinition>,
 > {
+  readonly adapter?: import('./adapter.js').PicodashValueAdapter<
+    PicodashValuesFromDefinitions<TDefinitions>
+  >
   readonly fields: TDefinitions
   readonly initialItemMetadata?: PicodashItemMetadata
   readonly initialValues?: Partial<PicodashValuesFromDefinitions<TDefinitions>>

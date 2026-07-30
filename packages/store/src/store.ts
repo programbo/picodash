@@ -1,10 +1,17 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
+import type { PicodashValueAdapter } from './adapter.js'
+import { createPicodashDiagnosticChannel } from './diagnostics.js'
 import {
   analyzePicodashPanelDocumentState,
   samePicodashPanelImportOutputs,
   type PicodashPanelImportAnalysis,
 } from './documents.js'
 import { createPicodashFields, picodashOwnerOwnsField } from './fields.js'
+import {
+  PICODASH_ERROR_CODES,
+  type PicodashDiagnostic,
+  type PicodashDiagnosticInput,
+} from './errors.js'
 import {
   initialPicodashInteractionState,
   removePicodashItemInteraction,
@@ -52,7 +59,14 @@ type Values = Record<string, PicodashJsonValue>
 type State = PicodashStoreState<Values>
 type DataState = Pick<
   State,
-  'fieldStates' | 'interaction' | 'itemMetadata' | 'items' | 'panelId' | 'repairProposal' | 'values'
+  | 'diagnostics'
+  | 'fieldStates'
+  | 'interaction'
+  | 'itemMetadata'
+  | 'items'
+  | 'panelId'
+  | 'repairProposal'
+  | 'values'
 >
 
 export function createPicodashStore<
@@ -69,6 +83,8 @@ export function createPicodashStore<
 export function createPicodashStore(untypedOptions: unknown): PicodashStore<Values> {
   const options = untypedOptions as PicodashStoreOptions<Values>
   const owner = Object.freeze({})
+  const diagnosticChannel = createPicodashDiagnosticChannel()
+  const adapter = options.adapter as PicodashValueAdapter<Values> | undefined
   const fields = createPicodashFields(options.fields, owner)
   const knownItems: Record<string, PicodashRegisteredItem<Values>> = {}
   const definitionEntries = Object.entries(options.fields)
@@ -130,6 +146,7 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
   }
 
   let initialData: DataState = {
+    diagnostics: diagnosticChannel.getSnapshot(),
     fieldStates,
     interaction: initialPicodashInteractionState,
     itemMetadata: cloneItemMetadata(options.initialItemMetadata),
@@ -170,6 +187,22 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
           ? null
           : ({ changes: repairs, source: 'initial' } satisfies PicodashRepairProposal<Values>),
     }
+  }
+
+  if (adapter !== undefined) {
+    const adapterSnapshot = readAdapterSnapshot(adapter)
+    if (adapterSnapshot.success) {
+      const resolution = resolveAdapterSnapshot(adapterSnapshot.snapshot, initialData)
+      if (resolution.success) {
+        initialData = applyOutputs(initialData, resolution.outputs, 'adapter')
+      } else {
+        initialData = applyInvalidAdapterSnapshot(initialData, resolution)
+        diagnosticChannel.publish(invalidAdapterSnapshotDiagnostic(resolution.errors))
+      }
+    } else {
+      diagnosticChannel.publish(adapterSnapshot.diagnostic)
+    }
+    initialData = { ...initialData, diagnostics: diagnosticChannel.getSnapshot() }
   }
 
   let internalStore!: StoreApi<State>
@@ -216,11 +249,7 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
       }
       if (Object.keys(errors).length > 0) return { errors, success: false }
 
-      internalStore.setState((current) => ({
-        ...applyOutputs(current, outputs, 'initial'),
-        repairProposal: null,
-      }))
-      return { success: true }
+      return commitOutputs(outputs, 'repair', new Set(), true)
     },
     analyzePanelDocument(document) {
       return analyzeDocument(document, internalStore.getState())
@@ -239,14 +268,14 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
       if (analysis.status === 'valid' && current.status === 'repair') {
         return { analysis: current, reason: 'repair-required', success: false }
       }
-      internalStore.setState((state) =>
-        applyOutputs(
-          state,
-          current.plan.outputs as Record<string, PicodashFieldOutput<PicodashJsonValue>>,
-          'import',
-          new Set(current.plan.resetFields),
-        ),
+      const result = commitOutputs(
+        current.plan.outputs as Record<string, PicodashFieldOutput<PicodashJsonValue>>,
+        'import',
+        new Set(current.plan.resetFields),
       )
+      if (!result.success) {
+        return { analysis: current, reason: 'stale', success: false }
+      }
       return { analysis: current, success: true, values: current.values }
     },
     resetFieldValue(field) {
@@ -255,8 +284,7 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
       const state = internalStore.getState()
       const result = resolveFromState(state, key, state.fieldStates[key]!.defaultValue, 'reset')
       if (!result.success) return failure(key, result.errors)
-      internalStore.setState((current) => applyOutputs(current, { [key]: result.output }, 'reset'))
-      return { success: true }
+      return commitOutputs({ [key]: result.output }, 'reset')
     },
     resetFields() {
       const state = internalStore.getState()
@@ -268,8 +296,7 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
         else errors[key] = result.errors
       }
       if (Object.keys(errors).length > 0) return { errors, success: false }
-      internalStore.setState((current) => applyOutputs(current, outputs, 'reset'))
-      return { success: true }
+      return commitOutputs(outputs, 'reset')
     },
     resetRegisteredFields() {
       const state = internalStore.getState()
@@ -282,8 +309,7 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
         else errors[key] = result.errors
       }
       if (Object.keys(errors).length > 0) return { errors, success: false }
-      internalStore.setState((current) => applyOutputs(current, outputs, 'reset'))
-      return { success: true }
+      return commitOutputs(outputs, 'reset')
     },
     registerItem(registration) {
       const state = internalStore.getState()
@@ -406,10 +432,7 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
         }))
         return failure(key, result.errors)
       }
-      internalStore.setState((current) =>
-        applyOutputs(current, { [key]: result.output }, 'interactive'),
-      )
-      return { success: true }
+      return commitOutputs({ [key]: result.output }, 'interactive')
     },
     setFieldValue(field, value) {
       const key = ownedFieldKey(field)
@@ -492,8 +515,29 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
 
   const initialState = { ...initialData, ...actions }
   internalStore = createStore<State>()(() => initialState)
+  diagnosticChannel.subscribe((diagnostics) => {
+    internalStore.setState({ diagnostics })
+  })
+  let handlingAdapterWrite = false
+  if (adapter !== undefined) {
+    try {
+      adapter.subscribe(() => {
+        if (handlingAdapterWrite) return
+        synchronizeAdapterSnapshot()
+      })
+    } catch {
+      diagnosticChannel.publish({
+        code: PICODASH_ERROR_CODES.INVALID_CONTRACT,
+        correction: 'Return an unsubscribe function after registering the listener.',
+        expectedContract: 'subscribe(listener) synchronously registers a snapshot listener.',
+        identity: adapterIdentity(),
+        summary: 'The external value adapter threw while Picodash subscribed.',
+      })
+    }
+  }
 
   return Object.freeze({
+    diagnostics: diagnosticChannel,
     fields,
     getInitialState: internalStore.getInitialState,
     getState: internalStore.getState,
@@ -557,11 +601,274 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
       else errors[key] = result.errors
     }
     if (Object.keys(errors).length > 0) return { errors, success: false }
-    if (Object.keys(outputs).length > 0) {
-      internalStore.setState((current) => applyOutputs(current, outputs, source))
+    return commitOutputs(outputs, source)
+  }
+
+  function commitOutputs(
+    outputs: Record<string, PicodashFieldOutput<PicodashJsonValue>>,
+    source: PicodashValidationSource,
+    resetFields: ReadonlySet<string> = new Set(),
+    clearRepair = false,
+  ): PicodashWriteResult<Values> {
+    if (Object.keys(outputs).length === 0) return { success: true }
+    const current = internalStore.getState()
+    let next = applyOutputs(current, outputs, source, resetFields)
+    if (clearRepair) next = { ...next, repairProposal: null }
+    if (adapter !== undefined) {
+      const adapterResult = writeAdapterValues(adapter, next.values, current.values, source)
+      if (!adapterResult.success) {
+        return { diagnostic: adapterResult.diagnostic, errors: {}, success: false }
+      }
+    }
+    diagnosticChannel.clear(PICODASH_ERROR_CODES.INVALID_ADAPTER_SNAPSHOT)
+    diagnosticChannel.clear(PICODASH_ERROR_CODES.NON_SYNCHRONOUS_WRITE)
+    diagnosticChannel.clear(PICODASH_ERROR_CODES.REJECTED_WRITE)
+    internalStore.setState({ ...next, diagnostics: diagnosticChannel.getSnapshot() })
+    return { success: true }
+  }
+
+  function writeAdapterValues(
+    targetAdapter: PicodashValueAdapter<Values>,
+    nextValues: Values,
+    previousValues: Values,
+    source: PicodashValidationSource,
+  ):
+    | { readonly success: true }
+    | { readonly diagnostic: PicodashDiagnostic; readonly success: false } {
+    const completeRecord = clonePicodashValue(nextValues) as Values
+    let result: boolean | undefined | void | PromiseLike<unknown>
+    handlingAdapterWrite = true
+    try {
+      result = targetAdapter.setValues(completeRecord, {
+        panelId: options.panelId,
+        previousValues: clonePicodashValue(previousValues) as Values,
+        source: source as Exclude<PicodashValidationSource, 'adapter' | 'default' | 'initial'>,
+      })
+    } catch {
+      const diagnostic = publishAdapterWriteDiagnostic(
+        PICODASH_ERROR_CODES.REJECTED_WRITE,
+        'The external value adapter threw while accepting a complete Picodash value record.',
+      )
+      return { diagnostic, success: false }
+    } finally {
+      handlingAdapterWrite = false
+    }
+
+    if (isPromiseLike(result)) {
+      const diagnostic = publishAdapterWriteDiagnostic(
+        PICODASH_ERROR_CODES.NON_SYNCHRONOUS_WRITE,
+        'The external value adapter returned a Promise from setValues.',
+      )
+      return { diagnostic, success: false }
+    }
+    if (result === false) {
+      const diagnostic = publishAdapterWriteDiagnostic(
+        PICODASH_ERROR_CODES.REJECTED_WRITE,
+        'The external value adapter rejected the complete Picodash value record.',
+      )
+      return { diagnostic, success: false }
+    }
+
+    const snapshotResult = readAdapterSnapshot(targetAdapter)
+    if (!snapshotResult.success) {
+      diagnosticChannel.publish(snapshotResult.diagnostic)
+      return snapshotResult
+    }
+    const resolution = resolveAdapterSnapshot(snapshotResult.snapshot, internalStore.getState())
+    if (!resolution.success) {
+      const diagnostic = diagnosticChannel.publish(
+        invalidAdapterSnapshotDiagnostic(resolution.errors),
+      )
+      return { diagnostic, success: false }
+    }
+    const acknowledged = applyOutputs(
+      internalStore.getState(),
+      resolution.outputs,
+      'adapter',
+    ).values
+    if (!deepEqual(acknowledged, nextValues)) {
+      const diagnostic = publishAdapterWriteDiagnostic(
+        PICODASH_ERROR_CODES.REJECTED_WRITE,
+        'The external value adapter did not synchronously expose the complete value record it received.',
+      )
+      return { diagnostic, success: false }
     }
     return { success: true }
   }
+
+  function synchronizeAdapterSnapshot(): void {
+    if (adapter === undefined) return
+    const snapshotResult = readAdapterSnapshot(adapter)
+    if (!snapshotResult.success) {
+      diagnosticChannel.publish(snapshotResult.diagnostic)
+      return
+    }
+    const state = internalStore.getState()
+    const resolution = resolveAdapterSnapshot(snapshotResult.snapshot, state)
+    if (!resolution.success) {
+      internalStore.setState(applyInvalidAdapterSnapshot(state, resolution))
+      diagnosticChannel.publish(invalidAdapterSnapshotDiagnostic(resolution.errors))
+      return
+    }
+    diagnosticChannel.clear(PICODASH_ERROR_CODES.INVALID_ADAPTER_SNAPSHOT)
+    const current = internalStore.getState()
+    const next = applyOutputs(current, resolution.outputs, 'adapter')
+    if (!deepEqual(next.values, current.values)) internalStore.setState(next)
+  }
+
+  function resolveAdapterSnapshot(snapshot: unknown, state: DataState): AdapterSnapshotResolution {
+    if (!isRecord(snapshot)) {
+      return {
+        errors: { adapter: ['Adapter snapshots must be complete value records.'] },
+        repairs: [],
+        success: false,
+      }
+    }
+    const outputs: Record<string, PicodashFieldOutput<PicodashJsonValue>> = {}
+    const errors: Record<string, readonly string[]> = {}
+    const repairs: PicodashRepairChange<Values>[] = []
+    for (const key of Object.keys(snapshot)) {
+      if (!definitionKeys.has(key)) errors[key] = [`Unknown Picodash field "${key}".`]
+    }
+    for (const key of definitionKeys) {
+      if (!Object.prototype.hasOwnProperty.call(snapshot, key)) {
+        const unset = resolveUnset(definitions[key]!)
+        if (unset.success) outputs[key] = unset.output
+        else errors[key] = ['Adapter snapshots must include every required Picodash field.']
+        continue
+      }
+      const result = resolveFromState(state, key, snapshot[key], 'adapter')
+      if (result.success) {
+        outputs[key] = result.output
+      } else if (result.repair !== undefined) {
+        errors[key] = result.errors
+        repairs.push({
+          after: result.repair,
+          before: outputForValue(state.values, key),
+          errors: result.errors,
+          field: fields[key]!,
+        })
+      } else {
+        errors[key] = result.errors
+      }
+    }
+    return Object.keys(errors).length === 0
+      ? { outputs, success: true }
+      : { errors, repairs, success: false }
+  }
+
+  function applyInvalidAdapterSnapshot(
+    state: DataState,
+    resolution: Extract<AdapterSnapshotResolution, { success: false }>,
+  ): DataState {
+    const nextFieldStates = { ...state.fieldStates }
+    for (const [key, errors] of Object.entries(resolution.errors)) {
+      if (nextFieldStates[key] !== undefined) {
+        nextFieldStates[key] = { ...nextFieldStates[key]!, errors: [...errors] }
+      }
+    }
+    return {
+      ...state,
+      fieldStates: nextFieldStates,
+      repairProposal:
+        resolution.repairs.length === 0 ? null : { changes: resolution.repairs, source: 'adapter' },
+    }
+  }
+
+  function readAdapterSnapshot(
+    targetAdapter: PicodashValueAdapter<Values>,
+  ):
+    | { readonly snapshot: unknown; readonly success: true }
+    | { readonly diagnostic: PicodashDiagnostic; readonly success: false } {
+    try {
+      const snapshot = targetAdapter.getSnapshot()
+      if (isPromiseLike(snapshot)) {
+        return {
+          diagnostic: diagnosticChannel.publish({
+            code: PICODASH_ERROR_CODES.ASYNC_CONTRACT,
+            correction: 'Return the current complete value record directly from getSnapshot.',
+            expectedContract: 'getSnapshot() is synchronous and never returns a Promise.',
+            identity: adapterIdentity(),
+            summary: 'The external value adapter returned an asynchronous snapshot.',
+          }),
+          success: false,
+        }
+      }
+      return { snapshot, success: true }
+    } catch {
+      return {
+        diagnostic: diagnosticChannel.publish({
+          code: PICODASH_ERROR_CODES.INVALID_ADAPTER_SNAPSHOT,
+          correction: 'Make getSnapshot return the current complete and valid value record.',
+          expectedContract: 'getSnapshot() is synchronous, total, and returns a complete record.',
+          identity: adapterIdentity(),
+          summary: 'The external value adapter threw while reading its snapshot.',
+        }),
+        success: false,
+      }
+    }
+  }
+
+  function invalidAdapterSnapshotDiagnostic(
+    errors: Readonly<Record<string, readonly string[]>>,
+  ): PicodashDiagnosticInput {
+    const keys = Object.keys(errors).sort()
+    return {
+      code: PICODASH_ERROR_CODES.INVALID_ADAPTER_SNAPSHOT,
+      correction: 'Provide one complete record whose values satisfy every declared field contract.',
+      expectedContract: 'getSnapshot() returns a complete, valid Picodash value record.',
+      identity: adapterIdentity(),
+      summary: `The external value adapter snapshot is invalid${keys.length === 0 ? '' : ` for ${keys.join(', ')}`}.`,
+    }
+  }
+
+  function publishAdapterWriteDiagnostic(
+    code:
+      | typeof PICODASH_ERROR_CODES.NON_SYNCHRONOUS_WRITE
+      | typeof PICODASH_ERROR_CODES.REJECTED_WRITE,
+    summary: string,
+  ): PicodashDiagnostic {
+    return diagnosticChannel.publish({
+      code,
+      correction:
+        'Accept the complete record synchronously and expose it from getSnapshot before returning.',
+      expectedContract:
+        'setValues(nextValues, context) is synchronous, atomic, and host-authoritative.',
+      identity: adapterIdentity(),
+      summary,
+    })
+  }
+
+  function adapterIdentity() {
+    return {
+      adapterId: adapter?.id,
+      panelId: options.panelId,
+    }
+  }
+}
+
+type AdapterSnapshotResolution =
+  | {
+      readonly outputs: Record<string, PicodashFieldOutput<PicodashJsonValue>>
+      readonly success: true
+    }
+  | {
+      readonly errors: Readonly<Record<string, readonly string[]>>
+      readonly repairs: readonly PicodashRepairChange<Values>[]
+      readonly success: false
+    }
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'then' in value &&
+    typeof (value as { readonly then?: unknown }).then === 'function'
+  )
 }
 
 function resolveUnset(

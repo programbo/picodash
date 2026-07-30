@@ -103,3 +103,4 @@ export type {
   PicodashWriteErrors,
   PicodashWriteResult,
 } from './types.js'
+export type { PicodashAdapterWriteContext, PicodashValueAdapter } from './adapter.js'
