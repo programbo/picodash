@@ -1,0 +1,204 @@
+/*
+ * Shared Picodash theme contract.
+ *
+ * Package controls consume these semantic roles rather than choosing a palette
+ * themselves. Consumers can define custom names by overriding the same roles
+ * under [data-picodash-theme='name'].
+ */
+:where([data-picodash-theme]) {
+  color-scheme: dark;
+  font-family: var(--picodash-font-family);
+
+  /* Foundation scales. */
+  --picodash-space-0-5: 0.125rem;
+  --picodash-space-1: 0.25rem;
+  --picodash-space-1-5: 0.375rem;
+  --picodash-space-2: 0.5rem;
+  --picodash-space-2-5: 0.625rem;
+  --picodash-space-3: 0.75rem;
+  --picodash-space-4: 1rem;
+  --picodash-space-5: 1.25rem;
+  --picodash-radius-surface: 0;
+  --picodash-radius-control: 0;
+  --picodash-control-height-xs: 1.5rem;
+  --picodash-control-height-sm: 1.75rem;
+  --picodash-control-height-md: 2rem;
+  --picodash-control-height-lg: 2.25rem;
+  --picodash-icon-xs: 0.75rem;
+  --picodash-icon-sm: 0.875rem;
+  --picodash-icon-md: 1rem;
+  --picodash-icon-lg: 1.25rem;
+  --picodash-font-family: inherit;
+  --picodash-font-size-xs: 0.5625rem;
+  --picodash-font-size-sm: 0.625rem;
+  --picodash-font-size-md: 0.6875rem;
+  --picodash-font-size-lg: 0.75rem;
+  --picodash-font-size-xl: 0.875rem;
+  --picodash-font-size-2xl: 1.25rem;
+  --picodash-font-size-3xl: 1.5rem;
+  --picodash-line-none: 1em;
+  --picodash-line-tight: 1.1em;
+  --picodash-line-normal: 1.25em;
+  --picodash-line-relaxed: 1.5em;
+  --picodash-font-light: 300;
+  --picodash-font-normal: 400;
+  --picodash-font-medium: 500;
+  --picodash-font-semibold: 600;
+  --picodash-tracking-normal: 0;
+  --picodash-tracking-wide: 0.025em;
+  --picodash-opacity-disabled: 0.5;
+  --picodash-opacity-disabled-soft: 0.45;
+  --picodash-opacity-muted: 0.7;
+  --picodash-opacity-subtle: 0.3;
+  --picodash-border-thin: 1px;
+  --picodash-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --picodash-shadow-md: 0 4px 12px rgb(0 0 0 / 0.25);
+  --picodash-shadow-panel: 0 25px 50px -12px rgb(0 0 0 / 0.3);
+  --picodash-shadow-viewer: 0 25px 50px -12px rgb(0 0 0 / 0.7);
+  --picodash-shadow-inner: inset 0 2px 4px rgb(0 0 0 / 0.25);
+  --picodash-duration-fast: 150ms;
+  --picodash-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --picodash-blur-surface: 12px;
+  --picodash-blur-overlay: 4px;
+  --picodash-layer-raised: 10;
+  --picodash-layer-drag: 20;
+  --picodash-layer-tooltip: 50;
+  --picodash-layer-select: 60;
+  --picodash-layer-menu: 70;
+  --picodash-layer-dialog: 80;
+  --picodash-layer-viewer: 2147483647;
+
+  /* Core semantic roles. */
+  --picodash-color-canvas: oklch(0.148 0.004 228.8);
+  --picodash-color-surface: oklch(0.218 0.008 223.9);
+  --picodash-color-surface-raised: oklch(0.218 0.008 223.9);
+  --picodash-color-surface-muted: oklch(0.275 0.011 216.9);
+  --picodash-color-text: oklch(0.987 0.002 197.1);
+  --picodash-color-text-strong: oklch(1 0 0);
+  --picodash-color-text-muted: oklch(0.723 0.014 214.4);
+  --picodash-color-border: oklch(1 0 0 / 10%);
+  --picodash-color-control: oklch(1 0 0 / 15%);
+  --picodash-color-well: color-mix(in oklab, var(--picodash-color-surface-muted) 30%, transparent);
+  --picodash-color-focus: oklch(0.56 0.021 213.5);
+  --picodash-color-accent: oklch(0.925 0.005 214.3);
+  --picodash-color-accent-text: oklch(0.218 0.008 223.9);
+  --picodash-color-success: oklch(0.765 0.177 163.223);
+  --picodash-color-info: oklch(0.746 0.16 232.661);
+  --picodash-color-warning: oklch(0.828 0.189 84.429);
+  --picodash-color-alert: oklch(0.75 0.183 55.934);
+  --picodash-color-danger: oklch(0.704 0.191 22.216);
+  --picodash-color-overlay: oklch(0 0 0 / 85%);
+  --picodash-color-data-1: oklch(0.74 0.16 220);
+  --picodash-color-data-2: oklch(0.76 0.16 155);
+  --picodash-color-data-3: oklch(0.82 0.17 88);
+  --picodash-color-data-4: oklch(0.74 0.17 325);
+  --picodash-color-data-5: oklch(0.76 0.17 42);
+
+  /* Derived roles are stable for custom recipes. */
+  --_picodash-color-description: color-mix(
+    in oklab,
+    var(--picodash-color-text-muted) 70%,
+    var(--picodash-color-text)
+  );
+  --_picodash-color-surface-hover: var(--picodash-color-surface-muted);
+  --_picodash-color-success-strong: color-mix(
+    in oklab,
+    var(--picodash-color-success) 70%,
+    var(--picodash-color-canvas)
+  );
+  --_picodash-color-success-subtle: color-mix(
+    in oklab,
+    var(--picodash-color-success) 10%,
+    transparent
+  );
+  --_picodash-color-info-border: color-mix(in oklab, var(--picodash-color-info) 80%, transparent);
+  --_picodash-color-info-subtle: color-mix(in oklab, var(--picodash-color-info) 10%, transparent);
+  --_picodash-color-warning-border: color-mix(
+    in oklab,
+    var(--picodash-color-warning) 80%,
+    transparent
+  );
+  --_picodash-color-warning-subtle: color-mix(
+    in oklab,
+    var(--picodash-color-warning) 10%,
+    transparent
+  );
+  --_picodash-color-alert-border: color-mix(in oklab, var(--picodash-color-alert) 80%, transparent);
+  --_picodash-color-alert-subtle: color-mix(in oklab, var(--picodash-color-alert) 10%, transparent);
+  --_picodash-color-danger-border: color-mix(
+    in oklab,
+    var(--picodash-color-danger) 80%,
+    transparent
+  );
+  --_picodash-color-danger-subtle: color-mix(
+    in oklab,
+    var(--picodash-color-danger) 10%,
+    transparent
+  );
+}
+
+:where([data-picodash-theme-root]) {
+  display: contents;
+}
+
+:where([data-picodash-theme='dark']) {
+  color-scheme: dark;
+  --picodash-color-canvas: oklch(0.148 0.004 228.8);
+  --picodash-color-surface: oklch(0.218 0.008 223.9);
+  --picodash-color-surface-raised: oklch(0.218 0.008 223.9);
+  --picodash-color-surface-muted: oklch(0.275 0.011 216.9);
+  --picodash-color-text: oklch(0.987 0.002 197.1);
+  --picodash-color-text-strong: oklch(1 0 0);
+  --picodash-color-text-muted: oklch(0.723 0.014 214.4);
+  --picodash-color-border: oklch(1 0 0 / 10%);
+  --picodash-color-control: oklch(1 0 0 / 15%);
+  --picodash-color-accent: oklch(0.925 0.005 214.3);
+  --picodash-color-accent-text: oklch(0.218 0.008 223.9);
+  --picodash-color-success: oklch(0.765 0.177 163.223);
+  --picodash-color-info: oklch(0.746 0.16 232.661);
+  --picodash-color-warning: oklch(0.828 0.189 84.429);
+  --picodash-color-alert: oklch(0.75 0.183 55.934);
+  --picodash-color-danger: oklch(0.704 0.191 22.216);
+  --picodash-color-overlay: oklch(0 0 0 / 85%);
+  --picodash-color-data-1: oklch(0.74 0.16 220);
+  --picodash-color-data-2: oklch(0.76 0.16 155);
+  --picodash-color-data-3: oklch(0.82 0.17 88);
+  --picodash-color-data-4: oklch(0.74 0.17 325);
+  --picodash-color-data-5: oklch(0.76 0.17 42);
+  --picodash-radius-surface: 0;
+  --picodash-radius-control: 0;
+  --picodash-shadow-panel: 0 25px 50px -12px rgb(0 0 0 / 0.3);
+  --picodash-shadow-viewer: 0 25px 50px -12px rgb(0 0 0 / 0.7);
+  --picodash-shadow-inner: inset 0 2px 4px rgb(0 0 0 / 0.25);
+}
+
+:where([data-picodash-theme='light']) {
+  color-scheme: light;
+  --picodash-color-canvas: oklch(0.963 0.002 197.1);
+  --picodash-color-surface: oklch(1 0 0);
+  --picodash-color-surface-raised: oklch(0.987 0.002 197.1);
+  --picodash-color-surface-muted: oklch(0.925 0.005 214.3);
+  --picodash-color-text: oklch(0.218 0.008 223.9);
+  --picodash-color-text-strong: oklch(0.148 0.004 228.8);
+  --picodash-color-text-muted: oklch(0.473 0.014 214.4);
+  --picodash-color-border: oklch(0.148 0.004 228.8 / 14%);
+  --picodash-color-control: oklch(0.148 0.004 228.8 / 20%);
+  --picodash-color-accent: oklch(0.218 0.008 223.9);
+  --picodash-color-accent-text: oklch(0.987 0.002 197.1);
+  --picodash-color-success: oklch(0.49 0.14 163.223);
+  --picodash-color-info: oklch(0.5 0.15 232.661);
+  --picodash-color-warning: oklch(0.58 0.16 84.429);
+  --picodash-color-alert: oklch(0.55 0.17 55.934);
+  --picodash-color-danger: oklch(0.55 0.19 22.216);
+  --picodash-color-overlay: oklch(0.148 0.004 228.8 / 55%);
+  --picodash-color-data-1: oklch(0.58 0.16 220);
+  --picodash-color-data-2: oklch(0.57 0.15 155);
+  --picodash-color-data-3: oklch(0.62 0.16 88);
+  --picodash-color-data-4: oklch(0.59 0.17 325);
+  --picodash-color-data-5: oklch(0.59 0.17 42);
+  --picodash-radius-surface: 0;
+  --picodash-radius-control: 0;
+  --picodash-shadow-panel: 0 25px 50px -12px rgb(15 23 42 / 0.22);
+  --picodash-shadow-viewer: 0 25px 50px -12px rgb(15 23 42 / 0.35);
+  --picodash-shadow-inner: inset 0 2px 4px rgb(15 23 42 / 0.12);
+}

@@ -1,0 +1,52 @@
+{
+  "name": "@picodash/dashlist",
+  "version": "0.0.0",
+  "description": "Configurable, groupable, reorderable React lists for Dashlets.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./dashlet": "./dist/dashlet.mjs",
+    "./ui": "./dist/ui.mjs",
+    "./style.css": "./dist/style.css",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check": "vp check",
+    "test": "vp test --passWithNoTests",
+    "release:check": "vp check && vp run build && bun pm pack --dry-run"
+  },
+  "dependencies": {
+    "@picodash/store": "workspace:*",
+    "@picodash/theme": "workspace:*",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "react-aria-components": "catalog:",
+    "tailwind-merge": "catalog:",
+    "zustand": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@types/react": "catalog:",
+    "postcss": "catalog:",
+    "react": "catalog:",
+    "shadcn": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  }
+}

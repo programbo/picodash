@@ -1,8 +1,8 @@
 'use client'
 
 import { createPicodashStore, type PicodashStore } from '@picodash/store'
-import { PicodashItem, PicodashPanel, PicodashSelect } from '@picodash/panel'
-import * as Dashlet from '@picodash/panel/dashlet'
+import { PicodashItem, PicodashPanel, PicodashSelect } from '@picodash/picodash'
+import * as Dashlet from '@picodash/picodash/dashlet'
 import {
   Button,
   Dialog,
@@ -14,7 +14,7 @@ import {
   DialogTrigger,
   Tooltip,
   TooltipTrigger,
-} from '@picodash/panel/ui'
+} from '@picodash/picodash/ui'
 
 type OverlayValues = {
   themeCarrier: 'nearest-theme' | 'panel-override'

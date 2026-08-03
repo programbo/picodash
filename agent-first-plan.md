@@ -7,7 +7,7 @@ Reorient Picodash as the fastest reliable way to add flexible, unobtrusive contr
 The release will combine four mutually reinforcing capabilities:
 
 1. A typed `@picodash/store` state engine.
-2. Polished Panels and built-in Dashlets from `@picodash/panel`.
+2. Polished Panels and built-in Dashlets from `@picodash/picodash`.
 3. A theme-aware composition system for custom compound Dashlets.
 4. Shared human/agent guidance, realistic examples, and verifiable implementation workflows.
 
@@ -54,18 +54,18 @@ The public package graph becomes:
 
 - `@picodash/store`: typed per-Panel state engine.
 - `@picodash/store/react`: React selectors and controlled whole-record bindings.
-- `@picodash/panel`: providers, Panels, built-in Dashlets, actions, and common Store re-exports.
-- `@picodash/panel/dashlet`: semantic theme-aware elements for custom compound Dashlets.
-- `@picodash/panel/ui`: lower-level React Aria foundations.
-- `@picodash/panel/advanced`: advanced provider and Panel integration.
-- `@picodash/panel/catalog`: serializable built-in and composition metadata.
-- `@picodash/panel/style.css`: complete styles and theme recipes.
+- `@picodash/picodash`: providers, Panels, built-in Dashlets, actions, and common Store re-exports.
+- `@picodash/picodash/dashlet`: semantic theme-aware elements for custom compound Dashlets.
+- `@picodash/picodash/ui`: lower-level React Aria foundations.
+- `@picodash/picodash/advanced`: advanced provider and Panel integration.
+- `@picodash/picodash/catalog`: serializable built-in and composition metadata.
+- `@picodash/picodash/style.css`: complete styles and theme recipes.
 
 ## `@picodash/store`
 
 Add `packages/store` with its own package manifest, build configuration, README, tests, and release check.
 
-Move the pure state engine from `packages/panel`:
+Move the pure state engine from the legacy panel implementation into `packages/store`:
 
 - Values, metadata, field definitions, drafts, errors, and validation.
 - Atomic writes, resets, imports, repairs, and JSON compatibility.
@@ -73,7 +73,7 @@ Move the pure state engine from `packages/panel`:
 - Pure order and constraint utilities.
 - Serializable Panel-document logic that does not require React.
 
-Keep DOM geometry, React contexts, Motion integration, portals, styles, themes, and rendering in `@picodash/panel`.
+Keep DOM geometry, React contexts, Motion integration, portals, styles, themes, and rendering in `@picodash/picodash`.
 
 ### Store API
 
@@ -159,7 +159,7 @@ Provider state continues to own cross-Panel visibility, placement, z-order, acti
 
 No compatibility aliases are retained.
 
-## `@picodash/panel` Breaking API
+## `@picodash/picodash` Breaking API
 
 Make every `PicodashPanel` require an explicit `store`. Remove the internal `id + initialValues + initialMeta` mode.
 
@@ -229,14 +229,14 @@ Contracts:
 
 Render children remain appropriate here because the parent must supply typed state and actions back to the custom composition.
 
-## `@picodash/panel/dashlet`
+## `@picodash/picodash/dashlet`
 
 Add a dedicated entrypoint for semantic compound-Dashlet anatomy.
 
 Canonical usage:
 
 ```tsx
-import * as Dashlet from '@picodash/panel/dashlet'
+import * as Dashlet from '@picodash/picodash/dashlet'
 ```
 
 This preserves readable composition such as `Dashlet.Frame` while retaining static module exports and tree shaking.
@@ -305,7 +305,7 @@ Remove them from `/ui`; do not retain aliases.
 - Internal `cva` helpers and variant functions remain private.
 - High-frequency visualization samples remain outside persisted Store values.
 
-## `@picodash/panel/ui`
+## `@picodash/picodash/ui`
 
 Keep `/ui` as the accessible React Aria foundation.
 
@@ -385,7 +385,7 @@ Messages must identify the offending field, item, or component; state the expect
 
 ## Machine-Readable Catalog
 
-Expand `@picodash/panel/catalog` to describe:
+Expand `@picodash/picodash/catalog` to describe:
 
 - Built-in Dashlets.
 - `/dashlet` anatomy and composition elements.
@@ -698,7 +698,7 @@ their results separately, while the release gate requires both.
 Update `bun run ready` to include:
 
 - `@picodash/store` build, check, tests, and release check.
-- `@picodash/panel` build, check, tests, and release check.
+- `@picodash/picodash` build, check, tests, and release check.
 - Documentation and generated-agent-artifact drift checks.
 - Next.js and Vite fixture builds.
 - Workspace checks and tests.

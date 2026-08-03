@@ -30,6 +30,23 @@ test('creates typed values from widened primitive defaults', () => {
   >()
 })
 
+test('does not require a Panel identity for app-scoped field Stores', () => {
+  const store = createPicodashStore({
+    scopeId: 'app',
+    fields: { enabled: { defaultValue: true } },
+  })
+
+  expect(store.getState()).toMatchObject({
+    panelId: 'app',
+    scopeId: 'app',
+    storeId: 'app',
+  })
+
+  const second = createPicodashStore({ fields: { enabled: { defaultValue: true } } })
+  expect(second.getState().storeId).toBe('picodash-store-enabled')
+  expect(second.getState().panelId).toBe(second.getState().storeId)
+})
+
 test('supports explicit unions and structured JSON values', () => {
   type SceneValues = {
     quality: 'draft' | 'balanced' | 'final'

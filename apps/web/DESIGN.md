@@ -42,7 +42,7 @@ Homepage sections:
 
 - Keep the dark technical baseline, high contrast, and focused spacing.
 - Preserve the distinction between provider behavior, panel behavior, and Dashlet composition.
-- Prefer `@picodash/panel/style.css` and semantic `--picodash-*` roles; avoid host-only styling dependencies.
+- Prefer `@picodash/picodash/style.css` and semantic `--picodash-*` roles; avoid host-only styling dependencies.
 - Example surfaces should remain actionably runnable and close to production usage patterns.
 
 ## Accessibility and Behavior Constraints

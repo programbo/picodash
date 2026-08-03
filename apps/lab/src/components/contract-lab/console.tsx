@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { createPicodashStore } from '@picodash/store'
-import { PicodashItem, PicodashPanel, PicodashProvider } from '@picodash/panel'
-import * as Dashlet from '@picodash/panel/dashlet'
-import { Button } from '@picodash/panel/ui'
+import { PicodashItem, PicodashPanel, PicodashProvider } from '@picodash/picodash'
+import * as Dashlet from '@picodash/picodash/dashlet'
+import { Button } from '@picodash/picodash/ui'
 import type { ContractLabPreset, ContractLabPresetId } from '@lab/lib/contract-lab'
 import { useContractLabDiagnosticCount } from './store-diagnostics'
 

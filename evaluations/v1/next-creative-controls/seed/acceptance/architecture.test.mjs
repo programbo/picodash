@@ -19,7 +19,7 @@ async function sourceText(directory) {
 test('uses public Picodash surfaces and a React whole-record binding', async () => {
   const packageJson = JSON.parse(await readFile('package.json', 'utf8'))
   const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies }
-  assert.ok(dependencies['@picodash/panel'], 'add @picodash/panel')
+  assert.ok(dependencies['@picodash/picodash'], 'add @picodash/picodash')
   assert.ok(dependencies['@picodash/store'], 'add @picodash/store')
 
   const source = await sourceText('app')

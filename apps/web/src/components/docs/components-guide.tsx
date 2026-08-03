@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 
 hljs.registerLanguage('typescript', typescript)
 
-const providerSource = `import { PicodashProvider } from '@picodash/panel'
+const providerSource = `import { PicodashProvider } from '@picodash/picodash'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   )
 }`
 
-const panelSource = `import { PicodashPanel } from '@picodash/panel'
+const panelSource = `import { PicodashPanel } from '@picodash/picodash'
 import { createPicodashStore } from '@picodash/store'
 
 const settingsStore = createPicodashStore({
@@ -52,7 +52,7 @@ const groupSource = `import {
   PicodashSelect,
   PicodashSlider,
   PicodashSwitch,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 
 <PicodashGroup
   collapsible
@@ -87,7 +87,7 @@ const actionMenuSource = `import {
   CopySubmenu,
   ExportSubmenu,
   PicodashPanel,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 
 <PicodashPanel
   actionMenu={[
@@ -110,9 +110,9 @@ const compositionSource = `import {
   PicodashProvider,
   PicodashSlider,
   PicodashSwitch,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 import { createPicodashStore } from '@picodash/store'
-import '@picodash/panel/style.css'
+import '@picodash/picodash/style.css'
 
 const panelStore = createPicodashStore({
   panelId: 'display-settings',
@@ -287,8 +287,8 @@ export function ComponentsGuide() {
                 </p>
                 <GuideCodeBlock label="display-settings.tsx" source={compositionSource} />
                 <GuideCallout>
-                  Add <Code>@picodash/panel/style.css</Code> once at the application root. Custom
-                  dashlets can then use the same <Code>@picodash/panel/ui</Code> primitives and{' '}
+                  Add <Code>@picodash/picodash/style.css</Code> once at the application root. Custom
+                  dashlets can then use the same <Code>@picodash/picodash/ui</Code> primitives and{' '}
                   <Code>--picodash-*</Code> semantic tokens as built-in surfaces.
                 </GuideCallout>
               </GuideSection>

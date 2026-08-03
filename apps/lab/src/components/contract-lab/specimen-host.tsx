@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { PicodashPanelLauncher, PicodashProvider, usePicodashPanel } from '@picodash/panel'
+import { PicodashPanelLauncher, PicodashProvider, usePicodashPanel } from '@picodash/picodash'
 import type { ContractLabPreset } from '@lab/lib/contract-lab'
 import { createContractLabSpecimenBundle } from './specimens'
 import { useContractLabDiagnosticCount } from './store-diagnostics'

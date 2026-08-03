@@ -87,6 +87,10 @@ export interface PicodashStoreState<TValues extends object> {
   readonly itemMetadata: PicodashItemMetadata
   readonly items: Readonly<Record<string, PicodashRegisteredItem<TValues>>>
   readonly panelId: string
+  /** Stable Store identity, independent of a rendered Panel. */
+  readonly storeId: string
+  /** Optional application scope for namespaced Store metadata. */
+  readonly scopeId?: string
   readonly repairProposal: PicodashRepairProposal<TValues> | null
   readonly values: TValues
   analyzePanelDocument: (
@@ -239,7 +243,7 @@ export type PicodashPresentationValueContract<TValue = PicodashJsonValue> = TVal
 
 export interface PicodashPresentationContract<TValue = PicodashJsonValue> {
   readonly accepts: PicodashPresentationValueContract<TValue>
-  /** Stable package-qualified component identity, for example `@picodash/panel/Slider`. */
+  /** Stable package-qualified component identity, for example `@picodash/dashpanel/Slider`. */
   readonly component: string
   /** Stable versioned identity for this component constraint, for example `slider:number:v1`. */
   readonly id: string
@@ -343,7 +347,12 @@ export interface PicodashStoreOptions<TValues extends object> {
   readonly fields: PicodashFieldDefinitions<TValues>
   readonly initialItemMetadata?: PicodashItemMetadata
   readonly initialValues?: Partial<JsonCompatibleRecord<TValues>>
-  readonly panelId: string
+  /** Optional rendering identity. Store fields do not require a Panel. */
+  readonly panelId?: string
+  /** Stable identity for this Store when no rendered Panel owns it. */
+  readonly storeId?: string
+  /** Optional application scope for namespaced metadata and registries. */
+  readonly scopeId?: string
 }
 
 export interface PicodashInferredStoreOptions<
@@ -355,7 +364,9 @@ export interface PicodashInferredStoreOptions<
   readonly fields: TDefinitions
   readonly initialItemMetadata?: PicodashItemMetadata
   readonly initialValues?: Partial<PicodashValuesFromDefinitions<TDefinitions>>
-  readonly panelId: string
+  readonly panelId?: string
+  readonly storeId?: string
+  readonly scopeId?: string
 }
 
 export interface PicodashInferredFieldDefinition {

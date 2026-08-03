@@ -7,7 +7,7 @@ import {
   PicodashPanel,
   PicodashSwitch,
   PicodashText,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 
 type InteractionValues = {
   enabled: boolean

@@ -1,7 +1,7 @@
 import { motion, useMotionValue, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, type RefObject } from 'react'
-import { PicodashItem } from '@picodash/panel'
-import { Caption, Legend, LegendItem, Surface } from '@picodash/panel/dashlet'
+import { PicodashItem } from '@picodash/picodash'
+import { Caption, Legend, LegendItem, Surface } from '@picodash/picodash/dashlet'
 import {
   advanceSparklineSamplingClock,
   decayPointerVelocity,

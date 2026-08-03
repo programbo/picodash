@@ -1,8 +1,8 @@
 import { motion, useMotionValue, useReducedMotion, type MotionValue } from 'motion/react'
 import { useEffect } from 'react'
-import { PicodashItem } from '@picodash/panel'
-import { Caption, Surface } from '@picodash/panel/dashlet'
-import { ToggleGroup, ToggleGroupItem } from '@picodash/panel/ui'
+import { PicodashItem } from '@picodash/picodash'
+import { Caption, Surface } from '@picodash/picodash/dashlet'
+import { ToggleGroup, ToggleGroupItem } from '@picodash/picodash/ui'
 import type { PicodashField } from '@picodash/store'
 
 export type SignalMode = 'spectrum' | 'waveform'

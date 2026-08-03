@@ -21,7 +21,7 @@ proposals for one Panel:
 - reset and repair workflows,
 - strict subscription and selector access.
 
-`@picodash/panel` integrations (typed handles in built-ins, adapter wiring,
+`@picodash/dashpanel` integrations (typed handles in built-ins, adapter wiring,
 and compound Dashlet field orchestration) use typed `store.fields` handles as their control contract.
 
 ## Quick start
@@ -30,7 +30,7 @@ and compound Dashlet field orchestration) use typed `store.fields` handles as th
 import { createPicodashStore } from '@picodash/store'
 
 const sceneStore = createPicodashStore({
-  panelId: 'scene-controls',
+  storeId: 'scene-controls',
   fields: {
     bloom: { defaultValue: true },
     exposure: { defaultValue: 1.2 },
@@ -52,7 +52,7 @@ type SceneValues = {
 }
 
 const monitorStore = createPicodashStore<SceneValues>({
-  panelId: 'monitor',
+  storeId: 'monitor',
   fields: {
     bloom: { defaultValue: true },
     quality: { defaultValue: 'balanced' },
@@ -63,6 +63,11 @@ const monitorStore = createPicodashStore<SceneValues>({
   },
 })
 ```
+
+`panelId` is optional. Use `storeId` for a stable identity when a Store is
+shared by more than one Panel, and `scopeId` when metadata belongs to an
+application-level namespace. When no identity is supplied, the Store derives
+a deterministic ID from its field keys.
 
 ## API surface (shipped)
 
@@ -123,7 +128,7 @@ import { usePicodashStoreSelector } from '@picodash/store/react'
 Canonical agent-first direction in this repo still treats:
 
 - `@picodash/store` as the per-Panel state foundation,
-- `@picodash/panel` as the rendering, registry, and surface layer,
+- `@picodash/dashpanel` as the rendering, registry, and surface layer,
 - typed field-handles as the control contract between panel surfaces and store values.
 
 ## Further docs

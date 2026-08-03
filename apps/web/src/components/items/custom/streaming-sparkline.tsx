@@ -3,7 +3,7 @@ import {
   PicodashSparkline,
   type PicodashSparklineProps,
   type PicodashSparklineSource,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 import { decayPointerVelocity } from '@/utils/pointer-velocity-sampling'
 
 export const velocitySeries = [

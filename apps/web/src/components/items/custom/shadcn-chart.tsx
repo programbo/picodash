@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { PicodashChart } from '@picodash/panel'
+import { PicodashChart } from '@picodash/picodash'
 
 export const shadcnChartTypes = ['area', 'bar', 'line', 'pie', 'radar', 'radial'] as const
 export type ShadcnChartType = (typeof shadcnChartTypes)[number]

@@ -26,6 +26,7 @@ export function resolvePicodashItemRegistration<TValues extends object>(
       field: PicodashField<TValues, Extract<keyof TValues, string>>,
     ) => PicodashPresentationFieldValues
     readonly panelId: string
+    readonly scopeId?: string
   },
 ):
   | { readonly item: PicodashRegisteredItem<TValues>; readonly success: true }
@@ -48,6 +49,7 @@ export function resolvePicodashItemRegistration<TValues extends object>(
         expectedContract: 'Every item binding belongs to the Store registering the item.',
         itemId: registration.id,
         panelId: presentationContext?.panelId,
+        scopeId: presentationContext?.scopeId,
         summary: `Field binding "${alias}" belongs to a different Picodash Store.`,
       })
       errors.push({
@@ -347,6 +349,7 @@ function createRegistrationDiagnostic(input: {
   fieldKey?: string
   itemId: string
   panelId?: string
+  scopeId?: string
   summary: string
 }) {
   return createPicodashDiagnostic({
@@ -359,6 +362,7 @@ function createRegistrationDiagnostic(input: {
       fieldKey: input.fieldKey,
       itemId: input.itemId,
       panelId: input.panelId,
+      scopeId: input.scopeId,
     },
     summary: input.summary,
   })

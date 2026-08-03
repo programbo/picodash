@@ -18,7 +18,7 @@ Accepted.
 `@picodash/store/react` provides synchronous whole-record adapter wiring for host frameworks and
 external stores. All state writes share one atomic, validated setter path.
 
-`@picodash/panel` owns rendering, registration side-effects, provider/layout orchestration, portals,
+`@picodash/picodash` owns rendering, registration side-effects, provider/layout orchestration, portals,
 themes, geometry, and overlays.
 
 ## Domain model
@@ -36,12 +36,12 @@ Provider-owned state remains separate from per-Panel state:
 
 ## Boundaries
 
-- `@picodash/panel/dashlet` is the semantic custom-Dashlet surface and anatomy.
-- `@picodash/panel/ui` remains the lower-level accessible foundation and React Aria contract layer.
+- `@picodash/picodash/dashlet` is the semantic custom-Dashlet surface and anatomy.
+- `@picodash/picodash/ui` remains the lower-level accessible foundation and React Aria contract layer.
 
 ## Rejected alternatives
 
-- Keeping per-Panel engine inside `@picodash/panel` would couple render and state migration work and
+- Keeping per-Panel engine inside `@picodash/picodash` would couple render and state migration work and
   weaken host portability.
 - String field identifiers would weaken type-level guarantees and allow contract drift between authoring
   and rendered components.

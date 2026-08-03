@@ -13,10 +13,10 @@ import {
   PicodashSlider,
   PicodashSwitch,
   usePicodashPanel,
-} from '@picodash/panel'
-import { Button } from '@picodash/panel/ui'
+} from '@picodash/picodash'
+import { Button } from '@picodash/picodash/ui'
 import { usePicodashStateAdapter, usePicodashStoreSelector } from '@picodash/store/react'
-import * as Dashlet from '@picodash/panel/dashlet'
+import * as Dashlet from '@picodash/picodash/dashlet'
 
 const qualityModes = ['draft', 'balanced', 'final'] as const
 const sceneModes = ['cinematic', 'editorial', 'social'] as const

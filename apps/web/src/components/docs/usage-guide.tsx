@@ -10,9 +10,9 @@ import { cn } from '@/lib/utils'
 hljs.registerLanguage('bash', bash)
 hljs.registerLanguage('typescript', typescript)
 
-const installSource = `bun add @picodash/panel @picodash/store`
+const installSource = `bun add @picodash/picodash @picodash/store`
 
-const stylesheetSource = `import '@picodash/panel/style.css'`
+const stylesheetSource = `import '@picodash/picodash/style.css'`
 
 const storeSource = `import { createPicodashStore } from '@picodash/store'
 
@@ -175,10 +175,10 @@ const completeSource = `import {
   PicodashSelect,
   PicodashSlider,
   PicodashSwitch,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 import { createPicodashStore } from '@picodash/store'
 import { usePicodashStoreSelector } from '@picodash/store/react'
-import '@picodash/panel/style.css'
+import '@picodash/picodash/style.css'
 
 const settingsStore = createPicodashStore({
   panelId: 'site-settings',
@@ -323,7 +323,7 @@ export function UsageGuide() {
               title="Install the package and import its stylesheet"
             >
               <p>
-                Add <Code>@picodash/panel</Code> and <Code>@picodash/store</Code> with your
+                Add <Code>@picodash/picodash</Code> and <Code>@picodash/store</Code> with your
                 project&apos;s package manager. Import the panel stylesheet once from your
                 application entry point.
               </p>
@@ -502,7 +502,7 @@ export function UsageGuide() {
             <SectionHeading eyebrow="Agent checklist" title="Implementation constraints" />
             <ol className="mt-5 grid gap-3 text-sm leading-6 text-zinc-300">
               <ConstraintItem>
-                Import panels and controls from <Code>@picodash/panel</Code>, stores from{' '}
+                Import panels and controls from <Code>@picodash/picodash</Code>, stores from{' '}
                 <Code>@picodash/store</Code>, and React selectors from{' '}
                 <Code>@picodash/store/react</Code>.
               </ConstraintItem>

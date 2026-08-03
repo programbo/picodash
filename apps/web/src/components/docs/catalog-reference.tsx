@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { picodashCatalog, type PicodashCatalogEntry } from '@picodash/panel/catalog'
+import { picodashCatalog, type PicodashCatalogEntry } from '@picodash/picodash/catalog'
 
 import {
   type CatalogReferencePageConfig,

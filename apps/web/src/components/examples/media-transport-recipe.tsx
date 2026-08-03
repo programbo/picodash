@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import { Pause, Play, RotateCcw, SkipBack, SkipForward } from 'lucide-react'
-import { PicodashItem, PicodashPanel } from '@picodash/panel'
-import * as Dashlet from '@picodash/panel/dashlet'
+import { PicodashItem, PicodashPanel } from '@picodash/picodash'
+import * as Dashlet from '@picodash/picodash/dashlet'
 import {
   Button,
   ProgressBar,
@@ -11,7 +11,7 @@ import {
   ProgressTrack,
   ToggleGroup,
   ToggleGroupItem,
-} from '@picodash/panel/ui'
+} from '@picodash/picodash/ui'
 import { usePicodashStoreSelector } from '@picodash/store/react'
 
 import { mediaTransportStore } from './example-stores'

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
-import { AgentFirstHomePage } from '@/components/home/agent-first-home-page'
+import { EvaluationHomePage } from '@/components/home/evaluation-home-page'
 
 export const metadata: Metadata = {
-  title: 'Code',
+  title: 'Evaluation',
 }
 
-export default function CodePage() {
-  return <AgentFirstHomePage />
+export default function EvaluationPage() {
+  return <EvaluationHomePage />
 }

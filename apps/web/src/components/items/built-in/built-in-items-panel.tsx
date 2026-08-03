@@ -25,7 +25,7 @@ import {
   type PicodashPanelSnappedPosition,
   type PicodashVector3Value,
   type PicodashXYValue,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 import { createPicodashStore, type PicodashJsonValue, type PicodashParser } from '@picodash/store'
 import { usePicodashStoreSelector } from '@picodash/store/react'
 import { ShadcnChartItem } from '@/components/items/custom/shadcn-chart'

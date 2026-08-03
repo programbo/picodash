@@ -7,7 +7,7 @@ import {
   builtInItemsPanelId,
   builtInItemsPanelStore,
 } from '@/components/items/built-in/built-in-items-panel'
-import { usePicodashPanel } from '@picodash/panel'
+import { usePicodashPanel } from '@picodash/picodash'
 import { usePicodashStoreSelector } from '@picodash/store/react'
 
 const closeTarget = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const

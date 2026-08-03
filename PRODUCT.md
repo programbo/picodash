@@ -7,6 +7,21 @@ presentation infrastructure.
 Picodash is productized around an agent-first workflow: a human developer supervises an AI coding
 agent that composes or migrates Dashlets against explicit host contracts.
 
+## Public product model
+
+The package family is organized around three products:
+
+- `@picodash/dashpanel` provides the standalone panel shell, placement, visibility, and lifecycle.
+- `@picodash/dashlist` provides standalone lists, groups, and Dashlet composition.
+- `@picodash/picodash` combines both products for an integrated control surface.
+
+`@picodash/store` is the application-wide typed state kernel, and `@picodash/theme` provides shared
+theme context and semantic tokens. `@picodash/picodash` is the integrated public facade during the
+migration to the three-product API.
+
+The production website is intentionally a single route at `/`. Local debugging and contract checks
+remain in `apps/lab` and are not part of the deployed website.
+
 ## Audience and Beachhead
 
 The primary implementer is an AI coding agent supervised by a human developer.

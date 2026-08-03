@@ -7,7 +7,7 @@ import {
   PicodashSegmented,
   usePicodashPanel,
   type PicodashPanelPlacement,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 
 type PlacementValues = {
   mode: 'floating' | 'fixed' | 'hybrid'

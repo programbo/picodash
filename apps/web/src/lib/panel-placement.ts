@@ -3,7 +3,7 @@ import type {
   PicodashPanelHybridDockPosition,
   PicodashPanelPlacement,
   PicodashPanelSnappedPosition,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 
 export function floatingPlacement(position?: PicodashPanelSnappedPosition): PicodashPanelPlacement {
   return {

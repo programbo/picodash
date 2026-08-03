@@ -2,8 +2,8 @@
 
 import { createPicodashStore, type PicodashStore } from '@picodash/store'
 import { usePicodashStoreSelector } from '@picodash/store/react'
-import { PicodashItem, PicodashPanel, PicodashSegmented } from '@picodash/panel'
-import * as Dashlet from '@picodash/panel/dashlet'
+import { PicodashItem, PicodashPanel, PicodashSegmented } from '@picodash/picodash'
+import * as Dashlet from '@picodash/picodash/dashlet'
 
 type ThemeValues = {
   recipe: 'contrast' | 'dark' | 'light' | 'system'

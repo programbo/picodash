@@ -74,7 +74,7 @@ test('uses deterministic default severities and documentation URLs', () => {
   expect(
     createPicodashDiagnostic({
       code: PICODASH_ERROR_CODES.MISSING_STYLESHEET,
-      correction: 'Import @picodash/panel/style.css once.',
+      correction: 'Import @picodash/dashpanel/style.css once.',
       expectedContract: 'The Picodash stylesheet is loaded.',
       identity: { component: 'PicodashProvider' },
       summary: 'The Picodash stylesheet is missing.',

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import type { PicodashDiagnosticChannel } from '@picodash/store'
-import type { PicodashPanelIdentity } from '@picodash/panel'
+import type { PicodashPanelIdentity } from '@picodash/picodash'
 import type { ContractLabPresetId } from '@lab/lib/contract-lab'
 import { CompositionSpecimen, createCompositionStore } from './specimens/composition'
 import { createDocumentStore, DocumentSpecimen } from './specimens/documents'

@@ -8,9 +8,9 @@ import {
   type PicodashPanelImportAnalysis,
   type PicodashStore,
 } from '@picodash/store'
-import { PicodashItem, PicodashPanel } from '@picodash/panel'
-import * as Dashlet from '@picodash/panel/dashlet'
-import { Button, Textarea } from '@picodash/panel/ui'
+import { PicodashItem, PicodashPanel } from '@picodash/picodash'
+import * as Dashlet from '@picodash/picodash/dashlet'
+import { Button, Textarea } from '@picodash/picodash/ui'
 
 type DocumentValues = {
   exposure: number

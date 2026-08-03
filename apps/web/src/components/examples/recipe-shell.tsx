@@ -2,8 +2,8 @@
 
 import type { ReactNode, RefObject } from 'react'
 import { ExternalLink } from 'lucide-react'
-import { PicodashPanelTrigger } from '@picodash/panel'
-import type { PicodashPanelIdentity } from '@picodash/panel'
+import { PicodashPanelTrigger } from '@picodash/picodash'
+import type { PicodashPanelIdentity } from '@picodash/picodash'
 
 export function RecipeShell({
   boundaryRef,

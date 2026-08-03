@@ -5,9 +5,9 @@ import typescript from 'highlight.js/lib/languages/typescript'
 import { Check, Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { usePicodashPanel } from '@picodash/panel'
+import { usePicodashPanel } from '@picodash/picodash'
 import { usePicodashStoreSelector } from '@picodash/store/react'
-import { Tooltip, TooltipTrigger } from '@picodash/panel/ui'
+import { Tooltip, TooltipTrigger } from '@picodash/picodash/ui'
 import {
   alignmentContainerProps,
   alignmentOptions,

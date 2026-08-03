@@ -1,5 +1,20 @@
 # Picodash Context
 
+## Product and package model
+
+Picodash ships three public products:
+
+- `@picodash/dashpanel`: the standalone draggable, dockable panel shell.
+- `@picodash/dashlist`: standalone list, group, and Dashlet composition primitives.
+- `@picodash/picodash`: the integrated facade combining DashPanel and Dashlist.
+
+`@picodash/store` is the application-wide typed state kernel. `@picodash/theme` supplies shared
+semantic theme context and tokens. `@picodash/picodash` is the integrated public facade for
+consumers migrate to the three products.
+
+The production website has one public route, `/`. The Contract Lab runs in `apps/lab` under `/lab`
+for local debugging and is not deployed with the website.
+
 ## Glossary
 
 **Dashboard**

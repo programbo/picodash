@@ -6,15 +6,15 @@ layer's input matrix.
 
 ## Canonical ownership
 
-| Owner            | Location               | Owns                                                                                                                                                                                                                                                                | Does not own                                                                                          |
-| ---------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Store pure tests | `packages/store/tests` | Types and field-handle inference; values, drafts, errors, validation, repair, atomic writes, resets, documents, serialization, adapters, item registration, ordering constraints, collapse, focus, hover, and interaction state                                     | React rendering, DOM or ARIA, CSS, pointer choreography, browser persistence, or website content      |
-| Panel tests      | `packages/panel/tests` | Public exports and named prop types; React registration and contexts; component rendering; semantic DOM and ARIA; event wiring; diagnostics; theme carriers; overlay behavior that does not need real layout; package-owned pure geometry and rendering helpers     | Store behavior matrices, computed browser layout, or public website journeys                          |
-| Contract Lab E2E | `apps/lab/tests`       | Only browser seams: computed geometry, pointer capture and dragging, keyboard focus traversal and restoration, portal stacking, scrolling and viewport changes, browser persistence, media-query themes, reduced motion, zoom, and cohesive cross-surface workflows | Pure Store matrices, type tests, render/ARIA permutations, catalog inventories, or website navigation |
-| Website E2E      | `apps/web/tests`       | Public journeys: homepage scenarios at desktop and mobile sizes, documentation navigation, redirects, prompt copying, catalog references, and the public examples' no-error baseline                                                                                | Contract Lab presets, package permutations, internal style details, or `window.__PICODASH_LAB__`      |
+| Owner            | Location                 | Owns                                                                                                                                                                                                                                                                | Does not own                                                                                          |
+| ---------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Store pure tests | `packages/store/tests`   | Types and field-handle inference; values, drafts, errors, validation, repair, atomic writes, resets, documents, serialization, adapters, item registration, ordering constraints, collapse, focus, hover, and interaction state                                     | React rendering, DOM or ARIA, CSS, pointer choreography, browser persistence, or website content      |
+| DashPanel tests  | `packages/dashpanel/src` | Panel exports and named prop types; React registration and contexts; component rendering; semantic DOM and ARIA; event wiring; diagnostics; theme carriers; overlay behavior that does not need real layout; package-owned pure geometry and rendering helpers      | Store behavior matrices, computed browser layout, or public website journeys                          |
+| Contract Lab E2E | `apps/lab/tests`         | Only browser seams: computed geometry, pointer capture and dragging, keyboard focus traversal and restoration, portal stacking, scrolling and viewport changes, browser persistence, media-query themes, reduced motion, zoom, and cohesive cross-surface workflows | Pure Store matrices, type tests, render/ARIA permutations, catalog inventories, or website navigation |
+| Website E2E      | `apps/web/tests`         | Public journeys: homepage scenarios at desktop and mobile sizes, documentation navigation, redirects, prompt copying, catalog references, and the public examples' no-error baseline                                                                                | Contract Lab presets, package permutations, internal style details, or `window.__PICODASH_LAB__`      |
 
 Code location does not decide ownership. For example, deterministic placement math implemented by
-`@picodash/panel` belongs in Panel package tests, while the result of dragging a rendered Panel
+`@picodash/picodash` belongs in Panel package tests, while the result of dragging a rendered Panel
 against a real boundary belongs in the Contract Lab.
 
 Type failures are compile-time contracts. Prefer positive type inference plus `@ts-expect-error`
@@ -145,7 +145,7 @@ Verify narrowly first and widen only after the owning layer passes:
 5. Run both browser suites only when their shared infrastructure changed.
 6. Run `bun run ready` for the release gate or when the task explicitly requires the full gate.
 
-Build `@picodash/store` and `@picodash/panel` before browser discovery when their built entrypoints
+Build `@picodash/store` and `@picodash/picodash` before browser discovery when their built entrypoints
 are required. Use allocated Picodash ports and the suite-specific environment variables. A single
 unrelated browser failure may be rerun once to establish whether it is reproducible, but it may not
 be hidden, quarantined, or used to justify unrelated product changes.

@@ -1,24 +1,28 @@
 import { defineConfig } from 'vite-plus'
 
 const workspaceCwd = process.cwd().replaceAll('\\', '/')
-const tailwindEntryPoints = workspaceCwd.endsWith('/packages/panel')
-  ? [{ files: '**', use: 'src/styles.css' }]
-  : workspaceCwd.endsWith('/apps/web')
-    ? [{ files: '**', use: 'src/style.css' }]
-    : workspaceCwd.endsWith('/apps/lab')
-      ? [{ files: '**', use: '../web/src/style.css' }]
-      : [
-          { files: 'packages/panel/**', use: 'packages/panel/src/styles.css' },
-          { files: 'apps/web/**', use: 'apps/web/src/style.css' },
-          { files: '**', use: 'apps/web/src/style.css' },
-        ]
+const tailwindEntryPoints =
+  workspaceCwd.endsWith('/packages/dashpanel') || workspaceCwd.endsWith('/packages/dashlist')
+    ? [{ files: '**', use: 'style.css' }]
+    : workspaceCwd.endsWith('/apps/web')
+      ? [{ files: '**', use: 'src/style.css' }]
+      : workspaceCwd.endsWith('/apps/lab')
+        ? [{ files: '**', use: '../web/src/style.css' }]
+        : [
+            { files: 'packages/dashpanel/**', use: 'packages/dashpanel/style.css' },
+            { files: 'packages/dashlist/**', use: 'packages/dashlist/style.css' },
+            { files: 'packages/picodash/**', use: 'packages/picodash/style.css' },
+            { files: 'packages/theme/**', use: 'packages/theme/src/styles.css' },
+            { files: 'apps/web/**', use: 'apps/web/src/style.css' },
+            { files: '**', use: 'apps/web/src/style.css' },
+          ]
 
 export default defineConfig({
   staged: {
     '*': 'vp check --fix',
   },
   fmt: {
-    ignorePatterns: ['apps/web/next-env.d.ts', 'apps/lab/next-env.d.ts'],
+    ignorePatterns: ['apps/web/next-env.d.ts', 'apps/lab/next-env.d.ts', '**/test-results/**'],
     singleQuote: true,
     semi: false,
     sortTailwindcss: {

@@ -2,8 +2,8 @@
 
 import { useRef } from 'react'
 import { Layers, RotateCcw } from 'lucide-react'
-import { PicodashItem, PicodashPanel } from '@picodash/panel'
-import * as Dashlet from '@picodash/panel/dashlet'
+import { PicodashItem, PicodashPanel } from '@picodash/picodash'
+import * as Dashlet from '@picodash/picodash/dashlet'
 import {
   Button,
   Label,
@@ -14,7 +14,7 @@ import {
   Switch,
   ToggleGroup,
   ToggleGroupItem,
-} from '@picodash/panel/ui'
+} from '@picodash/picodash/ui'
 
 import { mapOverlayStore } from './example-stores'
 import { RecipeShell } from './recipe-shell'

@@ -1,10 +1,10 @@
-<!--VITE PLUS START-->
+# Project Guide
 
-# Using Vite+, the Unified Toolchain for the Web
+## Using Vite+, the Unified Toolchain for the Web
 
 This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown, Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, and it invokes Vite through `vp dev` and `vp build`. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
 
-Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.dev/guide/.
+Docs are local at `node_modules/vite-plus/docs` or online at [https://viteplus.dev/guide/](https://viteplus.dev/guide/).
 
 ## Review Checklist
 
@@ -13,30 +13,22 @@ Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.de
 - [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation, run via `vp run <script>`.
 - [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
 
-<!--VITE PLUS END-->
-
-# Project Guide
-
 Keep this file current whenever workspace structure, scripts, architecture, public API, or verification flow changes.
 
 ## Repository Topology
 
-- `packages/panel`: the promoted public package and default API surface.
-- `packages/store`: typed panel state foundation (`@picodash/store`) that owns field schemas, strict
-  mutation and reset contracts, and repair pathways.
-- `apps/web`: production Next.js App Router website and public product experience.
+The three public products are `@picodash/dashpanel` (standalone panel shell),
+`@picodash/dashlist` (standalone list and Dashlet composition), and `@picodash/picodash`
+(integrated facade). `@picodash/store` is the application-wide typed state kernel and
+`@picodash/theme` provides shared semantic theme context and tokens. `@picodash/picodash` remains a
+integrated public facade for applications that need both products.
+
+- `apps/web`: production Next.js App Router evaluation website with one public route, `/`.
 - `apps/lab`: local-only Next.js debugging app, tested by the shared Playwright suite but not
-  deployed as part of the production website.
+  deployed as part of the production website. `/lab` is the active Contract Lab route and
+  `/audit/[id]` renders checked-in, evidence-backed visual audit reports for direct inspection.
 
-`apps/web` routes: `/`, `/examples`, `/docs`, `/docs/get-started/{manual,agent}`,
-`/docs/concepts/{state-ownership,panel-placement,dashlet-anatomy}`,
-`/docs/guides/{custom-dashlets,compound-dashlets,dashlet-themes,dashlet-accessibility}`,
-`/docs/reference/{store,panel,dashlet-components,dashlets,ui,diagnostics}`, plus compatibility
-routes `/store`, `/usage`, `/themes`, `/more-examples` and `/usage/components` redirect.
-`apps/lab` routes: `/lab` is the active Contract Lab route; `/` and `/lab` route to the same
-local lab surface.
-
-`/demo` and the former debugging routes hosted by `apps/web` are not active production routes.
+Every other public `apps/web` path returns `404`.
 
 ## Active API Model
 
@@ -63,7 +55,7 @@ Public exports include `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`,
 `destructive` for `ActionMenuItem` is the tuple `[message, title?, buttonLabel?]`
 with defaults `title = label` and `buttonLabel = 'Confirm'`.
 
-`@picodash/panel/style.css` ships complete `dark` and `light` theme recipes. `PicodashProvider
+`@picodash/picodash/style.css` ships complete `dark` and `light` theme recipes. `PicodashProvider
 theme="system"` follows `prefers-color-scheme` and reacts to preference changes. Consumers define
 named themes by overriding semantic `--picodash-*` tokens under `data-picodash-theme`; the provider
 can take a generic custom theme union such as `PicodashProvider<'brand' | 'contrast'>`.
@@ -103,16 +95,16 @@ The deployment scripts require a globally installed Vercel CLI. Install it once 
 - `bun run --filter @picodash/lab build`
 - `bun run --filter @picodash/web lint`
 - `bun run --filter @picodash/web format`
-- `bun run --filter @picodash/panel lint`
-- `bun run --filter @picodash/panel format`
-- `bun run --filter @picodash/panel check`
-- `bun run --filter @picodash/panel test`
-- `bun run --filter @picodash/panel build`
+- `bun run --filter @picodash/picodash lint`
+- `bun run --filter @picodash/picodash format`
+- `bun run --filter @picodash/picodash check`
+- `bun run --filter @picodash/picodash test`
+- `bun run --filter @picodash/picodash build`
 - `bun run --filter @picodash/web check`
 - `bun run test:e2e:web`
 - `bun run test:e2e:lab`
 - `bun audit --audit-level=high`
-- `bun run --cwd packages/panel release:check`
+- `bun run release:check`
 - `bun run ready`
 
 `bun run ready` is the full gate:
@@ -162,7 +154,7 @@ LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:lab
 ## Documentation Surfaces
 
 - `README.md`
-- `packages/panel/README.md`
+- `packages/dashpanel/README.md`
 - `SKILL.md`
 - `AGENTS.md`
 - `llms.txt`
@@ -171,19 +163,22 @@ Update all five files together when command surface, entrypoints, or architectur
 
 ## Package Boundaries
 
-- `@picodash/panel` exports remain package-owned and are used via `@picodash/panel`, `@picodash/panel/advanced`,
-  `@picodash/panel/ui`, and `@picodash/panel/style.css`.
-- `@picodash/panel/dashlet` is the structural dashlet exports surface for panel shell composition.
-- `@picodash/panel/catalog` is the public catalog utility surface.
+- `@picodash/dashpanel` owns the standalone panel shell and placement exports.
+- `@picodash/dashlist` owns standalone list, group, and Dashlet composition exports.
+- `@picodash/picodash` is the integrated facade for DashPanel and Dashlist.
+- `@picodash/picodash` exports remain package-owned and public, used via `@picodash/picodash`,
+  `@picodash/picodash/advanced`, `@picodash/picodash/ui`, and `@picodash/picodash/style.css`.
+- `@picodash/picodash/dashlet` is the structural dashlet exports surface for panel shell composition.
+- `@picodash/picodash/catalog` is the public catalog utility surface.
 - `@picodash/store` exports include `createPicodashStore` and `@picodash/store/react` selector API
   (`usePicodashStoreSelector`) for typed subscriptions; panel/dashlet integrations use typed
   `store.fields` handles as the canonical control contract.
-- Shared shadcn components live only under `packages/panel/src/components/ui`; workspace apps
-  consume `@picodash/panel/ui` and do not keep their own `components.json` or generated copies.
-- `@picodash/panel/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve
+- Shared shadcn components live in `packages/dashpanel/src/components/ui`; workspace apps
+  consume `@picodash/picodash/ui` and do not keep their own `components.json` or generated copies.
+- `@picodash/picodash/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve
   the provider portal and z-index contract and carry the nearest provider/panel theme at the portal
   root, while their inner primitives and nested submenus inherit.
-- Third-party dashlets compose package-owned UI primitives through `@picodash/panel/ui`; each public
+- Third-party dashlets compose package-owned UI primitives through `@picodash/picodash/ui`; each public
   primitive has a named `*Props` type. Prefer semantic `--picodash-*` tokens and component
   `variant`/`size` props over internal classes or raw variant helpers. Bespoke visualizations should
   use `--picodash-color-well`, `--picodash-color-data-1`, `--picodash-color-data-2`,

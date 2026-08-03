@@ -65,6 +65,8 @@ type DataState = Pick<
   | 'itemMetadata'
   | 'items'
   | 'panelId'
+  | 'scopeId'
+  | 'storeId'
   | 'repairProposal'
   | 'values'
 >
@@ -89,6 +91,9 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
   const knownItems: Record<string, PicodashRegisteredItem<Values>> = {}
   const definitionEntries = Object.entries(options.fields)
   const definitionKeys = new Set(definitionEntries.map(([key]) => key))
+  const storeId =
+    options.storeId ?? options.scopeId ?? options.panelId ?? stableStoreId(definitionKeys)
+  const panelId = options.panelId ?? storeId
   const definitions = Object.fromEntries(
     definitionEntries.map(([key, definition]) => [
       key,
@@ -151,7 +156,9 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
     interaction: initialPicodashInteractionState,
     itemMetadata: cloneItemMetadata(options.initialItemMetadata),
     items: {},
-    panelId: options.panelId,
+    panelId,
+    scopeId: options.scopeId,
+    storeId,
     repairProposal: null,
     values,
   }
@@ -328,7 +335,8 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
             defaultValue: state.fieldStates[field.key]!.defaultValue as PicodashJsonValue,
             hasCurrentValue: Object.prototype.hasOwnProperty.call(state.values, field.key),
           }),
-          panelId: options.panelId,
+          panelId,
+          scopeId: options.scopeId,
         },
       )
       if (!result.success) {
@@ -658,7 +666,9 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
     handlingAdapterWrite = true
     try {
       result = targetAdapter.setValues(completeRecord, {
-        panelId: options.panelId,
+        panelId,
+        scopeId: options.scopeId,
+        storeId,
         previousValues: clonePicodashValue(previousValues) as Values,
         source: source as Exclude<PicodashValidationSource, 'adapter' | 'default' | 'initial'>,
       })
@@ -866,7 +876,8 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
   function adapterIdentity() {
     return {
       adapterId: adapter?.id,
-      panelId: options.panelId,
+      panelId,
+      scopeId: options.scopeId,
     }
   }
 }
@@ -1046,4 +1057,18 @@ function cloneItemMetadata(metadata: PicodashItemMetadata | undefined): Picodash
     order[parentId] = [...new Set(itemIds)]
   }
   return { collapsed, order }
+}
+
+/**
+ * Stores can be created without a rendered Panel. Keep the fallback identity
+ * deterministic so SSR and hydration observe the same state without requiring
+ * a random or process-local identifier.
+ */
+function stableStoreId(keys: ReadonlySet<string>): string {
+  const suffix = [...keys]
+    .sort()
+    .map((key) => key.replace(/[^a-zA-Z0-9_-]+/g, '-'))
+    .filter(Boolean)
+    .join('-')
+  return suffix.length > 0 ? `picodash-store-${suffix}` : 'picodash-store'
 }

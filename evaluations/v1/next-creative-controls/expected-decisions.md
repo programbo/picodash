@@ -14,8 +14,8 @@
 - Bloom and quality use compatible built-in Dashlets.
 - Atmosphere is one compound `PicodashItem` with three field bindings, one ordering boundary, and
   one reset boundary.
-- The compound body uses `@picodash/panel/dashlet` for semantic structure and
-  `@picodash/panel/ui` only where a lower-level interactive primitive is needed.
+- The compound body uses `@picodash/picodash/dashlet` for semantic structure and
+  `@picodash/picodash/ui` only where a lower-level interactive primitive is needed.
 
 ## Exposure and UX
 

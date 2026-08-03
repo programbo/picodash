@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowLeft, BookOpen, Boxes } from 'lucide-react'
-import { PicodashProvider } from '@picodash/panel'
+import { PicodashProvider } from '@picodash/picodash'
 
 import { PicodashLogo } from '@/components/brand/picodash-logo'
 import { DeploymentStatusRecipe } from './deployment-status-recipe'

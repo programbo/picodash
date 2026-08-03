@@ -1,0 +1,59 @@
+{
+  "name": "@picodash/dashpanel",
+  "version": "0.0.0",
+  "description": "Draggable, dockable React panels for application interfaces.",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "style.css"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./advanced": "./dist/advanced.mjs",
+    "./catalog": "./dist/catalog.mjs",
+    "./ui": "./dist/ui.mjs",
+    "./package.json": "./package.json",
+    "./style.css": "./dist/style.css"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check": "vp check",
+    "test": "vp test --passWithNoTests",
+    "release:check": "vp check && vp run build && bun pm pack --dry-run"
+  },
+  "dependencies": {
+    "@picodash/store": "workspace:*",
+    "@picodash/theme": "workspace:*",
+    "@standard-schema/spec": "^1.1.0",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "react-aria-components": "catalog:",
+    "react-dropzone": "catalog:",
+    "recharts": "catalog:",
+    "tailwind-merge": "catalog:",
+    "yaml": "catalog:",
+    "zod": "catalog:",
+    "zustand": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@types/react": "catalog:",
+    "postcss": "catalog:",
+    "react": "catalog:",
+    "shadcn": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  }
+}

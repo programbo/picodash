@@ -1,28 +1,37 @@
 Picodash
 
-Active graph: packages/panel + apps/web + apps/lab.
+Active graph: packages/picodash + packages/dashpanel + packages/dashlist + packages/store + packages/theme + apps/web + apps/lab.
 
-Current architecture baseline: `@picodash/store` provides typed state/validation foundations;
-`@picodash/panel` provides rendering, registry, layout, and control surfaces.
+Current architecture baseline: `@picodash/store` provides application-wide typed state and validation;
+`@picodash/dashpanel` provides standalone panel shell and placement; `@picodash/dashlist` provides
+standalone list and Dashlet composition; `@picodash/picodash` combines them; `@picodash/theme`
+provides shared theme context and tokens. `@picodash/picodash` is the integrated public facade.
 
 Project status: public preview; Issues are available for feedback, and pull requests are currently disabled.
 
 Package import surface:
-- picodash
-- @picodash/panel/catalog
-- @picodash/panel/advanced
-- @picodash/panel/dashlet
-- @picodash/panel/ui
-- @picodash/panel/style.css
+- @picodash/picodash
+- @picodash/dashpanel
+- @picodash/dashlist
+- @picodash/theme
+- @picodash/picodash/catalog
+- @picodash/picodash/advanced
+- @picodash/picodash/dashlet
+- @picodash/picodash/ui
+- @picodash/picodash/style.css
+- @picodash/picodash/style.css
 - @picodash/store
 
 What it provides:
+- `@picodash/dashpanel` exports DashPanel, provider, placement, visibility, and lifecycle APIs.
+- `@picodash/dashlist` exports Dashlist, Dashlet, group, and list UI primitives.
+- `@picodash/picodash` combines DashPanel and Dashlist for integrated applications.
 - application-owned panel stores via createPicodashStore
-- PicodashProvider, PicodashPanel, PicodashItem, built-in inputs and charts
-- centralized shadcn aria-rhea primitives via @picodash/panel/ui
+- PicodashProvider, PicodashPanel, Dashlet aliases, built-in inputs, and charts via `@picodash/picodash`
+- centralized shadcn aria-rhea primitives via @picodash/picodash/ui
 - third-party dashlets can compose the same first-party Button, Card, Input, Select, Slider, Tabs,
   overlay, and form primitives; every public primitive has a named *Props type
-  and the structural shell components in `@picodash/panel/dashlet`.
+  and the structural shell components in `@picodash/picodash/dashlet`.
 - use component variant/size props and semantic --picodash-* tokens; raw implementation variant
   helpers and internal component paths are not part of the public UI contract
 - public visualization tokens include --picodash-color-well, --picodash-color-data-1,
@@ -61,19 +70,13 @@ What it provides:
 - import/export and repair flows
 
 Production pages (`apps/web`):
-- `/`, `/examples`, and `/docs` plus canonical docs routes:
-  - `/docs/get-started/{manual,agent}`
-  - `/docs/concepts/{state-ownership,panel-placement,dashlet-anatomy}`
-  - `/docs/guides/{custom-dashlets,compound-dashlets,dashlet-themes,dashlet-accessibility}`
-  - `/docs/reference/{store,panel,dashlet-components,dashlets,ui,diagnostics}`
-- `/store`, `/usage`, `/themes`, `/more-examples` are compatibility routes.
-- `/usage/components` redirects to `/docs/reference/dashlet-components`.
+- `/` is the only public route.
+- all other public paths return `404`.
 
 Local debugging pages (`apps/lab`, not deployed with the production website):
-- `/` and `/lab` route to the same local Contract Lab surface
-- /lab is the active Contract Lab route and debug surface
+- `/` and `/lab` render the Contract Lab; `/lab` is the active named debug route
 
-Only the listed `/apps/web` routes are active production routes.
+Only `/` is an active production route.
 
 App surface mapping:
 - apps/web: production Next.js website
@@ -95,7 +98,7 @@ Ports:
 
 Docs to keep aligned:
 - README.md
-- packages/panel/README.md
+- packages/dashpanel/README.md
 - CONTRIBUTING.md
 - SECURITY.md
 - RELEASING.md
@@ -109,11 +112,11 @@ Verification:
 - bun run format
 - bun run --filter @picodash/web lint
 - bun run --filter @picodash/web format
-- bun run --filter @picodash/panel lint
-- bun run --filter @picodash/panel format
-- vp run @picodash/panel#build before workspace-wide checks or builds
+- bun run --filter @picodash/picodash lint
+- bun run --filter @picodash/picodash format
+- vp run @picodash/picodash#build before workspace-wide checks or builds
 - bun audit --audit-level=high
-- bun run --cwd packages/panel release:check
+- bun run release:check (all publishable packages)
 - bun run ready
 - bun run web
 - bun run lab

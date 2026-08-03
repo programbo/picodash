@@ -1,17 +1,19 @@
 ---
 name: picodash
-description: Use the promoted Picodash package with application-owned stores and composable panels.
+description: Use the Picodash package family with application-owned stores, DashPanels, and Dashlists.
 ---
 
 # Picodash Package Usage
 
-This workspace uses the promoted `@picodash/panel` API and `@picodash/store` as the typed panel
-state foundation.
+This workspace uses three public products: `@picodash/picodash` as the integrated facade,
+`@picodash/dashpanel` for a standalone panel shell, and `@picodash/dashlist` for standalone list
+and Dashlet composition. `@picodash/store` is the application-wide typed state kernel and
+`@picodash/theme` provides shared theme context and tokens. `@picodash/picodash` is the integrated
+public facade.
 
-The production website serves the canonical interactive control home at `/`. A separate local-only
-app exposes debugging workflows under `/lab/*`; those routes are not deployed with the website.
-Legacy web routes are compatibility surfaces, and the active `/apps/web` surface follows the current
-topology below.
+The production website is a single evaluation route at `/`. A separate local-only app exposes
+debugging workflows under `/lab/*`; those routes are not deployed with the website. Other web paths
+return `404`.
 
 Canonical references:
 
@@ -23,16 +25,16 @@ Canonical references:
 ## Preferred Imports
 
 ```tsx
-import { PicodashItem, PicodashPanel, PicodashProvider } from '@picodash/panel'
+import { DashPanel, DashPanelProvider, Dashlet } from '@picodash/picodash'
 import { createPicodashStore } from '@picodash/store'
 import { usePicodashStoreSelector } from '@picodash/store/react'
-import '@picodash/panel/style.css'
+import '@picodash/picodash/style.css'
 ```
 
-Use package-owned shadcn components through `@picodash/panel/ui` rather than adding another generated copy
+Use package-owned shadcn components through `@picodash/picodash/ui` rather than adding another generated copy
 to a consuming workspace. This surface uses React Aria prop and state conventions.
 
-Use `@picodash/panel/dashlet` for compound panel shells (`Frame`, `Body`, `Toolbar`, and related stateful
+Use `@picodash/picodash/dashlet` for compound panel shells (`Frame`, `Body`, `Toolbar`, and related stateful
 structures), and reserve `/ui` for low-level controls and primitives.
 
 ## Quick Start Pattern
@@ -54,15 +56,10 @@ export const settingsStore = createPicodashStore({
 
 2. Read values with selectors inside the component that consumes them.
 
-3. Render `PicodashProvider` and `PicodashPanel`.
+3. Render `DashPanelProvider` and `DashPanel`.
 
 ```tsx
-import {
-  PicodashPanel,
-  PicodashPanelTrigger,
-  PicodashProvider,
-  PicodashSwitch,
-} from '@picodash/panel'
+import { DashPanel, DashPanelProvider, DashPanelTrigger, SwitchDashlet } from '@picodash/picodash'
 import { settingsStore } from './settings-store'
 import { usePicodashStoreSelector } from '@picodash/store/react'
 
@@ -72,13 +69,13 @@ export function SiteControls() {
   })
 
   return (
-    <PicodashProvider theme="system" persistLayout storageKey="my-site:picodash-layout:v2">
+    <DashPanelProvider theme="system" persistLayout storageKey="my-site:picodash-layout:v2">
       <main style={{ opacity: exposure }}>App content</main>
-      <PicodashPanelTrigger store={settingsStore} variant="outline">
+      <DashPanelTrigger store={settingsStore} variant="outline">
         Open settings panel
-      </PicodashPanelTrigger>
+      </DashPanelTrigger>
 
-      <PicodashPanel
+      <DashPanel
         defaultVisible={false}
         store={settingsStore}
         title="Settings"
@@ -87,9 +84,9 @@ export function SiteControls() {
           disposition: { kind: 'snapped', position: 'top-right' },
         }}
       >
-        <PicodashSwitch field={settingsStore.fields.showGrid} label="Show grid" />
-      </PicodashPanel>
-    </PicodashProvider>
+        <SwitchDashlet field={settingsStore.fields.showGrid} label="Show grid" />
+      </DashPanel>
+    </DashPanelProvider>
   )
 }
 ```
@@ -123,10 +120,10 @@ export function SiteControls() {
 - Use `setFieldValue` / `setFieldValues` for strict app writes.
 - Use `setFieldInput` for interactive editors that should retain transient drafts.
 - Use `PicodashItem`, `PicodashGroup`, and built-in items for custom compositions.
-- Use `@picodash/panel/advanced` only when a task needs focused provider state through
+- Use `@picodash/picodash/advanced` only when a task needs focused provider state through
   `usePicodashProviderSelector`, imperative provider access through `usePicodashProviderStoreApi`, or
   contextual panel access through `usePicodashPanelSelector` / `usePicodashPanelStoreApi`.
-- Use `@picodash/panel/ui` for shared `aria-rhea` Button, Card, Tabs, overlay, and form primitives
+- Use `@picodash/picodash/ui` for shared `aria-rhea` Button, Card, Tabs, overlay, and form primitives
   when composing bespoke dashlets. Import named `*Props` types from the same entrypoint, use
   component `variant`/`size` props instead of raw class helpers, and style custom surfaces with
   semantic `--picodash-*` tokens from the package stylesheet, including
@@ -161,7 +158,7 @@ export function SiteControls() {
   geometry.
 - Fixed `full-left` and `full-right` placements fill the effective boundary height. Start/end pinned lanes
   remain visible while only the auto lane scrolls. Every root scrollport receives the bundled
-  `scroll-fade` utility from `@picodash/panel/style.css`.
+  `scroll-fade` utility from `@picodash/picodash/style.css`.
 
 ## Validation and State
 
@@ -178,8 +175,10 @@ export function SiteControls() {
 
 ## Migration Notes
 
-This repository is on the promoted API. Only canonical Picodash persistence records hydrate;
-invalid or obsolete records start from declared defaults.
+The public package model is `@picodash/picodash`, `@picodash/dashpanel`, and
+`@picodash/dashlist`, with `@picodash/store` and `@picodash/theme` as shared foundations. Only
+canonical Picodash persistence records hydrate; invalid or obsolete records start from declared
+defaults.
 Built-ins and compound dashlets use typed field handles from `@picodash/store`.
 
 ## Workspace App Surfaces
@@ -189,21 +188,12 @@ Built-ins and compound dashlets use typed field handles from `@picodash/store`.
 
 `apps/web` route topology:
 
-- `/` renders the home page.
-- `/examples` is the curated example gallery.
-- `/docs` is the docs umbrella route.
-- Canonical docs routes:
-  - `/docs/get-started/{manual,agent}`
-  - `/docs/concepts/{state-ownership,panel-placement,dashlet-anatomy}`
-  - `/docs/guides/{custom-dashlets,compound-dashlets,dashlet-themes,dashlet-accessibility}`
-  - `/docs/reference/{store,panel,dashlet-components,dashlets,ui,diagnostics}`
-- `/store`, `/usage`, `/themes`, `/more-examples` are compatibility routes.
-- `/usage/components` redirects to `/docs/reference/dashlet-components`.
-- not-found fallback for every other path.
+- `/` renders the evaluation website.
+- every other public path returns `404`.
 
 `apps/lab` route topology:
 
-- `/` and `/lab` both route to the local Contract Lab surface.
+- `/` and `/lab` render the local Contract Lab surface and are not deployed with the website.
 
 ## Local Development
 
@@ -226,20 +216,25 @@ The deployment scripts require a globally installed Vercel CLI. Install it once 
 - `bun run --filter @picodash/lab build`
 - `bun run --filter @picodash/web lint`
 - `bun run --filter @picodash/web format`
-- `bun run --filter @picodash/panel lint`
-- `bun run --filter @picodash/panel format`
-- `bun run --filter @picodash/panel check`
-- `bun run --filter @picodash/panel test`
+- `bun run --filter @picodash/picodash lint`
+- `bun run --filter @picodash/picodash format`
+- `bun run --filter @picodash/picodash check`
+- `bun run --filter @picodash/picodash test`
+- `bun run --filter @picodash/dashpanel check`
+- `bun run --filter @picodash/dashlist check`
+- `bun run --filter @picodash/picodash check`
+- `bun run --filter @picodash/theme check`
+- `bun run --filter @picodash/store check`
 - `bun run --filter @picodash/web check`
 - `bun run test:e2e:web`
 - `bun run test:e2e:lab`
 - `bun audit --audit-level=high`
-- `bun run --cwd packages/panel release:check`
+- `bun run release:check` (all publishable packages)
 - `bun run ready`
 
 Focused validation:
 
-- `vp run @picodash/panel#build` before workspace-wide checks or builds.
+- `vp run @picodash/picodash#build` before workspace-wide checks or builds.
 - `LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:web`
 - `LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:lab`
 - `apps/web/tests/routes.spec.ts` verifies the production route boundary and local lab

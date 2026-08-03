@@ -2,9 +2,9 @@
 
 import { useEffect, useRef } from 'react'
 import { Check, RotateCcw, ShieldAlert } from 'lucide-react'
-import { PicodashItem, PicodashPanel } from '@picodash/panel'
-import * as Dashlet from '@picodash/panel/dashlet'
-import { Button, ProgressBar, ProgressFill, ProgressTrack } from '@picodash/panel/ui'
+import { PicodashItem, PicodashPanel } from '@picodash/picodash'
+import * as Dashlet from '@picodash/picodash/dashlet'
+import { Button, ProgressBar, ProgressFill, ProgressTrack } from '@picodash/picodash/ui'
 import { usePicodashStoreSelector } from '@picodash/store/react'
 
 import { deploymentStatusStore } from './example-stores'

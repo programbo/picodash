@@ -1,6 +1,6 @@
 'use client'
 
-import { PicodashDisplay, PicodashGroup, PicodashPanel } from '@picodash/panel'
+import { PicodashDisplay, PicodashGroup, PicodashPanel } from '@picodash/picodash'
 import { createPicodashStore } from '@picodash/store'
 import Link from 'next/link'
 import { useRef, useState, type ReactNode } from 'react'

@@ -32,6 +32,7 @@ export interface PicodashDiagnosticIdentity {
   readonly importPath?: string
   readonly itemId?: string
   readonly panelId?: string
+  readonly scopeId?: string
 }
 
 export interface PicodashDiagnosticInput {
@@ -70,6 +71,7 @@ const IDENTITY_KEYS = [
   'adapterId',
   'bindingId',
   'importPath',
+  'scopeId',
 ] as const satisfies readonly (keyof PicodashDiagnosticIdentity)[]
 
 export function getPicodashDocumentationUrl(code: PicodashErrorCode): string {

@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Pause, Play, RotateCcw } from 'lucide-react'
-import { PicodashItem, PicodashPanel } from '@picodash/panel'
-import * as Dashlet from '@picodash/panel/dashlet'
-import { Button, Meter, MeterFill, MeterTrack } from '@picodash/panel/ui'
+import { PicodashItem, PicodashPanel } from '@picodash/picodash'
+import * as Dashlet from '@picodash/picodash/dashlet'
+import { Button, Meter, MeterFill, MeterTrack } from '@picodash/picodash/ui'
 import { usePicodashStoreSelector } from '@picodash/store/react'
 
 import { performanceHealthStore } from './example-stores'

@@ -20,29 +20,29 @@ changes; do not delete an old test until its admitted replacement is green.
 
 Target keys are planned ownership, not compatibility suites:
 
-| Key             | Owner and target file                                   | Cohesive contract                                               |
-| --------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
-| `S-validation`  | Store — `packages/store/tests/validation.test.ts`       | drafts, validation, repair, reset, atomic writes                |
-| `S-documents`   | Store — `packages/store/tests/documents.test.ts`        | JSON/YAML documents, import/export analysis, adapters           |
-| `S-ordering`    | Store — `packages/store/tests/ordering.test.ts`         | order matrices, bands, cancellation, exclusivity                |
-| `S-lifecycle`   | Store — `packages/store/tests/lifecycle.test.ts`        | registration, visibility-independent item state                 |
-| `P-contract`    | Panel — `packages/panel/tests/public-contract.test.tsx` | exports, types, render and semantic DOM                         |
-| `P-builtins`    | Panel — `packages/panel/tests/built-ins.test.tsx`       | built-in Dashlet render, ARIA and value wiring                  |
-| `P-geometry`    | Panel — `packages/panel/tests/panel-geometry.test.ts`   | deterministic projection, intent and constraints                |
-| `P-overlays`    | Panel — `packages/panel/tests/overlays.test.tsx`        | menu/dialog composition, portal and theme carriers              |
-| `P-theme`       | Panel — `packages/panel/tests/theme-contract.test.tsx`  | semantic tokens and theme render contracts                      |
-| `P-provider`    | Panel — `packages/panel/tests/provider.test.tsx`        | provider registration, placement persistence, boundaries        |
-| `P-velocity`    | Panel — `packages/panel/tests/pointer-velocity.test.ts` | pointer sample algorithm                                        |
-| `L-placement`   | Lab — `apps/lab/tests/placement.spec.ts`                | real geometry, drag, snap, dock, detach, boundary, persistence  |
-| `L-interaction` | Lab — `apps/lab/tests/interaction.spec.ts`              | pointer/keyboard reorder, focus, hover, close/reopen            |
-| `L-composition` | Lab — `apps/lab/tests/composition.spec.ts`              | built-ins, recipes, inputs, media, streaming and states         |
-| `L-overlays`    | Lab — `apps/lab/tests/overlays.spec.ts`                 | menus, dialogs, portals, stacking and dismissal                 |
-| `L-documents`   | Lab — `apps/lab/tests/documents.spec.ts`                | repair/import/export and cross-Panel workflows                  |
-| `L-themes`      | Lab — `apps/lab/tests/themes.spec.ts`                   | system/custom themes, overrides, contrast, zoom, reduced motion |
-| `W-home`        | Web — `apps/web/tests/home.spec.ts`                     | desktop/mobile homepage scenarios and persistent shell          |
-| `W-docs`        | Web — `apps/web/tests/docs.spec.ts`                     | documentation navigation, prompt copying, catalog references    |
-| `W-routes`      | Web — `apps/web/tests/routes.spec.ts`                   | redirects and production/Lab route boundary                     |
-| `W-examples`    | Web — `apps/web/tests/examples.spec.ts`                 | public examples, lazy loading and no-error baseline             |
+| Key             | Owner and target file                             | Cohesive contract                                               |
+| --------------- | ------------------------------------------------- | --------------------------------------------------------------- |
+| `S-validation`  | Store — `packages/store/tests/validation.test.ts` | drafts, validation, repair, reset, atomic writes                |
+| `S-documents`   | Store — `packages/store/tests/documents.test.ts`  | JSON/YAML documents, import/export analysis, adapters           |
+| `S-ordering`    | Store — `packages/store/tests/ordering.test.ts`   | order matrices, bands, cancellation, exclusivity                |
+| `S-lifecycle`   | Store — `packages/store/tests/lifecycle.test.ts`  | registration, visibility-independent item state                 |
+| `P-contract`    | DashPanel — `packages/dashpanel/src`              | exports, types, render and semantic DOM                         |
+| `P-builtins`    | DashPanel — `packages/dashpanel/src`              | built-in input/render, ARIA and value wiring                    |
+| `P-geometry`    | DashPanel — `packages/dashpanel/src`              | deterministic projection, intent and constraints                |
+| `P-overlays`    | DashPanel — `packages/dashpanel/src`              | menu/dialog composition, portal and theme carriers              |
+| `P-theme`       | DashPanel — `packages/dashpanel/src`              | semantic tokens and theme render contracts                      |
+| `P-provider`    | DashPanel — `packages/dashpanel/src`              | provider registration, placement persistence, boundaries        |
+| `P-velocity`    | DashPanel — `packages/dashpanel/src`              | pointer sample algorithm                                        |
+| `L-placement`   | Lab — `apps/lab/tests/placement.spec.ts`          | real geometry, drag, snap, dock, detach, boundary, persistence  |
+| `L-interaction` | Lab — `apps/lab/tests/interaction.spec.ts`        | pointer/keyboard reorder, focus, hover, close/reopen            |
+| `L-composition` | Lab — `apps/lab/tests/composition.spec.ts`        | built-ins, recipes, inputs, media, streaming and states         |
+| `L-overlays`    | Lab — `apps/lab/tests/overlays.spec.ts`           | menus, dialogs, portals, stacking and dismissal                 |
+| `L-documents`   | Lab — `apps/lab/tests/documents.spec.ts`          | repair/import/export and cross-Panel workflows                  |
+| `L-themes`      | Lab — `apps/lab/tests/themes.spec.ts`             | system/custom themes, overrides, contrast, zoom, reduced motion |
+| `W-home`        | Web — `apps/web/tests/home.spec.ts`               | desktop/mobile homepage scenarios and persistent shell          |
+| `W-docs`        | Web — `apps/web/tests/docs.spec.ts`               | documentation navigation, prompt copying, catalog references    |
+| `W-routes`      | Web — `apps/web/tests/routes.spec.ts`             | redirects and production/Lab route boundary                     |
+| `W-examples`    | Web — `apps/web/tests/examples.spec.ts`           | public examples, lazy loading and no-error baseline             |
 
 ## `built-in-items.spec.ts` — 13 current tests
 

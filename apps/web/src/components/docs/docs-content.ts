@@ -143,7 +143,7 @@ export const docsConcepts = {
       'Compose hierarchy as provider → panel → group → item; use dashlet components for readout structure.',
     sections: [
       'Use `PicodashPanel` for positioning and `PicodashGroup` for ordering and disclosure boundaries.',
-      'Use `PicodashItem` for single bound controls and `@picodash/panel/dashlet` for readout structure.',
+      'Use `PicodashItem` for single bound controls and `@picodash/picodash/dashlet` for readout structure.',
       'Preserve stable IDs on groups and items; state and reorder use this identity.',
     ],
     related: [
@@ -160,8 +160,8 @@ export type ConceptSlug = keyof typeof docsConcepts
 export const docsConceptsIndex = Object.values(docsConcepts)
 
 export const docsSnippets = {
-  install: `bun add @picodash/panel @picodash/store`,
-  stylesheet: `import '@picodash/panel/style.css'`,
+  install: `bun add @picodash/picodash @picodash/store`,
+  stylesheet: `import '@picodash/picodash/style.css'`,
   createStore: `import { createPicodashStore } from '@picodash/store'
 
 export const dashboardStore = createPicodashStore({
@@ -172,7 +172,7 @@ export const dashboardStore = createPicodashStore({
     quality: { defaultValue: 'balanced' },
   },
 })`,
-  agentChecklist: `bun add @picodash/panel @picodash/store
+  agentChecklist: `bun add @picodash/picodash @picodash/store
 bun install
 bun run lint
 bun run build`,
@@ -183,9 +183,9 @@ bun run build`,
   PicodashSelect,
   PicodashSlider,
   PicodashSwitch,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 import { createPicodashStore } from '@picodash/store'
-import '@picodash/panel/style.css'
+import '@picodash/picodash/style.css'
 
 export const dashboardStore = createPicodashStore({
   panelId: 'scene-controls',
@@ -229,7 +229,7 @@ export function SceneControlPanel() {
   CopySubmenu,
   ExportSubmenu,
   PicodashPanel,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 
 <PicodashPanel
   store={dashboardStore}
@@ -249,7 +249,7 @@ export function SceneControlPanel() {
   panelVisibility: `import {
   PicodashPanel,
   usePicodashPanel,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 import { createPicodashStore } from '@picodash/store'
 
 const settingsStore = createPicodashStore({
@@ -276,8 +276,8 @@ function SceneControls() {
   )
 }
 `,
-  dashlet: `import * as Dashlet from '@picodash/panel/dashlet'
-import { PicodashItem } from '@picodash/panel'
+  dashlet: `import * as Dashlet from '@picodash/picodash/dashlet'
+import { PicodashItem } from '@picodash/picodash'
 
 function QualityReadout() {
   return (
@@ -297,8 +297,8 @@ function QualityReadout() {
     </PicodashItem>
   )
 }`,
-  compoundDashlet: `import * as Dashlet from '@picodash/panel/dashlet'
-import { PicodashItem } from '@picodash/panel'
+  compoundDashlet: `import * as Dashlet from '@picodash/picodash/dashlet'
+import { PicodashItem } from '@picodash/picodash'
 import { createPicodashStore } from '@picodash/store'
 
 const performanceStore = createPicodashStore({
@@ -347,9 +347,9 @@ function RenderHealthDashlet() {
   themes: `import {
   PicodashPanel,
   PicodashProvider,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 
-import '@picodash/panel/style.css'
+import '@picodash/picodash/style.css'
 import './theme-overrides.css'
 
 <PicodashProvider theme="system">
@@ -365,7 +365,7 @@ import './theme-overrides.css'
   --picodash-color-border: oklch(0.58 0.06 230);
 }
 `,
-  accessibility: `import { PicodashItem } from '@picodash/panel'
+  accessibility: `import { PicodashItem } from '@picodash/picodash'
 
 <PicodashItem
   field={dashboardStore.fields.exposure}

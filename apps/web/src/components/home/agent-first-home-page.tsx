@@ -9,11 +9,11 @@ import {
 } from '@/components/items/built-in/built-in-items-panel'
 import { DocsCodeBlock } from '@/components/docs/docs-shell'
 import { HomeContent, HomeFrame } from '@/components/home/home-frame'
-import { PicodashPanelTrigger, usePicodashPanel } from '@picodash/panel'
+import { PicodashPanelTrigger, usePicodashPanel } from '@picodash/picodash'
 import { AgentFirstHostScene } from '@/components/home/agent-first-host-scene'
 import { AgentFirstScenarios } from '@/components/home/agent-first-scenarios'
 
-const panelFlowSource = `import { PicodashPanel } from '@picodash/panel'
+const panelFlowSource = `import { PicodashPanel } from '@picodash/picodash'
 import { createPicodashStore } from '@picodash/store'
 
 const sceneStore = createPicodashStore({
@@ -28,8 +28,8 @@ function ScenePanel() {
   return <PicodashPanel store={sceneStore} title="Scene controls" />
 }`
 
-const dashletFlowSource = `import * as Dashlet from '@picodash/panel/dashlet'
-import { PicodashItem } from '@picodash/panel'
+const dashletFlowSource = `import * as Dashlet from '@picodash/picodash/dashlet'
+import { PicodashItem } from '@picodash/picodash'
 
 function RenderReadout() {
   return (

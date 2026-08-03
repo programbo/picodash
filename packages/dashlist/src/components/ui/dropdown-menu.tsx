@@ -1,0 +1,324 @@
+'use client'
+
+import * as React from 'react'
+import { cva } from 'class-variance-authority'
+import {
+  composeRenderProps,
+  Header as HeaderPrimitive,
+  MenuItem as MenuItemPrimitive,
+  Menu as MenuPrimitive,
+  MenuSection as MenuSectionPrimitive,
+  MenuTrigger as MenuTriggerPrimitive,
+  Popover as PopoverPrimitive,
+  Separator as SeparatorPrimitive,
+  SubmenuTrigger as SubmenuTriggerPrimitive,
+  type MenuItemProps as MenuItemPrimitiveProps,
+  type MenuProps as MenuPrimitiveProps,
+  type MenuSectionProps as MenuSectionPrimitiveProps,
+  type PopoverProps as PopoverPrimitiveProps,
+} from 'react-aria-components'
+
+import { cn } from '../../lib/utils.js'
+import { CheckIcon, ChevronRightIcon } from 'lucide-react'
+import {
+  PortalLayerZIndexProvider,
+  resolvePortalLayerZIndex,
+  useParentPortalLayerZIndex,
+} from '../../lib/portal/portal-layer-context.js'
+import { usePicodashTheme } from '../../lib/theme/picodash-theme-context.js'
+import {
+  portalLayerZIndexForState,
+  useOptionalPicodashProviderContext,
+} from '../../state/provider/picodash-provider.js'
+
+const standaloneProviderState = { panelOrder: [] as string[] }
+const standaloneProviderSubscribe = () => () => undefined
+const standaloneProviderSnapshot = () => standaloneProviderState
+
+const DropdownMenuContext = React.createContext<{
+  theme: string
+  portalContainer?: Element | null
+  zIndexFloor?: number
+} | null>(null)
+
+function DropdownMenuTrigger({ ...props }: React.ComponentProps<typeof MenuTriggerPrimitive>) {
+  return <MenuTriggerPrimitive data-slot="dropdown-menu-trigger" {...props} />
+}
+
+function DropdownMenu({
+  className,
+  children,
+  popoverClassName,
+  popoverProps,
+  popoverStyle,
+  portalContainer,
+  ...menuProps
+}: Omit<MenuPrimitiveProps<object>, 'children' | 'className' | 'style'> & {
+  children?: React.ReactNode
+  className?: string
+  popoverClassName?: string
+  popoverProps?: Omit<
+    PopoverPrimitiveProps,
+    'children' | 'className' | 'style' | 'UNSTABLE_portalContainer'
+  >
+  popoverStyle?: PopoverPrimitiveProps['style']
+  portalContainer?: Element | null
+}) {
+  const parentContext = React.useContext(DropdownMenuContext)
+  const inheritedTheme = usePicodashTheme()
+  const theme = parentContext?.theme ?? inheritedTheme
+  const parentLayerZIndex = useParentPortalLayerZIndex()
+  const provider = useOptionalPicodashProviderContext()
+  const providerState = React.useSyncExternalStore(
+    provider?.store.subscribe ?? standaloneProviderSubscribe,
+    provider?.store.getState ?? standaloneProviderSnapshot,
+    provider?.store.getState ?? standaloneProviderSnapshot,
+  )
+  const zIndexFloor = provider ? portalLayerZIndexForState(providerState, 3) : undefined
+  // React Aria mounts nested submenus into their parent popover's internal
+  // container. Forwarding the provider's full-screen portal here would place
+  // the submenu behind the root underlay and break pointer interaction.
+  const resolvedPortalContainer = parentContext
+    ? undefined
+    : portalContainer === undefined
+      ? provider?.portalContainer
+      : portalContainer
+  const effectiveZIndexFloor = parentContext?.zIndexFloor ?? (provider ? zIndexFloor : undefined)
+  const resolvedZIndex =
+    popoverStyle && typeof popoverStyle !== 'function' && popoverStyle.zIndex !== undefined
+      ? popoverStyle.zIndex
+      : resolvePortalLayerZIndex({
+          cssVariable: '--picodash-layer-menu',
+          floor: effectiveZIndexFloor,
+          parentOffset: 3,
+          parentZIndex: parentContext ? undefined : parentLayerZIndex,
+        })
+  const childLayerZIndex = resolvedZIndex ?? 'var(--picodash-layer-menu)'
+  return (
+    <DropdownMenuContext.Provider
+      value={{
+        theme,
+        portalContainer: resolvedPortalContainer,
+        zIndexFloor: effectiveZIndexFloor,
+      }}
+    >
+      <PortalLayerZIndexProvider zIndex={childLayerZIndex}>
+        <PopoverPrimitive
+          {...popoverProps}
+          data-slot="dropdown-menu-content"
+          data-picodash-theme={theme}
+          placement={popoverProps?.placement ?? 'bottom start'}
+          offset={popoverProps?.offset ?? 4}
+          crossOffset={popoverProps?.crossOffset ?? 0}
+          UNSTABLE_portalContainer={resolvedPortalContainer ?? undefined}
+          className={cn(
+            'text-picodash-text ring-picodash-text/5 data-entering:animate-in data-entering:fade-in-0 data-entering:zoom-in-95 data-exiting:animate-out data-exiting:fade-out-0 data-[placement=bottom]:slide-in-from-top-2 data-[placement=left]:slide-in-from-right-2 data-[placement=right]:slide-in-from-left-2 data-[placement=top]:slide-in-from-bottom-2 **:data-[slot$=-item]:data-focused:bg-picodash-text/10 bg-picodash-surface-raised/70 **:data-[slot$=-item]:focus:bg-picodash-text/10 **:data-[slot$=-item]:data-highlighted:bg-picodash-text/10 **:data-[slot$=-separator]:bg-picodash-text/5 **:data-[slot$=-trigger]:focus:bg-picodash-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-picodash-text/10! **:data-[variant=destructive]:focus:bg-picodash-text/10! **:data-[variant=destructive]:text-picodash-text! **:data-[variant=destructive]:**:text-picodash-text! rounded-picodash-surface pointer-events-auto relative z-(--picodash-layer-menu) max-h-(--available-height) w-(--trigger-width) min-w-32 origin-(--trigger-anchor-point) animate-none! overflow-x-hidden overflow-y-auto p-1 shadow-(--picodash-shadow-md) ring-1 duration-(--picodash-duration-fast) outline-none before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-(--picodash-blur-surface) before:backdrop-saturate-150 data-exiting:overflow-hidden',
+            popoverClassName,
+          )}
+          style={
+            typeof popoverStyle === 'function'
+              ? (values) => {
+                  const style = popoverStyle(values)
+                  return {
+                    ...style,
+                    ...(style?.zIndex === undefined && resolvedZIndex !== undefined
+                      ? { zIndex: resolvedZIndex }
+                      : {}),
+                  }
+                }
+              : {
+                  ...popoverStyle,
+                  ...(resolvedZIndex === undefined ? {} : { zIndex: resolvedZIndex }),
+                }
+          }
+        >
+          <MenuPrimitive
+            className={cn(
+              'max-h-[inherit] overflow-x-hidden overflow-y-auto outline-hidden',
+              className,
+            )}
+            {...menuProps}
+          >
+            {children}
+          </MenuPrimitive>
+        </PopoverPrimitive>
+      </PortalLayerZIndexProvider>
+    </DropdownMenuContext.Provider>
+  )
+}
+
+function DropdownMenuGroup({
+  ...props
+}: Omit<MenuSectionPrimitiveProps<object>, 'children'> & {
+  children?: React.ReactNode
+}) {
+  return <MenuSectionPrimitive data-slot="dropdown-menu-group" {...props} />
+}
+
+function DropdownMenuLabel({
+  className,
+  inset,
+  ...props
+}: React.ComponentProps<typeof HeaderPrimitive> & {
+  inset?: boolean
+}) {
+  return (
+    <HeaderPrimitive
+      data-slot="dropdown-menu-label"
+      data-inset={inset}
+      className={cn('text-picodash-muted px-2 py-1 text-xs data-inset:pl-7', className)}
+      {...props}
+    />
+  )
+}
+
+const dropdownMenuItemVariants = cva(
+  'group/dropdown-menu-item relative flex cursor-default items-center outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  {
+    variants: {
+      selectionMode: {
+        none: "min-h-7 gap-2 rounded-picodash-control px-2 py-1.5 text-sm focus:bg-picodash-surface-muted focus:text-picodash-text not-data-[variant=destructive]:focus:**:text-picodash-text data-inset:pl-7 data-[variant=destructive]:text-picodash-danger data-[variant=destructive]:focus:bg-picodash-danger/10 data-[variant=destructive]:focus:text-picodash-danger [&_svg:not([class*='size-'])]:size-4 data-[variant=destructive]:*:[svg]:text-picodash-danger",
+        single:
+          "min-h-7 gap-2 rounded-picodash-control py-1.5 pr-8 pl-2 text-sm focus:bg-picodash-surface-muted focus:text-picodash-text focus:**:text-picodash-text data-inset:pl-7 [&_svg:not([class*='size-'])]:size-4",
+        multiple:
+          "min-h-7 gap-2 rounded-picodash-control py-1.5 pr-8 pl-2 text-sm focus:bg-picodash-surface-muted focus:text-picodash-text focus:**:text-picodash-text data-inset:pl-7 [&_svg:not([class*='size-'])]:size-4",
+      },
+    },
+  },
+)
+
+function DropdownMenuItem({
+  className,
+  inset,
+  variant = 'default',
+  children,
+  ...props
+}: MenuItemPrimitiveProps<object> & {
+  inset?: boolean
+  variant?: 'default' | 'destructive'
+}) {
+  return (
+    <MenuItemPrimitive
+      data-slot="dropdown-menu-item"
+      data-inset={inset}
+      data-variant={variant}
+      textValue={typeof children === 'string' ? children : props.textValue}
+      className={composeRenderProps(className, (className, { selectionMode }) =>
+        cn(dropdownMenuItemVariants({ selectionMode }), className),
+      )}
+      {...props}
+    >
+      {composeRenderProps(children, (children, { isSelected, selectionMode }) => (
+        <>
+          {selectionMode !== 'none' ? (
+            <span
+              className="pointer-events-none absolute right-2 flex items-center justify-center"
+              data-slot={
+                selectionMode === 'single'
+                  ? 'dropdown-menu-radio-item-indicator'
+                  : 'dropdown-menu-checkbox-item-indicator'
+              }
+            >
+              {isSelected ? <CheckIcon /> : null}
+            </span>
+          ) : null}
+          {children}
+        </>
+      ))}
+    </MenuItemPrimitive>
+  )
+}
+
+function DropdownMenuSub({ ...props }: React.ComponentProps<typeof SubmenuTriggerPrimitive>) {
+  return <SubmenuTriggerPrimitive data-slot="dropdown-menu-sub" {...props} />
+}
+
+function DropdownMenuSubTrigger({
+  className,
+  inset,
+  children,
+  ...props
+}: MenuItemPrimitiveProps<object> & {
+  inset?: boolean
+}) {
+  return (
+    <MenuItemPrimitive
+      data-slot="dropdown-menu-sub-trigger"
+      data-inset={inset}
+      textValue={typeof children === 'string' ? children : props.textValue}
+      className={cn(
+        "focus:bg-picodash-surface-muted focus:text-picodash-text not-data-[variant=destructive]:focus:**:text-picodash-text data-open:bg-picodash-surface-muted data-open:text-picodash-text rounded-picodash-control flex min-h-7 cursor-default items-center gap-2 px-2 py-1.5 text-sm outline-hidden select-none data-inset:pl-7 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      {...props}
+    >
+      {composeRenderProps(children, (children) => (
+        <>
+          {children}
+          <ChevronRightIcon className="ml-auto" />
+        </>
+      ))}
+    </MenuItemPrimitive>
+  )
+}
+
+function DropdownMenuSubContent({
+  popoverClassName,
+  popoverProps,
+  ...props
+}: React.ComponentProps<typeof DropdownMenu>) {
+  return (
+    <DropdownMenu
+      popoverClassName={cn(
+        'text-picodash-text ring-picodash-text/5 bg-picodash-surface-raised/70 **:data-[slot$=-item]:focus:bg-picodash-text/10 **:data-[slot$=-item]:data-highlighted:bg-picodash-text/10 **:data-[slot$=-separator]:bg-picodash-text/5 **:data-[slot$=-trigger]:focus:bg-picodash-text/10 **:data-[slot$=-trigger]:aria-expanded:bg-picodash-text/10! **:data-[variant=destructive]:focus:bg-picodash-text/10! **:data-[variant=destructive]:text-picodash-text! **:data-[variant=destructive]:**:text-picodash-text! rounded-picodash-surface relative w-auto min-w-24 animate-none! p-1 shadow-(--picodash-shadow-md) ring-1 duration-(--picodash-duration-fast) before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-(--picodash-blur-surface) before:backdrop-saturate-150',
+        popoverClassName,
+      )}
+      popoverProps={{
+        placement: 'end top',
+        crossOffset: -3,
+        offset: 0,
+        ...popoverProps,
+      }}
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof SeparatorPrimitive>) {
+  return (
+    <SeparatorPrimitive
+      data-slot="dropdown-menu-separator"
+      className={cn('bg-picodash-border/50 -mx-1 my-1 h-px', className)}
+      {...props}
+    />
+  )
+}
+
+function DropdownMenuShortcut({ className, ...props }: React.ComponentProps<'span'>) {
+  return (
+    <span
+      data-slot="dropdown-menu-shortcut"
+      className={cn(
+        'text-picodash-muted group-focus/dropdown-menu-item:text-picodash-text ml-auto text-xs tracking-widest',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export {
+  DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+}

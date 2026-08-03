@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import '@picodash/panel/style.css'
+import '@picodash/picodash/style.css'
 import '../../../web/src/style.css'
 
 export const metadata: Metadata = {

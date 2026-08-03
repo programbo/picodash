@@ -9,7 +9,7 @@ import {
 
 const finiteNumber = {
   accepts: { finite: true, kind: 'number' },
-  component: '@picodash/panel/Slider',
+  component: '@picodash/dashpanel/Slider',
   id: 'slider:number:v1',
 } as const satisfies PicodashPresentationContract<number>
 
@@ -35,7 +35,7 @@ test('registers compatible presentations that intentionally share a field', () =
         mode: 'display',
         presentation: {
           ...finiteNumber,
-          component: '@picodash/panel/Metric',
+          component: '@picodash/dashpanel/Metric',
           id: 'metric:number:v1',
         },
       },
@@ -57,7 +57,7 @@ test('registers compatible presentations that intentionally share a field', () =
         field: store.fields.exposure,
         presentation: {
           ...finiteNumber,
-          component: '@picodash/panel/NumberField',
+          component: '@picodash/dashpanel/NumberField',
           id: 'number-field:number:v1',
         },
       },
@@ -66,7 +66,7 @@ test('registers compatible presentations that intentionally share a field', () =
   ).toEqual({ success: true })
   expect(store.getState().items['exposure-number-field']?.bindings[0]?.presentation).toEqual({
     accepts: { finite: true, kind: 'number' },
-    component: '@picodash/panel/NumberField',
+    component: '@picodash/dashpanel/NumberField',
     id: 'number-field:number:v1',
   })
 })
@@ -91,7 +91,7 @@ test('rejects current/default incompatibility atomically with a structured diagn
         field: store.fields.mode,
         presentation: {
           accepts: { kind: 'string', values: ['auto'] },
-          component: '@picodash/panel/Select',
+          component: '@picodash/dashpanel/Select',
           id: 'select:auto:v1',
         },
       },
@@ -108,7 +108,7 @@ test('rejects current/default incompatibility atomically with a structured diagn
           code: PICODASH_ERROR_CODES.INCOMPATIBLE_FIELD_DASHLET,
           identity: {
             bindingId: 'mode',
-            component: '@picodash/panel/Select',
+            component: '@picodash/dashpanel/Select',
             fieldKey: 'mode',
             itemId: 'compound',
             panelId: 'compatibility',
@@ -135,7 +135,7 @@ test('rejects conflicting shared contracts and reused constraint identities', ()
       field: store.fields.first,
       presentation: {
         accepts: { kind: 'string', values: ['auto', 'manual'] },
-        component: '@picodash/panel/Select',
+        component: '@picodash/dashpanel/Select',
         id: 'select:mode:v1',
       },
     },
@@ -148,7 +148,7 @@ test('rejects conflicting shared contracts and reused constraint identities', ()
         field: store.fields.first,
         presentation: {
           accepts: { kind: 'string', values: ['auto'] },
-          component: '@picodash/panel/Badge',
+          component: '@picodash/dashpanel/Badge',
           id: 'badge:auto:v1',
         },
       },
@@ -165,7 +165,7 @@ test('rejects conflicting shared contracts and reused constraint identities', ()
         field: store.fields.second,
         presentation: {
           accepts: { kind: 'string', values: ['manual'] },
-          component: '@picodash/panel/Select',
+          component: '@picodash/dashpanel/Select',
           id: 'select:mode:v1',
         },
       },
@@ -189,7 +189,7 @@ test('rejects malformed or callback-bearing presentation contracts', () => {
       field: store.fields.count,
       presentation: {
         accepts: { kind: 'number' },
-        component: '@picodash/panel/Slider',
+        component: '@picodash/dashpanel/Slider',
         id: 'slider:number:v1',
         validate: () => true,
       } as PicodashPresentationContract<number>,

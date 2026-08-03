@@ -1,9 +1,9 @@
 'use client'
 
 import { createPicodashStore, type PicodashStore } from '@picodash/store'
-import { PicodashItem, PicodashPanel, PicodashSelect, PicodashSwitch } from '@picodash/panel'
-import * as Dashlet from '@picodash/panel/dashlet'
-import { Button } from '@picodash/panel/ui'
+import { PicodashItem, PicodashPanel, PicodashSelect, PicodashSwitch } from '@picodash/picodash'
+import * as Dashlet from '@picodash/picodash/dashlet'
+import { Button } from '@picodash/picodash/ui'
 
 type CompositionValues = {
   fps: number

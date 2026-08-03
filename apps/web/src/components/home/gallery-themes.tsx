@@ -5,7 +5,7 @@ import css from 'highlight.js/lib/languages/css'
 import typescript from 'highlight.js/lib/languages/typescript'
 import { Check, Copy } from 'lucide-react'
 import { useState, useSyncExternalStore, type ReactNode } from 'react'
-import { usePicodashTheme } from '@picodash/panel'
+import { usePicodashTheme } from '@picodash/picodash'
 import { GuidePanelLayout } from '@/components/docs/guide-side-nav'
 import { HomeContent, HomeFrame } from '@/components/home/home-frame'
 import { useDemoContext } from '@/components/providers/demo-provider'
@@ -607,7 +607,7 @@ export function GalleryThemes() {
 function ThemeSetupGuide() {
   const cssLines = [
     '/* app.css */',
-    '/* after @picodash/panel/style.css */',
+    '/* after @picodash/picodash/style.css */',
     ":where([data-picodash-theme='brand']) {",
     '  --picodash-color-accent:',
     '    oklch(0.72 0.14 190);',

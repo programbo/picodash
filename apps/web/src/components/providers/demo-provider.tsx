@@ -10,8 +10,8 @@ import {
   type ReactNode,
   type SetStateAction,
 } from 'react'
-import { PicodashProvider, usePicodashTheme, type PicodashGradientValue } from '@picodash/panel'
-import { gradientCssValue } from '@picodash/panel/advanced'
+import { PicodashProvider, usePicodashTheme, type PicodashGradientValue } from '@picodash/picodash'
+import { gradientCssValue } from '@picodash/picodash/advanced'
 import { usePicodashStoreSelector } from '@picodash/store/react'
 import {
   BuiltInItemsPanel,

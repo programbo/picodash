@@ -2,6 +2,8 @@ import type { PicodashValidationSource } from './types.js'
 
 export interface PicodashAdapterWriteContext<TValues extends object> {
   readonly panelId: string
+  readonly storeId?: string
+  readonly scopeId?: string
   readonly previousValues: Readonly<TValues>
   readonly source: Exclude<PicodashValidationSource, 'adapter' | 'default' | 'initial'>
 }

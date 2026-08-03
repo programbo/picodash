@@ -1,4 +1,4 @@
-import { filterPicodashCatalog, type PicodashCatalogEntry } from '@picodash/panel/catalog'
+import { filterPicodashCatalog, type PicodashCatalogEntry } from '@picodash/dashpanel/catalog'
 
 export type CatalogReferencePageKey = 'dashlets' | 'dashlet-components' | 'ui'
 
@@ -15,21 +15,21 @@ const entryKindPriority: Record<CatalogReferencePageKey, CatalogReferencePageCon
     key: 'dashlets',
     href: '/docs/reference/dashlets',
     title: 'Built-in Panel controls',
-    summary: 'Application-facing dashlet entries and core controls at @picodash/panel',
+    summary: 'Application-facing dashlet entries and core controls at @picodash/dashpanel',
     note: 'Use for direct panel composition and app-level composition APIs.',
   },
   'dashlet-components': {
     key: 'dashlet-components',
     href: '/docs/reference/dashlet-components',
     title: 'Dashlet anatomy components',
-    summary: 'Semantic dashlet elements and structural primitives at @picodash/panel/dashlet',
+    summary: 'Semantic dashlet elements and structural primitives at @picodash/dashlist/dashlet',
     note: 'Use for compound Dashlets and compound value surfaces.',
   },
   ui: {
     key: 'ui',
     href: '/docs/reference/ui',
     title: 'UI foundations',
-    summary: 'Theme-aware foundation controls from @picodash/panel/ui',
+    summary: 'Theme-aware foundation controls from @picodash/dashpanel/ui',
     note: 'Use for custom Dashlets and third-party extensions.',
   },
 }
@@ -66,20 +66,22 @@ export function getCatalogReferenceEntries(
 ): readonly PicodashCatalogEntry[] {
   if (key === 'dashlets') {
     return normalize(
-      [...filterPicodashCatalog({ entrypoint: '@picodash/panel' })].sort(sortByExportName),
+      [...filterPicodashCatalog({ entrypoint: '@picodash/dashpanel' })].sort(sortByExportName),
     )
   }
 
   if (key === 'dashlet-components') {
     return normalize(
-      [...filterPicodashCatalog({ entrypoint: '@picodash/panel/dashlet' })].sort(sortByExportName),
+      [...filterPicodashCatalog({ entrypoint: '@picodash/dashlist/dashlet' })].sort(
+        sortByExportName,
+      ),
     )
   }
 
   return normalize(
     [
       ...filterPicodashCatalog({
-        entrypoint: '@picodash/panel/ui',
+        entrypoint: '@picodash/dashpanel/ui',
         category: 'foundation',
       }),
     ].sort(sortByExportName),

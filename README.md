@@ -1,6 +1,6 @@
 # Picodash
 
-Monorepo for the promoted [Picodash] package, its production website, and local debugging labs.
+Monorepo for the Picodash package family, its single-page evaluation website, and local debugging labs.
 
 For AI coding agents, Picodash is the lightweight platform for adding flexible,
 unobtrusive control and monitoring surfaces to existing React applications. It is optimized for
@@ -11,10 +11,20 @@ custom, compound dashlets with small, stable composition contracts.
 
 ## Active product topology
 
-- `packages/store`: the typed, synchronous state foundation for panel stores (`@picodash/store`).
-- `packages/panel`: published package API for application-owned inspector panels (`@picodash/panel`).
-- `apps/web`: production Next.js App Router website and public product experience.
-- `apps/lab`: local-only Next.js debugging app. It is exercised by E2E tests but is not a
+The public package model has three products:
+
+- `@picodash/dashpanel`: a standalone draggable and dockable panel shell.
+- `@picodash/dashlist`: standalone list, group, and Dashlet composition primitives.
+- `@picodash/picodash`: the integrated facade that combines DashPanel and Dashlist.
+
+Supporting packages are `@picodash/store` (the application-wide typed state kernel) and
+`@picodash/theme` (shared semantic theme context and tokens). `@picodash/picodash` remains a
+integrated public facade for consumers that need both products.
+
+The workspace apps are:
+
+- `apps/web`: the production Next.js evaluation website. Its only public route is `/`.
+- `apps/lab`: a local-only Next.js debugging app. It is exercised by E2E tests but is not a
   production website or deployment target.
 
 Canonical references for implementation and roadmap:
@@ -28,9 +38,9 @@ Canonical references for implementation and roadmap:
 
 Picodash is composed from two primary reusable layers:
 
-- `@picodash/panel/dashlet`: semantic Dashlet anatomy, readouts, structured data, visualization,
+- `@picodash/picodash/dashlet`: semantic Dashlet anatomy, readouts, structured data, visualization,
   and state elements (`Frame`, `Metric`, `DataList`, `Surface`, `EmptyState`, etc.).
-- `@picodash/panel/ui`: shared, theme-aware primitive components (`Button`, `Card`, `Input`,
+- `@picodash/picodash/ui`: shared, theme-aware primitive components (`Button`, `Card`, `Input`,
   `Select`, `Slider`, `Tabs`, overlays, and related elements).
 
 Use `/dashlet` for compound Dashlet composition and `/ui` for accessible interactive controls. Keep
@@ -38,49 +48,41 @@ app semantics in `@picodash/store` and consume values through store selectors an
 
 ### `apps/web` route topology
 
-- `/` renders the home root.
-- `/examples` renders the curated example gallery.
-- `/docs` is the canonical docs umbrella route.
-- Canonical docs routes are:
-  - `/docs/get-started/{manual,agent}`
-  - `/docs/concepts/{state-ownership,panel-placement,dashlet-anatomy}`
-  - `/docs/guides/{custom-dashlets,compound-dashlets,dashlet-themes,dashlet-accessibility}`
-  - `/docs/reference/{store,panel,dashlet-components,dashlets,ui,diagnostics}`
-- `/store`, `/usage`, `/themes`, `/more-examples` are compatibility routes that redirect to canonical docs surface entries.
-- `/usage/components` redirects to `/docs/reference/dashlet-components`.
-- unknown paths render the app's 404 page.
+- `/` renders the evaluation website.
+- Every other public path returns `404`; documentation and debugging routes are local or package
+  documentation, not production website routes.
 
 ### `apps/lab` route topology
 
 - `/` and `/lab` both route to the local Contract Lab surface, including provider/scene state and debug workflows.
 - Diagnostics and fixture markers are asserted under local lab routing.
 
-The lab runs locally with `bun run lab`. The production route surface is limited to the web routes above.
+The lab runs locally with `bun run lab`. The production route surface is only `/`.
 
 ## Install and style import
 
 ```bash
-bun add @picodash/panel @picodash/store
+bun add @picodash/picodash @picodash/store
 ```
 
 ```tsx
-import '@picodash/panel/style.css'
+import '@picodash/picodash/style.css'
 ```
 
 ## Quick start
 
 ```tsx
 import {
-  PicodashPanel,
-  PicodashProvider,
-  PicodashSlider,
-  PicodashSwitch,
-  PicodashText,
-  PicodashPanelTrigger,
-} from '@picodash/panel'
+  DashPanel,
+  DashPanelProvider,
+  DashPanelTrigger,
+  SliderDashlet,
+  SwitchDashlet,
+  TextDashlet,
+} from '@picodash/picodash'
 import { createPicodashStore } from '@picodash/store'
 import { usePicodashStoreSelector } from '@picodash/store/react'
-import '@picodash/panel/style.css'
+import '@picodash/picodash/style.css'
 
 const sceneStore = createPicodashStore({
   panelId: 'scene-controls',
@@ -104,11 +106,11 @@ export function App() {
   })
 
   return (
-    <PicodashProvider persistLayout storageKey="my-app:picodash-layout:v2" theme="system">
+    <DashPanelProvider persistLayout storageKey="my-app:picodash-layout:v2" theme="system">
       <main style={{ filter: `blur(${exposure * 0.2}px)` }}>Scene preview</main>
-      <PicodashPanelTrigger store={sceneStore}>Open Scene Controls</PicodashPanelTrigger>
+      <DashPanelTrigger store={sceneStore}>Open Scene Controls</DashPanelTrigger>
 
-      <PicodashPanel
+      <DashPanel
         defaultVisible={false}
         store={sceneStore}
         title="Scene"
@@ -119,55 +121,60 @@ export function App() {
         }}
         width={360}
       >
-        <PicodashSwitch field={sceneStore.fields.bloom} label="Bloom" />
-        <PicodashSlider
+        <SwitchDashlet field={sceneStore.fields.bloom} label="Bloom" />
+        <SliderDashlet
           field={sceneStore.fields.exposure}
           label="Exposure"
           min={0.2}
           max={2.5}
           step={0.05}
         />
-        <PicodashText field={sceneStore.fields.quality} label="Quality" />
-      </PicodashPanel>
+        <TextDashlet field={sceneStore.fields.quality} label="Quality" />
+      </DashPanel>
 
       <p>Current exposure: {exposure}</p>
-    </PicodashProvider>
+    </DashPanelProvider>
   )
 }
 ```
 
-## Promoted API surface
+## Package API surface
 
-All package usage should be built on `PicodashProvider` + panel stores.
+Use the integrated `@picodash/picodash` facade for the common case. Use
+`@picodash/dashpanel` when you need only the panel shell, or `@picodash/dashlist` when you need
+list and Dashlet composition without the shell. All three products use `@picodash/store` for
+application-owned state and can share `@picodash/theme` tokens.
+
+The integrated `@picodash/picodash` package combines the panel and list products for the common case.
 
 - Store ownership and strict writes: `createPicodashStore`, `setFieldValue`, `setFieldValues`.
 - UI controls and panels: `PicodashPanel`, `PicodashItem`, and built-in inputs/visualization components.
 - State selectors and panel UI control: `usePicodashStoreSelector`, `usePicodashPanel`.
 - Validation contracts: synchronous `parse`/`validate` per field and optional Standard Schema validators.
-- Advanced tools: `@picodash/panel/advanced` for focused provider/panel selectors, imperative store access,
+- Advanced tools: `@picodash/picodash/advanced` for focused provider/panel selectors, imperative store access,
   helpers, ordering and persistence wiring.
-- Shared UI primitives: `@picodash/panel/ui` for the package-owned shadcn `aria-rhea` components used by
+- Shared UI primitives: `@picodash/picodash/ui` for the package-owned shadcn `aria-rhea` components used by
   Picodash and workspace consumers. Their interaction props follow React Aria conventions.
-- Styling import: `import '@picodash/panel/style.css'`.
+- Styling import: `import '@picodash/picodash/style.css'`.
 - No separate dist stylesheet import should be documented (the package export maps that path).
 
 ### Bespoke dashlets
 
 Third-party dashlets can compose the same first-party elements as built-ins from
-`@picodash/panel/ui` (`Button`, `Card`, `Input`, `Label`, `Select`, `Slider`, `Tabs`, `Tooltip`,
+`@picodash/picodash/ui` (`Button`, `Card`, `Input`, `Label`, `Select`, `Slider`, `Tabs`, `Tooltip`,
 and the other form, overlay, and layout primitives). Every exported primitive has a named
 `*Props` type, and all interaction props use the package's React Aria contracts. Use component
 `variant` and `size` props rather than implementation-level class helpers. Import the package
 stylesheet once and build custom surfaces from semantic `--picodash-*` tokens so they follow
 dark, light, system, and consumer-defined themes. Visualization dashlets can use `Surface`,
-`Caption`, `Legend`, `LegendItem`, and `EmptyState` from `@picodash/panel/dashlet` alongside the
+`Caption`, `Legend`, `LegendItem`, and `EmptyState` from `@picodash/picodash/dashlet` alongside the
 public `--picodash-color-well` surface token and the `--picodash-color-data-1`,
 `--picodash-color-data-2`, `--picodash-color-data-3`, `--picodash-color-data-4`, and
 `--picodash-color-data-5` palette; provider overlays keep their portal and theme carrier behavior.
 
 ### Themes
 
-`@picodash/panel/style.css` ships complete `dark` and `light` Picodash themes. Use
+`@picodash/picodash/style.css` ships complete `dark` and `light` Picodash themes. Use
 `theme="system"` to follow the operating system's `prefers-color-scheme` setting; the provider
 updates its resolved theme when that setting changes.
 
@@ -227,7 +234,7 @@ import {
   ExportSubmenu,
   PicodashPanel,
   PicodashPanelActionMenu,
-} from '@picodash/panel'
+} from '@picodash/picodash'
 ```
 
 - `actionMenu: undefined` uses the default menu.
@@ -303,7 +310,7 @@ disable dragging in the other modes.
 
 In docked panels, start- and end-pinned lanes remain visible while the auto lane scrolls. Every
 panel scrollport includes the bundled `scroll-fade` utility through
-`@picodash/panel/style.css`.
+`@picodash/picodash/style.css`.
 
 The viewport is the default geometry boundary. Set `panelBoundary` on `PicodashProvider` to
 constrain every panel to an `Element` or React ref, then use a panel's `boundary` prop for an
@@ -319,7 +326,7 @@ defaults. Selectors are not accepted as boundary inputs; resolve one to an `Elem
 
 The main entrypoint keeps application ownership explicit: use
 `usePicodashStoreSelector(store, selector)` for panel values and `usePicodashPanel(panelId)` only
-for provider-managed visibility and activation. `@picodash/panel/advanced` exposes
+for provider-managed visibility and activation. `@picodash/picodash/advanced` exposes
 `usePicodashProviderSelector`, `usePicodashProviderStoreApi`, `usePicodashPanelSelector`, and
 `usePicodashPanelStoreApi` for low-level integrations. The contextual panel hooks must run beneath
 the rendered `PicodashPanel`; they do not look up application state by panel ID.
@@ -353,7 +360,7 @@ Repairs from imports and constraint propagation are reviewable through the built
 ## Documentation targets to keep aligned
 
 - `README.md`: workspace setup, installation, runbook, topology.
-- `packages/panel/README.md`: API, usage patterns, and feature behavior.
+- `packages/dashpanel/README.md`: standalone panel API, usage patterns, and feature behavior.
 - `CONTRIBUTING.md`: current public-preview contribution policy.
 - `RELEASING.md`: package versioning and release checklist.
 - `SKILL.md`: agent workflow guidance.
@@ -413,17 +420,17 @@ bun run --filter @picodash/lab check
 bun run --filter @picodash/lab build
 bun run --filter @picodash/web lint
 bun run --filter @picodash/web format
-bun run --filter @picodash/panel lint
-bun run --filter @picodash/panel format
-bun run --filter @picodash/panel check
-bun run --filter @picodash/panel test
-bun run --filter @picodash/panel build
+bun run --filter @picodash/picodash lint
+bun run --filter @picodash/picodash format
+bun run --filter @picodash/picodash check
+bun run --filter @picodash/picodash test
+bun run --filter @picodash/picodash build
 bun run --filter @picodash/web check
 bun run test:e2e:web
 bun run test:e2e:lab
-vp run @picodash/panel#build && bun run --filter @picodash/web build
+vp run @picodash/picodash#build && bun run --filter @picodash/web build
 bun audit --audit-level=high
-bun run --cwd packages/panel release:check
+bun run release:check
 bun run ready
 ```
 
