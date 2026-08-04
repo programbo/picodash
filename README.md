@@ -22,7 +22,7 @@ workflow reopens.
 | Package               | What it provides                                                                  |
 | --------------------- | --------------------------------------------------------------------------------- |
 | `@picodash/store`     | Typed values, atomic validation, scoped metadata, persistence, and adapters.      |
-| `@picodash/dashpanel` | A movable, dockable React panel shell for arbitrary application content.          |
+| `@picodash/dashpanel` | A movable Panel shell with configurable docking and durable layout.               |
 | `@picodash/dashlist`  | Ordered, groupable Dashlet composition with typed bindings and durable ordering.  |
 | `@picodash/picodash`  | The integrated facade for applications that need DashPanel and DashList together. |
 | `@picodash/theme`     | Shared semantic theme tokens and theme context.                                   |
@@ -53,9 +53,10 @@ One root Store owns canonical field values and durable scope metadata. `root.sco
 an immutable organizational view of that same authority; it does not create a second value store or
 restrict field access.
 
-DashPanel consumes a Provider-level Store for durable layout. Standalone DashList accepts a root or
-scoped Store and establishes the resolved scope for its Dashlets. The integrated Picodash facade
-composes both products over one compatible Store contract.
+`DashPanelProvider` consumes a root Store for durable layout; each `DashPanel` supplies its scoped
+view to descendants. Standalone DashList accepts a root or scoped Store and establishes the resolved
+scope for its Dashlets. The integrated Picodash facade composes both products over one compatible
+Store contract.
 
 ## Workspace
 

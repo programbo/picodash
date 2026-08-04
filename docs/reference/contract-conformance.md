@@ -56,12 +56,14 @@ and persistence records instead of adding separate hand-written tests for every 
 | PANEL-COMPOSE  | Provider/Panel composition and scope context | React component tests                  | Prototype | —        |
 | PANEL-LIFE     | Visibility, removal, leases, reopen          | Component tests; one focus E2E journey | Prototype | —        |
 | PANEL-GEOMETRY | Placement and boundary calculations          | Pure geometry/property tests           | Prototype | —        |
+| PANEL-DOCK     | Arena occupancy, collision, and allocation   | Model/property geometry tests          | Planned   | —        |
 | PANEL-POINTER  | Pointer capture and committed drag result    | Contract Lab E2E                       | Prototype | —        |
 | PANEL-KEYBOARD | Keyboard movement/action parity              | Component plus Contract Lab E2E        | Partial   | —        |
 | PANEL-LAYOUT   | Durable override/reset/recovery              | Store/pure integration tests           | Prototype | —        |
 | PANEL-PORTAL   | Portal stacking, theme, focus restoration    | Contract Lab cohesive overlay journey  | Prototype | —        |
 | PANEL-A11Y     | Naming, actions, semantic DOM                | Component accessibility tests          | Prototype | —        |
 | PANEL-THEME    | Theme propagation and system preference      | Component tests; one media-query E2E   | Prototype | —        |
+| PANEL-CSS      | Public token inventory and consumption       | Artifact plus static CSS contract test | Planned   | —        |
 | PANEL-PACKAGE  | Exports, CSS, peer contracts                 | Package build/artifact/type tests      | Prototype | —        |
 
 Do not open a browser for deterministic placement matrices. E2E proves that real browser layout and
@@ -166,9 +168,9 @@ failed foundation contract.
 
 ## Current readiness
 
-| Product   | Contract readiness | Implementation readiness | Reason                                       |
-| --------- | ------------------ | ------------------------ | -------------------------------------------- |
-| Store     | Accepted API       | Not ready                | Panel metadata payload and evidence remain   |
-| DashPanel | Draft              | Not ready                | Open API, responsive, focus, and theme rules |
-| DashList  | Draft              | Not ready                | Open anatomy, reorder, layout, and state UX  |
-| Picodash  | Draft              | Deferred                 | Depends on stable foundational contracts     |
+| Product   | Contract readiness | Implementation readiness | Reason                                           |
+| --------- | ------------------ | ------------------------ | ------------------------------------------------ |
+| Store     | Accepted API       | Not ready                | Implementation and conformance evidence remain   |
+| DashPanel | Draft              | Not ready                | Provisional baseline; exact API/CSS lists remain |
+| DashList  | Draft              | Not ready                | Open anatomy, reorder, layout, and state UX      |
+| Picodash  | Draft              | Deferred                 | Depends on stable foundational contracts         |

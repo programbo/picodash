@@ -70,6 +70,8 @@ visibility controls, portal layering, themes, responsive containment, and restor
 ### Concrete value
 
 - Render arbitrary React content in a Panel that can float, snap, dock, collapse, hide, and reopen.
+- Choose the dock positions a host permits and distribute same-edge Panels through predictable
+  occupancy and allocation rules.
 - Persist settled placement as a Store scope override while keeping visibility and drag previews
   transient.
 - Resolve viewport or element boundaries, insets, portals, themes, and action menus through one
@@ -79,7 +81,7 @@ visibility controls, portal layering, themes, responsive containment, and restor
 
 ### Independent use
 
-A DashPanel-only application creates a root Store, supplies it to `PicodashProvider`, and renders
+A DashPanel-only application creates a root Store, supplies it to `DashPanelProvider`, and renders
 one or more Panels containing arbitrary application UI.
 
 ### Boundary
@@ -183,10 +185,11 @@ integrates them after their independent contracts are stable.
 ## Contract-strength assessment
 
 - **Store:** accepted API. Ownership, scope, persistence, adapter, transaction, and document
-  boundaries are internally consistent. The exact DashPanel metadata payload remains deliberately
-  dependent on the DashPanel placement review.
-- **DashPanel:** moderately strong. Its primary outcome and placement/host boundary are clear, but
-  the detailed aspirational API still needs reconciliation with the prototype.
+  boundaries are internally consistent, including the Store-owned DashPanel layout record.
+- **DashPanel:** provisionally strong. Product ownership, lifecycle, placement, docking,
+  persistence, responsive, accessibility, action, and theme behavior are recorded. Exact public
+  prop/type names and the exhaustive consumed-token inventory still need finalization and prototype
+  reconciliation.
 - **DashList:** directionally strong but least differentiated in detail. Its Dashlet anatomy,
   authoring ergonomics, group behavior, and built-in catalog require a focused contract session
   before the product reference can become accepted.

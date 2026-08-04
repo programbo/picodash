@@ -40,9 +40,10 @@ persisted as historical ancestry.
 
 ## Product composition
 
-`PicodashProvider` requires an explicit root Store and is the public host for DashPanel. A Provider
-is a hard Store and scope-ancestry boundary. It owns transient visual runtime such as portals,
-resolved boundaries, visibility, activation, and z-order.
+`DashPanelProvider` requires an explicit root Store and is the standalone public host for
+DashPanel. Integrated `PicodashProvider` composes the same boundary contract. A Provider is a hard
+Store and scope-ancestry boundary. It owns transient visual runtime such as portals, resolved
+boundaries, visibility, activation, and z-order.
 
 DashPanel does not accept an independent public Store. It resolves a scoped view from its Provider
 using its `id`.

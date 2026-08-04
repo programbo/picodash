@@ -36,7 +36,8 @@ Accepted decisions and accepted reference sections outrank current source, tests
 
 - Store is the framework-independent value, transaction, scope, persistence, document, adapter, and
   diagnostics product.
-- DashPanel is the standalone Provider and movable/dockable Panel product.
+- DashPanel is the standalone `DashPanelProvider` and `DashPanel` product. It owns configurable
+  dock-position policy, runtime occupancy/allocation, and Store-backed settled layout.
 - DashList is the standalone List, group, Dashlet, binding, and reorder product.
 - Picodash integrates stable versions of the three foundations.
 - DashPanel and DashList depend on Store/theme, not on one another.
@@ -61,6 +62,8 @@ Accepted decisions and accepted reference sections outrank current source, tests
 - External-owned mode persists Picodash metadata only. Store-owned mode persists permitted values
   plus Picodash metadata.
 - Imperative Panel deregistration is not a target API.
+- Dock occupancy and allocation are Provider runtime. Store persists only canonical settled Panel
+  placement and its preferred boundary-relative free position.
 
 ## QA
 

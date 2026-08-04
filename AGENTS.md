@@ -61,8 +61,9 @@ Store is independently useful and is the first product in the roadmap.
 ### DashPanel
 
 `@picodash/dashpanel` is a standalone React panel shell for movable, dockable, dismissible arbitrary
-content. It supplies Provider hosting, placement, boundaries, portals, accessible actions, transient
-visibility/activation, and Store-backed durable layout overrides without requiring DashList.
+content. It supplies Provider hosting, configurable dock positions, collision-safe dock allocation,
+boundaries, portals, accessible actions, transient visibility/activation, and Store-backed durable
+layout overrides without requiring DashList.
 
 ### DashList
 
@@ -102,10 +103,18 @@ premature Picodash implementation or duplicate lower-layer tests.
   every root field and value.
 - **Scope:** a root-global organizational identity for durable metadata, registration, management,
   and operation attribution. It is not a value copy, string hierarchy, or authorization boundary.
-- **Provider:** `PicodashProvider`, the DashPanel host and hard Store/scope-ancestry boundary.
+- **Provider:** a hard Store/scope-ancestry and Panel-host boundary. `DashPanelProvider` is the
+  standalone target; `PicodashProvider` is the integrated facade Provider and current prototype.
 - **Provider ID:** runtime host identity within one root Store. It does not namespace scopes.
-- **DashPanel:** the standalone panel product. `PicodashPanel` is the current prototype component
-  name; final public naming remains under review.
+- **DashPanel:** the standalone panel product and target component name. `PicodashPanel` is the
+  current prototype name, not a second standalone component contract.
+- **Dock position:** one named flush Panel placement target such as `top-left` or `full-right`.
+- **Dock arena:** Panels sharing Provider, resolved boundary identity, and resolved inset.
+- **Dock slot:** the collision identity claimed by a docked Panel; full and center targets on the
+  same main edge share a slot.
+- **Dock occupancy:** the transient committed lifecycle lease between a Panel and a dock slot.
+- **Dock allocation:** the transient size cap assigned to docked occupants sharing an edge; it is
+  recomputed from current occupancy and never persisted.
 - **DashList:** the standalone List/Dashlet composition product. `PicodashList` is the current
   prototype component name; final public naming remains under review.
 - **DashGroup:** a declarative DashList container with its own stable node ID and optional collapse

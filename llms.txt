@@ -5,7 +5,7 @@ movable tool panels to existing applications.
 
 Status:
 - Store target contract and API: accepted.
-- DashPanel target contract: draft.
+- DashPanel target contract: reviewed provisional draft; exact prop/type and CSS inventories remain.
 - DashList target contract: draft.
 - Picodash integration contract: draft and deferred until foundations stabilize.
 - Current source and tests: working prototypes, not automatic compatibility requirements.
@@ -16,7 +16,7 @@ Products:
   persistence, import/export, diagnostics, and external-value adapters.
 - @picodash/store/react: public React hooks and typed selectors.
 - @picodash/store/integration: advanced shared context and declarative lifecycle leases.
-- @picodash/dashpanel: standalone Provider and movable/dockable Panel shell.
+- @picodash/dashpanel: standalone DashPanelProvider and DashPanel shell with configurable docking.
 - @picodash/dashlist: standalone List, group, Dashlet, binding, and reorder composition.
 - @picodash/picodash: integrated facade after Store, DashPanel, and DashList stabilize.
 - @picodash/theme: shared semantic theme tokens and context.
@@ -46,6 +46,8 @@ Core Store contract:
 - External-owned mode uses one synchronous root adapter and persists Picodash metadata only.
 - Persistence, document, repair, overwrite, and prune recovery use explicit root-owned plans.
 - DashPanel and DashList register active entities and relationships through declarative leases.
+- DashPanel dock occupancy and allocation are transient Provider runtime; Store persists only
+  settled placement and preferred boundary-relative free position.
 - Imperative Panel deregistration is retired.
 
 Workspace applications:

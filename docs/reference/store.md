@@ -271,21 +271,66 @@ type DashListMetadataRecord = {
   collapseOverrides: ReadonlyMap<string, boolean>
 }
 
+type DashPanelSnapPositionRecord =
+  'top-left' | 'top' | 'top-right' | 'right' | 'bottom-right' | 'bottom' | 'bottom-left' | 'left'
+
+type DashPanelDockPositionRecord =
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-right'
+  | 'bottom-left'
+  | 'full-left'
+  | 'center-left'
+  | 'full-right'
+  | 'center-right'
+  | 'full-top'
+  | 'center-top'
+  | 'full-bottom'
+  | 'center-bottom'
+
+type DashPanelPlacementRecord =
+  | {
+      mode: 'floating'
+      disposition: { kind: 'free' } | { kind: 'snapped'; position: DashPanelSnapPositionRecord }
+    }
+  | {
+      mode: 'fixed'
+      disposition: { kind: 'docked'; position: DashPanelDockPositionRecord }
+    }
+  | {
+      mode: 'hybrid'
+      disposition:
+        | { kind: 'free' }
+        | { kind: 'snapped'; position: 'top' | 'bottom' }
+        | { kind: 'docked'; position: DashPanelDockPositionRecord }
+    }
+
+type DashPanelLayoutRecord = {
+  placement: DashPanelPlacementRecord
+  preferredPosition: { x: number; y: number }
+}
+
 type DurableScopeMetadata = {
   dashList?: DashListMetadataRecord
   dashPanel?: DashPanelLayoutRecord
 }
 ```
 
-| Record                    | Contract | Implementation | Notes                                             |
-| ------------------------- | -------- | -------------- | ------------------------------------------------- |
-| DashList order/collapse   | Accepted | Prototype      | Overrides only; containment remains declarative.  |
-| DashPanel layout override | Draft    | Prototype      | Exact record waits for placement contract review. |
+| Record                    | Contract | Implementation | Notes                                            |
+| ------------------------- | -------- | -------------- | ------------------------------------------------ |
+| DashList order/collapse   | Accepted | Prototype      | Overrides only; containment remains declarative. |
+| DashPanel layout override | Accepted | Prototype      | Settled placement plus preferred free position.  |
 
-Empty product records are omitted. Serialized maps use duplicate-checked entry arrays. The
-DashPanel record ownership and settled-only boundary are accepted, but its exact placement payload
-cannot be frozen until the DashPanel placement review resolves the remaining modes, responsive
-fallback, and resize questions.
+Empty product records are omitted. Serialized maps use duplicate-checked entry arrays.
+`preferredPosition` contains finite CSS-pixel offsets from the effective boundary's top-left after
+inset and before snap offset. Store validates the complete record atomically and does not import UI
+package types.
+
+A Panel record with an unknown position, invalid mode/disposition combination, or non-finite
+coordinate enters the configured Store recovery path. A valid dock target that current Provider or
+Panel policy disables remains durable and dormant; UI policy is not a Store codec error. Occupancy,
+allocation, resolved size, enabled positions, projection, fallback layout, visibility, and other
+Provider runtime never enter this record.
 
 ## Core diagnostics namespace
 

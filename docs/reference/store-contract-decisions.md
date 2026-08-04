@@ -110,13 +110,13 @@ alias are immutable for a mount lifetime. Intentional identity changes use keyed
 
 ### 3.1 Provider requires a root Store
 
-`PicodashProvider` receives an explicit root Store. It does not silently create one and rejects a
-scoped Store.
+`DashPanelProvider` receives an explicit root Store. Integrated `PicodashProvider` composes the same
+boundary contract. Neither silently creates a Store, and both reject a scoped Store.
 
 ### 3.2 DashPanel requires a Provider
 
-DashPanel resolves its Store through `PicodashProvider`. It does not expose a public independent
-Store prop.
+DashPanel resolves its Store through `DashPanelProvider` or integrated `PicodashProvider`. It does
+not expose a public independent Store prop.
 
 ### 3.3 Standalone DashList resolution
 
@@ -144,9 +144,10 @@ nearest root.
 
 ### 3.5 Provider is a hard boundary
 
-Every `PicodashProvider` resets Store context to its supplied root and clears inherited scope
-ancestry. No child-scope edge crosses a Provider boundary. A nested Provider may introduce a
-different root or reuse the same root with a unique Provider ID and disjoint active scopes.
+Every `DashPanelProvider` or integrated `PicodashProvider` resets Store context to its supplied root
+and clears inherited scope ancestry. No child-scope edge crosses a Provider boundary. A nested
+Provider may introduce a different root or reuse the same root with a unique Provider ID and
+disjoint active scopes.
 
 Only a Provider establishes a new root boundary; component Store props cannot switch roots.
 
@@ -289,10 +290,15 @@ their public prop and behavior types and translate to Store records through
 selectors, not as mutable authoring objects.
 
 The DashList record shape is accepted as root-order override, group-order overrides, and node
-collapse overrides. The Store envelope and settled-only boundary for DashPanel layout are accepted;
-the exact DashPanel placement record remains a dependent draft until DashPanel resolves placement,
-responsive fallback, and resize behavior. Store implementation of that codec waits for the product
-contract rather than embedding the prototype type prematurely.
+collapse overrides. The DashPanel record is accepted as settled canonical placement plus finite
+`preferredPosition` offsets from the effective boundary's top-left after inset and before snap
+offset. The exact Store-owned record union is defined in the Store target reference; it uses
+`center-left/right` rather than the prototype's `middle-left/right` and includes standalone
+top/bottom dock positions.
+
+Store validates this product record without importing DashPanel. Occupancy, dock allocation,
+resolved size, enabled positions, responsive projection, and fallback geometry remain transient UI
+runtime and never enter the record.
 
 The alpha contract has no arbitrary namespaced metadata bag or runtime metadata-schema
 registration. Application-specific state remains in declared root fields. Supporting another
@@ -641,15 +647,19 @@ or scope relationships.
 
 Panel layout persistence is an optional override of current declared defaults. A completed move,
 snap, or dock writes the override. Preview and cancelled interactions write nothing. Reset removes
-the override. A compatible override wins over later default changes; an incompatible record is
-quarantined/cleared and the current default is used.
+the override. A compatible override wins over later default changes; a record with an unknown
+position, invalid mode/disposition combination, or non-finite coordinate enters the configured
+quarantine/recovery path and the current default is used. A valid record whose target is disabled by
+current Provider or Panel policy remains durable and dormant; UI policy does not make Store data
+invalid.
 
 ### 10.2 Durable boundary
 
-Persisted Panel metadata contains canonical placement, disposition, and boundary-relative
-coordinates. Layout belongs to the scope, not to `providerId`. Remounting under another Provider
-reuses compatible layout and defaults incompatible layout. Separate host-specific layouts use
-separate scope IDs.
+Persisted Panel metadata contains canonical placement, disposition, and a finite
+`preferredPosition`. Coordinates are CSS-pixel offsets from the effective boundary's top-left after
+inset and before snap offset. Layout belongs to the scope, not to `providerId`. Remounting under
+another Provider reuses compatible layout and projects it into current geometry; separate
+host-specific layouts use separate scope IDs.
 
 ### 10.3 Transient Panel runtime
 
@@ -1004,9 +1014,9 @@ teardown, not a domain-level deregistration command. Abandoned renders acquire n
 Strict Mode reacquisition reruns all identity and graph checks. Binding acquisition returns the
 generation-owned `BindingHandle` used by interaction commands.
 
-The low-level context Provider is not an initial public product. `PicodashProvider` and standalone
-DashList establish public context boundaries; application code outside them uses explicit Store
-selectors.
+The low-level context Provider is not an initial public product. `DashPanelProvider`, integrated
+`PicodashProvider`, and standalone DashList establish public context boundaries; application code
+outside them uses explicit Store selectors.
 
 ## 16. Diagnostics and trust
 

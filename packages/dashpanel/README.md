@@ -10,16 +10,18 @@ from scratch.
 >
 > Implementation: Prototype
 
-The current package is reference evidence while the public naming, responsive behavior, keyboard
-placement, focus restoration, action ownership, and theme contract are completed. Do not treat its
-existing exports as the final API.
+The reviewed provisional target now covers public package-native composition, responsive geometry, keyboard
+placement, focus restoration, action ownership, configurable dock positions, and collision-safe
+same-edge allocation. The current package remains reference evidence until its exact prop/type
+inventory and CSS token consumption are reconciled. Do not treat existing exports as the final API.
 
 ## Product boundary
 
 DashPanel owns:
 
-- the Provider host and Panel lifecycle;
+- the `DashPanelProvider` host and declarative Panel lifecycle;
 - floating, snapped, docked, fixed, and hybrid placement behavior;
+- configurable dock-position policy, occupancy, and runtime edge allocation;
 - viewport or element boundaries, portals, stacking, and focus restoration;
 - accessible Panel actions and transient visibility/activation;
 - Store-backed durable layout overrides.
@@ -28,7 +30,8 @@ It renders arbitrary React children and does not own DashList, Dashlets, applica
 or permanent component removal. The target model requires a Provider with one explicit root Store;
 Panels receive scoped Store views through that Provider rather than accepting independent roots.
 
-Read the [DashPanel target reference](../../docs/reference/dashpanel.md),
+Read the [DashPanel target reference](../../docs/reference/dashpanel.md), including its
+[CSS design-token inventory](../../docs/reference/dashpanel.md#theme-and-css-design-tokens),
 [Store target reference](../../docs/reference/store.md), and
 [roadmap](../../docs/ROADMAP.md) before changing the prototype.
 
