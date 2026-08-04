@@ -1,37 +1,38 @@
-# @picodash/dashpanel
+# `@picodash/dashpanel`
 
-`@picodash/dashpanel` is the standalone draggable, dockable panel shell for React applications.
-It owns placement, boundaries, visibility, action menus, portals, and panel lifecycle state.
-Use `@picodash/store` when panel-owned controls need typed reactive state.
+DashPanel is a standalone React panel shell for applications that need movable, dockable,
+dismissible tools or inspectors without building placement, portal, focus, and persistence behavior
+from scratch.
 
-```tsx
-import { PicodashPanel, PicodashProvider } from '@picodash/dashpanel'
-import '@picodash/dashpanel/style.css'
+## Status
 
-export function App() {
-  return (
-    <PicodashProvider>
-      <PicodashPanel id="inspector" title="Inspector">
-        Panel content
-      </PicodashPanel>
-    </PicodashProvider>
-  )
-}
-```
+> Contract: Draft
+>
+> Implementation: Prototype
 
-Use `boundary` on a panel or `panelBoundary` on the provider when the panel should move and clip
-relative to an application-owned element instead of the viewport. Use `panelBoundaryInset` to
-reserve shared space for sticky application chrome, and `boundaryInset` to override it for one
-panel. Insets follow CSS shorthand ordering. Free panels stay inside the inset boundary, docks sit
-flush against it, and snaps add `snapOffset`; `snapProximity` is measured from the resulting target.
-The panel's public action menu can be replaced or extended with placement, collapse, drag, theme,
-import, export, and reset items.
+The current package is reference evidence while the public naming, responsive behavior, keyboard
+placement, focus restoration, action ownership, and theme contract are completed. Do not treat its
+existing exports as the final API.
 
-The package intentionally does not export Dashlist or Dashlet composition. Install
-`@picodash/dashlist` for lists, groups, and Dashlets, or use `@picodash/picodash` when an integrated
-facade is more convenient.
+## Product boundary
 
-## Commands
+DashPanel owns:
+
+- the Provider host and Panel lifecycle;
+- floating, snapped, docked, fixed, and hybrid placement behavior;
+- viewport or element boundaries, portals, stacking, and focus restoration;
+- accessible Panel actions and transient visibility/activation;
+- Store-backed durable layout overrides.
+
+It renders arbitrary React children and does not own DashList, Dashlets, application values, routing,
+or permanent component removal. The target model requires a Provider with one explicit root Store;
+Panels receive scoped Store views through that Provider rather than accepting independent roots.
+
+Read the [DashPanel target reference](../../docs/reference/dashpanel.md),
+[Store target reference](../../docs/reference/store.md), and
+[roadmap](../../docs/ROADMAP.md) before changing the prototype.
+
+## Verification
 
 ```bash
 bun run --filter @picodash/dashpanel check

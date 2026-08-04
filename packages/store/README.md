@@ -1,139 +1,43 @@
-# @picodash/store
+# `@picodash/store`
 
-The framework-independent, typed per-Panel state engine for Picodash.
+Store is a framework-independent typed state foundation for configurable React interfaces. It gives
+applications one synchronous, validated value authority plus durable DashPanel and DashList metadata
+without requiring the application to replace its preferred state library.
 
-> **Public preview:** The package API is still evolving. See the repository's
-> [release policy](https://github.com/programbo/picodash/blob/main/RELEASING.md) before depending on a versioned release.
+## Status
 
-Defaults are defined on store fields and carried into panel components through `usePicodashStoreSelector` and
-`store.fields.<key>` handles. The documentation examples use component props without per-control `defaultValue`.
+> Contract: Accepted target API
+>
+> Implementation: Prototype
 
-## What this package owns today
+The target contract is complete enough to plan implementation, but the current package has not been
+reconciled with it. Existing per-Panel identity, actions-inside-state, presentation helpers, and
+Panel-specific document APIs are prototype behavior rather than compatibility requirements.
 
-`@picodash/store` owns typed values, contracts, mutation semantics, and repair
-proposals for one Panel:
+## Target package surfaces
 
-- fields and stable handles (`store.fields.<key>`),
-- JSON-compatible state with defaults and optional initial values,
-- synchronous `parse` / `validate` contracts (including Standard Schema validators),
-- strict single and atomic multi-field writes,
-- interactive draft tracking via `setFieldInput`,
-- reset and repair workflows,
-- strict subscription and selector access.
+- `@picodash/store`: root/scoped Stores, fields, transactions, persistence, documents, diagnostics,
+  and the manual external-value adapter contract.
+- `@picodash/store/react`: public contextual hooks and typed selector subscriptions.
+- `@picodash/store/integration`: supported advanced context and declarative lease protocol for
+  DashPanel, DashList, and other declarative product integrations.
 
-`@picodash/dashpanel` integrations (typed handles in built-ins, adapter wiring,
-and compound Dashlet field orchestration) use typed `store.fields` handles as their control contract.
+The root entry is framework-independent and must load without React. React is required only for the
+two React-facing entries.
 
-## Quick start
+Store-owned mode owns canonical values and persists them according to explicit policy.
+External-owned mode projects one existing synchronous application store through an immutable root
+adapter and persists only Picodash metadata.
 
-```ts
-import { createPicodashStore } from '@picodash/store'
+Read the [Store target reference](../../docs/reference/store.md),
+[decision ledger](../../docs/reference/store-contract-decisions.md), and
+[ADR 0002](../../docs/adr/0002-provider-level-store-and-scoped-views.md) before changing the
+prototype.
 
-const sceneStore = createPicodashStore({
-  storeId: 'scene-controls',
-  fields: {
-    bloom: { defaultValue: true },
-    exposure: { defaultValue: 1.2 },
-    quality: { defaultValue: 'balanced' },
-  },
-  initialValues: {
-    quality: 'final',
-  },
-})
+## Verification
 
-const state = sceneStore.getState()
+```bash
+bun run --filter @picodash/store check
+bun run --filter @picodash/store test
+bun run --filter @picodash/store release:check
 ```
-
-```ts
-type SceneValues = {
-  bloom: boolean
-  quality: 'draft' | 'balanced' | 'final'
-  viewport: { width: number; height: number }
-}
-
-const monitorStore = createPicodashStore<SceneValues>({
-  storeId: 'monitor',
-  fields: {
-    bloom: { defaultValue: true },
-    quality: { defaultValue: 'balanced' },
-    viewport: { defaultValue: { width: 1920, height: 1080 } },
-  },
-  initialValues: {
-    quality: 'final',
-  },
-})
-```
-
-`panelId` is optional. Use `storeId` for a stable identity when a Store is
-shared by more than one Panel, and `scopeId` when metadata belongs to an
-application-level namespace. When no identity is supplied, the Store derives
-a deterministic ID from its field keys.
-
-## API surface (shipped)
-
-```ts
-sceneStore.fields.exposure.key
-sceneStore.fields.quality
-sceneStore.ownsField(sceneStore.fields.exposure)
-sceneStore.subscribe((next, previous) => { ... })
-sceneStore.getInitialState()
-sceneStore.getState()
-const sceneState = sceneStore.getState()
-
-sceneState.setFieldValue(sceneStore.fields.bloom, false)
-sceneState.setFieldInput(sceneStore.fields.exposure, '2.0')
-sceneState.setFieldValues({
-  bloom: true,
-  exposure: 1.5,
-})
-sceneState.resetFieldValue(sceneStore.fields.quality)
-sceneState.resetFields()
-sceneState.acceptRepairProposal()
-sceneState.abortRepairProposal()
-```
-
-- `createPicodashStore` returns a frozen API and `getState()` read surface.
-- Store methods are synchronous and non-async.
-- Promise-based parsers/validators are rejected with clear validation errors.
-- `setFieldValues` validates all candidates before any mutation.
-- `getInitialState` and `getState` are initially identical in this release,
-  preserving SSR-safe startup state.
-
-## Validation contract
-
-A field definition accepts:
-
-- `defaultValue` (required),
-- optional `parse` (returns `{ success, output|errors, repair? }`),
-- optional `validate` (function validator or `Standard Schema v1` object).
-
-Outputs and initial values are cloned for JSON compatibility on storage boundaries.
-The `repair` path marks unresolved values as pending and can be:
-
-- accepted with `acceptRepairProposal()`,
-- or reverted with `abortRepairProposal()`.
-
-`setFieldInput` stores draft values while preserving canonical validation state.
-
-## React helper
-
-Import from `@picodash/store/react` for typed selector subscriptions:
-
-```ts
-import { usePicodashStoreSelector } from '@picodash/store/react'
-```
-
-## Migration alignment
-
-Canonical agent-first direction in this repo still treats:
-
-- `@picodash/store` as the per-Panel state foundation,
-- `@picodash/dashpanel` as the rendering, registry, and surface layer,
-- typed field-handles as the control contract between panel surfaces and store values.
-
-## Further docs
-
-- [PRODUCT.md](../../PRODUCT.md)
-- [CONTEXT.md](../../CONTEXT.md)
-- [TESTING.md](../../TESTING.md)
-- [agent-first-plan.md](../../agent-first-plan.md)

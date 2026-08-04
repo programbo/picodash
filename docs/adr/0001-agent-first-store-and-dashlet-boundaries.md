@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted.
+Superseded by [ADR 0002](0002-provider-level-store-and-scoped-views.md). This ADR remains as a
+record of the prototype-era per-Panel Store model.
 
 ## Decision
 

@@ -1,220 +1,314 @@
-# Project Guide
+# Picodash agent guide
 
-## Using Vite+, the Unified Toolchain for the Web
+This file routes agents to current product contracts and records only workspace-wide operating
+rules. It is not a duplicate API reference.
 
-This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown, Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, and it invokes Vite through `vp dev` and `vp build`. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
+## Implementation hold
 
-Docs are local at `node_modules/vite-plus/docs` or online at [https://viteplus.dev/guide/](https://viteplus.dev/guide/).
+Product implementation is paused while the aspirational contracts are completed and reviewed.
 
-## Review Checklist
+Do not begin Store, DashPanel, DashList, or Picodash implementation until:
 
-- [ ] Run `vp install` after pulling remote changes and before getting started.
-- [ ] Run `vp check` and `vp test` to format, lint, type check and test changes.
-- [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation, run via `vp run <script>`.
-- [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
+- Store's accepted contract and target API have been checked for internal consistency;
+- the DashPanel and DashList gap sessions have resolved their open contract questions;
+- product value propositions have been accepted;
+- the conformance matrix has agreed owners and release gates; and
+- the documentation no longer leaves an implementation choice that would materially change product
+  behavior or package ownership.
 
-Keep this file current whenever workspace structure, scripts, architecture, public API, or verification flow changes.
+Documentation, contract analysis, prototype inspection, and QA planning remain in scope during this
+hold. Current code is reference evidence, not an implicit compatibility requirement.
 
-## Repository Topology
+## Start here
 
-The three public products are `@picodash/dashpanel` (standalone panel shell),
-`@picodash/dashlist` (standalone list and Dashlet composition), and `@picodash/picodash`
-(integrated facade). `@picodash/store` is the application-wide typed state kernel and
-`@picodash/theme` provides shared semantic theme context and tokens. `@picodash/picodash` remains a
-integrated public facade for applications that need both products.
+Read the smallest document that owns the question:
 
-- `apps/web`: production Next.js App Router evaluation website with one public route, `/`.
-- `apps/lab`: local-only Next.js debugging app, tested by the shared Playwright suite but not
-  deployed as part of the production website. `/lab` is the active Contract Lab route and
-  `/audit/[id]` renders checked-in, evidence-backed visual audit reports for direct inspection.
+| Question                                      | Authoritative document                                                                                                     |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| What does each product offer?                 | [Product value propositions](docs/product/value-propositions.md)                                                           |
+| What is the product sequence?                 | [Contract-led roadmap](docs/ROADMAP.md)                                                                                    |
+| Why does Store use root and scoped views?     | [ADR 0002](docs/adr/0002-provider-level-store-and-scoped-views.md)                                                         |
+| What exact Store decision was accepted?       | [Store contract decisions](docs/reference/store-contract-decisions.md)                                                     |
+| What is the target Store API?                 | [Store target reference](docs/reference/store.md)                                                                          |
+| What is the target DashPanel API?             | [DashPanel target reference](docs/reference/dashpanel.md)                                                                  |
+| What is the target DashList API?              | [DashList target reference](docs/reference/dashlist.md)                                                                    |
+| What does integrated Picodash own?            | [Picodash target reference](docs/reference/picodash.md)                                                                    |
+| Is a documented feature shipped and verified? | [Documentation status](docs/reference/document-status.md) and [conformance matrix](docs/reference/contract-conformance.md) |
+| Where should a behavior be tested?            | [Testing policy](TESTING.md) and [conformance matrix](docs/reference/contract-conformance.md)                              |
+| What does the prototype package export now?   | The package README and current source, explicitly treated as prototype evidence                                            |
 
-Every other public `apps/web` path returns `404`.
+When documents conflict, use this precedence:
 
-## Active API Model
+1. Accepted ADRs and accepted decisions.
+2. Accepted sections of target references.
+3. The roadmap and documentation-status rules.
+4. Current code, tests, and package READMEs as prototype evidence.
+5. Historical documents, including superseded ADR 0001 and unreconciled `PRODUCT.md`/`CONTEXT.md`.
 
-The workspace API is application-owned panel state using the `createPicodashStore` model.
-Provider descendants may control registered panel visibility and activation with `usePicodashPanel`;
-that visibility is transient and separate from persisted layout. `PicodashPanel close` hides by
-default, while the explicit `deregister` close behavior removes the registration and portal before
-notifying the host. Application code reads panel values from its explicit store with
-`usePicodashStoreSelector`; panel IDs do not provide global value lookup. Advanced provider
-access uses `usePicodashProviderSelector` / `usePicodashProviderStoreApi`, while contextual panel
-access uses `usePicodashPanelSelector` / `usePicodashPanelStoreApi`. Legacy schema-driven
-registration flow is retired.
+Do not silently revise an accepted contract to match an implementation shortcut. Record a genuine
+constraint and revise the decision explicitly.
 
-`PicodashPanel` exposes public action-menu composition. `actionMenu` is part of the public
-`PicodashPanel` API:
+## Product model and value
 
-- `undefined` => built-in default action menu.
-- `false` => menu hidden.
-- `readonly ReactElement[]` => wrapped by a root `ActionSubmenu` with the default trigger.
-- `ActionSubmenu` root element => replaces the default root trigger.
+### Store
 
-Public exports include `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`,
-`CopySubmenu`, `ExportSubmenu`, and built-in item components.
-`destructive` for `ActionMenuItem` is the tuple `[message, title?, buttonLabel?]`
-with defaults `title = label` and `buttonLabel = 'Confirm'`.
+`@picodash/store` is a typed state foundation for configurable React interfaces. It provides one
+synchronous, validated value authority plus scoped Panel/List metadata. It may own values and
+persistence or adapt an existing application store.
 
-`@picodash/picodash/style.css` ships complete `dark` and `light` theme recipes. `PicodashProvider
-theme="system"` follows `prefers-color-scheme` and reacts to preference changes. Consumers define
-named themes by overriding semantic `--picodash-*` tokens under `data-picodash-theme`; the provider
-can take a generic custom theme union such as `PicodashProvider<'brand' | 'contrast'>`.
-Theme scope belongs to `PicodashProvider` and optional `PicodashPanel` overrides. Dashlets and
-shared UI primitives inherit semantic tokens; only detached panel-owned siblings and portaled
-overlay roots repeat the resolved theme outside that DOM ancestry.
-The web gallery's `ocean`, `plum`, `tron`, and `contrast` recipes are demo-only.
+Store is independently useful and is the first product in the roadmap.
 
-Panel placement separates stable floating, fixed, and hybrid modes from free, snapped, and docked
-dispositions. Floating supports free/all-edge snaps; Fixed supports corner, full-side, and
-middle-side docks; Hybrid supports free, top/bottom snaps, and corner/full-side docks. Snaps are
-offset and floating-like. Docks are flush and fixed-like. Hybrid side/corner intent animates an
-independent proxy and commits only on release; full sides fill the boundary and corners retain
-intrinsic height. Docked Hybrid panels resist detachment according to placement options and remain
-Hybrid after becoming free.
-Geometry defaults to the viewport;
-`PicodashProvider.panelBoundary`
-sets a shared Element/ref boundary and `PicodashPanel.boundary` can override it. Boundaries remain
-independent of portal ownership. `PicodashProvider.panelBoundaryInset` reserves shared space within
-the resolved boundary and `PicodashPanel.boundaryInset` overrides it. Insets follow CSS shorthand
-ordering. Free panels are contained by the inset boundary, docks are flush with it, snaps add
-`snapOffset`, and `snapProximity` is measured from the resulting target.
+### DashPanel
 
-## Required Commands
+`@picodash/dashpanel` is a standalone React panel shell for movable, dockable, dismissible arbitrary
+content. It supplies Provider hosting, placement, boundaries, portals, accessible actions, transient
+visibility/activation, and Store-backed durable layout overrides without requiring DashList.
 
-The deployment scripts require a globally installed Vercel CLI. Install it once with
-`bun install --global vercel`.
+### DashList
 
-- `bun install`
-- `bun run lint`
-- `bun run format`
-- `bun run dev`
-- `bun run web`
-- `bun run lab`
-- `bun run deploy`
-- `bun run deploy:prod`
-- `bun run --filter @picodash/lab lint`
-- `bun run --filter @picodash/lab format`
-- `bun run --filter @picodash/lab check`
-- `bun run --filter @picodash/lab build`
-- `bun run --filter @picodash/web lint`
-- `bun run --filter @picodash/web format`
-- `bun run --filter @picodash/picodash lint`
-- `bun run --filter @picodash/picodash format`
-- `bun run --filter @picodash/picodash check`
-- `bun run --filter @picodash/picodash test`
-- `bun run --filter @picodash/picodash build`
-- `bun run --filter @picodash/web check`
-- `bun run test:e2e:web`
-- `bun run test:e2e:lab`
-- `bun audit --audit-level=high`
-- `bun run release:check`
-- `bun run ready`
+`@picodash/dashlist` is a standalone React composition system for ordered, groupable controls,
+readouts, visualizations, previews, and actions. It supplies typed bindings, drafts, accessible
+reordering, and durable order/collapse overrides without requiring DashPanel.
 
-`bun run ready` is the full gate:
+### Picodash
+
+`@picodash/picodash` integrates Store, DashPanel, DashList, themes, and ready-made Dashlets. It is a
+facade and control-interface product, not an application framework or monolithic Dashboard
+component.
+
+Applications continue to own routing, data transport, authentication, authorization, exposure
+policy, and declarative JSX composition.
+
+## Roadmap boundaries
+
+1. Complete Store contracts and reach a useful Store alpha.
+2. Dogfood Store independently through DashPanel and DashList.
+3. Feed consumer findings back into Store before Store beta/stability.
+4. Stabilize DashPanel and DashList against their own release gates.
+5. Build Picodash integration after the three foundations are stable.
+
+A vertical slice stays within the product currently being developed. Higher products may expose a
+foundation gap, but they do not solve it through private bypasses.
+
+A small cross-package smoke harness may detect public-contract incompatibility. It must not become
+premature Picodash implementation or duplicate lower-layer tests.
+
+## Glossary
+
+- **Picodash:** the integrated product and `@picodash/picodash` facade. Preserve lowercase `d`.
+- **Store:** the framework-independent typed state product in `@picodash/store`.
+- **Root Store:** one value authority, field set, persistence identity, and durable scope registry.
+- **Scoped Store:** an immutable view of a root Store attributed to one `scopeId`; it still exposes
+  every root field and value.
+- **Scope:** a root-global organizational identity for durable metadata, registration, management,
+  and operation attribution. It is not a value copy, string hierarchy, or authorization boundary.
+- **Provider:** `PicodashProvider`, the DashPanel host and hard Store/scope-ancestry boundary.
+- **Provider ID:** runtime host identity within one root Store. It does not namespace scopes.
+- **DashPanel:** the standalone panel product. `PicodashPanel` is the current prototype component
+  name; final public naming remains under review.
+- **DashList:** the standalone List/Dashlet composition product. `PicodashList` is the current
+  prototype component name; final public naming remains under review.
+- **DashGroup:** a declarative DashList container with its own stable node ID and optional collapse
+  override. A group is not a Store scope.
+- **Dashlet:** one composable control, readout, visualization, preview, action, or compound item
+  inside a DashList.
+- **Dashboard:** an application composition of Panels and Dashlets, not a required Picodash
+  component abstraction.
+- **Field:** one immutable root-owned typed value contract.
+- **Field handle:** the nominal root-owned object used to bind a component to a field.
+- **Binding:** one presentation/editor of a field, identified by scope, item, and alias. Drafts and
+  input issues belong to bindings.
+- **Binding handle:** an opaque root- and registration-generation-owned handle used by interaction
+  commands; it is not reconstructed from strings.
+- **Canonical value:** the complete validated root value observed by every scope.
+- **Baseline:** field defaults merged with validated initial values before persistence overlays.
+- **Durable metadata:** Panel layout and DashList order/collapse overrides that may be persisted.
+- **Interaction state:** ephemeral draft, touched, input issue, focus, hover, active, and conflict
+  state. It is never persisted.
+- **Host runtime:** Provider-local portals, boundaries, visibility, activation, and z-order.
+- **Adapter:** the synchronous whole-record bridge to an externally owned application value store.
+- **Document:** a versioned export/import projection with explicit Store/scope identity and field
+  disclosure policy.
+- **Plan:** an opaque, root-owned, single-use description of a repair, overwrite, prune, persistence,
+  export, or import operation; stale plans fail without mutation.
+- **Contract status:** whether a behavior is Draft, Accepted, or Revised.
+- **Implementation status:** whether behavior is Prototype, Planned, Partial, Implemented, or
+  Verified.
+
+## Package boundaries
+
+- `@picodash/store` owns framework-independent values, scopes, transactions, adapters, persistence,
+  documents, durable metadata, and diagnostics.
+- `@picodash/store/react` owns public Store hooks and typed selectors.
+- `@picodash/store/integration` owns the supported advanced context and declarative lifecycle-lease
+  protocol used by the separate UI packages.
+- `@picodash/theme` owns shared semantic theme contracts and tokens.
+- `@picodash/dashpanel` owns Panel/Provider composition and placement exports.
+- `@picodash/dashlist` owns List, group, Dashlet anatomy, binding composition, ordering, and collapse
+  presentation.
+- `@picodash/picodash` integrates and reexports stable foundational contracts.
+
+DashPanel and DashList depend on compatible Store/theme packages, not on one another. Store never
+depends on either UI product: it owns validated JSON persistence records for their built-in metadata,
+while the UI packages own public behavior and prop types.
+
+Do not document retired package paths, `apps/demo`, or the legacy imperative Panel deregistration
+model as current targets.
+
+## Prototype policy
+
+The current implementation congealed before the new product contracts were explicit. Treat every
+existing API and test as a working prototype until it is reconciled with the target reference.
+
+- Prototype behavior may be retained, redesigned, or removed.
+- Clean pre-v1 breaks are preferred over aliases unless compatibility is requested explicitly.
+- Existing tests do not confer contract status automatically.
+- Useful prototype behavior advances only after its owner, target contract, and evidence are clear.
+- Package READMEs currently describe shipped prototype APIs and must not override accepted target
+  decisions.
+
+## QA strategy
+
+One contract has one primary test owner. Verify it at the cheapest layer that can faithfully observe
+the behavior.
+
+- Store pure/type/model tests own data and state invariants.
+- DashPanel/DashList component tests own React wiring, semantic DOM, ARIA, and deterministic events.
+- Pure product tests own geometry, ordering, reconciliation, and graph algorithms.
+- Contract Lab E2E owns only real layout, pointer capture, focus traversal/restoration, portals,
+  browser storage, media queries, viewport, zoom, and cohesive browser seams.
+- Picodash integration tests prove composition without repeating foundational matrices.
+- Website E2E proves public journeys, not internal permutations.
+
+Do not add one test per documented sentence. Use table-driven, property-based, or model-based tests
+for large state spaces.
+
+For regressions:
+
+1. Identify the violated contract and primary owner.
+2. Expand the existing invariant test at the lowest faithful layer.
+3. Add browser evidence only when the failure requires a browser.
+4. Merge it into a cohesive existing journey when possible.
+5. Remove overlapping or obsolete tests in the same cutover.
+
+The Contract Lab hard ceiling remains 40 collected tests and is not a target. There are no legacy,
+quarantine, skip, fixme, retry-only, or hidden browser suites. See [TESTING.md](TESTING.md).
+
+## Repository topology
+
+- `packages/store`: Store prototype and tests.
+- `packages/theme`: shared theme foundation.
+- `packages/dashpanel`: standalone DashPanel prototype.
+- `packages/dashlist`: standalone DashList prototype.
+- `packages/picodash`: integrated facade prototype.
+- `apps/web`: production Next.js evaluation website; `/` is the only public route.
+- `apps/lab`: local Contract Lab at `/lab` plus checked-in audit report rendering.
+- `docs/adr`: architectural decisions.
+- `docs/reference`: aspirational contracts, status, decisions, and conformance.
+- `docs/product`: product positioning and value.
+
+Generated `dist/` output is never edited directly.
+
+## Toolchain
+
+The workspace uses Vite+ through the global `vp` CLI. Vite+ wraps Vite, Rolldown, Vitest, tsdown,
+Oxlint, Oxfmt, and task execution. Local documentation is in `node_modules/vite-plus/docs`.
+
+Use Bun for workspace scripts and package management.
+
+## Verification commands
+
+Run the narrowest owning check first. Do not run broad suites merely because they exist.
 
 ```bash
-bun run audit:high && bun run release:check && bun run artifacts:check && bun run evaluations:check && vp check && vp run -r test && vp run -r build && bun run evaluations:build && bun run test:e2e:lab:cap && bun run test:e2e:lab && bun run test:e2e:web
+bun install
+vp check
+vp run -r test
+vp run -r build
 ```
 
-GitHub CI runs independent `quality`, `evaluations`, `web-e2e`, and `lab-e2e` jobs for pull requests
-and pushes to `main`. Package publication runs the package check, tests, and build before
-publishing.
-
-The repository is currently a public preview: Issues are available for feedback, while pull
-requests are disabled until the contribution workflow reopens. Versioning and release guidance is
-in `RELEASING.md`.
-
-## Port Allocation
-
-The shared project defaults are:
-
-- `6030`: web development server via `WEBSITE_PORT`.
-- `6031`: web production preview (`start`) server via `WEBSITE_PORT`.
-- `6032`: local lab development server via `LAB_PORT`.
-- `6033`: web E2E server via `WEBSITE_PORT`.
-
-Ports `6034-6039` can be temporarily allocated to worktrees so development and E2E servers can
-run without conflicting with the shared project servers. If an agent needs to briefly run a server
-and its allocated port is occupied, it should find a free port in `6034-6039` and pass that port
-through the relevant environment variable.
-
-Assign new local services only from the available slots in `6034-6039`.
-
-When creating a new worktree, run `bun run port:reserve` from the worktree. The command updates
-the local project file `/Volumes/Jove/Developer/Projects/picodash/.worktree-ports` with a line in
-the form `<PORT>:<DATETIME>:<WORKTREE_DIR>`, choosing the lowest port in `6034-6039` that is not
-already claimed by another worktree. It also writes that port to both `WEBSITE_PORT` and
-`LAB_PORT` in the worktree's `.env.local`. After the PR is merged, run `bun run port:release` from
-the worktree to remove its allocation line and clear those two local port settings.
-
-For this worktree:
+Focused product commands:
 
 ```bash
-LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:web
-LAB_PORT=6032 WEBSITE_PORT=6033 bun run test:e2e:lab
+bun run --filter @picodash/store check
+bun run --filter @picodash/store test
+bun run --filter @picodash/dashpanel check
+bun run --filter @picodash/dashlist check
+bun run --filter @picodash/picodash check
 ```
 
-## Documentation Surfaces
+Browser suites:
 
-- `README.md`
-- `packages/dashpanel/README.md`
-- `SKILL.md`
-- `AGENTS.md`
-- `llms.txt`
+```bash
+bun run test:e2e:lab:cap
+bun run test:e2e:lab
+bun run test:e2e:web
+```
 
-Update all five files together when command surface, entrypoints, or architecture changes.
+Release/full gate:
 
-## Package Boundaries
+```bash
+bun run release:check
+bun run ready
+```
 
-- `@picodash/dashpanel` owns the standalone panel shell and placement exports.
-- `@picodash/dashlist` owns standalone list, group, and Dashlet composition exports.
-- `@picodash/picodash` is the integrated facade for DashPanel and Dashlist.
-- `@picodash/picodash` exports remain package-owned and public, used via `@picodash/picodash`,
-  `@picodash/picodash/advanced`, `@picodash/picodash/ui`, and `@picodash/picodash/style.css`.
-- `@picodash/picodash/dashlet` is the structural dashlet exports surface for panel shell composition.
-- `@picodash/picodash/catalog` is the public catalog utility surface.
-- `@picodash/store` exports include `createPicodashStore` and `@picodash/store/react` selector API
-  (`usePicodashStoreSelector`) for typed subscriptions; panel/dashlet integrations use typed
-  `store.fields` handles as the canonical control contract.
-- Shared shadcn components live in `packages/dashpanel/src/components/ui`; workspace apps
-  consume `@picodash/picodash/ui` and do not keep their own `components.json` or generated copies.
-- `@picodash/picodash/ui` uses the shadcn `aria-rhea` React Aria contracts. Root overlays must preserve
-  the provider portal and z-index contract and carry the nearest provider/panel theme at the portal
-  root, while their inner primitives and nested submenus inherit.
-- Third-party dashlets compose package-owned UI primitives through `@picodash/picodash/ui`; each public
-  primitive has a named `*Props` type. Prefer semantic `--picodash-*` tokens and component
-  `variant`/`size` props over internal classes or raw variant helpers. Bespoke visualizations should
-  use `--picodash-color-well`, `--picodash-color-data-1`, `--picodash-color-data-2`,
-  `--picodash-color-data-3`, `--picodash-color-data-4`, and `--picodash-color-data-5`.
-- Do not document retired package paths or `apps/demo` as active workspace products.
+`bun run ready` runs audit, release, artifact, evaluation, check, test, build, and both E2E gates.
+Use it for a release boundary or when explicitly requested, not for every documentation edit.
 
-## Verification Discipline
+If setup or Vite+ behavior is wrong, run `vp env doctor` and retain its output.
 
-- Run the narrowest useful commands first, then the required full check before handoff.
-- Keep `apps/web/tests/routes.spec.ts` asserting the production route boundary plus local lab paths
-  and their `data-product-route` markers.
-- Avoid changing generated outputs (`dist/`) directly.
-- Do not run broad tests unless requested by user/task scope.
+## Development servers and ports
 
-## Development Behavior Rules
+- `6030`: web development server (`WEBSITE_PORT`).
+- `6031`: web production preview (`WEBSITE_PORT`).
+- `6032`: Lab development server (`LAB_PORT`).
+- `6033`: web E2E server (`WEBSITE_PORT`).
+- `6034-6039`: temporary worktree allocations.
 
-- Keep high-frequency visuals outside persisted stores.
-- Keep values and persisted payloads JSON-compatible.
-- Keep theme logic on `theme` props and data attributes.
-- Validate whole batch writes before mutation in programmatic setters.
-- Preserve synchronous parser/validator behavior; promise-based contracts are not supported.
-- Keep custom parser/validator callback identities stable across renders.
-- Preserve pointer and keyboard reorder parity, including same-band constraints and cancellation.
-- Persist only canonical placement, disposition, and boundary-relative coordinate records. Invalid
-  or obsolete records start from declared defaults; do not add compatibility migrations.
-- Keep snaps offset and floating-like. Hybrid docking intent uses contained unsnapped panel geometry
-  plus pointer position and animates an independent proxy; never infer intent from proxy or docked
-  geometry. Full-side docks are flush and full-height; corner docks are flush and intrinsic-height.
-  Keep Hybrid mode through detachment.
-- Resolve panel boundaries in panel-override, provider-default, viewport order; `null` explicitly
-  selects the viewport, while an unresolved ref falls through to the next boundary.
-- Resolve boundary insets independently in panel-override, provider-default, zero order. Apply the
-  inset before every placement calculation; do not persist it or reuse `snapOffset` as free-panel
-  containment padding.
-- Keep fixed start/end lanes outside the auto-lane scrollport and apply the bundled `scroll-fade`
-  utility to every root panel scrollport.
+Use `bun run port:reserve` in a worktree and `bun run port:release` after its work is merged. Do not
+invent ports outside the allocated range.
+
+## Cross-cutting implementation rules
+
+These rules are already accepted or protect current high-risk behavior:
+
+- Keep canonical values and persisted payloads strict JSON data.
+- Validate a complete candidate batch before any canonical mutation.
+- Keep binding-input parsers, Standard Schema contracts, validators, adapters, and core persistence
+  synchronous. UI parsers do not run against defaults, persisted data, adapter snapshots, imports,
+  or migration output.
+- Keep high-frequency pointer/visual state outside persisted Store snapshots.
+- Persist settled overrides, not declared defaults, previews, visibility, focus, activation, or
+  z-order.
+- Preserve pointer and keyboard outcome parity for reorder and placement.
+- Keep custom parser/validator callback identities stable across React renders.
+- Use semantic `--picodash-*` tokens and public component variants instead of internal classes.
+- Preserve provider portal, z-index, theme, and accessible overlay contracts.
+- Treat invalid/obsolete prototype persistence as current-default recovery; do not invent silent
+  compatibility migrations.
+
+Detailed placement and boundary behavior belongs in the DashPanel reference, package README, and
+owning geometry tests—not in this guide.
+
+## Documentation maintenance
+
+- Contract changes update the decision ledger and affected target reference.
+- Ownership, identity, persistence, or package-boundary changes require an ADR amendment or new ADR.
+- Implementation changes update status and conformance evidence in the same change.
+- Public command, package-entrypoint, or workspace-topology changes update this guide and relevant
+  operational/package README.
+- Examples that become normative should be typechecked or exercised as fixtures.
+- Do not copy complete API reference material into `AGENTS.md`, `README.md`, `SKILL.md`, or `llms.txt`.
+  Link to its owner instead.
+
+## Copy quality
+
+Product copy leads with the concrete product, user, and outcome. Technical architecture follows
+only when it explains a user-visible benefit or constraint.
+
+- Prefer specific nouns and outcomes: Panels, Lists, Dashlets, typed values, placement, ordering,
+  persistence, and adapters.
+- Do not use generic claims such as “powerful,” “seamless,” or “modern.”
+- Do not use metaphors such as “surface,” “journey,” or “without the ceremony” in place of behavior.
+- Documentation begins with one factual purpose sentence and uses realistic examples.
+- Preserve `Picodash`, `DashPanel`, `DashList`, `Dashlet`, and the `@picodash` package scope exactly.
