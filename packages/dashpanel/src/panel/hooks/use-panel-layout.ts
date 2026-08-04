@@ -24,6 +24,7 @@ import {
   type PanelPosition,
   type PanelRect,
   type ResolvedPicodashPanelPlacementOptions,
+  type ResolvedPicodashPanelBoundaryInset,
 } from '../geometry/panel-snapping.js'
 import type { PicodashProviderStore } from '../state/provider/picodash-provider.js'
 import type { PicodashPanelPlacement } from '../state/panel/picodash-panel-types.js'
@@ -65,13 +66,14 @@ export function withoutCallerClassNames(appliedClassName: string, callerClassNam
 export function floatingPanelMaxWidthForBoundary(
   boundaryWidth: number,
   callerMaxWidth: number,
-  snapOffset: number,
+  placementInset: number,
 ) {
-  return panelMaxWidthForBoundary(boundaryWidth - snapOffset * 2, callerMaxWidth)
+  return panelMaxWidthForBoundary(boundaryWidth - placementInset * 2, callerMaxWidth)
 }
 
 export function usePanelLayoutSynchronization({
   boundaryElement,
+  boundaryInset,
   callerHeight,
   callerMaxHeight,
   callerMaxWidth,
@@ -90,6 +92,7 @@ export function usePanelLayoutSynchronization({
   y,
 }: {
   boundaryElement: Element | null
+  boundaryInset: ResolvedPicodashPanelBoundaryInset
   callerHeight?: MotionStyle['height']
   callerMaxHeight?: MotionStyle['maxHeight']
   callerMaxWidth?: MotionStyle['maxWidth']
@@ -346,7 +349,7 @@ export function usePanelLayoutSynchronization({
       const panelElement = panelElementRef.current
       const positionElement = positionElementRef?.current ?? panelElement
       if (!panelElement || !positionElement) return null
-      const containerRect = rectForPanelBoundary(boundaryElement)
+      const containerRect = rectForPanelBoundary(boundaryElement, boundaryInset)
       const positionRectBeforeGeometry = dragBaseRect ? rectFromElement(positionElement) : undefined
       let synchronizedDragBaseRect: PanelRect | undefined
 
@@ -410,7 +413,7 @@ export function usePanelLayoutSynchronization({
         const appliedMaxWidth = floatingPanelMaxWidthForBoundary(
           containerRect.width,
           measureCallerMaxWidth(containerRect),
-          placementOptions.snapOffset,
+          nextPlacement.disposition.kind === 'snapped' ? placementOptions.snapOffset : 0,
         )
         if (appliedMaxWidthRef.current !== appliedMaxWidth) {
           appliedMaxWidthRef.current = appliedMaxWidth
@@ -429,6 +432,7 @@ export function usePanelLayoutSynchronization({
     },
     [
       boundaryElement,
+      boundaryInset,
       callerHeight,
       measureCallerMaxHeight,
       measureCallerMaxWidth,
@@ -524,6 +528,7 @@ export function usePanelLayoutSynchronization({
           ? Math.max(containerRect.bottom - layoutRect.bottom, 0)
           : undefined,
       containerRect,
+      inset: snappedPosition ? placementOptions.snapOffset : 0,
       intrinsicHeight,
       position: targetPosition,
       useProjectedPosition: snappedPosition !== undefined,

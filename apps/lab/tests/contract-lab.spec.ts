@@ -114,9 +114,31 @@ test('exercises placement mode through public controls and DOM', async ({ page }
     .click()
   await expect(
     page.locator(
-      '[data-picodash-panel-shell][data-fixed-placement="bottom-right"]:has([data-picodash-panel-id="contract-placement-primary"])',
+      '[data-picodash-panel-shell][data-fixed-placement="top-right"]:has([data-picodash-panel-id="contract-placement-primary"])',
     ),
   ).toBeVisible()
+})
+
+test('keeps viewport placement inside sticky header and footer insets', async ({ page }) => {
+  await openLab(page)
+  await loadPreset(page, 'placement')
+
+  const panel = page.locator('[data-picodash-panel-id="contract-placement-primary"]')
+  const viewport = page.viewportSize()
+  if (!viewport) throw new Error('Viewport size is unavailable')
+
+  await expect(page.locator('[data-contract-lab-boundary-inset="top"]')).toBeVisible()
+  await expect(page.locator('[data-contract-lab-boundary-inset="bottom"]')).toBeVisible()
+  await expectPanelEdges(panel, { bottom: viewport.height - 48, right: viewport.width - 16 })
+
+  await panel.getByRole('radio', { name: 'fixed', exact: true }).click()
+  await expectPanelEdges(panel, { right: viewport.width - 16, top: 64 })
+
+  await panel.getByRole('radio', { name: 'floating', exact: true }).click()
+  await expectPanelEdges(panel, { right: viewport.width - 24, top: 72 })
+
+  await panel.getByRole('radio', { name: 'hybrid', exact: true }).click()
+  await expectPanelEdges(panel, { bottom: viewport.height - 48, right: viewport.width - 16 })
 })
 
 test('exercises focus, keyboard ordering, collapse, deregister, and remount', async ({ page }) => {
@@ -286,3 +308,21 @@ test('resets to the canonical placement preset through the public driver', async
   )
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('reset')
 })
+
+async function expectPanelEdges(
+  panel: ReturnType<Page['locator']>,
+  expected: Partial<Record<'bottom' | 'left' | 'right' | 'top', number>>,
+) {
+  await expect
+    .poll(async () => {
+      const bounds = await panel.boundingBox()
+      if (!bounds) return null
+      return {
+        bottom: Math.round(bounds.y + bounds.height),
+        left: Math.round(bounds.x),
+        right: Math.round(bounds.x + bounds.width),
+        top: Math.round(bounds.y),
+      }
+    })
+    .toMatchObject(expected)
+}

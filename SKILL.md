@@ -153,6 +153,10 @@ export function SiteControls() {
   Use `PicodashPanel boundary={canvasRef}` only for a panel-specific surface, and
   `boundary={null}` to explicitly restore viewport bounds. Accept Elements and React refs, not CSS
   selector strings.
+- Use provider `panelBoundaryInset` for shared sticky headers, footers, or side chrome and panel
+  `boundaryInset` for an override. Expand one-to-four values like CSS margin shorthand. Treat the
+  inset rectangle as the usable Boundary: free panels are contained by it, docks are flush with it,
+  and snaps add `snapOffset`. Measure `snapProximity` from the final snap or dock target.
 - Keep `portalContainer` and boundaries conceptually separate: the portal chooses render
   ownership, while the boundary constrains floating, snapping, fixed docking, and collapse-toggle
   geometry.

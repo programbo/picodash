@@ -20,8 +20,12 @@ export function App() {
 ```
 
 Use `boundary` on a panel or `panelBoundary` on the provider when the panel should move and clip
-relative to an application-owned element instead of the viewport. The panel's public action menu
-can be replaced or extended with placement, collapse, drag, theme, import, export, and reset items.
+relative to an application-owned element instead of the viewport. Use `panelBoundaryInset` to
+reserve shared space for sticky application chrome, and `boundaryInset` to override it for one
+panel. Insets follow CSS shorthand ordering. Free panels stay inside the inset boundary, docks sit
+flush against it, and snaps add `snapOffset`; `snapProximity` is measured from the resulting target.
+The panel's public action menu can be replaced or extended with placement, collapse, drag, theme,
+import, export, and reset items.
 
 The package intentionally does not export Dashlist or Dashlet composition. Install
 `@picodash/dashlist` for lists, groups, and Dashlets, or use `@picodash/picodash` when an integrated

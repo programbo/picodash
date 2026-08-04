@@ -39,6 +39,7 @@ export type {
   PicodashPanelCloseDetails,
   PicodashPanelCloseOptions,
   PicodashPanelBoundary,
+  PicodashPanelBoundaryInset,
   PicodashPanelCorner,
   PicodashPanelDefaultPlacement,
   PicodashPanelDockedDisposition,

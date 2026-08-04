@@ -317,6 +317,20 @@ constrain every panel to an `Element` or React ref, then use a panel's `boundary
 override. `boundary={null}` explicitly restores the viewport. Boundaries do not change portal
 ownership or resize application content; fixed panels overlay their boundary.
 
+Use `panelBoundaryInset` to reserve shared space inside that boundary, such as room for a sticky
+header and footer. A panel's `boundaryInset` overrides the provider value; `undefined` inherits it
+and `0` removes it for that panel. Insets use CSS shorthand ordering:
+
+```tsx
+<PicodashProvider panelBoundaryInset={[64, 16, 48, 16]}>
+  <PicodashPanel store={sceneStore} title="Inspector" />
+</PicodashProvider>
+```
+
+The inset defines the usable boundary for every placement. Free panels are contained by it,
+docked panels sit flush against it, and snapped panels add `snapOffset`. `snapProximity` is measured
+from that final snap or dock target, not from the raw boundary edge.
+
 `usePicodashPanel(panelId)` also exposes reactive `placement` and `setPlacement()`. Runtime
 placement and boundary-relative preferred coordinates persist when `persistLayout` is enabled.
 Only canonical Picodash placement records hydrate; invalid or obsolete records start from declared

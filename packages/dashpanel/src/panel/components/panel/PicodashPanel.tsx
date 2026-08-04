@@ -38,6 +38,7 @@ import {
   placementPosition,
   rectForPanelBoundary,
   rectFromElement,
+  resolvePicodashPanelBoundaryInset,
   resolvePicodashPanelPlacementOptions,
   resolvePicodashPanelBoundary,
   snapPanelPosition,
@@ -129,6 +130,7 @@ export type {
   PicodashPanelCloseDetails,
   PicodashPanelCloseOptions,
   PicodashPanelBoundary,
+  PicodashPanelBoundaryInset,
   PicodashPanelCorner,
   PicodashPanelDefaultPlacement,
   PicodashPanelDockedPosition,
@@ -155,6 +157,7 @@ export function PicodashPanel<TValues extends object>({
   _dragY,
   actionMenu,
   boundary,
+  boundaryInset,
   children,
   className,
   close = false,
@@ -188,7 +191,12 @@ export function PicodashPanel<TValues extends object>({
   width,
   ...props
 }: PicodashPanelProps<TValues>) {
-  const { panelBoundary, portalContainer, store: providerStore } = usePicodashProviderContext()
+  const {
+    panelBoundary,
+    panelBoundaryInset,
+    portalContainer,
+    store: providerStore,
+  } = usePicodashProviderContext()
   const theme = useResolvedPicodashTheme(themeProp)
   const panelId = store.getState().panelId
   const panelDragControls = useDragControls()
@@ -266,6 +274,10 @@ export function PicodashPanel<TValues extends object>({
     () => resolvePicodashPanelPlacementOptions(placementOptions),
     [placementOptions],
   )
+  const resolvedBoundaryInset = useMemo(
+    () => resolvePicodashPanelBoundaryInset(boundaryInset, panelBoundaryInset),
+    [boundaryInset, panelBoundaryInset],
+  )
   const resolvedBoundary = useResolvedPanelBoundary(boundary, panelBoundary)
 
   const panelStore = panelStoreRef.current
@@ -321,6 +333,7 @@ export function PicodashPanel<TValues extends object>({
     updatePanelRect,
   } = usePanelLayoutSynchronization({
     boundaryElement: resolvedBoundary,
+    boundaryInset: resolvedBoundaryInset,
     callerHeight: style?.height,
     callerMaxHeight,
     callerMaxWidth: style?.maxWidth,
@@ -340,6 +353,7 @@ export function PicodashPanel<TValues extends object>({
   })
   useRegisterPicodashPanel({
     boundary: resolvedBoundary,
+    boundaryInset: resolvedBoundaryInset,
     defaultPlacement,
     id: panelId,
     visible: defaultVisibleRef.current,
@@ -507,7 +521,7 @@ export function PicodashPanel<TValues extends object>({
       anchor: snapped.dock?.vertical === 'bottom' ? 'bottom' : 'top',
       baseRect: dragState.baseRect,
       containerRect: dragState.containerRect,
-      inset: resolvedPlacementOptions.snapOffset,
+      inset: snapped.dock ? resolvedPlacementOptions.snapOffset : 0,
       intrinsicHeight: dragState.intrinsicHeight,
       position: snapped.position,
     })
@@ -532,7 +546,7 @@ export function PicodashPanel<TValues extends object>({
       return
     }
 
-    const nextContainerRect = rectForPanelBoundary(resolvedBoundary)
+    const nextContainerRect = rectForPanelBoundary(resolvedBoundary, resolvedBoundaryInset)
     if (
       nextContainerRect.width !== dragState.containerRect.width ||
       nextContainerRect.height !== dragState.containerRect.height
@@ -626,7 +640,7 @@ export function PicodashPanel<TValues extends object>({
         anchor: 'top',
         baseRect: liveBaseRect,
         containerRect: dragState.containerRect,
-        inset: resolvedPlacementOptions.snapOffset,
+        inset: 0,
         intrinsicHeight: dragState.floatingHeight,
         position: candidatePosition,
       })
@@ -644,8 +658,11 @@ export function PicodashPanel<TValues extends object>({
         intentPosition === 'top' || intentPosition === 'bottom' ? null : intentPosition
       const releasedFromFullSide = releasesDownward && dragState.attachedReleased
       const pointerTargetsVerticalEdge =
-        pointer.y <= dragState.containerRect.top + resolvedPlacementOptions.snapProximity ||
-        pointer.y >= dragState.containerRect.bottom - resolvedPlacementOptions.snapProximity
+        Math.abs(pointer.y - (dragState.containerRect.top + resolvedPlacementOptions.snapOffset)) <=
+          resolvedPlacementOptions.snapProximity ||
+        Math.abs(
+          pointer.y - (dragState.containerRect.bottom - resolvedPlacementOptions.snapOffset),
+        ) <= resolvedPlacementOptions.snapProximity
       const verticalSnapIntent =
         (intentPosition === 'top' || intentPosition === 'bottom') &&
         (!releasedFromFullSide || pointerTargetsVerticalEdge)
@@ -680,15 +697,14 @@ export function PicodashPanel<TValues extends object>({
         anchor: 'top',
         baseRect: liveBaseRect,
         containerRect: dragState.containerRect,
-        inset: resolvedPlacementOptions.snapOffset,
+        inset:
+          targetPosition === 'top' || targetPosition === 'bottom'
+            ? resolvedPlacementOptions.snapOffset
+            : 0,
         intrinsicHeight: dragState.floatingHeight,
         position:
           previewPosition && !releasedFromFullSide
-            ? clampPanelPosition(
-                ordinarySnap.position,
-                liveBaseRect,
-                insetPanelRect(dragState.containerRect, resolvedPlacementOptions.snapOffset),
-              )
+            ? clampPanelPosition(ordinarySnap.position, liveBaseRect, dragState.containerRect)
             : ordinarySnap.position,
         useProvidedBaseRect: true,
       })
@@ -780,7 +796,7 @@ export function PicodashPanel<TValues extends object>({
 
     if (panelElement) {
       const displayedRect = dragState?.lastRect ?? rectFromElement(panelElement)
-      const containerRect = rectForPanelBoundary(resolvedBoundary)
+      const containerRect = rectForPanelBoundary(resolvedBoundary, resolvedBoundaryInset)
       const preservesAttachedHybridCoordinates =
         dragState?.placement.mode === 'hybrid' &&
         dragState.attachedDock !== null &&
@@ -831,7 +847,7 @@ export function PicodashPanel<TValues extends object>({
       const intrinsicHeight = isFullSideHybridDock
         ? measureIntrinsicHeightWithoutFixedSide()
         : measureIntrinsicHeight()
-      const containerRect = rectForPanelBoundary(resolvedBoundary)
+      const containerRect = rectForPanelBoundary(resolvedBoundary, resolvedBoundaryInset)
       const attachedSize = measureEdgeAttachedPanelSize(containerRect, intrinsicHeight)
       const initialDock =
         placement.mode === 'hybrid' && placement.disposition.kind === 'docked'
@@ -1510,21 +1526,6 @@ function panelRectsAlmostEqual(left: PanelRect | null, right: PanelRect) {
     Math.abs(left.width - right.width) < 0.5 &&
     Math.abs(left.height - right.height) < 0.5
   )
-}
-
-function insetPanelRect(rect: PanelRect, inset: number): PanelRect {
-  const left = rect.left + inset
-  const top = rect.top + inset
-  const right = Math.max(left, rect.right - inset)
-  const bottom = Math.max(top, rect.bottom - inset)
-  return {
-    bottom,
-    height: bottom - top,
-    left,
-    right,
-    top,
-    width: right - left,
-  }
 }
 
 function useResolvedPanelBoundary(

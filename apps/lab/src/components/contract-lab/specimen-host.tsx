@@ -78,9 +78,28 @@ export function ContractLabSpecimenHost({
       <div className="text-muted-foreground max-w-lg p-5 text-sm leading-6 sm:p-7">
         {preset.description}
       </div>
+      {preset.id === 'placement' ? (
+        <>
+          <div
+            aria-hidden="true"
+            className="bg-primary/12 text-primary pointer-events-none fixed inset-x-0 top-0 z-20 flex h-16 items-end justify-center pb-1 font-mono text-[0.625rem] uppercase"
+            data-contract-lab-boundary-inset="top"
+          >
+            64px viewport header inset
+          </div>
+          <div
+            aria-hidden="true"
+            className="bg-primary/12 text-primary pointer-events-none fixed inset-x-0 bottom-0 z-20 flex h-12 items-start justify-center pt-1 font-mono text-[0.625rem] uppercase"
+            data-contract-lab-boundary-inset="bottom"
+          >
+            48px viewport footer inset
+          </div>
+        </>
+      ) : null}
       <PicodashProvider
         key={`${preset.id}:${revision}:${remountRevision}`}
-        panelBoundary={boundaryRef}
+        panelBoundary={preset.id === 'placement' ? null : boundaryRef}
+        panelBoundaryInset={preset.id === 'placement' ? ([64, 16, 48, 16] as const) : 0}
         persistLayout={preset.id === 'placement'}
         storageKey={`picodash:contract-lab:${preset.id}`}
         theme="dark"

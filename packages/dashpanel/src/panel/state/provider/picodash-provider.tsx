@@ -20,19 +20,23 @@ import {
 import {
   placementForPanelLayout,
   rectForPanelBoundary,
+  resolvePicodashPanelBoundaryInset,
   type PanelLayout,
   type PanelRect,
+  type ResolvedPicodashPanelBoundaryInset,
 } from '../../geometry/panel-snapping.js'
 import { picodashDefaultTheme, picodashLayerTokens } from '../../lib/theme/theme.js'
 import { PicodashThemeContextProvider } from '../../lib/theme/picodash-theme-context.js'
 import type {
   PicodashPanelBoundary,
+  PicodashPanelBoundaryInset,
   PicodashPanelDefaultPlacement,
   PicodashPanelPlacement,
 } from '../panel/picodash-panel-types.js'
 
 export interface PicodashPanelRegistration {
   boundary: Element | null
+  boundaryInset: ResolvedPicodashPanelBoundaryInset
   id: string
   placement: PicodashPanelPlacement
   visible: boolean
@@ -40,6 +44,7 @@ export interface PicodashPanelRegistration {
 
 export interface PicodashPanelRegistrationInput {
   boundary?: Element | null
+  boundaryInset?: ResolvedPicodashPanelBoundaryInset
   defaultPlacement?: PicodashPanelDefaultPlacement
   id: string
   visible?: boolean
@@ -68,6 +73,10 @@ export interface PicodashProviderState {
   activatePanel: (panelId: string) => void
   registerPanel: (panel: PicodashPanelRegistrationInput) => void
   setPanelBoundary: (panelId: string, boundary: Element | null) => void
+  setPanelBoundaryInset: (
+    panelId: string,
+    boundaryInset: ResolvedPicodashPanelBoundaryInset,
+  ) => void
   setPanelLayout: (panelId: string, layout: PanelLayout) => void
   setPanelPlacement: (panelId: string, placement: PicodashPanelPlacement) => void
   setPanelRect: (panelId: string, rect: PanelRect | null) => void
@@ -81,6 +90,7 @@ export type PicodashProviderStore = StoreApi<PicodashProviderState>
 export interface PicodashProviderContextValue {
   containerElement: HTMLDivElement | null
   panelBoundary: PicodashPanelBoundary | null
+  panelBoundaryInset: PicodashPanelBoundaryInset
   portalContainer: HTMLElement | null
   theme: PicodashResolvedTheme
   store: PicodashProviderStore
@@ -93,6 +103,7 @@ export type PicodashResolvedTheme = string
 export interface PicodashProviderProps<CustomTheme extends string = never> {
   children: ReactNode
   panelBoundary?: PicodashPanelBoundary | null
+  panelBoundaryInset?: PicodashPanelBoundaryInset
   persistLayout?: boolean
   portalContainer?: HTMLElement | null
   storageKey?: string
@@ -146,6 +157,7 @@ export function createPicodashProviderStore({
           state.panels[panel.id] ??
           ({
             boundary: panel.boundary ?? null,
+            boundaryInset: panel.boundaryInset ?? resolvePicodashPanelBoundaryInset(0),
             id: panel.id,
             placement: placementForPanelLayout(layout, panel.defaultPlacement),
             visible: panel.visible ?? true,
@@ -173,6 +185,22 @@ export function createPicodashProviderStore({
           panels: {
             ...state.panels,
             [panelId]: { ...panel, boundary },
+          },
+        }
+      })
+    },
+    setPanelBoundaryInset(panelId: string, boundaryInset: ResolvedPicodashPanelBoundaryInset) {
+      set((state) => {
+        const panel = state.panels[panelId]
+        if (!panel || boundaryInsetsEqual(panel.boundaryInset, boundaryInset)) return state
+
+        const panelRects = { ...state.panelRects }
+        delete panelRects[panelId]
+        return {
+          panelRects,
+          panels: {
+            ...state.panels,
+            [panelId]: { ...panel, boundaryInset },
           },
         }
       })
@@ -212,7 +240,7 @@ export function createPicodashProviderStore({
 
         const current = state.panelLayouts[panelId]
         const measuredRect = state.panelRects[panelId]
-        const boundaryRect = rectForPanelBoundary(panel.boundary)
+        const boundaryRect = rectForPanelBoundary(panel.boundary, panel.boundaryInset)
         const layout: PanelLayout = {
           placement,
           preferredCoordinates:
@@ -355,12 +383,13 @@ export function modalZIndexForState(state: Pick<PicodashProviderState, 'panelOrd
 
 export function useRegisterPicodashPanel({
   boundary,
+  boundaryInset,
   defaultPlacement,
   id,
   visible,
 }: PicodashPanelRegistrationInput) {
   const store = usePicodashProviderStoreApi()
-  const initialRegistrationRef = useRef({ boundary, defaultPlacement, id, visible })
+  const initialRegistrationRef = useRef({ boundary, boundaryInset, defaultPlacement, id, visible })
 
   useLayoutEffect(() => {
     store.getState().registerPanel(initialRegistrationRef.current)
@@ -373,11 +402,18 @@ export function useRegisterPicodashPanel({
   useLayoutEffect(() => {
     store.getState().setPanelBoundary(id, boundary ?? null)
   }, [boundary, id, store])
+
+  useLayoutEffect(() => {
+    store
+      .getState()
+      .setPanelBoundaryInset(id, boundaryInset ?? resolvePicodashPanelBoundaryInset(0))
+  }, [boundaryInset, id, store])
 }
 
 export function PicodashProvider<CustomTheme extends string = never>({
   children,
   panelBoundary = null,
+  panelBoundaryInset = 0,
   persistLayout = true,
   portalContainer: portalContainerProp,
   storageKey = panelLayoutStorageKey,
@@ -401,11 +437,12 @@ export function PicodashProvider<CustomTheme extends string = never>({
     () => ({
       containerElement,
       panelBoundary,
+      panelBoundaryInset,
       portalContainer,
       store,
       theme,
     }),
-    [containerElement, panelBoundary, portalContainer, store, theme],
+    [containerElement, panelBoundary, panelBoundaryInset, portalContainer, store, theme],
   )
 
   return (
@@ -476,6 +513,18 @@ function placementsEqual(
   if (!left || !right || left.disposition.kind === 'free') return true
   return (
     right?.disposition.kind !== 'free' && left.disposition.position === right.disposition.position
+  )
+}
+
+function boundaryInsetsEqual(
+  left: ResolvedPicodashPanelBoundaryInset,
+  right: ResolvedPicodashPanelBoundaryInset,
+) {
+  return (
+    left.bottom === right.bottom &&
+    left.left === right.left &&
+    left.right === right.right &&
+    left.top === right.top
   )
 }
 

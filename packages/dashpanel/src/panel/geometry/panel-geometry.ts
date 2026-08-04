@@ -1,9 +1,4 @@
-import {
-  isPanelPlacementFixedLike,
-  SNAP_GAP,
-  type PanelPosition,
-  type PanelRect,
-} from './panel-snapping.js'
+import { isPanelPlacementFixedLike, type PanelPosition, type PanelRect } from './panel-snapping.js'
 import type {
   PicodashPanelDockedPosition,
   PicodashPanelPlacement,
@@ -99,7 +94,7 @@ export function projectPanelGeometry({
   baseRect,
   bottomInset,
   containerRect,
-  inset = SNAP_GAP,
+  inset = 0,
   intrinsicHeight = baseRect.height,
   minimumHeight = PANEL_MIN_VISIBLE_HEIGHT,
   position,

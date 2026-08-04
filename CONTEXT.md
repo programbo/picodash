@@ -51,6 +51,11 @@ _Avoid_: global panel manager, global registry, app-level panel service
 The rectangular area relative to which a Panel is placed and contained.
 _Avoid_: Portal, parent, viewport
 
+**Boundary inset**
+The reduction applied to a Boundary's usable placement rectangle before a Panel is placed or
+contained.
+_Avoid_: Container margin, snap offset, portal padding
+
 **Placement mode**
 The stable movement policy family: `floating`, `fixed`, or `hybrid`.
 _Avoid_: Position, disposition, layout mode

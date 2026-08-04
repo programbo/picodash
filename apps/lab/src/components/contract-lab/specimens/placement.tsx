@@ -18,7 +18,7 @@ export function createPlacementStore() {
   return createPicodashStore<PlacementValues>({
     fields: {
       mode: { defaultValue: 'hybrid' },
-      boundary: { defaultValue: 'Specimen host element' },
+      boundary: { defaultValue: 'Viewport inset for sticky header and footer' },
     },
     panelId: 'contract-placement-primary',
   })
@@ -30,9 +30,9 @@ export function PlacementSpecimen({ store }: { readonly store: PicodashStore<Pla
   function updatePlacement(mode: string) {
     const placement: PicodashPanelPlacement =
       mode === 'fixed'
-        ? { disposition: { kind: 'docked', position: 'bottom-right' }, mode: 'fixed' }
+        ? { disposition: { kind: 'docked', position: 'top-right' }, mode: 'fixed' }
         : mode === 'floating'
-          ? { disposition: { kind: 'snapped', position: 'bottom-right' }, mode: 'floating' }
+          ? { disposition: { kind: 'snapped', position: 'top-right' }, mode: 'floating' }
           : { disposition: { kind: 'docked', position: 'bottom-right' }, mode: 'hybrid' }
     panel?.setPlacement(placement)
   }

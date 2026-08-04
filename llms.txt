@@ -43,7 +43,10 @@ What it provides:
 - floating, fixed, and hybrid placement modes with free, snapped, and docked dispositions; snaps
   stay offset and floating-like, while Hybrid side/corner targets use an animated proxy and dock
   fixed-like on release; docked Hybrid panels resist detachment and remain Hybrid after becoming free
-- viewport-default geometry with provider panelBoundary and per-panel boundary Element/ref overrides
+- viewport-default geometry with provider panelBoundary and per-panel boundary Element/ref overrides;
+  provider panelBoundaryInset reserves shared sticky-chrome space and panel boundaryInset overrides it
+- boundary insets define the usable rectangle for free containment and flush docks; snaps add
+  snapOffset, and snapProximity is measured from the final snap or dock target
 - unified body collapse for free/snapped panels and whole-panel retraction for docked panels,
   with pinned start/end lanes and a scroll-faded auto lane in fixed-like layouts
 - explicit application-owned reads via usePicodashStoreSelector(store, selector)

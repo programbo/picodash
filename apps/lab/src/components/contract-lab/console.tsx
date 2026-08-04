@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { createPicodashStore } from '@picodash/store'
-import { PicodashItem, PicodashPanel, PicodashProvider } from '@picodash/picodash'
+import { Dashlist, PicodashItem, PicodashPanel, PicodashProvider } from '@picodash/picodash'
 import * as Dashlet from '@picodash/picodash/dashlet'
 import { Button } from '@picodash/picodash/ui'
 import type { ContractLabPreset, ContractLabPresetId } from '@lab/lib/contract-lab'
@@ -58,54 +58,57 @@ export function ContractLabConsole({
           store={consoleStore}
           title="Lab Console"
           width="100%"
+          contentMode="plain"
         >
-          <PicodashItem id="contract-presets" label="Contract presets" contentLayout="full">
-            <Dashlet.Frame>
-              <Dashlet.Description>
-                The Console has its own stable Provider and Store. Loading a specimen never remounts
-                this Panel.
-              </Dashlet.Description>
-              <Dashlet.Body>
-                <div
-                  aria-label="Contract preset"
-                  className="grid gap-(--picodash-space-1)"
-                  role="group"
-                >
-                  {presets.map((preset, index) => {
-                    const active = preset.id === activePreset
-                    return (
-                      <Button
-                        key={preset.id}
-                        aria-pressed={active}
-                        aria-label={`${preset.label}: ${preset.description}`}
-                        className="h-auto min-h-10 justify-start px-(--picodash-space-2) py-(--picodash-space-1-5) text-left"
-                        data-active={active}
-                        data-preset={preset.id}
-                        size="sm"
-                        variant={active ? 'secondary' : 'ghost'}
-                        onPress={() => onLoadPreset(preset.id)}
-                      >
-                        <span className="text-picodash-muted font-mono text-(length:--picodash-font-size-sm)">
-                          {String(index + 1).padStart(2, '0')}
-                        </span>
-                        <span className="font-(--picodash-font-medium)">{preset.label}</span>
-                      </Button>
-                    )
-                  })}
-                </div>
-              </Dashlet.Body>
-            </Dashlet.Frame>
-          </PicodashItem>
-          <PicodashItem id="lab-lifecycle" label="Lab lifecycle" contentLayout="full">
-            <Dashlet.Toolbar aria-label="Contract Lab lifecycle">
-              <Button size="sm" variant="outline" onPress={onReset}>
-                Reset lab
-              </Button>
-              <Button size="sm" variant="outline" onPress={onToggleSpecimen}>
-                {specimenAvailable ? 'Take offline' : 'Reopen specimen'}
-              </Button>
-            </Dashlet.Toolbar>
-          </PicodashItem>
+          <Dashlist className="h-full border-0" store={consoleStore}>
+            <PicodashItem id="contract-presets" label="Contract presets" contentLayout="full">
+              <Dashlet.Frame>
+                <Dashlet.Description>
+                  The Console has its own stable Provider and Store. Loading a specimen never
+                  remounts this Panel.
+                </Dashlet.Description>
+                <Dashlet.Body>
+                  <div
+                    aria-label="Contract preset"
+                    className="grid gap-(--picodash-space-1)"
+                    role="group"
+                  >
+                    {presets.map((preset, index) => {
+                      const active = preset.id === activePreset
+                      return (
+                        <Button
+                          key={preset.id}
+                          aria-pressed={active}
+                          aria-label={`${preset.label}: ${preset.description}`}
+                          className="h-auto min-h-10 justify-start px-(--picodash-space-2) py-(--picodash-space-1-5) text-left"
+                          data-active={active}
+                          data-preset={preset.id}
+                          size="sm"
+                          variant={active ? 'secondary' : 'ghost'}
+                          onPress={() => onLoadPreset(preset.id)}
+                        >
+                          <span className="text-picodash-muted font-mono text-(length:--picodash-font-size-sm)">
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <span className="font-(--picodash-font-medium)">{preset.label}</span>
+                        </Button>
+                      )
+                    })}
+                  </div>
+                </Dashlet.Body>
+              </Dashlet.Frame>
+            </PicodashItem>
+            <PicodashItem id="lab-lifecycle" label="Lab lifecycle" contentLayout="full">
+              <Dashlet.Toolbar aria-label="Contract Lab lifecycle">
+                <Button size="sm" variant="outline" onPress={onReset}>
+                  Reset lab
+                </Button>
+                <Button size="sm" variant="outline" onPress={onToggleSpecimen}>
+                  {specimenAvailable ? 'Take offline' : 'Reopen specimen'}
+                </Button>
+              </Dashlet.Toolbar>
+            </PicodashItem>
+          </Dashlist>
         </PicodashPanel>
       </PicodashProvider>
     </div>

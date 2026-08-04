@@ -1,6 +1,7 @@
 import { projectPanelGeometry } from './panel-geometry.js'
 import type {
   PicodashPanelBoundary,
+  PicodashPanelBoundaryInset,
   PicodashPanelCorner,
   PicodashPanelDefaultPlacement,
   PicodashPanelDockedPosition,
@@ -36,6 +37,13 @@ export interface PanelRect {
   width: number
 }
 
+export interface ResolvedPicodashPanelBoundaryInset {
+  bottom: number
+  left: number
+  right: number
+  top: number
+}
+
 export interface PanelSnapOptions {
   gap?: number
   retainedViewportDocks?: readonly PanelDockEdge[]
@@ -65,7 +73,6 @@ export const DEFAULT_SNAP_PROXIMITY = 16
 export const DEFAULT_DETACH_THRESHOLD_MULTIPLIER = 2.5
 export const SNAP_GAP = DEFAULT_SNAP_OFFSET
 export const SNAP_THRESHOLD = DEFAULT_SNAP_PROXIMITY
-export const FLOATING_PLACEMENT_INSET = DEFAULT_SNAP_OFFSET
 export const DEFAULT_PANEL_PLACEMENT = {
   disposition: { kind: 'snapped', position: 'top-right' },
   mode: 'floating',
@@ -94,6 +101,23 @@ export function resolvePicodashPanelPlacementOptions(
     snapOffset: nonNegativeFinite(options?.snapOffset, DEFAULT_SNAP_OFFSET),
     snapProximity: nonNegativeFinite(options?.snapProximity, DEFAULT_SNAP_PROXIMITY),
   }
+}
+
+export function resolvePicodashPanelBoundaryInset(
+  inset: PicodashPanelBoundaryInset | undefined,
+  fallback: PicodashPanelBoundaryInset = 0,
+): ResolvedPicodashPanelBoundaryInset {
+  const value = inset ?? fallback
+  if (typeof value === 'number') {
+    const side = nonNegativeFinite(value, 0)
+    return { bottom: side, left: side, right: side, top: side }
+  }
+
+  const top = nonNegativeFinite(value[0], 0)
+  const right = nonNegativeFinite(value[1], 0)
+  const bottom = nonNegativeFinite(value.length >= 3 ? value[2] : value[0], 0)
+  const left = nonNegativeFinite(value.length >= 4 ? value[3] : value[1], 0)
+  return { bottom, left, right, top }
 }
 
 export function isPanelPlacementEdgeAttached(placement: PicodashPanelPlacement) {
@@ -155,11 +179,10 @@ export function hybridDockPositionForPointer({
   snapOffset = DEFAULT_SNAP_OFFSET,
   snapProximity = DEFAULT_SNAP_PROXIMITY,
 }: HybridDockIntentInput): PicodashPanelHybridDockPosition | 'bottom' | 'top' | null {
-  const targetProximity = Math.max(snapOffset, snapProximity)
-  const horizontal = horizontalSnapIntent(panelRect, containerRect, pointer, targetProximity)
+  const horizontal = horizontalSnapIntent(panelRect, containerRect, pointer, snapProximity)
   if (horizontal) {
     const topIntentEdge =
-      containerRect.top + Math.max(targetProximity, (headerHeight ?? targetProximity / 2) * 2)
+      containerRect.top + Math.max(snapProximity, (headerHeight ?? snapProximity / 2) * 2)
     if (pointer.y <= topIntentEdge && panelRect.top <= topIntentEdge) {
       return horizontal === 'left' ? 'top-left' : 'top-right'
     }
@@ -173,15 +196,16 @@ export function hybridDockPositionForPointer({
   }
 
   if (intrinsicHeight !== undefined && intrinsicHeight >= containerRect.height) {
-    return verticalPointerIntent(pointer, containerRect, targetProximity) ?? null
+    return verticalPointerIntent(pointer, containerRect, snapOffset, snapProximity) ?? null
   }
 
-  const nearTop = panelRect.top <= containerRect.top + targetProximity
-  const nearBottom = panelRect.bottom >= containerRect.bottom - targetProximity
+  const nearTop = Math.abs(panelRect.top - (containerRect.top + snapOffset)) <= snapProximity
+  const nearBottom =
+    Math.abs(panelRect.bottom - (containerRect.bottom - snapOffset)) <= snapProximity
   if (nearTop && nearBottom) {
-    return verticalPointerIntent(pointer, containerRect, targetProximity) ?? null
+    return verticalPointerIntent(pointer, containerRect, snapOffset, snapProximity) ?? null
   }
-  return verticalSnapIntent(panelRect, containerRect, pointer, targetProximity) ?? null
+  return verticalSnapIntent(panelRect, containerRect, pointer, snapOffset, snapProximity) ?? null
 }
 
 export function placementForPanelLayout(
@@ -200,12 +224,33 @@ export function resolvePicodashPanelBoundary(
   return resolveBoundaryValue(boundary) ?? resolveBoundaryValue(fallback)
 }
 
-export function rectForPanelBoundary(boundary: Element | null): PanelRect {
+export function rectForPanelBoundary(
+  boundary: Element | null,
+  inset: ResolvedPicodashPanelBoundaryInset = resolvePicodashPanelBoundaryInset(0),
+): PanelRect {
   // Element boundaries are positioned in document flow. Preserve their full
   // rect while scrolling so an element-contained panel follows its host
   // instead of being re-anchored to the visible viewport edge. The host's
   // overflow/clipping rules determine what remains visible on screen.
-  return boundary ? rectFromElement(boundary) : viewportRect()
+  return insetPanelRect(boundary ? rectFromElement(boundary) : viewportRect(), inset)
+}
+
+export function insetPanelRect(
+  rect: PanelRect,
+  inset: ResolvedPicodashPanelBoundaryInset,
+): PanelRect {
+  const left = Math.min(rect.left + inset.left, rect.right)
+  const top = Math.min(rect.top + inset.top, rect.bottom)
+  const right = Math.max(left, rect.right - inset.right)
+  const bottom = Math.max(top, rect.bottom - inset.bottom)
+  return {
+    bottom,
+    height: bottom - top,
+    left,
+    right,
+    top,
+    width: right - left,
+  }
 }
 
 export function positionForFloatingCorner(
@@ -464,33 +509,21 @@ export function snapPanelPosition({
     x: position.x + (xSnap?.delta ?? 0),
     y: position.y + (ySnap?.delta ?? 0),
   }
+  const snapsToBoundary = Boolean(xSnap?.viewport || ySnap?.viewport)
   const projection = projectPanelGeometry({
     anchor: ySnap?.viewport && ySnap.dock === 'bottom' ? 'bottom' : 'top',
     baseRect,
     containerRect,
-    inset: gap,
+    inset: snapsToBoundary ? gap : 0,
     position: snapped,
   })
   const dock: PanelDock = {}
-  const directionalViewportDocks = options?.viewportDocks !== undefined
-  const safeLeft = containerRect.left + gap
-  const safeRight = containerRect.right - gap
-  const safeTop = containerRect.top + gap
-  if (
-    (xSnap?.viewport && xSnap.dock === 'left') ||
-    (!directionalViewportDocks && almostEqual(projection.rect.left, safeLeft))
-  ) {
+  if (xSnap?.viewport && xSnap.dock === 'left') {
     dock.horizontal = 'left'
-  } else if (
-    (xSnap?.viewport && xSnap.dock === 'right') ||
-    (!directionalViewportDocks && almostEqual(projection.rect.right, safeRight))
-  ) {
+  } else if (xSnap?.viewport && xSnap.dock === 'right') {
     dock.horizontal = 'right'
   }
-  if (
-    (ySnap?.viewport && ySnap.dock === 'top') ||
-    (!directionalViewportDocks && almostEqual(projection.rect.top, safeTop))
-  ) {
+  if (ySnap?.viewport && ySnap.dock === 'top') {
     dock.vertical = 'top'
   } else if (ySnap?.viewport && ySnap.dock === 'bottom') {
     dock.vertical = 'bottom'
@@ -530,8 +563,8 @@ function horizontalSnapIntent(
   pointer: PanelPosition,
   threshold: number,
 ): PanelDock['horizontal'] {
-  const nearLeft = panelRect.left <= containerRect.left + threshold
-  const nearRight = panelRect.right >= containerRect.right - threshold
+  const nearLeft = Math.abs(panelRect.left - containerRect.left) <= threshold
+  const nearRight = Math.abs(panelRect.right - containerRect.right) <= threshold
   if (nearLeft && nearRight) {
     return pointer.x <= containerRect.left + containerRect.width / 2 ? 'left' : 'right'
   }
@@ -544,10 +577,11 @@ function verticalSnapIntent(
   panelRect: PanelRect,
   containerRect: PanelRect,
   pointer: PanelPosition,
+  targetInset: number,
   threshold: number,
 ): PanelDock['vertical'] {
-  const nearTop = panelRect.top <= containerRect.top + threshold
-  const nearBottom = panelRect.bottom >= containerRect.bottom - threshold
+  const nearTop = Math.abs(panelRect.top - (containerRect.top + targetInset)) <= threshold
+  const nearBottom = Math.abs(panelRect.bottom - (containerRect.bottom - targetInset)) <= threshold
   if (nearTop && nearBottom) {
     return pointer.y <= containerRect.top + containerRect.height / 2 ? 'top' : 'bottom'
   }
@@ -559,21 +593,18 @@ function verticalSnapIntent(
 function verticalPointerIntent(
   pointer: PanelPosition,
   containerRect: PanelRect,
-  zone: number,
+  targetInset: number,
+  threshold: number,
 ): PanelDock['vertical'] {
-  const distanceFromTop = pointer.y - containerRect.top
-  const distanceFromBottom = containerRect.bottom - pointer.y
-  if (distanceFromTop <= zone && distanceFromTop <= distanceFromBottom) return 'top'
-  if (distanceFromBottom <= zone) return 'bottom'
+  const distanceFromTop = Math.abs(pointer.y - (containerRect.top + targetInset))
+  const distanceFromBottom = Math.abs(pointer.y - (containerRect.bottom - targetInset))
+  if (distanceFromTop <= threshold && distanceFromTop <= distanceFromBottom) return 'top'
+  if (distanceFromBottom <= threshold) return 'bottom'
   return undefined
 }
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
-}
-
-function almostEqual(left: number, right: number) {
-  return Math.abs(left - right) < 0.5
 }
 
 function matrixValues(serializedValues: string) {

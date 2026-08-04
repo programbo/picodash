@@ -74,7 +74,10 @@ Hybrid after becoming free.
 Geometry defaults to the viewport;
 `PicodashProvider.panelBoundary`
 sets a shared Element/ref boundary and `PicodashPanel.boundary` can override it. Boundaries remain
-independent of portal ownership.
+independent of portal ownership. `PicodashProvider.panelBoundaryInset` reserves shared space within
+the resolved boundary and `PicodashPanel.boundaryInset` overrides it. Insets follow CSS shorthand
+ordering. Free panels are contained by the inset boundary, docks are flush with it, snaps add
+`snapOffset`, and `snapProximity` is measured from the resulting target.
 
 ## Required Commands
 
@@ -210,5 +213,8 @@ Update all five files together when command surface, entrypoints, or architectur
   Keep Hybrid mode through detachment.
 - Resolve panel boundaries in panel-override, provider-default, viewport order; `null` explicitly
   selects the viewport, while an unresolved ref falls through to the next boundary.
+- Resolve boundary insets independently in panel-override, provider-default, zero order. Apply the
+  inset before every placement calculation; do not persist it or reuse `snapOffset` as free-panel
+  containment padding.
 - Keep fixed start/end lanes outside the auto-lane scrollport and apply the bundled `scroll-fade`
   utility to every root panel scrollport.

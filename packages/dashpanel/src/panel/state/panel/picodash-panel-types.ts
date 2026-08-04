@@ -75,6 +75,11 @@ export interface PicodashPanelPlacementOptions {
 }
 
 export type PicodashPanelBoundary = Element | RefObject<Element | null>
+export type PicodashPanelBoundaryInset =
+  | number
+  | readonly [vertical: number, horizontal: number]
+  | readonly [top: number, horizontal: number, bottom: number]
+  | readonly [top: number, right: number, bottom: number, left: number]
 export type PicodashPanelCloseBehavior = 'deregister' | 'hide'
 
 export interface PicodashPanelCloseOptions {
@@ -96,6 +101,7 @@ interface PicodashPanelBaseProps extends Omit<
    * menu together.
    */
   actionMenu?: PicodashPanelActionMenu
+  boundaryInset?: PicodashPanelBoundaryInset
   children?: ReactNode
   /** Render children directly when the Panel is used without a Dashlist. */
   contentMode?: 'dashlist' | 'plain'

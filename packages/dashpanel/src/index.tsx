@@ -63,6 +63,7 @@ export type {
   ActionSubmenuProps,
   PicodashPanelActionMenu as DashPanelActionMenu,
   PicodashPanelBoundary as DashPanelBoundary,
+  PicodashPanelBoundaryInset as DashPanelBoundaryInset,
   PicodashPanelCloseBehavior as DashPanelCloseBehavior,
   PicodashPanelCloseDetails as DashPanelCloseDetails,
   PicodashPanelCloseOptions as DashPanelCloseOptions,
