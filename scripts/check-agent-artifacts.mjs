@@ -20,7 +20,7 @@ const artifactContracts = {
 }
 
 const packageExportContracts = {
-  'packages/store/package.json': ['.', './react', './package.json'],
+  'packages/store/package.json': ['.', './react', './integration', './package.json'],
   'packages/theme/package.json': ['.', './style.css', './package.json'],
   'packages/dashpanel/package.json': [
     '.',

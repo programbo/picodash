@@ -1,7 +1,7 @@
 {
   "name": "@picodash/store",
   "version": "0.0.0",
-  "description": "The typed per-Panel state engine for Picodash.",
+  "description": "Typed state foundation for configurable React interfaces.",
   "keywords": [
     "control-panel",
     "developer-tools",
@@ -25,6 +25,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.mjs",
+    "./integration": "./dist/integration.mjs",
     "./react": "./dist/react.mjs",
     "./package.json": "./package.json"
   },
@@ -35,10 +36,11 @@
     "build": "vp pack",
     "dev": "vp pack --watch",
     "test": "vp test",
+    "test:package": "node tests/package-artifacts.mjs",
     "check": "vp check",
     "lint": "vp lint src tests --fix",
     "format": "vp fmt . --write",
-    "release:check": "vp check && vp test && vp run build && bun pm pack --dry-run",
+    "release:check": "vp check && vp test && vp run build && bun run test:package && bun pm pack --dry-run",
     "release:version": "bumpp --commit=false --tag=false --push=false",
     "prepublishOnly": "vp check && vp test && vp run build"
   },
@@ -64,5 +66,10 @@
   },
   "peerDependencies": {
     "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   }
 }
