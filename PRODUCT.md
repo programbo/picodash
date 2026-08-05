@@ -9,15 +9,15 @@ agent that composes or migrates Dashlets against explicit host contracts.
 
 ## Public product model
 
-The package family is organized around three products:
+The package family is organized around three foundational products and one integrated product:
 
+- `@picodash/store` provides typed values, scopes, metadata, persistence, and adapters.
 - `@picodash/dashpanel` provides the standalone panel shell, placement, visibility, and lifecycle.
 - `@picodash/dashlist` provides standalone lists, groups, and Dashlet composition.
 - `@picodash/picodash` combines both products for an integrated control surface.
 
-`@picodash/store` is the application-wide typed state kernel, and `@picodash/theme` provides shared
-theme context and semantic tokens. `@picodash/picodash` is the integrated public facade during the
-migration to the three-product API.
+`@picodash/ui` is the supporting theme, density, token, and generic accessible UI foundation.
+`@picodash/picodash` is the integrated public facade over the three foundational products.
 
 The production website is intentionally a single route at `/`. Local debugging and contract checks
 remain in `apps/lab` and are not part of the deployed website.
@@ -71,8 +71,10 @@ This is an engineering target, not a claim of third-party certification.
 
 ## Domain Language
 
-- `Panel`: the concrete place where controls and readouts render; exposed through `PicodashPanel`.
+- `Panel`: the concrete place where controls and readouts render; exposed through `DashPanel` in
+  both the standalone and integrated products.
 - `Dashlet`: a unit of control, readout, visualization, preview, action, or compound composition.
-- `Picodash Store`: the per-Panel typed state engine for values, contracts, interaction state, and
-  repairs.
+- `Picodash Store`: the root typed state kernel for canonical values, field contracts, scopes,
+  product metadata, interaction state, persistence, and repairs. Scoped Stores are immutable views
+  of that root, not separate per-Panel stores.
 - `Dashboard`: the application-level composition of one or more Panels and their Dashlets.

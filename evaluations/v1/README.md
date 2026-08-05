@@ -4,6 +4,9 @@ These scenarios evaluate whether a coding agent can add Picodash to an existing 
 while making sound state-ownership, exposure, composition, accessibility, and verification
 decisions.
 
+The scenarios target the accepted aspirational package names and entrypoints. They are release
+fixtures for the contract-led implementation, not compatibility tests for the current prototype.
+
 Each scenario is a transparent, deterministic contract:
 
 - `seed/` is a minimal working app with no Picodash dependency or implementation.

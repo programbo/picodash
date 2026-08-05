@@ -5,15 +5,15 @@ creative-control surface without replacing the application's existing React-owne
 
 Requirements:
 
-- Keep the scene's `useState` record authoritative and connect Picodash through its supported
-  React whole-record binding.
-- Add an initially visible Panel snapped to the bottom-end corner. It must be collapsible,
+- Keep the scene's `useState` record authoritative and connect Picodash through one synchronous
+  manual whole-record adapter. Do not mirror values through an effect.
+- Add an initially visible Panel snapped to the bottom-right corner. It must be collapsible,
   dismissible, and reopenable with a clearly labelled launcher.
 - Add built-in controls for bloom and render quality.
 - Add one custom compound Dashlet named **Atmosphere**. It is one registered, reorderable,
   resettable Dashlet that binds the `exposure`, `temperature`, and `vignette` fields together.
-- Compose the compound Dashlet from public theme-aware Picodash Dashlet elements and accessible
-  UI primitives. Do not copy Picodash internal styles or components.
+- Compose the compound Dashlet with the public `Dashlet` shell, accepted Dashlet anatomy, and
+  accessible UI primitives. Do not copy Picodash internal styles or components.
 - Keep host controls and Panel controls synchronized in both directions.
 - Use an explicit development-tool exposure decision: the Panel and its launcher are available in
   development, and unavailable in production builds.

@@ -6,18 +6,18 @@ them through the Picodash facade when an application needs both.
 
 ## Project status
 
-> Contract: Store accepted; DashPanel, DashList, and Picodash draft
+> Contract: Initial Store, UI, DashPanel, DashList, and Picodash targets accepted
 >
 > Implementation: Working prototypes
 >
 > Release status: Public preview
 
-Product implementation is temporarily paused while the aspirational contracts are completed and
-reviewed. Existing source and tests are prototype evidence, not automatic compatibility
-requirements. Issues remain open for feedback; pull requests are disabled until the contribution
-workflow reopens.
+The contract-review phase is complete. After the documentation baseline is committed, implementation
+begins with Store and follows the accepted roadmap. Existing source and tests remain prototype
+evidence, not automatic compatibility requirements. Issues remain open for feedback; pull requests
+are disabled until the contribution workflow reopens.
 
-## Products
+## Products and supporting foundations
 
 | Package               | What it provides                                                                  |
 | --------------------- | --------------------------------------------------------------------------------- |
@@ -25,21 +25,24 @@ workflow reopens.
 | `@picodash/dashpanel` | A movable Panel shell with configurable docking and durable layout.               |
 | `@picodash/dashlist`  | Ordered, groupable Dashlet composition with typed bindings and durable ordering.  |
 | `@picodash/picodash`  | The integrated facade for applications that need DashPanel and DashList together. |
-| `@picodash/theme`     | Shared semantic theme tokens and theme context.                                   |
+| `@picodash/ui`        | Shared theme, density, tokens, and generic accessible UI primitives.              |
 
-Store, DashPanel, and DashList are planned as loosely independent products. Store is implemented
-first and then dogfooded by the two UI products. Picodash integration follows after all three
-foundations are stable.
+Store, DashPanel, and DashList are planned as loosely independent products. UI is their shared
+presentation foundation, not a fourth product. Store and UI are dogfooded by the two UI products;
+Picodash integration follows after all three products are stable.
 
 ## Start with the contract
 
 - [Product value propositions](docs/product/value-propositions.md)
 - [Contract-led roadmap](docs/ROADMAP.md)
 - [Store architecture decision](docs/adr/0002-provider-level-store-and-scoped-views.md)
+- [Shared UI architecture decision](docs/adr/0003-shared-ui-foundation.md)
 - [Store target API](docs/reference/store.md)
+- [Shared UI target reference](docs/reference/ui.md)
 - [DashPanel target reference](docs/reference/dashpanel.md)
 - [DashList target reference](docs/reference/dashlist.md)
 - [Picodash target reference](docs/reference/picodash.md)
+- [Component catalog target reference](docs/reference/catalog.md)
 - [Contract and implementation status rules](docs/reference/document-status.md)
 - [Conformance matrix and release gates](docs/reference/contract-conformance.md)
 - [Testing policy](TESTING.md)
@@ -58,10 +61,33 @@ view to descendants. Standalone DashList accepts a root or scoped Store and esta
 scope for its Dashlets. The integrated Picodash facade composes both products over one compatible
 Store contract.
 
+`PicodashThemeProvider` resolves color theme and density, while `PicodashOverlayProvider` supplies
+portal and layer defaults to detached UI primitives. Product Providers compose these independent,
+Store-free UI contexts and detached roots repeat their resolved theme and density.
+
+Color theme and density are separate axes: `light | dark | system | CustomTheme` and
+`regular | compact`. The Picodash stylesheet aggregates the owning foundation styles once; it does
+not add integrated theme names or publish the website's example themes.
+
+DashList exports `useDashListActions(scopeId?)` plus standard action-menu items for expand,
+collapse, and the two reset domains. Standalone headers and Picodash menus compose those same
+exports; DashPanel does not copy List behavior. Headless execution distinguishes a command that did
+not run from an executed Store transaction result.
+
+Picodash reexports the initial DashList-owned ready-made Dashlets without facade wrappers and owns
+no additional component family at launch. Future dependency-heavy families use separate optional
+packages rather than enlarging the core facade dependency contract.
+
+Its optional document actions export or import one current-scope JSON document through Store-owned
+plans. DashList owns the browser dialog, clipboard, and file workflow. Initial Picodash reuses that
+primary-List workflow without implicitly aggregating additional Lists; any future multi-target
+document UI requires a separate Picodash contract.
+
 ## Workspace
 
 - `packages/store`: framework-independent Store prototype.
-- `packages/theme`: semantic theme foundation.
+- `packages/theme`: current theme prototype, scheduled to be replaced by the target
+  `@picodash/ui` foundation.
 - `packages/dashpanel`: standalone DashPanel prototype.
 - `packages/dashlist`: standalone DashList prototype.
 - `packages/picodash`: integrated facade prototype.

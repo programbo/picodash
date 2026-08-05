@@ -21,7 +21,7 @@
 ## Exposure and UX
 
 - A developer-only policy gates both the Panel and persistent launcher before rendering.
-- The Panel begins visible, overlays at bottom-start, and restores focus to its launcher after
+- The Panel begins visible, overlays at bottom-left, and restores focus to its launcher after
   dismissal.
 - Theme choices use Picodash theme props and semantic tokens, including `system`.
 - Domain action progress and outcomes use status/alert semantics without relying on color, and all

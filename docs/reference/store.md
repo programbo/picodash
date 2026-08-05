@@ -617,6 +617,10 @@ Plans are opaque, root-owned, single-use, and fingerprint both stored metadata a
 Active nodes are never candidates. Execution removes only approved dormant node metadata and never
 changes canonical values, bindings, or relationships.
 
+DashList presents `resetRegisteredValues()` as `Reset values…` and `resetDashListMetadata()` as
+`Reset list…`. These remain separate actions: the former resets current-List values and targeted
+drafts, while the latter resets order and group-collapse overrides without changing values.
+
 ## External value adapter
 
 ```ts
@@ -894,6 +898,76 @@ nothing, and Strict Mode reacquisition reruns identity and graph checks.
 
 > Contract: Accepted
 > Implementation: Planned
+
+### Active DashList orientation override
+
+> Contract: Accepted
+> Implementation: Planned
+
+`@picodash/store/integration` exposes one narrow runtime channel for Picodash to coordinate a
+settled Panel dock with a DashList rail without coupling either UI package to the other:
+
+```ts
+type DashListOrientationOverride = 'horizontal' | 'vertical'
+
+interface DashListOrientationOverrideLease {
+  readonly scopeId: string
+  readonly orientation: DashListOrientationOverride
+  update(orientation: DashListOrientationOverride): void
+  release(): void
+}
+
+declare function acquireDashListOrientationOverrideLease(
+  rootStore: RootStore,
+  options: {
+    scopeId: string
+    orientation: DashListOrientationOverride
+  },
+): DashListOrientationOverrideLease
+
+declare function getDashListOrientationOverride(
+  scopedStore: ScopedStore,
+): DashListOrientationOverride | undefined
+
+declare function subscribeDashListOrientationOverride(
+  scopedStore: ScopedStore,
+  listener: () => void,
+): () => void
+```
+
+The API has these rules:
+
+- It exists only on the integration entry. Ordinary applications use the public
+  `DashList.orientation` prop; the initial Store API has no application command for setting this
+  override and therefore no precedence problem between competing application and Picodash writers.
+- Picodash acquires the lease only after its declarative integration commits and only while it has a
+  concrete derived orientation. `full/center-left` and `full/center-right` derive `vertical`;
+  `full/center-top` and `full/center-bottom` derive `horizontal`. Corner, free, and snapped
+  dispositions hold no lease, so the declared DashList orientation or its default applies.
+- One root may hold at most one live orientation-override lease for a scope. A duplicate acquisition
+  throws a contract error even when both leases propose the same value.
+- `update()` changes a live lease atomically. An unchanged value is a no-op without notification.
+  Updating a released, foreign, or superseded lease throws a contract error.
+- `release()` is idempotent. Its first call clears the active override and notifies that scope's
+  channel once. The DashList then resolves its declared orientation or default.
+- Acquisition validates root ownership and scope-ID syntax but does not require an already active
+  DashList. This removes React effect-order dependence when integrated Panel and List descendants
+  commit. The lease creates no Provider, entity, relationship, host affinity, binding, durable
+  scope, or metadata record. Like every live integration lease, it prevents root destruction until
+  release.
+- `getDashListOrientationOverride()` and `subscribeDashListOrientationOverride()` form an
+  external-store channel scoped to exactly one view. The listener receives no state argument and
+  reads the latest value with the getter. Subscription teardown is idempotent.
+- The runtime value is absent from `RootStore.getState()` and `ScopedStore.getState()`. It does not
+  notify canonical-value, durable-metadata, or binding-interaction subscribers. DashList composes
+  the getter and subscription internally; the foundational public component exposes no Store hook
+  for this implementation channel.
+- The value never enters `DashListMetadataRecord`, persistence, export, import, or migration. A
+  future durable user orientation preference requires a separate product contract.
+
+`DashListOrientationOverride` and DashList's public `DashListOrientation` are intentionally
+structurally compatible literal unions. Store defines its integration type without importing the
+DashList package.
 
 ## React hooks
 

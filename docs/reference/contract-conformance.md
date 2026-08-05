@@ -5,7 +5,7 @@ by proving related invariants together and using E2E only for behavior that requ
 
 ## Status
 
-> Contract: Draft
+> Contract: Accepted
 > Implementation: Prototype
 > Evidence: Existing tests have not yet been audited against the target contracts.
 
@@ -23,31 +23,50 @@ linked only after their assertions are confirmed to prove the target behavior.
 
 ## Store
 
-| ID            | Contract area                                   | Primary evidence                            | Status    | Evidence |
-| ------------- | ----------------------------------------------- | ------------------------------------------- | --------- | -------- |
-| STORE-FIELD   | Canonical definitions and nominal handles       | Type tests plus pure ownership tests        | Prototype | —        |
-| STORE-JSON    | JSON validation, clone, freeze, equality        | Property-based pure tests                   | Planned   | —        |
-| STORE-TX      | Data-only snapshots and atomic commands         | Type tests plus model transaction tests     | Prototype | —        |
-| STORE-ERROR   | Portable structured issues and contract errors  | Pure tests plus type tests                  | Planned   | —        |
-| STORE-SCOPE   | Canonical views and scope lifecycle             | Model-based scope invariant tests           | Planned   | —        |
-| STORE-META    | Built-in records and lazy durable scope state   | Pure codec and lifecycle tests              | Planned   | —        |
-| STORE-ENTITY  | Entity uniqueness and host affinity             | Model-based registration tests              | Planned   | —        |
-| STORE-GRAPH   | Declarative relationships, parents, cycles      | Generated graph invariant tests             | Planned   | —        |
-| STORE-BINDING | Drafts, aliases, conflicts, cleanup             | Pure interaction state tests                | Prototype | —        |
-| STORE-REPAIR  | Explicit repair plans and stale-plan rejection  | Table-driven transaction tests              | Prototype | —        |
-| STORE-RESET   | Explicit reset domains and shared-field effects | Table-driven transaction tests              | Planned   | —        |
-| STORE-ADAPTER | External ownership and unhealthy snapshots      | Adapter contract tests                      | Prototype | —        |
-| STORE-PERSIST | Envelope, hydration, conflict, pending writes   | Pure driver tests; one browser-storage seam | Prototype | —        |
-| STORE-DIAG    | Operational diagnostics and runtime inspection  | Pure state and privacy-boundary tests       | Planned   | —        |
-| STORE-MIGRATE | Version chains and quarantine                   | Pure document/migration tests               | Planned   | —        |
-| STORE-DOCS    | Export/import policy and atomic plans           | Document/property tests                     | Prototype | —        |
-| STORE-REACT   | Context, hooks, selector equality               | React component/type tests                  | Prototype | —        |
-| STORE-LIFE    | Destroy and use-after-destroy                   | Pure lifecycle tests                        | Planned   | —        |
-| STORE-CAP     | Conditional identity and capability typing      | Compile-time configuration tests            | Planned   | —        |
-| STORE-PACKAGE | Public, React, and integration entry contracts  | Package build/artifact/type tests           | Prototype | —        |
+| ID            | Contract area                                     | Primary evidence                            | Status    | Evidence |
+| ------------- | ------------------------------------------------- | ------------------------------------------- | --------- | -------- |
+| STORE-FIELD   | Canonical definitions and nominal handles         | Type tests plus pure ownership tests        | Prototype | —        |
+| STORE-JSON    | JSON validation, clone, freeze, equality          | Property-based pure tests                   | Planned   | —        |
+| STORE-TX      | Data-only snapshots and atomic commands           | Type tests plus model transaction tests     | Prototype | —        |
+| STORE-ERROR   | Portable structured issues and contract errors    | Pure tests plus type tests                  | Planned   | —        |
+| STORE-SCOPE   | Canonical views and scope lifecycle               | Model-based scope invariant tests           | Planned   | —        |
+| STORE-META    | Built-in records and lazy durable scope state     | Pure codec and lifecycle tests              | Planned   | —        |
+| STORE-ENTITY  | Entity uniqueness and host affinity               | Model-based registration tests              | Planned   | —        |
+| STORE-GRAPH   | Declarative relationships, parents, cycles        | Generated graph invariant tests             | Planned   | —        |
+| STORE-RUNTIME | Declarative leases and transient product channels | Model lifecycle and subscription tests      | Planned   | —        |
+| STORE-BINDING | Drafts, aliases, conflicts, cleanup               | Pure interaction state tests                | Prototype | —        |
+| STORE-REPAIR  | Explicit repair plans and stale-plan rejection    | Table-driven transaction tests              | Prototype | —        |
+| STORE-RESET   | Explicit reset domains and shared-field effects   | Table-driven transaction tests              | Planned   | —        |
+| STORE-ADAPTER | External ownership and unhealthy snapshots        | Adapter contract tests                      | Prototype | —        |
+| STORE-PERSIST | Envelope, hydration, conflict, pending writes     | Pure driver tests; one browser-storage seam | Prototype | —        |
+| STORE-DIAG    | Operational diagnostics and runtime inspection    | Pure state and privacy-boundary tests       | Planned   | —        |
+| STORE-MIGRATE | Version chains and quarantine                     | Pure document/migration tests               | Planned   | —        |
+| STORE-DOCS    | Export/import policy and atomic plans             | Document/property tests                     | Prototype | —        |
+| STORE-REACT   | Context, hooks, selector equality                 | React component/type tests                  | Prototype | —        |
+| STORE-LIFE    | Destroy and use-after-destroy                     | Pure lifecycle tests                        | Planned   | —        |
+| STORE-CAP     | Conditional identity and capability typing        | Compile-time configuration tests            | Planned   | —        |
+| STORE-PACKAGE | Public, React, and integration entry contracts    | Package build/artifact/type tests           | Prototype | —        |
 
 Store suites should use generated models for scope graphs, transaction batches, document mappings,
 and persistence records instead of adding separate hand-written tests for every combination.
+
+## Shared UI foundation
+
+| ID         | Contract area                               | Primary evidence                              | Status  | Evidence |
+| ---------- | ------------------------------------------- | --------------------------------------------- | ------- | -------- |
+| UI-THEME   | Theme/density resolution and attributes     | Component tests; one media-query E2E seam     | Planned | —        |
+| UI-OVERLAY | Portal inheritance, layer order, a11y       | Component tests; one nested-overlay E2E seam  | Planned | —        |
+| UI-BUTTON  | Variants, sizes, press, disabled, pending   | Component accessibility and interaction tests | Planned | —        |
+| UI-DIALOG  | AlertDialog composition, focus, dismissal   | Component accessibility and interaction tests | Planned | —        |
+| UI-MENU    | Commands, submenus, confirmation, focus     | Component accessibility and interaction tests | Planned | —        |
+| UI-TOOLTIP | Timing, trigger semantics, touch boundary   | Component accessibility and interaction tests | Planned | —        |
+| UI-HEADER  | DashHeader slots, order, root ref, and DOM  | Component accessibility and type tests        | Planned | —        |
+| UI-CHROME  | Generic primitive semantics and behavior    | Component accessibility and interaction tests | Planned | —        |
+| UI-CSS     | Public token and structural CSS inventory   | Static CSS and artifact contract tests        | Planned | —        |
+| UI-PACKAGE | Public props, exports, and stylesheet entry | Positive/negative type, artifact, build tests | Planned | —        |
+
+Shared UI tests prove product-neutral contracts once. DashPanel and DashList tests prove only how
+their owned behavior composes those primitives; they do not repeat the primitive matrix.
 
 ## DashPanel
 
@@ -62,8 +81,10 @@ and persistence records instead of adding separate hand-written tests for every 
 | PANEL-LAYOUT   | Durable override/reset/recovery              | Store/pure integration tests           | Prototype | —        |
 | PANEL-PORTAL   | Portal stacking, theme, focus restoration    | Contract Lab cohesive overlay journey  | Prototype | —        |
 | PANEL-A11Y     | Naming, actions, semantic DOM                | Component accessibility tests          | Prototype | —        |
-| PANEL-THEME    | Theme propagation and system preference      | Component tests; one media-query E2E   | Prototype | —        |
+| PANEL-ADAPT    | Modal drawer/sheet projection and exclusion  | Component tests; one modal E2E seam    | Planned   | —        |
+| PANEL-THEME    | Theme/density overrides and detached roots   | Component tests; portal E2E seam       | Prototype | —        |
 | PANEL-CSS      | Public token inventory and consumption       | Artifact plus static CSS contract test | Planned   | —        |
+| PANEL-CATALOG  | Accepted owner entries and references        | Static catalog/artifact tests          | Planned   | —        |
 | PANEL-PACKAGE  | Exports, CSS, peer contracts                 | Package build/artifact/type tests      | Prototype | —        |
 
 Do not open a browser for deterministic placement matrices. E2E proves that real browser layout and
@@ -71,35 +92,42 @@ input choreography reach the already-tested canonical result.
 
 ## DashList
 
-| ID            | Contract area                          | Primary evidence                           | Status    | Evidence |
-| ------------- | -------------------------------------- | ------------------------------------------ | --------- | -------- |
-| LIST-COMPOSE  | Standalone and inherited Store scope   | React component/type tests                 | Prototype | —        |
-| LIST-IDENTITY | Stable item/group/binding IDs          | Pure registration and type tests           | Prototype | —        |
-| LIST-ANATOMY  | Dashlet semantic structure             | Component accessibility tests              | Prototype | —        |
-| LIST-BINDING  | Canonical values, drafts, issues       | Store tests plus component wiring tests    | Prototype | —        |
-| LIST-GROUP    | Declarative containment and collapse   | Component plus pure metadata tests         | Prototype | —        |
-| LIST-ORDER    | Reconciliation and customized order    | Model/property tests                       | Prototype | —        |
-| LIST-POINTER  | Pointer reorder choreography           | One Contract Lab journey                   | Prototype | —        |
-| LIST-KEYBOARD | Keyboard reorder and announcements     | Component plus one Contract Lab journey    | Partial   | —        |
-| LIST-RESET    | Value/draft/metadata reset composition | Component and Store integration tests      | Planned   | —        |
-| LIST-DOCS     | Scoped document UI composition         | Component test; browser download if needed | Prototype | —        |
-| LIST-PACKAGE  | Exports, CSS, peer contracts           | Package build/artifact/type tests          | Prototype | —        |
+| ID            | Contract area                                            | Primary evidence                                       | Status    | Evidence |
+| ------------- | -------------------------------------------------------- | ------------------------------------------------------ | --------- | -------- |
+| LIST-COMPOSE  | Standalone and inherited Store scope                     | React component/type tests                             | Prototype | —        |
+| LIST-IDENTITY | Stable item/group/binding IDs                            | Pure registration and type tests                       | Prototype | —        |
+| LIST-ANATOMY  | Dashlet semantic structure                               | Component accessibility tests                          | Prototype | —        |
+| LIST-BINDING  | Canonical values, drafts, issues                         | Store tests plus component wiring tests                | Prototype | —        |
+| LIST-GROUP    | Declarative containment and collapse                     | Component plus pure metadata tests                     | Prototype | —        |
+| LIST-ORDER    | Reconciliation and customized order                      | Model/property tests                                   | Prototype | —        |
+| LIST-POINTER  | Pointer reorder choreography                             | One Contract Lab journey                               | Prototype | —        |
+| LIST-KEYBOARD | Keyboard reorder and announcements                       | Component plus one Contract Lab journey                | Partial   | —        |
+| LIST-A11Y     | Collection/rail semantics, names, focus, announcements   | Component accessibility tests; one rail focus E2E seam | Planned   | —        |
+| LIST-RAIL     | Rail reveal, toggle, reorder, and orientation precedence | Component tests; one Contract Lab rail journey         | Planned   | —        |
+| LIST-ACTIONS  | Targeting, availability, reuse, confirmation             | Component/type and Store integration tests             | Planned   | —        |
+| LIST-RESET    | Value/draft/metadata reset composition                   | Component and Store integration tests                  | Planned   | —        |
+| LIST-DOCS     | Scoped JSON plans, review, import, and export            | Component tests plus browser I/O seams                 | Planned   | —        |
+| LIST-CSS      | Product tokens and shared-token consumption              | Artifact plus static CSS contract test                 | Planned   | —        |
+| LIST-CATALOG  | Accepted owner entries and ready-made metadata           | Static catalog/artifact tests                          | Planned   | —        |
+| LIST-PACKAGE  | Exports, CSS, peer contracts                             | Package build/artifact/type tests                      | Prototype | —        |
 
 Conditional rendering is not an obsolete-node oracle. Pruning tests require explicit inventories
 and never derive deletion from mount absence.
 
 ## Picodash integration
 
-| ID              | Contract area                               | Primary evidence                      | Status    | Evidence |
-| --------------- | ------------------------------------------- | ------------------------------------- | --------- | -------- |
-| PICO-CONTEXT    | One root across Provider, Panel, and List   | React integration test                | Prototype | —        |
-| PICO-SAME-SCOPE | Panel plus primary List                     | React integration test                | Prototype | —        |
-| PICO-CHILD      | Explicit child Lists and relationship graph | React plus Store graph test           | Planned   | —        |
-| PICO-ACTIONS    | Descendant reset/export impact              | Integration component tests           | Planned   | —        |
-| PICO-PORTAL     | Dashlets inside themed portaled Panel       | One Contract Lab integration journey  | Prototype | —        |
-| PICO-CATALOG    | Ready-made Dashlet public contracts         | Type/component/catalog tests          | Prototype | —        |
-| PICO-PACKAGE    | Facade exports and complete styles          | Package build/artifact/type tests     | Prototype | —        |
-| PICO-EXAMPLE    | One complete supported host example         | Website journey and no-error baseline | Prototype | —        |
+| ID              | Contract area                                   | Primary evidence                       | Status    | Evidence |
+| --------------- | ----------------------------------------------- | -------------------------------------- | --------- | -------- |
+| PICO-CONTEXT    | Provider composition, nesting, Panel/List root  | React integration and type tests       | Prototype | —        |
+| PICO-SAME-SCOPE | Panel plus primary List                         | React integration test                 | Prototype | —        |
+| PICO-CHILD      | Explicit child Lists and relationship graph     | React plus Store graph test            | Planned   | —        |
+| PICO-MENU       | Same-scope contribution and replacement rules   | Integration component and type tests   | Planned   | —        |
+| PICO-ACTIONS    | Additional Lists preserve primary targeting     | Integration component tests            | Planned   | —        |
+| PICO-PORTAL     | Dashlets inside themed portaled Panel           | One Contract Lab integration journey   | Prototype | —        |
+| PICO-THEME      | One-import styles and orthogonal theme/density  | Artifact and component tests           | Planned   | —        |
+| PICO-CATALOG    | Exact entry aggregation and facade reexports    | Type/package/catalog tests             | Planned   | —        |
+| PICO-PACKAGE    | Facade exports and complete styles              | Package build/artifact/type tests      | Prototype | —        |
+| PICO-EXAMPLE    | Four canonical fixtures; one integrated journey | Compile/package tests plus website E2E | Planned   | —        |
 
 Picodash does not repeat Store field matrices, DashPanel geometry matrices, or DashList ordering
 matrices.
@@ -159,7 +187,8 @@ Required after DashPanel and DashList dogfooding:
 ### DashPanel and DashList stability
 
 Each foundational UI product requires its owned deterministic/component evidence plus only its
-browser journeys. Neither waits for or reruns the other product's complete suite.
+browser journeys. Neither waits for or reruns the other product's complete suite. Both require a
+compatible shared UI foundation whose package, theme, and consumed primitive contracts pass.
 
 ### Picodash stability
 
@@ -168,9 +197,10 @@ failed foundation contract.
 
 ## Current readiness
 
-| Product   | Contract readiness | Implementation readiness | Reason                                           |
-| --------- | ------------------ | ------------------------ | ------------------------------------------------ |
-| Store     | Accepted API       | Not ready                | Implementation and conformance evidence remain   |
-| DashPanel | Draft              | Not ready                | Provisional baseline; exact API/CSS lists remain |
-| DashList  | Draft              | Not ready                | Open anatomy, reorder, layout, and state UX      |
-| Picodash  | Draft              | Deferred                 | Depends on stable foundational contracts         |
+| Package/facade | Contract readiness | Implementation readiness | Reason                                            |
+| -------------- | ------------------ | ------------------------ | ------------------------------------------------- |
+| Store          | Accepted           | Begin Phase 1            | First independent product in the accepted roadmap |
+| UI             | Accepted           | Sequenced for Phase 2    | Implement the minimum needed by both UI products  |
+| DashPanel      | Accepted           | Sequenced after Store/UI | Foundation dogfooding dependencies remain         |
+| DashList       | Accepted           | Sequenced after Store/UI | Foundation dogfooding dependencies remain         |
+| Picodash       | Accepted           | Deferred to Phase 4      | Depends on stable foundational products           |

@@ -14,7 +14,8 @@
 ## Manual review — 40 points
 
 - Store definitions own valid defaults and durable whole-record constraints: 8
-- Service health is a coherent single compound Dashlet using public semantic elements: 8
+- Service health is one coherent compound Dashlet using accepted public anatomy and accessible
+  semantic content: 8
 - Streaming treatment uses semantic data tokens, textual fallback, and restrained motion: 7
 - Status, progress, labels, focus, contrast, and target sizes meet WCAG 2.2 AA intent: 8
 - README accurately explains installation, Store ownership, exposure, and verification: 4

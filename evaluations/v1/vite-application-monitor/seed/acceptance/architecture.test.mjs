@@ -20,14 +20,16 @@ test('uses one native Store and public Picodash composition surfaces', async () 
   const packageJson = JSON.parse(await readFile('package.json', 'utf8'))
   const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies }
   assert.ok(dependencies['@picodash/picodash'], 'add @picodash/picodash')
+  assert.ok(dependencies['@picodash/dashlist'], 'add @picodash/dashlist for public anatomy')
   assert.ok(dependencies['@picodash/store'], 'add @picodash/store')
 
   const source = await sourceText('src')
   assert.match(source, /\bcreatePicodashStore\s*[<(]/)
-  assert.match(source, /@picodash\/panel\/style\.css/)
-  assert.match(source, /@picodash\/panel\/dashlet/)
+  assert.match(source, /@picodash\/picodash\/style\.css/)
+  assert.match(source, /@picodash\/dashlist\/dashlet/)
   assert.match(source, /\bfields\s*=\s*\{\{/s, 'Service health must bind multiple fields')
-  assert.doesNotMatch(source, /@picodash\/panel\/src|@picodash\/store\/src/)
+  assert.doesNotMatch(source, /@picodash\/(?:dashlist|picodash|store)\/src/)
+  assert.doesNotMatch(source, /@picodash\/picodash\/dashlet/)
 })
 
 test('does not mirror Store values through a synchronization effect', async () => {

@@ -16,18 +16,28 @@ async function sourceText(directory) {
   return contents.join('\n')
 }
 
-test('uses public Picodash surfaces and a React whole-record binding', async () => {
+test('uses public Picodash surfaces and a manual whole-record adapter', async () => {
   const packageJson = JSON.parse(await readFile('package.json', 'utf8'))
   const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies }
   assert.ok(dependencies['@picodash/picodash'], 'add @picodash/picodash')
+  assert.ok(dependencies['@picodash/dashlist'], 'add @picodash/dashlist for public anatomy')
   assert.ok(dependencies['@picodash/store'], 'add @picodash/store')
 
   const source = await sourceText('app')
-  assert.match(source, /@picodash\/panel\/style\.css/)
-  assert.match(source, /@picodash\/panel\/dashlet/)
-  assert.match(source, /@picodash\/store\/react/)
+  assert.match(source, /@picodash\/picodash\/style\.css/)
+  assert.match(source, /@picodash\/dashlist\/dashlet/)
+  assert.match(source, /\bPicodashValueAdapter\b/)
+  assert.match(source, /\bgetSnapshot\s*[:(]/)
+  assert.match(source, /\bsubscribe\s*[:(]/)
+  assert.match(source, /\bsetValues\s*[:(]/)
   assert.match(source, /\bfields\s*=\s*\{\{/s, 'Atmosphere must bind multiple fields')
-  assert.doesNotMatch(source, /@picodash\/panel\/src|@picodash\/store\/src/)
+  assert.doesNotMatch(source, /@picodash\/(?:dashlist|picodash|store)\/src/)
+  assert.doesNotMatch(source, /@picodash\/picodash\/dashlet/)
+  assert.doesNotMatch(
+    source,
+    /useEffect\s*\([^)]*(?:setValues|setValue|setState|setScene)/s,
+    'do not synchronize a second state record from an effect',
+  )
 })
 
 test('keeps an explicit production exposure gate', async () => {

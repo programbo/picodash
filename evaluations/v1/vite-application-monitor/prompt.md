@@ -10,11 +10,11 @@ Requirements:
   a bounded history of samples. Put defaults and durable validation in field definitions.
 - Replace the seed's local sample record with Store-backed values; do not mirror two mutable
   records with effects.
-- Add an initially visible Panel snapped to the top-end corner. It must be collapsible, dismissible,
+- Add an initially visible Panel snapped to the top-right corner. It must be collapsible, dismissible,
   and reopenable from a labelled launcher.
 - Compose a **Service health** compound Dashlet containing metrics, semantic status, progress, and
-  a streaming visualization. Use public, theme-aware Picodash Dashlet elements and accessible
-  primitives.
+  a streaming visualization. Use the public `Dashlet` shell, accepted Dashlet anatomy, accessible
+  UI primitives, semantic HTML, and an accessible SVG or equivalent visualization.
 - The **Advance sample** action must append exactly one deterministic sample and update the host
   summary and Panel from the same Store transaction.
 - The history must remain bounded to the most recent 12 samples.

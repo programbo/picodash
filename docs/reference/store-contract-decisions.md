@@ -296,6 +296,25 @@ offset. The exact Store-owned record union is defined in the Store target refere
 `center-left/right` rather than the prototype's `middle-left/right` and includes standalone
 top/bottom dock positions.
 
+DashList rail orientation may receive an active scoped Store override that takes precedence over a
+declared DashList orientation. This allows Picodash to derive orientation from a Panel's current
+dock without coupling DashList to DashPanel. `full/center-left` and `full/center-right` derive
+`vertical`; `full/center-top` and `full/center-bottom` derive `horizontal`; corner, free, and snapped
+dispositions derive no Picodash override. A corner therefore retains the next effective Store or
+prop orientation.
+
+The exact integration API is `acquireDashListOrientationOverrideLease(rootStore, options)`, whose
+live lease exposes `update(orientation)` and idempotent `release()`. DashList observes the scoped
+runtime channel through `getDashListOrientationOverride(scopedStore)` and
+`subscribeDashListOrientationOverride(scopedStore, listener)`. One scope permits one live publisher;
+applications have no general Store command for this override and use the public DashList prop.
+
+Acquisition requires a concrete orientation but no already-active DashList. It creates no entity,
+relationship, host affinity, durable scope, or metadata. Corner, free, and snapped dispositions
+release rather than publish an empty override. The channel is excluded from root/scoped public
+snapshots and their subscriptions. This active orientation is not part of the accepted durable
+DashList metadata record and must not be persisted merely because a dock derived it.
+
 Store validates this product record without importing DashPanel. Occupancy, dock allocation,
 resolved size, enabled positions, responsive projection, and fallback geometry remain transient UI
 runtime and never enter the record.
@@ -555,6 +574,10 @@ cross-field rule. Panel/DashList built-in “Reset values” actions explicitly 
 with discarding drafts in targeted bindings. Drafts in unrelated scopes remain and become stale when
 their canonical field changes.
 
+DashList's built-in `Reset list…` action maps only to `resetDashListMetadata()`: it removes root and
+group order overrides plus group collapse overrides in that List scope. It never resets canonical
+values or drafts. DashList exposes no combined `Reset all` action.
+
 ### 7.7 Shared root-field consequences
 
 If several scopes bind the same root field, resetting it through one target scope changes the one
@@ -622,8 +645,10 @@ returns to current declaration order.
 
 ### 9.4 Collapse overrides
 
-Group/item collapse defaults remain declarative. User changes create durable overrides. Reset removes
-an override. Obsolete overrides for nodes that no longer support collapse are ignored and diagnosed.
+Registered-node collapse defaults remain declarative. User changes create durable overrides. Reset
+removes an override. Obsolete overrides for nodes that no longer support collapse are ignored and
+diagnosed. The Store metadata contract remains generic; DashList exposes collapse only on DashGroup
+in its initial public UI contract.
 
 ### 9.5 Dormant metadata and pruning
 

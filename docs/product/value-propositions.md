@@ -5,10 +5,9 @@ roadmap priority, documentation depth, examples, and package boundaries before i
 
 ## Status
 
-> Contract: Draft
+> Contract: Accepted
 > Implementation: Prototype
-> Evidence: Value propositions require final product review before they become accepted product
-> contracts.
+> Evidence: Product purposes, users, independent value, and package boundaries are accepted.
 
 ## Store
 
@@ -51,7 +50,7 @@ state; they do not sandbox plugins or restrict field access.
 
 ## DashPanel
 
-> Contract: Draft
+> Contract: Accepted
 > Implementation: Prototype
 
 ### Proposition
@@ -77,6 +76,7 @@ visibility controls, portal layering, themes, responsive containment, and restor
 - Resolve viewport or element boundaries, insets, portals, themes, and action menus through one
   Provider contract.
 - Preserve pointer, keyboard, focus, and overlay behavior across complex host applications.
+- Let the host project a Panel as a modal drawer or sheet without overwriting its desktop layout.
 - Use DashPanel without adopting DashList or Picodash's integrated Dashlet composition.
 
 ### Independent use
@@ -92,7 +92,7 @@ unmounting rather than imperative deregistration.
 
 ## DashList
 
-> Contract: Draft
+> Contract: Accepted
 > Implementation: Prototype
 
 ### Proposition
@@ -114,7 +114,8 @@ not understand canonical values, validation, or compound Dashlets.
   local to each binding.
 - Group and reorder stable items with pointer and keyboard parity.
 - Persist user order and collapse overrides without persisting declarative containment.
-- Reset, import, and export active List content through the same Store transaction contracts.
+- Reset active List content and import or export one reviewed JSON scope document through the same
+  Store transaction and disclosure contracts.
 - Run standalone with an explicit Store or inherit a scope when composed under Picodash.
 
 ### Independent use
@@ -131,7 +132,7 @@ declarative group membership.
 
 ## Picodash
 
-> Contract: Draft
+> Contract: Accepted
 > Implementation: Prototype
 
 ### Proposition
@@ -151,9 +152,10 @@ contract.
 ### Concrete value
 
 - Compose DashPanels and DashLists over one root Store and field model.
-- Use same-scope primary Lists or explicit child scopes without separate Panel/List identity systems.
-- Apply Panel actions across active descendant Lists through registered relationships.
-- Reuse integrated Dashlets and shared themes while retaining explicit typed JSX.
+- Use one same-scope primary List by default, with explicit child scopes for advanced composition.
+- Contribute the primary DashList's actions to its Panel while keeping additional explicitly scoped
+  Lists independent.
+- Reuse integrated Dashlets and shared UI while retaining explicit typed JSX.
 - Start with the integrated facade and drop to any foundational package when custom composition is
   required.
 
@@ -166,32 +168,25 @@ which Panels and Dashlets are mounted.
 ## Product relationship
 
 ```text
-@picodash/store   @picodash/theme
-        |               |
-        +-------+-------+
-                |
-       +--------+--------+
-       |                 |
-DashPanel            DashList
-       |                 |
-       +--------+--------+
-                |
-            Picodash
+@picodash/store       @picodash/ui
+       |  \             /  |
+       |   +-- DashPanel ---+
+       |   +-- DashList ----+
+       +----- Picodash -----+
 ```
 
-DashPanel and DashList depend on Store and shared theme contracts, not on one another. Picodash
-integrates them after their independent contracts are stable.
+DashPanel and DashList depend on Store and the shared UI foundation, not on one another. UI owns
+theme, density, tokens, and generic accessible presentation primitives; it is supporting
+infrastructure rather than a fourth product proposition. Picodash integrates the three products
+after their independent contracts are stable.
 
 ## Contract-strength assessment
 
 - **Store:** accepted API. Ownership, scope, persistence, adapter, transaction, and document
   boundaries are internally consistent, including the Store-owned DashPanel layout record.
-- **DashPanel:** provisionally strong. Product ownership, lifecycle, placement, docking,
-  persistence, responsive, accessibility, action, and theme behavior are recorded. Exact public
-  prop/type names and the exhaustive consumed-token inventory still need finalization and prototype
-  reconciliation.
-- **DashList:** directionally strong but least differentiated in detail. Its Dashlet anatomy,
-  authoring ergonomics, group behavior, and built-in catalog require a focused contract session
-  before the product reference can become accepted.
-- **Picodash:** clear as an integration proposition, but its final facade should follow rather than
-  pre-empt foundational contracts.
+- **DashPanel:** accepted initial API. Product ownership, lifecycle, placement, docking, adaptive
+  presentation, sizing, accessibility, actions, and theme behavior are internally consistent.
+- **DashList:** accepted initial API. Anatomy, authoring, group behavior, rail presentation,
+  ready-made Dashlets, actions, documents, and catalog ownership are explicit.
+- **Picodash:** accepted integration contract. Implementation remains deliberately sequenced after
+  the three foundational products stabilize.

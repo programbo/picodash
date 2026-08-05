@@ -6,14 +6,14 @@ from scratch.
 
 ## Status
 
-> Contract: Draft
+> Contract: Accepted
 >
 > Implementation: Prototype
 
-The reviewed provisional target now covers public package-native composition, responsive geometry, keyboard
-placement, focus restoration, action ownership, configurable dock positions, and collision-safe
-same-edge allocation. The current package remains reference evidence until its exact prop/type
-inventory and CSS token consumption are reconciled. Do not treat existing exports as the final API.
+The accepted target covers exact package-native composition, responsive geometry, keyboard
+placement, focus restoration, adaptive drawer/sheet presentation, action ownership, configurable
+dock positions, and collision-safe same-edge allocation. The current package remains prototype
+evidence until reconciled. Do not treat existing exports as the final API.
 
 ## Product boundary
 
@@ -28,12 +28,46 @@ DashPanel owns:
 
 It renders arbitrary React children and does not own DashList, Dashlets, application values, routing,
 or permanent component removal. The target model requires a Provider with one explicit root Store;
-Panels receive scoped Store views through that Provider rather than accepting independent roots.
+Panels receive scoped `@picodash/store` views through that Provider rather than accepting
+independent roots.
+
+The target exposes `DashPanelProvider`, `DashPanel`, `DashPanelTrigger`, the explicit
+`DashPanelLauncher`, `useDashPanel`, and Panel-owned action composition. Close changes transient
+visibility; confirmed `onRequestRemove` lets the application unmount its JSX. It exposes no mutable
+Provider runtime, generic Panel selector, Motion-specific props, or `/advanced` surface.
+
+Panel width has one input with two scopes: the inherited `--picodash-panel-width` token supplies a
+host or selector default, and the `width` prop overrides it for one Panel. Intrinsic CSS widths such
+as `fit-content` are supported within the effective boundary. Resolved width is never persisted,
+and direct `style.width`/`style.inlineSize` are reserved to prevent competing authorities.
+
+Drawer and sheet are explicit host-selected transient modal presentations. They preserve the same
+desktop layout, require a visible Close affordance and full modal focus/dismissal behavior, and do
+not create automatic responsive breakpoints.
+
+The target package consumes `@picodash/ui` for theme, density, overlay context, semantic tokens,
+generic accessible chrome, and the presentational `DashHeader`. Its Product Provider composes the
+shared theme and overlay Providers; detached UI roots inherit portal/layer defaults and repeat their
+resolved theme and density. DashPanel retains every Panel-specific behavior placed inside that
+header, including drag initiation, collapse, placement actions, and close. The current
+`@picodash/theme` dependency and inline header are prototype evidence pending migration.
+
+DashPanel may reexport generic UI menu primitives but does not own DashList behavior actions.
+Integrated menus compose DashList's headless controller, named menu-item exports, and standalone
+scope-document actions directly without reinterpreting their execution results. Cross-List document
+aggregation remains Picodash-owned. In the target architecture, modal confirmation primitives come
+from `@picodash/ui`; the package-local AlertDialog copy is prototype evidence.
 
 Read the [DashPanel target reference](../../docs/reference/dashpanel.md), including its
 [CSS design-token inventory](../../docs/reference/dashpanel.md#theme-and-css-design-tokens),
+[shared UI target reference](../../docs/reference/ui.md),
 [Store target reference](../../docs/reference/store.md), and
 [roadmap](../../docs/ROADMAP.md) before changing the prototype.
+
+The accepted package surfaces are `@picodash/dashpanel`,
+`@picodash/dashpanel/integration`, `@picodash/dashpanel/catalog`, and
+`@picodash/dashpanel/style.css`. There is no target `/advanced` or `/ui` entrypoint. See the
+[component catalog reference](../../docs/reference/catalog.md) for the static discovery schema.
 
 ## Verification
 

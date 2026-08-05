@@ -9,7 +9,7 @@ Requirements:
 - Keep `featureStore` authoritative and connect it through one synchronous whole-record Picodash
   adapter implementing `getSnapshot`, `subscribe`, and atomic `setValues`.
 - Define typed Picodash fields and durable validation for the complete external value record.
-- Add an initially visible Panel snapped to the bottom-start corner. It must be collapsible,
+- Add an initially visible Panel snapped to the bottom-left corner. It must be collapsible,
   dismissible, and reopenable from a persistent, clearly labelled launcher.
 - Add controls for log level and API endpoint.
 - Add a **Feature rollout** compound Dashlet that binds `newSearch` and `rolloutPercent` as one
@@ -20,7 +20,8 @@ Requirements:
 - Preserve the seed's exposure policy control. Only the developer role may see either the Panel or
   launcher; operators and end users must not receive debug controls in the DOM.
 - Import the complete Picodash stylesheet and support light, dark, and system themes.
-- Use public theme-aware Picodash Dashlet elements and accessible primitives for custom content.
+- Use the public `Dashlet` shell, accepted Dashlet anatomy, and accessible primitives for custom
+  content.
 - Preserve keyboard operation, visible labels, focus restoration, contrast, and reduced motion.
 - Keep existing test IDs and add those named by acceptance where semantic roles are insufficient.
 - Update the local README with install, run, adapter, exposure, action, and verification notes.

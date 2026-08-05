@@ -3,7 +3,8 @@
 ## State
 
 - The existing React `useState<SceneValues>` record remains the source of truth.
-- A Strict Mode-safe Picodash React binding supplies a synchronous whole-record adapter.
+- A Strict Mode-safe `PicodashValueAdapter<SceneValues>` supplies `getSnapshot`, `subscribe`, and
+  atomic `setValues` around the React-owned record.
 - Panel writes deliver one complete validated record; there is no second independently mutable
   copy and no per-field mirroring effect.
 - Typed field handles, not string field names, bind every Dashlet.
@@ -12,15 +13,15 @@
 ## Composition
 
 - Bloom and quality use compatible built-in Dashlets.
-- Atmosphere is one compound `PicodashItem` with three field bindings, one ordering boundary, and
-  one reset boundary.
-- The compound body uses `@picodash/picodash/dashlet` for semantic structure and
+- Atmosphere is one compound `Dashlet` with three field bindings, one ordering boundary, and one
+  reset boundary.
+- The compound body uses `@picodash/dashlist/dashlet` for accepted semantic anatomy and
   `@picodash/picodash/ui` only where a lower-level interactive primitive is needed.
 
 ## Exposure and UX
 
 - A build-time development policy gates both the Panel and launcher.
-- The Panel begins visible, is bottom-end snapped, and overlays rather than reflows the canvas.
+- The Panel begins visible, is bottom-right snapped, and overlays rather than reflows the canvas.
 - Dismissal restores focus to the launcher or another explicit logical target.
 - Theme selection uses Picodash theme props and semantic tokens, including `system`.
 

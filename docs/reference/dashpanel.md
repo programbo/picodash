@@ -1,18 +1,17 @@
 # DashPanel target reference
 
 DashPanel is a standalone React panel shell for movable, dockable, dismissible application UI. This
-page records the provisional `@picodash/dashpanel` contract. The prototype is evidence, not the
+page records the accepted `@picodash/dashpanel` launch contract. The prototype is evidence, not the
 source of truth.
 
 ## Status
 
-> Contract: Draft
+> Contract: Accepted
 > Implementation: Prototype
-> Evidence: The product boundary and provisional behavior baseline are accepted; current exports
-> and geometry have not been reconciled with it.
-> Notes: “Draft” is the repository status for this reviewed provisional contract. Remaining work is
-> limited to the exact public prop/type inventory, CSS consumption audit, and implementation
-> conformance—not unresolved product ownership or placement behavior.
+> Evidence: Product ownership, public APIs, placement, adaptive presentation, styling boundaries,
+> and verification ownership are accepted. Current exports and geometry have not been reconciled.
+> Notes: Exact compact values, token-consumption tables, private selectors, and measured geometry
+> are implementation evidence rather than unresolved launch API decisions.
 
 ## Package purpose
 
@@ -20,9 +19,9 @@ DashPanel renders arbitrary React content in a host-coordinated Panel without re
 It owns Panel composition, placement, portals, accessible actions, transient host runtime, and the
 translation between Panel behavior and Store-owned durable layout records.
 
-Store owns durable layout data and scope identity. `@picodash/theme` owns shared semantic theme
-tokens. DashPanel does not own application values, DashList composition, routing, authorization, or
-permanent component removal.
+Store owns durable layout data and scope identity. `@picodash/ui` owns shared theme and density
+contracts, semantic tokens, and product-neutral primitives. DashPanel does not own application
+values, DashList composition, routing, authorization, or permanent component removal.
 
 ## Target composition
 
@@ -81,6 +80,134 @@ dock positions are runtime policy and may change through their declared props.
 
 More than one Provider may use a root Store, but each requires a distinct Provider ID. Provider IDs
 do not namespace scopes. The same Panel scope cannot be active in two Providers over one root.
+
+The exact Provider shape is:
+
+```ts
+type DashPanelBoundary = Element | RefObject<Element | null>
+
+type DashPanelBoundaryInset =
+  | number
+  | readonly [vertical: number, horizontal: number]
+  | readonly [top: number, horizontal: number, bottom: number]
+  | readonly [top: number, right: number, bottom: number, left: number]
+
+interface DashPanelProviderProps<TValues extends object, CustomTheme extends string = never> {
+  children: ReactNode
+  store: RootStore<TValues>
+  providerId?: string
+  boundary?: DashPanelBoundary | null
+  boundaryInset?: DashPanelBoundaryInset
+  dockPositions?: readonly DashPanelDockPosition[]
+  portalContainer?: Element | null
+  layerBase?: number
+  theme?: PicodashThemeOption<CustomTheme>
+  density?: PicodashDensity
+}
+```
+
+- `providerId` defaults to `default`.
+- `dockPositions` defaults to every canonical dock position. It declares an unordered maximum set;
+  descendant Panels may narrow but not widen it, and each placement mode still filters positions it
+  does not support.
+- `portalContainer` and `layerBase` establish the shared overlay defaults as well as Panel portal
+  ownership. Geometry continues to resolve independently through `boundary` and `boundaryInset`.
+- The Provider owns no persistence configuration. Store construction supplies persistence policy,
+  driver, and storage identity.
+- The prototype props `panelBoundary`, `panelBoundaryInset`, `persistLayout`, and `storageKey` do not
+  enter the target API.
+
+## DashPanel public API
+
+> Contract: Accepted
+> Implementation: Planned
+
+The exact launch prop surface is:
+
+```ts
+type DashPanelStyle = Omit<CSSProperties, 'inlineSize' | 'width'>
+
+interface DashPanelProps<CustomTheme extends string = never> extends Omit<
+  ComponentPropsWithoutRef<'aside'>,
+  'children' | 'id' | 'style' | 'title'
+> {
+  id: string
+  title: ReactNode
+  children?: ReactNode
+  style?: DashPanelStyle
+
+  defaultVisible?: boolean
+  defaultCollapsed?: boolean
+  collapsible?: boolean
+  showCloseButton?: boolean
+
+  onVisibilityChange?: (visible: boolean) => void
+  onCollapsedChange?: (collapsed: boolean) => void
+  onRequestRemove?: (details: DashPanelRemoveRequest) => void
+
+  defaultLayout?: DashPanelDefaultLayout
+  placementOptions?: DashPanelPlacementOptions
+  dockPositions?: readonly DashPanelDockPosition[]
+
+  boundary?: DashPanelBoundary | null
+  boundaryInset?: DashPanelBoundaryInset
+  width?: CSSProperties['width']
+
+  actionMenu?: false | readonly ReactElement[]
+  theme?: PicodashThemeOption<CustomTheme>
+  density?: PicodashDensity
+  presentation?: DashPanelPresentation
+}
+
+interface DashPanelRemoveRequest {
+  readonly scopeId: string
+}
+
+interface DashPanelDefaultLayout {
+  readonly placement: DashPanelPlacement
+  readonly preferredPosition?: Readonly<{ x: number; y: number }>
+}
+
+interface DashPanelPlacementOptions {
+  readonly snapOffset?: number
+  readonly snapProximity?: number
+  readonly detachDistance?: number
+}
+```
+
+All three placement-option values are non-negative finite CSS pixels. They default to
+`snapOffset: 8`, `snapProximity: 16`, and `detachDistance: 40`. The prototype's
+`detachThresholdMultiplier` is an internal algorithm detail and does not enter the target API.
+
+The prop defaults are:
+
+- `defaultVisible: true`;
+- `defaultCollapsed: false`;
+- `collapsible: true`;
+- `showCloseButton: true`;
+- a floating placement snapped to `top-right`;
+- the Provider's complete currently enabled dock-position set; and
+- inherited theme and density; and
+- `{ kind: 'panel' }` presentation.
+
+When `preferredPosition` is omitted, the first transition to free placement uses the Panel's current
+contained rendered position. Declared defaults never become persisted overrides merely because a
+Panel mounts.
+
+`style.width` and `style.inlineSize` are reserved so they cannot compete with the `width` prop and
+the public Panel-width token. Callers use `width` for one Panel or a `className`/stylesheet rule for
+selector-based sizing. Other ordinary `aside` attributes and styles remain available. DashPanel
+forwards an `HTMLAsideElement` ref.
+
+The prototype props `store`, `contentMode`, `close`, `onClose`, controlled visibility/collapse, and
+Motion-specific animation or drag props do not enter the target API. DashPanel exposes behavior
+through its accepted props and controller rather than leaking its animation implementation.
+
+A non-text `title` requires an explicit `aria-label`. `collapsible={false}` with
+`defaultCollapsed={true}` is a developer contract error because it would create hidden content with
+no reveal operation. Projecting an already collapsed Panel as a drawer or sheet temporarily renders
+its body expanded without mutating collapse state; returning to `panel` restores the same collapse
+state.
 
 ## Scope and declarative lifecycle
 
@@ -149,6 +276,23 @@ type DashPanelDockPosition =
   | 'center-top'
   | 'full-bottom'
   | 'center-bottom'
+
+type DashPanelPlacement =
+  | {
+      mode: 'floating'
+      disposition: { kind: 'free' } | { kind: 'snapped'; position: DashPanelSnapPosition }
+    }
+  | {
+      mode: 'fixed'
+      disposition: { kind: 'docked'; position: DashPanelDockPosition }
+    }
+  | {
+      mode: 'hybrid'
+      disposition:
+        | { kind: 'free' }
+        | { kind: 'snapped'; position: 'top' | 'bottom' }
+        | { kind: 'docked'; position: DashPanelDockPosition }
+    }
 ```
 
 `center-left` and `center-right` replace the prototype terms `middle-left` and `middle-right`.
@@ -234,6 +378,12 @@ allocation, the Panel body scrolls while its header and reveal affordance remain
   resolves the overlap unless a future reviewed contract introduces a different explicit tiling
   rule.
 
+Picodash defines a reviewed exception for integrated DashList rails. A corner rail's orientation
+selects an effective edge, perpendicular rails may bound one another at their inner edges, and three
+rail occupants on one edge receive the standard thirds accommodation. This coordination belongs to
+the Picodash facade and does not make standalone DashPanel depend on DashList or change ordinary
+non-rail allocation.
+
 ## Boundaries, insets, and portals
 
 > Contract: Accepted
@@ -295,6 +445,53 @@ Responsive behavior is geometry-derived rather than breakpoint-driven:
 
 There is no automatic mode switch at a product-defined breakpoint.
 
+### Adaptive drawer and sheet presentation
+
+> Contract: Accepted
+> Implementation: Planned
+
+DashPanel supplies three explicit presentations:
+
+```ts
+type DashPanelPresentation =
+  | { kind: 'panel' }
+  | { kind: 'drawer'; edge: 'left' | 'right' }
+  | { kind: 'sheet'; edge: 'top' | 'bottom' }
+```
+
+`panel` is the ordinary non-modal movable and dockable presentation. The initial `drawer` and
+`sheet` presentations are modal. A persistent non-modal drawer is an ordinary Fixed Panel docked to
+`full-left` or `full-right`, not a fourth adaptive mode.
+
+The host selects `presentation` from its own viewport, route, or application policy. DashPanel has
+no product breakpoint and never changes presentation automatically. Drawer and sheet are transient
+projections: they do not change the durable placement or preferred coordinates, and returning to
+`panel` restores the same desktop layout input. DashList content continues to respond to its actual
+container width independently.
+
+While a drawer or sheet is active:
+
+- movement, placement, collapse, and layout-reset actions are unavailable;
+- the Panel uses modal-dialog semantics, a backdrop, focus containment, host scroll lock, and
+  Escape/outside-interaction dismissal;
+- dismissal restores focus through the ordinary connected-trigger chain;
+- a visible Close control is mandatory, so `showCloseButton={false}` with either modal presentation
+  is a developer contract error;
+- reduced motion removes the slide transition without changing visibility or focus behavior; and
+- portal ownership remains Provider-controlled while modal geometry uses the visual viewport rather
+  than a persisted Panel boundary.
+
+At most one sibling modal Panel may be visible in one Provider. A competing show command returns
+`modal_occupied`. A prop-driven transition of an already visible Panel retains its previous
+presentation and records the same structured diagnostic; it is not queued and does not retry until
+the host changes the presentation input again. DashPanel never hides the existing modal silently.
+Nested modal overlays inside the active Panel follow the shared UI layer and Escape-order contract.
+
+Left and right drawers use the Panel's preferred width capped to the visual viewport. Top and bottom
+sheets fill the available inline span and use intrinsic block size capped to the visual viewport.
+Swipe-to-dismiss and drag-to-resize gestures are deferred until they have their own pointer,
+accessibility, and conflict contract.
+
 ## Pointer, keyboard, and focus
 
 > Contract: Accepted
@@ -314,10 +511,11 @@ Keyboard movement uses the Panel's move control:
 - a placement submenu provides direct snap and dock choices, subject to current policy and
   occupancy.
 
-Showing a Panel does not steal focus. Hiding restores focus first to the most recent connected
-trigger, then to the connected element focused before Panel interaction, then to a Provider fallback.
-Closing a menu restores its trigger. Reduced-motion preference removes non-essential movement while
-preserving state feedback.
+Mounting a visible Panel or applying a passive visibility change does not steal focus. An explicit
+`DashPanelTrigger` or launcher activation follows its documented show-and-focus behavior. Hiding
+restores focus first to the most recent connected trigger, then to the connected element focused
+before Panel interaction, then to a Provider fallback. Closing a menu restores its trigger.
+Reduced-motion preference removes non-essential movement while preserving state feedback.
 
 ## Close and removal
 
@@ -328,8 +526,10 @@ preserving state feedback.
 | Request permanent removal | Accepted | Planned        | Notifies application; application unmounts. |
 | Imperative deregistration | Rejected | Prototype      | Legacy behavior removed during conformance. |
 
-Permanent-removal request callback naming remains part of the final prop inventory. It does not
-grant DashPanel authority to unmount application JSX.
+The Close button calls the transient hide command; it never requests permanent removal.
+`onRequestRemove` enables the confirmed `Remove panel…` action and receives only the resolved
+`scopeId`. After confirmation, DashPanel calls the callback and the application decides whether to
+unmount its JSX. Omitting the callback omits the permanent-removal action.
 
 ## Action menu
 
@@ -337,103 +537,293 @@ The built-in DashPanel menu contains only Panel-owned placement and layout-reset
 reset, group expansion, copy, import, export, and disclosure policy belong to DashList, Store, or
 integrated Picodash composition.
 
-| Configuration                      | Contract | Behavior                                               |
-| ---------------------------------- | -------- | ------------------------------------------------------ |
-| `actionMenu` omitted               | Accepted | Standard trigger with built-in Panel actions.          |
-| `actionMenu={false}`               | Accepted | Hides the menu.                                        |
-| `actionMenu={readonly elements[]}` | Accepted | Standard root wraps caller-provided public menu items. |
-| Caller-replaced root trigger       | Deferred | Advanced surface only after a demonstrated need.       |
+| Configuration                      | Contract | Behavior                                              |
+| ---------------------------------- | -------- | ----------------------------------------------------- |
+| `actionMenu` omitted               | Accepted | Standard trigger with contributed then Panel actions. |
+| `actionMenu={false}`               | Accepted | Hides the menu and every contributed action.          |
+| `actionMenu={readonly elements[]}` | Accepted | Replaces all default and contributed menu items.      |
+| Caller-replaced root trigger       | Deferred | Advanced surface only after a demonstrated need.      |
 
 DashPanel exports the menu item, submenu, separator, and built-in placement/reset components needed
 to compose the accepted custom-content path. They use public controller commands and must not
 mutate Store or Provider internals.
 
-## Theme and CSS design tokens
+The Panel-owned action exports are:
+
+- `DashPanelActionItems`;
+- `DashPanelPlacementSubmenu`;
+- `DashPanelResetLayoutItem`; and
+- `DashPanelRequestRemoveItem`.
+
+Generic menu composition primitives are UI-owned explicit reexports; DashPanel owns the built-in
+placement/reset items and every command they execute. Reexporting a primitive does not move its
+accessibility or theme contract into DashPanel.
+
+DashPanel also owns this narrow composition seam from `@picodash/dashpanel/integration`:
+
+```ts
+interface DashPanelDefaultActionItemsProps {
+  scopeId: string
+}
+
+type DashPanelDefaultActionItems = ComponentType<DashPanelDefaultActionItemsProps>
+
+interface DashPanelIntegrationProviderProps {
+  children: ReactNode
+  defaultActionItems?: DashPanelDefaultActionItems
+}
+```
+
+`DashPanelIntegrationProvider` supplies at most one component type to descendant Panels. A Panel
+uses the nearest integration Provider and renders that component before its placement and layout
+actions only when `actionMenu` is omitted. Passing `false` hides the whole menu. Passing a custom
+item array replaces both the contribution and Panel defaults; an empty array renders no trigger.
+Callers may explicitly include exported action items in their replacement array.
+
+The contributor receives only the resolved Panel `scopeId`. A component type rather than a render
+callback preserves ordinary React hook and component-identity rules. Its output is declarative
+ActionMenu-family content: it cannot replace the trigger, mutate private Panel runtime, add a
+persistence path, or gain controller authority. Nearest-Provider replacement is the complete
+resolution rule; there is no global registry, keyed plugin collection, or Provider prop that
+applications merge.
+
+The application-facing `actionMenu` prop remains the ordinary customization API. The integration
+entry exists for a composing product such as Picodash and does not create a second application
+extension system.
+
+## Header composition
 
 > Contract: Accepted
-> Implementation: Prototype
-> Notes: Theme ownership and behavior are accepted. The exhaustive consumed-token inventory remains
-> Draft until checked against the extracted package.
+> Implementation: Planned
 
-`@picodash/theme` owns `dark`, `light`, `system`, custom named-theme resolution, and all shared
-semantic tokens. `DashPanelProvider` establishes the inherited theme; a Panel may override it.
-Theme is runtime presentation and is never persisted. Portaled Panel-owned roots repeat the resolved
-theme attribute; their descendants inherit.
+DashPanel uses the presentational `DashHeader` owned by `@picodash/ui` and explicitly reexports its
+stable component and types. DashPanel supplies the grab surface, collapse control, title, action
+menu, and close control through named slots and retains every associated behavior. `DashHeader`
+does not initiate placement, toggle Panel state, or execute actions.
+
+The shared API has `leading`, `title`, `actions`, and `trailing` slots in fixed DOM order and no
+general `children` prop. It forwards its root ref so DashPanel can measure the header without
+placing geometry or drag behavior in the shared package. These slots are an internal composition
+boundary for DashPanel, not a public `headerSlots` override: Panel props create the default slot
+nodes, while action-menu composition provides the accepted additive extension path. The complete
+target is recorded in the [shared UI reference](ui.md#dashheader).
+
+## Theme and CSS design tokens
+
+> Contract: Accepted theme behavior and product-owned token inventory; implementation evidence
+> pending for exhaustive shared-token consumption
+>
+> Implementation: Prototype
+
+`@picodash/ui` owns `dark`, `light`, `system`, custom named-theme resolution, the accepted
+`regular | compact` density axis, and all shared semantic tokens. `DashPanelProvider` establishes
+the inherited theme and density; a Panel may override either. Theme and density are runtime
+presentation and are never persisted by DashPanel. Portaled Panel-owned roots repeat both resolved
+attributes; their descendants inherit.
+
+Density changes shared geometry tokens without changing color roles, placement semantics, or
+durable layout. Compact presentation keeps coarse-pointer hit targets at least 44 CSS pixels. An
+application may persist its own preference in Store and pass it back as an ordinary prop.
 
 Custom themes override public `--picodash-*` tokens under their named theme selector. Consumers must
 not rely on `--_picodash-*` variables, which are package-private derived values.
 
-The provisional DashPanel shell consumes this public inventory. Each row is repeated here even when
-the token is shared with DashList so a DashPanel-only consumer has a complete reference.
+DashPanel owns exactly one public product token:
 
-| Variable                         | Purpose                             | Syntax                | Default                           | Owner                 |
-| -------------------------------- | ----------------------------------- | --------------------- | --------------------------------- | --------------------- |
-| `--picodash-color-surface`       | Panel background.                   | `<color>`             | Active theme recipe               | `@picodash/theme`     |
-| `--picodash-color-surface-muted` | Hovered and secondary chrome.       | `<color>`             | Active theme recipe               | `@picodash/theme`     |
-| `--picodash-color-text`          | Primary Panel text.                 | `<color>`             | Active theme recipe               | `@picodash/theme`     |
-| `--picodash-color-text-muted`    | Secondary labels and status text.   | `<color>`             | Active theme recipe               | `@picodash/theme`     |
-| `--picodash-color-border`        | Panel and control boundaries.       | `<color>`             | Active theme recipe               | `@picodash/theme`     |
-| `--picodash-color-focus`         | Keyboard focus indication.          | `<color>`             | Active theme recipe               | `@picodash/theme`     |
-| `--picodash-color-danger`        | Destructive action emphasis.        | `<color>`             | Active theme recipe               | `@picodash/theme`     |
-| `--picodash-color-overlay`       | Confirmation-dialog backdrop.       | `<color>`             | Active theme recipe               | `@picodash/theme`     |
-| `--picodash-font-family`         | Panel typography family.            | font-family value     | `inherit`                         | `@picodash/theme`     |
-| `--picodash-font-size-xl`        | Panel title size.                   | `<length>`            | `0.875rem`                        | `@picodash/theme`     |
-| `--picodash-font-semibold`       | Panel title weight.                 | `<number>`            | `600`                             | `@picodash/theme`     |
-| `--picodash-space-1`             | Compact icon/control gaps.          | `<length>`            | `0.25rem`                         | `@picodash/theme`     |
-| `--picodash-space-2`             | Header and action spacing.          | `<length>`            | `0.5rem`                          | `@picodash/theme`     |
-| `--picodash-space-3`             | Panel body spacing.                 | `<length>`            | `0.75rem`                         | `@picodash/theme`     |
-| `--picodash-radius-surface`      | Panel corner radius.                | `<length>`            | `0`                               | `@picodash/theme`     |
-| `--picodash-radius-control`      | Action-control corner radius.       | `<length>`            | `0`                               | `@picodash/theme`     |
-| `--picodash-control-height-md`   | Standard header action height.      | `<length>`            | `2rem`                            | `@picodash/theme`     |
-| `--picodash-icon-sm`             | Compact action icon size.           | `<length>`            | `0.875rem`                        | `@picodash/theme`     |
-| `--picodash-icon-lg`             | Primary Panel action icon size.     | `<length>`            | `1.25rem`                         | `@picodash/theme`     |
-| `--picodash-shadow-md`           | Menu and raised action shadow.      | shadow list           | `0 4px 12px rgb(0 0 0 / 25%)`     | `@picodash/theme`     |
-| `--picodash-shadow-panel`        | Panel elevation.                    | shadow list           | Active theme recipe               | `@picodash/theme`     |
-| `--picodash-duration-fast`       | Menu and state transition duration. | `<time>`              | `150ms`                           | `@picodash/theme`     |
-| `--picodash-ease-out`            | Menu and state transition easing.   | easing function       | `cubic-bezier(0, 0, 0.2, 1)`      | `@picodash/theme`     |
-| `--picodash-layer-drag`          | Movement proxy layer.               | `<integer>`           | `20`                              | `@picodash/theme`     |
-| `--picodash-layer-tooltip`       | Tooltip overlay layer.              | `<integer>`           | `50`                              | `@picodash/theme`     |
-| `--picodash-layer-menu`          | Action-menu overlay layer.          | `<integer>`           | `70`                              | `@picodash/theme`     |
-| `--picodash-layer-dialog`        | Confirmation-dialog overlay layer.  | `<integer>`           | `80`                              | `@picodash/theme`     |
-| `--picodash-panel-width`         | Preferred intrinsic Panel width.    | `<length-percentage>` | `min(20rem, calc(100dvw - 2rem))` | `@picodash/dashpanel` |
+| Variable                 | Purpose                          | Syntax                | Regular default                   |
+| ------------------------ | -------------------------------- | --------------------- | --------------------------------- |
+| `--picodash-panel-width` | Preferred intrinsic Panel width. | `<length-percentage>` | `min(20rem, calc(100dvw - 2rem))` |
 
-Before this section becomes Accepted as an exhaustive inventory, a conformance check must prove
-that every consumed public variable is documented and every documented variable is consumed or
-deliberately inherited. DashList maintains its own complete consumed-token table, including shared
-rows.
+The token and prop are two access paths to one preferred-width input:
 
-## React runtime hooks
+1. `--picodash-panel-width` supplies the inherited host, Provider-container, or selector default;
+2. `width` supplies a local inline token value for one Panel and takes precedence; and
+3. the token's regular recipe supplies the fallback above when neither application path sets it.
 
-DashPanel exposes high-level control rather than mutable runtime internals:
+The preferred width is presentation state, not durable layout. Boundary containment, dock
+allocation, and the current presentation may cap or temporarily replace it; the resolved pixel
+width is observed for geometry and never persisted. A content size change causes remeasurement and
+containment without creating a layout override.
 
-| Hook purpose                 | Contract | Rule                                                      |
-| ---------------------------- | -------- | --------------------------------------------------------- |
-| Control one mounted Panel    | Accepted | Visibility, collapse, activation, and placement commands. |
-| Select Provider runtime      | Draft    | Read-only advanced selector; no mutable internals.        |
-| Select nearest Panel runtime | Draft    | Separate from scoped Store selection.                     |
-| Access nearest scoped Store  | Accepted | Use `@picodash/store/react`; nearest Store context wins.  |
+Valid intrinsic CSS width values are supported. For example, `width="fit-content"` or a selector
+setting `--picodash-panel-width: fit-content` lets the browser derive width from arbitrary content,
+subject to the effective boundary. DashPanel does not measure content and convert that result into
+a stored numeric preference. This avoids making responsive children or DashList's container-based
+layout into a circular persistence input.
 
-Selector equality and Store context behavior belong to the Store React contract. DashPanel does not
-create a second value-subscription model.
+`full-top` and `full-bottom` docks own the available inline span, so the preferred width is dormant
+while either is active. Top/bottom sheets follow the same rule. Left/right drawers and ordinary
+floating, snapped, corner, center, and side placements use the preferred width, capped to their
+available geometry. Returning to a width-sensitive presentation restores the same preferred input.
 
-## Remaining finalization work
+No public token is added for header height, collapse offsets, docking allocation, drag opacity,
+placement-preview paint, or runtime z-index. Those values are structural rules, placement
+configuration, or package-private derived values rather than durable theming contracts.
 
-The provisional behavior contract is complete enough to move to the DashList review. Before the
-DashPanel contract can change from Draft to Accepted, the implementation plan must still freeze:
+The target Panel structure currently requires this candidate shared subset:
 
-1. the exact prop and exported type names corresponding to the behaviors above;
-2. the permanent-removal callback name and read-only advanced selector names;
-3. the exhaustive CSS token inventory after package extraction; and
-4. conformance evidence links proving the target rather than the prototype.
+- `--picodash-color-{surface,surface-muted,text,text-muted,border}`;
+- `--picodash-space-{1,2,3}`;
+- `--picodash-font-size-xl`, `--picodash-font-weight-semibold`, and
+  `--picodash-letter-spacing-normal`;
+- `--picodash-control-height-md`, `--picodash-icon-{sm,md,lg}`, and
+  `--picodash-radius-surface`;
+- `--picodash-shadow-{md,elevated}` and `--picodash-blur-surface`; and
+- `--picodash-duration-fast` and `--picodash-easing-out`.
 
-These items may refine naming and packaging. They must not reopen Store ownership, declarative
-lifecycle, placement semantics, dock occupancy/allocation, responsive policy, persistence,
-accessibility, or action ownership without an explicit contract revision.
+That subset is candidate implementation evidence because DashHeader and the composed Button,
+ActionMenu, Tooltip, and AlertDialog recipes belong to `@picodash/ui`. The implemented DashPanel
+dependency table will take the
+union of the Panel-owned structure and those accepted shared recipes, identify the consuming
+component for each token, and link each shared meaning to the canonical
+[shared UI inventory](ui.md#shared-public-token-inventory). This avoids treating the current copied
+UI implementation as the target while still giving a DashPanel-only consumer a complete reference.
+
+Before the shared-consumption conformance row becomes Verified, a check must prove that every
+consumed public variable is documented and every documented variable is consumed or deliberately
+inherited. DashList maintains its own complete dependency table by the same rule.
+
+The prototype's copied shared recipe is removed during migration. DashPanel imports
+`@picodash/ui/style.css`, defines only `--picodash-panel-*` public tokens in its own stylesheet, and
+uses `--_picodash-*` for private Panel formulas.
+
+## Triggers and launcher
+
+> Contract: Accepted
+> Implementation: Planned
+
+```ts
+interface DashPanelTriggerProps extends Omit<ButtonProps, 'onPress'> {
+  panelId: string
+  action?: 'show' | 'toggle'
+}
+
+interface DashPanelLauncherItem {
+  panelId: string
+  label: ReactNode
+  disabled?: boolean
+}
+
+interface DashPanelLauncherProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  label: string
+  items: readonly DashPanelLauncherItem[]
+}
+```
+
+`DashPanelTrigger` defaults to `action="show"`. Showing a Panel makes it visible, activates its
+Provider layer, and moves focus into its first appropriate focus target; an already visible Panel
+is still activated and focused. `toggle` hides a visible Panel or performs the same show operation
+for a hidden Panel.
+
+`DashPanelLauncher` renders an application-declared group of Panel triggers. It does not discover
+Panels through a registry, infer labels from mounted content, or acquire authority to mount missing
+JSX. A launcher item for an unavailable Panel remains unavailable and does not create it.
+
+Both components require the nearest DashPanel Provider. Their button behavior and public prop base
+come from `@picodash/ui`, but DashPanel owns panel targeting, visibility, activation, and focus.
+
+## Panel controller
+
+> Contract: Accepted
+> Implementation: Planned
+
+```ts
+type DashPanelCommandResult =
+  | { readonly status: 'executed' }
+  | {
+      readonly status: 'not_executed'
+      readonly reason: 'unavailable' | 'not_collapsible' | 'modal_occupied' | 'modal_presentation'
+    }
+
+type DashPanelLayoutCommandResult =
+  | {
+      readonly status: 'executed'
+      readonly transaction: CoreTransactionResult | PersistentTransactionResult
+    }
+  | {
+      readonly status: 'not_executed'
+      readonly reason: 'unavailable' | 'dock_occupied' | 'position_disabled' | 'modal_presentation'
+    }
+
+interface DashPanelControllerCommands {
+  show(): DashPanelCommandResult
+  hide(): DashPanelCommandResult
+  toggleVisibility(): DashPanelCommandResult
+  activate(): DashPanelCommandResult
+  expand(): DashPanelCommandResult
+  collapse(): DashPanelCommandResult
+  toggleCollapsed(): DashPanelCommandResult
+  setPlacement(placement: DashPanelPlacement): DashPanelLayoutCommandResult
+  resetLayout(): DashPanelLayoutCommandResult
+}
+
+type DashPanelController = DashPanelControllerCommands &
+  (
+    | {
+        readonly availability: 'unavailable'
+        readonly scopeId: string
+      }
+    | {
+        readonly availability: 'available'
+        readonly scopeId: string
+        readonly visible: boolean
+        readonly collapsed: boolean
+        readonly collapsible: boolean
+        readonly placement: DashPanelPlacement
+        readonly presentation: DashPanelPresentation
+      }
+  )
+
+function useDashPanel(panelId?: string): DashPanelController
+```
+
+With no argument, `useDashPanel()` targets the nearest Panel. With `panelId`, it targets that mounted
+Panel in the nearest Provider. Calling the hook outside a DashPanel Provider, or omitting `panelId`
+without a nearest Panel, is a lifecycle contract error. An explicit ID that is not currently mounted
+returns an immutable unavailable controller rather than creating runtime state.
+
+Every command rechecks current availability at execution time. Visibility, activation, and collapse
+commands mutate transient Provider runtime. Placement and reset commands invoke Store and return its
+structured persistent transaction result; `status: 'executed'` means the Store command ran, not that
+the transaction necessarily committed. Structured Store rejection remains visible in `transaction`.
+Ownership, lifecycle, and malformed-placement contract errors continue to throw.
+
+DashPanel exposes no mutable Provider store, generic runtime selector, or `/advanced` entrypoint in
+the initial contract. Applications select Store values through `@picodash/store/react`; DashPanel
+does not create another equality or value-subscription API.
+
+## Public package surfaces
+
+| Surface                           | Contract | Implementation | Purpose                                             |
+| --------------------------------- | -------- | -------------- | --------------------------------------------------- |
+| `@picodash/dashpanel`             | Accepted | Prototype      | Provider, Panel, controller, actions, UI reexports. |
+| `@picodash/dashpanel/integration` | Accepted | Planned        | Narrow default-action contribution seam.            |
+| `@picodash/dashpanel/catalog`     | Accepted | Planned        | Static accepted-component metadata.                 |
+| `@picodash/dashpanel/style.css`   | Accepted | Prototype      | UI foundation plus Panel structural styles.         |
+
+There is no initial `@picodash/dashpanel/advanced` or `@picodash/dashpanel/ui` surface. Generic UI
+primitives remain canonically imported from `@picodash/ui`; DashPanel explicitly reexports only the
+accepted `DashHeader` and ActionMenu family needed for unchanged Panel composition.
+
+## Implementation evidence to complete
+
+No unresolved DashPanel contract question blocks implementation. Conformance still must produce:
+
+1. the exhaustive shared-token consumption table after shared components are implemented;
+2. cohesive regular, compact, intrinsic-width, dock-allocation, drawer, and sheet visual evidence;
+3. package and type evidence for every accepted public surface; and
+4. proof that private geometry selectors and formulas have not become customization promises.
+
+These are implementation and verification obligations. They do not reopen Store ownership,
+declarative lifecycle, placement semantics, adaptive presentation, persistence, accessibility, or
+action ownership without an explicit contract revision.
 
 ## Related documents
 
+- [Shared UI target reference](ui.md)
 - [DashPanel value proposition](../product/value-propositions.md#dashpanel)
 - [Store target reference](store.md)
 - [Store decisions](store-contract-decisions.md)
+- [Component catalog target reference](catalog.md)
 - [Contract conformance](contract-conformance.md)
 - [Roadmap](../ROADMAP.md)

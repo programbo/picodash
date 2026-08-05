@@ -1,16 +1,22 @@
 # Picodash contract-led roadmap
 
-This roadmap sequences Picodash as three loosely independent foundational products followed by an
-integrated product. It guides contract work and release maturity; it is not a calendar or delivery
-estimate.
+This roadmap sequences Store, DashPanel, and DashList as three loosely independent products,
+supported by one shared UI foundation, followed by the integrated Picodash product. It guides
+contract work and release maturity; it is not a calendar or delivery estimate.
 
 ## Status
 
-> Contract: Draft
+> Contract: Accepted
 > Implementation: Prototype
-> Evidence: Product-specific conformance evidence is not yet complete.
+> Evidence: Product sequence, vertical-slice boundaries, release gates, and verification ownership
+> are accepted. Product-specific conformance evidence remains implementation work.
 
 ## Phase 0: Complete the target documentation
+
+Phase 0 is contract-complete. The accepted references define every initial public API, package
+entrypoint, ownership boundary, and release gate that would materially change implementation. The
+remaining CSS-consumption tables, measured compact values, and linked test evidence are produced
+during implementation rather than used to keep the launch contracts in Draft.
 
 Before treating prototype behavior as a public contract:
 
@@ -19,6 +25,11 @@ Before treating prototype behavior as a public contract:
 3. Pressure-test weak product propositions before accepting their detailed contracts.
 4. Complete aspirational reference pages with explicit implementation status.
 5. Build the conformance matrix that will track implementation evidence.
+6. Record shared UI ownership without treating it as a fourth product.
+
+Create one intentional documentation baseline commit before Phase 1 changes product code. Genuine
+constraints discovered during implementation revise the owning accepted decision explicitly; the
+prototype never revises the contract silently.
 
 ## Phase 1: Store alpha
 
@@ -43,22 +54,32 @@ lease entry are usable without private imports. Documents and advanced recovery 
 beta, but alpha cannot contain a partial-mutation path, silent conflict overwrite, or incomplete
 pending envelope. It is not expected to have proven every ergonomic choice.
 
-## Phase 2: DashPanel and DashList dogfooding
+## Phase 2: Shared UI, DashPanel, and DashList dogfooding
 
-DashPanel and DashList consume only Store's public or deliberately shared composition APIs. They do
-not depend on each other and may advance independently.
+Implement the minimum accepted `@picodash/ui` foundation required for independent UI-product work:
+theme and density contracts, independent portal/layer context, semantic tokens, structural CSS, and
+product-neutral primitives used by both products. DashPanel and DashList consume only public Store
+and UI APIs. They do not depend on each other and may advance independently.
+
+UI work is driven by demonstrated cross-product contracts, not speculative extraction. A component
+enters UI only when both products use the same product-neutral semantics, accessibility, theme, and
+interaction behavior without product state or commands.
 
 ### DashPanel
 
 DashPanel exercises Provider hosting, scope ownership, durable layout overrides, transient panel
-runtime, browser geometry, boundaries, portals, themes, and action composition. Deficiencies found
-through DashPanel feed back into Store's contract, implementation, tests, and release status.
+runtime, browser geometry, boundaries, portals, shared UI, and action composition. Deficiencies
+found through DashPanel feed back into the owning Store or UI contract, implementation, tests, and
+release status.
 
 ### DashList
 
 DashList exercises standalone scope resolution, field bindings, drafts, groups, stable node
 identity, ordering, collapse overrides, resets, documents, and accessible reordering. Deficiencies
 found through DashList follow the same Store feedback loop.
+
+DashList also exercises shared theme, density, header, and generic chrome contracts. Deficiencies
+in those contracts feed back into UI; Dashlet and List behavior stays in DashList.
 
 Store reaches beta only after real consumer work has exercised the contracts most likely to change.
 
@@ -84,8 +105,8 @@ Expected slices include:
 - a DashPanel and DashList sharing one root Store;
 - same-scope primary Lists and explicit child scopes;
 - Provider ancestry and declarative relationship registration;
-- aggregate actions across active descendants;
-- shared themes, portals, documents, and ready-made Dashlets;
+- primary List action contribution without implicit additional-List aggregation;
+- shared UI, portals, documents, and ready-made Dashlets;
 - facade packaging and integrated examples.
 
 Integration findings feed back into the product that owns the deficient behavior.

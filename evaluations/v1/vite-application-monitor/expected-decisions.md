@@ -12,15 +12,15 @@
 
 - Service health is one compound Dashlet because its metrics, state, progress, and history form one
   semantic monitoring unit.
-- It uses semantic metric, status, progress, legend, and surface elements from
-  `@picodash/picodash/dashlet`.
+- It uses accepted anatomy from `@picodash/dashlist/dashlet`, accessible primitives from the public
+  UI surface, and ordinary semantic HTML/SVG rather than depending on experimental helper families.
 - The sparkline or equivalent streaming visual uses semantic data-color tokens and has an
   accessible name plus current-value text.
 
 ## Exposure and UX
 
 - A role policy gates the Panel and launcher for operator/developer roles.
-- The Panel overlays the application at top-end, starts visible, and is explicitly reopenable.
+- The Panel overlays the application at top-right, starts visible, and is explicitly reopenable.
 - Disconnected and recovery samples use semantic status treatment, not color alone.
 - Light, dark, and system themes use Picodash theme props and semantic tokens.
 - The stream has an accessible name and textual fallback; status changes use an appropriate live
