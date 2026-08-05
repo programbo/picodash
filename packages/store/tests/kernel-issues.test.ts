@@ -1,15 +1,10 @@
 import { describe, expect, test } from 'vite-plus/test'
-import type { StandardSchemaV1 } from '@standard-schema/spec'
 import {
   createPicodashStore,
   PicodashContractError,
   PicodashTransactionError,
 } from '../src/index.ts'
-
-const standard = <Output>(validate: (value: unknown) => unknown) =>
-  ({
-    '~standard': { version: 1 as const, vendor: 'test-vendor', validate },
-  }) as unknown as StandardSchemaV1<unknown, Output>
+import { asyncStandardSchema, syncStandardSchema } from './support/standard-schema-fixtures.js'
 
 describe('Store callback and issue boundaries', () => {
   test('normalizes Standard Schema success, failure, paths, and vendor-code privacy', () => {
@@ -18,7 +13,10 @@ describe('Store callback and issue boundaries', () => {
       fields: {
         value: {
           defaultValue: 1,
-          schema: standard<number>((value) => ({ value, issues: undefined })),
+          schema: syncStandardSchema<number>((value) => ({
+            value: value as number,
+            issues: undefined,
+          })),
         },
       },
     })
@@ -30,7 +28,7 @@ describe('Store callback and issue boundaries', () => {
       fields: {
         value: {
           defaultValue: 1,
-          schema: standard<number>((value) =>
+          schema: syncStandardSchema<number>((value) =>
             value === 1
               ? { value, issues: undefined }
               : {
@@ -61,7 +59,7 @@ describe('Store callback and issue boundaries', () => {
       fields: {
         value: {
           defaultValue: 1,
-          schema: standard<number>((value) => (value === 1 ? { value } : { issues: [] })),
+          schema: syncStandardSchema<number>((value) => (value === 1 ? { value } : { issues: [] })),
         },
       },
     })
@@ -73,7 +71,10 @@ describe('Store callback and issue boundaries', () => {
       createPicodashStore({
         valueOwner: 'store',
         fields: {
-          value: { defaultValue: 1, schema: standard<number>(() => ({ value: 2, issues: [] })) },
+          value: {
+            defaultValue: 1,
+            schema: syncStandardSchema<number>(() => ({ value: 2, issues: [] })),
+          },
         },
       }),
     ).toThrowError(PicodashContractError)
@@ -83,7 +84,7 @@ describe('Store callback and issue boundaries', () => {
         fields: {
           value: {
             defaultValue: 1,
-            schema: standard<number>(() => Promise.resolve({ value: 2 })),
+            schema: asyncStandardSchema<number>(() => Promise.resolve({ value: 2 })),
           },
         },
       }),

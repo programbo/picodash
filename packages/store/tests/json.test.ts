@@ -1,20 +1,12 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { fc, test as property } from '@fast-check/vitest'
+import { test as property } from '@fast-check/vitest'
 import { clonePicodashValue, picodashJsonEqual } from '../src/json.js'
-import type { PicodashJsonValue } from '../src/types.js'
-
-const jsonArb: fc.Arbitrary<PicodashJsonValue> = fc.letrec((tie) => ({
-  value: fc.oneof(
-    fc.boolean(),
-    fc.string(),
-    fc.integer(),
-    fc.constant(null),
-    tie('array'),
-    tie('object'),
-  ),
-  array: fc.array(tie('value')),
-  object: fc.dictionary(fc.string(), tie('value')),
-})).value as fc.Arbitrary<PicodashJsonValue>
+import {
+  createInvalidJsonBoundaryCases,
+  hostileJsonKeys,
+  hostileJsonObjectArbitrary,
+  strictJsonValueArbitrary,
+} from './support/json-fixtures.js'
 
 describe('strict JSON kernel', () => {
   const assertTree = (input: any, output: any) => {
@@ -25,11 +17,14 @@ describe('strict JSON kernel', () => {
     else Object.keys(input).forEach((key) => assertTree(input[key], output[key]))
   }
 
-  property.prop([jsonArb])('clones equivalently, detached and recursively frozen', (value) => {
-    const clone = clonePicodashValue(value)
-    expect(picodashJsonEqual(clone, value)).toBe(true)
-    assertTree(value, clone)
-  })
+  property.prop([strictJsonValueArbitrary])(
+    'clones equivalently, detached and recursively frozen',
+    (value) => {
+      const clone = clonePicodashValue(value)
+      expect(picodashJsonEqual(clone, value)).toBe(true)
+      assertTree(value, clone)
+    },
+  )
 
   it.each([
     ['undefined', undefined],
@@ -52,32 +47,22 @@ describe('strict JSON kernel', () => {
     expect(() => clonePicodashValue(value as never)).toThrow(),
   )
 
-  it('rejects cycles, sparse arrays, extensions, accessors and symbols', () => {
-    const cycle: any[] = []
-    cycle.push(cycle)
-    expect(() => clonePicodashValue(cycle as never)).toThrow()
-    expect(() => clonePicodashValue(Object.assign([], { 2: 1 }) as never)).toThrow()
-    expect(() => clonePicodashValue(Object.assign([], { extra: 1 }) as never)).toThrow()
-    expect(() => clonePicodashValue(Object.assign([], { '01': 1 }) as never)).toThrow()
-    expect(() => clonePicodashValue(Object.assign([], { '4294967295': 1 }) as never)).toThrow()
-    const hiddenIndex: any[] = []
-    Object.defineProperty(hiddenIndex, '0', { value: 1, enumerable: false })
-    expect(() => clonePicodashValue(hiddenIndex as never)).toThrow()
-    const hiddenObject = {}
-    Object.defineProperty(hiddenObject, 'x', { value: 1, enumerable: false })
-    expect(() => clonePicodashValue(hiddenObject as never)).toThrow()
-    let invoked = 0
-    const accessor = {}
-    Object.defineProperty(accessor, 'x', {
-      enumerable: true,
-      get() {
-        invoked += 1
-        return 1
-      },
+  it('rejects every freshly allocated invalid boundary case', () => {
+    const boundaries = createInvalidJsonBoundaryCases()
+    const freshBoundaries = createInvalidJsonBoundaryCases()
+    boundaries.forEach((boundary, index) => {
+      const fresh = freshBoundaries[index]
+      if (boundary.value !== null && typeof boundary.value === 'object')
+        expect(Object.is(boundary.value, fresh?.value)).toBe(false)
+      expect(() => clonePicodashValue(boundary.value as never), boundary.name).toThrow()
+      if (boundary.readCount !== undefined) expect(boundary.readCount()).toBe(0)
     })
-    expect(() => clonePicodashValue(accessor as never)).toThrow()
-    expect(invoked).toBe(0)
-    expect(() => clonePicodashValue({ [Symbol('x')]: 1 } as never)).toThrow()
+  })
+
+  property.prop([hostileJsonObjectArbitrary])('generates an own hostile key', (hostile) => {
+    expect(hostile).not.toBeNull()
+    expect(Object.keys(hostile as object)).toHaveLength(1)
+    expect(hostileJsonKeys).toContain(Object.keys(hostile as object)[0])
   })
 
   it('clones repeated acyclic references independently', () => {
