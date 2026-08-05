@@ -241,7 +241,8 @@ type ScopedSnapshot<Values> = {
 
 > Contract: Accepted
 > Implementation: Partial
-> Notes: Root snapshots are implemented; scoped snapshots and metadata remain planned. Adapter and
+> Notes: Root snapshots are implemented; the metadata record codec is Partial, while scoped metadata
+> commands and lazy scope lifecycle remain planned. Adapter and
 > persistence status live on their configured capability namespaces rather than every ephemeral root snapshot.
 
 Both snapshot types contain immutable data only. Commands live on the stable root or scoped Store
@@ -318,10 +319,12 @@ type DurableScopeMetadata = {
 
 | Record                    | Contract | Implementation | Notes                                            |
 | ------------------------- | -------- | -------------- | ------------------------------------------------ |
-| DashList order/collapse   | Accepted | Prototype      | Overrides only; containment remains declarative. |
-| DashPanel layout override | Accepted | Prototype      | Settled placement plus preferred free position.  |
+| DashList order/collapse   | Accepted | Partial        | Overrides only; containment remains declarative. |
+| DashPanel layout override | Accepted | Partial        | Settled placement plus preferred free position.  |
 
-Empty product records are omitted. Serialized maps use duplicate-checked entry arrays.
+Empty product records are omitted. The Store metadata codec validates complete records atomically,
+detaches and freezes nested values, and translates maps through duplicate-checked entry arrays.
+Focused evidence lives in [packages/store/tests/metadata.test.ts](../../packages/store/tests/metadata.test.ts).
 `preferredPosition` contains finite CSS-pixel offsets from the effective boundary's top-left after
 inset and before snap offset. Store validates the complete record atomically and does not import UI
 package types.
