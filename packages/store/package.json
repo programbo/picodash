@@ -48,6 +48,7 @@
     "zustand": "catalog:"
   },
   "devDependencies": {
+    "@fast-check/vitest": "^0.4.1",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
