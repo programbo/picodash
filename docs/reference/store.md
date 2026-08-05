@@ -7,14 +7,14 @@ not claim that the prototype currently exports every API shown here.
 ## Status
 
 > Contract: Accepted target API
-> Implementation: Prototype
+> Implementation: Partial
 > Evidence: See the [conformance matrix](contract-conformance.md).
 
 ## Package surfaces
 
 | Surface                       | Contract | Implementation | Purpose                                     |
 | ----------------------------- | -------- | -------------- | ------------------------------------------- |
-| `@picodash/store`             | Accepted | Prototype      | Framework-independent Store implementation  |
+| `@picodash/store`             | Accepted | Partial        | Framework-independent Store implementation  |
 | `@picodash/store/react`       | Accepted | Prototype      | Public React hooks and selectors            |
 | `@picodash/store/integration` | Accepted | Planned        | Versioned context and declarative lease API |
 
@@ -36,9 +36,9 @@ const store = createPicodashStore({
 })
 ```
 
-| API                     | Contract | Implementation | Notes                                                |
-| ----------------------- | -------- | -------------- | ---------------------------------------------------- |
-| `createPicodashStore()` | Accepted | Prototype      | Target configuration differs from prototype details. |
+| API                     | Contract | Implementation | Notes                                                                                            |
+| ----------------------- | -------- | -------------- | ------------------------------------------------------------------------------------------------ |
+| `createPicodashStore()` | Accepted | Partial        | Core Store-owned configuration is implemented; scopes, persistence, and adapters remain planned. |
 
 Store construction is synchronous. Configuration that defines identity, schema, value authority,
 persistence, or disclosure remains immutable for the root lifetime.
@@ -148,15 +148,15 @@ type PicodashFieldValidator<Value, Values> = (
 Parser and validator result objects use Picodash's `ok` and structured-issue conventions. Standard
 Schema retains its own v1 result shape at the `schema` boundary.
 
-| Behavior                    | Contract | Implementation | Notes                                             |
-| --------------------------- | -------- | -------------- | ------------------------------------------------- |
-| Stable typed field handles  | Accepted | Prototype      | Handles become nominally root-owned.              |
-| Immutable field set         | Accepted | Planned        | Runtime field registration is rejected.           |
-| `parse` raw-input stage     | Accepted | Prototype      | May produce a candidate value or explicit repair. |
-| Standard Schema `schema`    | Accepted | Planned        | Canonicalizes and drives inferred output type.    |
-| Contextual `validate` stage | Accepted | Prototype      | Accepts or rejects; cannot transform.             |
-| Synchronous pipeline        | Accepted | Prototype      | Promise-like results are rejected.                |
-| Root ownership checks       | Accepted | Prototype      | Same-key handles from another root throw.         |
+| Behavior                    | Contract | Implementation | Notes                                                                     |
+| --------------------------- | -------- | -------------- | ------------------------------------------------------------------------- |
+| Stable typed field handles  | Accepted | Implemented    | Handles are nominally root-owned and enumerable by key only.              |
+| Immutable field set         | Accepted | Implemented    | Runtime field registration is rejected.                                   |
+| `parse` raw-input stage     | Accepted | Planned        | Typed result is exported; interactive execution belongs to a later phase. |
+| Standard Schema `schema`    | Accepted | Implemented    | Canonicalizes and drives inferred output type.                            |
+| Contextual `validate` stage | Accepted | Implemented    | Accepts or rejects; cannot transform.                                     |
+| Synchronous pipeline        | Accepted | Implemented    | Promise-like results are rejected.                                        |
+| Root ownership checks       | Accepted | Implemented    | Same-key handles from another root throw.                                 |
 
 Interactive binding input uses `parse → schema → validate`. Programmatic values, defaults,
 `initialValues`, adapter snapshots, persisted values, imports, and migration output use
@@ -200,13 +200,13 @@ settings.scopeId // 'settings'
 settings.root === store // true
 ```
 
-| API                       | Contract | Implementation | Notes                                    |
-| ------------------------- | -------- | -------------- | ---------------------------------------- |
-| `root.scope(scopeId)`     | Accepted | Planned        | Returns a canonical live scoped view.    |
-| `scoped.scope(scopeId)`   | Accepted | Planned        | Resolves through the same root.          |
-| `scoped.root`             | Accepted | Planned        | Explicit access to the root Store.       |
-| `scoped.scopeId`          | Accepted | Planned        | Opaque exact scope identity.             |
-| `root.kind`/`scoped.kind` | Accepted | Planned        | Discriminates distinct Store interfaces. |
+| API                       | Contract | Implementation | Notes                                                                                      |
+| ------------------------- | -------- | -------------- | ------------------------------------------------------------------------------------------ |
+| `root.scope(scopeId)`     | Accepted | Planned        | Returns a canonical live scoped view.                                                      |
+| `scoped.scope(scopeId)`   | Accepted | Planned        | Resolves through the same root.                                                            |
+| `scoped.root`             | Accepted | Planned        | Explicit access to the root Store.                                                         |
+| `scoped.scopeId`          | Accepted | Planned        | Opaque exact scope identity.                                                               |
+| `root.kind`/`scoped.kind` | Accepted | Partial        | Root exposes `kind: 'root'`; scoped views remain planned and will expose `kind: 'scoped'`. |
 
 Scoped views expose the complete root values. They organize metadata and attribution; they do not
 restrict field access.
@@ -240,9 +240,9 @@ type ScopedSnapshot<Values> = {
 ```
 
 > Contract: Accepted
-> Implementation: Planned
-> Notes: Adapter and persistence status live on their configured capability namespaces rather than
-> every ephemeral root snapshot.
+> Implementation: Partial
+> Notes: Root snapshots are implemented; scoped snapshots and metadata remain planned. Adapter and
+> persistence status live on their configured capability namespaces rather than every ephemeral root snapshot.
 
 Both snapshot types contain immutable data only. Commands live on the stable root or scoped Store
 API, outside `getState()` and selector results. Zustand is an implementation detail, not a public
@@ -427,13 +427,13 @@ if (!result.ok) {
 
 | API                                  | Contract | Implementation | Notes                                         |
 | ------------------------------------ | -------- | -------------- | --------------------------------------------- |
-| `setValue(field, value)`             | Accepted | Prototype      | Safe typed single-field transaction.          |
-| `setValueOrThrow(field, value)`      | Accepted | Planned        | Throws the corresponding transaction error.   |
-| `setValues(values)`                  | Accepted | Prototype      | Safe typed partial-record atomic transaction. |
-| `setValuesOrThrow(values)`           | Accepted | Planned        | Throws the corresponding transaction error.   |
-| `setInput(binding, input)`           | Accepted | Prototype      | Interactive; records invalid binding input.   |
-| `executeRepair(plan)`                | Accepted | Prototype      | Single-use; revalidates a proposed repair.    |
-| `resetValue(field)`                  | Accepted | Prototype      | Safe reset to the validated baseline.         |
+| `setValue(field, value)`             | Accepted | Implemented    | Safe typed single-field transaction.          |
+| `setValueOrThrow(field, value)`      | Accepted | Implemented    | Throws the corresponding transaction error.   |
+| `setValues(values)`                  | Accepted | Implemented    | Safe typed partial-record atomic transaction. |
+| `setValuesOrThrow(values)`           | Accepted | Implemented    | Throws the corresponding transaction error.   |
+| `setInput(binding, input)`           | Accepted | Planned        | Interactive; records invalid binding input.   |
+| `executeRepair(plan)`                | Accepted | Planned        | Single-use; revalidates a proposed repair.    |
+| `resetValue(field)`                  | Accepted | Planned        | Safe reset to the validated baseline.         |
 | `resetValueOrThrow(field)`           | Accepted | Planned        | Throws the corresponding transaction error.   |
 | `resetRegisteredValues(opts)`        | Accepted | Planned        | Active scope values; optional descendants.    |
 | `resetRegisteredValuesOrThrow(opts)` | Accepted | Planned        | Throws the corresponding transaction error.   |
@@ -489,7 +489,7 @@ Changed identity arrays are sorted and deterministic. Value-only operations leav
 `changedScopeIds` empty; metadata-only operations leave `changedFields` empty.
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
 
 ## Structured issues and errors
 
