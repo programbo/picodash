@@ -34,6 +34,12 @@ While a scoped handle remains referenced, every `scope(id)` call for that root a
 same object. An unreferenced view may be garbage-collected and recreated later. Correctness uses the
 pair `(rootStore, scopeId)`, never permanent JavaScript reference identity.
 
+Scoped views have no public `release()`, `dispose()`, reference-count, or view-level `destroy()` API.
+The root keeps only weak references to canonical views; correctness never depends on finalizer
+timing. `destroyScope()` clears scope state without invalidating the live view or evicting it from
+the weak cache. Provider, entity, relationship, and binding lease counts belong to the integration
+runtime and are unrelated to scoped-view reachability.
+
 ### 1.4 Scopes do not restrict values
 
 Every scoped view exposes the full root field set and canonical value record. A scoped view may
@@ -62,6 +68,19 @@ with scope-aware operations.
 Scope IDs are opaque, case-sensitive strings. They reject empty or whitespace-only values,
 leading/trailing whitespace, and control characters. Picodash does not normalize them or interpret
 slashes, dots, or colons as hierarchy.
+
+Invalid scope IDs throw `PicodashContractError` with code `invalid-scope-id` and this safe context:
+
+```ts
+type InvalidScopeIdReason = 'not-string' | 'empty' | 'surrounding-whitespace' | 'control-character'
+```
+
+The error context is exactly `{ reason: InvalidScopeIdReason }`.
+
+Validation classifies a runtime non-string first, then empty or whitespace-only input, then leading
+or trailing whitespace, then C0/C1 control characters (`U+0000–001F` and `U+007F–009F`). The error
+context never contains the rejected value. Every root or scoped operation that accepts a scope ID
+validates it before lookup, graph traversal, or mutation.
 
 The same lexical rule applies to `storeId`, `providerId`, DashList node IDs, and binding aliases.
 Field keys additionally reject `__proto__`, `prototype`, and `constructor` so field/value records
@@ -183,7 +202,7 @@ leases. Reactivation reacquires them and reruns conflict checks. CSS hiding does
 ### 4.2 Scope state lifecycle
 
 Creating a scoped handle does not create stored scope state. Scoped snapshots expose
-`scope: ScopeMetadata | undefined`; built-in components resolve `undefined` against their declared
+`scope: DurableScopeMetadata | undefined`; built-in components resolve `undefined` against their declared
 defaults until a durable override, import, or hydration creates metadata. Entity registration,
 relationship leases, value attribution, and binding interaction alone never create a durable
 scope record.
@@ -193,29 +212,64 @@ issues, focus, hover, active state, and stale-draft conflicts.
 
 ### 4.3 Destroying scope state
 
-`destroyScope(id)` erases that scope's durable and ephemeral state without invalidating its ID or
-live handle. Active registrations remain and resolve their declarative defaults without writing a
-new durable record; a later durable user operation may create one.
+```ts
+type DestroyScopeOptions = {
+  readonly includeDescendants?: boolean
+}
 
-`includeDescendants` follows only edges active at the time of destruction. Historical dormant
-ancestry is never inferred. Dormant scopes are destroyed by explicit ID or an explicit administrative
-selection.
+root.destroyScope(scopeId, options) // preserves the root's configured Result
+scoped.destroyScope(options) // preserves the same configured Result
+```
+
+`destroyScope(id)` erases that scope's durable and ephemeral state without changing canonical
+values or invalidating its ID or live handle. Active registrations, relationships, and other leases
+remain and resolve their declarative defaults without writing a new durable record; a later durable
+user operation may create one.
+
+`includeDescendants: true` follows only edges active at the time of destruction. Omission targets
+only the explicit scope. Historical dormant ancestry is never inferred. Dormant scopes are destroyed
+by explicit ID or an explicit administrative selection. The Store validates the complete target set
+before one atomic mutation.
+
+A successful result has `changedFields: []` and sorted `changedScopeIds` containing only scopes whose
+durable or interaction state changed. Destroying absent state succeeds with both changed arrays empty.
+A runtime non-boolean option throws `invalid-destroy-options`; malformed root scope IDs throw
+`invalid-scope-id` before lookup. Destruction neither releases leases nor changes relationship
+registration.
 
 ### 4.4 Root lifetime
 
 The application owns the root Store lifetime. Provider unmount releases leases but never destroys
 the supplied root.
 
-`root.destroy()` is final. It releases adapter subscriptions, persistence ownership, diagnostics
-listeners, and cached state. It refuses while any Provider, entity, relationship, or binding lease
-remains active. It also refuses unsaved persistence state unless the caller explicitly chooses to
-discard it. `discardUnpersisted` never bypasses live-lease refusal. Every existing root and scoped
-handle throws after destruction.
+```ts
+type DestroyRootOptions = {
+  readonly discardUnpersisted: true
+}
+
+root.destroy(options?: DestroyRootOptions): void
+```
+
+`root.destroy()` is final and is not a transaction. Refusal is atomic and follows this order:
+
+1. malformed options throw `invalid-destroy-options`;
+2. any Provider, entity, relationship, or binding lease throws `root-has-active-leases`;
+3. unpersisted state without explicit discard throws `root-has-unpersisted-state`.
+
+`discardUnpersisted` never bypasses live-lease refusal. On success, destruction releases adapter and
+persistence subscriptions, persistence ownership, diagnostics listeners, cached snapshots, and weak
+scope-view cache entries. Calling `destroy()` again throws `use-after-destroy`.
 
 Destroying a root never deletes its persisted envelope and never resets live values first.
 `discardUnpersisted` discards only the pending in-memory envelope during teardown; it does not erase
 the last durable record. Persisted data removal uses the persistence capability's explicit erase
 plan before destruction.
+
+After successful destruction, every property access and method call on an existing `RootStore` or
+`ScopedStore`, diagnostics namespace, or capability handle throws `use-after-destroy`. Previously
+returned unsubscribe functions remain idempotent no-ops, and previously captured immutable snapshots
+remain readable detached data. Existing field handles remain inspectable values, but no destroyed
+Store can operate on them.
 
 ### 4.5 Scope rename is deferred
 
@@ -229,6 +283,77 @@ source and target scopes, an empty target, atomic metadata movement, and no root
 
 Root and scoped Stores have distinct TypeScript interfaces and a discriminant. Both share field and
 canonical value operations. Scoped Store exposes `scopeId` and an explicit `.root` reference.
+
+The exact scope/value/lifecycle portion is:
+
+```ts
+type FieldLike = {
+  readonly defaultValue: PicodashJsonValue
+  readonly schema?: StandardSchemaV1<unknown, PicodashJsonValue>
+  readonly parse?: (input: unknown) => PicodashParseResult<PicodashJsonValue>
+}
+
+interface RootStore<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> extends RootMetadataCommands<Result> {
+  readonly kind: 'root'
+  readonly fields: PicodashFields<Fields>
+  scope(scopeId: string): ScopedStore<Fields, Result>
+  getState(): RootSnapshot<ValuesOf<Fields>>
+  subscribe(listener: () => void): () => void
+  setValue<K extends keyof Fields & string>(
+    field: PicodashField<ValuesOf<Fields>, K>,
+    value: ValuesOf<Fields>[K],
+  ): Result
+  setValueOrThrow<K extends keyof Fields & string>(
+    field: PicodashField<ValuesOf<Fields>, K>,
+    value: ValuesOf<Fields>[K],
+  ): Extract<Result, { readonly ok: true }>
+  setValues(values: Partial<ValuesOf<Fields>>): Result
+  setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
+  destroyScope(scopeId: string, options?: DestroyScopeOptions): Result
+  destroy(options?: DestroyRootOptions): void
+}
+
+interface ScopedStore<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> extends ScopedMetadataCommands<Result> {
+  readonly kind: 'scoped'
+  readonly root: RootStore<Fields, Result>
+  readonly scopeId: string
+  readonly fields: PicodashFields<Fields>
+  scope(scopeId: string): ScopedStore<Fields, Result>
+  getState(): ScopedSnapshot<ValuesOf<Fields>>
+  subscribe(listener: () => void): () => void
+  setValue<K extends keyof Fields & string>(
+    field: PicodashField<ValuesOf<Fields>, K>,
+    value: ValuesOf<Fields>[K],
+  ): Result
+  setValueOrThrow<K extends keyof Fields & string>(
+    field: PicodashField<ValuesOf<Fields>, K>,
+    value: ValuesOf<Fields>[K],
+  ): Extract<Result, { readonly ok: true }>
+  setValues(values: Partial<ValuesOf<Fields>>): Result
+  setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
+  destroyScope(options?: DestroyScopeOptions): Result
+}
+```
+
+`FieldLike` is a declaration helper rather than a package export. The value-operation parameter
+types are identical on both interfaces. `scoped.fields` is the exact same object as
+`scoped.root.fields`, and `scoped.scope(id)` resolves through that root. Scoped writes
+pass `originScopeId: scoped.scopeId` to field/root validation and the external adapter context. The
+scope is attribution only: a value-only success changes canonical root fields and leaves
+`changedScopeIds` empty.
+
+A non-persistent configuration instantiates `RootStore<Fields, CoreTransactionResult>` and its
+scoped views preserve that result type. A persistence-enabled configuration instantiates
+`RootStore<Fields, PersistentTransactionResult>` and preserves that type through `.scope()` and
+`.root`. Every safe value, metadata, and scope-destruction command returns the configuration's
+`Result`; every matching `*OrThrow` command returns `Extract<Result, { readonly ok: true }>`. Root
+`destroy()` remains `void` because it is final lifecycle teardown rather than a transaction.
 
 ### 5.2 Root snapshot
 
@@ -248,10 +373,48 @@ metadata; creating a scoped view does not add an entry.
 - that scope's durable metadata or `undefined`;
 - that scope's ephemeral binding interaction state.
 
+```ts
+type StaleDraftConflict = {
+  readonly kind: 'stale-draft'
+  readonly baseRevision: number
+  readonly baseValue: PicodashJsonValue
+}
+
+type BindingInteractionState = {
+  readonly fieldKey: string
+  readonly draft?: PicodashJsonValue
+  readonly touched: boolean
+  readonly inputIssues: readonly TransactionIssue[]
+  readonly conflict?: StaleDraftConflict
+}
+
+type ItemInteractionState = {
+  readonly focused: boolean
+  readonly hovered: boolean
+  readonly active: boolean
+}
+
+type ScopeInteractionState = {
+  readonly bindings: ReadonlyMap<string, ReadonlyMap<string, BindingInteractionState>>
+  readonly items: ReadonlyMap<string, ItemInteractionState>
+}
+
+type ScopedSnapshot<Values extends object> = {
+  readonly values: Readonly<Values>
+  readonly scope: DurableScopeMetadata | undefined
+  readonly interaction: ScopeInteractionState
+}
+```
+
+The outer binding key is `itemId`; its nested key is binding alias. Item-shell focus, hover, and
+active state is keyed only by `itemId`, so compound bindings do not duplicate it. `baseRevision` is
+a non-negative safe integer and `baseValue` is detached immutable JSON. Registration alone creates
+no interaction entry. Default-only entries and empty nested maps are pruned.
+
 The accepted grouping is `{ values, scope, interaction }`. `values` is the same immutable record
-reference exposed by the root. `scope` is `undefined` until durable metadata exists. An immutable
-empty interaction snapshot is reused when no binding interaction exists. Unchanged nested
-references retain structural identity.
+reference exposed by the root. `scope` is `undefined` until durable metadata exists. The empty state
+is one frozen singleton with two stable empty maps. Unchanged nested references retain structural
+identity.
 
 ### 5.4 Subscription boundaries
 
@@ -482,6 +645,12 @@ entirely. The result covers only Picodash-owned persistence and never claims tha
 application store durably saved its values. Ongoing errors and conflicts remain available through
 the persistence capability state.
 
+Malformed built-in metadata is expected candidate-data rejection with Store-owned issue code
+`invalid_metadata`. It returns the failed member of the configuration-selected `Result`, uses a canonical path under
+`['scopes', scopeId]`, and never exposes the rejected value or an arbitrary codec cause. A malformed
+command target remains a contract error: an invalid root scope ID throws `invalid-scope-id` before
+metadata validation.
+
 ### 7.4 Reentrancy
 
 Application writes during validation, commit, or listener notification throw `reentrant-write`.
@@ -509,6 +678,11 @@ store.setInput(binding, input)
 `setValue` accepts a nominal field handle plus a typed schema-output value. `setValues` accepts a
 typed partial root record and commits one atomic transaction. Their safe variants return structured
 results and their `OrThrow` variants throw the corresponding transaction error.
+
+Root writes omit scope attribution. The same calls through a scoped Store pass that view's
+`scopeId` as `originScopeId` to field/root validation and external-adapter write context. This does
+not create metadata, restrict field access, or add the origin to `changedScopeIds`; every scoped
+view continues to observe the one canonical root value record.
 
 At runtime, unknown batch keys return structured candidate issues without mutation. A foreign field
 handle is a contract error. An empty batch and a semantically unchanged batch succeed as no-ops and
@@ -552,15 +726,54 @@ root.resetRegisteredValuesOrThrow({ scopeId, includeDescendants? })
 fields and validates one complete candidate. Scoped signatures do not accept another scope ID;
 root signatures require one.
 
-Scope-targeted metadata commands follow the same root/scoped targeting rule:
+Scope-targeted metadata commands follow the same root/scoped targeting rule. The accepted authoring
+surface is:
 
 ```ts
-scoped.resetDashListMetadata()
-scoped.resetDashPanelLayout()
-scoped.destroyScope({ includeDescendants? })
-root.resetDashListMetadata(scopeId)
-root.resetDashPanelLayout(scopeId)
-root.destroyScope(scopeId, { includeDescendants? })
+interface RootMetadataCommands<Result extends CoreTransactionResult = CoreTransactionResult> {
+  setDashPanelLayout(scopeId: string, layout: DashPanelLayoutRecord): Result
+  resetDashPanelLayout(scopeId: string): Result
+  setDashListRootOrder(scopeId: string, order: readonly string[]): Result
+  removeDashListRootOrder(scopeId: string): Result
+  setDashListGroupOrder(scopeId: string, groupId: string, order: readonly string[]): Result
+  removeDashListGroupOrder(scopeId: string, groupId: string): Result
+  setDashListCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result
+  removeDashListCollapseOverride(scopeId: string, nodeId: string): Result
+  resetDashListMetadata(scopeId: string): Result
+}
+
+interface ScopedMetadataCommands<Result extends CoreTransactionResult = CoreTransactionResult> {
+  setDashPanelLayout(layout: DashPanelLayoutRecord): Result
+  resetDashPanelLayout(): Result
+  setDashListRootOrder(order: readonly string[]): Result
+  removeDashListRootOrder(): Result
+  setDashListGroupOrder(groupId: string, order: readonly string[]): Result
+  removeDashListGroupOrder(groupId: string): Result
+  setDashListCollapseOverride(nodeId: string, collapsed: boolean): Result
+  removeDashListCollapseOverride(nodeId: string): Result
+  resetDashListMetadata(): Result
+}
+```
+
+`setDashPanelLayout` replaces the complete Panel layout record. Each order setter replaces one
+container override, and an empty order is canonical removal. Collapse setters store an explicit
+override because Store cannot infer the current declarative default; the caller removes the override
+when it matches that default. Individual removal and whole-domain reset of absent state are
+successful no-ops. Empty product records and then empty scope records are pruned.
+
+All metadata commands normalize and detach one complete candidate through the Store-owned codec.
+Malformed layout, order, group, or node data returns `invalid_metadata` without mutation. A semantic
+metadata change returns `changedFields: []` and the affected scope in `changedScopeIds`; a no-op
+returns both arrays empty. The root and affected scoped subscribers are each notified once after the
+complete commit. Unrelated scoped subscribers are not notified.
+
+Destruction retains its separate signatures:
+
+```ts
+scoped.destroyScope()
+scoped.destroyScope({ includeDescendants: true })
+root.destroyScope(scopeId)
+root.destroyScope(scopeId, { includeDescendants: true })
 ```
 
 Reset commands remove product-owned overrides and return to current declarative defaults.
@@ -1060,9 +1273,35 @@ store.diagnostics.getState()
 store.diagnostics.subscribe(listener)
 store.diagnostics.inspectRuntime(options?)
 
+type PicodashDiagnostic<
+  Code extends string = string,
+  Identity extends object = object,
+  Severity extends 'error' | 'warning' = 'error' | 'warning',
+> = {
+  readonly code: Code
+  readonly severity: Severity
+  readonly message: string
+  readonly identity: Identity
+  readonly count: number
+  readonly lastOccurrence: number
+}
+
 type PicodashDiagnosticsState = {
   current: ReadonlyMap<string, PicodashDiagnostic>
 }
+
+type SubscriberExceptionIdentity = {
+  readonly kind: 'subscriber'
+  readonly surface: 'root' | 'scope' | 'diagnostics' | 'capability'
+  readonly scopeId?: string
+  readonly capability?: string
+}
+
+type SubscriberExceptionDiagnostic = PicodashDiagnostic<
+  'subscriber_exception',
+  SubscriberExceptionIdentity,
+  'error'
+>
 ```
 
 The first two expose and observe current structured operational problems independently of value
@@ -1075,6 +1314,21 @@ Diagnostic state is a bounded current-condition map keyed by stable diagnostic i
 event log. Repeated occurrences update count and last-occurrence metadata on the same entry; recovery
 removes the active condition. Applications that need history subscribe and forward diagnostics to
 their own logging system.
+
+`subscriber_exception` is aggregated by the identity above; diagnostic map keys remain opaque.
+`lastOccurrence` is a root-local monotonically increasing safe integer rather than wall-clock time.
+Each thrown callback increments `count`, does not roll back committed state, and does not prevent
+later callbacks. The current safe message is `A Store subscriber threw.`; its wording may evolve
+without changing code, identity, or privacy. The diagnostic contains no callback identity, thrown
+cause, thrown message, stack, raw draft, or canonical value. A later dispatch for the same identity that completes without an
+exception removes the condition. A diagnostics-subscriber exception is recorded only after its
+current dispatch finishes and never recursively dispatches during that cycle.
+
+`PicodashDiagnosticsState.current` and persistence `lastError` use the broad
+`PicodashDiagnostic` defaults. `SubscriberExceptionDiagnostic` is the exact named specialization
+for the core subscriber condition. Capability-owned diagnostics use named specializations with
+stable codes and identities when their owning contracts are frozen. The common generic shape
+already represents them without inventing code variants or a closed union now.
 
 ### 16.2 Transaction context
 
@@ -1132,3 +1386,18 @@ The accepted contract intentionally defers:
 - async parsers, validators, adapters, or core persistence;
 - scope-based authorization or untrusted-plugin sandboxing;
 - cross-container DashList dragging that changes declarative membership.
+
+## 19. Alpha decision and evidence boundary
+
+Store alpha requires the scope-ID error mapping, exact root/scoped views and write attribution,
+empty and populated interaction snapshots, complete built-in metadata commands, scope and root
+destruction, bounded subscriber-exception diagnostics, and weak canonical views without a public
+release or reference-count API. These are launch contracts rather than beta ergonomics.
+
+The signatures and semantics above are frozen for alpha even where exhaustive evidence continues
+during consumer dogfooding. Beta may continue broader generated relationship-graph traversal,
+stale-draft conflict permutations, persistence conflict/recovery combinations, and the complete
+`inspectRuntime()` diagnostic projection. Documents, pruning, overwrite/repair plans, migrations,
+and advanced recovery keep their existing roadmap ownership. Continuing evidence does not permit a
+partial mutation, silent conflict overwrite, private cross-package bypass, or implementation-status
+advance without linked conformance evidence.
