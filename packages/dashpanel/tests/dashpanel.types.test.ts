@@ -46,6 +46,9 @@ describe('@picodash/dashpanel public types', () => {
       defaultCollapsed: true,
       collapsible: true,
       onCollapsedChange: () => {},
+      boundary,
+      boundaryInset: 8,
+      dockPositions: ['top-left'],
     }
     const customThemePanelProps: DashPanelProps<'operator'> = {
       id: 'operator-inspector',
@@ -99,14 +102,11 @@ describe('@picodash/dashpanel public types', () => {
     const retiredVisibility: DashPanelProps = { ...panelProps, visible: false }
     void retiredVisibility
 
-    // @ts-expect-error boundary policy belongs to DashPanelProvider, not Panel.
-    const panelBoundary: DashPanelProps = { ...panelProps, boundary }
+    const panelBoundary: DashPanelProps = { ...panelProps, boundary: null }
+    const panelInset: DashPanelProps = { ...panelProps, boundaryInset: [1, 2, 3, 4] }
+    const panelDocks: DashPanelProps = { ...panelProps, dockPositions: [] }
     void panelBoundary
-    // @ts-expect-error boundary inset policy belongs to DashPanelProvider, not Panel.
-    const panelInset: DashPanelProps = { ...panelProps, boundaryInset: 8 }
     void panelInset
-    // @ts-expect-error dock policy belongs to DashPanelProvider, not Panel.
-    const panelDocks: DashPanelProps = { ...panelProps, dockPositions: ['top-left'] }
     void panelDocks
   })
 

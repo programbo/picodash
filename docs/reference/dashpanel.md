@@ -67,16 +67,16 @@ the stable foundational components and provides its own integration Provider com
 
 ## Provider contract
 
-| Provider capability       | Contract | Implementation | Rule                                                                              |
-| ------------------------- | -------- | -------------- | --------------------------------------------------------------------------------- |
-| Required root `store`     | Accepted | Implemented    | Scoped Stores are rejected.                                                       |
-| `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                              |
-| Hard Store/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                           |
-| Shared `boundary`         | Accepted | Partial        | Provider prop/policy is wired; Panel override and measurement remain planned.     |
-| Shared `boundaryInset`    | Accepted | Partial        | Provider prop/policy and normalization are wired; Panel override remains planned. |
-| Dock-position policy      | Accepted | Partial        | Provider resolves the maximum canonical set; Panel narrowing remains later work.  |
-| Portal ownership          | Accepted | Partial        | Shared overlay defaults are composed; Panel portal ownership is later work.       |
-| Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                               |
+| Provider capability       | Contract | Implementation | Rule                                                                                                     |
+| ------------------------- | -------- | -------------- | -------------------------------------------------------------------------------------------------------- |
+| Required root `store`     | Accepted | Implemented    | Scoped Stores are rejected.                                                                              |
+| `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                                                     |
+| Hard Store/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                                                  |
+| Shared `boundary`         | Accepted | Partial        | Provider and Panel resolution are wired; measurement and rendered geometry remain planned.               |
+| Shared `boundaryInset`    | Accepted | Partial        | Provider and Panel resolution/normalization are wired; measurement and rendered geometry remain planned. |
+| Dock-position policy      | Accepted | Implemented    | Provider resolves the maximum canonical set; Panels may narrow it without widening.                      |
+| Portal ownership          | Accepted | Partial        | Shared overlay defaults are composed; Panel portal ownership is later work.                              |
+| Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                                                      |
 
 The root Store and `providerId` are immutable while mounted. Theme, boundary, inset, and enabled
 dock positions are runtime policy and may change through their declared props.
@@ -125,7 +125,12 @@ interface DashPanelProviderProps<TValues extends object, CustomTheme extends str
 ## DashPanel public API
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
+
+The current subset implements Provider/Panel composition, Store scope boundaries, theme/density,
+semantic naming, width-token styling, and the `boundary`, `boundaryInset`, and `dockPositions` Panel
+policy props. Visibility/removal controls, durable layout and placement options, action menus,
+modal presentation, and other future prop groups remain planned.
 
 The exact launch prop surface is:
 
@@ -426,11 +431,12 @@ non-rail allocation.
 > invalid values, and no-measurement behavior. `packages/dashpanel/src/geometry/inset.test.ts`
 > covers shorthand normalization, inheritance selection, hostile values, frozen detached outputs,
 > coherent overconstrained rectangles, edge validation, and getter snapshots. Provider policy
-> wiring is covered by `packages/dashpanel/tests/dashpanel.test.tsx` and its public prop surface by
-> `packages/dashpanel/tests/dashpanel.types.test.ts`.
+> wiring and Panel inheritance/narrowing/live-ref behavior are covered by
+> `packages/dashpanel/tests/dashpanel.test.tsx`; the public Provider/Panel prop surface is covered
+> by `packages/dashpanel/tests/dashpanel.types.test.ts`.
 > Notes: This slice implements pure reference, inset, and rectangle algebra plus synchronous
-> Provider policy publication. Public Panel props, measurement, observers, projection, and
-> runtime/browser geometry remain unimplemented.
+> Provider and Panel policy publication. Measurement, observers, projection, and runtime/browser
+> geometry remain unimplemented.
 
 Boundary resolution follows Panel override, Provider default, then viewport. Explicit `null`
 selects the viewport; an unresolved ref falls through to the next boundary. Provider and Panel

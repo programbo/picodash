@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore, PicodashContractError } from '@picodash/store'
 import { usePicodashRootStore, usePicodashScope } from '@picodash/store/react'
 import { DashPanel, DashPanelProvider, type DashPanelStyle } from '../src/index.tsx'
+import { useDashPanelPolicy, type DashPanelPolicy } from '../src/runtime/panel-policy-context.tsx'
 import {
   useDashPanelProviderPolicy,
   type DashPanelProviderPolicy,
@@ -312,6 +313,187 @@ describe('@picodash/dashpanel alpha shell', () => {
     )
   })
 
+  it('resolves Panel policy inheritance, overrides, narrowing, and frozen records synchronously', () => {
+    const store = makeStore()
+    const providerBoundary = new MockHTMLElementBase() as unknown as Element
+    const panelBoundary = new MockHTMLElementBase() as unknown as Element
+    let observed!: DashPanelPolicy
+    function Probe() {
+      observed = useDashPanelPolicy()
+      return null
+    }
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        boundary: providerBoundary,
+        boundaryInset: [1, 2],
+        dockPositions: ['top-left', 'center-bottom'],
+        children: createElement(DashPanel, {
+          id: 'policy',
+          title: 'Policy',
+          boundary: panelBoundary,
+          boundaryInset: 0,
+          dockPositions: ['center-bottom'],
+          children: createElement(Probe),
+        }),
+      }),
+    )
+    expect(observed.getBoundary()).toBe(panelBoundary)
+    expect(observed.boundaryInset).toEqual({ top: 0, right: 0, bottom: 0, left: 0 })
+    expect(observed.dockPositions).toEqual(['center-bottom'])
+    expect(Object.isFrozen(observed)).toBe(true)
+    expect(Object.isFrozen(observed.boundaryInset)).toBe(true)
+    expect(Object.isFrozen(observed.dockPositions)).toBe(true)
+
+    void act(() =>
+      renderer.update(
+        createElement(DashPanelProvider, {
+          store,
+          boundary: providerBoundary,
+          boundaryInset: [1, 2],
+          dockPositions: ['top-left', 'center-bottom'],
+          children: createElement(DashPanel, {
+            id: 'policy',
+            title: 'Policy',
+            boundary: null,
+            boundaryInset: 0,
+            dockPositions: [],
+            children: createElement(Probe),
+          }),
+        }),
+      ),
+    )
+    expect(observed.getBoundary()).toBeNull()
+    expect(observed.boundaryInset).toEqual({ top: 0, right: 0, bottom: 0, left: 0 })
+    expect(observed.dockPositions).toEqual([])
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('keeps Panel and Provider boundary refs live without rerendering', () => {
+    const store = makeStore()
+    const providerRef = { current: null as Element | null }
+    const panelRef = { current: null as Element | null }
+    let observed!: DashPanelPolicy
+    function Probe() {
+      observed = useDashPanelPolicy()
+      return null
+    }
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        boundary: providerRef,
+        children: createElement(DashPanel, {
+          id: 'live-policy',
+          title: 'Live policy',
+          boundary: panelRef,
+          children: createElement(Probe),
+        }),
+      }),
+    )
+    expect(observed.getBoundary()).toBeNull()
+    const panelElement = new MockHTMLElementBase() as unknown as Element
+    const providerElement = new MockHTMLElementBase() as unknown as Element
+    panelRef.current = panelElement
+    expect(observed.getBoundary()).toBe(panelElement)
+    panelRef.current = null
+    expect(observed.getBoundary()).toBeNull()
+    providerRef.current = providerElement
+    expect(observed.getBoundary()).toBe(providerElement)
+    panelRef.current = panelElement
+    expect(observed.getBoundary()).toBe(panelElement)
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rejects invalid Panel policy values and widening dock sets', () => {
+    const invalid: Array<Record<string, unknown>> = [
+      { boundary: '#selector' },
+      { boundary: { current: 'invalid' } },
+      { boundaryInset: null },
+      { boundaryInset: [-1] },
+      { dockPositions: ['center-right'] },
+    ]
+    for (const policyProps of invalid) {
+      const store = makeStore()
+      const props = {
+        store,
+        dockPositions: ['top-left'] as const,
+        children: createElement(DashPanel, {
+          id: 'invalid-policy',
+          title: 'Invalid policy',
+          children: null,
+          ...policyProps,
+        }),
+      } as never
+      expect(() => render(createElement(DashPanelProvider, props))).toThrow(TypeError)
+      expect(() => store.destroy()).not.toThrow()
+    }
+  })
+
+  it('uses Provider defaults for nested Panels and resets at nested Providers', () => {
+    const store = makeStore()
+    const outerBoundary = new MockHTMLElementBase() as unknown as Element
+    const observed = new Map<string, DashPanelPolicy>()
+    function Probe({ name }: { name: string }) {
+      observed.set(name, useDashPanelPolicy())
+      return null
+    }
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        boundary: outerBoundary,
+        boundaryInset: 8,
+        dockPositions: ['top-left'],
+        children: createElement(DashPanel, {
+          id: 'outer-policy',
+          title: 'Outer policy',
+          boundary: new MockHTMLElementBase() as unknown as Element,
+          boundaryInset: 2,
+          dockPositions: ['top-left'],
+          children: createElement(
+            'div',
+            null,
+            createElement(DashPanel, {
+              id: 'nested-policy',
+              title: 'Nested policy',
+              children: createElement(Probe, { name: 'nested' }),
+            }),
+            createElement(DashPanelProvider, {
+              store,
+              providerId: 'nested-policy-provider',
+              children: createElement(DashPanel, {
+                id: 'reset-policy',
+                title: 'Reset policy',
+                children: createElement(Probe, { name: 'reset' }),
+              }),
+            }),
+          ),
+        }),
+      }),
+    )
+    expect(observed.get('nested')?.getBoundary()).toBe(outerBoundary)
+    expect(observed.get('nested')?.boundaryInset).toEqual({ top: 8, right: 8, bottom: 8, left: 8 })
+    expect(observed.get('nested')?.dockPositions).toEqual(['top-left'])
+    expect(observed.get('reset')?.getBoundary()).toBeNull()
+    expect(observed.get('reset')?.boundaryInset).toEqual({ top: 0, right: 0, bottom: 0, left: 0 })
+    expect(observed.get('reset')?.dockPositions).toHaveLength(12)
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rejects the private Panel policy hook outside an active Panel', () => {
+    function Probe() {
+      useDashPanelPolicy()
+      return null
+    }
+    const store = makeStore()
+    expect(() =>
+      render(createElement(DashPanelProvider, { store, children: createElement(Probe) })),
+    ).toThrow('DashPanel policy requires an active DashPanel')
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('renders a named semantic aside with visible heading, arbitrary children, and no scope DOM id', () => {
     const store = makeStore()
     const ref = { current: null as HTMLElement | null }
@@ -329,6 +511,9 @@ describe('@picodash/dashpanel alpha shell', () => {
     const aside = renderer.root.findByType('aside')
     const heading = renderer.root.findByType('h2')
     expect(aside.props.id).toBeUndefined()
+    expect(aside.props.boundary).toBeUndefined()
+    expect(aside.props.boundaryInset).toBeUndefined()
+    expect(aside.props.dockPositions).toBeUndefined()
     expect(aside.props['aria-labelledby']).toBe(heading.props.id)
     expect(heading.children).toEqual(['Inspector'])
     expect(

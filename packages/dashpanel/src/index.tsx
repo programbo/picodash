@@ -26,6 +26,10 @@ import {
   PicodashThemeProvider,
 } from '@picodash/ui'
 import type { PanelRuntimeRegistration } from './runtime/panel-runtime.ts'
+import {
+  DashPanelPolicyBoundary,
+  DashPanelPolicyProvider,
+} from './runtime/panel-policy-context.tsx'
 import { DashPanelProviderPolicyProvider } from './runtime/provider-policy-context.tsx'
 import type { DashPanelBoundary, DashPanelBoundaryInset } from './geometry/boundary.ts'
 import {
@@ -85,6 +89,9 @@ export interface DashPanelProps<CustomTheme extends string = never> extends Omit
   children?: ReactNode
   style?: DashPanelStyle
   width?: CSSProperties['width']
+  boundary?: DashPanelBoundary | null
+  boundaryInset?: DashPanelBoundaryInset
+  dockPositions?: readonly DashPanelDockPosition[]
   defaultCollapsed?: boolean
   collapsible?: boolean
   onCollapsedChange?: (collapsed: boolean) => void
@@ -130,13 +137,15 @@ export function DashPanelProvider<
         boundaryInset={boundaryInset}
         dockPositions={dockPositions}
       >
-        <DashPanelRuntimeProvider>
-          <PicodashThemeProvider<CustomTheme> theme={theme} density={density}>
-            <PicodashOverlayProvider portalContainer={portalContainer} layerBase={layerBase}>
-              {children}
-            </PicodashOverlayProvider>
-          </PicodashThemeProvider>
-        </DashPanelRuntimeProvider>
+        <DashPanelPolicyBoundary>
+          <DashPanelRuntimeProvider>
+            <PicodashThemeProvider<CustomTheme> theme={theme} density={density}>
+              <PicodashOverlayProvider portalContainer={portalContainer} layerBase={layerBase}>
+                {children}
+              </PicodashOverlayProvider>
+            </PicodashThemeProvider>
+          </DashPanelRuntimeProvider>
+        </DashPanelPolicyBoundary>
       </DashPanelProviderPolicyProvider>
     </PicodashStoreProviderBoundary>
   )
@@ -183,6 +192,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     children,
     style,
     width,
+    boundary,
+    boundaryInset,
+    dockPositions,
     defaultCollapsed,
     collapsible,
     onCollapsedChange,
@@ -260,49 +272,55 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     : { 'aria-label': ariaLabel }
 
   return (
-    <PicodashStoreEntityBoundary store={scoped} kind="dashPanel">
-      <PicodashThemeProvider<string> theme={theme} density={density}>
-        <aside
-          {...asideProps}
-          {...labelledProps}
-          ref={ref}
-          className={className ? `picodash-dashpanel ${className}` : 'picodash-dashpanel'}
-          style={resolvedStyle}
-          data-picodash-panel
-          data-collapsed={collapsed ? 'true' : 'false'}
-        >
-          <DashHeader
-            slots={{
-              leading: currentCollapsible ? (
-                <Button
-                  aria-label={collapseLabel}
-                  aria-expanded={!collapsed}
-                  aria-controls={bodyId}
-                  iconOnly
-                  variant="ghost"
-                  size="sm"
-                  onPress={() => {
-                    runtime.toggleCollapsed(id)
-                  }}
-                >
-                  {collapsed ? '+' : '−'}
-                </Button>
-              ) : undefined,
-              title: <h2 id={headingId}>{title}</h2>,
-            }}
-          />
-          <div
-            id={bodyId}
-            data-picodash-panel-body
-            hidden={collapsed}
-            inert={collapsed || undefined}
-            aria-hidden={collapsed || undefined}
+    <DashPanelPolicyProvider
+      boundary={boundary}
+      boundaryInset={boundaryInset}
+      dockPositions={dockPositions}
+    >
+      <PicodashStoreEntityBoundary store={scoped} kind="dashPanel">
+        <PicodashThemeProvider<string> theme={theme} density={density}>
+          <aside
+            {...asideProps}
+            {...labelledProps}
+            ref={ref}
+            className={className ? `picodash-dashpanel ${className}` : 'picodash-dashpanel'}
+            style={resolvedStyle}
+            data-picodash-panel
+            data-collapsed={collapsed ? 'true' : 'false'}
           >
-            {children}
-          </div>
-        </aside>
-      </PicodashThemeProvider>
-    </PicodashStoreEntityBoundary>
+            <DashHeader
+              slots={{
+                leading: currentCollapsible ? (
+                  <Button
+                    aria-label={collapseLabel}
+                    aria-expanded={!collapsed}
+                    aria-controls={bodyId}
+                    iconOnly
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => {
+                      runtime.toggleCollapsed(id)
+                    }}
+                  >
+                    {collapsed ? '+' : '−'}
+                  </Button>
+                ) : undefined,
+                title: <h2 id={headingId}>{title}</h2>,
+              }}
+            />
+            <div
+              id={bodyId}
+              data-picodash-panel-body
+              hidden={collapsed}
+              inert={collapsed || undefined}
+              aria-hidden={collapsed || undefined}
+            >
+              {children}
+            </div>
+          </aside>
+        </PicodashThemeProvider>
+      </PicodashStoreEntityBoundary>
+    </DashPanelPolicyProvider>
   )
 })
 
