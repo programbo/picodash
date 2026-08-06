@@ -7,11 +7,14 @@ source of truth.
 ## Status
 
 > Contract: Accepted, with revised HTML portal-container type
-> Implementation: Prototype
-> Evidence: Product ownership, public APIs, placement, adaptive presentation, styling boundaries,
-> and verification ownership are accepted. Current exports and geometry have not been reconciled.
-> Notes: Exact compact values, token-consumption tables, private selectors, and measured geometry
-> are implementation evidence rather than unresolved launch API decisions.
+> Implementation: Partial
+> Evidence: The first standalone shell subset is covered by
+> `packages/dashpanel/tests/dashpanel.test.tsx`, `dashpanel.types.test.ts`, and
+> `package-artifacts.mjs`.
+> Notes: This cut implements only Provider/Panel composition, shared DashHeader and ActionMenu
+> reexports, Store scope boundaries, theme/density composition, semantic naming, and width-token
+> styling. Placement, lifecycle controls, persistence, modal projections, catalogs, and later
+> package entries remain unimplemented.
 
 ## Package purpose
 
@@ -46,14 +49,14 @@ function Tools() {
 
 | API                 | Contract | Implementation | Purpose                                                  |
 | ------------------- | -------- | -------------- | -------------------------------------------------------- |
-| `DashPanelProvider` | Accepted | Planned        | Hosts Panels over one explicit root Store.               |
-| `DashPanel`         | Accepted | Planned        | Renders one Panel with arbitrary React content.          |
+| `DashPanelProvider` | Accepted | Partial        | Hosts Panels over one explicit root Store.               |
+| `DashPanel`         | Accepted | Partial        | Renders one Panel with arbitrary React content.          |
 | `DashPanelTrigger`  | Accepted | Planned        | Application-placed show/focus control for one Panel.     |
 | `DashPanelLauncher` | Accepted | Planned        | Provider-level discovery/reopen control for its Panels.  |
 | `useDashPanel`      | Accepted | Planned        | Controls declared visibility, collapse, and activation.  |
-| `id`                | Accepted | Prototype      | Resolves immutable Store scope identity; not a DOM `id`. |
-| `title`             | Accepted | Prototype      | Required accessible Panel name and visible heading.      |
-| `children`          | Accepted | Prototype      | Arbitrary React content.                                 |
+| `id`                | Accepted | Implemented    | Resolves immutable Store scope identity; not a DOM `id`. |
+| `title`             | Accepted | Implemented    | Required accessible Panel name and visible heading.      |
+| `children`          | Accepted | Implemented    | Arbitrary React content.                                 |
 
 The package-native names are the target. `PicodashProvider` and `PicodashPanel` remain prototype
 and integrated-facade evidence, not a second standalone API.
@@ -64,16 +67,16 @@ the stable foundational components and provides its own integration Provider com
 
 ## Provider contract
 
-| Provider capability       | Contract | Implementation | Rule                                                    |
-| ------------------------- | -------- | -------------- | ------------------------------------------------------- |
-| Required root `store`     | Accepted | Planned        | Scoped Stores are rejected.                             |
-| `providerId="default"`    | Accepted | Planned        | Omission resolves to `default`; duplicates conflict.    |
-| Hard Store/scope boundary | Accepted | Planned        | No relationship or inferred scope crosses the Provider. |
-| Shared `boundary`         | Accepted | Prototype      | Defaults Panel geometry; viewport when unresolved.      |
-| Shared `boundaryInset`    | Accepted | Prototype      | Defines the effective geometry rectangle.               |
-| Dock-position policy      | Accepted | Planned        | Maximum set that descendant Panels may narrow.          |
-| Portal ownership          | Accepted | Prototype      | Independent of the geometry boundary.                   |
-| Theme                     | Accepted | Prototype      | Inherits or resolves a named theme for descendants.     |
+| Provider capability       | Contract | Implementation | Rule                                                                        |
+| ------------------------- | -------- | -------------- | --------------------------------------------------------------------------- |
+| Required root `store`     | Accepted | Implemented    | Scoped Stores are rejected.                                                 |
+| `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                        |
+| Hard Store/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                     |
+| Shared `boundary`         | Accepted | Prototype      | Defaults Panel geometry; viewport when unresolved.                          |
+| Shared `boundaryInset`    | Accepted | Prototype      | Defines the effective geometry rectangle.                                   |
+| Dock-position policy      | Accepted | Planned        | Maximum set that descendant Panels may narrow.                              |
+| Portal ownership          | Accepted | Partial        | Shared overlay defaults are composed; Panel portal ownership is later work. |
+| Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                         |
 
 The root Store and `providerId` are immutable while mounted. Theme, boundary, inset, and enabled
 dock positions are runtime policy and may change through their declared props.
