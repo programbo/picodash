@@ -1710,6 +1710,7 @@ The accepted contract intentionally defers:
 - an arbitrary public transaction callback;
 - a public context-only Store Provider;
 - runtime registration of arbitrary durable metadata kinds;
+- populated binding and item interaction snapshots before the binding-lease slice;
 - UI presentation compatibility contracts on Store fields;
 - automatic pruning based only on currently mounted nodes;
 - automatic cross-tab merge or collaboration;
@@ -1719,12 +1720,20 @@ The accepted contract intentionally defers:
 
 ## 19. Alpha decision and evidence boundary
 
-Store alpha requires the scope-ID error mapping, exact root/scoped views and write attribution,
-empty and populated interaction snapshots, complete built-in metadata commands, the Provider/entity/
+Store alpha requires the scope-ID error mapping, exact root/scoped views and write attribution, the
+stable empty interaction snapshot, complete built-in metadata commands, the Provider/entity/
 relationship integration leases, the root-wide diagnostics namespace, fail-closed adapter health,
 the Store-owned persistence capability, scope and root destruction, bounded subscriber-exception
 diagnostics, and weak canonical views without a public release or reference-count API. These are
 launch contracts rather than beta ergonomics.
+
+This alpha evidence boundary was revised on 2026-08-06 after implementation exposed an internal
+contract inconsistency: the accepted alpha integration surface explicitly defers binding
+acquisition, leaving no supported public operation that can create populated binding or item
+interaction state. Populated interaction snapshots and their cleanup evidence therefore move with
+binding acquisition to beta. Alpha still verifies the immutable singleton shape and reference
+stability of the empty interaction snapshot; this revision does not permit a private population
+path or weaken any value, metadata, lease, persistence, or destruction invariant.
 
 The signatures and semantics above are frozen for alpha even where exhaustive evidence continues
 during consumer dogfooding. Beta may continue broader generated relationship-graph traversal,

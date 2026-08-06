@@ -43,7 +43,12 @@ test('adapter diagnostics and initialization errors retain correlated reason typ
   expectTypeOf<TransactionIssue['reason']>().toEqualTypeOf<string | undefined>()
   expectTypeOf<AdapterHealthDiagnostic['code']>().toEqualTypeOf<'adapter_unhealthy'>()
   expectTypeOf<AdapterHealthDiagnostic['identity']>().toEqualTypeOf<{ readonly kind: 'adapter' }>()
-  expectTypeOf<PicodashInitializationErrorCode>().toEqualTypeOf<'adapter-initialization-failed'>()
+  expectTypeOf<PicodashInitializationErrorCode>().toEqualTypeOf<
+    | 'adapter-initialization-failed'
+    | 'persistence-driver-unavailable'
+    | 'invalid-persistence-envelope'
+    | 'hydration-source-conflict'
+  >()
   expectTypeOf<
     PicodashInitializationErrorReasonByCode['adapter-initialization-failed']
   >().toEqualTypeOf<

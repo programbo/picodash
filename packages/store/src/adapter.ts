@@ -1,5 +1,10 @@
 import type { TransactionIssue } from './kernel/index.js'
 import type { PicodashDiagnostic } from './diagnostics.js'
+import type {
+  HydrationSourceConflictReason,
+  InvalidPersistenceEnvelopeReason,
+  PersistenceDriverUnavailableReason,
+} from './persistence.js'
 
 export type OperationSource = 'programmatic' | 'interactive' | 'repair' | 'reset' | 'import'
 
@@ -58,18 +63,25 @@ export type AdapterInitializationFailureReason =
 
 export type PicodashInitializationErrorReasonByCode = Readonly<{
   readonly 'adapter-initialization-failed': AdapterInitializationFailureReason
+  readonly 'persistence-driver-unavailable': PersistenceDriverUnavailableReason
+  readonly 'invalid-persistence-envelope': InvalidPersistenceEnvelopeReason
+  readonly 'hydration-source-conflict': HydrationSourceConflictReason
 }>
 
 export type PicodashInitializationErrorCode = keyof PicodashInitializationErrorReasonByCode
 
 export type PicodashInitializationErrorShape = Error & {
   readonly name: 'PicodashInitializationError'
-  readonly code: 'adapter-initialization-failed'
-  readonly reason: AdapterInitializationFailureReason
+  readonly code: PicodashInitializationErrorCode
+  readonly reason: PicodashInitializationErrorReasonByCode[PicodashInitializationErrorCode]
   readonly issues: readonly [
     TransactionIssue & {
-      readonly code: 'adapter_initialization_failed'
-      readonly reason: AdapterInitializationFailureReason
+      readonly code:
+        | 'adapter_initialization_failed'
+        | 'persistence_driver_unavailable'
+        | 'invalid_persistence_envelope'
+        | 'hydration_source_conflict'
+      readonly reason: string
       readonly path: readonly []
     },
   ]
@@ -97,23 +109,39 @@ export type AdapterHealthDiagnostic = PicodashDiagnostic<
 
 export class PicodashInitializationError extends Error {
   readonly name = 'PicodashInitializationError' as const
-  readonly code = 'adapter-initialization-failed' as const
-  readonly reason: AdapterInitializationFailureReason
+  readonly code: PicodashInitializationErrorCode
+  readonly reason: PicodashInitializationErrorReasonByCode[PicodashInitializationErrorCode]
   readonly issues: readonly [
     TransactionIssue & {
-      readonly code: 'adapter_initialization_failed'
-      readonly reason: AdapterInitializationFailureReason
+      readonly code:
+        | 'adapter_initialization_failed'
+        | 'persistence_driver_unavailable'
+        | 'invalid_persistence_envelope'
+        | 'hydration_source_conflict'
+      readonly reason: string
       readonly path: readonly []
     },
   ]
 
-  constructor(reason: AdapterInitializationFailureReason) {
-    super('External adapter initialization failed.')
+  constructor(
+    reason:
+      | AdapterInitializationFailureReason
+      | PersistenceDriverUnavailableReason
+      | InvalidPersistenceEnvelopeReason
+      | HydrationSourceConflictReason,
+    code: PicodashInitializationErrorCode = 'adapter-initialization-failed',
+  ) {
+    super('Store initialization failed.')
+    this.code = code
     this.reason = reason
     const issue = Object.freeze({
-      code: 'adapter_initialization_failed' as const,
+      code: code.replaceAll('-', '_') as
+        | 'adapter_initialization_failed'
+        | 'persistence_driver_unavailable'
+        | 'invalid_persistence_envelope'
+        | 'hydration_source_conflict',
       path: Object.freeze([]) as readonly [],
-      message: 'External adapter initialization failed.',
+      message: 'Store initialization failed.',
       reason,
     })
     this.issues = Object.freeze([issue]) as typeof this.issues

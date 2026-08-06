@@ -5,6 +5,7 @@ import {
   type PicodashDiagnostic,
 } from '../src/index.ts'
 import { createDiagnosticsRuntime } from '../src/diagnostics.ts'
+import { createMemoryPersistence } from './support/memory-persistence.js'
 
 const makeStore = () =>
   createPicodashStore({
@@ -221,6 +222,45 @@ describe('Store core diagnostics', () => {
     expect(JSON.stringify(capabilityEntry)).not.toContain('PRIVATE_CAPABILITY')
     runtime.dispatch([{ surface: 'capability', capability: 'persistence', listeners: [] }])
     expect([...runtime.facade.getState().current]).toEqual([])
+  })
+
+  it('correlates Store persistence failures with capability dispatch and recovery', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'diagnostics-persistence',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1 } },
+      persistence: {
+        storageKey: 'state',
+        driver: persistence,
+        values: { defaultFieldPolicy: 'include' },
+      },
+    })
+    let capabilityCalls = 0
+    const unsubscribe = store.persistence!.subscribe(() => {
+      capabilityCalls += 1
+    })
+    persistence.failNext('write', new Error('PRIVATE_DRIVER_CAUSE'))
+    store.setValues({ value: 2 })
+    expect(capabilityCalls).toBeGreaterThan(0)
+    const failureDiagnostic = [...store.diagnostics.getState().current.values()].find(
+      (diagnostic) => diagnostic.code === 'persistence_failure',
+    )
+    expect(failureDiagnostic).toMatchObject({
+      code: 'persistence_failure',
+      identity: { kind: 'persistence' },
+      reason: 'write-failed',
+    })
+    expect(JSON.stringify(failureDiagnostic)).not.toContain('PRIVATE_DRIVER_CAUSE')
+    store.persistence!.flush()
+    expect(
+      [...store.diagnostics.getState().current.values()].some(
+        (diagnostic) => diagnostic.code === 'persistence_failure',
+      ),
+    ).toBe(false)
+    unsubscribe()
+    store.destroy()
   })
 
   it('allocates opaque keys that stay stable across recovery and recurrence', () => {

@@ -132,7 +132,7 @@ type DiagnosticCondition = {
 type DiagnosticsRuntime = {
   readonly facade: PicodashDiagnostics
   readonly dispatch: (records: readonly DispatchRecord[]) => void
-  readonly recordCondition: (condition: DiagnosticCondition) => void
+  readonly recordCondition: (condition: DiagnosticCondition) => PicodashDiagnostic
   readonly recoverCondition: (fingerprint: string) => void
   readonly publish: () => void
   readonly attachResource: (register: (resource: RuntimeResource) => () => void) => void
@@ -211,24 +211,23 @@ export function createDiagnosticsRuntime(options: DiagnosticsOptions): Diagnosti
     return occurrence
   }
 
-  const recordCondition = (condition: DiagnosticCondition) => {
+  const recordCondition = (condition: DiagnosticCondition): PicodashDiagnostic => {
     const key = opaqueKeyFor(condition.fingerprint)
     const previous = current.get(key)
     const nextCount = previous ? (previous.count >= MAX_SAFE ? MAX_SAFE : previous.count + 1) : 1
     const nextIdentity = previous?.identity ?? Object.freeze({ ...condition.identity })
-    current.set(
-      key,
-      Object.freeze({
-        code: condition.code,
-        severity: condition.severity,
-        message: condition.message,
-        identity: nextIdentity,
-        count: nextCount,
-        lastOccurrence: advanceOccurrence(),
-        ...condition.details,
-      }),
-    )
+    const diagnostic = Object.freeze({
+      code: condition.code,
+      severity: condition.severity,
+      message: condition.message,
+      identity: nextIdentity,
+      count: nextCount,
+      lastOccurrence: advanceOccurrence(),
+      ...condition.details,
+    })
+    current.set(key, diagnostic)
     pendingChange = true
+    return diagnostic
   }
 
   const recoverCondition = (fingerprint: string) => {

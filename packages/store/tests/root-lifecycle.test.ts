@@ -6,6 +6,7 @@ import {
 } from '../src/integration.ts'
 import { createPicodashStore, PicodashContractError } from '../src/index.ts'
 import { registerRuntimeResource, runtimeControllerFor } from '../src/runtime-controller.ts'
+import { createMemoryPersistence } from './support/memory-persistence.js'
 
 const makeStore = () =>
   createPicodashStore({
@@ -144,6 +145,43 @@ describe('Store root destruction', () => {
     expect(capabilityCalls).toBe(0)
     expect(events).toEqual(['capability-2', 'kernel'])
     expect(failure(() => store.getState()).code).toBe('use-after-destroy')
+  })
+
+  it('tears down persistence ownership without erasing durable state', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'root-lifecycle-persistence',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1 } },
+      persistence: {
+        storageKey: 'state',
+        driver: persistence,
+        values: { defaultFieldPolicy: 'include' },
+      },
+    })
+    persistence.failNext('write')
+    expect(store.setValues({ value: 2 })).toMatchObject({ ok: true, persistence: 'pending' })
+    expect(() => store.destroy()).toThrowError(
+      expect.objectContaining({ code: 'root-has-unpersisted-state' }),
+    )
+    const capability = store.persistence!
+    store.destroy({ discardUnpersisted: true })
+    expect(persistence.calls.some((call) => call.kind === 'remove')).toBe(false)
+    expect(() => capability.getState()).toThrowError(/use-after-destroy/)
+    const replacement = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'root-lifecycle-persistence',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1 } },
+      persistence: {
+        storageKey: 'state',
+        driver: persistence,
+        values: { defaultFieldPolicy: 'include' },
+      },
+    })
+    expect(replacement.getState().values.value).toBe(1)
+    replacement.destroy()
   })
 
   it('keeps root destruction reentrant-safe during a write notification', () => {

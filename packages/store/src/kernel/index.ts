@@ -24,6 +24,16 @@ import {
   type PicodashValueAdapter,
   type SnapshotValidation,
 } from '../adapter.js'
+import { createPersistenceController, hydratePersistenceEnvelope } from '../persistence.js'
+import type {
+  PicodashEnvelopeInput,
+  PicodashPersistence,
+  PicodashPersistenceDiagnostic,
+  PersistenceController,
+  PersistenceFailureReason,
+  PersistentTransactionResult,
+  StoreOwnedPersistenceConfig,
+} from '../persistence.js'
 
 /** The JSON values accepted at Store trust boundaries. */
 export type PicodashJsonPrimitive = boolean | null | number | string
@@ -42,6 +52,10 @@ export type PicodashIssueCode =
   | 'adapter_initialization_failed'
   | 'adapter_unhealthy'
   | 'adapter_write_failed'
+  | 'persistence_driver_unavailable'
+  | 'invalid_persistence_envelope'
+  | 'hydration_source_conflict'
+  | 'persistence_failure'
   | `app:${string}`
 
 /** Issues supplied by application callbacks. Store-owned codes are not accepted here. */
@@ -65,7 +79,7 @@ export type TransactionIssue = {
 export type PicodashValidationContext<Values extends object = Record<string, PicodashJsonValue>> = {
   readonly values: Readonly<Values>
   readonly field?: PicodashField<Values, keyof Values & string>
-  readonly source: 'default' | 'initial' | 'adapter' | 'programmatic'
+  readonly source: 'default' | 'initial' | 'persistence' | 'adapter' | 'programmatic'
   readonly originScopeId?: string
 }
 
@@ -78,7 +92,7 @@ export type ValuesValidator<Values extends object> = (
   values: Readonly<Values>,
   context: {
     readonly values: Readonly<Values>
-    readonly source: 'default' | 'initial' | 'adapter' | 'programmatic'
+    readonly source: 'default' | 'initial' | 'persistence' | 'adapter' | 'programmatic'
     readonly originScopeId?: string
   },
 ) => readonly PicodashIssueInput[]
@@ -153,15 +167,29 @@ type InputFields<Values extends Record<string, PicodashJsonValue>> = {
   readonly [Key in keyof Values]: InputField<Values, Key>
 }
 
-type InferredStoreConfig<Values extends Record<string, PicodashJsonValue>> = {
-  readonly storeId?: string
-  readonly schemaVersion?: number
+type InferredStoreConfigBase<Values extends Record<string, PicodashJsonValue>> = {
   readonly valueOwner: 'store'
   readonly adapter?: never
   readonly fields: InputFields<Values>
   readonly initialValues?: Partial<Values>
   readonly validateValues?: ValuesValidator<Values>
 }
+
+type InferredStoreConfig<Values extends Record<string, PicodashJsonValue>> =
+  | (InferredStoreConfigBase<Values> & {
+      readonly storeId?: string
+      readonly schemaVersion?: number
+      readonly initialEnvelope?: never
+      readonly persistence?: never
+    })
+  | (InferredStoreConfigBase<Values> & {
+      readonly storeId: string
+      readonly schemaVersion: number
+      readonly initialEnvelope?: PicodashEnvelopeInput<Values>
+      readonly persistence?: StoreOwnedPersistenceConfig<
+        Record<string, { readonly defaultValue: PicodashJsonValue }>
+      >
+    })
 
 type InferredExternalConfig<Values extends Record<string, PicodashJsonValue>> = {
   readonly storeId?: string
@@ -170,6 +198,7 @@ type InferredExternalConfig<Values extends Record<string, PicodashJsonValue>> = 
   readonly fields: InputFields<Values>
   readonly adapter: PicodashValueAdapter<Values>
   readonly initialValues?: never
+  readonly initialEnvelope?: never
   readonly validateValues?: ValuesValidator<Values>
 }
 
@@ -219,15 +248,27 @@ type DefinitionsFor<Fields extends Record<string, FieldLike>> = {
   }
 }
 
-export type StoreOwnedConfig<Fields extends Record<string, FieldLike>> = {
-  readonly storeId?: string
-  readonly schemaVersion?: number
+type StoreOwnedConfigBase<Fields extends Record<string, FieldLike>> = {
   readonly valueOwner: 'store'
   readonly adapter?: never
   readonly fields: DefinitionsFor<Fields>
   readonly initialValues?: Partial<ValuesOf<Fields>>
   readonly validateValues?: ValuesValidator<ValuesOf<Fields>>
 }
+
+export type StoreOwnedConfig<Fields extends Record<string, FieldLike>> =
+  | (StoreOwnedConfigBase<Fields> & {
+      readonly storeId?: string
+      readonly schemaVersion?: number
+      readonly initialEnvelope?: never
+      readonly persistence?: never
+    })
+  | (StoreOwnedConfigBase<Fields> & {
+      readonly storeId: string
+      readonly schemaVersion: number
+      readonly initialEnvelope?: PicodashEnvelopeInput<ValuesOf<Fields>>
+      readonly persistence?: StoreOwnedPersistenceConfig<Fields>
+    })
 
 export type ExternalOwnedConfig<Fields extends Record<string, FieldLike>> = {
   readonly storeId?: string
@@ -236,6 +277,7 @@ export type ExternalOwnedConfig<Fields extends Record<string, FieldLike>> = {
   readonly fields: DefinitionsFor<Fields>
   readonly adapter: PicodashValueAdapter<ValuesOf<Fields>>
   readonly initialValues?: never
+  readonly initialEnvelope?: never
   readonly validateValues?: ValuesValidator<ValuesOf<Fields>>
 }
 
@@ -386,7 +428,7 @@ export interface ScopedMetadataCommands<
   resetDashListMetadata(): Result
 }
 
-export interface RootStore<
+interface RootStoreBase<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
 > extends RootMetadataCommands<Result> {
@@ -410,7 +452,7 @@ export interface RootStore<
   destroyScope(scopeId: string, options?: DestroyScopeOptions): Result
 }
 
-export interface ScopedStore<
+interface ScopedStoreBase<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
 > extends ScopedMetadataCommands<Result> {
@@ -435,6 +477,19 @@ export interface ScopedStore<
   destroyScope(options?: DestroyScopeOptions): Result
 }
 
+type PersistenceCapability<Result extends CoreTransactionResult> =
+  Result extends PersistentTransactionResult ? { readonly persistence: PicodashPersistence } : {}
+
+export type RootStore<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> = RootStoreBase<Fields, Result> & PersistenceCapability<Result>
+
+export type ScopedStore<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> = ScopedStoreBase<Fields, Result> & PersistenceCapability<Result>
+
 type ContractErrorCode =
   | 'invalid-configuration'
   | 'invalid-scope-id'
@@ -445,6 +500,7 @@ type ContractErrorCode =
   | 'invalid-destroy-options'
   | 'invalid-provider-id'
   | 'duplicate-provider'
+  | 'persistence-identity-in-use'
   | 'invalid-entity-options'
   | 'invalid-integration-handle'
   | 'duplicate-entity'
@@ -714,6 +770,43 @@ const validIdentity = (value: unknown): value is string =>
   value === value.trim() &&
   isControlCharacterFree(value)
 
+const isPlainDataRecord = (value: unknown): value is Record<string, unknown> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const prototype = Object.getPrototypeOf(value)
+  if (prototype !== Object.prototype && prototype !== null) return false
+  const descriptors = Object.getOwnPropertyDescriptors(value)
+  return Reflect.ownKeys(descriptors).every((key) => {
+    if (typeof key !== 'string') return false
+    const descriptor = descriptors[key]!
+    return descriptor.enumerable && 'value' in descriptor
+  })
+}
+
+const validatePersistenceValuesPolicy = (
+  values: unknown,
+  fieldEntries: readonly string[],
+): values is {
+  readonly defaultFieldPolicy: 'include' | 'omit'
+  readonly fields?: Readonly<Record<string, 'include' | 'omit'>>
+} => {
+  if (!isPlainDataRecord(values)) return false
+  const valueKeys = Object.keys(values)
+  if (
+    !valueKeys.every((key) => key === 'defaultFieldPolicy' || key === 'fields') ||
+    !Object.hasOwn(values, 'defaultFieldPolicy')
+  )
+    return false
+  if (values.defaultFieldPolicy !== 'include' && values.defaultFieldPolicy !== 'omit') return false
+  if (!Object.hasOwn(values, 'fields')) return true
+  const fields = values.fields
+  if (!isPlainDataRecord(fields)) return false
+  for (const key of Object.keys(fields)) {
+    if (!fieldEntries.includes(key)) return false
+    if (fields[key] !== 'include' && fields[key] !== 'omit') return false
+  }
+  return true
+}
+
 const validOrderArray = (value: unknown): value is readonly string[] => {
   try {
     if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return false
@@ -906,6 +999,27 @@ export function createPicodashStore<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
 >(
+  config: InferredStoreConfig<Values> & {
+    readonly fields: Definitions & ExactInputFields<Values, Definitions>
+    readonly persistence: StoreOwnedPersistenceConfig<Definitions>
+  },
+): RootStore<Definitions, PersistentTransactionResult>
+export function createPicodashStore<
+  Values extends Record<string, PicodashJsonValue>,
+  const Definitions extends InputFields<Values>,
+>(
+  config:
+    | (InferredStoreConfig<Values> & {
+        readonly fields: Definitions & ExactInputFields<Values, Definitions>
+      })
+    | (InferredExternalConfig<Values> & {
+        readonly fields: Definitions & ExactInputFields<Values, Definitions>
+      }),
+): RootStore<Definitions, CoreTransactionResult>
+export function createPicodashStore<
+  Values extends Record<string, PicodashJsonValue>,
+  const Definitions extends InputFields<Values>,
+>(
   config:
     | (InferredStoreConfig<Values> & {
         readonly fields: Definitions & ExactInputFields<Values, Definitions>
@@ -923,6 +1037,7 @@ export function createPicodashStore<
     throw new PicodashContractError('invalid-configuration')
   if (!config.fields || typeof config.fields !== 'object' || Array.isArray(config.fields))
     throw new PicodashContractError('invalid-configuration')
+  const configuredFieldKeys = Object.keys(config.fields)
   if (config.storeId !== undefined && !validIdentity(config.storeId))
     throw new PicodashContractError('invalid-configuration')
   if (
@@ -943,6 +1058,59 @@ export function createPicodashStore<
     throw new PicodashContractError('invalid-configuration')
   if (config.valueOwner === 'external' && config.initialValues !== undefined)
     throw new PicodashContractError('invalid-configuration')
+  if (
+    (config as { readonly initialEnvelope?: unknown }).initialEnvelope !== undefined &&
+    config.valueOwner === 'external'
+  )
+    throw new PicodashContractError('invalid-configuration')
+  const configuredPersistence = (
+    config as { readonly persistence?: StoreOwnedPersistenceConfig<Definitions> }
+  ).persistence
+  if (configuredPersistence !== undefined) {
+    if (
+      config.valueOwner !== 'store' ||
+      !validIdentity(config.storeId) ||
+      !Number.isSafeInteger(config.schemaVersion) ||
+      config.schemaVersion === undefined ||
+      config.schemaVersion <= 0
+    )
+      throw new PicodashContractError('invalid-configuration')
+    const persistence = configuredPersistence as Record<string, unknown>
+    if (
+      !persistence ||
+      typeof persistence !== 'object' ||
+      !validIdentity(persistence.storageKey as string)
+    )
+      throw new PicodashContractError('invalid-configuration')
+    const driver = persistence.driver as Record<string, unknown> | undefined
+    const valuesPolicy = persistence.values as Record<string, unknown> | undefined
+    if (
+      !driver ||
+      typeof driver !== 'object' ||
+      !driver.identity ||
+      typeof driver.read !== 'function' ||
+      typeof driver.write !== 'function' ||
+      typeof driver.remove !== 'function' ||
+      (!driver.subscribe && driver.subscribe !== undefined) ||
+      (driver.subscribe !== undefined && typeof driver.subscribe !== 'function') ||
+      !validatePersistenceValuesPolicy(valuesPolicy, configuredFieldKeys)
+    )
+      throw new PicodashContractError('invalid-configuration')
+  }
+  const persistenceIncludedFields =
+    configuredPersistence === undefined
+      ? undefined
+      : new Set(
+          configuredFieldKeys.filter((key) => {
+            const overrides = configuredPersistence.values.fields as
+              | Record<string, 'include' | 'omit'>
+              | undefined
+            const selected = overrides?.[key]
+            return selected === undefined
+              ? configuredPersistence.values.defaultFieldPolicy === 'include'
+              : selected === 'include'
+          }),
+        )
   const configuredRootValidate = config.validateValues
   if (configuredRootValidate !== undefined && typeof configuredRootValidate !== 'function')
     throw new PicodashContractError('invalid-configuration')
@@ -959,7 +1127,7 @@ export function createPicodashStore<
     }
   >()
   const fieldsRecord = Object.create(null) as Record<string, unknown>
-  const fieldEntries = Object.keys(config.fields)
+  const fieldEntries = configuredFieldKeys
   for (const key of fieldEntries) {
     if (!validFieldKey(key)) throw new PicodashContractError('invalid-configuration')
     const definition = (config.fields as Record<string, unknown>)[key]
@@ -1255,6 +1423,122 @@ export function createPicodashStore<
 
   let values = freeze(canonicalInitial.candidate) as Readonly<Record<string, PicodashJsonValue>>
   let scopes: ReadonlyMap<string, DurableScopeMetadata> = EmptyScopes
+  let writing = false
+  let persistenceController: PersistenceController | undefined
+  if (
+    config.valueOwner === 'store' &&
+    configuredPersistence === undefined &&
+    config.initialEnvelope !== undefined
+  ) {
+    const storeId = config.storeId
+    const schemaVersion = config.schemaVersion
+    if (
+      !validIdentity(storeId) ||
+      typeof schemaVersion !== 'number' ||
+      !Number.isSafeInteger(schemaVersion) ||
+      schemaVersion <= 0
+    )
+      throw new PicodashContractError('invalid-configuration')
+    const hydrated = hydratePersistenceEnvelope(
+      config.initialEnvelope,
+      { storeId, schemaVersion },
+      (input) => {
+        if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined
+        for (const key of fieldEntries) if (!Object.hasOwn(input, key)) return undefined
+        const built = buildCandidate(
+          values as Record<string, PicodashJsonValue>,
+          input as Record<string, unknown>,
+          'persistence',
+        )
+        return built.issues.length ? undefined : freeze(built.candidate)
+      },
+    )
+    if (!hydrated.ok)
+      throw new PicodashInitializationError(hydrated.reason, 'invalid-persistence-envelope')
+    values = hydrated.record.values
+    scopes = hydrated.record.scopes
+  }
+  if (config.valueOwner === 'store' && configuredPersistence !== undefined) {
+    try {
+      const persistenceConfig = configuredPersistence
+      persistenceController = createPersistenceController({
+        storageKey: persistenceConfig.storageKey,
+        driver: persistenceConfig.driver,
+        storeId: config.storeId!,
+        schemaVersion: config.schemaVersion!,
+        baselineValues: values,
+        initialEnvelope: config.initialEnvelope,
+        normalizeValues: (input) => {
+          if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined
+          const built = buildCandidate(
+            values as Record<string, PicodashJsonValue>,
+            input as Record<string, unknown>,
+            'persistence',
+          )
+          return built.issues.length ? undefined : freeze(built.candidate)
+        },
+        onExternalValues: () => undefined,
+        onFailure: (reason: PersistenceFailureReason) => {
+          if (!runtimeController)
+            return Object.freeze({
+              code: 'persistence_failure' as const,
+              severity: 'error' as const,
+              message: 'Store persistence failed.',
+              identity: Object.freeze({ kind: 'persistence' as const }),
+              count: 1,
+              lastOccurrence: 1,
+              reason,
+            })
+          const diagnostic = diagnosticsRuntime.recordCondition({
+            fingerprint: 'persistence',
+            code: 'persistence_failure',
+            severity: 'error',
+            message: 'Store persistence failed.',
+            identity: { kind: 'persistence' },
+            details: { reason },
+          })
+          diagnosticsRuntime.publish()
+          return diagnostic as PicodashPersistenceDiagnostic
+        },
+        onRecovery: () => {
+          if (!runtimeController) return
+          diagnosticsRuntime.recoverCondition('persistence')
+          diagnosticsRuntime.publish()
+        },
+        onConflict: () => undefined,
+        includeField: (key) => {
+          return persistenceIncludedFields!.has(key)
+        },
+        onUseAfterDestroy: () => {
+          throw new PicodashContractError('use-after-destroy')
+        },
+        dispatchCapability: (capabilityListeners) => {
+          if (!runtimeController) return
+          diagnosticsRuntime.dispatch([
+            { surface: 'capability', capability: 'persistence', listeners: capabilityListeners },
+          ])
+        },
+        withKernelWrite: (run) => {
+          if (writing) return run()
+          writing = true
+          try {
+            return run()
+          } finally {
+            writing = false
+          }
+        },
+      })
+      values = persistenceController.initialValues
+      scopes = persistenceController.initialScopes
+    } catch (error) {
+      if (error instanceof PicodashInitializationError) throw error
+      if (error instanceof Error && error.message.startsWith('persistence-identity-in-use:'))
+        throw new PicodashContractError('persistence-identity-in-use', {
+          storageKey: configuredPersistence.storageKey,
+        })
+      throw new PicodashContractError('invalid-configuration')
+    }
+  }
   let currentSnapshot!: RootSnapshot<ValuesOf<Fields>>
   const listeners = new Set<() => void>()
   const scopedRefs = new Map<string, WeakRef<object>>()
@@ -1266,7 +1550,6 @@ export function createPicodashStore<
   let scopedInternals = new WeakMap<object, ScopedChannel>()
   const channelsById = new Map<string, ScopedChannel>()
   const activeChannels = new Set<ScopedChannel>()
-  let writing = false
   let externalAdapterRuntime: ExternalAdapterRuntime<ValuesOf<Fields>> | undefined
   if (config.valueOwner === 'external') {
     let runtime: ExternalAdapterRuntime<ValuesOf<Fields>>
@@ -1448,6 +1731,13 @@ export function createPicodashStore<
         previous?.dashPanel ? { dashPanel: previous.dashPanel } : undefined,
       ),
   }
+  if (persistenceController)
+    Object.defineProperty(storeImplementation, 'persistence', {
+      value: persistenceController.capability,
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    })
   Object.freeze(storeImplementation)
   runtimeController = new RuntimeController(storeImplementation as object)
   store = makeLifecycleFacade(storeImplementation, runtimeController)
@@ -1457,6 +1747,12 @@ export function createPicodashStore<
     runtimeController.registerResource({
       phase: 'capability',
       teardown: () => externalAdapterRuntime?.destroy(),
+    })
+  if (persistenceController)
+    runtimeController.registerResource({
+      phase: 'capability',
+      hasUnpersistedState: () => persistenceController?.hasUnpersistedState() ?? false,
+      teardown: (context) => persistenceController?.destroy(context.discardUnpersisted),
     })
   diagnosticsRuntime.attachResource((resource) => runtimeController.registerResource(resource))
   runtimeController.registerResource({
@@ -1488,6 +1784,15 @@ export function createPicodashStore<
     return transactAttributed(next)
   }
 
+  function persistCurrent(): 'unchanged' | 'saved' | 'pending' | undefined {
+    return persistenceController?.persist(values, scopes)
+  }
+
+  function resultWithPersistence(result: CoreTransactionResult): CoreTransactionResult {
+    if (!result.ok || !persistenceController) return result
+    return Object.freeze({ ...result, persistence: persistCurrent()! }) as CoreTransactionResult
+  }
+
   function transactAttributed(
     next: Record<string, unknown>,
     originScopeId?: string,
@@ -1502,7 +1807,7 @@ export function createPicodashStore<
         }),
       ])
     const keys = Object.keys(next)
-    if (!keys.length) return successfulResult()
+    if (!keys.length) return resultWithPersistence(successfulResult())
     writing = true
     try {
       const built = buildCandidate(
@@ -1515,7 +1820,7 @@ export function createPicodashStore<
       const changedFields = fieldEntries
         .filter((key) => !picodashJsonEqual(values[key]!, built.candidate[key]!))
         .sort()
-      if (!changedFields.length) return successfulResult()
+      if (!changedFields.length) return resultWithPersistence(successfulResult())
       if (externalAdapterRuntime?.isUnhealthy())
         return rejectedResult([adapterUnhealthyIssue(originScopeId)])
       if (externalAdapterRuntime) {
@@ -1536,7 +1841,7 @@ export function createPicodashStore<
       currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
       const affectedChannels = collectScopedChannels()
       refreshScopedChannels(affectedChannels)
-      const result = successfulResult(changedFields)
+      const result = resultWithPersistence(successfulResult(changedFields))
       dispatchStoreSubscribers(affectedChannels)
       return result
     } finally {
@@ -1622,7 +1927,7 @@ export function createPicodashStore<
       for (const descendant of controller?.descendants(scopeId) ?? []) targets.add(descendant)
     }
     const changedScopeIds = [...targets].filter((id) => scopes.has(id)).sort()
-    if (!changedScopeIds.length) return successfulResult()
+    if (!changedScopeIds.length) return resultWithPersistence(successfulResult())
     writing = true
     try {
       const nextEntries = [...scopes.entries()].filter(([id]) => !targets.has(id))
@@ -1632,7 +1937,7 @@ export function createPicodashStore<
       for (const id of changedScopeIds)
         for (const channel of collectScopedChannels(id)) affectedChannels.add(channel)
       refreshScopedChannels(affectedChannels)
-      const result = successfulResult([], changedScopeIds)
+      const result = resultWithPersistence(successfulResult([], changedScopeIds))
       dispatchStoreSubscribers(affectedChannels)
       return result
     } finally {
@@ -1771,6 +2076,13 @@ export function createPicodashStore<
         store.removeDashListCollapseOverride(scopeId, nodeId),
       resetDashListMetadata: () => store.resetDashListMetadata(scopeId),
     }
+    if (persistenceController)
+      Object.defineProperty(scoped, 'persistence', {
+        value: persistenceController.capability,
+        enumerable: true,
+        writable: false,
+        configurable: false,
+      })
     Object.freeze(scoped)
     const controller = runtimeControllerFor(store as object)
     const facade = controller ? makeLifecycleFacade(scoped, controller) : scoped
@@ -1806,7 +2118,7 @@ export function createPicodashStore<
         ])
       }
       const previous = scopes.get(scopeId)
-      if (metadataEqual(previous, candidate)) return successfulResult()
+      if (metadataEqual(previous, candidate)) return resultWithPersistence(successfulResult())
       const entries = [...scopes.entries()].filter(([id]) => id !== scopeId)
       if (candidate !== undefined) entries.push([scopeId, candidate])
       entries.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
@@ -1814,7 +2126,7 @@ export function createPicodashStore<
       currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
       const affectedChannels = collectScopedChannels(scopeId)
       refreshScopedChannels(affectedChannels)
-      const result = successfulResult([], [scopeId])
+      const result = resultWithPersistence(successfulResult([], [scopeId]))
       dispatchStoreSubscribers(affectedChannels)
       return result
     } finally {

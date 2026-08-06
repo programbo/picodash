@@ -382,7 +382,7 @@ pruned. The empty interaction state is one frozen singleton containing two stabl
 > Contract: Accepted
 > Implementation: Partial
 > Notes: Root and scoped snapshots are implemented with the stable empty interaction singleton;
-> populated interaction state remains planned. The metadata record codec and scoped metadata
+> populated interaction state remains planned for beta with binding acquisition. The metadata record codec and scoped metadata
 > commands are implemented. Adapter and
 > persistence status live on their configured capability namespaces rather than every ephemeral root snapshot.
 
@@ -1013,6 +1013,10 @@ metadata but must not contain canonical values; that persistence branch is beta.
 
 ## Persistence
 
+> Contract: Accepted
+>
+> Implementation: Verified for the Store-owned alpha slice — [persistence tests](../../packages/store/tests/persistence.test.ts), [persistence type tests](../../packages/store/tests/persistence.types.test.ts), and [memory persistence harness](../../packages/store/tests/support/memory-persistence.ts).
+
 The alpha persistence capability is Store-owned: it persists the disclosed canonical value
 projection and all durable Picodash scope metadata. External-owned metadata persistence,
 conflict-resolution and erase plans, migrations, documents, quarantine recovery, and the built-in
@@ -1068,17 +1072,17 @@ persistence: {
 }
 ```
 
-| API/status                                          | Contract | Implementation | Notes                                             |
-| --------------------------------------------------- | -------- | -------------- | ------------------------------------------------- |
-| Synchronous hydration                               | Accepted | Prototype      | Alpha is all-or-nothing and has no async core.    |
-| One versioned root envelope                         | Accepted | Planned        | Alpha accepts the Store-owned branch only.        |
-| `persistence.getState()`                            | Accepted | Planned        | Exact immutable discriminated state below.        |
-| `persistence.subscribe(listener)`                   | Accepted | Planned        | Separate from Store subscriptions.                |
-| `persistence.flush()`                               | Accepted | Planned        | Retries pending I/O; never resolves conflicts.    |
-| `persistence.createConflictResolutionPlan(options)` | Accepted | Planned        | Accepted beta reload/overwrite/reconcile surface. |
-| `persistence.executeConflictResolution(plan)`       | Accepted | Planned        | Accepted beta plan execution.                     |
-| `persistence.createErasePlan()`                     | Accepted | Planned        | Accepted beta erase preview.                      |
-| `persistence.executeErase(plan, { confirm: true })` | Accepted | Planned        | Accepted beta confirmed erase.                    |
+| API/status                                          | Contract | Implementation | Notes                                                                                                                          |
+| --------------------------------------------------- | -------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Synchronous hydration                               | Accepted | Partial        | Alpha is all-or-nothing and has no async core; driver and driver-free initial-envelope paths are covered by persistence tests. |
+| One versioned root envelope                         | Accepted | Partial        | Store-owned envelope encoding, deterministic decoding, field disclosure, and durable metadata are implemented.                 |
+| `persistence.getState()`                            | Accepted | Partial        | Exact immutable discriminated state is implemented and covered by runtime/type tests.                                          |
+| `persistence.subscribe(listener)`                   | Accepted | Partial        | Separate capability subscriptions are implemented and share diagnostics dispatch.                                              |
+| `persistence.flush()`                               | Accepted | Partial        | Retries pending I/O and never resolves conflicts.                                                                              |
+| `persistence.createConflictResolutionPlan(options)` | Accepted | Planned        | Accepted beta reload/overwrite/reconcile surface.                                                                              |
+| `persistence.executeConflictResolution(plan)`       | Accepted | Planned        | Accepted beta plan execution.                                                                                                  |
+| `persistence.createErasePlan()`                     | Accepted | Planned        | Accepted beta erase preview.                                                                                                   |
+| `persistence.executeErase(plan, { confirm: true })` | Accepted | Planned        | Accepted beta confirmed erase.                                                                                                 |
 
 ```ts
 type PersistenceWriteStatus = 'unchanged' | 'saved' | 'pending'

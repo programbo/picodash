@@ -25,6 +25,22 @@ export type {
   SubscriberExceptionIdentity,
 } from './diagnostics.js'
 export type {
+  HydrationSourceConflictReason,
+  InvalidPersistenceEnvelopeReason,
+  PersistenceDriverUnavailableReason,
+  PersistenceFailureReason,
+  PersistenceWriteStatus,
+  PersistentTransactionResult,
+  PicodashEnvelopeHeader,
+  PicodashEnvelopeInput,
+  PicodashPersistence,
+  PicodashPersistenceConflict,
+  PicodashPersistenceDiagnostic,
+  PicodashPersistenceDriver,
+  PicodashPersistenceState,
+  StoreOwnedPersistenceConfig,
+} from './persistence.js'
+export type {
   StoreOwnedConfig,
   ExternalOwnedConfig,
   RootStore,

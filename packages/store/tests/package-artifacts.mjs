@@ -116,8 +116,13 @@ if (import.meta.main) {
   assert.match(rootTypes, /readonly diagnostics: PicodashDiagnostics/)
   assert.match(rootTypes, /PicodashValueAdapter/)
   assert.match(rootTypes, /ExternalOwnedConfig/)
+  assert.match(rootTypes, /PersistentTransactionResult/)
+  assert.match(rootTypes, /PicodashPersistenceState/)
   assert.match(rootTypes, /adapter_initialization_failed/)
-  const scopedSection = rootTypes.slice(rootTypes.indexOf('interface ScopedStore'))
+  const scopedMarker = rootTypes.includes('interface ScopedStoreBase')
+    ? 'interface ScopedStoreBase'
+    : 'interface ScopedStore'
+  const scopedSection = rootTypes.slice(rootTypes.indexOf(scopedMarker))
   assert.doesNotMatch(scopedSection, /destroy\(options\?: DestroyRootOptions\)/)
   assert.match(scopedSection, /readonly diagnostics: PicodashDiagnostics/)
   assert.deepEqual(Object.keys(rootModule).sort(), [
@@ -179,6 +184,42 @@ if (import.meta.main) {
   assert.equal(externalStore.getState().values.value, 2)
   externalStore.destroy()
   assert.equal(releaseCalls, 1)
+
+  const persistentValues = new Map()
+  const persistentListeners = new Set()
+  let removeCalls = 0
+  const persistentDriver = {
+    identity: {},
+    read(key) {
+      return persistentValues.get(key) ?? null
+    },
+    write(key, payload) {
+      persistentValues.set(key, payload)
+      for (const listener of persistentListeners) listener()
+    },
+    remove() {
+      removeCalls += 1
+    },
+    subscribe(_key, listener) {
+      persistentListeners.add(listener)
+      return () => persistentListeners.delete(listener)
+    },
+  }
+  const persistentStore = rootModule.createPicodashStore({
+    valueOwner: 'store',
+    storeId: 'artifact-persistence',
+    schemaVersion: 1,
+    fields: { value: { defaultValue: 1 } },
+    persistence: {
+      storageKey: 'state',
+      driver: persistentDriver,
+      values: { defaultFieldPolicy: 'include' },
+    },
+  })
+  assert.equal(persistentStore.setValues({ value: 2 }).persistence, 'saved')
+  assert.equal(persistentStore.persistence.getState().status, 'clean')
+  persistentStore.destroy()
+  assert.equal(removeCalls, 0)
 
   // Exercise the negative boundary with a temporary reachable React import.
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'picodash-store-artifact-'))
