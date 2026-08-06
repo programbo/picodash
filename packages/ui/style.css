@@ -431,6 +431,36 @@
   margin-block: var(--picodash-space-1);
 }
 
+/* Product-neutral Tooltip structure and decorative arrow. */
+:where([data-slot='tooltip']) {
+  background: var(--picodash-color-surface-raised);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-radius: var(--picodash-radius-control);
+  box-shadow: var(--picodash-shadow-sm);
+  color: var(--picodash-color-text-strong);
+  font-size: var(--picodash-font-size-sm);
+  line-height: var(--picodash-line-height-normal);
+  max-inline-size: min(22rem, calc(100vw - 2 * var(--picodash-space-3)));
+  padding: var(--picodash-space-2) var(--picodash-space-2-5);
+}
+
+:where([data-slot='tooltip'] .picodash-tooltip-arrow) {
+  block-size: var(--picodash-space-2);
+  inline-size: var(--picodash-space-2);
+  pointer-events: none;
+}
+
+:where([data-slot='tooltip'] .picodash-tooltip-arrow)::after {
+  background: var(--picodash-color-surface-raised);
+  border-inline-end: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-block-end: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  content: '';
+  display: block;
+  block-size: var(--picodash-space-2);
+  inline-size: var(--picodash-space-2);
+  transform: rotate(45deg);
+}
+
 :where(.picodash-action-menu-confirmation-trigger) {
   display: none;
 }

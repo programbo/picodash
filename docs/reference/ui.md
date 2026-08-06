@@ -545,7 +545,9 @@ remain in DashPanel or DashList and compose these shared primitives.
 
 > Contract: Accepted
 >
-> Implementation: Planned
+> Implementation: Partial
+>
+> Evidence: `packages/ui/tests/tooltip.test.tsx`, `tooltip.types.test.tsx`, and package artifact checks cover deterministic composition, timing/state wiring, public types, portal/layer overrides, detached theme/density attributes, and structural CSS. Browser placement, touch, and focus-restoration seams remain Partial.
 
 `Tooltip` supplies a short, non-interactive description for a focusable element. It supplements the
 trigger's accessible name and visible interface; it never contains information required to operate

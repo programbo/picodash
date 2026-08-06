@@ -55,6 +55,10 @@ async function main() {
     'DashHeader',
     'PicodashOverlayProvider',
     'PicodashThemeProvider',
+    'Tooltip',
+    'TooltipContent',
+    'TooltipProvider',
+    'TooltipTrigger',
     'usePicodashDensity',
     'usePicodashOverlayDefaults',
     'usePicodashTheme',
@@ -92,6 +96,10 @@ async function main() {
     'ActionSubmenuProps',
     'ActionMenuConfirmation',
     'ActionMenuItemVariant',
+    'TooltipProviderProps',
+    'TooltipProps',
+    'TooltipTriggerProps',
+    'TooltipContentProps',
   ]) {
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
   }

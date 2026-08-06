@@ -53,3 +53,13 @@ export {
   type AlertDialogTitleProps,
   type AlertDialogTriggerProps,
 } from './alert-dialog.tsx'
+export {
+  TooltipProvider,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  type TooltipProviderProps,
+  type TooltipProps,
+  type TooltipTriggerProps,
+  type TooltipContentProps,
+} from './tooltip.tsx'
