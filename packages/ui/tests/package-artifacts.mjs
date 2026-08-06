@@ -37,6 +37,7 @@ async function main() {
   )
   assert.deepEqual(Object.keys(runtime).sort(), [
     'Button',
+    'DashHeader',
     'PicodashOverlayProvider',
     'PicodashThemeProvider',
     'usePicodashDensity',
@@ -56,6 +57,8 @@ async function main() {
     'ButtonProps',
     'ButtonVariant',
     'ButtonSize',
+    'DashHeaderProps',
+    'DashHeaderSlots',
   ]) {
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
   }

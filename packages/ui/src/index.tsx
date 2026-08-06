@@ -7,6 +7,7 @@ import {
 } from 'react'
 import { UNSAFE_PortalProvider } from 'react-aria'
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './button.tsx'
+export { DashHeader, type DashHeaderProps, type DashHeaderSlots } from './dash-header.tsx'
 
 /** Built-in color theme preferences. */
 export type PicodashTheme = 'light' | 'dark' | 'system'

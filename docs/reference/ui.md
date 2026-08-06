@@ -671,7 +671,7 @@ ownership model.
 
 > Contract: Accepted
 >
-> Implementation: Planned
+> Implementation: Verified
 
 `DashHeader` lays out header content supplied by its caller. It does not decide what a header means
 or operate Panel or List state.
@@ -735,6 +735,13 @@ domain API, such as action-menu composition, rather than implicit slot appending
 
 DashPanel and DashList explicitly reexport `DashHeader`, `DashHeaderProps`, and `DashHeaderSlots`
 for consumer convenience. They must not blanket-export all of `@picodash/ui`.
+
+The implementation and type evidence is in [dash-header.test.tsx](../../packages/ui/tests/dash-header.test.tsx)
+and [dash-header.types.test.tsx](../../packages/ui/tests/dash-header.types.test.tsx). The component tests
+cover the neutral root/ref, native prop forwarding, fixed wrapper order and hooks, title-wrapper
+presence, non-nullish optional-slot rendering, and unchanged slot semantics. The type tests cover
+the exact slot-only public surface and reject children, top-level slot values, polymorphic props,
+presentation props, and product behavior.
 
 ## Theme and stylesheet contract
 

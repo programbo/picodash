@@ -263,3 +263,23 @@
 :where([data-slot='button'][data-pending]) {
   cursor: wait;
 }
+
+/* Product-neutral DashHeader structure. */
+:where([data-slot='dash-header']) {
+  align-items: center;
+  display: flex;
+  gap: var(--picodash-space-2);
+}
+
+:where([data-slot='dash-header-leading']),
+:where([data-slot='dash-header-title']),
+:where([data-slot='dash-header-actions']),
+:where([data-slot='dash-header-trailing']) {
+  align-items: center;
+  display: inline-flex;
+}
+
+:where([data-slot='dash-header-title']) {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
