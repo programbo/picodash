@@ -15,6 +15,8 @@ import {
   type PicodashIssueInput,
   type PicodashParseResult,
   type CoreTransactionResult,
+  type RootStore,
+  type ScopedStore,
   type RootSnapshot,
   type StoreOwnedConfig,
 } from '../src/index.ts'
@@ -244,4 +246,57 @@ test('exports exact immutable metadata record declarations', () => {
   expectTypeOf<DashPanelPlacementRecord>().toMatchTypeOf<object>()
   expectTypeOf<DashPanelLayoutRecord>().toMatchTypeOf<object>()
   expectTypeOf<PicodashField<{ readonly value: number }, 'value'>>().toHaveProperty('key')
+})
+
+test('preserves Fields and refined Result through root/scoped views and metadata commands', () => {
+  type Fields = { readonly value: { readonly defaultValue: 1 } }
+  type RefinedResult = CoreTransactionResult & { readonly tag: 'refined' }
+  type Root = RootStore<Fields, RefinedResult>
+  type Scoped = ScopedStore<Fields, RefinedResult>
+  expectTypeOf<Root['fields']['value']>().toHaveProperty('key')
+  expectTypeOf<ReturnType<Root['getState']>['values']>().toEqualTypeOf<
+    Readonly<{ readonly value: number }>
+  >()
+  expectTypeOf<ReturnType<Scoped['getState']>['values']>().toEqualTypeOf<
+    Readonly<{ readonly value: number }>
+  >()
+  expectTypeOf<ReturnType<Root['scope']>>().toEqualTypeOf<Scoped>()
+  expectTypeOf<Scoped['root']>().toEqualTypeOf<Root>()
+  expectTypeOf<ReturnType<Scoped['scope']>>().toEqualTypeOf<Scoped>()
+  expectTypeOf<ReturnType<Root['setValue']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['setValueOrThrow']>>().toEqualTypeOf<
+    Extract<RefinedResult, { readonly ok: true }>
+  >()
+  expectTypeOf<ReturnType<Scoped['setValue']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['setValueOrThrow']>>().toEqualTypeOf<
+    Extract<RefinedResult, { readonly ok: true }>
+  >()
+  expectTypeOf<ReturnType<Root['setValues']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['setValuesOrThrow']>>().toEqualTypeOf<
+    Extract<RefinedResult, { readonly ok: true }>
+  >()
+  expectTypeOf<ReturnType<Scoped['setValues']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['setValuesOrThrow']>>().toEqualTypeOf<
+    Extract<RefinedResult, { readonly ok: true }>
+  >()
+  expectTypeOf<ReturnType<Root['setDashPanelLayout']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['resetDashPanelLayout']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['setDashListRootOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['removeDashListRootOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['setDashListGroupOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['removeDashListGroupOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['setDashListCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['removeDashListCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['resetDashListMetadata']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['setDashPanelLayout']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['resetDashPanelLayout']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['setDashListRootOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['removeDashListRootOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['setDashListGroupOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['removeDashListGroupOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['setDashListCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<
+    ReturnType<Scoped['removeDashListCollapseOverride']>
+  >().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['resetDashListMetadata']>>().toEqualTypeOf<RefinedResult>()
 })

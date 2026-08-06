@@ -217,13 +217,13 @@ settings.scopeId // 'settings'
 settings.root === store // true
 ```
 
-| API                       | Contract | Implementation | Notes                                                                                      |
-| ------------------------- | -------- | -------------- | ------------------------------------------------------------------------------------------ |
-| `root.scope(scopeId)`     | Accepted | Planned        | Returns a canonical live scoped view.                                                      |
-| `scoped.scope(scopeId)`   | Accepted | Planned        | Resolves through the same root.                                                            |
-| `scoped.root`             | Accepted | Planned        | Explicit access to the root Store.                                                         |
-| `scoped.scopeId`          | Accepted | Planned        | Opaque exact scope identity.                                                               |
-| `root.kind`/`scoped.kind` | Accepted | Partial        | Root exposes `kind: 'root'`; scoped views remain planned and will expose `kind: 'scoped'`. |
+| API                       | Contract | Implementation | Notes                                                             |
+| ------------------------- | -------- | -------------- | ----------------------------------------------------------------- |
+| `root.scope(scopeId)`     | Accepted | Verified       | Canonical weakly cached scoped view with exact invalid-ID errors. |
+| `scoped.scope(scopeId)`   | Accepted | Verified       | Resolves through the same root.                                   |
+| `scoped.root`             | Accepted | Verified       | Explicit access to the root Store.                                |
+| `scoped.scopeId`          | Accepted | Verified       | Opaque exact scope identity.                                      |
+| `root.kind`/`scoped.kind` | Accepted | Verified       | Root and scoped views expose their canonical kind values.         |
 
 Scoped views expose the complete root values. They organize metadata and attribution; they do not
 restrict field access.
@@ -374,8 +374,9 @@ pruned. The empty interaction state is one frozen singleton containing two stabl
 
 > Contract: Accepted
 > Implementation: Partial
-> Notes: Root snapshots are implemented; the metadata record codec is Partial, while scoped metadata
-> commands and lazy scope lifecycle remain planned. Adapter and
+> Notes: Root and scoped snapshots are implemented with the stable empty interaction singleton;
+> populated interaction state remains planned. The metadata record codec and scoped metadata
+> commands are implemented. Adapter and
 > persistence status live on their configured capability namespaces rather than every ephemeral root snapshot.
 
 Both snapshot types contain immutable data only. Commands live on the stable root or scoped Store

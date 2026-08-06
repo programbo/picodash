@@ -1,5 +1,10 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { clonePicodashValue, picodashJsonEqual } from '../json.js'
+import {
+  normalizeDashListMetadataRecord,
+  normalizeDashPanelLayoutRecord,
+  normalizeDurableScopeMetadata,
+} from '../metadata.js'
 
 /** The JSON values accepted at Store trust boundaries. */
 export type PicodashJsonPrimitive = boolean | null | number | string
@@ -14,6 +19,7 @@ export type PicodashIssueCode =
   | 'schema_failed'
   | 'validation_failed'
   | 'unknown_field'
+  | 'invalid_metadata'
   | `app:${string}`
 
 /** Issues supplied by application callbacks. Store-owned codes are not accepted here. */
@@ -255,27 +261,118 @@ export type RootSnapshot<Values extends object> = {
   readonly scopes: ReadonlyMap<string, DurableScopeMetadata>
 }
 
-export interface RootStore<Fields extends Record<string, FieldLike>> {
+export type InvalidScopeIdReason =
+  | 'not-string'
+  | 'empty'
+  | 'surrounding-whitespace'
+  | 'control-character'
+
+export type StaleDraftConflict = {
+  readonly kind: 'stale-draft'
+  readonly baseRevision: number
+  readonly baseValue: PicodashJsonValue
+}
+
+export type BindingInteractionState = {
+  readonly fieldKey: string
+  readonly draft?: PicodashJsonValue
+  readonly touched: boolean
+  readonly inputIssues: readonly TransactionIssue[]
+  readonly conflict?: StaleDraftConflict
+}
+
+export type ItemInteractionState = {
+  readonly focused: boolean
+  readonly hovered: boolean
+  readonly active: boolean
+}
+
+export type ScopeInteractionState = {
+  readonly bindings: ReadonlyMap<string, ReadonlyMap<string, BindingInteractionState>>
+  readonly items: ReadonlyMap<string, ItemInteractionState>
+}
+
+export type ScopedSnapshot<Values extends object> = {
+  readonly values: Readonly<Values>
+  readonly scope: DurableScopeMetadata | undefined
+  readonly interaction: ScopeInteractionState
+}
+
+export interface RootMetadataCommands<
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
+  setDashPanelLayout(scopeId: string, layout: DashPanelLayoutRecord): Result
+  resetDashPanelLayout(scopeId: string): Result
+  setDashListRootOrder(scopeId: string, order: readonly string[]): Result
+  removeDashListRootOrder(scopeId: string): Result
+  setDashListGroupOrder(scopeId: string, groupId: string, order: readonly string[]): Result
+  removeDashListGroupOrder(scopeId: string, groupId: string): Result
+  setDashListCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result
+  removeDashListCollapseOverride(scopeId: string, nodeId: string): Result
+  resetDashListMetadata(scopeId: string): Result
+}
+
+export interface ScopedMetadataCommands<
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
+  setDashPanelLayout(layout: DashPanelLayoutRecord): Result
+  resetDashPanelLayout(): Result
+  setDashListRootOrder(order: readonly string[]): Result
+  removeDashListRootOrder(): Result
+  setDashListGroupOrder(groupId: string, order: readonly string[]): Result
+  removeDashListGroupOrder(groupId: string): Result
+  setDashListCollapseOverride(nodeId: string, collapsed: boolean): Result
+  removeDashListCollapseOverride(nodeId: string): Result
+  resetDashListMetadata(): Result
+}
+
+export interface RootStore<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> extends RootMetadataCommands<Result> {
   readonly kind: 'root'
   readonly fields: PicodashFields<Fields>
+  scope(scopeId: string): ScopedStore<Fields, Result>
   getState(): RootSnapshot<ValuesOf<Fields>>
   subscribe(listener: () => void): () => void
   setValue<K extends keyof Fields & string>(
     field: PicodashField<ValuesOf<Fields>, K>,
     value: ValuesOf<Fields>[K],
-  ): CoreTransactionResult
+  ): Result
   setValueOrThrow<K extends keyof Fields & string>(
     field: PicodashField<ValuesOf<Fields>, K>,
     value: ValuesOf<Fields>[K],
-  ): Extract<CoreTransactionResult, { readonly ok: true }>
-  setValues(values: Partial<ValuesOf<Fields>>): CoreTransactionResult
-  setValuesOrThrow(
-    values: Partial<ValuesOf<Fields>>,
-  ): Extract<CoreTransactionResult, { readonly ok: true }>
+  ): Extract<Result, { readonly ok: true }>
+  setValues(values: Partial<ValuesOf<Fields>>): Result
+  setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
+}
+
+export interface ScopedStore<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> extends ScopedMetadataCommands<Result> {
+  readonly kind: 'scoped'
+  readonly root: RootStore<Fields, Result>
+  readonly scopeId: string
+  readonly fields: PicodashFields<Fields>
+  scope(scopeId: string): ScopedStore<Fields, Result>
+  getState(): ScopedSnapshot<ValuesOf<Fields>>
+  subscribe(listener: () => void): () => void
+  setValue<K extends keyof Fields & string>(
+    field: PicodashField<ValuesOf<Fields>, K>,
+    value: ValuesOf<Fields>[K],
+  ): Result
+  setValueOrThrow<K extends keyof Fields & string>(
+    field: PicodashField<ValuesOf<Fields>, K>,
+    value: ValuesOf<Fields>[K],
+  ): Extract<Result, { readonly ok: true }>
+  setValues(values: Partial<ValuesOf<Fields>>): Result
+  setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
 }
 
 type ContractErrorCode =
   | 'invalid-configuration'
+  | 'invalid-scope-id'
   | 'foreign-handle'
   | 'async-contract'
   | 'invalid-callback-result'
@@ -287,6 +384,7 @@ const BUILTIN_CODES = new Set<PicodashIssueCode>([
   'schema_failed',
   'validation_failed',
   'unknown_field',
+  'invalid_metadata',
 ])
 
 const isAppCode = (value: unknown): value is `app:${string}` =>
@@ -426,6 +524,24 @@ const validIdentity = (value: unknown): value is string =>
   value === value.trim() &&
   isControlCharacterFree(value)
 
+const validOrderArray = (value: unknown): value is readonly string[] => {
+  try {
+    if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return false
+    const descriptors = Object.getOwnPropertyDescriptors(value)
+    for (const key of Reflect.ownKeys(descriptors)) {
+      if (typeof key !== 'string') return false
+      if (key !== 'length' && (!/^0$|^[1-9]\d*$/.test(key) || Number(key) >= value.length))
+        return false
+      if (key !== 'length' && !descriptors[key]!.enumerable) return false
+    }
+    for (let index = 0; index < value.length; index += 1)
+      if (!Object.hasOwn(value, String(index)) || typeof value[index] !== 'string') return false
+    return true
+  } catch {
+    return false
+  }
+}
+
 const validFieldKey = (value: unknown): value is string =>
   validIdentity(value) && value !== '__proto__' && value !== 'prototype' && value !== 'constructor'
 
@@ -559,6 +675,43 @@ const EmptyScopes = Object.freeze({
   [Symbol.iterator]: () => [][Symbol.iterator](),
 }) as unknown as ReadonlyMap<string, DurableScopeMetadata>
 
+const immutableMap = <K, V>(entries: readonly (readonly [K, V])[]): ReadonlyMap<K, V> => {
+  const source = new Map<K, V>()
+  for (const [key, value] of entries) Map.prototype.set.call(source, key, value)
+  const facade: ReadonlyMap<K, V> = {
+    get size() {
+      return source.size
+    },
+    get(key) {
+      return source.get(key)
+    },
+    has(key) {
+      return source.has(key)
+    },
+    entries() {
+      return source.entries()
+    },
+    keys() {
+      return source.keys()
+    },
+    values() {
+      return source.values()
+    },
+    forEach(callbackfn, thisArg) {
+      source.forEach((value, key) => callbackfn.call(thisArg, value, key, facade))
+    },
+    [Symbol.iterator]() {
+      return source[Symbol.iterator]()
+    },
+  }
+  return Object.freeze(facade)
+}
+
+const EmptyInteraction: ScopeInteractionState = Object.freeze({
+  bindings: immutableMap<string, ReadonlyMap<string, BindingInteractionState>>([]),
+  items: immutableMap<string, ItemInteractionState>([]),
+})
+
 export function createPicodashStore<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
@@ -566,7 +719,7 @@ export function createPicodashStore<
   config: InferredStoreConfig<Values> & {
     readonly fields: Definitions & ExactInputFields<Values, Definitions>
   },
-): RootStore<Definitions> {
+): RootStore<Definitions, CoreTransactionResult> {
   type Fields = Definitions
   if (!config || typeof config !== 'object' || config.valueOwner !== 'store')
     throw new PicodashContractError('invalid-configuration')
@@ -726,6 +879,7 @@ export function createPicodashStore<
   const runFieldValidators = (
     candidate: Record<string, PicodashJsonValue>,
     source: PicodashValidationContext<ValuesOf<Fields>>['source'],
+    originScopeId?: string,
   ): readonly TransactionIssue[] => {
     const frozenCandidate = freeze(candidate) as Readonly<ValuesOf<Fields>>
     const issues: TransactionIssue[] = []
@@ -743,6 +897,7 @@ export function createPicodashStore<
               keyof Fields & string
             >,
             source,
+            ...(originScopeId === undefined ? {} : { originScopeId }),
           }),
         )
       } catch (error) {
@@ -765,12 +920,20 @@ export function createPicodashStore<
   const runRootValidator = (
     candidate: Record<string, PicodashJsonValue>,
     source: PicodashValidationContext<ValuesOf<Fields>>['source'],
+    originScopeId?: string,
   ): readonly TransactionIssue[] => {
     if (!rootValidate) return freeze([])
     const frozenCandidate = freeze(candidate) as Readonly<ValuesOf<Fields>>
     let result: unknown
     try {
-      result = rootValidate(frozenCandidate, Object.freeze({ values: frozenCandidate, source }))
+      result = rootValidate(
+        frozenCandidate,
+        Object.freeze({
+          values: frozenCandidate,
+          source,
+          ...(originScopeId === undefined ? {} : { originScopeId }),
+        }),
+      )
     } catch (error) {
       if (error instanceof PicodashContractError) throw error
       return freeze([
@@ -788,6 +951,7 @@ export function createPicodashStore<
     base: Record<string, PicodashJsonValue>,
     supplied: Record<string, unknown>,
     source: PicodashValidationContext<ValuesOf<Fields>>['source'],
+    originScopeId?: string,
     validate = true,
   ): {
     readonly candidate: Record<string, PicodashJsonValue>
@@ -814,8 +978,8 @@ export function createPicodashStore<
     }
     freeze(candidate)
     if (validate) {
-      issues.push(...runFieldValidators(candidate, source))
-      issues.push(...runRootValidator(candidate, source))
+      issues.push(...runFieldValidators(candidate, source, originScopeId))
+      issues.push(...runRootValidator(candidate, source, originScopeId))
     }
     return { candidate, issues: freeze(issues) }
   }
@@ -823,7 +987,13 @@ export function createPicodashStore<
   let rootValidate: ValuesValidator<ValuesOf<Fields>> | undefined = configuredRootValidate
   const defaultRaw = Object.create(null) as Record<string, unknown>
   for (const key of fieldEntries) defaultRaw[key] = definitionMap.get(key)!.defaultValue
-  const canonicalDefaults = buildCandidate(Object.create(null), defaultRaw, 'default', false)
+  const canonicalDefaults = buildCandidate(
+    Object.create(null),
+    defaultRaw,
+    'default',
+    undefined,
+    false,
+  )
   if (canonicalDefaults.issues.length)
     throw new PicodashContractError('invalid-configuration', {}, canonicalDefaults.issues)
   const baseline = canonicalDefaults.candidate
@@ -848,13 +1018,25 @@ export function createPicodashStore<
   if (canonicalInitial.issues.length)
     throw new PicodashContractError('invalid-configuration', {}, canonicalInitial.issues)
   let values = freeze(canonicalInitial.candidate) as Readonly<Record<string, PicodashJsonValue>>
-  let currentSnapshot = freeze({ values, scopes: EmptyScopes }) as RootSnapshot<ValuesOf<Fields>>
+  let scopes: ReadonlyMap<string, DurableScopeMetadata> = EmptyScopes
+  let currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
   const listeners = new Set<() => void>()
+  const scopedRefs = new Map<string, WeakRef<object>>()
+  type ScopedChannel = {
+    readonly scopeId: string
+    snapshot: ScopedSnapshot<ValuesOf<Fields>>
+    readonly listeners: Set<() => void>
+  }
+  const scopedInternals = new WeakMap<object, ScopedChannel>()
+  const channelsById = new Map<string, ScopedChannel>()
+  const activeChannels = new Set<ScopedChannel>()
   let writing = false
 
-  const store: RootStore<Fields> = {
+  type StoreResult = CoreTransactionResult
+  const store: RootStore<Fields, StoreResult> = {
     kind: 'root',
     fields,
+    scope: (scopeId) => getScoped(scopeId),
     getState: () => currentSnapshot,
     subscribe(listener) {
       if (typeof listener !== 'function') throw new PicodashContractError('invalid-configuration')
@@ -884,6 +1066,104 @@ export function createPicodashStore<
       if (!result.ok) throw result.error
       return result
     },
+    setDashPanelLayout: (scopeId, layout) =>
+      metadataCommand(scopeId, (previous) => ({
+        ...previous,
+        dashPanel: normalizeDashPanelLayoutRecord(layout),
+      })),
+    resetDashPanelLayout: (scopeId) =>
+      metadataCommand(scopeId, (previous) => {
+        if (!previous?.dashPanel) return previous
+        return previous.dashList ? { dashList: previous.dashList } : undefined
+      }),
+    setDashListRootOrder: (scopeId, order) =>
+      metadataCommand(scopeId, (previous) => {
+        if (!validOrderArray(order)) throw new TypeError('Invalid Store metadata record.')
+        const list = previous?.dashList
+        const normalized = normalizeDashListMetadataRecord({
+          ...(order.length ? { rootOrder: order } : {}),
+          groupOrders: list?.groupOrders ?? new Map(),
+          collapseOverrides: list?.collapseOverrides ?? new Map(),
+        })
+        return { ...previous, dashList: normalized }
+      }),
+    removeDashListRootOrder: (scopeId) =>
+      metadataCommand(scopeId, (previous) => {
+        const list = previous?.dashList
+        if (!list?.rootOrder) return previous
+        const normalized = normalizeDashListMetadataRecord({
+          groupOrders: list.groupOrders,
+          collapseOverrides: list.collapseOverrides,
+        })
+        return normalized.rootOrder === undefined &&
+          !normalized.groupOrders.size &&
+          !normalized.collapseOverrides.size
+          ? previous?.dashPanel
+            ? { dashPanel: previous.dashPanel }
+            : undefined
+          : { ...previous, dashList: normalized }
+      }),
+    setDashListGroupOrder: (scopeId, groupId, order) =>
+      metadataCommand(scopeId, (previous) => {
+        if (!validIdentity(groupId)) throw new TypeError('Invalid Store metadata record.')
+        if (!validOrderArray(order)) throw new TypeError('Invalid Store metadata record.')
+        const list = previous?.dashList
+        const groups = new Map(list?.groupOrders ?? [])
+        if (order.length) groups.set(groupId, order)
+        else groups.delete(groupId)
+        const normalized = normalizeDashListMetadataRecord({
+          ...(list?.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
+          groupOrders: groups,
+          collapseOverrides: list?.collapseOverrides ?? new Map(),
+        })
+        return { ...previous, dashList: normalized }
+      }),
+    removeDashListGroupOrder: (scopeId, groupId) =>
+      metadataCommand(scopeId, (previous) => {
+        if (!validIdentity(groupId)) throw new TypeError('Invalid Store metadata record.')
+        const list = previous?.dashList
+        if (!list?.groupOrders.has(groupId)) return previous
+        const groups = new Map(list.groupOrders)
+        groups.delete(groupId)
+        const normalized = normalizeDashListMetadataRecord({
+          ...(list.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
+          groupOrders: groups,
+          collapseOverrides: list.collapseOverrides,
+        })
+        return { ...previous, dashList: normalized }
+      }),
+    setDashListCollapseOverride: (scopeId, nodeId, collapsed) =>
+      metadataCommand(scopeId, (previous) => {
+        if (!validIdentity(nodeId) || typeof collapsed !== 'boolean')
+          throw new TypeError('Invalid Store metadata record.')
+        const list = previous?.dashList
+        const overrides = new Map(list?.collapseOverrides ?? [])
+        overrides.set(nodeId, collapsed)
+        const normalized = normalizeDashListMetadataRecord({
+          ...(list?.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
+          groupOrders: list?.groupOrders ?? new Map(),
+          collapseOverrides: overrides,
+        })
+        return { ...previous, dashList: normalized }
+      }),
+    removeDashListCollapseOverride: (scopeId, nodeId) =>
+      metadataCommand(scopeId, (previous) => {
+        if (!validIdentity(nodeId)) throw new TypeError('Invalid Store metadata record.')
+        const list = previous?.dashList
+        if (!list?.collapseOverrides.has(nodeId)) return previous
+        const overrides = new Map(list.collapseOverrides)
+        overrides.delete(nodeId)
+        const normalized = normalizeDashListMetadataRecord({
+          ...(list.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
+          groupOrders: list.groupOrders,
+          collapseOverrides: overrides,
+        })
+        return { ...previous, dashList: normalized }
+      }),
+    resetDashListMetadata: (scopeId) =>
+      metadataCommand(scopeId, (previous) =>
+        previous?.dashPanel ? { dashPanel: previous.dashPanel } : undefined,
+      ),
   }
   Object.freeze(store)
 
@@ -902,6 +1182,13 @@ export function createPicodashStore<
   }
 
   function transact(next: Record<string, unknown>): CoreTransactionResult {
+    return transactAttributed(next)
+  }
+
+  function transactAttributed(
+    next: Record<string, unknown>,
+    originScopeId?: string,
+  ): CoreTransactionResult {
     if (writing) throw new PicodashContractError('reentrant-write')
     if (!next || typeof next !== 'object' || Array.isArray(next))
       return rejectedResult([
@@ -919,6 +1206,7 @@ export function createPicodashStore<
         values as Record<string, PicodashJsonValue>,
         next,
         'programmatic',
+        originScopeId,
       )
       if (built.issues.length) return rejectedResult(built.issues)
       const changedFields = fieldEntries
@@ -926,7 +1214,9 @@ export function createPicodashStore<
         .sort()
       if (!changedFields.length) return successfulResult()
       values = freeze(built.candidate) as Readonly<Record<string, PicodashJsonValue>>
-      currentSnapshot = freeze({ values, scopes: EmptyScopes }) as RootSnapshot<ValuesOf<Fields>>
+      currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
+      const affectedChannels = collectScopedChannels()
+      refreshScopedChannels(affectedChannels)
       const result = successfulResult(changedFields)
       for (const listener of listeners) {
         try {
@@ -935,10 +1225,225 @@ export function createPicodashStore<
           // Subscriber failures are isolated; the committed result remains true.
         }
       }
+      notifyScoped(affectedChannels)
       return result
     } finally {
       writing = false
     }
+  }
+
+  function validateScopeId(value: unknown): asserts value is string {
+    if (typeof value !== 'string')
+      throw new PicodashContractError('invalid-scope-id', { reason: 'not-string' })
+    if (value.trim().length === 0)
+      throw new PicodashContractError('invalid-scope-id', { reason: 'empty' })
+    if (value !== value.trim())
+      throw new PicodashContractError('invalid-scope-id', { reason: 'surrounding-whitespace' })
+    if (!isControlCharacterFree(value))
+      throw new PicodashContractError('invalid-scope-id', { reason: 'control-character' })
+  }
+
+  function makeScopedSnapshot(scopeId: string): ScopedSnapshot<ValuesOf<Fields>> {
+    return freeze({
+      values: currentSnapshot.values,
+      scope: scopes.get(scopeId),
+      interaction: EmptyInteraction,
+    })
+  }
+
+  function collectScopedChannels(targetScopeId?: string): Set<ScopedChannel> {
+    const affected = new Set<ScopedChannel>()
+    if (targetScopeId === undefined) for (const channel of activeChannels) affected.add(channel)
+    for (const [id, ref] of scopedRefs) {
+      const view = ref.deref()
+      if (!view) {
+        scopedRefs.delete(id)
+        continue
+      }
+      if (targetScopeId === undefined || targetScopeId === id) {
+        const channel = scopedInternals.get(view)
+        if (channel) affected.add(channel)
+      }
+    }
+    if (targetScopeId !== undefined) {
+      const channel = channelsById.get(targetScopeId)
+      if (channel) affected.add(channel)
+    }
+    return affected
+  }
+
+  function refreshScopedChannels(affected: Set<ScopedChannel>) {
+    for (const channel of affected) channel.snapshot = makeScopedSnapshot(channel.scopeId)
+  }
+
+  function notifyScoped(affected: Set<ScopedChannel>) {
+    for (const channel of affected)
+      for (const listener of channel.listeners) {
+        try {
+          listener()
+        } catch {}
+      }
+  }
+
+  function getScoped(scopeId: string): ScopedStore<Fields, StoreResult> {
+    validateScopeId(scopeId)
+    const cached = scopedRefs.get(scopeId)?.deref() as ScopedStore<Fields, StoreResult> | undefined
+    if (cached) return cached
+    const channel =
+      channelsById.get(scopeId) ??
+      ({
+        scopeId,
+        snapshot: makeScopedSnapshot(scopeId),
+        listeners: new Set<() => void>(),
+      } satisfies ScopedChannel)
+    const scoped: ScopedStore<Fields, StoreResult> = {
+      kind: 'scoped',
+      root: store,
+      scopeId,
+      fields,
+      scope: (id) => getScoped(id),
+      getState: () => channel.snapshot,
+      subscribe(listener) {
+        if (typeof listener !== 'function') throw new PicodashContractError('invalid-configuration')
+        const wasEmpty = channel.listeners.size === 0
+        channel.listeners.add(listener)
+        if (wasEmpty) {
+          channelsById.set(scopeId, channel)
+          activeChannels.add(channel)
+        }
+        let active = true
+        return () => {
+          if (active) {
+            active = false
+            channel.listeners.delete(listener)
+            if (channel.listeners.size === 0) {
+              activeChannels.delete(channel)
+              if (channelsById.get(scopeId) === channel) channelsById.delete(scopeId)
+            }
+          }
+        }
+      },
+      setValue(field, value) {
+        assertOwned(field)
+        return transactAttributed({ [field.key]: value }, scopeId)
+      },
+      setValueOrThrow(field, value) {
+        const result = scoped.setValue(field, value)
+        if (!result.ok) throw result.error
+        return result
+      },
+      setValues(next) {
+        return transactAttributed(next as Record<string, unknown>, scopeId)
+      },
+      setValuesOrThrow(next) {
+        const result = scoped.setValues(next)
+        if (!result.ok) throw result.error
+        return result
+      },
+      setDashPanelLayout: (layout) => store.setDashPanelLayout(scopeId, layout),
+      resetDashPanelLayout: () => store.resetDashPanelLayout(scopeId),
+      setDashListRootOrder: (order) => store.setDashListRootOrder(scopeId, order),
+      removeDashListRootOrder: () => store.removeDashListRootOrder(scopeId),
+      setDashListGroupOrder: (groupId, order) =>
+        store.setDashListGroupOrder(scopeId, groupId, order),
+      removeDashListGroupOrder: (groupId) => store.removeDashListGroupOrder(scopeId, groupId),
+      setDashListCollapseOverride: (nodeId, collapsed) =>
+        store.setDashListCollapseOverride(scopeId, nodeId, collapsed),
+      removeDashListCollapseOverride: (nodeId) =>
+        store.removeDashListCollapseOverride(scopeId, nodeId),
+      resetDashListMetadata: () => store.resetDashListMetadata(scopeId),
+    }
+    Object.freeze(scoped)
+    scopedInternals.set(scoped, channel)
+    scopedRefs.set(scopeId, new WeakRef(scoped))
+    return scoped
+  }
+
+  function metadataCommand(
+    scopeId: string,
+    transform: (previous: DurableScopeMetadata | undefined) => DurableScopeMetadata | undefined,
+  ): CoreTransactionResult {
+    if (writing) throw new PicodashContractError('reentrant-write')
+    validateScopeId(scopeId)
+    writing = true
+    try {
+      let candidate: DurableScopeMetadata | undefined
+      try {
+        const transformed = transform(scopes.get(scopeId))
+        candidate = normalizeDurableScopeMetadata({
+          dashList: transformed?.dashList,
+          dashPanel: transformed?.dashPanel,
+        })
+      } catch (error) {
+        if (error instanceof PicodashContractError) throw error
+        return rejectedResult([
+          Object.freeze({
+            code: 'invalid_metadata',
+            path: freezePath(['scopes', scopeId]),
+            message: 'Invalid Store metadata.',
+          }),
+        ])
+      }
+      const previous = scopes.get(scopeId)
+      if (metadataEqual(previous, candidate)) return successfulResult()
+      const entries = [...scopes.entries()].filter(([id]) => id !== scopeId)
+      if (candidate !== undefined) entries.push([scopeId, candidate])
+      entries.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+      scopes = entries.length ? immutableMap(entries) : EmptyScopes
+      currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
+      const affectedChannels = collectScopedChannels(scopeId)
+      refreshScopedChannels(affectedChannels)
+      const result = successfulResult([], [scopeId])
+      for (const listener of listeners) {
+        try {
+          listener()
+        } catch {}
+      }
+      notifyScoped(affectedChannels)
+      return result
+    } finally {
+      writing = false
+    }
+  }
+
+  function metadataEqual(
+    left: DurableScopeMetadata | undefined,
+    right: DurableScopeMetadata | undefined,
+  ): boolean {
+    if (left === right) return true
+    if (
+      !left ||
+      !right ||
+      !!left.dashPanel !== !!right.dashPanel ||
+      !!left.dashList !== !!right.dashList
+    )
+      return false
+    if (
+      left.dashPanel &&
+      right.dashPanel &&
+      !picodashJsonEqual(left.dashPanel as never, right.dashPanel as never)
+    )
+      return false
+    if (left.dashList && right.dashList) {
+      if (
+        !picodashJsonEqual(
+          (left.dashList.rootOrder ?? null) as never,
+          (right.dashList.rootOrder ?? null) as never,
+        )
+      )
+        return false
+      if (
+        left.dashList.groupOrders.size !== right.dashList.groupOrders.size ||
+        left.dashList.collapseOverrides.size !== right.dashList.collapseOverrides.size
+      )
+        return false
+      for (const [key, value] of left.dashList.groupOrders)
+        if (!picodashJsonEqual(value as never, right.dashList.groupOrders.get(key) as never))
+          return false
+      for (const [key, value] of left.dashList.collapseOverrides)
+        if (right.dashList.collapseOverrides.get(key) !== value) return false
+    }
+    return true
   }
 
   return store
