@@ -1,0 +1,397 @@
+'use client'
+
+import {
+  Fragment,
+  createElement,
+  forwardRef,
+  isValidElement,
+  useId,
+  useRef,
+  type ComponentPropsWithRef,
+  type ReactElement,
+  type MutableRefObject,
+  type ReactNode,
+} from 'react'
+import type { PicodashFieldDefinitions, RootStore, ScopedStore } from '@picodash/store'
+import { PicodashContractError } from '@picodash/store'
+import { PicodashStoreEntityBoundary } from '@picodash/store/integration'
+import { usePicodashStore } from '@picodash/store/react'
+import {
+  ActionMenu,
+  ActionMenuItem,
+  ActionMenuSeparator,
+  ActionSubmenu,
+  DashHeader,
+  PicodashThemeProvider,
+  type PicodashDensity,
+  type PicodashThemeOption,
+} from '@picodash/ui'
+
+export type {
+  ActionMenuConfirmation,
+  ActionMenuItemProps,
+  ActionMenuItemVariant,
+  ActionMenuProps,
+  ActionMenuSeparatorProps,
+  ActionSubmenuProps,
+  DashHeaderProps,
+  DashHeaderSlots,
+  PicodashDensity,
+  PicodashThemeOption,
+} from '@picodash/ui'
+
+type AnyStore<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions> =
+  | RootStore<Fields>
+  | ScopedStore<Fields>
+
+type NeutralDivProps = Omit<
+  ComponentPropsWithRef<'div'>,
+  'children' | 'id' | 'title' | 'role' | 'tabIndex' | 'aria-label' | 'aria-labelledby'
+>
+
+type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
+
+type HeadingProps =
+  | { readonly title?: undefined; readonly headingLevel?: never }
+  | { readonly title: ReactNode; readonly headingLevel: HeadingLevel }
+
+export type DashListProps<
+  Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions,
+  CustomTheme extends string = never,
+> = NeutralDivProps &
+  HeadingProps & {
+    readonly children?: ReactNode
+    readonly theme?: PicodashThemeOption<CustomTheme>
+    readonly density?: PicodashDensity
+    readonly 'aria-label'?: string
+    readonly 'aria-labelledby'?: string
+  } & (
+    | { readonly store: RootStore<Fields>; readonly id: string }
+    | { readonly store: ScopedStore<Fields>; readonly id?: string }
+    | { readonly store?: undefined; readonly id?: string }
+  )
+
+type RegisteredNodeNativeProps = Omit<
+  ComponentPropsWithRef<'div'>,
+  | 'aria-describedby'
+  | 'aria-errormessage'
+  | 'aria-invalid'
+  | 'aria-label'
+  | 'aria-labelledby'
+  | 'children'
+  | 'id'
+  | 'role'
+  | 'tabIndex'
+  | 'title'
+>
+
+export type DashGroupProps = RegisteredNodeNativeProps & {
+  readonly id: string
+  readonly label: ReactNode
+  readonly 'aria-label'?: string
+  readonly children?: ReactNode
+}
+
+export type DashletProps = RegisteredNodeNativeProps & {
+  readonly id: string
+  readonly label?: ReactNode
+  readonly 'aria-label'?: string
+  readonly description?: ReactNode
+  readonly layout?: 'inline' | 'block' | 'full'
+  readonly children?: ReactNode
+}
+
+const declarationMarker = Symbol('picodash.dashlist.declaration')
+const listMarker = Symbol('picodash.dashlist.list')
+const groupMarker = Symbol('picodash.dashlist.group')
+const dashletMarker = Symbol('picodash.dashlist.dashlet')
+
+type DeclarationKind = 'group' | 'dashlet' | 'custom'
+
+function declarationKind(element: ReactElement): DeclarationKind | null {
+  const type = element.type as { readonly [declarationMarker]?: string } | string
+  if (typeof type === 'string') return null
+  if (type[declarationMarker] === 'group') return 'group'
+  if (type[declarationMarker] === 'dashlet') return 'dashlet'
+  if (type[declarationMarker] === 'list') return null
+  // Custom declarations are accepted by the public grammar. Their committed
+  // registration and forwarded ID are validated by the later integration cut.
+  return 'custom'
+}
+
+function flattenDeclarations(children: ReactNode, owner: 'list' | 'group'): ReactElement[] {
+  const result: ReactElement[] = []
+  const visit = (child: ReactNode): void => {
+    if (child === null || child === undefined || typeof child === 'boolean') return
+    if (Array.isArray(child)) {
+      child.forEach(visit)
+      return
+    }
+    if (!isValidElement(child))
+      throw new TypeError(
+        `Dash${owner === 'list' ? 'List' : 'Group'} children must be Dashlet or DashGroup declarations.`,
+      )
+    if (child.type === Fragment) {
+      visit((child.props as { readonly children?: ReactNode }).children)
+      return
+    }
+    const kind = declarationKind(child)
+    if (kind === null)
+      throw new TypeError(
+        `Dash${owner === 'list' ? 'List' : 'Group'} children cannot be DOM elements or text wrappers.`,
+      )
+    if (owner === 'group' && kind === 'group')
+      throw new TypeError('DashGroup cannot contain another DashGroup.')
+    result.push(child)
+  }
+  visit(children)
+  return result
+}
+
+function isTextLabel(value: ReactNode): boolean {
+  if (typeof value === 'string') return value.trim().length > 0
+  if (typeof value === 'number' || typeof value === 'bigint') return true
+  if (Array.isArray(value)) return value.length > 0 && value.every(isTextLabel)
+  return false
+}
+
+function requireAccessibleLabel(
+  label: ReactNode,
+  ariaLabel: string | undefined,
+  component: 'DashGroup' | 'Dashlet',
+): void {
+  if (isTextLabel(label)) return
+  if (typeof ariaLabel === 'string' && ariaLabel.trim().length > 0) return
+  throw new TypeError(`${component} non-text labels require an explicit aria-label.`)
+}
+
+function useOptionalStore<Fields extends PicodashFieldDefinitions>(): AnyStore<Fields> | null {
+  try {
+    return usePicodashStore() as AnyStore<Fields>
+  } catch (error) {
+    if (error instanceof PicodashContractError && error.code === 'missing-store-context')
+      return null
+    throw error
+  }
+}
+
+function resolveStore<Fields extends PicodashFieldDefinitions>(
+  explicitStore: AnyStore<Fields> | undefined,
+  contextStore: AnyStore<Fields> | null,
+  id: string | undefined,
+): { readonly store: ScopedStore<Fields>; readonly standalone: boolean; readonly scopeId: string } {
+  const suppliedRoot = explicitStore?.kind === 'root' ? explicitStore : explicitStore?.root
+  const contextRoot = contextStore?.kind === 'root' ? contextStore : contextStore?.root
+  if (explicitStore && contextRoot && suppliedRoot !== contextRoot)
+    throw new TypeError('DashList store does not agree with the nearest Store context.')
+
+  const source = explicitStore ?? contextStore
+  if (!source)
+    throw new PicodashContractError('missing-store-context', { required: 'root-or-scoped' })
+  if (source.kind === 'root') {
+    if (id === undefined) throw new TypeError('DashList requires id when resolving a root Store.')
+    return { store: source.scope(id), standalone: contextStore === null, scopeId: id }
+  }
+  if (explicitStore?.kind === 'scoped' && id !== undefined && id !== source.scopeId)
+    throw new TypeError('DashList scoped Store and id must name the same scope.')
+  if (!explicitStore && id !== undefined && id !== source.scopeId)
+    return { store: source.root.scope(id), standalone: contextStore === null, scopeId: id }
+  return { store: source, standalone: contextStore === null, scopeId: source.scopeId }
+}
+
+function immutableIdentity<Fields extends PicodashFieldDefinitions>(
+  identityRef: MutableRefObject<{
+    readonly store: AnyStore<Fields>
+    readonly scopeId: string
+  } | null>,
+  store: AnyStore<Fields>,
+  scopeId: string,
+): void {
+  if (identityRef.current === null) {
+    identityRef.current = { store, scopeId }
+    return
+  }
+  if (identityRef.current.store !== store || identityRef.current.scopeId !== scopeId)
+    throw new TypeError('DashList Store and id are immutable while mounted.')
+}
+
+function classNames(base: string, className: string | undefined): string {
+  return className ? `${base} ${className}` : base
+}
+
+const DashletImpl = forwardRef<HTMLDivElement, DashletProps>(function Dashlet(
+  {
+    id,
+    label,
+    'aria-label': ariaLabel,
+    description,
+    layout = 'inline',
+    children,
+    className,
+    ...props
+  },
+  ref,
+) {
+  requireAccessibleLabel(label, ariaLabel, 'Dashlet')
+  const labelId = `picodash-dashlet-label-${useId()}`
+  const descriptionIdToken = useId()
+  const descriptionId =
+    description === undefined ? undefined : `picodash-dashlet-description-${descriptionIdToken}`
+  return (
+    <div
+      {...props}
+      ref={ref}
+      id={undefined}
+      role="listitem"
+      className={classNames('picodash-dashlist-item', className)}
+      data-picodash-dashlet={id}
+    >
+      <div
+        role="group"
+        tabIndex={-1}
+        aria-label={ariaLabel}
+        aria-labelledby={isTextLabel(label) ? labelId : undefined}
+        aria-describedby={descriptionId}
+        data-layout={layout}
+        data-picodash-dashlet-shell
+      >
+        {label !== undefined ? (
+          <span id={labelId} data-picodash-dashlet-label>
+            {label}
+          </span>
+        ) : null}
+        <div data-picodash-dashlet-content>{children}</div>
+        {description !== undefined ? (
+          <div id={descriptionId} data-picodash-dashlet-description>
+            {description}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+})
+
+const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGroup(
+  { id, label, 'aria-label': ariaLabel, children, className, ...props },
+  ref,
+) {
+  requireAccessibleLabel(label, ariaLabel, 'DashGroup')
+  const declarations = flattenDeclarations(children, 'group')
+  const labelId = `picodash-dashgroup-label-${useId()}`
+  return (
+    <div
+      {...props}
+      ref={ref}
+      role="listitem"
+      className={classNames('picodash-dashlist-item picodash-dashlist-group-item', className)}
+      data-picodash-dashgroup={id}
+    >
+      <div
+        role="group"
+        aria-label={ariaLabel}
+        aria-labelledby={isTextLabel(label) ? labelId : undefined}
+        data-picodash-dashgroup
+      >
+        <div id={labelId} data-picodash-dashgroup-label>
+          {label}
+        </div>
+        <div role="list" data-picodash-dashgroup-list>
+          {declarations.map((declaration, index) =>
+            createElement(Fragment, { key: declaration.key ?? `${id}-${index}` }, declaration),
+          )}
+        </div>
+      </div>
+    </div>
+  )
+})
+
+const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList(
+  {
+    id,
+    store: explicitStore,
+    title,
+    headingLevel,
+    children,
+    theme,
+    density,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledBy,
+    className,
+    ...props
+  },
+  ref,
+) {
+  if (title === undefined && headingLevel !== undefined)
+    throw new TypeError('DashList headingLevel requires title.')
+  if (title !== undefined && headingLevel === undefined)
+    throw new TypeError('DashList title requires headingLevel.')
+  if (
+    headingLevel !== undefined &&
+    (!Number.isInteger(headingLevel) || headingLevel < 1 || headingLevel > 6)
+  )
+    throw new TypeError('DashList headingLevel must be an integer from 1 through 6.')
+  const contextStore = useOptionalStore<PicodashFieldDefinitions>()
+  const resolved = resolveStore(explicitStore, contextStore, id)
+  const identityRef = useRef<{
+    readonly store: AnyStore<PicodashFieldDefinitions>
+    readonly scopeId: string
+  } | null>(null)
+  immutableIdentity(identityRef, resolved.store, resolved.scopeId)
+  const declarations = flattenDeclarations(children, 'list')
+  const headingIdToken = useId()
+  const headingId = title === undefined ? undefined : `picodash-dashlist-heading-${headingIdToken}`
+  const statusId = `picodash-dashlist-status-${useId()}`
+  const listName = ariaLabelledBy ?? (title === undefined ? undefined : headingId)
+  return (
+    <PicodashThemeProvider theme={theme} density={density}>
+      <PicodashStoreEntityBoundary
+        store={resolved.store}
+        kind="dashList"
+        allowStandalone={resolved.standalone}
+      >
+        <div
+          {...props}
+          ref={ref}
+          className={classNames('picodash-dashlist', className)}
+          data-picodash-dashlist
+        >
+          {title !== undefined ? (
+            <DashHeader
+              slots={{ title: createElement(`h${headingLevel}`, { id: headingId }, title) }}
+            />
+          ) : null}
+          <div
+            role="list"
+            aria-label={ariaLabel}
+            aria-labelledby={listName}
+            data-picodash-dashlist-list
+          >
+            {declarations.map((declaration, index) =>
+              createElement(
+                Fragment,
+                { key: declaration.key ?? `${resolved.scopeId}-${index}` },
+                declaration,
+              ),
+            )}
+          </div>
+          <div id={statusId} role="status" aria-live="polite" aria-atomic="true" />
+        </div>
+      </PicodashStoreEntityBoundary>
+    </PicodashThemeProvider>
+  )
+})
+
+export const DashList = DashListImpl as unknown as <
+  Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions,
+  CustomTheme extends string = never,
+>(
+  props: DashListProps<Fields, CustomTheme>,
+) => ReactElement | null
+export const DashGroup = DashGroupImpl as typeof DashGroupImpl
+export const Dashlet = DashletImpl as typeof DashletImpl
+
+Object.assign(DashList, { [declarationMarker]: 'list', [listMarker]: true })
+Object.assign(DashGroup, { [declarationMarker]: 'group', [groupMarker]: true })
+Object.assign(Dashlet, { [declarationMarker]: 'dashlet', [dashletMarker]: true })
+
+export { ActionMenu, ActionMenuItem, ActionMenuSeparator, ActionSubmenu, DashHeader }

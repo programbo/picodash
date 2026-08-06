@@ -7,11 +7,11 @@ readouts, visualizations, previews, and actions. This page describes the aspirat
 ## Status
 
 > Contract: Accepted
-> Implementation: Prototype
-> Evidence: Existing anatomy and Store tests are reference material only.
-> Notes: The initial launch contract is accepted. Current code remains prototype evidence and must
-> be reconciled through the conformance matrix; compact tuning, token-consumption tables, and private
-> structural selectors are implementation evidence rather than unresolved API decisions.
+> Implementation: Partial
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx`, `packages/dashlist/tests/dashlist.types.test.ts`, and `packages/dashlist/tests/package-artifacts.mjs` cover the alpha shell, semantic structure, Store resolution boundary, and package surface.
+> Notes: The initial launch contract is accepted. The remaining prototype behavior must be
+> reconciled through the conformance matrix; bindings, ordering, collapse, actions, rail behavior,
+> catalogs, and registration agreement remain Planned or Prototype.
 
 ## Package purpose
 
@@ -46,12 +46,12 @@ function Settings() {
 }
 ```
 
-| API/component       | Contract | Implementation | Notes                                         |
-| ------------------- | -------- | -------------- | --------------------------------------------- |
-| `DashList`          | Accepted | Planned        | Package-native List root and scope boundary.  |
-| root `store` + `id` | Accepted | Planned        | Resolves an explicit scope.                   |
-| scoped `store`      | Accepted | Planned        | `id` may be omitted or must agree.            |
-| `children`          | Accepted | Prototype      | Explicit typed JSX; no schema-generated List. |
+| API/component       | Contract | Implementation | Notes                                                                                               |
+| ------------------- | -------- | -------------- | --------------------------------------------------------------------------------------------------- |
+| `DashList`          | Accepted | Partial        | Package-native List root and scope boundary; shell and Store boundary are implemented.              |
+| root `store` + `id` | Accepted | Partial        | Resolves an explicit scope and opts into standalone hosting without context.                        |
+| scoped `store`      | Accepted | Partial        | `id` may be omitted or must agree; explicit mismatch is rejected.                                   |
+| `children`          | Accepted | Partial        | Arrays/fragments and basic declarations are covered; committed custom registration remains Planned. |
 
 ## Context composition
 
@@ -70,12 +70,16 @@ relationship from the nearest scope. DashList supplies its scoped Store context 
 Provider boundary resets ancestry.
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx` covers nearest Provider scope resolution,
+> explicit child scopes, nested relationships, and committed lease cleanup; full custom registration
+> agreement remains Planned.
 
 ## DashList root API
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx` covers heading/label validation and neutral/list/listitem/group/status semantics; full root API behavior remains Planned.
 
 The package-native component and type names are `DashList` and `DashListProps`. The prototype
 aliases `Dashlist`, `DashlistProps`, and `PicodashList` are migration evidence rather than additional
