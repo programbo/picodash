@@ -29,6 +29,7 @@
     "prepublishOnly": "vp check && vp test --passWithNoTests && vp run build"
   },
   "devDependencies": {
+    "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "react": "catalog:",
