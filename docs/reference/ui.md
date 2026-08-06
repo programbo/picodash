@@ -5,8 +5,8 @@ accessible presentation primitives without making either product depend on the o
 
 ## Status
 
-> Contract: Accepted package boundary, initial component inventory, exact prop policy, and
-> reexport boundaries
+> Contract: Accepted package boundary, initial component inventory, and reexport boundaries;
+> revised portal-container element type
 >
 > Implementation: Partial
 >
@@ -64,7 +64,7 @@ token-consumption tables are implementation evidence rather than unresolved API 
 
 ## Initial public component inventory
 
-> Contract: Accepted
+> Contract: Revised — portal containers are HTML elements
 >
 > Implementation: Planned
 
@@ -152,12 +152,12 @@ interface PicodashThemeProviderProps<CustomTheme extends string = never> {
 
 interface PicodashOverlayProviderProps {
   children: ReactNode
-  portalContainer?: Element | null
+  portalContainer?: HTMLElement | null
   layerBase?: number
 }
 
 interface PicodashOverlayDefaults {
-  readonly portalContainer: Element | null
+  readonly portalContainer: HTMLElement | null
   readonly layerBase?: number
 }
 ```
@@ -186,6 +186,11 @@ usePicodashOverlayDefaults(): Readonly<PicodashOverlayDefaults>
 
 `PicodashOverlayProvider` owns product-neutral defaults for detached UI primitives. It is a context
 boundary, not a theme carrier or Store boundary.
+
+Portal containers are `HTMLElement` hosts rather than arbitrary `Element` values. This matches the
+shared React Aria portal-context boundary and every current Picodash host. Geometry boundaries
+remain `Element` because SVG geometry is valid there; accepting SVG as an overlay host would require
+an unsafe narrowing before React Aria could consume it.
 
 - `portalContainer={undefined}` inherits the nearest overlay default. Without an ancestor, the
   browser default is `document.body`.
@@ -312,7 +317,7 @@ type AlertDialogOverlayProps = Omit<
   | 'UNSTABLE_portalContainer'
 > & {
   children: ReactNode
-  portalContainer?: Element | null
+  portalContainer?: HTMLElement | null
   layerBase?: number
 }
 
@@ -450,7 +455,7 @@ type ActionMenuProps = Pick<
   label: string
   trigger?: ReactElement
   children: ReactNode
-  portalContainer?: Element | null
+  portalContainer?: HTMLElement | null
   layerBase?: number
 }
 
@@ -555,7 +560,7 @@ type TooltipContentProps = Omit<
 > &
   RefAttributes<HTMLDivElement> & {
     children: ReactNode
-    portalContainer?: Element | null
+    portalContainer?: HTMLElement | null
     layerBase?: number
   }
 ```

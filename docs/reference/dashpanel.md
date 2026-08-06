@@ -6,7 +6,7 @@ source of truth.
 
 ## Status
 
-> Contract: Accepted
+> Contract: Accepted, with revised HTML portal-container type
 > Implementation: Prototype
 > Evidence: Product ownership, public APIs, placement, adaptive presentation, styling boundaries,
 > and verification ownership are accepted. Current exports and geometry have not been reconciled.
@@ -99,7 +99,7 @@ interface DashPanelProviderProps<TValues extends object, CustomTheme extends str
   boundary?: DashPanelBoundary | null
   boundaryInset?: DashPanelBoundaryInset
   dockPositions?: readonly DashPanelDockPosition[]
-  portalContainer?: Element | null
+  portalContainer?: HTMLElement | null
   layerBase?: number
   theme?: PicodashThemeOption<CustomTheme>
   density?: PicodashDensity
@@ -112,6 +112,8 @@ interface DashPanelProviderProps<TValues extends object, CustomTheme extends str
   does not support.
 - `portalContainer` and `layerBase` establish the shared overlay defaults as well as Panel portal
   ownership. Geometry continues to resolve independently through `boundary` and `boundaryInset`.
+- Portal containers are HTML elements because they feed the shared React Aria portal context.
+  `boundary` remains the broader `Element` type because geometry may legitimately resolve from SVG.
 - The Provider owns no persistence configuration. Store construction supplies persistence policy,
   driver, and storage identity.
 - The prototype props `panelBoundary`, `panelBoundaryInset`, `persistLayout`, and `storageKey` do not
