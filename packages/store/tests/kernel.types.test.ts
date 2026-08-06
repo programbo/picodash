@@ -15,6 +15,7 @@ import {
   type PicodashIssueInput,
   type PicodashParseResult,
   type CoreTransactionResult,
+  type DestroyRootOptions,
   type RootStore,
   type ScopedStore,
   type RootSnapshot,
@@ -44,6 +45,8 @@ test('infers widened literal values and Standard Schema output', () => {
   })
   const inferred: { readonly count: number; readonly mode: 'safe' | 'fast' } =
     store.getState().values
+  expectTypeOf<DestroyRootOptions>().toEqualTypeOf<{ readonly discardUnpersisted: true }>()
+  expectTypeOf<typeof store.destroy>().toMatchTypeOf<(options?: DestroyRootOptions) => void>()
   void inferred
   expectTypeOf(store.getState().values).toEqualTypeOf<{
     readonly count: number

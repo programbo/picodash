@@ -12,6 +12,7 @@ export type {
   InvalidScopeIdReason,
   InvalidDestroyOptionsReason,
   DestroyScopeOptions,
+  DestroyRootOptions,
   StaleDraftConflict,
   BindingInteractionState,
   ItemInteractionState,

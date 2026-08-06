@@ -13,6 +13,18 @@ export function classifyIdentity(value: unknown): IdentityReason | undefined {
 
 export type EntityKind = 'dashPanel' | 'dashList'
 
+export type RuntimeLifecycle = 'active' | 'destroying' | 'destroyed'
+
+export type RuntimeResourceContext = {
+  readonly discardUnpersisted: boolean
+}
+
+export type RuntimeResource = {
+  readonly phase: 'capability' | 'kernel'
+  readonly hasUnpersistedState?: () => boolean
+  readonly teardown: (context: RuntimeResourceContext) => void
+}
+
 export type HostRecord = {
   readonly token: object
   readonly providerId?: string
@@ -55,7 +67,8 @@ type ScopedViewRecord = {
 }
 
 export class RuntimeController {
-  readonly root: object
+  root: object
+  private rootFinalized = false
   readonly providers = new Map<string, ProviderRecord>()
   readonly entities = new Set<EntityRecord>()
   readonly relationships = new Set<RelationshipRecord>()
@@ -65,9 +78,55 @@ export class RuntimeController {
   readonly parentByChildScope = new Map<string, string>()
   readonly childrenByParentScope = new Map<string, Set<string>>()
   readonly edgeCounts = new Map<string, Map<string, number>>()
+  readonly resources = new Set<RuntimeResource>()
+  lifecycle: RuntimeLifecycle = 'active'
 
   constructor(root: object) {
     this.root = root
+  }
+
+  finalizeRoot(root: object): void {
+    if (this.rootFinalized) throw new Error('Runtime root already finalized.')
+    this.root = root
+    this.rootFinalized = true
+  }
+
+  registerResource(resource: RuntimeResource): () => void {
+    if (this.lifecycle !== 'active') return () => undefined
+    this.resources.add(resource)
+    let registered = true
+    return () => {
+      if (!registered) return
+      registered = false
+      this.resources.delete(resource)
+    }
+  }
+
+  hasActiveLeases(): boolean {
+    for (const provider of this.providers.values()) if (provider.active) return true
+    for (const entity of this.entities) if (entity.active) return true
+    for (const relationship of this.relationships) if (relationship.active) return true
+    return false
+  }
+
+  hasUnpersistedState(): boolean {
+    for (const resource of this.resources) if (resource.hasUnpersistedState?.()) return true
+    return false
+  }
+
+  destroyResources(context: RuntimeResourceContext): void {
+    this.lifecycle = 'destroying'
+    for (const phase of ['capability', 'kernel'] as const)
+      for (const resource of this.resources)
+        if (resource.phase === phase) resource.teardown(context)
+    this.resources.clear()
+    this.providers.clear()
+    this.entities.clear()
+    this.relationships.clear()
+    this.parentByChildScope.clear()
+    this.childrenByParentScope.clear()
+    this.edgeCounts.clear()
+    this.lifecycle = 'destroyed'
   }
 
   descendants(scopeId: string): readonly string[] {
@@ -132,8 +191,11 @@ const controllers = new WeakMap<object, RuntimeController>()
 const handleControllers = new WeakMap<object, RuntimeController>()
 const scopedViewRecords = new WeakMap<object, ScopedViewRecord>()
 
-export function registerRuntimeController(root: object): RuntimeController {
-  const controller = new RuntimeController(root)
+export function registerRuntimeController(
+  root: object,
+  existing?: RuntimeController,
+): RuntimeController {
+  const controller = existing ?? new RuntimeController(root)
   controllers.set(root, controller)
   return controller
 }
@@ -162,4 +224,8 @@ export function registerRuntimeHandle(handle: object, controller: RuntimeControl
 
 export function runtimeControllerForHandle(handle: object): RuntimeController | undefined {
   return handleControllers.get(handle)
+}
+
+export function registerRuntimeResource(root: object, resource: RuntimeResource): () => void {
+  return runtimeControllerFor(root)?.registerResource(resource) ?? (() => undefined)
 }

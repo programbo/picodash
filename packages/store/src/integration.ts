@@ -125,6 +125,7 @@ function entityOptions(options: unknown): {
 function controllerForRoot(root: object): RuntimeController {
   const controller = runtimeControllerFor(root)
   if (!controller) invalidHandle('host', 'wrong-kind')
+  if (controller!.lifecycle !== 'active') throw new PicodashContractError('use-after-destroy')
   return controller!
 }
 
@@ -183,9 +184,11 @@ export function acquireEntityLease<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
 >(scopedStore: ScopedStore<Fields, Result>, options: EntityLeaseOptions): EntityLease {
-  const parsed = entityOptions(options)
   const scopedRecord = runtimeScopedViewFor(scopedStore as object)
   if (!scopedRecord) invalidHandle('host', 'wrong-kind')
+  if (scopedRecord!.controller.lifecycle !== 'active')
+    throw new PicodashContractError('use-after-destroy')
+  const parsed = entityOptions(options)
   const controller = scopedRecord!.controller
   const scopeId = scopedRecord!.scopeId
   let host: HostRecord
@@ -263,6 +266,11 @@ export function acquireRelationshipLease(
   const child = childEntity as object
   const parentController = runtimeControllerForHandle(parent)
   const childController = runtimeControllerForHandle(child)
+  if (
+    (parentController && parentController.lifecycle !== 'active') ||
+    (childController && childController.lifecycle !== 'active')
+  )
+    throw new PicodashContractError('use-after-destroy')
   if (!parentController) invalidHandle('parent', 'wrong-kind')
   const parentCandidate = parentController!.handles.get(parent)
   if (!parentCandidate || parentCandidate.kind !== 'entity') invalidHandle('parent', 'wrong-kind')

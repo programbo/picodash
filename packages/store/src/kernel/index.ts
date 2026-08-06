@@ -5,6 +5,7 @@ import {
   registerRuntimeController,
   registerRuntimeScopedView,
   runtimeControllerFor,
+  RuntimeController,
 } from '../runtime-controller.js'
 import {
   normalizeDashListMetadataRecord,
@@ -280,6 +281,10 @@ export type InvalidDestroyOptionsReason =
   | 'invalid-include-descendants'
   | 'invalid-discard-unpersisted'
 
+export type DestroyRootOptions = {
+  readonly discardUnpersisted: true
+}
+
 export type DestroyScopeOptions = {
   readonly includeDescendants?: boolean
 }
@@ -352,6 +357,7 @@ export interface RootStore<
   scope(scopeId: string): ScopedStore<Fields, Result>
   getState(): RootSnapshot<ValuesOf<Fields>>
   subscribe(listener: () => void): () => void
+  destroy(options?: DestroyRootOptions): void
   setValue<K extends keyof Fields & string>(
     field: PicodashField<ValuesOf<Fields>, K>,
     value: ValuesOf<Fields>[K],
@@ -407,6 +413,9 @@ type ContractErrorCode =
   | 'relationship-parent-conflict'
   | 'relationship-cycle'
   | 'lease-has-active-dependents'
+  | 'root-has-active-leases'
+  | 'root-has-unpersisted-state'
+  | 'use-after-destroy'
 
 const BUILTIN_CODES = new Set<PicodashIssueCode>([
   'invalid_json',
@@ -425,6 +434,84 @@ const validIssueCode = (value: unknown): value is PicodashIssueCode =>
 
 const freezePath = (path: readonly (string | number)[]): readonly (string | number)[] =>
   Object.freeze([...path])
+
+function assertRuntimeActive(controller: RuntimeController): void {
+  if (controller.lifecycle !== 'active') throw new PicodashContractError('use-after-destroy')
+}
+
+function makeLifecycleFacade<T extends object>(target: T, controller: RuntimeController): T {
+  const methods = new Map<PropertyKey, (...args: never[]) => unknown>()
+  const facadeTarget = {} as T
+  const guardedMethod = (property: PropertyKey, value: (...args: never[]) => unknown) => {
+    const cached = methods.get(property)
+    if (cached) return cached
+    const method = (...args: never[]) => {
+      assertRuntimeActive(controller)
+      return Reflect.apply(value, target, args)
+    }
+    methods.set(property, method)
+    return method
+  }
+  for (const property of Reflect.ownKeys(target))
+    Object.defineProperty(facadeTarget, property, {
+      enumerable: true,
+      configurable: true,
+      get: () => {
+        assertRuntimeActive(controller)
+        const value = Reflect.get(target, property, target)
+        return typeof value === 'function'
+          ? guardedMethod(property, value as (...args: never[]) => unknown)
+          : value
+      },
+    })
+  Object.freeze(facadeTarget)
+  return new Proxy(facadeTarget, {
+    get(source, property, receiver) {
+      assertRuntimeActive(controller)
+      return Reflect.get(source, property, receiver)
+    },
+    has(source, property) {
+      assertRuntimeActive(controller)
+      return Reflect.has(source, property)
+    },
+    ownKeys(source) {
+      assertRuntimeActive(controller)
+      return Reflect.ownKeys(source)
+    },
+    getOwnPropertyDescriptor(source, property) {
+      assertRuntimeActive(controller)
+      return Reflect.getOwnPropertyDescriptor(source, property)
+    },
+    getPrototypeOf(source) {
+      assertRuntimeActive(controller)
+      return Reflect.getPrototypeOf(source)
+    },
+    set(source, property, value, receiver) {
+      assertRuntimeActive(controller)
+      return Reflect.set(source, property, value, receiver)
+    },
+    defineProperty(source, property, descriptor) {
+      assertRuntimeActive(controller)
+      return Reflect.defineProperty(source, property, descriptor)
+    },
+    deleteProperty(source, property) {
+      assertRuntimeActive(controller)
+      return Reflect.deleteProperty(source, property)
+    },
+    setPrototypeOf(source, prototype) {
+      assertRuntimeActive(controller)
+      return Reflect.setPrototypeOf(source, prototype)
+    },
+    preventExtensions(source) {
+      assertRuntimeActive(controller)
+      return Reflect.preventExtensions(source)
+    },
+    isExtensible(source) {
+      assertRuntimeActive(controller)
+      return Reflect.isExtensible(source)
+    },
+  })
+}
 
 const normalizeIssue = (input: unknown, fallbackCode: PicodashIssueCode): TransactionIssue => {
   const source = input && typeof input === 'object' ? (input as Record<string, unknown>) : {}
@@ -1057,13 +1144,14 @@ export function createPicodashStore<
     snapshot: ScopedSnapshot<ValuesOf<Fields>>
     readonly listeners: Set<() => void>
   }
-  const scopedInternals = new WeakMap<object, ScopedChannel>()
+  let scopedInternals = new WeakMap<object, ScopedChannel>()
   const channelsById = new Map<string, ScopedChannel>()
   const activeChannels = new Set<ScopedChannel>()
   let writing = false
 
   type StoreResult = CoreTransactionResult
-  const store: RootStore<Fields, StoreResult> = {
+  let store!: RootStore<Fields, StoreResult>
+  const storeImplementation: RootStore<Fields, StoreResult> = {
     kind: 'root',
     fields,
     scope: (scopeId) => getScoped(scopeId),
@@ -1077,6 +1165,9 @@ export function createPicodashStore<
         active = false
         listeners.delete(listener)
       }
+    },
+    destroy(options) {
+      destroyRootInternal(options)
     },
     setValue(field, value) {
       assertOwned(field)
@@ -1198,8 +1289,21 @@ export function createPicodashStore<
         previous?.dashPanel ? { dashPanel: previous.dashPanel } : undefined,
       ),
   }
-  Object.freeze(store)
-  registerRuntimeController(store as object)
+  Object.freeze(storeImplementation)
+  const runtimeController = new RuntimeController(storeImplementation as object)
+  store = makeLifecycleFacade(storeImplementation, runtimeController)
+  runtimeController.finalizeRoot(store as object)
+  registerRuntimeController(store as object, runtimeController)
+  runtimeController.registerResource({
+    phase: 'kernel',
+    teardown: () => {
+      listeners.clear()
+      channelsById.clear()
+      activeChannels.clear()
+      scopedRefs.clear()
+      scopedInternals = new WeakMap<object, ScopedChannel>()
+    },
+  })
 
   function assertOwned(
     field: unknown,
@@ -1293,6 +1397,42 @@ export function createPicodashStore<
       if (error instanceof PicodashContractError) throw error
       throw new PicodashContractError('invalid-destroy-options', { reason: 'not-object' })
     }
+  }
+
+  function validateDestroyRootOptions(options: unknown): boolean {
+    if (options === undefined) return false
+    if (!options || typeof options !== 'object' || Array.isArray(options))
+      throw new PicodashContractError('invalid-destroy-options', { reason: 'not-object' })
+    let descriptors: Record<PropertyKey, PropertyDescriptor>
+    try {
+      descriptors = Object.getOwnPropertyDescriptors(options)
+      for (const key of Reflect.ownKeys(descriptors))
+        if (key !== 'discardUnpersisted')
+          throw new PicodashContractError('invalid-destroy-options', { reason: 'unknown-key' })
+      const descriptor = descriptors.discardUnpersisted
+      if (descriptor && !('value' in descriptor))
+        throw new PicodashContractError('invalid-destroy-options', { reason: 'accessor-property' })
+      if (descriptor && descriptor.value !== true)
+        throw new PicodashContractError('invalid-destroy-options', {
+          reason: 'invalid-discard-unpersisted',
+        })
+      return descriptor?.value === true
+    } catch (error) {
+      if (error instanceof PicodashContractError) throw error
+      throw new PicodashContractError('invalid-destroy-options', { reason: 'not-object' })
+    }
+  }
+
+  function destroyRootInternal(options?: DestroyRootOptions): void {
+    const controller = runtimeControllerFor(store as object)
+    if (!controller || controller.lifecycle !== 'active')
+      throw new PicodashContractError('use-after-destroy')
+    const discardUnpersisted = validateDestroyRootOptions(options)
+    if (writing) throw new PicodashContractError('reentrant-write')
+    if (controller.hasActiveLeases()) throw new PicodashContractError('root-has-active-leases')
+    if (!discardUnpersisted && controller.hasUnpersistedState())
+      throw new PicodashContractError('root-has-unpersisted-state')
+    controller.destroyResources({ discardUnpersisted })
   }
 
   function destroyScopeInternal(
@@ -1444,10 +1584,11 @@ export function createPicodashStore<
     }
     Object.freeze(scoped)
     const controller = runtimeControllerFor(store as object)
-    if (controller) registerRuntimeScopedView(scoped as object, controller, scopeId)
-    scopedInternals.set(scoped, channel)
-    scopedRefs.set(scopeId, new WeakRef(scoped))
-    return scoped
+    const facade = controller ? makeLifecycleFacade(scoped, controller) : scoped
+    if (controller) registerRuntimeScopedView(facade as object, controller, scopeId)
+    scopedInternals.set(facade, channel)
+    scopedRefs.set(scopeId, new WeakRef(facade))
+    return facade
   }
 
   function metadataCommand(

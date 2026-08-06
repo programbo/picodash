@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { access, mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { access, mkdtemp, mkdir, writeFile, rm, readdir } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -107,6 +107,14 @@ if (import.meta.main) {
   const rootModule = await import(
     `${pathToFileURL(path.join(packageRoot, 'dist/index.mjs')).href}?artifact-check-root`
   )
+  const rootDeclaration = (await readdir(path.join(packageRoot, 'dist'))).find((name) =>
+    /^index-.*\.d\.mts$/.test(name),
+  )
+  assert.ok(rootDeclaration)
+  const rootTypes = await readText(path.join(packageRoot, 'dist', rootDeclaration))
+  assert.match(rootTypes, /destroy\(options\?: DestroyRootOptions\): void/)
+  const scopedSection = rootTypes.slice(rootTypes.indexOf('interface ScopedStore'))
+  assert.doesNotMatch(scopedSection, /destroy\(options\?: DestroyRootOptions\)/)
   assert.deepEqual(Object.keys(rootModule).sort(), [
     'PicodashContractError',
     'PicodashTransactionError',
@@ -127,6 +135,14 @@ if (import.meta.main) {
   ]) {
     assert.equal(retired in reactModule, false, `retired React export remains present: ${retired}`)
   }
+  const artifactStore = rootModule.createPicodashStore({
+    valueOwner: 'store',
+    fields: { value: { defaultValue: 1 } },
+  })
+  const artifactScoped = artifactStore.scope('artifact')
+  artifactStore.destroy()
+  assert.throws(() => artifactStore.getState(), /use-after-destroy/)
+  assert.throws(() => artifactScoped.getState(), /use-after-destroy/)
 
   // Exercise the negative boundary with a temporary reachable React import.
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'picodash-store-artifact-'))

@@ -13,6 +13,7 @@ import {
 } from '../src/integration.ts'
 import {
   createPicodashStore,
+  type DestroyRootOptions,
   type DestroyScopeOptions,
   type InvalidDestroyOptionsReason,
 } from '../src/index.ts'
@@ -28,6 +29,7 @@ describe('Store integration types', () => {
       | 'invalid-discard-unpersisted'
     >()
     expectTypeOf<DestroyScopeOptions>().toEqualTypeOf<{ readonly includeDescendants?: boolean }>()
+    expectTypeOf<DestroyRootOptions>().toEqualTypeOf<{ readonly discardUnpersisted: true }>()
     expectTypeOf<ProviderLease>().toHaveProperty('release').toBeFunction()
     expectTypeOf<EntityLease>().toHaveProperty('release').toBeFunction()
     expectTypeOf<RelationshipLease>().toHaveProperty('release').toBeFunction()
@@ -53,10 +55,19 @@ describe('Store integration types', () => {
     type ScopedDestroy = (options?: DestroyScopeOptions) => unknown
     expectTypeOf<typeof store.destroyScope>().toMatchTypeOf<RootDestroy>()
     expectTypeOf<typeof scoped.destroyScope>().toMatchTypeOf<ScopedDestroy>()
+    expectTypeOf<typeof store.destroy>().toMatchTypeOf<(options?: DestroyRootOptions) => void>()
     const typeOnly = () => false
     if (typeOnly()) {
       // @ts-expect-error Provider leases require a root Store, not a scoped view.
       acquireProviderLease(store.scope('scope'))
+      // @ts-expect-error Root destruction only accepts the literal true discard option.
+      store.destroy({ discardUnpersisted: false })
+      // @ts-expect-error Root destruction requires the discard option when an object is supplied.
+      store.destroy({})
+      // @ts-expect-error Root destruction options do not accept extra keys.
+      store.destroy({ discardUnpersisted: true, extra: true })
+      // @ts-expect-error Scoped Stores do not expose root destruction.
+      scoped.destroy({ discardUnpersisted: true })
       // @ts-expect-error Entity leases require a scoped Store, not a root Store.
       acquireEntityLease(store, { kind: 'dashList' })
       // @ts-expect-error DashPanel leases require a host.

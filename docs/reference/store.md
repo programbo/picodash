@@ -101,7 +101,7 @@ type ExternalOwnedConfig<Fields> = {
 ```
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
 > Notes: Capability-specific TypeScript variants make `storeId` and `schemaVersion` required
 > whenever `initialEnvelope`, persistence, export, or migrations are configured.
 
@@ -1390,7 +1390,9 @@ root.destroy(options?: DestroyRootOptions): void
 ```
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
+
+> Implementation evidence: [root lifecycle tests](../../packages/store/tests/root-lifecycle.test.ts), [kernel type tests](../../packages/store/tests/kernel.types.test.ts), [integration tests](../../packages/store/tests/integration.test.ts), and [package artifact checks](../../packages/store/tests/package-artifacts.mjs).
 
 Destruction is final and non-transactional. Refusal is atomic and ordered:
 
