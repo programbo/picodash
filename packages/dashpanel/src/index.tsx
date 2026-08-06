@@ -26,6 +26,8 @@ import {
   PicodashThemeProvider,
 } from '@picodash/ui'
 import type { PanelRuntimeRegistration } from './runtime/panel-runtime.ts'
+import { DashPanelProviderPolicyProvider } from './runtime/provider-policy-context.tsx'
+import type { DashPanelBoundary, DashPanelBoundaryInset } from './geometry/boundary.ts'
 import {
   DashPanelRuntimeProvider,
   useDashPanelRuntime,
@@ -43,6 +45,7 @@ import type {
   PicodashDensity,
   PicodashThemeOption,
 } from '@picodash/ui'
+import type { DashPanelDockPosition } from './placement/placement.ts'
 
 export type {
   DashPanelDefaultLayout,
@@ -64,6 +67,9 @@ export interface DashPanelProviderProps<
   children: ReactNode
   store: RootStore<Fields>
   providerId?: string
+  boundary?: DashPanelBoundary | null
+  boundaryInset?: DashPanelBoundaryInset
+  dockPositions?: readonly DashPanelDockPosition[]
   portalContainer?: HTMLElement | null
   layerBase?: number
   theme?: PicodashThemeOption<CustomTheme>
@@ -106,6 +112,9 @@ export function DashPanelProvider<
   children,
   store,
   providerId,
+  boundary,
+  boundaryInset,
+  dockPositions,
   portalContainer,
   layerBase,
   theme,
@@ -116,13 +125,19 @@ export function DashPanelProvider<
   immutableProviderIdentity(store, resolvedProviderId)
   return (
     <PicodashStoreProviderBoundary store={store} providerId={resolvedProviderId}>
-      <DashPanelRuntimeProvider>
-        <PicodashThemeProvider<CustomTheme> theme={theme} density={density}>
-          <PicodashOverlayProvider portalContainer={portalContainer} layerBase={layerBase}>
-            {children}
-          </PicodashOverlayProvider>
-        </PicodashThemeProvider>
-      </DashPanelRuntimeProvider>
+      <DashPanelProviderPolicyProvider
+        boundary={boundary}
+        boundaryInset={boundaryInset}
+        dockPositions={dockPositions}
+      >
+        <DashPanelRuntimeProvider>
+          <PicodashThemeProvider<CustomTheme> theme={theme} density={density}>
+            <PicodashOverlayProvider portalContainer={portalContainer} layerBase={layerBase}>
+              {children}
+            </PicodashOverlayProvider>
+          </PicodashThemeProvider>
+        </DashPanelRuntimeProvider>
+      </DashPanelProviderPolicyProvider>
     </PicodashStoreProviderBoundary>
   )
 }

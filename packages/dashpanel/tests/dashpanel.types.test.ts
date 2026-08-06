@@ -27,7 +27,16 @@ const store = createPicodashStore({ valueOwner: 'store', fields: { value: { defa
 
 describe('@picodash/dashpanel public types', () => {
   it('exposes the frozen provider/panel shell and rejects retired or reserved props', () => {
-    const providerProps: DashPanelProviderProps = { store, children: null }
+    const boundary = {} as Element
+    const providerProps: DashPanelProviderProps = {
+      store,
+      children: null,
+      boundary,
+      boundaryInset: [8, 16],
+      dockPositions: ['top-left', 'center-left'],
+    }
+    const viewportProviderProps: DashPanelProviderProps = { ...providerProps, boundary: null }
+    void viewportProviderProps
     const panelProps: DashPanelProps = {
       id: 'inspector',
       title: 'Inspector',
@@ -69,6 +78,19 @@ describe('@picodash/dashpanel public types', () => {
     const retiredProvider: DashPanelProviderProps = { ...providerProps, storageKey: 'old' }
     void retiredProvider
 
+    // @ts-expect-error boundary accepts Elements or RefObjects, not selectors.
+    const selectorBoundary: DashPanelProviderProps = { ...providerProps, boundary: '#panel' }
+    void selectorBoundary
+    // @ts-expect-error null is reserved for explicit viewport boundary selection, not inset values.
+    const nullInset: DashPanelProviderProps = { ...providerProps, boundaryInset: null }
+    void nullInset
+    const unknownDock: DashPanelProviderProps = {
+      ...providerProps,
+      // @ts-expect-error dock positions must use canonical literals.
+      dockPositions: ['middle-left'],
+    }
+    void unknownDock
+
     // @ts-expect-error Panel does not expose prototype compatibility props.
     const retiredPanel: DashPanelProps = { ...panelProps, contentMode: 'plain' }
     void retiredPanel
@@ -76,6 +98,16 @@ describe('@picodash/dashpanel public types', () => {
     // @ts-expect-error visibility/controller props remain excluded from this cut.
     const retiredVisibility: DashPanelProps = { ...panelProps, visible: false }
     void retiredVisibility
+
+    // @ts-expect-error boundary policy belongs to DashPanelProvider, not Panel.
+    const panelBoundary: DashPanelProps = { ...panelProps, boundary }
+    void panelBoundary
+    // @ts-expect-error boundary inset policy belongs to DashPanelProvider, not Panel.
+    const panelInset: DashPanelProps = { ...panelProps, boundaryInset: 8 }
+    void panelInset
+    // @ts-expect-error dock policy belongs to DashPanelProvider, not Panel.
+    const panelDocks: DashPanelProps = { ...panelProps, dockPositions: ['top-left'] }
+    void panelDocks
   })
 
   it('keeps the style type aligned with React CSSProperties except reserved sizing keys', () => {
