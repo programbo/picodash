@@ -233,12 +233,11 @@ state.
 
 > Contract: Accepted
 > Implementation: Partial
-> Evidence: `packages/dashpanel/src/runtime/panel-runtime.test.ts` covers the private transient
-> visibility/collapse state model, activation ordering, policy updates, callback ordering, and
-> registration generations.
-> Notes: The model is not yet wired to the React shell. Retained children, DOM visibility/inert
-> behavior, controllers, triggers, launchers, close/remove actions, focus, and browser evidence
-> remain unimplemented.
+> Evidence: `packages/dashpanel/src/runtime/panel-runtime.test.ts` and
+> `packages/dashpanel/tests/dashpanel.test.tsx` cover the private model plus React collapse
+> controls, hidden/inert retained bodies, callback ordering, dynamic policy updates, and cleanup.
+> Notes: React collapse is wired, but visibility, controllers, triggers, launchers, close/remove
+> actions, focus, and browser evidence remain unimplemented.
 
 DashPanel renders a non-modal `aside` with a required title, generated accessible relationships,
 header actions, and a body for arbitrary children. Scope `id` never doubles as an HTML `id`; DOM

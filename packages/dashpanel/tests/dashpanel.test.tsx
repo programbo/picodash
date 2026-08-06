@@ -1,6 +1,6 @@
-import { createElement, StrictMode, type ReactElement } from 'react'
+import { createElement, StrictMode, useState, type ReactElement } from 'react'
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
-import { describe, expect, it } from 'vite-plus/test'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore, PicodashContractError } from '@picodash/store'
 import { usePicodashRootStore, usePicodashScope } from '@picodash/store/react'
 import { DashPanel, DashPanelProvider, type DashPanelStyle } from '../src/index.tsx'
@@ -8,6 +8,44 @@ import { DashPanel, DashPanelProvider, type DashPanelStyle } from '../src/index.
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true
+
+class MockHTMLElementBase {
+  readonly tagName = 'BUTTON'
+  readonly ownerDocument = { defaultView: globalThis }
+
+  getAttribute() {
+    return null
+  }
+
+  hasAttribute() {
+    return false
+  }
+
+  contains() {
+    return true
+  }
+
+  getBoundingClientRect() {
+    return { left: 0, top: 0, width: 100, height: 32 } as DOMRect
+  }
+}
+
+beforeEach(() => {
+  vi.stubGlobal('document', {
+    body: {},
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })
+  vi.stubGlobal('HTMLElement', MockHTMLElementBase)
+  vi.stubGlobal('Element', MockHTMLElementBase)
+  vi.stubGlobal('SVGElement', class extends MockHTMLElementBase {})
+  vi.stubGlobal('HTMLInputElement', class extends MockHTMLElementBase {})
+  vi.stubGlobal('HTMLTextAreaElement', class extends MockHTMLElementBase {})
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 const makeStore = () =>
   createPicodashStore({
@@ -28,6 +66,20 @@ function panel(store: ReturnType<typeof makeStore>, children?: ReactElement, id 
     store,
     children: createElement(DashPanel, { id, title: 'Inspector', children }),
   })
+}
+
+function pressButton(button: ReactTestInstance) {
+  const target = new MockHTMLElementBase()
+  void act(() =>
+    button.props.onClick({
+      button: 0,
+      currentTarget: target,
+      target,
+      nativeEvent: { detail: 0, pointerType: '' },
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    }),
+  )
 }
 
 describe('@picodash/dashpanel alpha shell', () => {
@@ -123,7 +175,9 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(aside.props.id).toBeUndefined()
     expect(aside.props['aria-labelledby']).toBe(heading.props.id)
     expect(heading.children).toEqual(['Inspector'])
-    expect(renderer.root.findByType('button').children).toEqual(['Apply'])
+    expect(
+      renderer.root.findAllByType('button').some((button) => button.children.includes('Apply')),
+    ).toBe(true)
     void act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
@@ -229,6 +283,181 @@ describe('@picodash/dashpanel alpha shell', () => {
     ])
     void act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('renders an expanded collapsible Panel with its accessible control and body relationship', () => {
+    const store = makeStore()
+    const renderer = render(panel(store))
+    const aside = renderer.root.findByType('aside')
+    const button = renderer.root.findByType('button')
+    const body = renderer.root.findByProps({ 'data-picodash-panel-body': true })
+    expect(aside.props['data-collapsed']).toBe('false')
+    expect(button.props).toMatchObject({
+      'aria-label': 'Collapse panel Inspector',
+      'aria-expanded': true,
+      'aria-controls': body.props.id,
+    })
+    expect(body.props.hidden).toBe(false)
+    expect(body.props.inert).toBeUndefined()
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('keeps collapsed children mounted and inert while preserving their state across expand', () => {
+    const store = makeStore()
+    let nextToken = 0
+    function Child() {
+      const [token] = useState(() => ++nextToken)
+      return createElement('output', { 'data-child': true }, `child-state-${token}`)
+    }
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'collapsed',
+          title: 'Inspector',
+          defaultCollapsed: true,
+          children: createElement(Child),
+        }),
+      }),
+    )
+    const button = renderer.root.findByType('button')
+    const body = renderer.root.findByProps({ 'data-picodash-panel-body': true })
+    expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('true')
+    expect(body.props.hidden).toBe(true)
+    expect(body.props.inert).toBe(true)
+    const child = renderer.root.findByProps({ 'data-child': true })
+    const childToken = child.children[0]
+    expect(childToken).toBe('child-state-1')
+    expect(() => store.destroy()).toThrow(/root-has-active-leases/)
+    pressButton(button)
+    expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('false')
+    expect(renderer.root.findByProps({ 'data-picodash-panel-body': true }).props.hidden).toBe(false)
+    expect(renderer.root.findByProps({ 'data-child': true }).children[0]).toBe(childToken)
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('calls the collapse callback only for committed transitions and ignores default changes after mount', () => {
+    const store = makeStore()
+    const callback = vi.fn()
+    let renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'callback',
+          title: 'Inspector',
+          onCollapsedChange: callback,
+        }),
+      }),
+    )
+    expect(callback).not.toHaveBeenCalled()
+    const button = renderer.root.findByType('button')
+    pressButton(button)
+    expect(callback).toHaveBeenCalledTimes(1)
+    expect(callback).toHaveBeenLastCalledWith(true)
+    void act(() =>
+      renderer.update(
+        createElement(DashPanelProvider, {
+          store,
+          children: createElement(DashPanel, {
+            id: 'callback',
+            title: 'Inspector',
+            defaultCollapsed: false,
+            onCollapsedChange: callback,
+          }),
+        }),
+      ),
+    )
+    expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('true')
+    expect(callback).toHaveBeenCalledTimes(1)
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('uses the latest callback and expands when dynamic collapsibility is disabled', () => {
+    const store = makeStore()
+    const initialCallback = vi.fn()
+    const latestCallback = vi.fn()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'dynamic',
+          title: 'Inspector',
+          defaultCollapsed: true,
+          onCollapsedChange: initialCallback,
+        }),
+      }),
+    )
+    void act(() =>
+      renderer.update(
+        createElement(DashPanelProvider, {
+          store,
+          children: createElement(DashPanel, {
+            id: 'dynamic',
+            title: 'Inspector',
+            collapsible: false,
+            onCollapsedChange: latestCallback,
+          }),
+        }),
+      ),
+    )
+    expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('false')
+    expect(renderer.root.findAllByType('button')).toHaveLength(0)
+    expect(initialCallback).not.toHaveBeenCalled()
+    expect(latestCallback).toHaveBeenCalledTimes(1)
+    expect(latestCallback).toHaveBeenCalledWith(false)
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rejects invalid initial collapse policy before acquiring runtime or Store leases', () => {
+    const store = makeStore()
+    expect(() =>
+      render(
+        createElement(DashPanelProvider, {
+          store,
+          children: createElement(DashPanel, {
+            id: 'invalid-collapse',
+            title: 'Inspector',
+            defaultCollapsed: true,
+            collapsible: false,
+          }),
+        }),
+      ),
+    ).toThrow('non-collapsible Panel cannot start collapsed')
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('isolates equal scope ids across nested Providers with separate roots', () => {
+    const outerStore = makeStore()
+    const innerStore = makeStore()
+    const nested = createElement(DashPanelProvider, {
+      store: innerStore,
+      providerId: 'inner',
+      children: createElement(DashPanel, { id: 'shared', title: 'Inner' }),
+    })
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store: outerStore,
+        children: createElement(DashPanel, {
+          id: 'shared',
+          title: 'Outer',
+          children: nested,
+        }),
+      }),
+    )
+    const asides = renderer.root.findAllByType('aside')
+    expect(asides).toHaveLength(2)
+    const buttons = renderer.root.findAllByType('button')
+    pressButton(buttons[0]!)
+    expect(
+      renderer.root.findAllByType('aside').map((aside) => aside.props['data-collapsed']),
+    ).toEqual(['true', 'false'])
+    void act(() => renderer.unmount())
+    expect(() => outerStore.destroy()).not.toThrow()
+    expect(() => innerStore.destroy()).not.toThrow()
   })
 
   it('reexports shared UI identities without retired aliases', async () => {

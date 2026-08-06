@@ -3,6 +3,7 @@
 import {
   forwardRef,
   useId,
+  useEffect,
   useRef,
   type ComponentPropsWithoutRef,
   type CSSProperties,
@@ -20,9 +21,16 @@ import {
   ActionMenuSeparator,
   ActionSubmenu,
   DashHeader,
+  Button,
   PicodashOverlayProvider,
   PicodashThemeProvider,
 } from '@picodash/ui'
+import type { PanelRuntimeRegistration } from './runtime/panel-runtime.ts'
+import {
+  DashPanelRuntimeProvider,
+  useDashPanelRuntime,
+  useDashPanelRuntimeState,
+} from './runtime/panel-runtime-context.tsx'
 import type {
   ActionMenuConfirmation,
   ActionMenuItemProps,
@@ -60,6 +68,9 @@ export interface DashPanelProps<CustomTheme extends string = never> extends Omit
   children?: ReactNode
   style?: DashPanelStyle
   width?: CSSProperties['width']
+  defaultCollapsed?: boolean
+  collapsible?: boolean
+  onCollapsedChange?: (collapsed: boolean) => void
   theme?: PicodashThemeOption<CustomTheme>
   density?: PicodashDensity
 }
@@ -94,11 +105,13 @@ export function DashPanelProvider<
   immutableProviderIdentity(store, resolvedProviderId)
   return (
     <PicodashStoreProviderBoundary store={store} providerId={resolvedProviderId}>
-      <PicodashThemeProvider<CustomTheme> theme={theme} density={density}>
-        <PicodashOverlayProvider portalContainer={portalContainer} layerBase={layerBase}>
-          {children}
-        </PicodashOverlayProvider>
-      </PicodashThemeProvider>
+      <DashPanelRuntimeProvider>
+        <PicodashThemeProvider<CustomTheme> theme={theme} density={density}>
+          <PicodashOverlayProvider portalContainer={portalContainer} layerBase={layerBase}>
+            {children}
+          </PicodashOverlayProvider>
+        </PicodashThemeProvider>
+      </DashPanelRuntimeProvider>
     </PicodashStoreProviderBoundary>
   )
 }
@@ -108,6 +121,13 @@ function isTextTitle(value: ReactNode): boolean {
     return true
   if (Array.isArray(value)) return value.every(isTextTitle)
   return false
+}
+
+function textTitle(value: ReactNode): string {
+  if (Array.isArray(value)) return value.map(textTitle).join('')
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint')
+    return `${value}`
+  return ''
 }
 
 function assertPanelStyle(style: DashPanelStyle | undefined): void {
@@ -137,6 +157,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     children,
     style,
     width,
+    defaultCollapsed,
+    collapsible,
+    onCollapsedChange,
     theme,
     density,
     'aria-label': ariaLabel,
@@ -148,11 +171,56 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
 ) {
   assertPanelStyle(style)
   const root = usePicodashRootStore()
+  const runtime = useDashPanelRuntime()
+  const runtimeState = useDashPanelRuntimeState(id)
   const scoped = root.scope(id)
   const headingId = `picodash-panel-heading-${useId()}`
+  const bodyId = `picodash-panel-body-${useId()}`
   const textualTitle = isTextTitle(title)
   if (!textualTitle && (typeof ariaLabel !== 'string' || ariaLabel.trim() === ''))
     throw new TypeError('DashPanel non-text titles require an explicit aria-label.')
+
+  const generation = useRef<{
+    readonly scopeId: string
+    readonly defaultCollapsed: boolean
+    readonly collapsible: boolean
+  } | null>(null)
+  if (generation.current === null || generation.current.scopeId !== id) {
+    const initialCollapsed = defaultCollapsed ?? false
+    const initialCollapsible = collapsible ?? true
+    if (initialCollapsed && !initialCollapsible)
+      throw new TypeError('A non-collapsible Panel cannot start collapsed.')
+    generation.current = {
+      scopeId: id,
+      defaultCollapsed: initialCollapsed,
+      collapsible: initialCollapsible,
+    }
+  }
+  const initial = generation.current
+  const registration = useRef<PanelRuntimeRegistration | null>(null)
+  useEffect(() => {
+    const current = generation.current
+    if (current === null || current.scopeId !== id) return
+    const next = runtime.acquire({
+      scopeId: id,
+      defaultCollapsed: current.defaultCollapsed,
+      collapsible: current.collapsible,
+      onCollapsedChange,
+    })
+    registration.current = next
+    return () => {
+      next.release()
+      if (registration.current === next) registration.current = null
+    }
+  }, [id, runtime])
+  useEffect(() => {
+    registration.current?.update({ collapsible, onCollapsedChange })
+  }, [collapsible, onCollapsedChange])
+
+  const collapsed = runtimeState?.collapsed ?? initial.defaultCollapsed
+  const currentCollapsible = runtimeState?.collapsible ?? initial.collapsible
+  const panelName = textualTitle ? textTitle(title) : ariaLabel!
+  const collapseLabel = `${collapsed ? 'Expand' : 'Collapse'} panel ${panelName}`
 
   const resolvedStyle = panelStyle(style, width)
   const labelledProps = textualTitle
@@ -175,9 +243,37 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           className={className ? `picodash-dashpanel ${className}` : 'picodash-dashpanel'}
           style={resolvedStyle}
           data-picodash-panel
+          data-collapsed={collapsed ? 'true' : 'false'}
         >
-          <DashHeader slots={{ title: <h2 id={headingId}>{title}</h2> }} />
-          <div data-picodash-panel-body>{children}</div>
+          <DashHeader
+            slots={{
+              leading: currentCollapsible ? (
+                <Button
+                  aria-label={collapseLabel}
+                  aria-expanded={!collapsed}
+                  aria-controls={bodyId}
+                  iconOnly
+                  variant="ghost"
+                  size="sm"
+                  onPress={() => {
+                    runtime.toggleCollapsed(id)
+                  }}
+                >
+                  {collapsed ? '+' : '−'}
+                </Button>
+              ) : undefined,
+              title: <h2 id={headingId}>{title}</h2>,
+            }}
+          />
+          <div
+            id={bodyId}
+            data-picodash-panel-body
+            hidden={collapsed}
+            inert={collapsed || undefined}
+            aria-hidden={collapsed || undefined}
+          >
+            {children}
+          </div>
         </aside>
       </PicodashThemeProvider>
     </PicodashStoreEntityBoundary>

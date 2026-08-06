@@ -25,6 +25,9 @@ describe('@picodash/dashpanel public types', () => {
       'aria-label': 'Inspector',
       style: { opacity: 0.8, '--consumer-token': 'ok' } as DashPanelStyle,
       width: '24rem',
+      defaultCollapsed: true,
+      collapsible: true,
+      onCollapsedChange: () => {},
     }
     const customThemePanelProps: DashPanelProps<'operator'> = {
       id: 'operator-inspector',
@@ -60,6 +63,10 @@ describe('@picodash/dashpanel public types', () => {
     // @ts-expect-error Panel does not expose prototype compatibility props.
     const retiredPanel: DashPanelProps = { ...panelProps, contentMode: 'plain' }
     void retiredPanel
+
+    // @ts-expect-error visibility/controller props remain excluded from this cut.
+    const retiredVisibility: DashPanelProps = { ...panelProps, visible: false }
+    void retiredVisibility
   })
 
   it('keeps the style type aligned with React CSSProperties except reserved sizing keys', () => {
