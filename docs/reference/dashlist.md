@@ -11,7 +11,7 @@ readouts, visualizations, previews, and actions. This page describes the aspirat
 > Evidence: `packages/dashlist/tests/dashlist.test.tsx`, `packages/dashlist/tests/dashlist.types.test.ts`, and `packages/dashlist/tests/package-artifacts.mjs` cover the alpha shell, semantic structure, Store resolution boundary, and package surface.
 > Notes: The initial launch contract is accepted. The remaining prototype behavior must be
 > reconciled through the conformance matrix; bindings, ordering, collapse, actions, rail behavior,
-> catalogs, and registration agreement remain Planned or Prototype.
+> and catalogs remain Planned or Prototype. List node declaration agreement is Verified.
 
 ## Package purpose
 
@@ -46,12 +46,12 @@ function Settings() {
 }
 ```
 
-| API/component       | Contract | Implementation | Notes                                                                                               |
-| ------------------- | -------- | -------------- | --------------------------------------------------------------------------------------------------- |
-| `DashList`          | Accepted | Partial        | Package-native List root and scope boundary; shell and Store boundary are implemented.              |
-| root `store` + `id` | Accepted | Partial        | Resolves an explicit scope and opts into standalone hosting without context.                        |
-| scoped `store`      | Accepted | Partial        | `id` may be omitted or must agree; explicit mismatch is rejected.                                   |
-| `children`          | Accepted | Partial        | Arrays/fragments and basic declarations are covered; committed custom registration remains Planned. |
+| API/component       | Contract | Implementation | Notes                                                                                                                         |
+| ------------------- | -------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `DashList`          | Accepted | Partial        | Package-native List root and scope boundary; shell and Store boundary are implemented.                                        |
+| root `store` + `id` | Accepted | Partial        | Resolves an explicit scope and opts into standalone hosting without context.                                                  |
+| scoped `store`      | Accepted | Partial        | `id` may be omitted or must agree; explicit mismatch is rejected.                                                             |
+| `children`          | Accepted | Verified       | Arrays/fragments are transparent; every direct declaration commits exactly one matching node, including custom ID forwarding. |
 
 ## Context composition
 
@@ -72,8 +72,8 @@ Provider boundary resets ancestry.
 > Contract: Accepted
 > Implementation: Partial
 > Evidence: `packages/dashlist/tests/dashlist.test.tsx` covers nearest Provider scope resolution,
-> explicit child scopes, nested relationships, and committed lease cleanup; full custom registration
-> agreement remains Planned.
+> explicit child scopes, nested relationships, committed lease cleanup, nested List isolation, and
+> custom declaration agreement through StrictMode and keyed lifecycle changes.
 
 ## DashList root API
 
@@ -166,7 +166,7 @@ the collection while the title remains the visible document heading.
 ## List node declarations
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Verified
 
 `DashList` accepts only top-level List node declarations as children. A top-level **List node
 declaration** is:
@@ -200,16 +200,21 @@ This grammar lets every reorderable React child correspond to exactly one regist
 A committed registration that is missing, duplicated, or disagrees with the declaration ID is a
 contract error.
 
+The implementation commits declaration and node leases only from committed effects. It validates
+the next controlled render for invalid IDs, duplicate IDs, missing or multiple registrations,
+forwarded-ID mismatches, forbidden group kinds, and nested registered nodes. StrictMode replay,
+conditional cleanup, keyed reparenting, and nested DashList roots do not acquire or retain ghosts.
+
 ## Identity
 
-| Identity               | Contract | Implementation | Rule                                            |
-| ---------------------- | -------- | -------------- | ----------------------------------------------- |
-| List `id`              | Accepted | Planned        | Scope ID; immutable while mounted.              |
-| Dashlet `id`           | Accepted | Partial        | Required explicit node ID.                      |
-| DashGroup `id`         | Accepted | Partial        | Required; shares the node-ID namespace.         |
-| Field-derived node ID  | Rejected | Prototype      | Binding identity cannot stand in for node ID.   |
-| Binding alias          | Accepted | Planned        | Defaults to field key; explicit for duplicates. |
-| React key or `useId()` | Rejected | Prototype      | Not durable Store identity.                     |
+| Identity               | Contract | Implementation | Rule                                                                    |
+| ---------------------- | -------- | -------------- | ----------------------------------------------------------------------- |
+| List `id`              | Accepted | Planned        | Scope ID; immutable while mounted.                                      |
+| Dashlet `id`           | Accepted | Verified       | Required explicit node ID; committed identity is independent of fields. |
+| DashGroup `id`         | Accepted | Verified       | Required; shares the List-wide node-ID namespace.                       |
+| Field-derived node ID  | Rejected | Prototype      | Binding identity cannot stand in for node ID.                           |
+| Binding alias          | Accepted | Planned        | Defaults to field key; explicit for duplicates.                         |
+| React key or `useId()` | Rejected | Prototype      | Not durable Store identity.                                             |
 
 IDs are opaque and exact. Every Dashlet and DashGroup requires an explicit `id`, including a
 single-field Dashlet. Rebinding a Dashlet must not change its order or interaction identity. Several

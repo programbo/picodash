@@ -26,6 +26,13 @@ import {
   type PicodashDensity,
   type PicodashThemeOption,
 } from '@picodash/ui'
+import {
+  createNodeRegistry,
+  DashListNodeDeclarationBoundary,
+  DashListNodeLeafBoundary,
+  DashListNodeRegistryProvider,
+  DashListNodeValidation,
+} from './node-registration.js'
 
 export type {
   ActionMenuConfirmation,
@@ -148,6 +155,17 @@ function flattenDeclarations(children: ReactNode, owner: 'list' | 'group'): Reac
   return result
 }
 
+function wrapDeclaration(
+  declaration: ReactElement,
+  owner: 'list' | 'group',
+  key: string,
+): ReactElement {
+  const kind = declarationKind(declaration)
+  if (kind === null) throw new TypeError('DashList declaration cannot be a nested DashList.')
+  const id = (declaration.props as { readonly id?: unknown }).id
+  return createElement(DashListNodeDeclarationBoundary, { key, id, kind, owner }, declaration)
+}
+
 function isTextLabel(value: ReactNode): boolean {
   if (typeof value === 'string') return value.trim().length > 0
   if (typeof value === 'number' || typeof value === 'bigint') return true
@@ -238,36 +256,38 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps>(function Dashlet(
   const descriptionId =
     description === undefined ? undefined : `picodash-dashlet-description-${descriptionIdToken}`
   return (
-    <div
-      {...props}
-      ref={ref}
-      id={undefined}
-      role="listitem"
-      className={classNames('picodash-dashlist-item', className)}
-      data-picodash-dashlet={id}
-    >
+    <DashListNodeLeafBoundary id={id} kind="dashlet">
       <div
-        role="group"
-        tabIndex={-1}
-        aria-label={ariaLabel}
-        aria-labelledby={isTextLabel(label) ? labelId : undefined}
-        aria-describedby={descriptionId}
-        data-layout={layout}
-        data-picodash-dashlet-shell
+        {...props}
+        ref={ref}
+        id={undefined}
+        role="listitem"
+        className={classNames('picodash-dashlist-item', className)}
+        data-picodash-dashlet={id}
       >
-        {label !== undefined ? (
-          <span id={labelId} data-picodash-dashlet-label>
-            {label}
-          </span>
-        ) : null}
-        <div data-picodash-dashlet-content>{children}</div>
-        {description !== undefined ? (
-          <div id={descriptionId} data-picodash-dashlet-description>
-            {description}
-          </div>
-        ) : null}
+        <div
+          role="group"
+          tabIndex={-1}
+          aria-label={ariaLabel}
+          aria-labelledby={isTextLabel(label) ? labelId : undefined}
+          aria-describedby={descriptionId}
+          data-layout={layout}
+          data-picodash-dashlet-shell
+        >
+          {label !== undefined ? (
+            <span id={labelId} data-picodash-dashlet-label>
+              {label}
+            </span>
+          ) : null}
+          <div data-picodash-dashlet-content>{children}</div>
+          {description !== undefined ? (
+            <div id={descriptionId} data-picodash-dashlet-description>
+              {description}
+            </div>
+          ) : null}
+        </div>
       </div>
-    </div>
+    </DashListNodeLeafBoundary>
   )
 })
 
@@ -279,29 +299,35 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   const declarations = flattenDeclarations(children, 'group')
   const labelId = `picodash-dashgroup-label-${useId()}`
   return (
-    <div
-      {...props}
-      ref={ref}
-      role="listitem"
-      className={classNames('picodash-dashlist-item picodash-dashlist-group-item', className)}
-      data-picodash-dashgroup={id}
-    >
+    <DashListNodeLeafBoundary id={id} kind="group">
       <div
-        role="group"
-        aria-label={ariaLabel}
-        aria-labelledby={isTextLabel(label) ? labelId : undefined}
-        data-picodash-dashgroup
+        {...props}
+        ref={ref}
+        role="listitem"
+        className={classNames('picodash-dashlist-item picodash-dashlist-group-item', className)}
+        data-picodash-dashgroup={id}
       >
-        <div id={labelId} data-picodash-dashgroup-label>
-          {label}
-        </div>
-        <div role="list" data-picodash-dashgroup-list>
-          {declarations.map((declaration, index) =>
-            createElement(Fragment, { key: declaration.key ?? `${id}-${index}` }, declaration),
-          )}
+        <div
+          role="group"
+          aria-label={ariaLabel}
+          aria-labelledby={isTextLabel(label) ? labelId : undefined}
+          data-picodash-dashgroup
+        >
+          <div id={labelId} data-picodash-dashgroup-label>
+            {label}
+          </div>
+          <div role="list" data-picodash-dashgroup-list>
+            {declarations.map((declaration, index) =>
+              createElement(
+                Fragment,
+                { key: declaration.key ?? `${id}-${index}` },
+                wrapDeclaration(declaration, 'group', `${id}-${index}`),
+              ),
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </DashListNodeLeafBoundary>
   )
 })
 
@@ -338,6 +364,9 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   } | null>(null)
   immutableIdentity(identityRef, resolved.store, resolved.scopeId)
   const declarations = flattenDeclarations(children, 'list')
+  const registryRef = useRef<ReturnType<typeof createNodeRegistry> | undefined>(undefined)
+  if (registryRef.current === undefined) registryRef.current = createNodeRegistry()
+  const registry = registryRef.current
   const headingIdToken = useId()
   const headingId = title === undefined ? undefined : `picodash-dashlist-heading-${headingIdToken}`
   const statusId = `picodash-dashlist-status-${useId()}`
@@ -349,33 +378,37 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
         kind="dashList"
         allowStandalone={resolved.standalone}
       >
-        <div
-          {...props}
-          ref={ref}
-          className={classNames('picodash-dashlist', className)}
-          data-picodash-dashlist
-        >
-          {title !== undefined ? (
-            <DashHeader
-              slots={{ title: createElement(`h${headingLevel}`, { id: headingId }, title) }}
-            />
-          ) : null}
-          <div
-            role="list"
-            aria-label={ariaLabel}
-            aria-labelledby={listName}
-            data-picodash-dashlist-list
-          >
-            {declarations.map((declaration, index) =>
-              createElement(
-                Fragment,
-                { key: declaration.key ?? `${resolved.scopeId}-${index}` },
-                declaration,
-              ),
-            )}
-          </div>
-          <div id={statusId} role="status" aria-live="polite" aria-atomic="true" />
-        </div>
+        <DashListNodeRegistryProvider registry={registry}>
+          <DashListNodeValidation>
+            <div
+              {...props}
+              ref={ref}
+              className={classNames('picodash-dashlist', className)}
+              data-picodash-dashlist
+            >
+              {title !== undefined ? (
+                <DashHeader
+                  slots={{ title: createElement(`h${headingLevel}`, { id: headingId }, title) }}
+                />
+              ) : null}
+              <div
+                role="list"
+                aria-label={ariaLabel}
+                aria-labelledby={listName}
+                data-picodash-dashlist-list
+              >
+                {declarations.map((declaration, index) =>
+                  createElement(
+                    Fragment,
+                    { key: declaration.key ?? `${resolved.scopeId}-${index}` },
+                    wrapDeclaration(declaration, 'list', `${resolved.scopeId}-${index}`),
+                  ),
+                )}
+              </div>
+              <div id={statusId} role="status" aria-live="polite" aria-atomic="true" />
+            </div>
+          </DashListNodeValidation>
+        </DashListNodeRegistryProvider>
       </PicodashStoreEntityBoundary>
     </PicodashThemeProvider>
   )
