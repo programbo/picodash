@@ -257,6 +257,16 @@ Collapse and visibility are transient and never persisted.
 
 ## Placement model
 
+> Contract: Accepted
+> Implementation: Partial
+> Evidence: `packages/dashpanel/src/placement/placement.test.ts` covers canonical placement
+> combinations, defaults, option normalization, finite coordinates, hostile records, and recursive
+> freezing. The root type exports are checked by `dashpanel.types.test.ts` and the package artifact
+> test.
+> Notes: This cut establishes vocabulary and pure normalization only. Boundary math, placement
+> policy, docking, occupancy, allocation, pointer input, persistence, and runtime placement remain
+> unimplemented.
+
 Placement mode describes the permitted behavior model. Disposition describes the current settled
 result.
 

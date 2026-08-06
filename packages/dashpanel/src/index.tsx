@@ -44,6 +44,15 @@ import type {
   PicodashThemeOption,
 } from '@picodash/ui'
 
+export type {
+  DashPanelDefaultLayout,
+  DashPanelDockPosition,
+  DashPanelPlacement,
+  DashPanelPlacementOptions,
+  DashPanelPresentation,
+  DashPanelSnapPosition,
+} from './placement/placement.ts'
+
 export type DashPanelStyle = Omit<CSSProperties, 'inlineSize' | 'width'>
 
 export interface DashPanelProviderProps<

@@ -1,5 +1,6 @@
 import { createElement, type CSSProperties, type RefObject } from 'react'
 import { describe, it } from 'vite-plus/test'
+import type { DashPanelPlacementRecord } from '@picodash/store'
 import { createPicodashStore } from '@picodash/store'
 import {
   ActionMenu,
@@ -11,6 +12,12 @@ import {
   DashPanelProvider,
   type DashPanelProps,
   type DashPanelProviderProps,
+  type DashPanelDefaultLayout,
+  type DashPanelDockPosition,
+  type DashPanelPlacement,
+  type DashPanelPlacementOptions,
+  type DashPanelPresentation,
+  type DashPanelSnapPosition,
   type DashPanelStyle,
 } from '../src/index.tsx'
 
@@ -78,5 +85,39 @@ describe('@picodash/dashpanel public types', () => {
     // @ts-expect-error inlineSize is intentionally omitted from DashPanelStyle.
     const inlineSize: DashPanelStyle = { inlineSize: '1rem' }
     void inlineSize
+  })
+
+  it('exports placement vocabulary compatible with Store records in both directions', () => {
+    const snap: DashPanelSnapPosition = 'top-right'
+    const dock: DashPanelDockPosition = 'center-bottom'
+    const placement: DashPanelPlacement = {
+      mode: 'hybrid',
+      disposition: { kind: 'docked', position: dock },
+    }
+    const record: DashPanelPlacementRecord = placement
+    const roundTrip: DashPanelPlacement = record
+    const layout: DashPanelDefaultLayout = {
+      placement: roundTrip,
+      preferredPosition: { x: -1, y: 2 },
+    }
+    const options: DashPanelPlacementOptions = { snapOffset: 0 }
+    const presentation: DashPanelPresentation = { kind: 'drawer', edge: 'left' }
+    void snap
+    void layout
+    void options
+    void presentation
+
+    // @ts-expect-error fixed Panels cannot use free dispositions.
+    const fixedFree: DashPanelPlacement = { mode: 'fixed', disposition: { kind: 'free' } }
+    void fixedFree
+    // @ts-expect-error hybrid snaps are limited to the top and bottom edges.
+    const hybridLeft: DashPanelPlacement = {
+      mode: 'hybrid',
+      disposition: { kind: 'snapped', position: 'left' },
+    }
+    void hybridLeft
+    // @ts-expect-error middle-left is not a canonical snap position.
+    const retiredSnap: DashPanelSnapPosition = 'middle-left'
+    void retiredSnap
   })
 })
