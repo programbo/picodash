@@ -216,6 +216,7 @@
       "version": "0.0.0",
       "dependencies": {
         "react-aria": "catalog:",
+        "react-aria-components": "catalog:",
       },
       "devDependencies": {
         "@types/node": "catalog:",

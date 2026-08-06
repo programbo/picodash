@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import { UNSAFE_PortalProvider } from 'react-aria'
+export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './button.tsx'
 
 /** Built-in color theme preferences. */
 export type PicodashTheme = 'light' | 'dark' | 'system'

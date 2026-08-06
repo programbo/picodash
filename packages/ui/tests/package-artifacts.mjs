@@ -23,7 +23,10 @@ async function main() {
   assert.deepEqual(manifest.files, ['dist'])
   assert.deepEqual(manifest.sideEffects, ['**/*.css'])
   assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })
-  assert.deepEqual(manifest.dependencies, { 'react-aria': 'catalog:' })
+  assert.deepEqual(manifest.dependencies, {
+    'react-aria': 'catalog:',
+    'react-aria-components': 'catalog:',
+  })
 
   for (const file of ['dist/index.mjs', 'dist/index.d.mts', 'dist/style.css']) {
     assert.equal(await exists(path.join(packageRoot, file)), true, `missing ${file}`)
@@ -33,6 +36,7 @@ async function main() {
     `${pathToFileURL(path.join(packageRoot, 'dist/index.mjs')).href}?artifact-check`
   )
   assert.deepEqual(Object.keys(runtime).sort(), [
+    'Button',
     'PicodashOverlayProvider',
     'PicodashThemeProvider',
     'usePicodashDensity',
@@ -49,6 +53,9 @@ async function main() {
     'PicodashThemeProviderProps',
     'PicodashOverlayProviderProps',
     'PicodashOverlayDefaults',
+    'ButtonProps',
+    'ButtonVariant',
+    'ButtonSize',
   ]) {
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
   }

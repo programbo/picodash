@@ -11,8 +11,10 @@ accessible presentation primitives without making either product depend on the o
 > Implementation: Partial
 >
 > Evidence: [Theme provider component tests](../../packages/ui/tests/theme-provider.test.tsx),
-> [theme provider type tests](../../packages/ui/tests/theme-provider.types.test.ts), [CSS contract
-> tests](../../packages/ui/tests/css-contract.test.ts), and the [package artifact checker](../../packages/ui/tests/package-artifacts.mjs).
+> [theme provider type tests](../../packages/ui/tests/theme-provider.types.test.ts), [Button
+> component tests](../../packages/ui/tests/button.test.tsx), [Button type tests](../../packages/ui/tests/button.types.test.ts),
+> [CSS contract tests](../../packages/ui/tests/css-contract.test.ts), and the [package artifact
+> checker](../../packages/ui/tests/package-artifacts.mjs).
 >
 > Notes: `@picodash/ui` replaces `@picodash/theme` in the target architecture. No compatibility
 > alias is planned before the first stable release.
@@ -239,7 +241,10 @@ context through the three accepted hooks.
 
 > Contract: Accepted
 >
-> Implementation: Planned
+> Implementation: Verified
+>
+> Evidence: [Button component tests](../../packages/ui/tests/button.test.tsx) and [Button type
+> tests](../../packages/ui/tests/button.types.test.ts).
 
 `Button` renders a semantic button with normalized pointer, keyboard, touch, focus, disabled, and
 pending behavior. It represents an action; navigation uses a Link rather than a button styled as a
@@ -274,7 +279,14 @@ type ButtonProps = ReactAriaButtonProps &
 - The root forwards its button ref. React Aria children/render-function support and its constrained
   `render` escape hatch remain available; an `asChild` API is not added.
 - `className` and semantic data attributes support deliberate customization, but callers should
-  prefer the stable variant, size, and token contracts.
+  prefer the stable variant, size, and token contracts. The root emits `data-slot="button"`,
+  `data-variant`, and `data-size`; `data-icon-only` is emitted only when `iconOnly` is true.
+
+The initial implementation uses the private `picodash-button` class for structural CSS while
+composing caller-provided string or render-function class names. The focused tests cover semantic
+output, ref forwarding, defaults, explicit hooks and native type, React Aria press/click wiring,
+disabled and pending semantics, render-function children and escape hatch, and the negative public
+type surface. Compact geometry values and coarse-pointer hit-target review remain UI-CSS work.
 
 The initial UI package does not export `LinkButton`. If a product later needs a shared Link, it must
 define navigation behavior and accessibility as a separate contract.
