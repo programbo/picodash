@@ -8,10 +8,11 @@ accessible presentation primitives without making either product depend on the o
 > Contract: Accepted package boundary, initial component inventory, exact prop policy, and
 > reexport boundaries
 >
-> Implementation: Planned
+> Implementation: Partial
 >
-> Evidence: The current `@picodash/theme` package, duplicated product primitives, and inline Panel
-> header are prototype inputs to the migration.
+> Evidence: [Theme provider component tests](../../packages/ui/tests/theme-provider.test.tsx),
+> [theme provider type tests](../../packages/ui/tests/theme-provider.types.test.ts), [CSS contract
+> tests](../../packages/ui/tests/css-contract.test.ts), and the [package artifact checker](../../packages/ui/tests/package-artifacts.mjs).
 >
 > Notes: `@picodash/ui` replaces `@picodash/theme` in the target architecture. No compatibility
 > alias is planned before the first stable release.
@@ -123,7 +124,11 @@ portal behavior Picodash fixes.
 
 > Contract: Accepted
 >
-> Implementation: Planned
+> Implementation: Partial
+>
+> Evidence: [Theme provider component tests](../../packages/ui/tests/theme-provider.test.tsx) and
+> [theme provider type tests](../../packages/ui/tests/theme-provider.types.test.ts). Overlay
+> providers remain Planned.
 
 `PicodashThemeProvider` owns resolved color theme and density. It establishes the DOM carrier for
 `data-picodash-theme` and `data-picodash-density`; it does not own portal placement or layer policy.
@@ -713,7 +718,11 @@ for consumer convenience. They must not blanket-export all of `@picodash/ui`.
 > Contract: Accepted shared and product-owned token inventories, ownership, naming, density, and
 > verification rules
 >
-> Implementation: Planned
+> Implementation: Partial
+>
+> Evidence: [CSS contract tests](../../packages/ui/tests/css-contract.test.ts). Built-in recipes,
+> accepted token names, and carriers are covered; compact numeric recipes and shared structural
+> primitives remain Partial or Planned.
 
 Theme and density remain independent. Density changes geometry tokens but not color-theme identity,
 semantics, or durable state. Portaled or otherwise detached roots repeat the resolved
@@ -816,13 +825,13 @@ all required shared styles through documented imports and does not depend on Pic
 
 ## Public surfaces
 
-| Surface                  | Contract | Implementation | Purpose                                       |
-| ------------------------ | -------- | -------------- | --------------------------------------------- |
-| `@picodash/ui`           | Accepted | Planned        | Theme contracts and shared UI exports.        |
-| `@picodash/ui/style.css` | Accepted | Planned        | Shared tokens, recipes, and structural CSS.   |
-| Product reexports        | Accepted | Planned        | Explicit stable conveniences only.            |
-| Additional UI subpaths   | Deferred | Not started    | Added only for a demonstrated package need.   |
-| `@picodash/theme` alias  | Rejected | Prototype      | Current package is replaced during migration. |
+| Surface                  | Contract | Implementation | Purpose                                                                                            |
+| ------------------------ | -------- | -------------- | -------------------------------------------------------------------------------------------------- |
+| `@picodash/ui`           | Accepted | Partial        | Theme/density slice is available; remaining shared UI inventory is Planned.                        |
+| `@picodash/ui/style.css` | Accepted | Partial        | Shared token recipes and carriers are available; compact values and structural CSS remain Planned. |
+| Product reexports        | Accepted | Planned        | Explicit stable conveniences only.                                                                 |
+| Additional UI subpaths   | Deferred | Not started    | Added only for a demonstrated package need.                                                        |
+| `@picodash/theme` alias  | Rejected | Prototype      | Current package is replaced during migration.                                                      |
 
 There is no initial `@picodash/ui/catalog`. The component catalog is product-composition metadata,
 while UI primitives remain documented through this reference and their TypeScript declarations.

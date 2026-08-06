@@ -1,0 +1,47 @@
+{
+  "name": "@picodash/ui",
+  "version": "0.0.0",
+  "description": "Shared theme and density foundation for Picodash React packages.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json",
+    "./style.css": "./dist/style.css"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "test:package": "node tests/package-artifacts.mjs",
+    "check": "vp check",
+    "lint": "vp lint src tests --fix",
+    "format": "vp fmt src tests style.css --write",
+    "release:check": "vp check && vp test && vp run build && bun run test:package && bun pm pack --dry-run",
+    "prepublishOnly": "vp check && vp test && vp run build"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/react-test-renderer": "^19.1.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-test-renderer": "^19.2.0",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  }
+}
