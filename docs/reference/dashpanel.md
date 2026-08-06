@@ -67,16 +67,16 @@ the stable foundational components and provides its own integration Provider com
 
 ## Provider contract
 
-| Provider capability       | Contract | Implementation | Rule                                                                             |
-| ------------------------- | -------- | -------------- | -------------------------------------------------------------------------------- |
-| Required root `store`     | Accepted | Implemented    | Scoped Stores are rejected.                                                      |
-| `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                             |
-| Hard Store/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                          |
-| Shared `boundary`         | Accepted | Partial        | Pure resolver covers direct/ref precedence; viewport and geometry wiring remain. |
-| Shared `boundaryInset`    | Accepted | Partial        | Public inset vocabulary exists; normalization and geometry remain planned.       |
-| Dock-position policy      | Accepted | Planned        | Maximum set that descendant Panels may narrow.                                   |
-| Portal ownership          | Accepted | Partial        | Shared overlay defaults are composed; Panel portal ownership is later work.      |
-| Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                              |
+| Provider capability       | Contract | Implementation | Rule                                                                               |
+| ------------------------- | -------- | -------------- | ---------------------------------------------------------------------------------- |
+| Required root `store`     | Accepted | Implemented    | Scoped Stores are rejected.                                                        |
+| `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                               |
+| Hard Store/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                            |
+| Shared `boundary`         | Accepted | Partial        | Pure resolver covers direct/ref precedence; viewport and geometry wiring remain.   |
+| Shared `boundaryInset`    | Accepted | Partial        | Pure normalization and rectangle algebra are covered; runtime prop wiring remains. |
+| Dock-position policy      | Accepted | Planned        | Maximum set that descendant Panels may narrow.                                     |
+| Portal ownership          | Accepted | Partial        | Shared overlay defaults are composed; Panel portal ownership is later work.        |
+| Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                                |
 
 The root Store and `providerId` are immutable while mounted. Theme, boundary, inset, and enabled
 dock positions are runtime policy and may change through their declared props.
@@ -423,9 +423,11 @@ non-rail allocation.
 > Implementation: Partial
 > Evidence: `packages/dashpanel/src/geometry/boundary.test.ts` covers direct HTML/SVG identity,
 > Panel-over-Provider precedence, explicit viewport selection, unresolved-ref fallback, live refs,
-> invalid values, and no-measurement behavior.
-> Notes: This slice implements reference resolution only. Inset normalization, rectangle math,
-> observers, and runtime/browser geometry remain unimplemented.
+> invalid values, and no-measurement behavior. `packages/dashpanel/src/geometry/inset.test.ts`
+> covers shorthand normalization, inheritance selection, hostile values, frozen detached outputs,
+> coherent overconstrained rectangles, edge validation, and getter snapshots.
+> Notes: This slice implements pure reference, inset, and rectangle algebra only. Public props,
+> measurement, observers, projection, and runtime/browser geometry remain unimplemented.
 
 Boundary resolution follows Panel override, Provider default, then viewport. Explicit `null`
 selects the viewport; an unresolved ref falls through to the next boundary. Provider and Panel
