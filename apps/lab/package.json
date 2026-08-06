@@ -9,7 +9,7 @@
     "dev": "bun run picodash:build && next dev --hostname 127.0.0.1 --port ${LAB_PORT:-6032}",
     "build": "bun run picodash:build && next build",
     "check": "bun run picodash:build && tsc --noEmit",
-    "picodash:build": "bun run --filter @picodash/store build && bun run --filter @picodash/theme build && bun run --filter @picodash/dashlist build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/picodash build",
+    "picodash:build": "bun run --filter @picodash/store build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashlist build && bun run --filter @picodash/picodash build",
     "test:e2e": "playwright test",
     "test:e2e:cap": "playwright test --list"
   },
@@ -18,22 +18,14 @@
     "@picodash/dashpanel": "workspace:*",
     "@picodash/picodash": "workspace:*",
     "@picodash/store": "workspace:*",
-    "@picodash/theme": "workspace:*",
-    "clsx": "catalog:",
-    "highlight.js": "catalog:",
-    "lucide-react": "catalog:",
-    "motion": "catalog:",
+    "@picodash/ui": "workspace:*",
     "next": "16.3.0-preview.9",
     "react": "catalog:",
-    "react-dom": "catalog:",
-    "react-json-view-lite": "catalog:",
-    "tailwind-merge": "catalog:",
-    "zod": "catalog:"
+    "react-dom": "catalog:"
   },
   "devDependencies": {
     "@playwright/test": "catalog:",
     "@tailwindcss/postcss": "catalog:",
-    "@tailwindcss/typography": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

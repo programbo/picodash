@@ -17,6 +17,22 @@ test('defines exactly the six curated Contract Lab presets', () => {
     'themes',
   ])
   expect(CONTRACT_LAB_PRESETS.map(({ id }) => id)).toEqual(CONTRACT_LAB_PRESET_IDS)
+  expect(CONTRACT_LAB_PRESETS.map(({ implementation }) => implementation)).toEqual([
+    'Planned',
+    'Partial',
+    'Partial',
+    'Partial',
+    'Planned',
+    'Partial',
+  ])
+  expect(CONTRACT_LAB_PRESETS.map(({ description }) => description)).toEqual([
+    'Browser placement, docking, snapping, dragging, and persisted layout remain planned.',
+    'Panel collapse is available; visibility, close/reopen, focus restoration, activation, and reordering remain planned.',
+    'Named Dashlets and one-level DashGroups render against a Store scope; bindings, ordering, collapse, and ready-made Dashlets remain planned.',
+    'Shared UI AlertDialog behavior is available; Panel/List portal coordination and stacked overlay journeys remain planned.',
+    'Store documents and DashList import, export, repair, and reset actions remain planned.',
+    'Theme and density Providers are available; detached portal carriers and complete compact geometry remain planned.',
+  ])
 })
 
 test('loads a preset through a deterministic reducer transition', () => {

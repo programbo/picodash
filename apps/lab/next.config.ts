@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     '@picodash/dashpanel',
     '@picodash/picodash',
     '@picodash/store',
-    '@picodash/theme',
+    '@picodash/ui',
   ],
   turbopack: {
     root: path.join(import.meta.dirname, '../..'),

@@ -11,7 +11,7 @@ import {
   type ContractLabPresetId,
 } from '@lab/lib/contract-lab'
 import { ContractLabConsole } from './console'
-import { ContractLabSpecimenHost } from './specimen-host'
+import { ContractLabSpecimenHost, type ContractLabPrimaryPanelState } from './specimen-host'
 import { ContractLabStatusStrip } from './status-strip'
 
 const sessionPresetKey = 'picodash:contract-lab:preset'
@@ -22,7 +22,8 @@ export function ContractLab() {
   const [specimenAvailable, setSpecimenAvailable] = useState(true)
   const [consoleDiagnosticCount, setConsoleDiagnosticCount] = useState(0)
   const [specimenDiagnosticCount, setSpecimenDiagnosticCount] = useState(0)
-  const [primaryPanelVisible, setPrimaryPanelVisible] = useState(true)
+  const [primaryPanelState, setPrimaryPanelState] =
+    useState<ContractLabPrimaryPanelState>('expanded')
   const preset = useMemo(
     () =>
       CONTRACT_LAB_PRESETS.find((candidate) => candidate.id === state.activePreset) ??
@@ -71,11 +72,12 @@ export function ContractLab() {
     >
       <ContractLabStatusStrip
         diagnosticCount={consoleDiagnosticCount + specimenDiagnosticCount}
+        implementation={preset.implementation}
         lastOperation={state.lastOperation}
         presetLabel={preset.label}
         ready={hydrated}
+        primaryPanelState={specimenAvailable ? primaryPanelState : 'unavailable'}
         specimenAvailable={specimenAvailable}
-        primaryPanelVisible={primaryPanelVisible}
       />
 
       <div className="relative isolate overflow-hidden">
@@ -98,7 +100,7 @@ export function ContractLab() {
             <ContractLabSpecimenHost
               key={`${preset.id}:${state.specimenRevision}`}
               onDiagnosticCountChange={setSpecimenDiagnosticCount}
-              onPrimaryVisibilityChange={setPrimaryPanelVisible}
+              onPrimaryPanelStateChange={setPrimaryPanelState}
               preset={preset}
               revision={state.specimenRevision}
             />
@@ -116,16 +118,9 @@ export function ContractLab() {
                   Specimen offline
                 </h1>
                 <p className="text-muted-foreground mt-2 text-sm leading-6">
-                  The independent status strip and Lab Console remain operable. Reopen the specimen
-                  to resume the selected contract.
+                  The Lab Console and status remain available. Reopen the specimen to continue with
+                  the selected preset.
                 </p>
-                <button
-                  className="border-border bg-background hover:bg-accent focus-visible:ring-ring mt-5 min-h-11 rounded-md border px-4 text-sm font-medium outline-none focus-visible:ring-2"
-                  type="button"
-                  onClick={() => setSpecimenAvailable(true)}
-                >
-                  Reopen primary specimen
-                </button>
               </div>
             </section>
           )}

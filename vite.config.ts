@@ -8,7 +8,7 @@ const tailwindEntryPoints = workspaceCwd.endsWith('/packages/ui')
     : workspaceCwd.endsWith('/apps/web')
       ? [{ files: '**', use: 'src/style.css' }]
       : workspaceCwd.endsWith('/apps/lab')
-        ? [{ files: '**', use: '../web/src/style.css' }]
+        ? [{ files: '**', use: 'src/style.css' }]
         : [
             { files: 'packages/dashpanel/**', use: 'packages/dashpanel/style.css' },
             { files: 'packages/dashlist/**', use: 'packages/dashlist/style.css' },

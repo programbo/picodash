@@ -1,10 +1,10 @@
 'use client'
 
 import { useCallback, useSyncExternalStore } from 'react'
-import type { PicodashDiagnosticChannel } from '@picodash/store'
+import type { PicodashDiagnostics } from '@picodash/store'
 
 export interface ContractLabDiagnosticSource {
-  readonly diagnostics: PicodashDiagnosticChannel
+  readonly diagnostics: PicodashDiagnostics
 }
 
 export function useContractLabDiagnosticCount(stores: readonly ContractLabDiagnosticSource[]) {
@@ -18,7 +18,7 @@ export function useContractLabDiagnosticCount(stores: readonly ContractLabDiagno
     [stores],
   )
   const getSnapshot = useCallback(
-    () => stores.reduce((count, store) => count + store.diagnostics.getSnapshot().length, 0),
+    () => stores.reduce((count, store) => count + store.diagnostics.getState().current.size, 0),
     [stores],
   )
 

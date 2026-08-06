@@ -12,6 +12,7 @@ export type ContractLabPresetId = (typeof CONTRACT_LAB_PRESET_IDS)[number]
 export interface ContractLabPreset {
   readonly description: string
   readonly id: ContractLabPresetId
+  readonly implementation: 'Partial' | 'Planned'
   readonly label: string
 }
 
@@ -19,34 +20,45 @@ export const DEFAULT_CONTRACT_LAB_PRESET_ID = 'placement' satisfies ContractLabP
 
 export const CONTRACT_LAB_PRESETS = [
   {
-    description: 'Placement modes, boundaries, snapping, docking, persistence, and detachment.',
+    description:
+      'Browser placement, docking, snapping, dragging, and persisted layout remain planned.',
     id: 'placement',
+    implementation: 'Planned',
     label: 'Placement',
   },
   {
-    description: 'Pointer and keyboard ordering, panel lifecycle, focus, and activation.',
+    description:
+      'Panel collapse is available; visibility, close/reopen, focus restoration, activation, and reordering remain planned.',
     id: 'interaction',
+    implementation: 'Partial',
     label: 'Interaction',
   },
   {
-    description: 'Built-in, custom, compound, grouped, streaming, and stateful Dashlets.',
+    description:
+      'Named Dashlets and one-level DashGroups render against a Store scope; bindings, ordering, collapse, and ready-made Dashlets remain planned.',
     id: 'composition',
+    implementation: 'Partial',
     label: 'Composition',
   },
   {
-    description: 'Menus, dialogs, tooltips, selects, portals, stacking, and dismissal.',
+    description:
+      'Shared UI AlertDialog behavior is available; Panel/List portal coordination and stacked overlay journeys remain planned.',
     id: 'overlays',
+    implementation: 'Partial',
     label: 'Overlays',
   },
   {
     description:
-      'Documents, drafts, atomic writes, repair, adapters, persistence, and diagnostics.',
+      'Store documents and DashList import, export, repair, and reset actions remain planned.',
     id: 'documents',
+    implementation: 'Planned',
     label: 'Documents',
   },
   {
-    description: 'Theme recipes, overrides, semantic states, contrast, zoom, and reduced motion.',
+    description:
+      'Theme and density Providers are available; detached portal carriers and complete compact geometry remain planned.',
     id: 'themes',
+    implementation: 'Partial',
     label: 'Themes',
   },
 ] as const satisfies readonly ContractLabPreset[]

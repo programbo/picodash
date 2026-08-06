@@ -1,19 +1,22 @@
 import type { ContractLabOperation } from '@lab/lib/contract-lab'
+import type { ContractLabPrimaryPanelState } from './specimen-host'
 
 export interface ContractLabStatusStripProps {
   readonly diagnosticCount: number
+  readonly implementation: 'Partial' | 'Planned'
   readonly lastOperation: ContractLabOperation
+  readonly primaryPanelState: ContractLabPrimaryPanelState
   readonly presetLabel: string
-  readonly primaryPanelVisible: boolean
   readonly ready: boolean
   readonly specimenAvailable: boolean
 }
 
 export function ContractLabStatusStrip({
   diagnosticCount,
+  implementation,
   lastOperation,
+  primaryPanelState,
   presetLabel,
-  primaryPanelVisible,
   ready,
   specimenAvailable,
 }: ContractLabStatusStripProps) {
@@ -26,16 +29,17 @@ export function ContractLabStatusStrip({
     >
       <dl className="mx-auto grid max-w-[110rem] grid-cols-2 gap-x-6 gap-y-2 font-mono text-[0.6875rem] tracking-[0.08em] uppercase sm:flex sm:items-center">
         <StatusDatum label="Preset" value={presetLabel} />
+        <StatusDatum label="Implementation" value={implementation} />
         <StatusDatum label="Readiness" value={ready ? 'ready' : 'loading'} state={ready} />
         <StatusDatum
           label="Specimen"
-          value={specimenAvailable ? 'available' : 'offline'}
+          value={specimenAvailable ? 'available' : 'unavailable'}
           state={specimenAvailable}
         />
         <StatusDatum
-          label="Primary panel"
-          value={primaryPanelVisible ? 'open' : 'hidden'}
-          state={primaryPanelVisible}
+          label="Primary Panel"
+          value={primaryPanelState}
+          state={primaryPanelState !== 'unavailable'}
         />
         <StatusDatum label="Last operation" value={lastOperation.replace('-', ' ')} />
         <StatusDatum
