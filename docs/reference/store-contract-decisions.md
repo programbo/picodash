@@ -192,6 +192,116 @@ Edges exist only while their declarative boundaries hold active leases. Unmount 
 deactivation removes the edge but preserves scope state. One child may have only one active parent;
 cycles and simultaneous parents throw. Mount tokens make registration safe under React Strict Mode.
 
+### 3.9 Public integration leases
+
+`@picodash/store/integration` exposes the exact Provider, entity, and relationship acquisition
+surface used by declarative UI products:
+
+```ts
+type StoreEntityKind = 'dashPanel' | 'dashList'
+
+type EntityLeaseOptions =
+  | {
+      readonly kind: 'dashPanel'
+      readonly host: ProviderLease | EntityLease
+    }
+  | {
+      readonly kind: 'dashList'
+      readonly host?: ProviderLease | EntityLease
+    }
+
+type InvalidEntityOptionsReason =
+  'not-object' | 'unknown-key' | 'accessor-property' | 'invalid-kind' | 'host-required'
+
+declare const providerLeaseBrand: unique symbol
+declare const entityLeaseBrand: unique symbol
+declare const relationshipLeaseBrand: unique symbol
+
+type ProviderLease = Readonly<{
+  [providerLeaseBrand]: 'ProviderLease'
+  release(): void
+}>
+
+type EntityLease = Readonly<{
+  [entityLeaseBrand]: 'EntityLease'
+  release(): void
+}>
+
+type RelationshipLease = Readonly<{
+  [relationshipLeaseBrand]: 'RelationshipLease'
+  release(): void
+}>
+
+declare function acquireProviderLease<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+>(rootStore: RootStore<Fields, Result>, options?: { readonly providerId?: string }): ProviderLease
+
+declare function acquireEntityLease<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+>(scopedStore: ScopedStore<Fields, Result>, options: EntityLeaseOptions): EntityLease
+
+declare function acquireRelationshipLease(
+  parentEntity: EntityLease,
+  childEntity: EntityLease,
+): RelationshipLease
+```
+
+The returned objects are frozen, opaque, nominal mount generations. Their only caller-visible
+operation is `release()`, and callers never supply or reconstruct a lease ID. `providerId` defaults
+to `default`; Provider acquisition accepts only a root Store, and entity acquisition accepts only a
+scoped Store. A Provider-hosted root entity supplies its `ProviderLease`; a nested entity supplies
+the nearest `EntityLease`. Only a standalone root DashList may omit `host`, in which case Store owns
+a private standalone-host generation. Every DashPanel must resolve transitively to a Provider
+generation.
+
+Entity options are validated as an exact own-key data record before any host handle is examined.
+The deterministic validation order is non-null, non-array object; no unknown own string or symbol
+key beyond `kind` and `host`; no accessor for either known key; exact `dashPanel | dashList` kind;
+then the required presence of `host` for `dashPanel`. Failure throws `invalid-entity-options` with
+exactly `{ reason: InvalidEntityOptionsReason }`. A present host is then validated as a handle, so an
+invalid, foreign, released, or wrong-kind host remains `invalid-integration-handle`. No failure
+context contains the rejected option, key, descriptor, or host.
+
+Provider and entity handles carry their root and host generation privately. Relationship
+acquisition derives both facts from its two handles, rejects a different root or host generation,
+and therefore cannot cross a nested Provider boundary even when both Providers share a root Store.
+Several live relationship leases may represent the same ordered parent-child edge; the edge remains
+active until its final generation releases. A child may have only one active parent. Same-scope
+edges, cycles, cross-root edges, and cross-host edges are rejected.
+
+The first successful `release()` is lifecycle teardown and later calls are idempotent no-ops.
+Provider and entity release refuse while dependent leases remain active; callers tear down in the
+order relationship, child entity, parent entity, then Provider. Binding lease acquisition remains a
+later Store slice and is not part of this accepted alpha integration surface.
+
+The integration contract errors and their complete safe contexts are:
+
+| Code                           | Context                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `invalid-provider-id`          | `{ reason: InvalidProviderIdReason }`                                                           |
+| `duplicate-provider`           | `{ providerId: string }`                                                                        |
+| `invalid-entity-options`       | `{ reason: InvalidEntityOptionsReason }`                                                        |
+| `invalid-integration-handle`   | `{ role: 'host' \| 'parent' \| 'child', reason: 'foreign-root' \| 'released' \| 'wrong-kind' }` |
+| `duplicate-entity`             | `{ scopeId: string, entityKind: StoreEntityKind }`                                              |
+| `scope-host-conflict`          | `{ scopeId: string }`                                                                           |
+| `invalid-relationship`         | `{ reason: 'same-scope' \| 'host-boundary' }`                                                   |
+| `relationship-parent-conflict` | `{ childScopeId: string }`                                                                      |
+| `relationship-cycle`           | `{ parentScopeId: string, childScopeId: string }`                                               |
+| `lease-has-active-dependents`  | `{ leaseKind: 'provider' \| 'entity' }`                                                         |
+
+`InvalidProviderIdReason` is the same lexical reason union as `InvalidScopeIdReason`. Context never
+contains a Store, handle, root runtime identity, host generation, caller-supplied invalid value,
+stack, or arbitrary cause.
+
+### 3.10 Private runtime controller
+
+One module-private `WeakMap` resolves a root Store to its runtime controller. The integration entry
+uses that controller for host and relationship generations, and `destroyScope()` uses the same
+controller for active descendant traversal. The controller is registered during Store creation and
+is never exposed on a root, scoped view, snapshot, document, persisted envelope, or diagnostic.
+
 ## 4. Active lifecycle and destruction
 
 ### 4.1 Active means holding a committed lease
@@ -213,6 +323,13 @@ issues, focus, hover, active state, and stale-draft conflicts.
 ### 4.3 Destroying scope state
 
 ```ts
+type InvalidDestroyOptionsReason =
+  | 'not-object'
+  | 'unknown-key'
+  | 'accessor-property'
+  | 'invalid-include-descendants'
+  | 'invalid-discard-unpersisted'
+
 type DestroyScopeOptions = {
   readonly includeDescendants?: boolean
 }
@@ -220,6 +337,15 @@ type DestroyScopeOptions = {
 root.destroyScope(scopeId, options) // preserves the root's configured Result
 scoped.destroyScope(options) // preserves the same configured Result
 ```
+
+Both destruction operations validate their options as an exact own-key data record. `undefined` is
+accepted. A null, array, primitive, or function is `not-object`. Validation then checks, in order:
+own string and symbol keys outside that operation's single allowed key as `unknown-key`; a known
+accessor as `accessor-property` before reading it; and a present value of the wrong boolean form as
+`invalid-include-descendants` for `destroyScope()` or `invalid-discard-unpersisted` for
+`root.destroy()`. The latter accepts only literal `true` when present. Every failure throws
+`invalid-destroy-options` with exactly `{ reason: InvalidDestroyOptionsReason }`; context contains
+no rejected value, key, or property descriptor.
 
 `destroyScope(id)` erases that scope's durable and ephemeral state without changing canonical
 values or invalidating its ID or live handle. Active registrations, relationships, and other leases
@@ -233,9 +359,8 @@ before one atomic mutation.
 
 A successful result has `changedFields: []` and sorted `changedScopeIds` containing only scopes whose
 durable or interaction state changed. Destroying absent state succeeds with both changed arrays empty.
-A runtime non-boolean option throws `invalid-destroy-options`; malformed root scope IDs throw
-`invalid-scope-id` before lookup. Destruction neither releases leases nor changes relationship
-registration.
+Option validation uses the exact mapping above; malformed root scope IDs throw `invalid-scope-id`
+before lookup. Destruction neither releases leases nor changes relationship registration.
 
 ### 4.4 Root lifetime
 
@@ -252,7 +377,7 @@ root.destroy(options?: DestroyRootOptions): void
 
 `root.destroy()` is final and is not a transaction. Refusal is atomic and follows this order:
 
-1. malformed options throw `invalid-destroy-options`;
+1. options are validated by the exact `invalid-destroy-options` mapping above;
 2. any Provider, entity, relationship, or binding lease throws `root-has-active-leases`;
 3. unpersisted state without explicit discard throws `root-has-unpersisted-state`.
 
@@ -270,6 +395,11 @@ After successful destruction, every property access and method call on an existi
 returned unsubscribe functions remain idempotent no-ops, and previously captured immutable snapshots
 remain readable detached data. Existing field handles remain inspectable values, but no destroyed
 Store can operate on them.
+
+Implementation follows the dependency order integration leases, root lifecycle, then adapter and
+persistence authority. This sequencing lets destruction inspect active lease generations before it
+releases adapter subscriptions, persistence subscriptions, or persistence ownership; it does not add
+or change any public alpha API.
 
 ### 4.5 Scope rename is deferred
 
@@ -298,6 +428,7 @@ interface RootStore<
   Result extends CoreTransactionResult = CoreTransactionResult,
 > extends RootMetadataCommands<Result> {
   readonly kind: 'root'
+  readonly diagnostics: PicodashDiagnostics
   readonly fields: PicodashFields<Fields>
   scope(scopeId: string): ScopedStore<Fields, Result>
   getState(): RootSnapshot<ValuesOf<Fields>>
@@ -321,6 +452,7 @@ interface ScopedStore<
   Result extends CoreTransactionResult = CoreTransactionResult,
 > extends ScopedMetadataCommands<Result> {
   readonly kind: 'scoped'
+  readonly diagnostics: PicodashDiagnostics
   readonly root: RootStore<Fields, Result>
   readonly scopeId: string
   readonly fields: PicodashFields<Fields>
@@ -521,8 +653,9 @@ call, notification, transaction, or persistence write.
 ### 6.6 Defaults and initial values
 
 Concrete defaults plus validated `initialValues` form the current baseline. Valid known values from
-a persisted envelope overlay that baseline. Missing or quarantined invalid fields use the baseline;
-parser-proposed repairs are never applied automatically during hydration. `initialValues` never
+a persisted envelope overlay that baseline. Policy-omitted fields use the baseline. The alpha
+decoder rejects invalid disclosed fields; beta quarantine recovery may use the baseline.
+Parser-proposed repairs are never applied automatically during hydration. `initialValues` never
 overwrite valid persisted values on each launch.
 
 The complete baseline passes through each field's schema and validation pipeline during Store
@@ -628,10 +761,44 @@ values. `PicodashTransactionError` is reserved for expected candidate-data rejec
 error returned by safe operations or thrown by `*OrThrow` variants.
 
 `PicodashInitializationError` is the structured creation-time failure for an invalid initial
-adapter projection, unavailable persistence driver, invalid envelope, hydration-source conflict, or
-incomplete migration chain. Store construction is all-or-nothing and returns no partially active
-root. Invalid developer configuration remains a contract error; invalid external startup data is an
-initialization error.
+adapter projection, unavailable persistence driver, invalid envelope, or hydration-source conflict.
+Its public alpha code/reason correlation is exact:
+
+```ts
+type AdapterInitializationFailureReason =
+  'read_threw' | 'async_snapshot' | 'invalid_snapshot' | 'subscribe_threw' | 'invalid_teardown'
+
+type PersistenceDriverUnavailableReason = 'read' | 'subscribe' | 'seed-write' | 'seed-verification'
+
+type InvalidPersistenceEnvelopeReason =
+  'syntax' | 'shape' | 'format' | 'identity' | 'schema' | 'authority' | 'values' | 'metadata'
+
+type HydrationSourceConflictReason = 'revision' | 'content'
+
+type PicodashInitializationErrorReasonByCode = {
+  readonly 'adapter-initialization-failed': AdapterInitializationFailureReason
+  readonly 'persistence-driver-unavailable': PersistenceDriverUnavailableReason
+  readonly 'invalid-persistence-envelope': InvalidPersistenceEnvelopeReason
+  readonly 'hydration-source-conflict': HydrationSourceConflictReason
+}
+
+type PicodashInitializationErrorCode = keyof PicodashInitializationErrorReasonByCode
+
+type PicodashInitializationError = {
+  [Code in PicodashInitializationErrorCode]: Error & {
+    readonly name: 'PicodashInitializationError'
+    readonly code: Code
+    readonly reason: PicodashInitializationErrorReasonByCode[Code]
+    readonly issues: readonly TransactionIssue[]
+  }
+}[PicodashInitializationErrorCode]
+```
+
+Store construction is all-or-nothing and returns no partially active root. Invalid developer
+configuration remains a contract error; invalid external startup data is an initialization error.
+Initialization-error construction is package-internal; the public contract does not promise a
+class, public constructor, or `instanceof` behavior. Beta migration failures require a separately
+frozen addition to the reason map rather than a broad string reason.
 
 Opaque plans and handles follow one rule across repairs, stale-input overwrite, pruning,
 persistence, export, and import: wrong-root, wrong-kind, released, or already-consumed objects throw
@@ -885,11 +1052,11 @@ or scope relationships.
 
 Panel layout persistence is an optional override of current declared defaults. A completed move,
 snap, or dock writes the override. Preview and cancelled interactions write nothing. Reset removes
-the override. A compatible override wins over later default changes; a record with an unknown
-position, invalid mode/disposition combination, or non-finite coordinate enters the configured
-quarantine/recovery path and the current default is used. A valid record whose target is disabled by
-current Provider or Panel policy remains durable and dormant; UI policy does not make Store data
-invalid.
+the override. A compatible override wins over later default changes. An unknown position, invalid
+mode/disposition combination, or non-finite coordinate rejects the alpha envelope; beta recovery may
+quarantine that complete Panel record and use the current default. A valid record whose target is
+disabled by current Provider or Panel policy remains durable and dormant; UI policy does not make
+Store data invalid.
 
 ### 10.2 Durable boundary
 
@@ -930,17 +1097,57 @@ semantic value change. `subscribe()` uses a no-argument listener and returns ide
 Adapter object and callback identities remain stable for the root lifetime. Picodash clones and
 validates every projection and never retains mutable host references.
 
+The adapter has no prototype `id`, boolean write result, `previousValues` alias, or React-generated
+adapter surface. Its write-failure reason union is exact:
+
+```ts
+type AdapterWriteFailureReason =
+  'write_threw' | 'async_write' | 'not_visible' | 'invalid_snapshot' | 'mismatched_snapshot'
+```
+
+Candidate validation and semantic no-op removal happen before adapter health is consulted. An
+otherwise valid write attempted while unhealthy returns one `adapter_unhealthy` transaction issue
+with reason `blocked`, path `[]`, and the attributed `scopeId` when present. It does not invoke the
+adapter or increment the health diagnostic. An attempted adapter write that fails returns one
+`adapter_write_failed` issue with its `AdapterWriteFailureReason`, path `[]`, and the optional safe
+`scopeId`.
+
 ### 11.3 Strict initialization
 
 The initial projected snapshot must be complete and valid. Missing or invalid values prevent Store
 activation. Picodash does not silently seed or repair an externally owned store; adapter code may
 perform explicit initialization before returning its snapshot.
 
+Adapter activation is ordered `read and validate -> subscribe -> reread and validate`. Failure
+after subscription calls the returned teardown exactly once before construction throws. A malformed
+adapter object is `invalid-configuration`. External startup failures throw
+`PicodashInitializationError` with code `adapter-initialization-failed`, one
+`adapter_initialization_failed` issue at path `[]`, and the exact
+`AdapterInitializationFailureReason` declared by the correlated initialization map in Section 7.3.
+
 ### 11.4 Later invalid snapshots
 
 An invalid later snapshot is rejected as a whole. Picodash retains the last valid values, marks the
 adapter unhealthy, emits structured diagnostics, and blocks Picodash-originated writes until a
 complete valid snapshot arrives. Picodash never repairs the host store implicitly.
+
+Adapter health has one root-local diagnostic identity and exact specialization:
+
+```ts
+type AdapterHealthReason =
+  'read_threw' | 'async_snapshot' | 'invalid_snapshot' | AdapterWriteFailureReason
+
+type AdapterHealthDiagnostic = PicodashDiagnostic<
+  'adapter_unhealthy',
+  { readonly kind: 'adapter' },
+  'error'
+> & { readonly reason: AdapterHealthReason }
+```
+
+Each actual read, snapshot, or write failure increments that one aggregate. Blocked writes do not.
+A later complete valid snapshot clears it. The diagnostic and transaction issue omit adapter
+objects, raw or canonical values, arbitrary thrown causes and messages, stacks, and host-specific
+identities.
 
 ### 11.5 Cross-authority atomicity boundary
 
@@ -956,24 +1163,28 @@ Picodash metadata, preserves the last safe Picodash snapshot, and marks the adap
 Adapter authors therefore guarantee an atomic write or a throw before host mutation; Picodash cannot
 repair a host adapter that mutates partially before throwing.
 
+Synchronous adapter notifications caused by Store's own whole-record write are coalesced as an
+internal echo. Store validates the post-write projection once and publishes at most one completed
+Store notification. Metadata commands remain usable while adapter values are unhealthy because
+they do not cross value authority.
+
 An `initialEnvelope` in external-owned mode may contain Picodash metadata but must not contain values.
 The adapter remains the sole value authority.
 
 ## 12. Persistence
 
-### 12.1 Ownership modes
+### 12.1 Alpha authority boundary
 
-Store-owned mode persists canonical values plus Picodash metadata, subject to policy. External-owned
-mode persists only Picodash metadata. `valueOwner` is an immutable discriminant; invalid combinations
-of adapter and initial values fail in TypeScript and at runtime.
+The alpha capability implements Store-owned persistence only. It persists the disclosed canonical
+value projection plus all durable Picodash scope metadata. External-owned metadata persistence,
+conflict-resolution plans, erase plans, migrations, documents, quarantine recovery, and a built-in
+Web Storage driver remain beta work. This boundary does not weaken the rule that `valueOwner` is an
+immutable discriminant or permit external values to enter a future Store envelope.
 
-### 12.2 Synchronous core persistence
+### 12.2 Synchronous driver
 
 Core persistence is synchronous. Hydration completes before a persisted Store becomes usable.
-Browser Web Storage is a valid driver. IndexedDB, remote storage, and asynchronous durability remain
-outside the core Store and integrate through application-owned infrastructure.
-
-The public driver contract stores the deterministic serialized envelope:
+IndexedDB, remote storage, and asynchronous durability remain outside core Store authority.
 
 ```ts
 type PicodashPersistenceDriver = {
@@ -986,107 +1197,220 @@ type PicodashPersistenceDriver = {
 ```
 
 `identity` is a stable nominal token for the underlying backend; wrappers around the same backend
-share it. All methods are synchronous. `write` and `remove` must be atomic or throw before making a
-visible change. The Store reads after writes and treats mismatch as a durability
-failure. `subscribe` reports possible foreign changes and carries no payload; Picodash re-reads and
-validates. A built-in Web Storage driver implements this contract. Driver exceptions are normalized
-without exposing arbitrary causes.
+share it. All methods are synchronous. `write` and `remove` are atomic or throw before visible
+mutation. `subscribe` carries no payload and only signals that Store must reread and validate. Alpha
+never calls `remove`. Driver exceptions are normalized without retaining their cause, message, or
+stack.
 
-### 12.3 SSR
+### 12.3 Capability and state
 
-Server Stores are request-local and receive an explicit initial envelope. They do not access browser
-storage. The client begins from the same envelope or delays its Provider subtree until synchronous
-browser hydration completes. An unavailable configured driver fails explicitly instead of silently
-using defaults.
-
-`initialEnvelope` is a root configuration input for synchronous, driver-free hydration. When a
-persistence driver and `initialEnvelope` are both supplied, the driver record must be absent or
-match the same identity, revision, and deterministic content fingerprint; disagreement throws a hydration-source conflict during Store
-creation. The input is cloned and never retained by reference.
-
-### 12.4 One root envelope
-
-The root persists one deterministic versioned envelope containing Store identity, Picodash format
-version, application schema version, revision, writer identity, permitted values, and durable scope
-metadata.
-
-### 12.5 Concurrent writers
-
-One live writer per persistence identity is allowed within a JavaScript realm. Envelopes record
-revision and writer ID. A foreign revision stops automatic persistence and reports a structured
-conflict; Picodash never silently uses last-write-wins. Reload, overwrite, and reconciliation are
-explicit application decisions. Coordinated multi-tab collaboration requires a specialized adapter
-or persistence layer.
-
-Acquiring the same driver identity and `storageKey` twice in one realm throws a contract error.
-After a foreign-revision conflict, valid live transactions remain allowed and coalesce the latest
-complete local pending envelope; they report `persistence: 'pending'` and do not overwrite storage.
-Conflict resolution therefore always compares the newest valid live state with the foreign durable
-state.
-
-Persistence state and conflict recovery use the capability namespace:
+A persistent root and every scoped view expose the same root-wide capability. Its object identity is
+stable and exact across those surfaces.
 
 ```ts
-store.persistence.getState()
-store.persistence.subscribe(listener)
-store.persistence.flush()
-store.persistence.createConflictResolutionPlan(options)
-store.persistence.executeConflictResolution(plan)
-```
+type PersistenceWriteStatus = 'unchanged' | 'saved' | 'pending'
 
-The state snapshot is immutable and contains revision plus pending, error, and conflict status with
-safe diagnostic metadata. `flush()` retries pending I/O but never resolves a revision conflict.
-Conflict strategies are `reload`, `overwrite`, or `reconcile`: reload adopts the validated persisted
-envelope; overwrite writes the latest valid live state as a new revision; reconcile requires an
-application-provided complete candidate derived from cloned local and persisted states. Plan
-creation validates without mutation. Execution rechecks revisions and fingerprints and rejects a
-stale plan.
-
-```ts
-type PicodashPersistenceState = {
-  status: 'clean' | 'pending' | 'error' | 'conflict'
-  durableRevision: number | null
-  liveRevision: number
-  hasPendingEnvelope: boolean
-  lastError?: PicodashDiagnostic
-  conflict?: PicodashPersistenceConflict
+interface PicodashPersistence {
+  getState(): PicodashPersistenceState
+  subscribe(listener: () => void): () => void
+  flush(): PersistenceWriteStatus
 }
+
+type PicodashPersistenceState =
+  | {
+      readonly status: 'clean'
+      readonly durableRevision: number | null
+      readonly liveRevision: number
+      readonly hasPendingEnvelope: false
+      readonly lastError?: never
+      readonly conflict?: never
+    }
+  | {
+      readonly status: 'pending'
+      readonly durableRevision: number | null
+      readonly liveRevision: number
+      readonly hasPendingEnvelope: true
+      readonly lastError?: never
+      readonly conflict?: never
+    }
+  | {
+      readonly status: 'error'
+      readonly durableRevision: number | null
+      readonly liveRevision: number
+      readonly hasPendingEnvelope: true
+      readonly lastError: PicodashPersistenceDiagnostic
+      readonly conflict?: never
+    }
+  | {
+      readonly status: 'conflict'
+      readonly durableRevision: number | null
+      readonly liveRevision: number
+      readonly hasPendingEnvelope: true
+      readonly lastError?: never
+      readonly conflict: PicodashPersistenceConflict
+    }
 ```
 
-The snapshot never exposes serialized envelopes or omitted values. `error` retains a pending
-envelope; `conflict` identifies safe revision/writer metadata for both sides. Successful recovery
-returns to `clean` after durability is confirmed.
+All state and nested data are immutable. `durableRevision` is the last revision confirmed from the
+configured driver, or `null` when none exists. `liveRevision` is the revision of the newest complete
+local envelope and begins at zero without an envelope. The synchronous alpha path does not need to
+leave an observable `pending` state without an error or conflict, but the accepted state member is
+reserved for a complete envelope awaiting `flush()`.
 
-### 12.6 Persistence failure
+`flush()` returns `unchanged` when no envelope is pending, `saved` only after writing and rereading
+the latest pending envelope, and `pending` when an error or conflict remains. It never resolves or
+overwrites a conflict. Capability listeners receive no argument, use `getState()`, have idempotent
+teardown, and are independent of root value and scoped subscriptions.
 
-A durability failure never rolls back valid live state. The Store retains the latest complete
-pending envelope, exposes persistence status/error, retries on a later transaction or explicit
-flush, and coalesces obsolete pending writes. Revision conflicts do not auto-retry. Root destruction
-refuses pending state unless discard is explicit.
+### 12.4 Version-one envelope
+
+`initialEnvelope` is a structured object, not serialized text:
+
+```ts
+type PicodashEnvelopeHeader = {
+  readonly kind: 'picodash-store-envelope'
+  readonly formatVersion: 1
+  readonly storeId: string
+  readonly schemaVersion: number
+  readonly revision: number
+  readonly writerId: string
+  readonly scopes: readonly (readonly [scopeId: string, metadata: SerializedDurableScopeMetadata])[]
+}
+
+type PicodashEnvelopeInput =
+  | (PicodashEnvelopeHeader & {
+      readonly valueOwner: 'store'
+      readonly values: Readonly<Record<string, PicodashJsonValue>>
+    })
+  | (PicodashEnvelopeHeader & {
+      readonly valueOwner: 'external'
+      readonly values?: never
+    })
+```
+
+Alpha produces and accepts only the `store` branch; the `external` branch reserves the exact future
+authority distinction. `revision` is a positive safe integer. `writerId` is an opaque, trimmed,
+control-character-free root writer identity. The `values` property is always present in a
+Store-owned envelope, including as an empty record when policy omits every field, and contains the
+complete disclosed projection. Missing omitted fields hydrate from the current validated baseline.
+`scopes` contains every durable metadata record as sorted, duplicate-free entry tuples; metadata
+maps use their existing sorted, duplicate-checked serialized entry arrays.
+
+The decoder requires exact keys, strict JSON-compatible data, matching Store identity, matching
+application schema, the accepted authority branch, known persisted field keys, and valid complete
+scope metadata. Alpha rejects the whole envelope for unknown or incompatible input rather than
+partially hydrating or quarantining it. Migration and granular recovery remain beta work.
+
+Serialization is deterministic: records use lexically sorted keys recursively, arrays preserve
+order, metadata entries are already sorted, finite numbers are required, and negative zero becomes
+zero. Hydration-source comparison checks Store identity and revision separately. Its deterministic
+content fingerprint covers normalized `schemaVersion`, `valueOwner`, `values`, and `scopes`, and
+excludes `revision` and `writerId`. The fingerprint is internal and never enters public state or
+diagnostics.
+
+### 12.5 Construction and hydration
+
+Server Stores are request-local and may receive `initialEnvelope` without a driver. The input is
+cloned and never retained by reference. Construction follows these exact cases:
+
+- no driver record and no initial envelope uses the validated baseline and performs no write;
+- an initial envelope without persistence hydrates synchronously but adds no persistence capability;
+- a valid driver record hydrates before Store activation;
+- matching driver and initial envelopes hydrate once without writing;
+- an empty driver plus an initial envelope writes and rereads a new local envelope with a fresh
+  writer ID and revision `initial.revision + 1` before activation;
+- driver and initial disagreement in identity, revision, or content fails construction;
+- every read, subscription, seed-write, or verification failure is all-or-nothing and releases any
+  acquired driver ownership before throwing.
+
+Hydration uses the current field schemas, field validators, and root validator with validation source
+`persistence`; it never invokes UI parsers. There is no implicit repair, default fallback for an
+invalid disclosed field, or partial metadata commit.
+
+Construction failures use these exact codes and safe reasons:
+
+| Code                             | Reasons                                                                                            |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `persistence-driver-unavailable` | `read` \| `subscribe` \| `seed-write` \| `seed-verification`                                       |
+| `invalid-persistence-envelope`   | `syntax` \| `shape` \| `format` \| `identity` \| `schema` \| `authority` \| `values` \| `metadata` |
+| `hydration-source-conflict`      | `revision` \| `content`                                                                            |
+
+They are `PicodashInitializationError` codes. Their issue data and error properties contain only the
+listed reason and canonical paths, never raw envelope text, values, storage contents, or arbitrary
+driver causes.
+
+### 12.6 Persistence writes, failures, and conflicts
+
+```ts
+type PicodashPersistenceConflict = {
+  readonly reason: 'foreign-envelope' | 'foreign-removal'
+  readonly localRevision: number
+  readonly localWriterId: string
+  readonly durableRevision: number | null
+  readonly durableWriterId: string | null
+}
+
+type PersistenceFailureReason =
+  'read-failed' | 'write-failed' | 'write-verification-failed' | 'invalid-later-envelope'
+
+type PicodashPersistenceDiagnostic = PicodashDiagnostic<
+  'persistence_failure',
+  { readonly kind: 'persistence' },
+  'error'
+> & { readonly reason: PersistenceFailureReason }
+```
+
+Conflict data is frozen and contains no values, envelope, fingerprint, driver identity, storage key,
+or arbitrary cause. A write failure never rolls back valid live state. Store retains the newest
+complete normalized envelope, exposes the diagnostic above, and replaces obsolete pending data after
+each later persistable commit. Rejected candidate transactions do not alter it.
+
+For a successful transaction, `persistence: 'unchanged'` means its persisted projection did not
+change; it performs no retry, including for semantic no-ops and omitted-field-only changes.
+`persistence: 'saved'` requires exact post-write verification. `persistence: 'pending'` means the
+live commit succeeded but its newest complete envelope remains undurable. Existing capability state,
+not the transaction result, reports an older pending condition unaffected by an `unchanged`
+transaction.
+
+Before each automatic write, Store rereads and compares the last confirmed revision, writer, and
+content. A valid foreign envelope or foreign removal enters `conflict` before any write. After each
+write, Store rereads and accepts durability only when the canonical envelope matches exactly.
+Synchronous notifications caused by Store's own write are coalesced into that verification cycle.
+Once conflicted, later valid transactions keep replacing the complete local pending envelope but
+perform no driver writes; `flush()` also refuses to overwrite. Reload, overwrite, and reconcile are
+explicit beta recovery plans rather than alpha shortcuts.
+
+Only one live root may own a `(driver.identity, storageKey)` pair in one JavaScript realm. A second
+claim throws `PicodashContractError` code `persistence-identity-in-use` with exactly
+`{ storageKey }`. The context never contains the driver identity.
 
 ### 12.7 Persistence field policy
 
 Export and persistence disclosure policies are separate. Store-owned persistence supports field
-`include` or `omit`; redacted placeholders are not restorable values. Omitted fields hydrate from
-the current baseline. Encryption belongs in a custom synchronous persistence driver.
+`include` or `omit`; redacted placeholders are not restorable values. Encryption belongs in a custom
+synchronous driver.
 
 Store-owned persistence configuration requires an explicit `values.defaultFieldPolicy`; there is no
-implicit disclosure default. Per-field overrides may only name declared fields. External-owned
-persistence rejects any value policy because the adapter owns all application values. Picodash
-durable metadata is always included in either mode.
+implicit disclosure default. Per-field overrides may name only declared fields. Durable Picodash
+metadata is always included. External-owned persistence and its no-values configuration remain beta.
 
-### 12.8 Explicit persisted-data erase
+### 12.8 Destruction and beta recovery
 
-Persistent Stores expose `persistence.createErasePlan()` and
-`persistence.executeErase(plan, { confirm: true })`. The opaque single-use plan reports the values
-and metadata domains affected without exposing omitted values. Execution refuses unresolved
-conflicts, rechecks the full fingerprint, resets Store-owned values to the validated baseline,
-clears Picodash metadata and interaction state, and removes the envelope. In external-owned mode it
-never changes host values; it clears only Picodash-owned data. Active registrations remain and may
-resolve declarative defaults without creating a durable record. A later mutation may persist a new
-envelope.
+Any `hasPendingEnvelope: true` state makes root destruction throw `root-has-unpersisted-state`
+unless `{ discardUnpersisted: true }` is supplied. Discard removes only the in-memory envelope.
+Successful destruction unsubscribes the driver, releases `(driver.identity, storageKey)` ownership,
+and never calls `remove` or changes the durable envelope. Integration leases remain the earlier
+destruction refusal and cannot be bypassed by discard.
 
-## 13. Hydration and migration
+Beta adds external-owned metadata persistence; validated quarantine and replacement; schema
+migrations; document integration; reload, overwrite, and reconcile plans; explicit erase plans; and
+the browser Web Storage seam. Those additions must preserve the alpha envelope and state signatures
+and may not introduce automatic last-write-wins.
+
+## 13. Beta hydration recovery and migration
+
+These accepted beta contracts extend the strict, all-or-nothing alpha decoder in Section 12. Alpha
+does not ignore unknown fields, quarantine metadata, or run application migrations.
 
 ### 13.1 Current definitions are authoritative
 
@@ -1245,12 +1569,12 @@ The package root must load without React and must not import React-specific Zust
 React is an optional peer for installing the core package and becomes a runtime requirement only
 when `/react` or `/integration` is imported. Artifact tests enforce this split.
 
-The integration entry exposes the shared Store boundary protocol and nominal acquisition functions
-for Provider, entity, relationship, and binding leases. Acquisition occurs only after a declarative
-render commits. Every lease has idempotent `release()` and a unique generation; release is lifecycle
-teardown, not a domain-level deregistration command. Abandoned renders acquire nothing, and React
-Strict Mode reacquisition reruns all identity and graph checks. Binding acquisition returns the
-generation-owned `BindingHandle` used by interaction commands.
+The integration entry exposes the shared Store boundary protocol and the exact Provider, entity,
+and relationship acquisition functions in Section 3.9. Acquisition occurs only after a declarative
+render commits. Every lease is one nominal generation with idempotent `release()`; release is
+lifecycle teardown, not a domain-level deregistration command. Abandoned renders acquire nothing,
+and React Strict Mode reacquisition reruns all identity and graph checks. Binding acquisition and
+its generation-owned `BindingHandle` remain a later Store slice.
 
 The low-level context Provider is not an initial public product. `DashPanelProvider`, integrated
 `PicodashProvider`, and standalone DashList establish public context boundaries; application code
@@ -1269,9 +1593,10 @@ publish structured status/diagnostics. Diagnostic codes are stable; human messag
 Diagnostics use an always-present core namespace:
 
 ```ts
-store.diagnostics.getState()
-store.diagnostics.subscribe(listener)
-store.diagnostics.inspectRuntime(options?)
+export interface PicodashDiagnostics {
+  getState(): PicodashDiagnosticsState
+  subscribe(listener: () => void): () => void
+}
 
 type PicodashDiagnostic<
   Code extends string = string,
@@ -1287,7 +1612,7 @@ type PicodashDiagnostic<
 }
 
 type PicodashDiagnosticsState = {
-  current: ReadonlyMap<string, PicodashDiagnostic>
+  readonly current: ReadonlyMap<string, PicodashDiagnostic>
 }
 
 type SubscriberExceptionIdentity = {
@@ -1304,11 +1629,16 @@ type SubscriberExceptionDiagnostic = PicodashDiagnostic<
 >
 ```
 
-The first two expose and observe current structured operational problems independently of value
-subscriptions. `inspectRuntime()` returns an immutable point-in-time structural view of Providers,
-entity leases, bindings, and active relationships. Neither surface exposes canonical values, raw
-draft input, or arbitrary exception causes. A scoped Store defaults inspection to its own scope;
-root-wide inspection remains explicit.
+Every root and scoped Store has a readonly `diagnostics: PicodashDiagnostics` property. Calling the
+namespace through either surface reads and subscribes to the same root-wide diagnostic state,
+independently of value subscriptions. The identity of the namespace facade itself is not public;
+consumers do not rely on `root.diagnostics === scoped.diagnostics`.
+
+A future `inspectRuntime()` may return an immutable point-in-time structural view of Providers,
+entity leases, bindings, and active relationships. That future inspection defaults a scoped Store
+to its own scope and requires an explicit root-wide option; it is not part of the alpha diagnostics
+interface above. Neither current diagnostics nor future inspection exposes canonical values, raw
+draft input, or arbitrary exception causes.
 
 Diagnostic state is a bounded current-condition map keyed by stable diagnostic identity, not an
 event log. Repeated occurrences update count and last-occurrence metadata on the same entry; recovery
@@ -1324,11 +1654,11 @@ cause, thrown message, stack, raw draft, or canonical value. A later dispatch fo
 exception removes the condition. A diagnostics-subscriber exception is recorded only after its
 current dispatch finishes and never recursively dispatches during that cycle.
 
-`PicodashDiagnosticsState.current` and persistence `lastError` use the broad
-`PicodashDiagnostic` defaults. `SubscriberExceptionDiagnostic` is the exact named specialization
-for the core subscriber condition. Capability-owned diagnostics use named specializations with
-stable codes and identities when their owning contracts are frozen. The common generic shape
-already represents them without inventing code variants or a closed union now.
+`PicodashDiagnosticsState.current` uses the broad `PicodashDiagnostic` default.
+`SubscriberExceptionDiagnostic`, `AdapterHealthDiagnostic`, and
+`PicodashPersistenceDiagnostic` are exact named specializations for their owning conditions;
+persistence `lastError` uses the persistence specialization. The common generic shape represents
+future capability diagnostics without requiring a closed union.
 
 ### 16.2 Transaction context
 
@@ -1390,9 +1720,11 @@ The accepted contract intentionally defers:
 ## 19. Alpha decision and evidence boundary
 
 Store alpha requires the scope-ID error mapping, exact root/scoped views and write attribution,
-empty and populated interaction snapshots, complete built-in metadata commands, scope and root
-destruction, bounded subscriber-exception diagnostics, and weak canonical views without a public
-release or reference-count API. These are launch contracts rather than beta ergonomics.
+empty and populated interaction snapshots, complete built-in metadata commands, the Provider/entity/
+relationship integration leases, the root-wide diagnostics namespace, fail-closed adapter health,
+the Store-owned persistence capability, scope and root destruction, bounded subscriber-exception
+diagnostics, and weak canonical views without a public release or reference-count API. These are
+launch contracts rather than beta ergonomics.
 
 The signatures and semantics above are frozen for alpha even where exhaustive evidence continues
 during consumer dogfooding. Beta may continue broader generated relationship-graph traversal,

@@ -1,0 +1,90 @@
+# Store Reconciliation Ledger (Implementation Evidence, Not Contract Authority)
+
+## Purpose and precedence
+
+This ledger records current Store implementation evidence for **this repository state** so Store implementers can plan edits safely.
+
+It is non-authoritative.
+
+- Authoritative precedence remains:
+  1. Accepted Store decision artifacts in `docs/reference/store.md` and `docs/reference/store-contract-decisions.md`.
+  2. Product route docs such as roadmap and ADR references.
+  3. This ledger as implementation evidence only.
+- If this ledger conflicts with accepted docs, the docs take priority and the implementation must change to match.
+
+## Snapshot
+
+- Package: `@picodash/store`
+- Branch snapshot: `6d61689a`
+- Scope: Store package implementation-only evidence, excluding docs-owned contract meaning.
+
+## Category definitions
+
+- **RETAIN** — Keep this file in Store package runtime and preserve its current role.
+- **REWRITE** — Keep this file in Store, but narrow/replace behavior to match Store contracts and tests.
+- **MOVE** — Transfer ownership to another package after contract reconciliation (same code intent, different package owner).
+- **DELETE** — Remove this file from Store package runtime after migration/archival and no remaining package-level callers.
+
+## Source module ledger (18 files)
+
+| File                                 | Category | Current reachability / evidence                                                                                                                                                   | Target owner / replacement                                                                                             | Completion condition                                                                                             |
+| ------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `packages/store/src/index.ts`        | RETAIN   | Export hub required by `packages/store/package.json`; package runtime starts here for `@picodash/store` and tests import this entry directly.                                     | Store package boundary owner keeps as is.                                                                              | Keep exported API and type surface aligned with accepted Store target contracts.                                 |
+| `packages/store/src/json.ts`         | RETAIN   | Reachable from `src/index.ts` through `kernel/index.ts`; used by `packages/store/tests/json.test.ts`; also imports the legacy JSON type from `src/types.ts`.                      | Store-owned JSON codec layer remains.                                                                                  | Keep utility behavior stable for Store value snapshots and cloning evidence.                                     |
+| `packages/store/src/kernel/index.ts` | RETAIN   | Reachable from `src/index.ts`; authoritative runtime for root/scoped stores and current metadata command behavior.                                                                | Store core kernel remains.                                                                                             | Keep runtime path stable while reconciling contracts, lifecycle, and diagnostics.                                |
+| `packages/store/src/metadata.ts`     | RETAIN   | Runtime-imported by `kernel/index.ts`; its reverse import from `kernel/index.ts` is type-only. Metadata behavior is exercised in `metadata.test.ts` and `scope-metadata.test.ts`. | Store-owned metadata codec remains.                                                                                    | Keep codec/runtime contracts and errors aligned with scoped metadata scope rules.                                |
+| `packages/store/src/react.ts`        | RETAIN   | Exported through `packages/store/package.json` `./react`; runtime behavior verified in `react.test.tsx` and `react.types.test.ts`.                                                | Store-owned React selector API remains.                                                                                | Keep only verified explicit selector API (`usePicodashStoreSelector`, `shallowEqual`).                           |
+| `packages/store/src/adapter.ts`      | REWRITE  | Legacy-only: imported by `src/store.ts` and `src/types.ts` only; no package entry/runtime path usage on current Store surface.                                                    | Store-owned adapter contract remains only after it is rebuilt for approved Store API shape.                            | Remove legacy-only coupling and keep only approved manual adapter boundary.                                      |
+| `packages/store/src/diagnostics.ts`  | REWRITE  | Legacy-only: imported by `src/store.ts` and `src/types.ts`, and imports `src/errors.ts`; no current kernel/runtime entry or Store tests consume it directly.                      | Store-owned diagnostics channel remains but must be rebuilt to approved namespace.                                     | Remove prototype naming/coupling and keep only approved issue-shape and context semantics.                       |
+| `packages/store/src/documents.ts`    | REWRITE  | Legacy-only: imported by `src/store.ts` and `src/types.ts`; not on current kernel path or Store entry path.                                                                       | Store-owned document capability remains, with text/YAML/file codec pieces moved to approved consumer-owned boundaries. | Rewrite to approved document-capability ownership while preserving safe codec flow and plan execution semantics. |
+| `packages/store/src/errors.ts`       | REWRITE  | Legacy-only: imported by `src/diagnostics.ts`, `src/documents.ts`, `src/items.ts`, `src/store.ts`, and `src/types.ts`; no current runtime import path from the package entry.     | Store-owned canonical errors remain, but approved set must be enforced and legacy UI-oriented codes removed.           | Rewrite to approved Store error surface and safe structured contexts.                                            |
+| `packages/store/src/integration.ts`  | REWRITE  | Exported module is currently empty (`export {}`) despite package-level contract visibility through entry exports.                                                                 | Store-owned integration entry remains and must expose the approved protocol.                                           | Implement approved integration protocol without adding unmodeled product behavior.                               |
+| `packages/store/src/interaction.ts`  | REWRITE  | Legacy-only: imported only by `src/store.ts`; imports `src/types.ts`. It has no current accepted runtime use in the active Store surface.                                         | Store-owned interaction state model remains but should align to scoped interaction acceptance.                         | Rewrite to approved interaction snapshot and lease model when contract is implemented.                           |
+| `packages/store/src/items.ts`        | REWRITE  | Legacy-only: imported only by `src/store.ts`; imports `src/types.ts`, `src/errors.ts`, and `src/presentation.ts`. It is not reachable from a current entry.                       | Store-owned item model remains only where contract requires explicit scoped item metadata.                             | Rewrite item tracking toward accepted scoped/item policy and remove prototype registration paths.                |
+| `packages/store/src/types.ts`        | REWRITE  | Type-only consumption currently comes from `json.ts` and three support fixtures (`external-adapter`, `json-fixtures`, `store-scope-model`) plus the legacy source island.         | Store canonical type layer only; legacy prototype helper shapes removed.                                               | Rewrite into canonical Store API types; keep support fixtures aligned to these exports.                          |
+| `packages/store/src/validation.ts`   | REWRITE  | Legacy-only: imported only by `src/store.ts`; imports `src/json.ts` and `src/types.ts`. It is not part of the current package-exported runtime path.                              | Store validation logic must be rewritten under Store contracts and referenced by the active kernel path.               | Rewrite to explicit Store parser/schema contracts and structured issue behavior.                                 |
+| `packages/store/src/order.ts`        | MOVE     | Legacy-only: imported by `src/store.ts` and `src/items.ts` only.                                                                                                                  | Moves to DashList ownership after contract boundary reconciliation.                                                    | Remove Store ownership only after DashList owns and publishes ordering protocol.                                 |
+| `packages/store/src/presentation.ts` | MOVE     | Legacy-only: imported by `src/items.ts` and `src/store.ts` only; no current package entry usage.                                                                                  | Moves to DashList ownership as Store no longer owns presentation internals.                                            | Remove from Store runtime ownership and migrate callers through DashList contracts.                              |
+| `packages/store/src/store.ts`        | DELETE   | Legacy island root for old prototype runtime; not used by package exports/tests; imports `adapter/diagnostics/documents/errors/fields/interaction/items/order/validation/types`.  | Superseded by `kernel/index.ts` runtime path.                                                                          | Remove after any useful prototype evidence has been translated into target tests or modules.                     |
+| `packages/store/src/fields.ts`       | DELETE   | Legacy-only: imported only by `src/store.ts`; imports `src/types.ts` and is absent from the package entry path.                                                                   | Superseded by kernel field pipeline in `kernel/index.ts`.                                                              | Delete when kernel-owned field definitions are the only active source.                                           |
+
+## Test and support-module ledger (16 files)
+
+| File                                                       | Category | Evidence / extension target                                                                                                        | Completion condition                                                       |
+| ---------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `packages/store/tests/fixtures/package-artifacts.mjs`      | RETAIN   | Verifies exported entry surfaces and reachable import boundary (`./dist/index.mjs`, `./dist/react.mjs`, `./dist/integration.mjs`). | Keep to ensure package artifact and boundary invariants for Store entries. |
+| `packages/store/tests/json.test.ts`                        | RETAIN   | Directly validates `clonePicodashValue` and value JSON equality behavior used by runtime and docs references.                      | Keep and expand when JSON/value cloning contract edges change.             |
+| `packages/store/tests/kernel-issues.test.ts`               | RETAIN   | Proves issue/reporting transitions and contract-error boundaries in kernel path.                                                   | Keep while kernel error/rejection behavior is being stabilized.            |
+| `packages/store/tests/kernel.test.ts`                      | RETAIN   | Core Store kernel behavioral tests for value, scope, and transaction semantics.                                                    | Keep as primary regression suite for Store core.                           |
+| `packages/store/tests/kernel.types.test.ts`                | RETAIN   | Type-level proof for kernel config/options/result contracts.                                                                       | Keep until public Store type surface converges to accepted contracts.      |
+| `packages/store/tests/metadata.test.ts`                    | RETAIN   | Validates durable metadata behavior and command boundaries.                                                                        | Keep as regression for `metadata.ts` and scoped metadata contracts.        |
+| `packages/store/tests/package-artifacts.mjs`               | RETAIN   | Enforces package exports and import reachability; checks retired React exports.                                                    | Keep as Store artifact packaging evidence.                                 |
+| `packages/store/tests/react.test.tsx`                      | RETAIN   | Runtime behavior tests for selector hook and equality semantics.                                                                   | Keep while React entry remains supported.                                  |
+| `packages/store/tests/react.types.test.ts`                 | RETAIN   | Type checks for `usePicodashStoreSelector`, `shallowEqual`, and snapshot types.                                                    | Keep to protect explicit selector API contract.                            |
+| `packages/store/tests/scope-metadata.test.ts`              | RETAIN   | Proves scope-ID, metadata, and scoped command behavior.                                                                            | Keep as scoped metadata/metadata-command regression suite.                 |
+| `packages/store/tests/support/external-adapter.ts`         | RETAIN   | Planned target harness for external adapter behavior and planned test infrastructure for adapter protocol.                         | Keep as planned target harness for adapter protocol verification.          |
+| `packages/store/tests/support/fixture-foundation.test.ts`  | RETAIN   | Fixture-invariant assertions for canonical value behavior used by Store tests; not a compatibility gate.                           | Keep as fixture evidence only.                                             |
+| `packages/store/tests/support/json-fixtures.ts`            | RETAIN   | JSON boundary test vectors used by JSON/value tests.                                                                               | Keep and update vectors if decoder/codec constraints change.               |
+| `packages/store/tests/support/memory-persistence.ts`       | RETAIN   | Planned target harness for memory persistence paths and future Store persistence transition evidence.                              | Keep as planned persistence harness and migration evidence.                |
+| `packages/store/tests/support/standard-schema-fixtures.ts` | RETAIN   | Provides validated schema fixtures for kernel validation contracts.                                                                | Keep as schema contract fixture source for pass/fail tests.                |
+| `packages/store/tests/support/store-scope-model.ts`        | RETAIN   | Supports scope-model fixture invariants and destroy-oracle behavior for relationships and scope transitions.                       | Keep as evidence for scope behavior during Store rewrite.                  |
+
+## Prototype island and reachability note
+
+- `store.ts` and its legacy transitive imports form the current prototype island.
+- This island is not runtime-reachable from Store package exports (`packages/store/src/index.ts` or `src/react.ts`).
+- `types.ts` remains used in type-only paths for fixtures and JSON typing, not in active runtime package entry usage.
+- Any stale downstream imports of prototype files are consumer migration concerns and do not establish Store API authority.
+
+## Unresolved dependencies
+
+- `@picodash/dashlist` must own `order.ts` and `presentation.ts` after Store/DashList boundary alignment.
+- Store integration entry contract (`src/integration.ts`) must match the approved Store integration protocol before marking fully reconciled.
+- Store contract for scoped interaction/lease behavior still requires explicit implementation in `interaction.ts` and `items.ts` rewrite work.
+
+## Maintenance and retirement rule
+
+- Every source or test file add/remove/reclassification in Store is a tracked transition; update this ledger in the same change.
+- Evidence links, completion conditions, and status wording must be refreshed whenever file category changes.
+- Do not mark a category as complete until Store package evidence (`store package artifact checks`, module reachability, and focused Store test updates) confirms the transition.
+- Keep ledger and source/test transitions synchronized until all `RETAIN/REWRITE/MOVE/DELETE` transitions for Store are complete.

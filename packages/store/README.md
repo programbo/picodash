@@ -10,6 +10,8 @@ without requiring the application to replace its preferred state library.
 >
 > Implementation: Partial
 
+Reconciling implementation evidence is tracked in [Store Reconciliation Ledger](./RECONCILIATION.md); these entries describe current branch transitions only and do not assign contract status.
+
 The target contract is complete enough to plan implementation, but the current package has not been
 reconciled with it. Existing per-Panel identity, actions-inside-state, presentation helpers, and
 Panel-specific document APIs are prototype behavior rather than compatibility requirements.
@@ -31,7 +33,8 @@ hooks remain planned; hook-generated state and reducer adapters are not part of 
 
 Store-owned mode owns canonical values and persists them according to explicit policy.
 External-owned mode projects one existing synchronous application store through an immutable root
-adapter and persists only Picodash metadata.
+adapter. Alpha persistence is Store-owned; persisting Picodash metadata for external-owned Stores is
+an accepted beta target.
 
 Read the [Store target reference](../../docs/reference/store.md),
 [decision ledger](../../docs/reference/store-contract-decisions.md), and
