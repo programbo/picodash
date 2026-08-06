@@ -120,9 +120,21 @@ type DiagnosticsOptions = {
   readonly invalidListener: () => never
 }
 
+type DiagnosticCondition = {
+  readonly fingerprint: string
+  readonly code: string
+  readonly severity: 'error' | 'warning'
+  readonly message: string
+  readonly identity: object
+  readonly details?: Readonly<Record<string, string>>
+}
+
 type DiagnosticsRuntime = {
   readonly facade: PicodashDiagnostics
   readonly dispatch: (records: readonly DispatchRecord[]) => void
+  readonly recordCondition: (condition: DiagnosticCondition) => void
+  readonly recoverCondition: (fingerprint: string) => void
+  readonly publish: () => void
   readonly attachResource: (register: (resource: RuntimeResource) => () => void) => void
 }
 
@@ -160,24 +172,16 @@ function immutableMap<K, V>(entries: readonly (readonly [K, V])[]): ReadonlyMap<
   return Object.freeze(facade)
 }
 
-function freezeIdentity(identity: SubscriberExceptionIdentity): SubscriberExceptionIdentity {
-  return Object.freeze({
-    kind: 'subscriber',
-    surface: identity.surface,
-    ...(identity.scopeId === undefined ? {} : { scopeId: identity.scopeId }),
-    ...(identity.capability === undefined ? {} : { capability: identity.capability }),
-  })
-}
-
 export function createDiagnosticsRuntime(options: DiagnosticsOptions): DiagnosticsRuntime {
   const listeners = new Set<() => void>()
-  const current = new Map<string, SubscriberExceptionDiagnostic>()
+  const current = new Map<string, PicodashDiagnostic>()
   const opaqueKeys = new Map<string, string>()
   let state: PicodashDiagnosticsState = Object.freeze({
     current: immutableMap<string, PicodashDiagnostic>([]),
   })
   let occurrence = 0
   let nextOpaqueKey = 0
+  let pendingChange = false
   let alive = true
   let resourceRelease: (() => void) | undefined
 
@@ -186,8 +190,7 @@ export function createDiagnosticsRuntime(options: DiagnosticsOptions): Diagnosti
   const identityFingerprint = (identity: SubscriberExceptionIdentity): string =>
     JSON.stringify([identity.surface, identity.scopeId ?? null, identity.capability ?? null])
 
-  const opaqueKeyFor = (identity: SubscriberExceptionIdentity): string => {
-    const fingerprint = identityFingerprint(identity)
+  const opaqueKeyFor = (fingerprint: string): string => {
     const existing = opaqueKeys.get(fingerprint)
     if (existing !== undefined) return existing
     nextOpaqueKey += 1
@@ -196,8 +199,8 @@ export function createDiagnosticsRuntime(options: DiagnosticsOptions): Diagnosti
     return key
   }
 
-  const existingOpaqueKeyFor = (identity: SubscriberExceptionIdentity): string | undefined =>
-    opaqueKeys.get(identityFingerprint(identity))
+  const existingOpaqueKeyFor = (fingerprint: string): string | undefined =>
+    opaqueKeys.get(fingerprint)
 
   const rebuildState = () => {
     state = Object.freeze({ current: immutableMap([...current.entries()]) })
@@ -208,28 +211,39 @@ export function createDiagnosticsRuntime(options: DiagnosticsOptions): Diagnosti
     return occurrence
   }
 
-  const recordFailure = (identity: SubscriberExceptionIdentity) => {
-    const key = opaqueKeyFor(identity)
+  const recordCondition = (condition: DiagnosticCondition) => {
+    const key = opaqueKeyFor(condition.fingerprint)
     const previous = current.get(key)
     const nextCount = previous ? (previous.count >= MAX_SAFE ? MAX_SAFE : previous.count + 1) : 1
-    const nextIdentity = previous?.identity ?? freezeIdentity(identity)
+    const nextIdentity = previous?.identity ?? Object.freeze({ ...condition.identity })
     current.set(
       key,
       Object.freeze({
-        code: 'subscriber_exception',
-        severity: 'error',
-        message: MESSAGE,
+        code: condition.code,
+        severity: condition.severity,
+        message: condition.message,
         identity: nextIdentity,
         count: nextCount,
         lastOccurrence: advanceOccurrence(),
+        ...condition.details,
       }),
     )
+    pendingChange = true
   }
 
-  const recover = (identity: SubscriberExceptionIdentity) => {
-    const key = existingOpaqueKeyFor(identity)
-    if (key !== undefined) current.delete(key)
+  const recoverCondition = (fingerprint: string) => {
+    const key = existingOpaqueKeyFor(fingerprint)
+    if (key !== undefined && current.delete(key)) pendingChange = true
   }
+
+  const recordFailure = (identity: SubscriberExceptionIdentity) =>
+    recordCondition({
+      fingerprint: identityFingerprint(identity),
+      code: 'subscriber_exception',
+      severity: 'error',
+      message: MESSAGE,
+      identity,
+    })
 
   const dispatchCallbacks = (
     surface: DispatchSurface,
@@ -252,7 +266,7 @@ export function createDiagnosticsRuntime(options: DiagnosticsOptions): Diagnosti
         recordFailure(identity)
       }
     }
-    if (!threw) recover(identity)
+    if (!threw) recoverCondition(identityFingerprint(identity))
   }
 
   const notifyDiagnostics = () => {
@@ -265,7 +279,16 @@ export function createDiagnosticsRuntime(options: DiagnosticsOptions): Diagnosti
         recordFailure({ kind: 'subscriber', surface: 'diagnostics' })
       }
     }
-    if (!threw) recover({ kind: 'subscriber', surface: 'diagnostics' })
+    if (!threw)
+      recoverCondition(identityFingerprint({ kind: 'subscriber', surface: 'diagnostics' }))
+  }
+
+  const publish = () => {
+    if (!pendingChange) return
+    pendingChange = false
+    rebuildState()
+    notifyDiagnostics()
+    rebuildState()
   }
 
   const dispatch = (records: readonly DispatchRecord[]) => {
@@ -286,9 +309,7 @@ export function createDiagnosticsRuntime(options: DiagnosticsOptions): Diagnosti
         }
       }
     if (!changed) return
-    rebuildState()
-    notifyDiagnostics()
-    rebuildState()
+    publish()
   }
 
   const teardown = () => {
@@ -300,6 +321,7 @@ export function createDiagnosticsRuntime(options: DiagnosticsOptions): Diagnosti
     state = Object.freeze({ current: immutableMap<string, PicodashDiagnostic>([]) })
     occurrence = 0
     nextOpaqueKey = 0
+    pendingChange = false
     resourceRelease?.()
     resourceRelease = undefined
   }
@@ -397,6 +419,9 @@ export function createDiagnosticsRuntime(options: DiagnosticsOptions): Diagnosti
   return {
     facade,
     dispatch,
+    recordCondition,
+    recoverCondition,
+    publish,
     attachResource(register) {
       resourceRelease = register({ phase: 'kernel', teardown })
     },

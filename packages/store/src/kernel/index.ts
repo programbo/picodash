@@ -13,6 +13,17 @@ import {
   normalizeDurableScopeMetadata,
 } from '../metadata.js'
 import { createDiagnosticsRuntime, type PicodashDiagnostics } from '../diagnostics.js'
+import {
+  createExternalAdapterRuntime,
+  PicodashInitializationError,
+  type AdapterUnhealthyIssue,
+  type AdapterWriteContext,
+  type AdapterWriteFailedIssue,
+  type AdapterWriteFailureReason,
+  type ExternalAdapterRuntime,
+  type PicodashValueAdapter,
+  type SnapshotValidation,
+} from '../adapter.js'
 
 /** The JSON values accepted at Store trust boundaries. */
 export type PicodashJsonPrimitive = boolean | null | number | string
@@ -28,6 +39,9 @@ export type PicodashIssueCode =
   | 'validation_failed'
   | 'unknown_field'
   | 'invalid_metadata'
+  | 'adapter_initialization_failed'
+  | 'adapter_unhealthy'
+  | 'adapter_write_failed'
   | `app:${string}`
 
 /** Issues supplied by application callbacks. Store-owned codes are not accepted here. */
@@ -41,6 +55,7 @@ export type TransactionIssue = {
   readonly code: PicodashIssueCode
   readonly path: readonly (string | number)[]
   readonly message: string
+  readonly reason?: string
   readonly fieldKey?: string
   readonly scopeId?: string
   readonly itemId?: string
@@ -50,7 +65,7 @@ export type TransactionIssue = {
 export type PicodashValidationContext<Values extends object = Record<string, PicodashJsonValue>> = {
   readonly values: Readonly<Values>
   readonly field?: PicodashField<Values, keyof Values & string>
-  readonly source: 'default' | 'initial' | 'programmatic'
+  readonly source: 'default' | 'initial' | 'adapter' | 'programmatic'
   readonly originScopeId?: string
 }
 
@@ -63,7 +78,7 @@ export type ValuesValidator<Values extends object> = (
   values: Readonly<Values>,
   context: {
     readonly values: Readonly<Values>
-    readonly source: 'default' | 'initial' | 'programmatic'
+    readonly source: 'default' | 'initial' | 'adapter' | 'programmatic'
     readonly originScopeId?: string
   },
 ) => readonly PicodashIssueInput[]
@@ -142,8 +157,19 @@ type InferredStoreConfig<Values extends Record<string, PicodashJsonValue>> = {
   readonly storeId?: string
   readonly schemaVersion?: number
   readonly valueOwner: 'store'
+  readonly adapter?: never
   readonly fields: InputFields<Values>
   readonly initialValues?: Partial<Values>
+  readonly validateValues?: ValuesValidator<Values>
+}
+
+type InferredExternalConfig<Values extends Record<string, PicodashJsonValue>> = {
+  readonly storeId?: string
+  readonly schemaVersion?: number
+  readonly valueOwner: 'external'
+  readonly fields: InputFields<Values>
+  readonly adapter: PicodashValueAdapter<Values>
+  readonly initialValues?: never
   readonly validateValues?: ValuesValidator<Values>
 }
 
@@ -197,8 +223,19 @@ export type StoreOwnedConfig<Fields extends Record<string, FieldLike>> = {
   readonly storeId?: string
   readonly schemaVersion?: number
   readonly valueOwner: 'store'
+  readonly adapter?: never
   readonly fields: DefinitionsFor<Fields>
   readonly initialValues?: Partial<ValuesOf<Fields>>
+  readonly validateValues?: ValuesValidator<ValuesOf<Fields>>
+}
+
+export type ExternalOwnedConfig<Fields extends Record<string, FieldLike>> = {
+  readonly storeId?: string
+  readonly schemaVersion?: number
+  readonly valueOwner: 'external'
+  readonly fields: DefinitionsFor<Fields>
+  readonly adapter: PicodashValueAdapter<ValuesOf<Fields>>
+  readonly initialValues?: never
   readonly validateValues?: ValuesValidator<ValuesOf<Fields>>
 }
 
@@ -427,6 +464,9 @@ const BUILTIN_CODES = new Set<PicodashIssueCode>([
   'validation_failed',
   'unknown_field',
   'invalid_metadata',
+  'adapter_initialization_failed',
+  'adapter_unhealthy',
+  'adapter_write_failed',
 ])
 
 const isAppCode = (value: unknown): value is `app:${string}` =>
@@ -529,6 +569,15 @@ const normalizeIssue = (input: unknown, fallbackCode: PicodashIssueCode): Transa
     : []
   const path = freezePath(rawPath)
   const extras: Record<string, string> = {}
+  if (
+    source.reason === 'blocked' ||
+    source.reason === 'write_threw' ||
+    source.reason === 'async_write' ||
+    source.reason === 'not_visible' ||
+    source.reason === 'invalid_snapshot' ||
+    source.reason === 'mismatched_snapshot'
+  )
+    extras.reason = source.reason
   for (const key of ['fieldKey', 'scopeId', 'itemId', 'alias'] as const)
     if (typeof source[key] === 'string') extras[key] = source[key]
   return Object.freeze({ code, message, path, ...extras })
@@ -614,6 +663,27 @@ const rejectedResult = (
   issues: readonly TransactionIssue[],
 ): Extract<CoreTransactionResult, { readonly ok: false }> =>
   Object.freeze({ ok: false as const, error: new PicodashTransactionError(issues) })
+
+const adapterUnhealthyIssue = (scopeId?: string): AdapterUnhealthyIssue =>
+  Object.freeze({
+    code: 'adapter_unhealthy' as const,
+    reason: 'blocked' as const,
+    path: Object.freeze([]) as readonly [],
+    message: 'External adapter is unhealthy.',
+    ...(scopeId === undefined ? {} : { scopeId }),
+  })
+
+const adapterWriteFailedIssue = (
+  reason: AdapterWriteFailureReason,
+  scopeId?: string,
+): AdapterWriteFailedIssue =>
+  Object.freeze({
+    code: 'adapter_write_failed' as const,
+    reason,
+    path: Object.freeze([]) as readonly [],
+    message: 'External adapter write failed.',
+    ...(scopeId === undefined ? {} : { scopeId }),
+  })
 
 const freeze = <T>(value: T): T => Object.freeze(value)
 const hasOwn = (value: object, key: PropertyKey): boolean => Object.hasOwn(value, key)
@@ -836,12 +906,20 @@ export function createPicodashStore<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
 >(
-  config: InferredStoreConfig<Values> & {
-    readonly fields: Definitions & ExactInputFields<Values, Definitions>
-  },
+  config:
+    | (InferredStoreConfig<Values> & {
+        readonly fields: Definitions & ExactInputFields<Values, Definitions>
+      })
+    | (InferredExternalConfig<Values> & {
+        readonly fields: Definitions & ExactInputFields<Values, Definitions>
+      }),
 ): RootStore<Definitions, CoreTransactionResult> {
   type Fields = Definitions
-  if (!config || typeof config !== 'object' || config.valueOwner !== 'store')
+  if (
+    !config ||
+    typeof config !== 'object' ||
+    (config.valueOwner !== 'store' && config.valueOwner !== 'external')
+  )
     throw new PicodashContractError('invalid-configuration')
   if (!config.fields || typeof config.fields !== 'object' || Array.isArray(config.fields))
     throw new PicodashContractError('invalid-configuration')
@@ -860,6 +938,10 @@ export function createPicodashStore<
       typeof config.initialValues !== 'object' ||
       Array.isArray(config.initialValues))
   )
+    throw new PicodashContractError('invalid-configuration')
+  if (config.valueOwner === 'store' && config.adapter !== undefined)
+    throw new PicodashContractError('invalid-configuration')
+  if (config.valueOwner === 'external' && config.initialValues !== undefined)
     throw new PicodashContractError('invalid-configuration')
   const configuredRootValidate = config.validateValues
   if (configuredRootValidate !== undefined && typeof configuredRootValidate !== 'function')
@@ -1137,9 +1219,43 @@ export function createPicodashStore<
   )
   if (canonicalInitial.issues.length)
     throw new PicodashContractError('invalid-configuration', {}, canonicalInitial.issues)
+  let runtimeController!: RuntimeController
+  const diagnosticsRuntime = createDiagnosticsRuntime({
+    assertActive: () => assertRuntimeActive(runtimeController),
+    invalidListener: () => {
+      throw new PicodashContractError('invalid-configuration')
+    },
+  })
+
+  const validateExternalSnapshot = (snapshot: unknown): SnapshotValidation<ValuesOf<Fields>> => {
+    try {
+      if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return { ok: false }
+      const prototype = Object.getPrototypeOf(snapshot)
+      const keys = Reflect.ownKeys(snapshot)
+      if (prototype !== Object.prototype && prototype !== null) return { ok: false }
+      if (keys.some((key) => typeof key !== 'string') || keys.length !== fieldEntries.length)
+        return { ok: false }
+      for (const key of fieldEntries) if (!Object.hasOwn(snapshot, key)) return { ok: false }
+      const candidate = Object.create(null) as Record<string, PicodashJsonValue>
+      const collected: TransactionIssue[] = []
+      for (const key of fieldEntries) {
+        const normalized = canonicalize(key, (snapshot as Record<string, unknown>)[key], 'adapter')
+        collected.push(...normalized.issues)
+        if (!normalized.issues.length) candidate[key] = normalized.value!
+      }
+      if (collected.length) return { ok: false }
+      collected.push(...runFieldValidators(candidate, 'adapter'))
+      collected.push(...runRootValidator(candidate, 'adapter'))
+      if (collected.length) return { ok: false }
+      return { ok: true, values: freeze(candidate) as Readonly<ValuesOf<Fields>> }
+    } catch {
+      return { ok: false }
+    }
+  }
+
   let values = freeze(canonicalInitial.candidate) as Readonly<Record<string, PicodashJsonValue>>
   let scopes: ReadonlyMap<string, DurableScopeMetadata> = EmptyScopes
-  let currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
+  let currentSnapshot!: RootSnapshot<ValuesOf<Fields>>
   const listeners = new Set<() => void>()
   const scopedRefs = new Map<string, WeakRef<object>>()
   type ScopedChannel = {
@@ -1151,13 +1267,45 @@ export function createPicodashStore<
   const channelsById = new Map<string, ScopedChannel>()
   const activeChannels = new Set<ScopedChannel>()
   let writing = false
-  let runtimeController!: RuntimeController
-  const diagnosticsRuntime = createDiagnosticsRuntime({
-    assertActive: () => assertRuntimeActive(runtimeController),
-    invalidListener: () => {
+  let externalAdapterRuntime: ExternalAdapterRuntime<ValuesOf<Fields>> | undefined
+  if (config.valueOwner === 'external') {
+    let runtime: ExternalAdapterRuntime<ValuesOf<Fields>>
+    try {
+      runtime = createExternalAdapterRuntime<ValuesOf<Fields>>({
+        adapter: config.adapter as PicodashValueAdapter<ValuesOf<Fields>>,
+        validateSnapshot: validateExternalSnapshot,
+        equal: (left, right) => picodashJsonEqual(left as never, right as never),
+        onExternalValues: (nextValues) => applyExternalValues(nextValues),
+        onHealthFailure: (reason) => {
+          diagnosticsRuntime.recordCondition({
+            fingerprint: 'adapter',
+            code: 'adapter_unhealthy',
+            severity: 'error',
+            message: 'External adapter is unhealthy.',
+            identity: { kind: 'adapter' },
+            details: { reason },
+          })
+          diagnosticsRuntime.publish()
+        },
+        onHealthRecovery: () => diagnosticsRuntime.recoverCondition('adapter'),
+        withNotification: (run) => {
+          if (writing) return run()
+          writing = true
+          try {
+            return run()
+          } finally {
+            writing = false
+          }
+        },
+      })
+    } catch (error) {
+      if (error instanceof PicodashInitializationError) throw error
       throw new PicodashContractError('invalid-configuration')
-    },
-  })
+    }
+    externalAdapterRuntime = runtime
+    values = runtime.initialValues as Readonly<Record<string, PicodashJsonValue>>
+  }
+  currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
 
   type StoreResult = CoreTransactionResult
   let store!: RootStore<Fields, StoreResult>
@@ -1305,6 +1453,11 @@ export function createPicodashStore<
   store = makeLifecycleFacade(storeImplementation, runtimeController)
   runtimeController.finalizeRoot(store as object)
   registerRuntimeController(store as object, runtimeController)
+  if (externalAdapterRuntime)
+    runtimeController.registerResource({
+      phase: 'capability',
+      teardown: () => externalAdapterRuntime?.destroy(),
+    })
   diagnosticsRuntime.attachResource((resource) => runtimeController.registerResource(resource))
   runtimeController.registerResource({
     phase: 'kernel',
@@ -1363,6 +1516,22 @@ export function createPicodashStore<
         .filter((key) => !picodashJsonEqual(values[key]!, built.candidate[key]!))
         .sort()
       if (!changedFields.length) return successfulResult()
+      if (externalAdapterRuntime?.isUnhealthy())
+        return rejectedResult([adapterUnhealthyIssue(originScopeId)])
+      if (externalAdapterRuntime) {
+        const context: AdapterWriteContext = Object.freeze({
+          source: 'programmatic',
+          ...(originScopeId === undefined ? {} : { originScopeId }),
+          targetScopeIds: Object.freeze([]),
+          changedFields: Object.freeze([...changedFields]),
+        })
+        const failure = externalAdapterRuntime.writeValues(
+          freeze(built.candidate) as Readonly<ValuesOf<Fields>>,
+          context,
+        )
+        if (failure !== undefined)
+          return rejectedResult([adapterWriteFailedIssue(failure, originScopeId)])
+      }
       values = freeze(built.candidate) as Readonly<Record<string, PicodashJsonValue>>
       currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
       const affectedChannels = collectScopedChannels()
@@ -1515,6 +1684,21 @@ export function createPicodashStore<
           listeners: channel.listeners,
         })),
     ])
+  }
+
+  function applyExternalValues(nextValues: Readonly<ValuesOf<Fields>>) {
+    const next = freeze(nextValues) as Readonly<Record<string, PicodashJsonValue>>
+    const changed = fieldEntries.some((key) => !picodashJsonEqual(values[key]!, next[key]!))
+    if (!changed) {
+      diagnosticsRuntime.publish()
+      return
+    }
+    values = next
+    currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
+    const affectedChannels = collectScopedChannels()
+    refreshScopedChannels(affectedChannels)
+    dispatchStoreSubscribers(affectedChannels)
+    diagnosticsRuntime.publish()
   }
 
   function getScoped(scopeId: string): ScopedStore<Fields, StoreResult> {

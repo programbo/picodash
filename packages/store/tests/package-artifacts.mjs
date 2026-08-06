@@ -114,6 +114,9 @@ if (import.meta.main) {
   const rootTypes = await readText(path.join(packageRoot, 'dist', rootDeclaration))
   assert.match(rootTypes, /destroy\(options\?: DestroyRootOptions\): void/)
   assert.match(rootTypes, /readonly diagnostics: PicodashDiagnostics/)
+  assert.match(rootTypes, /PicodashValueAdapter/)
+  assert.match(rootTypes, /ExternalOwnedConfig/)
+  assert.match(rootTypes, /adapter_initialization_failed/)
   const scopedSection = rootTypes.slice(rootTypes.indexOf('interface ScopedStore'))
   assert.doesNotMatch(scopedSection, /destroy\(options\?: DestroyRootOptions\)/)
   assert.match(scopedSection, /readonly diagnostics: PicodashDiagnostics/)
@@ -147,6 +150,35 @@ if (import.meta.main) {
   artifactStore.destroy()
   assert.throws(() => artifactStore.getState(), /use-after-destroy/)
   assert.throws(() => artifactScoped.getState(), /use-after-destroy/)
+
+  let externalValue = 1
+  let releaseCalls = 0
+  const externalListeners = new Set()
+  const externalAdapter = {
+    getSnapshot() {
+      return { value: externalValue }
+    },
+    subscribe(listener) {
+      externalListeners.add(listener)
+      return () => {
+        releaseCalls += 1
+        externalListeners.delete(listener)
+      }
+    },
+    setValues(values) {
+      externalValue = values.value
+      for (const listener of externalListeners) listener()
+    },
+  }
+  const externalStore = rootModule.createPicodashStore({
+    valueOwner: 'external',
+    fields: { value: { defaultValue: 1 } },
+    adapter: externalAdapter,
+  })
+  assert.equal(externalStore.setValues({ value: 2 }).ok, true)
+  assert.equal(externalStore.getState().values.value, 2)
+  externalStore.destroy()
+  assert.equal(releaseCalls, 1)
 
   // Exercise the negative boundary with a temporary reachable React import.
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'picodash-store-artifact-'))

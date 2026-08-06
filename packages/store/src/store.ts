@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
-import type { PicodashValueAdapter } from './adapter.js'
+import type { LegacyPicodashValueAdapter } from './adapter.js'
 import { createPicodashDiagnosticChannel } from './diagnostics.js'
 import {
   analyzePicodashPanelDocumentState,
@@ -86,7 +86,7 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
   const options = untypedOptions as PicodashStoreOptions<Values>
   const owner = Object.freeze({})
   const diagnosticChannel = createPicodashDiagnosticChannel()
-  const adapter = options.adapter as PicodashValueAdapter<Values> | undefined
+  const adapter = options.adapter as LegacyPicodashValueAdapter<Values> | undefined
   const fields = createPicodashFields(options.fields, owner)
   const knownItems: Record<string, PicodashRegisteredItem<Values>> = {}
   const definitionEntries = Object.entries(options.fields)
@@ -654,7 +654,7 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
   }
 
   function writeAdapterValues(
-    targetAdapter: PicodashValueAdapter<Values>,
+    targetAdapter: LegacyPicodashValueAdapter<Values>,
     nextValues: Values,
     previousValues: Values,
     source: PicodashValidationSource,
@@ -810,7 +810,7 @@ export function createPicodashStore(untypedOptions: unknown): PicodashStore<Valu
   }
 
   function readAdapterSnapshot(
-    targetAdapter: PicodashValueAdapter<Values>,
+    targetAdapter: LegacyPicodashValueAdapter<Values>,
   ):
     | { readonly snapshot: unknown; readonly success: true }
     | { readonly diagnostic: PicodashDiagnostic; readonly success: false } {

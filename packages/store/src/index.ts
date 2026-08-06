@@ -4,6 +4,20 @@ export {
   PicodashTransactionError,
 } from './kernel/index.js'
 export type {
+  AdapterHealthDiagnostic,
+  AdapterHealthReason,
+  AdapterInitializationFailureReason,
+  AdapterWriteContext,
+  AdapterWriteFailedIssue,
+  AdapterWriteFailureReason,
+  AdapterUnhealthyIssue,
+  OperationSource,
+  PicodashInitializationErrorCode,
+  PicodashInitializationError,
+  PicodashInitializationErrorReasonByCode,
+  PicodashValueAdapter,
+} from './adapter.js'
+export type {
   PicodashDiagnostic,
   PicodashDiagnostics,
   PicodashDiagnosticsState,
@@ -12,6 +26,7 @@ export type {
 } from './diagnostics.js'
 export type {
   StoreOwnedConfig,
+  ExternalOwnedConfig,
   RootStore,
   ScopedStore,
   RootSnapshot,

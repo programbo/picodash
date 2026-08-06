@@ -343,7 +343,7 @@ export interface PicodashItemMetadata {
 }
 
 export interface PicodashStoreOptions<TValues extends object> {
-  readonly adapter?: import('./adapter.js').PicodashValueAdapter<TValues>
+  readonly adapter?: import('./adapter.js').LegacyPicodashValueAdapter<TValues>
   readonly fields: PicodashFieldDefinitions<TValues>
   readonly initialItemMetadata?: PicodashItemMetadata
   readonly initialValues?: Partial<JsonCompatibleRecord<TValues>>
@@ -358,7 +358,7 @@ export interface PicodashStoreOptions<TValues extends object> {
 export interface PicodashInferredStoreOptions<
   TDefinitions extends Record<string, PicodashInferredFieldDefinition>,
 > {
-  readonly adapter?: import('./adapter.js').PicodashValueAdapter<
+  readonly adapter?: import('./adapter.js').LegacyPicodashValueAdapter<
     PicodashValuesFromDefinitions<TDefinitions>
   >
   readonly fields: TDefinitions

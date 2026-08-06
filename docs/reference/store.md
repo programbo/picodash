@@ -44,9 +44,9 @@ const store = createPicodashStore({
 })
 ```
 
-| API                     | Contract | Implementation | Notes                                                                                            |
-| ----------------------- | -------- | -------------- | ------------------------------------------------------------------------------------------------ |
-| `createPicodashStore()` | Accepted | Partial        | Core Store-owned configuration is implemented; scopes, persistence, and adapters remain planned. |
+| API                     | Contract | Implementation | Notes                                                                                                                                                                                  |
+| ----------------------- | -------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createPicodashStore()` | Accepted | Partial        | Core Store-owned configuration, scopes, and the manual synchronous external adapter are implemented and verified; external-owned persistence and document capabilities remain planned. |
 
 Store construction is synchronous. Configuration that defines identity, schema, value authority,
 persistence, or disclosure remains immutable for the root lifetime.
@@ -969,9 +969,7 @@ command targets, not every active scope observing a changed root field. `changed
 sorted set after validation and semantic no-op removal.
 
 > Contract: Accepted
-> Implementation: Prototype
-> Notes: The prototype adapter contract must be reconciled with scope attribution and fail-closed
-> health behavior.
+> Implementation: Verified for the synchronous manual adapter slice — [adapter behavior tests](../../packages/store/tests/adapter.test.ts), [adapter type tests](../../packages/store/tests/adapter.types.test.ts), and [adapter fixture harness](../../packages/store/tests/support/external-adapter.ts).
 
 The adapter snapshot is a complete projection of Picodash fields, not the host's whole application
 state. The adapter is immutable and root-only. The API has no adapter `id`, boolean write result,
