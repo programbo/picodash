@@ -1,149 +1,99 @@
-import {
-  useCallback,
-  useDebugValue,
-  useEffect,
-  useRef,
-  useSyncExternalStore,
-  type Dispatch,
-  type SetStateAction,
-} from 'react'
+import { useCallback, useDebugValue, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 
-import type { PicodashAdapterWriteContext, PicodashValueAdapter } from './adapter.js'
-import type { PicodashStore, PicodashStoreState } from './types.js'
+import type { RootStore, ScopedStore } from './kernel/index.js'
 
-export interface PicodashReactAdapterOptions {
-  readonly id?: string
-}
+type AnyStore = RootStore<any, any> | ScopedStore<any, any>
+type SnapshotOf<Store extends AnyStore> = ReturnType<Store['getState']>
 
-export function usePicodashStoreSelector<TValues extends object, TSelection>(
-  store: PicodashStore<TValues>,
-  selector: (state: PicodashStoreState<TValues>) => TSelection,
-): TSelection {
-  const selection = useSyncExternalStore(
-    store.subscribe,
-    useCallback(() => selector(store.getState()), [selector, store]),
-    useCallback(() => selector(store.getInitialState()), [selector, store]),
-  )
+/**
+ * Selects a value from an explicit root or scoped Store and subscribes to the
+ * Store's own notification channel. The selected reference is retained when
+ * the equality function reports that a new selection is equivalent.
+ */
+export function usePicodashStoreSelector<Store extends AnyStore, Selection>(
+  store: Store,
+  selector: (state: SnapshotOf<Store>) => Selection,
+  equalityFn?: (left: Selection, right: Selection) => boolean,
+): Selection
+export function usePicodashStoreSelector(
+  store: AnyStore,
+  selector: (state: unknown) => unknown,
+  equalityFn?: (left: unknown, right: unknown) => boolean,
+): unknown {
+  const compare = equalityFn ?? Object.is
+  const committed = useRef<{ readonly value: unknown } | null>(null)
+  const subscribe = useCallback((listener: () => void) => store.subscribe(listener), [store])
+  const getSnapshot = useMemo(() => {
+    let hasMemoizedSnapshot = false
+    let memoizedSnapshot: unknown
+    let memoizedSelection: unknown
+
+    const memoizedSelector = (snapshot: unknown) => {
+      if (!hasMemoizedSnapshot) {
+        hasMemoizedSnapshot = true
+        memoizedSnapshot = snapshot
+        const nextSelection = selector(snapshot)
+        memoizedSelection =
+          committed.current !== null && compare(committed.current.value, nextSelection)
+            ? committed.current.value
+            : nextSelection
+        return memoizedSelection
+      }
+
+      if (Object.is(memoizedSnapshot, snapshot)) return memoizedSelection
+      const nextSelection = selector(snapshot)
+      if (compare(memoizedSelection, nextSelection)) {
+        memoizedSnapshot = snapshot
+        return memoizedSelection
+      }
+      memoizedSnapshot = snapshot
+      memoizedSelection = nextSelection
+      return memoizedSelection
+    }
+
+    return () => memoizedSelector(store.getState())
+  }, [compare, selector, store])
+  const selection = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  useEffect(() => {
+    committed.current = { value: selection }
+  }, [selection])
   useDebugValue(selection)
   return selection
 }
 
-export function usePicodashStateAdapter<TValues extends object>(
-  values: TValues,
-  setValues: Dispatch<SetStateAction<TValues>>,
-  options: PicodashReactAdapterOptions = {},
-): PicodashValueAdapter<TValues> {
-  const binding = useRef(setValues)
-  binding.current = setValues
-  return usePicodashControlledAdapter(
-    values,
-    (nextValues) => {
-      binding.current(nextValues)
-    },
-    options,
-  )
-}
-
-export function usePicodashReducerAdapter<TValues extends object, TAction>(
-  values: TValues,
-  dispatch: Dispatch<TAction>,
-  createAction: (values: TValues, context: PicodashAdapterWriteContext<TValues>) => TAction,
-  options: PicodashReactAdapterOptions = {},
-): PicodashValueAdapter<TValues> {
-  const binding = useRef({ createAction, dispatch })
-  binding.current = { createAction, dispatch }
-
-  return usePicodashControlledAdapter(
-    values,
-    (nextValues, context) => {
-      const current = binding.current
-      current.dispatch(current.createAction(nextValues, context))
-    },
-    options,
-  )
-}
-
-function usePicodashControlledAdapter<TValues extends object>(
-  values: TValues,
-  writeValues: (
-    values: TValues,
-    context: PicodashAdapterWriteContext<TValues>,
-  ) => boolean | undefined | void,
-  options: PicodashReactAdapterOptions,
-): PicodashValueAdapter<TValues> {
-  const current = useRef<{
-    adapter: PicodashValueAdapter<TValues>
-    listeners: Set<() => void>
-    options: PicodashReactAdapterOptions
-    notifiedSnapshot: TValues
-    snapshot: TValues
-    writeValues: (
-      values: TValues,
-      context: PicodashAdapterWriteContext<TValues>,
-    ) => boolean | undefined | void
-  } | null>(null)
-
-  if (current.current === null) {
-    const binding = {
-      adapter: undefined as unknown as PicodashValueAdapter<TValues>,
-      listeners: new Set<() => void>(),
-      options,
-      notifiedSnapshot: values,
-      snapshot: values,
-      writeValues,
+/** Compares one-level records or arrays/tuples using Object.is. */
+export function shallowEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right)) return false
+    if (hasOwnSymbols(left) || hasOwnSymbols(right)) return false
+    if (left.length !== right.length) return false
+    for (let index = 0; index < left.length; index += 1) {
+      if (!(index in left) || !(index in right) || !Object.is(left[index], right[index]))
+        return false
     }
-    binding.adapter = Object.freeze({
-      get id() {
-        return binding.options.id
-      },
-      getSnapshot() {
-        return binding.snapshot
-      },
-      setValues(nextValues: TValues, context: PicodashAdapterWriteContext<TValues>) {
-        const previousValues = binding.snapshot
-        binding.snapshot = nextValues
-        let accepted: boolean | undefined | void
-        try {
-          accepted = binding.writeValues(nextValues, context)
-        } catch (error) {
-          binding.snapshot = previousValues
-          throw error
-        }
-        if (accepted === false || isPromiseLike(accepted)) {
-          binding.snapshot = previousValues
-          return accepted
-        }
-        binding.notifiedSnapshot = nextValues
-        for (const listener of binding.listeners) listener()
-        return accepted
-      },
-      subscribe(listener: () => void) {
-        binding.listeners.add(listener)
-        return () => {
-          binding.listeners.delete(listener)
-        }
-      },
-    })
-    current.current = binding
+    return true
   }
 
-  current.current.options = options
-  current.current.snapshot = values
-  current.current.writeValues = writeValues
-  useEffect(() => {
-    const binding = current.current
-    if (binding === null || Object.is(binding.notifiedSnapshot, values)) return
-    binding.notifiedSnapshot = values
-    for (const listener of binding.listeners) listener()
-  }, [values])
-  return current.current.adapter
+  if (!isRecord(left) || !isRecord(right)) return false
+  if (hasOwnSymbols(left) || hasOwnSymbols(right)) return false
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+  if (leftKeys.length !== rightKeys.length) return false
+  for (const key of leftKeys) {
+    if (!Object.prototype.hasOwnProperty.call(right, key) || !Object.is(left[key], right[key])) {
+      return false
+    }
+  }
+  return true
 }
 
-function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'then' in value &&
-    typeof (value as { readonly then?: unknown }).then === 'function'
-  )
+function isRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+function hasOwnSymbols(value: object): boolean {
+  return Object.getOwnPropertySymbols(value).length > 0
 }

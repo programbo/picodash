@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { access, mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import {
   readJson,
@@ -90,6 +90,18 @@ if (import.meta.main) {
     [],
     `Store package artifact validation failed:\n- ${errors.join('\n- ')}`,
   )
+
+  const reactModule = await import(
+    `${pathToFileURL(path.join(packageRoot, 'dist/react.mjs')).href}?artifact-check`
+  )
+  assert.deepEqual(Object.keys(reactModule).sort(), ['shallowEqual', 'usePicodashStoreSelector'])
+  for (const retired of [
+    'usePicodashStateAdapter',
+    'usePicodashReducerAdapter',
+    'PicodashReactAdapterOptions',
+  ]) {
+    assert.equal(retired in reactModule, false, `retired React export remains present: ${retired}`)
+  }
 
   // Exercise the negative boundary with a temporary reachable React import.
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'picodash-store-artifact-'))

@@ -8,7 +8,7 @@ without requiring the application to replace its preferred state library.
 
 > Contract: Accepted target API
 >
-> Implementation: Prototype
+> Implementation: Partial
 
 The target contract is complete enough to plan implementation, but the current package has not been
 reconciled with it. Existing per-Panel identity, actions-inside-state, presentation helpers, and
@@ -18,12 +18,16 @@ Panel-specific document APIs are prototype behavior rather than compatibility re
 
 - `@picodash/store`: root/scoped Stores, fields, transactions, persistence, documents, diagnostics,
   and the manual external-value adapter contract.
-- `@picodash/store/react`: public contextual hooks and typed selector subscriptions.
+- `@picodash/store/react`: explicit Store selector subscriptions and `shallowEqual`.
 - `@picodash/store/integration`: supported advanced context and declarative lease protocol for
   DashPanel, DashList, and other declarative product integrations.
 
 The root entry is framework-independent and must load without React. React is required only for the
-two React-facing entries.
+React-facing entries.
+
+The React entry currently exports `usePicodashStoreSelector(store, selector, equalityFn?)` for an
+explicit root or scoped Store, plus `shallowEqual` for one-level records and arrays/tuples. Contextual
+hooks remain planned; hook-generated state and reducer adapters are not part of this surface.
 
 Store-owned mode owns canonical values and persists them according to explicit policy.
 External-owned mode projects one existing synchronous application store through an immutable root

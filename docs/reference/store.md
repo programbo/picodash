@@ -22,7 +22,7 @@ status.
 | Surface                       | Contract | Implementation | Purpose                                     |
 | ----------------------------- | -------- | -------------- | ------------------------------------------- |
 | `@picodash/store`             | Accepted | Partial        | Framework-independent Store implementation  |
-| `@picodash/store/react`       | Accepted | Prototype      | Public React hooks and selectors            |
+| `@picodash/store/react`       | Accepted | Partial        | Explicit Store selector and equality helper |
 | `@picodash/store/integration` | Accepted | Planned        | Versioned context and declarative lease API |
 
 The root entry loads without React. React is an optional package peer and is required only when the
@@ -1237,13 +1237,13 @@ usePicodashRootSelector(selector, equalityFn?)
 usePicodashScopeSelector(selector, equalityFn?)
 ```
 
-| API                             | Contract | Implementation | Notes                                    |
-| ------------------------------- | -------- | -------------- | ---------------------------------------- |
-| Contextual Store hooks          | Accepted | Planned        | Nearest root/scoped context semantics.   |
-| Explicit Store selector         | Accepted | Prototype      | Retained and generalized.                |
-| Root/scope contextual selectors | Accepted | Planned        | Avoid union-state selector inference.    |
-| Optional equality function      | Accepted | Planned        | Defaults to `Object.is`.                 |
-| `shallowEqual`                  | Accepted | Planned        | Opt-in helper; no default deep equality. |
+| API                             | Contract | Implementation | Notes                                                             |
+| ------------------------------- | -------- | -------------- | ----------------------------------------------------------------- |
+| Contextual Store hooks          | Accepted | Planned        | Nearest root/scoped context semantics.                            |
+| Explicit Store selector         | Accepted | Verified       | Root or scoped Store; server/client snapshots use `getState()`.   |
+| Root/scope contextual selectors | Accepted | Planned        | Avoid union-state selector inference.                             |
+| Optional equality function      | Accepted | Verified       | Defaults to `Object.is`; equal selections retain their reference. |
+| `shallowEqual`                  | Accepted | Verified       | One-level records and arrays/tuples only.                         |
 
 Contextual hooks throw when their required boundary is absent. Passing a scope ID to
 `usePicodashStore` resolves a view from the nearest root without creating metadata or registering a
