@@ -58,6 +58,8 @@ async function main() {
     'DashPanel',
     'DashPanelProps',
     'DashPanelStyle',
+    'DashPanelBoundary',
+    'DashPanelBoundaryInset',
     'DashPanelSnapPosition',
     'DashPanelDockPosition',
     'DashPanelPlacement',

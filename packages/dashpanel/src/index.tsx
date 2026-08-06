@@ -53,6 +53,8 @@ export type {
   DashPanelSnapPosition,
 } from './placement/placement.ts'
 
+export type { DashPanelBoundary, DashPanelBoundaryInset } from './geometry/boundary.ts'
+
 export type DashPanelStyle = Omit<CSSProperties, 'inlineSize' | 'width'>
 
 export interface DashPanelProviderProps<

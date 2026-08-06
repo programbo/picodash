@@ -67,16 +67,16 @@ the stable foundational components and provides its own integration Provider com
 
 ## Provider contract
 
-| Provider capability       | Contract | Implementation | Rule                                                                        |
-| ------------------------- | -------- | -------------- | --------------------------------------------------------------------------- |
-| Required root `store`     | Accepted | Implemented    | Scoped Stores are rejected.                                                 |
-| `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                        |
-| Hard Store/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                     |
-| Shared `boundary`         | Accepted | Prototype      | Defaults Panel geometry; viewport when unresolved.                          |
-| Shared `boundaryInset`    | Accepted | Prototype      | Defines the effective geometry rectangle.                                   |
-| Dock-position policy      | Accepted | Planned        | Maximum set that descendant Panels may narrow.                              |
-| Portal ownership          | Accepted | Partial        | Shared overlay defaults are composed; Panel portal ownership is later work. |
-| Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                         |
+| Provider capability       | Contract | Implementation | Rule                                                                             |
+| ------------------------- | -------- | -------------- | -------------------------------------------------------------------------------- |
+| Required root `store`     | Accepted | Implemented    | Scoped Stores are rejected.                                                      |
+| `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                             |
+| Hard Store/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                          |
+| Shared `boundary`         | Accepted | Partial        | Pure resolver covers direct/ref precedence; viewport and geometry wiring remain. |
+| Shared `boundaryInset`    | Accepted | Partial        | Public inset vocabulary exists; normalization and geometry remain planned.       |
+| Dock-position policy      | Accepted | Planned        | Maximum set that descendant Panels may narrow.                                   |
+| Portal ownership          | Accepted | Partial        | Shared overlay defaults are composed; Panel portal ownership is later work.      |
+| Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                              |
 
 The root Store and `providerId` are immutable while mounted. Theme, boundary, inset, and enabled
 dock positions are runtime policy and may change through their declared props.
@@ -420,7 +420,12 @@ non-rail allocation.
 ## Boundaries, insets, and portals
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Partial
+> Evidence: `packages/dashpanel/src/geometry/boundary.test.ts` covers direct HTML/SVG identity,
+> Panel-over-Provider precedence, explicit viewport selection, unresolved-ref fallback, live refs,
+> invalid values, and no-measurement behavior.
+> Notes: This slice implements reference resolution only. Inset normalization, rectangle math,
+> observers, and runtime/browser geometry remain unimplemented.
 
 Boundary resolution follows Panel override, Provider default, then viewport. Explicit `null`
 selects the viewport; an unresolved ref falls through to the next boundary. Provider and Panel

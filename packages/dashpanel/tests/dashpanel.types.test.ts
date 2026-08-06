@@ -12,6 +12,8 @@ import {
   DashPanelProvider,
   type DashPanelProps,
   type DashPanelProviderProps,
+  type DashPanelBoundary,
+  type DashPanelBoundaryInset,
   type DashPanelDefaultLayout,
   type DashPanelDockPosition,
   type DashPanelPlacement,
@@ -119,5 +121,31 @@ describe('@picodash/dashpanel public types', () => {
     // @ts-expect-error middle-left is not a canonical snap position.
     const retiredSnap: DashPanelSnapPosition = 'middle-left'
     void retiredSnap
+  })
+
+  it('exports boundary references and exact inset tuple shapes without runtime additions', () => {
+    const element = {} as Element
+    const ref: DashPanelBoundary = { current: element }
+    const direct: DashPanelBoundary = element
+    const scalar: DashPanelBoundaryInset = 8
+    const pair: DashPanelBoundaryInset = [8, 16]
+    const triple: DashPanelBoundaryInset = [1, 2, 3]
+    const quad: DashPanelBoundaryInset = [1, 2, 3, 4]
+    void ref
+    void direct
+    void scalar
+    void pair
+    void triple
+    void quad
+
+    // @ts-expect-error boundary references are Elements or RefObjects, not selectors.
+    const selector: DashPanelBoundary = '#panel'
+    void selector
+    // @ts-expect-error inset tuples must contain two, three, or four numbers.
+    const oneInset: DashPanelBoundaryInset = [8]
+    void oneInset
+    // @ts-expect-error inset tuples must contain two, three, or four numbers.
+    const fiveInset: DashPanelBoundaryInset = [1, 2, 3, 4, 5]
+    void fiveInset
   })
 })
