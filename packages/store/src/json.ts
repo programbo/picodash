@@ -1,4 +1,4 @@
-import type { PicodashJsonValue } from './types.js'
+import type { PicodashJsonValue } from './kernel/index.js'
 
 /** Internal strict JSON clone used at Store trust boundaries. */
 export function clonePicodashValue(

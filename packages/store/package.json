@@ -45,9 +45,7 @@
     "prepublishOnly": "vp check && vp test && vp run build"
   },
   "dependencies": {
-    "@standard-schema/spec": "^1.1.0",
-    "yaml": "catalog:",
-    "zustand": "catalog:"
+    "@standard-schema/spec": "^1.1.0"
   },
   "devDependencies": {
     "@fast-check/vitest": "^0.4.1",

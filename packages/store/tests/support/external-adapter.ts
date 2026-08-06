@@ -1,5 +1,5 @@
 import { clonePicodashValue } from '../../src/json.js'
-import type { PicodashJsonValue } from '../../src/types.js'
+import type { PicodashJsonValue } from '../../src/index.js'
 
 export type ExternalAdapterWriteMode =
   | 'commit'

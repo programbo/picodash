@@ -1,5 +1,5 @@
 import { fc } from '@fast-check/vitest'
-import type { PicodashJsonValue } from '../../src/types.js'
+import type { PicodashJsonValue } from '../../src/index.js'
 
 /** Keys that are useful for exercising object-boundary and prototype-safety code. */
 export const hostileJsonKeys = Object.freeze([

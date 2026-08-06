@@ -21,26 +21,6 @@ export interface PicodashValueAdapter<Values extends object> {
   setValues(completeValues: Readonly<Values>, context: AdapterWriteContext): void
 }
 
-/** @deprecated Prototype-only adapter shape retained for the superseded source module. */
-export type LegacyPicodashAdapterWriteContext<TValues extends object> = Readonly<{
-  readonly panelId: string
-  readonly storeId?: string
-  readonly scopeId?: string
-  readonly previousValues: Readonly<TValues>
-  readonly source: OperationSource
-}>
-
-/** @deprecated Prototype-only adapter shape retained for the superseded source module. */
-export interface LegacyPicodashValueAdapter<TValues extends object> {
-  readonly id?: string
-  getSnapshot(): TValues
-  setValues(
-    nextValues: TValues,
-    context: LegacyPicodashAdapterWriteContext<TValues>,
-  ): boolean | undefined | void
-  subscribe(listener: () => void): () => void
-}
-
 export type AdapterWriteFailureReason =
   | 'write_threw'
   | 'async_write'
