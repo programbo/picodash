@@ -1,16 +1,17 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import '@picodash/theme/style.css'
+import '@picodash/ui/style.css'
 import '@picodash/dashpanel/style.css'
 import '@picodash/dashlist/style.css'
 import '../style.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Picodash',
+    default: 'Picodash alpha',
     template: '%s · Picodash',
   },
-  description: 'The composable React control panel for Picodash.',
+  description:
+    'Picodash provides a typed Store plus standalone DashPanel and DashList packages for React applications.',
   icons: {
     icon: '/favicon.svg',
   },
@@ -18,11 +19,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className="dark scroll-smooth motion-reduce:scroll-auto"
-      data-scroll-behavior="smooth"
-    >
+    <html lang="en">
       <body>{children}</body>
     </html>
   )

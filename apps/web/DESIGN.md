@@ -1,52 +1,32 @@
-# Website Design Contract (`apps/web`)
+# Picodash Web Alpha Shell
 
-Picodash’s website is the public documentation surface for the agent-first workflow and the canonical
-library implementation pattern.
+`apps/web` is a one-route evaluation shell for the first public Picodash packages. The homepage
+explains what the current alpha supports and shows the two standalone products in place:
 
-## IA (Evolved)
+- `@picodash/dashpanel` renders arbitrary React content inside a Store-backed Panel Provider.
+- `@picodash/dashlist` composes a named Dashlet and one group level against its own root Store.
 
-Canonical IA:
+The shell creates two independent empty Root Stores in the sole client component. This keeps the
+Panel and List examples honest about their separate package boundaries while they are still alpha
+surfaces.
 
-- Homepage (`/`)
-- `/docs/get-started/agent`
-- `/docs/get-started/manual`
-- `/docs/concepts/*`
-- `/docs/guides/*`
-- `/docs/reference/*`
-- `/examples`
+## Route contract
 
-Current legacy routes remain redirect-only:
+- `/` is the only public route.
+- `/docs`, `/examples`, `/store`, `/usage`, `/themes`, `/more-examples`, and `/lab` return `404`.
+- The hero uses the exact current-alpha scope statement and links to the current contract references.
 
-- `/store`
-- `/usage`
-- `/usage/components`
-- `/themes`
-- `/more-examples`
-- `404` retains browser fallback behavior
+## Implementation contract
 
-## Homepage
+- `src/app/(home)/page.tsx` remains a Server Component and owns static copy and navigation.
+- `src/components/alpha-products.tsx` is the only Client Component and imports only the public
+  Store, UI, DashPanel, and DashList package roots plus React.
+- `src/app/layout.tsx` imports public package styles in dependency order, followed by local CSS.
+- The page does not expose planned placement, field bindings, ready-made Dashlets, controls,
+  documents, or integrated Picodash workflows.
 
-Homepage sections:
+## Responsive behavior
 
-1. Live host scene with an operating, dismissible Panel
-2. Primary action: **Explore demo**
-3. Secondary actions: copy prompt, install, docs
-4. Scenario: creative controls
-5. Scenario: application monitoring
-6. Scenario: debug and feature controls
-7. Compound Dashlet examples in each scenario
-8. `Dashboard → Panel → Dashlet` explanation with typed examples
-9. Reliability proof for types, themes, accessibility, diagnostics, and evaluation fixtures
-
-## Visual and Interaction
-
-- Keep the dark technical baseline, high contrast, and focused spacing.
-- Preserve the distinction between provider behavior, panel behavior, and Dashlet composition.
-- Prefer `@picodash/picodash/style.css` and semantic `--picodash-*` roles; avoid host-only styling dependencies.
-- Example surfaces should remain actionably runnable and close to production usage patterns.
-
-## Accessibility and Behavior Constraints
-
-- Preserve visible labels and explicit accessible names.
-- Keep mobile-friendly controls for docked/fixed/snapped scenarios.
-- Keep close/reopen flows and focus restoration deterministic.
+The layout uses a constrained content column, wrapping actions, and a two-column product grid that
+collapses to one column below `42rem`. Product demos cap their inline size so the 390px mobile view
+does not introduce horizontal scrolling.

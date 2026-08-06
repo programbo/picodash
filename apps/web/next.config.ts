@@ -9,11 +9,10 @@ const scriptSourcePolicy = [
 
 const nextConfig: NextConfig = {
   transpilePackages: [
-    '@picodash/dashlist',
-    '@picodash/dashpanel',
-    '@picodash/picodash',
     '@picodash/store',
-    '@picodash/theme',
+    '@picodash/ui',
+    '@picodash/dashpanel',
+    '@picodash/dashlist',
   ],
   async headers() {
     return [

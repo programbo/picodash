@@ -1,10 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test.describe.configure({ mode: 'serial', timeout: 60_000 })
-
-test('renders the three-section evaluation website without horizontal overflow', async ({
-  page,
-}) => {
+test('renders the current alpha shell on desktop without browser errors', async ({ page }) => {
   const errors: string[] = []
   page.on('console', (message) => message.type() === 'error' && errors.push(message.text()))
   page.on('pageerror', (error) => errors.push(error.message))
@@ -12,38 +8,61 @@ test('renders the three-section evaluation website without horizontal overflow',
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/', { waitUntil: 'domcontentloaded' })
 
-  await expect(page.locator('[data-product-route="evaluation-home"]')).toHaveCount(1)
-  await expect(page.locator('[data-evaluation-section="one"]')).toBeVisible()
-  await expect(page.locator('[data-evaluation-section="two"]')).toBeVisible()
-  await expect(page.locator('[data-evaluation-section="three"]')).toBeVisible()
-  await expect(page.locator('[data-section-one-canvas]')).toBeVisible()
-  await expect(page.locator('[data-section-one-viewport-container]')).toHaveCount(1)
-  await expect(page.locator('[data-section-one-panel]')).toHaveCount(2)
-  await expect(page.locator('[data-section-two-panel]')).toHaveCount(3)
-  await expect(page.locator('[data-section-three-dashlists] [data-picodash-list]')).toHaveCount(2)
-  await expect(page.locator('main')).toHaveCSS('overflow-x', 'clip')
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1440)
+  await expect(
+    page.getByRole('heading', {
+      name: 'Build configurable control panels with typed React components',
+      level: 1,
+    }),
+  ).toBeVisible()
+  await expect(page.getByRole('link', { name: 'View current alphas' })).toHaveAttribute(
+    'href',
+    '#current-alphas',
+  )
+  await expect(page.getByRole('link', { name: 'Read the contracts' })).toHaveAttribute(
+    'href',
+    'https://github.com/programbo/picodash/tree/main/docs/reference',
+  )
+  await expect(page.locator('[data-alpha-product="dashpanel"] [data-picodash-panel]')).toBeVisible()
+  await expect(
+    page.locator('[data-alpha-product="dashlist"] [data-picodash-dashlist]'),
+  ).toBeVisible()
   expect(errors).toEqual([])
 })
 
-test('keeps sections at desktop viewport height and supports theme persistence', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1280, height: 800 })
+test('keeps the alpha shell usable at 390px without horizontal overflow', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', (message) => message.type() === 'error' && errors.push(message.text()))
+  page.on('pageerror', (error) => errors.push(error.message))
+
+  await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/', { waitUntil: 'domcontentloaded' })
 
-  for (const section of await page.locator('[data-evaluation-section]').all()) {
-    await expect(section).toHaveCSS('min-height', '800px')
-  }
-
-  await page.getByLabel('Site theme').selectOption('light')
-  await expect(page.locator('html')).not.toHaveClass(/dark/)
-  await page.reload()
-  await expect(page.getByLabel('Site theme')).toHaveValue('light')
+  await expect(
+    page.getByRole('heading', {
+      name: 'Build configurable control panels with typed React components',
+      level: 1,
+    }),
+  ).toBeVisible()
+  await expect(page.getByRole('link', { name: 'View current alphas' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Read the contracts' })).toBeVisible()
+  await expect(page.locator('[data-alpha-product="dashpanel"] [data-picodash-panel]')).toBeVisible()
+  await expect(
+    page.locator('[data-alpha-product="dashlist"] [data-picodash-dashlist]'),
+  ).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  expect(errors).toEqual([])
 })
 
-test('former product routes are unavailable on the single-page site', async ({ request }) => {
-  for (const path of ['/docs', '/examples', '/store', '/usage', '/themes', '/more-examples']) {
+test('keeps non-home routes unavailable on the single-route alpha site', async ({ request }) => {
+  for (const path of [
+    '/docs',
+    '/examples',
+    '/store',
+    '/usage',
+    '/themes',
+    '/more-examples',
+    '/lab',
+  ]) {
     const response = await request.get(path)
     expect(response.status(), path).toBe(404)
   }

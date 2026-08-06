@@ -191,22 +191,17 @@ Target keys are planned ownership, not compatibility suites:
 
 ## `pointer-velocity-sampling.spec.ts` — 1 current test
 
-| Current test title                                                      | Disposition | Target       | Rationale                                                            |
-| ----------------------------------------------------------------------- | ----------- | ------------ | -------------------------------------------------------------------- |
-| drops delayed pointer velocity intervals instead of backfilling history | Move        | `P-velocity` | Synchronous sampling algorithm is a pure Panel helper test, not E2E. |
+| Current test title                                                      | Disposition | Target | Rationale                                                                                   |
+| ----------------------------------------------------------------------- | ----------- | ------ | ------------------------------------------------------------------------------------------- |
+| drops delayed pointer velocity intervals instead of backfilling history | Delete      | —      | No current DashPanel runtime uses the app-only algorithm; pointer behavior remains Planned. |
 
-## `routes.spec.ts` — 8 current tests
+## `routes.spec.ts` — 3 current tests
 
-| Current test title                                                              | Disposition | Target     | Rationale                                                                                             |
-| ------------------------------------------------------------------------------- | ----------- | ---------- | ----------------------------------------------------------------------------------------------------- |
-| routes home tabs without recreating the persistent demo shell                   | Merge       | `W-home`   | Same public soft-navigation contract as the performance test.                                         |
-| keeps all home tabs reachable on narrow screens                                 | Merge       | `W-home`   | Fold into the mobile homepage journey.                                                                |
-| serves the standalone documentation route                                       | Retain      | `W-docs`   | Canonical documentation route remains a public journey.                                               |
-| exposes each state lab tab as a route                                           | Delete      | —          | All scenario routes are superseded by stateful presets at the single `/lab`.                          |
-| seeds query themes in the server render                                         | Delete      | —          | Contract Lab presets/themes cannot be selected by query; provider render coverage moves to `U-theme`. |
-| resolves system theme changes from the browser color scheme                     | Merge       | `L-themes` | Media-query resolution is a browser seam.                                                             |
-| exposes isolated debugging labs on their singular routes                        | Delete      | —          | Singular legacy Lab routes are intentionally removed without redirects.                               |
-| keeps lab routes out of the product app and preserves both not-found boundaries | Merge       | `W-routes` | Update to prove production `/lab` isolation, new redirects and both 404 boundaries.                   |
+| Current test title                                                | Disposition | Target     | Rationale                                                                  |
+| ----------------------------------------------------------------- | ----------- | ---------- | -------------------------------------------------------------------------- |
+| renders the current alpha shell on desktop without browser errors | Retain      | `W-alpha`  | Proves the two standalone public alpha packages compose on the only route. |
+| keeps the alpha shell usable at 390px without horizontal overflow | Retain      | `W-alpha`  | Preserves the browser-only responsive and overflow check.                  |
+| keeps non-home routes unavailable on the single-route alpha site  | Retain      | `W-routes` | Proves retired product and Lab paths remain absent without redirects.      |
 
 ## `themes.spec.ts` — 7 current tests
 
