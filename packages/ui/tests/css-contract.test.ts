@@ -121,4 +121,20 @@ describe('@picodash/ui stylesheet contract', () => {
       './style.css': './dist/style.css',
     })
   })
+
+  it('defines the accepted AlertDialog structural slots', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    for (const slot of [
+      'overlay',
+      'modal',
+      'content',
+      'header',
+      'footer',
+      'media',
+      'title',
+      'description',
+    ]) {
+      expect(css).toContain(`[data-slot='alert-dialog-${slot}']`)
+    }
+  })
 })

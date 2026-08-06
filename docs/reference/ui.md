@@ -13,6 +13,8 @@ accessible presentation primitives without making either product depend on the o
 > Evidence: [Theme provider component tests](../../packages/ui/tests/theme-provider.test.tsx),
 > [theme provider type tests](../../packages/ui/tests/theme-provider.types.test.ts), [Button
 > component tests](../../packages/ui/tests/button.test.tsx), [Button type tests](../../packages/ui/tests/button.types.test.ts),
+> [AlertDialog component tests](../../packages/ui/tests/alert-dialog.test.tsx), [AlertDialog type
+> tests](../../packages/ui/tests/alert-dialog.types.test.ts),
 > [CSS contract tests](../../packages/ui/tests/css-contract.test.ts), and the [package artifact
 > checker](../../packages/ui/tests/package-artifacts.mjs).
 >
@@ -298,7 +300,12 @@ The prototype's `default` variant becomes `primary`. Its duplicate `default`/`md
 
 > Contract: Accepted
 >
-> Implementation: Planned
+> Implementation: Partial
+>
+> Evidence: [AlertDialog component tests](../../packages/ui/tests/alert-dialog.test.tsx) and
+> [AlertDialog type tests](../../packages/ui/tests/alert-dialog.types.test.ts). React Aria Escape
+> ordering, focus restoration, outside-content hiding, and computed nested stacking remain browser
+> verification seams.
 
 `AlertDialog` presents a consequential choice that requires an explicit action or cancellation. It
 does not analyze an operation, generate confirmation copy, or execute a product command.

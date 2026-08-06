@@ -36,6 +36,17 @@ async function main() {
     `${pathToFileURL(path.join(packageRoot, 'dist/index.mjs')).href}?artifact-check`
   )
   assert.deepEqual(Object.keys(runtime).sort(), [
+    'AlertDialog',
+    'AlertDialogAction',
+    'AlertDialogCancel',
+    'AlertDialogContent',
+    'AlertDialogDescription',
+    'AlertDialogFooter',
+    'AlertDialogHeader',
+    'AlertDialogMedia',
+    'AlertDialogOverlay',
+    'AlertDialogTitle',
+    'AlertDialogTrigger',
     'Button',
     'DashHeader',
     'PicodashOverlayProvider',
@@ -59,6 +70,18 @@ async function main() {
     'ButtonSize',
     'DashHeaderProps',
     'DashHeaderSlots',
+    'AlertDialogProps',
+    'AlertDialogTriggerProps',
+    'AlertDialogOverlayProps',
+    'AlertDialogContentProps',
+    'AlertDialogHeaderProps',
+    'AlertDialogFooterProps',
+    'AlertDialogMediaProps',
+    'AlertDialogTitleProps',
+    'AlertDialogDescriptionProps',
+    'AlertDialogActionProps',
+    'AlertDialogCancelProps',
+    'AlertDialogSize',
   ]) {
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
   }
