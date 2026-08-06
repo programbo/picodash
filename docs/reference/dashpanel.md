@@ -435,6 +435,36 @@ Inset resolution follows Panel override, Provider default, then zero. Insets con
 placement and define the flush docking rectangle. Snaps apply their separate offset after inset
 resolution. Insets and boundary objects are runtime policy and are not persisted.
 
+Every inset is a finite, non-negative CSS-pixel number. Physical shorthand expands as follows:
+
+- `n` becomes `{ top: n, right: n, bottom: n, left: n }`.
+- `[vertical, horizontal]` becomes `{ top: vertical, right: horizontal, bottom: vertical, left: horizontal }`.
+- `[top, horizontal, bottom]` becomes `{ top, right: horizontal, bottom, left: horizontal }`.
+- `[top, right, bottom, left]` maps directly to those four sides.
+
+The implementation selects inheritance before normalization: an omitted Panel inset inherits the
+Provider inset, an omitted Provider inset resolves to zero, and an explicit Panel inset of `0`
+clears an inherited inset. `null` is invalid for inset values. An invalid selected value throws
+without falling back to another level. Runtime validation rejects negative numbers, `NaN`, positive
+or negative infinity, boxed numbers, non-number members, sparse arrays, and every tuple arity other
+than 2, 3, or 4. `-0` normalizes to `+0`.
+
+Normalization produces a private, frozen, detached record with exactly `top`, `right`, `bottom`,
+and `left`; it does not rewrite or persist the caller's input. The effective boundary rectangle is
+always coherent, even when insets overconstrain an axis:
+
+```ts
+left = Math.min(rect.right, rect.left + inset.left)
+right = Math.max(left, rect.right - inset.right)
+top = Math.min(rect.bottom, rect.top + inset.top)
+bottom = Math.max(top, rect.bottom - inset.bottom)
+width = right - left
+height = bottom - top
+```
+
+Top and left take precedence when opposite insets overconstrain an axis. Rectangle derivation is
+pure geometry; it does not mutate the boundary, placement, or persisted layout.
+
 Portal ownership and geometry boundary are independent. Changing a portal target must not change
 placement coordinates; changing a boundary must not implicitly move ownership of the Panel DOM.
 
