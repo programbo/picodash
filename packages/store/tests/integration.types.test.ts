@@ -2,6 +2,8 @@ import { describe, expectTypeOf, it } from 'vite-plus/test'
 import type {
   EntityLease,
   EntityLeaseOptions,
+  PicodashStoreEntityBoundaryProps,
+  PicodashStoreProviderBoundaryProps,
   ProviderLease,
   RelationshipLease,
   StoreEntityKind,
@@ -76,6 +78,45 @@ describe('Store integration types', () => {
       acquireRelationshipLease({ release() {} } as ProviderLease, {} as EntityLease)
       // @ts-expect-error Caller-created release objects are not nominal leases.
       acquireRelationshipLease({ release() {} }, { release() {} })
+    }
+  })
+
+  it('types the React boundary props with root/scoped stores and exact kinds', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+    })
+    expectTypeOf<PicodashStoreProviderBoundaryProps>().toHaveProperty('children')
+    expectTypeOf<PicodashStoreProviderBoundaryProps>().toHaveProperty('store')
+    expectTypeOf<PicodashStoreEntityBoundaryProps>().toHaveProperty('children')
+    expectTypeOf<PicodashStoreEntityBoundaryProps>().toHaveProperty('kind')
+    const providerProps: PicodashStoreProviderBoundaryProps = {
+      store,
+      children: null,
+    }
+    const scoped = store.scope('scope')
+    const entityProps: PicodashStoreEntityBoundaryProps = {
+      store: scoped,
+      kind: 'dashList',
+      children: null,
+    }
+    expectTypeOf(providerProps.store).toBeObject()
+    expectTypeOf(entityProps.store).toBeObject()
+    const typeOnly = () => false
+    if (typeOnly()) {
+      const invalidProvider: PicodashStoreProviderBoundaryProps = {
+        // @ts-expect-error Provider boundaries require a root Store.
+        store: store.scope('scope'),
+        children: null,
+      }
+      const invalidEntity: PicodashStoreEntityBoundaryProps = {
+        // @ts-expect-error Entity boundaries require a scoped Store.
+        store,
+        kind: 'dashPanel',
+        children: null,
+      }
+      void invalidProvider
+      void invalidEntity
     }
   })
 })

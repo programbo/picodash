@@ -1,7 +1,20 @@
 import { expectTypeOf, test } from 'vite-plus/test'
 import { createPicodashStore } from '../src/index.ts'
 import { shallowEqual, usePicodashStoreSelector } from '../src/react.ts'
+import {
+  usePicodashRootSelector,
+  usePicodashRootStore,
+  usePicodashScope,
+  usePicodashScopeSelector,
+  usePicodashStore,
+} from '../src/react.ts'
 import type { RootSnapshot, ScopedSnapshot } from '../src/index.ts'
+import type {
+  PicodashFieldDefinitions,
+  PicodashJsonValue,
+  RootStore,
+  ScopedStore,
+} from '../src/index.ts'
 
 test('explicit selector preserves root/scoped snapshot and selection inference', () => {
   const root = createPicodashStore({
@@ -40,4 +53,24 @@ test('explicit selector preserves root/scoped snapshot and selection inference',
     expectTypeOf(objectSelection).toEqualTypeOf<{ count: number }>()
   }
   void assertSelectorTypes
+})
+
+test('contextual hooks and selectors expose root/scoped Store contracts', () => {
+  function assertContextualTypes() {
+    const nearest = usePicodashStore()
+    const scoped = usePicodashStore('settings')
+    const root = usePicodashRootStore()
+    const scope = usePicodashScope()
+    const rootSelection = usePicodashRootSelector((state) => state.values)
+    const scopeSelection = usePicodashScopeSelector((state) => state.values)
+    expectTypeOf(nearest).toMatchTypeOf<
+      RootStore<PicodashFieldDefinitions> | ScopedStore<PicodashFieldDefinitions>
+    >()
+    expectTypeOf(scoped).toMatchTypeOf<ScopedStore<PicodashFieldDefinitions>>()
+    expectTypeOf(root).toMatchTypeOf<RootStore<PicodashFieldDefinitions>>()
+    expectTypeOf(scope).toMatchTypeOf<ScopedStore<PicodashFieldDefinitions>>()
+    expectTypeOf(rootSelection).toEqualTypeOf<Readonly<Record<string, PicodashJsonValue>>>()
+    expectTypeOf(scopeSelection).toEqualTypeOf<Readonly<Record<string, PicodashJsonValue>>>()
+  }
+  void assertContextualTypes
 })

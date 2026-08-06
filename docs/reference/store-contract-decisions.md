@@ -290,6 +290,7 @@ The integration contract errors and their complete safe contexts are:
 | `relationship-parent-conflict` | `{ childScopeId: string }`                                                                      |
 | `relationship-cycle`           | `{ parentScopeId: string, childScopeId: string }`                                               |
 | `lease-has-active-dependents`  | `{ leaseKind: 'provider' \| 'entity' }`                                                         |
+| `missing-store-context`        | `{ required: 'root-or-scoped' \| 'scoped' }`                                                    |
 
 `InvalidProviderIdReason` is the same lexical reason union as `InvalidScopeIdReason`. Context never
 contains a Store, handle, root runtime identity, host generation, caller-supplied invalid value,
@@ -1533,9 +1534,11 @@ usePicodashRootStore() // RootStore
 usePicodashScope() // nearest ScopedStore or throws
 ```
 
-Contextual hooks throw a contract error when their required boundary is absent.
-`usePicodashStore(scopeId)` resolves a view from the nearest root but does not create scope state,
-register an entity, or add a relationship. Only declarative product boundaries acquire leases.
+Contextual hooks throw `missing-store-context` with exactly `{ required: 'root-or-scoped' }` when
+no Provider-hosted Store boundary exists, or `{ required: 'scoped' }` when a scoped boundary is
+required but the nearest boundary supplies only a root. `usePicodashStore(scopeId)` resolves a view from
+the nearest root but does not create scope state, register an entity, or add a relationship.
+Only declarative product boundaries acquire leases.
 
 ### 15.2 Selector hooks
 
@@ -1560,8 +1563,9 @@ responsibility described above.
 
 `@picodash/store` is framework-independent. `@picodash/store/react` owns public hooks and selectors.
 `@picodash/store/integration` is the versioned low-level composition surface used by DashPanel and
-DashList for context and lifecycle leases. It is supported for authors integrating another
-declarative UI product, but ordinary applications do not need it. The UI packages use compatible
+DashList for context, Provider-hosted React boundaries, and lifecycle leases. The boundaries are
+low-level composition tools; ordinary applications do not need them. Standalone DashList hosting
+remains planned in this slice. The UI packages use compatible
 Store and React peer dependencies; global context bridges do not conceal duplicate or incompatible
 packages.
 
@@ -1576,9 +1580,9 @@ lifecycle teardown, not a domain-level deregistration command. Abandoned renders
 and React Strict Mode reacquisition reruns all identity and graph checks. Binding acquisition and
 its generation-owned `BindingHandle` remain a later Store slice.
 
-The low-level context Provider is not an initial public product. `DashPanelProvider`, integrated
-`PicodashProvider`, and standalone DashList establish public context boundaries; application code
-outside them uses explicit Store selectors.
+The Store package does not add an application-facing global Provider or duplicate-package bridge.
+DashPanel, integrated Picodash, and standalone DashList remain the product-owned public context
+boundaries; the Store boundaries exist only as the low-level Provider-hosted composition seam.
 
 ## 16. Diagnostics and trust
 

@@ -1,9 +1,50 @@
-import { useCallback, useDebugValue, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+import {
+  useCallback,
+  useContext,
+  useDebugValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from 'react'
 
-import type { RootStore, ScopedStore } from './kernel/index.js'
+import type {
+  CoreTransactionResult,
+  PicodashFieldDefinitions,
+  RootStore,
+  ScopedStore,
+} from './kernel/index.js'
+import { missingStoreContext, PicodashStoreContext } from './store-context.js'
 
-type AnyStore = RootStore<any, any> | ScopedStore<any, any>
+type AnyStore =
+  | RootStore<PicodashFieldDefinitions, CoreTransactionResult>
+  | ScopedStore<PicodashFieldDefinitions, CoreTransactionResult>
 type SnapshotOf<Store extends AnyStore> = ReturnType<Store['getState']>
+
+type RootContextStore = RootStore<PicodashFieldDefinitions, CoreTransactionResult>
+type ScopedContextStore = ScopedStore<PicodashFieldDefinitions, CoreTransactionResult>
+type RootContextSnapshot = ReturnType<RootContextStore['getState']>
+type ScopedContextSnapshot = ReturnType<ScopedContextStore['getState']>
+
+export function usePicodashStore(): RootContextStore | ScopedContextStore
+export function usePicodashStore(scopeId: string): ScopedContextStore
+export function usePicodashStore(scopeId?: string): RootContextStore | ScopedContextStore {
+  const context = useContext(PicodashStoreContext)
+  if (!context) return missingStoreContext('root-or-scoped')
+  return scopeId === undefined ? context.store : context.root.scope(scopeId)
+}
+
+export function usePicodashRootStore(): RootContextStore {
+  const context = useContext(PicodashStoreContext)
+  if (!context) return missingStoreContext('root-or-scoped')
+  return context.root
+}
+
+export function usePicodashScope(): ScopedContextStore {
+  const context = useContext(PicodashStoreContext)
+  if (!context || context.store.kind !== 'scoped') return missingStoreContext('scoped')
+  return context.store
+}
 
 /**
  * Selects a value from an explicit root or scoped Store and subscribes to the
@@ -59,6 +100,20 @@ export function usePicodashStoreSelector(
   }, [selection])
   useDebugValue(selection)
   return selection
+}
+
+export function usePicodashRootSelector<Selection>(
+  selector: (state: RootContextSnapshot) => Selection,
+  equalityFn?: (left: Selection, right: Selection) => boolean,
+): Selection {
+  return usePicodashStoreSelector(usePicodashRootStore(), selector, equalityFn)
+}
+
+export function usePicodashScopeSelector<Selection>(
+  selector: (state: ScopedContextSnapshot) => Selection,
+  equalityFn?: (left: Selection, right: Selection) => boolean,
+): Selection {
+  return usePicodashStoreSelector(usePicodashScope(), selector, equalityFn)
 }
 
 /** Compares one-level records or arrays/tuples using Object.is. */

@@ -509,6 +509,7 @@ type ContractErrorCode =
   | 'relationship-parent-conflict'
   | 'relationship-cycle'
   | 'lease-has-active-dependents'
+  | 'missing-store-context'
   | 'root-has-active-leases'
   | 'root-has-unpersisted-state'
   | 'use-after-destroy'

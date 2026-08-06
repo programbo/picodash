@@ -3,6 +3,8 @@ import { access, mkdtemp, mkdir, writeFile, rm, readdir } from 'node:fs/promises
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 import {
   readJson,
@@ -98,6 +100,8 @@ if (import.meta.main) {
     `${pathToFileURL(path.join(packageRoot, 'dist/integration.mjs')).href}?artifact-check-integration`
   )
   assert.deepEqual(Object.keys(integrationModule).sort(), [
+    'PicodashStoreEntityBoundary',
+    'PicodashStoreProviderBoundary',
     'acquireEntityLease',
     'acquireProviderLease',
     'acquireRelationshipLease',
@@ -137,7 +141,15 @@ if (import.meta.main) {
   ]) {
     assert.equal(integrationExport in rootModule, false)
   }
-  assert.deepEqual(Object.keys(reactModule).sort(), ['shallowEqual', 'usePicodashStoreSelector'])
+  assert.deepEqual(Object.keys(reactModule).sort(), [
+    'shallowEqual',
+    'usePicodashRootSelector',
+    'usePicodashRootStore',
+    'usePicodashScope',
+    'usePicodashScopeSelector',
+    'usePicodashStore',
+    'usePicodashStoreSelector',
+  ])
   for (const retired of [
     'usePicodashStateAdapter',
     'usePicodashReducerAdapter',
@@ -155,6 +167,26 @@ if (import.meta.main) {
   artifactStore.destroy()
   assert.throws(() => artifactStore.getState(), /use-after-destroy/)
   assert.throws(() => artifactScoped.getState(), /use-after-destroy/)
+
+  const builtBoundaryStore = rootModule.createPicodashStore({
+    valueOwner: 'store',
+    fields: { value: { defaultValue: 1 } },
+  })
+  function BuiltContextProbe() {
+    return createElement(
+      'output',
+      null,
+      reactModule.usePicodashRootStore() === builtBoundaryStore ? 'same-root' : 'different-root',
+    )
+  }
+  const builtContextMarkup = renderToStaticMarkup(
+    createElement(integrationModule.PicodashStoreProviderBoundary, {
+      store: builtBoundaryStore,
+      children: createElement(BuiltContextProbe),
+    }),
+  )
+  assert.equal(builtContextMarkup, '<output>same-root</output>')
+  builtBoundaryStore.destroy()
 
   let externalValue = 1
   let releaseCalls = 0
