@@ -12,6 +12,7 @@ import {
   normalizeDashPanelLayoutRecord,
   normalizeDurableScopeMetadata,
 } from '../metadata.js'
+import { createDiagnosticsRuntime, type PicodashDiagnostics } from '../diagnostics.js'
 
 /** The JSON values accepted at Store trust boundaries. */
 export type PicodashJsonPrimitive = boolean | null | number | string
@@ -357,6 +358,7 @@ export interface RootStore<
   scope(scopeId: string): ScopedStore<Fields, Result>
   getState(): RootSnapshot<ValuesOf<Fields>>
   subscribe(listener: () => void): () => void
+  readonly diagnostics: PicodashDiagnostics
   destroy(options?: DestroyRootOptions): void
   setValue<K extends keyof Fields & string>(
     field: PicodashField<ValuesOf<Fields>, K>,
@@ -379,6 +381,7 @@ export interface ScopedStore<
   readonly root: RootStore<Fields, Result>
   readonly scopeId: string
   readonly fields: PicodashFields<Fields>
+  readonly diagnostics: PicodashDiagnostics
   scope(scopeId: string): ScopedStore<Fields, Result>
   getState(): ScopedSnapshot<ValuesOf<Fields>>
   subscribe(listener: () => void): () => void
@@ -1148,12 +1151,20 @@ export function createPicodashStore<
   const channelsById = new Map<string, ScopedChannel>()
   const activeChannels = new Set<ScopedChannel>()
   let writing = false
+  let runtimeController!: RuntimeController
+  const diagnosticsRuntime = createDiagnosticsRuntime({
+    assertActive: () => assertRuntimeActive(runtimeController),
+    invalidListener: () => {
+      throw new PicodashContractError('invalid-configuration')
+    },
+  })
 
   type StoreResult = CoreTransactionResult
   let store!: RootStore<Fields, StoreResult>
   const storeImplementation: RootStore<Fields, StoreResult> = {
     kind: 'root',
     fields,
+    diagnostics: diagnosticsRuntime.facade,
     scope: (scopeId) => getScoped(scopeId),
     getState: () => currentSnapshot,
     subscribe(listener) {
@@ -1290,10 +1301,11 @@ export function createPicodashStore<
       ),
   }
   Object.freeze(storeImplementation)
-  const runtimeController = new RuntimeController(storeImplementation as object)
+  runtimeController = new RuntimeController(storeImplementation as object)
   store = makeLifecycleFacade(storeImplementation, runtimeController)
   runtimeController.finalizeRoot(store as object)
   registerRuntimeController(store as object, runtimeController)
+  diagnosticsRuntime.attachResource((resource) => runtimeController.registerResource(resource))
   runtimeController.registerResource({
     phase: 'kernel',
     teardown: () => {
@@ -1356,14 +1368,7 @@ export function createPicodashStore<
       const affectedChannels = collectScopedChannels()
       refreshScopedChannels(affectedChannels)
       const result = successfulResult(changedFields)
-      for (const listener of listeners) {
-        try {
-          listener()
-        } catch {
-          // Subscriber failures are isolated; the committed result remains true.
-        }
-      }
-      notifyScoped(affectedChannels)
+      dispatchStoreSubscribers(affectedChannels)
       return result
     } finally {
       writing = false
@@ -1459,12 +1464,7 @@ export function createPicodashStore<
         for (const channel of collectScopedChannels(id)) affectedChannels.add(channel)
       refreshScopedChannels(affectedChannels)
       const result = successfulResult([], changedScopeIds)
-      for (const listener of listeners) {
-        try {
-          listener()
-        } catch {}
-      }
-      notifyScoped(affectedChannels)
+      dispatchStoreSubscribers(affectedChannels)
       return result
     } finally {
       writing = false
@@ -1504,13 +1504,17 @@ export function createPicodashStore<
     for (const channel of affected) channel.snapshot = makeScopedSnapshot(channel.scopeId)
   }
 
-  function notifyScoped(affected: Set<ScopedChannel>) {
-    for (const channel of affected)
-      for (const listener of channel.listeners) {
-        try {
-          listener()
-        } catch {}
-      }
+  function dispatchStoreSubscribers(affected: Set<ScopedChannel>) {
+    diagnosticsRuntime.dispatch([
+      { surface: 'root', listeners },
+      ...[...affected]
+        .sort((left, right) => left.scopeId.localeCompare(right.scopeId))
+        .map((channel) => ({
+          surface: 'scope' as const,
+          scopeId: channel.scopeId,
+          listeners: channel.listeners,
+        })),
+    ])
   }
 
   function getScoped(scopeId: string): ScopedStore<Fields, StoreResult> {
@@ -1529,6 +1533,7 @@ export function createPicodashStore<
       root: store,
       scopeId,
       fields,
+      diagnostics: diagnosticsRuntime.facade,
       scope: (id) => getScoped(id),
       getState: () => channel.snapshot,
       subscribe(listener) {
@@ -1626,12 +1631,7 @@ export function createPicodashStore<
       const affectedChannels = collectScopedChannels(scopeId)
       refreshScopedChannels(affectedChannels)
       const result = successfulResult([], [scopeId])
-      for (const listener of listeners) {
-        try {
-          listener()
-        } catch {}
-      }
-      notifyScoped(affectedChannels)
+      dispatchStoreSubscribers(affectedChannels)
       return result
     } finally {
       writing = false

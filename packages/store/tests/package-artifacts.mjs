@@ -113,8 +113,10 @@ if (import.meta.main) {
   assert.ok(rootDeclaration)
   const rootTypes = await readText(path.join(packageRoot, 'dist', rootDeclaration))
   assert.match(rootTypes, /destroy\(options\?: DestroyRootOptions\): void/)
+  assert.match(rootTypes, /readonly diagnostics: PicodashDiagnostics/)
   const scopedSection = rootTypes.slice(rootTypes.indexOf('interface ScopedStore'))
   assert.doesNotMatch(scopedSection, /destroy\(options\?: DestroyRootOptions\)/)
+  assert.match(scopedSection, /readonly diagnostics: PicodashDiagnostics/)
   assert.deepEqual(Object.keys(rootModule).sort(), [
     'PicodashContractError',
     'PicodashTransactionError',
@@ -140,6 +142,8 @@ if (import.meta.main) {
     fields: { value: { defaultValue: 1 } },
   })
   const artifactScoped = artifactStore.scope('artifact')
+  assert.equal(typeof artifactStore.diagnostics.getState, 'function')
+  assert.equal(typeof artifactScoped.diagnostics.subscribe, 'function')
   artifactStore.destroy()
   assert.throws(() => artifactStore.getState(), /use-after-destroy/)
   assert.throws(() => artifactScoped.getState(), /use-after-destroy/)

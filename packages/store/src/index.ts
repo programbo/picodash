@@ -4,6 +4,13 @@ export {
   PicodashTransactionError,
 } from './kernel/index.js'
 export type {
+  PicodashDiagnostic,
+  PicodashDiagnostics,
+  PicodashDiagnosticsState,
+  SubscriberExceptionDiagnostic,
+  SubscriberExceptionIdentity,
+} from './diagnostics.js'
+export type {
   StoreOwnedConfig,
   RootStore,
   ScopedStore,

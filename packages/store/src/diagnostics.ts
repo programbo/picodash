@@ -1,50 +1,52 @@
 import {
   normalizePicodashDiagnostic,
-  type PicodashDiagnostic,
+  type PicodashDiagnostic as LegacyPicodashDiagnostic,
   type PicodashDiagnosticInput,
   type PicodashErrorCode,
 } from './errors.js'
 
-export type PicodashDiagnosticListener = (snapshot: readonly PicodashDiagnostic[]) => void
+/** @deprecated Prototype-only diagnostic channel retained for the legacy store module. */
+export type PicodashDiagnosticListener = (snapshot: readonly LegacyPicodashDiagnostic[]) => void
 
+/** @deprecated Prototype-only diagnostic channel retained for the legacy store module. */
 export interface PicodashDiagnosticChannel {
-  clear: (code?: PicodashErrorCode) => void
-  getSnapshot: () => readonly PicodashDiagnostic[]
-  publish: (diagnostic: PicodashDiagnostic | PicodashDiagnosticInput) => PicodashDiagnostic
-  subscribe: (listener: PicodashDiagnosticListener) => () => void
+  clear(code?: PicodashErrorCode): void
+  getSnapshot(): readonly LegacyPicodashDiagnostic[]
+  publish(diagnostic: LegacyPicodashDiagnostic | PicodashDiagnosticInput): LegacyPicodashDiagnostic
+  subscribe(listener: PicodashDiagnosticListener): () => void
 }
 
+/** @deprecated Prototype-only diagnostic channel retained for the legacy store module. */
 export function createPicodashDiagnosticChannel(): PicodashDiagnosticChannel {
-  const diagnostics = new Map<string, PicodashDiagnostic>()
+  const diagnostics = new Map<string, LegacyPicodashDiagnostic>()
   const listeners = new Set<PicodashDiagnosticListener>()
-  let snapshot: readonly PicodashDiagnostic[] = Object.freeze([])
+  let snapshot: readonly LegacyPicodashDiagnostic[] = Object.freeze([])
 
   const notify = () => {
     snapshot = Object.freeze([...diagnostics.values()])
     for (const listener of listeners) listener(snapshot)
   }
 
-  const channel: PicodashDiagnosticChannel = {
-    clear(code) {
+  return Object.freeze({
+    clear(code?: PicodashErrorCode) {
       if (code === undefined) {
         if (diagnostics.size === 0) return
         diagnostics.clear()
-        notify()
-        return
+      } else {
+        let changed = false
+        for (const [fingerprint, diagnostic] of diagnostics) {
+          if (diagnostic.code !== code) continue
+          diagnostics.delete(fingerprint)
+          changed = true
+        }
+        if (!changed) return
       }
-
-      let changed = false
-      for (const [fingerprint, diagnostic] of diagnostics) {
-        if (diagnostic.code !== code) continue
-        diagnostics.delete(fingerprint)
-        changed = true
-      }
-      if (changed) notify()
+      notify()
     },
     getSnapshot() {
       return snapshot
     },
-    publish(input) {
+    publish(input: LegacyPicodashDiagnostic | PicodashDiagnosticInput) {
       const diagnostic = normalizePicodashDiagnostic(input)
       if (!diagnostics.has(diagnostic.fingerprint)) {
         diagnostics.set(diagnostic.fingerprint, diagnostic)
@@ -52,13 +54,351 @@ export function createPicodashDiagnosticChannel(): PicodashDiagnosticChannel {
       }
       return diagnostics.get(diagnostic.fingerprint) ?? diagnostic
     },
-    subscribe(listener) {
+    subscribe(listener: PicodashDiagnosticListener) {
       listeners.add(listener)
+      let active = true
       return () => {
+        if (!active) return
+        active = false
+        listeners.delete(listener)
+      }
+    },
+  })
+}
+
+export type PicodashDiagnostic<
+  Code extends string = string,
+  Identity extends object = object,
+  Severity extends 'error' | 'warning' = 'error' | 'warning',
+> = Readonly<{
+  readonly code: Code
+  readonly severity: Severity
+  readonly message: string
+  readonly identity: Identity
+  readonly count: number
+  readonly lastOccurrence: number
+}>
+
+export type PicodashDiagnosticsState = Readonly<{
+  readonly current: ReadonlyMap<string, PicodashDiagnostic>
+}>
+
+export type SubscriberExceptionIdentity = Readonly<{
+  readonly kind: 'subscriber'
+  readonly surface: 'root' | 'scope' | 'diagnostics' | 'capability'
+  readonly scopeId?: string
+  readonly capability?: string
+}>
+
+export type SubscriberExceptionDiagnostic = PicodashDiagnostic<
+  'subscriber_exception',
+  SubscriberExceptionIdentity,
+  'error'
+>
+
+export interface PicodashDiagnostics {
+  getState(): PicodashDiagnosticsState
+  subscribe(listener: () => void): () => void
+}
+
+type RuntimeResource = {
+  readonly phase: 'capability' | 'kernel'
+  readonly teardown: (context: { readonly discardUnpersisted: boolean }) => void
+}
+
+type DispatchSurface = SubscriberExceptionIdentity['surface']
+
+type DispatchRecord = {
+  readonly surface: DispatchSurface
+  readonly scopeId?: string
+  readonly capability?: string
+  readonly listeners: Iterable<() => void>
+}
+
+type DiagnosticsOptions = {
+  readonly assertActive: () => void
+  readonly invalidListener: () => never
+}
+
+type DiagnosticsRuntime = {
+  readonly facade: PicodashDiagnostics
+  readonly dispatch: (records: readonly DispatchRecord[]) => void
+  readonly attachResource: (register: (resource: RuntimeResource) => () => void) => void
+}
+
+const MAX_SAFE = Number.MAX_SAFE_INTEGER
+const MESSAGE = 'A Store subscriber threw.'
+
+function immutableMap<K, V>(entries: readonly (readonly [K, V])[]): ReadonlyMap<K, V> {
+  const source = new Map(entries)
+  const facade: ReadonlyMap<K, V> = {
+    get size() {
+      return source.size
+    },
+    get(key) {
+      return source.get(key)
+    },
+    has(key) {
+      return source.has(key)
+    },
+    entries() {
+      return source.entries()
+    },
+    keys() {
+      return source.keys()
+    },
+    values() {
+      return source.values()
+    },
+    forEach(callbackfn, thisArg) {
+      source.forEach((value, key) => callbackfn.call(thisArg, value, key, facade))
+    },
+    [Symbol.iterator]() {
+      return source[Symbol.iterator]()
+    },
+  }
+  return Object.freeze(facade)
+}
+
+function freezeIdentity(identity: SubscriberExceptionIdentity): SubscriberExceptionIdentity {
+  return Object.freeze({
+    kind: 'subscriber',
+    surface: identity.surface,
+    ...(identity.scopeId === undefined ? {} : { scopeId: identity.scopeId }),
+    ...(identity.capability === undefined ? {} : { capability: identity.capability }),
+  })
+}
+
+export function createDiagnosticsRuntime(options: DiagnosticsOptions): DiagnosticsRuntime {
+  const listeners = new Set<() => void>()
+  const current = new Map<string, SubscriberExceptionDiagnostic>()
+  const opaqueKeys = new Map<string, string>()
+  let state: PicodashDiagnosticsState = Object.freeze({
+    current: immutableMap<string, PicodashDiagnostic>([]),
+  })
+  let occurrence = 0
+  let nextOpaqueKey = 0
+  let alive = true
+  let resourceRelease: (() => void) | undefined
+
+  const assertAlive = () => options.assertActive()
+
+  const identityFingerprint = (identity: SubscriberExceptionIdentity): string =>
+    JSON.stringify([identity.surface, identity.scopeId ?? null, identity.capability ?? null])
+
+  const opaqueKeyFor = (identity: SubscriberExceptionIdentity): string => {
+    const fingerprint = identityFingerprint(identity)
+    const existing = opaqueKeys.get(fingerprint)
+    if (existing !== undefined) return existing
+    nextOpaqueKey += 1
+    const key = `d${nextOpaqueKey.toString(36)}`
+    opaqueKeys.set(fingerprint, key)
+    return key
+  }
+
+  const existingOpaqueKeyFor = (identity: SubscriberExceptionIdentity): string | undefined =>
+    opaqueKeys.get(identityFingerprint(identity))
+
+  const rebuildState = () => {
+    state = Object.freeze({ current: immutableMap([...current.entries()]) })
+  }
+
+  const advanceOccurrence = () => {
+    occurrence = occurrence >= MAX_SAFE ? MAX_SAFE : occurrence + 1
+    return occurrence
+  }
+
+  const recordFailure = (identity: SubscriberExceptionIdentity) => {
+    const key = opaqueKeyFor(identity)
+    const previous = current.get(key)
+    const nextCount = previous ? (previous.count >= MAX_SAFE ? MAX_SAFE : previous.count + 1) : 1
+    const nextIdentity = previous?.identity ?? freezeIdentity(identity)
+    current.set(
+      key,
+      Object.freeze({
+        code: 'subscriber_exception',
+        severity: 'error',
+        message: MESSAGE,
+        identity: nextIdentity,
+        count: nextCount,
+        lastOccurrence: advanceOccurrence(),
+      }),
+    )
+  }
+
+  const recover = (identity: SubscriberExceptionIdentity) => {
+    const key = existingOpaqueKeyFor(identity)
+    if (key !== undefined) current.delete(key)
+  }
+
+  const dispatchCallbacks = (
+    surface: DispatchSurface,
+    callbackListeners: Iterable<() => void>,
+    scopeId?: string,
+    capability?: string,
+  ) => {
+    const identity = {
+      kind: 'subscriber' as const,
+      surface,
+      ...(scopeId === undefined ? {} : { scopeId }),
+      ...(capability === undefined ? {} : { capability }),
+    } satisfies SubscriberExceptionIdentity
+    let threw = false
+    for (const listener of Array.from(callbackListeners)) {
+      try {
+        listener()
+      } catch {
+        threw = true
+        recordFailure(identity)
+      }
+    }
+    if (!threw) recover(identity)
+  }
+
+  const notifyDiagnostics = () => {
+    let threw = false
+    for (const listener of Array.from(listeners)) {
+      try {
+        listener()
+      } catch {
+        threw = true
+        recordFailure({ kind: 'subscriber', surface: 'diagnostics' })
+      }
+    }
+    if (!threw) recover({ kind: 'subscriber', surface: 'diagnostics' })
+  }
+
+  const dispatch = (records: readonly DispatchRecord[]) => {
+    assertAlive()
+    let changed = false
+    const before = [...current.entries()]
+    for (const record of records)
+      dispatchCallbacks(record.surface, record.listeners, record.scopeId, record.capability)
+    const after = [...current.entries()]
+    if (before.length !== after.length) changed = true
+    else
+      for (let index = 0; index < before.length; index += 1) {
+        const [beforeKey, beforeValue] = before[index]!
+        const [afterKey, afterValue] = after[index]!
+        if (beforeKey !== afterKey || beforeValue !== afterValue) {
+          changed = true
+          break
+        }
+      }
+    if (!changed) return
+    rebuildState()
+    notifyDiagnostics()
+    rebuildState()
+  }
+
+  const teardown = () => {
+    if (!alive) return
+    alive = false
+    listeners.clear()
+    current.clear()
+    opaqueKeys.clear()
+    state = Object.freeze({ current: immutableMap<string, PicodashDiagnostic>([]) })
+    occurrence = 0
+    nextOpaqueKey = 0
+    resourceRelease?.()
+    resourceRelease = undefined
+  }
+
+  const implementation: PicodashDiagnostics = {
+    getState() {
+      assertAlive()
+      return state
+    },
+    subscribe(listener: () => void) {
+      assertAlive()
+      if (typeof listener !== 'function') return options.invalidListener()
+      listeners.add(listener)
+      let active = true
+      return () => {
+        if (!active) return
+        active = false
         listeners.delete(listener)
       }
     },
   }
 
-  return Object.freeze(channel)
+  const methods = new Map<PropertyKey, (...args: never[]) => unknown>()
+  const facadeTarget = {} as PicodashDiagnostics
+  const guardedMethod = (property: PropertyKey, value: (...args: never[]) => unknown) => {
+    const cached = methods.get(property)
+    if (cached) return cached
+    const method = (...args: never[]) => {
+      assertAlive()
+      return Reflect.apply(value, implementation, args)
+    }
+    methods.set(property, method)
+    return method
+  }
+  for (const property of Reflect.ownKeys(implementation))
+    Object.defineProperty(facadeTarget, property, {
+      enumerable: true,
+      configurable: true,
+      get: () => {
+        assertAlive()
+        const value = Reflect.get(implementation, property, implementation)
+        return typeof value === 'function'
+          ? guardedMethod(property, value as (...args: never[]) => unknown)
+          : value
+      },
+    })
+  Object.freeze(facadeTarget)
+  const facade: PicodashDiagnostics = new Proxy(facadeTarget, {
+    get(source, property, receiver) {
+      assertAlive()
+      return Reflect.get(source, property, receiver)
+    },
+    has(source, property) {
+      assertAlive()
+      return Reflect.has(source, property)
+    },
+    ownKeys(source) {
+      assertAlive()
+      return Reflect.ownKeys(source)
+    },
+    getOwnPropertyDescriptor(source, property) {
+      assertAlive()
+      return Reflect.getOwnPropertyDescriptor(source, property)
+    },
+    getPrototypeOf(source) {
+      assertAlive()
+      return Reflect.getPrototypeOf(source)
+    },
+    set(source, property, value, receiver) {
+      assertAlive()
+      return Reflect.set(source, property, value, receiver)
+    },
+    defineProperty(source, property, descriptor) {
+      assertAlive()
+      return Reflect.defineProperty(source, property, descriptor)
+    },
+    deleteProperty(source, property) {
+      assertAlive()
+      return Reflect.deleteProperty(source, property)
+    },
+    setPrototypeOf(source, prototype) {
+      assertAlive()
+      return Reflect.setPrototypeOf(source, prototype)
+    },
+    preventExtensions(source) {
+      assertAlive()
+      return Reflect.preventExtensions(source)
+    },
+    isExtensible(source) {
+      assertAlive()
+      return Reflect.isExtensible(source)
+    },
+  })
+
+  return {
+    facade,
+    dispatch,
+    attachResource(register) {
+      resourceRelease = register({ phase: 'kernel', teardown })
+    },
+  }
 }

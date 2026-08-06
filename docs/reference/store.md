@@ -546,7 +546,8 @@ sections; persistence `lastError` uses its specialization. The generic shape rep
 capability diagnostics without requiring a closed union.
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
+> Evidence: [diagnostics tests](../../packages/store/tests/diagnostics.test.ts) and [diagnostics type tests](../../packages/store/tests/diagnostics.types.test.ts) cover immutable snapshots, root-wide aggregation, recovery, privacy, reentrancy, and teardown.
 
 ## Optional capability namespaces
 
