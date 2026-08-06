@@ -261,11 +261,13 @@ Collapse and visibility are transient and never persisted.
 > Implementation: Partial
 > Evidence: `packages/dashpanel/src/placement/placement.test.ts` covers canonical placement
 > combinations, defaults, option normalization, finite coordinates, hostile records, and recursive
-> freezing. The root type exports are checked by `dashpanel.types.test.ts` and the package artifact
-> test.
-> Notes: This cut establishes vocabulary and pure normalization only. Boundary math, placement
-> policy, docking, occupancy, allocation, pointer input, persistence, and runtime placement remain
-> unimplemented.
+> freezing. `packages/dashpanel/src/placement/dock-policy.test.ts` covers canonical policy
+> resolution, provider inheritance, panel narrowing, disabled-position classification, and frozen
+> detached outputs. The root type exports are checked by `dashpanel.types.test.ts` and the package
+> artifact test.
+> Notes: This cut establishes vocabulary, pure normalization, and pure dock-position policy only.
+> Boundary math, docking, occupancy, allocation, pointer input, persistence, and runtime placement
+> remain unimplemented.
 
 Placement mode describes the permitted behavior model. Disposition describes the current settled
 result.
@@ -333,6 +335,14 @@ The integrated Picodash policy initially disables `full-top`, `center-top`, `ful
 Disabling a position is a host policy decision, not evidence that a stored layout is corrupt. A
 valid persisted target that is unavailable under current policy remains durable and dormant. The
 Panel uses its contained declared fallback without rewriting the record.
+
+The private dock-policy model resolves Provider and Panel position sets as frozen canonical-order
+arrays. Provider omission enables all canonical positions; an explicit empty array disables every
+dock target. Panel omission inherits the Provider maximum, while an explicit set may only narrow it;
+widening or unknown positions throw synchronously. Placement classification reports `available` for
+floating placements and permitted Hybrid snaps, or a frozen dormant result with status `dormant`,
+reason `position_disabled`, and the disabled target for a Fixed or Hybrid dock placement. It does
+not select fallbacks or materialize Store state.
 
 ## Dock occupancy and allocation
 
