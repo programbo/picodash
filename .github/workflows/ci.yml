@@ -112,6 +112,9 @@ jobs:
           run-install: |
             args: ['--frozen-lockfile']
 
+      - name: Build DashPanel foundations
+        run: bun run --filter @picodash/store build && bun run --filter @picodash/ui build
+
       - name: Check DashPanel alpha release
         run: bun run --filter @picodash/dashpanel release:check
 
