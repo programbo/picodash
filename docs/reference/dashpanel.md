@@ -231,6 +231,15 @@ state.
 
 ## Panel anatomy and visibility
 
+> Contract: Accepted
+> Implementation: Partial
+> Evidence: `packages/dashpanel/src/runtime/panel-runtime.test.ts` covers the private transient
+> visibility/collapse state model, activation ordering, policy updates, callback ordering, and
+> registration generations.
+> Notes: The model is not yet wired to the React shell. Retained children, DOM visibility/inert
+> behavior, controllers, triggers, launchers, close/remove actions, focus, and browser evidence
+> remain unimplemented.
+
 DashPanel renders a non-modal `aside` with a required title, generated accessible relationships,
 header actions, and a body for arbitrary children. Scope `id` never doubles as an HTML `id`; DOM
 identifiers are generated independently.
