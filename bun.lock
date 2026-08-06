@@ -214,6 +214,9 @@
     "packages/ui": {
       "name": "@picodash/ui",
       "version": "0.0.0",
+      "dependencies": {
+        "react-aria": "catalog:",
+      },
       "devDependencies": {
         "@types/node": "catalog:",
         "@types/react": "catalog:",
@@ -256,6 +259,7 @@
     "motion": "^12.42.2",
     "postcss": "^8.5.22",
     "react": "^19.2.8",
+    "react-aria": "^3.50.0",
     "react-aria-components": "^1.19.0",
     "react-dom": "^19.2.8",
     "react-dropzone": "^17.0.0",

@@ -29,6 +29,9 @@
     "release:check": "vp check && vp test && vp run build && bun run test:package && bun pm pack --dry-run",
     "prepublishOnly": "vp check && vp test && vp run build"
   },
+  "dependencies": {
+    "react-aria": "catalog:"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/react": "catalog:",

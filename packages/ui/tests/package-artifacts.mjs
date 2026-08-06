@@ -23,7 +23,7 @@ async function main() {
   assert.deepEqual(manifest.files, ['dist'])
   assert.deepEqual(manifest.sideEffects, ['**/*.css'])
   assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })
-  assert.equal(manifest.dependencies, undefined)
+  assert.deepEqual(manifest.dependencies, { 'react-aria': 'catalog:' })
 
   for (const file of ['dist/index.mjs', 'dist/index.d.mts', 'dist/style.css']) {
     assert.equal(await exists(path.join(packageRoot, file)), true, `missing ${file}`)
@@ -33,8 +33,10 @@ async function main() {
     `${pathToFileURL(path.join(packageRoot, 'dist/index.mjs')).href}?artifact-check`
   )
   assert.deepEqual(Object.keys(runtime).sort(), [
+    'PicodashOverlayProvider',
     'PicodashThemeProvider',
     'usePicodashDensity',
+    'usePicodashOverlayDefaults',
     'usePicodashTheme',
   ])
 
@@ -45,12 +47,12 @@ async function main() {
     'PicodashResolvedTheme',
     'PicodashDensity',
     'PicodashThemeProviderProps',
+    'PicodashOverlayProviderProps',
+    'PicodashOverlayDefaults',
   ]) {
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
   }
   for (const retired of [
-    'PicodashOverlayProvider',
-    'usePicodashOverlayDefaults',
     'PicodashThemeContextProvider',
     'resolvePicodashTheme',
     'readPicodashSystemTheme',

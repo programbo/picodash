@@ -66,7 +66,8 @@ token-consumption tables are implementation evidence rather than unresolved API 
 
 > Contract: Revised — portal containers are HTML elements
 >
-> Implementation: Planned
+> Implementation: Partial — theme and overlay Providers are implemented; the remaining shared UI
+> inventory is planned.
 
 The initial public components are exported from the `@picodash/ui` root. Every component exports a
 named `*Props` type. No dedicated component subpath is introduced for this inventory.
@@ -186,6 +187,11 @@ usePicodashOverlayDefaults(): Readonly<PicodashOverlayDefaults>
 
 `PicodashOverlayProvider` owns product-neutral defaults for detached UI primitives. It is a context
 boundary, not a theme carrier or Store boundary.
+
+The current implementation evidence is in
+[overlay-provider.test.tsx](../../packages/ui/tests/overlay-provider.test.tsx) and
+[overlay-provider.types.test.ts](../../packages/ui/tests/overlay-provider.types.test.ts). Real browser
+portal, focus, and detached-root seams remain to be verified.
 
 Portal containers are `HTMLElement` hosts rather than arbitrary `Element` values. This matches the
 shared React Aria portal-context boundary and every current Picodash host. Geometry boundaries
