@@ -7,7 +7,7 @@ by proving related invariants together and using E2E only for behavior that requ
 
 > Contract: Accepted
 > Implementation: Partial
-> Evidence: Store Phase 1 kernel tests and package artifact checks.
+> Evidence: Store alpha owning tests, release checks, and package artifact checks.
 
 An empty evidence cell means “not yet reconciled,” not “untested prototype.” Prototype tests may be
 linked only after their assertions are confirmed to prove the target behavior.
@@ -162,6 +162,9 @@ When a defect is found:
 ## Release gates
 
 ### Store alpha
+
+> Gate status: Verified for consumer dogfooding on 2026-08-06.
+> Evidence: The linked Store conformance rows and `bun run --filter @picodash/store release:check`.
 
 Required before consumer dogfooding:
 

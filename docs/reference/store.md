@@ -8,15 +8,14 @@ not claim that the prototype currently exports every API shown here.
 
 > Contract: Accepted target API
 > Implementation: Partial
-> Evidence: See the [conformance matrix](contract-conformance.md).
+> Evidence: Store alpha is verified for consumer dogfooding; see the [conformance matrix](contract-conformance.md).
 
-Store alpha requires the accepted scope-ID mapping, canonical root/scoped views, interaction
-snapshots, built-in metadata commands, scope/root destruction, subscriber-exception diagnostics,
-the Provider/entity/relationship integration leases, fail-closed external adapters, Store-owned
-persistence, and weak view lifecycle described here. Stale-draft permutations, persistence recovery
-plans, documents, migrations, binding leases, and broader runtime inspection may continue toward beta
-without changing these alpha signatures. This boundary does not advance any implementation or
-conformance status.
+The verified alpha slice includes the accepted scope-ID mapping, canonical root/scoped views, the
+stable empty interaction snapshot, built-in metadata commands, scope/root destruction,
+subscriber-exception diagnostics, Provider/entity/relationship integration leases, fail-closed
+external adapters, Store-owned persistence, and weak view lifecycle. The page remains Partial
+because populated binding interaction, contextual hooks, persistence recovery plans, documents,
+migrations, external-owned persistence, and broader runtime inspection remain beta work.
 
 ## Package surfaces
 

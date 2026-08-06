@@ -8,13 +8,15 @@ without requiring the application to replace its preferred state library.
 
 > Contract: Accepted target API
 >
-> Implementation: Partial
+> Implementation: Partial overall; Store alpha verified for consumer dogfooding
 
 Reconciling implementation evidence is tracked in [Store Reconciliation Ledger](./RECONCILIATION.md); these entries describe current branch transitions only and do not assign contract status.
 
-The target contract is complete enough to plan implementation, but the current package has not been
-reconciled with it. Existing per-Panel identity, actions-inside-state, presentation helpers, and
-Panel-specific document APIs are prototype behavior rather than compatibility requirements.
+The Store alpha release gate is verified through the public root, React, and integration entries.
+Core/scoped values, durable metadata, synchronous Store-owned persistence, the manual external
+adapter, explicit React selectors, diagnostics, and Provider/entity/relationship leases are ready
+for DashPanel and DashList dogfooding. Binding interaction state, contextual hooks, documents,
+migrations, advanced recovery, external-owned persistence, and runtime inspection remain beta work.
 
 ## Target package surfaces
 
