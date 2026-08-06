@@ -10,6 +10,8 @@ export type {
   RootSnapshot,
   ScopedSnapshot,
   InvalidScopeIdReason,
+  InvalidDestroyOptionsReason,
+  DestroyScopeOptions,
   StaleDraftConflict,
   BindingInteractionState,
   ItemInteractionState,

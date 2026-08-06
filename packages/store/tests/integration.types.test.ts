@@ -1,0 +1,70 @@
+import { describe, expectTypeOf, it } from 'vite-plus/test'
+import type {
+  EntityLease,
+  EntityLeaseOptions,
+  ProviderLease,
+  RelationshipLease,
+  StoreEntityKind,
+} from '../src/integration.ts'
+import {
+  acquireEntityLease,
+  acquireProviderLease,
+  acquireRelationshipLease,
+} from '../src/integration.ts'
+import {
+  createPicodashStore,
+  type DestroyScopeOptions,
+  type InvalidDestroyOptionsReason,
+} from '../src/index.ts'
+
+describe('Store integration types', () => {
+  it('keeps the public lease surface opaque and role-specific', () => {
+    expectTypeOf<StoreEntityKind>().toEqualTypeOf<'dashPanel' | 'dashList'>()
+    expectTypeOf<InvalidDestroyOptionsReason>().toEqualTypeOf<
+      | 'not-object'
+      | 'unknown-key'
+      | 'accessor-property'
+      | 'invalid-include-descendants'
+      | 'invalid-discard-unpersisted'
+    >()
+    expectTypeOf<DestroyScopeOptions>().toEqualTypeOf<{ readonly includeDescendants?: boolean }>()
+    expectTypeOf<ProviderLease>().toHaveProperty('release').toBeFunction()
+    expectTypeOf<EntityLease>().toHaveProperty('release').toBeFunction()
+    expectTypeOf<RelationshipLease>().toHaveProperty('release').toBeFunction()
+    expectTypeOf<EntityLeaseOptions>().toEqualTypeOf<
+      | { readonly kind: 'dashPanel'; readonly host: ProviderLease | EntityLease }
+      | { readonly kind: 'dashList'; readonly host?: ProviderLease | EntityLease }
+    >()
+  })
+
+  it('infers matching root/scoped generic stores and has no root integration reexports', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+    })
+    expectTypeOf(acquireProviderLease(store)).toEqualTypeOf<ProviderLease>()
+    expectTypeOf(
+      acquireEntityLease(store.scope('scope'), { kind: 'dashList' }),
+    ).toEqualTypeOf<EntityLease>()
+    expectTypeOf(acquireRelationshipLease).parameters.toEqualTypeOf<[EntityLease, EntityLease]>()
+    expectTypeOf(store).not.toHaveProperty('acquireProviderLease')
+    const scoped = store.scope('scope')
+    type RootDestroy = (scopeId: string, options?: DestroyScopeOptions) => unknown
+    type ScopedDestroy = (options?: DestroyScopeOptions) => unknown
+    expectTypeOf<typeof store.destroyScope>().toMatchTypeOf<RootDestroy>()
+    expectTypeOf<typeof scoped.destroyScope>().toMatchTypeOf<ScopedDestroy>()
+    const typeOnly = () => false
+    if (typeOnly()) {
+      // @ts-expect-error Provider leases require a root Store, not a scoped view.
+      acquireProviderLease(store.scope('scope'))
+      // @ts-expect-error Entity leases require a scoped Store, not a root Store.
+      acquireEntityLease(store, { kind: 'dashList' })
+      // @ts-expect-error DashPanel leases require a host.
+      acquireEntityLease(store.scope('scope'), { kind: 'dashPanel' })
+      // @ts-expect-error Relationship leases accept EntityLease values only.
+      acquireRelationshipLease({ release() {} } as ProviderLease, {} as EntityLease)
+      // @ts-expect-error Caller-created release objects are not nominal leases.
+      acquireRelationshipLease({ release() {} }, { release() {} })
+    }
+  })
+})

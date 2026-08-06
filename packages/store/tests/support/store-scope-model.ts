@@ -1,5 +1,5 @@
 import { clonePicodashValue, picodashJsonEqual } from '../../src/json.js'
-import type { PicodashJsonValue } from '../../src/types.js'
+import type { PicodashJsonValue } from '../../src/index.ts'
 
 export interface StoreScopeRelationshipLease {
   readonly leaseId: string

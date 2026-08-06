@@ -94,6 +94,31 @@ if (import.meta.main) {
   const reactModule = await import(
     `${pathToFileURL(path.join(packageRoot, 'dist/react.mjs')).href}?artifact-check`
   )
+  const integrationModule = await import(
+    `${pathToFileURL(path.join(packageRoot, 'dist/integration.mjs')).href}?artifact-check-integration`
+  )
+  assert.deepEqual(Object.keys(integrationModule).sort(), [
+    'acquireEntityLease',
+    'acquireProviderLease',
+    'acquireRelationshipLease',
+  ])
+  assert.equal('acquireProviderLease' in reactModule, false)
+  assert.equal('acquireEntityLease' in reactModule, false)
+  const rootModule = await import(
+    `${pathToFileURL(path.join(packageRoot, 'dist/index.mjs')).href}?artifact-check-root`
+  )
+  assert.deepEqual(Object.keys(rootModule).sort(), [
+    'PicodashContractError',
+    'PicodashTransactionError',
+    'createPicodashStore',
+  ])
+  for (const integrationExport of [
+    'acquireProviderLease',
+    'acquireEntityLease',
+    'acquireRelationshipLease',
+  ]) {
+    assert.equal(integrationExport in rootModule, false)
+  }
   assert.deepEqual(Object.keys(reactModule).sort(), ['shallowEqual', 'usePicodashStoreSelector'])
   for (const retired of [
     'usePicodashStateAdapter',

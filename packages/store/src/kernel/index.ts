@@ -1,6 +1,12 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { clonePicodashValue, picodashJsonEqual } from '../json.js'
 import {
+  classifyIdentity,
+  registerRuntimeController,
+  registerRuntimeScopedView,
+  runtimeControllerFor,
+} from '../runtime-controller.js'
+import {
   normalizeDashListMetadataRecord,
   normalizeDashPanelLayoutRecord,
   normalizeDurableScopeMetadata,
@@ -267,6 +273,17 @@ export type InvalidScopeIdReason =
   | 'surrounding-whitespace'
   | 'control-character'
 
+export type InvalidDestroyOptionsReason =
+  | 'not-object'
+  | 'unknown-key'
+  | 'accessor-property'
+  | 'invalid-include-descendants'
+  | 'invalid-discard-unpersisted'
+
+export type DestroyScopeOptions = {
+  readonly includeDescendants?: boolean
+}
+
 export type StaleDraftConflict = {
   readonly kind: 'stale-draft'
   readonly baseRevision: number
@@ -345,6 +362,7 @@ export interface RootStore<
   ): Extract<Result, { readonly ok: true }>
   setValues(values: Partial<ValuesOf<Fields>>): Result
   setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
+  destroyScope(scopeId: string, options?: DestroyScopeOptions): Result
 }
 
 export interface ScopedStore<
@@ -368,6 +386,7 @@ export interface ScopedStore<
   ): Extract<Result, { readonly ok: true }>
   setValues(values: Partial<ValuesOf<Fields>>): Result
   setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
+  destroyScope(options?: DestroyScopeOptions): Result
 }
 
 type ContractErrorCode =
@@ -377,6 +396,17 @@ type ContractErrorCode =
   | 'async-contract'
   | 'invalid-callback-result'
   | 'reentrant-write'
+  | 'invalid-destroy-options'
+  | 'invalid-provider-id'
+  | 'duplicate-provider'
+  | 'invalid-entity-options'
+  | 'invalid-integration-handle'
+  | 'duplicate-entity'
+  | 'scope-host-conflict'
+  | 'invalid-relationship'
+  | 'relationship-parent-conflict'
+  | 'relationship-cycle'
+  | 'lease-has-active-dependents'
 
 const BUILTIN_CODES = new Set<PicodashIssueCode>([
   'invalid_json',
@@ -1066,6 +1096,9 @@ export function createPicodashStore<
       if (!result.ok) throw result.error
       return result
     },
+    destroyScope(scopeId, options) {
+      return destroyScopeInternal(scopeId, options)
+    },
     setDashPanelLayout: (scopeId, layout) =>
       metadataCommand(scopeId, (previous) => ({
         ...previous,
@@ -1166,6 +1199,7 @@ export function createPicodashStore<
       ),
   }
   Object.freeze(store)
+  registerRuntimeController(store as object)
 
   function assertOwned(
     field: unknown,
@@ -1233,14 +1267,68 @@ export function createPicodashStore<
   }
 
   function validateScopeId(value: unknown): asserts value is string {
-    if (typeof value !== 'string')
-      throw new PicodashContractError('invalid-scope-id', { reason: 'not-string' })
-    if (value.trim().length === 0)
-      throw new PicodashContractError('invalid-scope-id', { reason: 'empty' })
-    if (value !== value.trim())
-      throw new PicodashContractError('invalid-scope-id', { reason: 'surrounding-whitespace' })
-    if (!isControlCharacterFree(value))
-      throw new PicodashContractError('invalid-scope-id', { reason: 'control-character' })
+    const reason = classifyIdentity(value)
+    if (reason) throw new PicodashContractError('invalid-scope-id', { reason })
+  }
+
+  function validateDestroyOptions(options: unknown): boolean {
+    if (options === undefined) return false
+    if (!options || typeof options !== 'object' || Array.isArray(options))
+      throw new PicodashContractError('invalid-destroy-options', { reason: 'not-object' })
+    let descriptors: Record<PropertyKey, PropertyDescriptor>
+    try {
+      descriptors = Object.getOwnPropertyDescriptors(options)
+      for (const key of Reflect.ownKeys(descriptors))
+        if (key !== 'includeDescendants')
+          throw new PicodashContractError('invalid-destroy-options', { reason: 'unknown-key' })
+      const descriptor = descriptors.includeDescendants
+      if (descriptor && !('value' in descriptor))
+        throw new PicodashContractError('invalid-destroy-options', { reason: 'accessor-property' })
+      if (descriptor && typeof descriptor.value !== 'boolean')
+        throw new PicodashContractError('invalid-destroy-options', {
+          reason: 'invalid-include-descendants',
+        })
+      return descriptor?.value === true
+    } catch (error) {
+      if (error instanceof PicodashContractError) throw error
+      throw new PicodashContractError('invalid-destroy-options', { reason: 'not-object' })
+    }
+  }
+
+  function destroyScopeInternal(
+    scopeId: string,
+    options?: DestroyScopeOptions,
+  ): CoreTransactionResult {
+    if (writing) throw new PicodashContractError('reentrant-write')
+    validateScopeId(scopeId)
+    const includeDescendants = validateDestroyOptions(options)
+    const targets = new Set<string>([scopeId])
+    if (includeDescendants) {
+      const controller = runtimeControllerFor(store as object)
+      for (const descendant of controller?.descendants(scopeId) ?? []) targets.add(descendant)
+    }
+    const changedScopeIds = [...targets].filter((id) => scopes.has(id)).sort()
+    if (!changedScopeIds.length) return successfulResult()
+    writing = true
+    try {
+      const nextEntries = [...scopes.entries()].filter(([id]) => !targets.has(id))
+      scopes = nextEntries.length ? immutableMap(nextEntries) : EmptyScopes
+      currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
+      const affectedChannels = new Set<ScopedChannel>()
+      for (const id of changedScopeIds)
+        for (const channel of collectScopedChannels(id)) affectedChannels.add(channel)
+      refreshScopedChannels(affectedChannels)
+      const result = successfulResult([], changedScopeIds)
+      for (const listener of listeners) {
+        try {
+          listener()
+        } catch {}
+      }
+      notifyScoped(affectedChannels)
+      return result
+    } finally {
+      writing = false
+    }
   }
 
   function makeScopedSnapshot(scopeId: string): ScopedSnapshot<ValuesOf<Fields>> {
@@ -1340,6 +1428,7 @@ export function createPicodashStore<
         if (!result.ok) throw result.error
         return result
       },
+      destroyScope: (options) => destroyScopeInternal(scopeId, options),
       setDashPanelLayout: (layout) => store.setDashPanelLayout(scopeId, layout),
       resetDashPanelLayout: () => store.resetDashPanelLayout(scopeId),
       setDashListRootOrder: (order) => store.setDashListRootOrder(scopeId, order),
@@ -1354,6 +1443,8 @@ export function createPicodashStore<
       resetDashListMetadata: () => store.resetDashListMetadata(scopeId),
     }
     Object.freeze(scoped)
+    const controller = runtimeControllerFor(store as object)
+    if (controller) registerRuntimeScopedView(scoped as object, controller, scopeId)
     scopedInternals.set(scoped, channel)
     scopedRefs.set(scopeId, new WeakRef(scoped))
     return scoped

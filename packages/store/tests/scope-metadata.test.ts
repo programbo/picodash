@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test'
 import { fc, test as property } from '@fast-check/vitest'
 import { createPicodashStore, PicodashContractError } from '../src/index.ts'
+import {
+  acquireEntityLease,
+  acquireProviderLease,
+  acquireRelationshipLease,
+} from '../src/integration.ts'
 
 const panel = {
   placement: { mode: 'floating', disposition: { kind: 'free' } },
@@ -8,6 +13,168 @@ const panel = {
 } as const
 
 describe('Store scoped views and metadata commands', () => {
+  it('destroys direct or active descendant metadata without changing values or leases', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+    })
+    const rootSnapshot = store.getState()
+    store.setDashListRootOrder('root', ['a'])
+    store.setDashListRootOrder('child', ['b'])
+    store.setDashListRootOrder('grandchild', ['c'])
+    const beforeValues = store.getState().values
+    expect(store.destroyScope('root')).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: ['root'],
+    })
+    expect(store.getState().scopes.has('child')).toBe(true)
+    expect(store.getState().values).toBe(beforeValues)
+    expect(store.scope('root').destroyScope({ includeDescendants: true })).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: [],
+    })
+    expect(store.getState().scopes.size).toBe(2)
+    expect(store.getState()).not.toBe(rootSnapshot)
+    expect(store.scope('root').destroyScope()).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: [],
+    })
+  })
+
+  it('validates destroy options atomically and does not invoke accessors', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+    })
+    store.setDashListRootOrder('keep', ['item'])
+    const before = store.getState()
+    for (const [hostile, reason] of [
+      [null, 'not-object'],
+      [[], 'not-object'],
+      [1, 'not-object'],
+      [() => 1, 'not-object'],
+      [{ extra: true }, 'unknown-key'],
+      [{ [Symbol('PRIVATE_SENTINEL')]: true }, 'unknown-key'],
+      [{ includeDescendants: 1 }, 'invalid-include-descendants'],
+    ] as const) {
+      try {
+        store.destroyScope('keep', hostile as never)
+        throw new Error('expected invalid options')
+      } catch (error) {
+        expect(error).toBeInstanceOf(PicodashContractError)
+        expect((error as PicodashContractError).code).toBe('invalid-destroy-options')
+        expect((error as PicodashContractError).context).toEqual({ reason })
+      }
+      expect(store.getState()).toBe(before)
+    }
+    let invoked = false
+    const accessor = Object.defineProperty({}, 'includeDescendants', {
+      get() {
+        invoked = true
+        return true
+      },
+    })
+    try {
+      store.destroyScope('keep', accessor as never)
+      throw new Error('expected accessor rejection')
+    } catch (error) {
+      expect((error as PicodashContractError).code).toBe('invalid-destroy-options')
+      expect((error as PicodashContractError).context).toEqual({ reason: 'accessor-property' })
+    }
+    expect(invoked).toBe(false)
+    expect(store.getState()).toBe(before)
+    try {
+      store.destroyScope(' bad ', { extra: true } as never)
+      throw new Error('expected invalid scope')
+    } catch (error) {
+      expect((error as PicodashContractError).code).toBe('invalid-scope-id')
+      expect((error as PicodashContractError).context).toEqual({ reason: 'surrounding-whitespace' })
+    }
+  })
+
+  it('refreshes affected snapshots before one callback and leaves unrelated scopes silent', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+    })
+    const first = store.scope('first')
+    const second = store.scope('second')
+    const unrelated = store.scope('unrelated')
+    store.setDashListRootOrder('first', ['a'])
+    store.setDashListRootOrder('second', ['b'])
+    const seen: string[] = []
+    store.subscribe(() => seen.push(`root:${store.getState().scopes.size}`))
+    first.subscribe(() => seen.push(`first:${first.getState().scope === undefined}`))
+    second.subscribe(() => seen.push(`second:${second.getState().scope === undefined}`))
+    unrelated.subscribe(() => seen.push('unrelated'))
+    expect(store.destroyScope('first')).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: ['first'],
+    })
+    expect(seen).toEqual(['root:1', 'first:true'])
+  })
+
+  it('keeps destruction committed and rejects reentrant destruction from listeners', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+    })
+    store.setDashListRootOrder('first', ['a'])
+    let reentrant: PicodashContractError | undefined
+    store.subscribe(() => {
+      try {
+        store.destroyScope('first')
+      } catch (error) {
+        reentrant = error as PicodashContractError
+      }
+    })
+    expect(store.destroyScope('first').ok).toBe(true)
+    expect(reentrant?.code).toBe('reentrant-write')
+    expect(store.getState().scopes.size).toBe(0)
+  })
+
+  it('refreshes every transitive affected scoped view before root/child callbacks', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+    })
+    for (const scopeId of ['a', 'b', 'c', 'unrelated'])
+      store.setDashListRootOrder(scopeId, [scopeId])
+    const provider = acquireProviderLease(store)
+    const entities = new Map<string, ReturnType<typeof acquireEntityLease>>()
+    for (const scopeId of ['a', 'b', 'c'])
+      entities.set(
+        scopeId,
+        acquireEntityLease(store.scope(scopeId), { kind: 'dashList', host: provider }),
+      )
+    const ab = acquireRelationshipLease(entities.get('a')!, entities.get('b')!)
+    const bc = acquireRelationshipLease(entities.get('b')!, entities.get('c')!)
+    const views = ['a', 'b', 'c', 'unrelated'].map((scopeId) => store.scope(scopeId))
+    const seen: string[] = []
+    store.subscribe(() => {
+      seen.push(`root:${views.map((view) => view.getState().scope === undefined).join(',')}`)
+    })
+    for (const view of views)
+      view.subscribe(() => seen.push(`${view.scopeId}:${view.getState().scope === undefined}`))
+    expect(store.destroyScope('a', { includeDescendants: true })).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: ['a', 'b', 'c'],
+    })
+    expect(seen[0]).toBe('root:true,true,true,false')
+    expect(seen.filter((entry) => entry.startsWith('a:'))).toHaveLength(1)
+    expect(seen.filter((entry) => entry.startsWith('b:'))).toHaveLength(1)
+    expect(seen.filter((entry) => entry.startsWith('c:'))).toHaveLength(1)
+    expect(seen.filter((entry) => entry.startsWith('unrelated:'))).toHaveLength(0)
+    bc.release()
+    ab.release()
+    for (const entity of entities.values()) entity.release()
+    provider.release()
+  })
   it('canonicalizes scopes and classifies invalid IDs without exposing values', () => {
     const store = createPicodashStore({
       valueOwner: 'store',

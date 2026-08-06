@@ -24,7 +24,7 @@ conformance status.
 | ----------------------------- | -------- | -------------- | ------------------------------------------- |
 | `@picodash/store`             | Accepted | Partial        | Framework-independent Store implementation  |
 | `@picodash/store/react`       | Accepted | Partial        | Explicit Store selector and equality helper |
-| `@picodash/store/integration` | Accepted | Planned        | Versioned context and declarative lease API |
+| `@picodash/store/integration` | Accepted | Verified       | Provider/entity/relationship lease API      |
 
 The root entry loads without React. React is an optional package peer and is required only when the
 `/react` or `/integration` entry is imported. The core bundle does not import React-specific Zustand
@@ -818,12 +818,12 @@ canonical value; dirty bindings become stale. Confirmation UX belongs to the app
 
 | Invariant                            | Contract | Implementation | Behavior                                      |
 | ------------------------------------ | -------- | -------------- | --------------------------------------------- |
-| `providerId` defaults to `default`   | Accepted | Planned        | Duplicate active ID on one root throws.       |
-| One entity of each kind per scope    | Accepted | Planned        | One DashPanel and one DashList may coexist.   |
-| One active host affinity per scope   | Accepted | Planned        | Provider/standalone host conflicts throw.     |
-| Declarative parent-child edge        | Accepted | Planned        | Exists only while its boundary lease is live. |
-| One active parent and no cycles      | Accepted | Planned        | Conflicting graph acquisition throws.         |
-| Provider is a hard ancestry boundary | Accepted | Planned        | No relationship crosses the boundary.         |
+| `providerId` defaults to `default`   | Accepted | Verified       | Duplicate active ID on one root throws.       |
+| One entity of each kind per scope    | Accepted | Verified       | One DashPanel and one DashList may coexist.   |
+| One active host affinity per scope   | Accepted | Verified       | Provider/standalone host conflicts throw.     |
+| Declarative parent-child edge        | Accepted | Verified       | Exists only while its boundary lease is live. |
+| One active parent and no cycles      | Accepted | Verified       | Conflicting graph acquisition throws.         |
+| Provider is a hard ancestry boundary | Accepted | Verified       | No relationship crosses the boundary.         |
 
 Manual `scope()` calls never register entities or relationships. Runtime leases are acquired only
 after committed declarative renders and release on lifecycle teardown. Durable scope metadata
@@ -904,6 +904,8 @@ scope; `true` traverses relationships active at operation time. The complete tar
 before mutation. Changed scope IDs include only targets whose state changed. Missing state is a
 successful no-op. Option validation uses the exact mapping above. Active components return to
 declarative defaults without persisting an empty record; a later durable operation may create one.
+
+> Implementation: Verified for the alpha slice — [scope metadata and destruction tests](../../packages/store/tests/scope-metadata.test.ts) and [integration traversal tests](../../packages/store/tests/integration.test.ts).
 
 Scoped prune-plan creation targets that view's DashList metadata; root creation requires `scopeId`.
 Plans are opaque, root-owned, single-use, and fingerprint both stored metadata and active nodes.
@@ -1522,7 +1524,7 @@ active descendant traversal. It never appears on a root, scoped view, snapshot, 
 envelope, or diagnostic.
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Verified — [integration runtime tests](../../packages/store/tests/integration.test.ts), [integration type tests](../../packages/store/tests/integration.types.test.ts), and [package artifact checks](../../packages/store/tests/package-artifacts.mjs).
 
 ### Active DashList orientation override
 
