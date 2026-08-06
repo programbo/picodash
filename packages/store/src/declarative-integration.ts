@@ -16,6 +16,7 @@ import {
   type RelationshipLease,
   type StoreEntityKind,
 } from './integration-leases.js'
+import { PicodashContractError } from './kernel/index.js'
 
 type FieldLike = {
   readonly defaultValue: PicodashJsonValue
@@ -43,6 +44,15 @@ export interface DeclarativeIntegrationHost<
   unmountProvider(): void
   mountEntity(input: DeclarativeEntityMount<Fields, Result>): void
   unmountEntity(token: DeclarativeEntityToken): void
+}
+
+/** Internal host used by an opted-in standalone DashList boundary. */
+export interface DeclarativeStandaloneIntegrationHost<
+  Fields extends Record<string, FieldLike> = Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> extends DeclarativeIntegrationHost<Fields, Result> {
+  mountRoot(input: DeclarativeEntityMount<Fields, Result> & { readonly parent?: never }): void
+  unmountRoot(token: DeclarativeEntityToken): void
 }
 
 type ActiveEntity = {
@@ -80,9 +90,34 @@ export function createDeclarativeIntegrationHost<
   rootStore: RootStore<Fields, Result>,
   providerId?: string,
 ): DeclarativeIntegrationHost<Fields, Result> {
+  return createDeclarativeHost(rootStore, providerId, false)
+}
+
+export function createDeclarativeStandaloneIntegrationHost<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult,
+>(rootStore: RootStore<Fields, Result>): DeclarativeStandaloneIntegrationHost<Fields, Result> {
+  return createDeclarativeHost(rootStore, undefined, true) as DeclarativeStandaloneIntegrationHost<
+    Fields,
+    Result
+  >
+}
+
+function createDeclarativeHost<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult,
+>(
+  rootStore: RootStore<Fields, Result>,
+  providerId: string | undefined,
+  standalone: boolean,
+):
+  | DeclarativeIntegrationHost<Fields, Result>
+  | DeclarativeStandaloneIntegrationHost<Fields, Result> {
   const declarations = new Map<DeclarativeEntityToken, DeclarativeEntityMount<Fields, Result>>()
   const active = new Map<DeclarativeEntityToken, ActiveEntity>()
   let provider: ProviderLease | undefined
+  let standaloneRoot: DeclarativeEntityToken | undefined
+  let standaloneMounted = false
 
   const releaseActive = (token: DeclarativeEntityToken): void => {
     const entry = active.get(token)
@@ -102,14 +137,31 @@ export function createDeclarativeIntegrationHost<
       if (!declarations.has(declaration.parent)) return false
       return active.has(declaration.parent)
     }
-    return provider !== undefined
+    return standalone
+      ? standaloneMounted && declaration.token === standaloneRoot
+      : provider !== undefined
   }
 
   const activate = (declaration: DeclarativeEntityMount): ActiveEntity => {
     const parent = declaration.parent ? active.get(declaration.parent) : undefined
     const host = parent?.lease ?? provider
     let lease: EntityLease
-    if (host) {
+    if (standalone && declaration.token === standaloneRoot) {
+      if (declaration.store.root !== rootStore)
+        throw new PicodashContractError('invalid-integration-handle', {
+          role: 'host',
+          reason: 'foreign-root',
+        })
+      lease = acquireEntityLease(
+        declaration.store as ScopedStore<Record<string, FieldLike>, CoreTransactionResult>,
+        { kind: 'dashList' },
+      )
+    } else if (host) {
+      if (standalone && parent?.declaration.kind === 'dashList' && declaration.kind === 'dashPanel')
+        throw new PicodashContractError('invalid-integration-handle', {
+          role: 'host',
+          reason: 'wrong-kind',
+        })
       const options: EntityLeaseOptions =
         declaration.kind === 'dashPanel' ? { kind: 'dashPanel', host } : { kind: 'dashList', host }
       lease = acquireEntityLease(
@@ -184,7 +236,7 @@ export function createDeclarativeIntegrationHost<
       if (declarations.has(input.token))
         throw new Error('Declarative entity token is already mounted.')
       declarations.set(input.token, input)
-      if (provider && (!input.parent || active.has(input.parent))) {
+      if ((provider || standaloneMounted) && (!input.parent || active.has(input.parent))) {
         try {
           activateReady()
         } catch (error) {
@@ -218,5 +270,43 @@ export function createDeclarativeIntegrationHost<
       for (const entry of subtree) declarations.delete(entry)
     },
   }
-  return host
+  if (!standalone) return host
+
+  // Standalone hosts never acquire Provider leases. Keep the inherited methods inert so this
+  // package-private extension cannot accidentally create a Provider generation.
+  host.mountProvider = () => {}
+  host.unmountProvider = () => {}
+
+  const standaloneHost = host as DeclarativeStandaloneIntegrationHost<Fields, Result>
+  standaloneHost.mountRoot = (input) => {
+    if (!isObjectToken(input.token))
+      throw new TypeError('Declarative entity tokens must be objects.')
+    if (input.kind !== 'dashList' || input.parent !== undefined)
+      throw new TypeError('Standalone roots must be parentless DashLists.')
+    if (standaloneRoot !== undefined && standaloneRoot !== input.token)
+      throw new Error('Declarative standalone root is already mounted.')
+    standaloneRoot = input.token
+    if (!declarations.has(input.token)) declarations.set(input.token, input)
+    if (standaloneMounted) return
+    standaloneMounted = true
+    try {
+      activateReady()
+    } catch (error) {
+      standaloneMounted = false
+      throw error
+    }
+  }
+  standaloneHost.unmountRoot = (token) => {
+    if (standaloneRoot !== token && !declarations.has(token) && !active.has(token)) return
+    const tokens = [...active.keys()].sort(
+      (left, right) => depthOf(right, declarations) - depthOf(left, declarations),
+    )
+    for (const entry of tokens) releaseActive(entry)
+    standaloneMounted = false
+    if (standaloneRoot === token) {
+      standaloneRoot = undefined
+      declarations.delete(token)
+    }
+  }
+  return standaloneHost
 }

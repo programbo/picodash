@@ -100,6 +100,18 @@ describe('Store integration types', () => {
       kind: 'dashList',
       children: null,
     }
+    const standaloneEntityProps: PicodashStoreEntityBoundaryProps = {
+      store: scoped,
+      kind: 'dashList',
+      allowStandalone: true,
+      children: null,
+    }
+    const explicitFalseEntityProps: PicodashStoreEntityBoundaryProps = {
+      store: scoped,
+      kind: 'dashList',
+      allowStandalone: false,
+      children: null,
+    }
     expectTypeOf(providerProps.store).toBeObject()
     expectTypeOf(entityProps.store).toBeObject()
     const typeOnly = () => false
@@ -115,8 +127,26 @@ describe('Store integration types', () => {
         kind: 'dashPanel',
         children: null,
       }
+      // @ts-expect-error Standalone opt-in is only valid for DashList boundaries.
+      const invalidPanelOptIn: PicodashStoreEntityBoundaryProps = {
+        store: scoped,
+        kind: 'dashPanel',
+        allowStandalone: true,
+        children: null,
+      }
+      const invalidRootStandalone: PicodashStoreEntityBoundaryProps = {
+        // @ts-expect-error Entity boundaries require a scoped Store.
+        store,
+        kind: 'dashList',
+        allowStandalone: true,
+        children: null,
+      }
       void invalidProvider
       void invalidEntity
+      void invalidPanelOptIn
+      void invalidRootStandalone
     }
+    void standaloneEntityProps
+    void explicitFalseEntityProps
   })
 })

@@ -61,6 +61,172 @@ describe('Store React boundaries and contextual hooks', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('opts a rootless DashList boundary into standalone hosting', () => {
+    const store = makeStore()
+    function Probe() {
+      const root = usePicodashRootStore()
+      const nearest = usePicodashStore()
+      const scope = usePicodashScope()
+      return createElement('output', null, `${root.kind}:${nearest.kind}:${scope.scopeId}`)
+    }
+    const renderer = render(
+      createElement(PicodashStoreEntityBoundary, {
+        store: store.scope('standalone'),
+        kind: 'dashList',
+        allowStandalone: true,
+        children: createElement(Probe),
+      }),
+    )
+    expect(renderer.toJSON()).toMatchObject({
+      type: 'output',
+      children: ['root:scoped:standalone'],
+    })
+    expect(() => store.destroy()).toThrow()
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('traverses standalone descendants and preserves the nearest scope', () => {
+    const store = makeStore()
+    let scopeId = ''
+    function Probe() {
+      scopeId = usePicodashScope().scopeId
+      return null
+    }
+    const renderer = render(
+      createElement(PicodashStoreEntityBoundary, {
+        store: store.scope('root'),
+        kind: 'dashList',
+        allowStandalone: true,
+        children: createElement(PicodashStoreEntityBoundary, {
+          store: store.scope('child'),
+          kind: 'dashList',
+          children: createElement(Probe),
+        }),
+      }),
+    )
+    expect(scopeId).toBe('child')
+    expect(() => store.destroy()).toThrow()
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rejects same-scope nested standalone entities exactly', () => {
+    const store = makeStore()
+    expectContract(
+      () =>
+        render(
+          createElement(PicodashStoreEntityBoundary, {
+            store: store.scope('same'),
+            kind: 'dashList',
+            allowStandalone: true,
+            children: createElement(PicodashStoreEntityBoundary, {
+              store: store.scope('same'),
+              kind: 'dashList',
+              children: null,
+            }),
+          }),
+        ),
+      'duplicate-entity',
+      { scopeId: 'same', entityKind: 'dashList' },
+    )
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('ignores standalone opt-in inside an inherited Provider host', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(PicodashStoreProviderBoundary, {
+        store,
+        children: createElement(PicodashStoreEntityBoundary, {
+          store: store.scope('provided'),
+          kind: 'dashList',
+          allowStandalone: true,
+          children: null,
+        }),
+      }),
+    )
+    expect(() => store.destroy()).toThrow()
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rejects standalone and Provider host conflicts without leaking leases', () => {
+    const store = makeStore()
+    const standalone = render(
+      createElement(PicodashStoreEntityBoundary, {
+        store: store.scope('shared'),
+        kind: 'dashList',
+        allowStandalone: true,
+        children: null,
+      }),
+    )
+    expectContract(
+      () =>
+        render(
+          createElement(PicodashStoreProviderBoundary, {
+            store,
+            providerId: 'conflict',
+            children: createElement(PicodashStoreEntityBoundary, {
+              store: store.scope('shared'),
+              kind: 'dashPanel',
+              children: null,
+            }),
+          }),
+        ),
+      'scope-host-conflict',
+      { scopeId: 'shared' },
+    )
+    void act(() => standalone.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rejects a direct DashPanel child under standalone DashList with exact context', () => {
+    const store = makeStore()
+    expectContract(
+      () =>
+        render(
+          createElement(PicodashStoreEntityBoundary, {
+            store: store.scope('root'),
+            kind: 'dashList',
+            allowStandalone: true,
+            children: createElement(PicodashStoreEntityBoundary, {
+              store: store.scope('panel'),
+              kind: 'dashPanel',
+              children: null,
+            }),
+          }),
+        ),
+      'invalid-integration-handle',
+      { role: 'host', reason: 'wrong-kind' },
+    )
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rolls back a foreign standalone root after commit', () => {
+    const first = makeStore()
+    const second = makeStore()
+    expectContract(
+      () =>
+        render(
+          createElement(PicodashStoreEntityBoundary, {
+            store: first.scope('root'),
+            kind: 'dashList',
+            allowStandalone: true,
+            children: createElement(PicodashStoreEntityBoundary, {
+              store: second.scope('foreign'),
+              kind: 'dashList',
+              children: null,
+            }),
+          }),
+        ),
+      'invalid-integration-handle',
+      { role: 'host', reason: 'foreign-root' },
+    )
+    expect(() => first.destroy()).not.toThrow()
+    expect(() => second.destroy()).not.toThrow()
+  })
+
   it('resolves an explicit scope without creating metadata or a relationship', () => {
     const store = makeStore()
     let resolvedScope = ''
@@ -238,6 +404,29 @@ describe('Store React boundaries and contextual hooks', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('survives Strict Mode replay for standalone parent and child boundaries', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(
+        StrictMode,
+        null,
+        createElement(PicodashStoreEntityBoundary, {
+          store: store.scope('strict-root'),
+          kind: 'dashList',
+          allowStandalone: true,
+          children: createElement(PicodashStoreEntityBoundary, {
+            store: store.scope('strict-child'),
+            kind: 'dashList',
+            children: null,
+          }),
+        }),
+      ),
+    )
+    expect(() => store.destroy()).toThrow()
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('does not acquire during server rendering', () => {
     const store = makeStore()
     const html = renderToStaticMarkup(
@@ -251,6 +440,20 @@ describe('Store React boundaries and contextual hooks', () => {
       }),
     )
     expect(html).toContain('<output>root:server</output>')
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('does not acquire standalone leases during server rendering', () => {
+    const store = makeStore()
+    const html = renderToStaticMarkup(
+      createElement(PicodashStoreEntityBoundary, {
+        store: store.scope('server-standalone'),
+        kind: 'dashList',
+        allowStandalone: true,
+        children: createElement(ServerProbe),
+      }),
+    )
+    expect(html).toContain('<output>root:server-standalone</output>')
     expect(() => store.destroy()).not.toThrow()
   })
 })

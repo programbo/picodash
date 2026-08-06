@@ -12,19 +12,19 @@ not claim that the prototype currently exports every API shown here.
 
 The verified alpha slice includes the accepted scope-ID mapping, canonical root/scoped views, the
 stable empty interaction snapshot, built-in metadata commands, scope/root destruction,
-subscriber-exception diagnostics, Provider/entity/relationship integration leases,
-Provider-hosted React boundaries, fail-closed external adapters, Store-owned persistence, and weak
-view lifecycle. The page remains Partial because populated binding interaction, persistence recovery
-plans, documents, migrations, external-owned persistence, standalone DashList hosting, and broader
-runtime inspection remain beta work.
+subscriber-exception diagnostics, Provider/entity/relationship integration leases, Provider-hosted
+and opted-in standalone React boundaries, fail-closed external adapters, Store-owned persistence,
+and weak view lifecycle. The page remains Partial because populated binding interaction, persistence
+recovery plans, documents, migrations, external-owned persistence, and broader runtime inspection
+remain beta work.
 
 ## Package surfaces
 
-| Surface                       | Contract | Implementation | Purpose                                                                                                                |
-| ----------------------------- | -------- | -------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `@picodash/store`             | Accepted | Partial        | Framework-independent Store implementation                                                                             |
-| `@picodash/store/react`       | Accepted | Verified       | Contextual Store hooks/selectors plus explicit selector and equality helpers                                           |
-| `@picodash/store/integration` | Accepted | Partial        | Provider/entity/relationship leases plus Provider-hosted React boundaries; standalone DashList hosting remains planned |
+| Surface                       | Contract | Implementation | Purpose                                                                                                    |
+| ----------------------------- | -------- | -------------- | ---------------------------------------------------------------------------------------------------------- |
+| `@picodash/store`             | Accepted | Partial        | Framework-independent Store implementation                                                                 |
+| `@picodash/store/react`       | Accepted | Verified       | Contextual Store hooks/selectors plus explicit selector and equality helpers                               |
+| `@picodash/store/integration` | Accepted | Partial        | Provider/entity/relationship leases plus Provider-hosted and opted-in standalone DashList React boundaries |
 
 The root entry loads without React. React is an optional package peer and is required only when the
 `/react` or `/integration` entry is imported. The core bundle does not import React-specific Zustand
@@ -1530,7 +1530,7 @@ active descendant traversal. It never appears on a root, scoped view, snapshot, 
 envelope, or diagnostic.
 
 > Contract: Accepted
-> Implementation: Partial — [integration runtime tests](../../packages/store/tests/integration.test.ts), [declarative integration tests](../../packages/store/tests/declarative-integration.test.ts), [integration React tests](../../packages/store/tests/integration-react.test.tsx), [integration type tests](../../packages/store/tests/integration.types.test.ts), and [package artifact checks](../../packages/store/tests/package-artifacts.mjs). Provider-hosted React boundaries are implemented; standalone DashList hosting remains planned.
+> Implementation: Partial — [integration runtime tests](../../packages/store/tests/integration.test.ts), [declarative integration tests](../../packages/store/tests/declarative-integration.test.ts), [integration React tests](../../packages/store/tests/integration-react.test.tsx), [integration type tests](../../packages/store/tests/integration.types.test.ts), and [package artifact checks](../../packages/store/tests/package-artifacts.mjs). Provider-hosted and opted-in standalone DashList boundaries are implemented; broader runtime inspection remains planned.
 
 ### Active DashList orientation override
 
@@ -1604,8 +1604,8 @@ DashList package.
 
 ## React boundaries and hooks
 
-The integration entry exposes two Provider-hosted React boundaries. They supply immutable context
-during render but acquire and release Store leases only from committed effects:
+The integration entry exposes a Provider boundary and one entity boundary. They supply immutable
+context during render but acquire and release Store leases only from committed effects:
 
 ```ts
 interface PicodashStoreProviderBoundaryProps<
@@ -1617,21 +1617,26 @@ interface PicodashStoreProviderBoundaryProps<
   providerId?: string
 }
 
-interface PicodashStoreEntityBoundaryProps<
+type PicodashStoreEntityBoundaryProps<
   Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions,
   Result extends CoreTransactionResult = CoreTransactionResult,
-> {
+> = Readonly<{
   children: ReactNode
   store: ScopedStore<Fields, Result>
-  kind: StoreEntityKind
-}
+}> &
+  ({ kind: 'dashPanel'; allowStandalone?: never } | { kind: 'dashList'; allowStandalone?: boolean })
 ```
 
-`PicodashStoreProviderBoundary` resets inherited root and scope ancestry. An entity boundary requires
-the nearest Provider-hosted integration context, supplies its scoped Store during render, and
-declares its entity only after commit. Standalone DashList hosting is intentionally excluded from
-this slice. Missing context throws `missing-store-context` with exactly `{ required: 'root-or-scoped' }`
-or `{ required: 'scoped' }`.
+`PicodashStoreProviderBoundary` resets inherited root and scope ancestry. An entity boundary always
+requires a scoped Store. With inherited context it uses the nearest host, regardless of
+`allowStandalone`; a different scope acquires the ordinary hosted relationship. Without context,
+an unopted boundary (or any DashPanel boundary) throws `missing-store-context` with exactly
+`{ required: 'root-or-scoped' }`. A rootless DashList opts into a private standalone host only when
+`allowStandalone: true`; `false` and omission preserve the missing-context error. The standalone
+host is constructed without leases, provides frozen root/scoped context during render, and mounts
+the root DashList plus queued descendants only after commit. It releases descendants deepest-first
+and leaves child declarations retryable if activation fails. A direct DashPanel child of the
+standalone host fails with `invalid-integration-handle` `{ role: 'host', reason: 'wrong-kind' }`.
 
 ## React hooks
 

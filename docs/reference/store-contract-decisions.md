@@ -1525,6 +1525,8 @@ current scoped view. Kind mismatches fail rather than inferring a projection.
 
 ### 15.1 Contextual Store hooks
 
+> Contract status: Revised 2026-08-06
+
 The target contextual API distinguishes possible results:
 
 ```ts
@@ -1539,6 +1541,29 @@ no Provider-hosted Store boundary exists, or `{ required: 'scoped' }` when a sco
 required but the nearest boundary supplies only a root. `usePicodashStore(scopeId)` resolves a view from
 the nearest root but does not create scope state, register an entity, or add a relationship.
 Only declarative product boundaries acquire leases.
+
+The Store integration entry's entity boundary requires a scoped Store and uses this discriminated
+configuration:
+
+```ts
+type PicodashStoreEntityBoundaryProps = Readonly<{
+  children: ReactNode
+  store: ScopedStore
+}> &
+  ({ kind: 'dashPanel'; allowStandalone?: never } | { kind: 'dashList'; allowStandalone?: boolean })
+```
+
+Inherited context always wins: `allowStandalone` is ignored when a boundary is rendered under a
+Provider or another entity boundary, and the nearest host and parent token are retained. Without
+context, omission or `false` preserves the exact `missing-store-context` `{ required:
+'root-or-scoped' }` error. Only literal `allowStandalone: true` on a rootless DashList creates a
+private standalone integration host. Store constructs that host without acquiring a lease, provides
+frozen root/scoped context synchronously, then mounts one root DashList and queued descendants in a
+committed effect. The host is package-private and never re-exported. Root activation is atomic:
+failures roll back relationships and entities deepest-first while leaving child declarations
+retryable. Cleanup is idempotent and releases relationships before entities. A DashPanel child
+directly under a standalone DashList host fails `invalid-integration-handle` with
+`{ role: 'host', reason: 'wrong-kind' }`; a nested Provider resets ancestry normally.
 
 ### 15.2 Selector hooks
 
@@ -1563,9 +1588,9 @@ responsibility described above.
 
 `@picodash/store` is framework-independent. `@picodash/store/react` owns public hooks and selectors.
 `@picodash/store/integration` is the versioned low-level composition surface used by DashPanel and
-DashList for context, Provider-hosted React boundaries, and lifecycle leases. The boundaries are
-low-level composition tools; ordinary applications do not need them. Standalone DashList hosting
-remains planned in this slice. The UI packages use compatible
+DashList for context, Provider-hosted and opted-in standalone React boundaries, and lifecycle
+leases. The boundaries are low-level composition tools; ordinary applications do not need them.
+The UI packages use compatible
 Store and React peer dependencies; global context bridges do not conceal duplicate or incompatible
 packages.
 
@@ -1582,7 +1607,8 @@ its generation-owned `BindingHandle` remain a later Store slice.
 
 The Store package does not add an application-facing global Provider or duplicate-package bridge.
 DashPanel, integrated Picodash, and standalone DashList remain the product-owned public context
-boundaries; the Store boundaries exist only as the low-level Provider-hosted composition seam.
+boundaries; the Store boundaries exist only as the low-level composition seam for their Provider and
+standalone hosts.
 
 ## 16. Diagnostics and trust
 

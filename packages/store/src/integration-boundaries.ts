@@ -16,10 +16,11 @@ import type {
 import {
   createDeclarativeEntityToken,
   createDeclarativeIntegrationHost,
+  createDeclarativeStandaloneIntegrationHost,
   type DeclarativeEntityToken,
   type DeclarativeIntegrationHost,
+  type DeclarativeStandaloneIntegrationHost,
 } from './declarative-integration.js'
-import type { StoreEntityKind } from './integration-leases.js'
 import {
   freezeStoreContext,
   missingStoreContext,
@@ -39,14 +40,17 @@ export interface PicodashStoreProviderBoundaryProps<
   readonly providerId?: string
 }
 
-export interface PicodashStoreEntityBoundaryProps<
+export type PicodashStoreEntityBoundaryProps<
   Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions,
   Result extends CoreTransactionResult = CoreTransactionResult,
-> {
+> = Readonly<{
   readonly children: ReactNode
   readonly store: ScopedStore<Fields, Result>
-  readonly kind: StoreEntityKind
-}
+}> &
+  (
+    | Readonly<{ readonly kind: 'dashPanel'; readonly allowStandalone?: never }>
+    | Readonly<{ readonly kind: 'dashList'; readonly allowStandalone?: boolean }>
+  )
 
 export function PicodashStoreProviderBoundary<
   Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions,
@@ -80,14 +84,38 @@ export function PicodashStoreProviderBoundary<
 export function PicodashStoreEntityBoundary<
   Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions,
   Result extends CoreTransactionResult = CoreTransactionResult,
->({ children, store, kind }: PicodashStoreEntityBoundaryProps<Fields, Result>): ReactElement {
+>({
+  children,
+  store,
+  kind,
+  allowStandalone,
+}: PicodashStoreEntityBoundaryProps<Fields, Result>): ReactElement {
   const parentContext = useContext(PicodashStoreContext)
-  if (!parentContext) return missingStoreContext('root-or-scoped')
+  const standaloneOptIn = !parentContext && kind === 'dashList' && allowStandalone === true
+  if (!parentContext && !standaloneOptIn) return missingStoreContext('root-or-scoped')
   const tokenRef = useRef<DeclarativeEntityToken | null>(null)
   if (tokenRef.current === null) tokenRef.current = createDeclarativeEntityToken()
   const token = tokenRef.current
-  const { host, parentToken } = parentContext
+  const standaloneHost = useMemo<DeclarativeStandaloneIntegrationHost | null>(
+    () =>
+      standaloneOptIn
+        ? (createDeclarativeStandaloneIntegrationHost(
+            store.root as unknown as RootStore<ContextFields, ContextResult>,
+          ) as unknown as DeclarativeStandaloneIntegrationHost)
+        : null,
+    [standaloneOptIn, store.root],
+  )
+  const host = parentContext?.host ?? standaloneHost!
+  const parentToken = parentContext ? parentContext.parentToken : token
   useEffect(() => {
+    if (standaloneHost) {
+      standaloneHost.mountRoot({
+        token,
+        store: store as unknown as ContextScopedStore,
+        kind: 'dashList',
+      })
+      return () => standaloneHost.unmountRoot(token)
+    }
     host.mountEntity({
       token,
       store: store as unknown as ContextScopedStore,
@@ -95,16 +123,16 @@ export function PicodashStoreEntityBoundary<
       ...(parentToken === null ? {} : { parent: parentToken }),
     })
     return () => host.unmountEntity(token)
-  }, [host, kind, parentToken, store, token])
+  }, [host, kind, parentToken, standaloneHost, store, token])
   const value = useMemo(
     () =>
       freezeStoreContext({
-        root: store.root as unknown as ContextRootStore,
+        root: (parentContext?.root ?? store.root) as unknown as ContextRootStore,
         store: store as unknown as ContextScopedStore,
         host,
         parentToken: token,
       }),
-    [host, store, token],
+    [host, parentContext?.root, parentToken, standaloneHost, store, token],
   )
   return createElement(PicodashStoreContext.Provider, { value }, children)
 }

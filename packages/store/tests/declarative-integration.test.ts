@@ -3,6 +3,7 @@ import { createPicodashStore, PicodashContractError } from '../src/index.ts'
 import {
   createDeclarativeEntityToken,
   createDeclarativeIntegrationHost,
+  createDeclarativeStandaloneIntegrationHost,
 } from '../src/declarative-integration.ts'
 import {
   acquireEntityLease,
@@ -16,17 +17,99 @@ const makeStore = () =>
     fields: { value: { defaultValue: 1 } },
   })
 
-const expectContract = (run: () => unknown, code: string) => {
+const expectContract = (run: () => unknown, code: string, context?: Record<string, string>) => {
   try {
     run()
     throw new Error('expected failure')
   } catch (error) {
     expect(error).toBeInstanceOf(PicodashContractError)
     expect((error as PicodashContractError).code).toBe(code)
+    if (context) expect((error as PicodashContractError).context).toEqual(context)
   }
 }
 
 describe('package-private declarative Store integration host', () => {
+  it('queues standalone descendants before root mount and activates parent-first', () => {
+    const store = makeStore()
+    const host = createDeclarativeStandaloneIntegrationHost(store)
+    const root = createDeclarativeEntityToken()
+    const child = createDeclarativeEntityToken()
+    host.mountEntity({ token: child, store: store.scope('child'), kind: 'dashList', parent: root })
+    host.mountRoot({ token: root, store: store.scope('root'), kind: 'dashList' })
+    expect(() => store.destroy()).toThrow()
+    host.unmountRoot(root)
+    host.unmountEntity(child)
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('creates a relationship for a different-scope standalone descendant', () => {
+    const store = makeStore()
+    const host = createDeclarativeStandaloneIntegrationHost(store)
+    const root = createDeclarativeEntityToken()
+    const child = createDeclarativeEntityToken()
+    host.mountEntity({ token: child, store: store.scope('child'), kind: 'dashList', parent: root })
+    host.mountRoot({ token: root, store: store.scope('root'), kind: 'dashList' })
+    host.unmountRoot(root)
+    host.unmountEntity(child)
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rejects a same-scope nested standalone DashList as a duplicate entity', () => {
+    const store = makeStore()
+    const host = createDeclarativeStandaloneIntegrationHost(store)
+    const root = createDeclarativeEntityToken()
+    const child = createDeclarativeEntityToken()
+    host.mountEntity({ token: child, store: store.scope('same'), kind: 'dashList', parent: root })
+    expectContract(
+      () => host.mountRoot({ token: root, store: store.scope('same'), kind: 'dashList' }),
+      'duplicate-entity',
+      { scopeId: 'same', entityKind: 'dashList' },
+    )
+    host.unmountRoot(root)
+    host.unmountEntity(child)
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rejects a direct DashPanel child of the standalone DashList host', () => {
+    const store = makeStore()
+    const host = createDeclarativeStandaloneIntegrationHost(store)
+    const root = createDeclarativeEntityToken()
+    const child = createDeclarativeEntityToken()
+    host.mountEntity({ token: child, store: store.scope('panel'), kind: 'dashPanel', parent: root })
+    expectContract(
+      () => host.mountRoot({ token: root, store: store.scope('root'), kind: 'dashList' }),
+      'invalid-integration-handle',
+      { role: 'host', reason: 'wrong-kind' },
+    )
+    host.unmountRoot(root)
+    host.unmountEntity(child)
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rolls back a failed standalone root activation and allows retry', () => {
+    const first = makeStore()
+    const second = makeStore()
+    const host = createDeclarativeStandaloneIntegrationHost(first)
+    const root = createDeclarativeEntityToken()
+    const child = createDeclarativeEntityToken()
+    host.mountEntity({
+      token: child,
+      store: second.scope('foreign'),
+      kind: 'dashList',
+      parent: root,
+    })
+    expectContract(
+      () => host.mountRoot({ token: root, store: first.scope('root'), kind: 'dashList' }),
+      'invalid-integration-handle',
+      { role: 'host', reason: 'foreign-root' },
+    )
+    host.unmountEntity(child)
+    host.mountRoot({ token: root, store: first.scope('root'), kind: 'dashList' })
+    host.unmountRoot(root)
+    expect(() => first.destroy()).not.toThrow()
+    expect(() => second.destroy()).not.toThrow()
+  })
+
   it('queues children before their parent and Provider, then activates parent-first', () => {
     const store = makeStore()
     const host = createDeclarativeIntegrationHost(store)

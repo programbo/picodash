@@ -123,6 +123,13 @@ if (import.meta.main) {
   assert.match(rootTypes, /PersistentTransactionResult/)
   assert.match(rootTypes, /PicodashPersistenceState/)
   assert.match(rootTypes, /adapter_initialization_failed/)
+  const integrationDeclaration = (await readdir(path.join(packageRoot, 'dist'))).find((name) =>
+    /^integration(?:-.*)?\.d\.mts$/.test(name),
+  )
+  assert.ok(integrationDeclaration)
+  const integrationTypes = await readText(path.join(packageRoot, 'dist', integrationDeclaration))
+  assert.match(integrationTypes, /allowStandalone\?: never/)
+  assert.match(integrationTypes, /allowStandalone\?: boolean/)
   const scopedMarker = rootTypes.includes('interface ScopedStoreBase')
     ? 'interface ScopedStoreBase'
     : 'interface ScopedStore'
@@ -187,6 +194,24 @@ if (import.meta.main) {
   )
   assert.equal(builtContextMarkup, '<output>same-root</output>')
   builtBoundaryStore.destroy()
+
+  const builtStandaloneStore = rootModule.createPicodashStore({
+    valueOwner: 'store',
+    fields: { value: { defaultValue: 1 } },
+  })
+  function BuiltStandaloneProbe() {
+    return createElement('output', null, reactModule.usePicodashScope().scopeId)
+  }
+  const builtStandaloneMarkup = renderToStaticMarkup(
+    createElement(integrationModule.PicodashStoreEntityBoundary, {
+      store: builtStandaloneStore.scope('artifact-standalone'),
+      kind: 'dashList',
+      allowStandalone: true,
+      children: createElement(BuiltStandaloneProbe),
+    }),
+  )
+  assert.equal(builtStandaloneMarkup, '<output>artifact-standalone</output>')
+  builtStandaloneStore.destroy()
 
   let externalValue = 1
   let releaseCalls = 0
