@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite-plus'
 
 const workspaceCwd = process.cwd().replaceAll('\\', '/')
-const tailwindEntryPoints =
-  workspaceCwd.endsWith('/packages/dashpanel') || workspaceCwd.endsWith('/packages/dashlist')
+const tailwindEntryPoints = workspaceCwd.endsWith('/packages/ui')
+  ? [{ files: '**', use: 'style.css' }]
+  : workspaceCwd.endsWith('/packages/dashpanel') || workspaceCwd.endsWith('/packages/dashlist')
     ? [{ files: '**', use: 'style.css' }]
     : workspaceCwd.endsWith('/apps/web')
       ? [{ files: '**', use: 'src/style.css' }]

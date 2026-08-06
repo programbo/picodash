@@ -36,6 +36,10 @@ async function main() {
     `${pathToFileURL(path.join(packageRoot, 'dist/index.mjs')).href}?artifact-check`
   )
   assert.deepEqual(Object.keys(runtime).sort(), [
+    'ActionMenu',
+    'ActionMenuItem',
+    'ActionMenuSeparator',
+    'ActionSubmenu',
     'AlertDialog',
     'AlertDialogAction',
     'AlertDialogCancel',
@@ -82,6 +86,12 @@ async function main() {
     'AlertDialogActionProps',
     'AlertDialogCancelProps',
     'AlertDialogSize',
+    'ActionMenuProps',
+    'ActionMenuItemProps',
+    'ActionMenuSeparatorProps',
+    'ActionSubmenuProps',
+    'ActionMenuConfirmation',
+    'ActionMenuItemVariant',
   ]) {
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
   }

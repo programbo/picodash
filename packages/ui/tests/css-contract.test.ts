@@ -137,4 +137,16 @@ describe('@picodash/ui stylesheet contract', () => {
       expect(css).toContain(`[data-slot='alert-dialog-${slot}']`)
     }
   })
+
+  it('defines the accepted ActionMenu structural slots without adding tokens', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    for (const slot of [
+      'action-menu',
+      'action-menu-item',
+      'action-submenu',
+      'action-menu-separator',
+    ]) {
+      expect(css).toContain(`[data-slot='${slot}']`)
+    }
+  })
 })

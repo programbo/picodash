@@ -355,3 +355,82 @@
 :where([data-slot='alert-dialog-footer'] > [data-slot='button']) {
   flex: 0 1 auto;
 }
+
+/* Product-neutral ActionMenu structure and recipes. */
+:where([data-slot='action-menu']) {
+  background: var(--picodash-color-surface-raised);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  box-shadow: var(--picodash-shadow-md);
+  color: var(--picodash-color-text);
+  display: grid;
+  min-inline-size: 12rem;
+  padding: var(--picodash-space-1);
+}
+
+:where([data-slot='action-menu-item']),
+:where([data-slot='action-submenu']) {
+  align-items: center;
+  border: 0;
+  color: var(--picodash-color-text);
+  cursor: default;
+  display: flex;
+  font-size: var(--picodash-font-size-md);
+  gap: var(--picodash-space-2);
+  min-block-size: var(--picodash-control-height-sm);
+  padding: var(--picodash-space-1) var(--picodash-space-2);
+  text-align: start;
+  width: 100%;
+}
+
+:where([data-slot='action-menu-item'][data-focused]),
+:where([data-slot='action-submenu'][data-focused]) {
+  background: var(--picodash-color-surface-muted);
+}
+
+:where([data-slot='action-menu-item'][data-variant='destructive']) {
+  color: var(--picodash-color-danger);
+}
+
+:where([data-slot='action-menu-item'][data-disabled]),
+:where([data-slot='action-submenu'][data-disabled]),
+:where([data-slot='action-menu-item'][aria-disabled='true']),
+:where([data-slot='action-submenu'][aria-disabled='true']) {
+  cursor: not-allowed;
+  opacity: var(--picodash-opacity-disabled);
+}
+
+:where(.picodash-action-menu-icon) {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  inline-size: var(--picodash-icon-sm);
+  justify-content: center;
+}
+
+:where(.picodash-action-menu-icon > svg),
+:where(.picodash-action-menu-trigger > svg) {
+  block-size: var(--picodash-icon-sm);
+  inline-size: var(--picodash-icon-sm);
+}
+
+:where(.picodash-action-menu-label) {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+:where(.picodash-action-submenu-indicator) {
+  block-size: var(--picodash-icon-xs);
+  flex: 0 0 auto;
+  inline-size: var(--picodash-icon-xs);
+}
+
+:where([data-slot='action-menu-separator']) {
+  background: var(--picodash-color-border);
+  border: 0;
+  block-size: var(--picodash-border-width-thin);
+  margin-block: var(--picodash-space-1);
+}
+
+:where(.picodash-action-menu-confirmation-trigger) {
+  display: none;
+}

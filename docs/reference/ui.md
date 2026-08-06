@@ -70,8 +70,8 @@ token-consumption tables are implementation evidence rather than unresolved API 
 
 > Contract: Revised — portal containers are HTML elements
 >
-> Implementation: Partial — theme and overlay Providers are implemented; the remaining shared UI
-> inventory is planned.
+> Implementation: Partial — theme and overlay Providers plus the initial ActionMenu family are
+> implemented; the remaining shared UI inventory is planned.
 
 The initial public components are exported from the `@picodash/ui` root. Every component exports a
 named `*Props` type. No dedicated component subpath is introduced for this inventory.
@@ -428,7 +428,11 @@ is also removed in favor of React Aria's overlay behavior.
 
 > Contract: Accepted
 >
-> Implementation: Planned
+> Implementation: Partial
+>
+> Evidence: [ActionMenu component tests](../../packages/ui/tests/action-menu.test.tsx), [ActionMenu
+> type tests](../../packages/ui/tests/action-menu.types.test.ts), and the [package artifact
+> checker](../../packages/ui/tests/package-artifacts.mjs).
 
 `ActionMenu` presents caller-supplied commands. It owns generic menu interaction and optional
 confirmation composition, but it does not discover product commands, interpret their results, or

@@ -1,4 +1,16 @@
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './button.tsx'
+export {
+  ActionMenu,
+  ActionMenuItem,
+  ActionMenuSeparator,
+  ActionSubmenu,
+  type ActionMenuConfirmation,
+  type ActionMenuItemProps,
+  type ActionMenuItemVariant,
+  type ActionMenuProps,
+  type ActionMenuSeparatorProps,
+  type ActionSubmenuProps,
+} from './action-menu.tsx'
 export { DashHeader, type DashHeaderProps, type DashHeaderSlots } from './dash-header.tsx'
 export {
   PicodashThemeProvider,
