@@ -92,6 +92,29 @@ jobs:
       - name: Check UI foundation release
         run: bun run --filter @picodash/ui release:check
 
+  dashpanel-alpha:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
+
+      - name: Check DashPanel alpha release
+        run: bun run --filter @picodash/dashpanel release:check
+
   evaluations:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 20
