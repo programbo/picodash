@@ -6,10 +6,12 @@ DashList. This page describes the aspirational `@picodash/picodash` facade and i
 ## Status
 
 > Contract: Accepted
-> Implementation: Prototype
-> Evidence: The facade, Provider, integration seams, catalog, publication surfaces, and supported
-> example inventory are accepted. The prototype has not been reconciled with them.
-> Notes: Picodash implementation follows stable Store, DashPanel, and DashList contracts.
+> Implementation: Partial
+> Evidence: The alpha facade publishes only the root and `/ui` entries, delegates Provider
+> behavior to the public DashPanel Provider, and has component, type, and package-artifact tests.
+> Ready-made Dashlets, catalogs, integrated menus, rail coordination, and executable examples remain
+> planned work.
+> Notes: This page separates the Partial alpha publication subset from the accepted final contract.
 
 ## Product purpose
 
@@ -73,7 +75,7 @@ explicitly compose `DashListActionItems` with the additional List's `scopeId`.
 ## Canonical names and integration boundary
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
 
 `PicodashProvider` is the only initially facade-owned React component. Components owned by a
 foundation retain one canonical public name everywhere:
@@ -87,9 +89,9 @@ renaming them. The prototype aliases `PicodashPanel`, `PicodashList`, `PicodashG
 `PicodashItem`, `Dashlist`, and `DashletGroup` are migration evidence and do not enter the target
 API.
 
-`PicodashProvider` composes the root Store context, `DashPanelProvider`, shared theme and overlay
-Providers, and Picodash-owned transient coordinators. It does not create a second canonical Store,
-Panel runtime, List registry, theme resolver, or persistence channel.
+The alpha `PicodashProvider` delegates the public `DashPanelProvider` with the same Store, theme,
+overlay, boundary, and density behavior. It does not create a second canonical Store, Panel runtime,
+List registry, theme resolver, persistence channel, or transient integration coordinator.
 
 Automatic integrated behavior uses narrow integration contracts owned by the affected foundation.
 For example, Picodash contributes DashList actions to default Panel menus through a DashPanel-owned
@@ -104,7 +106,7 @@ accepted.
 ## Provider contract
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
 
 `PicodashProvider` exposes the DashPanel Provider contract with Picodash's deliberate dock-policy
 restriction:
@@ -138,6 +140,10 @@ type PicodashProviderProps<TValues extends object, CustomTheme extends string = 
 The Provider supplies the unscoped root Store context. A `DashList` rendered directly within it
 therefore requires an explicit `id`; an id-less primary List resolves the scoped context supplied by
 its nearest `DashPanel`. `providerId` is host identity and never becomes a Store scope ID.
+
+The alpha implementation validates the eight permitted corner and left/right dock positions and
+rejects malformed values or the four top/bottom full/center positions before delegation. It does
+not yet acquire integrated action, rail, or other Picodash coordination leases.
 
 A nested Provider is a hard Store-ancestry and relationship boundary. Providers sharing one root
 must use distinct IDs, so two omitted IDs conflict as duplicate `default` hosts. A nested Provider
@@ -209,7 +215,7 @@ workflow, but a declarative relationship alone never grants that broader target 
 ## Ready-made Dashlets and catalogs
 
 > Contract: Accepted ownership, initial inventory, and export paths
-> Implementation: Prototype
+> Implementation: Planned
 
 DashList owns generic Store-bound ready-made Dashlets and their catalog metadata. Picodash may
 reexport stable DashList components and aggregate package-owned catalogs, but it does not maintain
@@ -244,7 +250,7 @@ component loader, prop-schema copy, or initial UI-foundation catalog.
 ## Theme integration
 
 > Contract: Accepted
-> Implementation: Prototype migration required
+> Implementation: Partial
 
 `@picodash/ui` is the sole theme and density authority. The axes remain separate:
 
@@ -257,10 +263,10 @@ density?: 'regular' | 'compact'
 recipes. `system` reacts to the platform color preference and resolves only to `light` or `dark`;
 custom theme names do not acquire implicit system variants.
 
-`@picodash/picodash/style.css` is the complete one-import facade stylesheet. Its published artifact
-contains the UI-owned light/dark and regular/compact recipes plus UI, DashPanel, DashList, Dashlet,
-and overlay structure, with every owning definition included exactly once. Picodash introduces no
-additional semantic token, theme resolver, or density recipe.
+The alpha `@picodash/picodash/style.css` is a three-import facade stylesheet that references the
+public UI, DashPanel, and DashList styles once each. The final expanded-CSS and exact-once artifact
+claim remains pending the owning foundation release gates. Picodash introduces no additional
+semantic token, theme resolver, or density recipe.
 
 Applications load custom theme CSS after the facade stylesheet. A named custom theme defines all 24
 shared color tokens and an appropriate CSS `color-scheme` under its
@@ -372,12 +378,12 @@ The reused primary-List workflow retains the accepted DashList requirements to:
 
 ## Package facade
 
-| Surface                        | Contract | Implementation | Notes                                   |
-| ------------------------------ | -------- | -------------- | --------------------------------------- |
-| `@picodash/picodash`           | Accepted | Prototype      | Common integrated exports.              |
-| `@picodash/picodash/ui`        | Accepted | Prototype      | Explicit reexports of stable shared UI. |
-| `@picodash/picodash/catalog`   | Accepted | Planned        | Aggregates package-owned catalogs.      |
-| `@picodash/picodash/style.css` | Accepted | Prototype      | Integrated structural/theme styles.     |
+| Surface                        | Contract | Implementation | Notes                                       |
+| ------------------------------ | -------- | -------------- | ------------------------------------------- |
+| `@picodash/picodash`           | Accepted | Partial        | Alpha root exports and Provider delegation. |
+| `@picodash/picodash/ui`        | Accepted | Partial        | Explicit reexports of stable shared UI.     |
+| `@picodash/picodash/catalog`   | Accepted | Planned        | Aggregates package-owned catalogs.          |
+| `@picodash/picodash/style.css` | Accepted | Partial        | Public UI, DashPanel, and DashList imports. |
 
 The root uses named reexports and exposes no `Picodash*` aliases for foundation-owned components.
 The facade does not fork their types or behavior. Its `/ui` entrypoint explicitly mirrors the

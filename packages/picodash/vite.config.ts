@@ -2,9 +2,9 @@ import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
   pack: {
-    entry: ['src/index.ts', 'src/dashlet.ts', 'src/ui.ts', 'src/advanced.ts', 'src/catalog.ts'],
+    entry: ['src/index.ts', 'src/ui.ts'],
     dts: { tsgo: true },
-    external: [/^@picodash\//],
+    external: ['react', 'react-dom', /^@picodash\//],
     exports: false,
     sourcemap: true,
   },
