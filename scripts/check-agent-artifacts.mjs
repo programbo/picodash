@@ -12,7 +12,6 @@ const artifactContracts = {
     '@picodash/picodash',
     '@picodash/store',
   ],
-  'packages/dashpanel/README.md': ['@picodash/dashpanel', '@picodash/store'],
   'SKILL.md': ['@picodash/dashpanel', '@picodash/dashlist', '@picodash/picodash'],
   'llms.txt': ['@picodash/dashpanel', '@picodash/dashlist', '@picodash/picodash'],
   'PRODUCT.md': ['AI coding agent', 'WCAG 2.2 Level AA'],
@@ -21,25 +20,11 @@ const artifactContracts = {
 
 const packageExportContracts = {
   'packages/store/package.json': ['.', './react', './integration', './package.json'],
+  'packages/ui/package.json': ['.', './package.json', './style.css'],
   'packages/theme/package.json': ['.', './style.css', './package.json'],
-  'packages/dashpanel/package.json': [
-    '.',
-    './advanced',
-    './catalog',
-    './package.json',
-    './style.css',
-    './ui',
-  ],
-  'packages/dashlist/package.json': ['.', './dashlet', './package.json', './style.css', './ui'],
-  'packages/picodash/package.json': [
-    '.',
-    './advanced',
-    './catalog',
-    './dashlet',
-    './package.json',
-    './style.css',
-    './ui',
-  ],
+  'packages/dashpanel/package.json': ['.', './package.json', './style.css'],
+  'packages/dashlist/package.json': ['.', './package.json', './style.css'],
+  'packages/picodash/package.json': ['.', './package.json', './style.css', './ui'],
 }
 
 const activePaths = [
@@ -49,6 +34,7 @@ const activePaths = [
   'apps/lab/package.json',
   'apps/lab/src',
   'packages/store',
+  'packages/ui',
   'packages/theme',
   'packages/dashpanel',
   'packages/dashlist',
