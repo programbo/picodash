@@ -1,0 +1,466 @@
+/* Shared semantic tokens owned by @picodash/ui. */
+:where([data-picodash-theme]) {
+  color-scheme: normal;
+  font-family: var(--picodash-font-family);
+
+  --picodash-space-0-5: 0.125rem;
+  --picodash-space-1: 0.25rem;
+  --picodash-space-1-5: 0.375rem;
+  --picodash-space-2: 0.5rem;
+  --picodash-space-2-5: 0.625rem;
+  --picodash-space-3: 0.75rem;
+  --picodash-space-4: 1rem;
+  --picodash-space-5: 1.25rem;
+
+  --picodash-font-family: inherit;
+  --picodash-font-size-xs: 0.5625rem;
+  --picodash-font-size-sm: 0.625rem;
+  --picodash-font-size-md: 0.6875rem;
+  --picodash-font-size-lg: 0.75rem;
+  --picodash-font-size-xl: 0.875rem;
+  --picodash-font-size-2xl: 1.25rem;
+  --picodash-font-size-3xl: 1.5rem;
+  --picodash-font-weight-light: 300;
+  --picodash-font-weight-normal: 400;
+  --picodash-font-weight-medium: 500;
+  --picodash-font-weight-semibold: 600;
+  --picodash-line-height-none: 1em;
+  --picodash-line-height-tight: 1.1em;
+  --picodash-line-height-normal: 1.25em;
+  --picodash-line-height-relaxed: 1.5em;
+  --picodash-letter-spacing-normal: 0;
+  --picodash-letter-spacing-wide: 0.025em;
+
+  --picodash-control-height-xs: 1.5rem;
+  --picodash-control-height-sm: 1.75rem;
+  --picodash-control-height-md: 2rem;
+  --picodash-control-height-lg: 2.25rem;
+  --picodash-icon-xs: 0.75rem;
+  --picodash-icon-sm: 0.875rem;
+  --picodash-icon-md: 1rem;
+  --picodash-icon-lg: 1.25rem;
+  --picodash-radius-control: 0;
+  --picodash-radius-surface: 0;
+  --picodash-border-width-thin: 1px;
+  --picodash-opacity-disabled: 0.5;
+  --picodash-opacity-disabled-soft: 0.45;
+  --picodash-opacity-muted: 0.7;
+  --picodash-opacity-subtle: 0.3;
+
+  --picodash-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --picodash-shadow-md: 0 4px 12px rgb(0 0 0 / 0.25);
+  --picodash-shadow-elevated: 0 25px 50px -12px rgb(0 0 0 / 0.3);
+  --picodash-shadow-inner: inset 0 2px 4px rgb(0 0 0 / 0.25);
+  --picodash-blur-surface: 12px;
+  --picodash-blur-overlay: 4px;
+
+  --picodash-duration-fast: 150ms;
+  --picodash-easing-out: cubic-bezier(0, 0, 0.2, 1);
+
+  --picodash-layer-raised: 10;
+  --picodash-layer-drag: 20;
+  --picodash-layer-tooltip: 50;
+  --picodash-layer-popover: 60;
+  --picodash-layer-menu: 70;
+  --picodash-layer-dialog: 80;
+
+  /* A custom recipe must define colors explicitly instead of inheriting a built-in palette. */
+  --picodash-color-canvas: initial;
+  --picodash-color-surface: initial;
+  --picodash-color-surface-raised: initial;
+  --picodash-color-surface-muted: initial;
+  --picodash-color-text: initial;
+  --picodash-color-text-strong: initial;
+  --picodash-color-text-muted: initial;
+  --picodash-color-border: initial;
+  --picodash-color-control-border: initial;
+  --picodash-color-well: initial;
+  --picodash-color-focus: initial;
+  --picodash-color-accent: initial;
+  --picodash-color-accent-text: initial;
+  --picodash-color-success: initial;
+  --picodash-color-info: initial;
+  --picodash-color-warning: initial;
+  --picodash-color-alert: initial;
+  --picodash-color-danger: initial;
+  --picodash-color-overlay: initial;
+  --picodash-color-data-1: initial;
+  --picodash-color-data-2: initial;
+  --picodash-color-data-3: initial;
+  --picodash-color-data-4: initial;
+  --picodash-color-data-5: initial;
+}
+
+:where([data-picodash-theme='dark']) {
+  color-scheme: dark;
+  --picodash-color-canvas: oklch(0.148 0.004 228.8);
+  --picodash-color-surface: oklch(0.218 0.008 223.9);
+  --picodash-color-surface-raised: oklch(0.218 0.008 223.9);
+  --picodash-color-surface-muted: oklch(0.275 0.011 216.9);
+  --picodash-color-text: oklch(0.987 0.002 197.1);
+  --picodash-color-text-strong: oklch(1 0 0);
+  --picodash-color-text-muted: oklch(0.723 0.014 214.4);
+  --picodash-color-border: oklch(1 0 0 / 10%);
+  --picodash-color-control-border: oklch(1 0 0 / 15%);
+  --picodash-color-well: color-mix(in oklab, var(--picodash-color-surface-muted) 30%, transparent);
+  --picodash-color-focus: oklch(0.56 0.021 213.5);
+  --picodash-color-accent: oklch(0.925 0.005 214.3);
+  --picodash-color-accent-text: oklch(0.218 0.008 223.9);
+  --picodash-color-success: oklch(0.765 0.177 163.223);
+  --picodash-color-info: oklch(0.746 0.16 232.661);
+  --picodash-color-warning: oklch(0.828 0.189 84.429);
+  --picodash-color-alert: oklch(0.75 0.183 55.934);
+  --picodash-color-danger: oklch(0.704 0.191 22.216);
+  --picodash-color-overlay: oklch(0 0 0 / 85%);
+  --picodash-color-data-1: oklch(0.74 0.16 220);
+  --picodash-color-data-2: oklch(0.76 0.16 155);
+  --picodash-color-data-3: oklch(0.82 0.17 88);
+  --picodash-color-data-4: oklch(0.74 0.17 325);
+  --picodash-color-data-5: oklch(0.76 0.17 42);
+}
+
+:where([data-picodash-theme='light']) {
+  color-scheme: light;
+  --picodash-color-canvas: oklch(0.963 0.002 197.1);
+  --picodash-color-surface: oklch(1 0 0);
+  --picodash-color-surface-raised: oklch(0.987 0.002 197.1);
+  --picodash-color-surface-muted: oklch(0.925 0.005 214.3);
+  --picodash-color-text: oklch(0.218 0.008 223.9);
+  --picodash-color-text-strong: oklch(0.148 0.004 228.8);
+  --picodash-color-text-muted: oklch(0.473 0.014 214.4);
+  --picodash-color-border: oklch(0.148 0.004 228.8 / 14%);
+  --picodash-color-control-border: oklch(0.148 0.004 228.8 / 20%);
+  --picodash-color-well: color-mix(in oklab, var(--picodash-color-surface-muted) 30%, transparent);
+  --picodash-color-focus: oklch(0.56 0.021 213.5);
+  --picodash-color-accent: oklch(0.218 0.008 223.9);
+  --picodash-color-accent-text: oklch(0.987 0.002 197.1);
+  --picodash-color-success: oklch(0.49 0.14 163.223);
+  --picodash-color-info: oklch(0.5 0.15 232.661);
+  --picodash-color-warning: oklch(0.58 0.16 84.429);
+  --picodash-color-alert: oklch(0.55 0.17 55.934);
+  --picodash-color-danger: oklch(0.55 0.19 22.216);
+  --picodash-color-overlay: oklch(0.148 0.004 228.8 / 55%);
+  --picodash-color-data-1: oklch(0.58 0.16 220);
+  --picodash-color-data-2: oklch(0.57 0.15 155);
+  --picodash-color-data-3: oklch(0.62 0.16 88);
+  --picodash-color-data-4: oklch(0.59 0.17 325);
+  --picodash-color-data-5: oklch(0.59 0.17 42);
+}
+
+/* Compact values are intentionally deferred to the first cohesive visual pass. */
+:where([data-picodash-density='regular']) {
+}
+
+:where([data-picodash-density='compact']) {
+}
+
+/* Product-neutral Button structure and recipes. */
+:where([data-slot='button']) {
+  align-items: center;
+  border: var(--picodash-border-width-thin) solid transparent;
+  border-radius: var(--picodash-radius-control);
+  display: inline-flex;
+  font-family: inherit;
+  font-weight: var(--picodash-font-weight-medium);
+  gap: var(--picodash-space-2);
+  justify-content: center;
+  line-height: var(--picodash-line-height-normal);
+  transition:
+    background-color var(--picodash-duration-fast) var(--picodash-easing-out),
+    border-color var(--picodash-duration-fast) var(--picodash-easing-out),
+    color var(--picodash-duration-fast) var(--picodash-easing-out),
+    opacity var(--picodash-duration-fast) var(--picodash-easing-out);
+  user-select: none;
+}
+
+:where([data-slot='button'][data-size='xs']) {
+  block-size: var(--picodash-control-height-xs);
+  font-size: var(--picodash-font-size-xs);
+  padding-inline: var(--picodash-space-1-5);
+}
+
+:where([data-slot='button'][data-size='sm']) {
+  block-size: var(--picodash-control-height-sm);
+  font-size: var(--picodash-font-size-sm);
+  padding-inline: var(--picodash-space-2);
+}
+
+:where([data-slot='button'][data-size='md']) {
+  block-size: var(--picodash-control-height-md);
+  font-size: var(--picodash-font-size-md);
+  padding-inline: var(--picodash-space-3);
+}
+
+:where([data-slot='button'][data-size='lg']) {
+  block-size: var(--picodash-control-height-lg);
+  font-size: var(--picodash-font-size-lg);
+  padding-inline: var(--picodash-space-4);
+}
+
+:where([data-slot='button'][data-icon-only]) {
+  aspect-ratio: 1;
+  padding-inline: 0;
+}
+
+:where([data-slot='button'][data-icon-only][data-size='xs']) {
+  inline-size: var(--picodash-control-height-xs);
+}
+
+:where([data-slot='button'][data-icon-only][data-size='sm']) {
+  inline-size: var(--picodash-control-height-sm);
+}
+
+:where([data-slot='button'][data-icon-only][data-size='md']) {
+  inline-size: var(--picodash-control-height-md);
+}
+
+:where([data-slot='button'][data-icon-only][data-size='lg']) {
+  inline-size: var(--picodash-control-height-lg);
+}
+
+:where([data-slot='button'][data-variant='primary']) {
+  background: var(--picodash-color-accent);
+  border-color: var(--picodash-color-accent);
+  color: var(--picodash-color-accent-text);
+}
+
+:where([data-slot='button'][data-variant='secondary']) {
+  background: var(--picodash-color-surface-muted);
+  border-color: var(--picodash-color-control-border);
+  color: var(--picodash-color-text-strong);
+}
+
+:where([data-slot='button'][data-variant='outline']) {
+  background: transparent;
+  border-color: var(--picodash-color-control-border);
+  color: var(--picodash-color-text-strong);
+}
+
+:where([data-slot='button'][data-variant='ghost']) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--picodash-color-text);
+}
+
+:where([data-slot='button'][data-variant='destructive']) {
+  background: var(--picodash-color-danger);
+  border-color: var(--picodash-color-danger);
+  color: var(--picodash-color-accent-text);
+}
+
+:where([data-slot='button'][data-focus-visible]) {
+  outline: var(--picodash-border-width-thin) solid var(--picodash-color-focus);
+  outline-offset: var(--picodash-border-width-thin);
+}
+
+:where([data-slot='button'][data-disabled]),
+:where([data-slot='button'][data-pending]),
+:where([data-slot='button'][aria-disabled='true']) {
+  cursor: not-allowed;
+  opacity: var(--picodash-opacity-disabled);
+}
+
+:where([data-slot='button'][data-pending]) {
+  cursor: wait;
+}
+
+/* Product-neutral DashHeader structure. */
+:where([data-slot='dash-header']) {
+  align-items: center;
+  display: flex;
+  gap: var(--picodash-space-2);
+}
+
+:where([data-slot='dash-header-leading']),
+:where([data-slot='dash-header-title']),
+:where([data-slot='dash-header-actions']),
+:where([data-slot='dash-header-trailing']) {
+  align-items: center;
+  display: inline-flex;
+}
+
+:where([data-slot='dash-header-title']) {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+/* Product-neutral AlertDialog structure and recipes. */
+:where([data-slot='alert-dialog-overlay']) {
+  align-items: center;
+  background: var(--picodash-color-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  overflow: auto;
+  padding: var(--picodash-space-4);
+  pointer-events: auto;
+  position: fixed;
+}
+
+:where([data-slot='alert-dialog-modal']) {
+  inline-size: min(100%, 32rem);
+  max-block-size: calc(100dvh - 2 * var(--picodash-space-4));
+  max-inline-size: 100%;
+  overflow: auto;
+}
+
+:where([data-slot='alert-dialog-content']) {
+  background: var(--picodash-color-surface-raised);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  box-shadow: var(--picodash-shadow-elevated);
+  color: var(--picodash-color-text);
+  display: grid;
+  gap: var(--picodash-space-4);
+  padding: var(--picodash-space-5);
+}
+
+:where([data-slot='alert-dialog-content'][data-size='sm']) {
+  inline-size: min(100%, 24rem);
+}
+
+:where([data-slot='alert-dialog-header']) {
+  display: grid;
+  gap: var(--picodash-space-2);
+}
+
+:where([data-slot='alert-dialog-media']) {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+:where([data-slot='alert-dialog-title']) {
+  color: var(--picodash-color-text-strong);
+  font-size: var(--picodash-font-size-xl);
+  font-weight: var(--picodash-font-weight-semibold);
+  line-height: var(--picodash-line-height-tight);
+  margin: 0;
+}
+
+:where([data-slot='alert-dialog-description']) {
+  color: var(--picodash-color-text-muted);
+  font-size: var(--picodash-font-size-md);
+  line-height: var(--picodash-line-height-relaxed);
+  margin: 0;
+}
+
+:where([data-slot='alert-dialog-footer']) {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--picodash-space-2);
+  justify-content: flex-end;
+}
+
+:where([data-slot='alert-dialog-footer'] > [data-slot='button']) {
+  flex: 0 1 auto;
+}
+
+/* Product-neutral ActionMenu structure and recipes. */
+:where([data-slot='action-menu']) {
+  background: var(--picodash-color-surface-raised);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  box-shadow: var(--picodash-shadow-md);
+  color: var(--picodash-color-text);
+  display: grid;
+  min-inline-size: 12rem;
+  padding: var(--picodash-space-1);
+}
+
+:where([data-slot='action-menu-item']),
+:where([data-slot='action-submenu']) {
+  align-items: center;
+  border: 0;
+  color: var(--picodash-color-text);
+  cursor: default;
+  display: flex;
+  font-size: var(--picodash-font-size-md);
+  gap: var(--picodash-space-2);
+  min-block-size: var(--picodash-control-height-sm);
+  padding: var(--picodash-space-1) var(--picodash-space-2);
+  text-align: start;
+  width: 100%;
+}
+
+:where([data-slot='action-menu-item'][data-focused]),
+:where([data-slot='action-submenu'][data-focused]) {
+  background: var(--picodash-color-surface-muted);
+}
+
+:where([data-slot='action-menu-item'][data-variant='destructive']) {
+  color: var(--picodash-color-danger);
+}
+
+:where([data-slot='action-menu-item'][data-disabled]),
+:where([data-slot='action-submenu'][data-disabled]),
+:where([data-slot='action-menu-item'][aria-disabled='true']),
+:where([data-slot='action-submenu'][aria-disabled='true']) {
+  cursor: not-allowed;
+  opacity: var(--picodash-opacity-disabled);
+}
+
+:where(.picodash-action-menu-icon) {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  inline-size: var(--picodash-icon-sm);
+  justify-content: center;
+}
+
+:where(.picodash-action-menu-icon > svg),
+:where(.picodash-action-menu-trigger > svg) {
+  block-size: var(--picodash-icon-sm);
+  inline-size: var(--picodash-icon-sm);
+}
+
+:where(.picodash-action-menu-label) {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+:where(.picodash-action-submenu-indicator) {
+  block-size: var(--picodash-icon-xs);
+  flex: 0 0 auto;
+  inline-size: var(--picodash-icon-xs);
+}
+
+:where([data-slot='action-menu-separator']) {
+  background: var(--picodash-color-border);
+  border: 0;
+  block-size: var(--picodash-border-width-thin);
+  margin-block: var(--picodash-space-1);
+}
+
+/* Product-neutral Tooltip structure and decorative arrow. */
+:where([data-slot='tooltip']) {
+  background: var(--picodash-color-surface-raised);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-radius: var(--picodash-radius-control);
+  box-shadow: var(--picodash-shadow-sm);
+  color: var(--picodash-color-text-strong);
+  font-size: var(--picodash-font-size-sm);
+  line-height: var(--picodash-line-height-normal);
+  max-inline-size: min(22rem, calc(100vw - 2 * var(--picodash-space-3)));
+  padding: var(--picodash-space-2) var(--picodash-space-2-5);
+}
+
+:where([data-slot='tooltip'] .picodash-tooltip-arrow) {
+  block-size: var(--picodash-space-2);
+  inline-size: var(--picodash-space-2);
+  pointer-events: none;
+}
+
+:where([data-slot='tooltip'] .picodash-tooltip-arrow)::after {
+  background: var(--picodash-color-surface-raised);
+  border-inline-end: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-block-end: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  content: '';
+  display: block;
+  block-size: var(--picodash-space-2);
+  inline-size: var(--picodash-space-2);
+  transform: rotate(45deg);
+}
+
+:where(.picodash-action-menu-confirmation-trigger) {
+  display: none;
+}

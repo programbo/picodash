@@ -1,0 +1,44 @@
+{
+  "name": "@picodash/dashlist",
+  "version": "0.0.0",
+  "description": "Standalone ordered and groupable React composition for Dashlets.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./style.css": "./dist/style.css",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check": "vp check",
+    "test": "vp test --passWithNoTests",
+    "test:package": "node tests/package-artifacts.mjs",
+    "release:check": "vp check && vp test && vp run build && bun run test:package && bun pm pack --dry-run"
+  },
+  "dependencies": {
+    "@picodash/store": "workspace:*",
+    "@picodash/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/react-test-renderer": "^19.1.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-test-renderer": "^19.2.0",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  }
+}

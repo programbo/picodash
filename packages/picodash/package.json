@@ -1,0 +1,51 @@
+{
+  "name": "@picodash/picodash",
+  "version": "0.0.0",
+  "description": "The Picodash facade for Store-backed DashPanel and DashList compositions.",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "style.css"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./ui": "./dist/ui.mjs",
+    "./style.css": "./style.css",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check": "vp check",
+    "test": "vp test --passWithNoTests",
+    "test:package": "node tests/package-artifacts.mjs",
+    "release:check": "vp check && vp test && vp run build && bun run test:package && bun pm pack --dry-run"
+  },
+  "dependencies": {
+    "@picodash/dashlist": "workspace:*",
+    "@picodash/dashpanel": "workspace:*",
+    "@picodash/store": "workspace:*",
+    "@picodash/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/react-test-renderer": "^19.1.0",
+    "jsdom": "catalog:",
+    "react": "catalog:",
+    "react-test-renderer": "^19.2.0",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  }
+}

@@ -2,8 +2,6 @@ import { defineConfig, devices } from '@playwright/test'
 
 const websitePort = servicePort('WEBSITE_PORT', '6033')
 const websiteURL = `http://127.0.0.1:${websitePort}`
-const labPort = servicePort('LAB_PORT', '6032')
-const labURL = `http://127.0.0.1:${labPort}`
 
 function servicePort(name: string, fallback: string) {
   const port = process.env[name] ?? fallback
@@ -20,20 +18,12 @@ export default defineConfig({
     baseURL: websiteURL,
     trace: 'retain-on-failure',
   },
-  webServer: [
-    {
-      command: `WEBSITE_PORT=${websitePort} bun run --filter @picodash/web dev`,
-      url: websiteURL,
-      reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
-    },
-    {
-      command: `LAB_PORT=${labPort} bun run --filter @picodash/lab dev`,
-      url: `${labURL}/lab/state`,
-      reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
-    },
-  ],
+  webServer: {
+    command: `WEBSITE_PORT=${websitePort} bun run --filter @picodash/web dev`,
+    url: websiteURL,
+    reuseExistingServer: !process.env.CI,
+    timeout: 60_000,
+  },
   projects: [
     {
       name: 'chromium',

@@ -1,7 +1,10 @@
 # Releasing Picodash
 
-The published package is `packages/panel`; the private workspace package at
-the repository root is not released.
+The current prototype publishable set is `@picodash/store`, `@picodash/theme`,
+`@picodash/dashpanel`, `@picodash/dashlist`, and `@picodash/picodash`. Before the first
+contract-led release, `@picodash/ui` replaces `@picodash/theme`; do not publish both as theme
+authorities or retain an alias unless a later compatibility decision explicitly requires it. The
+repository root remains private.
 
 ## Version policy
 
@@ -19,14 +22,13 @@ Picodash uses Semantic Versioning with a deliberate pre-1.0 policy:
 ## Release checklist
 
 1. Work from an up-to-date `main` checkout.
-2. Update `packages/panel/package.json` and the `Unreleased` section of
-   `CHANGELOG.md`.
+2. Update the relevant package manifest(s) and the `Unreleased` section of `CHANGELOG.md`.
 3. Run the full gate:
 
    ```bash
    bun run ready
    bun audit --audit-level=high
-   bun run --cwd packages/panel release:check
+   bun run release:check
    ```
 
 4. Move the entries from `Unreleased` into a versioned heading such as
@@ -45,6 +47,10 @@ Picodash uses Semantic Versioning with a deliberate pre-1.0 policy:
     token.
 11. Install the published package in a clean example project and verify the
     documented entrypoints and stylesheet import.
+12. Keep a single changelog cut for each release:
+    - add a date-stamped section like `## [0.1.0] - YYYY-MM-DD` above `Unreleased`;
+    - move curated `Unreleased` bullets into the new section;
+    - keep `## [Unreleased]` as the staging area for the next set of changes.
 
 The first release is deliberately manual so the package name, metadata,
 account ownership, and clean-install path can be verified. Automation can be

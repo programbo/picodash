@@ -37,10 +37,140 @@ jobs:
       - name: Audit high-severity vulnerabilities
         run: bun audit --audit-level=high
 
-      - name: Run lint, type-check, and unit tests
-        run: vp run @picodash/panel#build && vp check && vp run -r test
+      - name: Check release packages
+        run: bun run release:check
 
-  e2e:
+      - name: Check workspace and run unit tests
+        run: vp check && vp run -r test && vp run -r build
+
+      - name: Check documentation and agent artifacts
+        run: bun run artifacts:check
+
+  store-alpha:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
+
+      - name: Check Store alpha release
+        run: bun run --filter @picodash/store release:check
+
+  ui-foundation:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
+
+      - name: Check UI foundation release
+        run: bun run --filter @picodash/ui release:check
+
+  dashpanel-alpha:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
+
+      - name: Build DashPanel foundations
+        run: bun run --filter @picodash/store build && bun run --filter @picodash/ui build
+
+      - name: Check DashPanel alpha release
+        run: bun run --filter @picodash/dashpanel release:check
+
+  dashlist-alpha:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
+
+      - name: Build DashList foundations
+        run: bun run --filter @picodash/store build && bun run --filter @picodash/ui build
+
+      - name: Check DashList alpha release
+        run: bun run --filter @picodash/dashlist release:check
+
+  picodash-alpha:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
+
+      - name: Build Picodash foundations
+        run: bun run --filter @picodash/store build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashlist build
+
+      - name: Check Picodash alpha release
+        run: bun run --filter @picodash/picodash release:check
+
+  evaluations:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 20
 
@@ -60,20 +190,103 @@ jobs:
           run-install: |
             args: ['--frozen-lockfile']
 
+      - name: Validate evaluation manifests and clean seeds
+        run: bun run evaluations:check
+
+      - name: Build isolated Next.js and Vite seeds
+        run: bun run evaluations:build
+
+  web-e2e:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
+
+      - name: Build website
+        run: vp run @picodash/web#build
+
       - name: Install Chromium
         run: bun run --cwd apps/web playwright install --with-deps chromium
 
-      - name: Build and run E2E tests
-        run: >-
-          vp run @picodash/panel#build &&
-          vp run @picodash/web#build &&
-          bun run --filter @picodash/web test:e2e
+      - name: Run website Playwright tests
+        id: playwright
+        run: bun run test:e2e:web
 
       - name: Upload Playwright artifacts
-        if: failure()
+        if: ${{ failure() && steps.playwright.outcome == 'failure' && hashFiles('apps/web/test-results/**') != '' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: playwright-failures
+          name: website-playwright-failures
           path: |
             apps/web/test-results
           retention-days: 7
+
+  lab-e2e:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@250f29ce396baf5e8f24498e17c0dfdebabc26eb # v1
+        with:
+          cache: true
+          run-install: |
+            args: ['--frozen-lockfile']
+
+      - name: Build Contract Lab
+        run: vp run @picodash/lab#build
+
+      - name: Check Contract Lab test budget
+        run: bun run test:e2e:lab:cap
+
+      - name: Install Chromium
+        run: bun run --cwd apps/lab playwright install --with-deps chromium
+
+      - name: Run Contract Lab Playwright tests
+        id: playwright
+        run: bun run test:e2e:lab
+
+      - name: Upload Playwright artifacts
+        if: ${{ failure() && steps.playwright.outcome == 'failure' && hashFiles('apps/lab/test-results/**') != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: contract-lab-playwright-failures
+          path: |
+            apps/lab/test-results
+          retention-days: 7
+
+  e2e:
+    needs: [web-e2e, lab-e2e]
+    if: ${{ always() }}
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 5
+
+    steps:
+      - name: Report browser E2E results
+        run: |
+          echo "web-e2e=${{ needs.web-e2e.result }}"
+          echo "lab-e2e=${{ needs.lab-e2e.result }}"
+          test "${{ needs.web-e2e.result }}" = success
+          test "${{ needs.lab-e2e.result }}" = success

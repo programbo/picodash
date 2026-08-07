@@ -1,0 +1,68 @@
+:root {
+  color-scheme: dark;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  background: #090b12;
+  color: #f5f7ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.studio-shell {
+  min-height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.scene {
+  align-content: center;
+  min-height: 100vh;
+  padding: clamp(2rem, 8vw, 8rem);
+  transition: filter 160ms ease;
+}
+
+.scene p {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.scene h1 {
+  font-size: clamp(3rem, 10vw, 8rem);
+  line-height: 0.9;
+  margin: 0.25em 0;
+  max-width: 9ch;
+}
+
+.host-controls {
+  background: rgb(7 9 15 / 80%);
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 0.75rem;
+  display: grid;
+  gap: 0.75rem;
+  inset: 1rem auto auto 1rem;
+  padding: 1rem;
+  position: absolute;
+  width: min(20rem, calc(100vw - 2rem));
+}
+
+.host-controls label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene {
+    transition: none;
+  }
+}

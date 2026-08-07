@@ -1,0 +1,43 @@
+@import '@picodash/ui/style.css';
+
+.picodash-dashlist {
+  --picodash-dashlet-label-width: clamp(6rem, 30cqi, 10rem);
+  display: block;
+  min-inline-size: 0;
+}
+
+.picodash-dashlist-list,
+.picodash-dashgroup-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--picodash-space-2, 0.5rem);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.picodash-dashlist-group-item,
+.picodash-dashlist-item {
+  min-inline-size: 0;
+}
+
+[data-picodash-dashlet-shell] {
+  min-inline-size: 0;
+}
+
+[data-picodash-dashlet-label],
+[data-picodash-dashgroup-label] {
+  display: block;
+  max-inline-size: var(--picodash-dashlet-label-width);
+}
+
+[data-picodash-dashlet-content] {
+  min-inline-size: 0;
+}
+
+[data-picodash-dashlist] > [role='status'] {
+  block-size: 0;
+  inline-size: 0;
+  overflow: hidden;
+  position: absolute;
+}

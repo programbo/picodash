@@ -1,0 +1,20 @@
+@import '@picodash/ui/style.css';
+
+:where([data-picodash-theme]) {
+  --picodash-panel-width: min(20rem, calc(100dvw - 2rem));
+}
+
+.picodash-dashpanel {
+  box-sizing: border-box;
+  inline-size: var(--picodash-panel-width);
+  max-inline-size: 100%;
+}
+
+.picodash-dashpanel > [data-slot='dash-header'] {
+  display: flex;
+  align-items: center;
+}
+
+.picodash-dashpanel > [data-picodash-panel-body] {
+  min-inline-size: 0;
+}

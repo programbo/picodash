@@ -1,0 +1,87 @@
+:root {
+  color-scheme: light;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: #edf0ee;
+  color: #17201b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+.console-shell {
+  margin: 0 auto;
+  max-width: 68rem;
+  min-height: 100vh;
+  padding: clamp(1.5rem, 5vw, 5rem);
+}
+
+header {
+  align-items: end;
+  display: flex;
+  justify-content: space-between;
+}
+
+header p {
+  color: #52705d;
+}
+
+header h1 {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(2.75rem, 8vw, 6rem);
+  margin: 0;
+}
+
+header label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.feature-card {
+  background: #f9fbfa;
+  border: 1px solid #bec8c1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  margin-block: 4rem 1.5rem;
+}
+
+.feature-card div {
+  border: 1px solid #d9dfdb;
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.25rem;
+}
+
+.feature-card span {
+  color: #52705d;
+  font-size: 0.8rem;
+}
+
+.feature-card strong {
+  text-transform: capitalize;
+}
+
+.host-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+button,
+select {
+  background: white;
+  border: 1px solid #839589;
+  border-radius: 0.4rem;
+  color: inherit;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.8rem;
+}

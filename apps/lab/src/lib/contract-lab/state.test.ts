@@ -1,0 +1,77 @@
+import { expect, test } from 'vite-plus/test'
+import {
+  CONTRACT_LAB_PRESET_IDS,
+  CONTRACT_LAB_PRESETS,
+  contractLabActions,
+  contractLabReducer,
+  createInitialContractLabState,
+} from './index'
+
+test('defines exactly the six curated Contract Lab presets', () => {
+  expect(CONTRACT_LAB_PRESET_IDS).toEqual([
+    'placement',
+    'interaction',
+    'composition',
+    'overlays',
+    'documents',
+    'themes',
+  ])
+  expect(CONTRACT_LAB_PRESETS.map(({ id }) => id)).toEqual(CONTRACT_LAB_PRESET_IDS)
+  expect(CONTRACT_LAB_PRESETS.map(({ implementation }) => implementation)).toEqual([
+    'Planned',
+    'Partial',
+    'Partial',
+    'Partial',
+    'Planned',
+    'Partial',
+  ])
+  expect(CONTRACT_LAB_PRESETS.map(({ description }) => description)).toEqual([
+    'Browser placement, docking, snapping, dragging, and persisted layout remain planned.',
+    'Panel collapse is available; visibility, close/reopen, focus restoration, activation, and reordering remain planned.',
+    'Named Dashlets and one-level DashGroups render against a Store scope; bindings, ordering, collapse, and ready-made Dashlets remain planned.',
+    'Shared UI AlertDialog behavior is available; Panel/List portal coordination and stacked overlay journeys remain planned.',
+    'Store documents and DashList import, export, repair, and reset actions remain planned.',
+    'Theme and density Providers are available; detached portal carriers and complete compact geometry remain planned.',
+  ])
+})
+
+test('loads a preset through a deterministic reducer transition', () => {
+  const initialState = createInitialContractLabState()
+  const nextState = contractLabReducer(initialState, contractLabActions.loadPreset('documents'))
+
+  expect(nextState).toEqual({
+    activePreset: 'documents',
+    lastOperation: 'load-preset',
+    specimenRevision: 1,
+  })
+  expect(initialState).toEqual({
+    activePreset: 'placement',
+    lastOperation: 'initialize',
+    specimenRevision: 0,
+  })
+})
+
+test('reset returns to placement and advances the specimen revision', () => {
+  const documentsState = contractLabReducer(
+    createInitialContractLabState(),
+    contractLabActions.loadPreset('documents'),
+  )
+
+  expect(contractLabReducer(documentsState, contractLabActions.reset())).toEqual({
+    activePreset: 'placement',
+    lastOperation: 'reset',
+    specimenRevision: 2,
+  })
+})
+
+test('rejects an unknown preset without changing the current state', () => {
+  const state = createInitialContractLabState()
+
+  expect(() =>
+    contractLabReducer(state, {
+      preset: 'unknown',
+      type: 'preset/load',
+    }),
+  ).toThrowError('Unknown Picodash Contract Lab preset: "unknown"')
+  expect(state).toEqual(createInitialContractLabState())
+})

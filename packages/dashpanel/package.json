@@ -1,0 +1,43 @@
+{
+  "name": "@picodash/dashpanel",
+  "version": "0.0.0",
+  "description": "A standalone React panel shell for arbitrary application content.",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json",
+    "./style.css": "./dist/style.css"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check": "vp check",
+    "test": "vp test --passWithNoTests",
+    "test:package": "node tests/package-artifacts.mjs",
+    "release:check": "vp check && vp test && vp run build && bun run test:package && bun pm pack --dry-run"
+  },
+  "dependencies": {
+    "@picodash/store": "workspace:*",
+    "@picodash/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/react-test-renderer": "^19.1.0",
+    "react": "catalog:",
+    "react-test-renderer": "^19.2.0",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  }
+}

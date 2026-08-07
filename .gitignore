@@ -31,3 +31,6 @@ dist-ssr
 .env*
 .worktree-ports
 .worktree-ports.lock
+
+# AI agent screenshots
+.screenshots-*
