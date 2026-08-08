@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
 
 const consoleErrors = new WeakMap<Page, string[]>()
 
@@ -123,4 +126,75 @@ test('opens, cancels, and restores focus for the landed shared AlertDialog', asy
   await dialog.getByRole('button', { name: 'Cancel' }).click()
   await expect(dialog).toHaveCount(0)
   await expect(trigger).toBeFocused()
+})
+
+test('connects the real browser specimen through the dev bridge and rejects the retired generation', async ({
+  page,
+}) => {
+  await openLab(page)
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem('picodash-dev-bridge-tab')))
+    .toEqual(expect.any(String))
+  const browserTabId = await page.evaluate(() =>
+    window.sessionStorage.getItem('picodash-dev-bridge-tab'),
+  )
+  const credential = JSON.parse(
+    await readFile(resolve(process.cwd(), '../../.picodash/dev-bridge.json'), 'utf8'),
+  ) as { url: string; token: string }
+  const client = createPicodashDevBridgeClient({ baseUrl: credential.url, token: credential.token })
+  const matches = (items: Awaited<ReturnType<typeof client.listSessions>>) =>
+    items.find(
+      (item) =>
+        item.registrationId === 'contract-lab-specimen' && item.browserTabId === browserTabId,
+    )
+  await expect.poll(async () => matches(await client.listSessions())).toBeTruthy()
+  const initial = matches(await client.listSessions())!
+  const initialSnapshot = await client.inspect(initial)
+  expect(initialSnapshot.snapshot.values?.specimenMetric).toBe(24)
+  const write = await client.setValues(initial, {
+    type: 'set_values',
+    requestId: 'lab-set-42',
+    values: { specimenMetric: 42 },
+  })
+  expect(write.type).toBe('command_result')
+  await expect(page.locator('[data-contract-lab-static-value]')).toHaveText('42')
+  await expect
+    .poll(async () =>
+      (await client.listSessions()).find((item) => item.sessionId === initial.sessionId),
+    )
+    .toBeTruthy()
+  const current = (await client.listSessions()).find(
+    (item) => item.sessionId === initial.sessionId,
+  )!
+  const wait = await client.wait(current, {
+    type: 'wait',
+    requestId: 'lab-wait-42',
+    timeoutMs: 1000,
+    condition: { type: 'value_equals', field: 'specimenMetric', value: 42 },
+  })
+  expect(wait.type).toBe('wait_result')
+  expect((wait as { outcome: string }).outcome).toBe('satisfied')
+
+  await page.reload()
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  await expect
+    .poll(
+      async () =>
+        matches(await client.listSessions())?.sessionId === initial.sessionId &&
+        matches(await client.listSessions())!.generation > initial.generation,
+    )
+    .toBeTruthy()
+  const next = matches(await client.listSessions())!
+  expect(next.sessionId).toBe(initial.sessionId)
+  expect(next.generation).toBeGreaterThan(initial.generation)
+  const old = await client.setValues(initial, {
+    type: 'set_values',
+    requestId: 'lab-old-generation',
+    values: { specimenMetric: 43 },
+  })
+  expect(old.type).toBe('bridge_error')
+  expect(['generation_mismatch', 'session_not_found']).toContain(
+    (old as { error: { code: string } }).error.code,
+  )
+  await expect(page.locator('[data-contract-lab-static-value]')).toHaveText('24')
 })
