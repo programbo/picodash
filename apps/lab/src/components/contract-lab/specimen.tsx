@@ -2,6 +2,7 @@
 
 import { useMemo, type RefObject } from 'react'
 import { createPicodashStore } from '@picodash/store'
+import { usePicodashStoreSelector } from '@picodash/store/react'
 import { DashGroup, DashList, DashPanel, Dashlet, PicodashProvider } from '@picodash/picodash'
 import {
   AlertDialog,
@@ -15,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from '@picodash/picodash/ui'
 import type { ContractLabPreset } from '@lab/lib/contract-lab'
+import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
 
 export interface ContractLabSpecimenProps {
   readonly boundary: RefObject<HTMLElement | null>
@@ -27,10 +29,18 @@ export function ContractLabSpecimen({
   onCollapsedChange,
   preset,
 }: ContractLabSpecimenProps) {
-  const store = useMemo(() => createPicodashStore({ valueOwner: 'store', fields: {} }), [])
+  const store = useMemo(
+    () =>
+      createPicodashStore({
+        valueOwner: 'store',
+        fields: { specimenMetric: { defaultValue: 24 } },
+      }),
+    [],
+  )
 
   return (
     <PicodashProvider store={store} boundary={boundary} theme="dark">
+      <ContractLabDevBridgeConnector store={store} />
       <DashPanel
         id="contract-lab-specimen-panel"
         title="Primary Panel"
@@ -47,9 +57,7 @@ export function ContractLabSpecimen({
           </Dashlet>
           <DashGroup id="specimen-group" label="Static DashGroup">
             <Dashlet id="specimen-metric" label="Static metric">
-              <span className="text-2xl font-semibold" data-contract-lab-static-value>
-                24
-              </span>
+              <SpecimenMetric store={store} />
             </Dashlet>
             <Dashlet id="specimen-alert" label="Shared AlertDialog">
               <AlertDialog>
@@ -75,5 +83,14 @@ export function ContractLabSpecimen({
         </DashList>
       </DashPanel>
     </PicodashProvider>
+  )
+}
+
+function SpecimenMetric({ store }: { readonly store: ReturnType<typeof createPicodashStore> }) {
+  const value = usePicodashStoreSelector(store, (state) => state.values.specimenMetric)
+  return (
+    <span className="text-2xl font-semibold" data-contract-lab-static-value>
+      {typeof value === 'number' ? value : JSON.stringify(value)}
+    </span>
   )
 }
