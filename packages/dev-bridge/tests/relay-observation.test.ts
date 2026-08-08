@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vite-plus/test'
+import { request } from 'node:http'
 import WebSocket from 'ws'
 import { createPicodashDevBridgeClient } from '../src/client.js'
 import { startPicodashDevBridgeRelay } from '../src/relay.js'
@@ -256,6 +257,39 @@ describe('dev bridge relay observation and command lifecycle', () => {
       await expect(send(body.type === 'wait' ? 'wait' : 'commands', body)).resolves.toMatchObject({
         status: 400,
       })
+  })
+
+  test('terminates an oversized HTTP body before the client finishes sending it', async () => {
+    const { relay, session, client } = await connected()
+    const url = new URL(
+      `/v1/sessions/${session.sessionId}/generations/${session.generation}/commands`,
+      relay.baseUrl,
+    )
+    const outcome = await new Promise<'closed' | number>((resolve, reject) => {
+      const req = request(
+        url,
+        {
+          method: 'POST',
+          headers: {
+            authorization: `Bearer ${relay.agentCredential.token}`,
+            'content-type': 'application/json',
+          },
+        },
+        (response) => resolve(response.statusCode ?? 0),
+      )
+      const timer = setTimeout(() => {
+        req.destroy()
+        reject(new Error('Relay kept reading an oversized request.'))
+      }, 1000)
+      req.once('error', () => resolve('closed'))
+      req.once('close', () => clearTimeout(timer))
+      req.write('{"padding":"')
+      req.write('x'.repeat(1024 * 1024))
+      req.write('x')
+    })
+
+    expect(['closed', 400]).toContain(outcome)
+    await expect(client.listSessions()).resolves.toHaveLength(1)
   })
 
   test('value waits compare canonical JSON independent of object key order', async () => {

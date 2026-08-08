@@ -79,6 +79,13 @@ export function makeSnapshot(
   }
 }
 
+export function snapshotsEqual(
+  left: PicodashDevBridgeSnapshot,
+  right: PicodashDevBridgeSnapshot,
+): boolean {
+  return canonicalJson(left) === canonicalJson(right)
+}
+
 function metadataToJson(value: unknown): unknown {
   if (value instanceof Map || value instanceof Set || isReadonlyMapLike(value)) {
     return [...(value as Map<unknown, unknown>).entries()].map(([key, item]) => [
@@ -129,6 +136,22 @@ export function snapshotsEqualValue(
 ): boolean {
   return (
     Object.hasOwn(snapshot.values ?? {}, field) &&
-    JSON.stringify(snapshot.values?.[field]) === JSON.stringify(value)
+    canonicalJson(snapshot.values?.[field]) === canonicalJson(value)
   )
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean')
+    return JSON.stringify(value)
+  if (typeof value === 'number') return Number.isFinite(value) ? JSON.stringify(value) : 'null'
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value)
+      .sort()
+      .map(
+        (key) => `${JSON.stringify(key)}:${canonicalJson((value as Record<string, unknown>)[key])}`,
+      )
+      .join(',')}}`
+  }
+  return 'null'
 }

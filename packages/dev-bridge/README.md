@@ -29,3 +29,6 @@ The implemented baseline is Store relay/browser/client/CLI plus Contract Lab dog
 DashList and DashPanel and feed genuine public-contract gaps back to Store. Consider MCP stdio parity
 only if the CLI proves useful. Persistence/import/reset extensions are deferred; any future
 dangerous operation needs preview, confirmation, idempotency, and an audit trail.
+
+Implementation status and primary verification owners are recorded in the
+[contract conformance matrix](../../docs/reference/contract-conformance.md#agent-dev-bridge).

@@ -42,6 +42,7 @@ type Session = {
   pending: Map<string, Pending>
 }
 const token = () => randomBytes(32).toString('base64url')
+const MAX_HTTP_BODY_BYTES = 1024 * 1024
 const err = (
   code: PicodashDevBridgeErrorCode,
   message: string,
@@ -794,10 +795,20 @@ function status(code: PicodashDevBridgeErrorCode) {
 }
 async function read(req: IncomingMessage) {
   const chunks: Buffer[] = []
-  for await (const c of req) chunks.push(Buffer.from(c))
-  if (Buffer.concat(chunks).length > 1024 * 1024) return undefined
+  let size = 0
+  for await (const value of req) {
+    const chunk = Buffer.from(value)
+    size += chunk.byteLength
+    if (size > MAX_HTTP_BODY_BYTES) {
+      chunks.length = 0
+      req.destroy()
+      return undefined
+    }
+    chunks.push(chunk)
+  }
+  const body = Buffer.concat(chunks, size)
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+    return JSON.parse(body.toString('utf8'))
   } catch {
     return undefined
   }
