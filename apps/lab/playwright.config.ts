@@ -20,9 +20,10 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: `LAB_PORT=${labPort} bun run --filter @picodash/lab dev`,
+    command: `LAB_PORT=${labPort} node scripts/dev.mjs`,
     url: `${labURL}/lab`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
+    gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 },
     timeout: 60_000,
   },
   projects: [

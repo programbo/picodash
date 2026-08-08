@@ -17,6 +17,7 @@
       "dependencies": {
         "@picodash/dashlist": "workspace:*",
         "@picodash/dashpanel": "workspace:*",
+        "@picodash/dev-bridge": "workspace:*",
         "@picodash/picodash": "workspace:*",
         "@picodash/store": "workspace:*",
         "@picodash/ui": "workspace:*",
@@ -101,6 +102,23 @@
       "peerDependencies": {
         "react": ">=19",
         "react-dom": ">=19",
+      },
+    },
+    "packages/dev-bridge": {
+      "name": "@picodash/dev-bridge",
+      "version": "0.0.0",
+      "bin": {
+        "picodash-dev-bridge": "dist/cli.mjs",
+      },
+      "dependencies": {
+        "@picodash/store": "workspace:*",
+        "ws": "^8.18.0",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "@types/ws": "^8.18.1",
+        "typescript": "catalog:",
+        "vite-plus": "0.2.6",
       },
     },
     "packages/picodash": {
@@ -461,6 +479,8 @@
 
     "@picodash/dashpanel": ["@picodash/dashpanel@workspace:packages/dashpanel"],
 
+    "@picodash/dev-bridge": ["@picodash/dev-bridge@workspace:packages/dev-bridge"],
+
     "@picodash/lab": ["@picodash/lab@workspace:apps/lab"],
 
     "@picodash/picodash": ["@picodash/picodash@workspace:packages/picodash"],
@@ -570,6 +590,8 @@
     "@types/react-dom": ["@types/react-dom@19.2.3", "", { "peerDependencies": { "@types/react": "19.2.17" } }, "sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ=="],
 
     "@types/react-test-renderer": ["@types/react-test-renderer@19.1.0", "", { "dependencies": { "@types/react": "*" } }, "sha512-XD0WZrHqjNrxA/MaR9O22w/RNidWR9YZmBdRGI7wcnWGrv/3dA8wKCJ8m63Sn+tLJhcjmuhOi629N66W6kgWzQ=="],
+
+    "@types/ws": ["@types/ws@8.18.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg=="],
 
     "@typescript/native-preview": ["@typescript/native-preview@7.0.0-dev.20260707.2", "", { "optionalDependencies": { "@typescript/native-preview-darwin-arm64": "7.0.0-dev.20260707.2", "@typescript/native-preview-darwin-x64": "7.0.0-dev.20260707.2", "@typescript/native-preview-linux-arm": "7.0.0-dev.20260707.2", "@typescript/native-preview-linux-arm64": "7.0.0-dev.20260707.2", "@typescript/native-preview-linux-x64": "7.0.0-dev.20260707.2", "@typescript/native-preview-win32-arm64": "7.0.0-dev.20260707.2", "@typescript/native-preview-win32-x64": "7.0.0-dev.20260707.2" }, "bin": { "tsgo": "bin/tsgo" } }, "sha512-oUGp+Rep/hqMhPunyinsALUwSlzHINSxitifPiSaeqoKOKD2OlR9NE3TaPqwsl4NlGslsOSUXI1JotWQzpYCPg=="],
 
