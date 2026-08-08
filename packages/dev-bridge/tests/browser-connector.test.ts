@@ -101,6 +101,50 @@ describe('browser connector', () => {
     expect(store.getState().values.count).toBe(2)
   })
 
+  test('advances sequence only when explicitly disclosed Store state changes', async () => {
+    ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        count: { defaultValue: 1 },
+        secret: { defaultValue: 'hidden' },
+      },
+    })
+    stores.push(store)
+    const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
+    relays.push(relay)
+    const browser = await connectPicodashDevBridge({
+      store,
+      credential: relay.issueBrowserCredential('http://localhost'),
+      registrationId: 'disclosed-sequence',
+      browserTabId: 'browser-tab',
+      disclosure: { valueFields: ['count'], scopeIds: ['visible-scope'] },
+    })
+    connections.push(browser)
+    const client = createPicodashDevBridgeClient(relay.agentCredential)
+
+    expect((await client.inspect(browser.session)).session.sequence).toBe(0)
+    store.setValue(store.fields.secret, 'still-hidden')
+    store.setDashListRootOrder('hidden-scope', ['item'])
+    expect((await client.inspect(browser.session)).session.sequence).toBe(0)
+    await expect(
+      client.wait(browser.session, {
+        type: 'wait',
+        requestId: 'hidden-activity',
+        timeoutMs: 20,
+        condition: { type: 'value_equals', field: 'count', value: 1, afterSequence: 0 },
+      }),
+    ).resolves.toMatchObject({ type: 'wait_result', outcome: 'timed_out' })
+
+    store.setDashListRootOrder('visible-scope', ['item'])
+    expect((await client.inspect(browser.session)).session.sequence).toBe(1)
+    store.setValue(store.fields.count, 2)
+    await expect(client.inspect(browser.session)).resolves.toMatchObject({
+      session: { sequence: 2 },
+      snapshot: { values: { count: 2 } },
+    })
+  })
+
   test('reconnects with a new generation and removes subscriptions on close', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
     const store = createPicodashStore({
