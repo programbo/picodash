@@ -205,7 +205,20 @@ describe('dev bridge relay observation and command lifecycle', () => {
 
   test('REST command payloads use exact JSON-safe shapes and bounded request IDs', async () => {
     const { relay, session } = await connected()
-    const url = `${relay.baseUrl}/v1/sessions/${encodeURIComponent(session.sessionId)}/generations/${session.generation}`
+
+    if (
+      typeof session.sessionId !== 'string' ||
+      !/^[A-Za-z0-9_-]{43}$/.test(session.sessionId) ||
+      !Number.isSafeInteger(session.generation) ||
+      session.generation < 1
+    ) {
+      throw new Error('Relay returned an invalid session reference.')
+    }
+
+    const url = new URL(
+      `/v1/sessions/${session.sessionId}/generations/${session.generation}`,
+      relay.baseUrl,
+    )
     const send = (path: string, body: unknown) =>
       fetch(`${url}/${path}`, {
         method: 'POST',
