@@ -1,0 +1,42 @@
+{
+  "name": "@picodash/dev-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Private authenticated loopback bridge for Store inspection and automation.",
+  "bin": {
+    "picodash-dev-bridge": "dist/cli.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.mts",
+      "import": "./dist/browser.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "vp pack && vp test",
+    "check": "vp check",
+    "test:package": "node tests/package-artifacts.mjs",
+    "release:check": "vp check && vp pack && vp test && bun run test:package && bun pm pack --dry-run"
+  },
+  "dependencies": {
+    "@picodash/store": "workspace:*",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/ws": "^8.18.1",
+    "typescript": "catalog:",
+    "vite-plus": "0.2.6"
+  }
+}

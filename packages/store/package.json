@@ -54,7 +54,7 @@
     "@types/react-dom": "catalog:",
     "@types/react-test-renderer": "^19.1.0",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
-    "bumpp": "^12.0.0",
+    "bumpp": "^12.1.1",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-test-renderer": "^19.2.0",

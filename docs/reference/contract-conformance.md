@@ -50,6 +50,22 @@ linked only after their assertions are confirmed to prove the target behavior.
 Store suites should use generated models for scope graphs, transaction batches, document mappings,
 and persistence records instead of adding separate hand-written tests for every combination.
 
+## Agent Dev Bridge
+
+> Contract: Accepted development baseline
+> Implementation: Verified
+> Evidence: `bun run --filter @picodash/dev-bridge release:check`, Lab host tests, and the Contract
+> Lab browser journey.
+
+| ID             | Contract area                                     | Primary evidence                                                                                                                                                        | Status   | Evidence                                                                                                                                     |
+| -------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| BRIDGE-SESSION | Authentication, disclosure, generations, sequence | [relay security tests](../../packages/dev-bridge/tests/relay-security.test.ts) and [browser connector tests](../../packages/dev-bridge/tests/browser-connector.test.ts) | Verified | Origin-bound single-use registration, exact disclosure, stale-generation fencing, and disclosed-state-only sequence advancement are covered. |
+| BRIDGE-OPS     | Inspect, allowlisted writes, waits, and errors    | [relay observation tests](../../packages/dev-bridge/tests/relay-observation.test.ts) and [CLI tests](../../packages/dev-bridge/tests/cli.test.ts)                       | Verified | REST validation, Store outcomes, request fencing, wait semantics, redacted errors, and CLI behavior are covered.                             |
+| BRIDGE-PACKAGE | Public entries, executable artifact, Lab host     | [package artifact checks](../../packages/dev-bridge/tests/package-artifacts.mjs), `apps/lab/scripts/dev-host.test.mjs`, and `apps/lab/tests/contract-lab.spec.ts`       | Verified | Built exports and CLI plus ephemeral relay/broker lifecycle and one real browser-to-Store journey are covered.                               |
+
+The verified baseline is private development tooling. Persistence, import, reset, and broader
+agent protocols remain deferred and are not implied by these rows.
+
 ## Shared UI foundation
 
 | ID         | Contract area                               | Primary evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Status   | Evidence                                                                                                                                                                                                                                                                                                |
@@ -207,3 +223,4 @@ failed foundation contract.
 | DashPanel      | Accepted           | Sequenced after Store/UI | Foundation dogfooding dependencies remain         |
 | DashList       | Accepted           | Sequenced after Store/UI | Foundation dogfooding dependencies remain         |
 | Picodash       | Accepted           | Deferred to Phase 4      | Depends on stable foundational products           |
+| Dev Bridge     | Accepted baseline  | Verified for dogfooding  | Private development adapter over public Store     |
