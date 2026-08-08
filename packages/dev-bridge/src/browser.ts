@@ -8,7 +8,7 @@ import type {
   PicodashDevBridgeWireFrame,
 } from './types.js'
 import { PICODASH_DEV_BRIDGE_PROTOCOL_VERSION, PICODASH_DEV_BRIDGE_SUBPROTOCOL } from './types.js'
-import { makeSnapshot, validateDisclosure } from './serialization.js'
+import { makeSnapshot, snapshotsEqual, validateDisclosure } from './serialization.js'
 
 export async function connectPicodashDevBridge(
   options: PicodashDevBridgeConnectOptions,
@@ -43,8 +43,12 @@ export async function connectPicodashDevBridge(
       socket.close()
     }
   }, 1000)
-  const sendSnapshot = (type: 'snapshot' | 'resync' = 'snapshot', forcedSequence = sequence) => {
-    snapshot = makeSnapshot(options.store, disclosure)
+  const sendSnapshot = (
+    type: 'snapshot' | 'resync' = 'snapshot',
+    forcedSequence = sequence,
+    nextSnapshot = makeSnapshot(options.store, disclosure),
+  ) => {
+    snapshot = nextSnapshot
     socket.send(
       JSON.stringify({
         type,
@@ -57,6 +61,12 @@ export async function connectPicodashDevBridge(
         snapshot,
       }),
     )
+  }
+  const publishSnapshotChange = () => {
+    const nextSnapshot = makeSnapshot(options.store, disclosure)
+    if (snapshot && snapshotsEqual(snapshot, nextSnapshot)) return
+    sequence += 1
+    sendSnapshot('snapshot', sequence, nextSnapshot)
   }
   socket.addEventListener('open', () =>
     socket.send(
@@ -121,8 +131,7 @@ export async function connectPicodashDevBridge(
   const unsubs = [
     options.store.subscribe(() => {
       if (!closed && socket.readyState === WebSocket.OPEN) {
-        sequence += 1
-        sendSnapshot()
+        publishSnapshotChange()
       }
     }),
   ]
@@ -130,8 +139,7 @@ export async function connectPicodashDevBridge(
     unsubs.push(
       options.store.diagnostics.subscribe(() => {
         if (!closed && socket.readyState === WebSocket.OPEN) {
-          sequence += 1
-          sendSnapshot()
+          publishSnapshotChange()
         }
       }),
     )
