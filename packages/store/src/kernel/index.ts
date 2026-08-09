@@ -3575,21 +3575,33 @@ export function createPicodashStore<
   const interactionIssues = (
     issues: readonly TransactionIssue[],
     record: import('../runtime-controller.js').BindingRecord,
-  ): readonly TransactionIssue[] =>
-    Object.freeze(
-      issues.map((issue) =>
-        Object.freeze({
+  ): readonly TransactionIssue[] => {
+    const bindingFieldKey =
+      record.field && typeof record.field === 'object'
+        ? (record.field as { key: string }).key
+        : undefined
+    return Object.freeze(
+      issues.map((issue) => {
+        const structuralFieldKey =
+          issue.fieldKey ??
+          (issue.path[0] === 'values' && typeof issue.path[1] === 'string'
+            ? issue.path[1]
+            : undefined)
+        const belongsToBinding =
+          issue.alias === record.alias ||
+          (issue.alias === undefined && structuralFieldKey === bindingFieldKey)
+        return Object.freeze({
           ...issue,
-          fieldKey:
-            record.field && typeof record.field === 'object'
-              ? (record.field as { key: string }).key
-              : undefined,
-          scopeId: record.scopeId,
-          itemId: record.itemId,
-          alias: record.alias,
-        }),
-      ),
+          ...(issue.fieldKey === undefined && structuralFieldKey !== undefined
+            ? { fieldKey: structuralFieldKey }
+            : {}),
+          ...(belongsToBinding
+            ? { scopeId: record.scopeId, itemId: record.itemId, alias: record.alias }
+            : {}),
+        })
+      }),
     )
+  }
 
   function setInteraction(
     record: import('../runtime-controller.js').BindingRecord,
@@ -4809,9 +4821,10 @@ export function createPicodashStore<
         }),
       ])
     const remove = new Set(registry.removeNodeIds)
+    if (remove.size === 0) return resultWithPersistence(successfulResult())
     return metadataCommand(registry.scopeId, (previous) => {
       const list = previous?.dashList
-      if (!list || remove.size === 0) return previous
+      if (!list) return previous
       const rootOrder = list.rootOrder?.filter((nodeId) => !remove.has(nodeId))
       const groupOrders = new Map<string, readonly string[]>()
       for (const [owner, order] of list.groupOrders) {

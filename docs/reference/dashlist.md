@@ -1066,7 +1066,11 @@ or action and still participates in node identity and ordering.
 ### Compound issue attribution
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Verified
+> Evidence: `packages/dashlist/tests/dashlist-bindings.test.tsx` covers compound ownership,
+> composition-level rejection, exact deduplication, and issue-region relationships;
+> `packages/store/tests/binding-interaction.test.ts` covers binding, cross-field, and root issue
+> identity preservation.
 
 DashList consumes Store-normalized `TransactionIssue` records. It never parses issue messages or
 creates a second issue-path convention. An issue with an explicit `scopeId` or `itemId` that does

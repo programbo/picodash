@@ -91,6 +91,16 @@ describe('@picodash/dashpanel public types', () => {
     const directInlineSize: DashPanelProps = { ...panelProps, style: { inlineSize: '1px' } }
     void directInlineSize
 
+    // @ts-expect-error visibility attributes are owned by the lifecycle runtime.
+    const nativeHidden: DashPanelProps = { ...panelProps, hidden: true }
+    // @ts-expect-error visibility attributes are owned by the lifecycle runtime.
+    const nativeInert: DashPanelProps = { ...panelProps, inert: true }
+    // @ts-expect-error visibility attributes are owned by the lifecycle runtime.
+    const nativeAriaHidden: DashPanelProps = { ...panelProps, 'aria-hidden': true }
+    void nativeHidden
+    void nativeInert
+    void nativeAriaHidden
+
     // @ts-expect-error Provider does not own persistence or placement policy in this cut.
     const retiredProvider: DashPanelProviderProps = { ...providerProps, storageKey: 'old' }
     void retiredProvider

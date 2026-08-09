@@ -196,6 +196,43 @@ describe('binding interaction commands', () => {
     store.destroy()
   })
 
+  it('preserves cross-field and root issue ownership for binding input', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { first: { defaultValue: 1 }, second: { defaultValue: 1 } },
+      validateValues: (values: { readonly first: number; readonly second: number }) =>
+        values.first === 2
+          ? [
+              { message: 'Second is incompatible.', path: ['values', 'second'] },
+              { message: 'The combination is invalid.' },
+            ]
+          : [],
+    })
+    const scope = store.scope('scope')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'compound',
+      alias: 'first-control',
+      field: scope.fields.first,
+      mode: 'input',
+    })
+    const result = scope.setInput(binding, 2)
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.issues[0]).toMatchObject({
+        path: ['values', 'second'],
+        fieldKey: 'second',
+      })
+      expect(result.error.issues[0]).not.toHaveProperty('alias')
+      expect(result.error.issues[1]).toEqual({
+        code: 'validation_failed',
+        path: [],
+        message: 'The combination is invalid.',
+      })
+    }
+    binding.release()
+    store.destroy()
+  })
+
   it('short-circuits schema and validators after parse failure', () => {
     let schemaCalls = 0
     let fieldCalls = 0

@@ -205,4 +205,37 @@ describe('DashList node leases and prune plans', () => {
     expect(scoped.createPrunePlan({ mode: 'review' }).candidates).toEqual([])
     lease.release()
   })
+
+  it('executes an empty prune plan as a no-op for quarantined metadata', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'quarantined-prune',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1 } },
+      initialEnvelope: {
+        kind: 'picodash-store-envelope',
+        formatVersion: 1,
+        storeId: 'quarantined-prune',
+        schemaVersion: 1,
+        revision: 1,
+        writerId: 'fixture',
+        valueOwner: 'store',
+        values: { value: 1 },
+        scopes: [['scope', { dashList: { invalid: true } }]],
+      },
+    } as never)
+    expect(store.metadataRecovery.getState().quarantinedScopes.has('scope')).toBe(true)
+    const scoped = store.scope('scope')
+    const plan = scoped.createPrunePlan({
+      mode: 'explicit',
+      removeNodeIds: [],
+      keepNodeIds: [],
+    })
+    expect(scoped.executePrunePlan(plan)).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: [],
+    })
+    store.destroy()
+  })
 })

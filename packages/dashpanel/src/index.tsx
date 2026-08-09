@@ -94,7 +94,7 @@ export interface DashPanelProviderProps<
 
 export interface DashPanelProps<CustomTheme extends string = never> extends Omit<
   ComponentPropsWithoutRef<'aside'>,
-  'children' | 'id' | 'style' | 'title'
+  'aria-hidden' | 'children' | 'hidden' | 'id' | 'inert' | 'style' | 'title'
 > {
   id: string
   title: ReactNode
