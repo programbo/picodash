@@ -3151,6 +3151,11 @@ export function createPicodashStore<
         )
       })
       .sort()
+    if (!changedFields.length && !changedScopeIds.length)
+      return Object.freeze({
+        changedFields: Object.freeze([]),
+        changedScopeIds: Object.freeze([]),
+      })
     if (config.valueOwner === 'store')
       values = freeze(nextValues) as Readonly<Record<string, PicodashJsonValue>>
     scopes = nextScopes
@@ -4211,7 +4216,14 @@ export function createPicodashStore<
         for (const channel of collectScopedChannels(id)) affectedChannels.add(channel)
       refreshScopedChannels(affectedChannels)
       publishQuarantineTransition(previousQuarantinedScopes, quarantinedScopes)
-      const result = resultWithPersistence(successfulResult([], changedScopeIds))
+      const reportedChangedScopeIds = [
+        ...new Set([...changedScopeIds, ...changedInteractionScopeIds]),
+      ].sort()
+      const persistedResult = resultWithPersistence(successfulResult([], changedScopeIds))
+      const result = Object.freeze({
+        ...persistedResult,
+        changedScopeIds: Object.freeze(reportedChangedScopeIds),
+      })
       dispatchStoreSubscribers(affectedChannels, changedScopeIds.length > 0)
       return result
     } finally {

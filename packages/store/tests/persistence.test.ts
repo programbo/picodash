@@ -1256,6 +1256,24 @@ describe('Store-owned alpha persistence', () => {
     reinsertStore.destroy()
   })
 
+  it('confirms erasure of a later invalid durable record', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    persistence.foreignWrite('state', '{"invalid":true}')
+    expect(store.setValues({ count: 3 })).toMatchObject({ ok: true, persistence: 'pending' })
+    const plan = store.persistence.createErasePlan()
+    expect(plan.hasDurableEnvelope).toBe(true)
+    expect(store.persistence.executeErase(plan, { confirm: true })).toMatchObject({
+      ok: true,
+      erased: true,
+      discardedPendingEnvelope: true,
+    })
+    expect(persistence.inspect('state')).toBeNull()
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+    store.destroy()
+  })
+
   it('rejects a plan from a foreign root without exposing root identity', () => {
     const firstPersistence = createMemoryPersistence()
     const first = createPicodashStore(makeConfig(firstPersistence))
@@ -1309,6 +1327,36 @@ describe('Store-owned alpha persistence', () => {
     unsubRoot()
     unsubScope()
     unsubCapability()
+    store.destroy()
+  })
+
+  it('keeps Store subscribers silent for a semantic no-op conflict reload', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    const scope = store.scope('reload-no-op')
+    const rootListener = vi.fn()
+    const scopeListener = vi.fn()
+    const capabilityListener = vi.fn()
+    store.subscribe(rootListener)
+    scope.subscribe(scopeListener)
+    store.persistence.subscribe(capabilityListener)
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-no-op'
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    rootListener.mockClear()
+    scopeListener.mockClear()
+    capabilityListener.mockClear()
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: [],
+    })
+    expect(rootListener).not.toHaveBeenCalled()
+    expect(scopeListener).not.toHaveBeenCalled()
+    expect(capabilityListener).toHaveBeenCalledTimes(1)
     store.destroy()
   })
 })

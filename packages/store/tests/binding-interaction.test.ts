@@ -430,7 +430,7 @@ describe('binding interaction commands', () => {
     scope.subscribe(() => {
       scopeCalls += 1
     })
-    scope.destroyScope()
+    expect(scope.destroyScope()).toMatchObject({ changedScopeIds: ['scope'] })
     expect(rootCalls).toBe(0)
     expect(scopeCalls).toBe(1)
     expect(scope.getState().interaction.bindings.size).toBe(0)

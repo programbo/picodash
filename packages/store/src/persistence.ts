@@ -916,6 +916,13 @@ export function createPersistenceController(
     }
   }
 
+  type StructuredObservation = ReturnType<typeof decodeStructured>
+  type InvalidObservation = Readonly<{
+    readonly invalid: PersistenceDecodeReason
+    readonly fingerprint: string
+  }>
+  type EraseObservation = StructuredObservation | InvalidObservation | undefined
+
   let driverRaw: string | null = null
   try {
     driverRaw = options.driver.read(options.storageKey)
@@ -990,9 +997,9 @@ export function createPersistenceController(
   let confirmedScopes: PersistenceScopes = scopes
   let confirmedQuarantinedScopes: ReadonlyMap<string, PicodashQuarantinedScopeMetadata> =
     quarantinedScopes
-  let conflictObservation: ReturnType<typeof decodeStructured> | undefined
+  let conflictObservation: StructuredObservation | undefined
   let conflictWasRemoval = false
-  let eraseObservation: ReturnType<typeof decodeStructured> | undefined
+  let eraseObservation: EraseObservation
   const listeners = new Set<() => void>()
   let state: PicodashPersistenceState = stateFreeze({
     status: 'clean',
@@ -1065,20 +1072,19 @@ export function createPersistenceController(
         },
         { allowSchemaMismatch: options.migrations !== undefined },
       )
-      if (!decoded.ok) return { invalid: decoded.reason } as const
+      if (!decoded.ok) return { invalid: decoded.reason, fingerprint: raw } as const
       try {
         return decodeStructured(decoded.envelope)
       } catch (error) {
-        if (error instanceof PersistenceDecodeError) return { invalid: error.reason } as const
+        if (error instanceof PersistenceDecodeError)
+          return { invalid: error.reason, fingerprint: raw } as const
         return 'error' as const
       }
     } catch {
       return 'error' as const
     }
   }
-  const isInvalidCurrent = (
-    value: ReturnType<typeof readCurrent>,
-  ): value is { invalid: PersistenceDecodeReason } =>
+  const isInvalidCurrent = (value: ReturnType<typeof readCurrent>): value is InvalidObservation =>
     !!value && typeof value === 'object' && 'invalid' in value
   const isStructuredCurrent = (
     value: ReturnType<typeof readCurrent>,
@@ -1117,22 +1123,27 @@ export function createPersistenceController(
       content: encoded.content,
     })
   }
-  const recordFingerprint = (record: ReturnType<typeof decodeStructured> | undefined): string =>
+  const recordFingerprint = (record: EraseObservation): string =>
     record === undefined
       ? 'absent'
-      : canonicalJson({
-          present: true,
-          revision: record.revision,
-          writerId: record.writerId,
-          sourceContent: record.sourceContent,
-        })
+      : isInvalidCurrent(record)
+        ? canonicalJson({ present: true, invalid: record.invalid, source: record.fingerprint })
+        : canonicalJson({
+            present: true,
+            revision: record.revision,
+            writerId: record.writerId,
+            sourceContent: record.sourceContent,
+          })
   const localFingerprint = () =>
     canonicalJson({
       content: pending?.content ?? projection(values, scopes, quarantinedScopes).content,
       revision: liveRevision,
       writerId,
     })
-  const planFingerprint = (kind: 'conflict' | 'erase', observation = conflictObservation) =>
+  const planFingerprint = (
+    kind: 'conflict' | 'erase',
+    observation: EraseObservation = conflictObservation,
+  ) =>
     canonicalJson({
       kind,
       generation: conflictGeneration,
@@ -1470,11 +1481,14 @@ export function createPersistenceController(
     expected: PersistenceConflictResolutionSnapshot | PersistenceEraseSnapshot,
   ) => {
     const current = readCurrent()
-    if (current === 'error' || isInvalidCurrent(current))
+    if (current === 'error') return { ok: false as const, reason: 'failed' as const }
+    if ('mode' in expected && isInvalidCurrent(current))
       return { ok: false as const, reason: 'failed' as const }
+    const currentObservation =
+      isStructuredCurrent(current) || isInvalidCurrent(current) ? current : undefined
     const currentRecord = isStructuredCurrent(current) ? current : undefined
     const capturedObservation = 'mode' in expected ? conflictObservation : eraseObservation
-    if (recordFingerprint(currentRecord) !== recordFingerprint(capturedObservation))
+    if (recordFingerprint(currentObservation) !== recordFingerprint(capturedObservation))
       return { ok: false as const, reason: 'stale' as const }
     if (planFingerprint('conflict') !== expected.fingerprint && 'mode' in expected)
       return { ok: false as const, reason: 'stale' as const }
@@ -1669,7 +1683,8 @@ export function createPersistenceController(
   }
   const createEraseSnapshot = (): PersistenceEraseSnapshot => {
     const current = readCurrent()
-    eraseObservation = isStructuredCurrent(current) ? current : undefined
+    eraseObservation =
+      isStructuredCurrent(current) || isInvalidCurrent(current) ? current : undefined
     return Object.freeze({
       fingerprint: planFingerprint('erase', eraseObservation),
       hasDurableEnvelope: eraseObservation !== undefined,

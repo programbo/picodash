@@ -249,6 +249,49 @@ describe('redaction, migration, and overlay helpers', () => {
       }),
     )
   })
+
+  it('rejects scope collisions between explicit remaps and implicit same-ID targets', () => {
+    const document = decodePicodashDocument({
+      ...rootDocument(),
+      scopes: [
+        ['advanced', metadata],
+        ['oldAdvanced', metadata],
+      ],
+    })
+    expect(() =>
+      buildPicodashDocumentOverlay({
+        document,
+        targetValues: { alpha: 'old' },
+        targetScopes: [['advanced', metadata]],
+        targetFieldKeys: ['alpha'],
+        options: normalizePicodashImportOptions({
+          scopeMap: { oldAdvanced: 'advanced' },
+        }),
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-document-options',
+        reason: 'duplicate-target',
+      }),
+    )
+  })
+
+  it('rejects an empty scope document targeting a missing scope', () => {
+    const document = decodePicodashDocument({
+      ...rootDocument(),
+      kind: 'scope',
+      scopeId: 'missing',
+      scopes: [],
+    })
+    expect(() =>
+      buildPicodashDocumentOverlay({
+        document,
+        targetValues: { alpha: 'old' },
+        targetScopes: [],
+        targetFieldKeys: ['alpha'],
+      }),
+    ).toThrowError(expect.objectContaining({ reason: 'missing_scope' }))
+  })
 })
 
 describe('value-free review normalization', () => {
