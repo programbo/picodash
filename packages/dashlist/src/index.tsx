@@ -495,7 +495,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
                   <button type="button" disabled={disabled} onClick={() => binding.discardInput()}>
                     Discard changes
                   </button>
-                  {binding.stale ? (
+                  {binding.stale && bindingRuntime.staleOverwrite[binding.alias]?.eligible ? (
                     <StaleInputConfirmation
                       disabled={disabled}
                       readOnly={readOnly}

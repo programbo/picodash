@@ -2372,6 +2372,7 @@ export function createPicodashStore<
     readonly overlay: ReturnType<typeof buildPicodashDocumentOverlay>
     readonly targetValues: Readonly<Record<string, PicodashJsonValue>>
     readonly targetScopeExistence: readonly (readonly [string, boolean])[]
+    readonly targetScopes: readonly (readonly [string, SerializedDurableScopeMetadata | null])[]
     readonly targetQuarantined: readonly (readonly [
       string,
       PicodashQuarantinedScopeMetadata | null,
@@ -2685,6 +2686,7 @@ export function createPicodashStore<
     for (const [sourceScopeId] of document.scopes)
       relevantTargetScopeIds.add(scopeMappings.get(sourceScopeId) ?? sourceScopeId)
     const targetScopeIdSet = new Set(targetScopeIds)
+    const targetScopeMap = new Map(documentScopes())
     let overlay: ReturnType<typeof buildPicodashDocumentOverlay>
     try {
       overlay = buildPicodashDocumentOverlay({
@@ -2729,6 +2731,11 @@ export function createPicodashStore<
         [...relevantTargetScopeIds]
           .sort()
           .map((scopeId) => Object.freeze([scopeId, targetScopeIdSet.has(scopeId)] as const)),
+      ),
+      targetScopes: Object.freeze(
+        [...relevantTargetScopeIds]
+          .sort()
+          .map((scopeId) => Object.freeze([scopeId, targetScopeMap.get(scopeId) ?? null] as const)),
       ),
       targetQuarantined: Object.freeze(
         overlay.changedScopeIds
@@ -2806,6 +2813,14 @@ export function createPicodashStore<
     if (
       snapshot.targetScopeExistence.some(
         ([scopeId, existed]) => currentScopeIds.has(scopeId) !== existed,
+      )
+    )
+      return documentFailure('stale_plan', 'Import plan is stale.')
+    const currentScopeMap = new Map(documentScopes())
+    if (
+      JSON.stringify(snapshot.targetScopes) !==
+      JSON.stringify(
+        snapshot.targetScopes.map(([scopeId]) => [scopeId, currentScopeMap.get(scopeId) ?? null]),
       )
     )
       return documentFailure('stale_plan', 'Import plan is stale.')
@@ -4168,10 +4183,6 @@ export function createPicodashStore<
           message: 'Repair plan is stale.',
         }),
       ])
-    const candidate = Object.create(null) as Record<string, PicodashJsonValue>
-    for (const key of fieldEntries) candidate[key] = values[key]!
-    candidate[record.fieldKey] = record.candidate
-    freeze(candidate)
     const result = transactAttributed(
       { [record.fieldKey]: record.candidate },
       record.scopeId,
@@ -4185,7 +4196,7 @@ export function createPicodashStore<
             suppressInteractionDispatch = false
           }
         },
-        validatedCandidate: candidate,
+        canonicalSupplied: true,
       },
     )
     return result

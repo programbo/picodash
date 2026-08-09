@@ -250,6 +250,39 @@ describe('Store document namespace integration', () => {
     target.destroy()
   })
 
+  it('stales import plans when tracked target metadata changes', () => {
+    const source = createStore('documents-metadata-freshness')
+    const target = createStore('documents-metadata-freshness')
+    const layout = (x: number) =>
+      ({
+        placement: { mode: 'floating', disposition: { kind: 'free' } },
+        preferredPosition: { x, y: x },
+      }) as const
+    expect(source.setDashPanelLayout('panel', layout(2))).toMatchObject({ ok: true })
+    expect(target.setDashPanelLayout('panel', layout(1))).toMatchObject({ ok: true })
+    const exported = source
+      .scope('panel')
+      .documents.executeExport(
+        source.scope('panel').documents.createExportPlan({ includeDescendants: false }),
+      )
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    const analysis = target.documents.analyzeImport(exported.document, { targetScopeId: 'panel' })
+    expect(analysis.ok).toBe(true)
+    if (!analysis.ok) return
+    expect(target.setDashPanelLayout('panel', layout(3))).toMatchObject({ ok: true })
+    expect(target.documents.executeImport(analysis.plan)).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'stale_plan', message: 'Import plan is stale.' }] },
+    })
+    expect(target.getState().scopes.get('panel')?.dashPanel?.preferredPosition).toEqual({
+      x: 3,
+      y: 3,
+    })
+    source.destroy()
+    target.destroy()
+  })
+
   it('fences scoped plans to their receiver target', () => {
     const store = createStore('documents-target-fence')
     const plan = store.scope('one').documents.createExportPlan({ includeDescendants: false })

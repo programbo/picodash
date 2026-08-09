@@ -176,6 +176,7 @@ type Runtime = {
 }
 
 export type StaleOverwriteController = {
+  readonly eligible: boolean
   readonly openPlan: () => PicodashStaleInputOverwritePlan | undefined
   readonly executePlan: (plan: PicodashStaleInputOverwritePlan) => void
 }
@@ -395,6 +396,7 @@ export function useDashletBindings(
         }
         bindings[key] = input
         staleOverwrite[key] = {
+          eligible: (bindingState?.inputIssues.length ?? 0) === 0,
           openPlan: () => {
             if (policy.current.disabled || policy.current.readOnly) return undefined
             const runtime = runtimes.current.find((entry) => entry.descriptor.alias === key)

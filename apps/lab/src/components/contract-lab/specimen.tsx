@@ -90,7 +90,23 @@ function ContractLabPersistenceProbe() {
   const [commandStatus, setCommandStatus] = useState('No metadata write requested.')
 
   useEffect(() => {
-    const nextStore = createContractLabPersistenceProbeStore()
+    let nextStore: ContractLabPersistenceProbeStore
+    try {
+      nextStore = createContractLabPersistenceProbeStore()
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.name === 'PicodashInitializationError' &&
+        'code' in error &&
+        error.code === 'persistence-driver-unavailable'
+      ) {
+        setPersistenceStatus('unavailable')
+        setCommandStatus('Web Storage is unavailable.')
+        setStore(null)
+        return
+      }
+      throw error
+    }
     setStore(nextStore)
     const updateStatus = () => setPersistenceStatus(nextStore.persistence.getState().status)
     updateStatus()

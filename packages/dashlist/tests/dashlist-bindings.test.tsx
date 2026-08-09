@@ -302,6 +302,13 @@ describe('DashList bindings', () => {
     expect(context.binding).not.toHaveProperty('createStaleInputOverwritePlan')
     act(() => void context.binding.setInput('invalid'))
     act(() => void store.setValue(store.fields.count, 2))
+    expect(
+      view.root
+        .findAllByType('button')
+        .map((button) =>
+          button.children.filter((child): child is string => typeof child === 'string').join(' '),
+        ),
+    ).not.toContain('Overwrite value…')
     act(() => void context.binding.setInput(3))
     expect(context.binding).toMatchObject({ dirty: true, stale: true, draftValue: 3 })
     expect(

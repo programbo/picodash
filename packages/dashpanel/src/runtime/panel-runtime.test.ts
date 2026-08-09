@@ -311,6 +311,17 @@ describe('private DashPanel runtime model', () => {
         portal as unknown as HTMLElement,
       )
       expect(document.activeElement).toBe(portal)
+
+      const programmaticTrigger = new FocusElement('BUTTON')
+      programmaticTrigger.attributes.set('tabindex', '-1')
+      recordPanelEntry(
+        runtime,
+        'panel',
+        programmaticTrigger as unknown as HTMLElement,
+        portal as unknown as Element,
+      )
+      restorePanelFocus(runtime, 'panel', null, null)
+      expect(document.activeElement).toBe(programmaticTrigger)
     } finally {
       vi.unstubAllGlobals()
     }

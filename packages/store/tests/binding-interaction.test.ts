@@ -54,6 +54,41 @@ describe('binding interaction commands', () => {
     repairStore.destroy()
   })
 
+  it('revalidates canonical repair candidates at execution time', () => {
+    let rejectRepair = false
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        value: {
+          defaultValue: 1,
+          parse: () => ({ ok: false as const, issues: [{ message: 'bad' }], repair: 2 }),
+          validate: (_value, context) =>
+            rejectRepair && context.source === 'repair'
+              ? [{ message: 'repair no longer accepted' }]
+              : [],
+        },
+      },
+    })
+    const scope = store.scope('repair-revalidation')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.value,
+      mode: 'input',
+    })
+    const failed = scope.setInput(binding, 'bad')
+    expect(failed.ok).toBe(false)
+    if (!failed.ok) {
+      rejectRepair = true
+      expect(scope.executeRepair(failed.repair!)).toMatchObject({
+        ok: false,
+        error: { issues: [{ code: 'validation_failed' }] },
+      })
+    }
+    expect(store.getState().values.value).toBe(1)
+    binding.release()
+    store.destroy()
+  })
+
   it('records frozen drafts, enriches issues, and accepts root/scoped receivers', () => {
     const store = createPicodashStore({
       valueOwner: 'store',

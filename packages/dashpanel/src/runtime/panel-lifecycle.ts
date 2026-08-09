@@ -59,7 +59,7 @@ function connectedReference(reference: WeakRef<HTMLElement> | undefined): HTMLEl
   return connected(value) ? value : null
 }
 
-function focusable(element: HTMLElement): boolean {
+function availableForFocus(element: HTMLElement): boolean {
   const hiddenAncestor = element.closest('[hidden], [inert], [aria-hidden="true"]')
   if (
     hiddenAncestor ||
@@ -70,6 +70,11 @@ function focusable(element: HTMLElement): boolean {
     return false
   if (element.hasAttribute('disabled') || element.getAttribute('aria-disabled') === 'true')
     return false
+  return true
+}
+
+function focusable(element: HTMLElement): boolean {
+  if (!availableForFocus(element)) return false
   const tabindex = element.getAttribute('tabindex')
   if (tabindex !== null && Number(tabindex) < 0) return false
   if (tabindex !== null) return true
@@ -99,9 +104,8 @@ function rendered(element: HTMLElement): boolean {
 
 function tryFocus(element: HTMLElement, requireSequentialFocus = true): boolean {
   if (!connected(element) || !rendered(element)) return false
+  if (!availableForFocus(element)) return false
   if (requireSequentialFocus && !focusable(element)) return false
-  if (element.hasAttribute('disabled') || element.getAttribute('aria-disabled') === 'true')
-    return false
   if (typeof element.focus !== 'function') return false
   element.focus()
   return typeof document === 'undefined' || document.activeElement === element
@@ -146,9 +150,9 @@ export function restorePanelFocus(
 ): void {
   const record = records.get(runtime)?.get(scopeId)
   const trigger = connectedReference(record?.trigger)
-  if (trigger && tryFocus(trigger)) return
+  if (trigger && tryFocus(trigger, false)) return
   const beforeEntry = connectedReference(record?.beforeEntry)
-  if (beforeEntry && tryFocus(beforeEntry)) return
+  if (beforeEntry && tryFocus(beforeEntry, false)) return
   for (const fallback of providerFallbackCandidates(boundary, portalContainer))
     if (tryFocus(fallback, false)) return
 }

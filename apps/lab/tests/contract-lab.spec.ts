@@ -41,9 +41,21 @@ async function openLab(page: Page) {
 test('keeps the versioned driver, Console, and status available while the specimen is offline', async ({
   page,
 }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('Web Storage blocked', 'SecurityError')
+      },
+    })
+  })
   await openLab(page)
 
   await expect(page.locator('[data-product-route="contract-lab"]')).toHaveCount(1)
+  await expect(page.locator('[data-contract-lab-persistence-status]')).toHaveText(
+    'Persistence status: unavailable',
+  )
+  await expect(page.getByRole('button', { name: 'Write metadata probe' })).toBeDisabled()
   await expect(page.locator('[data-contract-lab-console]')).toBeVisible()
   await expect(page.locator('[data-contract-lab-specimen]')).toBeVisible()
   await expect
