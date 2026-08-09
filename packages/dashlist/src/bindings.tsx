@@ -139,7 +139,10 @@ export function normalizeBindingDescriptors(
               readonly mode?: DashletBindingMode
             })
           : { field: descriptor as BindingDescriptor['field'] }
-      return { alias, field: value.field, mode: value.mode ?? 'input' }
+      const mode = value.mode ?? 'input'
+      if (mode !== 'input' && mode !== 'display')
+        throw new TypeError('Dashlet binding mode must be input or display.')
+      return { alias, field: value.field, mode }
     })
   }
   return field ? [{ alias: field.key, field, mode: 'input' }] : []

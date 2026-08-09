@@ -117,7 +117,7 @@ describe('DashList bindings', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
-  it('rejects invalid compound aliases during normalization and server rendering', async () => {
+  it('rejects invalid compound aliases and modes before server output', async () => {
     const store = createPicodashStore({
       valueOwner: 'store',
       fields: { value: { defaultValue: 1 } },
@@ -141,6 +141,39 @@ describe('DashList bindings', () => {
       )
       expect(() => renderToString(render(alias))).toThrow(/binding aliases must be non-empty/)
     }
+    const invalidModeFields = {
+      value: { field: store.fields.value, mode: 'other' },
+    } as never
+    expect(() => normalizeBindingDescriptors(undefined, invalidModeFields)).toThrow(
+      /binding mode must be input or display/,
+    )
+    expect(() =>
+      renderToString(
+        createElement(
+          DashList,
+          { id: 'invalid-mode-list', store },
+          createElement(Dashlet as any, {
+            id: 'invalid-mode',
+            label: 'Invalid mode',
+            fields: invalidModeFields,
+          }),
+        ),
+      ),
+    ).toThrow(/binding mode must be input or display/)
+    expect(() =>
+      renderToString(
+        createElement(
+          DashList,
+          { id: 'invalid-single-mode-list', store },
+          createElement(Dashlet as any, {
+            id: 'invalid-single-mode',
+            label: 'Invalid single mode',
+            field: store.fields.value,
+            mode: 'other',
+          }),
+        ),
+      ),
+    ).toThrow(/binding mode must be input or display/)
     store.destroy()
   })
 

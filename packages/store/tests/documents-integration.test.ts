@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vite-plus/test'
 import {
   createPicodashStore,
   PicodashContractError,
+  type PicodashSchemaMigration,
   type PicodashValueAdapter,
 } from '../src/index.ts'
 import {
@@ -51,6 +52,46 @@ describe('Store document namespace integration', () => {
     expect(exported.document.storeId).toBe('documents-identity-alpha')
     expect(exported.document.schemaVersion).toBe(1)
     store.destroy()
+  })
+
+  it('snapshots migration callbacks for the root lifetime', () => {
+    const source = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-migration-source',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1 } },
+      export: { documents: { defaultFieldPolicy: 'include' } },
+    })
+    const exported = source.documents.executeExport(source.documents.createExportPlan())
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    const migrations = {
+      1: (payload: Parameters<PicodashSchemaMigration>[0]) => ({
+        ...payload,
+        schemaVersion: 2,
+        values: { ...payload.values, value: 2 },
+      }),
+    }
+    const target = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-migration-target',
+      schemaVersion: 2,
+      fields: { value: { defaultValue: 0 } },
+      migrations,
+    })
+    migrations[1] = (payload) => ({
+      ...payload,
+      schemaVersion: 2,
+      values: { ...payload.values, value: 99 },
+    })
+
+    const analysis = target.documents.analyzeImport(exported.document, { allowForeignStore: true })
+    expect(analysis.ok).toBe(true)
+    if (!analysis.ok) return
+    expect(target.documents.executeImport(analysis.plan)).toMatchObject({ ok: true })
+    expect(target.getState().values.value).toBe(2)
+    source.destroy()
+    target.destroy()
   })
 
   it('holds the write lock while import analysis validators run', () => {

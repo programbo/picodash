@@ -155,6 +155,7 @@ describe('@picodash/dashlist alpha shell', () => {
         store,
         title: 'Settings',
         headingLevel: 3,
+        'aria-label': 'Explicit settings controls',
         children: [
           createElement(
             Fragment,
@@ -175,6 +176,10 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(renderer.root.findByType('h3').children).toEqual(['Settings'])
     expect(renderer.root.findAllByProps({ role: 'list' }).length).toBe(2)
     expect(renderer.root.findAllByProps({ role: 'listitem' }).length).toBe(2)
+    expect(renderer.root.findByProps({ 'data-picodash-dashlist-list': true }).props).toMatchObject({
+      'aria-label': 'Explicit settings controls',
+      'aria-labelledby': undefined,
+    })
     expect(renderer.root.findByProps({ role: 'status' }).props['aria-live']).toBe('polite')
     expect(renderer.root.findByType('input').props.defaultValue).toBe('retained')
     act(() => renderer.unmount())

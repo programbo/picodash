@@ -92,6 +92,24 @@ describe('Store beta migration and metadata recovery', () => {
     )
   })
 
+  it('validates migration results from the same captured descriptor snapshot it returns', () => {
+    const result = new Proxy(
+      { schemaVersion: 3, values: {}, scopes: [] },
+      {
+        get(target, key, receiver) {
+          return key === 'schemaVersion' ? 2 : Reflect.get(target, key, receiver)
+        },
+      },
+    )
+    expect(() =>
+      runSchemaMigrations({ schemaVersion: 1, values: {}, scopes: [] }, 2, {
+        1: () => result,
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<SchemaMigrationError>>({ reason: 'wrong-version' }),
+    )
+  })
+
   it('rejects accessor, symbol, and out-of-range migration configuration keys', () => {
     const accessor = Object.defineProperty({}, '1', {
       get: () => () => undefined,

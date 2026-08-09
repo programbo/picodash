@@ -35,7 +35,7 @@ import {
   type PicodashMetadataRecoveryState,
   type PicodashQuarantinedScopeMetadata,
 } from '../metadata-recovery.js'
-import { validateSchemaMigrations, type SchemaMigrations } from '../migration.js'
+import { normalizeSchemaMigrations, type SchemaMigrations } from '../migration.js'
 import type {
   PicodashEnvelopeInput,
   PicodashPersistence,
@@ -1503,7 +1503,8 @@ export function createPicodashStore<
   const configuredFieldKeys = Object.keys(config.fields)
   const configuredStoreId = config.storeId
   const configuredSchemaVersion = config.schemaVersion
-  const configuredMigrations = config.migrations
+  const suppliedMigrations = config.migrations
+  let configuredMigrations: SchemaMigrations | undefined
   let configuredExportPolicy: PicodashExportPolicy | undefined
   const configuredExport = (config as { readonly export?: unknown }).export
   if (configuredExport !== undefined) {
@@ -1529,7 +1530,7 @@ export function createPicodashStore<
       configuredSchemaVersion <= 0)
   )
     throw new PicodashContractError('invalid-configuration')
-  if (configuredMigrations !== undefined) {
+  if (suppliedMigrations !== undefined) {
     if (
       !validIdentity(configuredStoreId) ||
       !Number.isSafeInteger(configuredSchemaVersion) ||
@@ -1538,7 +1539,7 @@ export function createPicodashStore<
     )
       throw new PicodashContractError('invalid-configuration')
     try {
-      validateSchemaMigrations(configuredMigrations, configuredSchemaVersion)
+      configuredMigrations = normalizeSchemaMigrations(suppliedMigrations, configuredSchemaVersion)
     } catch {
       throw new PicodashContractError('invalid-configuration')
     }
@@ -1558,7 +1559,7 @@ export function createPicodashStore<
     config.valueOwner === 'external' &&
     (config.initialEnvelope !== undefined ||
       config.persistence !== undefined ||
-      configuredMigrations !== undefined ||
+      suppliedMigrations !== undefined ||
       config.export !== undefined) &&
     (!validIdentity(configuredStoreId) ||
       !Number.isSafeInteger(configuredSchemaVersion) ||
@@ -4379,19 +4380,23 @@ export function createPicodashStore<
     const controller = runtimeControllerFor(store as object)
     if (!controller || controller.lifecycle !== 'active')
       throw new PicodashContractError('use-after-destroy')
-    const discardUnpersisted = validateDestroyRootOptions(options)
-    if (writing) throw new PicodashContractError('reentrant-write')
-    if (controller.hasActiveLeases()) throw new PicodashContractError('root-has-active-leases')
-    if (!discardUnpersisted && controller.hasUnpersistedState())
-      throw new PicodashContractError('root-has-unpersisted-state')
-    controller.destroyResources({ discardUnpersisted })
+    if (writing) {
+      validateDestroyRootOptions(options)
+      throw new PicodashContractError('reentrant-write')
+    }
+    withWriteLock(() => {
+      const discardUnpersisted = validateDestroyRootOptions(options)
+      if (controller.hasActiveLeases()) throw new PicodashContractError('root-has-active-leases')
+      if (!discardUnpersisted && controller.hasUnpersistedState())
+        throw new PicodashContractError('root-has-unpersisted-state')
+      controller.destroyResources({ discardUnpersisted })
+    })
   }
 
-  function destroyScopeInternal(
+  function destroyScopeInternalLocked(
     scopeId: string,
     options?: DestroyScopeOptions,
   ): CoreTransactionResult {
-    if (writing) throw new PicodashContractError('reentrant-write')
     validateScopeId(scopeId)
     const includeDescendants = validateDestroyOptions(options)
     const targets = new Set<string>([scopeId])
@@ -4407,37 +4412,39 @@ export function createPicodashStore<
       .sort()
     if (!changedScopeIds.length && !changedInteractionScopeIds.length)
       return resultWithPersistence(successfulResult())
-    writing = true
-    try {
-      const nextEntries = [...scopes.entries()].filter(([id]) => !targets.has(id))
-      scopes = nextEntries.length ? immutableMap(nextEntries) : EmptyScopes
-      const previousQuarantinedScopes = quarantinedScopes
-      const nextQuarantinedEntries = [...quarantinedScopes.entries()].filter(
-        ([id]) => !targets.has(id),
-      )
-      quarantinedScopes = nextQuarantinedEntries.length
-        ? immutableMap(nextQuarantinedEntries)
-        : immutableMap<string, PicodashQuarantinedScopeMetadata>([])
-      for (const id of targets) interactionByScope.delete(id)
-      currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
-      const affectedChannels = new Set<ScopedChannel>()
-      for (const id of new Set([...changedScopeIds, ...changedInteractionScopeIds]))
-        for (const channel of collectScopedChannels(id)) affectedChannels.add(channel)
-      refreshScopedChannels(affectedChannels)
-      publishQuarantineTransition(previousQuarantinedScopes, quarantinedScopes)
-      const reportedChangedScopeIds = [
-        ...new Set([...changedScopeIds, ...changedInteractionScopeIds]),
-      ].sort()
-      const persistedResult = resultWithPersistence(successfulResult([], changedScopeIds))
-      const result = Object.freeze({
-        ...persistedResult,
-        changedScopeIds: Object.freeze(reportedChangedScopeIds),
-      })
-      dispatchStoreSubscribers(affectedChannels, changedScopeIds.length > 0)
-      return result
-    } finally {
-      writing = false
-    }
+    const nextEntries = [...scopes.entries()].filter(([id]) => !targets.has(id))
+    scopes = nextEntries.length ? immutableMap(nextEntries) : EmptyScopes
+    const previousQuarantinedScopes = quarantinedScopes
+    const nextQuarantinedEntries = [...quarantinedScopes.entries()].filter(
+      ([id]) => !targets.has(id),
+    )
+    quarantinedScopes = nextQuarantinedEntries.length
+      ? immutableMap(nextQuarantinedEntries)
+      : immutableMap<string, PicodashQuarantinedScopeMetadata>([])
+    for (const id of targets) interactionByScope.delete(id)
+    currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
+    const affectedChannels = new Set<ScopedChannel>()
+    for (const id of new Set([...changedScopeIds, ...changedInteractionScopeIds]))
+      for (const channel of collectScopedChannels(id)) affectedChannels.add(channel)
+    refreshScopedChannels(affectedChannels)
+    publishQuarantineTransition(previousQuarantinedScopes, quarantinedScopes)
+    const reportedChangedScopeIds = [
+      ...new Set([...changedScopeIds, ...changedInteractionScopeIds]),
+    ].sort()
+    const persistedResult = resultWithPersistence(successfulResult([], changedScopeIds))
+    const result = Object.freeze({
+      ...persistedResult,
+      changedScopeIds: Object.freeze(reportedChangedScopeIds),
+    })
+    dispatchStoreSubscribers(affectedChannels, changedScopeIds.length > 0)
+    return result
+  }
+
+  function destroyScopeInternal(
+    scopeId: string,
+    options?: DestroyScopeOptions,
+  ): CoreTransactionResult {
+    return withWriteLock(() => destroyScopeInternalLocked(scopeId, options))
   }
 
   function makeScopedSnapshot(scopeId: string): ScopedSnapshot<ValuesOf<Fields>> {

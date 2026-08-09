@@ -524,6 +524,8 @@ export function decodePersistenceEnvelope(
     if (value.kind !== 'picodash-store-envelope' || value.formatVersion !== 1)
       return { ok: false, reason: 'format' }
     if (value.storeId !== expected.storeId) return { ok: false, reason: 'identity' }
+    if (!Number.isSafeInteger(value.schemaVersion) || (value.schemaVersion as number) <= 0)
+      return { ok: false, reason: 'schema' }
     if (
       expected.schemaVersion !== undefined &&
       value.schemaVersion !== expected.schemaVersion &&

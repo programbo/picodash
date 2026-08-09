@@ -406,14 +406,18 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     const commonIssuesId = `${labelId}-issues`
     const bindingIssuesId = `${labelId}-binding-issues`
     const bindingStore = useOptionalStore<PicodashFieldDefinitions>()
-    const descriptors = useMemo(
-      () =>
-        normalizeBindingDescriptors(field as never, fields as never).map((descriptor) => ({
-          ...descriptor,
-          mode: field && mode ? mode : descriptor.mode,
-        })),
-      [field, fields, mode],
-    )
+    const descriptors = useMemo(() => {
+      if (fields !== undefined && mode !== undefined)
+        throw new TypeError('Compound Dashlet bindings do not accept a top-level mode.')
+      if (field === undefined && fields === undefined && mode !== undefined)
+        throw new TypeError('Unbound Dashlets do not accept a binding mode.')
+      return normalizeBindingDescriptors(field as never, fields as never).map((descriptor) => {
+        const resolvedMode = field !== undefined && mode !== undefined ? mode : descriptor.mode
+        if (resolvedMode !== 'input' && resolvedMode !== 'display')
+          throw new TypeError('Dashlet binding mode must be input or display.')
+        return { ...descriptor, mode: resolvedMode }
+      })
+    }, [field, fields, mode])
     const bindingRuntime = useDashletBindings(
       bindingStore as ScopedStore<PicodashFieldDefinitions>,
       id,
@@ -601,7 +605,8 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   const headingId = title === undefined ? undefined : `picodash-dashlist-heading-${headingIdToken}`
   const statusId = `picodash-dashlist-status-${useId()}`
   const [announcement, setAnnouncement] = useState('')
-  const listName = ariaLabelledBy ?? (title === undefined ? undefined : headingId)
+  const listName =
+    ariaLabelledBy ?? (ariaLabel === undefined && title !== undefined ? headingId : undefined)
   return (
     <PicodashThemeProvider theme={theme} density={density}>
       <PicodashStoreEntityBoundary

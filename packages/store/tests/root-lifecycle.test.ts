@@ -83,6 +83,27 @@ describe('Store root destruction', () => {
     expect(failure(() => store.destroy()).code).toBe('use-after-destroy')
   })
 
+  it('holds the write lock while root destroy options are reflected', () => {
+    const store = makeStore()
+    let nestedCode: string | undefined
+    const options = new Proxy(
+      { discardUnpersisted: true as const },
+      {
+        ownKeys(target) {
+          try {
+            store.setValue(store.fields.value, 2)
+          } catch (error) {
+            nestedCode = (error as PicodashContractError).code
+          }
+          return Reflect.ownKeys(target)
+        },
+      },
+    )
+
+    store.destroy(options)
+    expect(nestedCode).toBe('reentrant-write')
+  })
+
   it('refuses every active lease kind before pending-state checks', () => {
     const providerStore = makeStore()
     const provider = acquireProviderLease(providerStore)

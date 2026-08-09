@@ -95,18 +95,45 @@ const validScopeId = (value: unknown): value is string => {
   return true
 }
 
-/** Validates the immutable migration registry during Store construction. */
+/** Captures and validates an immutable migration registry during Store construction. */
+export function normalizeSchemaMigrations(
+  migrations: unknown,
+  targetSchemaVersion: number,
+): SchemaMigrations {
+  if (!migrations || typeof migrations !== 'object' || Array.isArray(migrations))
+    throw new Error('invalid migration configuration')
+  const prototype = Object.getPrototypeOf(migrations)
+  if (prototype !== Object.prototype && prototype !== null)
+    throw new Error('invalid migration configuration')
+  const descriptors = Object.getOwnPropertyDescriptors(migrations)
+  const captured = Object.create(null) as Record<number, PicodashSchemaMigration>
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key !== 'string' || !validVersionKey(key)) throw new Error('invalid migration key')
+    const version = Number(key)
+    if (version >= targetSchemaVersion) throw new Error('invalid migration key')
+    const descriptor = descriptors[key]!
+    if (
+      !descriptor.enumerable ||
+      !('value' in descriptor) ||
+      typeof descriptor.value !== 'function'
+    )
+      throw new Error('invalid migration callback')
+    Object.defineProperty(captured, version, {
+      value: descriptor.value,
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    })
+  }
+  return Object.freeze(captured)
+}
+
+/** Validates a migration registry without retaining the caller-owned record. */
 export function validateSchemaMigrations(
   migrations: unknown,
   targetSchemaVersion: number,
 ): asserts migrations is SchemaMigrations {
-  if (!isRecord(migrations)) throw new Error('invalid migration configuration')
-  for (const key of Reflect.ownKeys(migrations)) {
-    if (typeof key !== 'string' || !validVersionKey(key)) throw new Error('invalid migration key')
-    const version = Number(key)
-    if (version >= targetSchemaVersion) throw new Error('invalid migration key')
-    if (typeof migrations[key] !== 'function') throw new Error('invalid migration callback')
-  }
+  normalizeSchemaMigrations(migrations, targetSchemaVersion)
 }
 
 function freezePayload(value: PicodashSchemaMigrationPayload): PicodashSchemaMigrationPayload {
@@ -147,20 +174,23 @@ function validPayload(value: unknown): value is PicodashSchemaMigrationPayload {
   return true
 }
 
+function canonicalPayload(value: unknown): PicodashSchemaMigrationPayload | undefined {
+  try {
+    const payload = freezePayload(value as PicodashSchemaMigrationPayload)
+    return validPayload(payload) ? payload : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /** Runs the complete N -> N+1 chain against detached, deeply frozen JSON payloads. */
 export function runSchemaMigrations(
   input: PicodashSchemaMigrationPayload,
   targetSchemaVersion: number,
   migrations: SchemaMigrations | undefined,
 ): PicodashSchemaMigrationPayload {
-  let payload: PicodashSchemaMigrationPayload
-  try {
-    if (!validPayload(input)) throw new SchemaMigrationError('invalid-result')
-    payload = freezePayload(input)
-  } catch (error) {
-    if (error instanceof SchemaMigrationError) throw error
-    throw new SchemaMigrationError('invalid-result')
-  }
+  const payload = canonicalPayload(input)
+  if (!payload) throw new SchemaMigrationError('invalid-result')
   if (payload.schemaVersion > targetSchemaVersion) throw new SchemaMigrationError('source-newer')
   if (payload.schemaVersion === targetSchemaVersion) return payload
   const registry = migrations ?? ({} as SchemaMigrations)
@@ -175,14 +205,11 @@ export function runSchemaMigrations(
       throw new SchemaMigrationError('callback-threw')
     }
     if (isPromiseLike(result)) throw new SchemaMigrationError('async-result')
-    if (!validPayload(result)) throw new SchemaMigrationError('invalid-result')
-    if (result.schemaVersion !== current.schemaVersion + 1)
+    const next = canonicalPayload(result)
+    if (!next) throw new SchemaMigrationError('invalid-result')
+    if (next.schemaVersion !== current.schemaVersion + 1)
       throw new SchemaMigrationError('wrong-version')
-    try {
-      current = freezePayload(result)
-    } catch {
-      throw new SchemaMigrationError('invalid-result')
-    }
+    current = next
   }
   return current
 }

@@ -1040,6 +1040,14 @@ describe('Store-owned alpha persistence', () => {
     expect(
       decodePersistenceEnvelope(unsorted, { storeId: 'persistence-test', schemaVersion: 1 }),
     ).toMatchObject({ ok: false, reason: 'metadata' })
+    for (const schemaVersion of [0, -1, 1.5, '1'])
+      expect(
+        decodePersistenceEnvelope(
+          { ...valid, schemaVersion },
+          { storeId: 'persistence-test', schemaVersion: 1 },
+          { allowSchemaMismatch: true },
+        ),
+      ).toMatchObject({ ok: false, reason: 'schema' })
 
     let getterCalls = 0
     const tuple = ['scope', {}] as unknown as Record<string, unknown>
