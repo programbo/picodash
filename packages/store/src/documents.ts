@@ -893,7 +893,14 @@ export function buildPicodashDocumentOverlay(
       changedFields.push(targetKey)
   }
 
-  const targetScopeMap = mapRecord(input.targetScopes)
+  const targetScopeMap = new Map(
+    input.targetScopes.map(([scopeId, metadata]) => [
+      scopeId,
+      clonePicodashValue(
+        metadata as unknown as PicodashJsonValue,
+      ) as unknown as SerializedDurableScopeMetadata,
+    ]),
+  )
   const targetScopeIds = new Set(
     input.targetScopeIds ?? input.targetScopes.map(([scopeId]) => scopeId),
   )

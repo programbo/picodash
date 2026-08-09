@@ -721,4 +721,39 @@ describe('binding interaction commands', () => {
     unsubscribe()
     store.destroy()
   })
+
+  it('rejects nested repair execution before consuming the plan', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        value: {
+          defaultValue: 1,
+          parse: () => ({ ok: false as const, issues: [{ message: 'invalid' }], repair: 2 }),
+        },
+      },
+    })
+    const scope = store.scope('repair-lock')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.value,
+      mode: 'input',
+    })
+    const failed = scope.setInput(binding, 'invalid')
+    expect(failed.ok).toBe(false)
+    if (failed.ok || !failed.repair) return
+    let nestedError: unknown
+    const unsubscribe = store.subscribe(() => {
+      try {
+        scope.executeRepair(failed.repair!)
+      } catch (error) {
+        nestedError = error
+      }
+    })
+    store.setDashListRootOrder('unrelated', ['node'])
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    unsubscribe()
+    expect(scope.executeRepair(failed.repair)).toMatchObject({ ok: true })
+    binding.release()
+    store.destroy()
+  })
 })

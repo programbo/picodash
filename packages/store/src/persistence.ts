@@ -983,6 +983,14 @@ export function createPersistenceController(
   let liveRevision = selected?.revision ?? 0
   let writerId = selected?.writerId ?? newWriterId()
   let pending: PersistenceCodecRecord | undefined
+  let uncertainWrite:
+    | Readonly<{
+        record: PersistenceCodecRecord
+        values: PersistenceValues
+        scopes: PersistenceScopes
+        quarantinedScopes: ReadonlyMap<string, PicodashQuarantinedScopeMetadata>
+      }>
+    | undefined
   let lastError: PicodashPersistenceDiagnostic | undefined
   let conflict: PicodashPersistenceConflict | undefined
   let conflictGeneration = 0
@@ -1208,16 +1216,32 @@ export function createPersistenceController(
     options.withKernelWrite(() => options.onConflict(conflict!))
     publish()
   }
-  const confirmDurable = (after: StructuredObservation): PersistenceWriteStatus => {
-    pending = undefined
+  const observationMatchesRecord = (
+    observation: StructuredObservation,
+    record: PersistenceCodecRecord,
+  ) =>
+    observation.sourceContent === sourceContent(record.envelope) &&
+    observation.revision === record.revision &&
+    observation.writerId === record.writerId
+  const confirmDurable = (
+    after: StructuredObservation,
+    preservePending = false,
+  ): PersistenceWriteStatus => {
+    const confirmedState =
+      uncertainWrite && observationMatchesRecord(after, uncertainWrite.record)
+        ? uncertainWrite
+        : { values, scopes, quarantinedScopes }
+    if (!preservePending) pending = undefined
     lastError = undefined
     durableRevision = after.revision
     durableWriterId = after.writerId
     confirmedContent = after.content
     confirmedFenceContent = after.fenceContent
-    confirmedValues = values
-    confirmedScopes = scopes
-    confirmedQuarantinedScopes = quarantinedScopes
+    confirmedValues = confirmedState.values
+    confirmedScopes = confirmedState.scopes
+    confirmedQuarantinedScopes = confirmedState.quarantinedScopes
+    if (uncertainWrite && observationMatchesRecord(after, uncertainWrite.record))
+      uncertainWrite = undefined
     conflict = undefined
     conflictObservation = undefined
     conflictWasRemoval = false
@@ -1243,12 +1267,23 @@ export function createPersistenceController(
       markConflict('foreign-removal')
       return 'pending'
     }
+    if (uncertainWrite && uncertainWrite.record !== candidate && isStructuredCurrent(current)) {
+      if (observationMatchesRecord(current, uncertainWrite.record)) confirmDurable(current, true)
+      else if (
+        current.revision === durableRevision &&
+        current.writerId === durableWriterId &&
+        current.fenceContent === confirmedFenceContent
+      ) {
+        uncertainWrite = undefined
+        lastError = undefined
+        options.withKernelWrite(() => options.onRecovery())
+        publish()
+      }
+    }
     if (
       pending === candidate &&
       isStructuredCurrent(current) &&
-      current.sourceContent === sourceContent(candidate.envelope) &&
-      current.revision === candidate.revision &&
-      current.writerId === candidate.writerId
+      observationMatchesRecord(current, candidate)
     )
       return confirmDurable(current)
     if (
@@ -1270,12 +1305,13 @@ export function createPersistenceController(
         return 'pending'
       }
       const after = readCurrent()
-      if (
-        !isStructuredCurrent(after) ||
-        after.sourceContent !== sourceContent(candidate.envelope) ||
-        after.revision !== candidate.revision ||
-        after.writerId !== candidate.writerId
-      ) {
+      if (!isStructuredCurrent(after) || !observationMatchesRecord(after, candidate)) {
+        uncertainWrite = Object.freeze({
+          record: candidate,
+          values,
+          scopes,
+          quarantinedScopes,
+        })
         recordFailure('write-verification-failed')
         publish()
         return 'pending'
@@ -1401,17 +1437,19 @@ export function createPersistenceController(
             return
           }
           if (!current) {
-            if (durableRevision === null && initialRecord !== undefined) return
+            if (durableRevision === null && pending === undefined && lastError === undefined) return
             markConflict('foreign-removal')
             return
           }
           if (!isStructuredCurrent(current)) return
           if (
-            pending !== undefined &&
-            current.sourceContent === sourceContent(pending.envelope) &&
-            current.revision === pending.revision &&
-            current.writerId === pending.writerId
+            uncertainWrite !== undefined &&
+            observationMatchesRecord(current, uncertainWrite.record)
           ) {
+            confirmDurable(current, pending !== uncertainWrite.record)
+            return
+          }
+          if (pending !== undefined && observationMatchesRecord(current, pending)) {
             confirmDurable(current)
             return
           }
@@ -1461,9 +1499,10 @@ export function createPersistenceController(
         values = nextValues
         scopes = nextScopes
         quarantinedScopes = nextQuarantinedScopes
+        liveRevision = candidate.revision
         pending = candidate
         publish()
-        return 'unchanged'
+        return 'pending'
       }
       const uncertain = pending
       if (uncertain !== undefined) {

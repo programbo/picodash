@@ -4168,6 +4168,7 @@ export function createPicodashStore<
   }
 
   function executeRepairInternal(plan: object): CoreTransactionResult {
+    if (writing) throw new PicodashContractError('reentrant-write')
     const registry = bindingPlanRecord(plan)
     if (!registry)
       throw new PicodashContractError('invalid-binding-plan', {
@@ -4911,6 +4912,7 @@ export function createPicodashStore<
   }
 
   function executePrunePlanInternal(plan: object, expectedScopeId?: string): CoreTransactionResult {
+    if (writing) throw new PicodashContractError('reentrant-write')
     let registry: ReturnType<typeof dashListPrunePlanRecord>
     try {
       registry = dashListPrunePlanRecord(plan)

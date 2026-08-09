@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 import { acquireDashListNodeLease, type DashListNodeLease } from '../src/integration.ts'
 import { createPicodashStore, PicodashContractError } from '../src/index.ts'
 
@@ -175,6 +175,31 @@ describe('DashList node leases and prune plans', () => {
     const plan = scoped.createPrunePlan({ mode: 'inventory', knownNodeIds: [] })
     expect(scoped.executePrunePlan(plan)).toMatchObject({ ok: true, changedScopeIds: ['scope'] })
     expect(scoped.getState().scope).toBeUndefined()
+  })
+
+  it('rejects nested prune execution before consuming the plan', () => {
+    const store = makeStore()
+    const scoped = store.scope('scope')
+    scoped.setDashListRootOrder(['stale'])
+    const plan = scoped.createPrunePlan({ mode: 'inventory', knownNodeIds: [] })
+    let nestedError: unknown
+    const listener = vi.fn(() => {
+      try {
+        scoped.executePrunePlan(plan)
+      } catch (error) {
+        nestedError = error
+      }
+    })
+    const unsubscribe = store.subscribe(listener)
+    store.setDashListRootOrder('unrelated', ['node'])
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    unsubscribe()
+    expect(scoped.executePrunePlan(plan)).toMatchObject({
+      ok: true,
+      changedScopeIds: ['scope'],
+    })
+    store.destroy()
   })
 
   it('rejects forged, review, and foreign plans without exposing runtime state', () => {

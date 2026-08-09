@@ -16,6 +16,7 @@ import {
   normalizePicodashScopeMap,
   stripRedactedPicodashDocumentFields,
 } from '../src/documents.ts'
+import type { SerializedDurableScopeMetadata } from '../src/metadata.ts'
 
 const metadata = {
   dashPanel: {
@@ -274,6 +275,34 @@ describe('redaction, migration, and overlay helpers', () => {
         reason: 'duplicate-target',
       }),
     )
+  })
+
+  it('detaches unchanged target scopes in pure overlays', () => {
+    const mutableMetadata: SerializedDurableScopeMetadata = {
+      dashPanel: {
+        placement: { mode: 'floating', disposition: { kind: 'free' } },
+        preferredPosition: { x: 1, y: 2 },
+      },
+    }
+    const overlay = buildPicodashDocumentOverlay({
+      document: decodePicodashDocument({ ...rootDocument(), scopes: [] }),
+      targetValues: { alpha: 'old' },
+      targetScopes: [['unchanged', mutableMetadata]],
+      targetFieldKeys: ['alpha'],
+    })
+    ;(mutableMetadata.dashPanel!.preferredPosition as { x: number; y: number }).x = 99
+    expect(overlay.scopes).toEqual([
+      [
+        'unchanged',
+        {
+          dashPanel: {
+            placement: { mode: 'floating', disposition: { kind: 'free' } },
+            preferredPosition: { x: 1, y: 2 },
+          },
+        },
+      ],
+    ])
+    expect(Object.isFrozen(overlay.scopes[0]![1])).toBe(true)
   })
 
   it('rejects a descendant remap onto the scoped root target', () => {
