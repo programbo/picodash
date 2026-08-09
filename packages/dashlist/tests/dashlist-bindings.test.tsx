@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vite-plus/test'
 import { createPicodashStore } from '@picodash/store'
 import { acquireBindingLease } from '@picodash/store/integration'
 import { DashList, Dashlet } from '../src/index.tsx'
+import { issuesForDashlet } from '../src/bindings.tsx'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -250,6 +251,20 @@ describe('DashList bindings', () => {
     expect(view.root.findByType('a').props.href).toBe('#help')
     act(() => view.unmount())
     store.destroy()
+  })
+
+  it('does not render issues explicitly attributed to another Dashlet', () => {
+    const issue = {
+      code: 'validation_failed' as const,
+      path: Object.freeze(['values', 'count']),
+      message: 'Another Dashlet rejected its value.',
+      scopeId: 'other-list',
+      itemId: 'other-item',
+      fieldKey: 'count',
+    }
+    expect(issuesForDashlet([issue], 'list', 'count')).toEqual([])
+    expect(issuesForDashlet([issue], 'other-list', 'count')).toEqual([])
+    expect(issuesForDashlet([issue], 'other-list', 'other-item')).toEqual([issue])
   })
 
   it('offers shell-owned stale overwrite confirmation without exposing a plan in context', () => {

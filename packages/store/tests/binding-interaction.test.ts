@@ -133,6 +133,39 @@ describe('binding interaction commands', () => {
     store.destroy()
   })
 
+  it('stales repair plans when another value observed by root validation changes', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        value: {
+          defaultValue: 1,
+          parse: () => ({ ok: false as const, issues: [{ message: 'bad' }], repair: 2 }),
+        },
+        limit: { defaultValue: 2 },
+      },
+      validateValues: (values: { readonly value: number; readonly limit: number }) =>
+        values.value <= values.limit ? [] : [{ message: 'Value exceeds the limit.' }],
+    })
+    const scoped = store.scope('scope')
+    const binding = acquireBindingLease(scoped, {
+      itemId: 'item',
+      field: scoped.fields.value,
+      mode: 'input',
+    })
+    const failed = scoped.setInput(binding, 0)
+    expect(failed.ok).toBe(false)
+    if (!failed.ok) {
+      expect(failed.repair).toBeDefined()
+      expect(store.setValue(store.fields.limit, 1)).toMatchObject({ ok: true })
+      expect(scoped.executeRepair(failed.repair!)).toMatchObject({
+        ok: false,
+        error: { issues: [{ code: 'stale_plan' }] },
+      })
+    }
+    binding.release()
+    store.destroy()
+  })
+
   it('short-circuits schema and validators after parse failure', () => {
     let schemaCalls = 0
     let fieldCalls = 0

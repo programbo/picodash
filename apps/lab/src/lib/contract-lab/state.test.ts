@@ -28,7 +28,7 @@ test('defines exactly the six curated Contract Lab presets', () => {
   expect(CONTRACT_LAB_PRESETS.map(({ description }) => description)).toEqual([
     'Browser placement, docking, snapping, dragging, and persisted layout remain planned.',
     'Panel visibility, close/reopen, activation, and retained content are available; durable layout, removal, modal presentation, and reordering remain planned.',
-    'Named Dashlets and one-level DashGroups render typed input, display, and compound Store bindings; ordering, group collapse, stale confirmation, and ready-made Dashlets remain planned.',
+    'Named Dashlets and one-level DashGroups render typed input, display, and compound Store bindings; shell-owned stale-draft confirmation is available while ordering and ready-made Dashlets remain planned.',
     'Shared UI AlertDialog behavior is available; Panel/List portal coordination and stacked overlay journeys remain planned.',
     'Store documents and DashList import, export, repair, and reset actions remain planned.',
     'Theme and density Providers are available; detached portal carriers and complete compact geometry remain planned.',

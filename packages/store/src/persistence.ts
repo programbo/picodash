@@ -1268,6 +1268,11 @@ export function createPersistenceController(
   if (racedRecord === 'error') failInit('read')
   if (isInvalidCurrent(racedRecord)) failInit(racedRecord.invalid)
   if (racedRecord === undefined && driverRecord !== undefined) {
+    pending = undefined
+    lastError = undefined
+    conflict = undefined
+    conflictObservation = undefined
+    conflictWasRemoval = false
     driverRecord = undefined
     values = initialRecord?.values ?? options.baselineValues
     scopes = initialRecord?.scopes ?? new Map()
@@ -1302,6 +1307,11 @@ export function createPersistenceController(
       if (racedRecord.sourceContent !== initialRecord.sourceContent) failInit('content')
     }
     driverRecord = racedRecord
+    pending = undefined
+    lastError = undefined
+    conflict = undefined
+    conflictObservation = undefined
+    conflictWasRemoval = false
     values = racedRecord.values as PersistenceValues
     scopes = racedRecord.scopes
     quarantinedScopes = racedRecord.quarantinedScopes

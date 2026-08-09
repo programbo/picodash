@@ -220,6 +220,8 @@ describe('Store beta migration and metadata recovery', () => {
     })
     const store = createPicodashStore(config(persistence))
     const recovery = store.metadataRecovery
+    const firstRecoverySnapshot = recovery.getState()
+    expect(recovery.getState()).toBe(firstRecoverySnapshot)
     let recoveryNotifications = 0
     const unsubscribe = recovery.subscribe(() => {
       recoveryNotifications += 1
@@ -256,6 +258,8 @@ describe('Store beta migration and metadata recovery', () => {
       persistence: 'saved',
     })
     expect(recovery.getState().quarantinedScopes.has('bad-scope')).toBe(false)
+    expect(recovery.getState()).not.toBe(firstRecoverySnapshot)
+    expect(recovery.getState()).toBe(recovery.getState())
     expect(recoveryNotifications).toBe(1)
     unsubscribe()
     expect(JSON.parse(persistence.inspect('state') as string).scopes).toHaveLength(1)

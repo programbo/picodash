@@ -2238,6 +2238,7 @@ export function createPicodashStore<
     readonly baseValue: PicodashJsonValue
     readonly draft: PicodashJsonValue
     readonly candidate: PicodashJsonValue
+    readonly targetValues: Readonly<Record<string, PicodashJsonValue>>
     consumed: boolean
     readonly registry: BindingPlanRegistryRecord
   }
@@ -2270,6 +2271,9 @@ export function createPicodashStore<
   type StoreResult = CoreTransactionResult
   let metadataRecoveryCapability!: PicodashMetadataRecovery<StoreResult>
   let store!: RootStore<Fields, StoreResult, boolean, boolean>
+  let metadataRecoverySnapshot: PicodashMetadataRecoveryState = Object.freeze({
+    quarantinedScopes,
+  })
   const metadataRecoveryRuntime = createMetadataRecovery<StoreResult>({
     assertActive: () => {
       if (runtimeController?.lifecycle !== 'active')
@@ -2301,6 +2305,7 @@ export function createPicodashStore<
       )
     })
     if (!changedScopeIds.length) return
+    metadataRecoverySnapshot = Object.freeze({ quarantinedScopes: next })
     for (const scopeId of changedScopeIds) {
       if (next.has(scopeId)) {
         if (!previous.has(scopeId))
@@ -3766,6 +3771,7 @@ export function createPicodashStore<
               baseValue,
               draft,
               candidate: repair.value!,
+              targetValues: values as Readonly<Record<string, PicodashJsonValue>>,
               consumed: false,
               registry,
             }
@@ -4046,6 +4052,7 @@ export function createPicodashStore<
       ?.get(record.alias)
     if (
       !current ||
+      JSON.stringify(values) !== JSON.stringify(record.targetValues) ||
       (fieldRevisions.get(record.fieldKey) ?? 0) !== record.revision ||
       !picodashJsonEqual(current.draft!, record.draft)
     )
@@ -4839,7 +4846,7 @@ export function createPicodashStore<
   }
 
   function metadataRecoveryState(): PicodashMetadataRecoveryState {
-    return Object.freeze({ quarantinedScopes })
+    return metadataRecoverySnapshot
   }
 
   function replaceQuarantinedScopeInternal(

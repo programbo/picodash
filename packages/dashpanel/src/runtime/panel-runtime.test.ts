@@ -282,11 +282,13 @@ describe('private DashPanel runtime model', () => {
       runtime.acquire(config('panel'))
       const panel = new FocusElement('ASIDE')
       const hiddenButton = new FocusElement('BUTTON', { parent: panel, display: 'none' })
+      const rejectedButton = new FocusElement('BUTTON', { parent: panel, focusSucceeds: false })
       const visibleButton = new FocusElement('BUTTON', { parent: panel })
       runtime.registerElement('panel', panel as unknown as HTMLElement)
       focusPanel(runtime, 'panel')
       expect(document.activeElement).toBe(visibleButton)
       expect(document.activeElement).not.toBe(hiddenButton)
+      expect(document.activeElement).not.toBe(rejectedButton)
 
       const disabledTrigger = new FocusElement('BUTTON')
       disabledTrigger.attributes.set('disabled', '')

@@ -156,6 +156,20 @@ export function dedupeIssues(issues: readonly TransactionIssue[]): readonly Tran
   )
 }
 
+export function issuesForDashlet(
+  issues: readonly TransactionIssue[],
+  scopeId: string,
+  itemId: string,
+): readonly TransactionIssue[] {
+  return Object.freeze(
+    issues.filter(
+      (issue) =>
+        (issue.scopeId === undefined || issue.scopeId === scopeId) &&
+        (issue.itemId === undefined || issue.itemId === itemId),
+    ),
+  )
+}
+
 type Runtime = {
   readonly descriptor: BindingDescriptor
   readonly handle?: BindingHandle<PicodashFieldDefinitions, string>
@@ -283,10 +297,14 @@ export function useDashletBindings(
     const interaction = state.interaction.bindings.get(itemId)
     const bindings: Record<string, DashletBindingContext<PicodashJsonValue>> = Object.create(null)
     const staleOverwrite: Record<string, StaleOverwriteController> = Object.create(null)
-    const allIssues = dedupeIssues(
-      stableDescriptors
-        .flatMap((descriptor) => interaction?.get(descriptor.alias)?.inputIssues ?? [])
-        .concat(commandIssues),
+    const allIssues = issuesForDashlet(
+      dedupeIssues(
+        stableDescriptors
+          .flatMap((descriptor) => interaction?.get(descriptor.alias)?.inputIssues ?? [])
+          .concat(commandIssues),
+      ),
+      store.scopeId,
+      itemId,
     )
     const owners = new Map<string, string>()
     const common: TransactionIssue[] = []
@@ -334,7 +352,11 @@ export function useDashletBindings(
             if (policy.current.disabled || policy.current.readOnly) return
             const runtime = runtimes.current.find((entry) => entry.descriptor.alias === key)
             if (!runtime?.handle) return
-            const nextIssues = issuesFromResult(store.setInput(runtime.handle, candidate))
+            const nextIssues = issuesForDashlet(
+              issuesFromResult(store.setInput(runtime.handle, candidate)),
+              store.scopeId,
+              itemId,
+            )
             setCommandIssues(nextIssues)
             publishAnnouncement(
               nextIssues
@@ -355,7 +377,11 @@ export function useDashletBindings(
           },
           resetValue: () => {
             if (policy.current.disabled || policy.current.readOnly) return
-            const nextIssues = issuesFromResult(store.resetValue(descriptor.field))
+            const nextIssues = issuesForDashlet(
+              issuesFromResult(store.resetValue(descriptor.field)),
+              store.scopeId,
+              itemId,
+            )
             setCommandIssues(nextIssues)
             publishAnnouncement(
               nextIssues
@@ -393,7 +419,7 @@ export function useDashletBindings(
               publishAnnouncement(issue.message)
               return
             }
-            const nextIssues = issuesFromResult(result)
+            const nextIssues = issuesForDashlet(issuesFromResult(result), store.scopeId, itemId)
             setCommandIssues(nextIssues)
             publishAnnouncement(nextIssues.map((issue) => issue.message).join('. '))
           },

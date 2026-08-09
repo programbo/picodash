@@ -482,6 +482,7 @@ describe('Store-owned alpha persistence', () => {
       ...backend,
       subscribe(key, listener) {
         backend.foreignWrite(key, raced)
+        listener()
         return backend.subscribe!(key, listener)
       },
     }
@@ -508,6 +509,10 @@ describe('Store-owned alpha persistence', () => {
     expect(store.persistence.getState()).toMatchObject({ durableRevision: 7 })
     expect(JSON.parse(backend.inspect('state') as string).writerId).toBe('racing-writer')
     expect(backend.calls.filter((call) => call.kind === 'write')).toHaveLength(0)
+    expect(store.setValue(store.fields.value, 7)).toMatchObject({
+      ok: true,
+      persistence: 'saved',
+    })
     store.destroy()
   })
 

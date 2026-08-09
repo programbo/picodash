@@ -105,20 +105,18 @@ function tryFocus(element: HTMLElement, requireSequentialFocus = true): boolean 
   return typeof document === 'undefined' || document.activeElement === element
 }
 
-function firstFocusTarget(panel: HTMLElement): HTMLElement | null {
+function focusFirstTarget(panel: HTMLElement): boolean {
   const descendants = panel.querySelectorAll<HTMLElement>(
     'a[href], area[href], button, input, select, textarea, summary, [tabindex]',
   )
-  for (const candidate of descendants)
-    if (focusable(candidate) && rendered(candidate)) return candidate
-  return null
+  for (const candidate of descendants) if (tryFocus(candidate)) return true
+  return false
 }
 
 export function focusPanel(runtime: PanelRuntime, scopeId: string): void {
   const panel = runtime.getElement(scopeId)
   if (!panel) return
-  const target = firstFocusTarget(panel)
-  if (target && tryFocus(target)) return
+  if (focusFirstTarget(panel)) return
   panel.tabIndex = -1
   tryFocus(panel, false)
 }
