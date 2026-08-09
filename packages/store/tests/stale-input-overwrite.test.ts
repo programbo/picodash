@@ -125,6 +125,7 @@ describe('stale input overwrite plans', () => {
     expect(scope.setInput(binding, 3).ok).toBe(false)
     const stalePlan = scope.createStaleInputOverwritePlan(binding)
     scope.setInput(binding, 4)
+    scope.setInput(binding, 3)
     expect(scope.executeStaleInputOverwrite(stalePlan)).toMatchObject({ ok: false })
     expect(() => scope.executeStaleInputOverwrite(stalePlan)).toThrowError(
       expect.objectContaining({ context: { kind: 'stale-input-overwrite', reason: 'consumed' } }),

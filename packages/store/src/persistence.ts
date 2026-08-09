@@ -1238,7 +1238,7 @@ export function createPersistenceController(
       const after = readCurrent()
       if (
         !isStructuredCurrent(after) ||
-        after.content !== candidate.content ||
+        after.sourceContent !== sourceContent(candidate.envelope) ||
         after.revision !== candidate.revision ||
         after.writerId !== candidate.writerId
       ) {
@@ -1637,7 +1637,7 @@ export function createPersistenceController(
           after = isStructuredCurrent(verified) ? verified : undefined
           if (
             !isStructuredCurrent(after) ||
-            after.content !== candidate.content ||
+            after.sourceContent !== sourceContent(candidate.envelope) ||
             after.revision !== candidate.revision ||
             after.writerId !== candidate.writerId
           ) {

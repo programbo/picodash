@@ -2245,6 +2245,7 @@ export function createPicodashStore<
   const repairPlans = new WeakMap<object, RepairRecord>()
   type StaleOverwriteRecord = {
     readonly binding: object
+    readonly interaction: BindingInteractionState
     readonly fieldKey: string
     readonly scopeId: string
     readonly itemId: string
@@ -2337,6 +2338,7 @@ export function createPicodashStore<
     readonly options: PicodashNormalizedImportOptions
     readonly overlay: ReturnType<typeof buildPicodashDocumentOverlay>
     readonly targetValues: Readonly<Record<string, PicodashJsonValue>>
+    readonly targetScopeExistence: readonly (readonly [string, boolean])[]
     readonly targetQuarantined: readonly (readonly [
       string,
       PicodashQuarantinedScopeMetadata | null,
@@ -2620,6 +2622,10 @@ export function createPicodashStore<
     }
     if (document.storeId !== config.storeId && !options.allowForeignStore)
       return documentFailure('foreign_store')
+    if (document.kind === 'root' && options.targetScopeId !== undefined)
+      return documentOptionError(
+        new PicodashDocumentOptionsError('import-analysis', 'invalid-target'),
+      )
     if (receiverScopeId !== undefined && document.kind !== 'scope') return documentFailure('kind')
     if (
       receiverScopeId === undefined &&
@@ -2637,6 +2643,15 @@ export function createPicodashStore<
       }
     }
     const targetScopeIds = documentScopeIds()
+    const scopeMappings = new Map(options.scopeMap)
+    if (document.kind === 'scope' && options.targetScopeId !== undefined)
+      scopeMappings.set(document.scopeId, options.targetScopeId)
+    const relevantTargetScopeIds = new Set<string>()
+    if (document.kind === 'scope')
+      relevantTargetScopeIds.add(scopeMappings.get(document.scopeId) ?? document.scopeId)
+    for (const [sourceScopeId] of document.scopes)
+      relevantTargetScopeIds.add(scopeMappings.get(sourceScopeId) ?? sourceScopeId)
+    const targetScopeIdSet = new Set(targetScopeIds)
     let overlay: ReturnType<typeof buildPicodashDocumentOverlay>
     try {
       overlay = buildPicodashDocumentOverlay({
@@ -2677,6 +2692,11 @@ export function createPicodashStore<
       options,
       overlay,
       targetValues: Object.freeze({ ...values }),
+      targetScopeExistence: Object.freeze(
+        [...relevantTargetScopeIds]
+          .sort()
+          .map((scopeId) => Object.freeze([scopeId, targetScopeIdSet.has(scopeId)] as const)),
+      ),
       targetQuarantined: Object.freeze(
         overlay.changedScopeIds
           .map((scopeId) => {
@@ -2748,6 +2768,13 @@ export function createPicodashStore<
     // therefore cannot make the same plan executable a second time.
     record.consumed = true
     if (JSON.stringify(values) !== JSON.stringify(snapshot.targetValues))
+      return documentFailure('stale_plan', 'Import plan is stale.')
+    const currentScopeIds = new Set(documentScopeIds())
+    if (
+      snapshot.targetScopeExistence.some(
+        ([scopeId, existed]) => currentScopeIds.has(scopeId) !== existed,
+      )
+    )
       return documentFailure('stale_plan', 'Import plan is stale.')
     let currentOverlay: ReturnType<typeof buildPicodashDocumentOverlay>
     try {
@@ -3867,6 +3894,7 @@ export function createPicodashStore<
     }
     const planRecord: StaleOverwriteRecord = {
       binding: handle,
+      interaction: state,
       fieldKey,
       scopeId: record.scopeId,
       itemId: record.itemId,
@@ -3925,6 +3953,7 @@ export function createPicodashStore<
       ?.get(record.alias)
     if (
       !current?.conflict ||
+      current !== record.interaction ||
       !picodashJsonEqual(current.draft!, record.draft) ||
       (fieldRevisions.get(record.fieldKey) ?? 0) !== record.revision ||
       !picodashJsonEqual(values[record.fieldKey]!, record.targetValue)

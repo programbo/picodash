@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore, type PicodashValueAdapter } from '../src/index.ts'
+import { acquireEntityLease } from '../src/integration.ts'
 import { createExternalAdapter } from './support/external-adapter.js'
 import { createMemoryPersistence } from './support/memory-persistence.js'
 import {
@@ -116,6 +117,41 @@ describe('Store document namespace integration', () => {
     }
     source.destroy()
     target.destroy()
+  })
+
+  it('rejects root-document retargeting and stales plans when an active-only target disappears', () => {
+    const store = createStore('documents-scope-existence')
+    const exported = store.documents.executeExport(store.documents.createExportPlan())
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    expect(() =>
+      store.documents.analyzeImport(exported.document, { targetScopeId: 'transient' }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-document-options',
+        context: { operation: 'import-analysis', reason: 'invalid-target' },
+      }),
+    )
+
+    const scopeDocument = {
+      ...exported.document,
+      kind: 'scope' as const,
+      scopeId: 'transient',
+      scopes: [],
+    }
+    const transient = store.scope('transient')
+    const lease = acquireEntityLease(transient, { kind: 'dashList' })
+    const analysis = store.documents.analyzeImport(scopeDocument, {
+      targetScopeId: 'transient',
+    })
+    expect(analysis.ok).toBe(true)
+    if (!analysis.ok) return
+    lease.release()
+    expect(store.documents.executeImport(analysis.plan)).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'stale_plan', message: 'Import plan is stale.' }] },
+    })
+    store.destroy()
   })
 
   it('validates and canonicalizes imported values during analysis', () => {

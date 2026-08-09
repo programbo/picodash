@@ -1155,6 +1155,43 @@ describe('Store-owned alpha persistence', () => {
     store.destroy()
   })
 
+  it('rejects conflict writes when exact durable content gains an unknown field', () => {
+    const backend = createMemoryPersistence()
+    let injectUnknownField = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => backend.read(key),
+      subscribe: (key, listener) => backend.subscribe(key, listener),
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (injectUnknownField) {
+          injectUnknownField = false
+          const foreign = JSON.parse(payload)
+          foreign.values.retired = 'foreign'
+          backend.foreignWrite(key, JSON.stringify(foreign))
+        }
+      },
+      remove: (key) => backend.remove(key),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(backend.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-writer'
+    foreign.values.count = 9
+    backend.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.setValues({ count: 3 })).toMatchObject({ ok: true, persistence: 'pending' })
+
+    injectUnknownField = true
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'persistence_resolution_failed' }] },
+    })
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+    store.destroy({ discardUnpersisted: true })
+  })
+
   it('rejects wrong-kind and consumed plans with safe contexts', () => {
     const persistence = createMemoryPersistence()
     const store = createPicodashStore(makeConfig(persistence))
