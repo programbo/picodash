@@ -214,49 +214,50 @@ export function acquireBindingLease<
   scopedStore: ScopedStore<Fields, Result>,
   options: AcquireBindingOptions<Fields, Key>,
 ): BindingHandle<Fields, Key> {
-  const parsed = bindingOptions(options)
   const scopedRecord = runtimeScopedViewFor(scopedStore as object)
   if (!scopedRecord) throw new PicodashContractError('foreign-handle')
   const controller = scopedRecord.controller
   if (controller.lifecycle !== 'active') throw new PicodashContractError('use-after-destroy')
-  controller.guardLeaseMutation()
-  const field = ownedField<Fields, Key, Result>(scopedStore, parsed.field)
-  const alias = parsed.aliasPresent ? parsed.alias! : field.key
-  const existing = controller.activeBinding(scopedRecord.scopeId, parsed.itemId, alias)
-  if (existing)
-    throw new PicodashContractError('duplicate-binding', {
+  return controller.withLeaseMutation(() => {
+    const parsed = bindingOptions(options)
+    const field = ownedField<Fields, Key, Result>(scopedStore, parsed.field)
+    const alias = parsed.aliasPresent ? parsed.alias! : field.key
+    const existing = controller.activeBinding(scopedRecord.scopeId, parsed.itemId, alias)
+    if (existing)
+      throw new PicodashContractError('duplicate-binding', {
+        scopeId: scopedRecord.scopeId,
+        itemId: parsed.itemId,
+        alias,
+      })
+    const record: BindingRecord = {
+      kind: 'binding',
+      root: controller.root,
       scopeId: scopedRecord.scopeId,
       itemId: parsed.itemId,
       alias,
-    })
-  const record: BindingRecord = {
-    kind: 'binding',
-    root: controller.root,
-    scopeId: scopedRecord.scopeId,
-    itemId: parsed.itemId,
-    alias,
-    field,
-    mode: parsed.mode as BindingMode,
-    lease: undefined as unknown as object,
-    active: true,
-  }
-  const handle = Object.freeze({
-    scopeId: record.scopeId,
-    itemId: record.itemId,
-    alias: record.alias,
-    field,
-    mode: record.mode,
-    release: () => {
-      if (!record.active) return
-      controller.releaseBinding(record)
-      record.active = false
-    },
-  }) as BindingHandle<Fields, Key>
-  record.lease = handle as object
-  controller.registerBinding(record)
-  controller.bindingHandles.set(handle as object, record)
-  registerRuntimeHandle(handle as object, controller)
-  return handle
+      field,
+      mode: parsed.mode as BindingMode,
+      lease: undefined as unknown as object,
+      active: true,
+    }
+    const handle = Object.freeze({
+      scopeId: record.scopeId,
+      itemId: record.itemId,
+      alias: record.alias,
+      field,
+      mode: record.mode,
+      release: () => {
+        if (!record.active) return
+        controller.releaseBinding(record)
+        record.active = false
+      },
+    }) as BindingHandle<Fields, Key>
+    record.lease = handle as object
+    controller.registerBinding(record)
+    controller.bindingHandles.set(handle as object, record)
+    registerRuntimeHandle(handle as object, controller)
+    return handle
+  })
 }
 
 /** Internal validation seam for the future binding input commands. */
@@ -369,36 +370,37 @@ export function acquireProviderLease<
   Result extends CoreTransactionResult = CoreTransactionResult,
 >(rootStore: RootStore<Fields, Result>, options?: { readonly providerId?: string }): ProviderLease {
   const controller = controllerForRoot(rootStore as object)
-  controller.guardLeaseMutation()
-  const providerId = providerOptions(options)
-  if (controller.providers.has(providerId))
-    throw new PicodashContractError('duplicate-provider', { providerId })
-  const token = Object.freeze({})
-  const host = { token, providerId, standalone: false } as HostRecord
-  const record: ProviderRecord = {
-    kind: 'provider',
-    root: rootStore as object,
-    host,
-    providerId,
-    lease: undefined as unknown as object,
-    active: true,
-    entities: new Set<EntityRecord>(),
-  }
-  const lease = Object.freeze({
-    release: () => {
-      if (!record.active) return
-      controller.guardLeaseMutation()
-      if (record.entities.size > 0)
-        throw new PicodashContractError('lease-has-active-dependents', { leaseKind: 'provider' })
-      record.active = false
-      controller.providers.delete(providerId)
-    },
-  }) as ProviderLease
-  record.lease = lease
-  controller.providers.set(providerId, record)
-  controller.handles.set(lease, record)
-  registerRuntimeHandle(lease, controller)
-  return lease
+  return controller.withLeaseMutation(() => {
+    const providerId = providerOptions(options)
+    if (controller.providers.has(providerId))
+      throw new PicodashContractError('duplicate-provider', { providerId })
+    const token = Object.freeze({})
+    const host = { token, providerId, standalone: false } as HostRecord
+    const record: ProviderRecord = {
+      kind: 'provider',
+      root: rootStore as object,
+      host,
+      providerId,
+      lease: undefined as unknown as object,
+      active: true,
+      entities: new Set<EntityRecord>(),
+    }
+    const lease = Object.freeze({
+      release: () => {
+        if (!record.active) return
+        controller.guardLeaseMutation()
+        if (record.entities.size > 0)
+          throw new PicodashContractError('lease-has-active-dependents', { leaseKind: 'provider' })
+        record.active = false
+        controller.providers.delete(providerId)
+      },
+    }) as ProviderLease
+    record.lease = lease
+    controller.providers.set(providerId, record)
+    controller.handles.set(lease, record)
+    registerRuntimeHandle(lease, controller)
+    return lease
+  })
 }
 
 export function acquireEntityLease<
@@ -410,75 +412,76 @@ export function acquireEntityLease<
   if (scopedRecord!.controller.lifecycle !== 'active')
     throw new PicodashContractError('use-after-destroy')
   const controller = scopedRecord!.controller
-  controller.guardLeaseMutation()
-  const parsed = entityOptions(options)
-  const scopeId = scopedRecord!.scopeId
-  let host: HostRecord
-  let hostParent: EntityRecord | undefined
-  if (parsed.hostPresent) {
-    host = resolveHost(controller, parsed.host, 'host')
-    const hostRecord = controller.handles.get(parsed.host as object)
-    if (hostRecord?.kind === 'entity') hostParent = hostRecord
-  } else {
-    const standalone = Object.freeze({ token: Object.freeze({}), standalone: true }) as HostRecord
-    host = standalone
-  }
-  const existing = [...controller.entities].find(
-    (entity) => entity.active && entity.scopeId === scopeId && entity.entityKind === parsed.kind,
-  )
-  if (existing)
-    throw new PicodashContractError('duplicate-entity', {
+  return controller.withLeaseMutation(() => {
+    const parsed = entityOptions(options)
+    const scopeId = scopedRecord!.scopeId
+    let host: HostRecord
+    let hostParent: EntityRecord | undefined
+    if (parsed.hostPresent) {
+      host = resolveHost(controller, parsed.host, 'host')
+      const hostRecord = controller.handles.get(parsed.host as object)
+      if (hostRecord?.kind === 'entity') hostParent = hostRecord
+    } else {
+      const standalone = Object.freeze({ token: Object.freeze({}), standalone: true }) as HostRecord
+      host = standalone
+    }
+    const existing = [...controller.entities].find(
+      (entity) => entity.active && entity.scopeId === scopeId && entity.entityKind === parsed.kind,
+    )
+    if (existing)
+      throw new PicodashContractError('duplicate-entity', {
+        scopeId,
+        entityKind: parsed.kind,
+      })
+    const conflicting = [...controller.entities].find(
+      (entity) => entity.active && entity.scopeId === scopeId && entity.host.token !== host.token,
+    )
+    if (conflicting)
+      throw new PicodashContractError('scope-host-conflict', { scopeId: scopedStore.scopeId })
+    const record: EntityRecord = {
+      kind: 'entity',
+      root: controller.root,
       scopeId,
       entityKind: parsed.kind,
-    })
-  const conflicting = [...controller.entities].find(
-    (entity) => entity.active && entity.scopeId === scopeId && entity.host.token !== host.token,
-  )
-  if (conflicting)
-    throw new PicodashContractError('scope-host-conflict', { scopeId: scopedStore.scopeId })
-  const record: EntityRecord = {
-    kind: 'entity',
-    root: controller.root,
-    scopeId,
-    entityKind: parsed.kind,
-    host,
-    lease: undefined as unknown as object,
-    active: true,
-    hostParent,
-    hostDependents: new Set<EntityRecord>(),
-  }
-  const lease = Object.freeze({
-    release: () => {
-      if (!record.active) return
-      controller.guardLeaseMutation()
-      if (
-        record.hostDependents.size > 0 ||
-        [...controller.relationships].some(
-          (relationship) =>
-            relationship.active &&
-            (relationship.parent === record || relationship.child === record),
+      host,
+      lease: undefined as unknown as object,
+      active: true,
+      hostParent,
+      hostDependents: new Set<EntityRecord>(),
+    }
+    const lease = Object.freeze({
+      release: () => {
+        if (!record.active) return
+        controller.guardLeaseMutation()
+        if (
+          record.hostDependents.size > 0 ||
+          [...controller.relationships].some(
+            (relationship) =>
+              relationship.active &&
+              (relationship.parent === record || relationship.child === record),
+          )
         )
-      )
-        throw new PicodashContractError('lease-has-active-dependents', { leaseKind: 'entity' })
-      record.active = false
-      if (record.hostParent) record.hostParent.hostDependents.delete(record)
-      controller.entities.delete(record)
-      const provider = [...controller.providers.values()].find(
-        (entry) => entry.host.token === host.token,
-      )
-      provider?.entities.delete(record)
-    },
-  }) as EntityLease
-  record.lease = lease
-  controller.entities.add(record)
-  if (hostParent) hostParent.hostDependents.add(record)
-  controller.handles.set(lease, record)
-  registerRuntimeHandle(lease, controller)
-  const provider = [...controller.providers.values()].find(
-    (entry) => entry.host.token === host.token,
-  )
-  provider?.entities.add(record)
-  return lease
+          throw new PicodashContractError('lease-has-active-dependents', { leaseKind: 'entity' })
+        record.active = false
+        if (record.hostParent) record.hostParent.hostDependents.delete(record)
+        controller.entities.delete(record)
+        const provider = [...controller.providers.values()].find(
+          (entry) => entry.host.token === host.token,
+        )
+        provider?.entities.delete(record)
+      },
+    }) as EntityLease
+    record.lease = lease
+    controller.entities.add(record)
+    if (hostParent) hostParent.hostDependents.add(record)
+    controller.handles.set(lease, record)
+    registerRuntimeHandle(lease, controller)
+    const provider = [...controller.providers.values()].find(
+      (entry) => entry.host.token === host.token,
+    )
+    provider?.entities.add(record)
+    return lease
+  })
 }
 
 export function acquireDashListNodeLease<
@@ -492,34 +495,35 @@ export function acquireDashListNodeLease<
   if (!scopedRecord) throw new PicodashContractError('foreign-handle')
   const controller = scopedRecord.controller
   if (controller.lifecycle !== 'active') throw new PicodashContractError('use-after-destroy')
-  controller.guardLeaseMutation()
-  const { nodeId } = dashListNodeOptions(options)
-  if (controller.activeDashListNode(scopedRecord.scopeId, nodeId))
-    throw new PicodashContractError('duplicate-dash-list-node', {
+  return controller.withLeaseMutation(() => {
+    const { nodeId } = dashListNodeOptions(options)
+    if (controller.activeDashListNode(scopedRecord.scopeId, nodeId))
+      throw new PicodashContractError('duplicate-dash-list-node', {
+        scopeId: scopedRecord.scopeId,
+        nodeId,
+      })
+    const record: DashListNodeRecord = {
+      kind: 'dashList-node',
+      root: controller.root,
       scopeId: scopedRecord.scopeId,
       nodeId,
-    })
-  const record: DashListNodeRecord = {
-    kind: 'dashList-node',
-    root: controller.root,
-    scopeId: scopedRecord.scopeId,
-    nodeId,
-    lease: undefined as unknown as object,
-    active: true,
-  }
-  const lease = Object.freeze({
-    release: () => {
-      if (!record.active) return
-      controller.guardLeaseMutation()
-      record.active = false
-      controller.releaseDashListNode(record)
-    },
-  }) as DashListNodeLease
-  record.lease = lease
-  controller.registerDashListNode(record)
-  controller.dashListNodeHandles.set(lease as object, record)
-  registerRuntimeHandle(lease as object, controller)
-  return lease
+      lease: undefined as unknown as object,
+      active: true,
+    }
+    const lease = Object.freeze({
+      release: () => {
+        if (!record.active) return
+        controller.guardLeaseMutation()
+        record.active = false
+        controller.releaseDashListNode(record)
+      },
+    }) as DashListNodeLease
+    record.lease = lease
+    controller.registerDashListNode(record)
+    controller.dashListNodeHandles.set(lease as object, record)
+    registerRuntimeHandle(lease as object, controller)
+    return lease
+  })
 }
 
 export function acquireRelationshipLease(

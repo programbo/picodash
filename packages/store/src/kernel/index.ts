@@ -3180,6 +3180,7 @@ export function createPicodashStore<
   runtimeController.setLeaseMutationGuard(() => {
     if (writing) throw new PicodashContractError('reentrant-write')
   })
+  runtimeController.setLeaseMutationRunner(withWriteLock)
   if (externalAdapterRuntime)
     runtimeController.registerResource({
       phase: 'capability',

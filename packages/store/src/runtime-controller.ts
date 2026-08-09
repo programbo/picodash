@@ -109,6 +109,7 @@ export class RuntimeController {
     | ((scopeId: string, itemId: string, alias: string) => void)
     | undefined
   private leaseMutationGuard: (() => void) | undefined
+  private leaseMutationRunner: (<T>(operation: () => T) => T) | undefined
   lifecycle: RuntimeLifecycle = 'active'
 
   constructor(root: object) {
@@ -177,8 +178,18 @@ export class RuntimeController {
     this.leaseMutationGuard = guard
   }
 
+  setLeaseMutationRunner(runner: <T>(operation: () => T) => T): void {
+    this.leaseMutationRunner = runner
+  }
+
   guardLeaseMutation(): void {
     this.leaseMutationGuard?.()
+  }
+
+  withLeaseMutation<T>(operation: () => T): T {
+    if (this.leaseMutationRunner) return this.leaseMutationRunner(operation)
+    this.guardLeaseMutation()
+    return operation()
   }
 
   activeBinding(scopeId: string, itemId: string, alias: string): BindingRecord | undefined {

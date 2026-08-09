@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vite-plus/test'
 import { fc, test as property } from '@fast-check/vitest'
 import { createPicodashStore, PicodashContractError } from '../src/index.ts'
 import {
+  acquireBindingLease,
+  acquireDashListNodeLease,
   acquireEntityLease,
   acquireProviderLease,
   acquireRelationshipLease,
@@ -104,6 +106,47 @@ describe('Store declarative integration leases', () => {
     expect(error.code).toBe('invalid-entity-options')
     expect(error.context).toEqual({ reason: 'not-object' })
     expect(`${error.message}${error.stack}${JSON.stringify(error)}`).not.toContain(sentinel)
+    provider.release()
+  })
+
+  it('holds the write lock while lease options are reflected and registrations are committed', () => {
+    const store = makeStore()
+    const scoped = store.scope('locked')
+    const nestedErrors: string[] = []
+    const guardedOptions = <Options extends object>(options: Options): Options =>
+      new Proxy(options, {
+        ownKeys(target) {
+          nestedErrors.push(failure(() => store.setValue(store.fields.value, 2)).code)
+          return Reflect.ownKeys(target)
+        },
+      })
+
+    const provider = acquireProviderLease(store, guardedOptions({ providerId: 'locked-provider' }))
+    const entity = acquireEntityLease(
+      scoped,
+      guardedOptions({ kind: 'dashList' as const, host: provider }),
+    )
+    const binding = acquireBindingLease(
+      scoped,
+      guardedOptions({
+        itemId: 'locked-binding',
+        field: scoped.fields.value,
+        mode: 'input' as const,
+      }),
+    )
+    const node = acquireDashListNodeLease(scoped, guardedOptions({ nodeId: 'locked-node' }))
+
+    expect(nestedErrors).toEqual([
+      'reentrant-write',
+      'reentrant-write',
+      'reentrant-write',
+      'reentrant-write',
+    ])
+    expect(store.getState().values.value).toBe(1)
+
+    node.release()
+    binding.release()
+    entity.release()
     provider.release()
   })
 
