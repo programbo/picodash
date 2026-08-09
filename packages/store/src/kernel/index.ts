@@ -2230,6 +2230,7 @@ export function createPicodashStore<
   const fieldRevisions = new Map<string, number>(fieldEntries.map((key) => [key, 0]))
   type RepairRecord = {
     readonly binding: object
+    readonly interaction: BindingInteractionState
     readonly fieldKey: string
     readonly scopeId: string
     readonly itemId: string
@@ -3593,11 +3594,12 @@ export function createPicodashStore<
   function setInteraction(
     record: import('../runtime-controller.js').BindingRecord,
     state: BindingInteractionState | undefined,
-  ): void {
+  ): BindingInteractionState | undefined {
     const previous = interactionByScope.get(record.scopeId)
     const bindings = new Map(previous?.bindings ?? [])
     const items = new Map(previous?.items ?? [])
     const itemBindings = new Map(bindings.get(record.itemId) ?? [])
+    let stored: BindingInteractionState | undefined
     if (state) {
       const source = state as BindingInteractionState & {
         baseRevision?: number
@@ -3611,6 +3613,7 @@ export function createPicodashStore<
         ...(source.conflict ? { conflict: source.conflict } : {}),
       }
       const frozen = Object.freeze(visible)
+      stored = frozen
       if (source.baseRevision !== undefined && source.baseValue !== undefined)
         interactionBases.set(frozen, {
           baseRevision: source.baseRevision,
@@ -3627,7 +3630,7 @@ export function createPicodashStore<
       bindings.size || items.size
         ? Object.freeze({ bindings: immutableMap([...bindings]), items: immutableMap([...items]) })
         : EmptyInteraction
-    if (next === previous) return
+    if (next === previous) return stored
     if (next === EmptyInteraction) interactionByScope.delete(record.scopeId)
     else interactionByScope.set(record.scopeId, next)
     if (!suppressInteractionDispatch) {
@@ -3635,6 +3638,7 @@ export function createPicodashStore<
       refreshScopedChannels(affected)
       dispatchStoreSubscribers(affected, false)
     }
+    return stored
   }
 
   const interactionBase = (state: BindingInteractionState | undefined) =>
@@ -3771,6 +3775,13 @@ export function createPicodashStore<
     }
     if (pipeline.length) {
       let plan: PicodashRepairPlan | undefined
+      let repairRegistration:
+        | Readonly<{
+            plan: PicodashRepairPlan
+            registry: BindingPlanRegistryRecord
+            candidate: PicodashJsonValue
+          }>
+        | undefined
       if (repairCandidate !== undefined && !stale) {
         const repair = canonicalize(fieldKey, repairCandidate, 'repair')
         const repairCandidateRecord = Object.create(null) as Record<string, PicodashJsonValue>
@@ -3788,26 +3799,11 @@ export function createPicodashStore<
               kind: 'repair',
               consumed: false,
             }
-            const record: RepairRecord = {
-              binding: handle,
-              fieldKey,
-              scopeId: binding.scopeId,
-              itemId: binding.itemId,
-              alias: binding.alias,
-              revision: fieldRevisions.get(fieldKey)!,
-              baseValue,
-              draft,
-              candidate: repair.value!,
-              targetValues: values as Readonly<Record<string, PicodashJsonValue>>,
-              consumed: false,
-              registry,
-            }
-            repairPlans.set(plan, record)
-            registerBindingPlan(plan, registry)
+            repairRegistration = { plan, registry, candidate: repair.value! }
           }
         }
       }
-      setInteraction(binding, {
+      const interaction = setInteraction(binding, {
         fieldKey,
         draft,
         touched: true,
@@ -3816,6 +3812,26 @@ export function createPicodashStore<
         baseRevision,
         baseValue,
       } as BindingInteractionState & { baseRevision: number; baseValue: PicodashJsonValue })
+      if (repairRegistration) {
+        const { plan: repairPlan, registry, candidate: repairValue } = repairRegistration
+        const record: RepairRecord = {
+          binding: handle,
+          interaction: interaction!,
+          fieldKey,
+          scopeId: binding.scopeId,
+          itemId: binding.itemId,
+          alias: binding.alias,
+          revision: fieldRevisions.get(fieldKey)!,
+          baseValue,
+          draft,
+          candidate: repairValue,
+          targetValues: values as Readonly<Record<string, PicodashJsonValue>>,
+          consumed: false,
+          registry,
+        }
+        repairPlans.set(repairPlan, record)
+        registerBindingPlan(repairPlan, registry)
+      }
       return rejectedResult(enriched, plan)
     }
     if (picodashJsonEqual(values[fieldKey]!, candidate[fieldKey]!)) {
@@ -4081,6 +4097,7 @@ export function createPicodashStore<
       ?.get(record.alias)
     if (
       !current ||
+      current !== record.interaction ||
       JSON.stringify(values) !== JSON.stringify(record.targetValues) ||
       (fieldRevisions.get(record.fieldKey) ?? 0) !== record.revision ||
       !picodashJsonEqual(current.draft!, record.draft)

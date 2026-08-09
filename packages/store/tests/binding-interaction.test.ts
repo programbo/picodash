@@ -166,6 +166,36 @@ describe('binding interaction commands', () => {
     store.destroy()
   })
 
+  it('stales repair plans when the same rejected draft is discarded and recreated', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        value: {
+          defaultValue: 1,
+          parse: () => ({ ok: false as const, issues: [{ message: 'bad' }], repair: 2 }),
+        },
+      },
+    })
+    const scope = store.scope('scope')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.value,
+      mode: 'input',
+    })
+    const first = scope.setInput(binding, 0)
+    expect(first.ok).toBe(false)
+    if (!first.ok) {
+      expect(scope.discardInput(binding)).toBe(true)
+      expect(scope.setInput(binding, 0).ok).toBe(false)
+      expect(scope.executeRepair(first.repair!)).toMatchObject({
+        ok: false,
+        error: { issues: [{ code: 'stale_plan' }] },
+      })
+    }
+    binding.release()
+    store.destroy()
+  })
+
   it('short-circuits schema and validators after parse failure', () => {
     let schemaCalls = 0
     let fieldCalls = 0
