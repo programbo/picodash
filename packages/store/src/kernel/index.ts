@@ -3973,7 +3973,7 @@ export function createPicodashStore<
     return withWriteLock(() => setInputInternalLocked(handle, input))
   }
 
-  function discardInputInternal(handle: object): boolean {
+  function discardInputInternalLocked(handle: object): boolean {
     const record = bindingRecordFor(handle)
     if (record.mode !== 'input')
       throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
@@ -3984,6 +3984,10 @@ export function createPicodashStore<
     if (!existing) return false
     setInteraction(record, undefined)
     return true
+  }
+
+  function discardInputInternal(handle: object): boolean {
+    return withWriteLock(() => discardInputInternalLocked(handle))
   }
 
   function createStaleInputOverwritePlanInternal(handle: object): PicodashStaleInputOverwritePlan {

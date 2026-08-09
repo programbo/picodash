@@ -1407,6 +1407,15 @@ export function createPersistenceController(
           }
           if (!isStructuredCurrent(current)) return
           if (
+            pending !== undefined &&
+            current.sourceContent === sourceContent(pending.envelope) &&
+            current.revision === pending.revision &&
+            current.writerId === pending.writerId
+          ) {
+            confirmDurable(current)
+            return
+          }
+          if (
             current.fenceContent !== confirmedFenceContent ||
             current.writerId !== durableWriterId ||
             current.revision !== durableRevision
