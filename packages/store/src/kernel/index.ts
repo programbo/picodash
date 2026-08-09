@@ -2999,9 +2999,11 @@ export function createPicodashStore<
       return result
     },
     resetRegisteredValues(options) {
-      const parsed = validateResetOptions(options, true)
-      validateScopeId(parsed.scopeId)
-      return resetRegisteredValuesInternal(parsed.scopeId, parsed.includeDescendants)
+      return withWriteLock(() => {
+        const parsed = validateResetOptions(options, true)
+        validateScopeId(parsed.scopeId)
+        return resetRegisteredValuesInternal(parsed.scopeId, parsed.includeDescendants)
+      })
     },
     resetRegisteredValuesOrThrow(options) {
       const result = store.resetRegisteredValues(options)
@@ -3670,6 +3672,7 @@ export function createPicodashStore<
     return transactAttributed(supplied, originScopeId, 'reset', {
       canonicalSupplied: true,
       targetScopeIds: Object.freeze(sortedTargetScopeIds),
+      lockHeld: true,
     })
   }
 
@@ -4600,8 +4603,10 @@ export function createPicodashStore<
         return result
       },
       resetRegisteredValues(options) {
-        const parsed = validateResetOptions(options === undefined ? {} : options, false)
-        return resetRegisteredValuesInternal(scopeId, parsed.includeDescendants, scopeId)
+        return withWriteLock(() => {
+          const parsed = validateResetOptions(options === undefined ? {} : options, false)
+          return resetRegisteredValuesInternal(scopeId, parsed.includeDescendants, scopeId)
+        })
       },
       resetRegisteredValuesOrThrow(options) {
         const result = scoped.resetRegisteredValues(options)

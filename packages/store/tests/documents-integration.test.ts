@@ -4,7 +4,11 @@ import {
   PicodashContractError,
   type PicodashValueAdapter,
 } from '../src/index.ts'
-import { acquireEntityLease, acquireProviderLease } from '../src/integration.ts'
+import {
+  acquireBindingLease,
+  acquireEntityLease,
+  acquireProviderLease,
+} from '../src/integration.ts'
 import { createExternalAdapter } from './support/external-adapter.js'
 import { createMemoryPersistence } from './support/memory-persistence.js'
 import {
@@ -154,6 +158,58 @@ describe('Store document namespace integration', () => {
     releaseEntity = undefined
     entity.release()
     provider.release()
+    source.destroy()
+    target.destroy()
+  })
+
+  it('fences lease acquisition while import validators run', () => {
+    const source = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-acquire-source',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 2 } },
+      export: { documents: { defaultFieldPolicy: 'include' } },
+    })
+    const exported = source.documents.executeExport(source.documents.createExportPlan())
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    let acquireDuringValidation: (() => void) | undefined
+    const target = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-acquire-target',
+      schemaVersion: 1,
+      fields: {
+        value: {
+          defaultValue: 1,
+          validate: () => {
+            acquireDuringValidation?.()
+            return []
+          },
+        },
+      },
+    })
+    const targetScope = target.scope('panel')
+    const analysis = target.documents.analyzeImport(exported.document, { allowForeignStore: true })
+    expect(analysis.ok).toBe(true)
+    if (!analysis.ok) return
+    acquireDuringValidation = () => {
+      acquireBindingLease(targetScope, {
+        itemId: 'nested',
+        field: target.fields.value,
+        mode: 'display',
+      })
+    }
+    expect(() => target.documents.executeImport(analysis.plan)).toThrowError(
+      expect.objectContaining<Partial<PicodashContractError>>({ code: 'reentrant-write' }),
+    )
+    expect(target.getState().values.value).toBe(1)
+    acquireDuringValidation = undefined
+    const binding = acquireBindingLease(targetScope, {
+      itemId: 'nested',
+      field: target.fields.value,
+      mode: 'display',
+    })
+    binding.release()
     source.destroy()
     target.destroy()
   })

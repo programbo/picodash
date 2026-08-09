@@ -201,6 +201,40 @@ describe('registered value reset', () => {
         reason,
       })
     }
+    let nestedError: unknown
+    const rootOptions = new Proxy(
+      { scopeId: 'scope' },
+      {
+        ownKeys(target) {
+          try {
+            store.setValue(store.fields.second, 9)
+          } catch (error) {
+            nestedError = error
+          }
+          return Reflect.ownKeys(target)
+        },
+      },
+    )
+    expect(store.resetRegisteredValues(rootOptions)).toMatchObject({ ok: false })
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.second).toBe(2)
+    nestedError = undefined
+    const scopedOptions = new Proxy(
+      {},
+      {
+        ownKeys(target) {
+          try {
+            store.setValue(store.fields.second, 9)
+          } catch (error) {
+            nestedError = error
+          }
+          return Reflect.ownKeys(target)
+        },
+      },
+    )
+    expect(store.scope('scope').resetRegisteredValues(scopedOptions)).toMatchObject({ ok: false })
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.second).toBe(2)
     expect(failure(() => store.resetRegisteredValues({} as never)).code).toBe('invalid-scope-id')
     const before = store.getState()
     expect(store.resetRegisteredValues({ scopeId: 'scope' })).toMatchObject({ ok: false })

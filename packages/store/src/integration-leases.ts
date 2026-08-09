@@ -219,6 +219,7 @@ export function acquireBindingLease<
   if (!scopedRecord) throw new PicodashContractError('foreign-handle')
   const controller = scopedRecord.controller
   if (controller.lifecycle !== 'active') throw new PicodashContractError('use-after-destroy')
+  controller.guardLeaseMutation()
   const field = ownedField<Fields, Key, Result>(scopedStore, parsed.field)
   const alias = parsed.aliasPresent ? parsed.alias! : field.key
   const existing = controller.activeBinding(scopedRecord.scopeId, parsed.itemId, alias)
@@ -368,6 +369,7 @@ export function acquireProviderLease<
   Result extends CoreTransactionResult = CoreTransactionResult,
 >(rootStore: RootStore<Fields, Result>, options?: { readonly providerId?: string }): ProviderLease {
   const controller = controllerForRoot(rootStore as object)
+  controller.guardLeaseMutation()
   const providerId = providerOptions(options)
   if (controller.providers.has(providerId))
     throw new PicodashContractError('duplicate-provider', { providerId })
@@ -407,8 +409,9 @@ export function acquireEntityLease<
   if (!scopedRecord) invalidHandle('host', 'wrong-kind')
   if (scopedRecord!.controller.lifecycle !== 'active')
     throw new PicodashContractError('use-after-destroy')
-  const parsed = entityOptions(options)
   const controller = scopedRecord!.controller
+  controller.guardLeaseMutation()
+  const parsed = entityOptions(options)
   const scopeId = scopedRecord!.scopeId
   let host: HostRecord
   let hostParent: EntityRecord | undefined
@@ -485,11 +488,12 @@ export function acquireDashListNodeLease<
   scopedStore: ScopedStore<Fields, Result>,
   options: AcquireDashListNodeOptions,
 ): DashListNodeLease {
-  const { nodeId } = dashListNodeOptions(options)
   const scopedRecord = runtimeScopedViewFor(scopedStore as object)
   if (!scopedRecord) throw new PicodashContractError('foreign-handle')
   const controller = scopedRecord.controller
   if (controller.lifecycle !== 'active') throw new PicodashContractError('use-after-destroy')
+  controller.guardLeaseMutation()
+  const { nodeId } = dashListNodeOptions(options)
   if (controller.activeDashListNode(scopedRecord.scopeId, nodeId))
     throw new PicodashContractError('duplicate-dash-list-node', {
       scopeId: scopedRecord.scopeId,
@@ -538,6 +542,7 @@ export function acquireRelationshipLease(
   if (!parentRecord.active) invalidHandle('parent', 'released')
   if (!childController) invalidHandle('child', 'wrong-kind')
   if (childController !== parentController) invalidHandle('child', 'foreign-root')
+  parentController!.guardLeaseMutation()
   const childCandidate = parentController!.handles.get(child)
   if (!childCandidate || childCandidate.kind !== 'entity') invalidHandle('child', 'wrong-kind')
   const childRecord = childCandidate as EntityRecord
