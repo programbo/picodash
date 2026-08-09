@@ -1501,14 +1501,17 @@ export function createPicodashStore<
   if (!config.fields || typeof config.fields !== 'object' || Array.isArray(config.fields))
     throw new PicodashContractError('invalid-configuration')
   const configuredFieldKeys = Object.keys(config.fields)
+  const configuredStoreId = config.storeId
+  const configuredSchemaVersion = config.schemaVersion
+  const configuredMigrations = config.migrations
   let configuredExportPolicy: PicodashExportPolicy | undefined
   const configuredExport = (config as { readonly export?: unknown }).export
   if (configuredExport !== undefined) {
     if (
-      !validIdentity(config.storeId) ||
-      !Number.isSafeInteger(config.schemaVersion) ||
-      config.schemaVersion === undefined ||
-      config.schemaVersion <= 0
+      !validIdentity(configuredStoreId) ||
+      !Number.isSafeInteger(configuredSchemaVersion) ||
+      configuredSchemaVersion === undefined ||
+      configuredSchemaVersion <= 0
     )
       throw new PicodashContractError('invalid-configuration')
     try {
@@ -1517,25 +1520,25 @@ export function createPicodashStore<
       throw new PicodashContractError('invalid-configuration')
     }
   }
-  if (config.storeId !== undefined && !validIdentity(config.storeId))
+  if (configuredStoreId !== undefined && !validIdentity(configuredStoreId))
     throw new PicodashContractError('invalid-configuration')
   if (
-    config.schemaVersion !== undefined &&
-    (!validIdentity(config.storeId) ||
-      !Number.isSafeInteger(config.schemaVersion) ||
-      config.schemaVersion <= 0)
+    configuredSchemaVersion !== undefined &&
+    (!validIdentity(configuredStoreId) ||
+      !Number.isSafeInteger(configuredSchemaVersion) ||
+      configuredSchemaVersion <= 0)
   )
     throw new PicodashContractError('invalid-configuration')
-  if (config.migrations !== undefined) {
+  if (configuredMigrations !== undefined) {
     if (
-      !validIdentity(config.storeId) ||
-      !Number.isSafeInteger(config.schemaVersion) ||
-      config.schemaVersion === undefined ||
-      config.schemaVersion <= 0
+      !validIdentity(configuredStoreId) ||
+      !Number.isSafeInteger(configuredSchemaVersion) ||
+      configuredSchemaVersion === undefined ||
+      configuredSchemaVersion <= 0
     )
       throw new PicodashContractError('invalid-configuration')
     try {
-      validateSchemaMigrations(config.migrations, config.schemaVersion)
+      validateSchemaMigrations(configuredMigrations, configuredSchemaVersion)
     } catch {
       throw new PicodashContractError('invalid-configuration')
     }
@@ -1555,12 +1558,12 @@ export function createPicodashStore<
     config.valueOwner === 'external' &&
     (config.initialEnvelope !== undefined ||
       config.persistence !== undefined ||
-      config.migrations !== undefined ||
+      configuredMigrations !== undefined ||
       config.export !== undefined) &&
-    (!validIdentity(config.storeId) ||
-      !Number.isSafeInteger(config.schemaVersion) ||
-      config.schemaVersion === undefined ||
-      config.schemaVersion <= 0)
+    (!validIdentity(configuredStoreId) ||
+      !Number.isSafeInteger(configuredSchemaVersion) ||
+      configuredSchemaVersion === undefined ||
+      configuredSchemaVersion <= 0)
   )
     throw new PicodashContractError('invalid-configuration')
   const configuredPersistence = (
@@ -1571,21 +1574,21 @@ export function createPicodashStore<
     }
   ).persistence
   const metadataRecoveryEnabled =
-    validIdentity(config.storeId) &&
-    Number.isSafeInteger(config.schemaVersion) &&
-    config.schemaVersion !== undefined &&
-    config.schemaVersion > 0
+    validIdentity(configuredStoreId) &&
+    Number.isSafeInteger(configuredSchemaVersion) &&
+    configuredSchemaVersion !== undefined &&
+    configuredSchemaVersion > 0
   const documentsEnabled =
-    validIdentity(config.storeId) &&
-    Number.isSafeInteger(config.schemaVersion) &&
-    config.schemaVersion !== undefined &&
-    config.schemaVersion > 0
+    validIdentity(configuredStoreId) &&
+    Number.isSafeInteger(configuredSchemaVersion) &&
+    configuredSchemaVersion !== undefined &&
+    configuredSchemaVersion > 0
   if (configuredPersistence !== undefined) {
     if (
-      !validIdentity(config.storeId) ||
-      !Number.isSafeInteger(config.schemaVersion) ||
-      config.schemaVersion === undefined ||
-      config.schemaVersion <= 0
+      !validIdentity(configuredStoreId) ||
+      !Number.isSafeInteger(configuredSchemaVersion) ||
+      configuredSchemaVersion === undefined ||
+      configuredSchemaVersion <= 0
     )
       throw new PicodashContractError('invalid-configuration')
     const persistence = configuredPersistence as object
@@ -2036,8 +2039,8 @@ export function createPicodashStore<
   }
   let persistenceController: PersistenceController | undefined
   if (configuredPersistence === undefined && config.initialEnvelope !== undefined) {
-    const storeId = config.storeId
-    const schemaVersion = config.schemaVersion
+    const storeId = configuredStoreId
+    const schemaVersion = configuredSchemaVersion
     if (
       !validIdentity(storeId) ||
       typeof schemaVersion !== 'number' ||
@@ -2077,7 +2080,7 @@ export function createPicodashStore<
           return built.issues.length ? undefined : freeze(built.candidate)
         },
         {
-          migrations: config.migrations,
+          migrations: configuredMigrations,
           valueOwner: config.valueOwner,
           countUnknownFields: (input) =>
             Object.keys(input).filter((key) => !fieldEntries.includes(key)).length,
@@ -2123,12 +2126,12 @@ export function createPicodashStore<
       persistenceController = createPersistenceController({
         storageKey: persistenceConfig.storageKey,
         driver: persistenceConfig.driver,
-        storeId: config.storeId!,
-        schemaVersion: config.schemaVersion!,
+        storeId: configuredStoreId!,
+        schemaVersion: configuredSchemaVersion!,
         baselineValues: config.valueOwner === 'external' ? Object.freeze({}) : values,
         valueOwner: config.valueOwner,
         initialEnvelope: config.initialEnvelope,
-        migrations: config.migrations,
+        migrations: configuredMigrations,
         normalizeValues: (input) => {
           if (config.valueOwner === 'external')
             return input &&
@@ -2541,16 +2544,16 @@ export function createPicodashStore<
         ? {
             formatVersion: 1,
             kind: 'root',
-            storeId: config.storeId!,
-            schemaVersion: config.schemaVersion!,
+            storeId: configuredStoreId!,
+            schemaVersion: configuredSchemaVersion!,
             fields,
             scopes: targetScopes,
           }
         : {
             formatVersion: 1,
             kind: 'scope',
-            storeId: config.storeId!,
-            schemaVersion: config.schemaVersion!,
+            storeId: configuredStoreId!,
+            schemaVersion: configuredSchemaVersion!,
             scopeId: targetScopeId,
             fields,
             scopes: targetScopes,
@@ -2657,7 +2660,7 @@ export function createPicodashStore<
       if (error instanceof PicodashDocumentError) return documentFailure(error.reason)
       return documentFailure('shape')
     }
-    if (document.storeId !== config.storeId && !options.allowForeignStore)
+    if (document.storeId !== configuredStoreId && !options.allowForeignStore)
       return documentFailure('foreign_store')
     if (document.kind === 'root' && options.targetScopeId !== undefined)
       return documentOptionError(
@@ -2672,9 +2675,9 @@ export function createPicodashStore<
       return documentFailure('missing_scope')
     if (document.kind === 'scope' && receiverScopeId !== undefined)
       options = Object.freeze({ ...options, targetScopeId: receiverScopeId })
-    if (document.schemaVersion !== config.schemaVersion) {
+    if (document.schemaVersion !== configuredSchemaVersion) {
       try {
-        document = migratePicodashDocument(document, config.schemaVersion!, config.migrations)
+        document = migratePicodashDocument(document, configuredSchemaVersion!, configuredMigrations)
       } catch {
         return documentFailure('schema_migration_failed')
       }
@@ -2770,8 +2773,8 @@ export function createPicodashStore<
           })
           .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
       ),
-      storeId: config.storeId!,
-      schemaVersion: config.schemaVersion!,
+      storeId: configuredStoreId!,
+      schemaVersion: configuredSchemaVersion!,
     })
   }
 
@@ -2796,7 +2799,7 @@ export function createPicodashStore<
       createdScopes: snapshot.overlay.createdScopes,
       fieldRemaps: snapshot.overlay.fieldRemaps,
       scopeRemaps: snapshot.overlay.scopeRemaps,
-      foreignStore: snapshot.document.storeId !== config.storeId,
+      foreignStore: snapshot.document.storeId !== configuredStoreId,
     })
     const plan = Object.freeze(review) as PicodashImportPlan
     registerDocumentPlan(plan as object, {

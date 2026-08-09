@@ -110,6 +110,15 @@ export type BindingDescriptor = {
 }
 export const DashListAnnouncementContext = createContext<(message: string) => void>(() => undefined)
 
+function validBindingAlias(alias: string): boolean {
+  if (!alias || alias.trim() !== alias) return false
+  for (const character of alias) {
+    const code = character.codePointAt(0)!
+    if (code <= 0x1f || (code >= 0x7f && code <= 0x9f)) return false
+  }
+  return true
+}
+
 export function normalizeBindingDescriptors(
   field: PicodashField<Record<string, PicodashJsonValue>, string> | undefined,
   fields: DashletFields | undefined,
@@ -119,6 +128,10 @@ export function normalizeBindingDescriptors(
     const entries = Object.entries(fields)
     if (!entries.length) throw new TypeError('Dashlet fields must contain at least one binding.')
     return entries.map(([alias, descriptor]) => {
+      if (!validBindingAlias(alias))
+        throw new TypeError(
+          'Dashlet binding aliases must be non-empty, trimmed, and control-character-free.',
+        )
       const value =
         descriptor && typeof descriptor === 'object' && 'field' in descriptor
           ? (descriptor as {

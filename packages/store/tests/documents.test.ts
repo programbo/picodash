@@ -63,6 +63,25 @@ describe('version-one Store document codec', () => {
     ).toBe('value')
   })
 
+  it('decodes top-level document values from one descriptor snapshot', () => {
+    let reads = 0
+    const source = new Proxy(rootDocument(), {
+      get(target, key, receiver) {
+        if (key === 'storeId') {
+          reads += 1
+          return reads === 1 ? 'documents-test' : { private: true }
+        }
+        return Reflect.get(target, key, receiver)
+      },
+    })
+
+    const decoded = decodePicodashDocument(source)
+    const encoded = encodePicodashDocument(source as never)
+    expect(decoded.storeId).toBe('documents-test')
+    expect(encoded.storeId).toBe('documents-test')
+    expect(reads).toBe(0)
+  })
+
   it.each([
     ['unsorted fields', { ...rootDocument(), fields: [...rootDocument().fields].reverse() }],
     [

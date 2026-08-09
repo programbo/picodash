@@ -33,6 +33,26 @@ const createStore = (storeId: string) =>
   })
 
 describe('Store document namespace integration', () => {
+  it('snapshots Store document identity for the root lifetime', () => {
+    const config = {
+      valueOwner: 'store' as const,
+      storeId: 'documents-identity-alpha',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1 } },
+      export: { documents: { defaultFieldPolicy: 'include' as const } },
+    }
+    const store = createPicodashStore(config)
+    config.storeId = 'documents-identity-beta'
+    config.schemaVersion = 2
+
+    const exported = store.documents.executeExport(store.documents.createExportPlan())
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    expect(exported.document.storeId).toBe('documents-identity-alpha')
+    expect(exported.document.schemaVersion).toBe(1)
+    store.destroy()
+  })
+
   it('holds the write lock while import analysis validators run', () => {
     const source = createPicodashStore({
       valueOwner: 'store',

@@ -128,6 +128,61 @@ const validIdentity = (value: unknown): value is string => {
 const validFieldKey = (value: unknown): value is string =>
   validIdentity(value) && value !== '__proto__' && value !== 'prototype' && value !== 'constructor'
 
+function captureStrictRecord(value: unknown): Record<string, unknown> | undefined {
+  try {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
+    const prototype = Object.getPrototypeOf(value)
+    if (prototype !== Object.prototype && prototype !== null) return undefined
+    const descriptors = Object.getOwnPropertyDescriptors(value) as unknown as Record<
+      PropertyKey,
+      PropertyDescriptor
+    >
+    const snapshot = Object.create(null) as Record<string, unknown>
+    for (const key of Reflect.ownKeys(descriptors)) {
+      if (typeof key !== 'string') return undefined
+      const descriptor = descriptors[key]!
+      if (!descriptor.enumerable || !('value' in descriptor)) return undefined
+      Object.defineProperty(snapshot, key, {
+        value: descriptor.value,
+        enumerable: true,
+        writable: false,
+        configurable: false,
+      })
+    }
+    return snapshot
+  } catch {
+    return undefined
+  }
+}
+
+function captureStrictArray(value: unknown): readonly unknown[] | undefined {
+  try {
+    if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) return undefined
+    const descriptors = Object.getOwnPropertyDescriptors(value) as unknown as Record<
+      PropertyKey,
+      PropertyDescriptor
+    >
+    const length = descriptors.length?.value
+    if (!Number.isSafeInteger(length) || length < 0) return undefined
+    const snapshot: unknown[] = []
+    for (const key of Reflect.ownKeys(descriptors)) {
+      if (key === 'length') continue
+      if (typeof key !== 'string' || !/^0$|^[1-9]\d*$/.test(key) || Number(key) >= length)
+        return undefined
+      const descriptor = descriptors[key]!
+      if (!descriptor.enumerable || !('value' in descriptor)) return undefined
+    }
+    for (let index = 0; index < length; index += 1) {
+      const descriptor = descriptors[String(index)]
+      if (!descriptor || !('value' in descriptor)) return undefined
+      snapshot.push(descriptor.value)
+    }
+    return snapshot
+  } catch {
+    return undefined
+  }
+}
+
 function strictRecord(value: unknown): value is Record<string, unknown> {
   try {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
@@ -187,25 +242,25 @@ const sortedUnique = (values: readonly string[]): boolean => {
 }
 
 function tuple(value: unknown, length: number): readonly unknown[] | undefined {
-  if (!strictArray(value) || value.length !== length) return undefined
-  return value
+  const captured = captureStrictArray(value)
+  if (!captured || captured.length !== length) return undefined
+  return captured
 }
 
 function documentFieldEntry(value: unknown): PicodashDocumentFieldEntry {
   const pair = tuple(value, 2)
   if (!pair || !validFieldKey(pair[0])) throw new PicodashDocumentError('fields')
-  const entry = pair[1]
-  if (!strictRecord(entry) || typeof own(entry, 'status') !== 'string')
-    throw new PicodashDocumentError('fields')
-  if (own(entry, 'status') === 'redacted') {
+  const entry = captureStrictRecord(pair[1])
+  if (!entry || typeof entry.status !== 'string') throw new PicodashDocumentError('fields')
+  if (entry.status === 'redacted') {
     if (!exactKeys(entry, ['status'])) throw new PicodashDocumentError('fields')
     return freeze([pair[0], freeze({ status: 'redacted' as const })] as const)
   }
-  if (own(entry, 'status') !== 'included' || !exactKeys(entry, ['status', 'value']))
+  if (entry.status !== 'included' || !exactKeys(entry, ['status', 'value']))
     throw new PicodashDocumentError('fields')
   let valueClone: PicodashJsonValue
   try {
-    valueClone = clonePicodashValue(own(entry, 'value') as PicodashJsonValue)
+    valueClone = clonePicodashValue(entry.value as PicodashJsonValue)
   } catch {
     throw new PicodashDocumentError('fields')
   }
@@ -213,10 +268,11 @@ function documentFieldEntry(value: unknown): PicodashDocumentFieldEntry {
 }
 
 function documentFields(value: unknown): readonly PicodashDocumentFieldEntry[] {
-  if (!strictArray(value)) throw new PicodashDocumentError('fields')
+  const captured = captureStrictArray(value)
+  if (!captured) throw new PicodashDocumentError('fields')
   const entries: PicodashDocumentFieldEntry[] = []
   let previous: string | undefined
-  for (const rawEntry of value) {
+  for (const rawEntry of captured) {
     const entry = documentFieldEntry(rawEntry)
     const key = entry[0]
     if (previous !== undefined && compareCodePoints(previous, key) >= 0)
@@ -230,10 +286,11 @@ function documentFields(value: unknown): readonly PicodashDocumentFieldEntry[] {
 function documentScopes(
   value: unknown,
 ): readonly (readonly [string, SerializedDurableScopeMetadata])[] {
-  if (!strictArray(value)) throw new PicodashDocumentError('scopes')
+  const captured = captureStrictArray(value)
+  if (!captured) throw new PicodashDocumentError('scopes')
   const entries: [string, SerializedDurableScopeMetadata][] = []
   let previous: string | undefined
-  for (const rawEntry of value) {
+  for (const rawEntry of captured) {
     const pair = tuple(rawEntry, 2)
     if (!pair || !validIdentity(pair[0])) throw new PicodashDocumentError('scopes')
     const scopeId = pair[0]
@@ -254,8 +311,9 @@ function documentScopes(
 }
 
 function canonicalDocument(value: unknown): PicodashDocument {
-  if (!strictRecord(value)) throw new PicodashDocumentError('shape')
-  const kind = own(value, 'kind')
+  const captured = captureStrictRecord(value)
+  if (!captured) throw new PicodashDocumentError('shape')
+  const kind = captured.kind
   const expected =
     kind === 'root'
       ? ['formatVersion', 'kind', 'storeId', 'schemaVersion', 'fields', 'scopes']
@@ -263,30 +321,27 @@ function canonicalDocument(value: unknown): PicodashDocument {
         ? ['formatVersion', 'kind', 'storeId', 'schemaVersion', 'scopeId', 'fields', 'scopes']
         : []
   if (expected.length === 0) throw new PicodashDocumentError('kind')
-  if (!exactKeys(value, expected)) throw new PicodashDocumentError('shape')
-  if (own(value, 'formatVersion') !== 1) throw new PicodashDocumentError('format')
+  if (!exactKeys(captured, expected)) throw new PicodashDocumentError('shape')
+  if (captured.formatVersion !== 1) throw new PicodashDocumentError('format')
   if (typeof kind !== 'string' || (kind !== 'root' && kind !== 'scope'))
     throw new PicodashDocumentError('kind')
-  if (!validIdentity(own(value, 'storeId'))) throw new PicodashDocumentError('identity')
-  if (
-    !Number.isSafeInteger(own(value, 'schemaVersion')) ||
-    Number(own(value, 'schemaVersion')) <= 0
-  )
+  if (!validIdentity(captured.storeId)) throw new PicodashDocumentError('identity')
+  if (!Number.isSafeInteger(captured.schemaVersion) || Number(captured.schemaVersion) <= 0)
     throw new PicodashDocumentError('schema')
-  if (kind === 'scope' && !validIdentity(own(value, 'scopeId')))
+  if (kind === 'scope' && !validIdentity(captured.scopeId))
     throw new PicodashDocumentError('identity')
-  const fields = documentFields(own(value, 'fields'))
-  const scopes = documentScopes(own(value, 'scopes'))
+  const fields = documentFields(captured.fields)
+  const scopes = documentScopes(captured.scopes)
   const base = {
     formatVersion: 1 as const,
     kind: kind as 'root' | 'scope',
-    storeId: own(value, 'storeId') as string,
-    schemaVersion: own(value, 'schemaVersion') as number,
+    storeId: captured.storeId as string,
+    schemaVersion: captured.schemaVersion as number,
     fields,
     scopes,
   }
   if (kind === 'scope')
-    return freeze({ ...base, kind: 'scope' as const, scopeId: own(value, 'scopeId') as string })
+    return freeze({ ...base, kind: 'scope' as const, scopeId: captured.scopeId as string })
   return freeze({ ...base, kind: 'root' as const })
 }
 
@@ -300,21 +355,26 @@ export const normalizePicodashDocument = decodePicodashDocument
 
 /** Encode a document by validating, sorting, detaching, and freezing it. */
 export function encodePicodashDocument(value: PicodashDocument): PicodashDocument {
-  if (!strictRecord(value)) throw new PicodashDocumentError('shape')
-  const fields = own(value, 'fields')
-  const scopes = own(value, 'scopes')
-  if (!strictArray(fields) || !strictArray(scopes)) throw new PicodashDocumentError('shape')
+  const captured = captureStrictRecord(value)
+  if (!captured) throw new PicodashDocumentError('shape')
+  const fields = captureStrictArray(captured.fields)
+  const scopes = captureStrictArray(captured.scopes)
+  if (!fields || !scopes) throw new PicodashDocumentError('shape')
   const sortedFields = [...fields].sort((left, right) => {
-    const leftKey = strictArray(left) && typeof left[0] === 'string' ? left[0] : ''
-    const rightKey = strictArray(right) && typeof right[0] === 'string' ? right[0] : ''
+    const leftEntry = tuple(left, 2)
+    const rightEntry = tuple(right, 2)
+    const leftKey = typeof leftEntry?.[0] === 'string' ? leftEntry[0] : ''
+    const rightKey = typeof rightEntry?.[0] === 'string' ? rightEntry[0] : ''
     return compareCodePoints(leftKey, rightKey)
   })
   const sortedScopes = [...scopes].sort((left, right) => {
-    const leftKey = strictArray(left) && typeof left[0] === 'string' ? left[0] : ''
-    const rightKey = strictArray(right) && typeof right[0] === 'string' ? right[0] : ''
+    const leftEntry = tuple(left, 2)
+    const rightEntry = tuple(right, 2)
+    const leftKey = typeof leftEntry?.[0] === 'string' ? leftEntry[0] : ''
+    const rightKey = typeof rightEntry?.[0] === 'string' ? rightEntry[0] : ''
     return compareCodePoints(leftKey, rightKey)
   })
-  return canonicalDocument({ ...value, fields: sortedFields, scopes: sortedScopes })
+  return canonicalDocument({ ...captured, fields: sortedFields, scopes: sortedScopes })
 }
 
 export type PicodashExportFieldPolicy = Readonly<{

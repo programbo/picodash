@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore } from '@picodash/store'
 import { acquireBindingLease } from '@picodash/store/integration'
 import { DashList, Dashlet } from '../src/index.tsx'
-import { issuesForDashlet } from '../src/bindings.tsx'
+import { issuesForDashlet, normalizeBindingDescriptors } from '../src/bindings.tsx'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -115,6 +115,33 @@ describe('DashList bindings', () => {
     expect(Object.keys(context.bindings)).toEqual(['__proto__', 'safe'])
     act(() => view.unmount())
     expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('rejects invalid compound aliases during normalization and server rendering', async () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+    })
+    const render = (alias: string) =>
+      createElement(
+        DashList,
+        { id: 'list', store },
+        createElement(Dashlet as any, {
+          id: 'invalid-alias',
+          label: 'Invalid alias',
+          fields: Object.fromEntries([[alias, store.fields.value]]),
+        }),
+      )
+
+    const { renderToString } = await import('react-dom/server')
+    for (const alias of ['', ' ', 'surrounded ', 'control\u0000alias']) {
+      const fields = Object.fromEntries([[alias, store.fields.value]])
+      expect(() => normalizeBindingDescriptors(undefined, fields)).toThrow(
+        /binding aliases must be non-empty/,
+      )
+      expect(() => renderToString(render(alias))).toThrow(/binding aliases must be non-empty/)
+    }
+    store.destroy()
   })
 
   it('renders binding issues at their IDs and announces the first post-input rejection', () => {
