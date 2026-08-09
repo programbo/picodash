@@ -251,6 +251,14 @@ describe('private DashPanel runtime model', () => {
         return this.attributes.has(name)
       }
 
+      setAttribute(name: string, value: string) {
+        this.attributes.set(name, value)
+      }
+
+      removeAttribute(name: string) {
+        this.attributes.delete(name)
+      }
+
       closest(selector: string): FocusElement | null {
         if (
           (selector.includes('[hidden]') && this.hasAttribute('hidden')) ||
@@ -292,6 +300,24 @@ describe('private DashPanel runtime model', () => {
       expect(document.activeElement).not.toBe(hiddenButton)
       expect(document.activeElement).not.toBe(rejectedButton)
       expect(document.activeElement).not.toBe(visibleButton)
+
+      runtime.acquire(config('explicit-tabindex'))
+      const explicitTabindexPanel = new FocusElement('ASIDE')
+      explicitTabindexPanel.attributes.set('tabindex', '0')
+      runtime.registerElement('explicit-tabindex', explicitTabindexPanel as unknown as HTMLElement)
+      focusPanel(runtime, 'explicit-tabindex')
+      expect(document.activeElement).toBe(explicitTabindexPanel)
+      expect(explicitTabindexPanel.getAttribute('tabindex')).toBe('0')
+
+      runtime.acquire(config('temporary-tabindex'))
+      const temporaryTabindexPanel = new FocusElement('ASIDE')
+      runtime.registerElement(
+        'temporary-tabindex',
+        temporaryTabindexPanel as unknown as HTMLElement,
+      )
+      focusPanel(runtime, 'temporary-tabindex')
+      expect(document.activeElement).toBe(temporaryTabindexPanel)
+      expect(temporaryTabindexPanel.hasAttribute('tabindex')).toBe(false)
 
       const disabledTrigger = new FocusElement('BUTTON')
       disabledTrigger.attributes.set('disabled', '')

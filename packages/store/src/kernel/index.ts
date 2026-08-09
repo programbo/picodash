@@ -2791,7 +2791,7 @@ export function createPicodashStore<
     return Object.freeze({ ok: true as const, plan })
   }
 
-  const executeDocumentImportPlan = (
+  const executeDocumentImportPlanLocked = (
     plan: PicodashImportPlan,
     expectedReceiverScopeId?: string,
   ): CoreTransactionResult => {
@@ -2925,8 +2925,15 @@ export function createPicodashStore<
       nextScopes,
       nextQuarantinedScopes,
       validatedCandidate: currentOverlay.values,
+      lockHeld: true,
     })
   }
+
+  const executeDocumentImportPlan = (
+    plan: PicodashImportPlan,
+    expectedReceiverScopeId?: string,
+  ): CoreTransactionResult =>
+    withWriteLock(() => executeDocumentImportPlanLocked(plan, expectedReceiverScopeId))
   const storeImplementation: RootStore<Fields, StoreResult, boolean, boolean> = {
     kind: 'root',
     fields,
@@ -3199,6 +3206,17 @@ export function createPicodashStore<
     readonly nextScopes?: ReadonlyMap<string, DurableScopeMetadata>
     readonly nextQuarantinedScopes?: ReadonlyMap<string, PicodashQuarantinedScopeMetadata>
     readonly validatedCandidate?: Readonly<Record<string, PicodashJsonValue>>
+    readonly lockHeld?: boolean
+  }
+
+  function withWriteLock<T>(operation: () => T): T {
+    if (writing) throw new PicodashContractError('reentrant-write')
+    writing = true
+    try {
+      return operation()
+    } finally {
+      writing = false
+    }
   }
 
   function persistCurrent(): 'unchanged' | 'saved' | 'pending' | undefined {
@@ -3466,7 +3484,8 @@ export function createPicodashStore<
     source: 'programmatic' | 'interactive' | 'repair' | 'reset' | 'import' = 'programmatic',
     options?: TransactionDispatchOptions,
   ): CoreTransactionResult {
-    if (writing) throw new PicodashContractError('reentrant-write')
+    const ownsWriteLock = options?.lockHeld !== true
+    if (writing && ownsWriteLock) throw new PicodashContractError('reentrant-write')
     if (!next || typeof next !== 'object' || Array.isArray(next))
       return rejectedResult([
         Object.freeze({
@@ -3478,7 +3497,7 @@ export function createPicodashStore<
     const keys = Object.keys(next)
     if (!keys.length && options?.nextScopes === undefined)
       return resultWithPersistence(successfulResult())
-    writing = true
+    if (ownsWriteLock) writing = true
     try {
       const built = options?.validatedCandidate
         ? {
@@ -3577,7 +3596,7 @@ export function createPicodashStore<
       dispatchStoreSubscribers(affectedChannels, options?.includeRoot)
       return result
     } finally {
-      writing = false
+      if (ownsWriteLock) writing = false
     }
   }
 
@@ -3750,7 +3769,7 @@ export function createPicodashStore<
     }
   }
 
-  function setInputInternal(handle: object, input: PicodashJsonValue): CoreTransactionResult {
+  function setInputInternalLocked(handle: object, input: PicodashJsonValue): CoreTransactionResult {
     const binding = bindingRecordFor(handle)
     if (binding.mode !== 'input')
       throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
@@ -3934,6 +3953,7 @@ export function createPicodashStore<
           }
         },
         validatedCandidate: candidate,
+        lockHeld: true,
       },
     )
     if (!result.ok)
@@ -3947,6 +3967,10 @@ export function createPicodashStore<
         baseValue,
       } as BindingInteractionState)
     return result
+  }
+
+  function setInputInternal(handle: object, input: PicodashJsonValue): CoreTransactionResult {
+    return withWriteLock(() => setInputInternalLocked(handle, input))
   }
 
   function discardInputInternal(handle: object): boolean {
@@ -3999,7 +4023,7 @@ export function createPicodashStore<
     return plan
   }
 
-  function executeStaleInputOverwriteInternal(plan: object): CoreTransactionResult {
+  function executeStaleInputOverwriteInternalLocked(plan: object): CoreTransactionResult {
     const registry = bindingPlanRecord(plan)
     if (!registry)
       throw new PicodashContractError('invalid-binding-plan', {
@@ -4119,8 +4143,13 @@ export function createPicodashStore<
           }
         },
         validatedCandidate: candidate,
+        lockHeld: true,
       },
     )
+  }
+
+  function executeStaleInputOverwriteInternal(plan: object): CoreTransactionResult {
+    return withWriteLock(() => executeStaleInputOverwriteInternalLocked(plan))
   }
 
   function executeRepairInternal(plan: object): CoreTransactionResult {

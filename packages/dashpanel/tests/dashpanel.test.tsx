@@ -926,6 +926,31 @@ describe('@picodash/dashpanel alpha shell', () => {
     void act(() => renderer.unmount())
   })
 
+  it('rejects launcher items without a non-empty accessible name', () => {
+    expect(() =>
+      render(
+        createElement(DashPanelLauncher, {
+          label: 'Panels',
+          items: [{ panelId: 'blank', label: '   ' }],
+        }),
+      ),
+    ).toThrowError('DashPanelLauncher items require a non-empty text label or accessibleName.')
+    expect(() =>
+      render(
+        createElement(DashPanelLauncher, {
+          label: 'Panels',
+          items: [
+            {
+              panelId: 'blank-explicit',
+              label: createElement('span', null, 'Icon'),
+              accessibleName: '   ',
+            },
+          ],
+        }),
+      ),
+    ).toThrowError('DashPanelLauncher item accessibleName must not be empty.')
+  })
+
   it('reexports shared UI identities without retired aliases', async () => {
     const ui = await import('@picodash/ui')
     const dashpanel = await import('../src/index.tsx')

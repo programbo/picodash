@@ -123,8 +123,13 @@ export function focusPanel(runtime: PanelRuntime, scopeId: string): void {
   const panel = runtime.getElement(scopeId)
   if (!panel) return
   if (focusFirstTarget(panel)) return
-  panel.tabIndex = -1
-  tryFocus(panel, false)
+  const installFallback = !panel.hasAttribute('tabindex')
+  if (installFallback) panel.setAttribute('tabindex', '-1')
+  try {
+    tryFocus(panel, false)
+  } finally {
+    if (installFallback) panel.removeAttribute('tabindex')
+  }
 }
 
 function providerFallbackCandidates(

@@ -1208,6 +1208,24 @@ export function createPersistenceController(
     options.withKernelWrite(() => options.onConflict(conflict!))
     publish()
   }
+  const confirmDurable = (after: StructuredObservation): PersistenceWriteStatus => {
+    pending = undefined
+    lastError = undefined
+    durableRevision = after.revision
+    durableWriterId = after.writerId
+    confirmedContent = after.content
+    confirmedFenceContent = after.fenceContent
+    confirmedValues = values
+    confirmedScopes = scopes
+    confirmedQuarantinedScopes = quarantinedScopes
+    conflict = undefined
+    conflictObservation = undefined
+    conflictWasRemoval = false
+    options.withKernelWrite(() => options.onRecovery())
+    options.onUnknownFieldsRecovered?.()
+    publish()
+    return 'saved'
+  }
   const verifyAndWrite = (candidate: PersistenceCodecRecord): PersistenceWriteStatus => {
     if (conflict) return 'pending'
     const current = readCurrent()
@@ -1225,6 +1243,14 @@ export function createPersistenceController(
       markConflict('foreign-removal')
       return 'pending'
     }
+    if (
+      pending === candidate &&
+      isStructuredCurrent(current) &&
+      current.sourceContent === sourceContent(candidate.envelope) &&
+      current.revision === candidate.revision &&
+      current.writerId === candidate.writerId
+    )
+      return confirmDurable(current)
     if (
       isStructuredCurrent(current) &&
       (current.revision !== durableRevision ||
@@ -1254,22 +1280,7 @@ export function createPersistenceController(
         publish()
         return 'pending'
       }
-      pending = undefined
-      lastError = undefined
-      durableRevision = after.revision
-      durableWriterId = after.writerId
-      confirmedContent = after.content
-      confirmedFenceContent = after.fenceContent
-      confirmedValues = values
-      confirmedScopes = scopes
-      confirmedQuarantinedScopes = quarantinedScopes
-      conflict = undefined
-      conflictObservation = undefined
-      conflictWasRemoval = false
-      options.withKernelWrite(() => options.onRecovery())
-      options.onUnknownFieldsRecovered?.()
-      publish()
-      return 'saved'
+      return confirmDurable(after)
     } finally {
       writing = false
     }

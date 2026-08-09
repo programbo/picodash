@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vite-plus/test'
-import { createPicodashStore, type PicodashValueAdapter } from '../src/index.ts'
+import {
+  createPicodashStore,
+  PicodashContractError,
+  type PicodashValueAdapter,
+} from '../src/index.ts'
 import { acquireEntityLease } from '../src/integration.ts'
 import { createExternalAdapter } from './support/external-adapter.js'
 import { createMemoryPersistence } from './support/memory-persistence.js'
@@ -25,6 +29,47 @@ const createStore = (storeId: string) =>
   })
 
 describe('Store document namespace integration', () => {
+  it('holds the write lock while import execution validators run', () => {
+    const source = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-reentrant-source',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 2 }, other: { defaultValue: 0 } },
+      export: { documents: { defaultFieldPolicy: 'include' } },
+    })
+    const exported = source.documents.executeExport(source.documents.createExportPlan())
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    let nestedWrite: (() => unknown) | undefined
+    const target = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-reentrant-target',
+      schemaVersion: 1,
+      fields: {
+        value: {
+          defaultValue: 1,
+          validate: () => {
+            nestedWrite?.()
+            return []
+          },
+        },
+        other: { defaultValue: 0 },
+      },
+    })
+    const analysis = target.documents.analyzeImport(exported.document, {
+      allowForeignStore: true,
+    })
+    expect(analysis.ok).toBe(true)
+    if (!analysis.ok) return
+    nestedWrite = () => target.setValue(target.fields.other, 9)
+    expect(() => target.documents.executeImport(analysis.plan)).toThrowError(
+      expect.objectContaining<Partial<PicodashContractError>>({ code: 'reentrant-write' }),
+    )
+    expect(target.getState().values).toEqual({ value: 1, other: 0 })
+    source.destroy()
+    target.destroy()
+  })
+
   it('exports root and scoped projections with policy and one-use plans', () => {
     const store = createStore('documents-integration')
     const rootPlan = store.documents.createExportPlan()

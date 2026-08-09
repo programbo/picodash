@@ -9,6 +9,36 @@ import { createExternalAdapter } from './support/external-adapter.js'
 import { schemaSuccess, syncStandardSchema } from './support/standard-schema-fixtures.js'
 
 describe('binding interaction commands', () => {
+  it('holds the write lock while binding validators run', () => {
+    let nestedWrite: (() => unknown) | undefined
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        value: {
+          defaultValue: 1,
+          validate: () => {
+            nestedWrite?.()
+            return []
+          },
+        },
+        other: { defaultValue: 0 },
+      },
+    })
+    const scope = store.scope('reentrant-input')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.value,
+      mode: 'input',
+    })
+    nestedWrite = () => store.setValue(store.fields.other, 9)
+    expect(() => scope.setInput(binding, 2)).toThrowError(
+      expect.objectContaining({ code: 'reentrant-write' }),
+    )
+    expect(store.getState().values).toEqual({ value: 1, other: 0 })
+    binding.release()
+    store.destroy()
+  })
+
   it('commits canonical input and repair candidates without rerunning schemas', () => {
     const inputStore = createPicodashStore({
       valueOwner: 'store',

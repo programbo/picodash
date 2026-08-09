@@ -140,6 +140,45 @@ describe('Store-owned alpha persistence', () => {
     store.destroy()
   })
 
+  it('confirms an already-written pending envelope after verification recovers', () => {
+    const backend = createMemoryPersistence()
+    let armVerificationFailure = false
+    let failVerificationRead = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => {
+        if (failVerificationRead) {
+          failVerificationRead = false
+          throw new Error('transient verification failure')
+        }
+        return backend.read(key)
+      },
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (armVerificationFailure) {
+          armVerificationFailure = false
+          failVerificationRead = true
+        }
+      },
+      remove: (key) => backend.remove(key),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    armVerificationFailure = true
+    expect(store.setValues({ count: 2 })).toMatchObject({
+      ok: true,
+      persistence: 'pending',
+    })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(2)
+    const writesBeforeFlush = backend.calls.filter((call) => call.kind === 'write').length
+    expect(store.persistence.flush()).toBe('saved')
+    expect(backend.calls.filter((call) => call.kind === 'write')).toHaveLength(writesBeforeFlush)
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'clean',
+      hasPendingEnvelope: false,
+    })
+    store.destroy()
+  })
+
   it('cancels a failed pending envelope when live state returns to durable content', () => {
     const persistence = createMemoryPersistence()
     const store = createPicodashStore(makeConfig(persistence))
