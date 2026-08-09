@@ -1394,6 +1394,42 @@ describe('Store-owned alpha persistence', () => {
     store.destroy({ discardUnpersisted: true })
   })
 
+  it('holds the write lock while persistence plans snapshot migrated durable data', () => {
+    const persistence = createMemoryPersistence()
+    const writer = createPicodashStore(makeConfig(persistence))
+    writer.setValue(writer.fields.count, 2)
+    writer.destroy()
+    let nestedWrite: (() => void) | undefined
+    const nestedErrors: unknown[] = []
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      schemaVersion: 2,
+      migrations: {
+        1: (payload) => {
+          try {
+            nestedWrite?.()
+          } catch (error) {
+            nestedErrors.push(error)
+          }
+          return { ...payload, schemaVersion: 2 }
+        },
+      },
+    })
+    nestedWrite = () => store.setValue(store.fields.count, 9)
+    store.persistence.createErasePlan()
+    expect(nestedErrors.pop()).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.count).toBe(2)
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-plan-reader'
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    nestedErrors.length = 0
+    store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(nestedErrors).toEqual([expect.objectContaining({ code: 'reentrant-write' })])
+    expect(store.getState().values.count).toBe(2)
+    store.destroy({ discardUnpersisted: true })
+  })
+
   it('completes Store teardown when persistence unsubscribe throws', () => {
     const persistence = createMemoryPersistence()
     let throwOnUnsubscribe = true
@@ -1635,12 +1671,36 @@ describe('Store-owned alpha persistence', () => {
       }),
     )
     expect(accessed).toBe(false)
+    const throwingProxy = new Proxy(
+      {},
+      {
+        ownKeys() {
+          throw new Error('private reflection failure')
+        },
+      },
+    )
+    expect(() =>
+      store.persistence.createConflictResolutionPlan(throwingProxy as never),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-persistence-conflict-options',
+        context: { reason: 'not-object' },
+      }),
+    )
     expect(() => store.persistence.executeErase({} as never, undefined as never)).toThrowError(
       expect.objectContaining({
         code: 'invalid-persistence-erase-options',
         context: { reason: 'not-object' },
       }),
     )
+    const erasePlan = store.persistence.createErasePlan()
+    expect(() => store.persistence.executeErase(erasePlan, throwingProxy as never)).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-persistence-erase-options',
+        context: { reason: 'not-object' },
+      }),
+    )
+    expect(store.persistence.executeErase(erasePlan, { confirm: true })).toMatchObject({ ok: true })
     store.destroy()
   })
 

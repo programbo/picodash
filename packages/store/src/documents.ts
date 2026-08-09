@@ -486,16 +486,19 @@ function optionRecord(
     for (const key of Reflect.ownKeys(descriptors))
       if (typeof key !== 'string' || !allowed.includes(key))
         return optionError(operation, 'unknown-key')
+    const record: Record<string, unknown> = Object.create(null)
     for (const key of Reflect.ownKeys(descriptors)) {
-      const descriptor = Object.getOwnPropertyDescriptor(value, key)!
+      const descriptor = descriptors[key as string]!
       if (!descriptor.enumerable) return optionError(operation, 'unknown-key')
       if (!('value' in descriptor)) return optionError(operation, 'accessor-property')
+      record[key as string] = descriptor.value
     }
     const prototype = Object.getPrototypeOf(value)
     if (prototype !== Object.prototype && prototype !== null)
       return optionError(operation, 'not-object')
-    return value as Record<string, unknown>
-  } catch {
+    return record
+  } catch (error) {
+    if (error instanceof PicodashDocumentOptionsError) throw error
     return optionError(operation, 'not-object')
   }
 }

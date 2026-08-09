@@ -204,8 +204,24 @@ describe('Store document namespace integration', () => {
     expect(() => store.documents.executeExport(plan, undefined)).toThrowError(
       expect.objectContaining({ code: 'invalid-document-options' }),
     )
-    const result = store.documents.executeExport(plan, { confirmRedactedPromotion: true })
+    let nestedError: unknown
+    const confirmation = new Proxy(
+      { confirmRedactedPromotion: true as const },
+      {
+        ownKeys(target) {
+          try {
+            store.setValue(store.fields.value, 99)
+          } catch (error) {
+            nestedError = error
+          }
+          return Reflect.ownKeys(target)
+        },
+      },
+    )
+    const result = store.documents.executeExport(plan, confirmation)
     expect(result.ok).toBe(true)
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.value).toBe(1)
     if (result.ok)
       expect(result.document.fields).toEqual([['secret', { status: 'included', value: 'token' }]])
     store.destroy()

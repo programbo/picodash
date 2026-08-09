@@ -2580,57 +2580,60 @@ export function createPicodashStore<
   const createDocumentExportPlan = (
     receiverScopeId: string | undefined,
     input: unknown,
-  ): PicodashExportPlan => {
-    const snapshot = makeExportSnapshot(receiverScopeId, input)
-    const review = normalizePicodashExportPlanReview({
-      kind: 'export-plan',
-      documentKind: snapshot.document.kind,
-      ...(snapshot.document.kind === 'scope' ? { scopeId: snapshot.document.scopeId } : {}),
-      fieldKeys: snapshot.document.fields.map(([key]) => key),
-      promotedFieldKeys: snapshot.options.promoteFields?.map((field) => field.key) ?? [],
-      scopeIds: snapshot.document.scopes.map(([scopeId]) => scopeId),
+  ): PicodashExportPlan =>
+    withWriteLock(() => {
+      const snapshot = makeExportSnapshot(receiverScopeId, input)
+      const review = normalizePicodashExportPlanReview({
+        kind: 'export-plan',
+        documentKind: snapshot.document.kind,
+        ...(snapshot.document.kind === 'scope' ? { scopeId: snapshot.document.scopeId } : {}),
+        fieldKeys: snapshot.document.fields.map(([key]) => key),
+        promotedFieldKeys: snapshot.options.promoteFields?.map((field) => field.key) ?? [],
+        scopeIds: snapshot.document.scopes.map(([scopeId]) => scopeId),
+      })
+      const plan = Object.freeze(review) as PicodashExportPlan
+      registerDocumentPlan(plan as object, {
+        root: store as object,
+        kind: 'export',
+        snapshot: snapshot as object,
+        consumed: false,
+      })
+      return plan
     })
-    const plan = Object.freeze(review) as PicodashExportPlan
-    registerDocumentPlan(plan as object, {
-      root: store as object,
-      kind: 'export',
-      snapshot: snapshot as object,
-      consumed: false,
-    })
-    return plan
-  }
 
   const executeDocumentExportPlan = (
     plan: PicodashExportPlan,
     input: unknown,
     expectedReceiverScopeId?: string,
-  ): PicodashDocumentExportResult => {
-    const record = plan && typeof plan === 'object' ? documentPlanRecord(plan as object) : undefined
-    if (!record) return documentPlanError('export', 'wrong-kind')
-    if (record.kind !== 'export') documentPlanError('export', 'wrong-kind')
-    if (record.root !== (store as object)) documentPlanError('export', 'foreign-root')
-    const snapshot = record.snapshot as DocumentExportSnapshot
-    if (snapshot.receiverScopeId !== expectedReceiverScopeId)
-      documentPlanError('export', 'foreign-target')
-    try {
-      normalizePicodashExportExecutionOptions(
-        input,
-        (snapshot.options.promoteFields?.length ?? 0) > 0,
+  ): PicodashDocumentExportResult =>
+    withWriteLock(() => {
+      const record =
+        plan && typeof plan === 'object' ? documentPlanRecord(plan as object) : undefined
+      if (!record) return documentPlanError('export', 'wrong-kind')
+      if (record.kind !== 'export') documentPlanError('export', 'wrong-kind')
+      if (record.root !== (store as object)) documentPlanError('export', 'foreign-root')
+      const snapshot = record.snapshot as DocumentExportSnapshot
+      if (snapshot.receiverScopeId !== expectedReceiverScopeId)
+        documentPlanError('export', 'foreign-target')
+      try {
+        normalizePicodashExportExecutionOptions(
+          input,
+          (snapshot.options.promoteFields?.length ?? 0) > 0,
+        )
+      } catch (error) {
+        return documentOptionError(error)
+      }
+      if (record.consumed) documentPlanError('export', 'consumed')
+      record.consumed = true
+      const current = makeExportSnapshot(snapshot.receiverScopeId, snapshot.options)
+      if (
+        JSON.stringify(current.document) !== JSON.stringify(snapshot.document) ||
+        JSON.stringify(current.activeFieldKeys) !== JSON.stringify(snapshot.activeFieldKeys) ||
+        JSON.stringify(current.descendantScopeIds) !== JSON.stringify(snapshot.descendantScopeIds)
       )
-    } catch (error) {
-      return documentOptionError(error)
-    }
-    if (record.consumed) documentPlanError('export', 'consumed')
-    record.consumed = true
-    const current = makeExportSnapshot(snapshot.receiverScopeId, snapshot.options)
-    if (
-      JSON.stringify(current.document) !== JSON.stringify(snapshot.document) ||
-      JSON.stringify(current.activeFieldKeys) !== JSON.stringify(snapshot.activeFieldKeys) ||
-      JSON.stringify(current.descendantScopeIds) !== JSON.stringify(snapshot.descendantScopeIds)
-    )
-      return documentFailure('stale_plan', 'Export plan is stale.')
-    return Object.freeze({ ok: true as const, document: current.document })
-  }
+        return documentFailure('stale_plan', 'Export plan is stale.')
+      return Object.freeze({ ok: true as const, document: current.document })
+    })
 
   const makeImportSnapshot = (
     receiverScopeId: string | undefined,
@@ -3316,16 +3319,22 @@ export function createPicodashStore<
     readonly reason?: 'not-object' | 'unknown-key' | 'accessor-property'
   } => {
     if (!input || typeof input !== 'object' || Array.isArray(input)) return { reason: 'not-object' }
-    const descriptors = Object.getOwnPropertyDescriptors(input)
-    for (const key of Reflect.ownKeys(descriptors)) {
-      if (typeof key !== 'string' || !allowedKeys.includes(key)) return { reason: 'unknown-key' }
+    try {
+      const descriptors = Object.getOwnPropertyDescriptors(input)
+      const record: Record<string, unknown> = Object.create(null)
+      for (const key of Reflect.ownKeys(descriptors)) {
+        if (typeof key !== 'string' || !allowedKeys.includes(key)) return { reason: 'unknown-key' }
+      }
+      for (const key of Reflect.ownKeys(descriptors)) {
+        const descriptor = descriptors[key as string]!
+        if (!descriptor.enumerable) return { reason: 'unknown-key' }
+        if (!('value' in descriptor)) return { reason: 'accessor-property' }
+        record[key as string] = descriptor.value
+      }
+      return { record }
+    } catch {
+      return { reason: 'not-object' }
     }
-    for (const key of Reflect.ownKeys(descriptors)) {
-      const descriptor = descriptors[key as string]!
-      if (!descriptor.enumerable) return { reason: 'unknown-key' }
-      if (!('value' in descriptor)) return { reason: 'accessor-property' }
-    }
-    return { record: input as Record<string, unknown> }
   }
 
   function parsePersistenceConflictOptions(input: unknown): PersistenceConflictResolutionOptions {
@@ -3368,26 +3377,28 @@ export function createPicodashStore<
   function createPersistenceConflictResolutionPlanPublic(
     input: PersistenceConflictResolutionOptions,
   ): PicodashPersistenceConflictResolutionPlan {
-    const parsed = parsePersistenceConflictOptions(input)
-    let snapshot
-    try {
-      snapshot = persistenceController!.createConflictResolutionSnapshot(parsed)
-    } catch {
-      throw new PicodashContractError('invalid-persistence-conflict-resolution', {
-        reason: 'not-conflicted',
+    return withWriteLock(() => {
+      const parsed = parsePersistenceConflictOptions(input)
+      let snapshot
+      try {
+        snapshot = persistenceController!.createConflictResolutionSnapshot(parsed)
+      } catch {
+        throw new PicodashContractError('invalid-persistence-conflict-resolution', {
+          reason: 'not-conflicted',
+        })
+      }
+      const plan = Object.freeze({
+        kind: 'persistence-conflict-resolution-plan' as const,
+        mode: parsed.mode,
+      }) as PicodashPersistenceConflictResolutionPlan
+      registerPersistencePlan(plan as object, {
+        root: store as object,
+        kind: 'conflict-resolution',
+        snapshot: snapshot as object,
+        consumed: false,
       })
-    }
-    const plan = Object.freeze({
-      kind: 'persistence-conflict-resolution-plan' as const,
-      mode: parsed.mode,
-    }) as PicodashPersistenceConflictResolutionPlan
-    registerPersistencePlan(plan as object, {
-      root: store as object,
-      kind: 'conflict-resolution',
-      snapshot: snapshot as object,
-      consumed: false,
+      return plan
     })
-    return plan
   }
 
   function invalidPersistencePlan(reason: 'wrong-kind' | 'foreign-root' | 'consumed'): never {
@@ -3432,19 +3443,21 @@ export function createPicodashStore<
   }
 
   function createPersistenceErasePlanPublic(): PicodashPersistenceErasePlan {
-    const snapshot = persistenceController!.createEraseSnapshot()
-    const plan = Object.freeze({
-      kind: 'persistence-erase-plan' as const,
-      hasDurableEnvelope: snapshot.hasDurableEnvelope,
-      discardsPendingEnvelope: snapshot.discardsPendingEnvelope,
-    }) as PicodashPersistenceErasePlan
-    registerPersistencePlan(plan as object, {
-      root: store as object,
-      kind: 'erase',
-      snapshot: snapshot as object,
-      consumed: false,
+    return withWriteLock(() => {
+      const snapshot = persistenceController!.createEraseSnapshot()
+      const plan = Object.freeze({
+        kind: 'persistence-erase-plan' as const,
+        hasDurableEnvelope: snapshot.hasDurableEnvelope,
+        discardsPendingEnvelope: snapshot.discardsPendingEnvelope,
+      }) as PicodashPersistenceErasePlan
+      registerPersistencePlan(plan as object, {
+        root: store as object,
+        kind: 'erase',
+        snapshot: snapshot as object,
+        consumed: false,
+      })
+      return plan
     })
-    return plan
   }
 
   function executePersistenceErasePublic(

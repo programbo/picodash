@@ -160,6 +160,31 @@ describe('document policy, options, and mappings', () => {
     ).toEqual({
       confirmRedactedPromotion: true,
     })
+    const nonEnumerable = Object.defineProperty({ includeDescendants: true }, 'extra', {
+      value: true,
+    })
+    expect(() => normalizePicodashExportOptions(nonEnumerable)).toThrowError(
+      expect.objectContaining({ operation: 'export', reason: 'unknown-key' }),
+    )
+    const accessor = Object.defineProperty({}, 'confirmRedactedPromotion', {
+      enumerable: true,
+      get: () => true,
+    })
+    expect(() => normalizePicodashExportExecutionOptions(accessor, true)).toThrowError(
+      expect.objectContaining({ operation: 'export-execution', reason: 'accessor-property' }),
+    )
+    expect(() =>
+      normalizePicodashImportOptions(
+        new Proxy(
+          {},
+          {
+            ownKeys() {
+              throw new Error('private reflection failure')
+            },
+          },
+        ),
+      ),
+    ).toThrowError(expect.objectContaining({ operation: 'import-analysis', reason: 'not-object' }))
     expect(() => normalizePicodashFieldMap({ first: alpha, second: alpha })).toThrow(
       PicodashDocumentOptionsError,
     )
