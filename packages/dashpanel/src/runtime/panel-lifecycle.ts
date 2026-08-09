@@ -73,6 +73,8 @@ function focusable(element: HTMLElement): boolean {
   const tabindex = element.getAttribute('tabindex')
   if (tabindex !== null && Number(tabindex) < 0) return false
   if (tabindex !== null) return true
+  const contentEditable = element.getAttribute('contenteditable')
+  if (contentEditable !== null && contentEditable.toLowerCase() !== 'false') return true
   if ((element.tagName === 'A' || element.tagName === 'AREA') && !element.hasAttribute('href'))
     return false
   if (element.tagName === 'INPUT' && element.getAttribute('type')?.toLowerCase() === 'hidden')
@@ -107,7 +109,7 @@ function tryFocus(element: HTMLElement, requireSequentialFocus = true): boolean 
 
 function focusFirstTarget(panel: HTMLElement): boolean {
   const descendants = panel.querySelectorAll<HTMLElement>(
-    'a[href], area[href], button, input, select, textarea, summary, [tabindex]',
+    'a[href], area[href], button, input, select, textarea, summary, [contenteditable]:not([contenteditable="false"]), [tabindex]',
   )
   for (const candidate of descendants) if (tryFocus(candidate)) return true
   return false
