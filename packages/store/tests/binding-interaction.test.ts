@@ -756,4 +756,42 @@ describe('binding interaction commands', () => {
     binding.release()
     store.destroy()
   })
+
+  it('rejects binding release during validation without leaking interaction', () => {
+    let releaseBinding: (() => void) | undefined
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        value: {
+          defaultValue: 1,
+          validate: () => {
+            if (!releaseBinding) return []
+            releaseBinding?.()
+            return [{ message: 'rejected' }]
+          },
+        },
+      },
+    })
+    const scope = store.scope('release-validation')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.value,
+      mode: 'input',
+    })
+    releaseBinding = () => binding.release()
+    expect(() => scope.setInput(binding, 2)).toThrowError(
+      expect.objectContaining({ code: 'reentrant-write' }),
+    )
+    expect(scope.getState().interaction.bindings.size).toBe(0)
+    releaseBinding = undefined
+    binding.release()
+    const replacement = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.value,
+      mode: 'input',
+    })
+    expect(scope.getState().interaction.bindings.size).toBe(0)
+    replacement.release()
+    store.destroy()
+  })
 })

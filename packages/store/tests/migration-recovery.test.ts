@@ -253,6 +253,28 @@ describe('Store beta migration and metadata recovery', () => {
         },
       ],
     ])
+    let nestedError: unknown
+    const hostileReplacement = new Proxy(
+      {},
+      {
+        ownKeys() {
+          try {
+            store.setValue(store.fields.value, 99)
+          } catch (error) {
+            nestedError = error
+          }
+          return ['unknown']
+        },
+        getOwnPropertyDescriptor: () => ({ configurable: true, enumerable: true, value: true }),
+      },
+    )
+    expect(recovery.replaceScope('bad-scope', hostileReplacement as never)).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'invalid_metadata' }] },
+    })
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.value).toBe(2)
+    expect(recovery.getState().quarantinedScopes.has('bad-scope')).toBe(true)
     expect(recovery.replaceScope('bad-scope', null)).toMatchObject({
       ok: true,
       persistence: 'saved',

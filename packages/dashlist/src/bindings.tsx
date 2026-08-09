@@ -196,6 +196,27 @@ function sameDescriptors(
   )
 }
 
+function assertBindingDescriptorsOwned(
+  store: ScopedStore<PicodashFieldDefinitions>,
+  descriptors: readonly BindingDescriptor[],
+): void {
+  for (const descriptor of descriptors) {
+    try {
+      const key = Object.getOwnPropertyDescriptor(descriptor.field, 'key')
+      if (
+        !key ||
+        !('value' in key) ||
+        typeof key.value !== 'string' ||
+        (store.fields as Record<string, unknown>)[key.value] !== descriptor.field
+      )
+        throw new PicodashContractError('foreign-handle')
+    } catch (error) {
+      if (error instanceof PicodashContractError) throw error
+      throw new PicodashContractError('foreign-handle')
+    }
+  }
+}
+
 function issuesFromResult(
   result: ReturnType<ScopedStore<PicodashFieldDefinitions>['setInput']>,
 ): readonly TransactionIssue[] {
@@ -261,6 +282,7 @@ export function useDashletBindings(
       'Dashlet binding descriptors are immutable while mounted; use a keyed remount.',
     )
   const stableDescriptors = initialDescriptors.current
+  assertBindingDescriptorsOwned(store, stableDescriptors)
   const [commandIssues, setCommandIssues] = useState<readonly TransactionIssue[]>([])
   const previousValues = useRef(storeSnapshot.values)
   useEffect(() => {

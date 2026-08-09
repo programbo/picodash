@@ -108,6 +108,7 @@ export class RuntimeController {
   private bindingInteractionCleanup:
     | ((scopeId: string, itemId: string, alias: string) => void)
     | undefined
+  private bindingReleaseGuard: (() => void) | undefined
   lifecycle: RuntimeLifecycle = 'active'
 
   constructor(root: object) {
@@ -172,6 +173,10 @@ export class RuntimeController {
     this.bindingInteractionCleanup = cleanup
   }
 
+  setBindingReleaseGuard(guard: () => void): void {
+    this.bindingReleaseGuard = guard
+  }
+
   activeBinding(scopeId: string, itemId: string, alias: string): BindingRecord | undefined {
     return this.bindings.get(scopeId)?.get(itemId)?.get(alias)
   }
@@ -212,6 +217,7 @@ export class RuntimeController {
   }
 
   releaseBinding(record: BindingRecord): void {
+    this.bindingReleaseGuard?.()
     const byItem = this.bindings.get(record.scopeId)
     const byAlias = byItem?.get(record.itemId)
     if (byAlias?.get(record.alias) === record) {

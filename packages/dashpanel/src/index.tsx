@@ -395,13 +395,19 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                     variant="ghost"
                     size="sm"
                     onPress={() => {
-                      runtime.hide(id)
-                      restorePanelFocus(
-                        runtime,
-                        id,
-                        providerPolicy.boundary,
-                        overlayDefaults.portalContainer,
-                      )
+                      const wasVisible = runtime.getSnapshot().panels[id]?.visible ?? false
+                      try {
+                        runtime.hide(id)
+                      } finally {
+                        const isVisible = runtime.getSnapshot().panels[id]?.visible ?? false
+                        if (wasVisible && !isVisible)
+                          restorePanelFocus(
+                            runtime,
+                            id,
+                            providerPolicy.boundary,
+                            overlayDefaults.portalContainer,
+                          )
+                      }
                     }}
                   >
                     ×
@@ -446,12 +452,15 @@ export function DashPanelTrigger({
         const before = typeof document !== 'undefined' ? document.activeElement : null
         const visible = runtime.getSnapshot().panels[panelId]?.visible ?? false
         recordPanelEntry(runtime, panelId, trigger, before)
-        const result =
-          action === 'toggle' && visible ? runtime.hide(panelId) : runtime.show(panelId)
-        if (result.status !== 'executed') return
-        if (action === 'toggle' && visible)
-          restorePanelFocus(runtime, panelId, policy.boundary, overlay.portalContainer)
-        else queueMicrotask(() => focusPanel(runtime, panelId))
+        try {
+          if (action === 'toggle' && visible) runtime.hide(panelId)
+          else runtime.show(panelId)
+        } finally {
+          const nextVisible = runtime.getSnapshot().panels[panelId]?.visible ?? false
+          if (visible && !nextVisible)
+            restorePanelFocus(runtime, panelId, policy.boundary, overlay.portalContainer)
+          else if (!visible && nextVisible) queueMicrotask(() => focusPanel(runtime, panelId))
+        }
       }}
     />
   )

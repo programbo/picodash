@@ -2370,7 +2370,7 @@ export function createPicodashStore<
     readonly document: PicodashDocument
     readonly options: PicodashNormalizedImportOptions
     readonly overlay: ReturnType<typeof buildPicodashDocumentOverlay>
-    readonly targetValues: Readonly<Record<string, PicodashJsonValue>>
+    readonly targetFieldRevisions: readonly (readonly [string, number])[]
     readonly targetScopeExistence: readonly (readonly [string, boolean])[]
     readonly targetScopes: readonly (readonly [string, SerializedDurableScopeMetadata | null])[]
     readonly targetQuarantined: readonly (readonly [
@@ -2687,6 +2687,16 @@ export function createPicodashStore<
       relevantTargetScopeIds.add(scopeMappings.get(sourceScopeId) ?? sourceScopeId)
     const targetScopeIdSet = new Set(targetScopeIds)
     const targetScopeMap = new Map(documentScopes())
+    const relevantTargetFieldKeys = new Set<string>()
+    const fieldMappings = new Map(options.fieldMap)
+    for (const [sourceFieldKey, entry] of document.fields) {
+      if (entry.status !== 'included') continue
+      const mapped = fieldMappings.get(sourceFieldKey)
+      if (mapped !== 'ignore')
+        relevantTargetFieldKeys.add(
+          typeof mapped === 'object' && mapped !== null ? mapped.key : sourceFieldKey,
+        )
+    }
     let overlay: ReturnType<typeof buildPicodashDocumentOverlay>
     try {
       overlay = buildPicodashDocumentOverlay({
@@ -2726,7 +2736,11 @@ export function createPicodashStore<
       document,
       options,
       overlay,
-      targetValues: Object.freeze({ ...values }),
+      targetFieldRevisions: Object.freeze(
+        [...relevantTargetFieldKeys]
+          .sort()
+          .map((fieldKey) => Object.freeze([fieldKey, fieldRevisions.get(fieldKey) ?? 0] as const)),
+      ),
       targetScopeExistence: Object.freeze(
         [...relevantTargetScopeIds]
           .sort()
@@ -2816,7 +2830,11 @@ export function createPicodashStore<
     // overlay. State drift, metadata validation, or adapter/persistence failure
     // therefore cannot make the same plan executable a second time.
     record.consumed = true
-    if (JSON.stringify(values) !== JSON.stringify(snapshot.targetValues))
+    if (
+      snapshot.targetFieldRevisions.some(
+        ([fieldKey, revision]) => (fieldRevisions.get(fieldKey) ?? 0) !== revision,
+      )
+    )
       return documentFailure('stale_plan', 'Import plan is stale.')
     const currentScopeIds = new Set(documentScopeIds())
     if (
@@ -2869,13 +2887,7 @@ export function createPicodashStore<
       ),
     })
     const trackedQuarantineIds = new Set(snapshot.targetQuarantined.map(([scopeId]) => scopeId))
-    const trackedFieldKeys = new Set<string>()
-    for (const [sourceKey, entry] of snapshot.document.fields) {
-      if (entry.status !== 'included') continue
-      const mapped = snapshot.options.fieldMap.find(([key]) => key === sourceKey)?.[1]
-      if (mapped !== 'ignore')
-        trackedFieldKeys.add(typeof mapped === 'object' && mapped !== null ? mapped.key : sourceKey)
-    }
+    const trackedFieldKeys = new Set(snapshot.targetFieldRevisions.map(([fieldKey]) => fieldKey))
     const trackedScopeIds = new Set<string>()
     const scopeMap = new Map(snapshot.options.scopeMap)
     if (snapshot.document.kind === 'scope' && snapshot.options.targetScopeId !== undefined)
@@ -3160,6 +3172,9 @@ export function createPicodashStore<
   runtimeController.finalizeRoot(store as object)
   registerRuntimeController(store as object, runtimeController)
   runtimeController.setBindingInteractionCleanup(clearBindingInteraction)
+  runtimeController.setBindingReleaseGuard(() => {
+    if (writing) throw new PicodashContractError('reentrant-write')
+  })
   if (externalAdapterRuntime)
     runtimeController.registerResource({
       phase: 'capability',
@@ -5024,11 +5039,10 @@ export function createPicodashStore<
     return metadataRecoverySnapshot
   }
 
-  function replaceQuarantinedScopeInternal(
+  function replaceQuarantinedScopeInternalLocked(
     scopeId: string,
     replacement: SerializedDurableScopeMetadata | null,
   ): CoreTransactionResult {
-    if (writing) throw new PicodashContractError('reentrant-write')
     validateScopeId(scopeId)
     if (!quarantinedScopes.has(scopeId))
       throw new PicodashContractError('invalid-quarantine-replacement', {
@@ -5038,7 +5052,8 @@ export function createPicodashStore<
     if (replacement !== null) {
       try {
         candidate = decodeDurableScopeMetadata(replacement)
-      } catch {
+      } catch (error) {
+        if (error instanceof PicodashContractError) throw error
         return rejectedResult([
           Object.freeze({
             code: 'invalid_metadata' as const,
@@ -5049,28 +5064,30 @@ export function createPicodashStore<
         ])
       }
     }
-    writing = true
-    try {
-      const nextQuarantine = new Map(quarantinedScopes)
-      nextQuarantine.delete(scopeId)
-      const previousQuarantinedScopes = quarantinedScopes
-      quarantinedScopes = nextQuarantine.size
-        ? immutableMap([...nextQuarantine.entries()])
-        : immutableMap<string, PicodashQuarantinedScopeMetadata>([])
-      const nextScopes = [...scopes.entries()].filter(([id]) => id !== scopeId)
-      if (candidate !== undefined) nextScopes.push([scopeId, candidate])
-      nextScopes.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-      scopes = nextScopes.length ? immutableMap(nextScopes) : EmptyScopes
-      currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
-      const affectedChannels = collectScopedChannels(scopeId)
-      refreshScopedChannels(affectedChannels)
-      publishQuarantineTransition(previousQuarantinedScopes, quarantinedScopes)
-      const result = resultWithPersistence(successfulResult([], [scopeId]))
-      dispatchStoreSubscribers(affectedChannels)
-      return result
-    } finally {
-      writing = false
-    }
+    const nextQuarantine = new Map(quarantinedScopes)
+    nextQuarantine.delete(scopeId)
+    const previousQuarantinedScopes = quarantinedScopes
+    quarantinedScopes = nextQuarantine.size
+      ? immutableMap([...nextQuarantine.entries()])
+      : immutableMap<string, PicodashQuarantinedScopeMetadata>([])
+    const nextScopes = [...scopes.entries()].filter(([id]) => id !== scopeId)
+    if (candidate !== undefined) nextScopes.push([scopeId, candidate])
+    nextScopes.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+    scopes = nextScopes.length ? immutableMap(nextScopes) : EmptyScopes
+    currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
+    const affectedChannels = collectScopedChannels(scopeId)
+    refreshScopedChannels(affectedChannels)
+    publishQuarantineTransition(previousQuarantinedScopes, quarantinedScopes)
+    const result = resultWithPersistence(successfulResult([], [scopeId]))
+    dispatchStoreSubscribers(affectedChannels)
+    return result
+  }
+
+  function replaceQuarantinedScopeInternal(
+    scopeId: string,
+    replacement: SerializedDurableScopeMetadata | null,
+  ): CoreTransactionResult {
+    return withWriteLock(() => replaceQuarantinedScopeInternalLocked(scopeId, replacement))
   }
 
   function metadataEqual(

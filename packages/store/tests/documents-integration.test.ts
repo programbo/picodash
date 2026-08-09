@@ -175,13 +175,13 @@ describe('Store document namespace integration', () => {
       })
     }
 
-    target.setValue(target.fields.value, 10)
+    target.setValue(target.fields.value, 11)
     const analysis = target.documents.analyzeImport(sourceResult.document, {
       allowForeignStore: true,
     })
     expect(analysis.ok).toBe(true)
     if (!analysis.ok) return
-    target.setValue(target.fields.secret, 'changed-after-analysis')
+    target.setValue(target.fields.value, 10)
     const stale = target.documents.executeImport(analysis.plan)
     expect(stale.ok).toBe(false)
     if (!stale.ok) expect(stale.error.issues[0]?.message).toBe('Import plan is stale.')
@@ -359,6 +359,36 @@ describe('Store document namespace integration', () => {
     expect(target.getState().scopes.get('panel')?.dashPanel?.preferredPosition).toEqual({
       x: 3,
       y: 3,
+    })
+    source.destroy()
+    target.destroy()
+  })
+
+  it('fences only mapped import field revisions', () => {
+    const source = createStore('documents-value-revisions')
+    const target = createStore('documents-value-revisions')
+    const exported = source.documents.executeExport(
+      source.documents.createExportPlan({
+        includeDescendants: false,
+        fields: [source.fields.value],
+      }),
+    )
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    const unrelated = target.documents.analyzeImport(exported.document)
+    expect(unrelated.ok).toBe(true)
+    if (!unrelated.ok) return
+    target.setValue(target.fields.secret, 'unrelated-change')
+    expect(target.documents.executeImport(unrelated.plan)).toMatchObject({ ok: true })
+
+    const restored = target.documents.analyzeImport(exported.document)
+    expect(restored.ok).toBe(true)
+    if (!restored.ok) return
+    target.setValue(target.fields.value, 2)
+    target.setValue(target.fields.value, 1)
+    expect(target.documents.executeImport(restored.plan)).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'stale_plan' }] },
     })
     source.destroy()
     target.destroy()

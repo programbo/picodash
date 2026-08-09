@@ -33,8 +33,20 @@ class MockHTMLElementBase {
     return false
   }
 
+  setAttribute() {}
+
+  removeAttribute() {}
+
   contains() {
     return true
+  }
+
+  closest() {
+    return null
+  }
+
+  focus() {
+    ;(globalThis.document as { activeElement: unknown }).activeElement = this
   }
 
   getBoundingClientRect() {
@@ -45,6 +57,7 @@ class MockHTMLElementBase {
 beforeEach(() => {
   vi.stubGlobal('document', {
     body: {},
+    activeElement: null,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   })
@@ -953,6 +966,30 @@ describe('@picodash/dashpanel alpha shell', () => {
     pressButton(hiddenTrigger)
     expect(renderer.root.findByType('aside').props.hidden).toBe(false)
     void act(() => renderer.unmount())
+  })
+
+  it('restores focus after a committed visibility callback throws', () => {
+    const store = makeStore()
+    const boundary = new MockHTMLElementBase()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        boundary: boundary as unknown as HTMLElement,
+        children: createElement(DashPanel, {
+          id: 'throwing-visibility',
+          title: 'Throwing visibility',
+          onVisibilityChange: (visible) => {
+            if (!visible) throw new Error('visibility callback failed')
+          },
+        }),
+      }),
+    )
+    expect(() =>
+      pressButton(renderer.root.findByProps({ 'aria-label': 'Close panel Throwing visibility' })),
+    ).toThrow('visibility callback failed')
+    expect(document.activeElement).toBe(boundary)
+    void act(() => renderer.unmount())
+    store.destroy()
   })
 
   it('rejects launcher items without a non-empty accessible name', () => {

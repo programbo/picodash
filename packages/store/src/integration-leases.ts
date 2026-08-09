@@ -247,8 +247,8 @@ export function acquireBindingLease<
     mode: record.mode,
     release: () => {
       if (!record.active) return
-      record.active = false
       controller.releaseBinding(record)
+      record.active = false
     },
   }) as BindingHandle<Fields, Key>
   record.lease = handle as object

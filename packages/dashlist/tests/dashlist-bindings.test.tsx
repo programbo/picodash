@@ -1,6 +1,6 @@
 import { createElement, StrictMode, type ReactElement } from 'react'
 import { act, create } from 'react-test-renderer'
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore } from '@picodash/store'
 import { acquireBindingLease } from '@picodash/store/integration'
 import { DashList, Dashlet } from '../src/index.tsx'
@@ -322,7 +322,7 @@ describe('DashList bindings', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
-  it('rejects descriptor mutation and rolls back a partially acquired compound binding', () => {
+  it('rejects descriptor mutation and foreign fields before rendering binding values', async () => {
     const store = createPicodashStore({
       valueOwner: 'store',
       fields: { first: { defaultValue: 1 }, second: { defaultValue: 2 } },
@@ -346,6 +346,7 @@ describe('DashList bindings', () => {
     )
     act(() => view.unmount())
 
+    const renderForeignContext = vi.fn(() => null)
     expect(() =>
       act(() => {
         create(
@@ -356,11 +357,28 @@ describe('DashList bindings', () => {
               id: 'pair',
               label: 'Pair',
               fields: { first: store.fields.first, second: foreign.fields.second },
+              children: renderForeignContext,
             }),
           ),
         )
       }),
-    ).toThrow()
+    ).toThrowError(expect.objectContaining({ code: 'foreign-handle' }))
+    expect(renderForeignContext).not.toHaveBeenCalled()
+    const { renderToString } = await import('react-dom/server')
+    expect(() =>
+      renderToString(
+        createElement(
+          DashList,
+          { id: 'server-foreign', store },
+          createElement(Dashlet as any, {
+            id: 'foreign',
+            label: 'Foreign',
+            field: foreign.fields.second,
+            children: renderForeignContext,
+          }),
+        ),
+      ),
+    ).toThrowError(expect.objectContaining({ code: 'foreign-handle' }))
     const lease = acquireBindingLease(store.scope('rollback'), {
       itemId: 'pair',
       alias: 'first',
