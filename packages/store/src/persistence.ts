@@ -1425,47 +1425,50 @@ export function createPersistenceController(
       if (options.driver.subscribe) {
         const result = options.driver.subscribe(options.storageKey, () => {
           if (!active || writing) return
-          const current = readCurrent()
-          if (current === 'error') {
-            recordFailure('read-failed')
-            publish()
-            return
-          }
-          if (isInvalidCurrent(current)) {
-            recordFailure('invalid-later-envelope')
-            publish()
-            return
-          }
-          if (!current) {
-            if (durableRevision === null && pending === undefined && lastError === undefined) return
-            markConflict('foreign-removal')
-            return
-          }
-          if (!isStructuredCurrent(current)) return
-          if (
-            uncertainWrite !== undefined &&
-            observationMatchesRecord(current, uncertainWrite.record)
-          ) {
-            confirmDurable(current, pending !== uncertainWrite.record)
-            return
-          }
-          if (pending !== undefined && observationMatchesRecord(current, pending)) {
-            confirmDurable(current)
-            return
-          }
-          if (
-            current.fenceContent !== confirmedFenceContent ||
-            current.writerId !== durableWriterId ||
-            current.revision !== durableRevision
-          ) {
-            markConflict('foreign-envelope', current)
-            return
-          }
-          if (lastError !== undefined) {
-            lastError = undefined
-            options.withKernelWrite(() => options.onRecovery())
-            publish()
-          }
+          options.withKernelWrite(() => {
+            const current = readCurrent()
+            if (current === 'error') {
+              recordFailure('read-failed')
+              publish()
+              return
+            }
+            if (isInvalidCurrent(current)) {
+              recordFailure('invalid-later-envelope')
+              publish()
+              return
+            }
+            if (!current) {
+              if (durableRevision === null && pending === undefined && lastError === undefined)
+                return
+              markConflict('foreign-removal')
+              return
+            }
+            if (!isStructuredCurrent(current)) return
+            if (
+              uncertainWrite !== undefined &&
+              observationMatchesRecord(current, uncertainWrite.record)
+            ) {
+              confirmDurable(current, pending !== uncertainWrite.record)
+              return
+            }
+            if (pending !== undefined && observationMatchesRecord(current, pending)) {
+              confirmDurable(current)
+              return
+            }
+            if (
+              current.fenceContent !== confirmedFenceContent ||
+              current.writerId !== durableWriterId ||
+              current.revision !== durableRevision
+            ) {
+              markConflict('foreign-envelope', current)
+              return
+            }
+            if (lastError !== undefined) {
+              lastError = undefined
+              options.onRecovery()
+              publish()
+            }
+          })
         })
         if (typeof result !== 'function') failInit('subscribe')
         releaseSubscription = result
@@ -1926,10 +1929,13 @@ export function createPersistenceController(
     destroy(discard) {
       active = false
       if (discard) pending = undefined
-      releaseSubscription?.()
-      releaseSubscription = undefined
-      listeners.clear()
-      releaseOwnership()
+      try {
+        releaseSubscription?.()
+      } finally {
+        releaseSubscription = undefined
+        listeners.clear()
+        releaseOwnership()
+      }
     },
   }
 }

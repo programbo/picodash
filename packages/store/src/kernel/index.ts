@@ -3172,7 +3172,7 @@ export function createPicodashStore<
   runtimeController.finalizeRoot(store as object)
   registerRuntimeController(store as object, runtimeController)
   runtimeController.setBindingInteractionCleanup(clearBindingInteraction)
-  runtimeController.setBindingReleaseGuard(() => {
+  runtimeController.setLeaseMutationGuard(() => {
     if (writing) throw new PicodashContractError('reentrant-write')
   })
   if (externalAdapterRuntime)
@@ -3451,50 +3451,51 @@ export function createPicodashStore<
     plan: PicodashPersistenceErasePlan,
     input: { readonly confirm: true },
   ): PersistenceEraseResult {
-    if (writing) throw new PicodashContractError('reentrant-write')
-    parseEraseConfirmation(input)
-    const record =
-      plan && typeof plan === 'object' ? persistencePlanRecord(plan as object) : undefined
-    if (!record)
-      throw new PicodashContractError('invalid-persistence-plan', {
-        kind: 'erase',
-        reason: 'wrong-kind',
-      })
-    if (record.kind !== 'erase')
-      throw new PicodashContractError('invalid-persistence-plan', {
-        kind: 'erase',
-        reason: 'wrong-kind',
-      })
-    if (record.root !== (store as object))
-      throw new PicodashContractError('invalid-persistence-plan', {
-        kind: 'erase',
-        reason: 'foreign-root',
-      })
-    if (record.consumed)
-      throw new PicodashContractError('invalid-persistence-plan', {
-        kind: 'erase',
-        reason: 'consumed',
-      })
-    record.consumed = true
-    const outcome = persistenceController!.executeErase(record.snapshot as never)
-    if (!outcome.ok)
-      return {
-        ok: false,
-        error: new PicodashTransactionError([
-          Object.freeze({
-            code:
-              outcome.reason === 'stale'
-                ? ('stale_plan' as const)
-                : ('persistence_erase_failed' as const),
-            path: freezePath([]),
-            message:
-              outcome.reason === 'stale'
-                ? 'Persistence plan is stale.'
-                : 'Persistence erase failed.',
-          }),
-        ]),
-      }
-    return outcome
+    return withWriteLock(() => {
+      parseEraseConfirmation(input)
+      const record =
+        plan && typeof plan === 'object' ? persistencePlanRecord(plan as object) : undefined
+      if (!record)
+        throw new PicodashContractError('invalid-persistence-plan', {
+          kind: 'erase',
+          reason: 'wrong-kind',
+        })
+      if (record.kind !== 'erase')
+        throw new PicodashContractError('invalid-persistence-plan', {
+          kind: 'erase',
+          reason: 'wrong-kind',
+        })
+      if (record.root !== (store as object))
+        throw new PicodashContractError('invalid-persistence-plan', {
+          kind: 'erase',
+          reason: 'foreign-root',
+        })
+      if (record.consumed)
+        throw new PicodashContractError('invalid-persistence-plan', {
+          kind: 'erase',
+          reason: 'consumed',
+        })
+      record.consumed = true
+      const outcome = persistenceController!.executeErase(record.snapshot as never)
+      if (!outcome.ok)
+        return {
+          ok: false,
+          error: new PicodashTransactionError([
+            Object.freeze({
+              code:
+                outcome.reason === 'stale'
+                  ? ('stale_plan' as const)
+                  : ('persistence_erase_failed' as const),
+              path: freezePath([]),
+              message:
+                outcome.reason === 'stale'
+                  ? 'Persistence plan is stale.'
+                  : 'Persistence erase failed.',
+            }),
+          ]),
+        }
+      return outcome
+    })
   }
 
   function resultWithPersistence(result: CoreTransactionResult): CoreTransactionResult {

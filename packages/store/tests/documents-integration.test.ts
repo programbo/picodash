@@ -4,7 +4,7 @@ import {
   PicodashContractError,
   type PicodashValueAdapter,
 } from '../src/index.ts'
-import { acquireEntityLease } from '../src/integration.ts'
+import { acquireEntityLease, acquireProviderLease } from '../src/integration.ts'
 import { createExternalAdapter } from './support/external-adapter.js'
 import { createMemoryPersistence } from './support/memory-persistence.js'
 import {
@@ -102,6 +102,58 @@ describe('Store document namespace integration', () => {
       expect.objectContaining<Partial<PicodashContractError>>({ code: 'reentrant-write' }),
     )
     expect(target.getState().values).toEqual({ value: 1, other: 0 })
+    source.destroy()
+    target.destroy()
+  })
+
+  it('fences entity release while scoped import validators run', () => {
+    const source = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-entity-source',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 2 } },
+      export: { documents: { defaultFieldPolicy: 'include' } },
+    })
+    const sourceScope = source.scope('panel')
+    const exported = sourceScope.documents.executeExport(
+      sourceScope.documents.createExportPlan({ includeDescendants: false }),
+    )
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    let releaseEntity: (() => void) | undefined
+    const target = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-entity-target',
+      schemaVersion: 1,
+      fields: {
+        value: {
+          defaultValue: 1,
+          validate: () => {
+            releaseEntity?.()
+            return []
+          },
+        },
+      },
+    })
+    const targetScope = target.scope('panel')
+    const provider = acquireProviderLease(target)
+    const entity = acquireEntityLease(targetScope, { kind: 'dashPanel', host: provider })
+    const analysis = targetScope.documents.analyzeImport(exported.document, {
+      allowForeignStore: true,
+    })
+    expect(analysis.ok).toBe(true)
+    if (!analysis.ok) return
+    releaseEntity = () => entity.release()
+    expect(() => targetScope.documents.executeImport(analysis.plan)).toThrowError(
+      expect.objectContaining<Partial<PicodashContractError>>({ code: 'reentrant-write' }),
+    )
+    expect(target.getState().values.value).toBe(1)
+    expect(() =>
+      acquireEntityLease(targetScope, { kind: 'dashPanel', host: provider }),
+    ).toThrowError(expect.objectContaining({ code: 'duplicate-entity' }))
+    releaseEntity = undefined
+    entity.release()
+    provider.release()
     source.destroy()
     target.destroy()
   })

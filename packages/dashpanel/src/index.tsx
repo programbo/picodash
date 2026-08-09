@@ -459,7 +459,8 @@ export function DashPanelTrigger({
           const nextVisible = runtime.getSnapshot().panels[panelId]?.visible ?? false
           if (visible && !nextVisible)
             restorePanelFocus(runtime, panelId, policy.boundary, overlay.portalContainer)
-          else if (!visible && nextVisible) queueMicrotask(() => focusPanel(runtime, panelId))
+          else if (nextVisible && (action === 'show' || !visible))
+            queueMicrotask(() => focusPanel(runtime, panelId))
         }
       }}
     />

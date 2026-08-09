@@ -385,6 +385,7 @@ export function acquireProviderLease<
   const lease = Object.freeze({
     release: () => {
       if (!record.active) return
+      controller.guardLeaseMutation()
       if (record.entities.size > 0)
         throw new PicodashContractError('lease-has-active-dependents', { leaseKind: 'provider' })
       record.active = false
@@ -446,6 +447,7 @@ export function acquireEntityLease<
   const lease = Object.freeze({
     release: () => {
       if (!record.active) return
+      controller.guardLeaseMutation()
       if (
         record.hostDependents.size > 0 ||
         [...controller.relationships].some(
@@ -504,6 +506,7 @@ export function acquireDashListNodeLease<
   const lease = Object.freeze({
     release: () => {
       if (!record.active) return
+      controller.guardLeaseMutation()
       record.active = false
       controller.releaseDashListNode(record)
     },
@@ -564,6 +567,7 @@ export function acquireRelationshipLease(
   const lease = Object.freeze({
     release: () => {
       if (!record.active) return
+      parentController!.guardLeaseMutation()
       record.active = false
       parentController!.relationships.delete(record)
       parentController!.releaseScopeEdge(record.parentScopeId, record.childScopeId)

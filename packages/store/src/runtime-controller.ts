@@ -108,7 +108,7 @@ export class RuntimeController {
   private bindingInteractionCleanup:
     | ((scopeId: string, itemId: string, alias: string) => void)
     | undefined
-  private bindingReleaseGuard: (() => void) | undefined
+  private leaseMutationGuard: (() => void) | undefined
   lifecycle: RuntimeLifecycle = 'active'
 
   constructor(root: object) {
@@ -173,8 +173,12 @@ export class RuntimeController {
     this.bindingInteractionCleanup = cleanup
   }
 
-  setBindingReleaseGuard(guard: () => void): void {
-    this.bindingReleaseGuard = guard
+  setLeaseMutationGuard(guard: () => void): void {
+    this.leaseMutationGuard = guard
+  }
+
+  guardLeaseMutation(): void {
+    this.leaseMutationGuard?.()
   }
 
   activeBinding(scopeId: string, itemId: string, alias: string): BindingRecord | undefined {
@@ -217,7 +221,7 @@ export class RuntimeController {
   }
 
   releaseBinding(record: BindingRecord): void {
-    this.bindingReleaseGuard?.()
+    this.guardLeaseMutation()
     const byItem = this.bindings.get(record.scopeId)
     const byAlias = byItem?.get(record.itemId)
     if (byAlias?.get(record.alias) === record) {
@@ -235,19 +239,29 @@ export class RuntimeController {
 
   destroyResources(context: RuntimeResourceContext): void {
     this.lifecycle = 'destroying'
-    for (const phase of ['capability', 'kernel'] as const)
-      for (const resource of this.resources)
-        if (resource.phase === phase) resource.teardown(context)
-    this.resources.clear()
-    this.providers.clear()
-    this.entities.clear()
-    this.relationships.clear()
-    this.dashListNodes.clear()
-    this.bindings.clear()
-    this.parentByChildScope.clear()
-    this.childrenByParentScope.clear()
-    this.edgeCounts.clear()
-    this.lifecycle = 'destroyed'
+    let firstError: unknown
+    try {
+      for (const phase of ['capability', 'kernel'] as const)
+        for (const resource of this.resources)
+          if (resource.phase === phase)
+            try {
+              resource.teardown(context)
+            } catch (error) {
+              firstError ??= error
+            }
+    } finally {
+      this.resources.clear()
+      this.providers.clear()
+      this.entities.clear()
+      this.relationships.clear()
+      this.dashListNodes.clear()
+      this.bindings.clear()
+      this.parentByChildScope.clear()
+      this.childrenByParentScope.clear()
+      this.edgeCounts.clear()
+      this.lifecycle = 'destroyed'
+    }
+    if (firstError !== undefined) throw firstError
   }
 
   descendants(scopeId: string): readonly string[] {

@@ -1338,6 +1338,88 @@ describe('Store-owned alpha persistence', () => {
     store.destroy()
   })
 
+  it('holds the write lock while parsing erase confirmation', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 4 })
+    const plan = store.persistence.createErasePlan()
+    let nestedError: unknown
+    const confirmation = new Proxy(
+      { confirm: true as const },
+      {
+        ownKeys(target) {
+          try {
+            store.setValue(store.fields.count, 9)
+          } catch (error) {
+            nestedError = error
+          }
+          return Reflect.ownKeys(target)
+        },
+      },
+    )
+    expect(store.persistence.executeErase(plan, confirmation)).toMatchObject({ ok: true })
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.count).toBe(4)
+    store.destroy()
+  })
+
+  it('holds the write lock while migrating subscription observations', () => {
+    const persistence = createMemoryPersistence()
+    let nestedWrite: (() => void) | undefined
+    let nestedError: unknown
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      schemaVersion: 2,
+      migrations: {
+        1: (payload) => {
+          try {
+            nestedWrite?.()
+          } catch (error) {
+            nestedError = error
+          }
+          return { ...payload, schemaVersion: 2 }
+        },
+      },
+    })
+    nestedWrite = () => store.setValue(store.fields.count, 9)
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.schemaVersion = 1
+    foreign.revision += 1
+    foreign.writerId = 'foreign-migrating-writer'
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.count).toBe(2)
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+    store.destroy({ discardUnpersisted: true })
+  })
+
+  it('completes Store teardown when persistence unsubscribe throws', () => {
+    const persistence = createMemoryPersistence()
+    let throwOnUnsubscribe = true
+    const driver: PicodashPersistenceDriver = {
+      identity: persistence.identity,
+      read: (key) => persistence.read(key),
+      write: (key, payload) => persistence.write(key, payload),
+      remove: (key) => persistence.remove(key),
+      subscribe: (key, listener) => {
+        const unsubscribe = persistence.subscribe(key, listener)
+        return () => {
+          unsubscribe()
+          if (throwOnUnsubscribe) throw new Error('unsubscribe failed')
+        }
+      },
+    }
+    const first = createPicodashStore(makeConfig(driver))
+    expect(() => first.destroy()).toThrow('unsubscribe failed')
+    expect(() => first.getState()).toThrowError(
+      expect.objectContaining({ code: 'use-after-destroy' }),
+    )
+    const replacement = createPicodashStore(makeConfig(driver))
+    throwOnUnsubscribe = false
+    expect(() => replacement.destroy()).not.toThrow()
+  })
+
   it('performs one verified remove even when the captured durable target is absent', () => {
     const persistence = createMemoryPersistence()
     const store = createPicodashStore(makeConfig(persistence))

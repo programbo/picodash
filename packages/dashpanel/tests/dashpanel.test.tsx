@@ -926,6 +926,29 @@ describe('@picodash/dashpanel alpha shell', () => {
     store.destroy()
   })
 
+  it('focuses an already-visible Panel when show activates it', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: [
+          createElement(DashPanelTrigger, { key: 'trigger', panelId: 'first' }, 'Show First'),
+          createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
+          createElement(DashPanel, { key: 'second', id: 'second', title: 'Second' }),
+        ],
+      }),
+    )
+    const scheduleFocus = vi.fn()
+    vi.stubGlobal('queueMicrotask', scheduleFocus)
+    pressButton(
+      renderer.root.findAllByType(Button).find((button) => button.props.children === 'Show First')!,
+    )
+    expect(renderer.root.findAllByType('aside')[0]?.props['data-active']).toBe('true')
+    expect(scheduleFocus).toHaveBeenCalledOnce()
+    void act(() => renderer.unmount())
+    store.destroy()
+  })
+
   it('seeds hidden visibility without focus and disables unavailable launcher targets', () => {
     const store = makeStore()
     const renderer = render(
