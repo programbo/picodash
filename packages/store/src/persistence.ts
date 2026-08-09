@@ -918,7 +918,7 @@ export function createPersistenceController(
 
   type StructuredObservation = ReturnType<typeof decodeStructured>
   type InvalidObservation = Readonly<{
-    readonly invalid: PersistenceDecodeReason
+    readonly invalid: PersistenceDecodeReason | SchemaMigrationFailureReason
     readonly fingerprint: string
   }>
   type EraseObservation = StructuredObservation | InvalidObservation | undefined
@@ -1077,6 +1077,8 @@ export function createPersistenceController(
         return decodeStructured(decoded.envelope)
       } catch (error) {
         if (error instanceof PersistenceDecodeError)
+          return { invalid: error.reason, fingerprint: raw } as const
+        if (error instanceof SchemaMigrationError)
           return { invalid: error.reason, fingerprint: raw } as const
         return 'error' as const
       }

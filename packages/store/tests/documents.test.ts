@@ -283,14 +283,19 @@ describe('redaction, migration, and overlay helpers', () => {
       scopeId: 'missing',
       scopes: [],
     })
-    expect(() =>
-      buildPicodashDocumentOverlay({
-        document,
-        targetValues: { alpha: 'old' },
-        targetScopes: [],
-        targetFieldKeys: ['alpha'],
-      }),
-    ).toThrowError(expect.objectContaining({ reason: 'missing_scope' }))
+    for (const options of [
+      undefined,
+      normalizePicodashImportOptions({ createMissingScopes: true }),
+    ])
+      expect(() =>
+        buildPicodashDocumentOverlay({
+          document,
+          targetValues: { alpha: 'old' },
+          targetScopes: [],
+          targetFieldKeys: ['alpha'],
+          ...(options === undefined ? {} : { options }),
+        }),
+      ).toThrowError(expect.objectContaining({ reason: 'missing_scope' }))
   })
 })
 

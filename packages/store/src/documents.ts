@@ -910,7 +910,13 @@ export function buildPicodashDocumentOverlay(
   }
   if (sourceScopeRoot !== undefined) {
     const targetScopeRoot = scopeMap.get(sourceScopeRoot) ?? sourceScopeRoot
-    if (!targetScopeIds.has(targetScopeRoot) && !options.createMissingScopes)
+    const importsTargetRoot = document.scopes.some(
+      ([sourceId]) => (scopeMap.get(sourceId) ?? sourceId) === targetScopeRoot,
+    )
+    if (
+      !targetScopeIds.has(targetScopeRoot) &&
+      (!options.createMissingScopes || !importsTargetRoot)
+    )
       throw new PicodashDocumentError('missing_scope')
   }
   const changedScopeIds: string[] = []

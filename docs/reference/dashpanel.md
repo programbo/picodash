@@ -784,7 +784,11 @@ uses `--_picodash-*` for private Panel formulas.
 ## Triggers and launcher
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
+> Evidence: `packages/dashpanel/tests/dashpanel.test.tsx`,
+> `packages/dashpanel/src/runtime/panel-runtime.test.ts`,
+> `packages/dashpanel/tests/dashpanel.types.test.ts`, and
+> `packages/dashpanel/tests/package-artifacts.mjs` cover the implemented subset.
 
 ```ts
 interface DashPanelTriggerProps extends Omit<ButtonProps, 'onPress'> {
@@ -815,6 +819,11 @@ JSX. A launcher item for an unavailable Panel renders as a disabled trigger and 
 
 Both components require the nearest DashPanel Provider. Their button behavior and public prop base
 come from `@picodash/ui`, but DashPanel owns panel targeting, visibility, activation, and focus.
+
+The public trigger and launcher components, unavailable-target behavior, retained visibility, and
+runtime activation are implemented and covered by the component, runtime, type, and package
+artifact tests. Browser focus evidence and the controller and layout-dependent lifecycle surfaces
+remain part of the broader partial Panel lifecycle.
 
 ## Panel controller
 

@@ -1279,6 +1279,37 @@ describe('Store-owned alpha persistence', () => {
     store.destroy()
   })
 
+  it('confirms erasure when a later durable record fails schema migration', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      schemaVersion: 2,
+      migrations: {
+        1: () => {
+          throw new Error('migration failed')
+        },
+      },
+    })
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.schemaVersion = 1
+    foreign.revision += 1
+    foreign.writerId = 'foreign-writer'
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.setValues({ count: 3 })).toMatchObject({ ok: true, persistence: 'pending' })
+
+    const plan = store.persistence.createErasePlan()
+    expect(plan.hasDurableEnvelope).toBe(true)
+    expect(store.persistence.executeErase(plan, { confirm: true })).toMatchObject({
+      ok: true,
+      erased: true,
+      discardedPendingEnvelope: true,
+    })
+    expect(persistence.inspect('state')).toBeNull()
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+    store.destroy()
+  })
+
   it('rejects a plan from a foreign root without exposing root identity', () => {
     const firstPersistence = createMemoryPersistence()
     const first = createPicodashStore(makeConfig(firstPersistence))
