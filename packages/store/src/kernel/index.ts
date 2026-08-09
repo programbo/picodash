@@ -3133,6 +3133,23 @@ export function createPicodashStore<
       createRootPrunePlanInternal(options)) as RootMetadataCommands<StoreResult>['createPrunePlan'],
     executePrunePlan: (plan) => executePrunePlanInternal(plan as object),
   }
+  runtimeController = new RuntimeController(storeImplementation as object)
+  const guardedDiagnosticsCapability = makeLifecycleFacade(
+    diagnosticsRuntime.facade,
+    runtimeController,
+  )
+  const guardedPersistenceCapability = persistenceController
+    ? makeLifecycleFacade(persistenceController.capability, runtimeController)
+    : undefined
+  const guardedMetadataRecoveryCapability = metadataRecoveryEnabled
+    ? makeLifecycleFacade(metadataRecoveryCapability, runtimeController)
+    : undefined
+  Object.defineProperty(storeImplementation, 'diagnostics', {
+    value: guardedDiagnosticsCapability,
+    enumerable: true,
+    writable: false,
+    configurable: false,
+  })
   if (documentsEnabled) {
     const documents: Record<string, unknown> = {
       analyzeImport: (document: unknown, options?: unknown) => {
@@ -3155,7 +3172,7 @@ export function createPicodashStore<
       }
     }
     Object.defineProperty(storeImplementation, 'documents', {
-      value: Object.freeze(documents),
+      value: makeLifecycleFacade(Object.freeze(documents), runtimeController),
       enumerable: true,
       writable: false,
       configurable: false,
@@ -3163,20 +3180,19 @@ export function createPicodashStore<
   }
   if (persistenceController)
     Object.defineProperty(storeImplementation, 'persistence', {
-      value: persistenceController.capability,
+      value: guardedPersistenceCapability,
       enumerable: true,
       writable: false,
       configurable: false,
     })
   if (metadataRecoveryEnabled)
     Object.defineProperty(storeImplementation, 'metadataRecovery', {
-      value: metadataRecoveryCapability,
+      value: guardedMetadataRecoveryCapability,
       enumerable: true,
       writable: false,
       configurable: false,
     })
   Object.freeze(storeImplementation)
-  runtimeController = new RuntimeController(storeImplementation as object)
   store = makeLifecycleFacade(storeImplementation, runtimeController)
   runtimeController.finalizeRoot(store as object)
   registerRuntimeController(store as object, runtimeController)
@@ -4570,7 +4586,7 @@ export function createPicodashStore<
       root: store,
       scopeId,
       fields,
-      diagnostics: diagnosticsRuntime.facade,
+      diagnostics: guardedDiagnosticsCapability,
       scope: (id) => getScoped(id),
       getState: () => channel.snapshot,
       subscribe(listener) {
@@ -4680,7 +4696,7 @@ export function createPicodashStore<
         }
       }
       Object.defineProperty(scoped, 'documents', {
-        value: Object.freeze(documents),
+        value: makeLifecycleFacade(Object.freeze(documents), runtimeController),
         enumerable: true,
         writable: false,
         configurable: false,
@@ -4688,14 +4704,14 @@ export function createPicodashStore<
     }
     if (persistenceController)
       Object.defineProperty(scoped, 'persistence', {
-        value: persistenceController.capability,
+        value: guardedPersistenceCapability,
         enumerable: true,
         writable: false,
         configurable: false,
       })
     if (metadataRecoveryEnabled)
       Object.defineProperty(scoped, 'metadataRecovery', {
-        value: metadataRecoveryCapability,
+        value: guardedMetadataRecoveryCapability,
         enumerable: true,
         writable: false,
         configurable: false,

@@ -277,6 +277,21 @@ export function DashListNodeLeafBoundary({
   )
 }
 
+export function acquireRegisteredDashListNodeLease(
+  registry: NodeRegistry,
+  token: Token,
+  generation: number,
+  store: ScopedStore<PicodashFieldDefinitions>,
+  nodeId: string,
+): { readonly release: () => void } {
+  try {
+    return acquireDashListNodeLease(store, { nodeId })
+  } catch (error) {
+    registry.releaseRegistration(token, generation)
+    throw error
+  }
+}
+
 export function useCommittedDashListNode(kind: NodeKind, id: unknown): void {
   const registry = useContext(RegistryContext)
   const declaration = useContext(DeclarationContext)
@@ -296,7 +311,7 @@ export function useCommittedDashListNode(kind: NodeKind, id: unknown): void {
     )
     let lease: { readonly release: () => void } | undefined
     if (!registry.getFailure() && typeof id === 'string')
-      lease = acquireDashListNodeLease(store, { nodeId: id })
+      lease = acquireRegisteredDashListNodeLease(registry, token, generation, store, id)
     return () => {
       lease?.release()
       registry.releaseRegistration(token, generation)

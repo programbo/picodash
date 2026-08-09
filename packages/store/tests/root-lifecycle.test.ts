@@ -205,6 +205,38 @@ describe('Store root destruction', () => {
     replacement.destroy()
   })
 
+  it('guards cached root and scoped capability objects after destruction', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'root-lifecycle-capabilities',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1 } },
+      export: { documents: { defaultFieldPolicy: 'include' } },
+      persistence: {
+        storageKey: 'state',
+        driver: persistence,
+        values: { defaultFieldPolicy: 'include' },
+      },
+    })
+    const scoped = store.scope('scope')
+    expect(store.persistence).toBe(scoped.persistence)
+    expect(store.metadataRecovery).toBe(scoped.metadataRecovery)
+    const capabilities = [
+      store.documents,
+      scoped.documents,
+      store.persistence,
+      store.metadataRecovery,
+      store.diagnostics,
+    ].map((capability) => ({ capability, property: Reflect.ownKeys(capability)[0]! }))
+
+    store.destroy()
+    for (const { capability, property } of capabilities) {
+      expect(() => Object.keys(capability)).toThrowError(/use-after-destroy/)
+      expect(() => Reflect.get(capability, property)).toThrowError(/use-after-destroy/)
+    }
+  })
+
   it('keeps root destruction reentrant-safe during a write notification', () => {
     const store = makeStore()
     let malformed: PicodashContractError | undefined

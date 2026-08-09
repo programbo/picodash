@@ -2,9 +2,16 @@ import { createElement, Fragment, StrictMode, type ReactElement, type ReactNode 
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it } from 'vite-plus/test'
 import { createPicodashStore, PicodashContractError } from '@picodash/store'
-import { PicodashStoreProviderBoundary } from '@picodash/store/integration'
+import {
+  acquireDashListNodeLease,
+  PicodashStoreProviderBoundary,
+} from '@picodash/store/integration'
 import { usePicodashScope } from '@picodash/store/react'
 import { DashGroup, DashList, Dashlet } from '../src/index.tsx'
+import {
+  acquireRegisteredDashListNodeLease,
+  createNodeRegistry,
+} from '../src/node-registration.tsx'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -33,6 +40,25 @@ function expectContract(action: () => unknown, code: string, context: Record<str
 }
 
 describe('@picodash/dashlist alpha shell', () => {
+  it('rolls back private node registration when public lease acquisition fails', () => {
+    const store = makeStore()
+    const scoped = store.scope('rollback')
+    const held = acquireDashListNodeLease(scoped, { nodeId: 'node' })
+    const registry = createNodeRegistry()
+    const failedToken = {}
+    const failedGeneration = registry.register(failedToken, {}, 'dashlet', 'node')
+
+    expect(() =>
+      acquireRegisteredDashListNodeLease(registry, failedToken, failedGeneration, scoped, 'node'),
+    ).toThrowError(expect.objectContaining({ code: 'duplicate-dash-list-node' }))
+    const correctedToken = {}
+    registry.register(correctedToken, {}, 'dashlet', 'node')
+    expect(registry.getFailure()).toBeNull()
+
+    held.release()
+    store.destroy()
+  })
+
   it('resolves explicit root/scoped Stores and rejects immutable mismatches', () => {
     const store = makeStore()
     const root = render(
