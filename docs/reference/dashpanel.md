@@ -51,8 +51,8 @@ function Tools() {
 | ------------------- | -------- | -------------- | -------------------------------------------------------- |
 | `DashPanelProvider` | Accepted | Partial        | Hosts Panels over one explicit root Store.               |
 | `DashPanel`         | Accepted | Partial        | Renders one Panel with arbitrary React content.          |
-| `DashPanelTrigger`  | Accepted | Planned        | Application-placed show/focus control for one Panel.     |
-| `DashPanelLauncher` | Accepted | Planned        | Provider-level discovery/reopen control for its Panels.  |
+| `DashPanelTrigger`  | Accepted | Implemented    | Application-placed show/focus control for one Panel.     |
+| `DashPanelLauncher` | Accepted | Implemented    | Provider-level discovery/reopen control for its Panels.  |
 | `useDashPanel`      | Accepted | Planned        | Controls declared visibility, collapse, and activation.  |
 | `id`                | Accepted | Implemented    | Resolves immutable Store scope identity; not a DOM `id`. |
 | `title`             | Accepted | Implemented    | Required accessible Panel name and visible heading.      |
@@ -129,8 +129,9 @@ interface DashPanelProviderProps<TValues extends object, CustomTheme extends str
 
 The current subset implements Provider/Panel composition, Store scope boundaries, theme/density,
 semantic naming, width-token styling, and the `boundary`, `boundaryInset`, and `dockPositions` Panel
-policy props. Visibility/removal controls, durable layout and placement options, action menus,
-modal presentation, and other future prop groups remain planned.
+policy props. It also implements uncontrolled visibility, transient close/reopen, triggers, and the
+explicit launcher. Confirmed removal, durable layout and placement options, action menus, modal
+presentation, and other future prop groups remain planned.
 
 The exact launch prop surface is:
 
@@ -222,7 +223,7 @@ state.
 ## Scope and declarative lifecycle
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
 
 - One active DashPanel is permitted per scope.
 - A Panel and one primary DashList may share a scope.
@@ -240,9 +241,10 @@ state.
 > Implementation: Partial
 > Evidence: `packages/dashpanel/src/runtime/panel-runtime.test.ts` and
 > `packages/dashpanel/tests/dashpanel.test.tsx` cover the private model plus React collapse
-> controls, hidden/inert retained bodies, callback ordering, dynamic policy updates, and cleanup.
-> Notes: React collapse is wired, but visibility, controllers, triggers, launchers, close/remove
-> actions, focus, and browser evidence remain unimplemented.
+> controls, hidden/inert retained bodies, callback ordering, dynamic policy updates, triggers,
+> launchers, transient close/reopen, and cleanup. `apps/lab/tests/contract-lab.spec.ts` covers real
+> browser focus entry/restoration and Bridge-backed retained Store behavior.
+> Notes: `useDashPanel`, durable layout, confirmed removal, and modal presentation remain planned.
 
 DashPanel renders a non-modal `aside` with a required title, generated accessible relationships,
 header actions, and a body for arbitrary children. Scope `id` never doubles as an HTML `id`; DOM
@@ -252,13 +254,18 @@ The first public contract is Provider-owned uncontrolled visibility and collapse
 
 - `defaultVisible` and `defaultCollapsed` seed transient state;
 - callbacks report committed visibility and collapse changes;
-- `DashPanelTrigger`, `DashPanelLauncher`, and `useDashPanel` control that state;
+- `DashPanelTrigger` and `DashPanelLauncher` control visibility and activation in this lifecycle
+  cut; `useDashPanel` remains deferred until layout commands are implemented;
 - a controlled `visible` prop is deferred until a concrete consumer requires it.
 
 A hidden Panel remains mounted, retains child React state and all leases, is absent visually and
 from the accessibility tree, and is inert. A collapsed floating or snapped Panel reduces to its
 header. A collapsed docked Panel retreats to the boundary while leaving a reachable reveal control.
 Collapse and visibility are transient and never persisted.
+
+Provider activation order marks only the current top Panel with the private `data-active` hook. The
+package stylesheet projects that Panel at the shared raised layer; this is an internal stacking
+mechanism and does not add a public z-index prop or token.
 
 ## Placement model
 
@@ -596,6 +603,14 @@ restores focus first to the most recent connected trigger, then to the connected
 before Panel interaction, then to a Provider fallback. Closing a menu restores its trigger.
 Reduced-motion preference removes non-essential movement while preserving state feedback.
 
+For the implemented Panel presentation, trigger and launcher activation choose the first connected,
+rendered, enabled sequential focus target in DOM order. If none exists, the Panel `aside` receives
+programmatic focus with `tabIndex={-1}`. Focus restoration resolves the most recent connected
+trigger, the connected element focused before entry, the resolved Provider boundary, the explicit
+portal container, and finally a focusable document body in that order. The runtime keeps element
+references weakly and clears the Panel record on release. Direct runtime visibility commands do not
+move focus; the initiating UI component coordinates focus after the visibility commit.
+
 ## Close and removal
 
 | Operation                 | Contract | Implementation | Behavior                                    |
@@ -796,7 +811,7 @@ for a hidden Panel.
 
 `DashPanelLauncher` renders an application-declared group of Panel triggers. It does not discover
 Panels through a registry, infer labels from mounted content, or acquire authority to mount missing
-JSX. A launcher item for an unavailable Panel remains unavailable and does not create it.
+JSX. A launcher item for an unavailable Panel renders as a disabled trigger and does not create it.
 
 Both components require the nearest DashPanel Provider. Their button behavior and public prop base
 come from `@picodash/ui`, but DashPanel owns panel targeting, visibility, activation, and focus.
@@ -866,6 +881,11 @@ commands mutate transient Provider runtime. Placement and reset commands invoke 
 structured persistent transaction result; `status: 'executed'` means the Store command ran, not that
 the transaction necessarily committed. Structured Store rejection remains visible in `transaction`.
 Ownership, lifecycle, and malformed-placement contract errors continue to throw.
+
+The public hook remains unimplemented in the lifecycle alpha because this exact accepted controller
+also exposes placement state and durable layout commands. DashPanelTrigger and DashPanelLauncher use
+a package-private lifecycle controller until `PANEL-LAYOUT` can implement the accepted hook without
+stubs or a second staged public API.
 
 DashPanel exposes no mutable Provider store, generic runtime selector, or `/advanced` entrypoint in
 the initial contract. Applications select Store values through `@picodash/store/react`; DashPanel

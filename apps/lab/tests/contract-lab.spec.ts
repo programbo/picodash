@@ -151,13 +151,15 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   const initial = matches(await client.listSessions())!
   const initialSnapshot = await client.inspect(initial)
   expect(initialSnapshot.snapshot.values?.specimenMetric).toBe(24)
+  expect(initialSnapshot.snapshot.values?.specimenUnit).toBe('requests/minute')
   const write = await client.setValues(initial, {
     type: 'set_values',
     requestId: 'lab-set-42',
     values: { specimenMetric: 42 },
   })
   expect(write.type).toBe('command_result')
-  await expect(page.locator('[data-contract-lab-static-value]')).toHaveText('42')
+  await expect(page.locator('[data-contract-lab-bound-display]')).toHaveText('42')
+  await expect(page.locator('[data-contract-lab-bound-input]')).toHaveValue('42')
   await expect
     .poll(async () =>
       (await client.listSessions()).find((item) => item.sessionId === initial.sessionId),
@@ -174,6 +176,57 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   })
   expect(wait.type).toBe('wait_result')
   expect((wait as { outcome: string }).outcome).toBe('satisfied')
+
+  const boundInput = page.locator('[data-contract-lab-bound-input]')
+  const specimenPanel = page.getByRole('complementary', { name: 'Primary Panel' })
+  await boundInput.fill('37')
+  await expect
+    .poll(async () => {
+      const session = matches(await client.listSessions())!
+      const snapshot = await client.inspect(session)
+      return snapshot.snapshot.values?.specimenMetric
+    })
+    .toBe(37)
+  await boundInput.fill('not-a-number')
+  await expect(page.locator('[data-picodash-dashlet-binding-issues="metric"]')).toContainText(
+    'Metric must be a finite number.',
+  )
+  expect(
+    (await client.inspect(matches(await client.listSessions())!)).snapshot.values?.specimenMetric,
+  ).toBe(37)
+
+  await page.getByRole('button', { name: 'Close panel Primary Panel' }).click()
+  await expect(specimenPanel).toBeHidden()
+  const hiddenSession = matches(await client.listSessions())!
+  const hiddenWrite = await client.setValues(hiddenSession, {
+    type: 'set_values',
+    requestId: 'lab-hidden-set-42',
+    values: { specimenMetric: 42 },
+  })
+  expect(hiddenWrite.type).toBe('command_result')
+  await expect
+    .poll(
+      async () =>
+        (await client.inspect(matches(await client.listSessions())!)).snapshot.values
+          ?.specimenMetric,
+    )
+    .toBe(42)
+  const beforeReopen = matches(await client.listSessions())!
+  await page.getByRole('button', { name: 'Show primary panel' }).click()
+  await expect(specimenPanel).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Collapse panel Primary Panel' })).toBeFocused()
+  await expect(page.locator('[data-contract-lab-bound-display]')).toHaveText('42')
+  await expect(boundInput).toHaveValue('not-a-number')
+  await expect(boundInput).toHaveAttribute('data-stale', 'true')
+  expect(matches(await client.listSessions())!).toMatchObject({
+    sessionId: beforeReopen.sessionId,
+    generation: beforeReopen.generation,
+  })
+  await page.getByRole('button', { name: 'Discard changes' }).click()
+  await expect(boundInput).toHaveValue('42')
+  await expect(boundInput).toHaveAttribute('data-stale', 'false')
+  await page.getByRole('button', { name: 'Close panel Primary Panel' }).click()
+  await expect(page.getByRole('button', { name: 'Show primary panel' })).toBeFocused()
 
   await page.reload()
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
@@ -196,5 +249,5 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   expect(['generation_mismatch', 'session_not_found']).toContain(
     (old as { error: { code: string } }).error.code,
   )
-  await expect(page.locator('[data-contract-lab-static-value]')).toHaveText('24')
+  await expect(page.locator('[data-contract-lab-bound-display]')).toHaveText('24')
 })

@@ -5,6 +5,7 @@ import {
   registerRuntimeController,
   registerRuntimeScopedView,
   runtimeControllerFor,
+  runtimeControllerForHandle,
   RuntimeController,
 } from '../runtime-controller.js'
 import {
@@ -34,6 +35,11 @@ import type {
   PersistentTransactionResult,
   StoreOwnedPersistenceConfig,
 } from '../persistence.js'
+import {
+  bindingPlanRecord,
+  registerBindingPlan,
+  type BindingPlanRegistryRecord,
+} from '../plan-registry.js'
 
 /** The JSON values accepted at Store trust boundaries. */
 export type PicodashJsonPrimitive = boolean | null | number | string
@@ -47,6 +53,8 @@ export type PicodashIssueCode =
   | 'parse_failed'
   | 'schema_failed'
   | 'validation_failed'
+  | 'stale_input'
+  | 'stale_plan'
   | 'unknown_field'
   | 'invalid_metadata'
   | 'adapter_initialization_failed'
@@ -79,7 +87,15 @@ export type TransactionIssue = {
 export type PicodashValidationContext<Values extends object = Record<string, PicodashJsonValue>> = {
   readonly values: Readonly<Values>
   readonly field?: PicodashField<Values, keyof Values & string>
-  readonly source: 'default' | 'initial' | 'persistence' | 'adapter' | 'programmatic'
+  readonly source:
+    | 'default'
+    | 'initial'
+    | 'persistence'
+    | 'adapter'
+    | 'programmatic'
+    | 'interactive'
+    | 'repair'
+    | 'reset'
   readonly originScopeId?: string
 }
 
@@ -92,7 +108,15 @@ export type ValuesValidator<Values extends object> = (
   values: Readonly<Values>,
   context: {
     readonly values: Readonly<Values>
-    readonly source: 'default' | 'initial' | 'persistence' | 'adapter' | 'programmatic'
+    readonly source:
+      | 'default'
+      | 'initial'
+      | 'persistence'
+      | 'adapter'
+      | 'programmatic'
+      | 'interactive'
+      | 'repair'
+      | 'reset'
     readonly originScopeId?: string
   },
 ) => readonly PicodashIssueInput[]
@@ -383,6 +407,31 @@ export type BindingInteractionState = {
   readonly conflict?: StaleDraftConflict
 }
 
+declare const repairPlanBrand: unique symbol
+export type PicodashRepairPlan = { readonly [repairPlanBrand]: 'PicodashRepairPlan' }
+declare const staleInputOverwritePlanBrand: unique symbol
+export type PicodashStaleInputOverwritePlan = {
+  readonly [staleInputOverwritePlanBrand]: 'PicodashStaleInputOverwritePlan'
+}
+
+export interface BindingInteractionCommands<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
+  setInput<Key extends keyof Fields & string>(
+    binding: import('../integration-leases.js').BindingHandle<Fields, Key>,
+    input: PicodashJsonValue,
+  ): Result
+  discardInput<Key extends keyof Fields & string>(
+    binding: import('../integration-leases.js').BindingHandle<Fields, Key>,
+  ): boolean
+  createStaleInputOverwritePlan<Key extends keyof Fields & string>(
+    binding: import('../integration-leases.js').BindingHandle<Fields, Key>,
+  ): PicodashStaleInputOverwritePlan
+  executeStaleInputOverwrite(plan: PicodashStaleInputOverwritePlan): Result
+  executeRepair(plan: PicodashRepairPlan): Result
+}
+
 export type ItemInteractionState = {
   readonly focused: boolean
   readonly hovered: boolean
@@ -431,7 +480,8 @@ export interface ScopedMetadataCommands<
 interface RootStoreBase<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
-> extends RootMetadataCommands<Result> {
+>
+  extends RootMetadataCommands<Result>, BindingInteractionCommands<Fields, Result> {
   readonly kind: 'root'
   readonly fields: PicodashFields<Fields>
   scope(scopeId: string): ScopedStore<Fields, Result>
@@ -447,6 +497,10 @@ interface RootStoreBase<
     field: PicodashField<ValuesOf<Fields>, K>,
     value: ValuesOf<Fields>[K],
   ): Extract<Result, { readonly ok: true }>
+  resetValue<K extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, K>): Result
+  resetValueOrThrow<K extends keyof Fields & string>(
+    field: PicodashField<ValuesOf<Fields>, K>,
+  ): Extract<Result, { readonly ok: true }>
   setValues(values: Partial<ValuesOf<Fields>>): Result
   setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
   destroyScope(scopeId: string, options?: DestroyScopeOptions): Result
@@ -455,7 +509,8 @@ interface RootStoreBase<
 interface ScopedStoreBase<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
-> extends ScopedMetadataCommands<Result> {
+>
+  extends ScopedMetadataCommands<Result>, BindingInteractionCommands<Fields, Result> {
   readonly kind: 'scoped'
   readonly root: RootStore<Fields, Result>
   readonly scopeId: string
@@ -471,6 +526,10 @@ interface ScopedStoreBase<
   setValueOrThrow<K extends keyof Fields & string>(
     field: PicodashField<ValuesOf<Fields>, K>,
     value: ValuesOf<Fields>[K],
+  ): Extract<Result, { readonly ok: true }>
+  resetValue<K extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, K>): Result
+  resetValueOrThrow<K extends keyof Fields & string>(
+    field: PicodashField<ValuesOf<Fields>, K>,
   ): Extract<Result, { readonly ok: true }>
   setValues(values: Partial<ValuesOf<Fields>>): Result
   setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
@@ -502,8 +561,13 @@ type ContractErrorCode =
   | 'duplicate-provider'
   | 'persistence-identity-in-use'
   | 'invalid-entity-options'
+  | 'invalid-binding-options'
   | 'invalid-integration-handle'
+  | 'invalid-binding-handle'
+  | 'invalid-binding-plan'
+  | 'invalid-stale-input-overwrite'
   | 'duplicate-entity'
+  | 'duplicate-binding'
   | 'scope-host-conflict'
   | 'invalid-relationship'
   | 'relationship-parent-conflict'
@@ -519,6 +583,7 @@ const BUILTIN_CODES = new Set<PicodashIssueCode>([
   'parse_failed',
   'schema_failed',
   'validation_failed',
+  'stale_input',
   'unknown_field',
   'invalid_metadata',
   'adapter_initialization_failed',
@@ -628,6 +693,7 @@ const normalizeIssue = (input: unknown, fallbackCode: PicodashIssueCode): Transa
   const extras: Record<string, string> = {}
   if (
     source.reason === 'blocked' ||
+    source.reason === 'canonical_changed' ||
     source.reason === 'write_threw' ||
     source.reason === 'async_write' ||
     source.reason === 'not_visible' ||
@@ -704,7 +770,11 @@ export type CoreTransactionResult =
       readonly changedFields: readonly string[]
       readonly changedScopeIds: readonly string[]
     }
-  | { readonly ok: false; readonly error: PicodashTransactionError }
+  | {
+      readonly ok: false
+      readonly error: PicodashTransactionError
+      readonly repair?: PicodashRepairPlan
+    }
 
 const successfulResult = (
   changedFields: readonly string[] = [],
@@ -718,8 +788,13 @@ const successfulResult = (
 
 const rejectedResult = (
   issues: readonly TransactionIssue[],
+  repair?: PicodashRepairPlan,
 ): Extract<CoreTransactionResult, { readonly ok: false }> =>
-  Object.freeze({ ok: false as const, error: new PicodashTransactionError(issues) })
+  Object.freeze({
+    ok: false as const,
+    error: new PicodashTransactionError(issues),
+    ...(repair ? { repair } : {}),
+  })
 
 const adapterUnhealthyIssue = (scopeId?: string): AdapterUnhealthyIssue =>
   Object.freeze({
@@ -1187,6 +1262,8 @@ export function createPicodashStore<
   }
   const fields = Object.freeze(fieldsRecord) as PicodashFields<Fields>
 
+  let rootValidate: ValuesValidator<ValuesOf<Fields>> | undefined = configuredRootValidate
+
   const canonicalize = (
     key: string,
     raw: unknown,
@@ -1355,7 +1432,6 @@ export function createPicodashStore<
     return { candidate, issues: freeze(issues) }
   }
 
-  let rootValidate: ValuesValidator<ValuesOf<Fields>> | undefined = configuredRootValidate
   const defaultRaw = Object.create(null) as Record<string, unknown>
   for (const key of fieldEntries) defaultRaw[key] = definitionMap.get(key)!.defaultValue
   const canonicalDefaults = buildCandidate(
@@ -1541,6 +1617,40 @@ export function createPicodashStore<
     }
   }
   let currentSnapshot!: RootSnapshot<ValuesOf<Fields>>
+  const interactionByScope = new Map<string, ScopeInteractionState>()
+  const interactionBases = new WeakMap<
+    object,
+    { readonly baseRevision: number; readonly baseValue: PicodashJsonValue }
+  >()
+  let suppressInteractionDispatch = false
+  const fieldRevisions = new Map<string, number>(fieldEntries.map((key) => [key, 0]))
+  type RepairRecord = {
+    readonly binding: object
+    readonly fieldKey: string
+    readonly scopeId: string
+    readonly itemId: string
+    readonly alias: string
+    readonly revision: number
+    readonly baseValue: PicodashJsonValue
+    readonly draft: PicodashJsonValue
+    readonly candidate: PicodashJsonValue
+    consumed: boolean
+    readonly registry: BindingPlanRegistryRecord
+  }
+  const repairPlans = new WeakMap<object, RepairRecord>()
+  type StaleOverwriteRecord = {
+    readonly binding: object
+    readonly fieldKey: string
+    readonly scopeId: string
+    readonly itemId: string
+    readonly alias: string
+    readonly revision: number
+    readonly targetValue: PicodashJsonValue
+    readonly draft: PicodashJsonValue
+    consumed: boolean
+    readonly registry: BindingPlanRegistryRecord
+  }
+  const staleOverwritePlans = new WeakMap<object, StaleOverwriteRecord>()
   const listeners = new Set<() => void>()
   const scopedRefs = new Map<string, WeakRef<object>>()
   type ScopedChannel = {
@@ -1552,6 +1662,7 @@ export function createPicodashStore<
   const channelsById = new Map<string, ScopedChannel>()
   const activeChannels = new Set<ScopedChannel>()
   let externalAdapterRuntime: ExternalAdapterRuntime<ValuesOf<Fields>> | undefined
+  let adapterEchoValues: Readonly<Record<string, PicodashJsonValue>> | undefined
   if (config.valueOwner === 'external') {
     let runtime: ExternalAdapterRuntime<ValuesOf<Fields>>
     try {
@@ -1622,6 +1733,15 @@ export function createPicodashStore<
       if (!result.ok) throw result.error
       return result
     },
+    resetValue(field) {
+      assertOwned(field)
+      return transactAttributed({ [field.key]: baseline[field.key]! }, undefined, 'reset')
+    },
+    resetValueOrThrow(field) {
+      const result = store.resetValue(field)
+      if (!result.ok) throw result.error
+      return result
+    },
     setValues(next) {
       return transact(next as Record<string, unknown>)
     },
@@ -1630,6 +1750,12 @@ export function createPicodashStore<
       if (!result.ok) throw result.error
       return result
     },
+    setInput: (binding, input) => setInputInternal(binding as object, input),
+    discardInput: (binding) => discardInputInternal(binding as object),
+    createStaleInputOverwritePlan: (binding) =>
+      createStaleInputOverwritePlanInternal(binding as object),
+    executeStaleInputOverwrite: (plan) => executeStaleInputOverwriteInternal(plan as object),
+    executeRepair: (plan) => executeRepairInternal(plan),
     destroyScope(scopeId, options) {
       return destroyScopeInternal(scopeId, options)
     },
@@ -1744,6 +1870,7 @@ export function createPicodashStore<
   store = makeLifecycleFacade(storeImplementation, runtimeController)
   runtimeController.finalizeRoot(store as object)
   registerRuntimeController(store as object, runtimeController)
+  runtimeController.setBindingInteractionCleanup(clearBindingInteraction)
   if (externalAdapterRuntime)
     runtimeController.registerResource({
       phase: 'capability',
@@ -1760,6 +1887,7 @@ export function createPicodashStore<
     phase: 'kernel',
     teardown: () => {
       listeners.clear()
+      interactionByScope.clear()
       channelsById.clear()
       activeChannels.clear()
       scopedRefs.clear()
@@ -1785,6 +1913,11 @@ export function createPicodashStore<
     return transactAttributed(next)
   }
 
+  type TransactionDispatchOptions = {
+    readonly beforeDispatch?: () => void
+    readonly includeRoot?: boolean
+  }
+
   function persistCurrent(): 'unchanged' | 'saved' | 'pending' | undefined {
     return persistenceController?.persist(values, scopes)
   }
@@ -1797,6 +1930,8 @@ export function createPicodashStore<
   function transactAttributed(
     next: Record<string, unknown>,
     originScopeId?: string,
+    source: 'programmatic' | 'interactive' | 'repair' | 'reset' = 'programmatic',
+    options?: TransactionDispatchOptions,
   ): CoreTransactionResult {
     if (writing) throw new PicodashContractError('reentrant-write')
     if (!next || typeof next !== 'object' || Array.isArray(next))
@@ -1814,40 +1949,615 @@ export function createPicodashStore<
       const built = buildCandidate(
         values as Record<string, PicodashJsonValue>,
         next,
-        'programmatic',
+        source,
         originScopeId,
       )
       if (built.issues.length) return rejectedResult(built.issues)
       const changedFields = fieldEntries
         .filter((key) => !picodashJsonEqual(values[key]!, built.candidate[key]!))
         .sort()
-      if (!changedFields.length) return resultWithPersistence(successfulResult())
+      if (!changedFields.length) {
+        if (options?.beforeDispatch) {
+          options.beforeDispatch()
+          const affectedChannels =
+            originScopeId === undefined
+              ? new Set<ScopedChannel>()
+              : collectScopedChannels(originScopeId)
+          refreshScopedChannels(affectedChannels)
+          dispatchStoreSubscribers(affectedChannels, options.includeRoot ?? false)
+        }
+        return resultWithPersistence(successfulResult())
+      }
       if (externalAdapterRuntime?.isUnhealthy())
         return rejectedResult([adapterUnhealthyIssue(originScopeId)])
       if (externalAdapterRuntime) {
+        adapterEchoValues = built.candidate
         const context: AdapterWriteContext = Object.freeze({
-          source: 'programmatic',
+          source,
           ...(originScopeId === undefined ? {} : { originScopeId }),
-          targetScopeIds: Object.freeze([]),
+          targetScopeIds: Object.freeze(
+            source === 'programmatic' || originScopeId === undefined ? [] : [originScopeId],
+          ),
           changedFields: Object.freeze([...changedFields]),
         })
-        const failure = externalAdapterRuntime.writeValues(
-          freeze(built.candidate) as Readonly<ValuesOf<Fields>>,
-          context,
-        )
+        let failure
+        try {
+          failure = externalAdapterRuntime.writeValues(
+            freeze(built.candidate) as Readonly<ValuesOf<Fields>>,
+            context,
+          )
+        } finally {
+          adapterEchoValues = undefined
+        }
         if (failure !== undefined)
           return rejectedResult([adapterWriteFailedIssue(failure, originScopeId)])
       }
       values = freeze(built.candidate) as Readonly<Record<string, PicodashJsonValue>>
+      for (const key of changedFields) fieldRevisions.set(key, (fieldRevisions.get(key) ?? 0) + 1)
+      markDirtyBindingsStale(changedFields)
+      options?.beforeDispatch?.()
       currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
       const affectedChannels = collectScopedChannels()
       refreshScopedChannels(affectedChannels)
       const result = resultWithPersistence(successfulResult(changedFields))
-      dispatchStoreSubscribers(affectedChannels)
+      dispatchStoreSubscribers(affectedChannels, options?.includeRoot)
       return result
     } finally {
       writing = false
     }
+  }
+
+  function bindingRecordFor(handle: object): import('../runtime-controller.js').BindingRecord {
+    const controller = runtimeControllerFor(store as object)
+    const owner = runtimeControllerForHandle(handle)
+    if (!controller)
+      throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
+    if (owner && owner !== controller)
+      throw new PicodashContractError('invalid-binding-handle', { reason: 'foreign-root' })
+    const record = controller.bindingHandles.get(handle)
+    if (!record) throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
+    if (!record.active) {
+      const current = controller.activeBinding(record.scopeId, record.itemId, record.alias)
+      throw new PicodashContractError('invalid-binding-handle', {
+        reason: current ? 'superseded' : 'released',
+      })
+    }
+    return record
+  }
+
+  const interactionIssues = (
+    issues: readonly TransactionIssue[],
+    record: import('../runtime-controller.js').BindingRecord,
+  ): readonly TransactionIssue[] =>
+    Object.freeze(
+      issues.map((issue) =>
+        Object.freeze({
+          ...issue,
+          fieldKey:
+            record.field && typeof record.field === 'object'
+              ? (record.field as { key: string }).key
+              : undefined,
+          scopeId: record.scopeId,
+          itemId: record.itemId,
+          alias: record.alias,
+        }),
+      ),
+    )
+
+  function setInteraction(
+    record: import('../runtime-controller.js').BindingRecord,
+    state: BindingInteractionState | undefined,
+  ): void {
+    const previous = interactionByScope.get(record.scopeId)
+    const bindings = new Map(previous?.bindings ?? [])
+    const items = new Map(previous?.items ?? [])
+    const itemBindings = new Map(bindings.get(record.itemId) ?? [])
+    if (state) {
+      const source = state as BindingInteractionState & {
+        baseRevision?: number
+        baseValue?: PicodashJsonValue
+      }
+      const visible: BindingInteractionState = {
+        fieldKey: source.fieldKey,
+        ...(source.draft === undefined ? {} : { draft: source.draft }),
+        touched: source.touched,
+        inputIssues: source.inputIssues,
+        ...(source.conflict ? { conflict: source.conflict } : {}),
+      }
+      const frozen = Object.freeze(visible)
+      if (source.baseRevision !== undefined && source.baseValue !== undefined)
+        interactionBases.set(frozen, {
+          baseRevision: source.baseRevision,
+          baseValue: source.baseValue,
+        })
+      itemBindings.set(record.alias, frozen)
+    } else itemBindings.delete(record.alias)
+    if (itemBindings.size) bindings.set(record.itemId, immutableMap([...itemBindings]))
+    else {
+      bindings.delete(record.itemId)
+      items.delete(record.itemId)
+    }
+    const next =
+      bindings.size || items.size
+        ? Object.freeze({ bindings: immutableMap([...bindings]), items: immutableMap([...items]) })
+        : EmptyInteraction
+    if (next === previous) return
+    if (next === EmptyInteraction) interactionByScope.delete(record.scopeId)
+    else interactionByScope.set(record.scopeId, next)
+    if (!suppressInteractionDispatch) {
+      const affected = collectScopedChannels(record.scopeId)
+      refreshScopedChannels(affected)
+      dispatchStoreSubscribers(affected, false)
+    }
+  }
+
+  const interactionBase = (state: BindingInteractionState | undefined) =>
+    state ? interactionBases.get(state as object) : undefined
+
+  function markDirtyBindingsStale(changedFields: readonly string[]): void {
+    const changed = new Set(changedFields)
+    for (const [scopeId, interaction] of interactionByScope) {
+      let nextInteraction: ScopeInteractionState | undefined
+      const bindings = new Map(interaction.bindings)
+      for (const [itemId, aliases] of interaction.bindings) {
+        const nextAliases = new Map(aliases)
+        for (const [alias, state] of aliases) {
+          if (state.draft === undefined || !changed.has(state.fieldKey) || state.conflict) continue
+          nextAliases.set(
+            alias,
+            Object.freeze({
+              ...state,
+              conflict: Object.freeze({
+                kind: 'stale-draft' as const,
+                baseRevision:
+                  interactionBase(state)?.baseRevision ??
+                  Math.max(0, (fieldRevisions.get(state.fieldKey) ?? 1) - 1),
+                baseValue: interactionBase(state)?.baseValue ?? values[state.fieldKey]!,
+              }),
+            }),
+          )
+          nextInteraction = interaction
+        }
+        if (nextAliases.size) bindings.set(itemId, immutableMap([...nextAliases]))
+      }
+      if (nextInteraction)
+        interactionByScope.set(
+          scopeId,
+          Object.freeze({ bindings: immutableMap([...bindings]), items: interaction.items }),
+        )
+    }
+  }
+
+  function setInputInternal(handle: object, input: PicodashJsonValue): CoreTransactionResult {
+    const binding = bindingRecordFor(handle)
+    if (binding.mode !== 'input')
+      throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
+    let draft: PicodashJsonValue
+    try {
+      draft = clonePicodashValue(input)
+    } catch {
+      return rejectedResult([
+        Object.freeze({
+          code: 'invalid_json',
+          path: freezePath(['values', (binding.field as { key: string }).key]),
+          message: 'Binding input must be JSON-compatible.',
+          fieldKey: (binding.field as { key: string }).key,
+          scopeId: binding.scopeId,
+          itemId: binding.itemId,
+          alias: binding.alias,
+        }),
+      ])
+    }
+    const fieldKey = (binding.field as { key: string }).key
+    const previous = interactionByScope
+      .get(binding.scopeId)
+      ?.bindings.get(binding.itemId)
+      ?.get(binding.alias)
+    const baseRevision = previous
+      ? (interactionBase(previous)?.baseRevision ?? fieldRevisions.get(fieldKey)!)
+      : fieldRevisions.get(fieldKey)!
+    const baseValue = previous
+      ? (interactionBase(previous)?.baseValue ?? values[fieldKey]!)
+      : values[fieldKey]!
+    const stale = !!previous?.conflict
+    const definition = definitionMap.get(fieldKey)!
+    const pipeline: TransactionIssue[] = []
+    let candidateRaw: unknown = draft
+    let repairCandidate: PicodashJsonValue | undefined
+    let parseFailed = false
+    if (definition.parse) {
+      let parsed: PicodashParseResult<unknown>
+      try {
+        parsed = definition.parse(draft) as PicodashParseResult<unknown>
+      } catch {
+        parsed = { ok: false, issues: [{ message: 'Input parsing failed.' }] }
+      }
+      if (!parsed.ok) {
+        parseFailed = true
+        pipeline.push(
+          ...parsed.issues.map((issue) =>
+            Object.freeze({
+              code: 'parse_failed' as const,
+              path: freezePath(['values', fieldKey, ...(issue.path ?? [])]),
+              message: issue.message,
+              fieldKey,
+            }),
+          ),
+        )
+        repairCandidate = parsed.repair as PicodashJsonValue | undefined
+      } else candidateRaw = parsed.candidate
+    }
+    const normalized = parseFailed
+      ? { value: undefined, issues: freeze([]) as readonly TransactionIssue[] }
+      : canonicalize(fieldKey, candidateRaw, 'interactive')
+    if (!parseFailed) pipeline.push(...normalized.issues)
+    const candidate = Object.create(null) as Record<string, PicodashJsonValue>
+    for (const key of fieldEntries) candidate[key] = values[key]!
+    if (!parseFailed && !normalized.issues.length) {
+      candidate[fieldKey] = normalized.value!
+      pipeline.push(
+        ...runFieldValidators(candidate, 'interactive', binding.scopeId),
+        ...runRootValidator(candidate, 'interactive', binding.scopeId),
+      )
+    }
+    const enriched = interactionIssues(pipeline, binding)
+    if (stale) {
+      const staleIssue = Object.freeze({
+        code: 'stale_input' as const,
+        reason: 'canonical_changed' as const,
+        message: 'Binding input is stale and requires explicit overwrite confirmation.',
+        path: freezePath(['values', fieldKey]),
+        fieldKey,
+        scopeId: binding.scopeId,
+        itemId: binding.itemId,
+        alias: binding.alias,
+      })
+      setInteraction(binding, {
+        fieldKey,
+        draft,
+        touched: true,
+        inputIssues: enriched,
+        conflict: previous!.conflict,
+        baseRevision,
+        baseValue,
+      } as BindingInteractionState)
+      return rejectedResult([...enriched, staleIssue])
+    }
+    if (pipeline.length) {
+      let plan: PicodashRepairPlan | undefined
+      if (repairCandidate !== undefined && !stale) {
+        const repair = canonicalize(fieldKey, repairCandidate, 'repair')
+        const repairCandidateRecord = Object.create(null) as Record<string, PicodashJsonValue>
+        for (const key of fieldEntries) repairCandidateRecord[key] = values[key]!
+        if (!repair.issues.length) {
+          repairCandidateRecord[fieldKey] = repair.value!
+          const repairIssues = [
+            ...runFieldValidators(repairCandidateRecord, 'repair', binding.scopeId),
+            ...runRootValidator(repairCandidateRecord, 'repair', binding.scopeId),
+          ]
+          if (!repairIssues.length) {
+            plan = Object.freeze({}) as PicodashRepairPlan
+            const registry: BindingPlanRegistryRecord = {
+              root: store as object,
+              kind: 'repair',
+              consumed: false,
+            }
+            const record: RepairRecord = {
+              binding: handle,
+              fieldKey,
+              scopeId: binding.scopeId,
+              itemId: binding.itemId,
+              alias: binding.alias,
+              revision: fieldRevisions.get(fieldKey)!,
+              baseValue,
+              draft,
+              candidate: repair.value!,
+              consumed: false,
+              registry,
+            }
+            repairPlans.set(plan, record)
+            registerBindingPlan(plan, registry)
+          }
+        }
+      }
+      setInteraction(binding, {
+        fieldKey,
+        draft,
+        touched: true,
+        inputIssues: enriched,
+        ...(previous?.conflict ? { conflict: previous.conflict } : {}),
+        baseRevision,
+        baseValue,
+      } as BindingInteractionState & { baseRevision: number; baseValue: PicodashJsonValue })
+      return rejectedResult(enriched, plan)
+    }
+    if (picodashJsonEqual(values[fieldKey]!, candidate[fieldKey]!)) {
+      if (previous) {
+        suppressInteractionDispatch = true
+        try {
+          setInteraction(binding, undefined)
+        } finally {
+          suppressInteractionDispatch = false
+        }
+        const affected = collectScopedChannels(binding.scopeId)
+        refreshScopedChannels(affected)
+        dispatchStoreSubscribers(affected, false)
+      }
+      return resultWithPersistence(successfulResult())
+    }
+    const result = transactAttributed(
+      { [fieldKey]: candidate[fieldKey] },
+      binding.scopeId,
+      'interactive',
+      {
+        beforeDispatch: () => {
+          suppressInteractionDispatch = true
+          try {
+            setInteraction(binding, undefined)
+          } finally {
+            suppressInteractionDispatch = false
+          }
+        },
+      },
+    )
+    if (!result.ok)
+      setInteraction(binding, {
+        fieldKey,
+        draft,
+        touched: true,
+        inputIssues: previous?.inputIssues ?? Object.freeze([]),
+        ...(previous?.conflict ? { conflict: previous.conflict } : {}),
+        baseRevision,
+        baseValue,
+      } as BindingInteractionState)
+    return result
+  }
+
+  function discardInputInternal(handle: object): boolean {
+    const record = bindingRecordFor(handle)
+    if (record.mode !== 'input')
+      throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
+    const existing = interactionByScope
+      .get(record.scopeId)
+      ?.bindings.get(record.itemId)
+      ?.get(record.alias)
+    if (!existing) return false
+    setInteraction(record, undefined)
+    return true
+  }
+
+  function createStaleInputOverwritePlanInternal(handle: object): PicodashStaleInputOverwritePlan {
+    const record = bindingRecordFor(handle)
+    if (record.mode !== 'input')
+      throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
+    const state = interactionByScope
+      .get(record.scopeId)
+      ?.bindings.get(record.itemId)
+      ?.get(record.alias)
+    if (!state?.conflict)
+      throw new PicodashContractError('invalid-stale-input-overwrite', { reason: 'not-stale' })
+    if (state.draft === undefined || state.inputIssues.length)
+      throw new PicodashContractError('invalid-stale-input-overwrite', { reason: 'invalid-draft' })
+    const fieldKey = (record.field as { key: string }).key
+    const plan = Object.freeze({}) as PicodashStaleInputOverwritePlan
+    const registry: BindingPlanRegistryRecord = {
+      root: store as object,
+      kind: 'stale-input-overwrite',
+      consumed: false,
+    }
+    const planRecord: StaleOverwriteRecord = {
+      binding: handle,
+      fieldKey,
+      scopeId: record.scopeId,
+      itemId: record.itemId,
+      alias: record.alias,
+      revision: fieldRevisions.get(fieldKey)!,
+      targetValue: values[fieldKey]!,
+      draft: clonePicodashValue(state.draft),
+      consumed: false,
+      registry,
+    }
+    staleOverwritePlans.set(plan, planRecord)
+    registerBindingPlan(plan, registry)
+    return plan
+  }
+
+  function executeStaleInputOverwriteInternal(plan: object): CoreTransactionResult {
+    const registry = bindingPlanRecord(plan)
+    if (!registry)
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'stale-input-overwrite',
+        reason: 'wrong-kind',
+      })
+    if (registry.root !== (store as object))
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: registry.kind,
+        reason: 'foreign-root',
+      })
+    if (registry.kind !== 'stale-input-overwrite')
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'stale-input-overwrite',
+        reason: 'wrong-kind',
+      })
+    const record = staleOverwritePlans.get(plan)
+    if (!record)
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'stale-input-overwrite',
+        reason: 'wrong-kind',
+      })
+    if (registry.consumed || record.consumed)
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'stale-input-overwrite',
+        reason: 'consumed',
+      })
+    const controller = runtimeControllerFor(store as object)
+    const activeBinding = controller?.activeBinding(record.scopeId, record.itemId, record.alias)
+    if (!activeBinding || activeBinding.lease !== record.binding)
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'stale-input-overwrite',
+        reason: 'released',
+      })
+    registry.consumed = true
+    record.consumed = true
+    const current = interactionByScope
+      .get(record.scopeId)
+      ?.bindings.get(record.itemId)
+      ?.get(record.alias)
+    if (
+      !current?.conflict ||
+      !picodashJsonEqual(current.draft!, record.draft) ||
+      (fieldRevisions.get(record.fieldKey) ?? 0) !== record.revision ||
+      !picodashJsonEqual(values[record.fieldKey]!, record.targetValue)
+    )
+      return rejectedResult([
+        Object.freeze({
+          code: 'stale_plan',
+          path: freezePath([]),
+          message: 'Stale overwrite plan is stale.',
+        }),
+      ])
+    const definition = definitionMap.get(record.fieldKey)!
+    let candidateRaw: unknown = record.draft
+    const pipeline: TransactionIssue[] = []
+    if (definition.parse) {
+      let parsed: PicodashParseResult<unknown>
+      try {
+        parsed = definition.parse(record.draft) as PicodashParseResult<unknown>
+      } catch {
+        parsed = { ok: false, issues: [{ message: 'Input parsing failed.' }] }
+      }
+      if (!parsed.ok)
+        pipeline.push(
+          ...parsed.issues.map((issue) =>
+            Object.freeze({
+              code: 'parse_failed' as const,
+              path: freezePath(['values', record.fieldKey, ...(issue.path ?? [])]),
+              message: issue.message,
+              fieldKey: record.fieldKey,
+              scopeId: record.scopeId,
+              itemId: record.itemId,
+              alias: record.alias,
+            }),
+          ),
+        )
+      else candidateRaw = parsed.candidate
+    }
+    const normalized = pipeline.length
+      ? { value: undefined, issues: freeze([]) as readonly TransactionIssue[] }
+      : canonicalize(record.fieldKey, candidateRaw, 'interactive')
+    if (!pipeline.length) pipeline.push(...normalized.issues)
+    const candidate = Object.create(null) as Record<string, PicodashJsonValue>
+    for (const key of fieldEntries) candidate[key] = values[key]!
+    if (!pipeline.length) {
+      candidate[record.fieldKey] = normalized.value!
+      pipeline.push(
+        ...runFieldValidators(candidate, 'interactive', record.scopeId),
+        ...runRootValidator(candidate, 'interactive', record.scopeId),
+      )
+    }
+    if (pipeline.length) {
+      setInteraction(activeBinding, {
+        fieldKey: record.fieldKey,
+        draft: record.draft,
+        touched: true,
+        inputIssues: interactionIssues(pipeline, activeBinding),
+        conflict: current.conflict,
+        baseRevision: current.conflict.baseRevision,
+        baseValue: current.conflict.baseValue,
+      } as BindingInteractionState & { baseRevision: number; baseValue: PicodashJsonValue })
+      return rejectedResult(interactionIssues(pipeline, activeBinding))
+    }
+    return transactAttributed(
+      { [record.fieldKey]: candidate[record.fieldKey] },
+      record.scopeId,
+      'interactive',
+      {
+        beforeDispatch: () => {
+          suppressInteractionDispatch = true
+          try {
+            setInteraction(activeBinding, undefined)
+          } finally {
+            suppressInteractionDispatch = false
+          }
+        },
+      },
+    )
+  }
+
+  function executeRepairInternal(plan: object): CoreTransactionResult {
+    const registry = bindingPlanRecord(plan)
+    if (!registry)
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'repair',
+        reason: 'wrong-kind',
+      })
+    if (registry.root !== (store as object))
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: registry.kind,
+        reason: 'foreign-root',
+      })
+    if (registry.kind !== 'repair')
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'repair',
+        reason: 'wrong-kind',
+      })
+    const record = repairPlans.get(plan)
+    if (!record)
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'repair',
+        reason: 'wrong-kind',
+      })
+    if (record.consumed || registry.consumed)
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'repair',
+        reason: 'consumed',
+      })
+    const controller = runtimeControllerFor(store as object)
+    const activeBinding = controller?.activeBinding(record.scopeId, record.itemId, record.alias)
+    if (!activeBinding)
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'repair',
+        reason: 'released',
+      })
+    if (activeBinding.lease !== record.binding)
+      throw new PicodashContractError('invalid-binding-plan', {
+        kind: 'repair',
+        reason: 'released',
+      })
+    record.consumed = true
+    registry.consumed = true
+    const current = interactionByScope
+      .get(record.scopeId)
+      ?.bindings.get(record.itemId)
+      ?.get(record.alias)
+    if (
+      !current ||
+      (fieldRevisions.get(record.fieldKey) ?? 0) !== record.revision ||
+      !picodashJsonEqual(current.draft!, record.draft)
+    )
+      return rejectedResult([
+        Object.freeze({
+          code: 'stale_plan',
+          path: freezePath([]),
+          message: 'Repair plan is stale.',
+        }),
+      ])
+    const result = transactAttributed(
+      { [record.fieldKey]: record.candidate },
+      record.scopeId,
+      'repair',
+      {
+        beforeDispatch: () => {
+          suppressInteractionDispatch = true
+          try {
+            setInteraction(activeBinding, undefined)
+          } finally {
+            suppressInteractionDispatch = false
+          }
+        },
+      },
+    )
+    return result
   }
 
   function validateScopeId(value: unknown): asserts value is string {
@@ -1928,18 +2638,23 @@ export function createPicodashStore<
       for (const descendant of controller?.descendants(scopeId) ?? []) targets.add(descendant)
     }
     const changedScopeIds = [...targets].filter((id) => scopes.has(id)).sort()
-    if (!changedScopeIds.length) return resultWithPersistence(successfulResult())
+    const changedInteractionScopeIds = [...targets]
+      .filter((id) => interactionByScope.has(id))
+      .sort()
+    if (!changedScopeIds.length && !changedInteractionScopeIds.length)
+      return resultWithPersistence(successfulResult())
     writing = true
     try {
       const nextEntries = [...scopes.entries()].filter(([id]) => !targets.has(id))
       scopes = nextEntries.length ? immutableMap(nextEntries) : EmptyScopes
+      for (const id of targets) interactionByScope.delete(id)
       currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
       const affectedChannels = new Set<ScopedChannel>()
-      for (const id of changedScopeIds)
+      for (const id of new Set([...changedScopeIds, ...changedInteractionScopeIds]))
         for (const channel of collectScopedChannels(id)) affectedChannels.add(channel)
       refreshScopedChannels(affectedChannels)
       const result = resultWithPersistence(successfulResult([], changedScopeIds))
-      dispatchStoreSubscribers(affectedChannels)
+      dispatchStoreSubscribers(affectedChannels, changedScopeIds.length > 0)
       return result
     } finally {
       writing = false
@@ -1950,8 +2665,37 @@ export function createPicodashStore<
     return freeze({
       values: currentSnapshot.values,
       scope: scopes.get(scopeId),
-      interaction: EmptyInteraction,
+      interaction: interactionByScope.get(scopeId) ?? EmptyInteraction,
     })
+  }
+
+  function clearBindingInteraction(scopeId: string, itemId: string, alias: string): void {
+    const interaction = interactionByScope.get(scopeId)
+    const itemBindings = interaction?.bindings.get(itemId)
+    if (!interaction || !itemBindings || !itemBindings.has(alias)) return
+    const nextBindings = new Map(interaction.bindings)
+    const remainingItemBindings = new Map(itemBindings)
+    remainingItemBindings.delete(alias)
+    const nextItems = new Map(interaction.items)
+    if (remainingItemBindings.size)
+      nextBindings.set(itemId, immutableMap([...remainingItemBindings]))
+    else {
+      nextBindings.delete(itemId)
+      nextItems.delete(itemId)
+    }
+    const nextInteraction =
+      nextBindings.size || nextItems.size
+        ? Object.freeze({
+            bindings: immutableMap([...nextBindings]),
+            items: immutableMap([...nextItems]),
+          })
+        : EmptyInteraction
+    if (nextInteraction === interaction) return
+    if (nextInteraction === EmptyInteraction) interactionByScope.delete(scopeId)
+    else interactionByScope.set(scopeId, nextInteraction)
+    const affected = collectScopedChannels(scopeId)
+    refreshScopedChannels(affected)
+    dispatchStoreSubscribers(affected, false)
   }
 
   function collectScopedChannels(targetScopeId?: string): Set<ScopedChannel> {
@@ -1979,9 +2723,9 @@ export function createPicodashStore<
     for (const channel of affected) channel.snapshot = makeScopedSnapshot(channel.scopeId)
   }
 
-  function dispatchStoreSubscribers(affected: Set<ScopedChannel>) {
+  function dispatchStoreSubscribers(affected: Set<ScopedChannel>, includeRoot = true) {
     diagnosticsRuntime.dispatch([
-      { surface: 'root', listeners },
+      ...(includeRoot ? [{ surface: 'root' as const, listeners }] : []),
       ...[...affected]
         .sort((left, right) => left.scopeId.localeCompare(right.scopeId))
         .map((channel) => ({
@@ -1994,12 +2738,22 @@ export function createPicodashStore<
 
   function applyExternalValues(nextValues: Readonly<ValuesOf<Fields>>) {
     const next = freeze(nextValues) as Readonly<Record<string, PicodashJsonValue>>
-    const changed = fieldEntries.some((key) => !picodashJsonEqual(values[key]!, next[key]!))
+    if (
+      adapterEchoValues &&
+      fieldEntries.every((key) => picodashJsonEqual(adapterEchoValues![key]!, next[key]!))
+    ) {
+      diagnosticsRuntime.publish()
+      return
+    }
+    const changedFields = fieldEntries.filter((key) => !picodashJsonEqual(values[key]!, next[key]!))
+    const changed = changedFields.length > 0
     if (!changed) {
       diagnosticsRuntime.publish()
       return
     }
     values = next
+    for (const key of changedFields) fieldRevisions.set(key, (fieldRevisions.get(key) ?? 0) + 1)
+    markDirtyBindingsStale(changedFields)
     currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
     const affectedChannels = collectScopedChannels()
     refreshScopedChannels(affectedChannels)
@@ -2055,6 +2809,15 @@ export function createPicodashStore<
         if (!result.ok) throw result.error
         return result
       },
+      resetValue(field) {
+        assertOwned(field)
+        return transactAttributed({ [field.key]: baseline[field.key]! }, scopeId, 'reset')
+      },
+      resetValueOrThrow(field) {
+        const result = scoped.resetValue(field)
+        if (!result.ok) throw result.error
+        return result
+      },
       setValues(next) {
         return transactAttributed(next as Record<string, unknown>, scopeId)
       },
@@ -2063,6 +2826,12 @@ export function createPicodashStore<
         if (!result.ok) throw result.error
         return result
       },
+      setInput: (binding, input) => setInputInternal(binding as object, input),
+      discardInput: (binding) => discardInputInternal(binding as object),
+      createStaleInputOverwritePlan: (binding) =>
+        createStaleInputOverwritePlanInternal(binding as object),
+      executeStaleInputOverwrite: (plan) => executeStaleInputOverwriteInternal(plan as object),
+      executeRepair: (plan) => executeRepairInternal(plan),
       destroyScope: (options) => destroyScopeInternal(scopeId, options),
       setDashPanelLayout: (layout) => store.setDashPanelLayout(scopeId, layout),
       resetDashPanelLayout: () => store.resetDashPanelLayout(scopeId),

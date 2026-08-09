@@ -102,6 +102,7 @@ if (import.meta.main) {
   assert.deepEqual(Object.keys(integrationModule).sort(), [
     'PicodashStoreEntityBoundary',
     'PicodashStoreProviderBoundary',
+    'acquireBindingLease',
     'acquireEntityLease',
     'acquireProviderLease',
     'acquireRelationshipLease',
@@ -142,6 +143,7 @@ if (import.meta.main) {
     'createPicodashStore',
   ])
   for (const integrationExport of [
+    'acquireBindingLease',
     'acquireProviderLease',
     'acquireEntityLease',
     'acquireRelationshipLease',

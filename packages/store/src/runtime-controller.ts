@@ -12,6 +12,7 @@ export function classifyIdentity(value: unknown): IdentityReason | undefined {
 }
 
 export type EntityKind = 'dashPanel' | 'dashList'
+export type BindingMode = 'input' | 'display'
 
 export type RuntimeLifecycle = 'active' | 'destroying' | 'destroyed'
 
@@ -61,6 +62,18 @@ export type RelationshipRecord = {
   active: boolean
 }
 
+export type BindingRecord = {
+  readonly kind: 'binding'
+  readonly root: object
+  readonly scopeId: string
+  readonly itemId: string
+  readonly alias: string
+  readonly field: object
+  readonly mode: BindingMode
+  lease: object
+  active: boolean
+}
+
 type ScopedViewRecord = {
   readonly controller: RuntimeController
   readonly scopeId: string
@@ -72,13 +85,18 @@ export class RuntimeController {
   readonly providers = new Map<string, ProviderRecord>()
   readonly entities = new Set<EntityRecord>()
   readonly relationships = new Set<RelationshipRecord>()
+  readonly bindings = new Map<string, Map<string, Map<string, BindingRecord>>>()
   readonly handles = new WeakMap<object, ProviderRecord | EntityRecord>()
+  readonly bindingHandles = new WeakMap<object, BindingRecord>()
   readonly relationshipHandles = new WeakMap<object, RelationshipRecord>()
   readonly scopedViews = new WeakMap<object, ScopedViewRecord>()
   readonly parentByChildScope = new Map<string, string>()
   readonly childrenByParentScope = new Map<string, Set<string>>()
   readonly edgeCounts = new Map<string, Map<string, number>>()
   readonly resources = new Set<RuntimeResource>()
+  private bindingInteractionCleanup:
+    | ((scopeId: string, itemId: string, alias: string) => void)
+    | undefined
   lifecycle: RuntimeLifecycle = 'active'
 
   constructor(root: object) {
@@ -106,7 +124,40 @@ export class RuntimeController {
     for (const provider of this.providers.values()) if (provider.active) return true
     for (const entity of this.entities) if (entity.active) return true
     for (const relationship of this.relationships) if (relationship.active) return true
+    for (const byItem of this.bindings.values())
+      for (const byAlias of byItem.values())
+        for (const binding of byAlias.values()) if (binding.active) return true
     return false
+  }
+
+  setBindingInteractionCleanup(
+    cleanup: (scopeId: string, itemId: string, alias: string) => void,
+  ): void {
+    this.bindingInteractionCleanup = cleanup
+  }
+
+  activeBinding(scopeId: string, itemId: string, alias: string): BindingRecord | undefined {
+    return this.bindings.get(scopeId)?.get(itemId)?.get(alias)
+  }
+
+  registerBinding(record: BindingRecord): void {
+    const byItem =
+      this.bindings.get(record.scopeId) ?? new Map<string, Map<string, BindingRecord>>()
+    const byAlias = byItem.get(record.itemId) ?? new Map<string, BindingRecord>()
+    byAlias.set(record.alias, record)
+    byItem.set(record.itemId, byAlias)
+    this.bindings.set(record.scopeId, byItem)
+  }
+
+  releaseBinding(record: BindingRecord): void {
+    const byItem = this.bindings.get(record.scopeId)
+    const byAlias = byItem?.get(record.itemId)
+    if (byAlias?.get(record.alias) === record) {
+      byAlias.delete(record.alias)
+      if (byAlias.size === 0) byItem?.delete(record.itemId)
+      if (byItem && byItem.size === 0) this.bindings.delete(record.scopeId)
+    }
+    this.bindingInteractionCleanup?.(record.scopeId, record.itemId, record.alias)
   }
 
   hasUnpersistedState(): boolean {
@@ -123,6 +174,7 @@ export class RuntimeController {
     this.providers.clear()
     this.entities.clear()
     this.relationships.clear()
+    this.bindings.clear()
     this.parentByChildScope.clear()
     this.childrenByParentScope.clear()
     this.edgeCounts.clear()

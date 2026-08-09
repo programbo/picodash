@@ -1,14 +1,19 @@
 import { describe, expectTypeOf, it } from 'vite-plus/test'
 import type {
+  AcquireBindingOptions,
+  BindingHandle,
   EntityLease,
   EntityLeaseOptions,
   PicodashStoreEntityBoundaryProps,
   PicodashStoreProviderBoundaryProps,
   ProviderLease,
   RelationshipLease,
+  InvalidBindingHandleReason,
+  StoreBindingMode,
   StoreEntityKind,
 } from '../src/integration.ts'
 import {
+  acquireBindingLease,
   acquireEntityLease,
   acquireProviderLease,
   acquireRelationshipLease,
@@ -22,6 +27,10 @@ import {
 
 describe('Store integration types', () => {
   it('keeps the public lease surface opaque and role-specific', () => {
+    expectTypeOf<StoreBindingMode>().toEqualTypeOf<'input' | 'display'>()
+    expectTypeOf<InvalidBindingHandleReason>().toEqualTypeOf<
+      'foreign-root' | 'released' | 'superseded' | 'wrong-kind'
+    >()
     expectTypeOf<StoreEntityKind>().toEqualTypeOf<'dashPanel' | 'dashList'>()
     expectTypeOf<InvalidDestroyOptionsReason>().toEqualTypeOf<
       | 'not-object'
@@ -35,6 +44,16 @@ describe('Store integration types', () => {
     expectTypeOf<ProviderLease>().toHaveProperty('release').toBeFunction()
     expectTypeOf<EntityLease>().toHaveProperty('release').toBeFunction()
     expectTypeOf<RelationshipLease>().toHaveProperty('release').toBeFunction()
+    expectTypeOf<BindingHandle<any, any>>().toHaveProperty('scopeId').toBeString()
+    expectTypeOf<BindingHandle<any, any>>().toHaveProperty('itemId').toBeString()
+    expectTypeOf<BindingHandle<any, any>>().toHaveProperty('alias').toBeString()
+    expectTypeOf<BindingHandle<any, any>>().toHaveProperty('field')
+    expectTypeOf<BindingHandle<any, any>>().toHaveProperty('mode').toEqualTypeOf<StoreBindingMode>()
+    expectTypeOf<AcquireBindingOptions<any, any>>().toHaveProperty('itemId').toBeString()
+    expectTypeOf<AcquireBindingOptions<any, any>>().toHaveProperty('field')
+    expectTypeOf<AcquireBindingOptions<any, any>>()
+      .toHaveProperty('mode')
+      .toEqualTypeOf<StoreBindingMode>()
     expectTypeOf<EntityLeaseOptions>().toEqualTypeOf<
       | { readonly kind: 'dashPanel'; readonly host: ProviderLease | EntityLease }
       | { readonly kind: 'dashList'; readonly host?: ProviderLease | EntityLease }
@@ -44,12 +63,32 @@ describe('Store integration types', () => {
   it('infers matching root/scoped generic stores and has no root integration reexports', () => {
     const store = createPicodashStore({
       valueOwner: 'store',
-      fields: { value: { defaultValue: 1 } },
+      fields: {
+        value: { defaultValue: 1 },
+        label: { defaultValue: 'one' },
+      },
     })
     expectTypeOf(acquireProviderLease(store)).toEqualTypeOf<ProviderLease>()
     expectTypeOf(
       acquireEntityLease(store.scope('scope'), { kind: 'dashList' }),
     ).toEqualTypeOf<EntityLease>()
+    const binding = acquireBindingLease(store.scope('scope'), {
+      itemId: 'item',
+      field: store.fields.value,
+      mode: 'input',
+    })
+    expectTypeOf(binding).toMatchTypeOf<BindingHandle<any, 'value'>>()
+    const valueBinding: BindingHandle<
+      {
+        readonly value: { readonly defaultValue: number }
+        readonly label: { readonly defaultValue: string }
+      },
+      'value'
+    > = binding
+    void valueBinding
+    expectTypeOf(binding.field.key).toEqualTypeOf<'value'>()
+    expectTypeOf(binding.mode).toEqualTypeOf<'input' | 'display'>()
+    binding.release()
     expectTypeOf(acquireRelationshipLease).parameters.toEqualTypeOf<[EntityLease, EntityLease]>()
     expectTypeOf(store).not.toHaveProperty('acquireProviderLease')
     const scoped = store.scope('scope')
@@ -78,6 +117,29 @@ describe('Store integration types', () => {
       acquireRelationshipLease({ release() {} } as ProviderLease, {} as EntityLease)
       // @ts-expect-error Caller-created release objects are not nominal leases.
       acquireRelationshipLease({ release() {} }, { release() {} })
+      // @ts-expect-error Binding acquisition requires a scoped Store.
+      acquireBindingLease(store, {
+        itemId: 'item',
+        field: store.fields.value,
+        mode: 'input',
+      })
+      // @ts-expect-error Store bindings require an explicit mode.
+      acquireBindingLease(scoped, { itemId: 'item', field: scoped.fields.value })
+      // @ts-expect-error Binding fields are nominal root-owned handles.
+      acquireBindingLease(scoped, { itemId: 'item', field: { key: 'value' }, mode: 'input' })
+      // @ts-expect-error A label binding cannot be assigned to a value-keyed handle.
+      const wrongKey: BindingHandle<
+        {
+          readonly value: { readonly defaultValue: number }
+          readonly label: { readonly defaultValue: string }
+        },
+        'value'
+      > = acquireBindingLease(scoped, {
+        itemId: 'item',
+        field: scoped.fields.label,
+        mode: 'input',
+      })
+      void wrongKey
     }
   })
 

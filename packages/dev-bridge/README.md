@@ -25,10 +25,11 @@ The relay refuses to start when `NODE_ENV=production`. It binds loopback only, u
 ports, keeps agent and browser credentials separate, and writes no credentials to command-line
 arguments. The bridge does not add Store behavior or change Store persistence semantics.
 
-The implemented baseline is Store relay/browser/client/CLI plus Contract Lab dogfood. Next, dogfood
-DashList and DashPanel and feed genuine public-contract gaps back to Store. Consider MCP stdio parity
-only if the CLI proves useful. Persistence/import/reset extensions are deferred; any future
-dangerous operation needs preview, confirmation, idempotency, and an audit trail.
+The implemented baseline is Store relay/browser/client/CLI plus Contract Lab dogfood. The Lab now
+uses the existing inspect/set/wait surface to verify bound Dashlets and retained Panel lifecycle
+without exposing transient UI runtime through the Bridge. Consider MCP stdio parity only if the CLI
+proves useful. Persistence/import/reset extensions are deferred; any future dangerous operation
+needs preview, confirmation, idempotency, and an audit trail.
 
 Implementation status and primary verification owners are recorded in the
 [contract conformance matrix](../../docs/reference/contract-conformance.md#agent-dev-bridge).

@@ -207,14 +207,14 @@ conditional cleanup, keyed reparenting, and nested DashList roots do not acquire
 
 ## Identity
 
-| Identity               | Contract | Implementation | Rule                                                                    |
-| ---------------------- | -------- | -------------- | ----------------------------------------------------------------------- |
-| List `id`              | Accepted | Planned        | Scope ID; immutable while mounted.                                      |
-| Dashlet `id`           | Accepted | Verified       | Required explicit node ID; committed identity is independent of fields. |
-| DashGroup `id`         | Accepted | Verified       | Required; shares the List-wide node-ID namespace.                       |
-| Field-derived node ID  | Rejected | Prototype      | Binding identity cannot stand in for node ID.                           |
-| Binding alias          | Accepted | Planned        | Defaults to field key; explicit for duplicates.                         |
-| React key or `useId()` | Rejected | Prototype      | Not durable Store identity.                                             |
+| Identity               | Contract | Implementation | Rule                                                                                                 |
+| ---------------------- | -------- | -------------- | ---------------------------------------------------------------------------------------------------- |
+| List `id`              | Accepted | Planned        | Scope ID; immutable while mounted.                                                                   |
+| Dashlet `id`           | Accepted | Verified       | Required explicit node ID; committed identity is independent of fields.                              |
+| DashGroup `id`         | Accepted | Verified       | Required; shares the List-wide node-ID namespace.                                                    |
+| Field-derived node ID  | Rejected | Prototype      | Binding identity cannot stand in for node ID.                                                        |
+| Binding alias          | Accepted | Verified       | Defaults to field key; explicit aliases are leased per Dashlet item and cleaned up in reverse order. |
+| React key or `useId()` | Rejected | Prototype      | Not durable Store identity.                                                                          |
 
 IDs are opaque and exact. Every Dashlet and DashGroup requires an explicit `id`, including a
 single-field Dashlet. Rebinding a Dashlet must not change its order or interaction identity. Several
@@ -322,8 +322,8 @@ their composed Dashlet to `block`. A plain custom Dashlet does not infer layout 
 The public Dashlet overloads add exactly one binding form to this base:
 
 - an unbound Dashlet has neither `field` nor `fields`;
-- a single-field Dashlet has `field`, optional `mode`, and optional `presentation`; and
-- a compound Dashlet has an alias-keyed `fields` map and no top-level `mode` or `presentation`.
+- a single-field Dashlet has `field` and optional `mode`; and
+- a compound Dashlet has an alias-keyed `fields` map and no top-level `mode`.
 
 ```ts
 type DashletFieldBinding<TValues extends object> = {
@@ -332,7 +332,6 @@ type DashletFieldBinding<TValues extends object> = {
     | {
         field: PicodashField<TValues, TKey>
         mode?: DashletBindingMode
-        presentation?: PicodashPresentationContract<TValues[TKey]>
       }
 }[Extract<keyof TValues, string>]
 
@@ -350,14 +349,12 @@ type DashletProps<
         field?: never
         fields?: never
         mode?: never
-        presentation?: never
         children?: ReactNode | ((context: DashletRenderContext) => ReactNode)
       }
     | {
         field: PicodashField<TValues, TKey>
         fields?: never
         mode?: TMode
-        presentation?: PicodashPresentationContract<TValues[TKey]>
         children?:
           | ReactNode
           | ((context: SingleFieldDashletRenderContext<TValues[TKey], TMode>) => ReactNode)
@@ -371,17 +368,15 @@ type CompoundDashletProps<
   field?: never
   fields: TFields
   mode?: never
-  presentation?: never
   children?: ReactNode | ((context: CompoundDashletRenderContext<TValues, TFields>) => ReactNode)
 }
 ```
 
 `mode` defaults to `input`. Each compound map value is either a field handle or
-`{ field, mode?, presentation? }`, using the same default. `field` and `fields` are mutually
-exclusive. A `fields` record must contain at least one binding. The binding aliases, field handles,
-modes, and presentation contracts are immutable for the mount lifetime; intentional changes use a
-keyed remount. The explicit Dashlet `id` remains the same when rebinding should preserve its durable
-ordering identity.
+`{ field, mode? }`, using the same default. `field` and `fields` are mutually exclusive. A `fields`
+record must contain at least one binding. The binding aliases, field handles, and modes are immutable
+for the mount lifetime; intentional changes use a keyed remount. The explicit Dashlet `id` remains
+the same when rebinding should preserve its durable ordering identity.
 
 The stable prop surface does not include:
 
@@ -427,7 +422,12 @@ outside the declarative shell.
 ### Render contexts
 
 > Contract: Accepted
-> Implementation: Prototype migration required
+> Implementation: Partial
+> Evidence: `packages/dashlist/tests/dashlist-bindings.test.tsx` and
+> `packages/dashlist/tests/dashlist.types.test.ts` cover the typed single/compound contexts,
+> committed lease lifecycle, callback policy, structured issue regions, and List announcement
+> channel. `apps/lab/tests/contract-lab.spec.ts` covers Bridge/UI writes and external-write
+> staleness in a real browser. The shell-owned stale-overwrite confirmation remains planned.
 
 Dashlet render functions use one common shell vocabulary and add either one `binding` or an
 alias-keyed `bindings` record:
@@ -790,8 +790,8 @@ they do not create an implicit second Store subscription inside every component.
 
 Changing options, bounds, formatting, or other presentation configuration never silently replaces,
 clamps, or otherwise writes a canonical value that the new presentation cannot represent. The
-component reports the incompatibility under its accepted presentation contract and waits for an
-explicit application or user operation.
+component follows the ready-made presentation-compatibility behavior described below and waits for
+an explicit application or user operation.
 
 Every built-in registers its primary focus target and applies the accepted label, description,
 issue, disabled, and read-only behavior. `DisplayDashlet` remains field-bound. Applications compose
@@ -881,6 +881,11 @@ The mismatch is derived from current value and props. It is never persisted, exp
 as a binding input issue. Runtime diagnostics may expose the stable code
 `presentation_incompatible` with safe scope, item, alias, field, and reason context, but never the
 field value.
+
+This ready-made behavior does not establish a generic public presentation contract for custom
+Dashlet bindings. A future contract must separately freeze its generic shape, synchronous
+evaluation and failure behavior, accessible warnings, and safe diagnostics. The core custom-binding
+slice does not emit `presentation_incompatible`.
 
 ## Responsive row and compound layout
 
@@ -1023,7 +1028,15 @@ follows visual order in both left-to-right and right-to-left contexts.
 
 ```tsx
 <Dashlet id="exposure" label="Exposure" field={store.fields.exposure}>
-  {({ inputId, setInput, value }) => <Slider id={inputId} value={value} onChange={setInput} />}
+  {({ binding }) => (
+    <Slider
+      id={binding.controlId}
+      value={binding.draftValue ?? binding.value}
+      aria-invalid={binding.invalid || undefined}
+      aria-errormessage={binding.issuesId}
+      onChange={binding.setInput}
+    />
+  )}
 </Dashlet>
 ```
 
@@ -1037,13 +1050,13 @@ Accepted binding behavior is:
 - dirty drafts survive canonical updates but become stale;
 - binding state clears on final unmount.
 
-| Binding capability               | Contract | Implementation | Notes                                    |
-| -------------------------------- | -------- | -------------- | ---------------------------------------- |
-| Typed canonical field handle     | Accepted | Prototype      | Must reject cross-root handles.          |
-| Draft and parse feedback         | Accepted | Prototype      | Moves to binding identity.               |
-| Stale-draft conflict             | Accepted | Planned        | Requires discard or confirmed overwrite. |
-| Compound multi-field transaction | Accepted | Prototype      | Whole candidate validates atomically.    |
-| Cross-field issue presentation   | Accepted | Planned        | Uses normalized Store issue identity.    |
+| Binding capability               | Contract | Implementation | Notes                                                                                                                                                 |
+| -------------------------------- | -------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Typed canonical field handle     | Accepted | Verified       | `dashlist-bindings.test.tsx` exercises single and compound public leases; Store owns cross-root rejection.                                            |
+| Draft and parse feedback         | Accepted | Verified       | Input contexts expose Store-owned draft, touched, stale, issues, set/discard/reset operations.                                                        |
+| Stale-draft conflict             | Accepted | Planned        | Requires discard or confirmed overwrite.                                                                                                              |
+| Compound multi-field transaction | Accepted | Prototype      | Whole candidate validates atomically.                                                                                                                 |
+| Cross-field issue presentation   | Accepted | Verified       | Alias, unique field-key, and unique `values`-path attribution preserve Store order; ambiguous and cross-field issues remain on the named composition. |
 
 The single `field` and compound `fields` forms are mutually exclusive. Compound bindings use
 explicit aliases as keys. A Dashlet with neither form is an unbound readout, visualization, preview,
@@ -1761,7 +1774,9 @@ the accepted launch surface:
 
 1. Nested DashGroup interaction and presentation beyond one group level.
 2. Group-level actions and aggregated status.
-3. YAML or a general document-codec plugin surface.
+3. A generic custom-binding presentation contract, including its shape, synchronous evaluation and
+   failure behavior, accessible warnings, and safe diagnostics.
+4. YAML or a general document-codec plugin surface.
 
 ## Implementation readiness
 

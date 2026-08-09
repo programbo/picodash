@@ -9,9 +9,13 @@ import {
   ActionSubmenu,
   DashHeader,
   DashPanel,
+  DashPanelLauncher,
   DashPanelProvider,
+  DashPanelTrigger,
+  type DashPanelLauncherProps,
   type DashPanelProps,
   type DashPanelProviderProps,
+  type DashPanelTriggerProps,
   type DashPanelBoundary,
   type DashPanelBoundaryInset,
   type DashPanelDefaultLayout,
@@ -44,7 +48,10 @@ describe('@picodash/dashpanel public types', () => {
       style: { opacity: 0.8, '--consumer-token': 'ok' } as DashPanelStyle,
       width: '24rem',
       defaultCollapsed: true,
+      defaultVisible: false,
       collapsible: true,
+      showCloseButton: false,
+      onVisibilityChange: () => {},
       onCollapsedChange: () => {},
       boundary,
       boundaryInset: 8,
@@ -59,6 +66,13 @@ describe('@picodash/dashpanel public types', () => {
     void createElement(DashPanelProvider, providerProps)
     void createElement(DashPanel, { ...panelProps, ref })
     void createElement(DashPanel, customThemePanelProps)
+    const trigger: DashPanelTriggerProps = { panelId: 'inspector', action: 'toggle' }
+    const launcher: DashPanelLauncherProps = {
+      label: 'Panels',
+      items: [{ panelId: 'inspector', label: 'Inspector', disabled: false }],
+    }
+    void createElement(DashPanelTrigger, trigger)
+    void createElement(DashPanelLauncher, launcher)
     void DashHeader
     void ActionMenu
     void ActionMenuItem
@@ -98,9 +112,16 @@ describe('@picodash/dashpanel public types', () => {
     const retiredPanel: DashPanelProps = { ...panelProps, contentMode: 'plain' }
     void retiredPanel
 
-    // @ts-expect-error visibility/controller props remain excluded from this cut.
+    // @ts-expect-error controlled visibility remains excluded from this cut.
     const retiredVisibility: DashPanelProps = { ...panelProps, visible: false }
     void retiredVisibility
+
+    const invalidTrigger: DashPanelTriggerProps = {
+      panelId: 'inspector',
+      // @ts-expect-error trigger actions are limited to show and toggle.
+      action: 'hide',
+    }
+    void invalidTrigger
 
     const panelBoundary: DashPanelProps = { ...panelProps, boundary: null }
     const panelInset: DashPanelProps = { ...panelProps, boundaryInset: [1, 2, 3, 4] }

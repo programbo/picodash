@@ -5,9 +5,15 @@
 }
 
 .picodash-dashpanel {
+  position: relative;
   box-sizing: border-box;
   inline-size: var(--picodash-panel-width);
   max-inline-size: 100%;
+  z-index: 0;
+}
+
+.picodash-dashpanel[data-active='true'] {
+  z-index: var(--picodash-layer-raised);
 }
 
 .picodash-dashpanel > [data-slot='dash-header'] {

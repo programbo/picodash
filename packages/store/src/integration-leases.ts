@@ -1,10 +1,12 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type {
   CoreTransactionResult,
+  PicodashField,
   PicodashJsonValue,
   PicodashParseResult,
   RootStore,
   ScopedStore,
+  ValuesOf,
 } from './kernel/index.js'
 import {
   classifyIdentity,
@@ -13,6 +15,8 @@ import {
   runtimeControllerFor,
   runtimeControllerForHandle,
   type EntityRecord,
+  type BindingRecord,
+  type BindingMode,
   type HostRecord,
   type ProviderRecord,
   type RelationshipRecord,
@@ -36,6 +40,21 @@ export type EntityLeaseOptions =
 declare const providerLeaseBrand: unique symbol
 declare const entityLeaseBrand: unique symbol
 declare const relationshipLeaseBrand: unique symbol
+declare const bindingHandleBrand: unique symbol
+
+export type StoreBindingMode = 'input' | 'display'
+
+export type InvalidBindingHandleReason = 'foreign-root' | 'released' | 'superseded' | 'wrong-kind'
+
+export type AcquireBindingOptions<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string,
+> = {
+  readonly itemId: string
+  readonly field: PicodashField<ValuesOf<Fields>, Key>
+  readonly alias?: string
+  readonly mode: StoreBindingMode
+}
 
 export type ProviderLease = Readonly<{
   readonly [providerLeaseBrand]: 'ProviderLease'
@@ -52,6 +71,19 @@ export type RelationshipLease = Readonly<{
   release(): void
 }>
 
+export type BindingHandle<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string,
+> = Readonly<{
+  readonly [bindingHandleBrand]: 'BindingHandle'
+  readonly scopeId: string
+  readonly itemId: string
+  readonly alias: string
+  readonly field: PicodashField<ValuesOf<Fields>, Key>
+  readonly mode: StoreBindingMode
+  release(): void
+}>
+
 type FieldLike = {
   readonly defaultValue: PicodashJsonValue
   readonly schema?: StandardSchemaV1<unknown, PicodashJsonValue>
@@ -63,6 +95,149 @@ const invalidHandle = (
   reason: 'foreign-root' | 'released' | 'wrong-kind',
 ): never => {
   throw new PicodashContractError('invalid-integration-handle', { role, reason })
+}
+
+function bindingOptions(options: unknown): {
+  itemId: string
+  alias?: string
+  aliasPresent: boolean
+  field: unknown
+  mode: StoreBindingMode
+} {
+  if (!options || typeof options !== 'object' || Array.isArray(options))
+    throw new PicodashContractError('invalid-binding-options', { reason: 'not-object' })
+  let descriptors: Record<PropertyKey, PropertyDescriptor>
+  try {
+    descriptors = Object.getOwnPropertyDescriptors(options)
+    for (const key of Reflect.ownKeys(descriptors))
+      if (key !== 'itemId' && key !== 'field' && key !== 'alias' && key !== 'mode')
+        throw new PicodashContractError('invalid-binding-options', { reason: 'unknown-key' })
+    for (const key of ['itemId', 'field', 'alias', 'mode'] as const) {
+      const descriptor = descriptors[key]
+      if (descriptor && !('value' in descriptor))
+        throw new PicodashContractError('invalid-binding-options', { reason: 'accessor-property' })
+    }
+  } catch (error) {
+    if (error instanceof PicodashContractError) throw error
+    throw new PicodashContractError('invalid-binding-options', { reason: 'not-object' })
+  }
+  const itemId = descriptors.itemId?.value
+  if (classifyIdentity(itemId))
+    throw new PicodashContractError('invalid-binding-options', { reason: 'invalid-item-id' })
+  const aliasPresent = descriptors.alias !== undefined
+  const alias = descriptors.alias?.value
+  if (aliasPresent && classifyIdentity(alias))
+    throw new PicodashContractError('invalid-binding-options', { reason: 'invalid-alias' })
+  const mode = descriptors.mode?.value
+  if (mode !== 'input' && mode !== 'display')
+    throw new PicodashContractError('invalid-binding-options', { reason: 'invalid-mode' })
+  return {
+    itemId: itemId as string,
+    ...(aliasPresent ? { alias: alias as string } : {}),
+    aliasPresent,
+    field: descriptors.field?.value,
+    mode,
+  }
+}
+
+function ownedField<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string,
+  Result extends CoreTransactionResult,
+>(
+  scopedStore: ScopedStore<Fields, Result>,
+  candidate: unknown,
+): PicodashField<ValuesOf<Fields>, Key> {
+  if (!candidate || typeof candidate !== 'object') throw new PicodashContractError('foreign-handle')
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(candidate, 'key')
+    if (!descriptor || !('value' in descriptor) || typeof descriptor.value !== 'string')
+      throw new PicodashContractError('foreign-handle')
+    const key = descriptor.value
+    const fields = scopedStore.fields as Record<string, unknown>
+    if (fields[key] !== candidate) throw new PicodashContractError('foreign-handle')
+    return candidate as PicodashField<ValuesOf<Fields>, Key>
+  } catch (error) {
+    if (error instanceof PicodashContractError) throw error
+    throw new PicodashContractError('foreign-handle')
+  }
+}
+
+export function acquireBindingLease<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+>(
+  scopedStore: ScopedStore<Fields, Result>,
+  options: AcquireBindingOptions<Fields, Key>,
+): BindingHandle<Fields, Key> {
+  const parsed = bindingOptions(options)
+  const scopedRecord = runtimeScopedViewFor(scopedStore as object)
+  if (!scopedRecord) throw new PicodashContractError('foreign-handle')
+  const controller = scopedRecord.controller
+  if (controller.lifecycle !== 'active') throw new PicodashContractError('use-after-destroy')
+  const field = ownedField<Fields, Key, Result>(scopedStore, parsed.field)
+  const alias = parsed.aliasPresent ? parsed.alias! : field.key
+  const existing = controller.activeBinding(scopedRecord.scopeId, parsed.itemId, alias)
+  if (existing)
+    throw new PicodashContractError('duplicate-binding', {
+      scopeId: scopedRecord.scopeId,
+      itemId: parsed.itemId,
+      alias,
+    })
+  const record: BindingRecord = {
+    kind: 'binding',
+    root: controller.root,
+    scopeId: scopedRecord.scopeId,
+    itemId: parsed.itemId,
+    alias,
+    field,
+    mode: parsed.mode as BindingMode,
+    lease: undefined as unknown as object,
+    active: true,
+  }
+  const handle = Object.freeze({
+    scopeId: record.scopeId,
+    itemId: record.itemId,
+    alias: record.alias,
+    field,
+    mode: record.mode,
+    release: () => {
+      if (!record.active) return
+      record.active = false
+      controller.releaseBinding(record)
+    },
+  }) as BindingHandle<Fields, Key>
+  record.lease = handle as object
+  controller.registerBinding(record)
+  controller.bindingHandles.set(handle as object, record)
+  registerRuntimeHandle(handle as object, controller)
+  return handle
+}
+
+/** Internal validation seam for the future binding input commands. */
+export function assertBindingHandle<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string = keyof Fields & string,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+>(scopedStore: ScopedStore<Fields, Result>, handle: unknown): BindingHandle<Fields, Key> {
+  const scopedRecord = runtimeScopedViewFor(scopedStore as object)
+  const controller = scopedRecord?.controller
+  const owner =
+    handle && typeof handle === 'object' ? runtimeControllerForHandle(handle) : undefined
+  if (owner && owner !== controller)
+    throw new PicodashContractError('invalid-binding-handle', { reason: 'foreign-root' })
+  if (!controller || !owner)
+    throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
+  const record = controller.bindingHandles.get(handle as object)
+  if (!record) throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
+  if (!record.active) {
+    const current = controller.activeBinding(record.scopeId, record.itemId, record.alias)
+    throw new PicodashContractError('invalid-binding-handle', {
+      reason: current ? 'superseded' : 'released',
+    })
+  }
+  return handle as BindingHandle<Fields, Key>
 }
 
 function providerOptions(options: unknown): string {

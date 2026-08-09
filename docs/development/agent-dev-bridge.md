@@ -111,12 +111,14 @@ the Lab is already stopped, a new start performs stale-lock recovery as describe
 ## Scope and roadmap
 
 Implemented baseline: Store relay, browser connector, typed HTTP client, CLI, and Contract Lab
-dogfood (discover, inspect, set, wait, and reload-generation rejection). No Store changes were
-needed for this baseline.
+dogfood (discover, inspect, set, wait, and reload-generation rejection). The same journey now proves
+Bridge writes through single and compound DashList bindings, UI input observed by Bridge, stale
+draft behavior after an external write, and a live Store session retained while DashPanel hides and
+reopens. No Bridge extension was needed: focus, visibility, and activation remain Provider-owned
+browser behavior rather than agent protocol authority.
 
-Next, dogfood DashList and DashPanel and send genuine public contract gaps to their owning package
-or Store. MCP stdio parity is a follow-on only if the CLI proves useful. Persistence, import, reset,
-and other dangerous extensions remain deferred; they require preview, explicit confirmation,
-idempotency, and an audit trail before implementation.
+MCP stdio parity is a follow-on only if the CLI proves useful. Persistence, import, reset, and other
+dangerous extensions remain deferred; they require preview, explicit confirmation, idempotency, and
+an audit trail before implementation.
 
 Background and tracking: [Picodash issue #80](https://github.com/programbo/picodash/issues/80).

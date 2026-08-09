@@ -273,8 +273,65 @@ edges, cycles, cross-root edges, and cross-host edges are rejected.
 
 The first successful `release()` is lifecycle teardown and later calls are idempotent no-ops.
 Provider and entity release refuse while dependent leases remain active; callers tear down in the
-order relationship, child entity, parent entity, then Provider. Binding lease acquisition remains a
-later Store slice and is not part of this accepted alpha integration surface.
+order relationship, child entity, parent entity, then Provider. Binding acquisition is a separate
+Store integration lease and does not require an EntityLease or an active entity registration.
+
+### 3.9.1 Binding acquisition lease (BIND-LEASE-1)
+
+`@picodash/store/integration` exposes the minimal binding registration seam:
+
+```ts
+type StoreBindingMode = 'input' | 'display'
+
+type AcquireBindingOptions<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string,
+> = {
+  readonly itemId: string
+  readonly field: PicodashField<ValuesOf<Fields>, Key>
+  readonly alias?: string
+  readonly mode: StoreBindingMode
+}
+
+type BindingHandle<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string,
+> = Readonly<{
+  readonly scopeId: string
+  readonly itemId: string
+  readonly alias: string
+  readonly field: PicodashField<ValuesOf<Fields>, Key>
+  readonly mode: StoreBindingMode
+  release(): void
+}>
+
+declare function acquireBindingLease<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+>(
+  scopedStore: ScopedStore<Fields, Result>,
+  options: AcquireBindingOptions<Fields, Key>,
+): BindingHandle<Fields, Key>
+```
+
+Binding identity is `(scopeId, itemId, alias)`; an omitted alias defaults to `field.key`. Options
+are validated as an exact non-array object in deterministic order: own keys, data descriptors,
+lexical `itemId`, lexical explicit alias, exact mode, then same-root nominal field. Invalid options
+throw `invalid-binding-options` with exactly `{ reason }`, where reason is one of
+`not-object | unknown-key | accessor-property | invalid-item-id | invalid-alias | invalid-mode`.
+Foreign fields throw `foreign-handle`; a live duplicate tuple throws `duplicate-binding` with
+exactly `{ scopeId, itemId, alias }`.
+
+Each tuple has one active generation. A released handle is idempotent; a later command validating
+that handle classifies it as `released` when the tuple is absent and `superseded` when a newer
+generation occupies the tuple. Binding handles are nominal, root-owned, immutable tokens exposing
+only identity, field, mode, and `release()`. Binding leases participate in root destruction refusal.
+Registration and release with no populated interaction state preserve snapshot references and send
+no subscribers. Release clears only the binding's ephemeral interaction state and prunes an empty
+item interaction record; canonical values and durable scope metadata remain unchanged. Future Store
+commands receiving a bad handle throw `invalid-binding-handle` with exactly
+`{ reason: 'foreign-root' | 'released' | 'superseded' | 'wrong-kind' }`.
 
 The integration contract errors and their complete safe contexts are:
 
@@ -805,6 +862,18 @@ Opaque plans and handles follow one rule across repairs, stale-input overwrite, 
 persistence, export, and import: wrong-root, wrong-kind, released, or already-consumed objects throw
 a contract error; a valid plan whose captured state has changed returns a safe `stale_plan` issue.
 
+Repair and stale-input-overwrite plans use the shared contract error taxonomy:
+
+```ts
+type InvalidBindingPlanContext = {
+  readonly kind: 'repair' | 'stale-input-overwrite'
+  readonly reason: 'foreign-root' | 'wrong-kind' | 'released' | 'consumed'
+}
+```
+
+The `invalid-binding-plan` contract error exposes exactly that context. Plans are opaque,
+root-owned, single-use values and expose no captured values, revisions, or fingerprints.
+
 Successful results always report sorted `changedFields` and `changedScopeIds` arrays. A value-only
 operation leaves the latter empty; a metadata-only operation leaves the former empty.
 Persistence-enabled Stores additionally report
@@ -856,9 +925,10 @@ At runtime, unknown batch keys return structured candidate issues without mutati
 handle is a contract error. An empty batch and a semantically unchanged batch succeed as no-ops and
 do not notify or persist.
 
-`setInput` is safe-only. Valid input commits and clears that binding's draft; invalid input returns
-issues while recording its draft, touched state, and input issues. Programmatic setters do not
-alter binding interaction state, although their canonical changes can make existing drafts stale.
+`setInput` is safe-only. Valid non-stale input commits and clears that binding's draft; invalid
+non-stale input records its frozen raw JSON draft, touched state, and pipeline issues. Programmatic
+setters do not alter binding interaction state, although their canonical changes can make existing
+drafts stale. BIND-INTERACTION-CONTRACT-1 below freezes stale and repair transitions.
 
 `discardInput(binding)` returns `true` only when interaction state changed and otherwise returns
 `false`; ownership and lifecycle misuse still throws a contract error.
@@ -890,9 +960,31 @@ root.resetRegisteredValues({ scopeId, includeDescendants? })
 root.resetRegisteredValuesOrThrow({ scopeId, includeDescendants? })
 ```
 
-`resetValue` restores one field's validated baseline. Registered-value reset deduplicates root
-fields and validates one complete candidate. Scoped signatures do not accept another scope ID;
-root signatures require one.
+The generic root and scoped value-reset surfaces are:
+
+```ts
+interface RootValueCommands<Fields, Result> {
+  resetValue<Key extends keyof Fields & string>(field: FieldHandle<Fields, Key>): Result
+  resetValueOrThrow<Key extends keyof Fields & string>(
+    field: FieldHandle<Fields, Key>,
+  ): Extract<Result, { ok: true }>
+}
+
+interface ScopedValueCommands<Fields, Result> extends RootValueCommands<Fields, Result> {}
+```
+
+`resetValue` restores one field's configured default baseline after schema and complete-record
+validation, never parser execution; it is not the initial, hydrated, or current value. The root has
+no origin scope; scoped calls use the receiver scope. The reset source passed to validators and adapters is
+`source: 'reset'`. A foreign field handle is a contract error. Candidate rejection is atomic.
+
+Reset success preserves the configured Store `Result` (including persistence status), reports only
+the changed field, and leaves `changedScopeIds` empty. A semantic no-op does not notify or write.
+When the field changes, every dirty binding for that field becomes stale without discarding its
+draft; persistence records the configured reset result.
+
+Registered-value reset deduplicates root fields and validates one complete candidate. Scoped
+signatures do not accept another scope ID; root signatures require one.
 
 Scope-targeted metadata commands follow the same root/scoped targeting rule. The accepted authoring
 surface is:
@@ -987,21 +1079,137 @@ A dirty binding records the canonical field revision/value from which editing be
 canonical change preserves the draft but marks it stale. Stale drafts cannot commit implicitly;
 the binding must discard or explicitly overwrite after confirmation.
 
-The alpha recovery API is:
+Stale-input overwrite plans are a distinct accepted command slice, specified here separately from
+the frozen input transition and repair behavior. Creation requires an active input handle, a dirty
+stale draft, and no stored `inputIssues`:
 
 ```ts
-store.discardInput(binding)
+declare const staleInputOverwritePlanBrand: unique symbol
+type PicodashStaleInputOverwritePlan = {
+  readonly [staleInputOverwritePlanBrand]: never
+}
+
+store.createStaleInputOverwritePlan<Key extends keyof Fields & string>(
+  binding: BindingHandle<Fields, Key>,
+): PicodashStaleInputOverwritePlan
+
+store.executeStaleInputOverwrite(plan: PicodashStaleInputOverwritePlan): Result
+```
+
+The plan captures the exact binding generation and draft plus the current target-field revision and
+value, but exposes none of those values. Any same-root root/scoped receiver may execute it; the
+handle's scope controls attribution. An unrelated field change alone does not stale the plan.
+Creation handle misuse is `invalid-binding-handle`. Creation state failure is the contract error
+`invalid-stale-input-overwrite` with exactly `{ reason: 'not-stale' | 'invalid-draft' }`.
+
+The state-failure contract error context is:
+
+```ts
+{
+  reason: 'not-stale' | 'invalid-draft',
+}
+```
+
+The first valid execution attempt consumes the plan, including stale-plan, validation, or authority
+failure. Draft replacement/discard or a target revision change returns `stale_plan`; released or
+replaced binding generations return the corresponding lifecycle contract error. Execution reruns
+parse, schema, field, and root validation with `source: 'interactive'` and binding origin; it never
+returns `stale_input` or a repair offer. Failure preserves stale interaction. Success coalesces the
+canonical commit and origin cleanup, marks other dirty bindings for the field stale, and preserves
+the configured Result/persistence. A semantic no-op clears origin and notifies only the target scope;
+a changed commit notifies canonical observers once with cleanup visible.
+
+```ts
 store.createStaleInputOverwritePlan(binding)
 store.executeStaleInputOverwrite(plan)
 ```
 
-The overwrite plan is opaque, root-owned, single-use, and fingerprints both the draft and current
-field revision. Execution re-runs the complete validation pipeline and rejects the plan if the
-draft or canonical value changed. Confirmation UX belongs to the application. Generic rebase is
-deferred until a field can declare explicit merge semantics; Picodash does not treat replaying an
-old absolute draft as a safe rebase.
+These commands remain `Accepted` / `Planned` and are specified separately from the frozen input
+transition and repair behavior below.
 
 Untouched bindings follow new canonical values immediately. Conflict state is ephemeral.
+
+### 8.3 BIND-INTERACTION-CONTRACT-1
+
+Root and scoped Stores expose the same generic-key interaction commands:
+
+```ts
+interface BindingInteractionCommands<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
+  setInput<Key extends keyof Fields & string>(
+    binding: BindingHandle<Fields, Key>,
+    input: PicodashJsonValue,
+  ): Result
+  discardInput<Key extends keyof Fields & string>(binding: BindingHandle<Fields, Key>): boolean
+  executeRepair(plan: PicodashRepairPlan): Result
+  createStaleInputOverwritePlan<Key extends keyof Fields & string>(
+    binding: BindingHandle<Fields, Key>,
+  ): PicodashStaleInputOverwritePlan
+  executeStaleInputOverwrite(plan: PicodashStaleInputOverwritePlan): Result
+}
+```
+
+The configured Store `Result` is preserved for every safe command (including persistence-enabled
+variants). A binding handle determines scope and `(itemId, alias, fieldKey)` identity; any root or
+scoped receiver from the same root may invoke the command. Receiver scope does not retarget the
+binding, and a foreign, released, or superseded handle remains a contract error.
+
+`setInput` and `discardInput` accept only an active binding handle whose `mode` is `'input'`. An
+active display handle throws `invalid-binding-handle` with exactly `{ reason: 'wrong-kind' }`; it
+creates no interaction state and invokes no parser, validator, callback, subscriber, or notification.
+
+The Store-owned issue code `stale_input` is exact:
+
+```ts
+{
+  code: 'stale_input',
+  reason: 'canonical_changed',
+  message: 'Binding input is stale and requires explicit overwrite confirmation.',
+  path: ['values', fieldKey],
+  fieldKey,
+  scopeId,
+  itemId,
+  alias,
+}
+```
+
+`fieldKey`, `scopeId`, `itemId`, and `alias` are present on every stale issue. Pipeline issues
+(`parse_failed`, `schema_failed`, or `validation_failed`) precede `stale_input` in a returned
+failure. Stored `inputIssues` contains only pipeline issues; `stale_input` is never stored there.
+
+#### Input transition table
+
+| Current interaction | Input / pipeline outcome                  | Interaction result                                                                                                  | Returned issues / repair                                                                                        |
+| ------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Any                 | Non-JSON input                            | No interaction mutation                                                                                             | One identity-enriched `invalid_json` issue; no parser, schema, field/root callback, subscriber, or notification |
+| None or clean       | Non-stale pipeline rejection              | Store frozen raw JSON draft, `touched: true`, and pipeline issues; capture current field revision/value as the base | Pipeline issues; parser failure may include a repair plan                                                       |
+| Dirty, non-stale    | Non-stale pipeline rejection              | Replace the frozen raw JSON draft and pipeline issues; preserve the original base                                   | Pipeline issues; parser failure may include a repair plan                                                       |
+| None or clean       | Accepted non-stale input                  | Commit the shared canonical pipeline and clear the binding interaction entry                                        | Configured successful `Result`                                                                                  |
+| Dirty, non-stale    | Accepted non-stale input                  | Commit and clear the binding interaction entry                                                                      | Configured successful `Result`                                                                                  |
+| Dirty, stale        | Any stale attempt                         | Replace the frozen raw JSON draft and pipeline feedback; preserve the original base/conflict; never commit          | Pipeline issues first, then `stale_input`; no repair plan                                                       |
+| Dirty, stale        | Valid stale input                         | Preserve the original base/conflict and never commit                                                                | `stale_input` only; no repair plan                                                                              |
+| Dirty, non-stale    | Authority rejection after valid candidate | Retain the valid dirty draft, touched state, original base, and non-stale conflict state                            | Configured failure; no interaction loss                                                                         |
+
+Canonical changes mark a dirty binding stale without deleting its draft. A stale binding invalidates
+any earlier repair plan with `stale_plan`; overwrite plans follow the explicit contract above. `discardInput` clears one
+binding entry, prunes an empty item map and scope interaction record, and returns exactly `true` iff
+that entry changed; absent/clean state returns exactly `false`.
+
+Parser repair is offered only for a non-stale parser failure. Before a plan is returned, its proposal
+passes schema, field validation, and root validation. A valid plan is opaque, root-owned, single-use;
+`executeRepair` revalidates with validation source `repair`, commits through the shared pipeline,
+and clears the originating interaction. Wrong-root/kind/released/consumed plans throw a contract
+error; changed captured state returns `stale_plan`.
+
+#### Evidence and privacy requirements
+
+Conformance evidence must exercise root and scoped receivers, input/display mode rejection,
+configured Result variants, every row of the transition table, callback/notification suppression,
+repair freshness, pruning, and exact issue shape/order. Evidence must not include raw non-JSON input,
+arbitrary callback causes, or other undisclosed values; identity fields are limited to the documented
+field/scope/item/alias tuple.
 
 ## 9. DashList metadata
 
@@ -1599,11 +1807,11 @@ React is an optional peer for installing the core package and becomes a runtime 
 when `/react` or `/integration` is imported. Artifact tests enforce this split.
 
 The integration entry exposes the shared Store boundary protocol and the exact Provider, entity,
-and relationship acquisition functions in Section 3.9. Acquisition occurs only after a declarative
-render commits. Every lease is one nominal generation with idempotent `release()`; release is
-lifecycle teardown, not a domain-level deregistration command. Abandoned renders acquire nothing,
-and React Strict Mode reacquisition reruns all identity and graph checks. Binding acquisition and
-its generation-owned `BindingHandle` remain a later Store slice.
+relationship, and binding acquisition functions in Section 3.9. Acquisition occurs only after a
+declarative render commits, except that binding acquisition is an explicit scoped Store seam and
+does not require an active entity. Every lease is one nominal generation with idempotent
+`release()`; release is lifecycle teardown, not a domain-level deregistration command. Abandoned
+renders acquire nothing, and React Strict Mode reacquisition reruns all identity and graph checks.
 
 The Store package does not add an application-facing global Provider or duplicate-package bridge.
 DashPanel, integrated Picodash, and standalone DashList remain the product-owned public context
@@ -1740,7 +1948,7 @@ The accepted contract intentionally defers:
 - an arbitrary public transaction callback;
 - a public context-only Store Provider;
 - runtime registration of arbitrary durable metadata kinds;
-- populated binding and item interaction snapshots before the binding-lease slice;
+- populated binding and item interaction snapshots before input-command support;
 - UI presentation compatibility contracts on Store fields;
 - automatic pruning based only on currently mounted nodes;
 - automatic cross-tab merge or collaboration;
@@ -1757,13 +1965,10 @@ the Store-owned persistence capability, scope and root destruction, bounded subs
 diagnostics, and weak canonical views without a public release or reference-count API. These are
 launch contracts rather than beta ergonomics.
 
-This alpha evidence boundary was revised on 2026-08-06 after implementation exposed an internal
-contract inconsistency: the accepted alpha integration surface explicitly defers binding
-acquisition, leaving no supported public operation that can create populated binding or item
-interaction state. Populated interaction snapshots and their cleanup evidence therefore move with
-binding acquisition to beta. Alpha still verifies the immutable singleton shape and reference
-stability of the empty interaction snapshot; this revision does not permit a private population
-path or weaken any value, metadata, lease, persistence, or destruction invariant.
+Binding acquisition is now frozen by BIND-LEASE-1 as the prerequisite for populated interaction
+state. Acquisition and empty-state cleanup evidence remains Partial until input commands populate
+interaction snapshots; this does not permit a private population path or weaken any value,
+metadata, lease, persistence, or destruction invariant.
 
 The signatures and semantics above are frozen for alpha even where exhaustive evidence continues
 during consumer dogfooding. Beta may continue broader generated relationship-graph traversal,

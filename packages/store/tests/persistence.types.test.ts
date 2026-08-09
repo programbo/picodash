@@ -7,7 +7,9 @@ import {
   type PicodashPersistenceDriver,
   type PicodashPersistenceState,
   type PersistentTransactionResult,
+  type PicodashRepairPlan,
 } from '../src/index.ts'
+import { acquireBindingLease } from '../src/integration.ts'
 import { createMemoryPersistence } from './support/memory-persistence.js'
 
 test('persistent Store results and capability share one public contract', () => {
@@ -25,6 +27,14 @@ test('persistent Store results and capability share one public contract', () => 
   })
   expectTypeOf(store.persistence).toEqualTypeOf<PicodashPersistence>()
   expectTypeOf(store.setValues({ value: 2 })).toEqualTypeOf<PersistentTransactionResult>()
+  const binding = acquireBindingLease(store.scope('scope'), {
+    itemId: 'item',
+    field: store.fields.value,
+    mode: 'input',
+  })
+  expectTypeOf(store.setInput(binding, 2)).toEqualTypeOf<PersistentTransactionResult>()
+  expectTypeOf<typeof store.executeRepair>().parameters.toEqualTypeOf<[PicodashRepairPlan]>()
+  binding.release()
   expectTypeOf(store.scope('scope').persistence).toEqualTypeOf<PicodashPersistence>()
   store.destroy({ discardUnpersisted: true })
 })

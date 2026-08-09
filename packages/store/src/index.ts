@@ -78,4 +78,7 @@ export type {
   PicodashParseResult,
   PicodashJsonPrimitive,
   PicodashJsonValue,
+  PicodashRepairPlan,
+  PicodashStaleInputOverwritePlan,
+  BindingInteractionCommands,
 } from './kernel/index.js'

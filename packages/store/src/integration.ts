@@ -1,10 +1,15 @@
 export {
+  acquireBindingLease,
   acquireEntityLease,
   acquireProviderLease,
   acquireRelationshipLease,
 } from './integration-leases.js'
 
 export type {
+  AcquireBindingOptions,
+  BindingHandle,
+  InvalidBindingHandleReason,
+  StoreBindingMode,
   EntityLease,
   EntityLeaseOptions,
   InvalidEntityOptionsReason,

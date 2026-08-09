@@ -270,8 +270,16 @@ test('preserves Fields and refined Result through root/scoped views and metadata
   expectTypeOf<ReturnType<Root['setValueOrThrow']>>().toEqualTypeOf<
     Extract<RefinedResult, { readonly ok: true }>
   >()
+  expectTypeOf<ReturnType<Root['resetValue']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['resetValueOrThrow']>>().toEqualTypeOf<
+    Extract<RefinedResult, { readonly ok: true }>
+  >()
   expectTypeOf<ReturnType<Scoped['setValue']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Scoped['setValueOrThrow']>>().toEqualTypeOf<
+    Extract<RefinedResult, { readonly ok: true }>
+  >()
+  expectTypeOf<ReturnType<Scoped['resetValue']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['resetValueOrThrow']>>().toEqualTypeOf<
     Extract<RefinedResult, { readonly ok: true }>
   >()
   expectTypeOf<ReturnType<Root['setValues']>>().toEqualTypeOf<RefinedResult>()
