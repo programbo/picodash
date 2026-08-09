@@ -796,11 +796,19 @@ interface DashPanelTriggerProps extends Omit<ButtonProps, 'onPress'> {
   action?: 'show' | 'toggle'
 }
 
-interface DashPanelLauncherItem {
-  panelId: string
-  label: ReactNode
-  disabled?: boolean
-}
+type DashPanelLauncherItem =
+  | {
+      panelId: string
+      label: string
+      accessibleName?: string
+      disabled?: boolean
+    }
+  | {
+      panelId: string
+      label: Exclude<ReactNode, string>
+      accessibleName: string
+      disabled?: boolean
+    }
 
 interface DashPanelLauncherProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   label: string
@@ -815,7 +823,9 @@ for a hidden Panel.
 
 `DashPanelLauncher` renders an application-declared group of Panel triggers. It does not discover
 Panels through a registry, infer labels from mounted content, or acquire authority to mount missing
-JSX. A launcher item for an unavailable Panel renders as a disabled trigger and does not create it.
+JSX. Text labels provide the trigger name directly; non-text labels require `accessibleName`, which
+is forwarded as the trigger's accessible name. A launcher item for an unavailable Panel renders as
+a disabled trigger and does not create it.
 
 Both components require the nearest DashPanel Provider. Their button behavior and public prop base
 come from `@picodash/ui`, but DashPanel owns panel targeting, visibility, activation, and focus.

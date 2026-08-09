@@ -3,8 +3,39 @@ import { acquireBindingLease } from '../src/integration.ts'
 import { createPicodashStore, PicodashContractError } from '../src/index.ts'
 import { createExternalAdapter } from './support/external-adapter.js'
 import { createMemoryPersistence } from './support/memory-persistence.js'
+import { schemaSuccess, syncStandardSchema } from './support/standard-schema-fixtures.js'
 
 describe('stale input overwrite plans', () => {
+  it('commits a canonical stale draft without rerunning its schema', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        value: {
+          defaultValue: 0,
+          parse: (input) =>
+            typeof input === 'number'
+              ? { ok: true as const, candidate: input }
+              : { ok: false as const, issues: [{ message: 'number required' }] },
+          schema: syncStandardSchema((input) => schemaSuccess((input as number) + 1)),
+        },
+      },
+    })
+    const scope = store.scope('settings')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.value,
+      mode: 'input',
+    })
+    scope.setInput(binding, 'bad')
+    store.setValue(store.fields.value, 5)
+    expect(scope.setInput(binding, 10)).toMatchObject({ ok: false })
+    const plan = scope.createStaleInputOverwritePlan(binding)
+    expect(scope.executeStaleInputOverwrite(plan)).toMatchObject({ ok: true })
+    expect(store.getState().values.value).toBe(11)
+    binding.release()
+    store.destroy()
+  })
+
   it('captures stale drafts and executes through the interactive pipeline', () => {
     const store = createPicodashStore({
       valueOwner: 'store',

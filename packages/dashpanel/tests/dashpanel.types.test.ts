@@ -71,8 +71,27 @@ describe('@picodash/dashpanel public types', () => {
       label: 'Panels',
       items: [{ panelId: 'inspector', label: 'Inspector', disabled: false }],
     }
+    const iconLauncher: DashPanelLauncherProps = {
+      label: 'Panels',
+      items: [
+        {
+          panelId: 'inspector',
+          label: createElement('span', { 'aria-hidden': true }, 'I'),
+          accessibleName: 'Inspector',
+        },
+      ],
+    }
+    const unnamedIconLauncher: DashPanelLauncherProps = {
+      label: 'Panels',
+      items: [
+        // @ts-expect-error non-text launcher labels require an explicit accessible name.
+        { panelId: 'inspector', label: createElement('span', null, 'I') },
+      ],
+    }
     void createElement(DashPanelTrigger, trigger)
     void createElement(DashPanelLauncher, launcher)
+    void createElement(DashPanelLauncher, iconLauncher)
+    void unnamedIconLauncher
     void DashHeader
     void ActionMenu
     void ActionMenuItem

@@ -49,9 +49,9 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Store documents and DashList import, export, repair, and reset actions remain planned.',
+      'Store document capture and restore plans are available; DashList-owned import, export, repair, and reset actions remain planned.',
     id: 'documents',
-    implementation: 'Planned',
+    implementation: 'Partial',
     label: 'Documents',
   },
   {

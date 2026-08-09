@@ -22,9 +22,8 @@ export function ContractLabSpecimenHost({
   const boundaryRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    onDiagnosticCountChange(0)
     onPrimaryPanelStateChange('expanded')
-  }, [onDiagnosticCountChange, onPrimaryPanelStateChange, preset.id, revision])
+  }, [onPrimaryPanelStateChange, preset.id, revision])
 
   return (
     <section
@@ -48,6 +47,7 @@ export function ContractLabSpecimenHost({
       </p>
       <ContractLabSpecimen
         boundary={boundaryRef}
+        onDiagnosticCountChange={onDiagnosticCountChange}
         onCollapsedChange={(collapsed) =>
           onPrimaryPanelStateChange(collapsed ? 'collapsed' : 'expanded')
         }

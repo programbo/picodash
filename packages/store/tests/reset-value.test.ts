@@ -8,8 +8,26 @@ import {
 import { createExternalAdapter } from './support/external-adapter.js'
 import { createMemoryPersistence } from './support/memory-persistence.js'
 import { acquireBindingLease } from '../src/integration.ts'
+import { schemaSuccess, syncStandardSchema } from './support/standard-schema-fixtures.js'
 
 describe('typed single-field reset', () => {
+  it('does not rerun a non-idempotent schema for canonical defaults', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      initialValues: { count: 10 },
+      fields: {
+        count: {
+          defaultValue: 0,
+          schema: syncStandardSchema((input) => schemaSuccess((input as number) + 1)),
+        },
+      },
+    })
+    expect(store.getState().values.count).toBe(11)
+    expect(store.resetValue(store.fields.count)).toMatchObject({ ok: true })
+    expect(store.getState().values.count).toBe(1)
+    store.destroy()
+  })
+
   it('resets to the configured canonical default from root and scope', () => {
     const sources: string[] = []
     const store = createPicodashStore({

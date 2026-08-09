@@ -27,10 +27,12 @@ import {
 } from '@picodash/picodash/ui'
 import type { ContractLabPreset } from '@lab/lib/contract-lab'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
+import { useContractLabDiagnosticCount } from './store-diagnostics'
 
 export interface ContractLabSpecimenProps {
   readonly boundary: RefObject<HTMLElement | null>
   readonly onCollapsedChange: (collapsed: boolean) => void
+  readonly onDiagnosticCountChange: (count: number) => void
   readonly preset: ContractLabPreset
 }
 
@@ -131,6 +133,7 @@ function ContractLabPersistenceProbe() {
 export function ContractLabSpecimen({
   boundary,
   onCollapsedChange,
+  onDiagnosticCountChange,
   preset,
 }: ContractLabSpecimenProps) {
   const [quarantineResolved, setQuarantineResolved] = useState(false)
@@ -187,6 +190,12 @@ export function ContractLabSpecimen({
       }) as const,
     [store],
   )
+  const diagnosticStores = useMemo(() => [store], [store])
+  const diagnosticCount = useContractLabDiagnosticCount(diagnosticStores)
+
+  useEffect(() => {
+    onDiagnosticCountChange(diagnosticCount)
+  }, [diagnosticCount, onDiagnosticCountChange])
 
   return (
     <PicodashProvider store={store} boundary={boundary} theme="dark">

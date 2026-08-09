@@ -6,8 +6,54 @@ import {
   type PicodashValueAdapter,
 } from '../src/index.ts'
 import { createExternalAdapter } from './support/external-adapter.js'
+import { schemaSuccess, syncStandardSchema } from './support/standard-schema-fixtures.js'
 
 describe('binding interaction commands', () => {
+  it('commits canonical input and repair candidates without rerunning schemas', () => {
+    const inputStore = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        value: {
+          defaultValue: 0,
+          schema: syncStandardSchema((input) => schemaSuccess((input as number) + 1)),
+        },
+      },
+    })
+    const inputScope = inputStore.scope('input')
+    const inputBinding = acquireBindingLease(inputScope, {
+      itemId: 'item',
+      field: inputScope.fields.value,
+      mode: 'input',
+    })
+    expect(inputScope.setInput(inputBinding, 10)).toMatchObject({ ok: true })
+    expect(inputStore.getState().values.value).toBe(11)
+    inputBinding.release()
+    inputStore.destroy()
+
+    const repairStore = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        value: {
+          defaultValue: 0,
+          parse: () => ({ ok: false as const, issues: [{ message: 'bad' }], repair: 10 }),
+          schema: syncStandardSchema((input) => schemaSuccess((input as number) + 1)),
+        },
+      },
+    })
+    const repairScope = repairStore.scope('repair')
+    const repairBinding = acquireBindingLease(repairScope, {
+      itemId: 'item',
+      field: repairScope.fields.value,
+      mode: 'input',
+    })
+    const failed = repairScope.setInput(repairBinding, 'bad')
+    expect(failed.ok).toBe(false)
+    if (!failed.ok) expect(repairScope.executeRepair(failed.repair!)).toMatchObject({ ok: true })
+    expect(repairStore.getState().values.value).toBe(11)
+    repairBinding.release()
+    repairStore.destroy()
+  })
+
   it('records frozen drafts, enriches issues, and accepts root/scoped receivers', () => {
     const store = createPicodashStore({
       valueOwner: 'store',

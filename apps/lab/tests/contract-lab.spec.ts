@@ -189,6 +189,9 @@ test('connects the real browser specimen through the dev bridge and rejects the 
       }),
     ]),
   )
+  await expect(
+    page.locator('[data-contract-lab-status] dt', { hasText: 'Diagnostics' }).locator('..'),
+  ).toContainText('1')
   await expect(page.locator('[data-contract-lab-migration]')).toContainText('legacyMetric')
   await expect(page.locator('[data-contract-lab-quarantine-default]')).toContainText(
     'current defaults',
@@ -201,6 +204,9 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   expect(recoveredSnapshot.snapshot.diagnostics ?? []).not.toEqual(
     expect.arrayContaining([expect.objectContaining({ code: 'metadata_quarantined' })]),
   )
+  await expect(
+    page.locator('[data-contract-lab-status] dt', { hasText: 'Diagnostics' }).locator('..'),
+  ).toContainText('clear')
   const write = await client.setValues(initial, {
     type: 'set_values',
     requestId: 'lab-set-42',

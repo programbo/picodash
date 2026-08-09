@@ -896,6 +896,11 @@ describe('@picodash/dashpanel alpha shell', () => {
             items: [
               { panelId: 'hidden', label: 'Hidden panel' },
               { panelId: 'missing', label: 'Missing panel' },
+              {
+                panelId: 'hidden',
+                label: createElement('span', { 'aria-hidden': true }, 'H'),
+                accessibleName: 'Hidden panel icon',
+              },
             ],
           }),
           createElement(DashPanel, {
@@ -913,6 +918,9 @@ describe('@picodash/dashpanel alpha shell', () => {
     const missingTrigger = buttons.find((button) => button.props.children === 'Missing panel')!
     expect(hiddenTrigger.props.isDisabled).toBeFalsy()
     expect(missingTrigger.props.isDisabled).toBe(true)
+    expect(
+      buttons.find((button) => button.props['aria-label'] === 'Hidden panel icon'),
+    ).toBeTruthy()
     pressButton(hiddenTrigger)
     expect(renderer.root.findByType('aside').props.hidden).toBe(false)
     void act(() => renderer.unmount())

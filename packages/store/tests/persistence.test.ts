@@ -1192,6 +1192,32 @@ describe('Store-owned alpha persistence', () => {
     store.destroy({ discardUnpersisted: true })
   })
 
+  it('fences clean stores against same-header unknown durable fields', () => {
+    for (const subscribed of [true, false]) {
+      const backend = createMemoryPersistence()
+      const driver: PicodashPersistenceDriver = {
+        identity: backend.identity,
+        read: (key) => backend.read(key),
+        write: (key, payload) => backend.write(key, payload),
+        remove: (key) => backend.remove(key),
+        ...(subscribed ? { subscribe: (key, listener) => backend.subscribe(key, listener) } : {}),
+      }
+      const store = createPicodashStore(makeConfig(driver))
+      store.setValues({ count: 2 })
+      const foreign = JSON.parse(backend.inspect('state') as string)
+      foreign.values.retired = 'foreign'
+      backend.foreignWrite('state', JSON.stringify(foreign))
+      if (subscribed) expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+      else {
+        expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+        expect(store.setValues({ count: 3 })).toMatchObject({ ok: true, persistence: 'pending' })
+        expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+      }
+      expect(JSON.parse(backend.inspect('state') as string).values.retired).toBe('foreign')
+      store.destroy({ discardUnpersisted: true })
+    }
+  })
+
   it('rejects wrong-kind and consumed plans with safe contexts', () => {
     const persistence = createMemoryPersistence()
     const store = createPicodashStore(makeConfig(persistence))

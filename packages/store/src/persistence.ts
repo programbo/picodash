@@ -875,8 +875,12 @@ export function createPersistenceController(
       throw new SchemaMigrationError('invalid-result')
     const disclosedValues = migrated.values
     let unknownFieldCount = 0
+    const unknownValues: Record<string, PicodashJsonValue> = Object.create(null)
     for (const key of Object.keys(disclosedValues))
-      if (!Object.hasOwn(options.baselineValues, key)) unknownFieldCount += 1
+      if (!Object.hasOwn(options.baselineValues, key)) {
+        unknownFieldCount += 1
+        unknownValues[key] = disclosedValues[key]!
+      }
     const normalizedValues = isExternalOwner
       ? options.baselineValues
       : options.normalizeValues(disclosedValues)
@@ -911,6 +915,7 @@ export function createPersistenceController(
       writerId: raw.writerId,
       content,
       sourceContent: sourceContent(raw),
+      fenceContent: canonicalJson({ content, unknownValues }),
       unknownFieldCount,
       valueOwner,
     }
@@ -993,6 +998,8 @@ export function createPersistenceController(
       quarantinedScopes,
       valueOwner,
     )
+  let confirmedFenceContent =
+    selected?.fenceContent ?? canonicalJson({ content: confirmedContent, unknownValues: {} })
   let confirmedValues: PersistenceValues = values
   let confirmedScopes: PersistenceScopes = scopes
   let confirmedQuarantinedScopes: ReadonlyMap<string, PicodashQuarantinedScopeMetadata> =
@@ -1161,6 +1168,7 @@ export function createPersistenceController(
       observation: recordFingerprint(observation),
       removal: conflictWasRemoval,
       confirmedContent,
+      confirmedFenceContent,
       local: localFingerprint(),
       pending: pending !== undefined,
     })
@@ -1221,7 +1229,7 @@ export function createPersistenceController(
       isStructuredCurrent(current) &&
       (current.revision !== durableRevision ||
         current.writerId !== durableWriterId ||
-        current.content !== confirmedContent)
+        current.fenceContent !== confirmedFenceContent)
     ) {
       markConflict('foreign-envelope', current)
       return 'pending'
@@ -1251,6 +1259,7 @@ export function createPersistenceController(
       durableRevision = after.revision
       durableWriterId = after.writerId
       confirmedContent = after.content
+      confirmedFenceContent = after.fenceContent
       confirmedValues = values
       confirmedScopes = scopes
       confirmedQuarantinedScopes = quarantinedScopes
@@ -1293,6 +1302,8 @@ export function createPersistenceController(
         quarantinedScopes,
         valueOwner,
       )
+    confirmedFenceContent =
+      initialRecord?.fenceContent ?? canonicalJson({ content: confirmedContent, unknownValues: {} })
     confirmedValues = values
     confirmedScopes = scopes
     confirmedQuarantinedScopes = quarantinedScopes
@@ -1322,6 +1333,7 @@ export function createPersistenceController(
     liveRevision = racedRecord.revision
     writerId = racedRecord.writerId
     confirmedContent = racedRecord.content
+    confirmedFenceContent = racedRecord.fenceContent
     confirmedValues = racedRecord.values
     confirmedScopes = racedRecord.scopes
     confirmedQuarantinedScopes = racedRecord.quarantinedScopes
@@ -1384,7 +1396,7 @@ export function createPersistenceController(
           }
           if (!isStructuredCurrent(current)) return
           if (
-            current.content !== confirmedContent ||
+            current.fenceContent !== confirmedFenceContent ||
             current.writerId !== durableWriterId ||
             current.revision !== durableRevision
           ) {
@@ -1668,6 +1680,7 @@ export function createPersistenceController(
         durableRevision = after.revision
         durableWriterId = after.writerId
         confirmedContent = after.content
+        confirmedFenceContent = after.fenceContent
         confirmedValues = appliedValues
         confirmedScopes = appliedScopes
         confirmedQuarantinedScopes = appliedQuarantine
@@ -1678,6 +1691,7 @@ export function createPersistenceController(
         durableRevision = null
         durableWriterId = null
         confirmedContent = projection(appliedValues, appliedScopes, appliedQuarantine).content
+        confirmedFenceContent = canonicalJson({ content: confirmedContent, unknownValues: {} })
         confirmedValues = appliedValues
         confirmedScopes = appliedScopes
         confirmedQuarantinedScopes = appliedQuarantine
@@ -1737,6 +1751,7 @@ export function createPersistenceController(
       confirmedScopes = scopes
       confirmedQuarantinedScopes = quarantinedScopes
       confirmedContent = projection(values, scopes, quarantinedScopes).content
+      confirmedFenceContent = canonicalJson({ content: confirmedContent, unknownValues: {} })
       options.withKernelWrite(() => options.onRecovery())
       publish()
       return {

@@ -1890,6 +1890,38 @@ export function createPicodashStore<
     return { candidate, issues: freeze(issues) }
   }
 
+  const buildCanonicalCandidate = (
+    base: Record<string, PicodashJsonValue>,
+    supplied: Record<string, unknown>,
+    source: PicodashValidationContext<ValuesOf<Fields>>['source'],
+    originScopeId?: string,
+  ): {
+    readonly candidate: Record<string, PicodashJsonValue>
+    readonly issues: readonly TransactionIssue[]
+  } => {
+    const candidate = Object.create(null) as Record<string, PicodashJsonValue>
+    for (const key of fieldEntries) candidate[key] = base[key]!
+    const issues: TransactionIssue[] = []
+    for (const key of Object.keys(supplied)) {
+      if (!definitionMap.has(key)) {
+        issues.push(
+          Object.freeze({
+            code: 'unknown_field' as const,
+            path: freezePath(['values', key]),
+            message: `Unknown field ${key}.`,
+            fieldKey: key,
+          }),
+        )
+        continue
+      }
+      candidate[key] = supplied[key] as PicodashJsonValue
+    }
+    freeze(candidate)
+    issues.push(...runFieldValidators(candidate, source, originScopeId))
+    issues.push(...runRootValidator(candidate, source, originScopeId))
+    return { candidate, issues: freeze(issues) }
+  }
+
   const defaultRaw = Object.create(null) as Record<string, unknown>
   for (const key of fieldEntries) defaultRaw[key] = definitionMap.get(key)!.defaultValue
   const canonicalDefaults = buildCandidate(
@@ -2911,7 +2943,9 @@ export function createPicodashStore<
     },
     resetValue(field) {
       assertOwned(field)
-      return transactAttributed({ [field.key]: baseline[field.key]! }, undefined, 'reset')
+      return transactAttributed({ [field.key]: baseline[field.key]! }, undefined, 'reset', {
+        canonicalSupplied: true,
+      })
     },
     resetValueOrThrow(field) {
       const result = store.resetValue(field)
@@ -3144,6 +3178,7 @@ export function createPicodashStore<
 
   type TransactionDispatchOptions = {
     readonly beforeDispatch?: () => void
+    readonly canonicalSupplied?: boolean
     readonly includeRoot?: boolean
     readonly targetScopeIds?: readonly string[]
     readonly nextScopes?: ReadonlyMap<string, DurableScopeMetadata>
@@ -3435,7 +3470,14 @@ export function createPicodashStore<
             candidate: options.validatedCandidate,
             issues: freeze([]) as readonly TransactionIssue[],
           }
-        : buildCandidate(values as Record<string, PicodashJsonValue>, next, source, originScopeId)
+        : options?.canonicalSupplied
+          ? buildCanonicalCandidate(
+              values as Record<string, PicodashJsonValue>,
+              next,
+              source,
+              originScopeId,
+            )
+          : buildCandidate(values as Record<string, PicodashJsonValue>, next, source, originScopeId)
       if (built.issues.length) return rejectedResult(built.issues)
       const changedFields = fieldEntries
         .filter((key) => !picodashJsonEqual(values[key]!, built.candidate[key]!))
@@ -3552,6 +3594,7 @@ export function createPicodashStore<
     const supplied = Object.create(null) as Record<string, unknown>
     for (const fieldKey of [...selectedFields].sort()) supplied[fieldKey] = baseline[fieldKey]!
     return transactAttributed(supplied, originScopeId, 'reset', {
+      canonicalSupplied: true,
       targetScopeIds: Object.freeze(sortedTargetScopeIds),
     })
   }
@@ -3875,6 +3918,7 @@ export function createPicodashStore<
             suppressInteractionDispatch = false
           }
         },
+        validatedCandidate: candidate,
       },
     )
     if (!result.ok)
@@ -4059,6 +4103,7 @@ export function createPicodashStore<
             suppressInteractionDispatch = false
           }
         },
+        validatedCandidate: candidate,
       },
     )
   }
@@ -4123,6 +4168,10 @@ export function createPicodashStore<
           message: 'Repair plan is stale.',
         }),
       ])
+    const candidate = Object.create(null) as Record<string, PicodashJsonValue>
+    for (const key of fieldEntries) candidate[key] = values[key]!
+    candidate[record.fieldKey] = record.candidate
+    freeze(candidate)
     const result = transactAttributed(
       { [record.fieldKey]: record.candidate },
       record.scopeId,
@@ -4136,6 +4185,7 @@ export function createPicodashStore<
             suppressInteractionDispatch = false
           }
         },
+        validatedCandidate: candidate,
       },
     )
     return result
@@ -4450,7 +4500,9 @@ export function createPicodashStore<
       },
       resetValue(field) {
         assertOwned(field)
-        return transactAttributed({ [field.key]: baseline[field.key]! }, scopeId, 'reset')
+        return transactAttributed({ [field.key]: baseline[field.key]! }, scopeId, 'reset', {
+          canonicalSupplied: true,
+        })
       },
       resetValueOrThrow(field) {
         const result = scoped.resetValue(field)

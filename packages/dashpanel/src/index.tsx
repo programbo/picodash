@@ -119,11 +119,19 @@ export interface DashPanelTriggerProps extends Omit<ButtonProps, 'onPress'> {
   action?: 'show' | 'toggle'
 }
 
-export interface DashPanelLauncherItem {
-  panelId: string
-  label: ReactNode
-  disabled?: boolean
-}
+export type DashPanelLauncherItem =
+  | {
+      panelId: string
+      label: string
+      accessibleName?: string
+      disabled?: boolean
+    }
+  | {
+      panelId: string
+      label: Exclude<ReactNode, string>
+      accessibleName: string
+      disabled?: boolean
+    }
 
 export interface DashPanelLauncherProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
   label: string
@@ -447,7 +455,12 @@ export function DashPanelLauncher({ label, items, ...props }: DashPanelLauncherP
   return (
     <div {...props} role="group" aria-label={label}>
       {items.map((item) => (
-        <DashPanelTrigger key={item.panelId} panelId={item.panelId} isDisabled={item.disabled}>
+        <DashPanelTrigger
+          key={item.panelId}
+          panelId={item.panelId}
+          isDisabled={item.disabled}
+          aria-label={item.accessibleName}
+        >
           {item.label}
         </DashPanelTrigger>
       ))}
