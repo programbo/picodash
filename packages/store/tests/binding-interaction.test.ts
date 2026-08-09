@@ -685,4 +685,40 @@ describe('binding interaction commands', () => {
     binding.release()
     store.destroy()
   })
+
+  it('holds the write lock while binding release notifications run', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        value: {
+          defaultValue: 1,
+          parse: () => ({ ok: false as const, issues: [{ message: 'invalid' }] }),
+        },
+        other: { defaultValue: 0 },
+      },
+    })
+    const scope = store.scope('release-lock')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.value,
+      mode: 'input',
+    })
+    expect(scope.setInput(binding, 2)).toMatchObject({ ok: false })
+    let nestedError: unknown
+    const listener = vi.fn(() => {
+      try {
+        store.setValue(store.fields.other, 9)
+      } catch (error) {
+        nestedError = error
+      }
+    })
+    const unsubscribe = scope.subscribe(listener)
+    binding.release()
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values).toEqual({ value: 1, other: 0 })
+    expect(scope.getState().interaction.bindings.size).toBe(0)
+    unsubscribe()
+    store.destroy()
+  })
 })

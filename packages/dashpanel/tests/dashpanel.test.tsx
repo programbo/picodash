@@ -559,6 +559,35 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(labelled.root.findByType('aside').props['aria-label']).toBe('Inspector')
     void act(() => labelled.unmount())
     expect(() => labelledStore.destroy()).not.toThrow()
+
+    const blankStore = makeStore()
+    expect(() =>
+      render(
+        createElement(DashPanelProvider, {
+          store: blankStore,
+          providerId: 'blank',
+          children: createElement(DashPanel, { id: 'blank', title: [' ', ''] }),
+        }),
+      ),
+    ).toThrow('DashPanel titles require non-empty text or an explicit aria-label')
+    expect(() => blankStore.destroy()).not.toThrow()
+
+    const blankLabelledStore = makeStore()
+    const blankLabelled = render(
+      createElement(DashPanelProvider, {
+        store: blankLabelledStore,
+        providerId: 'blank-labelled',
+        children: createElement(DashPanel, {
+          id: 'blank',
+          title: '',
+          'aria-label': 'Inspector',
+        }),
+      }),
+    )
+    expect(blankLabelled.root.findByType('aside').props['aria-label']).toBe('Inspector')
+    expect(blankLabelled.root.findByProps({ 'aria-label': 'Close panel Inspector' })).toBeTruthy()
+    void act(() => blankLabelled.unmount())
+    expect(() => blankLabelledStore.destroy()).not.toThrow()
   })
 
   it('writes width to the public token while preserving style and rejects reserved style keys', () => {
@@ -927,6 +956,9 @@ describe('@picodash/dashpanel alpha shell', () => {
   })
 
   it('rejects launcher items without a non-empty accessible name', () => {
+    expect(() =>
+      render(createElement(DashPanelLauncher, { label: '   ', items: [] })),
+    ).toThrowError('DashPanelLauncher label must not be empty.')
     expect(() =>
       render(
         createElement(DashPanelLauncher, {

@@ -211,6 +211,7 @@ export function ContractLabSpecimen({
 
   useEffect(() => {
     onDiagnosticCountChange(diagnosticCount)
+    return () => onDiagnosticCountChange(0)
   }, [diagnosticCount, onDiagnosticCountChange])
 
   return (

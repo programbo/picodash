@@ -260,8 +260,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const bodyId = `picodash-panel-body-${useId()}`
   const asideRef = useRef<HTMLElement | null>(null)
   const textualTitle = isTextTitle(title)
-  if (!textualTitle && (typeof ariaLabel !== 'string' || ariaLabel.trim() === ''))
+  const titleText = textualTitle ? textTitle(title) : ''
+  const hasAccessibleLabel = typeof ariaLabel === 'string' && ariaLabel.trim() !== ''
+  if (ariaLabel !== undefined && !hasAccessibleLabel)
+    throw new TypeError('DashPanel aria-label must not be empty.')
+  if (!textualTitle && !hasAccessibleLabel)
     throw new TypeError('DashPanel non-text titles require an explicit aria-label.')
+  if (textualTitle && titleText.trim() === '' && !hasAccessibleLabel)
+    throw new TypeError('DashPanel titles require non-empty text or an explicit aria-label.')
 
   const generation = useRef<{
     readonly scopeId: string
@@ -316,7 +322,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const activeVisiblePanelId = [...runtimeSnapshot.activationOrder]
     .reverse()
     .find((scopeId) => runtimeSnapshot.panels[scopeId]?.visible)
-  const panelName = textualTitle ? textTitle(title) : ariaLabel!
+  const panelName = titleText.trim() === '' ? ariaLabel! : titleText
   const collapseLabel = `${collapsed ? 'Expand' : 'Collapse'} panel ${panelName}`
   useImperativeHandle(ref, () => asideRef.current as HTMLElement)
 
@@ -452,6 +458,7 @@ export function DashPanelTrigger({
 }
 
 export function DashPanelLauncher({ label, items, ...props }: DashPanelLauncherProps) {
+  if (!label.trim()) throw new TypeError('DashPanelLauncher label must not be empty.')
   return (
     <div {...props} role="group" aria-label={label}>
       {items.map((item) => {

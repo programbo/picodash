@@ -29,6 +29,42 @@ const createStore = (storeId: string) =>
   })
 
 describe('Store document namespace integration', () => {
+  it('holds the write lock while import analysis validators run', () => {
+    const source = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-analysis-source',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 2 }, other: { defaultValue: 0 } },
+      export: { documents: { defaultFieldPolicy: 'include' } },
+    })
+    const exported = source.documents.executeExport(source.documents.createExportPlan())
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    let nestedWrite: (() => unknown) | undefined
+    const target = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-analysis-target',
+      schemaVersion: 1,
+      fields: {
+        value: {
+          defaultValue: 1,
+          validate: () => {
+            nestedWrite?.()
+            return []
+          },
+        },
+        other: { defaultValue: 0 },
+      },
+    })
+    nestedWrite = () => target.setValue(target.fields.other, 9)
+    expect(() =>
+      target.documents.analyzeImport(exported.document, { allowForeignStore: true }),
+    ).toThrowError(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(target.getState().values).toEqual({ value: 1, other: 0 })
+    source.destroy()
+    target.destroy()
+  })
+
   it('holds the write lock while import execution validators run', () => {
     const source = createPicodashStore({
       valueOwner: 'store',

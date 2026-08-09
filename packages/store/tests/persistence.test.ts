@@ -7,6 +7,7 @@ import {
   type StoreOwnedConfig,
 } from '../src/index.ts'
 import { PicodashInitializationError } from '../src/adapter.ts'
+import { acquireBindingLease } from '../src/integration.ts'
 import { decodePersistenceEnvelope, encodePersistenceEnvelope } from '../src/persistence.ts'
 import { createMemoryPersistence } from './support/memory-persistence.js'
 
@@ -221,6 +222,127 @@ describe('Store-owned alpha persistence', () => {
       hasPendingEnvelope: false,
     })
     expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(2)
+    store.destroy()
+  })
+
+  it('rewrites confirmed content after an uncertain candidate reached durability', () => {
+    const backend = createMemoryPersistence()
+    let armVerificationFailure = false
+    let failVerificationRead = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => {
+        if (failVerificationRead) {
+          failVerificationRead = false
+          throw new Error('transient verification failure')
+        }
+        return backend.read(key)
+      },
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (armVerificationFailure) {
+          armVerificationFailure = false
+          failVerificationRead = true
+        }
+      },
+      remove: (key) => backend.remove(key),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    armVerificationFailure = true
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'pending' })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(2)
+    expect(store.setValues({ count: 1 })).toMatchObject({ persistence: 'saved' })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(1)
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'clean',
+      hasPendingEnvelope: false,
+    })
+    store.destroy()
+  })
+
+  it('rejects nested public conflict-plan execution before consuming the plan', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      fields: {
+        count: {
+          defaultValue: 1,
+          parse: (input: unknown) =>
+            typeof input === 'number'
+              ? { ok: true as const, candidate: input }
+              : { ok: false as const, issues: [{ message: 'number required' }] },
+        },
+        secret: { defaultValue: 'hidden' },
+      },
+    })
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'nested-conflict'
+    foreign.values.count = 9
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.setValues({ count: 3 })).toMatchObject({ persistence: 'pending' })
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    const scope = store.scope('nested-conflict')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.count,
+      mode: 'input',
+    })
+    expect(scope.setInput(binding, 'invalid' as never)).toMatchObject({ ok: false })
+    let nestedError: unknown
+    const unsubscribe = scope.subscribe(() => {
+      try {
+        store.persistence.executeConflictResolution(plan)
+      } catch (error) {
+        nestedError = error
+      }
+    })
+    scope.discardInput(binding)
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    unsubscribe()
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({ ok: true })
+    binding.release()
+    store.destroy()
+  })
+
+  it('rejects nested public erase-plan execution before consuming the plan', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      fields: {
+        count: {
+          defaultValue: 1,
+          parse: (input: unknown) =>
+            typeof input === 'number'
+              ? { ok: true as const, candidate: input }
+              : { ok: false as const, issues: [{ message: 'number required' }] },
+        },
+        secret: { defaultValue: 'hidden' },
+      },
+    })
+    store.setValues({ count: 2 })
+    const plan = store.persistence.createErasePlan()
+    const scope = store.scope('nested-erase')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.count,
+      mode: 'input',
+    })
+    expect(scope.setInput(binding, 'invalid' as never)).toMatchObject({ ok: false })
+    let nestedError: unknown
+    const unsubscribe = scope.subscribe(() => {
+      try {
+        store.persistence.executeErase(plan, { confirm: true })
+      } catch (error) {
+        nestedError = error
+      }
+    })
+    scope.discardInput(binding)
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    unsubscribe()
+    expect(store.persistence.executeErase(plan, { confirm: true })).toMatchObject({ ok: true })
+    binding.release()
     store.destroy()
   })
 

@@ -781,7 +781,7 @@ source `repair`, commits through the shared pipeline, and clears the originating
 Wrong-root/kind, released, or consumed plans throw contract errors; changed captured state returns
 `stale_plan`.
 
-Stale-input overwrite is a separate accepted/planned command. Creation requires an active input
+Stale-input overwrite is an implemented and verified command. Creation requires an active input
 handle with a dirty stale draft and no `inputIssues`; handle misuse throws `invalid-binding-handle`.
 `createStaleInputOverwritePlan<Key>(binding)` captures the exact binding generation/draft and the
 current target-field revision/value without exposing them. Any same-root root or scoped receiver may

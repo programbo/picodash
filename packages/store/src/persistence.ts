@@ -1457,13 +1457,62 @@ export function createPersistenceController(
       includeField: options.includeField,
     })
     if (candidate.content === confirmedContent) {
-      values = nextValues
-      scopes = nextScopes
-      quarantinedScopes = nextQuarantinedScopes
       if (conflict) {
+        values = nextValues
+        scopes = nextScopes
+        quarantinedScopes = nextQuarantinedScopes
         pending = candidate
         publish()
         return 'unchanged'
+      }
+      const uncertain = pending
+      if (uncertain !== undefined) {
+        const current = readCurrent()
+        if (
+          isStructuredCurrent(current) &&
+          current.sourceContent === sourceContent(uncertain.envelope) &&
+          current.revision === uncertain.revision &&
+          current.writerId === uncertain.writerId
+        ) {
+          confirmDurable(current)
+          values = nextValues
+          scopes = nextScopes
+          quarantinedScopes = nextQuarantinedScopes
+          liveRevision = candidate.revision
+          pending = candidate
+          publish()
+          return verifyAndWrite(candidate)
+        }
+        values = nextValues
+        scopes = nextScopes
+        quarantinedScopes = nextQuarantinedScopes
+        liveRevision = candidate.revision
+        pending = candidate
+        if (current === 'error') {
+          recordFailure('read-failed')
+          publish()
+          return 'pending'
+        }
+        if (isInvalidCurrent(current)) {
+          recordFailure('invalid-later-envelope')
+          publish()
+          return 'pending'
+        }
+        const stillConfirmed =
+          current === undefined
+            ? durableRevision === null
+            : current.revision === durableRevision &&
+              current.writerId === durableWriterId &&
+              current.fenceContent === confirmedFenceContent
+        if (!stillConfirmed) {
+          if (current === undefined) markConflict('foreign-removal')
+          else markConflict('foreign-envelope', current)
+          return 'pending'
+        }
+      } else {
+        values = nextValues
+        scopes = nextScopes
+        quarantinedScopes = nextQuarantinedScopes
       }
       const recovered = pending !== undefined || lastError !== undefined
       pending = undefined

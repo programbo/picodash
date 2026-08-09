@@ -1174,9 +1174,9 @@ A dirty binding records the canonical field revision/value from which editing be
 canonical change preserves the draft but marks it stale. Stale drafts cannot commit implicitly;
 the binding must discard or explicitly overwrite after confirmation.
 
-Stale-input overwrite plans are a distinct accepted command slice, specified here separately from
-the frozen input transition and repair behavior. Creation requires an active input handle, a dirty
-stale draft, and no stored `inputIssues`:
+Stale-input overwrite plans are a distinct implemented and verified command slice, specified here
+separately from the frozen input transition and repair behavior. Creation requires an active input
+handle, a dirty stale draft, and no stored `inputIssues`:
 
 ```ts
 declare const staleInputOverwritePlanBrand: unique symbol

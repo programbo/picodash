@@ -228,16 +228,19 @@ describe('private DashPanel runtime model', () => {
           readonly parent?: FocusElement
           readonly display?: string
           readonly focusSucceeds?: boolean
+          readonly focusRequiresTabindex?: boolean
         } = {},
       ) {
         this.parentElement = options.parent ?? null
         this.children = []
         this.style = { display: options.display ?? 'block', visibility: 'visible' }
         this.focusSucceeds = options.focusSucceeds ?? true
+        this.focusRequiresTabindex = options.focusRequiresTabindex ?? false
         this.parentElement?.children.push(this)
       }
 
       readonly focusSucceeds: boolean
+      readonly focusRequiresTabindex: boolean
 
       get hidden() {
         return this.hasAttribute('hidden')
@@ -274,7 +277,7 @@ describe('private DashPanel runtime model', () => {
       }
 
       focus() {
-        if (this.focusSucceeds)
+        if (this.focusSucceeds && (!this.focusRequiresTabindex || this.hasAttribute('tabindex')))
           (globalThis.document as unknown as { activeElement: FocusElement | null }).activeElement =
             this
       }
@@ -323,7 +326,7 @@ describe('private DashPanel runtime model', () => {
       disabledTrigger.attributes.set('disabled', '')
       const hiddenBeforeEntry = new FocusElement('BUTTON', { display: 'none' })
       const unfocusableBoundary = new FocusElement('DIV', { focusSucceeds: false })
-      const portal = new FocusElement('DIV')
+      const portal = new FocusElement('DIV', { focusRequiresTabindex: true })
       recordPanelEntry(
         runtime,
         'panel',
@@ -337,6 +340,7 @@ describe('private DashPanel runtime model', () => {
         portal as unknown as HTMLElement,
       )
       expect(document.activeElement).toBe(portal)
+      expect(portal.hasAttribute('tabindex')).toBe(false)
 
       const programmaticTrigger = new FocusElement('BUTTON')
       programmaticTrigger.attributes.set('tabindex', '-1')

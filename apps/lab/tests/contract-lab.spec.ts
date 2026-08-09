@@ -78,6 +78,9 @@ test('keeps the versioned driver, Console, and status available while the specim
   await expect(page.locator('[data-contract-lab-specimen-offline]')).toContainText(
     'The Lab Console and status remain available.',
   )
+  await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText(
+    /Diagnostics\s*clear/,
+  )
   await expect(page.getByRole('button', { name: 'Reopen primary specimen' })).toBeVisible()
   await page.getByRole('button', { name: 'Reopen primary specimen' }).click()
   await expect(page.locator('[data-contract-lab-specimen]')).toBeVisible()

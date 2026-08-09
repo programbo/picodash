@@ -119,17 +119,21 @@ function focusFirstTarget(panel: HTMLElement): boolean {
   return false
 }
 
+function tryFocusWithTemporaryTabindex(element: HTMLElement): boolean {
+  const installFallback = !element.hasAttribute('tabindex')
+  if (installFallback) element.setAttribute('tabindex', '-1')
+  try {
+    return tryFocus(element, false)
+  } finally {
+    if (installFallback) element.removeAttribute('tabindex')
+  }
+}
+
 export function focusPanel(runtime: PanelRuntime, scopeId: string): void {
   const panel = runtime.getElement(scopeId)
   if (!panel) return
   if (focusFirstTarget(panel)) return
-  const installFallback = !panel.hasAttribute('tabindex')
-  if (installFallback) panel.setAttribute('tabindex', '-1')
-  try {
-    tryFocus(panel, false)
-  } finally {
-    if (installFallback) panel.removeAttribute('tabindex')
-  }
+  tryFocusWithTemporaryTabindex(panel)
 }
 
 function providerFallbackCandidates(
@@ -159,5 +163,5 @@ export function restorePanelFocus(
   const beforeEntry = connectedReference(record?.beforeEntry)
   if (beforeEntry && tryFocus(beforeEntry, false)) return
   for (const fallback of providerFallbackCandidates(boundary, portalContainer))
-    if (tryFocus(fallback, false)) return
+    if (tryFocusWithTemporaryTabindex(fallback)) return
 }

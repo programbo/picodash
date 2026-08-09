@@ -2758,7 +2758,7 @@ export function createPicodashStore<
     })
   }
 
-  const createDocumentImportPlan = (
+  const createDocumentImportPlanLocked = (
     receiverScopeId: string | undefined,
     documentInput: unknown,
     optionsInput: unknown,
@@ -2790,6 +2790,15 @@ export function createPicodashStore<
     })
     return Object.freeze({ ok: true as const, plan })
   }
+
+  const createDocumentImportPlan = (
+    receiverScopeId: string | undefined,
+    documentInput: unknown,
+    optionsInput: unknown,
+  ) =>
+    withWriteLock(() =>
+      createDocumentImportPlanLocked(receiverScopeId, documentInput, optionsInput),
+    )
 
   const executeDocumentImportPlanLocked = (
     plan: PicodashImportPlan,
@@ -3376,6 +3385,7 @@ export function createPicodashStore<
   function executePersistenceConflictResolutionPublic(
     plan: PicodashPersistenceConflictResolutionPlan,
   ): PersistentTransactionResult {
+    if (writing) throw new PicodashContractError('reentrant-write')
     const record =
       plan && typeof plan === 'object' ? persistencePlanRecord(plan as object) : undefined
     if (!record) invalidPersistencePlan('wrong-kind')
@@ -3426,6 +3436,7 @@ export function createPicodashStore<
     plan: PicodashPersistenceErasePlan,
     input: { readonly confirm: true },
   ): PersistenceEraseResult {
+    if (writing) throw new PicodashContractError('reentrant-write')
     parseEraseConfirmation(input)
     const record =
       plan && typeof plan === 'object' ? persistencePlanRecord(plan as object) : undefined
@@ -4400,7 +4411,7 @@ export function createPicodashStore<
     })
   }
 
-  function clearBindingInteraction(scopeId: string, itemId: string, alias: string): void {
+  function clearBindingInteractionLocked(scopeId: string, itemId: string, alias: string): void {
     const interaction = interactionByScope.get(scopeId)
     const itemBindings = interaction?.bindings.get(itemId)
     if (!interaction || !itemBindings || !itemBindings.has(alias)) return
@@ -4427,6 +4438,11 @@ export function createPicodashStore<
     const affected = collectScopedChannels(scopeId)
     refreshScopedChannels(affected)
     dispatchStoreSubscribers(affected, false)
+  }
+
+  function clearBindingInteraction(scopeId: string, itemId: string, alias: string): void {
+    if (writing) clearBindingInteractionLocked(scopeId, itemId, alias)
+    else withWriteLock(() => clearBindingInteractionLocked(scopeId, itemId, alias))
   }
 
   function collectScopedChannels(targetScopeId?: string): Set<ScopedChannel> {
