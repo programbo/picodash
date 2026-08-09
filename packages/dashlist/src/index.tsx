@@ -459,7 +459,6 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
             aria-describedby={descriptionId}
             aria-invalid={bindingRuntime.issues.length ? true : undefined}
             aria-errormessage={bindingRuntime.issues.length ? commonIssuesId : undefined}
-            aria-disabled={disabled || undefined}
             data-layout={layout}
             data-read-only={readOnly ? 'true' : 'false'}
             data-picodash-dashlet-shell

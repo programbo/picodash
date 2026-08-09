@@ -223,6 +223,32 @@ describe('redaction, migration, and overlay helpers', () => {
     expect(overlay.fieldRemaps).toEqual([['alpha', 'renamed']])
     expect(overlay.ignoredFields).toEqual([])
   })
+
+  it('rejects collisions between explicit remaps and implicit same-key targets', () => {
+    const document = decodePicodashDocument({
+      ...rootDocument(),
+      fields: [
+        ['currentName', { status: 'included', value: 1 }],
+        ['oldName', { status: 'included', value: 2 }],
+      ],
+    })
+    expect(() =>
+      buildPicodashDocumentOverlay({
+        document,
+        targetValues: { currentName: 0 },
+        targetScopes: [],
+        targetFieldKeys: ['currentName'],
+        options: normalizePicodashImportOptions({
+          fieldMap: { oldName: { key: 'currentName' } },
+        }),
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-document-options',
+        reason: 'duplicate-target',
+      }),
+    )
+  })
 })
 
 describe('value-free review normalization', () => {

@@ -256,8 +256,6 @@ type InferredStoreConfigBase<Values extends Record<string, PicodashJsonValue>> =
   readonly fields: InputFields<Values>
   readonly initialValues?: Partial<Values>
   readonly validateValues?: ValuesValidator<Values>
-  readonly migrations?: SchemaMigrations
-  readonly export?: PicodashExportConfig
 }
 
 type InferredStoreConfig<Values extends Record<string, PicodashJsonValue>> =
@@ -266,6 +264,8 @@ type InferredStoreConfig<Values extends Record<string, PicodashJsonValue>> =
       readonly schemaVersion?: number
       readonly initialEnvelope?: never
       readonly persistence?: never
+      readonly migrations?: never
+      readonly export?: never
     })
   | (InferredStoreConfigBase<Values> & {
       readonly storeId: string
@@ -275,6 +275,7 @@ type InferredStoreConfig<Values extends Record<string, PicodashJsonValue>> =
         Record<string, { readonly defaultValue: PicodashJsonValue }>
       >
       readonly migrations?: SchemaMigrations
+      readonly export?: PicodashExportConfig
     })
 
 type InferredExternalConfigBase<Values extends Record<string, PicodashJsonValue>> = {
@@ -381,8 +382,6 @@ type StoreOwnedConfigBase<Fields extends Record<string, FieldLike>> = {
   readonly fields: DefinitionsFor<Fields>
   readonly initialValues?: Partial<ValuesOf<Fields>>
   readonly validateValues?: ValuesValidator<ValuesOf<Fields>>
-  readonly migrations?: SchemaMigrations
-  readonly export?: PicodashExportConfig
 }
 
 export type StoreOwnedConfig<Fields extends Record<string, FieldLike>> =
@@ -391,7 +390,8 @@ export type StoreOwnedConfig<Fields extends Record<string, FieldLike>> =
       readonly schemaVersion?: number
       readonly initialEnvelope?: never
       readonly persistence?: never
-      readonly migrations?: SchemaMigrations
+      readonly migrations?: never
+      readonly export?: never
     })
   | (StoreOwnedConfigBase<Fields> & {
       readonly storeId: string
@@ -399,6 +399,7 @@ export type StoreOwnedConfig<Fields extends Record<string, FieldLike>> =
       readonly initialEnvelope?: PicodashEnvelopeInput<ValuesOf<Fields>>
       readonly persistence?: StoreOwnedPersistenceConfig<Fields>
       readonly migrations?: SchemaMigrations
+      readonly export?: PicodashExportConfig
     })
 
 export type DashListMetadataRecord = {
@@ -2276,16 +2277,14 @@ export function createPicodashStore<
     },
     getState: () => metadataRecoveryState(),
     replaceScope: (scopeId, replacement) => replaceQuarantinedScopeInternal(scopeId, replacement),
-    onListenerError: () => {
-      diagnosticsRuntime.recordCondition({
-        fingerprint: 'metadata-recovery-subscriber',
-        code: 'subscriber_exception',
-        severity: 'error',
-        message: 'A Store subscriber threw.',
-        identity: { kind: 'subscriber', surface: 'capability', capability: 'metadataRecovery' },
-      })
-      diagnosticsRuntime.publish()
-    },
+    dispatch: (capabilityListeners) =>
+      diagnosticsRuntime.dispatch([
+        {
+          surface: 'capability',
+          capability: 'metadataRecovery',
+          listeners: capabilityListeners,
+        },
+      ]),
   })
   metadataRecoveryCapability = metadataRecoveryRuntime.capability
   const publishMetadataRecovery = metadataRecoveryRuntime.publish
@@ -2645,9 +2644,28 @@ export function createPicodashStore<
         options,
       })
     } catch (error) {
+      if (error instanceof PicodashDocumentOptionsError) return documentOptionError(error)
       if (error instanceof PicodashDocumentError) return documentFailure(error.reason)
       return documentFailure('metadata')
     }
+    const importedValues: Record<string, PicodashJsonValue> = Object.create(null)
+    for (const key of overlay.changedFields) importedValues[key] = overlay.values[key]!
+    const canonical = buildCandidate(
+      values as Record<string, PicodashJsonValue>,
+      importedValues,
+      'import',
+      receiverScopeId,
+    )
+    if (canonical.issues.length) return rejectedResult(canonical.issues)
+    overlay = Object.freeze({
+      ...overlay,
+      values: canonical.candidate,
+      changedFields: Object.freeze(
+        fieldEntries
+          .filter((key) => !picodashJsonEqual(values[key]!, canonical.candidate[key]!))
+          .sort(),
+      ),
+    })
     return Object.freeze({
       receiverScopeId,
       document,
@@ -2724,6 +2742,8 @@ export function createPicodashStore<
     // overlay. State drift, metadata validation, or adapter/persistence failure
     // therefore cannot make the same plan executable a second time.
     record.consumed = true
+    if (JSON.stringify(values) !== JSON.stringify(snapshot.targetValues))
+      return documentFailure('stale_plan', 'Import plan is stale.')
     let currentOverlay: ReturnType<typeof buildPicodashDocumentOverlay>
     try {
       currentOverlay = buildPicodashDocumentOverlay({
@@ -2736,9 +2756,29 @@ export function createPicodashStore<
         options: snapshot.options,
       })
     } catch (error) {
+      if (error instanceof PicodashDocumentOptionsError) return documentOptionError(error)
       if (error instanceof PicodashDocumentError) return documentFailure(error.reason)
       return documentFailure('metadata')
     }
+    const currentImportedValues: Record<string, PicodashJsonValue> = Object.create(null)
+    for (const key of currentOverlay.changedFields)
+      currentImportedValues[key] = currentOverlay.values[key]!
+    const currentCanonical = buildCandidate(
+      values as Record<string, PicodashJsonValue>,
+      currentImportedValues,
+      'import',
+      snapshot.receiverScopeId,
+    )
+    if (currentCanonical.issues.length) return rejectedResult(currentCanonical.issues)
+    currentOverlay = Object.freeze({
+      ...currentOverlay,
+      values: currentCanonical.candidate,
+      changedFields: Object.freeze(
+        fieldEntries
+          .filter((key) => !picodashJsonEqual(values[key]!, currentCanonical.candidate[key]!))
+          .sort(),
+      ),
+    })
     const trackedQuarantineIds = new Set(snapshot.targetQuarantined.map(([scopeId]) => scopeId))
     const trackedFieldKeys = new Set<string>()
     for (const [sourceKey, entry] of snapshot.document.fields) {
@@ -2767,13 +2807,9 @@ export function createPicodashStore<
       fieldRemaps: overlay.fieldRemaps,
       scopeRemaps: overlay.scopeRemaps.filter(([, targetId]) => trackedScopeIds.has(targetId)),
     })
-    const targetValueFingerprint = (source: Readonly<Record<string, PicodashJsonValue>>) =>
-      Object.fromEntries([...trackedFieldKeys].sort().map((key) => [key, source[key]] as const))
     if (
       JSON.stringify(overlayFingerprint(currentOverlay)) !==
         JSON.stringify(overlayFingerprint(snapshot.overlay)) ||
-      JSON.stringify(targetValueFingerprint(values)) !==
-        JSON.stringify(targetValueFingerprint(snapshot.targetValues)) ||
       JSON.stringify(snapshot.targetQuarantined) !==
         JSON.stringify(
           [...trackedQuarantineIds]
@@ -2979,15 +3015,24 @@ export function createPicodashStore<
   }
   if (documentsEnabled) {
     const documents: Record<string, unknown> = {
-      analyzeImport: (document: unknown, options?: unknown) =>
-        createDocumentImportPlan(undefined, document, options),
-      executeImport: (plan: PicodashImportPlan) => executeDocumentImportPlan(plan, undefined),
+      analyzeImport: (document: unknown, options?: unknown) => {
+        assertRuntimeActive(runtimeController)
+        return createDocumentImportPlan(undefined, document, options)
+      },
+      executeImport: (plan: PicodashImportPlan) => {
+        assertRuntimeActive(runtimeController)
+        return executeDocumentImportPlan(plan, undefined)
+      },
     }
     if (configuredExportPolicy) {
-      documents.createExportPlan = (options?: unknown) =>
-        createDocumentExportPlan(undefined, options)
-      documents.executeExport = (plan: PicodashExportPlan, options?: unknown) =>
-        executeDocumentExportPlan(plan, options, undefined)
+      documents.createExportPlan = (options?: unknown) => {
+        assertRuntimeActive(runtimeController)
+        return createDocumentExportPlan(undefined, options)
+      }
+      documents.executeExport = (plan: PicodashExportPlan, options?: unknown) => {
+        assertRuntimeActive(runtimeController)
+        return executeDocumentExportPlan(plan, options, undefined)
+      }
     }
     Object.defineProperty(storeImplementation, 'documents', {
       value: Object.freeze(documents),
@@ -3026,6 +3071,11 @@ export function createPicodashStore<
       phase: 'capability',
       hasUnpersistedState: () => persistenceController?.hasUnpersistedState() ?? false,
       teardown: (context) => persistenceController?.destroy(context.discardUnpersisted),
+    })
+  if (metadataRecoveryEnabled)
+    runtimeController.registerResource({
+      phase: 'capability',
+      teardown: () => metadataRecoveryRuntime.teardown(),
     })
   diagnosticsRuntime.attachResource((resource) => runtimeController.registerResource(resource))
   runtimeController.registerResource({
@@ -3764,7 +3814,7 @@ export function createPicodashStore<
         fieldKey,
         draft,
         touched: true,
-        inputIssues: previous?.inputIssues ?? Object.freeze([]),
+        inputIssues: Object.freeze([]),
         ...(previous?.conflict ? { conflict: previous.conflict } : {}),
         baseRevision,
         baseValue,
@@ -4373,15 +4423,24 @@ export function createPicodashStore<
     }
     if (documentsEnabled) {
       const documents: Record<string, unknown> = {
-        analyzeImport: (document: unknown, options?: unknown) =>
-          createDocumentImportPlan(scopeId, document, options),
-        executeImport: (plan: PicodashImportPlan) => executeDocumentImportPlan(plan, scopeId),
+        analyzeImport: (document: unknown, options?: unknown) => {
+          assertRuntimeActive(runtimeController)
+          return createDocumentImportPlan(scopeId, document, options)
+        },
+        executeImport: (plan: PicodashImportPlan) => {
+          assertRuntimeActive(runtimeController)
+          return executeDocumentImportPlan(plan, scopeId)
+        },
       }
       if (configuredExportPolicy) {
-        documents.createExportPlan = (options?: unknown) =>
-          createDocumentExportPlan(scopeId, options)
-        documents.executeExport = (plan: PicodashExportPlan, options?: unknown) =>
-          executeDocumentExportPlan(plan, options, scopeId)
+        documents.createExportPlan = (options?: unknown) => {
+          assertRuntimeActive(runtimeController)
+          return createDocumentExportPlan(scopeId, options)
+        }
+        documents.executeExport = (plan: PicodashExportPlan, options?: unknown) => {
+          assertRuntimeActive(runtimeController)
+          return executeDocumentExportPlan(plan, options, scopeId)
+        }
       }
       Object.defineProperty(scoped, 'documents', {
         value: Object.freeze(documents),

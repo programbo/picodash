@@ -1489,6 +1489,11 @@ export function createPersistenceController(
     input: PersistenceConflictResolutionOptions,
   ): PersistenceConflictResolutionSnapshot => {
     if (!conflict) throw new Error('not-conflicted')
+    const observed = readCurrent()
+    if (observed === undefined || isStructuredCurrent(observed)) {
+      conflictObservation = observed
+      conflictWasRemoval = observed === undefined
+    }
     return Object.freeze({
       mode: input.mode,
       ...(input.mode === 'reconcile' ? { onOverlap: input.onOverlap } : {}),

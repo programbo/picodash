@@ -6,6 +6,7 @@ import {
 } from '../src/index.ts'
 import { createMemoryPersistence } from './support/memory-persistence.js'
 import { runSchemaMigrations, type SchemaMigrationError } from '../src/migration.ts'
+import { createMetadataRecovery } from '../src/metadata-recovery.ts'
 
 const envelope = (values: Record<string, unknown>, scopes: unknown[] = [], schemaVersion = 1) =>
   JSON.stringify({
@@ -288,5 +289,65 @@ describe('Store beta migration and metadata recovery', () => {
     ).toBe(false)
     expect(JSON.parse(persistence.inspect('state') as string).scopes).toEqual([])
     store.destroy()
+  })
+
+  it('recovers metadata recovery subscriber diagnostics after a successful publication', () => {
+    const persistence = createMemoryPersistence({
+      state: envelope(
+        { value: 1 },
+        [
+          ['first', { dashPanel: { invalid: true } }],
+          ['second', { dashPanel: { invalid: true } }],
+        ],
+        2,
+      ),
+    })
+    const store = createPicodashStore(config(persistence))
+    let shouldThrow = true
+    store.metadataRecovery.subscribe(() => {
+      if (shouldThrow) throw new Error('private')
+    })
+    expect(store.metadataRecovery.replaceScope('first', null)).toMatchObject({ ok: true })
+    expect(
+      [...store.diagnostics.getState().current.values()].some(
+        (entry) =>
+          entry.code === 'subscriber_exception' &&
+          JSON.stringify(entry.identity) ===
+            JSON.stringify({
+              kind: 'subscriber',
+              surface: 'capability',
+              capability: 'metadataRecovery',
+            }),
+      ),
+    ).toBe(true)
+    shouldThrow = false
+    expect(store.metadataRecovery.replaceScope('second', null)).toMatchObject({ ok: true })
+    expect(
+      [...store.diagnostics.getState().current.values()].some(
+        (entry) => entry.code === 'subscriber_exception',
+      ),
+    ).toBe(false)
+    store.destroy()
+  })
+
+  it('clears metadata recovery listeners during teardown', () => {
+    const listener = vi.fn()
+    const runtime = createMetadataRecovery({
+      assertActive: () => undefined,
+      getState: () => ({ quarantinedScopes: new Map() }),
+      replaceScope: () => ({
+        ok: true as const,
+        changedFields: [],
+        changedScopeIds: [],
+        persistence: 'unchanged' as const,
+      }),
+      dispatch: (listeners) => {
+        for (const callback of listeners) callback()
+      },
+    })
+    runtime.capability.subscribe(listener)
+    runtime.teardown()
+    runtime.publish()
+    expect(listener).not.toHaveBeenCalled()
   })
 })

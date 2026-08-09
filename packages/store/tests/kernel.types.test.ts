@@ -205,6 +205,18 @@ test('rejects non-JSON defaults and exact legacy configuration shapes', () => {
     createPicodashStore({ valueOwner: 'store', fields: { date: { defaultValue: new Date() } } })
     createPicodashStore({
       valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+      // @ts-expect-error Schema migrations require an identified Store.
+      migrations: { 1: (input: unknown) => input },
+    })
+    // @ts-expect-error Document export policy requires an identified Store.
+    createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+      export: { documents: { defaultFieldPolicy: 'include' } },
+    })
+    createPicodashStore({
+      valueOwner: 'store',
       fields: {
         // @ts-expect-error Legacy allowUnset is removed.
         value: {

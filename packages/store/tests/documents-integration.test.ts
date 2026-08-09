@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore, type PicodashValueAdapter } from '../src/index.ts'
 import { createExternalAdapter } from './support/external-adapter.js'
 import { createMemoryPersistence } from './support/memory-persistence.js'
+import {
+  schemaFailure,
+  schemaSuccess,
+  syncStandardSchema,
+} from './support/standard-schema-fixtures.js'
 
 const createStore = (storeId: string) =>
   createPicodashStore({
@@ -39,6 +44,20 @@ describe('Store document namespace integration', () => {
     expect(scopedResult.ok).toBe(true)
     if (scopedResult.ok) expect(scopedResult.document.kind).toBe('scope')
     store.destroy()
+  })
+
+  it('guards cached root and scoped document capabilities after destruction', () => {
+    const store = createStore('documents-destroyed-capability')
+    const rootDocuments = store.documents
+    const scopedDocuments = store.scope('scope').documents
+    store.destroy()
+    for (const action of [
+      () => rootDocuments.analyzeImport({}),
+      () => rootDocuments.createExportPlan(),
+      () => scopedDocuments.analyzeImport({}),
+      () => scopedDocuments.createExportPlan({ includeDescendants: false }),
+    ])
+      expect(action).toThrowError(expect.objectContaining({ code: 'use-after-destroy' }))
   })
 
   it('requires explicit promotion confirmation and does not consume on malformed execution options', () => {
@@ -80,7 +99,7 @@ describe('Store document namespace integration', () => {
     })
     expect(analysis.ok).toBe(true)
     if (!analysis.ok) return
-    target.setValue(target.fields.value, 20)
+    target.setValue(target.fields.secret, 'changed-after-analysis')
     const stale = target.documents.executeImport(analysis.plan)
     expect(stale.ok).toBe(false)
     if (!stale.ok) expect(stale.error.issues[0]?.message).toBe('Import plan is stale.')
@@ -97,6 +116,64 @@ describe('Store document namespace integration', () => {
     }
     source.destroy()
     target.destroy()
+  })
+
+  it('validates and canonicalizes imported values during analysis', () => {
+    const source = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-analysis-pipeline',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1.4 } },
+      export: { documents: { defaultFieldPolicy: 'include' } },
+    })
+    const exported = source.documents.executeExport(source.documents.createExportPlan())
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    const target = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-analysis-pipeline',
+      schemaVersion: 1,
+      fields: {
+        value: {
+          defaultValue: 1,
+          schema: syncStandardSchema((input) =>
+            typeof input === 'number'
+              ? schemaSuccess(Math.round(input))
+              : schemaFailure([{ message: 'number required' }]),
+          ),
+        },
+      },
+    })
+    const canonical = target.documents.analyzeImport(exported.document)
+    expect(canonical).toMatchObject({ ok: true, plan: { changedFields: [] } })
+    if (!canonical.ok) return
+    expect(target.documents.executeImport(canonical.plan)).toMatchObject({
+      ok: true,
+      changedFields: [],
+    })
+
+    source.setValue(source.fields.value, -1)
+    const rejectedDocument = source.documents.executeExport(source.documents.createExportPlan())
+    expect(rejectedDocument.ok).toBe(true)
+    if (!rejectedDocument.ok) return
+    const rejectingTarget = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-analysis-pipeline',
+      schemaVersion: 1,
+      fields: {
+        value: {
+          defaultValue: 1,
+          validate: (value) => (value < 0 ? [{ message: 'must be non-negative' }] : []),
+        },
+      },
+    })
+    expect(rejectingTarget.documents.analyzeImport(rejectedDocument.document)).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'validation_failed' }] },
+    })
+    source.destroy()
+    target.destroy()
+    rejectingTarget.destroy()
   })
 
   it('fences scoped plans to their receiver target', () => {

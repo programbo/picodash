@@ -861,6 +861,29 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('projects active state onto the highest visible panel', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: [
+          createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
+          createElement(DashPanel, { key: 'second', id: 'second', title: 'Second' }),
+        ],
+      }),
+    )
+    let asides = renderer.root.findAllByType('aside')
+    expect(asides[0]?.props['data-active']).toBeUndefined()
+    expect(asides[1]?.props['data-active']).toBe('true')
+    pressButton(renderer.root.findByProps({ 'aria-label': 'Close panel Second' }))
+    asides = renderer.root.findAllByType('aside')
+    expect(asides[0]?.props['data-active']).toBe('true')
+    expect(asides[1]?.props['data-active']).toBeUndefined()
+    expect(asides[1]?.props.hidden).toBe(true)
+    void act(() => renderer.unmount())
+    store.destroy()
+  })
+
   it('seeds hidden visibility without focus and disables unavailable launcher targets', () => {
     const store = makeStore()
     const renderer = render(

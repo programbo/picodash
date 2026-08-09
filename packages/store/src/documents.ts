@@ -872,6 +872,7 @@ export function buildPicodashDocumentOverlay(
   const changedFields: string[] = []
   const ignoredFields: string[] = []
   const fieldRemaps: [string, string][] = []
+  const resolvedTargets = new Set<string>()
   for (const [sourceKey, entry] of document.fields) {
     if (entry.status !== 'included') continue
     const explicit = fieldMappings.get(sourceKey)
@@ -881,6 +882,8 @@ export function buildPicodashDocumentOverlay(
     }
     const targetKey =
       explicit === undefined ? sourceKey : (explicit as PicodashDocumentFieldHandle).key
+    if (resolvedTargets.has(targetKey)) optionError('import-analysis', 'duplicate-target')
+    resolvedTargets.add(targetKey)
     if (explicit !== undefined && targetKey !== sourceKey) fieldRemaps.push([sourceKey, targetKey])
     if (!targetKeys.has(targetKey)) throw new PicodashDocumentError('unknown_field')
     if (!compatible.has(targetKey)) throw new PicodashDocumentError('incompatible_field')

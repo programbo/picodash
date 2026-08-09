@@ -1103,6 +1103,53 @@ describe('Store-owned alpha persistence', () => {
     store.destroy({ discardUnpersisted: true })
   })
 
+  it('refreshes the conflict observation after verification fails without subscriptions', () => {
+    const backend = createMemoryPersistence()
+    let armVerificationFailure = false
+    let failVerificationRead = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => {
+        if (failVerificationRead) {
+          failVerificationRead = false
+          throw new Error('transient verification failure')
+        }
+        return backend.read(key)
+      },
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (armVerificationFailure) {
+          armVerificationFailure = false
+          failVerificationRead = true
+        }
+      },
+      remove: (key) => backend.remove(key),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(backend.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-writer'
+    foreign.values.count = 9
+    backend.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.setValues({ count: 3 })).toMatchObject({ ok: true, persistence: 'pending' })
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+
+    armVerificationFailure = true
+    const first = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    expect(store.persistence.executeConflictResolution(first)).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'persistence_resolution_failed' }] },
+    })
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+
+    const retry = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    expect(store.persistence.executeConflictResolution(retry)).toMatchObject({ ok: true })
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(3)
+    store.destroy()
+  })
+
   it('rejects wrong-kind and consumed plans with safe contexts', () => {
     const persistence = createMemoryPersistence()
     const store = createPicodashStore(makeConfig(persistence))

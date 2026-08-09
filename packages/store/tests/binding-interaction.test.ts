@@ -369,7 +369,15 @@ describe('binding interaction commands', () => {
       valueOwner: 'external',
       storeId: 'binding-adapter',
       schemaVersion: 1,
-      fields: { value: { defaultValue: 1 } },
+      fields: {
+        value: {
+          defaultValue: 1,
+          parse: (input: unknown) =>
+            typeof input === 'number'
+              ? { ok: true as const, candidate: input }
+              : { ok: false as const, issues: [{ message: 'number required' }] },
+        },
+      },
       adapter: adapter as unknown as PicodashValueAdapter<{ value: number }>,
     })
     const scope = store.scope('scope')
@@ -378,6 +386,10 @@ describe('binding interaction commands', () => {
       field: scope.fields.value,
       mode: 'input',
     })
+    expect(scope.setInput(binding, 'invalid' as never)).toMatchObject({ ok: false })
+    expect(
+      scope.getState().interaction.bindings.get('item')!.get('value')!.inputIssues,
+    ).toHaveLength(1)
     adapter.nextWrite('throw-before-mutation')
     let calls = 0
     scope.subscribe(() => {

@@ -304,6 +304,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const collapsed = runtimeState?.collapsed ?? initial.defaultCollapsed
   const currentCollapsible = runtimeState?.collapsible ?? initial.collapsible
   const visible = runtimeState?.visible ?? initial.defaultVisible
+  const runtimeSnapshot = runtime.getSnapshot()
+  const activeVisiblePanelId = [...runtimeSnapshot.activationOrder]
+    .reverse()
+    .find((scopeId) => runtimeSnapshot.panels[scopeId]?.visible)
   const panelName = textualTitle ? textTitle(title) : ariaLabel!
   const collapseLabel = `${collapsed ? 'Expand' : 'Collapse'} panel ${panelName}`
   useImperativeHandle(ref, () => asideRef.current as HTMLElement)
@@ -335,7 +339,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             style={resolvedStyle}
             data-picodash-panel
             data-visible={visible ? 'true' : 'false'}
-            data-active={runtime.getSnapshot().activationOrder.at(-1) === id ? 'true' : undefined}
+            data-active={activeVisiblePanelId === id ? 'true' : undefined}
             hidden={!visible}
             inert={!visible || undefined}
             aria-hidden={!visible || undefined}

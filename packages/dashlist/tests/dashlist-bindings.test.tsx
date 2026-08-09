@@ -220,6 +220,38 @@ describe('DashList bindings', () => {
     act(() => view.unmount())
   })
 
+  it('does not apply aria-disabled to the Dashlet group container', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { count: { defaultValue: 1 } },
+    })
+    let context: any
+    let view!: ReturnType<typeof create>
+    act(() => {
+      view = create(
+        createElement(
+          DashList,
+          { id: 'list', store },
+          createElement(Dashlet as any, {
+            id: 'count',
+            label: 'Count',
+            field: store.fields.count,
+            disabled: true,
+            children: (value: any) => {
+              context = value
+              return createElement('a', { href: '#help' }, 'Help')
+            },
+          }),
+        ),
+      )
+    })
+    expect(context.disabled).toBe(true)
+    expect(view.root.findByProps({ role: 'group' }).props['aria-disabled']).toBeUndefined()
+    expect(view.root.findByType('a').props.href).toBe('#help')
+    act(() => view.unmount())
+    store.destroy()
+  })
+
   it('offers shell-owned stale overwrite confirmation without exposing a plan in context', () => {
     const store = createPicodashStore({
       valueOwner: 'store',
