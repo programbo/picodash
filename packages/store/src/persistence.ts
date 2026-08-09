@@ -1783,6 +1783,7 @@ export function createPersistenceController(
       scopes = appliedScopes
       quarantinedScopes = appliedQuarantine
       pending = undefined
+      uncertainWrite = undefined
       lastError = undefined
       conflict = undefined
       conflictObservation = undefined
@@ -1852,6 +1853,7 @@ export function createPersistenceController(
       }
       const discardedPendingEnvelope = pending !== undefined
       pending = undefined
+      uncertainWrite = undefined
       conflict = undefined
       conflictObservation = undefined
       conflictWasRemoval = false

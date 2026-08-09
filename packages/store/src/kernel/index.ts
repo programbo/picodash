@@ -4897,34 +4897,36 @@ export function createPicodashStore<
     requireScope: boolean,
     scopedScopeId?: string,
   ): DashListPruneReview | PicodashDashListPrunePlan {
-    const parsed = parsePruneOptions(options, requireScope)
-    const scopeId = requireScope ? parsed.scopeId : scopedScopeId
-    if (scopeId === undefined || typeof scopeId !== 'string') validateScopeId(scopeId)
-    else validateScopeId(scopeId)
-    const candidates = pruneCandidates(scopeId as string)
-    const classified = classifyPruneSelection(parsed.selection, candidates, scopeId as string)
-    if (classified.mode === 'review')
-      return Object.freeze({
-        kind: 'dash-list-prune-review' as const,
+    return withWriteLock(() => {
+      const parsed = parsePruneOptions(options, requireScope)
+      const scopeId = requireScope ? parsed.scopeId : scopedScopeId
+      if (scopeId === undefined || typeof scopeId !== 'string') validateScopeId(scopeId)
+      else validateScopeId(scopeId)
+      const candidates = pruneCandidates(scopeId as string)
+      const classified = classifyPruneSelection(parsed.selection, candidates, scopeId as string)
+      if (classified.mode === 'review')
+        return Object.freeze({
+          kind: 'dash-list-prune-review' as const,
+          scopeId: scopeId as string,
+          candidates,
+        })
+      const plan = Object.freeze({
+        kind: 'dash-list-prune-plan' as const,
+        mode: classified.mode,
         scopeId: scopeId as string,
         candidates,
+        removeNodeIds: Object.freeze([...classified.removeNodeIds]),
+        keepNodeIds: Object.freeze([...classified.keepNodeIds]),
+      }) as PicodashDashListPrunePlan
+      registerDashListPrunePlan(plan as object, {
+        root: store as object,
+        scopeId: scopeId as string,
+        fingerprint: pruneFingerprint(scopeId as string),
+        removeNodeIds: plan.removeNodeIds,
+        consumed: false,
       })
-    const plan = Object.freeze({
-      kind: 'dash-list-prune-plan' as const,
-      mode: classified.mode,
-      scopeId: scopeId as string,
-      candidates,
-      removeNodeIds: Object.freeze([...classified.removeNodeIds]),
-      keepNodeIds: Object.freeze([...classified.keepNodeIds]),
-    }) as PicodashDashListPrunePlan
-    registerDashListPrunePlan(plan as object, {
-      root: store as object,
-      scopeId: scopeId as string,
-      fingerprint: pruneFingerprint(scopeId as string),
-      removeNodeIds: plan.removeNodeIds,
-      consumed: false,
+      return plan
     })
-    return plan
   }
 
   function createRootPrunePlanInternal(

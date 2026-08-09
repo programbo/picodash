@@ -98,6 +98,33 @@ describe('DashList node leases and prune plans', () => {
     active.release()
   })
 
+  it('holds the write lock while prune options and candidates are captured', () => {
+    const store = makeStore()
+    const scoped = store.scope('scope')
+    scoped.setDashListRootOrder(['stale'])
+    let nestedError: unknown
+    const options = new Proxy(
+      { mode: 'review' as const },
+      {
+        ownKeys(target) {
+          try {
+            scoped.setValue(store.fields.value, 9)
+          } catch (error) {
+            nestedError = error
+          }
+          return Reflect.ownKeys(target)
+        },
+      },
+    )
+    expect(scoped.createPrunePlan(options)).toMatchObject({
+      kind: 'dash-list-prune-review',
+      candidates: [{ nodeId: 'stale' }],
+    })
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.value).toBe(1)
+    store.destroy({ discardUnpersisted: true })
+  })
+
   it('requires exact explicit partitions and authoritative active inventory', () => {
     const store = makeStore()
     const scoped = store.scope('scope')

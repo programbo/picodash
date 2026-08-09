@@ -1559,6 +1559,47 @@ describe('Store-owned alpha persistence', () => {
     store.destroy()
   })
 
+  it('clears uncertain writes after reload establishes a new durable baseline', () => {
+    const backend = createMemoryPersistence()
+    let failVerificationRead = false
+    let uncertainPayload = ''
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => {
+        if (failVerificationRead) {
+          failVerificationRead = false
+          throw new Error('transient verification failure')
+        }
+        return backend.read(key)
+      },
+      write: (key, payload) => {
+        uncertainPayload = payload
+        backend.write(key, payload)
+        failVerificationRead = true
+      },
+      remove: (key) => backend.remove(key),
+      subscribe: (key, listener) => backend.subscribe(key, listener),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    expect(store.setValue(store.fields.count, 2)).toMatchObject({
+      ok: true,
+      persistence: 'pending',
+    })
+    const foreign = JSON.parse(uncertainPayload)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-reload-baseline'
+    foreign.values.count = 7
+    backend.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+    const reload = store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(store.persistence.executeConflictResolution(reload)).toMatchObject({ ok: true })
+    expect(store.getState().values.count).toBe(7)
+    backend.foreignWrite('state', uncertainPayload)
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+    expect(store.getState().values.count).toBe(7)
+    store.destroy({ discardUnpersisted: true })
+  })
+
   it('rejects conflict writes when exact durable content gains an unknown field', () => {
     const backend = createMemoryPersistence()
     let injectUnknownField = false
