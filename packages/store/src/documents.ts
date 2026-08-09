@@ -899,7 +899,7 @@ export function buildPicodashDocumentOverlay(
   )
   const scopeMap = mapRecord(options.scopeMap)
   const scopeRemaps: [string, string][] = []
-  const resolvedScopeTargets = new Set<string>()
+  const resolvedScopeTargets = new Map<string, string>()
   const createdScopes: string[] = []
   const scopes = new Map(targetScopeMap)
   let sourceScopeRoot: string | undefined = document.kind === 'scope' ? document.scopeId : undefined
@@ -910,9 +910,8 @@ export function buildPicodashDocumentOverlay(
   }
   if (sourceScopeRoot !== undefined) {
     const targetScopeRoot = scopeMap.get(sourceScopeRoot) ?? sourceScopeRoot
-    const importsTargetRoot = document.scopes.some(
-      ([sourceId]) => (scopeMap.get(sourceId) ?? sourceId) === targetScopeRoot,
-    )
+    resolvedScopeTargets.set(targetScopeRoot, sourceScopeRoot)
+    const importsTargetRoot = document.scopes.some(([sourceId]) => sourceId === sourceScopeRoot)
     if (
       !targetScopeIds.has(targetScopeRoot) &&
       (!options.createMissingScopes || !importsTargetRoot)
@@ -922,8 +921,10 @@ export function buildPicodashDocumentOverlay(
   const changedScopeIds: string[] = []
   for (const [sourceId, metadata] of document.scopes) {
     const targetId = scopeMap.get(sourceId) ?? sourceId
-    if (resolvedScopeTargets.has(targetId)) optionError('import-analysis', 'duplicate-target')
-    resolvedScopeTargets.add(targetId)
+    const resolvedSource = resolvedScopeTargets.get(targetId)
+    if (resolvedSource !== undefined && resolvedSource !== sourceId)
+      optionError('import-analysis', 'duplicate-target')
+    resolvedScopeTargets.set(targetId, sourceId)
     if (targetId !== sourceId) scopeRemaps.push([sourceId, targetId])
     const previous = scopes.get(targetId)
     if (previous === undefined) {

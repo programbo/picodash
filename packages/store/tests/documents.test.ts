@@ -276,6 +276,32 @@ describe('redaction, migration, and overlay helpers', () => {
     )
   })
 
+  it('rejects a descendant remap onto the scoped root target', () => {
+    const document = decodePicodashDocument({
+      ...rootDocument(),
+      kind: 'scope',
+      scopeId: 'root',
+      scopes: [['child', metadata]],
+    })
+    expect(() =>
+      buildPicodashDocumentOverlay({
+        document,
+        targetValues: { alpha: 'old' },
+        targetScopes: [['target', metadata]],
+        targetFieldKeys: ['alpha'],
+        options: normalizePicodashImportOptions({
+          targetScopeId: 'target',
+          scopeMap: { child: 'target' },
+        }),
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-document-options',
+        reason: 'duplicate-target',
+      }),
+    )
+  })
+
   it('rejects an empty scope document targeting a missing scope', () => {
     const document = decodePicodashDocument({
       ...rootDocument(),

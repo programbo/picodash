@@ -2877,6 +2877,7 @@ export function createPicodashStore<
       targetScopeIds: currentOverlay.changedScopeIds,
       nextScopes,
       nextQuarantinedScopes,
+      validatedCandidate: currentOverlay.values,
     })
   }
   const storeImplementation: RootStore<Fields, StoreResult, boolean, boolean> = {
@@ -3147,6 +3148,7 @@ export function createPicodashStore<
     readonly targetScopeIds?: readonly string[]
     readonly nextScopes?: ReadonlyMap<string, DurableScopeMetadata>
     readonly nextQuarantinedScopes?: ReadonlyMap<string, PicodashQuarantinedScopeMetadata>
+    readonly validatedCandidate?: Readonly<Record<string, PicodashJsonValue>>
   }
 
   function persistCurrent(): 'unchanged' | 'saved' | 'pending' | undefined {
@@ -3428,12 +3430,12 @@ export function createPicodashStore<
       return resultWithPersistence(successfulResult())
     writing = true
     try {
-      const built = buildCandidate(
-        values as Record<string, PicodashJsonValue>,
-        next,
-        source,
-        originScopeId,
-      )
+      const built = options?.validatedCandidate
+        ? {
+            candidate: options.validatedCandidate,
+            issues: freeze([]) as readonly TransactionIssue[],
+          }
+        : buildCandidate(values as Record<string, PicodashJsonValue>, next, source, originScopeId)
       if (built.issues.length) return rejectedResult(built.issues)
       const changedFields = fieldEntries
         .filter((key) => !picodashJsonEqual(values[key]!, built.candidate[key]!))

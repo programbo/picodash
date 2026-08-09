@@ -212,6 +212,44 @@ describe('Store document namespace integration', () => {
     rejectingTarget.destroy()
   })
 
+  it('commits a non-idempotent schema canonicalizer exactly once', () => {
+    const source = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-single-canonicalization',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 10 } },
+      export: { documents: { defaultFieldPolicy: 'include' } },
+    })
+    const exported = source.documents.executeExport(source.documents.createExportPlan())
+    expect(exported.ok).toBe(true)
+    if (!exported.ok) return
+    const target = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-single-canonicalization',
+      schemaVersion: 1,
+      fields: {
+        value: {
+          defaultValue: 0,
+          schema: syncStandardSchema((input) =>
+            typeof input === 'number'
+              ? schemaSuccess(input + 1)
+              : schemaFailure([{ message: 'number required' }]),
+          ),
+        },
+      },
+    })
+    const analysis = target.documents.analyzeImport(exported.document)
+    expect(analysis.ok).toBe(true)
+    if (!analysis.ok) return
+    expect(target.documents.executeImport(analysis.plan)).toMatchObject({
+      ok: true,
+      changedFields: ['value'],
+    })
+    expect(target.getState().values.value).toBe(11)
+    source.destroy()
+    target.destroy()
+  })
+
   it('fences scoped plans to their receiver target', () => {
     const store = createStore('documents-target-fence')
     const plan = store.scope('one').documents.createExportPlan({ includeDescendants: false })
