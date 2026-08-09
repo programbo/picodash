@@ -6,7 +6,12 @@ import {
   type PicodashPersistenceDiagnostic,
   type PicodashPersistenceDriver,
   type PicodashPersistenceState,
+  type PicodashPersistenceConflictResolutionPlan,
+  type PicodashPersistenceErasePlan,
+  type PersistenceEraseResult,
+  type SerializedDurableScopeMetadata,
   type PersistentTransactionResult,
+  type ExternalOwnedPersistenceConfig,
   type PicodashRepairPlan,
 } from '../src/index.ts'
 import { acquireBindingLease } from '../src/integration.ts'
@@ -27,6 +32,12 @@ test('persistent Store results and capability share one public contract', () => 
   })
   expectTypeOf(store.persistence).toEqualTypeOf<PicodashPersistence>()
   expectTypeOf(store.setValues({ value: 2 })).toEqualTypeOf<PersistentTransactionResult>()
+  expectTypeOf(
+    store.resetRegisteredValues({ scopeId: 'scope' }),
+  ).toEqualTypeOf<PersistentTransactionResult>()
+  expectTypeOf(store.resetRegisteredValuesOrThrow({ scopeId: 'scope' })).toEqualTypeOf<
+    Extract<PersistentTransactionResult, { readonly ok: true }>
+  >()
   const binding = acquireBindingLease(store.scope('scope'), {
     itemId: 'item',
     field: store.fields.value,
@@ -36,6 +47,36 @@ test('persistent Store results and capability share one public contract', () => 
   expectTypeOf<typeof store.executeRepair>().parameters.toEqualTypeOf<[PicodashRepairPlan]>()
   binding.release()
   expectTypeOf(store.scope('scope').persistence).toEqualTypeOf<PicodashPersistence>()
+  expectTypeOf(
+    store.scope('scope').resetRegisteredValues(),
+  ).toEqualTypeOf<PersistentTransactionResult>()
+  store.destroy({ discardUnpersisted: true })
+})
+
+test('external metadata persistence preserves persistent result and capability types', () => {
+  const driver: PicodashPersistenceDriver = createMemoryPersistence()
+  const persistence: ExternalOwnedPersistenceConfig = { storageKey: 'external', driver }
+  const store = createPicodashStore({
+    valueOwner: 'external',
+    storeId: 'external-persistence-types',
+    schemaVersion: 1,
+    fields: { value: { defaultValue: 1 } },
+    adapter: {
+      getSnapshot: () => ({ value: 1 }),
+      subscribe: () => () => undefined,
+      setValues: () => undefined,
+    },
+    persistence,
+  })
+  expectTypeOf(store.persistence).toEqualTypeOf<PicodashPersistence>()
+  expectTypeOf(store.setValue(store.fields.value, 2)).toEqualTypeOf<PersistentTransactionResult>()
+  expectTypeOf(
+    store.scope('scope').setDashListRootOrder(['item']),
+  ).toEqualTypeOf<PersistentTransactionResult>()
+  expectTypeOf(store.metadataRecovery).toMatchTypeOf<{
+    replaceScope: (...args: never[]) => unknown
+  }>()
+  expectTypeOf(store.documents).toMatchTypeOf<{ analyzeImport: (...args: never[]) => unknown }>()
   store.destroy({ discardUnpersisted: true })
 })
 
@@ -47,9 +88,28 @@ test('persistence state and diagnostics keep failure reasons structured', () => 
     | { readonly status: 'conflict' }
   >()
   expectTypeOf<PicodashPersistenceDiagnostic['reason']>().toEqualTypeOf<
-    'read-failed' | 'write-failed' | 'write-verification-failed' | 'invalid-later-envelope'
+    | 'read-failed'
+    | 'write-failed'
+    | 'write-verification-failed'
+    | 'invalid-later-envelope'
+    | 'remove-failed'
+    | 'remove-verification-failed'
   >()
   expectTypeOf<PicodashEnvelopeHeader['formatVersion']>().toEqualTypeOf<1>()
+})
+
+test('persistence recovery and serialized metadata contracts are public', () => {
+  expectTypeOf<
+    PicodashPersistenceConflictResolutionPlan['kind']
+  >().toEqualTypeOf<'persistence-conflict-resolution-plan'>()
+  expectTypeOf<PicodashPersistenceErasePlan['kind']>().toEqualTypeOf<'persistence-erase-plan'>()
+  expectTypeOf<PersistenceEraseResult>().toMatchTypeOf<
+    { readonly ok: true; readonly erased: boolean } | { readonly ok: false }
+  >()
+  expectTypeOf<SerializedDurableScopeMetadata>().toMatchTypeOf<{
+    readonly dashList?: object
+    readonly dashPanel?: object
+  }>()
 })
 
 test('persistent configuration requires a stable identity and schema version', () => {
@@ -65,6 +125,19 @@ test('persistent configuration requires a stable identity and schema version', (
           driver,
           values: { defaultFieldPolicy: 'include' },
         },
+      })
+    }).toThrow()
+    expect(() => {
+      // @ts-expect-error External persistence also requires Store identity metadata.
+      createPicodashStore({
+        valueOwner: 'external',
+        fields: { value: { defaultValue: 1 } },
+        adapter: {
+          getSnapshot: () => ({ value: 1 }),
+          subscribe: () => () => undefined,
+          setValues: () => undefined,
+        },
+        persistence: { storageKey: 'state', driver },
       })
     }).toThrow()
   }
@@ -90,7 +163,7 @@ test('ephemeral and external-owned stores omit persistence from their public sha
     },
   })
   if (globalThis.process?.env.PICODASH_TYPE_TESTS === '1') {
-    // @ts-expect-error External-owned stores do not expose Store-owned persistence.
+    // @ts-expect-error External-owned stores without persistence omit the capability.
     void external.persistence
   }
   external.destroy()

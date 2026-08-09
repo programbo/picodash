@@ -35,7 +35,7 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Named Dashlets and one-level DashGroups render typed input, display, and compound Store bindings; ordering, group collapse, stale confirmation, and ready-made Dashlets remain planned.',
+      'Named Dashlets and one-level DashGroups render typed input, display, and compound Store bindings; shell-owned stale-draft confirmation is available while ordering and ready-made Dashlets remain planned.',
     id: 'composition',
     implementation: 'Partial',
     label: 'Composition',

@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
 
 const consoleErrors = new WeakMap<Page, string[]>()
+const persistenceProbeStorageKey = 'picodash-contract-lab-web-storage-probe-v1'
 
 test.beforeEach(async ({ page }) => {
   const errors: string[] = []
@@ -103,7 +104,7 @@ test('renders the landed same-scope Panel and List composition and reports colla
   await page.getByRole('button', { name: /^Composition:/ }).click()
 
   const specimen = page.locator('[data-contract-lab-specimen]')
-  await expect(specimen.locator('[data-picodash-panel]')).toBeVisible()
+  await expect(specimen.getByRole('complementary', { name: 'Primary Panel' })).toBeVisible()
   await expect(specimen.locator('[data-picodash-dashlist]')).toBeVisible()
   await expect(specimen.locator('[data-picodash-dashgroup="specimen-group"]')).toBeVisible()
   await expect(specimen.locator('[data-picodash-dashlet]')).toHaveCount(3)
@@ -132,6 +133,34 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   page,
 }) => {
   await openLab(page)
+  await page.evaluate((key) => localStorage.removeItem(key), persistenceProbeStorageKey)
+  await page.reload()
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  const persistencePage = await page.context().newPage()
+  await persistencePage.goto('/lab')
+  await expect(persistencePage.locator('[data-contract-lab-status]')).toHaveAttribute(
+    'data-ready',
+    'true',
+  )
+  const persistenceStatus = page.locator('[data-contract-lab-persistence-status]')
+  const persistenceStatusPeer = persistencePage.locator('[data-contract-lab-persistence-status]')
+  await expect(persistenceStatus).toHaveText('Persistence status: clean')
+  await expect(persistenceStatusPeer).toHaveText('Persistence status: clean')
+  await page.getByRole('button', { name: 'Write metadata probe' }).click()
+  await expect(page.locator('[data-contract-lab-persistence-command]')).toHaveText(
+    'Metadata write accepted.',
+  )
+  await expect(persistenceStatusPeer).toHaveText('Persistence status: conflict')
+  const peerStatusBeforeUnrelated = await persistenceStatusPeer.textContent()
+  const peerCommandBeforeUnrelated = await persistencePage
+    .locator('[data-contract-lab-persistence-command]')
+    .textContent()
+  await page.evaluate(() => localStorage.setItem('contract-lab-unrelated-key', 'ignored'))
+  await expect(persistenceStatusPeer).toHaveText(peerStatusBeforeUnrelated ?? '')
+  await expect(persistencePage.locator('[data-contract-lab-persistence-command]')).toHaveText(
+    peerCommandBeforeUnrelated ?? '',
+  )
+  await persistencePage.close()
   await expect
     .poll(() => page.evaluate(() => window.sessionStorage.getItem('picodash-dev-bridge-tab')))
     .toEqual(expect.any(String))
@@ -152,6 +181,26 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   const initialSnapshot = await client.inspect(initial)
   expect(initialSnapshot.snapshot.values?.specimenMetric).toBe(24)
   expect(initialSnapshot.snapshot.values?.specimenUnit).toBe('requests/minute')
+  expect(initialSnapshot.snapshot.diagnostics).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        code: 'metadata_quarantined',
+        identity: { kind: 'scope-metadata', scopeId: 'quarantined-panel' },
+      }),
+    ]),
+  )
+  await expect(page.locator('[data-contract-lab-migration]')).toContainText('legacyMetric')
+  await expect(page.locator('[data-contract-lab-quarantine-default]')).toContainText(
+    'current defaults',
+  )
+  await page.getByRole('button', { name: 'Replace quarantined metadata' }).click()
+  await expect(page.locator('[data-contract-lab-quarantine-state]')).toHaveText(
+    'Quarantined metadata replaced.',
+  )
+  const recoveredSnapshot = await client.inspect(matches(await client.listSessions())!)
+  expect(recoveredSnapshot.snapshot.diagnostics ?? []).not.toEqual(
+    expect.arrayContaining([expect.objectContaining({ code: 'metadata_quarantined' })]),
+  )
   const write = await client.setValues(initial, {
     type: 'set_values',
     requestId: 'lab-set-42',
@@ -176,6 +225,41 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   })
   expect(wait.type).toBe('wait_result')
   expect((wait as { outcome: string }).outcome).toBe('satisfied')
+
+  await page.getByRole('button', { name: 'Capture document' }).click()
+  await expect(page.locator('[data-contract-lab-document-status]')).toHaveText(
+    'Document captured for local restore.',
+  )
+  const beforeDocumentMutation = matches(await client.listSessions())!
+  const documentMutation = await client.setValues(beforeDocumentMutation, {
+    type: 'set_values',
+    requestId: 'lab-document-mutation-33',
+    values: { specimenMetric: 33 },
+  })
+  expect(documentMutation.type).toBe('command_result')
+  await expect(page.locator('[data-contract-lab-bound-display]')).toHaveText('33')
+  await page.getByRole('button', { name: 'Restore captured document' }).click()
+  await expect(page.locator('[data-contract-lab-document-status]')).toHaveText(
+    'Captured document restored.',
+  )
+  await expect(page.locator('[data-contract-lab-bound-display]')).toHaveText('42')
+  await expect(page.locator('[data-contract-lab-bound-input]')).toHaveValue('42')
+  const restoredSession = matches(await client.listSessions())!
+  const restoredSnapshot = await client.inspect(restoredSession)
+  expect(restoredSnapshot.snapshot.values?.specimenMetric).toBe(42)
+  const restoredWait = await client.wait(restoredSession, {
+    type: 'wait',
+    requestId: 'lab-wait-document-restore-42',
+    timeoutMs: 1000,
+    condition: {
+      type: 'value_equals',
+      field: 'specimenMetric',
+      value: 42,
+      afterSequence: beforeDocumentMutation.sequence,
+    },
+  })
+  expect(restoredWait.type).toBe('wait_result')
+  expect((restoredWait as { outcome: string }).outcome).toBe('satisfied')
 
   const boundInput = page.locator('[data-contract-lab-bound-input]')
   const specimenPanel = page.getByRole('complementary', { name: 'Primary Panel' })
@@ -222,9 +306,65 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     sessionId: beforeReopen.sessionId,
     generation: beforeReopen.generation,
   })
-  await page.getByRole('button', { name: 'Discard changes' }).click()
-  await expect(boundInput).toHaveValue('42')
+  await boundInput.fill('37')
+  await expect(boundInput).toHaveAttribute('data-stale', 'true')
+  const beforeOverwriteSession = matches(await client.listSessions())!
+  await page.getByRole('button', { name: 'Overwrite value…' }).click()
+  const overwriteDialog = page.getByRole('alertdialog', { name: 'Overwrite the current value?' })
+  await expect(overwriteDialog).toBeVisible()
+  await overwriteDialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(overwriteDialog).toHaveCount(0)
+  await expect(boundInput).toHaveValue('37')
+  await expect(boundInput).toHaveAttribute('data-stale', 'true')
+  expect(
+    (await client.inspect(matches(await client.listSessions())!)).snapshot.values?.specimenMetric,
+  ).toBe(42)
+  await page.getByRole('button', { name: 'Overwrite value…' }).click()
+  await expect(overwriteDialog).toBeVisible()
+  const changedWhileConfirming = await client.setValues(matches(await client.listSessions())!, {
+    type: 'set_values',
+    requestId: 'lab-stale-overwrite-plan',
+    values: { specimenMetric: 39 },
+  })
+  expect(changedWhileConfirming.type).toBe('command_result')
+  await overwriteDialog.getByRole('button', { name: 'Overwrite value' }).click()
+  await expect(boundInput).toHaveValue('37')
+  await expect(boundInput).toHaveAttribute('data-stale', 'true')
+  await expect(
+    page.locator('[data-picodash-dashlist] div[role="status"]').filter({
+      hasText: 'Stale overwrite plan is stale.',
+    }),
+  ).toContainText('Stale overwrite plan is stale.')
+  expect(
+    (await client.inspect(matches(await client.listSessions())!)).snapshot.values?.specimenMetric,
+  ).toBe(39)
+  await page.getByRole('button', { name: 'Overwrite value…' }).click()
+  await expect(overwriteDialog).toBeVisible()
+  await overwriteDialog.getByRole('button', { name: 'Overwrite value' }).click()
+  await expect(boundInput).toHaveValue('37')
   await expect(boundInput).toHaveAttribute('data-stale', 'false')
+  await expect
+    .poll(async () => {
+      const session = matches(await client.listSessions())!
+      return (await client.inspect(session)).snapshot.values?.specimenMetric
+    })
+    .toBe(37)
+  const finalSession = matches(await client.listSessions())!
+  const finalSnapshot = await client.inspect(finalSession)
+  expect(finalSnapshot.snapshot.values?.specimenMetric).toBe(37)
+  const finalWait = await client.wait(finalSession, {
+    type: 'wait',
+    requestId: 'lab-wait-overwrite-37',
+    timeoutMs: 1000,
+    condition: {
+      type: 'value_equals',
+      field: 'specimenMetric',
+      value: 37,
+      afterSequence: beforeOverwriteSession.sequence,
+    },
+  })
+  expect(finalWait.type).toBe('wait_result')
+  expect((finalWait as { outcome: string }).outcome).toBe('satisfied')
   await page.getByRole('button', { name: 'Close panel Primary Panel' }).click()
   await expect(page.getByRole('button', { name: 'Show primary panel' })).toBeFocused()
 
@@ -250,4 +390,8 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     (old as { error: { code: string } }).error.code,
   )
   await expect(page.locator('[data-contract-lab-bound-display]')).toHaveText('24')
+  await page.evaluate((key) => {
+    localStorage.removeItem(key)
+    localStorage.removeItem('contract-lab-unrelated-key')
+  }, persistenceProbeStorageKey)
 })

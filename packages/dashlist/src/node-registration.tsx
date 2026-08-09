@@ -8,6 +8,9 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
+import type { PicodashFieldDefinitions, ScopedStore } from '@picodash/store'
+import { acquireDashListNodeLease } from '@picodash/store/integration'
+import { usePicodashStore } from '@picodash/store/react'
 
 type NodeKind = 'dashlet' | 'group'
 type DeclarationKind = NodeKind | 'custom'
@@ -278,6 +281,7 @@ export function useCommittedDashListNode(kind: NodeKind, id: unknown): void {
   const registry = useContext(RegistryContext)
   const declaration = useContext(DeclarationContext)
   const nestedDashlet = useContext(DashletLeafContext)
+  const store = usePicodashStore() as ScopedStore<PicodashFieldDefinitions>
   const tokenRef = useRef<Token | null>(null)
   if (tokenRef.current === null) tokenRef.current = {}
   const token = tokenRef.current
@@ -290,8 +294,14 @@ export function useCommittedDashListNode(kind: NodeKind, id: unknown): void {
       kind,
       id,
     )
-    return () => registry.releaseRegistration(token, generation)
-  }, [declaration?.token, id, kind, nestedDashlet, registry, token])
+    let lease: { readonly release: () => void } | undefined
+    if (!registry.getFailure() && typeof id === 'string')
+      lease = acquireDashListNodeLease(store, { nodeId: id })
+    return () => {
+      lease?.release()
+      registry.releaseRegistration(token, generation)
+    }
+  }, [declaration?.token, id, kind, nestedDashlet, registry, store, token])
 }
 
 export function DashListNodeValidation({ children }: { readonly children?: ReactNode }) {

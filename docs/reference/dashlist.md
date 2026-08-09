@@ -10,8 +10,9 @@ readouts, visualizations, previews, and actions. This page describes the aspirat
 > Implementation: Partial
 > Evidence: `packages/dashlist/tests/dashlist.test.tsx`, `packages/dashlist/tests/dashlist.types.test.ts`, and `packages/dashlist/tests/package-artifacts.mjs` cover the alpha shell, semantic structure, Store resolution boundary, and package surface.
 > Notes: The initial launch contract is accepted. The remaining prototype behavior must be
-> reconciled through the conformance matrix; bindings, ordering, collapse, actions, rail behavior,
-> and catalogs remain Planned or Prototype. List node declaration agreement is Verified.
+> reconciled through the conformance matrix; ordering, collapse, actions, rail behavior, and
+> catalogs remain Planned or Prototype. List node declaration agreement and the initial binding
+> interaction surface are Verified.
 
 ## Package purpose
 
@@ -425,9 +426,9 @@ outside the declarative shell.
 > Implementation: Partial
 > Evidence: `packages/dashlist/tests/dashlist-bindings.test.tsx` and
 > `packages/dashlist/tests/dashlist.types.test.ts` cover the typed single/compound contexts,
-> committed lease lifecycle, callback policy, structured issue regions, and List announcement
-> channel. `apps/lab/tests/contract-lab.spec.ts` covers Bridge/UI writes and external-write
-> staleness in a real browser. The shell-owned stale-overwrite confirmation remains planned.
+> committed lease lifecycle, callback policy, structured issue regions, List announcement channel,
+> and shell-owned stale-overwrite action availability. `apps/lab/tests/contract-lab.spec.ts`
+> covers Bridge/UI writes, external-write staleness, and confirmed overwrite in a real browser.
 
 Dashlet render functions use one common shell vocabulary and add either one `binding` or an
 alias-keyed `bindings` record:
@@ -1050,13 +1051,13 @@ Accepted binding behavior is:
 - dirty drafts survive canonical updates but become stale;
 - binding state clears on final unmount.
 
-| Binding capability               | Contract | Implementation | Notes                                                                                                                                                 |
-| -------------------------------- | -------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Typed canonical field handle     | Accepted | Verified       | `dashlist-bindings.test.tsx` exercises single and compound public leases; Store owns cross-root rejection.                                            |
-| Draft and parse feedback         | Accepted | Verified       | Input contexts expose Store-owned draft, touched, stale, issues, set/discard/reset operations.                                                        |
-| Stale-draft conflict             | Accepted | Planned        | Requires discard or confirmed overwrite.                                                                                                              |
-| Compound multi-field transaction | Accepted | Prototype      | Whole candidate validates atomically.                                                                                                                 |
-| Cross-field issue presentation   | Accepted | Verified       | Alias, unique field-key, and unique `values`-path attribution preserve Store order; ambiguous and cross-field issues remain on the named composition. |
+| Binding capability               | Contract | Implementation | Notes                                                                                                                                                                                |
+| -------------------------------- | -------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Typed canonical field handle     | Accepted | Verified       | `dashlist-bindings.test.tsx` exercises single and compound public leases; Store owns cross-root rejection.                                                                           |
+| Draft and parse feedback         | Accepted | Verified       | Input contexts expose Store-owned draft, touched, stale, issues, set/discard/reset operations.                                                                                       |
+| Stale-draft conflict             | Accepted | Verified       | Shell keeps the draft, offers discard and shared-UI confirmed overwrite, preserves it on cancel or stale/failed plans, and routes structured issues through the List status channel. |
+| Compound multi-field transaction | Accepted | Prototype      | Whole candidate validates atomically.                                                                                                                                                |
+| Cross-field issue presentation   | Accepted | Verified       | Alias, unique field-key, and unique `values`-path attribution preserve Store order; ambiguous and cross-field issues remain on the named composition.                                |
 
 The single `field` and compound `fields` forms are mutually exclusive. Compound bindings use
 explicit aliases as keys. A Dashlet with neither form is an unbound readout, visualization, preview,
@@ -1351,7 +1352,12 @@ or scope destruction.
 | `knownNodeIds` inventory    | Accepted | Planned        | Application asserts authoritative completeness. |
 | Automatic unmounted pruning | Rejected | —              | Conditional rendering makes it unsafe.          |
 
-Pruning affects only List metadata, never canonical values.
+DashList acquires one committed Store node-presence lease per Dashlet and DashGroup while retaining
+its private declaration, kind, and containment validation. Unmount releases presence but never
+deletes metadata. Prune review lists dormant metadata references and their effects. Execution is
+available only after an explicit remove/keep partition or an authoritative `knownNodeIds`
+inventory; active nodes can never be removed. Pruning affects only List metadata, never canonical
+values, bindings, drafts, or declarative relationships.
 
 ## Reset behavior
 

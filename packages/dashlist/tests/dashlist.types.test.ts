@@ -84,6 +84,8 @@ describe('@picodash/dashlist public types', () => {
         // @ts-expect-error a literal display descriptor has no input command.
         void context.bindings.readout.discardInput
         context.bindings.editor.setInput(value)
+        // @ts-expect-error stale overwrite plans remain shell-owned and are not render-context API.
+        void context.bindings.editor.createStaleInputOverwritePlan
         return `${readoutMode}:${editorMode}`
       },
     }

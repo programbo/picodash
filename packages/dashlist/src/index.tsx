@@ -29,6 +29,16 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
   ActionSubmenu,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   DashHeader,
   PicodashThemeProvider,
   type PicodashDensity,
@@ -49,6 +59,8 @@ import {
   type DashletRenderContext,
   type SingleFieldDashletRenderContext,
   type CompoundDashletRenderContext,
+  type DashletInputBindingContext,
+  type StaleOverwriteController,
 } from './bindings.js'
 import { DashListAnnouncementContext } from './bindings.js'
 
@@ -302,6 +314,72 @@ function classNames(base: string, className: string | undefined): string {
   return className ? `${base} ${className}` : base
 }
 
+function StaleInputConfirmation({
+  disabled,
+  readOnly,
+  controller,
+}: {
+  readonly disabled: boolean
+  readonly readOnly: boolean
+  readonly controller: StaleOverwriteController
+}) {
+  const [plan, setPlan] = useState<Parameters<StaleOverwriteController['executePlan']>[0] | null>(
+    null,
+  )
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const open = plan !== null
+  const openPlan = () => {
+    if (disabled || readOnly) return
+    const next = controller.openPlan()
+    if (next) setPlan(next)
+  }
+  return (
+    <>
+      <button ref={triggerRef} type="button" disabled={disabled || readOnly} onClick={openPlan}>
+        Overwrite value…
+      </button>
+      {plan ? (
+        <AlertDialog
+          isOpen={open}
+          onOpenChange={(next) => {
+            if (!next) {
+              setPlan(null)
+              if (typeof requestAnimationFrame === 'function')
+                requestAnimationFrame(() => triggerRef.current?.focus())
+            }
+          }}
+        >
+          <AlertDialogTrigger aria-label="Stale value confirmation" style={{ display: 'none' }} />
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Overwrite the current value?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  The application changed this value while you had draft changes. Overwriting keeps
+                  your draft and replaces the current canonical value.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onPress={() => setPlan(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  isDisabled={disabled || readOnly}
+                  onPress={() => {
+                    const currentPlan = plan
+                    setPlan(null)
+                    controller.executePlan(currentPlan)
+                  }}
+                >
+                  Overwrite value
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
+      ) : null}
+    </>
+  )
+}
+
 const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashletProps<any, any>>(
   function Dashlet(props: any, ref) {
     const {
@@ -359,6 +437,10 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     else if (descriptors.length > 1) renderContext.bindings = bindingRuntime.bindings
     const renderedChildren =
       typeof children === 'function' ? children(renderContext as never) : children
+    const inputBindings = Object.values(bindingRuntime.bindings).filter(
+      (binding): binding is DashletInputBindingContext<PicodashJsonValue> =>
+        'mode' in binding && binding.mode === 'input',
+    )
     return (
       <DashListNodeLeafBoundary id={id} kind="dashlet">
         <div
@@ -405,6 +487,22 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
                       {issue.message}
                     </div>
                   ))}
+                </div>
+              ) : null,
+            )}
+            {inputBindings.map((binding) =>
+              binding.dirty ? (
+                <div key={`${binding.alias}-actions`} data-picodash-dashlet-actions>
+                  <button type="button" disabled={disabled} onClick={() => binding.discardInput()}>
+                    Discard changes
+                  </button>
+                  {binding.stale ? (
+                    <StaleInputConfirmation
+                      disabled={disabled}
+                      readOnly={readOnly}
+                      controller={bindingRuntime.staleOverwrite[binding.alias]!}
+                    />
+                  ) : null}
                 </div>
               ) : null,
             )}

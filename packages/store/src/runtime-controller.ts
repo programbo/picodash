@@ -74,6 +74,15 @@ export type BindingRecord = {
   active: boolean
 }
 
+export type DashListNodeRecord = {
+  readonly kind: 'dashList-node'
+  readonly root: object
+  readonly scopeId: string
+  readonly nodeId: string
+  lease: object
+  active: boolean
+}
+
 type ScopedViewRecord = {
   readonly controller: RuntimeController
   readonly scopeId: string
@@ -88,6 +97,8 @@ export class RuntimeController {
   readonly bindings = new Map<string, Map<string, Map<string, BindingRecord>>>()
   readonly handles = new WeakMap<object, ProviderRecord | EntityRecord>()
   readonly bindingHandles = new WeakMap<object, BindingRecord>()
+  readonly dashListNodes = new Map<string, Map<string, DashListNodeRecord>>()
+  readonly dashListNodeHandles = new WeakMap<object, DashListNodeRecord>()
   readonly relationshipHandles = new WeakMap<object, RelationshipRecord>()
   readonly scopedViews = new WeakMap<object, ScopedViewRecord>()
   readonly parentByChildScope = new Map<string, string>()
@@ -124,10 +135,35 @@ export class RuntimeController {
     for (const provider of this.providers.values()) if (provider.active) return true
     for (const entity of this.entities) if (entity.active) return true
     for (const relationship of this.relationships) if (relationship.active) return true
+    for (const byNode of this.dashListNodes.values())
+      for (const node of byNode.values()) if (node.active) return true
     for (const byItem of this.bindings.values())
       for (const byAlias of byItem.values())
         for (const binding of byAlias.values()) if (binding.active) return true
     return false
+  }
+
+  activeDashListNode(scopeId: string, nodeId: string): DashListNodeRecord | undefined {
+    const record = this.dashListNodes.get(scopeId)?.get(nodeId)
+    return record?.active ? record : undefined
+  }
+
+  registerDashListNode(record: DashListNodeRecord): void {
+    const byNode = this.dashListNodes.get(record.scopeId) ?? new Map<string, DashListNodeRecord>()
+    byNode.set(record.nodeId, record)
+    this.dashListNodes.set(record.scopeId, byNode)
+  }
+
+  releaseDashListNode(record: DashListNodeRecord): void {
+    const byNode = this.dashListNodes.get(record.scopeId)
+    if (byNode?.get(record.nodeId) === record) {
+      byNode.delete(record.nodeId)
+      if (byNode.size === 0) this.dashListNodes.delete(record.scopeId)
+    }
+  }
+
+  activeDashListNodeIds(scopeId: string): readonly string[] {
+    return [...(this.dashListNodes.get(scopeId)?.keys() ?? [])].sort()
   }
 
   setBindingInteractionCleanup(
@@ -138,6 +174,32 @@ export class RuntimeController {
 
   activeBinding(scopeId: string, itemId: string, alias: string): BindingRecord | undefined {
     return this.bindings.get(scopeId)?.get(itemId)?.get(alias)
+  }
+
+  activeBindingFieldKeys(scopeId: string): readonly string[] {
+    const fields = new Set<string>()
+    const byItem = this.bindings.get(scopeId)
+    if (!byItem) return []
+    for (const byAlias of byItem.values()) {
+      for (const binding of byAlias.values()) {
+        if (!binding.active) continue
+        const key = (binding.field as { readonly key?: unknown }).key
+        if (typeof key === 'string') fields.add(key)
+      }
+    }
+    return [...fields].sort()
+  }
+
+  hasActiveScope(scopeId: string): boolean {
+    if (this.bindings.has(scopeId) || this.dashListNodes.has(scopeId)) return true
+    for (const entity of this.entities) if (entity.active && entity.scopeId === scopeId) return true
+    for (const relationship of this.relationships)
+      if (
+        relationship.active &&
+        (relationship.parentScopeId === scopeId || relationship.childScopeId === scopeId)
+      )
+        return true
+    return false
   }
 
   registerBinding(record: BindingRecord): void {
@@ -174,6 +236,7 @@ export class RuntimeController {
     this.providers.clear()
     this.entities.clear()
     this.relationships.clear()
+    this.dashListNodes.clear()
     this.bindings.clear()
     this.parentByChildScope.clear()
     this.childrenByParentScope.clear()

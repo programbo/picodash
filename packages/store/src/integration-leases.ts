@@ -14,6 +14,7 @@ import {
   runtimeScopedViewFor,
   runtimeControllerFor,
   runtimeControllerForHandle,
+  type DashListNodeRecord,
   type EntityRecord,
   type BindingRecord,
   type BindingMode,
@@ -41,6 +42,7 @@ declare const providerLeaseBrand: unique symbol
 declare const entityLeaseBrand: unique symbol
 declare const relationshipLeaseBrand: unique symbol
 declare const bindingHandleBrand: unique symbol
+declare const dashListNodeLeaseBrand: unique symbol
 
 export type StoreBindingMode = 'input' | 'display'
 
@@ -68,6 +70,21 @@ export type EntityLease = Readonly<{
 
 export type RelationshipLease = Readonly<{
   readonly [relationshipLeaseBrand]: 'RelationshipLease'
+  release(): void
+}>
+
+export type InvalidDashListNodeOptionsReason =
+  | 'not-object'
+  | 'unknown-key'
+  | 'accessor-property'
+  | 'invalid-node-id'
+
+export type AcquireDashListNodeOptions = {
+  readonly nodeId: string
+}
+
+export type DashListNodeLease = Readonly<{
+  readonly [dashListNodeLeaseBrand]: 'DashListNodeLease'
   release(): void
 }>
 
@@ -138,6 +155,32 @@ function bindingOptions(options: unknown): {
     field: descriptors.field?.value,
     mode,
   }
+}
+
+function dashListNodeOptions(options: unknown): { readonly nodeId: string } {
+  if (!options || typeof options !== 'object' || Array.isArray(options))
+    throw new PicodashContractError('invalid-dash-list-node-options', { reason: 'not-object' })
+  let descriptors: Record<PropertyKey, PropertyDescriptor>
+  try {
+    descriptors = Object.getOwnPropertyDescriptors(options)
+    for (const key of Reflect.ownKeys(descriptors))
+      if (key !== 'nodeId')
+        throw new PicodashContractError('invalid-dash-list-node-options', { reason: 'unknown-key' })
+    const descriptor = descriptors.nodeId
+    if (descriptor && !('value' in descriptor))
+      throw new PicodashContractError('invalid-dash-list-node-options', {
+        reason: 'accessor-property',
+      })
+  } catch (error) {
+    if (error instanceof PicodashContractError) throw error
+    throw new PicodashContractError('invalid-dash-list-node-options', { reason: 'not-object' })
+  }
+  const nodeId = descriptors.nodeId?.value
+  if (classifyIdentity(nodeId))
+    throw new PicodashContractError('invalid-dash-list-node-options', {
+      reason: 'invalid-node-id',
+    })
+  return { nodeId: nodeId as string }
 }
 
 function ownedField<
@@ -430,6 +473,45 @@ export function acquireEntityLease<
     (entry) => entry.host.token === host.token,
   )
   provider?.entities.add(record)
+  return lease
+}
+
+export function acquireDashListNodeLease<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+>(
+  scopedStore: ScopedStore<Fields, Result>,
+  options: AcquireDashListNodeOptions,
+): DashListNodeLease {
+  const { nodeId } = dashListNodeOptions(options)
+  const scopedRecord = runtimeScopedViewFor(scopedStore as object)
+  if (!scopedRecord) throw new PicodashContractError('foreign-handle')
+  const controller = scopedRecord.controller
+  if (controller.lifecycle !== 'active') throw new PicodashContractError('use-after-destroy')
+  if (controller.activeDashListNode(scopedRecord.scopeId, nodeId))
+    throw new PicodashContractError('duplicate-dash-list-node', {
+      scopeId: scopedRecord.scopeId,
+      nodeId,
+    })
+  const record: DashListNodeRecord = {
+    kind: 'dashList-node',
+    root: controller.root,
+    scopeId: scopedRecord.scopeId,
+    nodeId,
+    lease: undefined as unknown as object,
+    active: true,
+  }
+  const lease = Object.freeze({
+    release: () => {
+      if (!record.active) return
+      record.active = false
+      controller.releaseDashListNode(record)
+    },
+  }) as DashListNodeLease
+  record.lease = lease
+  controller.registerDashListNode(record)
+  controller.dashListNodeHandles.set(lease as object, record)
+  registerRuntimeHandle(lease as object, controller)
   return lease
 }
 

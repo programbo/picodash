@@ -5,6 +5,7 @@ import type {
   InvalidPersistenceEnvelopeReason,
   PersistenceDriverUnavailableReason,
 } from './persistence.js'
+import type { SchemaMigrationFailureReason } from './migration.js'
 
 export type OperationSource = 'programmatic' | 'interactive' | 'repair' | 'reset' | 'import'
 
@@ -46,6 +47,7 @@ export type PicodashInitializationErrorReasonByCode = Readonly<{
   readonly 'persistence-driver-unavailable': PersistenceDriverUnavailableReason
   readonly 'invalid-persistence-envelope': InvalidPersistenceEnvelopeReason
   readonly 'hydration-source-conflict': HydrationSourceConflictReason
+  readonly 'schema-migration-failed': SchemaMigrationFailureReason
 }>
 
 export type PicodashInitializationErrorCode = keyof PicodashInitializationErrorReasonByCode
@@ -61,6 +63,7 @@ export type PicodashInitializationErrorShape = Error & {
         | 'persistence_driver_unavailable'
         | 'invalid_persistence_envelope'
         | 'hydration_source_conflict'
+        | 'schema_migration_failed'
       readonly reason: string
       readonly path: readonly []
     },
@@ -98,6 +101,7 @@ export class PicodashInitializationError extends Error {
         | 'persistence_driver_unavailable'
         | 'invalid_persistence_envelope'
         | 'hydration_source_conflict'
+        | 'schema_migration_failed'
       readonly reason: string
       readonly path: readonly []
     },
@@ -108,7 +112,8 @@ export class PicodashInitializationError extends Error {
       | AdapterInitializationFailureReason
       | PersistenceDriverUnavailableReason
       | InvalidPersistenceEnvelopeReason
-      | HydrationSourceConflictReason,
+      | HydrationSourceConflictReason
+      | SchemaMigrationFailureReason,
     code: PicodashInitializationErrorCode = 'adapter-initialization-failed',
   ) {
     super('Store initialization failed.')
@@ -119,7 +124,8 @@ export class PicodashInitializationError extends Error {
         | 'adapter_initialization_failed'
         | 'persistence_driver_unavailable'
         | 'invalid_persistence_envelope'
-        | 'hydration_source_conflict',
+        | 'hydration_source_conflict'
+        | 'schema_migration_failed',
       path: Object.freeze([]) as readonly [],
       message: 'Store initialization failed.',
       reason,

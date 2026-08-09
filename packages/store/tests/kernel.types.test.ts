@@ -274,6 +274,10 @@ test('preserves Fields and refined Result through root/scoped views and metadata
   expectTypeOf<ReturnType<Root['resetValueOrThrow']>>().toEqualTypeOf<
     Extract<RefinedResult, { readonly ok: true }>
   >()
+  expectTypeOf<ReturnType<Root['resetRegisteredValues']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['resetRegisteredValuesOrThrow']>>().toEqualTypeOf<
+    Extract<RefinedResult, { readonly ok: true }>
+  >()
   expectTypeOf<ReturnType<Scoped['setValue']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Scoped['setValueOrThrow']>>().toEqualTypeOf<
     Extract<RefinedResult, { readonly ok: true }>
@@ -282,6 +286,20 @@ test('preserves Fields and refined Result through root/scoped views and metadata
   expectTypeOf<ReturnType<Scoped['resetValueOrThrow']>>().toEqualTypeOf<
     Extract<RefinedResult, { readonly ok: true }>
   >()
+  expectTypeOf<ReturnType<Scoped['resetRegisteredValues']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['resetRegisteredValuesOrThrow']>>().toEqualTypeOf<
+    Extract<RefinedResult, { readonly ok: true }>
+  >()
+  if (globalThis.process?.env.PICODASH_TYPE_TESTS === 'never') {
+    const root = undefined as unknown as Root
+    const scoped = undefined as unknown as Scoped
+    // @ts-expect-error Root aggregate reset requires a scopeId.
+    root.resetRegisteredValues()
+    // @ts-expect-error Root aggregate reset does not accept scoped-only options.
+    root.resetRegisteredValues({ includeDescendants: true })
+    scoped.resetRegisteredValues()
+    scoped.resetRegisteredValues({ includeDescendants: true })
+  }
   expectTypeOf<ReturnType<Root['setValues']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Root['setValuesOrThrow']>>().toEqualTypeOf<
     Extract<RefinedResult, { readonly ok: true }>

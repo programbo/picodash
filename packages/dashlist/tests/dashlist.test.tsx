@@ -181,6 +181,52 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('leases committed nodes for active prune exclusion and releases them without auto-delete', () => {
+    const store = makeStore()
+    const scoped = store.scope('presence')
+    scoped.setDashListRootOrder(['active', 'dormant'])
+    const renderer = render(
+      createElement(
+        StrictMode,
+        null,
+        createElement(
+          DashList,
+          { id: 'presence', store },
+          createElement(Dashlet, { id: 'active', label: 'Active' }),
+        ),
+      ),
+    )
+    expect(scoped.createPrunePlan({ mode: 'review' }).candidates).toEqual([
+      { nodeId: 'dormant', effects: ['root-order-entry'] },
+    ])
+    const explicit = scoped.createPrunePlan({
+      mode: 'explicit',
+      removeNodeIds: ['dormant'],
+      keepNodeIds: [],
+    })
+    expect(scoped.executePrunePlan(explicit)).toMatchObject({ ok: true })
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['active'])
+
+    act(() =>
+      renderer.update(
+        createElement(
+          DashList,
+          { id: 'presence', store },
+          createElement(Dashlet, { id: 'replacement', label: 'Replacement' }),
+        ),
+      ),
+    )
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['active'])
+    expect(scoped.createPrunePlan({ mode: 'review' }).candidates).toEqual([
+      { nodeId: 'active', effects: ['root-order-entry'] },
+    ])
+    const inventory = scoped.createPrunePlan({ mode: 'inventory', knownNodeIds: ['replacement'] })
+    expect(scoped.executePrunePlan(inventory)).toMatchObject({ ok: true })
+    expect(scoped.getState().scope).toBeUndefined()
+    act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('rejects invalid declarations and non-text labels synchronously', () => {
     const store = makeStore()
     expect(() =>

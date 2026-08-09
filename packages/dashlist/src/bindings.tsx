@@ -12,6 +12,7 @@ import type {
   PicodashField,
   PicodashFieldDefinitions,
   PicodashJsonValue,
+  PicodashStaleInputOverwritePlan,
   ScopedStore,
   TransactionIssue,
 } from '@picodash/store'
@@ -20,6 +21,7 @@ import {
   type BindingHandle,
   type StoreBindingMode,
 } from '@picodash/store/integration'
+import { PicodashContractError } from '@picodash/store'
 
 export type DashletBindingMode = StoreBindingMode
 export type DashletFieldBinding<TValues extends object> = {
@@ -159,6 +161,11 @@ type Runtime = {
   readonly handle?: BindingHandle<PicodashFieldDefinitions, string>
 }
 
+export type StaleOverwriteController = {
+  readonly openPlan: () => PicodashStaleInputOverwritePlan | undefined
+  readonly executePlan: (plan: PicodashStaleInputOverwritePlan) => void
+}
+
 function sameDescriptors(
   left: readonly BindingDescriptor[],
   right: readonly BindingDescriptor[],
@@ -180,6 +187,39 @@ function issuesFromResult(
   return result.ok ? [] : result.error.issues
 }
 
+function issueFromOverwriteError(
+  error: unknown,
+  fieldKey: string,
+  itemId: string,
+  alias: string,
+): TransactionIssue {
+  if (error instanceof PicodashContractError && error.issues?.length) {
+    const issue = error.issues[0]!
+    return Object.freeze({
+      ...issue,
+      fieldKey: issue.fieldKey ?? fieldKey,
+      itemId: issue.itemId ?? itemId,
+      alias: issue.alias ?? alias,
+    })
+  }
+  const message =
+    error instanceof PicodashContractError
+      ? error.context.reason === 'consumed'
+        ? 'Overwrite confirmation has already been used. Confirm again.'
+        : error.context.reason === 'released'
+          ? 'Overwrite confirmation is no longer available. Confirm again.'
+          : 'The stale value changed before confirmation. Confirm again.'
+      : 'The stale value could not be overwritten. Confirm again.'
+  return Object.freeze({
+    code: 'stale_plan',
+    path: Object.freeze([]),
+    message,
+    fieldKey,
+    itemId,
+    alias,
+  })
+}
+
 export function useDashletBindings(
   store: ScopedStore<PicodashFieldDefinitions>,
   itemId: string,
@@ -191,6 +231,7 @@ export function useDashletBindings(
 ): {
   readonly bindings: Record<string, DashletBindingContext<PicodashJsonValue>>
   readonly issues: readonly TransactionIssue[]
+  readonly staleOverwrite: Record<string, StaleOverwriteController>
 } {
   const storeSnapshot = useSyncExternalStore(
     (listener) => store.subscribe(listener),
@@ -241,6 +282,7 @@ export function useDashletBindings(
     const state = storeSnapshot
     const interaction = state.interaction.bindings.get(itemId)
     const bindings: Record<string, DashletBindingContext<PicodashJsonValue>> = {}
+    const staleOverwrite: Record<string, StaleOverwriteController> = {}
     const allIssues = dedupeIssues(
       stableDescriptors
         .flatMap((descriptor) => interaction?.get(descriptor.alias)?.inputIssues ?? [])
@@ -326,10 +368,40 @@ export function useDashletBindings(
           },
         }
         bindings[key] = input
+        staleOverwrite[key] = {
+          openPlan: () => {
+            if (policy.current.disabled || policy.current.readOnly) return undefined
+            const runtime = runtimes.current.find((entry) => entry.descriptor.alias === key)
+            if (!runtime?.handle) return undefined
+            try {
+              return store.createStaleInputOverwritePlan(runtime.handle)
+            } catch (error) {
+              const issue = issueFromOverwriteError(error, descriptor.field.key, itemId, key)
+              setCommandIssues([issue])
+              publishAnnouncement(issue.message)
+              return undefined
+            }
+          },
+          executePlan: (plan) => {
+            if (policy.current.disabled || policy.current.readOnly) return
+            let result: ReturnType<ScopedStore<PicodashFieldDefinitions>['setInput']>
+            try {
+              result = store.executeStaleInputOverwrite(plan)
+            } catch (error) {
+              const issue = issueFromOverwriteError(error, descriptor.field.key, itemId, key)
+              setCommandIssues([issue])
+              publishAnnouncement(issue.message)
+              return
+            }
+            const nextIssues = issuesFromResult(result)
+            setCommandIssues(nextIssues)
+            publishAnnouncement(nextIssues.map((issue) => issue.message).join('. '))
+          },
+        }
       }
     }
     const issues = dedupeIssues(common)
-    return { bindings, issues }
+    return { bindings, issues, staleOverwrite }
   }, [
     commandIssues,
     controlId,

@@ -3,6 +3,7 @@ export {
   acquireEntityLease,
   acquireProviderLease,
   acquireRelationshipLease,
+  acquireDashListNodeLease,
 } from './integration-leases.js'
 
 export type {
@@ -16,7 +17,20 @@ export type {
   ProviderLease,
   RelationshipLease,
   StoreEntityKind,
+  AcquireDashListNodeOptions,
+  DashListNodeLease,
+  InvalidDashListNodeOptionsReason,
 } from './integration-leases.js'
+
+export type {
+  DashListPruneEffect,
+  DashListPruneCandidate,
+  DashListPruneReview,
+  DashListPruneSelection,
+  RootDashListPruneOptions,
+  InvalidPruneOptionsReason,
+  PicodashDashListPrunePlan,
+} from './kernel/index.js'
 
 export {
   PicodashStoreEntityBoundary,

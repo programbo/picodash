@@ -12,7 +12,10 @@ import {
   normalizeDashListMetadataRecord,
   normalizeDashPanelLayoutRecord,
   normalizeDurableScopeMetadata,
+  decodeDurableScopeMetadata,
+  encodeDurableScopeMetadata,
 } from '../metadata.js'
+import type { SerializedDurableScopeMetadata } from '../metadata.js'
 import { createDiagnosticsRuntime, type PicodashDiagnostics } from '../diagnostics.js'
 import {
   createExternalAdapterRuntime,
@@ -26,20 +29,66 @@ import {
   type SnapshotValidation,
 } from '../adapter.js'
 import { createPersistenceController, hydratePersistenceEnvelope } from '../persistence.js'
+import {
+  createMetadataRecovery,
+  type PicodashMetadataRecovery,
+  type PicodashMetadataRecoveryState,
+  type PicodashQuarantinedScopeMetadata,
+} from '../metadata-recovery.js'
+import { validateSchemaMigrations, type SchemaMigrations } from '../migration.js'
 import type {
   PicodashEnvelopeInput,
   PicodashPersistence,
   PicodashPersistenceDiagnostic,
+  PicodashPersistenceConflictResolutionPlan,
+  PicodashPersistenceErasePlan,
+  PersistenceConflictResolutionOptions,
+  PersistenceEraseResult,
   PersistenceController,
   PersistenceFailureReason,
   PersistentTransactionResult,
+  ExternalOwnedPersistenceConfig,
   StoreOwnedPersistenceConfig,
 } from '../persistence.js'
 import {
   bindingPlanRecord,
+  dashListPrunePlanRecord,
   registerBindingPlan,
+  registerDashListPrunePlan,
+  registerPersistencePlan,
+  persistencePlanRecord,
+  registerDocumentPlan,
+  documentPlanRecord,
   type BindingPlanRegistryRecord,
 } from '../plan-registry.js'
+import {
+  buildPicodashDocumentOverlay,
+  decodePicodashDocument,
+  encodePicodashDocument,
+  migratePicodashDocument,
+  PicodashDocumentError,
+  normalizePicodashExportExecutionOptions,
+  normalizePicodashExportOptions,
+  normalizePicodashExportPlanReview,
+  normalizePicodashExportPolicy,
+  normalizePicodashImportOptions,
+  normalizePicodashImportPlanReview,
+  stripRedactedPicodashDocumentFields,
+  type PicodashDocument,
+  PicodashDocumentOptionsError,
+  type PicodashDocumentFieldEntry,
+  type PicodashDocumentFieldHandle,
+  type PicodashExportConfig,
+  type PicodashExportExecutionOptions,
+  type PicodashExportPlan,
+  type PicodashExportPolicy,
+  type PicodashRootExportOptions,
+  type PicodashScopedExportOptions,
+  type PicodashRootImportOptions,
+  type PicodashScopedImportOptions,
+  type PicodashImportPlan,
+  type PicodashNormalizedImportOptions,
+} from '../documents.js'
 
 /** The JSON values accepted at Store trust boundaries. */
 export type PicodashJsonPrimitive = boolean | null | number | string
@@ -56,7 +105,13 @@ export type PicodashIssueCode =
   | 'stale_input'
   | 'stale_plan'
   | 'unknown_field'
+  | 'invalid_document'
+  | 'foreign_store'
+  | 'incompatible_field'
+  | 'missing_scope'
+  | 'schema_migration_failed'
   | 'invalid_metadata'
+  | 'quarantined_metadata'
   | 'adapter_initialization_failed'
   | 'adapter_unhealthy'
   | 'adapter_write_failed'
@@ -64,6 +119,8 @@ export type PicodashIssueCode =
   | 'invalid_persistence_envelope'
   | 'hydration_source_conflict'
   | 'persistence_failure'
+  | 'persistence_resolution_failed'
+  | 'persistence_erase_failed'
   | `app:${string}`
 
 /** Issues supplied by application callbacks. Store-owned codes are not accepted here. */
@@ -96,6 +153,7 @@ export type PicodashValidationContext<Values extends object = Record<string, Pic
     | 'interactive'
     | 'repair'
     | 'reset'
+    | 'import'
   readonly originScopeId?: string
 }
 
@@ -117,6 +175,7 @@ export type ValuesValidator<Values extends object> = (
       | 'interactive'
       | 'repair'
       | 'reset'
+      | 'import'
     readonly originScopeId?: string
   },
 ) => readonly PicodashIssueInput[]
@@ -197,6 +256,8 @@ type InferredStoreConfigBase<Values extends Record<string, PicodashJsonValue>> =
   readonly fields: InputFields<Values>
   readonly initialValues?: Partial<Values>
   readonly validateValues?: ValuesValidator<Values>
+  readonly migrations?: SchemaMigrations
+  readonly export?: PicodashExportConfig
 }
 
 type InferredStoreConfig<Values extends Record<string, PicodashJsonValue>> =
@@ -213,18 +274,60 @@ type InferredStoreConfig<Values extends Record<string, PicodashJsonValue>> =
       readonly persistence?: StoreOwnedPersistenceConfig<
         Record<string, { readonly defaultValue: PicodashJsonValue }>
       >
+      readonly migrations?: SchemaMigrations
     })
 
-type InferredExternalConfig<Values extends Record<string, PicodashJsonValue>> = {
-  readonly storeId?: string
-  readonly schemaVersion?: number
+type InferredExternalConfigBase<Values extends Record<string, PicodashJsonValue>> = {
   readonly valueOwner: 'external'
   readonly fields: InputFields<Values>
   readonly adapter: PicodashValueAdapter<Values>
   readonly initialValues?: never
-  readonly initialEnvelope?: never
   readonly validateValues?: ValuesValidator<Values>
 }
+
+type InferredExternalConfig<Values extends Record<string, PicodashJsonValue>> =
+  | (InferredExternalConfigBase<Values> & {
+      readonly storeId?: string
+      readonly schemaVersion?: number
+      readonly initialEnvelope?: never
+      readonly persistence?: never
+      readonly migrations?: never
+      readonly export?: never
+    })
+  | (InferredExternalConfigBase<Values> & {
+      readonly storeId: string
+      readonly schemaVersion: number
+      readonly initialEnvelope?: PicodashEnvelopeInput<Values>
+      readonly persistence?: ExternalOwnedPersistenceConfig
+      readonly migrations?: SchemaMigrations
+      readonly export?: PicodashExportConfig
+    })
+
+type ExternalOwnedConfigBase<Fields extends Record<string, FieldLike>> = {
+  readonly valueOwner: 'external'
+  readonly fields: DefinitionsFor<Fields>
+  readonly adapter: PicodashValueAdapter<ValuesOf<Fields>>
+  readonly initialValues?: never
+  readonly validateValues?: ValuesValidator<ValuesOf<Fields>>
+}
+
+export type ExternalOwnedConfig<Fields extends Record<string, FieldLike>> =
+  | (ExternalOwnedConfigBase<Fields> & {
+      readonly storeId?: string
+      readonly schemaVersion?: number
+      readonly initialEnvelope?: never
+      readonly persistence?: never
+      readonly migrations?: never
+      readonly export?: never
+    })
+  | (ExternalOwnedConfigBase<Fields> & {
+      readonly storeId: string
+      readonly schemaVersion: number
+      readonly initialEnvelope?: PicodashEnvelopeInput<ValuesOf<Fields>>
+      readonly persistence?: ExternalOwnedPersistenceConfig
+      readonly migrations?: SchemaMigrations
+      readonly export?: PicodashExportConfig
+    })
 
 type ExactInputFields<
   Values extends Record<string, PicodashJsonValue>,
@@ -278,6 +381,8 @@ type StoreOwnedConfigBase<Fields extends Record<string, FieldLike>> = {
   readonly fields: DefinitionsFor<Fields>
   readonly initialValues?: Partial<ValuesOf<Fields>>
   readonly validateValues?: ValuesValidator<ValuesOf<Fields>>
+  readonly migrations?: SchemaMigrations
+  readonly export?: PicodashExportConfig
 }
 
 export type StoreOwnedConfig<Fields extends Record<string, FieldLike>> =
@@ -286,24 +391,15 @@ export type StoreOwnedConfig<Fields extends Record<string, FieldLike>> =
       readonly schemaVersion?: number
       readonly initialEnvelope?: never
       readonly persistence?: never
+      readonly migrations?: SchemaMigrations
     })
   | (StoreOwnedConfigBase<Fields> & {
       readonly storeId: string
       readonly schemaVersion: number
       readonly initialEnvelope?: PicodashEnvelopeInput<ValuesOf<Fields>>
       readonly persistence?: StoreOwnedPersistenceConfig<Fields>
+      readonly migrations?: SchemaMigrations
     })
-
-export type ExternalOwnedConfig<Fields extends Record<string, FieldLike>> = {
-  readonly storeId?: string
-  readonly schemaVersion?: number
-  readonly valueOwner: 'external'
-  readonly fields: DefinitionsFor<Fields>
-  readonly adapter: PicodashValueAdapter<ValuesOf<Fields>>
-  readonly initialValues?: never
-  readonly initialEnvelope?: never
-  readonly validateValues?: ValuesValidator<ValuesOf<Fields>>
-}
 
 export type DashListMetadataRecord = {
   readonly rootOrder?: readonly string[]
@@ -367,6 +463,57 @@ export type DurableScopeMetadata = {
   readonly dashPanel?: DashPanelLayoutRecord
 }
 
+export type DashListPruneEffect =
+  | 'root-order-entry'
+  | 'group-order-owner'
+  | 'group-order-entry'
+  | 'collapse-override'
+
+export type DashListPruneCandidate = Readonly<{
+  readonly nodeId: string
+  readonly effects: readonly DashListPruneEffect[]
+}>
+
+export type DashListPruneReview = Readonly<{
+  readonly kind: 'dash-list-prune-review'
+  readonly scopeId: string
+  readonly candidates: readonly DashListPruneCandidate[]
+}>
+
+export type DashListPruneSelection =
+  | { readonly mode: 'review' }
+  | {
+      readonly mode: 'explicit'
+      readonly removeNodeIds: readonly string[]
+      readonly keepNodeIds: readonly string[]
+    }
+  | { readonly mode: 'inventory'; readonly knownNodeIds: readonly string[] }
+
+export type RootDashListPruneOptions = DashListPruneSelection & { readonly scopeId: string }
+
+export type InvalidPruneOptionsReason =
+  | 'not-object'
+  | 'unknown-key'
+  | 'accessor-property'
+  | 'invalid-mode'
+  | 'invalid-node-ids'
+  | 'duplicate-node-id'
+  | 'overlapping-node-id'
+  | 'unknown-candidate'
+  | 'incomplete-candidate-partition'
+  | 'missing-active-node'
+
+declare const dashListPrunePlanBrand: unique symbol
+export type PicodashDashListPrunePlan = Readonly<{
+  readonly [dashListPrunePlanBrand]: 'PicodashDashListPrunePlan'
+  readonly kind: 'dash-list-prune-plan'
+  readonly mode: 'explicit' | 'inventory'
+  readonly scopeId: string
+  readonly candidates: readonly DashListPruneCandidate[]
+  readonly removeNodeIds: readonly string[]
+  readonly keepNodeIds: readonly string[]
+}>
+
 export type RootSnapshot<Values extends object> = {
   readonly values: Readonly<Values>
   readonly scopes: ReadonlyMap<string, DurableScopeMetadata>
@@ -391,6 +538,20 @@ export type DestroyRootOptions = {
 
 export type DestroyScopeOptions = {
   readonly includeDescendants?: boolean
+}
+
+export type InvalidResetOptionsReason =
+  | 'not-object'
+  | 'unknown-key'
+  | 'accessor-property'
+  | 'invalid-include-descendants'
+
+export type ResetRegisteredValuesOptions = {
+  readonly includeDescendants?: boolean
+}
+
+export type RootResetRegisteredValuesOptions = ResetRegisteredValuesOptions & {
+  readonly scopeId: string
 }
 
 export type StaleDraftConflict = {
@@ -449,6 +610,84 @@ export type ScopedSnapshot<Values extends object> = {
   readonly interaction: ScopeInteractionState
 }
 
+export type PicodashDocumentExportResult<
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> =
+  | Readonly<{ readonly ok: true; readonly document: PicodashDocument }>
+  | Extract<Result, { readonly ok: false }>
+
+export interface DocumentImportCommands<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
+  analyzeImport(
+    document: unknown,
+    options?: PicodashRootImportOptions<ValuesOf<Fields>>,
+  ):
+    | Readonly<{ readonly ok: true; readonly plan: PicodashImportPlan }>
+    | Extract<Result, { readonly ok: false }>
+  executeImport(plan: PicodashImportPlan): Result
+}
+
+export interface DocumentExportCommands<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
+  createExportPlan(options?: PicodashRootExportOptions<ValuesOf<Fields>>): PicodashExportPlan
+  executeExport(
+    plan: PicodashExportPlan,
+    options?: PicodashExportExecutionOptions,
+  ): PicodashDocumentExportResult<Result>
+}
+
+export interface ScopedDocumentImportCommands<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
+  analyzeImport(
+    document: unknown,
+    options?: PicodashScopedImportOptions<ValuesOf<Fields>>,
+  ):
+    | Readonly<{ readonly ok: true; readonly plan: PicodashImportPlan }>
+    | Extract<Result, { readonly ok: false }>
+  executeImport(plan: PicodashImportPlan): Result
+}
+
+export interface ScopedDocumentExportCommands<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
+  createExportPlan(options?: PicodashScopedExportOptions<ValuesOf<Fields>>): PicodashExportPlan
+  executeExport(
+    plan: PicodashExportPlan,
+    options?: PicodashExportExecutionOptions,
+  ): PicodashDocumentExportResult<Result>
+}
+
+type DocumentNamespace<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult,
+  Identified extends boolean,
+  ExportEnabled extends boolean,
+> = Identified extends true
+  ? Readonly<
+      DocumentImportCommands<Fields, Result> &
+        (ExportEnabled extends true ? DocumentExportCommands<Fields, Result> : object)
+    >
+  : never
+
+type ScopedDocumentNamespace<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult,
+  Identified extends boolean,
+  ExportEnabled extends boolean,
+> = Identified extends true
+  ? Readonly<
+      ScopedDocumentImportCommands<Fields, Result> &
+        (ExportEnabled extends true ? ScopedDocumentExportCommands<Fields, Result> : object)
+    >
+  : never
+
 export interface RootMetadataCommands<
   Result extends CoreTransactionResult = CoreTransactionResult,
 > {
@@ -461,6 +700,13 @@ export interface RootMetadataCommands<
   setDashListCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result
   removeDashListCollapseOverride(scopeId: string, nodeId: string): Result
   resetDashListMetadata(scopeId: string): Result
+  createPrunePlan(
+    options: RootDashListPruneOptions & { readonly mode: 'review' },
+  ): DashListPruneReview
+  createPrunePlan(
+    options: RootDashListPruneOptions & { readonly mode: 'explicit' | 'inventory' },
+  ): PicodashDashListPrunePlan
+  executePrunePlan(plan: PicodashDashListPrunePlan): Result
 }
 
 export interface ScopedMetadataCommands<
@@ -475,16 +721,23 @@ export interface ScopedMetadataCommands<
   setDashListCollapseOverride(nodeId: string, collapsed: boolean): Result
   removeDashListCollapseOverride(nodeId: string): Result
   resetDashListMetadata(): Result
+  createPrunePlan(options: { readonly mode: 'review' }): DashListPruneReview
+  createPrunePlan(
+    options: Extract<DashListPruneSelection, { readonly mode: 'explicit' | 'inventory' }>,
+  ): PicodashDashListPrunePlan
+  executePrunePlan(plan: PicodashDashListPrunePlan): Result
 }
 
 interface RootStoreBase<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
+  Identified extends boolean = false,
+  ExportEnabled extends boolean = false,
 >
   extends RootMetadataCommands<Result>, BindingInteractionCommands<Fields, Result> {
   readonly kind: 'root'
   readonly fields: PicodashFields<Fields>
-  scope(scopeId: string): ScopedStore<Fields, Result>
+  scope(scopeId: string): ScopedStore<Fields, Result, Identified, ExportEnabled>
   getState(): RootSnapshot<ValuesOf<Fields>>
   subscribe(listener: () => void): () => void
   readonly diagnostics: PicodashDiagnostics
@@ -501,6 +754,10 @@ interface RootStoreBase<
   resetValueOrThrow<K extends keyof Fields & string>(
     field: PicodashField<ValuesOf<Fields>, K>,
   ): Extract<Result, { readonly ok: true }>
+  resetRegisteredValues(options: RootResetRegisteredValuesOptions): Result
+  resetRegisteredValuesOrThrow(
+    options: RootResetRegisteredValuesOptions,
+  ): Extract<Result, { readonly ok: true }>
   setValues(values: Partial<ValuesOf<Fields>>): Result
   setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
   destroyScope(scopeId: string, options?: DestroyScopeOptions): Result
@@ -509,14 +766,16 @@ interface RootStoreBase<
 interface ScopedStoreBase<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
+  Identified extends boolean = false,
+  ExportEnabled extends boolean = false,
 >
   extends ScopedMetadataCommands<Result>, BindingInteractionCommands<Fields, Result> {
   readonly kind: 'scoped'
-  readonly root: RootStore<Fields, Result>
+  readonly root: RootStore<Fields, Result, Identified, ExportEnabled>
   readonly scopeId: string
   readonly fields: PicodashFields<Fields>
   readonly diagnostics: PicodashDiagnostics
-  scope(scopeId: string): ScopedStore<Fields, Result>
+  scope(scopeId: string): ScopedStore<Fields, Result, Identified, ExportEnabled>
   getState(): ScopedSnapshot<ValuesOf<Fields>>
   subscribe(listener: () => void): () => void
   setValue<K extends keyof Fields & string>(
@@ -531,6 +790,10 @@ interface ScopedStoreBase<
   resetValueOrThrow<K extends keyof Fields & string>(
     field: PicodashField<ValuesOf<Fields>, K>,
   ): Extract<Result, { readonly ok: true }>
+  resetRegisteredValues(options?: ResetRegisteredValuesOptions): Result
+  resetRegisteredValuesOrThrow(
+    options?: ResetRegisteredValuesOptions,
+  ): Extract<Result, { readonly ok: true }>
   setValues(values: Partial<ValuesOf<Fields>>): Result
   setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
   destroyScope(options?: DestroyScopeOptions): Result
@@ -539,15 +802,34 @@ interface ScopedStoreBase<
 type PersistenceCapability<Result extends CoreTransactionResult> =
   Result extends PersistentTransactionResult ? { readonly persistence: PicodashPersistence } : {}
 
+type MetadataRecoveryCapability<
+  Identified extends boolean,
+  Result extends CoreTransactionResult,
+> = Identified extends true ? { readonly metadataRecovery: PicodashMetadataRecovery<Result> } : {}
+
 export type RootStore<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
-> = RootStoreBase<Fields, Result> & PersistenceCapability<Result>
+  Identified extends boolean = false,
+  ExportEnabled extends boolean = false,
+> = RootStoreBase<Fields, Result, Identified, ExportEnabled> &
+  PersistenceCapability<Result> &
+  MetadataRecoveryCapability<Identified, Result> &
+  (Identified extends true
+    ? { readonly documents: DocumentNamespace<Fields, Result, Identified, ExportEnabled> }
+    : {})
 
 export type ScopedStore<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
-> = ScopedStoreBase<Fields, Result> & PersistenceCapability<Result>
+  Identified extends boolean = false,
+  ExportEnabled extends boolean = false,
+> = ScopedStoreBase<Fields, Result, Identified, ExportEnabled> &
+  PersistenceCapability<Result> &
+  MetadataRecoveryCapability<Identified, Result> &
+  (Identified extends true
+    ? { readonly documents: ScopedDocumentNamespace<Fields, Result, Identified, ExportEnabled> }
+    : {})
 
 type ContractErrorCode =
   | 'invalid-configuration'
@@ -557,9 +839,14 @@ type ContractErrorCode =
   | 'invalid-callback-result'
   | 'reentrant-write'
   | 'invalid-destroy-options'
+  | 'invalid-reset-options'
   | 'invalid-provider-id'
   | 'duplicate-provider'
   | 'persistence-identity-in-use'
+  | 'invalid-persistence-conflict-options'
+  | 'invalid-persistence-erase-options'
+  | 'invalid-persistence-conflict-resolution'
+  | 'invalid-persistence-plan'
   | 'invalid-entity-options'
   | 'invalid-binding-options'
   | 'invalid-integration-handle'
@@ -574,6 +861,13 @@ type ContractErrorCode =
   | 'relationship-cycle'
   | 'lease-has-active-dependents'
   | 'missing-store-context'
+  | 'invalid-dash-list-node-options'
+  | 'duplicate-dash-list-node'
+  | 'invalid-prune-options'
+  | 'invalid-prune-plan'
+  | 'invalid-quarantine-replacement'
+  | 'invalid-document-options'
+  | 'invalid-document-plan'
   | 'root-has-active-leases'
   | 'root-has-unpersisted-state'
   | 'use-after-destroy'
@@ -584,11 +878,20 @@ const BUILTIN_CODES = new Set<PicodashIssueCode>([
   'schema_failed',
   'validation_failed',
   'stale_input',
+  'stale_plan',
   'unknown_field',
+  'invalid_document',
+  'foreign_store',
+  'incompatible_field',
+  'missing_scope',
+  'schema_migration_failed',
   'invalid_metadata',
+  'quarantined_metadata',
   'adapter_initialization_failed',
   'adapter_unhealthy',
   'adapter_write_failed',
+  'persistence_resolution_failed',
+  'persistence_erase_failed',
 ])
 
 const isAppCode = (value: unknown): value is `app:${string}` =>
@@ -1077,9 +1380,92 @@ export function createPicodashStore<
 >(
   config: InferredStoreConfig<Values> & {
     readonly fields: Definitions & ExactInputFields<Values, Definitions>
+    readonly storeId: string
+    readonly schemaVersion: number
+    readonly export: PicodashExportConfig
     readonly persistence: StoreOwnedPersistenceConfig<Definitions>
   },
-): RootStore<Definitions, PersistentTransactionResult>
+): RootStore<Definitions, PersistentTransactionResult, true, true>
+export function createPicodashStore<
+  Values extends Record<string, PicodashJsonValue>,
+  const Definitions extends InputFields<Values>,
+>(
+  config: InferredStoreConfig<Values> & {
+    readonly fields: Definitions & ExactInputFields<Values, Definitions>
+    readonly storeId: string
+    readonly schemaVersion: number
+    readonly export: PicodashExportConfig
+    readonly persistence?: never
+  },
+): RootStore<Definitions, CoreTransactionResult, true, true>
+export function createPicodashStore<
+  Values extends Record<string, PicodashJsonValue>,
+  const Definitions extends InputFields<Values>,
+>(
+  config: InferredStoreConfig<Values> & {
+    readonly fields: Definitions & ExactInputFields<Values, Definitions>
+    readonly persistence: StoreOwnedPersistenceConfig<Definitions>
+  },
+): RootStore<Definitions, PersistentTransactionResult, true, false>
+export function createPicodashStore<
+  Values extends Record<string, PicodashJsonValue>,
+  const Definitions extends InputFields<Values>,
+>(
+  config: InferredStoreConfig<Values> & {
+    readonly fields: Definitions & ExactInputFields<Values, Definitions>
+    readonly storeId: string
+    readonly schemaVersion: number
+    readonly initialEnvelope?: PicodashEnvelopeInput<Values>
+    readonly migrations?: SchemaMigrations
+    readonly persistence?: never
+  },
+): RootStore<Definitions, CoreTransactionResult, true, false>
+export function createPicodashStore<
+  Values extends Record<string, PicodashJsonValue>,
+  const Definitions extends InputFields<Values>,
+>(
+  config: InferredExternalConfig<Values> & {
+    readonly fields: Definitions & ExactInputFields<Values, Definitions>
+    readonly storeId: string
+    readonly schemaVersion: number
+    readonly export: PicodashExportConfig
+    readonly persistence: ExternalOwnedPersistenceConfig
+  },
+): RootStore<Definitions, PersistentTransactionResult, true, true>
+export function createPicodashStore<
+  Values extends Record<string, PicodashJsonValue>,
+  const Definitions extends InputFields<Values>,
+>(
+  config: InferredExternalConfig<Values> & {
+    readonly fields: Definitions & ExactInputFields<Values, Definitions>
+    readonly storeId: string
+    readonly schemaVersion: number
+    readonly export?: never
+    readonly persistence: ExternalOwnedPersistenceConfig
+  },
+): RootStore<Definitions, PersistentTransactionResult, true, false>
+export function createPicodashStore<
+  Values extends Record<string, PicodashJsonValue>,
+  const Definitions extends InputFields<Values>,
+>(
+  config: InferredExternalConfig<Values> & {
+    readonly fields: Definitions & ExactInputFields<Values, Definitions>
+    readonly storeId: string
+    readonly schemaVersion: number
+    readonly export: PicodashExportConfig
+  },
+): RootStore<Definitions, CoreTransactionResult, true, true>
+export function createPicodashStore<
+  Values extends Record<string, PicodashJsonValue>,
+  const Definitions extends InputFields<Values>,
+>(
+  config: InferredExternalConfig<Values> & {
+    readonly fields: Definitions & ExactInputFields<Values, Definitions>
+    readonly storeId: string
+    readonly schemaVersion: number
+    readonly export?: never
+  },
+): RootStore<Definitions, CoreTransactionResult, true, false>
 export function createPicodashStore<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
@@ -1103,7 +1489,7 @@ export function createPicodashStore<
     | (InferredExternalConfig<Values> & {
         readonly fields: Definitions & ExactInputFields<Values, Definitions>
       }),
-): RootStore<Definitions, CoreTransactionResult> {
+): RootStore<Definitions, CoreTransactionResult, boolean, boolean> {
   type Fields = Definitions
   if (
     !config ||
@@ -1114,6 +1500,22 @@ export function createPicodashStore<
   if (!config.fields || typeof config.fields !== 'object' || Array.isArray(config.fields))
     throw new PicodashContractError('invalid-configuration')
   const configuredFieldKeys = Object.keys(config.fields)
+  let configuredExportPolicy: PicodashExportPolicy | undefined
+  const configuredExport = (config as { readonly export?: unknown }).export
+  if (configuredExport !== undefined) {
+    if (
+      !validIdentity(config.storeId) ||
+      !Number.isSafeInteger(config.schemaVersion) ||
+      config.schemaVersion === undefined ||
+      config.schemaVersion <= 0
+    )
+      throw new PicodashContractError('invalid-configuration')
+    try {
+      configuredExportPolicy = normalizePicodashExportPolicy(configuredExport, configuredFieldKeys)
+    } catch {
+      throw new PicodashContractError('invalid-configuration')
+    }
+  }
   if (config.storeId !== undefined && !validIdentity(config.storeId))
     throw new PicodashContractError('invalid-configuration')
   if (
@@ -1123,6 +1525,20 @@ export function createPicodashStore<
       config.schemaVersion <= 0)
   )
     throw new PicodashContractError('invalid-configuration')
+  if (config.migrations !== undefined) {
+    if (
+      !validIdentity(config.storeId) ||
+      !Number.isSafeInteger(config.schemaVersion) ||
+      config.schemaVersion === undefined ||
+      config.schemaVersion <= 0
+    )
+      throw new PicodashContractError('invalid-configuration')
+    try {
+      validateSchemaMigrations(config.migrations, config.schemaVersion)
+    } catch {
+      throw new PicodashContractError('invalid-configuration')
+    }
+  }
   if (
     config.initialValues !== undefined &&
     (!config.initialValues ||
@@ -1135,31 +1551,67 @@ export function createPicodashStore<
   if (config.valueOwner === 'external' && config.initialValues !== undefined)
     throw new PicodashContractError('invalid-configuration')
   if (
-    (config as { readonly initialEnvelope?: unknown }).initialEnvelope !== undefined &&
-    config.valueOwner === 'external'
+    config.valueOwner === 'external' &&
+    (config.initialEnvelope !== undefined ||
+      config.persistence !== undefined ||
+      config.migrations !== undefined ||
+      config.export !== undefined) &&
+    (!validIdentity(config.storeId) ||
+      !Number.isSafeInteger(config.schemaVersion) ||
+      config.schemaVersion === undefined ||
+      config.schemaVersion <= 0)
   )
     throw new PicodashContractError('invalid-configuration')
   const configuredPersistence = (
-    config as { readonly persistence?: StoreOwnedPersistenceConfig<Definitions> }
+    config as {
+      readonly persistence?:
+        | StoreOwnedPersistenceConfig<Definitions>
+        | ExternalOwnedPersistenceConfig
+    }
   ).persistence
+  const metadataRecoveryEnabled =
+    validIdentity(config.storeId) &&
+    Number.isSafeInteger(config.schemaVersion) &&
+    config.schemaVersion !== undefined &&
+    config.schemaVersion > 0
+  const documentsEnabled =
+    validIdentity(config.storeId) &&
+    Number.isSafeInteger(config.schemaVersion) &&
+    config.schemaVersion !== undefined &&
+    config.schemaVersion > 0
   if (configuredPersistence !== undefined) {
     if (
-      config.valueOwner !== 'store' ||
       !validIdentity(config.storeId) ||
       !Number.isSafeInteger(config.schemaVersion) ||
       config.schemaVersion === undefined ||
       config.schemaVersion <= 0
     )
       throw new PicodashContractError('invalid-configuration')
-    const persistence = configuredPersistence as Record<string, unknown>
+    const persistence = configuredPersistence as object
+    const descriptors = Object.getOwnPropertyDescriptors(persistence)
+    const ownKeys = Reflect.ownKeys(descriptors)
+    if (
+      config.valueOwner === 'external' &&
+      (ownKeys.some((key) => typeof key !== 'string') ||
+        ownKeys.some((key) => key !== 'storageKey' && key !== 'driver') ||
+        !Object.hasOwn(descriptors, 'storageKey') ||
+        !Object.hasOwn(descriptors, 'driver') ||
+        !('value' in descriptors.storageKey!) ||
+        !('value' in descriptors.driver!))
+    )
+      throw new PicodashContractError('invalid-configuration')
+    const persistenceRecord = persistence as Record<string, unknown>
     if (
       !persistence ||
       typeof persistence !== 'object' ||
-      !validIdentity(persistence.storageKey as string)
+      !validIdentity(persistenceRecord.storageKey as string)
     )
       throw new PicodashContractError('invalid-configuration')
-    const driver = persistence.driver as Record<string, unknown> | undefined
-    const valuesPolicy = persistence.values as Record<string, unknown> | undefined
+    const driver = persistenceRecord.driver as Record<string, unknown> | undefined
+    const valuesPolicy =
+      config.valueOwner === 'store'
+        ? (persistenceRecord.values as Record<string, unknown> | undefined)
+        : undefined
     if (
       !driver ||
       typeof driver !== 'object' ||
@@ -1169,24 +1621,29 @@ export function createPicodashStore<
       typeof driver.remove !== 'function' ||
       (!driver.subscribe && driver.subscribe !== undefined) ||
       (driver.subscribe !== undefined && typeof driver.subscribe !== 'function') ||
-      !validatePersistenceValuesPolicy(valuesPolicy, configuredFieldKeys)
+      (config.valueOwner === 'store' &&
+        !validatePersistenceValuesPolicy(valuesPolicy, configuredFieldKeys))
     )
       throw new PicodashContractError('invalid-configuration')
   }
   const persistenceIncludedFields =
     configuredPersistence === undefined
       ? undefined
-      : new Set(
-          configuredFieldKeys.filter((key) => {
-            const overrides = configuredPersistence.values.fields as
-              | Record<string, 'include' | 'omit'>
-              | undefined
-            const selected = overrides?.[key]
-            return selected === undefined
-              ? configuredPersistence.values.defaultFieldPolicy === 'include'
-              : selected === 'include'
-          }),
-        )
+      : config.valueOwner === 'external'
+        ? new Set<string>()
+        : new Set(
+            configuredFieldKeys.filter((key) => {
+              const storePersistence =
+                configuredPersistence as StoreOwnedPersistenceConfig<Definitions>
+              const overrides = storePersistence.values.fields as
+                | Record<string, 'include' | 'omit'>
+                | undefined
+              const selected = overrides?.[key]
+              return selected === undefined
+                ? storePersistence.values.defaultFieldPolicy === 'include'
+                : selected === 'include'
+            }),
+          )
   const configuredRootValidate = config.validateValues
   if (configuredRootValidate !== undefined && typeof configuredRootValidate !== 'function')
     throw new PicodashContractError('invalid-configuration')
@@ -1500,13 +1957,52 @@ export function createPicodashStore<
 
   let values = freeze(canonicalInitial.candidate) as Readonly<Record<string, PicodashJsonValue>>
   let scopes: ReadonlyMap<string, DurableScopeMetadata> = EmptyScopes
+  let quarantinedScopes: ReadonlyMap<string, PicodashQuarantinedScopeMetadata> = immutableMap<
+    string,
+    PicodashQuarantinedScopeMetadata
+  >([])
   let writing = false
+  let externalAdapterRuntime: ExternalAdapterRuntime<ValuesOf<Fields>> | undefined
+  let adapterEchoValues: Readonly<Record<string, PicodashJsonValue>> | undefined
+  if (config.valueOwner === 'external') {
+    let runtime: ExternalAdapterRuntime<ValuesOf<Fields>>
+    try {
+      runtime = createExternalAdapterRuntime<ValuesOf<Fields>>({
+        adapter: config.adapter as PicodashValueAdapter<ValuesOf<Fields>>,
+        validateSnapshot: validateExternalSnapshot,
+        equal: (left, right) => picodashJsonEqual(left as never, right as never),
+        onExternalValues: (nextValues) => applyExternalValues(nextValues),
+        onHealthFailure: (reason) => {
+          diagnosticsRuntime.recordCondition({
+            fingerprint: 'adapter',
+            code: 'adapter_unhealthy',
+            severity: 'error',
+            message: 'External adapter is unhealthy.',
+            identity: { kind: 'adapter' },
+            details: { reason },
+          })
+          diagnosticsRuntime.publish()
+        },
+        onHealthRecovery: () => diagnosticsRuntime.recoverCondition('adapter'),
+        withNotification: (run) => {
+          if (writing) return run()
+          writing = true
+          try {
+            return run()
+          } finally {
+            writing = false
+          }
+        },
+      })
+    } catch (error) {
+      if (error instanceof PicodashInitializationError) throw error
+      throw new PicodashContractError('invalid-configuration')
+    }
+    externalAdapterRuntime = runtime
+    values = runtime.initialValues as Readonly<Record<string, PicodashJsonValue>>
+  }
   let persistenceController: PersistenceController | undefined
-  if (
-    config.valueOwner === 'store' &&
-    configuredPersistence === undefined &&
-    config.initialEnvelope !== undefined
-  ) {
+  if (configuredPersistence === undefined && config.initialEnvelope !== undefined) {
     const storeId = config.storeId
     const schemaVersion = config.schemaVersion
     if (
@@ -1516,26 +2012,79 @@ export function createPicodashStore<
       schemaVersion <= 0
     )
       throw new PicodashContractError('invalid-configuration')
-    const hydrated = hydratePersistenceEnvelope(
-      config.initialEnvelope,
-      { storeId, schemaVersion },
-      (input) => {
-        if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined
-        for (const key of fieldEntries) if (!Object.hasOwn(input, key)) return undefined
-        const built = buildCandidate(
-          values as Record<string, PicodashJsonValue>,
-          input as Record<string, unknown>,
-          'persistence',
-        )
-        return built.issues.length ? undefined : freeze(built.candidate)
-      },
-    )
-    if (!hydrated.ok)
+    let hydrated: ReturnType<typeof hydratePersistenceEnvelope>
+    try {
+      hydrated = hydratePersistenceEnvelope(
+        config.initialEnvelope,
+        { storeId, schemaVersion, valueOwner: config.valueOwner },
+        (input) => {
+          if (config.valueOwner === 'external')
+            return input &&
+              typeof input === 'object' &&
+              !Array.isArray(input) &&
+              !Object.keys(input).length
+              ? Object.freeze({})
+              : undefined
+          if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined
+          const source = input as Record<string, unknown>
+          const built = buildCandidate(
+            values as Record<string, PicodashJsonValue>,
+            Object.fromEntries(
+              fieldEntries
+                .filter(
+                  (key) =>
+                    (persistenceIncludedFields === undefined ||
+                      persistenceIncludedFields.has(key)) &&
+                    Object.hasOwn(source, key),
+                )
+                .map((key) => [key, source[key]]),
+            ),
+            'persistence',
+          )
+          return built.issues.length ? undefined : freeze(built.candidate)
+        },
+        {
+          migrations: config.migrations,
+          valueOwner: config.valueOwner,
+          countUnknownFields: (input) =>
+            Object.keys(input).filter((key) => !fieldEntries.includes(key)).length,
+          onUnknownFieldCount: (count) => {
+            if (!count) return
+            diagnosticsRuntime.recordCondition({
+              fingerprint: 'schema-unknown-fields',
+              code: 'unknown_persisted_fields',
+              severity: 'warning',
+              message: 'Persisted fields are not present in the current Store schema.',
+              identity: { kind: 'schema' },
+              details: { unknownFieldCount: count },
+            })
+            diagnosticsRuntime.publish()
+          },
+          onQuarantine: (scopeId) => {
+            diagnosticsRuntime.recordCondition({
+              fingerprint: `metadata-quarantined:${scopeId}`,
+              code: 'metadata_quarantined',
+              severity: 'warning',
+              message: 'Scope metadata was quarantined.',
+              identity: { kind: 'scope-metadata', scopeId },
+            })
+            diagnosticsRuntime.publish()
+          },
+        },
+      )
+    } catch (error) {
+      externalAdapterRuntime?.destroy()
+      throw error
+    }
+    if (!hydrated.ok) {
+      externalAdapterRuntime?.destroy()
       throw new PicodashInitializationError(hydrated.reason, 'invalid-persistence-envelope')
-    values = hydrated.record.values
+    }
+    if (config.valueOwner === 'store') values = hydrated.record.values
     scopes = hydrated.record.scopes
+    quarantinedScopes = hydrated.record.quarantinedScopes
   }
-  if (config.valueOwner === 'store' && configuredPersistence !== undefined) {
+  if (configuredPersistence !== undefined) {
     try {
       const persistenceConfig = configuredPersistence
       persistenceController = createPersistenceController({
@@ -1543,18 +2092,70 @@ export function createPicodashStore<
         driver: persistenceConfig.driver,
         storeId: config.storeId!,
         schemaVersion: config.schemaVersion!,
-        baselineValues: values,
+        baselineValues: config.valueOwner === 'external' ? Object.freeze({}) : values,
+        valueOwner: config.valueOwner,
         initialEnvelope: config.initialEnvelope,
+        migrations: config.migrations,
         normalizeValues: (input) => {
+          if (config.valueOwner === 'external')
+            return input &&
+              typeof input === 'object' &&
+              !Array.isArray(input) &&
+              !Object.keys(input).length
+              ? Object.freeze({})
+              : undefined
           if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined
+          const source = input as Record<string, unknown>
           const built = buildCandidate(
             values as Record<string, PicodashJsonValue>,
-            input as Record<string, unknown>,
+            Object.fromEntries(
+              fieldEntries
+                .filter(
+                  (key) =>
+                    (persistenceIncludedFields === undefined ||
+                      persistenceIncludedFields.has(key)) &&
+                    Object.hasOwn(source, key),
+                )
+                .map((key) => [key, source[key]]),
+            ),
             'persistence',
           )
           return built.issues.length ? undefined : freeze(built.candidate)
         },
+        onUnknownFieldCount: (count) => {
+          if (!count) return
+          diagnosticsRuntime.recordCondition({
+            fingerprint: 'schema-unknown-fields',
+            code: 'unknown_persisted_fields',
+            severity: 'warning',
+            message: 'Persisted fields are not present in the current Store schema.',
+            identity: { kind: 'schema' },
+            details: { unknownFieldCount: count },
+          })
+          diagnosticsRuntime.publish()
+        },
+        onQuarantine: (scopeId) => {
+          diagnosticsRuntime.recordCondition({
+            fingerprint: `metadata-quarantined:${scopeId}`,
+            code: 'metadata_quarantined',
+            severity: 'warning',
+            message: 'Scope metadata was quarantined.',
+            identity: { kind: 'scope-metadata', scopeId },
+          })
+          diagnosticsRuntime.publish()
+        },
+        onUnknownFieldsRecovered: () => {
+          diagnosticsRuntime.recoverCondition('schema-unknown-fields')
+          diagnosticsRuntime.publish()
+        },
         onExternalValues: () => undefined,
+        onApply: (nextValues, nextScopes, nextQuarantinedScopes) =>
+          applyPersistenceResolution(nextValues, nextScopes, nextQuarantinedScopes),
+        createConflictResolutionPlan: (input) =>
+          createPersistenceConflictResolutionPlanPublic(input),
+        executeConflictResolution: (plan) => executePersistenceConflictResolutionPublic(plan),
+        createErasePlan: () => createPersistenceErasePlanPublic(),
+        executeErase: (plan, input) => executePersistenceErasePublic(plan, input),
         onFailure: (reason: PersistenceFailureReason) => {
           if (!runtimeController)
             return Object.freeze({
@@ -1605,9 +2206,11 @@ export function createPicodashStore<
           }
         },
       })
-      values = persistenceController.initialValues
+      if (config.valueOwner === 'store') values = persistenceController.initialValues
       scopes = persistenceController.initialScopes
+      quarantinedScopes = persistenceController.initialQuarantinedScopes
     } catch (error) {
+      externalAdapterRuntime?.destroy()
       if (error instanceof PicodashInitializationError) throw error
       if (error instanceof Error && error.message.startsWith('persistence-identity-in-use:'))
         throw new PicodashContractError('persistence-identity-in-use', {
@@ -1661,50 +2264,513 @@ export function createPicodashStore<
   let scopedInternals = new WeakMap<object, ScopedChannel>()
   const channelsById = new Map<string, ScopedChannel>()
   const activeChannels = new Set<ScopedChannel>()
-  let externalAdapterRuntime: ExternalAdapterRuntime<ValuesOf<Fields>> | undefined
-  let adapterEchoValues: Readonly<Record<string, PicodashJsonValue>> | undefined
-  if (config.valueOwner === 'external') {
-    let runtime: ExternalAdapterRuntime<ValuesOf<Fields>>
-    try {
-      runtime = createExternalAdapterRuntime<ValuesOf<Fields>>({
-        adapter: config.adapter as PicodashValueAdapter<ValuesOf<Fields>>,
-        validateSnapshot: validateExternalSnapshot,
-        equal: (left, right) => picodashJsonEqual(left as never, right as never),
-        onExternalValues: (nextValues) => applyExternalValues(nextValues),
-        onHealthFailure: (reason) => {
-          diagnosticsRuntime.recordCondition({
-            fingerprint: 'adapter',
-            code: 'adapter_unhealthy',
-            severity: 'error',
-            message: 'External adapter is unhealthy.',
-            identity: { kind: 'adapter' },
-            details: { reason },
-          })
-          diagnosticsRuntime.publish()
-        },
-        onHealthRecovery: () => diagnosticsRuntime.recoverCondition('adapter'),
-        withNotification: (run) => {
-          if (writing) return run()
-          writing = true
-          try {
-            return run()
-          } finally {
-            writing = false
-          }
-        },
-      })
-    } catch (error) {
-      if (error instanceof PicodashInitializationError) throw error
-      throw new PicodashContractError('invalid-configuration')
-    }
-    externalAdapterRuntime = runtime
-    values = runtime.initialValues as Readonly<Record<string, PicodashJsonValue>>
-  }
   currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
 
   type StoreResult = CoreTransactionResult
-  let store!: RootStore<Fields, StoreResult>
-  const storeImplementation: RootStore<Fields, StoreResult> = {
+  let metadataRecoveryCapability!: PicodashMetadataRecovery<StoreResult>
+  let store!: RootStore<Fields, StoreResult, boolean, boolean>
+  metadataRecoveryCapability = createMetadataRecovery<StoreResult>({
+    assertActive: () => {
+      if (runtimeController?.lifecycle !== 'active')
+        throw new PicodashContractError('use-after-destroy')
+    },
+    getState: () => metadataRecoveryState(),
+    replaceScope: (scopeId, replacement) => replaceQuarantinedScopeInternal(scopeId, replacement),
+    onListenerError: () => {
+      diagnosticsRuntime.recordCondition({
+        fingerprint: 'metadata-recovery-subscriber',
+        code: 'subscriber_exception',
+        severity: 'error',
+        message: 'A Store subscriber threw.',
+        identity: { kind: 'subscriber', surface: 'capability', capability: 'metadataRecovery' },
+      })
+      diagnosticsRuntime.publish()
+    },
+  })
+
+  type DocumentExportSnapshot = Readonly<{
+    readonly receiverScopeId?: string
+    readonly options: ReturnType<typeof normalizePicodashExportOptions>
+    readonly document: PicodashDocument
+    readonly values: Readonly<Record<string, PicodashJsonValue>>
+    readonly scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[]
+    readonly activeFieldKeys: readonly string[]
+    readonly descendantScopeIds: readonly string[]
+  }>
+  type DocumentImportSnapshot = Readonly<{
+    readonly receiverScopeId?: string
+    readonly document: PicodashDocument
+    readonly options: PicodashNormalizedImportOptions
+    readonly overlay: ReturnType<typeof buildPicodashDocumentOverlay>
+    readonly targetValues: Readonly<Record<string, PicodashJsonValue>>
+    readonly targetQuarantined: readonly (readonly [string, PicodashJsonValue])[]
+    readonly storeId: string
+    readonly schemaVersion: number
+  }>
+
+  const documentOptionError = (error: unknown): never => {
+    if (error instanceof PicodashContractError) throw error
+    if (error && typeof error === 'object') {
+      const operation = (error as { operation?: unknown }).operation
+      const reason = (error as { reason?: unknown }).reason
+      if (typeof operation === 'string' && typeof reason === 'string')
+        throw new PicodashContractError('invalid-document-options', { operation, reason })
+    }
+    throw new PicodashContractError('invalid-document-options', {
+      operation: 'import-analysis',
+      reason: 'invalid-mapping',
+    })
+  }
+
+  const documentPlanError = (
+    kind: 'export' | 'import',
+    reason: 'wrong-kind' | 'foreign-root' | 'foreign-target' | 'consumed',
+  ): never => {
+    throw new PicodashContractError('invalid-document-plan', { kind, reason })
+  }
+
+  const documentFailure = (
+    reason: string,
+    message = 'Invalid Store document.',
+  ): Extract<CoreTransactionResult, { readonly ok: false }> =>
+    (() => {
+      const code: PicodashIssueCode =
+        reason === 'foreign_store'
+          ? 'foreign_store'
+          : reason === 'unknown_field'
+            ? 'unknown_field'
+            : reason === 'incompatible_field'
+              ? 'incompatible_field'
+              : reason === 'missing_scope'
+                ? 'missing_scope'
+                : reason === 'schema_migration_failed'
+                  ? 'schema_migration_failed'
+                  : reason === 'stale_plan'
+                    ? 'stale_plan'
+                    : 'invalid_document'
+      const issue: TransactionIssue = {
+        code,
+        path: freezePath([]),
+        message,
+        ...(code === 'invalid_document' ? { reason } : {}),
+      }
+      return rejectedResult([Object.freeze(issue)])
+    })()
+
+  const documentScopes = (): readonly (readonly [string, SerializedDurableScopeMetadata])[] =>
+    Object.freeze(
+      [...scopes.entries()]
+        .filter(([scopeId]) => !quarantinedScopes.has(scopeId))
+        .map(([scopeId, metadata]) => {
+          const encoded = encodeDurableScopeMetadata(metadata)
+          return encoded === undefined ? undefined : ([scopeId, encoded] as const)
+        })
+        .filter(
+          (entry): entry is readonly [string, SerializedDurableScopeMetadata] =>
+            entry !== undefined,
+        )
+        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
+    )
+
+  const documentScopeIds = (): readonly string[] => {
+    const controller = runtimeControllerFor(store as object)
+    const ids = new Set<string>([...scopes.keys(), ...quarantinedScopes.keys()])
+    for (const [scopeId] of controller?.bindings ?? []) ids.add(scopeId)
+    for (const [scopeId] of controller?.dashListNodes ?? []) ids.add(scopeId)
+    for (const entity of controller?.entities ?? []) if (entity.active) ids.add(entity.scopeId)
+    for (const relationship of controller?.relationships ?? []) {
+      if (relationship.active) {
+        ids.add(relationship.parentScopeId)
+        ids.add(relationship.childScopeId)
+      }
+    }
+    return Object.freeze([...ids].sort())
+  }
+
+  const assertDocumentFieldHandles = (
+    handles: readonly PicodashDocumentFieldHandle[] | undefined,
+  ): readonly string[] => {
+    if (handles === undefined) return Object.freeze([])
+    const keys = handles.map((handle) => {
+      assertOwned(handle)
+      return handle.key
+    })
+    return Object.freeze([...new Set(keys)].sort())
+  }
+
+  const makeExportSnapshot = (
+    receiverScopeId: string | undefined,
+    input: unknown,
+  ): DocumentExportSnapshot => {
+    if (!configuredExportPolicy)
+      throw new PicodashContractError('invalid-document-options', {
+        operation: 'export',
+        reason: 'invalid-target',
+      })
+    let options: ReturnType<typeof normalizePicodashExportOptions>
+    try {
+      options = normalizePicodashExportOptions(
+        input,
+        receiverScopeId === undefined ? 'root' : 'scope',
+      )
+    } catch (error) {
+      return documentOptionError(error)
+    }
+    const selectedExplicit = assertDocumentFieldHandles(options.fields)
+    const promoted = assertDocumentFieldHandles(options.promoteFields)
+    const controller = runtimeControllerFor(store as object)
+    const targetScopeId = receiverScopeId ?? options.scopeId
+    const descendants =
+      targetScopeId !== undefined && options.includeDescendants
+        ? [...(controller?.descendants(targetScopeId) ?? [])]
+        : []
+    const selected = new Set<string>()
+    if (targetScopeId === undefined) {
+      if (options.fields !== undefined) for (const key of selectedExplicit) selected.add(key)
+      else for (const key of fieldEntries) selected.add(key)
+    } else if (options.fields !== undefined) {
+      for (const key of selectedExplicit) selected.add(key)
+    } else {
+      for (const scopeId of [targetScopeId, ...descendants])
+        for (const key of controller?.activeBindingFieldKeys(scopeId) ?? []) selected.add(key)
+    }
+    if (options.promoteFields !== undefined && options.fields !== undefined)
+      for (const key of promoted) selected.add(key)
+    for (const key of promoted)
+      if (!selected.has(key))
+        documentOptionError(new PicodashDocumentOptionsError('export', 'invalid-promotion'))
+    const fields: PicodashDocumentFieldEntry[] = []
+    for (const key of [...selected].sort()) {
+      const policy = configuredExportPolicy.fields[key] ?? {
+        default: configuredExportPolicy.documents.defaultFieldPolicy,
+      }
+      const isPromoted = promoted.includes(key)
+      if (
+        isPromoted &&
+        (policy.default !== 'redact' || policy.allowPromotion !== 'with-confirmation')
+      )
+        documentOptionError(new PicodashDocumentOptionsError('export', 'invalid-promotion'))
+      if (policy.default === 'omit') continue
+      fields.push([
+        key,
+        policy.default === 'redact' && !isPromoted
+          ? { status: 'redacted' as const }
+          : { status: 'included' as const, value: values[key]! },
+      ])
+    }
+    const serializedScopes = documentScopes()
+    const targetScopes =
+      targetScopeId === undefined
+        ? serializedScopes
+        : serializedScopes.filter(([scopeId]) => [targetScopeId, ...descendants].includes(scopeId))
+    const document = encodePicodashDocument(
+      targetScopeId === undefined
+        ? {
+            formatVersion: 1,
+            kind: 'root',
+            storeId: config.storeId!,
+            schemaVersion: config.schemaVersion!,
+            fields,
+            scopes: targetScopes,
+          }
+        : {
+            formatVersion: 1,
+            kind: 'scope',
+            storeId: config.storeId!,
+            schemaVersion: config.schemaVersion!,
+            scopeId: targetScopeId,
+            fields,
+            scopes: targetScopes,
+          },
+    )
+    return Object.freeze({
+      receiverScopeId,
+      options,
+      document,
+      values: Object.freeze({ ...values }),
+      scopes: targetScopes,
+      activeFieldKeys: Object.freeze(
+        targetScopeId === undefined || options.fields !== undefined
+          ? []
+          : [
+              ...new Set(
+                [targetScopeId, ...descendants].flatMap(
+                  (scopeId) => controller?.activeBindingFieldKeys(scopeId) ?? [],
+                ),
+              ),
+            ].sort(),
+      ),
+      descendantScopeIds: Object.freeze(descendants.sort()),
+    })
+  }
+
+  const createDocumentExportPlan = (
+    receiverScopeId: string | undefined,
+    input: unknown,
+  ): PicodashExportPlan => {
+    const snapshot = makeExportSnapshot(receiverScopeId, input)
+    const review = normalizePicodashExportPlanReview({
+      kind: 'export-plan',
+      documentKind: snapshot.document.kind,
+      ...(snapshot.document.kind === 'scope' ? { scopeId: snapshot.document.scopeId } : {}),
+      fieldKeys: snapshot.document.fields.map(([key]) => key),
+      promotedFieldKeys: snapshot.options.promoteFields?.map((field) => field.key) ?? [],
+      scopeIds: snapshot.document.scopes.map(([scopeId]) => scopeId),
+    })
+    const plan = Object.freeze(review) as PicodashExportPlan
+    registerDocumentPlan(plan as object, {
+      root: store as object,
+      kind: 'export',
+      snapshot: snapshot as object,
+      consumed: false,
+    })
+    return plan
+  }
+
+  const executeDocumentExportPlan = (
+    plan: PicodashExportPlan,
+    input: unknown,
+    expectedReceiverScopeId?: string,
+  ): PicodashDocumentExportResult => {
+    const record = plan && typeof plan === 'object' ? documentPlanRecord(plan as object) : undefined
+    if (!record) return documentPlanError('export', 'wrong-kind')
+    if (record.kind !== 'export') documentPlanError('export', 'wrong-kind')
+    if (record.root !== (store as object)) documentPlanError('export', 'foreign-root')
+    const snapshot = record.snapshot as DocumentExportSnapshot
+    if (snapshot.receiverScopeId !== expectedReceiverScopeId)
+      documentPlanError('export', 'foreign-target')
+    try {
+      normalizePicodashExportExecutionOptions(
+        input,
+        (snapshot.options.promoteFields?.length ?? 0) > 0,
+      )
+    } catch (error) {
+      return documentOptionError(error)
+    }
+    if (record.consumed) documentPlanError('export', 'consumed')
+    record.consumed = true
+    const current = makeExportSnapshot(snapshot.receiverScopeId, snapshot.options)
+    if (
+      JSON.stringify(current.document) !== JSON.stringify(snapshot.document) ||
+      JSON.stringify(current.activeFieldKeys) !== JSON.stringify(snapshot.activeFieldKeys) ||
+      JSON.stringify(current.descendantScopeIds) !== JSON.stringify(snapshot.descendantScopeIds)
+    )
+      return documentFailure('stale_plan', 'Export plan is stale.')
+    return Object.freeze({ ok: true as const, document: current.document })
+  }
+
+  const makeImportSnapshot = (
+    receiverScopeId: string | undefined,
+    documentInput: unknown,
+    optionsInput?: unknown,
+  ): DocumentImportSnapshot | Extract<CoreTransactionResult, { readonly ok: false }> => {
+    let options: PicodashNormalizedImportOptions
+    try {
+      options = normalizePicodashImportOptions(
+        optionsInput,
+        receiverScopeId === undefined ? 'root' : 'scope',
+      )
+      for (const [, target] of options.fieldMap) if (target !== 'ignore') assertOwned(target)
+    } catch (error) {
+      return documentOptionError(error)
+    }
+    let document: PicodashDocument
+    try {
+      document = decodePicodashDocument(documentInput)
+    } catch (error) {
+      if (error instanceof PicodashDocumentError) return documentFailure(error.reason)
+      return documentFailure('shape')
+    }
+    if (document.storeId !== config.storeId && !options.allowForeignStore)
+      return documentFailure('foreign_store')
+    if (receiverScopeId !== undefined && document.kind !== 'scope') return documentFailure('kind')
+    if (
+      receiverScopeId === undefined &&
+      document.kind === 'scope' &&
+      options.targetScopeId === undefined
+    )
+      return documentFailure('missing_scope')
+    if (document.kind === 'scope' && receiverScopeId !== undefined)
+      options = Object.freeze({ ...options, targetScopeId: receiverScopeId })
+    if (document.schemaVersion !== config.schemaVersion) {
+      try {
+        document = migratePicodashDocument(document, config.schemaVersion!, config.migrations)
+      } catch {
+        return documentFailure('schema_migration_failed')
+      }
+    }
+    const targetScopeIds = documentScopeIds()
+    let overlay: ReturnType<typeof buildPicodashDocumentOverlay>
+    try {
+      overlay = buildPicodashDocumentOverlay({
+        document: stripRedactedPicodashDocumentFields(document),
+        targetValues: values,
+        targetScopes: documentScopes(),
+        targetScopeIds,
+        targetFieldKeys: fieldEntries,
+        compatibleFieldKeys: fieldEntries,
+        options,
+      })
+    } catch (error) {
+      if (error instanceof PicodashDocumentError) return documentFailure(error.reason)
+      return documentFailure('metadata')
+    }
+    return Object.freeze({
+      receiverScopeId,
+      document,
+      options,
+      overlay,
+      targetValues: Object.freeze({ ...values }),
+      targetQuarantined: Object.freeze(
+        [...quarantinedScopes.entries()]
+          .filter(([scopeId]) => overlay.changedScopeIds.includes(scopeId))
+          .map(([scopeId, record]) =>
+            Object.freeze([scopeId, clonePicodashValue(record.raw)] as const),
+          )
+          .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
+      ),
+      storeId: config.storeId!,
+      schemaVersion: config.schemaVersion!,
+    })
+  }
+
+  const createDocumentImportPlan = (
+    receiverScopeId: string | undefined,
+    documentInput: unknown,
+    optionsInput: unknown,
+  ):
+    | Readonly<{ readonly ok: true; readonly plan: PicodashImportPlan }>
+    | Extract<CoreTransactionResult, { readonly ok: false }> => {
+    const snapshot = makeImportSnapshot(receiverScopeId, documentInput, optionsInput)
+    if (!('overlay' in snapshot)) return snapshot
+    const review = normalizePicodashImportPlanReview({
+      kind: 'import-plan',
+      documentKind: snapshot.document.kind,
+      ...(snapshot.options.targetScopeId === undefined
+        ? {}
+        : { targetScopeId: snapshot.options.targetScopeId }),
+      changedFields: snapshot.overlay.changedFields,
+      changedScopeIds: snapshot.overlay.changedScopeIds,
+      ignoredFields: snapshot.overlay.ignoredFields,
+      createdScopes: snapshot.overlay.createdScopes,
+      fieldRemaps: snapshot.overlay.fieldRemaps,
+      scopeRemaps: snapshot.overlay.scopeRemaps,
+      foreignStore: snapshot.document.storeId !== config.storeId,
+    })
+    const plan = Object.freeze(review) as PicodashImportPlan
+    registerDocumentPlan(plan as object, {
+      root: store as object,
+      kind: 'import',
+      snapshot: snapshot as object,
+      consumed: false,
+    })
+    return Object.freeze({ ok: true as const, plan })
+  }
+
+  const executeDocumentImportPlan = (
+    plan: PicodashImportPlan,
+    expectedReceiverScopeId?: string,
+  ): CoreTransactionResult => {
+    const record = plan && typeof plan === 'object' ? documentPlanRecord(plan as object) : undefined
+    if (!record) return documentPlanError('import', 'wrong-kind')
+    if (record.kind !== 'import') documentPlanError('import', 'wrong-kind')
+    if (record.root !== (store as object)) documentPlanError('import', 'foreign-root')
+    const snapshot = record.snapshot as DocumentImportSnapshot
+    if (snapshot.receiverScopeId !== expectedReceiverScopeId)
+      documentPlanError('import', 'foreign-target')
+    if (record.consumed) documentPlanError('import', 'consumed')
+    // A structurally valid single-use plan is consumed before recomputing its
+    // overlay. State drift, metadata validation, or adapter/persistence failure
+    // therefore cannot make the same plan executable a second time.
+    record.consumed = true
+    let currentOverlay: ReturnType<typeof buildPicodashDocumentOverlay>
+    try {
+      currentOverlay = buildPicodashDocumentOverlay({
+        document: snapshot.document,
+        targetValues: values,
+        targetScopes: documentScopes(),
+        targetScopeIds: documentScopeIds(),
+        targetFieldKeys: fieldEntries,
+        compatibleFieldKeys: fieldEntries,
+        options: snapshot.options,
+      })
+    } catch (error) {
+      if (error instanceof PicodashDocumentError) return documentFailure(error.reason)
+      return documentFailure('metadata')
+    }
+    const trackedQuarantineIds = new Set(snapshot.targetQuarantined.map(([scopeId]) => scopeId))
+    const trackedFieldKeys = new Set<string>()
+    for (const [sourceKey, entry] of snapshot.document.fields) {
+      if (entry.status !== 'included') continue
+      const mapped = snapshot.options.fieldMap.find(([key]) => key === sourceKey)?.[1]
+      if (mapped !== 'ignore')
+        trackedFieldKeys.add(typeof mapped === 'object' && mapped !== null ? mapped.key : sourceKey)
+    }
+    const trackedScopeIds = new Set<string>()
+    const scopeMap = new Map(snapshot.options.scopeMap)
+    if (snapshot.document.kind === 'scope' && snapshot.options.targetScopeId !== undefined)
+      scopeMap.set(snapshot.document.scopeId, snapshot.options.targetScopeId)
+    for (const [sourceScopeId] of snapshot.document.scopes)
+      trackedScopeIds.add(scopeMap.get(sourceScopeId) ?? sourceScopeId)
+    if (snapshot.options.targetScopeId !== undefined)
+      trackedScopeIds.add(snapshot.options.targetScopeId)
+    const overlayFingerprint = (overlay: ReturnType<typeof buildPicodashDocumentOverlay>) => ({
+      values: Object.fromEntries(
+        [...trackedFieldKeys].sort().map((key) => [key, overlay.values[key]] as const),
+      ),
+      scopes: overlay.scopes.filter(([scopeId]) => trackedScopeIds.has(scopeId)),
+      changedFields: overlay.changedFields.filter((key) => trackedFieldKeys.has(key)),
+      changedScopeIds: overlay.changedScopeIds.filter((scopeId) => trackedScopeIds.has(scopeId)),
+      ignoredFields: overlay.ignoredFields,
+      createdScopes: overlay.createdScopes.filter((scopeId) => trackedScopeIds.has(scopeId)),
+      fieldRemaps: overlay.fieldRemaps,
+      scopeRemaps: overlay.scopeRemaps.filter(([, targetId]) => trackedScopeIds.has(targetId)),
+    })
+    const targetValueFingerprint = (source: Readonly<Record<string, PicodashJsonValue>>) =>
+      Object.fromEntries([...trackedFieldKeys].sort().map((key) => [key, source[key]] as const))
+    if (
+      JSON.stringify(overlayFingerprint(currentOverlay)) !==
+        JSON.stringify(overlayFingerprint(snapshot.overlay)) ||
+      JSON.stringify(targetValueFingerprint(values)) !==
+        JSON.stringify(targetValueFingerprint(snapshot.targetValues)) ||
+      JSON.stringify(snapshot.targetQuarantined) !==
+        JSON.stringify(
+          [...quarantinedScopes.entries()]
+            .filter(([scopeId]) => trackedQuarantineIds.has(scopeId))
+            .map(([scopeId, record]) => [scopeId, record.raw] as const)
+            .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
+        )
+    )
+      return documentFailure('stale_plan', 'Import plan is stale.')
+    const nextScopesEntries: [string, DurableScopeMetadata][] = []
+    try {
+      for (const [scopeId, metadata] of currentOverlay.scopes) {
+        const decoded = decodeDurableScopeMetadata(metadata)
+        if (decoded !== undefined) nextScopesEntries.push([scopeId, decoded])
+      }
+    } catch {
+      return documentFailure('metadata')
+    }
+    const nextScopes = immutableMap(
+      nextScopesEntries.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
+    )
+    const changedScopeSet = new Set(currentOverlay.changedScopeIds)
+    const nextQuarantinedScopes = immutableMap(
+      [...quarantinedScopes.entries()].filter(([scopeId]) => !changedScopeSet.has(scopeId)),
+    )
+    const nextValues: Record<string, unknown> = Object.create(null)
+    for (const key of fieldEntries) {
+      if (!picodashJsonEqual(values[key]!, currentOverlay.values[key]!))
+        nextValues[key] = currentOverlay.values[key]!
+    }
+    return transactAttributed(nextValues, snapshot.receiverScopeId, 'import', {
+      includeRoot: true,
+      targetScopeIds: currentOverlay.changedScopeIds,
+      nextScopes,
+      nextQuarantinedScopes,
+    })
+  }
+  const storeImplementation: RootStore<Fields, StoreResult, boolean, boolean> = {
     kind: 'root',
     fields,
     diagnostics: diagnosticsRuntime.facade,
@@ -1739,6 +2805,16 @@ export function createPicodashStore<
     },
     resetValueOrThrow(field) {
       const result = store.resetValue(field)
+      if (!result.ok) throw result.error
+      return result
+    },
+    resetRegisteredValues(options) {
+      const parsed = validateResetOptions(options, true)
+      validateScopeId(parsed.scopeId)
+      return resetRegisteredValuesInternal(parsed.scopeId, parsed.includeDescendants)
+    },
+    resetRegisteredValuesOrThrow(options) {
+      const result = store.resetRegisteredValues(options)
       if (!result.ok) throw result.error
       return result
     },
@@ -1857,10 +2933,39 @@ export function createPicodashStore<
       metadataCommand(scopeId, (previous) =>
         previous?.dashPanel ? { dashPanel: previous.dashPanel } : undefined,
       ),
+    createPrunePlan: ((options: RootDashListPruneOptions) =>
+      createRootPrunePlanInternal(options)) as RootMetadataCommands<StoreResult>['createPrunePlan'],
+    executePrunePlan: (plan) => executePrunePlanInternal(plan as object),
+  }
+  if (documentsEnabled) {
+    const documents: Record<string, unknown> = {
+      analyzeImport: (document: unknown, options?: unknown) =>
+        createDocumentImportPlan(undefined, document, options),
+      executeImport: (plan: PicodashImportPlan) => executeDocumentImportPlan(plan, undefined),
+    }
+    if (configuredExportPolicy) {
+      documents.createExportPlan = (options?: unknown) =>
+        createDocumentExportPlan(undefined, options)
+      documents.executeExport = (plan: PicodashExportPlan, options?: unknown) =>
+        executeDocumentExportPlan(plan, options, undefined)
+    }
+    Object.defineProperty(storeImplementation, 'documents', {
+      value: Object.freeze(documents),
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    })
   }
   if (persistenceController)
     Object.defineProperty(storeImplementation, 'persistence', {
       value: persistenceController.capability,
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    })
+  if (metadataRecoveryEnabled)
+    Object.defineProperty(storeImplementation, 'metadataRecovery', {
+      value: metadataRecoveryCapability,
       enumerable: true,
       writable: false,
       configurable: false,
@@ -1916,21 +3021,267 @@ export function createPicodashStore<
   type TransactionDispatchOptions = {
     readonly beforeDispatch?: () => void
     readonly includeRoot?: boolean
+    readonly targetScopeIds?: readonly string[]
+    readonly nextScopes?: ReadonlyMap<string, DurableScopeMetadata>
+    readonly nextQuarantinedScopes?: ReadonlyMap<string, PicodashQuarantinedScopeMetadata>
   }
 
   function persistCurrent(): 'unchanged' | 'saved' | 'pending' | undefined {
-    return persistenceController?.persist(values, scopes)
+    return persistenceController?.persist(values, scopes, quarantinedScopes)
+  }
+
+  function applyPersistenceResolution(
+    nextValues: Readonly<Record<string, PicodashJsonValue>>,
+    nextScopes: ReadonlyMap<string, DurableScopeMetadata>,
+    nextQuarantinedScopes: ReadonlyMap<string, PicodashQuarantinedScopeMetadata>,
+  ): Readonly<{
+    readonly changedFields: readonly string[]
+    readonly changedScopeIds: readonly string[]
+  }> {
+    const changedFields =
+      config.valueOwner === 'external'
+        ? []
+        : fieldEntries.filter((key) => !picodashJsonEqual(values[key]!, nextValues[key]!)).sort()
+    const scopeIds = new Set([
+      ...scopes.keys(),
+      ...nextScopes.keys(),
+      ...quarantinedScopes.keys(),
+      ...nextQuarantinedScopes.keys(),
+    ])
+    const changedScopeIds = [...scopeIds]
+      .filter((scopeId) => {
+        const before = scopes.get(scopeId)
+        const after = nextScopes.get(scopeId)
+        const beforeQuarantine = quarantinedScopes.get(scopeId)
+        const afterQuarantine = nextQuarantinedScopes.get(scopeId)
+        return (
+          JSON.stringify(encodeDurableScopeMetadata(before)) !==
+            JSON.stringify(encodeDurableScopeMetadata(after)) ||
+          JSON.stringify(beforeQuarantine?.raw) !== JSON.stringify(afterQuarantine?.raw)
+        )
+      })
+      .sort()
+    if (config.valueOwner === 'store')
+      values = freeze(nextValues) as Readonly<Record<string, PicodashJsonValue>>
+    scopes = nextScopes
+    quarantinedScopes = nextQuarantinedScopes
+    for (const key of changedFields) fieldRevisions.set(key, (fieldRevisions.get(key) ?? 0) + 1)
+    markDirtyBindingsStale(changedFields)
+    currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
+    const affectedChannels = collectScopedChannels()
+    refreshScopedChannels(affectedChannels)
+    dispatchStoreSubscribers(affectedChannels)
+    return Object.freeze({
+      changedFields: Object.freeze(changedFields),
+      changedScopeIds: Object.freeze(changedScopeIds),
+    })
+  }
+
+  const persistenceOptionError = (
+    code: 'invalid-persistence-conflict-options' | 'invalid-persistence-erase-options',
+    reason: string,
+  ): never => {
+    throw new PicodashContractError(code, { reason })
+  }
+
+  const exactDataRecord = (
+    input: unknown,
+    allowedKeys: readonly string[],
+  ): {
+    readonly record?: Record<string, unknown>
+    readonly reason?: 'not-object' | 'unknown-key' | 'accessor-property'
+  } => {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) return { reason: 'not-object' }
+    const descriptors = Object.getOwnPropertyDescriptors(input)
+    for (const key of Reflect.ownKeys(descriptors)) {
+      if (typeof key !== 'string' || !allowedKeys.includes(key)) return { reason: 'unknown-key' }
+    }
+    for (const key of Reflect.ownKeys(descriptors)) {
+      const descriptor = descriptors[key as string]!
+      if (!descriptor.enumerable) return { reason: 'unknown-key' }
+      if (!('value' in descriptor)) return { reason: 'accessor-property' }
+    }
+    return { record: input as Record<string, unknown> }
+  }
+
+  function parsePersistenceConflictOptions(input: unknown): PersistenceConflictResolutionOptions {
+    const checked = exactDataRecord(input, ['mode', 'onOverlap'])
+    if (!checked.record)
+      persistenceOptionError('invalid-persistence-conflict-options', checked.reason!)
+    const validRecord = checked.record as Record<string, unknown>
+    const keys = Object.keys(validRecord)
+    const mode = validRecord.mode
+    if (mode !== 'reload' && mode !== 'overwrite' && mode !== 'reconcile')
+      persistenceOptionError('invalid-persistence-conflict-options', 'invalid-mode')
+    if (mode === 'reconcile') {
+      if (keys.some((key) => key !== 'mode' && key !== 'onOverlap'))
+        persistenceOptionError('invalid-persistence-conflict-options', 'unknown-key')
+      if (
+        keys.length !== 2 ||
+        (validRecord.onOverlap !== 'local' && validRecord.onOverlap !== 'durable')
+      )
+        persistenceOptionError('invalid-persistence-conflict-options', 'invalid-overlap')
+      return { mode, onOverlap: validRecord.onOverlap as 'local' | 'durable' }
+    }
+    if (keys.some((key) => key !== 'mode') || keys.length !== 1)
+      persistenceOptionError('invalid-persistence-conflict-options', 'unknown-key')
+    return { mode: mode as 'reload' | 'overwrite' }
+  }
+
+  function parseEraseConfirmation(input: unknown): { readonly confirm: true } {
+    const checked = exactDataRecord(input, ['confirm'])
+    if (!checked.record)
+      persistenceOptionError('invalid-persistence-erase-options', checked.reason!)
+    const validRecord = checked.record as Record<string, unknown>
+    const keys = Object.keys(validRecord)
+    if (keys.some((key) => key !== 'confirm'))
+      persistenceOptionError('invalid-persistence-erase-options', 'unknown-key')
+    if (keys.length !== 1 || validRecord.confirm !== true)
+      persistenceOptionError('invalid-persistence-erase-options', 'confirmation-required')
+    return { confirm: true }
+  }
+
+  function createPersistenceConflictResolutionPlanPublic(
+    input: PersistenceConflictResolutionOptions,
+  ): PicodashPersistenceConflictResolutionPlan {
+    const parsed = parsePersistenceConflictOptions(input)
+    let snapshot
+    try {
+      snapshot = persistenceController!.createConflictResolutionSnapshot(parsed)
+    } catch {
+      throw new PicodashContractError('invalid-persistence-conflict-resolution', {
+        reason: 'not-conflicted',
+      })
+    }
+    const plan = Object.freeze({
+      kind: 'persistence-conflict-resolution-plan' as const,
+      mode: parsed.mode,
+    }) as PicodashPersistenceConflictResolutionPlan
+    registerPersistencePlan(plan as object, {
+      root: store as object,
+      kind: 'conflict-resolution',
+      snapshot: snapshot as object,
+      consumed: false,
+    })
+    return plan
+  }
+
+  function invalidPersistencePlan(reason: 'wrong-kind' | 'foreign-root' | 'consumed'): never {
+    throw new PicodashContractError('invalid-persistence-plan', {
+      kind: 'conflict-resolution',
+      reason,
+    })
+  }
+
+  function executePersistenceConflictResolutionPublic(
+    plan: PicodashPersistenceConflictResolutionPlan,
+  ): PersistentTransactionResult {
+    const record =
+      plan && typeof plan === 'object' ? persistencePlanRecord(plan as object) : undefined
+    if (!record) invalidPersistencePlan('wrong-kind')
+    if (record.kind !== 'conflict-resolution') invalidPersistencePlan('wrong-kind')
+    if (record.root !== (store as object)) invalidPersistencePlan('foreign-root')
+    if (record.consumed) invalidPersistencePlan('consumed')
+    record.consumed = true
+    const outcome = persistenceController!.executeConflictResolution(record.snapshot as never)
+    if (!outcome.ok)
+      return rejectedResult([
+        Object.freeze({
+          code:
+            outcome.reason === 'stale'
+              ? ('stale_plan' as const)
+              : ('persistence_resolution_failed' as const),
+          path: freezePath([]),
+          message:
+            outcome.reason === 'stale'
+              ? 'Persistence plan is stale.'
+              : 'Persistence conflict resolution failed.',
+        }),
+      ]) as PersistentTransactionResult
+    return Object.freeze({
+      ok: true as const,
+      changedFields: outcome.changedFields,
+      changedScopeIds: outcome.changedScopeIds,
+      persistence: outcome.persistence,
+    })
+  }
+
+  function createPersistenceErasePlanPublic(): PicodashPersistenceErasePlan {
+    const snapshot = persistenceController!.createEraseSnapshot()
+    const plan = Object.freeze({
+      kind: 'persistence-erase-plan' as const,
+      hasDurableEnvelope: snapshot.hasDurableEnvelope,
+      discardsPendingEnvelope: snapshot.discardsPendingEnvelope,
+    }) as PicodashPersistenceErasePlan
+    registerPersistencePlan(plan as object, {
+      root: store as object,
+      kind: 'erase',
+      snapshot: snapshot as object,
+      consumed: false,
+    })
+    return plan
+  }
+
+  function executePersistenceErasePublic(
+    plan: PicodashPersistenceErasePlan,
+    input: { readonly confirm: true },
+  ): PersistenceEraseResult {
+    parseEraseConfirmation(input)
+    const record =
+      plan && typeof plan === 'object' ? persistencePlanRecord(plan as object) : undefined
+    if (!record)
+      throw new PicodashContractError('invalid-persistence-plan', {
+        kind: 'erase',
+        reason: 'wrong-kind',
+      })
+    if (record.kind !== 'erase')
+      throw new PicodashContractError('invalid-persistence-plan', {
+        kind: 'erase',
+        reason: 'wrong-kind',
+      })
+    if (record.root !== (store as object))
+      throw new PicodashContractError('invalid-persistence-plan', {
+        kind: 'erase',
+        reason: 'foreign-root',
+      })
+    if (record.consumed)
+      throw new PicodashContractError('invalid-persistence-plan', {
+        kind: 'erase',
+        reason: 'consumed',
+      })
+    record.consumed = true
+    const outcome = persistenceController!.executeErase(record.snapshot as never)
+    if (!outcome.ok)
+      return {
+        ok: false,
+        error: new PicodashTransactionError([
+          Object.freeze({
+            code:
+              outcome.reason === 'stale'
+                ? ('stale_plan' as const)
+                : ('persistence_erase_failed' as const),
+            path: freezePath([]),
+            message:
+              outcome.reason === 'stale'
+                ? 'Persistence plan is stale.'
+                : 'Persistence erase failed.',
+          }),
+        ]),
+      }
+    return outcome
   }
 
   function resultWithPersistence(result: CoreTransactionResult): CoreTransactionResult {
     if (!result.ok || !persistenceController) return result
+    if (config.valueOwner === 'external' && result.changedScopeIds.length === 0)
+      return Object.freeze({ ...result, persistence: 'unchanged' as const })
     return Object.freeze({ ...result, persistence: persistCurrent()! }) as CoreTransactionResult
   }
 
   function transactAttributed(
     next: Record<string, unknown>,
     originScopeId?: string,
-    source: 'programmatic' | 'interactive' | 'repair' | 'reset' = 'programmatic',
+    source: 'programmatic' | 'interactive' | 'repair' | 'reset' | 'import' = 'programmatic',
     options?: TransactionDispatchOptions,
   ): CoreTransactionResult {
     if (writing) throw new PicodashContractError('reentrant-write')
@@ -1943,7 +3294,8 @@ export function createPicodashStore<
         }),
       ])
     const keys = Object.keys(next)
-    if (!keys.length) return resultWithPersistence(successfulResult())
+    if (!keys.length && options?.nextScopes === undefined)
+      return resultWithPersistence(successfulResult())
     writing = true
     try {
       const built = buildCandidate(
@@ -1956,7 +3308,32 @@ export function createPicodashStore<
       const changedFields = fieldEntries
         .filter((key) => !picodashJsonEqual(values[key]!, built.candidate[key]!))
         .sort()
-      if (!changedFields.length) {
+      const nextScopes = options?.nextScopes ?? scopes
+      const nextQuarantinedScopes = options?.nextQuarantinedScopes ?? quarantinedScopes
+      const changedScopeIds = [...new Set([...scopes.keys(), ...nextScopes.keys()])].filter(
+        (scopeId) => {
+          const before = encodeDurableScopeMetadata(scopes.get(scopeId))
+          const after = encodeDurableScopeMetadata(nextScopes.get(scopeId))
+          return !picodashJsonEqual(
+            (before ?? null) as PicodashJsonValue,
+            (after ?? null) as PicodashJsonValue,
+          )
+        },
+      )
+      const changedQuarantineIds = [
+        ...new Set([...quarantinedScopes.keys(), ...nextQuarantinedScopes.keys()]),
+      ].filter((scopeId) => {
+        const before = quarantinedScopes.get(scopeId)?.raw
+        const after = nextQuarantinedScopes.get(scopeId)?.raw
+        return !picodashJsonEqual(
+          (before ?? null) as PicodashJsonValue,
+          (after ?? null) as PicodashJsonValue,
+        )
+      })
+      for (const scopeId of changedQuarantineIds)
+        if (!changedScopeIds.includes(scopeId)) changedScopeIds.push(scopeId)
+      changedScopeIds.sort()
+      if (!changedFields.length && !changedScopeIds.length) {
         if (options?.beforeDispatch) {
           options.beforeDispatch()
           const affectedChannels =
@@ -1968,15 +3345,19 @@ export function createPicodashStore<
         }
         return resultWithPersistence(successfulResult())
       }
-      if (externalAdapterRuntime?.isUnhealthy())
+      if (externalAdapterRuntime?.isUnhealthy() && changedFields.length)
         return rejectedResult([adapterUnhealthyIssue(originScopeId)])
-      if (externalAdapterRuntime) {
+      if (externalAdapterRuntime && changedFields.length) {
         adapterEchoValues = built.candidate
         const context: AdapterWriteContext = Object.freeze({
           source,
           ...(originScopeId === undefined ? {} : { originScopeId }),
           targetScopeIds: Object.freeze(
-            source === 'programmatic' || originScopeId === undefined ? [] : [originScopeId],
+            options?.targetScopeIds !== undefined
+              ? [...options.targetScopeIds]
+              : source === 'programmatic' || originScopeId === undefined
+                ? []
+                : [originScopeId],
           ),
           changedFields: Object.freeze([...changedFields]),
         })
@@ -1993,18 +3374,52 @@ export function createPicodashStore<
           return rejectedResult([adapterWriteFailedIssue(failure, originScopeId)])
       }
       values = freeze(built.candidate) as Readonly<Record<string, PicodashJsonValue>>
+      scopes = nextScopes
+      quarantinedScopes = nextQuarantinedScopes
       for (const key of changedFields) fieldRevisions.set(key, (fieldRevisions.get(key) ?? 0) + 1)
       markDirtyBindingsStale(changedFields)
       options?.beforeDispatch?.()
       currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
       const affectedChannels = collectScopedChannels()
       refreshScopedChannels(affectedChannels)
-      const result = resultWithPersistence(successfulResult(changedFields))
+      const result = resultWithPersistence(successfulResult(changedFields, changedScopeIds))
       dispatchStoreSubscribers(affectedChannels, options?.includeRoot)
       return result
     } finally {
       writing = false
     }
+  }
+
+  function resetRegisteredValuesInternal(
+    scopeId: string,
+    includeDescendants: boolean,
+    originScopeId?: string,
+  ): CoreTransactionResult {
+    validateScopeId(scopeId)
+    const controller = runtimeControllerFor(store as object)
+    const targetScopeIds = new Set<string>([scopeId])
+    if (includeDescendants)
+      for (const descendant of controller?.descendants(scopeId) ?? [])
+        targetScopeIds.add(descendant)
+    const sortedTargetScopeIds = [...targetScopeIds].sort()
+    const selectedFields = new Set<string>()
+    for (const target of sortedTargetScopeIds) {
+      const byItem = controller?.bindings.get(target)
+      if (!byItem) continue
+      for (const byAlias of byItem.values()) {
+        for (const binding of byAlias.values()) {
+          if (!binding.active) continue
+          const fieldKey = (binding.field as { readonly key?: unknown }).key
+          if (typeof fieldKey === 'string' && definitionMap.has(fieldKey))
+            selectedFields.add(fieldKey)
+        }
+      }
+    }
+    const supplied = Object.create(null) as Record<string, unknown>
+    for (const fieldKey of [...selectedFields].sort()) supplied[fieldKey] = baseline[fieldKey]!
+    return transactAttributed(supplied, originScopeId, 'reset', {
+      targetScopeIds: Object.freeze(sortedTargetScopeIds),
+    })
   }
 
   function bindingRecordFor(handle: object): import('../runtime-controller.js').BindingRecord {
@@ -2565,6 +3980,45 @@ export function createPicodashStore<
     if (reason) throw new PicodashContractError('invalid-scope-id', { reason })
   }
 
+  function validateResetOptions(
+    options: unknown,
+    root: boolean,
+  ): { readonly scopeId?: unknown; readonly includeDescendants: boolean } {
+    if (!options || typeof options !== 'object' || Array.isArray(options))
+      throw new PicodashContractError('invalid-reset-options', { reason: 'not-object' })
+    let descriptors: Record<PropertyKey, PropertyDescriptor>
+    try {
+      descriptors = Object.getOwnPropertyDescriptors(options)
+      for (const key of Reflect.ownKeys(descriptors)) {
+        if (
+          typeof key !== 'string' ||
+          (root ? key !== 'scopeId' && key !== 'includeDescendants' : key !== 'includeDescendants')
+        )
+          throw new PicodashContractError('invalid-reset-options', { reason: 'unknown-key' })
+      }
+      const knownKeys: readonly string[] = root
+        ? ['scopeId', 'includeDescendants']
+        : ['includeDescendants']
+      for (const key of knownKeys) {
+        const descriptor = descriptors[key]
+        if (descriptor && !('value' in descriptor))
+          throw new PicodashContractError('invalid-reset-options', { reason: 'accessor-property' })
+      }
+      const includeDescendants = descriptors.includeDescendants?.value
+      if (includeDescendants !== undefined && typeof includeDescendants !== 'boolean')
+        throw new PicodashContractError('invalid-reset-options', {
+          reason: 'invalid-include-descendants',
+        })
+      return {
+        ...(root ? { scopeId: descriptors.scopeId?.value } : {}),
+        includeDescendants: includeDescendants === true,
+      }
+    } catch (error) {
+      if (error instanceof PicodashContractError) throw error
+      throw new PicodashContractError('invalid-reset-options', { reason: 'not-object' })
+    }
+  }
+
   function validateDestroyOptions(options: unknown): boolean {
     if (options === undefined) return false
     if (!options || typeof options !== 'object' || Array.isArray(options))
@@ -2761,9 +4215,11 @@ export function createPicodashStore<
     diagnosticsRuntime.publish()
   }
 
-  function getScoped(scopeId: string): ScopedStore<Fields, StoreResult> {
+  function getScoped(scopeId: string): ScopedStore<Fields, StoreResult, boolean> {
     validateScopeId(scopeId)
-    const cached = scopedRefs.get(scopeId)?.deref() as ScopedStore<Fields, StoreResult> | undefined
+    const cached = scopedRefs.get(scopeId)?.deref() as
+      | ScopedStore<Fields, StoreResult, boolean>
+      | undefined
     if (cached) return cached
     const channel =
       channelsById.get(scopeId) ??
@@ -2772,7 +4228,7 @@ export function createPicodashStore<
         snapshot: makeScopedSnapshot(scopeId),
         listeners: new Set<() => void>(),
       } satisfies ScopedChannel)
-    const scoped: ScopedStore<Fields, StoreResult> = {
+    const scoped: ScopedStore<Fields, StoreResult, boolean, boolean> = {
       kind: 'scoped',
       root: store,
       scopeId,
@@ -2818,6 +4274,15 @@ export function createPicodashStore<
         if (!result.ok) throw result.error
         return result
       },
+      resetRegisteredValues(options) {
+        const parsed = validateResetOptions(options === undefined ? {} : options, false)
+        return resetRegisteredValuesInternal(scopeId, parsed.includeDescendants, scopeId)
+      },
+      resetRegisteredValuesOrThrow(options) {
+        const result = scoped.resetRegisteredValues(options)
+        if (!result.ok) throw result.error
+        return result
+      },
       setValues(next) {
         return transactAttributed(next as Record<string, unknown>, scopeId)
       },
@@ -2845,10 +4310,42 @@ export function createPicodashStore<
       removeDashListCollapseOverride: (nodeId) =>
         store.removeDashListCollapseOverride(scopeId, nodeId),
       resetDashListMetadata: () => store.resetDashListMetadata(scopeId),
+      createPrunePlan: ((options: DashListPruneSelection) =>
+        createScopedPrunePlanInternal(
+          scopeId,
+          options,
+        )) as ScopedMetadataCommands<StoreResult>['createPrunePlan'],
+      executePrunePlan: (plan) => executePrunePlanInternal(plan as object, scopeId),
+    }
+    if (documentsEnabled) {
+      const documents: Record<string, unknown> = {
+        analyzeImport: (document: unknown, options?: unknown) =>
+          createDocumentImportPlan(scopeId, document, options),
+        executeImport: (plan: PicodashImportPlan) => executeDocumentImportPlan(plan, scopeId),
+      }
+      if (configuredExportPolicy) {
+        documents.createExportPlan = (options?: unknown) =>
+          createDocumentExportPlan(scopeId, options)
+        documents.executeExport = (plan: PicodashExportPlan, options?: unknown) =>
+          executeDocumentExportPlan(plan, options, scopeId)
+      }
+      Object.defineProperty(scoped, 'documents', {
+        value: Object.freeze(documents),
+        enumerable: true,
+        writable: false,
+        configurable: false,
+      })
     }
     if (persistenceController)
       Object.defineProperty(scoped, 'persistence', {
         value: persistenceController.capability,
+        enumerable: true,
+        writable: false,
+        configurable: false,
+      })
+    if (metadataRecoveryEnabled)
+      Object.defineProperty(scoped, 'metadataRecovery', {
+        value: metadataRecoveryCapability,
         enumerable: true,
         writable: false,
         configurable: false,
@@ -2862,12 +4359,324 @@ export function createPicodashStore<
     return facade
   }
 
+  type ParsedPruneSelection =
+    | { readonly mode: 'review' }
+    | {
+        readonly mode: 'explicit'
+        readonly removeNodeIds: readonly string[]
+        readonly keepNodeIds: readonly string[]
+      }
+    | { readonly mode: 'inventory'; readonly knownNodeIds: readonly string[] }
+
+  function invalidPruneOptions(reason: InvalidPruneOptionsReason): never {
+    throw new PicodashContractError('invalid-prune-options', { reason })
+  }
+
+  function parsePruneNodeIds(value: unknown): readonly string[] {
+    try {
+      if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype)
+        return invalidPruneOptions('invalid-node-ids')
+      const descriptors = Object.getOwnPropertyDescriptors(value)
+      for (const key of Reflect.ownKeys(descriptors)) {
+        if (typeof key !== 'string') return invalidPruneOptions('invalid-node-ids')
+        if (key !== 'length' && (!/^0$|^[1-9]\d*$/.test(key) || Number(key) >= value.length))
+          return invalidPruneOptions('invalid-node-ids')
+        if (key !== 'length' && (!descriptors[key]!.enumerable || !('value' in descriptors[key]!)))
+          return invalidPruneOptions('invalid-node-ids')
+      }
+      const values: string[] = []
+      const seen = new Set<string>()
+      for (let index = 0; index < value.length; index += 1) {
+        const descriptor = descriptors[String(index)]
+        if (!descriptor || !('value' in descriptor)) return invalidPruneOptions('invalid-node-ids')
+        const nodeId = descriptor.value
+        if (!validIdentity(nodeId)) return invalidPruneOptions('invalid-node-ids')
+        if (seen.has(nodeId)) return invalidPruneOptions('duplicate-node-id')
+        seen.add(nodeId)
+        values.push(nodeId)
+      }
+      values.sort()
+      return Object.freeze(values)
+    } catch (error) {
+      if (error instanceof PicodashContractError) throw error
+      return invalidPruneOptions('invalid-node-ids')
+    }
+  }
+
+  function parsePruneOptions(
+    options: unknown,
+    requireScope: boolean,
+  ): {
+    readonly scopeId?: unknown
+    readonly selection: ParsedPruneSelection
+  } {
+    if (!options || typeof options !== 'object' || Array.isArray(options))
+      return invalidPruneOptions('not-object')
+    let descriptors: Record<PropertyKey, PropertyDescriptor>
+    try {
+      descriptors = Object.getOwnPropertyDescriptors(options)
+      for (const key of Reflect.ownKeys(descriptors)) {
+        const allowed =
+          key === 'mode' ||
+          (requireScope && key === 'scopeId') ||
+          key === 'removeNodeIds' ||
+          key === 'keepNodeIds' ||
+          key === 'knownNodeIds'
+        if (!allowed) return invalidPruneOptions('unknown-key')
+      }
+      for (const key of Reflect.ownKeys(descriptors)) {
+        const descriptor = descriptors[key]!
+        if (!('value' in descriptor)) return invalidPruneOptions('accessor-property')
+      }
+    } catch (error) {
+      if (error instanceof PicodashContractError) throw error
+      return invalidPruneOptions('not-object')
+    }
+    const mode = descriptors.mode?.value
+    if (mode !== 'review' && mode !== 'explicit' && mode !== 'inventory')
+      return invalidPruneOptions('invalid-mode')
+    const modeKeys =
+      mode === 'review'
+        ? new Set<PropertyKey>(['mode', ...(requireScope ? ['scopeId'] : [])])
+        : mode === 'explicit'
+          ? new Set<PropertyKey>([
+              'mode',
+              ...(requireScope ? ['scopeId'] : []),
+              'removeNodeIds',
+              'keepNodeIds',
+            ])
+          : new Set<PropertyKey>(['mode', ...(requireScope ? ['scopeId'] : []), 'knownNodeIds'])
+    for (const key of Reflect.ownKeys(descriptors))
+      if (!modeKeys.has(key)) return invalidPruneOptions('unknown-key')
+    if (mode === 'review')
+      return {
+        ...(requireScope ? { scopeId: descriptors.scopeId?.value } : {}),
+        selection: { mode },
+      }
+    if (mode === 'explicit') {
+      const removeNodeIds = parsePruneNodeIds(descriptors.removeNodeIds?.value)
+      const keepNodeIds = parsePruneNodeIds(descriptors.keepNodeIds?.value)
+      return {
+        ...(requireScope ? { scopeId: descriptors.scopeId?.value } : {}),
+        selection: { mode, removeNodeIds, keepNodeIds },
+      }
+    }
+    const knownNodeIds = parsePruneNodeIds(descriptors.knownNodeIds?.value)
+    return {
+      ...(requireScope ? { scopeId: descriptors.scopeId?.value } : {}),
+      selection: { mode, knownNodeIds },
+    }
+  }
+
+  function pruneCandidates(scopeId: string): readonly DashListPruneCandidate[] {
+    const list = scopes.get(scopeId)?.dashList
+    const effects = new Map<string, Set<DashListPruneEffect>>()
+    const add = (nodeId: string, effect: DashListPruneEffect) => {
+      const current = effects.get(nodeId) ?? new Set<DashListPruneEffect>()
+      current.add(effect)
+      effects.set(nodeId, current)
+    }
+    for (const nodeId of list?.rootOrder ?? []) add(nodeId, 'root-order-entry')
+    if (list) {
+      for (const [owner, order] of list.groupOrders) {
+        add(owner, 'group-order-owner')
+        for (const nodeId of order) add(nodeId, 'group-order-entry')
+      }
+      for (const nodeId of list.collapseOverrides.keys()) add(nodeId, 'collapse-override')
+    }
+    const controller = runtimeControllerFor(store as object)
+    const active = new Set(controller?.activeDashListNodeIds(scopeId) ?? [])
+    const order: readonly DashListPruneEffect[] = [
+      'root-order-entry',
+      'group-order-owner',
+      'group-order-entry',
+      'collapse-override',
+    ]
+    return Object.freeze(
+      [...effects.keys()]
+        .filter((nodeId) => !active.has(nodeId))
+        .sort()
+        .map((nodeId) =>
+          Object.freeze({
+            nodeId,
+            effects: Object.freeze(order.filter((effect) => effects.get(nodeId)!.has(effect))),
+          }),
+        ),
+    )
+  }
+
+  function pruneFingerprint(scopeId: string): string {
+    const list = scopes.get(scopeId)?.dashList
+    const controller = runtimeControllerFor(store as object)
+    return JSON.stringify({
+      rootOrder: list?.rootOrder ?? null,
+      groupOrders: list ? [...list.groupOrders].map(([key, order]) => [key, order]) : [],
+      collapseOverrides: list ? [...list.collapseOverrides] : [],
+      activeNodeIds: controller?.activeDashListNodeIds(scopeId) ?? [],
+    })
+  }
+
+  function classifyPruneSelection(
+    selection: ParsedPruneSelection,
+    candidates: readonly DashListPruneCandidate[],
+    scopeId: string,
+  ):
+    | { readonly mode: 'review' }
+    | {
+        readonly mode: 'explicit' | 'inventory'
+        readonly removeNodeIds: readonly string[]
+        readonly keepNodeIds: readonly string[]
+      } {
+    if (selection.mode === 'review') return selection
+    const candidateIds = new Set(candidates.map((candidate) => candidate.nodeId))
+    if (selection.mode === 'explicit') {
+      const overlap = selection.removeNodeIds.some((nodeId) =>
+        selection.keepNodeIds.includes(nodeId),
+      )
+      if (overlap) return invalidPruneOptions('overlapping-node-id')
+      for (const nodeId of [...selection.removeNodeIds, ...selection.keepNodeIds])
+        if (!candidateIds.has(nodeId)) return invalidPruneOptions('unknown-candidate')
+      const selected = new Set([...selection.removeNodeIds, ...selection.keepNodeIds])
+      if (selected.size !== candidateIds.size || [...candidateIds].some((id) => !selected.has(id)))
+        return invalidPruneOptions('incomplete-candidate-partition')
+      return selection
+    }
+    const active = runtimeControllerFor(store as object)?.activeDashListNodeIds(scopeId) ?? []
+    const known = new Set(selection.knownNodeIds)
+    if (active.some((nodeId) => !known.has(nodeId)))
+      return invalidPruneOptions('missing-active-node')
+    const keepNodeIds = candidates
+      .map((candidate) => candidate.nodeId)
+      .filter((nodeId) => known.has(nodeId))
+    const removeNodeIds = candidates
+      .map((candidate) => candidate.nodeId)
+      .filter((nodeId) => !known.has(nodeId))
+    return {
+      mode: 'inventory',
+      removeNodeIds: Object.freeze([...removeNodeIds]),
+      keepNodeIds: Object.freeze([...keepNodeIds]),
+    }
+  }
+
+  function createPrunePlan(
+    options: unknown,
+    requireScope: boolean,
+    scopedScopeId?: string,
+  ): DashListPruneReview | PicodashDashListPrunePlan {
+    const parsed = parsePruneOptions(options, requireScope)
+    const scopeId = requireScope ? parsed.scopeId : scopedScopeId
+    if (scopeId === undefined || typeof scopeId !== 'string') validateScopeId(scopeId)
+    else validateScopeId(scopeId)
+    const candidates = pruneCandidates(scopeId as string)
+    const classified = classifyPruneSelection(parsed.selection, candidates, scopeId as string)
+    if (classified.mode === 'review')
+      return Object.freeze({
+        kind: 'dash-list-prune-review' as const,
+        scopeId: scopeId as string,
+        candidates,
+      })
+    const plan = Object.freeze({
+      kind: 'dash-list-prune-plan' as const,
+      mode: classified.mode,
+      scopeId: scopeId as string,
+      candidates,
+      removeNodeIds: Object.freeze([...classified.removeNodeIds]),
+      keepNodeIds: Object.freeze([...classified.keepNodeIds]),
+    }) as PicodashDashListPrunePlan
+    registerDashListPrunePlan(plan as object, {
+      root: store as object,
+      scopeId: scopeId as string,
+      fingerprint: pruneFingerprint(scopeId as string),
+      removeNodeIds: plan.removeNodeIds,
+      consumed: false,
+    })
+    return plan
+  }
+
+  function createRootPrunePlanInternal(
+    options: RootDashListPruneOptions,
+  ): DashListPruneReview | PicodashDashListPrunePlan {
+    return createPrunePlan(options, true)
+  }
+
+  function createScopedPrunePlanInternal(
+    scopeId: string,
+    options: DashListPruneSelection,
+  ): DashListPruneReview | PicodashDashListPrunePlan {
+    return createPrunePlan(options, false, scopeId)
+  }
+
+  function executePrunePlanInternal(plan: object, expectedScopeId?: string): CoreTransactionResult {
+    let registry: ReturnType<typeof dashListPrunePlanRecord>
+    try {
+      registry = dashListPrunePlanRecord(plan)
+    } catch {
+      throw new PicodashContractError('invalid-prune-plan', { reason: 'wrong-kind' })
+    }
+    if (!registry) throw new PicodashContractError('invalid-prune-plan', { reason: 'wrong-kind' })
+    if (
+      registry.root !== (store as object) ||
+      (expectedScopeId !== undefined && registry.scopeId !== expectedScopeId)
+    )
+      throw new PicodashContractError('invalid-prune-plan', { reason: 'foreign-root' })
+    if (registry.consumed)
+      throw new PicodashContractError('invalid-prune-plan', { reason: 'consumed' })
+    registry.consumed = true
+    if (registry.fingerprint !== pruneFingerprint(registry.scopeId))
+      return rejectedResult([
+        Object.freeze({
+          code: 'stale_plan' as const,
+          path: Object.freeze([]) as readonly [],
+          message: 'Prune plan is stale.',
+        }),
+      ])
+    const remove = new Set(registry.removeNodeIds)
+    return metadataCommand(registry.scopeId, (previous) => {
+      const list = previous?.dashList
+      if (!list || remove.size === 0) return previous
+      const rootOrder = list.rootOrder?.filter((nodeId) => !remove.has(nodeId))
+      const groupOrders = new Map<string, readonly string[]>()
+      for (const [owner, order] of list.groupOrders) {
+        if (remove.has(owner)) continue
+        const nextOrder = order.filter((nodeId) => !remove.has(nodeId))
+        if (nextOrder.length) groupOrders.set(owner, nextOrder)
+      }
+      const collapseOverrides = new Map<string, boolean>()
+      for (const [nodeId, collapsed] of list.collapseOverrides)
+        if (!remove.has(nodeId)) collapseOverrides.set(nodeId, collapsed)
+      const normalized = normalizeDashListMetadataRecord({
+        ...(rootOrder && rootOrder.length ? { rootOrder } : {}),
+        groupOrders,
+        collapseOverrides,
+      })
+      return normalized.rootOrder === undefined &&
+        normalized.groupOrders.size === 0 &&
+        normalized.collapseOverrides.size === 0
+        ? previous?.dashPanel
+          ? { dashPanel: previous.dashPanel }
+          : undefined
+        : {
+            ...(previous?.dashPanel ? { dashPanel: previous.dashPanel } : {}),
+            dashList: normalized,
+          }
+    })
+  }
+
   function metadataCommand(
     scopeId: string,
     transform: (previous: DurableScopeMetadata | undefined) => DurableScopeMetadata | undefined,
   ): CoreTransactionResult {
     if (writing) throw new PicodashContractError('reentrant-write')
     validateScopeId(scopeId)
+    if (quarantinedScopes.has(scopeId))
+      return rejectedResult([
+        Object.freeze({
+          code: 'quarantined_metadata' as const,
+          path: freezePath(['scopes', scopeId]),
+          message: 'Scope metadata is quarantined.',
+          scopeId,
+        }),
+      ])
     writing = true
     try {
       let candidate: DurableScopeMetadata | undefined
@@ -2896,6 +4705,59 @@ export function createPicodashStore<
       currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
       const affectedChannels = collectScopedChannels(scopeId)
       refreshScopedChannels(affectedChannels)
+      const result = resultWithPersistence(successfulResult([], [scopeId]))
+      dispatchStoreSubscribers(affectedChannels)
+      return result
+    } finally {
+      writing = false
+    }
+  }
+
+  function metadataRecoveryState(): PicodashMetadataRecoveryState {
+    return Object.freeze({ quarantinedScopes })
+  }
+
+  function replaceQuarantinedScopeInternal(
+    scopeId: string,
+    replacement: SerializedDurableScopeMetadata | null,
+  ): CoreTransactionResult {
+    if (writing) throw new PicodashContractError('reentrant-write')
+    validateScopeId(scopeId)
+    if (!quarantinedScopes.has(scopeId))
+      throw new PicodashContractError('invalid-quarantine-replacement', {
+        reason: 'not-quarantined',
+      })
+    let candidate: DurableScopeMetadata | undefined
+    if (replacement !== null) {
+      try {
+        candidate = decodeDurableScopeMetadata(replacement)
+      } catch {
+        return rejectedResult([
+          Object.freeze({
+            code: 'invalid_metadata' as const,
+            path: freezePath(['scopes', scopeId]),
+            message: 'Invalid Store metadata.',
+            scopeId,
+          }),
+        ])
+      }
+    }
+    writing = true
+    try {
+      const nextQuarantine = new Map(quarantinedScopes)
+      nextQuarantine.delete(scopeId)
+      quarantinedScopes = nextQuarantine.size
+        ? immutableMap([...nextQuarantine.entries()])
+        : immutableMap<string, PicodashQuarantinedScopeMetadata>([])
+      const nextScopes = [...scopes.entries()].filter(([id]) => id !== scopeId)
+      if (candidate !== undefined) nextScopes.push([scopeId, candidate])
+      nextScopes.sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+      scopes = nextScopes.length ? immutableMap(nextScopes) : EmptyScopes
+      currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
+      const affectedChannels = collectScopedChannels(scopeId)
+      refreshScopedChannels(affectedChannels)
+      diagnosticsRuntime.recoverCondition(`metadata-quarantined:${scopeId}`)
+      diagnosticsRuntime.publish()
       const result = resultWithPersistence(successfulResult([], [scopeId]))
       dispatchStoreSubscribers(affectedChannels)
       return result

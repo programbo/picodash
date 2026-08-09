@@ -184,6 +184,54 @@ describe('DashList bindings', () => {
     act(() => view.unmount())
   })
 
+  it('offers shell-owned stale overwrite confirmation without exposing a plan in context', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: {
+        count: {
+          defaultValue: 1,
+          parse: (input: unknown) =>
+            typeof input === 'number'
+              ? { ok: true as const, candidate: input }
+              : { ok: false as const, issues: [{ message: 'Count must be a number.' }] },
+        },
+      },
+    })
+    let context: any
+    let view!: ReturnType<typeof create>
+    act(() => {
+      view = create(
+        createElement(
+          DashList,
+          { id: 'list', store },
+          createElement(Dashlet as any, {
+            id: 'count',
+            label: 'Count',
+            field: store.fields.count,
+            children: (value: any) => {
+              context = value
+              return null
+            },
+          }),
+        ),
+      )
+    })
+    expect(context.binding).not.toHaveProperty('createStaleInputOverwritePlan')
+    act(() => void context.binding.setInput('invalid'))
+    act(() => void store.setValue(store.fields.count, 2))
+    act(() => void context.binding.setInput(3))
+    expect(context.binding).toMatchObject({ dirty: true, stale: true, draftValue: 3 })
+    expect(
+      view.root
+        .findAllByType('button')
+        .map((button) =>
+          button.children.filter((child): child is string => typeof child === 'string').join(' '),
+        ),
+    ).toContain('Overwrite value…')
+    act(() => view.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('rejects descriptor mutation and rolls back a partially acquired compound binding', () => {
     const store = createPicodashStore({
       valueOwner: 'store',
