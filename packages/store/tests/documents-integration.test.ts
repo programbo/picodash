@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore, type PicodashValueAdapter } from '../src/index.ts'
 import { createExternalAdapter } from './support/external-adapter.js'
 import { createMemoryPersistence } from './support/memory-persistence.js'
@@ -260,8 +260,16 @@ describe('Store document namespace integration', () => {
     expect(target.metadataRecovery.replaceScope('unrelated', { dashPanel: panel })).toMatchObject({
       ok: true,
     })
+    const recoveryListener = vi.fn()
+    target.metadataRecovery.subscribe(recoveryListener)
     expect(target.documents.executeImport(analysis.plan)).toMatchObject({ ok: true })
+    expect(recoveryListener).toHaveBeenCalledTimes(1)
     expect(target.metadataRecovery.getState().quarantinedScopes.has('mapped')).toBe(false)
+    expect(
+      [...target.diagnostics.getState().current.values()].some(
+        (entry) => entry.code === 'metadata_quarantined',
+      ),
+    ).toBe(false)
     expect(target.getState().scopes.has('mapped')).toBe(true)
 
     const stalePersistence = createMemoryPersistence({
@@ -291,6 +299,53 @@ describe('Store document namespace integration', () => {
     const stale = staleTarget.documents.executeImport(staleAnalysis.plan)
     expect(stale).toMatchObject({ ok: false })
     if (!stale.ok) expect(stale.error.issues[0]).toMatchObject({ code: 'stale_plan' })
+
+    const addedQuarantinePersistence = createMemoryPersistence()
+    const addedQuarantineTarget = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'documents-quarantine-import',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 0 }, secret: { defaultValue: 'target' } },
+      persistence: {
+        storageKey: 'documents-added-quarantine-state',
+        driver: addedQuarantinePersistence,
+        values: { defaultFieldPolicy: 'include' },
+      },
+    })
+    expect(
+      addedQuarantineTarget.setDashPanelLayout('mapped', {
+        ...panel,
+        preferredPosition: { x: 9, y: 9 },
+      }),
+    ).toMatchObject({ ok: true })
+    const absentAnalysis = addedQuarantineTarget.documents.analyzeImport(exported.document, {
+      targetScopeId: 'mapped',
+    })
+    expect(absentAnalysis.ok).toBe(true)
+    if (!absentAnalysis.ok) return
+    const foreign = JSON.parse(
+      addedQuarantinePersistence.inspect('documents-added-quarantine-state') as string,
+    )
+    foreign.revision += 1
+    foreign.writerId = 'quarantine-after-analysis'
+    foreign.scopes = [['mapped', { dashPanel: { invalid: true } }]]
+    addedQuarantinePersistence.foreignWrite(
+      'documents-added-quarantine-state',
+      JSON.stringify(foreign),
+    )
+    const reload = addedQuarantineTarget.persistence.createConflictResolutionPlan({
+      mode: 'reload',
+    })
+    expect(addedQuarantineTarget.persistence.executeConflictResolution(reload)).toMatchObject({
+      ok: true,
+    })
+    expect(addedQuarantineTarget.metadataRecovery.getState().quarantinedScopes.has('mapped')).toBe(
+      true,
+    )
+    const newlyStale = addedQuarantineTarget.documents.executeImport(absentAnalysis.plan)
+    expect(newlyStale).toMatchObject({ ok: false })
+    if (!newlyStale.ok) expect(newlyStale.error.issues[0]).toMatchObject({ code: 'stale_plan' })
+    addedQuarantineTarget.destroy({ discardUnpersisted: true })
     staleTarget.destroy({ discardUnpersisted: true })
     source.destroy()
     target.destroy({ discardUnpersisted: true })

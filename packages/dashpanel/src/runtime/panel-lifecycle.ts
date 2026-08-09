@@ -80,11 +80,37 @@ function focusable(element: HTMLElement): boolean {
   return /^(A|AREA|BUTTON|INPUT|SELECT|TEXTAREA|SUMMARY)$/.test(element.tagName)
 }
 
+function rendered(element: HTMLElement): boolean {
+  let current: HTMLElement | null = element
+  while (current) {
+    const style = typeof getComputedStyle === 'function' ? getComputedStyle(current) : undefined
+    if (
+      style?.display === 'none' ||
+      style?.visibility === 'hidden' ||
+      style?.visibility === 'collapse'
+    )
+      return false
+    current = current.parentElement
+  }
+  return true
+}
+
+function tryFocus(element: HTMLElement, requireSequentialFocus = true): boolean {
+  if (!connected(element) || !rendered(element)) return false
+  if (requireSequentialFocus && !focusable(element)) return false
+  if (element.hasAttribute('disabled') || element.getAttribute('aria-disabled') === 'true')
+    return false
+  if (typeof element.focus !== 'function') return false
+  element.focus()
+  return typeof document === 'undefined' || document.activeElement === element
+}
+
 function firstFocusTarget(panel: HTMLElement): HTMLElement | null {
   const descendants = panel.querySelectorAll<HTMLElement>(
     'a[href], area[href], button, input, select, textarea, summary, [tabindex]',
   )
-  for (const candidate of descendants) if (focusable(candidate)) return candidate
+  for (const candidate of descendants)
+    if (focusable(candidate) && rendered(candidate)) return candidate
   return null
 }
 
@@ -92,24 +118,24 @@ export function focusPanel(runtime: PanelRuntime, scopeId: string): void {
   const panel = runtime.getElement(scopeId)
   if (!panel) return
   const target = firstFocusTarget(panel)
-  if (target) {
-    target.focus()
-    return
-  }
+  if (target && tryFocus(target)) return
   panel.tabIndex = -1
-  panel.focus()
+  tryFocus(panel, false)
 }
 
-function providerFallback(
+function providerFallbackCandidates(
   boundary: Element | { readonly current: Element | null } | null | undefined,
   portalContainer: HTMLElement | null | undefined,
-): HTMLElement | null {
+): readonly HTMLElement[] {
   const resolved: Element | null =
     boundary && 'current' in boundary ? boundary.current : (boundary ?? null)
-  if (connected(resolved)) return resolved
-  if (connected(portalContainer ?? null)) return portalContainer ?? null
+  const portal = portalContainer ?? null
+  const candidates: HTMLElement[] = []
+  if (connected(resolved)) candidates.push(resolved)
+  if (connected(portal) && portal !== resolved) candidates.push(portal)
   const body = typeof document !== 'undefined' ? document.body : null
-  return connected(body) && focusable(body) ? body : null
+  if (connected(body) && !candidates.includes(body)) candidates.push(body)
+  return candidates
 }
 
 export function restorePanelFocus(
@@ -119,9 +145,10 @@ export function restorePanelFocus(
   portalContainer: HTMLElement | null | undefined,
 ): void {
   const record = records.get(runtime)?.get(scopeId)
-  const target =
-    connectedReference(record?.trigger) ||
-    connectedReference(record?.beforeEntry) ||
-    providerFallback(boundary, portalContainer)
-  target?.focus()
+  const trigger = connectedReference(record?.trigger)
+  if (trigger && tryFocus(trigger)) return
+  const beforeEntry = connectedReference(record?.beforeEntry)
+  if (beforeEntry && tryFocus(beforeEntry)) return
+  for (const fallback of providerFallbackCandidates(boundary, portalContainer))
+    if (tryFocus(fallback, false)) return
 }

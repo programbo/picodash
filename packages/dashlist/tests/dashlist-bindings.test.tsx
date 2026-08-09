@@ -80,6 +80,42 @@ describe('DashList bindings', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('preserves opaque compound aliases that match object prototype keys', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { first: { defaultValue: 'a' }, second: { defaultValue: 'b' } },
+    })
+    const fields = Object.fromEntries([
+      ['__proto__', store.fields.first],
+      ['safe', store.fields.second],
+    ])
+    let context: any
+    let view!: ReturnType<typeof create>
+    act(() => {
+      view = create(
+        createElement(
+          DashList,
+          { id: 'list', store },
+          createElement(Dashlet as any, {
+            id: 'pair',
+            label: 'Pair',
+            fields,
+            children: (value: any) => {
+              context = value
+              return null
+            },
+          }),
+        ),
+      )
+    })
+    expect(Object.getPrototypeOf(context.bindings)).toBeNull()
+    expect(Object.hasOwn(context.bindings, '__proto__')).toBe(true)
+    expect(context.bindings.__proto__.value).toBe('a')
+    expect(Object.keys(context.bindings)).toEqual(['__proto__', 'safe'])
+    act(() => view.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('renders binding issues at their IDs and announces the first post-input rejection', () => {
     const store = createPicodashStore({
       valueOwner: 'store',

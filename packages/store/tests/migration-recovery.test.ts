@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 import {
   createPicodashStore,
   type PicodashPersistenceDriver,
@@ -265,5 +265,28 @@ describe('Store beta migration and metadata recovery', () => {
       }),
     )
     store.destroy({ discardUnpersisted: true })
+  })
+
+  it('destroys quarantine-only scope state and publishes recovery', () => {
+    const persistence = createMemoryPersistence({
+      state: envelope({ value: 1 }, [['quarantine-only', { dashPanel: { invalid: true } }]], 2),
+    })
+    const store = createPicodashStore(config(persistence))
+    const listener = vi.fn()
+    store.metadataRecovery.subscribe(listener)
+    expect(store.destroyScope('quarantine-only')).toMatchObject({
+      ok: true,
+      changedScopeIds: ['quarantine-only'],
+      persistence: 'saved',
+    })
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(store.metadataRecovery.getState().quarantinedScopes.has('quarantine-only')).toBe(false)
+    expect(
+      [...store.diagnostics.getState().current.values()].some(
+        (entry) => entry.code === 'metadata_quarantined',
+      ),
+    ).toBe(false)
+    expect(JSON.parse(persistence.inspect('state') as string).scopes).toEqual([])
+    store.destroy()
   })
 })

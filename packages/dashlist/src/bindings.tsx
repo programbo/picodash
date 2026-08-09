@@ -281,8 +281,8 @@ export function useDashletBindings(
   const result = useMemo(() => {
     const state = storeSnapshot
     const interaction = state.interaction.bindings.get(itemId)
-    const bindings: Record<string, DashletBindingContext<PicodashJsonValue>> = {}
-    const staleOverwrite: Record<string, StaleOverwriteController> = {}
+    const bindings: Record<string, DashletBindingContext<PicodashJsonValue>> = Object.create(null)
+    const staleOverwrite: Record<string, StaleOverwriteController> = Object.create(null)
     const allIssues = dedupeIssues(
       stableDescriptors
         .flatMap((descriptor) => interaction?.get(descriptor.alias)?.inputIssues ?? [])

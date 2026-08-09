@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vite-plus/test'
+import { focusPanel, recordPanelEntry, restorePanelFocus } from './panel-lifecycle.ts'
 import { createPanelRuntime, type PanelRuntimeConfig } from './panel-runtime.ts'
 
 const config = (scopeId: string, overrides: Omit<PanelRuntimeConfig, 'scopeId'> = {}) => ({
@@ -210,5 +211,103 @@ describe('private DashPanel runtime model', () => {
     unsubscribe()
     runtime.acquire(config('again'))
     expect(listener).toHaveBeenCalledTimes(2)
+  })
+
+  it('skips hidden entry targets and continues focus restoration until focus moves', () => {
+    class FocusElement {
+      readonly isConnected = true
+      readonly parentElement: FocusElement | null
+      readonly children: FocusElement[]
+      readonly attributes = new Map<string, string>()
+      readonly style: { display: string; visibility: string }
+      tabIndex = 0
+
+      constructor(
+        readonly tagName: string,
+        options: {
+          readonly parent?: FocusElement
+          readonly display?: string
+          readonly focusSucceeds?: boolean
+        } = {},
+      ) {
+        this.parentElement = options.parent ?? null
+        this.children = []
+        this.style = { display: options.display ?? 'block', visibility: 'visible' }
+        this.focusSucceeds = options.focusSucceeds ?? true
+        this.parentElement?.children.push(this)
+      }
+
+      readonly focusSucceeds: boolean
+
+      get hidden() {
+        return this.hasAttribute('hidden')
+      }
+
+      getAttribute(name: string) {
+        return this.attributes.get(name) ?? null
+      }
+
+      hasAttribute(name: string) {
+        return this.attributes.has(name)
+      }
+
+      closest(selector: string): FocusElement | null {
+        if (
+          (selector.includes('[hidden]') && this.hasAttribute('hidden')) ||
+          (selector.includes('[inert]') && this.hasAttribute('inert')) ||
+          (selector.includes('[aria-hidden="true"]') && this.getAttribute('aria-hidden') === 'true')
+        )
+          return this
+        return this.parentElement?.closest(selector) ?? null
+      }
+
+      querySelectorAll() {
+        return this.children
+      }
+
+      focus() {
+        if (this.focusSucceeds)
+          (globalThis.document as unknown as { activeElement: FocusElement | null }).activeElement =
+            this
+      }
+    }
+
+    const body = new FocusElement('BODY')
+    vi.stubGlobal('HTMLElement', FocusElement)
+    vi.stubGlobal('Element', FocusElement)
+    vi.stubGlobal('document', { activeElement: null, body })
+    vi.stubGlobal('getComputedStyle', (element: FocusElement) => element.style)
+    try {
+      const runtime = createPanelRuntime()
+      runtime.acquire(config('panel'))
+      const panel = new FocusElement('ASIDE')
+      const hiddenButton = new FocusElement('BUTTON', { parent: panel, display: 'none' })
+      const visibleButton = new FocusElement('BUTTON', { parent: panel })
+      runtime.registerElement('panel', panel as unknown as HTMLElement)
+      focusPanel(runtime, 'panel')
+      expect(document.activeElement).toBe(visibleButton)
+      expect(document.activeElement).not.toBe(hiddenButton)
+
+      const disabledTrigger = new FocusElement('BUTTON')
+      disabledTrigger.attributes.set('disabled', '')
+      const hiddenBeforeEntry = new FocusElement('BUTTON', { display: 'none' })
+      const unfocusableBoundary = new FocusElement('DIV', { focusSucceeds: false })
+      const portal = new FocusElement('DIV')
+      recordPanelEntry(
+        runtime,
+        'panel',
+        disabledTrigger as unknown as HTMLElement,
+        hiddenBeforeEntry as unknown as Element,
+      )
+      restorePanelFocus(
+        runtime,
+        'panel',
+        unfocusableBoundary as unknown as Element,
+        portal as unknown as HTMLElement,
+      )
+      expect(document.activeElement).toBe(portal)
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

@@ -993,8 +993,6 @@ export function createPersistenceController(
   let conflictObservation: ReturnType<typeof decodeStructured> | undefined
   let conflictWasRemoval = false
   let eraseObservation: ReturnType<typeof decodeStructured> | undefined
-  options.onUnknownFieldCount?.(selected?.unknownFieldCount ?? 0)
-  for (const scopeId of quarantinedScopes.keys()) options.onQuarantine?.(scopeId)
   const listeners = new Set<() => void>()
   let state: PicodashPersistenceState = stateFreeze({
     status: 'clean',
@@ -1258,6 +1256,35 @@ export function createPersistenceController(
   const racedRecord = readCurrent()
   if (racedRecord === 'error') failInit('read')
   if (isInvalidCurrent(racedRecord)) failInit(racedRecord.invalid)
+  if (racedRecord === undefined && driverRecord !== undefined) {
+    driverRecord = undefined
+    values = initialRecord?.values ?? options.baselineValues
+    scopes = initialRecord?.scopes ?? new Map()
+    quarantinedScopes = initialRecord?.quarantinedScopes ?? new Map()
+    durableRevision = null
+    durableWriterId = null
+    liveRevision = initialRecord?.revision ?? 0
+    writerId = initialRecord?.writerId ?? newWriterId()
+    confirmedContent =
+      initialRecord?.content ??
+      persistenceContent(
+        options.schemaVersion,
+        values,
+        scopes,
+        options.includeField,
+        quarantinedScopes,
+        valueOwner,
+      )
+    confirmedValues = values
+    confirmedScopes = scopes
+    confirmedQuarantinedScopes = quarantinedScopes
+    state = stateFreeze({
+      status: 'clean',
+      durableRevision,
+      liveRevision,
+      hasPendingEnvelope: false,
+    })
+  }
   if (isStructuredCurrent(racedRecord)) {
     if (initialRecord) {
       if (racedRecord.revision !== initialRecord.revision) failInit('revision')
@@ -1282,6 +1309,7 @@ export function createPersistenceController(
       hasPendingEnvelope: false,
     })
   }
+  let seededInitialEnvelope = false
   if (!driverRecord && initialRecord) {
     liveRevision = initialRecord.revision + 1
     writerId = newWriterId()
@@ -1303,7 +1331,13 @@ export function createPersistenceController(
     confirmedValues = seed.values
     confirmedScopes = seed.scopes
     confirmedQuarantinedScopes = seed.quarantinedScopes
+    seededInitialEnvelope = true
   }
+  const activatedRecord = driverRecord ?? initialRecord
+  options.onUnknownFieldCount?.(
+    seededInitialEnvelope ? 0 : (activatedRecord?.unknownFieldCount ?? 0),
+  )
+  for (const scopeId of quarantinedScopes.keys()) options.onQuarantine?.(scopeId)
   function establishSubscription(): void {
     try {
       if (options.driver.subscribe) {
@@ -1367,10 +1401,24 @@ export function createPersistenceController(
       valueOwner,
       includeField: options.includeField,
     })
-    if (
-      candidate.content === confirmedContent ||
-      (pending && pending.content === candidate.content)
-    ) {
+    if (candidate.content === confirmedContent) {
+      values = nextValues
+      scopes = nextScopes
+      quarantinedScopes = nextQuarantinedScopes
+      if (conflict) {
+        pending = candidate
+        publish()
+        return 'unchanged'
+      }
+      const recovered = pending !== undefined || lastError !== undefined
+      pending = undefined
+      lastError = undefined
+      liveRevision = durableRevision ?? 0
+      if (recovered) options.withKernelWrite(() => options.onRecovery())
+      publish()
+      return 'unchanged'
+    }
+    if (pending && pending.content === candidate.content) {
       values = nextValues
       scopes = nextScopes
       quarantinedScopes = nextQuarantinedScopes
@@ -1593,6 +1641,8 @@ export function createPersistenceController(
         confirmedScopes = appliedScopes
         confirmedQuarantinedScopes = appliedQuarantine
         liveRevision = Math.max(liveRevision, after.revision)
+        if (after.unknownFieldCount > 0) options.onUnknownFieldCount?.(after.unknownFieldCount)
+        else options.onUnknownFieldsRecovered?.()
       } else {
         durableRevision = null
         durableWriterId = null
@@ -1600,6 +1650,7 @@ export function createPersistenceController(
         confirmedValues = appliedValues
         confirmedScopes = appliedScopes
         confirmedQuarantinedScopes = appliedQuarantine
+        options.onUnknownFieldsRecovered?.()
       }
       options.withKernelWrite(() => options.onRecovery())
       publish()

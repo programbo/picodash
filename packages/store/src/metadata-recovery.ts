@@ -30,8 +30,20 @@ type MetadataRecoveryOptions<Result extends CoreTransactionResult> = Readonly<{
 
 export function createMetadataRecovery<Result extends CoreTransactionResult>(
   options: MetadataRecoveryOptions<Result>,
-): PicodashMetadataRecovery<Result> {
+): Readonly<{
+  readonly capability: PicodashMetadataRecovery<Result>
+  readonly publish: () => void
+}> {
   const listeners = new Set<() => void>()
+  const publish = () => {
+    for (const listener of listeners) {
+      try {
+        listener()
+      } catch {
+        options.onListenerError?.()
+      }
+    }
+  }
   const capability: PicodashMetadataRecovery<Result> = {
     getState() {
       options.assertActive()
@@ -50,18 +62,8 @@ export function createMetadataRecovery<Result extends CoreTransactionResult>(
     },
     replaceScope(scopeId, replacement) {
       options.assertActive()
-      const result = options.replaceScope(scopeId, replacement)
-      if (result.ok) {
-        for (const listener of listeners) {
-          try {
-            listener()
-          } catch {
-            options.onListenerError?.()
-          }
-        }
-      }
-      return result
+      return options.replaceScope(scopeId, replacement)
     },
   }
-  return Object.freeze(capability)
+  return Object.freeze({ capability: Object.freeze(capability), publish })
 }

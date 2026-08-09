@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 import {
   createPicodashStore,
   PicodashContractError,
@@ -137,6 +137,22 @@ describe('Store-owned alpha persistence', () => {
     })
     expect(store.persistence?.flush()).toBe('saved')
     expect(store.persistence?.getState()).toMatchObject({ status: 'clean' })
+    store.destroy()
+  })
+
+  it('cancels a failed pending envelope when live state returns to durable content', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'saved' })
+    persistence.failNext('write')
+    expect(store.setValues({ count: 3 })).toMatchObject({ persistence: 'pending' })
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'unchanged' })
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'clean',
+      hasPendingEnvelope: false,
+    })
+    expect(store.persistence.flush()).toBe('unchanged')
+    expect(JSON.parse(persistence.inspect('state') as string).values.count).toBe(2)
     store.destroy()
   })
 
@@ -491,6 +507,36 @@ describe('Store-owned alpha persistence', () => {
     })
     expect(store.persistence.getState()).toMatchObject({ durableRevision: 7 })
     expect(JSON.parse(backend.inspect('state') as string).writerId).toBe('racing-writer')
+    expect(backend.calls.filter((call) => call.kind === 'write')).toHaveLength(0)
+    store.destroy()
+  })
+
+  it('uses the baseline when durable state is removed during subscription setup', () => {
+    const encoded = encodePersistenceEnvelope({
+      storeId: 'persistence-test',
+      schemaVersion: 1,
+      revision: 4,
+      writerId: 'removed-during-subscribe',
+      values: { count: 9, secret: 'durable' },
+      scopes: new Map(),
+      includeField: () => true,
+    }).serialized
+    const backend = createMemoryPersistence({ state: encoded })
+    const driver: PicodashPersistenceDriver = {
+      ...backend,
+      subscribe(key, listener) {
+        backend.foreignWrite(key, null)
+        return backend.subscribe(key, listener)
+      },
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    expect(store.getState().values).toEqual({ count: 1, secret: 'hidden' })
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'clean',
+      durableRevision: null,
+      liveRevision: 0,
+    })
+    expect(backend.inspect('state')).toBeNull()
     expect(backend.calls.filter((call) => call.kind === 'write')).toHaveLength(0)
     store.destroy()
   })
@@ -893,6 +939,28 @@ describe('Store-owned alpha persistence', () => {
     expect(store.getState().values.count).toBe(4)
     expect(JSON.parse(persistence.inspect('state') as string).values.count).toBe(4)
     store.destroy()
+  })
+
+  it('publishes quarantines and unknown fields accepted by conflict reload', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    const recoveryListener = vi.fn()
+    store.metadataRecovery.subscribe(recoveryListener)
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-quarantine-and-field'
+    foreign.values.retired = true
+    foreign.scopes = [['quarantined', { dashPanel: { invalid: true } }]]
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({ ok: true })
+    expect(recoveryListener).toHaveBeenCalledTimes(1)
+    expect(store.metadataRecovery.getState().quarantinedScopes.has('quarantined')).toBe(true)
+    expect([...store.diagnostics.getState().current.values()].map((entry) => entry.code)).toEqual(
+      expect.arrayContaining(['metadata_quarantined', 'unknown_persisted_fields']),
+    )
+    store.destroy({ discardUnpersisted: true })
   })
 
   it('merges quarantined raw scope records as complete reconciliation units', () => {

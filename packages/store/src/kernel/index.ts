@@ -2269,7 +2269,7 @@ export function createPicodashStore<
   type StoreResult = CoreTransactionResult
   let metadataRecoveryCapability!: PicodashMetadataRecovery<StoreResult>
   let store!: RootStore<Fields, StoreResult, boolean, boolean>
-  metadataRecoveryCapability = createMetadataRecovery<StoreResult>({
+  const metadataRecoveryRuntime = createMetadataRecovery<StoreResult>({
     assertActive: () => {
       if (runtimeController?.lifecycle !== 'active')
         throw new PicodashContractError('use-after-destroy')
@@ -2287,6 +2287,36 @@ export function createPicodashStore<
       diagnosticsRuntime.publish()
     },
   })
+  metadataRecoveryCapability = metadataRecoveryRuntime.capability
+  const publishMetadataRecovery = metadataRecoveryRuntime.publish
+
+  const publishQuarantineTransition = (
+    previous: ReadonlyMap<string, PicodashQuarantinedScopeMetadata>,
+    next: ReadonlyMap<string, PicodashQuarantinedScopeMetadata>,
+  ): void => {
+    const changedScopeIds = [...new Set([...previous.keys(), ...next.keys()])].filter((scopeId) => {
+      const before = previous.get(scopeId)
+      const after = next.get(scopeId)
+      return (
+        !!before !== !!after || (!!before && !!after && !picodashJsonEqual(before.raw, after.raw))
+      )
+    })
+    if (!changedScopeIds.length) return
+    for (const scopeId of changedScopeIds) {
+      if (next.has(scopeId)) {
+        if (!previous.has(scopeId))
+          diagnosticsRuntime.recordCondition({
+            fingerprint: `metadata-quarantined:${scopeId}`,
+            code: 'metadata_quarantined',
+            severity: 'warning',
+            message: 'Scope metadata was quarantined.',
+            identity: { kind: 'scope-metadata', scopeId },
+          })
+      } else diagnosticsRuntime.recoverCondition(`metadata-quarantined:${scopeId}`)
+    }
+    diagnosticsRuntime.publish()
+    publishMetadataRecovery()
+  }
 
   type DocumentExportSnapshot = Readonly<{
     readonly receiverScopeId?: string
@@ -2303,7 +2333,10 @@ export function createPicodashStore<
     readonly options: PicodashNormalizedImportOptions
     readonly overlay: ReturnType<typeof buildPicodashDocumentOverlay>
     readonly targetValues: Readonly<Record<string, PicodashJsonValue>>
-    readonly targetQuarantined: readonly (readonly [string, PicodashJsonValue])[]
+    readonly targetQuarantined: readonly (readonly [
+      string,
+      PicodashQuarantinedScopeMetadata | null,
+    ])[]
     readonly storeId: string
     readonly schemaVersion: number
   }>
@@ -2622,11 +2655,19 @@ export function createPicodashStore<
       overlay,
       targetValues: Object.freeze({ ...values }),
       targetQuarantined: Object.freeze(
-        [...quarantinedScopes.entries()]
-          .filter(([scopeId]) => overlay.changedScopeIds.includes(scopeId))
-          .map(([scopeId, record]) =>
-            Object.freeze([scopeId, clonePicodashValue(record.raw)] as const),
-          )
+        overlay.changedScopeIds
+          .map((scopeId) => {
+            const record = quarantinedScopes.get(scopeId)
+            return Object.freeze([
+              scopeId,
+              record === undefined
+                ? null
+                : Object.freeze({
+                    scopeId,
+                    raw: clonePicodashValue(record.raw),
+                  }),
+            ] as const)
+          })
           .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
       ),
       storeId: config.storeId!,
@@ -2735,9 +2776,8 @@ export function createPicodashStore<
         JSON.stringify(targetValueFingerprint(snapshot.targetValues)) ||
       JSON.stringify(snapshot.targetQuarantined) !==
         JSON.stringify(
-          [...quarantinedScopes.entries()]
-            .filter(([scopeId]) => trackedQuarantineIds.has(scopeId))
-            .map(([scopeId, record]) => [scopeId, record.raw] as const)
+          [...trackedQuarantineIds]
+            .map((scopeId) => [scopeId, quarantinedScopes.get(scopeId) ?? null] as const)
             .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
         )
     )
@@ -3064,12 +3104,14 @@ export function createPicodashStore<
     if (config.valueOwner === 'store')
       values = freeze(nextValues) as Readonly<Record<string, PicodashJsonValue>>
     scopes = nextScopes
+    const previousQuarantinedScopes = quarantinedScopes
     quarantinedScopes = nextQuarantinedScopes
     for (const key of changedFields) fieldRevisions.set(key, (fieldRevisions.get(key) ?? 0) + 1)
     markDirtyBindingsStale(changedFields)
     currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
     const affectedChannels = collectScopedChannels()
     refreshScopedChannels(affectedChannels)
+    publishQuarantineTransition(previousQuarantinedScopes, quarantinedScopes)
     dispatchStoreSubscribers(affectedChannels)
     return Object.freeze({
       changedFields: Object.freeze(changedFields),
@@ -3375,6 +3417,7 @@ export function createPicodashStore<
       }
       values = freeze(built.candidate) as Readonly<Record<string, PicodashJsonValue>>
       scopes = nextScopes
+      const previousQuarantinedScopes = quarantinedScopes
       quarantinedScopes = nextQuarantinedScopes
       for (const key of changedFields) fieldRevisions.set(key, (fieldRevisions.get(key) ?? 0) + 1)
       markDirtyBindingsStale(changedFields)
@@ -3382,6 +3425,7 @@ export function createPicodashStore<
       currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
       const affectedChannels = collectScopedChannels()
       refreshScopedChannels(affectedChannels)
+      publishQuarantineTransition(previousQuarantinedScopes, quarantinedScopes)
       const result = resultWithPersistence(successfulResult(changedFields, changedScopeIds))
       dispatchStoreSubscribers(affectedChannels, options?.includeRoot)
       return result
@@ -4091,7 +4135,9 @@ export function createPicodashStore<
       const controller = runtimeControllerFor(store as object)
       for (const descendant of controller?.descendants(scopeId) ?? []) targets.add(descendant)
     }
-    const changedScopeIds = [...targets].filter((id) => scopes.has(id)).sort()
+    const changedScopeIds = [...targets]
+      .filter((id) => scopes.has(id) || quarantinedScopes.has(id))
+      .sort()
     const changedInteractionScopeIds = [...targets]
       .filter((id) => interactionByScope.has(id))
       .sort()
@@ -4101,12 +4147,20 @@ export function createPicodashStore<
     try {
       const nextEntries = [...scopes.entries()].filter(([id]) => !targets.has(id))
       scopes = nextEntries.length ? immutableMap(nextEntries) : EmptyScopes
+      const previousQuarantinedScopes = quarantinedScopes
+      const nextQuarantinedEntries = [...quarantinedScopes.entries()].filter(
+        ([id]) => !targets.has(id),
+      )
+      quarantinedScopes = nextQuarantinedEntries.length
+        ? immutableMap(nextQuarantinedEntries)
+        : immutableMap<string, PicodashQuarantinedScopeMetadata>([])
       for (const id of targets) interactionByScope.delete(id)
       currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
       const affectedChannels = new Set<ScopedChannel>()
       for (const id of new Set([...changedScopeIds, ...changedInteractionScopeIds]))
         for (const channel of collectScopedChannels(id)) affectedChannels.add(channel)
       refreshScopedChannels(affectedChannels)
+      publishQuarantineTransition(previousQuarantinedScopes, quarantinedScopes)
       const result = resultWithPersistence(successfulResult([], changedScopeIds))
       dispatchStoreSubscribers(affectedChannels, changedScopeIds.length > 0)
       return result
@@ -4746,6 +4800,7 @@ export function createPicodashStore<
     try {
       const nextQuarantine = new Map(quarantinedScopes)
       nextQuarantine.delete(scopeId)
+      const previousQuarantinedScopes = quarantinedScopes
       quarantinedScopes = nextQuarantine.size
         ? immutableMap([...nextQuarantine.entries()])
         : immutableMap<string, PicodashQuarantinedScopeMetadata>([])
@@ -4756,8 +4811,7 @@ export function createPicodashStore<
       currentSnapshot = freeze({ values, scopes }) as RootSnapshot<ValuesOf<Fields>>
       const affectedChannels = collectScopedChannels(scopeId)
       refreshScopedChannels(affectedChannels)
-      diagnosticsRuntime.recoverCondition(`metadata-quarantined:${scopeId}`)
-      diagnosticsRuntime.publish()
+      publishQuarantineTransition(previousQuarantinedScopes, quarantinedScopes)
       const result = resultWithPersistence(successfulResult([], [scopeId]))
       dispatchStoreSubscribers(affectedChannels)
       return result
