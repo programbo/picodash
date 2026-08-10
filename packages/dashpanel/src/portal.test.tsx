@@ -1278,6 +1278,23 @@ describe('DashPanel portal ownership', () => {
     expect(corner.hidden).toBe(true)
     expect(edge.style.left).toBe('180px')
     expect(edge.style.inlineSize).toBe('120px')
+
+    const secondShadowHost = document.createElement('div')
+    secondShadowHost.style.setProperty('--picodash-panel-width', '200px')
+    const secondShadowRoot = secondShadowHost.attachShadow({ mode: 'open' })
+    await act(async () => {
+      secondShadowRoot.append(portal)
+    })
+    expect(corner.hidden).toBe(true)
+    expect(edge.style.left).toBe('200px')
+    expect(edge.style.inlineSize).toBe('100px')
+
+    await act(async () => {
+      secondShadowHost.style.setProperty('--picodash-panel-width', '220px')
+    })
+    expect(corner.hidden).toBe(true)
+    expect(edge.style.left).toBe('220px')
+    expect(edge.style.inlineSize).toBe('80px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()

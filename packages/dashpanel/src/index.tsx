@@ -746,6 +746,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const ownerDocument = panel.ownerDocument
     const mutationRoot = ownerDocument.documentElement
     const inheritedMutationTargets = new Set<Node>()
+    let observedPanelRoot: Node | undefined
+    let rebuildMutationContext = () => undefined
     const mutationObserver =
       mutationRoot && typeof MutationObserver === 'function'
         ? new MutationObserver((records) => {
@@ -766,7 +768,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             const inheritedContextChanged = records.some((record) =>
               inheritedMutationTargets.has(record.target),
             )
-            if ((panelChanged || panelAncestorChanged || inheritedContextChanged) && panel.hidden) {
+            const currentPanelRoot =
+              typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined
+            const rootChanged = currentPanelRoot !== observedPanelRoot
+            if (rootChanged) rebuildMutationContext()
+            if (
+              (panelChanged || panelAncestorChanged || inheritedContextChanged || rootChanged) &&
+              panel.hidden
+            ) {
               refreshGeometry()
               mutationObserver?.takeRecords()
             }
@@ -788,22 +797,30 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       childList: true,
       subtree: true,
     } as const
-    mutationObserver?.observe(panel, mutationOptions)
-    const panelRoot = typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined
-    if (mutationObserver && panelRoot && panelRoot !== ownerDocument)
-      mutationObserver.observe(panelRoot, mutationOptions)
-    let ancestor: Element | null = panel.parentElement
-    while (mutationObserver && ancestor) {
-      inheritedMutationTargets.add(ancestor)
-      mutationObserver.observe(ancestor, { attributes: true })
-      if (ancestor.parentElement) {
-        ancestor = ancestor.parentElement
-        continue
+    rebuildMutationContext = () => {
+      if (!mutationObserver) return
+      mutationObserver.disconnect()
+      inheritedMutationTargets.clear()
+      mutationObserver.observe(panel, mutationOptions)
+      observedPanelRoot = typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined
+      if (observedPanelRoot && observedPanelRoot !== ownerDocument) {
+        inheritedMutationTargets.add(observedPanelRoot)
+        mutationObserver.observe(observedPanelRoot, mutationOptions)
       }
-      const root = typeof ancestor.getRootNode === 'function' ? ancestor.getRootNode() : undefined
-      ancestor = root && 'host' in root && root.host instanceof Element ? root.host : null
+      let ancestor: Element | null = panel.parentElement
+      while (ancestor) {
+        inheritedMutationTargets.add(ancestor)
+        mutationObserver.observe(ancestor, { attributes: true })
+        if (ancestor.parentElement) {
+          ancestor = ancestor.parentElement
+          continue
+        }
+        const root = typeof ancestor.getRootNode === 'function' ? ancestor.getRootNode() : undefined
+        ancestor = root && 'host' in root && root.host instanceof Element ? root.host : null
+      }
+      if (mutationRoot) mutationObserver.observe(mutationRoot, mutationOptions)
     }
-    if (mutationObserver && mutationRoot) mutationObserver.observe(mutationRoot, mutationOptions)
+    rebuildMutationContext()
     const settledLayoutEvents = [
       'animationcancel',
       'animationend',
