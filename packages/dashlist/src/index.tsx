@@ -407,7 +407,7 @@ type OrderingController = {
   readonly commit: () => void
   readonly cancel: () => void
   readonly blur: (id: string) => void
-  readonly pointerDown: (id: string, event: PointerLike) => void
+  readonly pointerDown: (id: string, event: PointerLike) => boolean
   readonly pointerMove: (event: PointerLike) => void
   readonly pointerUp: (event: { readonly pointerId?: number }) => void
   readonly pointerCancel: (event: { readonly pointerId?: number }) => void
@@ -607,9 +607,16 @@ function useOrderingController({
     dispatch({ type: 'start', nodeId: id })
   }
   const pointerDown = (id: string, event: PointerLike) => {
-    if (pointerRef.current && pointerRef.current.pointerId !== event.pointerId) return
-    start(id)
-    if (stateRef.current.session) {
+    if (pointerRef.current && pointerRef.current.pointerId !== event.pointerId) return false
+    const activeSession = stateRef.current.session
+    if (
+      activeSession &&
+      (activeSession.nodeId !== id || pointerRef.current === null || pointerRef.current.id !== id)
+    )
+      return false
+    if (!activeSession) start(id)
+    const startedSession = stateRef.current.session
+    if (startedSession?.nodeId === id) {
       if (event.pointerId !== undefined) event.setPointerCapture?.(event.pointerId)
       pointerRef.current = {
         id,
@@ -623,7 +630,9 @@ function useOrderingController({
         releasePointerCapture: event.releasePointerCapture,
         rowBounds: event.rowBounds,
       }
+      return true
     }
+    return false
   }
   const pointerMove = (event: PointerLike) => {
     const pointer = pointerRef.current
@@ -786,7 +795,6 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
           releasePointerCapture?: (pointerId: number) => void
         }
       }) => {
-        event.preventDefault?.()
         const pointerTarget = event.currentTarget
         const rowBounds = pointerTarget
           ? () => {
@@ -806,7 +814,7 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
               })
             }
           : undefined
-        controller.pointerDown(id, {
+        const attached = controller.pointerDown(id, {
           pointerId: event.pointerId,
           clientY: event.clientY,
           setPointerCapture:
@@ -817,6 +825,7 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
             event.currentTarget?.releasePointerCapture?.bind(event.currentTarget),
           rowBounds,
         })
+        if (attached) event.preventDefault?.()
       },
       onPointerMove: controller.pointerMove,
       onPointerUp: controller.pointerUp,
@@ -1102,10 +1111,11 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     state.scope?.dashList?.collapseOverrides.get(id),
   )
   const collapsed = collapsible ? (collapseOverride ?? defaultCollapsed) : false
-  const previousCollapsedRef = useRef(collapsed)
+  const [renderedCollapsed, setRenderedCollapsed] = useState(collapsed)
   useLayoutEffect(() => {
+    if (renderedCollapsed === collapsed) return
     if (
-      !previousCollapsedRef.current &&
+      !renderedCollapsed &&
       collapsed &&
       contentRef.current &&
       typeof document !== 'undefined' &&
@@ -1113,10 +1123,10 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
       contentRef.current.contains(document.activeElement)
     )
       disclosureRef.current?.focus()
-    previousCollapsedRef.current = collapsed
-  }, [collapsed])
+    setRenderedCollapsed(collapsed)
+  }, [collapsed, renderedCollapsed])
   const labelText = accessibleName(label, ariaLabel, id)
-  const disclosureLabel = `${collapsed ? 'Expand' : 'Collapse'} group ${labelText}`
+  const disclosureLabel = `${renderedCollapsed ? 'Expand' : 'Collapse'} group ${labelText}`
 
   useEffect(
     () =>
@@ -1135,9 +1145,9 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
         id: String((declaration.props as { readonly id?: unknown }).id),
         name: declarationAccessibleName(declaration),
         pin: (declaration.props as { readonly pin?: 'start' | 'end' }).pin,
-        visible: !collapsed,
+        visible: !renderedCollapsed,
       })),
-    [collapsed, declarations],
+    [declarations, renderedCollapsed],
   )
   const groupOrder = usePicodashStoreSelector(scopedStore, (state) =>
     state.scope?.dashList?.groupOrders.get(id),
@@ -1193,7 +1203,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
         role="listitem"
         className={classNames('picodash-dashlist-item picodash-dashlist-group-item', className)}
         data-picodash-dashgroup={id}
-        data-collapsed={collapsed ? 'true' : 'false'}
+        data-collapsed={renderedCollapsed ? 'true' : 'false'}
       >
         <div
           role="group"
@@ -1208,12 +1218,12 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
                   <button
                     ref={disclosureRef}
                     aria-label={disclosureLabel}
-                    aria-expanded={!collapsed}
+                    aria-expanded={!renderedCollapsed}
                     aria-controls={contentId}
                     type="button"
                     onClick={toggleCollapsed}
                   >
-                    {collapsed ? '+' : '−'}
+                    {renderedCollapsed ? '+' : '−'}
                   </button>
                   {groupReorderHandle}
                 </>
@@ -1232,10 +1242,10 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
             id={contentId}
             role="list"
             data-picodash-dashgroup-list
-            data-collapsed={collapsed ? 'true' : 'false'}
-            aria-hidden={collapsed || undefined}
-            hidden={collapsed || undefined}
-            inert={collapsed || undefined}
+            data-collapsed={renderedCollapsed ? 'true' : 'false'}
+            aria-hidden={renderedCollapsed || undefined}
+            hidden={renderedCollapsed || undefined}
+            inert={renderedCollapsed || undefined}
           >
             <DashListContentPolicyContext.Provider value={contentPolicy}>
               <DashListOrderingContext.Provider value={childOrdering}>

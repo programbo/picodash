@@ -6,6 +6,7 @@ import {
   useEffect,
   useLayoutEffect,
   useImperativeHandle,
+  useCallback,
   useRef,
   useMemo,
   useState,
@@ -126,7 +127,10 @@ export {
 } from './actions.tsx'
 export type { DashPanelRemoveRequest } from './actions.tsx'
 
-export type DashPanelStyle = Omit<CSSProperties, 'inlineSize' | 'width'>
+export type DashPanelStyle = Omit<
+  CSSProperties,
+  'blockSize' | 'inlineSize' | 'maxBlockSize' | 'maxInlineSize' | 'width'
+>
 
 export interface DashPanelProviderProps<
   Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions,
@@ -263,10 +267,19 @@ function textTitle(value: ReactNode): string {
 
 function assertPanelStyle(style: DashPanelStyle | undefined): void {
   if (!style) return
-  if (Object.prototype.hasOwnProperty.call(style, 'width'))
-    throw new TypeError('DashPanel style.width is reserved; use the width prop instead.')
-  if (Object.prototype.hasOwnProperty.call(style, 'inlineSize'))
-    throw new TypeError('DashPanel style.inlineSize is reserved; use the width prop instead.')
+  for (const property of [
+    'width',
+    'inlineSize',
+    'maxInlineSize',
+    'blockSize',
+    'maxBlockSize',
+  ] as const)
+    if (Object.prototype.hasOwnProperty.call(style, property))
+      throw new TypeError(
+        `DashPanel style.${property} is reserved for placement geometry${
+          property === 'width' || property === 'inlineSize' ? '; use the width prop instead' : ''
+        }.`,
+      )
 }
 
 function panelStyle(
@@ -467,7 +480,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     () => normalizeDashPanelDefaultLayout(defaultLayout),
     [defaultLayout],
   )
-  useMemo(() => normalizeDashPanelPlacementOptions(placementOptions), [placementOptions])
+  const resolvedPlacementOptions = useMemo(
+    () => normalizeDashPanelPlacementOptions(placementOptions),
+    [placementOptions],
+  )
   const resolvedPresentation = useMemo(
     () => presentation ?? { kind: 'panel' as const },
     [presentation],
@@ -506,6 +522,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const [geometry, setGeometry] = useState<PanelGeometryState | null>(null)
   const [previewPosition, setPreviewPosition] = useState<DashPanelPoint | null>(null)
   const [moveMode, setMoveMode] = useState<'pointer' | 'keyboard' | null>(null)
+  const announcementSequence = useRef(0)
+  const [actionAnnouncement, setActionAnnouncement] = useState({ sequence: 0, message: '' })
+  const announceAction = useCallback((message: string) => {
+    announcementSequence.current += 1
+    setActionAnnouncement({ sequence: announcementSequence.current, message })
+  }, [])
   const moveSession = useRef<{
     readonly mode: 'pointer' | 'keyboard'
     readonly pointerId?: number
@@ -513,6 +535,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     readonly startPosition: DashPanelPoint
     readonly initialGeometry: PanelGeometryState | null
     readonly captureTarget?: HTMLElement
+    readonly startedDocked: boolean
     readonly moved: boolean
   } | null>(null)
   const currentPosition = useMemo(
@@ -650,10 +673,28 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
 
   const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
     const preferred = durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition
-    const current =
+    const requested =
       (effectivePlacement.disposition.kind === 'free'
         ? (currentPosition() ?? preferred)
         : (preferred ?? currentPosition())) ?? ({ x: 0, y: 0 } as const)
+    const initialGeometry = geometryRef.current
+    const projected = initialGeometry
+      ? projectDashPanelPosition(
+          {
+            x: initialGeometry.boundary.left + requested.x,
+            y: initialGeometry.boundary.top + requested.y,
+          },
+          initialGeometry.size,
+          initialGeometry.boundary,
+        )
+      : undefined
+    const current =
+      projected && initialGeometry
+        ? {
+            x: projected.x - initialGeometry.boundary.left,
+            y: projected.y - initialGeometry.boundary.top,
+          }
+        : requested
     const session = {
       mode,
       ...(event
@@ -664,7 +705,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           }
         : {}),
       startPosition: current,
-      initialGeometry: geometryRef.current,
+      initialGeometry,
+      startedDocked:
+        effectivePlacement.mode === 'hybrid' && effectivePlacement.disposition.kind === 'docked',
       moved: false,
     } as const
     moveSession.current = session
@@ -690,6 +733,15 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (requestedPlacementMode === 'fixed') {
       cancelMove()
       return { status: 'not_executed' as const, reason: 'unavailable' as const }
+    }
+    const preview = previewPositionRef.current ?? session.startPosition
+    if (
+      session.startedDocked &&
+      Math.hypot(preview.x - session.startPosition.x, preview.y - session.startPosition.y) <
+        resolvedPlacementOptions.detachDistance
+    ) {
+      cancelMove()
+      return { status: 'executed' as const }
     }
     const latestGeometry = measureGeometry()
     const initialGeometry = session.initialGeometry
@@ -1004,7 +1056,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         geometry.boundary,
         geometry.size,
         preferredPosition,
-        normalizeDashPanelPlacementOptions(placementOptions).snapOffset,
+        resolvedPlacementOptions.snapOffset,
         dockTarget,
       )
     : null
@@ -1044,7 +1096,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       dockPositions={dockPositions}
     >
       <DashPanelIdentityProvider scopeId={id}>
-        <DashPanelActionProvider scopeId={id} onRequestRemove={onRequestRemove}>
+        <DashPanelActionProvider
+          scopeId={id}
+          onRequestRemove={onRequestRemove}
+          announce={announceAction}
+        >
           <PicodashStoreEntityBoundary store={scoped} kind="dashPanel">
             <PicodashThemeProvider<string> theme={theme} density={density}>
               <aside
@@ -1160,6 +1216,15 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                   aria-hidden={collapsed || undefined}
                 >
                   {children}
+                </div>
+                <div
+                  key={actionAnnouncement.sequence}
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                  data-picodash-panel-status
+                >
+                  {actionAnnouncement.message}
                 </div>
               </aside>
             </PicodashThemeProvider>

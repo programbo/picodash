@@ -16,6 +16,7 @@ export interface DashPanelRemoveRequest {
 interface DashPanelActionContextValue {
   readonly scopeId: string
   readonly onRequestRemove?: (details: DashPanelRemoveRequest) => void
+  readonly announce: (message: string) => void
 }
 
 const DashPanelActionContext = createContext<DashPanelActionContextValue | undefined>(undefined)
@@ -23,10 +24,11 @@ const DashPanelActionContext = createContext<DashPanelActionContextValue | undef
 export function DashPanelActionProvider({
   scopeId,
   onRequestRemove,
+  announce,
   children,
 }: DashPanelActionContextValue & { readonly children: ReactNode }) {
   return (
-    <DashPanelActionContext.Provider value={{ scopeId, onRequestRemove }}>
+    <DashPanelActionContext.Provider value={{ scopeId, onRequestRemove, announce }}>
       {children}
     </DashPanelActionContext.Provider>
   )
@@ -187,12 +189,19 @@ export function DashPanelPlacementSubmenu() {
 
 export function DashPanelResetLayoutItem() {
   const controller = useDashPanel()
+  const { announce } = useActionContext()
   if (controller.availability === 'unavailable') return null
   return (
     <ActionMenuItem
       label="Reset layout"
       onAction={() => {
-        void controller.resetLayout()
+        const result = controller.resetLayout()
+        if (result.status === 'executed' && !result.transaction.ok)
+          announce(
+            `Panel layout reset failed: ${
+              result.transaction.error.issues[0]?.message ?? 'The Store rejected the change.'
+            }`,
+          )
       }}
     />
   )

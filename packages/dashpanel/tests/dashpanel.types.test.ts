@@ -145,6 +145,16 @@ describe('@picodash/dashpanel public types', () => {
     const directInlineSize: DashPanelProps = { ...panelProps, style: { inlineSize: '1px' } }
     void directInlineSize
 
+    // @ts-expect-error placement geometry owns logical maximum width.
+    const directMaxInlineSize: DashPanelProps = { ...panelProps, style: { maxInlineSize: '1px' } }
+    // @ts-expect-error placement geometry owns logical height.
+    const directBlockSize: DashPanelProps = { ...panelProps, style: { blockSize: '1px' } }
+    // @ts-expect-error placement geometry owns logical maximum height.
+    const directMaxBlockSize: DashPanelProps = { ...panelProps, style: { maxBlockSize: '1px' } }
+    void directMaxInlineSize
+    void directBlockSize
+    void directMaxBlockSize
+
     // @ts-expect-error visibility attributes are owned by the lifecycle runtime.
     const nativeHidden: DashPanelProps = { ...panelProps, hidden: true }
     // @ts-expect-error visibility attributes are owned by the lifecycle runtime.
@@ -217,6 +227,15 @@ describe('@picodash/dashpanel public types', () => {
     // @ts-expect-error inlineSize is intentionally omitted from DashPanelStyle.
     const inlineSize: DashPanelStyle = { inlineSize: '1rem' }
     void inlineSize
+    // @ts-expect-error maxInlineSize is intentionally omitted from DashPanelStyle.
+    const maxInlineSize: DashPanelStyle = { maxInlineSize: '1rem' }
+    // @ts-expect-error blockSize is intentionally omitted from DashPanelStyle.
+    const blockSize: DashPanelStyle = { blockSize: '1rem' }
+    // @ts-expect-error maxBlockSize is intentionally omitted from DashPanelStyle.
+    const maxBlockSize: DashPanelStyle = { maxBlockSize: '1rem' }
+    void maxInlineSize
+    void blockSize
+    void maxBlockSize
   })
 
   it('exports placement vocabulary compatible with Store records in both directions', () => {

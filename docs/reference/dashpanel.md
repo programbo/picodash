@@ -136,7 +136,10 @@ presentation, and other future prop groups remain planned.
 The exact launch prop surface is:
 
 ```ts
-type DashPanelStyle = Omit<CSSProperties, 'inlineSize' | 'width'>
+type DashPanelStyle = Omit<
+  CSSProperties,
+  'blockSize' | 'inlineSize' | 'maxBlockSize' | 'maxInlineSize' | 'width'
+>
 
 interface DashPanelProps<CustomTheme extends string = never> extends Omit<
   ComponentPropsWithoutRef<'aside'>,
@@ -205,10 +208,12 @@ When `preferredPosition` is omitted, the first transition to free placement uses
 contained rendered position. Declared defaults never become persisted overrides merely because a
 Panel mounts.
 
-`style.width` and `style.inlineSize` are reserved so they cannot compete with the `width` prop and
-the public Panel-width token. Callers use `width` for one Panel or a `className`/stylesheet rule for
-selector-based sizing. Other ordinary `aside` attributes and styles remain available. DashPanel
-forwards an `HTMLAsideElement` ref.
+`style.width`, `style.inlineSize`, `style.maxInlineSize`, `style.blockSize`, and
+`style.maxBlockSize` are reserved so consumer styles cannot compete with the `width` prop or
+projected placement constraints. The first two use the `width` prop; the remaining logical-size
+properties are owned by placement geometry. Callers use `width` for one Panel or a
+`className`/stylesheet rule for selector-based sizing. Other ordinary `aside` attributes and styles
+remain available. DashPanel forwards an `HTMLAsideElement` ref.
 
 The prototype props `store`, `contentMode`, `close`, `onClose`, controlled visibility/collapse, and
 Motion-specific animation or drag props do not enter the target API. DashPanel exposes behavior

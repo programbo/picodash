@@ -404,7 +404,7 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
-  it('does not commit raw pointer or keyboard input projected back to the session origin', async () => {
+  it('projects an unreachable preferred origin before comparing pointer or keyboard movement', async () => {
     const store = makeStore()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
@@ -423,8 +423,8 @@ describe('DashPanel portal ownership', () => {
           id="inspector"
           title="Inspector"
           defaultLayout={{
-            placement: { mode: 'floating', disposition: { kind: 'free' } },
-            preferredPosition: { x: 60, y: 0 },
+            placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'right' } },
+            preferredPosition: { x: 120, y: 0 },
           }}
         />
       </DashPanelProvider>,
@@ -500,9 +500,19 @@ describe('DashPanel portal ownership', () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      for (let index = 0; index < 4; index += 1)
+        move.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight', shiftKey: true }),
+        )
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
     expect(store.getState().scopes.get('inspector')?.dashPanel).toEqual({
       placement: { mode: 'hybrid', disposition: { kind: 'free' } },
-      preferredPosition: { x: 1, y: 0 },
+      preferredPosition: { x: 40, y: 0 },
     })
 
     await act(async () => root.unmount())

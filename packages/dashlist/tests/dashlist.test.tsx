@@ -347,14 +347,18 @@ describe('@picodash/dashlist alpha shell', () => {
     const store = makeStore()
     const activeElement = {}
     const documentStub: { activeElement: object } = { activeElement }
+    const hiddenWhenFocused: unknown[] = []
+    let renderer!: ReactTestRenderer
     const disclosureElement = {
       focus: vi.fn(() => {
+        hiddenWhenFocused.push(
+          renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden,
+        )
         documentStub.activeElement = disclosureElement
       }),
     }
     const content = { contains: vi.fn((element) => element === activeElement) }
     vi.stubGlobal('document', documentStub)
-    let renderer!: ReactTestRenderer
     act(() => {
       renderer = create(
         createElement(
@@ -397,6 +401,7 @@ describe('@picodash/dashlist alpha shell', () => {
       store.scope('focus-collapse').setDashListCollapseOverride('group', true)
     })
     expect(disclosureElement.focus).toHaveBeenCalledTimes(2)
+    expect(hiddenWhenFocused).toEqual([undefined, undefined])
     act(() => renderer.unmount())
     vi.unstubAllGlobals()
     expect(() => store.destroy()).not.toThrow()
@@ -1150,6 +1155,57 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['second', 'first'])
     act(() => renderer.unmount())
+    store.destroy()
+  })
+
+  it('does not attach another handle pointer to a keyboard reorder session', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'order-modality', store },
+        createElement(Dashlet, { id: 'first', label: 'First' }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+      ),
+    )
+    let first = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void first.props.onKeyDown({ key: ' ', preventDefault() {} })
+    })
+    const second = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'second' })
+    const preventDefault = vi.fn()
+    const setPointerCapture = vi.fn()
+    act(() => {
+      void second.props.onPointerDown({
+        pointerId: 2,
+        clientY: 30,
+        preventDefault,
+        setPointerCapture,
+      })
+      void second.props.onPointerMove({ pointerId: 2, clientY: 60 })
+    })
+    expect(preventDefault).not.toHaveBeenCalled()
+    expect(setPointerCapture).not.toHaveBeenCalled()
+    expect(
+      renderer.root
+        .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
+        .map((item) => item.props['data-picodash-dashlet']),
+    ).toEqual(['first', 'second'])
+
+    first = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void first.props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+    })
+    expect(
+      renderer.root
+        .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
+        .map((item) => item.props['data-picodash-dashlet']),
+    ).toEqual(['second', 'first'])
+    first = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void first.props.onKeyDown({ key: 'Escape', preventDefault() {} })
+      renderer.unmount()
+    })
     store.destroy()
   })
 

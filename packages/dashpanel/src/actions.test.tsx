@@ -219,4 +219,40 @@ describe('DashPanel action composition', () => {
     await act(async () => root.unmount())
     store.destroy()
   })
+
+  it('announces a Store rejection when layout reset cannot clear quarantined metadata', async () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'dashpanel-actions-quarantine',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1 } },
+      initialEnvelope: {
+        kind: 'picodash-store-envelope',
+        formatVersion: 1,
+        storeId: 'dashpanel-actions-quarantine',
+        schemaVersion: 1,
+        revision: 1,
+        writerId: 'fixture',
+        valueOwner: 'store',
+        values: { value: 1 },
+        scopes: [['inspector', { dashPanel: { invalid: true } }]],
+      },
+    } as never)
+    expect(store.metadataRecovery.getState().quarantinedScopes.has('inspector')).toBe(true)
+    await render(
+      <DashPanelProvider store={store}>
+        <DashPanel id="inspector" title="Inspector" />
+      </DashPanelProvider>,
+    )
+    await openActions()
+    const reset = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
+      (item) => item.textContent === 'Reset layout',
+    ) as HTMLElement
+    await act(async () => reset.click())
+    expect(document.querySelector('[data-picodash-panel-status]')?.textContent).toBe(
+      'Panel layout reset failed: Scope metadata is quarantined.',
+    )
+    await act(async () => root.unmount())
+    store.destroy()
+  })
 })

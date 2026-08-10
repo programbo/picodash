@@ -386,6 +386,7 @@ describe('@picodash/dashpanel alpha shell', () => {
             },
             preferredPosition: { x: 4, y: 6 },
           },
+          placementOptions: { detachDistance: 1 },
         }),
       }),
     )
@@ -968,7 +969,13 @@ describe('@picodash/dashpanel alpha shell', () => {
     void act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
 
-    for (const reserved of ['width', 'inlineSize'] as const) {
+    for (const reserved of [
+      'width',
+      'inlineSize',
+      'maxInlineSize',
+      'blockSize',
+      'maxBlockSize',
+    ] as const) {
       const next = makeStore()
       expect(() =>
         render(
