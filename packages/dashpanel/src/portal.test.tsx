@@ -170,9 +170,9 @@ describe('DashPanel portal ownership', () => {
     let boundaryLeft = 0
     let panelWidth = 50
     let resize!: ResizeObserverCallback
-    let animationFrame!: FrameRequestCallback
     const observe = vi.fn()
     const disconnect = vi.fn()
+    const requestAnimationFrame = vi.fn(() => 1)
     vi.stubGlobal(
       'ResizeObserver',
       class {
@@ -183,10 +183,7 @@ describe('DashPanel portal ownership', () => {
         disconnect = disconnect
       },
     )
-    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
-      animationFrame = callback
-      return 1
-    })
+    vi.stubGlobal('requestAnimationFrame', requestAnimationFrame)
     vi.stubGlobal('cancelAnimationFrame', vi.fn())
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
       function (this: HTMLElement) {
@@ -228,10 +225,7 @@ describe('DashPanel portal ownership', () => {
     expect(observe).toHaveBeenCalledWith(panel)
     expect(panel.style.left).toBe('250px')
 
-    const geometryStyleReads = vi.spyOn(panel.style, 'getPropertyValue')
-    const stableStyleReadCount = geometryStyleReads.mock.calls.length
-    await act(async () => animationFrame(0))
-    expect(geometryStyleReads).toHaveBeenCalledTimes(stableStyleReadCount)
+    expect(requestAnimationFrame).not.toHaveBeenCalled()
 
     boundaryWidth = 120
     await act(async () => resize([], {} as ResizeObserver))
@@ -242,8 +236,11 @@ describe('DashPanel portal ownership', () => {
     expect(panel.style.left).toBe('40px')
 
     boundaryLeft = 30
-    await act(async () => animationFrame(0))
+    await act(async () => {
+      document.dispatchEvent(new Event('transitionend'))
+    })
     expect(panel.style.left).toBe('70px')
+    expect(requestAnimationFrame).not.toHaveBeenCalled()
     await act(async () => root.unmount())
     expect(disconnect).toHaveBeenCalledTimes(1)
     vi.restoreAllMocks()

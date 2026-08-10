@@ -695,9 +695,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     refreshGeometry()
   }, [effectivePlacement, panelPortal, refreshGeometry])
   const observedBoundary = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
-  const tracksBoundary =
-    (boundary === undefined ? providerPolicy.boundary : boundary) !== null &&
-    (boundary === undefined ? providerPolicy.boundary : boundary) !== undefined
+  const configuredBoundary = boundary === undefined ? providerPolicy.boundary : boundary
+  const tracksBoundaryReference =
+    configuredBoundary !== null &&
+    configuredBoundary !== undefined &&
+    typeof configuredBoundary === 'object' &&
+    'current' in configuredBoundary
   useEffect(() => {
     const panel = asideRef.current
     if (!panel) return
@@ -710,6 +713,41 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         : undefined
     observer?.observe(panel)
     if (observedBoundary) observer?.observe(observedBoundary)
+    const ownerDocument = panel.ownerDocument
+    const mutationRoot = ownerDocument.documentElement
+    const mutationObserver =
+      mutationRoot && typeof MutationObserver === 'function'
+        ? new MutationObserver((records) => {
+            if (
+              records.every((record) => {
+                const target = record.target
+                const targetElement =
+                  target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement
+                return targetElement?.closest('[data-picodash-panel]') !== null
+              })
+            )
+              return
+            refreshGeometry()
+          })
+        : undefined
+    if (mutationObserver && mutationRoot)
+      mutationObserver.observe(mutationRoot, {
+        attributes: true,
+        characterData: true,
+        childList: true,
+        subtree: true,
+      })
+    const settledLayoutEvents = [
+      'animationcancel',
+      'animationend',
+      'load',
+      'transitioncancel',
+      'transitionend',
+    ] as const
+    const canObserveDocument = typeof ownerDocument.addEventListener === 'function'
+    if (canObserveDocument)
+      for (const eventName of settledLayoutEvents)
+        ownerDocument.addEventListener(eventName, refreshGeometry, true)
     let animationFrame: number | undefined
     let trackedBoundary = observedBoundary
     let trackedBoundaryRect = observedBoundary?.getBoundingClientRect()
@@ -736,11 +774,15 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       window.addEventListener('scroll', refreshGeometry, { capture: true, passive: true })
       window.visualViewport?.addEventListener('resize', refreshGeometry)
       window.visualViewport?.addEventListener('scroll', refreshGeometry)
-      if (tracksBoundary && typeof window.requestAnimationFrame === 'function')
+      if (tracksBoundaryReference && typeof window.requestAnimationFrame === 'function')
         animationFrame = window.requestAnimationFrame(refreshOnAnimationFrame)
     }
     return () => {
       observer?.disconnect()
+      mutationObserver?.disconnect()
+      if (canObserveDocument)
+        for (const eventName of settledLayoutEvents)
+          ownerDocument.removeEventListener(eventName, refreshGeometry, true)
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', refreshGeometry)
         window.removeEventListener('scroll', refreshGeometry, true)
@@ -759,7 +801,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     refreshGeometry,
     resolveDockArena,
     runtime,
-    tracksBoundary,
+    tracksBoundaryReference,
   ])
 
   const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
