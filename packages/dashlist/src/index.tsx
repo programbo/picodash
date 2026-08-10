@@ -1201,8 +1201,16 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
       // causes the content to become inert and hidden.
       disclosureRef.current?.focus()
     }
-    if (nextCollapsed === defaultCollapsed) scopedStore.removeDashListCollapseOverride(id)
-    else scopedStore.setDashListCollapseOverride(id, nextCollapsed)
+    const result =
+      nextCollapsed === defaultCollapsed
+        ? scopedStore.removeDashListCollapseOverride(id)
+        : scopedStore.setDashListCollapseOverride(id, nextCollapsed)
+    if (!result.ok)
+      actionRegistry?.announce(
+        `Group disclosure failed for ${labelText}: ${
+          result.error.issues[0]?.message ?? 'The Store rejected the change.'
+        }`,
+      )
   }
 
   return (

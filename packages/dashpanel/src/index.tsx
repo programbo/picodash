@@ -592,6 +592,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     readonly startedDocked: boolean
     readonly moved: boolean
   } | null>(null)
+  const cancelObservedMoveRef = useRef<() => void>(() => undefined)
   const currentPosition = useMemo(
     () => () => {
       if (previewPositionRef.current) return previewPositionRef.current
@@ -637,8 +638,20 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   )
   const refreshGeometry = useMemo(
     () => () => {
+      const previous = geometryRef.current
       const next = measureGeometry()
       if (!next) return
+      if (
+        moveSession.current &&
+        previous &&
+        (previous.boundary.left !== next.boundary.left ||
+          previous.boundary.top !== next.boundary.top ||
+          previous.boundary.right !== next.boundary.right ||
+          previous.boundary.bottom !== next.boundary.bottom ||
+          previous.size.width !== next.size.width ||
+          previous.size.height !== next.size.height)
+      )
+        cancelObservedMoveRef.current()
       setGeometry((current) =>
         current &&
         current.boundary.left === next.boundary.left &&
@@ -775,6 +788,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     previewPositionRef.current = null
     setPreviewPosition(null)
     setMoveMode(null)
+  }
+  cancelObservedMoveRef.current = () => {
+    const session = moveSession.current
+    if (session?.mode === 'pointer' && session.pointerId !== undefined)
+      session.captureTarget?.releasePointerCapture?.(session.pointerId)
+    cancelMove()
   }
 
   const commitMove = () => {

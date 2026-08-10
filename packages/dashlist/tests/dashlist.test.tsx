@@ -623,6 +623,50 @@ describe('@picodash/dashlist alpha shell', () => {
     store.destroy()
   })
 
+  it('announces a rejected group disclosure metadata write', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'dashlist-collapse-quarantine',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1 } },
+      initialEnvelope: {
+        kind: 'picodash-store-envelope',
+        formatVersion: 1,
+        storeId: 'dashlist-collapse-quarantine',
+        schemaVersion: 1,
+        revision: 1,
+        writerId: 'fixture',
+        valueOwner: 'store',
+        values: { value: 1 },
+        scopes: [['collapse-quarantine', { dashList: { invalid: true } }]],
+      },
+    } as never)
+    expect(store.metadataRecovery.getState().quarantinedScopes.has('collapse-quarantine')).toBe(
+      true,
+    )
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'collapse-quarantine', store },
+        createElement(DashGroup, {
+          id: 'group',
+          label: 'Group',
+          children: createElement(Dashlet, { id: 'item', label: 'Item' }),
+        }),
+      ),
+    )
+    const disclosure = renderer.root.findByProps({ 'aria-label': 'Collapse group Group' })
+    act(() => {
+      void disclosure.props.onClick()
+    })
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('Group disclosure failed for Group: Scope metadata is quarantined.')
+    expect(disclosure.props['aria-expanded']).toBe(true)
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
   it('leases committed nodes for active prune exclusion and releases them without auto-delete', () => {
     const store = makeStore()
     const scoped = store.scope('presence')
