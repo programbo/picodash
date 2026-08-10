@@ -1159,7 +1159,10 @@ describe('DashPanel portal ownership', () => {
 
   it('reserves a hidden corner after an external placement transition', async () => {
     const store = makeStore()
+    const shadowHost = document.createElement('div')
+    const shadowRoot = shadowHost.attachShadow({ mode: 'open' })
     const portal = document.createElement('div')
+    shadowRoot.append(portal)
     const boundary = document.createElement('div')
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
       function (this: HTMLElement) {
@@ -1174,9 +1177,17 @@ describe('DashPanel portal ownership', () => {
               '--picodash-panel-width',
             ) ?? '',
           )
+          const root = this.getRootNode()
+          const hostWidth =
+            root instanceof ShadowRoot
+              ? Number.parseFloat(
+                  (root.host as HTMLElement).style.getPropertyValue('--picodash-panel-width'),
+                )
+              : 0
           const preferredWidth =
             configuredWidth ||
             inheritedWidth ||
+            hostWidth ||
             (this.textContent?.includes('Wide content') ? 140 : 80)
           const width = this.hidden ? 0 : preferredWidth
           return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
@@ -1259,6 +1270,14 @@ describe('DashPanel portal ownership', () => {
     expect(corner.hidden).toBe(true)
     expect(edge.style.left).toBe('160px')
     expect(edge.style.inlineSize).toBe('140px')
+
+    await act(async () => {
+      themeBoundary.style.removeProperty('--picodash-panel-width')
+      shadowHost.style.setProperty('--picodash-panel-width', '180px')
+    })
+    expect(corner.hidden).toBe(true)
+    expect(edge.style.left).toBe('180px')
+    expect(edge.style.inlineSize).toBe('120px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()

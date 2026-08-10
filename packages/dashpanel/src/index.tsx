@@ -745,6 +745,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (observedBoundary) observer?.observe(observedBoundary)
     const ownerDocument = panel.ownerDocument
     const mutationRoot = ownerDocument.documentElement
+    const inheritedMutationTargets = new Set<Node>()
     const mutationObserver =
       mutationRoot && typeof MutationObserver === 'function'
         ? new MutationObserver((records) => {
@@ -762,7 +763,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement
               return targetElement !== null && targetElement.contains(panel)
             })
-            if ((panelChanged || panelAncestorChanged) && panel.hidden) {
+            const inheritedContextChanged = records.some((record) =>
+              inheritedMutationTargets.has(record.target),
+            )
+            if ((panelChanged || panelAncestorChanged || inheritedContextChanged) && panel.hidden) {
               refreshGeometry()
               mutationObserver?.takeRecords()
             }
@@ -788,6 +792,17 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const panelRoot = typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined
     if (mutationObserver && panelRoot && panelRoot !== ownerDocument)
       mutationObserver.observe(panelRoot, mutationOptions)
+    let ancestor: Element | null = panel.parentElement
+    while (mutationObserver && ancestor) {
+      inheritedMutationTargets.add(ancestor)
+      mutationObserver.observe(ancestor, { attributes: true })
+      if (ancestor.parentElement) {
+        ancestor = ancestor.parentElement
+        continue
+      }
+      const root = typeof ancestor.getRootNode === 'function' ? ancestor.getRootNode() : undefined
+      ancestor = root && 'host' in root && root.host instanceof Element ? root.host : null
+    }
     if (mutationObserver && mutationRoot) mutationObserver.observe(mutationRoot, mutationOptions)
     const settledLayoutEvents = [
       'animationcancel',
