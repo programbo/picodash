@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react'
+import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vite-plus/test'
 import { ActionMenuItem } from '@picodash/ui'
@@ -200,24 +200,43 @@ describe('DashPanel action composition', () => {
       placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
       preferredPosition: { x: 0, y: 0 },
     })
-    await render(
-      <DashPanelProvider store={store}>
-        <DashPanel
-          id="occupied"
-          title="Occupied"
-          defaultLayout={{
-            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
-          }}
-        />
-        <DashPanel
-          id="inspector"
-          title="Inspector"
-          defaultLayout={{
-            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
-          }}
-        />
-      </DashPanelProvider>,
-    )
+    function Fixture() {
+      const [occupied, setOccupied] = useState(true)
+      return (
+        <>
+          <button type="button" data-release-dock onClick={() => setOccupied(false)}>
+            Release dock
+          </button>
+          <DashPanelProvider store={store}>
+            {occupied ? (
+              <DashPanel
+                key="occupied"
+                id="occupied"
+                title="Occupied"
+                defaultLayout={{
+                  placement: {
+                    mode: 'fixed',
+                    disposition: { kind: 'docked', position: 'full-left' },
+                  },
+                }}
+              />
+            ) : null}
+            <DashPanel
+              key="inspector"
+              id="inspector"
+              title="Inspector"
+              defaultLayout={{
+                placement: {
+                  mode: 'fixed',
+                  disposition: { kind: 'docked', position: 'full-right' },
+                },
+              }}
+            />
+          </DashPanelProvider>
+        </>
+      )
+    }
+    await render(<Fixture />)
     expect(
       document.querySelector('[aria-label="Move panel Inspector"]')?.getAttribute('disabled'),
     ).not.toBeNull()
@@ -235,11 +254,20 @@ describe('DashPanel action composition', () => {
     const fullRight = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
       (item) => item.textContent === 'Dock full-right',
     ) as HTMLElement
-    expect(fullRight.getAttribute('aria-disabled')).not.toBe('true')
-    await act(async () => fullRight.click())
+    expect(fullRight.getAttribute('aria-disabled')).toBe('true')
+    const fullLeft = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
+      (item) => item.textContent === 'Dock full-left',
+    ) as HTMLElement
+    expect(fullLeft.getAttribute('aria-disabled')).toBe('true')
+
+    await act(async () => {
+      ;(document.querySelector('[data-release-dock]') as HTMLButtonElement).click()
+    })
+    expect(fullLeft.getAttribute('aria-disabled')).not.toBe('true')
+    await act(async () => fullLeft.click())
     expect(store.getState().scopes.get('inspector')?.dashPanel?.placement).toEqual({
       mode: 'fixed',
-      disposition: { kind: 'docked', position: 'full-right' },
+      disposition: { kind: 'docked', position: 'full-left' },
     })
     await act(async () => root.unmount())
     store.destroy()
