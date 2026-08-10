@@ -1169,8 +1169,15 @@ describe('DashPanel portal ownership', () => {
           const configuredWidth = Number.parseFloat(
             this.style.getPropertyValue('--picodash-panel-width'),
           )
+          const inheritedWidth = Number.parseFloat(
+            this.closest<HTMLElement>('[data-picodash-theme]')?.style.getPropertyValue(
+              '--picodash-panel-width',
+            ) ?? '',
+          )
           const preferredWidth =
-            configuredWidth || (this.textContent?.includes('Wide content') ? 140 : 80)
+            configuredWidth ||
+            inheritedWidth ||
+            (this.textContent?.includes('Wide content') ? 140 : 80)
           const width = this.hidden ? 0 : preferredWidth
           return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
         }
@@ -1244,6 +1251,14 @@ describe('DashPanel portal ownership', () => {
     expect(corner.hidden).toBe(true)
     expect(edge.style.left).toBe('140px')
     expect(edge.style.inlineSize).toBe('160px')
+
+    const themeBoundary = corner.closest<HTMLElement>('[data-picodash-theme]')!
+    await act(async () => {
+      themeBoundary.style.setProperty('--picodash-panel-width', '160px')
+    })
+    expect(corner.hidden).toBe(true)
+    expect(edge.style.left).toBe('160px')
+    expect(edge.style.inlineSize).toBe('140px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()

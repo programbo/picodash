@@ -684,6 +684,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       const previous = geometryRef.current
       const next = measureGeometry()
       if (!next) return
+      const dockPosition =
+        effectivePlacement.mode === 'fixed'
+          ? effectivePlacement.disposition.position
+          : effectivePlacement.mode === 'hybrid' && effectivePlacement.disposition.kind === 'docked'
+            ? effectivePlacement.disposition.position
+            : undefined
+      if (asideRef.current?.hidden && isCornerDockPosition(dockPosition))
+        runtime.notifyElementResize(id, next.size.width)
       if (
         moveSession.current &&
         previous &&
@@ -711,7 +719,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           : next,
       )
     },
-    [measureGeometry],
+    [effectivePlacement, id, measureGeometry, runtime],
   )
   useLayoutEffect(() => {
     refreshGeometry()
@@ -748,8 +756,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 targetElement === panel || (targetElement !== null && panel.contains(targetElement))
               )
             })
-            if (panelChanged && panel.hidden) {
-              runtime.notifyElementResize(id, measurePreferredPanelRect(panel).width)
+            const panelAncestorChanged = records.some((record) => {
+              const target = record.target
+              const targetElement =
+                target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement
+              return targetElement !== null && targetElement.contains(panel)
+            })
+            if ((panelChanged || panelAncestorChanged) && panel.hidden) {
+              refreshGeometry()
               mutationObserver?.takeRecords()
             }
             if (
@@ -771,6 +785,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       subtree: true,
     } as const
     mutationObserver?.observe(panel, mutationOptions)
+    const panelRoot = typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined
+    if (mutationObserver && panelRoot && panelRoot !== ownerDocument)
+      mutationObserver.observe(panelRoot, mutationOptions)
     if (mutationObserver && mutationRoot) mutationObserver.observe(mutationRoot, mutationOptions)
     const settledLayoutEvents = [
       'animationcancel',
@@ -1223,11 +1240,6 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       : renderedPlacement.mode === 'hybrid' && renderedPlacement.disposition.kind === 'docked'
         ? renderedPlacement.disposition.position
         : undefined
-  useLayoutEffect(() => {
-    const panel = asideRef.current
-    if (panel && isCornerDockPosition(renderedDockPosition))
-      runtime.notifyElementResize(id, measurePreferredPanelRect(panel).width)
-  }, [id, renderedDockPosition, runtime])
   const dockTarget =
     geometry && renderedDockPosition ? runtime.getDockTarget(id, geometry.boundary) : undefined
   const renderedRect = geometry
