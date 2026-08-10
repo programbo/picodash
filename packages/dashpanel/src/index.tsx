@@ -747,6 +747,81 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const mutationRoot = ownerDocument.documentElement
     const inheritedMutationTargets = new Set<Node>()
     let observedPanelRoot: Node | undefined
+    const settledLayoutEvents = [
+      'animationcancel',
+      'animationend',
+      'load',
+      'transitioncancel',
+      'transitionend',
+    ] as const
+    const movingLayoutEvents = ['animationstart', 'transitionrun', 'transitionstart'] as const
+    const relevantLayoutAncestors = new Set<Node>()
+    const layoutEventTargets = new Set<EventTarget>()
+    const composedHost = (root: unknown): Node | null => {
+      if (root === null || typeof root !== 'object' || !('host' in root)) return null
+      const host = (root as { readonly host?: unknown }).host
+      return host !== null && typeof host === 'object' && 'nodeType' in host ? (host as Node) : null
+    }
+    const collectComposedAncestors = (start: Node | null | undefined) => {
+      let current = start
+      while (current) {
+        relevantLayoutAncestors.add(current)
+        if (current.parentNode) {
+          current = current.parentNode
+          continue
+        }
+        const root = typeof current.getRootNode === 'function' ? current.getRootNode() : undefined
+        current = composedHost(root)
+      }
+    }
+    const containsTarget = (container: Node | null | undefined, target: EventTarget) => {
+      try {
+        return container?.contains(target as Node) ?? false
+      } catch {
+        return false
+      }
+    }
+    const cancelForLayoutMotion = (event: Event) => {
+      const target = event.target
+      if (target === null || typeof target !== 'object') return
+      if (
+        relevantLayoutAncestors.has(target as Node) ||
+        containsTarget(panel, target) ||
+        containsTarget(observedBoundary, target)
+      )
+        cancelObservedMoveRef.current()
+    }
+    const addLayoutEventTarget = (target: unknown) => {
+      if (
+        target !== null &&
+        typeof target === 'object' &&
+        typeof (target as EventTarget).addEventListener === 'function'
+      )
+        layoutEventTargets.add(target as EventTarget)
+    }
+    const removeLayoutEventListeners = () => {
+      for (const target of layoutEventTargets) {
+        for (const eventName of settledLayoutEvents)
+          target.removeEventListener(eventName, refreshGeometry, true)
+        for (const eventName of movingLayoutEvents)
+          target.removeEventListener(eventName, cancelForLayoutMotion, true)
+      }
+      layoutEventTargets.clear()
+    }
+    const rebuildLayoutEventContext = () => {
+      removeLayoutEventListeners()
+      relevantLayoutAncestors.clear()
+      collectComposedAncestors(panel)
+      collectComposedAncestors(observedBoundary)
+      addLayoutEventTarget(ownerDocument)
+      for (const target of relevantLayoutAncestors) addLayoutEventTarget(target)
+      for (const target of layoutEventTargets) {
+        for (const eventName of settledLayoutEvents)
+          target.addEventListener(eventName, refreshGeometry, true)
+        for (const eventName of movingLayoutEvents)
+          target.addEventListener(eventName, cancelForLayoutMotion, true)
+      }
+    }
     let rebuildMutationContext = () => undefined
     const mutationObserver =
       mutationRoot && typeof MutationObserver === 'function'
@@ -798,80 +873,32 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       subtree: true,
     } as const
     rebuildMutationContext = () => {
-      if (!mutationObserver) return
-      mutationObserver.disconnect()
+      mutationObserver?.disconnect()
       inheritedMutationTargets.clear()
-      mutationObserver.observe(panel, mutationOptions)
       observedPanelRoot = typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined
-      if (observedPanelRoot && observedPanelRoot !== ownerDocument) {
-        inheritedMutationTargets.add(observedPanelRoot)
-        mutationObserver.observe(observedPanelRoot, mutationOptions)
-      }
-      let ancestor: Element | null = panel.parentElement
-      while (ancestor) {
-        inheritedMutationTargets.add(ancestor)
-        mutationObserver.observe(ancestor, { attributes: true })
-        if (ancestor.parentElement) {
-          ancestor = ancestor.parentElement
-          continue
+      if (mutationObserver) {
+        mutationObserver.observe(panel, mutationOptions)
+        if (observedPanelRoot && observedPanelRoot !== ownerDocument) {
+          inheritedMutationTargets.add(observedPanelRoot)
+          mutationObserver.observe(observedPanelRoot, mutationOptions)
         }
-        const root = typeof ancestor.getRootNode === 'function' ? ancestor.getRootNode() : undefined
-        ancestor = root && 'host' in root && root.host instanceof Element ? root.host : null
+        let ancestor: Element | null = panel.parentElement
+        while (ancestor) {
+          inheritedMutationTargets.add(ancestor)
+          mutationObserver.observe(ancestor, { attributes: true })
+          if (ancestor.parentElement) {
+            ancestor = ancestor.parentElement
+            continue
+          }
+          const root =
+            typeof ancestor.getRootNode === 'function' ? ancestor.getRootNode() : undefined
+          ancestor = composedHost(root) as Element | null
+        }
+        if (mutationRoot) mutationObserver.observe(mutationRoot, mutationOptions)
       }
-      if (mutationRoot) mutationObserver.observe(mutationRoot, mutationOptions)
+      rebuildLayoutEventContext()
     }
     rebuildMutationContext()
-    const settledLayoutEvents = [
-      'animationcancel',
-      'animationend',
-      'load',
-      'transitioncancel',
-      'transitionend',
-    ] as const
-    const movingLayoutEvents = ['animationstart', 'transitionrun', 'transitionstart'] as const
-    const relevantLayoutAncestors = new Set<Node>()
-    const collectComposedAncestors = (start: Node | null | undefined) => {
-      let current = start
-      while (current) {
-        relevantLayoutAncestors.add(current)
-        if (current.parentNode) {
-          current = current.parentNode
-          continue
-        }
-        const root = typeof current.getRootNode === 'function' ? current.getRootNode() : undefined
-        current = root && 'host' in root && root.host instanceof Node ? root.host : null
-      }
-    }
-    collectComposedAncestors(panel)
-    collectComposedAncestors(observedBoundary)
-    const cancelForLayoutMotion = (event: Event) => {
-      const target = event.target
-      if (!(target instanceof Node)) return
-      if (
-        relevantLayoutAncestors.has(target) ||
-        panel.contains(target) ||
-        observedBoundary?.contains(target)
-      )
-        cancelObservedMoveRef.current()
-    }
-    const layoutEventTargets = new Set<EventTarget>()
-    const addLayoutEventTarget = (target: unknown) => {
-      if (
-        target !== null &&
-        typeof target === 'object' &&
-        typeof (target as EventTarget).addEventListener === 'function'
-      )
-        layoutEventTargets.add(target as EventTarget)
-    }
-    addLayoutEventTarget(ownerDocument)
-    addLayoutEventTarget(observedBoundary)
-    addLayoutEventTarget(observedPanelRoot)
-    for (const target of layoutEventTargets) {
-      for (const eventName of settledLayoutEvents)
-        target.addEventListener(eventName, refreshGeometry, true)
-      for (const eventName of movingLayoutEvents)
-        target.addEventListener(eventName, cancelForLayoutMotion, true)
-    }
     let animationFrame: number | undefined
     let trackedBoundary = observedBoundary
     let trackedBoundaryRect = observedBoundary?.getBoundingClientRect()
@@ -907,12 +934,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     return () => {
       observer?.disconnect()
       mutationObserver?.disconnect()
-      for (const target of layoutEventTargets) {
-        for (const eventName of settledLayoutEvents)
-          target.removeEventListener(eventName, refreshGeometry, true)
-        for (const eventName of movingLayoutEvents)
-          target.removeEventListener(eventName, cancelForLayoutMotion, true)
-      }
+      removeLayoutEventListeners()
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', refreshGeometry)
         window.removeEventListener('scroll', refreshGeometry, true)

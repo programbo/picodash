@@ -250,9 +250,12 @@ describe('DashPanel portal ownership', () => {
   it('cancels an active move as soon as observed geometry changes', async () => {
     const store = makeStore()
     const portal = document.createElement('div')
+    const firstShadowHost = document.createElement('div')
+    firstShadowHost.attachShadow({ mode: 'open' }).append(portal)
     const boundary = document.createElement('div')
     let boundaryWidth = 300
     let resize!: ResizeObserverCallback
+    let mutate!: MutationCallback
     vi.stubGlobal(
       'ResizeObserver',
       class {
@@ -261,6 +264,17 @@ describe('DashPanel portal ownership', () => {
         }
         observe = vi.fn()
         disconnect = vi.fn()
+      },
+    )
+    vi.stubGlobal(
+      'MutationObserver',
+      class {
+        constructor(callback: MutationCallback) {
+          mutate = callback
+        }
+        observe = vi.fn()
+        disconnect = vi.fn()
+        takeRecords = vi.fn(() => [])
       },
     )
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
@@ -322,6 +336,25 @@ describe('DashPanel portal ownership', () => {
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
     expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
     unrelated.remove()
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    const secondShadowHost = document.createElement('div')
+    const secondShadowRoot = secondShadowHost.attachShadow({ mode: 'open' })
+    await act(async () => {
+      secondShadowRoot.append(portal)
+      mutate([{ target: firstShadowHost.shadowRoot } as unknown as MutationRecord], {} as never)
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+    await act(async () => {
+      secondShadowHost.dispatchEvent(new Event('transitionrun'))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
