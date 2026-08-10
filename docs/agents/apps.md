@@ -17,7 +17,8 @@ The root `web`, `lab`, and E2E commands use the default server ports in the prim
 linked worktree, `bun run port:configure` checks `6034-6039` in order, skips unavailable ports,
 and writes the first free port to that worktree's ignored `.env.local` as both `WEBSITE_PORT` and
 `LAB_PORT`. Those root commands run the configuration automatically. Do not select ad hoc ports
-outside the assigned range.
+outside the assigned range. They explicitly load the root `.env.local` into the filtered app
+process after configuration; package-level env files are not part of this workflow.
 
 The one-port-per-worktree convention applies to web application servers. Dev Bridge may use
 multiple ephemeral loopback ports for its relay and browser-credential broker. Keep those ports
