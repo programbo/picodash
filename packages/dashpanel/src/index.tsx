@@ -276,6 +276,15 @@ function textTitle(value: ReactNode): string {
   return ''
 }
 
+function isCornerDockPosition(position: DashPanelDockPosition | undefined): boolean {
+  return (
+    position === 'top-left' ||
+    position === 'top-right' ||
+    position === 'bottom-left' ||
+    position === 'bottom-right'
+  )
+}
+
 function assertPanelStyle(style: DashPanelStyle | undefined): void {
   if (!style) return
   for (const property of [
@@ -1189,6 +1198,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       : renderedPlacement.mode === 'hybrid' && renderedPlacement.disposition.kind === 'docked'
         ? renderedPlacement.disposition.position
         : undefined
+  useLayoutEffect(() => {
+    if (isCornerDockPosition(renderedDockPosition)) runtime.notifyElementResize(id)
+  }, [id, renderedDockPosition, runtime])
   const dockTarget =
     geometry && renderedDockPosition ? runtime.getDockTarget(id, geometry.boundary) : undefined
   const renderedRect = geometry

@@ -1157,6 +1157,58 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('reserves a hidden corner after an external placement transition', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const width = this.hidden ? 0 : 80
+          return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel id="corner" title="Corner" defaultVisible={false} />
+        <DashPanel
+          id="edge"
+          title="Edge"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-top' } },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const corner = [...portal.querySelectorAll('[data-picodash-panel]')].find((panel) =>
+      panel.textContent?.includes('Corner'),
+    ) as HTMLElement
+    const edge = [...portal.querySelectorAll('[data-picodash-panel]')].find((panel) =>
+      panel.textContent?.includes('Edge'),
+    ) as HTMLElement
+    expect(corner.hidden).toBe(true)
+    expect(edge.style.left).toBe('0px')
+    expect(edge.style.inlineSize).toBe('300px')
+
+    await act(async () => {
+      store.scope('corner').setDashPanelLayout({
+        placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'top-left' } },
+        preferredPosition: { x: 0, y: 0 },
+      })
+    })
+
+    expect(corner.hidden).toBe(true)
+    expect(edge.style.left).toBe('80px')
+    expect(edge.style.inlineSize).toBe('220px')
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('restores the preferred intrinsic width after leaving a full horizontal dock', async () => {
     const store = makeStore()
     const portal = document.createElement('div')
