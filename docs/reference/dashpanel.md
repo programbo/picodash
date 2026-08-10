@@ -138,7 +138,15 @@ The exact launch prop surface is:
 ```ts
 type DashPanelStyle = Omit<
   CSSProperties,
-  'blockSize' | 'inlineSize' | 'maxBlockSize' | 'maxInlineSize' | 'width'
+  | 'blockSize'
+  | 'inlineSize'
+  | 'maxBlockSize'
+  | 'maxInlineSize'
+  | 'minBlockSize'
+  | 'minHeight'
+  | 'minInlineSize'
+  | 'minWidth'
+  | 'width'
 >
 
 interface DashPanelProps<CustomTheme extends string = never> extends Omit<
@@ -208,12 +216,11 @@ When `preferredPosition` is omitted, the first transition to free placement uses
 contained rendered position. Declared defaults never become persisted overrides merely because a
 Panel mounts.
 
-`style.width`, `style.inlineSize`, `style.maxInlineSize`, `style.blockSize`, and
-`style.maxBlockSize` are reserved so consumer styles cannot compete with the `width` prop or
-projected placement constraints. The first two use the `width` prop; the remaining logical-size
-properties are owned by placement geometry. Callers use `width` for one Panel or a
-`className`/stylesheet rule for selector-based sizing. Other ordinary `aside` attributes and styles
-remain available. DashPanel forwards an `HTMLAsideElement` ref.
+`style.width`, logical-size, and physical/logical minimum-size properties are reserved so consumer
+styles cannot compete with the `width` prop or projected placement constraints. Width uses the
+`width` prop; maximum logical sizes and all minimum sizes are owned by placement geometry. Callers
+use `width` for one Panel or a `className`/stylesheet rule for selector-based sizing. Other ordinary
+`aside` attributes and styles remain available. DashPanel forwards an `HTMLAsideElement` ref.
 
 The prototype props `store`, `contentMode`, `close`, `onClose`, controlled visibility/collapse, and
 Motion-specific animation or drag props do not enter the target API. DashPanel exposes behavior
@@ -591,6 +598,9 @@ accessibility, and conflict contract.
 Pointer and keyboard operations must reach the same canonical placements and reject the same
 occupied targets. Pointer movement uses capture, contained unsnapped Panel geometry, and current
 pointer position. A Hybrid proxy is visual intent only and never becomes the input to geometry.
+On commit, the projected proxy settles to the nearest permitted snap target when its top-left is
+within `snapProximity` CSS pixels of that target's top-left. Floating Panels use all eight targets;
+Hybrid Panels use only top and bottom.
 
 Keyboard movement uses the Panel's move control:
 

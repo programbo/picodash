@@ -520,6 +520,88 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('settles pointer and keyboard movement onto targets within snapProximity', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const left = Number.parseFloat(this.style.left) || 0
+          const top = Number.parseFloat(this.style.top) || 0
+          return {
+            top,
+            right: left + 80,
+            bottom: top + 40,
+            left,
+            width: 80,
+            height: 40,
+          } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    const freeLayout = (preferredPosition: { x: number; y: number }) => ({
+      placement: { mode: 'floating' as const, disposition: { kind: 'free' as const } },
+      preferredPosition,
+    })
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="pointer"
+          title="Pointer"
+          defaultLayout={freeLayout({ x: 30, y: 30 })}
+          placementOptions={{ snapOffset: 8, snapProximity: 5 }}
+        />
+        <DashPanel
+          id="keyboard"
+          title="Keyboard"
+          defaultLayout={freeLayout({ x: 40, y: 40 })}
+          placementOptions={{ snapOffset: 8, snapProximity: 5 }}
+        />
+      </DashPanelProvider>,
+    )
+    const pointerMove = portal.querySelector('[aria-label="Move panel Pointer"]') as HTMLElement
+    const pointer = (type: string, x: number, y: number) => {
+      const event = new MouseEvent(type, { bubbles: true, button: 0, clientX: x, clientY: y })
+      Object.defineProperty(event, 'pointerId', { value: 7 })
+      return event
+    }
+    await act(async () => pointerMove.dispatchEvent(pointer('pointerdown', 30, 30)))
+    await act(async () => {
+      window.dispatchEvent(pointer('pointermove', 10, 8))
+      window.dispatchEvent(pointer('pointerup', 10, 8))
+    })
+    expect(store.getState().scopes.get('pointer')?.dashPanel).toEqual({
+      placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
+      preferredPosition: { x: 30, y: 30 },
+    })
+
+    const keyboardMove = portal.querySelector('[aria-label="Move panel Keyboard"]') as HTMLElement
+    await act(async () => {
+      keyboardMove.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      for (let index = 0; index < 3; index += 1)
+        keyboardMove.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft', shiftKey: true }),
+        )
+      for (let index = 0; index < 3; index += 1)
+        keyboardMove.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowUp', shiftKey: true }),
+        )
+      keyboardMove.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
+    expect(store.getState().scopes.get('keyboard')?.dashPanel).toEqual({
+      placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
+      preferredPosition: { x: 40, y: 40 },
+    })
+
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    store.destroy()
+  })
+
   it('applies side allocation segments to compatible dock occupants', async () => {
     const store = makeStore()
     const portal = document.createElement('div')

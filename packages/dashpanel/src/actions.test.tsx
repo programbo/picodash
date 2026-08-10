@@ -6,6 +6,7 @@ import { ActionMenuItem } from '@picodash/ui'
 import { createPicodashStore } from '@picodash/store'
 import { DashPanel, DashPanelProvider } from './index.tsx'
 import { DashPanelIntegrationProvider } from './integration.tsx'
+import { useDashPanelRuntime } from './runtime/panel-runtime-context.tsx'
 
 let container: HTMLDivElement
 let root: Root
@@ -245,6 +246,18 @@ describe('DashPanel action composition', () => {
       </DashPanelProvider>,
     )
     await openActions()
+    const submenu = document.querySelector('[data-slot="action-submenu"]') as HTMLElement
+    submenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await act(async () => {})
+    const snap = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
+      (item) => item.textContent === 'Snap top-left',
+    ) as HTMLElement
+    await act(async () => snap.click())
+    expect(document.querySelector('[data-picodash-panel-status]')?.textContent).toBe(
+      'Panel placement failed: Scope metadata is quarantined.',
+    )
+
+    await openActions()
     const reset = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
       (item) => item.textContent === 'Reset layout',
     ) as HTMLElement
@@ -252,6 +265,59 @@ describe('DashPanel action composition', () => {
     expect(document.querySelector('[data-picodash-panel-status]')?.textContent).toBe(
       'Panel layout reset failed: Scope metadata is quarantined.',
     )
+    await act(async () => root.unmount())
+    store.destroy()
+  })
+
+  it('announces a dock race rejected after the placement menu was rendered', async () => {
+    const store = makeStore()
+    let runtime!: ReturnType<typeof useDashPanelRuntime>
+    function RuntimeProbe() {
+      runtime = useDashPanelRuntime()
+      return null
+    }
+    await render(
+      <DashPanelProvider store={store}>
+        <RuntimeProbe />
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: {
+              mode: 'fixed',
+              disposition: { kind: 'docked', position: 'full-right' },
+            },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    await openActions()
+    const submenu = document.querySelector('[data-slot="action-submenu"]') as HTMLElement
+    submenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await act(async () => {})
+    const fullLeft = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
+      (item) => item.textContent === 'Dock full-left',
+    ) as HTMLElement
+    expect(fullLeft.getAttribute('aria-disabled')).not.toBe('true')
+    const originalSetPlacement = runtime.setPlacement.bind(runtime)
+    let occupied: ReturnType<typeof runtime.acquire> | undefined
+    vi.spyOn(runtime, 'setPlacement').mockImplementation((scopeId, placement) => {
+      occupied ??= runtime.acquire({
+        scopeId: 'occupied',
+        defaultLayout: {
+          placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
+        },
+        placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
+        dockPositions: ['full-left'],
+        presentation: { kind: 'panel' },
+      })
+      return originalSetPlacement(scopeId, placement)
+    })
+    await act(async () => fullLeft.click())
+    expect(document.querySelector('[data-picodash-panel-status]')?.textContent).toBe(
+      'Panel placement failed: The dock position is occupied.',
+    )
+    occupied?.release()
     await act(async () => root.unmount())
     store.destroy()
   })

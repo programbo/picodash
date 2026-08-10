@@ -151,9 +151,21 @@ describe('@picodash/dashpanel public types', () => {
     const directBlockSize: DashPanelProps = { ...panelProps, style: { blockSize: '1px' } }
     // @ts-expect-error placement geometry owns logical maximum height.
     const directMaxBlockSize: DashPanelProps = { ...panelProps, style: { maxBlockSize: '1px' } }
+    // @ts-expect-error placement geometry owns physical minimum width.
+    const directMinWidth: DashPanelProps = { ...panelProps, style: { minWidth: '1px' } }
+    // @ts-expect-error placement geometry owns logical minimum width.
+    const directMinInlineSize: DashPanelProps = { ...panelProps, style: { minInlineSize: '1px' } }
+    // @ts-expect-error placement geometry owns physical minimum height.
+    const directMinHeight: DashPanelProps = { ...panelProps, style: { minHeight: '1px' } }
+    // @ts-expect-error placement geometry owns logical minimum height.
+    const directMinBlockSize: DashPanelProps = { ...panelProps, style: { minBlockSize: '1px' } }
     void directMaxInlineSize
     void directBlockSize
     void directMaxBlockSize
+    void directMinWidth
+    void directMinInlineSize
+    void directMinHeight
+    void directMinBlockSize
 
     // @ts-expect-error visibility attributes are owned by the lifecycle runtime.
     const nativeHidden: DashPanelProps = { ...panelProps, hidden: true }
@@ -233,9 +245,21 @@ describe('@picodash/dashpanel public types', () => {
     const blockSize: DashPanelStyle = { blockSize: '1rem' }
     // @ts-expect-error maxBlockSize is intentionally omitted from DashPanelStyle.
     const maxBlockSize: DashPanelStyle = { maxBlockSize: '1rem' }
+    // @ts-expect-error minWidth is intentionally omitted from DashPanelStyle.
+    const minWidth: DashPanelStyle = { minWidth: '1rem' }
+    // @ts-expect-error minInlineSize is intentionally omitted from DashPanelStyle.
+    const minInlineSize: DashPanelStyle = { minInlineSize: '1rem' }
+    // @ts-expect-error minHeight is intentionally omitted from DashPanelStyle.
+    const minHeight: DashPanelStyle = { minHeight: '1rem' }
+    // @ts-expect-error minBlockSize is intentionally omitted from DashPanelStyle.
+    const minBlockSize: DashPanelStyle = { minBlockSize: '1rem' }
     void maxInlineSize
     void blockSize
     void maxBlockSize
+    void minWidth
+    void minInlineSize
+    void minHeight
+    void minBlockSize
   })
 
   it('exports placement vocabulary compatible with Store records in both directions', () => {

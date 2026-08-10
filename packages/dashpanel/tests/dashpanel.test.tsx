@@ -285,6 +285,7 @@ describe('@picodash/dashpanel alpha shell', () => {
             },
             preferredPosition: { x: 4, y: 6 },
           },
+          placementOptions: { snapProximity: 0 },
         }),
       }),
     )
@@ -975,6 +976,10 @@ describe('@picodash/dashpanel alpha shell', () => {
       'maxInlineSize',
       'blockSize',
       'maxBlockSize',
+      'minWidth',
+      'minInlineSize',
+      'minHeight',
+      'minBlockSize',
     ] as const) {
       const next = makeStore()
       expect(() =>

@@ -1,6 +1,10 @@
 import { Fragment, useContext, createContext, type ReactNode } from 'react'
 import { ActionMenuItem, ActionMenuSeparator, ActionSubmenu } from '@picodash/ui'
-import { useDashPanel, type DashPanelController } from './runtime/panel-controller.tsx'
+import {
+  useDashPanel,
+  type DashPanelController,
+  type DashPanelLayoutCommandResult,
+} from './runtime/panel-controller.tsx'
 import { useDashPanelPolicy } from './runtime/panel-policy-context.tsx'
 import { useDashPanelRuntime } from './runtime/panel-runtime-context.tsx'
 import type {
@@ -54,6 +58,7 @@ function placementItem(
   controller: DashPanelController,
   placement: DashPanelPlacement,
   label: string,
+  announce: (message: string) => void,
   occupied = false,
 ) {
   if (controller.availability === 'unavailable') return null
@@ -65,10 +70,34 @@ function placementItem(
       label={label}
       isDisabled={occupied || samePlacement(controller.placement, placement)}
       onAction={() => {
-        void controller.setPlacement(placement)
+        announceLayoutFailure('Panel placement', controller.setPlacement(placement), announce)
       }}
     />
   )
+}
+
+const layoutFailureReasons = {
+  unavailable: 'The Panel is unavailable.',
+  dock_occupied: 'The dock position is occupied.',
+  position_disabled: 'The placement is disabled.',
+  modal_presentation: 'The current presentation does not support layout changes.',
+} as const
+
+function announceLayoutFailure(
+  action: string,
+  result: DashPanelLayoutCommandResult,
+  announce: (message: string) => void,
+): void {
+  if (result.status === 'not_executed') {
+    announce(`${action} failed: ${layoutFailureReasons[result.reason]}`)
+    return
+  }
+  if (!result.transaction.ok)
+    announce(
+      `${action} failed: ${
+        result.transaction.error.issues[0]?.message ?? 'The Store rejected the change.'
+      }`,
+    )
 }
 
 const snapLabels: Readonly<Record<DashPanelSnapPosition, string>> = Object.freeze({
@@ -133,6 +162,7 @@ function hybridPlacement(disposition: DashPanelPlacement['disposition']): DashPa
 
 export function DashPanelPlacementSubmenu() {
   const controller = useDashPanel()
+  const { announce } = useActionContext()
   const policy = useDashPanelPolicy()
   const runtime = useDashPanelRuntime()
   if (controller.availability === 'unavailable') return null
@@ -146,6 +176,7 @@ export function DashPanelPlacementSubmenu() {
             controller,
             floatingPlacement({ kind: 'snapped', position }),
             snapLabels[position],
+            announce,
           ),
         )
       : mode === 'hybrid'
@@ -154,14 +185,15 @@ export function DashPanelPlacementSubmenu() {
               controller,
               hybridPlacement({ kind: 'snapped', position }),
               snapLabels[position],
+              announce,
             ),
           )
         : []
   const free =
     mode === 'floating'
-      ? placementItem(controller, floatingPlacement({ kind: 'free' }), 'Free')
+      ? placementItem(controller, floatingPlacement({ kind: 'free' }), 'Free', announce)
       : mode === 'hybrid'
-        ? placementItem(controller, hybridPlacement({ kind: 'free' }), 'Free')
+        ? placementItem(controller, hybridPlacement({ kind: 'free' }), 'Free', announce)
         : null
   const docks =
     mode === 'fixed' || mode === 'hybrid'
@@ -174,6 +206,7 @@ export function DashPanelPlacementSubmenu() {
                 ? { mode: 'fixed', disposition: { kind: 'docked', position } }
                 : { mode: 'hybrid', disposition: { kind: 'docked', position } },
               dockLabels[position],
+              announce,
               runtime.isDockPositionOccupied(controller.scopeId, position),
             ),
           )
@@ -195,13 +228,7 @@ export function DashPanelResetLayoutItem() {
     <ActionMenuItem
       label="Reset layout"
       onAction={() => {
-        const result = controller.resetLayout()
-        if (result.status === 'executed' && !result.transaction.ok)
-          announce(
-            `Panel layout reset failed: ${
-              result.transaction.error.issues[0]?.message ?? 'The Store rejected the change.'
-            }`,
-          )
+        announceLayoutFailure('Panel layout reset', controller.resetLayout(), announce)
       }}
     />
   )

@@ -84,6 +84,7 @@ import {
   type DashPanelDefaultLayout,
   type DashPanelPlacementOptions,
   type DashPanelPresentation,
+  type DashPanelSnapPosition,
 } from './placement/placement.ts'
 import {
   clearPanelFocusRecord,
@@ -100,6 +101,7 @@ import {
   projectDashPanelRect,
   rectFromDashPanelPosition,
   snapDashPanelRect,
+  snapDashPanelTargets,
   type DashPanelDockTargetOptions,
   type DashPanelPoint,
   type DashPanelSize,
@@ -129,7 +131,15 @@ export type { DashPanelRemoveRequest } from './actions.tsx'
 
 export type DashPanelStyle = Omit<
   CSSProperties,
-  'blockSize' | 'inlineSize' | 'maxBlockSize' | 'maxInlineSize' | 'width'
+  | 'blockSize'
+  | 'inlineSize'
+  | 'maxBlockSize'
+  | 'maxInlineSize'
+  | 'minBlockSize'
+  | 'minHeight'
+  | 'minInlineSize'
+  | 'minWidth'
+  | 'width'
 >
 
 export interface DashPanelProviderProps<
@@ -273,6 +283,10 @@ function assertPanelStyle(style: DashPanelStyle | undefined): void {
     'maxInlineSize',
     'blockSize',
     'maxBlockSize',
+    'minWidth',
+    'minInlineSize',
+    'minHeight',
+    'minBlockSize',
   ] as const)
     if (Object.prototype.hasOwnProperty.call(style, property))
       throw new TypeError(
@@ -398,6 +412,45 @@ function placementRect(
     ),
     boundary,
   )
+}
+
+const floatingSnapPositions: readonly DashPanelSnapPosition[] = [
+  'top-left',
+  'top',
+  'top-right',
+  'right',
+  'bottom-right',
+  'bottom',
+  'bottom-left',
+  'left',
+]
+
+function snapPlacementForMove(
+  mode: 'floating' | 'hybrid',
+  position: DashPanelPoint,
+  geometry: PanelGeometryState | null,
+  options: Readonly<{ snapOffset: number; snapProximity: number }>,
+): DashPanelPlacement | undefined {
+  if (!geometry) return undefined
+  const targets = snapDashPanelTargets(geometry.boundary, geometry.size, options.snapOffset)
+  const positions = mode === 'hybrid' ? (['top', 'bottom'] as const) : floatingSnapPositions
+  const absolute = {
+    x: geometry.boundary.left + position.x,
+    y: geometry.boundary.top + position.y,
+  }
+  let nearest: DashPanelSnapPosition | undefined
+  let nearestDistance = Number.POSITIVE_INFINITY
+  for (const candidate of positions) {
+    const target = targets[candidate]
+    const distance = Math.hypot(target.left - absolute.x, target.top - absolute.y)
+    if (distance <= options.snapProximity && distance < nearestDistance) {
+      nearest = candidate
+      nearestDistance = distance
+    }
+  }
+  return nearest === undefined
+    ? undefined
+    : ({ mode, disposition: { kind: 'snapped', position: nearest } } as DashPanelPlacement)
 }
 
 function policySafeDefaultLayout(
@@ -758,10 +811,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       cancelMove()
       return { status: 'not_executed' as const, reason: 'unavailable' as const }
     }
-    const result = runtime.setPlacement(id, {
-      mode: requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating',
-      disposition: { kind: 'free' },
-    })
+    const movableMode = requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating'
+    const placement =
+      snapPlacementForMove(movableMode, preview, latestGeometry, resolvedPlacementOptions) ??
+      ({ mode: movableMode, disposition: { kind: 'free' } } as const)
+    const result = runtime.setPlacement(id, placement)
     if (result.status !== 'executed') {
       cancelMove()
       return result
