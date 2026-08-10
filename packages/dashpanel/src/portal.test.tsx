@@ -423,17 +423,37 @@ describe('DashPanel portal ownership', () => {
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
 
     const slotHost = document.createElement('div')
-    const slotRoot = slotHost.attachShadow({ mode: 'open' })
+    const slotRoot = slotHost.attachShadow({ mode: 'open', slotAssignment: 'manual' })
     const slotMotionWrapper = document.createElement('div')
     const slot = document.createElement('slot')
+    slot.name = 'manual-target'
+    let manuallyAssigned = false
+    Object.defineProperty(portal, 'assignedSlot', {
+      configurable: true,
+      get: () => (manuallyAssigned ? slot : null),
+    })
     slotMotionWrapper.append(slot)
     slotRoot.append(slotMotionWrapper)
     await act(async () => {
       slotHost.append(portal)
       notifyPanelMutation(secondWrapper)
     })
+    expect(portal.assignedSlot).toBeNull()
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+    await act(async () => {
+      // jsdom does not implement HTMLSlotElement.assign(); emulate its observable distribution.
+      manuallyAssigned = true
+      slot.dispatchEvent(new Event('slotchange'))
+    })
     expect(portal.assignedSlot).toBe(slot)
     expect(panelMutationObserver.targets).toContain(slotRoot)
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
     await act(async () => {
       slotMotionWrapper.dispatchEvent(new Event('transitionrun'))
@@ -452,10 +472,6 @@ describe('DashPanel portal ownership', () => {
     await act(async () => {
       secondSlotWrapper.append(slot)
       slot.dispatchEvent(new Event('slotchange'))
-    })
-    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
-    await act(async () => {
-      secondSlotWrapper.dispatchEvent(new Event('animationstart'))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
     expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()

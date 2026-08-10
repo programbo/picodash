@@ -818,7 +818,26 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
     let rebuildMutationContext = () => undefined
     const slotChangeTargets = new Set<EventTarget>()
-    const rebuildForSlotChange = () => rebuildMutationContext()
+    const rebuildForSlotChange = () => {
+      cancelObservedMoveRef.current()
+      rebuildMutationContext()
+      refreshGeometry()
+    }
+    const addSlotChangeTarget = (target: EventTarget) => {
+      if (slotChangeTargets.has(target)) return
+      target.addEventListener('slotchange', rebuildForSlotChange)
+      slotChangeTargets.add(target)
+    }
+    const addSlotsFromRoot = (root: unknown) => {
+      if (
+        root === null ||
+        typeof root !== 'object' ||
+        !('querySelectorAll' in root) ||
+        typeof root.querySelectorAll !== 'function'
+      )
+        return
+      for (const slot of root.querySelectorAll('slot')) addSlotChangeTarget(slot)
+    }
     const removeLayoutEventListeners = () => {
       for (const target of layoutEventTargets) {
         for (const eventName of settledLayoutEvents)
@@ -843,9 +862,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       addLayoutEventTarget(ownerDocument)
       for (const target of relevantLayoutAncestors) addLayoutEventTarget(target)
       for (const target of relevantLayoutAncestors) {
-        if (target.nodeType !== 1 || (target as Element).localName !== 'slot') continue
-        target.addEventListener('slotchange', rebuildForSlotChange)
-        slotChangeTargets.add(target)
+        if (target.nodeType === 1 && (target as Element).localName === 'slot')
+          addSlotChangeTarget(target)
+        if (target.nodeType === 11) addSlotsFromRoot(target)
+        if (target.nodeType === 1 && 'shadowRoot' in target)
+          addSlotsFromRoot((target as Element).shadowRoot)
       }
       for (const target of layoutEventTargets) {
         for (const eventName of settledLayoutEvents)
