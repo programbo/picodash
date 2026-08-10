@@ -288,6 +288,20 @@ interface PanelGeometryState {
 }
 
 function viewportRect(): DashPanelRect {
+  const visualViewport = typeof window !== 'undefined' ? window.visualViewport : undefined
+  if (
+    visualViewport &&
+    Number.isFinite(visualViewport.width) &&
+    Number.isFinite(visualViewport.height) &&
+    Number.isFinite(visualViewport.offsetLeft) &&
+    Number.isFinite(visualViewport.offsetTop)
+  ) {
+    const left = visualViewport.offsetLeft
+    const top = visualViewport.offsetTop
+    const width = visualViewport.width
+    const height = visualViewport.height
+    return { top, right: left + width, bottom: top + height, left, width, height }
+  }
   const width =
     typeof window !== 'undefined' && Number.isFinite(window.innerWidth)
       ? window.innerWidth
@@ -538,7 +552,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const panel = asideRef.current
     if (!panel) return
     const observer =
-      typeof ResizeObserver === 'function' ? new ResizeObserver(refreshGeometry) : undefined
+      typeof ResizeObserver === 'function'
+        ? new ResizeObserver((entries) => {
+            refreshGeometry()
+            if (entries.some((entry) => entry.target === panel)) runtime.notifyElementResize(id)
+          })
+        : undefined
     observer?.observe(panel)
     if (observedBoundary) observer?.observe(observedBoundary)
     let animationFrame: number | undefined
@@ -549,6 +568,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', refreshGeometry)
       window.addEventListener('scroll', refreshGeometry, { capture: true, passive: true })
+      window.visualViewport?.addEventListener('resize', refreshGeometry)
+      window.visualViewport?.addEventListener('scroll', refreshGeometry)
       if (tracksBoundary && typeof window.requestAnimationFrame === 'function')
         animationFrame = window.requestAnimationFrame(refreshOnAnimationFrame)
     }
@@ -557,11 +578,13 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', refreshGeometry)
         window.removeEventListener('scroll', refreshGeometry, true)
+        window.visualViewport?.removeEventListener('resize', refreshGeometry)
+        window.visualViewport?.removeEventListener('scroll', refreshGeometry)
         if (animationFrame !== undefined && typeof window.cancelAnimationFrame === 'function')
           window.cancelAnimationFrame(animationFrame)
       }
     }
-  }, [observedBoundary, panelPortal, refreshGeometry, tracksBoundary])
+  }, [id, observedBoundary, panelPortal, refreshGeometry, runtime, tracksBoundary])
 
   const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
     const preferred = durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition

@@ -134,6 +134,7 @@ export interface PanelRuntime {
     available: Readonly<{ width: number; height: number }>,
   ): PanelRuntimeDockTarget | undefined
   registerElement(scopeId: string, element: HTMLElement | null): void
+  notifyElementResize(scopeId: string): void
   getElement(scopeId: string): HTMLElement | null
 }
 
@@ -653,6 +654,9 @@ export function createPanelRuntime(): PanelRuntime {
         panel.element = element
         publish()
       }
+    },
+    notifyElementResize(scopeId) {
+      if (panelFor(scopeId)?.element) publish()
     },
     getElement(scopeId) {
       return panelFor(scopeId)?.element ?? null

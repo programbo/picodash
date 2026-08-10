@@ -244,6 +244,62 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('uses and tracks the visual viewport when no element boundary is declared', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const listeners = new Map<string, EventListener>()
+    const visualViewport = {
+      width: 240,
+      height: 160,
+      offsetLeft: 30,
+      offsetTop: 20,
+      addEventListener: vi.fn((type: string, listener: EventListener) => {
+        listeners.set(type, listener)
+      }),
+      removeEventListener: vi.fn((type: string, listener: EventListener) => {
+        if (listeners.get(type) === listener) listeners.delete(type)
+      }),
+    }
+    vi.stubGlobal('visualViewport', visualViewport)
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this.hasAttribute('data-picodash-panel'))
+          return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'floating', disposition: { kind: 'free' } },
+            preferredPosition: { x: 999, y: -100 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    expect(panel.style.left).toBe('190px')
+    expect(panel.style.top).toBe('20px')
+    expect(visualViewport.addEventListener).toHaveBeenCalledWith('resize', expect.any(Function))
+    expect(visualViewport.addEventListener).toHaveBeenCalledWith('scroll', expect.any(Function))
+
+    visualViewport.width = 200
+    visualViewport.offsetLeft = 50
+    visualViewport.offsetTop = 25
+    await act(async () => listeners.get('scroll')?.(new Event('scroll')))
+    expect(panel.style.left).toBe('170px')
+    expect(panel.style.top).toBe('25px')
+
+    await act(async () => root.unmount())
+    expect(visualViewport.removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function))
+    expect(visualViewport.removeEventListener).toHaveBeenCalledWith('scroll', expect.any(Function))
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('uses current geometry when native move listeners finish after boundary drift', async () => {
     const store = makeStore()
     const portal = document.createElement('div')
@@ -333,6 +389,81 @@ describe('DashPanel portal ownership', () => {
     expect(panels[1]?.style.blockSize).toBe('200px')
     expect(panels[2]?.style.left).toBe('80px')
     expect(panels[2]?.style.inlineSize).toBe('220px')
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('recomputes full-edge allocation when a corner occupant changes width', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    let cornerWidth = 80
+    const observers: Array<{
+      readonly callback: ResizeObserverCallback
+      readonly targets: Element[]
+    }> = []
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        readonly record: (typeof observers)[number]
+        constructor(callback: ResizeObserverCallback) {
+          this.record = { callback, targets: [] }
+          observers.push(this.record)
+        }
+        observe = (target: Element) => this.record.targets.push(target)
+        disconnect = vi.fn()
+      },
+    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const width = this.textContent?.includes('Corner') ? cornerWidth : 80
+          return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="corner"
+          title="Corner"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'top-left' } },
+          }}
+        />
+        <DashPanel
+          id="edge"
+          title="Edge"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-top' } },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const corner = [...portal.querySelectorAll('[data-picodash-panel]')].find((panel) =>
+      panel.textContent?.includes('Corner'),
+    ) as HTMLElement
+    const edge = [...portal.querySelectorAll('[data-picodash-panel]')].find((panel) =>
+      panel.textContent?.includes('Edge'),
+    ) as HTMLElement
+    expect(edge.style.left).toBe('80px')
+    expect(edge.style.inlineSize).toBe('220px')
+
+    cornerWidth = 120
+    const cornerObserver = observers.find((observer) => observer.targets.includes(corner))!
+    await act(async () =>
+      cornerObserver.callback(
+        [{ target: corner } as unknown as ResizeObserverEntry],
+        {} as ResizeObserver,
+      ),
+    )
+    expect(edge.style.left).toBe('120px')
+    expect(edge.style.inlineSize).toBe('180px')
+
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()
