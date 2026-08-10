@@ -37,6 +37,8 @@ export type ReconciledOrdering = {
   readonly visibleBands: Readonly<Record<OrderingBand, readonly string[]>>
   /** Sanitized durable history, including dormant/unknown valid IDs. */
   readonly durableOrder: readonly string[] | undefined
+  /** Last Store-owned durable history used to derive the effective history. */
+  readonly sourceDurableOrder: readonly string[] | undefined
   readonly customized: boolean
   readonly reorderable: boolean
   readonly sessionFence: string | undefined
@@ -115,6 +117,7 @@ function sanitizeDurableOrder(order: readonly string[] | undefined): readonly st
 function stableFingerprint(input: {
   readonly declarations: readonly OrderingNode[]
   readonly durableOrder: readonly string[] | undefined
+  readonly sourceDurableOrder: readonly string[] | undefined
   readonly reorderable: boolean
   readonly sessionFence: string | undefined
 }): string {
@@ -125,6 +128,7 @@ function stableFingerprint(input: {
       visible: node.visible !== false,
     })),
     durableOrder: input.durableOrder ?? null,
+    sourceDurableOrder: input.sourceDurableOrder ?? null,
     reorderable: input.reorderable,
     sessionFence: input.sessionFence ?? null,
   })
@@ -180,6 +184,7 @@ export function reconcileOrdering(input: OrderingInput): ReconciledOrdering {
     bands: freezeBands(bands),
     visibleBands: freezeBands(visibleBands),
     durableOrder,
+    sourceDurableOrder: durableOrder,
     customized: durableOrder !== undefined,
     reorderable,
     sessionFence: input.sessionFence,
@@ -190,6 +195,7 @@ export function reconcileOrdering(input: OrderingInput): ReconciledOrdering {
     fingerprint: stableFingerprint({
       declarations,
       durableOrder,
+      sourceDurableOrder: durableOrder,
       reorderable,
       sessionFence: input.sessionFence,
     }),
@@ -268,6 +274,77 @@ function sameOrder(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((id, index) => id === b[index])
 }
 
+function sameOptionalOrder(
+  a: readonly string[] | undefined,
+  b: readonly string[] | undefined,
+): boolean {
+  return a === undefined ? b === undefined : b !== undefined && sameOrder(a, b)
+}
+
+function withDurableSource(
+  ordering: ReconciledOrdering,
+  sourceDurableOrder: readonly string[] | undefined,
+): ReconciledOrdering {
+  if (sameOptionalOrder(ordering.sourceDurableOrder, sourceDurableOrder)) return ordering
+  return Object.freeze({
+    ...ordering,
+    sourceDurableOrder,
+    fingerprint: stableFingerprint({
+      declarations: ordering.declarations,
+      durableOrder: ordering.durableOrder,
+      sourceDurableOrder,
+      reorderable: ordering.reorderable,
+      sessionFence: ordering.sessionFence,
+    }),
+  })
+}
+
+function reconcileAgainstPrevious(
+  previous: ReconciledOrdering,
+  input: OrderingInput,
+): ReconciledOrdering {
+  const sourceOrdering = reconcileOrdering(input)
+  if (!sourceOrdering.customized) return sourceOrdering
+
+  // Pin changes are declarative, so they do not rewrite Store metadata. Keep
+  // the already-derived effective history while the Store-owned source is
+  // unchanged, and let a genuinely new source override become authoritative.
+  const sourceUnchanged = sameOptionalOrder(
+    sourceOrdering.durableOrder,
+    previous.sourceDurableOrder,
+  )
+  const baseline = sourceUnchanged
+    ? reconcileOrdering({ ...input, durableOrder: previous.durableOrder })
+    : sourceOrdering
+  const previousBands = new Map(previous.declarations.map((node) => [node.id, bandFor(node)]))
+  const migrated = new Set(
+    sourceOrdering.declarations
+      .filter((node) => {
+        const previousBand = previousBands.get(node.id)
+        return previousBand !== undefined && previousBand !== bandFor(node)
+      })
+      .map((node) => node.id),
+  )
+  if (migrated.size === 0) return withDurableSource(baseline, sourceOrdering.durableOrder)
+
+  // Existing destination peers keep their customized relative order. Nodes
+  // entering that band follow them in current declaration order.
+  const candidate: string[] = []
+  for (const band of ['start', 'automatic', 'end'] as const) {
+    candidate.push(...baseline.bands[band].filter((id) => !migrated.has(id)))
+    candidate.push(
+      ...sourceOrdering.declarations
+        .filter((node) => migrated.has(node.id) && bandFor(node) === band)
+        .map((node) => node.id),
+    )
+  }
+  const effectiveHistory = mergeCommittedHistory(baseline, candidate)
+  return withDurableSource(
+    reconcileOrdering({ ...input, durableOrder: effectiveHistory }),
+    sourceOrdering.durableOrder,
+  )
+}
+
 /**
  * Apply one pure interaction transition. `reconcile` is also the external-drift
  * fence: any membership, visibility, pin, policy, or durable-order change
@@ -275,7 +352,7 @@ function sameOrder(a: readonly string[], b: readonly string[]): boolean {
  */
 export function transitionOrdering(state: OrderingState, event: OrderingEvent): OrderingTransition {
   if (event.type === 'reconcile') {
-    const nextOrdering = reconcileOrdering(event.input)
+    const nextOrdering = reconcileAgainstPrevious(state.ordering, event.input)
     if (state.session && nextOrdering.fingerprint !== state.session.originFingerprint) {
       return {
         state: Object.freeze({ ordering: nextOrdering, session: null }),

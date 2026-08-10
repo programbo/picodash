@@ -62,6 +62,31 @@ describe('DashList ordering model', () => {
     ).toEqual(['b', 'a', 'c'])
   })
 
+  it('appends nodes that migrate between pin bands after customized destination peers', () => {
+    let state = createOrderingState({
+      declarations: [{ id: 's', pin: 'start' }, { id: 'b' }, { id: 'a' }],
+      durableOrder: ['s', 'b', 'a'],
+    })
+    const input: OrderingInput = {
+      declarations: nodes('s', 'b', 'a'),
+      durableOrder: ['s', 'b', 'a'],
+    }
+    state = transitionOrdering(state, { type: 'reconcile', input }).state
+    expect(candidateOrder(state)).toEqual(['b', 'a', 's'])
+    expect(state.ordering.durableOrder).toEqual(['b', 'a', 's'])
+    expect(state.ordering.sourceDurableOrder).toEqual(['s', 'b', 'a'])
+
+    // Reconciliation with the unchanged Store metadata must not undo the
+    // declarative migration, while a new Store override remains authoritative.
+    state = transitionOrdering(state, { type: 'reconcile', input }).state
+    expect(candidateOrder(state)).toEqual(['b', 'a', 's'])
+    state = transitionOrdering(state, {
+      type: 'reconcile',
+      input: { ...input, durableOrder: ['a', 's', 'b'] },
+    }).state
+    expect(candidateOrder(state)).toEqual(['a', 's', 'b'])
+  })
+
   it('rejects invalid and duplicate declaration identities, while sanitizing durable history', () => {
     expect(() => reconcileOrdering({ declarations: [{ id: ' a' }] })).toThrow(TypeError)
     expect(() => reconcileOrdering({ declarations: nodes('a', 'a') })).toThrow(/Duplicate/)

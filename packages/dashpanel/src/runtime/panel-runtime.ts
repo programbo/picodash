@@ -402,12 +402,13 @@ export function createPanelRuntime(): PanelRuntime {
           if (Object.prototype.hasOwnProperty.call(update, 'onCollapsedChange'))
             current.onCollapsedChange = update.onCollapsedChange
           let changed = false
+          let notifyExpandedAfterPublish = false
           if (update.collapsible !== undefined && current.collapsible !== update.collapsible) {
             current.collapsible = update.collapsible
             const collapsedChanged = !current.collapsible && current.collapsed
             if (collapsedChanged) {
               current.collapsed = false
-              current.onCollapsedChange?.(false)
+              notifyExpandedAfterPublish = true
             }
             changed = true
           }
@@ -461,6 +462,7 @@ export function createPanelRuntime(): PanelRuntime {
             changed = true
           }
           if (changed) publish()
+          if (notifyExpandedAfterPublish) current.onCollapsedChange?.(false)
         },
         release() {
           if (released || panels.get(config.scopeId)?.generation !== generation) return

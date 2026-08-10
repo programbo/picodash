@@ -157,6 +157,28 @@ describe('private DashPanel runtime model', () => {
     expect(runtime.getSnapshot().panels.panel?.collapsed).toBe(false)
   })
 
+  it('publishes forced expansion before invoking its callback and stays consistent if it throws', () => {
+    const runtime = createPanelRuntime()
+    const callback = vi.fn(() => {
+      expect(runtime.getSnapshot().panels.panel).toMatchObject({
+        collapsed: false,
+        collapsible: false,
+      })
+      throw new Error('consumer callback failed')
+    })
+    const registration = runtime.acquire(config('panel'))
+    runtime.collapse('panel')
+
+    expect(() => registration.update({ collapsible: false, onCollapsedChange: callback })).toThrow(
+      'consumer callback failed',
+    )
+    expect(runtime.getSnapshot().panels.panel).toMatchObject({
+      collapsed: false,
+      collapsible: false,
+    })
+    expect(callback).toHaveBeenCalledWith(false)
+  })
+
   it('updates callback references without publishing and uses the latest callback', () => {
     const runtime = createPanelRuntime()
     const first = vi.fn()
