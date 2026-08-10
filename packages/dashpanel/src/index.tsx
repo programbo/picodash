@@ -605,6 +605,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const settledPreferredPosition =
     durableLayout?.preferredPosition ?? resolvedPolicyDefaultLayout.preferredPosition
   const settledLayoutFingerprint = JSON.stringify([
+    durableLayout?.placement ?? null,
     resolvedPlacement,
     settledPreferredPosition ?? null,
   ])
@@ -763,7 +764,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         !sameMeasuredRect(trackedPanelRect, nextPanelRect)
       )
         refreshGeometry()
-      if (boundaryIdentityChanged) registration.current?.update({ resolveDockArena })
+      if (boundaryIdentityChanged) {
+        cancelObservedMoveRef.current()
+        registration.current?.update({ resolveDockArena })
+      }
       trackedBoundary = nextBoundary
       trackedBoundaryRect = nextBoundaryRect
       trackedPanelRect = nextPanelRect

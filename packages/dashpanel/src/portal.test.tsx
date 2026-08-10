@@ -395,6 +395,78 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('cancels an active move when a boundary ref retargets without geometry drift', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundaryA = document.createElement('div')
+    const boundaryB = document.createElement('div')
+    const boundaryRef: { current: HTMLElement | null } = { current: boundaryA }
+    const frames = new Set<FrameRequestCallback>()
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.add(callback)
+      return frames.size
+    })
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundaryA || this === boundaryB)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const left = Number.parseFloat(this.style.left) || 0
+          const top = Number.parseFloat(this.style.top) || 0
+          return {
+            top,
+            right: left + 80,
+            bottom: top + 40,
+            left,
+            width: 80,
+            height: 40,
+          } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          boundary={boundaryRef}
+          defaultLayout={{
+            placement: { mode: 'floating', disposition: { kind: 'free' } },
+            preferredPosition: { x: 30, y: 30 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    boundaryRef.current = boundaryB
+    const pending = [...frames]
+    frames.clear()
+    await act(async () => pending.forEach((callback) => callback(0)))
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+
+    // Enter starts a fresh session after cancellation; it cannot commit the
+    // candidate that belonged to the previous boundary identity.
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }))
+      root.unmount()
+    })
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('restores preferred width after a temporary boundary constraint', async () => {
     const store = makeStore()
     const portal = document.createElement('div')
@@ -686,6 +758,77 @@ describe('DashPanel portal ownership', () => {
     })
 
     await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('cancels a move when raw durable placement changes behind the same policy fallback', async () => {
+    const store = makeStore()
+    const scoped = store.scope('inspector')
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    scoped.setDashPanelLayout({
+      placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
+      preferredPosition: { x: 30, y: 30 },
+    })
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const left = Number.parseFloat(this.style.left) || 0
+          const top = Number.parseFloat(this.style.top) || 0
+          return {
+            top,
+            right: left + 80,
+            bottom: top + 40,
+            left,
+            width: 80,
+            height: 40,
+          } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          dockPositions={[]}
+          defaultLayout={{
+            placement: { mode: 'floating', disposition: { kind: 'free' } },
+            preferredPosition: { x: 30, y: 30 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    await act(async () => {
+      scoped.setDashPanelLayout({
+        placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
+        preferredPosition: { x: 30, y: 30 },
+      })
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
+    expect(scoped.getState().scope?.dashPanel?.placement).toEqual({
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'full-right' },
+    })
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }))
+      root.unmount()
+    })
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()
   })
