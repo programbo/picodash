@@ -829,7 +829,31 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       'transitionend',
     ] as const
     const movingLayoutEvents = ['animationstart', 'transitionrun', 'transitionstart'] as const
-    const cancelForLayoutMotion = () => cancelObservedMoveRef.current()
+    const relevantLayoutAncestors = new Set<Node>()
+    const collectComposedAncestors = (start: Node | null | undefined) => {
+      let current = start
+      while (current) {
+        relevantLayoutAncestors.add(current)
+        if (current.parentNode) {
+          current = current.parentNode
+          continue
+        }
+        const root = typeof current.getRootNode === 'function' ? current.getRootNode() : undefined
+        current = root && 'host' in root && root.host instanceof Node ? root.host : null
+      }
+    }
+    collectComposedAncestors(panel)
+    collectComposedAncestors(observedBoundary)
+    const cancelForLayoutMotion = (event: Event) => {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (
+        relevantLayoutAncestors.has(target) ||
+        panel.contains(target) ||
+        observedBoundary?.contains(target)
+      )
+        cancelObservedMoveRef.current()
+    }
     const layoutEventTargets = new Set<EventTarget>()
     const addLayoutEventTarget = (target: unknown) => {
       if (

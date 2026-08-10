@@ -309,11 +309,19 @@ describe('DashPanel portal ownership', () => {
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
 
+    const unrelated = document.createElement('div')
+    document.body.append(unrelated)
+    await act(async () => {
+      unrelated.dispatchEvent(new Event('animationstart', { bubbles: true }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
     await act(async () => {
       boundary.dispatchEvent(new Event('transitionrun', { bubbles: true }))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
     expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    unrelated.remove()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
