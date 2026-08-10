@@ -756,16 +756,18 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     ] as const
     const movingLayoutEvents = ['animationstart', 'transitionrun', 'transitionstart'] as const
     const relevantLayoutAncestors = new Set<Node>()
+    let observedPanelAncestors: readonly Node[] = []
     const layoutEventTargets = new Set<EventTarget>()
     const composedHost = (root: unknown): Node | null => {
       if (root === null || typeof root !== 'object' || !('host' in root)) return null
       const host = (root as { readonly host?: unknown }).host
       return host !== null && typeof host === 'object' && 'nodeType' in host ? (host as Node) : null
     }
-    const collectComposedAncestors = (start: Node | null | undefined) => {
+    const readComposedAncestors = (start: Node | null | undefined) => {
+      const ancestors: Node[] = []
       let current = start
       while (current) {
-        relevantLayoutAncestors.add(current)
+        ancestors.push(current)
         if (current.parentNode) {
           current = current.parentNode
           continue
@@ -773,6 +775,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         const root = typeof current.getRootNode === 'function' ? current.getRootNode() : undefined
         current = composedHost(root)
       }
+      return ancestors
+    }
+    const sameNodeSequence = (first: readonly Node[], second: readonly Node[]) => {
+      if (first.length !== second.length) return false
+      return first.every((node, index) => node === second[index])
     }
     const containsTarget = (container: Node | null | undefined, target: EventTarget) => {
       try {
@@ -811,8 +818,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const rebuildLayoutEventContext = () => {
       removeLayoutEventListeners()
       relevantLayoutAncestors.clear()
-      collectComposedAncestors(panel)
-      collectComposedAncestors(observedBoundary)
+      observedPanelAncestors = readComposedAncestors(panel)
+      for (const ancestor of observedPanelAncestors) relevantLayoutAncestors.add(ancestor)
+      for (const ancestor of readComposedAncestors(observedBoundary))
+        relevantLayoutAncestors.add(ancestor)
       addLayoutEventTarget(ownerDocument)
       for (const target of relevantLayoutAncestors) addLayoutEventTarget(target)
       for (const target of layoutEventTargets) {
@@ -846,9 +855,17 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             const currentPanelRoot =
               typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined
             const rootChanged = currentPanelRoot !== observedPanelRoot
-            if (rootChanged) rebuildMutationContext()
+            const panelAncestorsChanged = !sameNodeSequence(
+              observedPanelAncestors,
+              readComposedAncestors(panel),
+            )
+            if (rootChanged || panelAncestorsChanged) rebuildMutationContext()
             if (
-              (panelChanged || panelAncestorChanged || inheritedContextChanged || rootChanged) &&
+              (panelChanged ||
+                panelAncestorChanged ||
+                inheritedContextChanged ||
+                rootChanged ||
+                panelAncestorsChanged) &&
               panel.hidden
             ) {
               refreshGeometry()

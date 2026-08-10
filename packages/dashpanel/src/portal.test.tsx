@@ -345,13 +345,34 @@ describe('DashPanel portal ownership', () => {
 
     const secondShadowHost = document.createElement('div')
     const secondShadowRoot = secondShadowHost.attachShadow({ mode: 'open' })
+    const firstWrapper = document.createElement('div')
+    secondShadowRoot.append(firstWrapper)
     await act(async () => {
-      secondShadowRoot.append(portal)
+      firstWrapper.append(portal)
       mutate([{ target: firstShadowHost.shadowRoot } as unknown as MutationRecord], {} as never)
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
     await act(async () => {
       secondShadowHost.dispatchEvent(new Event('transitionrun'))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    const secondWrapper = document.createElement('div')
+    secondShadowRoot.append(secondWrapper)
+    await act(async () => {
+      secondWrapper.append(portal)
+      mutate([{ target: firstWrapper } as unknown as MutationRecord], {} as never)
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+    await act(async () => {
+      secondWrapper.dispatchEvent(new Event('animationstart'))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
     expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
