@@ -415,6 +415,9 @@ export function createPanelRuntime(): PanelRuntime {
           }
           if (update.defaultLayout !== undefined) {
             current.defaultLayout = update.defaultLayout
+            const materialized = materializePlacement(current, current.requestedPlacement)
+            current.placement = materialized.placement
+            current.placementFallbackReason = materialized.fallbackReason
             current.configSnapshot = undefined
             changed = true
           }

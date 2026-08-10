@@ -367,6 +367,49 @@ describe('private DashPanel runtime model', () => {
     expect(runtime.getSnapshot().panels.second?.placement).toEqual(placement)
   })
 
+  it('rematerializes an occupied dock request when its declared fallback changes', () => {
+    const runtime = createPanelRuntime()
+    const occupied = {
+      mode: 'fixed' as const,
+      disposition: { kind: 'docked' as const, position: 'full-left' as const },
+    }
+    runtime.acquire(config('occupant', { placement: occupied }))
+    const registration = runtime.acquire(
+      config('conflict', {
+        placement: occupied,
+        defaultLayout: {
+          placement: {
+            mode: 'floating',
+            disposition: { kind: 'snapped', position: 'top-left' },
+          },
+        },
+      }),
+    )
+    expect(runtime.getSnapshot().panels.conflict).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'top-left' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+
+    registration.update({
+      defaultLayout: {
+        placement: {
+          mode: 'floating',
+          disposition: { kind: 'snapped', position: 'bottom-right' },
+        },
+      },
+    })
+    expect(runtime.getSnapshot().panels.conflict).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'bottom-right' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+  })
+
   it('returns side allocation segments for the rendered occupants in one arena', () => {
     const runtime = createPanelRuntime()
     runtime.acquire(
