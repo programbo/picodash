@@ -61,6 +61,25 @@ describe('DashPanel action composition', () => {
     vi.unstubAllGlobals()
   })
 
+  it('exposes keyboard movement shortcuts and shared instructions on the move control', async () => {
+    const store = makeStore()
+    await render(panel(store))
+    const move = document.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    const instructionsId = move.getAttribute('aria-describedby')
+    expect(move.getAttribute('aria-keyshortcuts')).toBe(
+      'Enter Space ArrowUp ArrowDown ArrowLeft ArrowRight Escape',
+    )
+    expect(instructionsId).toBeTruthy()
+    expect(document.getElementById(instructionsId!)?.textContent).toContain(
+      'Press Space or Enter to pick up.',
+    )
+    expect(document.getElementById(instructionsId!)?.textContent).toContain(
+      'Press Enter to commit, or Escape to cancel.',
+    )
+    await act(async () => root.unmount())
+    store.destroy()
+  })
+
   it('renders contributor content before built-in actions only when omitted', async () => {
     const store = makeStore()
     function Contributor({ scopeId }: { scopeId: string }) {

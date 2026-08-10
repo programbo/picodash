@@ -569,6 +569,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const effectivePlacement = runtimeState?.placement ?? resolvedPlacement
   const headingId = `picodash-panel-heading-${useId()}`
   const bodyId = `picodash-panel-body-${useId()}`
+  const moveInstructionsId = `picodash-panel-move-instructions-${useId()}`
   const asideRef = useRef<HTMLElement | null>(null)
   const registration = useRef<PanelRuntimeRegistration | null>(null)
   const previewPositionRef = useRef<DashPanelPoint | null>(null)
@@ -581,6 +582,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const announceAction = useCallback((message: string) => {
     announcementSequence.current += 1
     setActionAnnouncement({ sequence: announcementSequence.current, message })
+  }, [])
+  const registerMoveHandle = useCallback((element: HTMLButtonElement | null) => {
+    // React Aria's Button currently filters this valid global ARIA attribute.
+    // Preserve the shared primitive while ensuring the native control exposes it.
+    element?.setAttribute(
+      'aria-keyshortcuts',
+      'Enter Space ArrowUp ArrowDown ArrowLeft ArrowRight Escape',
+    )
   }, [])
   const moveSession = useRef<{
     readonly mode: 'pointer' | 'keyboard'
@@ -1248,9 +1257,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                     trailing: (
                       <div data-picodash-panel-actions>
                         <Button
+                          ref={registerMoveHandle}
                           data-picodash-panel-move-handle
                           aria-label={`Move panel ${panelName}`}
                           aria-pressed={moveMode !== null}
+                          aria-describedby={moveInstructionsId}
                           isDisabled={requestedPlacementMode === 'fixed'}
                           iconOnly
                           variant="ghost"
@@ -1313,6 +1324,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 >
                   {actionAnnouncement.message}
                 </div>
+                <span id={moveInstructionsId} data-picodash-panel-move-instructions>
+                  Press Space or Enter to pick up. Use the arrow keys to move; hold Shift for larger
+                  steps. Press Enter to commit, or Escape to cancel.
+                </span>
               </aside>
             </PicodashThemeProvider>
           </PicodashStoreEntityBoundary>
