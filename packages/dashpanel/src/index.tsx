@@ -623,6 +623,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     readonly moved: boolean
   } | null>(null)
   const cancelObservedMoveRef = useRef<() => void>(() => undefined)
+  const revalidateLayoutObservationRef = useRef<() => boolean>(() => true)
   const settledPreferredPosition =
     durableLayout?.preferredPosition ?? resolvedPolicyDefaultLayout.preferredPosition
   const settledLayoutFingerprint = JSON.stringify([
@@ -1015,6 +1016,20 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       }
     }
     rebuildMutationContext()
+    const revalidateLayoutObservation = () => {
+      const layoutContextChanged =
+        (typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined) !==
+          observedPanelRoot ||
+        !sameNodeSequence(observedPanelAncestors, readComposedAncestors(panel)) ||
+        !sameNodeSequence(observedPortalAncestors, readComposedAncestors(panelPortal)) ||
+        !sameNodeSequence(observedBoundaryAncestors, readComposedAncestors(observedBoundary))
+      rebuildMutationContext()
+      if (!layoutContextChanged || !moveSession.current) return true
+      cancelObservedMoveRef.current()
+      refreshGeometry()
+      return false
+    }
+    revalidateLayoutObservationRef.current = revalidateLayoutObservation
     let animationFrame: number | undefined
     let trackedBoundary = observedBoundary
     let trackedBoundaryRect = observedBoundary?.getBoundingClientRect()
@@ -1048,6 +1063,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         animationFrame = window.requestAnimationFrame(refreshOnAnimationFrame)
     }
     return () => {
+      if (revalidateLayoutObservationRef.current === revalidateLayoutObservation)
+        revalidateLayoutObservationRef.current = () => true
       observer?.disconnect()
       mutationObserver?.disconnect()
       removeLayoutEventListeners()
@@ -1073,12 +1090,13 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   ])
 
   const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
+    revalidateLayoutObservationRef.current()
     const preferred = durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition
     const requested =
       (effectivePlacement.disposition.kind === 'free'
         ? (currentPosition() ?? preferred)
         : (preferred ?? currentPosition())) ?? ({ x: 0, y: 0 } as const)
-    const initialGeometry = geometryRef.current
+    const initialGeometry = measureGeometry() ?? geometryRef.current
     const projected = initialGeometry
       ? projectDashPanelPosition(
           {
@@ -1133,6 +1151,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const commitMove = () => {
     const session = moveSession.current
     if (!session) return
+    if (!revalidateLayoutObservationRef.current())
+      return { status: 'not_executed' as const, reason: 'unavailable' as const }
     if (!session.moved) {
       cancelMove()
       return { status: 'executed' as const }

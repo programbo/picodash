@@ -504,6 +504,28 @@ describe('DashPanel portal ownership', () => {
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
     expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    const latePanelRoot = portal.attachShadow({ mode: 'open', slotAssignment: 'manual' })
+    const latePanelSlot = document.createElement('slot')
+    latePanelRoot.append(latePanelSlot)
+    Object.defineProperty(panel, 'assignedSlot', {
+      configurable: true,
+      get: () => latePanelSlot,
+    })
+    await act(async () => {
+      // The root and its first assignment appeared after setup, so no slot listener saw this event.
+      latePanelSlot.dispatchEvent(new Event('slotchange'))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    expect(panelMutationObserver.targets).toContain(latePanelRoot)
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()
