@@ -39,7 +39,14 @@ assert.deepEqual(Object.keys(runtime).sort(), [
   'DashGroup',
   'DashHeader',
   'DashList',
+  'DashListActionItems',
+  'DashListCollapseAllItem',
+  'DashListExpandAllItem',
+  'DashListResetListItem',
+  'DashListResetSubmenu',
+  'DashListResetValuesItem',
   'Dashlet',
+  'useDashListActions',
 ])
 for (const retired of [
   'Dashlist',
@@ -77,6 +84,19 @@ for (const name of [
   'ActionMenuItem',
   'ActionMenuSeparator',
   'ActionSubmenu',
+  'DashListActions',
+  'DashListActionController',
+  'DashListActionExecutionResult',
+  'DashListActionStoreResult',
+  'DashListActionProps',
+  'DashListActionAvailability',
+  'DashListActionItems',
+  'DashListExpandAllItem',
+  'DashListCollapseAllItem',
+  'DashListResetSubmenu',
+  'DashListResetValuesItem',
+  'DashListResetListItem',
+  'useDashListActions',
 ])
   assert.match(declarations, new RegExp(`\\b${name}\\b`))
 for (const retired of [

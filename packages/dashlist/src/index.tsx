@@ -5,6 +5,9 @@ import {
   createElement,
   forwardRef,
   isValidElement,
+  createContext,
+  useContext,
+  useEffect,
   useId,
   useMemo,
   useRef,
@@ -23,7 +26,7 @@ import type {
 } from '@picodash/store'
 import { PicodashContractError } from '@picodash/store'
 import { PicodashStoreEntityBoundary } from '@picodash/store/integration'
-import { usePicodashStore } from '@picodash/store/react'
+import { usePicodashStore, usePicodashStoreSelector } from '@picodash/store/react'
 import {
   ActionMenu,
   ActionMenuItem,
@@ -63,6 +66,30 @@ import {
   type StaleOverwriteController,
 } from './bindings.js'
 import { DashListAnnouncementContext } from './bindings.js'
+import {
+  createDashListActionRegistry,
+  DashListActionItems,
+  DashListActionRegistryContext,
+  DashListCollapseAllItem,
+  DashListExpandAllItem,
+  DashListResetListItem,
+  DashListResetSubmenu,
+  DashListResetValuesItem,
+  useDashListActions,
+  type DashListActionProps,
+  type DashListActions,
+  type DashListActionAvailability,
+  type DashListActionController,
+  type DashListActionExecutionResult,
+  type DashListActionStoreResult,
+} from './actions.js'
+import {
+  candidateOrder,
+  createOrderingState,
+  transitionOrdering,
+  type OrderingNode,
+  type OrderingState,
+} from './ordering/index.ts'
 
 export type {
   DashletBindingMode,
@@ -76,6 +103,24 @@ export type {
   DashletDisplayBindingContext,
   DashletBindingContextFor,
 } from './bindings.js'
+
+export {
+  DashListActionItems,
+  DashListCollapseAllItem,
+  DashListExpandAllItem,
+  DashListResetListItem,
+  DashListResetSubmenu,
+  DashListResetValuesItem,
+  useDashListActions,
+}
+export type {
+  DashListActionAvailability,
+  DashListActionController,
+  DashListActionExecutionResult,
+  DashListActionStoreResult,
+  DashListActionProps,
+  DashListActions,
+}
 
 export type {
   ActionMenuConfirmation,
@@ -115,6 +160,7 @@ export type DashListProps<
     readonly density?: PicodashDensity
     readonly 'aria-label'?: string
     readonly 'aria-labelledby'?: string
+    readonly reorderable?: boolean
   } & (
     | { readonly store: RootStore<Fields>; readonly id: string }
     | { readonly store: ScopedStore<Fields>; readonly id?: string }
@@ -140,6 +186,12 @@ export type DashGroupProps = RegisteredNodeNativeProps & {
   readonly label: ReactNode
   readonly 'aria-label'?: string
   readonly children?: ReactNode
+  readonly collapsible?: boolean
+  readonly defaultCollapsed?: boolean
+  readonly reorderable?: boolean
+  readonly pin?: 'start' | 'end'
+  readonly disabled?: boolean
+  readonly readOnly?: boolean
 }
 
 type DashletBaseProps = RegisteredNodeNativeProps & {
@@ -150,6 +202,7 @@ type DashletBaseProps = RegisteredNodeNativeProps & {
   readonly layout?: 'inline' | 'block' | 'full'
   readonly disabled?: boolean
   readonly readOnly?: boolean
+  readonly pin?: 'start' | 'end'
 }
 export type DashletProps<
   TValues extends object = Record<string, PicodashJsonValue>,
@@ -314,6 +367,314 @@ function classNames(base: string, className: string | undefined): string {
   return className ? `${base} ${className}` : base
 }
 
+function declarationIdentity(declaration: ReactElement, fallback: string): string {
+  const value = (declaration.props as { readonly id?: unknown }).id
+  return typeof value === 'string' ? value : fallback
+}
+
+type OrderingCoordinator = { readonly active: MutableRefObject<boolean> }
+type OrderingController = {
+  readonly coordinator: OrderingCoordinator
+  readonly ordering: OrderingState['ordering']
+  readonly candidate: readonly string[]
+  readonly session: OrderingState['session']
+  readonly canHandle: (id: string) => boolean
+  readonly start: (id: string) => void
+  readonly move: (direction: 'up' | 'down' | 'home' | 'end') => void
+  readonly commit: () => void
+  readonly cancel: () => void
+  readonly pointerDown: (id: string, event: PointerLike) => void
+  readonly pointerMove: (event: PointerLike) => void
+  readonly pointerUp: (event: { readonly pointerId?: number }) => void
+  readonly pointerCancel: (event: { readonly pointerId?: number }) => void
+}
+
+type PointerLike = {
+  readonly pointerId?: number
+  readonly clientY?: number
+  readonly setPointerCapture?: (pointerId: number) => void
+  readonly releasePointerCapture?: (pointerId: number) => void
+}
+
+const DashListOrderingContext = createContext<OrderingController | null>(null)
+const DashListOrderingCoordinatorContext = createContext<OrderingCoordinator | null>(null)
+
+function safeOrderingState(input: Parameters<typeof createOrderingState>[0]): OrderingState {
+  try {
+    return createOrderingState(input)
+  } catch {
+    // Declaration validation belongs to the committed node registry. Keep the
+    // ordering slice dormant for malformed declarations so it cannot mask the
+    // registry's contract error.
+    return createOrderingState({ declarations: [], reorderable: input.reorderable })
+  }
+}
+
+function useOrderingController({
+  store,
+  declarations,
+  durableOrder,
+  reorderable,
+  groupId,
+  visible,
+  announce,
+}: {
+  readonly store: ScopedStore<PicodashFieldDefinitions>
+  readonly declarations: readonly OrderingNode[]
+  readonly durableOrder: readonly string[] | undefined
+  readonly reorderable: boolean
+  readonly groupId?: string
+  readonly visible?: boolean
+  readonly announce?: (message: string) => void
+}): OrderingController {
+  const contextPublish = useContext(DashListAnnouncementContext)
+  const publish = announce ?? contextPublish
+  const inheritedCoordinator = useContext(DashListOrderingCoordinatorContext)
+  const coordinatorRef = useRef<OrderingCoordinator | null>(null)
+  if (coordinatorRef.current === null)
+    coordinatorRef.current = inheritedCoordinator ?? { active: { current: false } }
+  const coordinator = coordinatorRef.current
+  const input = useMemo(
+    () => ({
+      declarations: declarations.map((node) => ({
+        ...node,
+        visible: visible === false ? false : node.visible,
+      })),
+      durableOrder,
+      reorderable,
+    }),
+    [declarations, durableOrder, reorderable, visible],
+  )
+  const inputRef = useRef(input)
+  inputRef.current = input
+  const [state, setState] = useState<OrderingState>(() => safeOrderingState(input))
+  const reconciled = useMemo(() => {
+    try {
+      return transitionOrdering(state, { type: 'reconcile', input })
+    } catch {
+      return { state: safeOrderingState(input), effect: { kind: 'none' as const } }
+    }
+  }, [state, input])
+  const effectiveState = reconciled.state
+  useEffect(() => {
+    if (reconciled.effect.kind === 'stale-cancel') {
+      coordinator.active.current = false
+      publish('Reorder cancelled because the List changed.')
+    }
+    if (
+      effectiveState.ordering.fingerprint !== state.ordering.fingerprint ||
+      effectiveState.session !== state.session
+    )
+      setState(effectiveState)
+  }, [coordinator, effectiveState, publish, reconciled.effect, state])
+
+  const stateRef = useRef(effectiveState)
+  stateRef.current = effectiveState
+  const pointerRef = useRef<{
+    readonly id: string
+    readonly pointerId?: number
+    readonly clientY?: number
+    readonly releasePointerCapture?: (pointerId: number) => void
+  } | null>(null)
+  const releasePointerCapture = (): void => {
+    const pointer = pointerRef.current
+    if (pointer?.pointerId !== undefined) pointer.releasePointerCapture?.(pointer.pointerId)
+  }
+  const dispatch = (event: Parameters<typeof transitionOrdering>[1]): void => {
+    const transition = transitionOrdering(stateRef.current, event)
+    if (transition.state !== stateRef.current) {
+      stateRef.current = transition.state
+      setState(transition.state)
+    }
+    if (event.type === 'start' && transition.state.session) {
+      coordinator.active.current = true
+      publish(`Picked up ${event.nodeId}. Use arrow keys to move, then Space to commit.`)
+    }
+    if (event.type === 'move' && stateRef.current.session) {
+      const current = stateRef.current.session
+      const before = stateRef.current.ordering.visibleBands[current.band]
+      const index = before.indexOf(current.nodeId)
+      const candidateIndex = current.candidateOrder.indexOf(current.nodeId)
+      if (candidateIndex === index) {
+        publish(
+          `${current.nodeId} is already at the ${event.direction === 'up' || event.direction === 'home' ? 'start' : 'end'} boundary.`,
+        )
+      } else {
+        publish(`Moved ${current.nodeId}.`)
+      }
+    }
+    if (event.type === 'cancel') {
+      coordinator.active.current = false
+      publish('Reorder cancelled.')
+    }
+    if (event.type === 'commit') {
+      coordinator.active.current = false
+      if (transition.effect.kind === 'write-order') {
+        const result = groupId
+          ? store.setDashListGroupOrder(groupId, transition.effect.order)
+          : store.setDashListRootOrder(transition.effect.order)
+        if (!result.ok) {
+          const reset = safeOrderingState(inputRef.current)
+          stateRef.current = reset
+          setState(reset)
+          publish('Reorder was rejected.')
+        } else publish(`Committed ${transition.state.ordering.order.join(', ')} order.`)
+      }
+    }
+    if (event.type === 'reset') {
+      coordinator.active.current = false
+      if (transition.effect.kind === 'remove-order') {
+        if (groupId) store.removeDashListGroupOrder(groupId)
+        else store.removeDashListRootOrder()
+      }
+    }
+  }
+  const start = (id: string) => {
+    if (coordinator.active.current && !stateRef.current.session) return
+    dispatch({ type: 'start', nodeId: id })
+  }
+  const pointerDown = (id: string, event: PointerLike) => {
+    if (pointerRef.current && pointerRef.current.pointerId !== event.pointerId) return
+    start(id)
+    if (stateRef.current.session) {
+      if (event.pointerId !== undefined) event.setPointerCapture?.(event.pointerId)
+      pointerRef.current = {
+        id,
+        pointerId: event.pointerId,
+        clientY: event.clientY,
+        releasePointerCapture: event.releasePointerCapture,
+      }
+    }
+  }
+  const pointerMove = (event: PointerLike) => {
+    const pointer = pointerRef.current
+    if (
+      !pointer ||
+      !stateRef.current.session ||
+      (pointer.pointerId !== undefined && pointer.pointerId !== event.pointerId)
+    )
+      return
+    if (pointer.clientY === undefined || event.clientY === undefined) return
+    const delta = event.clientY - pointer.clientY
+    if (Math.abs(delta) < 2) return
+    pointerRef.current = { ...pointer, clientY: event.clientY }
+    dispatch({ type: 'move', direction: delta < 0 ? 'up' : 'down' })
+  }
+  const pointerUp = (event: { readonly pointerId?: number }) => {
+    const pointer = pointerRef.current
+    if (!pointer || (pointer.pointerId !== undefined && pointer.pointerId !== event.pointerId))
+      return
+    releasePointerCapture()
+    pointerRef.current = null
+    dispatch({ type: 'commit' })
+  }
+  const pointerCancel = (event: { readonly pointerId?: number }) => {
+    const pointer = pointerRef.current
+    if (!pointer || (pointer.pointerId !== undefined && pointer.pointerId !== event.pointerId))
+      return
+    releasePointerCapture()
+    pointerRef.current = null
+    dispatch({ type: 'cancel' })
+  }
+  const cancel = () => {
+    if (pointerRef.current) releasePointerCapture()
+    pointerRef.current = null
+    dispatch({ type: 'cancel' })
+  }
+  const commit = () => {
+    if (pointerRef.current) releasePointerCapture()
+    pointerRef.current = null
+    dispatch({ type: 'commit' })
+  }
+  return {
+    coordinator,
+    ordering: effectiveState.ordering,
+    candidate: candidateOrder(effectiveState),
+    session: effectiveState.session,
+    canHandle: (id) => {
+      const node = effectiveState.ordering.declarations.find((item) => item.id === id)
+      return Boolean(
+        effectiveState.ordering.reorderable &&
+        node?.visible !== false &&
+        node &&
+        effectiveState.ordering.visibleBands[
+          node.pin === 'start' ? 'start' : node.pin === 'end' ? 'end' : 'automatic'
+        ].length > 1,
+      )
+    },
+    start,
+    move: (direction) => dispatch({ type: 'move', direction }),
+    commit,
+    cancel,
+    pointerDown,
+    pointerMove,
+    pointerUp,
+    pointerCancel,
+  }
+}
+
+function useOrderingHandle(id: string, label: string): ReactElement | null {
+  const controller = useContext(DashListOrderingContext)
+  if (!controller || !controller.canHandle(id)) return null
+  return createElement(
+    'button',
+    {
+      type: 'button',
+      'aria-label': `Reorder ${label}`,
+      'data-picodash-reorder-handle': id,
+      onKeyDown: (event: { key: string; preventDefault?: () => void }) => {
+        if (event.key === 'Escape') {
+          event.preventDefault?.()
+          controller.cancel()
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault?.()
+          controller.move('up')
+        } else if (event.key === 'ArrowDown') {
+          event.preventDefault?.()
+          controller.move('down')
+        } else if (event.key === 'Home') {
+          event.preventDefault?.()
+          controller.move('home')
+        } else if (event.key === 'End') {
+          event.preventDefault?.()
+          controller.move('end')
+        } else if (event.key === ' ' || event.key === 'Enter') {
+          event.preventDefault?.()
+          if (controller.session) controller.commit()
+          else controller.start(id)
+        }
+      },
+      onPointerDown: (event: {
+        pointerId?: number
+        clientY?: number
+        preventDefault?: () => void
+        setPointerCapture?: (pointerId: number) => void
+        releasePointerCapture?: (pointerId: number) => void
+        currentTarget?: {
+          setPointerCapture?: (pointerId: number) => void
+          releasePointerCapture?: (pointerId: number) => void
+        }
+      }) => {
+        event.preventDefault?.()
+        controller.pointerDown(id, {
+          pointerId: event.pointerId,
+          clientY: event.clientY,
+          setPointerCapture:
+            event.setPointerCapture ??
+            event.currentTarget?.setPointerCapture?.bind(event.currentTarget),
+          releasePointerCapture:
+            event.releasePointerCapture ??
+            event.currentTarget?.releasePointerCapture?.bind(event.currentTarget),
+        })
+      },
+      onPointerMove: controller.pointerMove,
+      onPointerUp: controller.pointerUp,
+      onPointerCancel: controller.pointerCancel,
+    },
+    '↕',
+  )
+}
+
 function StaleInputConfirmation({
   disabled,
   readOnly,
@@ -390,6 +751,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       layout = 'inline',
       disabled = false,
       readOnly = false,
+      pin,
       field,
       fields,
       mode,
@@ -441,9 +803,30 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     else if (descriptors.length > 1) renderContext.bindings = bindingRuntime.bindings
     const renderedChildren =
       typeof children === 'function' ? children(renderContext as never) : children
+    const reorderHandle = useOrderingHandle(id, String(label ?? id))
+    void pin
     const inputBindings = Object.values(bindingRuntime.bindings).filter(
       (binding): binding is DashletInputBindingContext<PicodashJsonValue> =>
         'mode' in binding && binding.mode === 'input',
+    )
+    const actionRegistry = useContext(DashListActionRegistryContext)
+    const resetBindings = useMemo(
+      () =>
+        Object.values(bindingRuntime.bindings).map((binding) => ({
+          discardInput: () => {
+            if ('mode' in binding && binding.mode === 'input')
+              (binding as DashletInputBindingContext<PicodashJsonValue>).discardInput()
+          },
+          dirty:
+            'mode' in binding && binding.mode === 'input'
+              ? (binding as DashletInputBindingContext<PicodashJsonValue>).dirty
+              : false,
+        })),
+      [bindingRuntime.bindings],
+    )
+    useEffect(
+      () => actionRegistry?.registerBindings(id, resetBindings),
+      [actionRegistry, id, resetBindings],
     )
     return (
       <DashListNodeLeafBoundary id={id} kind="dashlet">
@@ -472,6 +855,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
                 {label}
               </span>
             ) : null}
+            {reorderHandle}
             <div data-picodash-dashlet-content>{renderedChildren}</div>
             {description !== undefined ? (
               <div id={descriptionId} data-picodash-dashlet-description>
@@ -526,12 +910,107 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
 )
 
 const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGroup(
-  { id, label, 'aria-label': ariaLabel, children, className, ...props },
+  {
+    id,
+    label,
+    'aria-label': ariaLabel,
+    children,
+    className,
+    collapsible = true,
+    defaultCollapsed = false,
+    reorderable,
+    pin,
+    disabled = false,
+    readOnly,
+    ...props
+  },
   ref,
 ) {
   requireAccessibleLabel(label, ariaLabel, 'DashGroup')
-  const declarations = flattenDeclarations(children, 'group')
+  const declarations = useMemo(() => flattenDeclarations(children, 'group'), [children])
   const labelId = `picodash-dashgroup-label-${useId()}`
+  const contentId = `picodash-dashgroup-content-${useId()}`
+  const disclosureRef = useRef<HTMLButtonElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const scopedStore = usePicodashStore() as ScopedStore<PicodashFieldDefinitions>
+  const actionRegistry = useContext(DashListActionRegistryContext)
+  const collapseOverride = usePicodashStoreSelector(scopedStore, (state) =>
+    state.scope?.dashList?.collapseOverrides.get(id),
+  )
+  const collapsed = collapsible ? (collapseOverride ?? defaultCollapsed) : false
+  const labelText =
+    ariaLabel ?? (typeof label === 'string' || typeof label === 'number' ? String(label) : 'group')
+  const disclosureLabel = `${collapsed ? 'Expand' : 'Collapse'} group ${labelText}`
+
+  useEffect(
+    () =>
+      actionRegistry?.registerGroup({
+        id,
+        collapsible,
+        defaultCollapsed,
+      }),
+    [actionRegistry, collapsible, defaultCollapsed, id],
+  )
+
+  void readOnly
+
+  const parentOrdering = useContext(DashListOrderingContext)
+  const groupOrderingDeclarations = useMemo(
+    () =>
+      declarations.map((declaration) => ({
+        id: String((declaration.props as { readonly id?: unknown }).id),
+        pin: (declaration.props as { readonly pin?: 'start' | 'end' }).pin,
+        visible: !collapsed,
+      })),
+    [collapsed, declarations],
+  )
+  const groupOrder = usePicodashStoreSelector(scopedStore, (state) =>
+    state.scope?.dashList?.groupOrders.get(id),
+  )
+  const childOrdering = useOrderingController({
+    store: scopedStore,
+    declarations: groupOrderingDeclarations,
+    durableOrder: groupOrder,
+    reorderable: reorderable ?? parentOrdering?.ordering.reorderable ?? true,
+    groupId: id,
+  })
+  const groupReorderHandle = useOrderingHandle(id, labelText)
+  void disabled
+  void pin
+  const declarationById = useMemo(
+    () =>
+      new Map(
+        declarations.map((declaration) => [
+          String((declaration.props as { readonly id?: unknown }).id),
+          declaration,
+        ]),
+      ),
+    [declarations],
+  )
+  const orderedDeclarations = childOrdering.candidate.length
+    ? childOrdering.candidate
+        .map((nodeId) => declarationById.get(nodeId))
+        .filter((declaration): declaration is ReactElement => declaration !== undefined)
+    : declarations
+
+  const toggleCollapsed = () => {
+    if (!collapsible) return
+    const nextCollapsed = !collapsed
+    if (
+      nextCollapsed &&
+      contentRef.current &&
+      typeof document !== 'undefined' &&
+      document.activeElement &&
+      contentRef.current.contains(document.activeElement)
+    ) {
+      // Move focus while descendants are still interactive; the Store update below synchronously
+      // causes the content to become inert and hidden.
+      disclosureRef.current?.focus()
+    }
+    if (nextCollapsed === defaultCollapsed) scopedStore.removeDashListCollapseOverride(id)
+    else scopedStore.setDashListCollapseOverride(id, nextCollapsed)
+  }
+
   return (
     <DashListNodeLeafBoundary id={id} kind="group">
       <div
@@ -540,6 +1019,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
         role="listitem"
         className={classNames('picodash-dashlist-item picodash-dashlist-group-item', className)}
         data-picodash-dashgroup={id}
+        data-collapsed={collapsed ? 'true' : 'false'}
       >
         <div
           role="group"
@@ -547,17 +1027,53 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
           aria-labelledby={isTextLabel(label) ? labelId : undefined}
           data-picodash-dashgroup
         >
-          <div id={labelId} data-picodash-dashgroup-label>
-            {label}
-          </div>
-          <div role="list" data-picodash-dashgroup-list>
-            {declarations.map((declaration, index) =>
-              createElement(
-                Fragment,
-                { key: declaration.key ?? `${id}-${index}` },
-                wrapDeclaration(declaration, 'group', `${id}-${index}`),
+          <DashHeader
+            slots={{
+              leading: collapsible ? (
+                <>
+                  <button
+                    ref={disclosureRef}
+                    aria-label={disclosureLabel}
+                    aria-expanded={!collapsed}
+                    aria-controls={contentId}
+                    type="button"
+                    onClick={toggleCollapsed}
+                  >
+                    {collapsed ? '+' : '−'}
+                  </button>
+                  {groupReorderHandle}
+                </>
+              ) : (
+                groupReorderHandle
               ),
-            )}
+              title: (
+                <div id={labelId} data-picodash-dashgroup-label>
+                  {label}
+                </div>
+              ),
+            }}
+          />
+          <div
+            ref={contentRef}
+            id={contentId}
+            role="list"
+            data-picodash-dashgroup-list
+            data-collapsed={collapsed ? 'true' : 'false'}
+            aria-hidden={collapsed || undefined}
+            hidden={collapsed || undefined}
+            inert={collapsed || undefined}
+          >
+            <DashListOrderingContext.Provider value={childOrdering}>
+              {orderedDeclarations.map((declaration, index) =>
+                createElement(
+                  Fragment,
+                  {
+                    key: declaration.key ?? declarationIdentity(declaration, `${id}-${index}`),
+                  },
+                  wrapDeclaration(declaration, 'group', `${id}-${index}`),
+                ),
+              )}
+            </DashListOrderingContext.Provider>
           </div>
         </div>
       </div>
@@ -576,6 +1092,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     density,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
+    reorderable = true,
     className,
     ...props
   },
@@ -597,14 +1114,59 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     readonly scopeId: string
   } | null>(null)
   immutableIdentity(identityRef, resolved.store, resolved.scopeId)
-  const declarations = flattenDeclarations(children, 'list')
+  const declarations = useMemo(() => flattenDeclarations(children, 'list'), [children])
+  const [announcement, setAnnouncement] = useState('')
+  const orderingDeclarations = useMemo(
+    () =>
+      declarations.map((declaration) => ({
+        id: String((declaration.props as { readonly id?: unknown }).id),
+        pin: (declaration.props as { readonly pin?: 'start' | 'end' }).pin,
+        visible: true,
+      })),
+    [declarations],
+  )
   const registryRef = useRef<ReturnType<typeof createNodeRegistry> | undefined>(undefined)
   if (registryRef.current === undefined) registryRef.current = createNodeRegistry()
   const registry = registryRef.current
+  const actionRegistryRef = useRef<ReturnType<typeof createDashListActionRegistry> | undefined>(
+    undefined,
+  )
+  if (actionRegistryRef.current === undefined)
+    actionRegistryRef.current = createDashListActionRegistry(resolved.store, resolved.scopeId)
+  const actionRegistry = actionRegistryRef.current
+  useEffect(() => {
+    actionRegistry.activate()
+    return () => actionRegistry.dispose()
+  }, [actionRegistry])
+  const rootOrder = usePicodashStoreSelector(
+    resolved.store,
+    (state) => state.scope?.dashList?.rootOrder,
+  )
+  const rootOrdering = useOrderingController({
+    store: resolved.store,
+    declarations: orderingDeclarations,
+    durableOrder: rootOrder,
+    reorderable,
+    announce: setAnnouncement,
+  })
+  const declarationById = useMemo(
+    () =>
+      new Map(
+        declarations.map((declaration) => [
+          String((declaration.props as { readonly id?: unknown }).id),
+          declaration,
+        ]),
+      ),
+    [declarations],
+  )
+  const orderedDeclarations = rootOrdering.candidate.length
+    ? rootOrdering.candidate
+        .map((nodeId) => declarationById.get(nodeId))
+        .filter((declaration): declaration is ReactElement => declaration !== undefined)
+    : declarations
   const headingIdToken = useId()
   const headingId = title === undefined ? undefined : `picodash-dashlist-heading-${headingIdToken}`
   const statusId = `picodash-dashlist-status-${useId()}`
-  const [announcement, setAnnouncement] = useState('')
   const listName =
     ariaLabelledBy ?? (ariaLabel === undefined && title !== undefined ? headingId : undefined)
   return (
@@ -615,39 +1177,51 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
         allowStandalone={resolved.standalone}
       >
         <DashListAnnouncementContext.Provider value={setAnnouncement}>
-          <DashListNodeRegistryProvider registry={registry}>
-            <DashListNodeValidation>
-              <div
-                {...props}
-                ref={ref}
-                className={classNames('picodash-dashlist', className)}
-                data-picodash-dashlist
-              >
-                {title !== undefined ? (
-                  <DashHeader
-                    slots={{ title: createElement(`h${headingLevel}`, { id: headingId }, title) }}
-                  />
-                ) : null}
-                <div
-                  role="list"
-                  aria-label={ariaLabel}
-                  aria-labelledby={listName}
-                  data-picodash-dashlist-list
-                >
-                  {declarations.map((declaration, index) =>
-                    createElement(
-                      Fragment,
-                      { key: declaration.key ?? `${resolved.scopeId}-${index}` },
-                      wrapDeclaration(declaration, 'list', `${resolved.scopeId}-${index}`),
-                    ),
-                  )}
-                </div>
-                <div id={statusId} role="status" aria-live="polite" aria-atomic="true">
-                  {announcement}
-                </div>
-              </div>
-            </DashListNodeValidation>
-          </DashListNodeRegistryProvider>
+          <DashListOrderingCoordinatorContext.Provider value={rootOrdering.coordinator}>
+            <DashListOrderingContext.Provider value={rootOrdering}>
+              <DashListActionRegistryContext.Provider value={actionRegistry}>
+                <DashListNodeRegistryProvider registry={registry}>
+                  <DashListNodeValidation>
+                    <div
+                      {...props}
+                      ref={ref}
+                      className={classNames('picodash-dashlist', className)}
+                      data-picodash-dashlist
+                    >
+                      {title !== undefined ? (
+                        <DashHeader
+                          slots={{
+                            title: createElement(`h${headingLevel}`, { id: headingId }, title),
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        role="list"
+                        aria-label={ariaLabel}
+                        aria-labelledby={listName}
+                        data-picodash-dashlist-list
+                      >
+                        {orderedDeclarations.map((declaration, index) =>
+                          createElement(
+                            Fragment,
+                            {
+                              key:
+                                declaration.key ??
+                                declarationIdentity(declaration, `${resolved.scopeId}-${index}`),
+                            },
+                            wrapDeclaration(declaration, 'list', `${resolved.scopeId}-${index}`),
+                          ),
+                        )}
+                      </div>
+                      <div id={statusId} role="status" aria-live="polite" aria-atomic="true">
+                        {announcement}
+                      </div>
+                    </div>
+                  </DashListNodeValidation>
+                </DashListNodeRegistryProvider>
+              </DashListActionRegistryContext.Provider>
+            </DashListOrderingContext.Provider>
+          </DashListOrderingCoordinatorContext.Provider>
         </DashListAnnouncementContext.Provider>
       </PicodashStoreEntityBoundary>
     </PicodashThemeProvider>

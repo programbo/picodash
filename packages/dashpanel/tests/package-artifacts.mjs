@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const expectedExports = {
   '.': './dist/index.mjs',
+  './integration': './dist/integration.mjs',
   './package.json': './package.json',
   './style.css': './dist/style.css',
 }
@@ -25,7 +26,13 @@ async function main() {
     '@picodash/ui': 'workspace:*',
   })
   assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })
-  for (const file of ['dist/index.mjs', 'dist/index.d.mts', 'dist/style.css'])
+  for (const file of [
+    'dist/index.mjs',
+    'dist/index.d.mts',
+    'dist/integration.mjs',
+    'dist/integration.d.mts',
+    'dist/style.css',
+  ])
     assert.equal(await exists(path.join(packageRoot, file)), true, `missing ${file}`)
 
   const runtime = await import(
@@ -38,17 +45,20 @@ async function main() {
     'ActionSubmenu',
     'DashHeader',
     'DashPanel',
+    'DashPanelActionItems',
     'DashPanelLauncher',
+    'DashPanelPlacementSubmenu',
     'DashPanelProvider',
+    'DashPanelRequestRemoveItem',
+    'DashPanelResetLayoutItem',
     'DashPanelTrigger',
-  ])
-  for (const retired of [
-    'PicodashPanel',
-    'PicodashProvider',
     'useDashPanel',
-    'Button',
-    'AlertDialog',
   ])
+  const integration = await import(
+    `${pathToFileURL(path.join(packageRoot, 'dist/integration.mjs')).href}?artifact-check`
+  )
+  assert.deepEqual(Object.keys(integration).sort(), ['DashPanelIntegrationProvider'])
+  for (const retired of ['PicodashPanel', 'PicodashProvider', 'Button', 'AlertDialog'])
     assert.equal(retired in runtime, false, `retired export remains: ${retired}`)
 
   const declarations = await readFile(path.join(packageRoot, 'dist/index.d.mts'), 'utf8')
@@ -84,8 +94,24 @@ async function main() {
     'ActionMenuProps',
     'ActionMenuSeparatorProps',
     'ActionSubmenuProps',
+    'DashPanelActionItems',
+    'DashPanelPlacementSubmenu',
+    'DashPanelRemoveRequest',
+    'DashPanelRequestRemoveItem',
+    'DashPanelResetLayoutItem',
   ])
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
+  const integrationDeclarations = await readFile(
+    path.join(packageRoot, 'dist/integration.d.mts'),
+    'utf8',
+  )
+  for (const name of [
+    'DashPanelIntegrationProvider',
+    'DashPanelIntegrationProviderProps',
+    'DashPanelDefaultActionItems',
+    'DashPanelDefaultActionItemsProps',
+  ])
+    assert.match(integrationDeclarations, new RegExp(`\\b${name}\\b`))
   for (const retired of ['PicodashPanel', 'PicodashProvider'])
     assert.doesNotMatch(declarations, new RegExp(`\\b${retired}\\b`))
 

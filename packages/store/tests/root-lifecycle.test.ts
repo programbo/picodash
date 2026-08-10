@@ -294,6 +294,7 @@ describe('Store root destruction', () => {
       store.setValueOrThrow,
       store.setValues,
       store.setValuesOrThrow,
+      store.inspectRegisteredValueReset,
       store.destroyScope,
       store.setDashPanelLayout,
       store.resetDashPanelLayout,
@@ -303,6 +304,7 @@ describe('Store root destruction', () => {
       store.removeDashListGroupOrder,
       store.setDashListCollapseOverride,
       store.removeDashListCollapseOverride,
+      store.updateDashListCollapseOverrides,
       store.resetDashListMetadata,
       store.destroy,
     ]
@@ -314,6 +316,7 @@ describe('Store root destruction', () => {
       scoped.setValueOrThrow,
       scoped.setValues,
       scoped.setValuesOrThrow,
+      scoped.inspectRegisteredValueReset,
       scoped.destroyScope,
       scoped.setDashPanelLayout,
       scoped.resetDashPanelLayout,
@@ -323,6 +326,7 @@ describe('Store root destruction', () => {
       scoped.removeDashListGroupOrder,
       scoped.setDashListCollapseOverride,
       scoped.removeDashListCollapseOverride,
+      scoped.updateDashListCollapseOverrides,
       scoped.resetDashListMetadata,
     ]
     /* eslint-enable @typescript-eslint/unbound-method */

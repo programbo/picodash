@@ -21,7 +21,7 @@ export const DEFAULT_CONTRACT_LAB_PRESET_ID = 'placement' satisfies ContractLabP
 export const CONTRACT_LAB_PRESETS = [
   {
     description:
-      'Browser placement, docking, snapping, dragging, and persisted layout remain planned.',
+      'Standalone Panel movement, placement reset, and persisted layout are available; broader docking and modal presentation remain planned.',
     id: 'placement',
     implementation: 'Planned',
     label: 'Placement',
@@ -35,7 +35,7 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Named Dashlets and one-level DashGroups render typed input, display, and compound Store bindings; shell-owned stale-draft confirmation is available while ordering and ready-made Dashlets remain planned.',
+      'Named Dashlets and one-level DashGroups render typed input, display, and compound Store bindings; standalone List collapse, keyboard ordering, and reset are available while ready-made Dashlets remain planned.',
     id: 'composition',
     implementation: 'Partial',
     label: 'Composition',
@@ -56,7 +56,7 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Theme and density Providers are available; this preset renders the compact recipe while detached portal carriers remain planned.',
+      'Theme and density Providers are available; this preset renders the compact recipe while detached portal carriers are verified in the placement journey.',
     id: 'themes',
     implementation: 'Partial',
     label: 'Themes',

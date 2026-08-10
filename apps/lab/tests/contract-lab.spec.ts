@@ -5,6 +5,7 @@ import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
 
 const consoleErrors = new WeakMap<Page, string[]>()
 const persistenceProbeStorageKey = 'picodash-contract-lab-web-storage-probe-v1'
+const standaloneListScopeId = 'contract-lab-standalone-list'
 
 test.beforeEach(async ({ page }) => {
   const errors: string[] = []
@@ -120,14 +121,108 @@ test('renders the landed same-scope Panel and List composition and reports colla
 
   const specimen = page.locator('[data-contract-lab-specimen]')
   await expect(specimen.getByRole('complementary', { name: 'Primary Panel' })).toBeVisible()
-  await expect(specimen.locator('[data-picodash-dashlist]')).toBeVisible()
+  const primaryList = specimen.getByRole('list', { name: 'Primary Panel List' })
+  await expect(primaryList).toBeVisible()
   await expect(specimen.locator('[data-picodash-dashgroup="specimen-group"]')).toBeVisible()
-  await expect(specimen.locator('[data-picodash-dashlet]')).toHaveCount(3)
+  await expect(primaryList.locator('[data-picodash-dashlet]')).toHaveCount(3)
 
-  await specimen.getByRole('button', { name: 'Collapse panel Primary Panel' }).click()
+  const collapsePanel = specimen.getByRole('button', { name: 'Collapse panel Primary Panel' })
+  await collapsePanel.focus()
+  await collapsePanel.press('Enter')
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('collapsed')
-  await specimen.getByRole('button', { name: 'Expand panel Primary Panel' }).click()
+  await specimen.getByRole('button', { name: 'Expand panel Primary Panel' }).press('Enter')
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('expanded')
+
+  const standaloneList = page.getByRole('region', { name: 'Standalone List evidence' })
+  await expect(standaloneList.getByRole('list', { name: 'Standalone List' })).toBeVisible()
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem('picodash-dev-bridge-tab')))
+    .toEqual(expect.any(String))
+  const browserTabId = await page.evaluate(() =>
+    window.sessionStorage.getItem('picodash-dev-bridge-tab'),
+  )
+  const credential = JSON.parse(
+    await readFile(resolve(process.cwd(), '../../.picodash/dev-bridge.json'), 'utf8'),
+  ) as { url: string; token: string }
+  const bridge = createPicodashDevBridgeClient({ baseUrl: credential.url, token: credential.token })
+  const matchingSession = () =>
+    bridge
+      .listSessions()
+      .then((sessions) =>
+        sessions.find(
+          (session) =>
+            session.registrationId === 'contract-lab-specimen' &&
+            session.browserTabId === browserTabId,
+        ),
+      )
+  await expect.poll(matchingSession).toBeTruthy()
+  const standaloneGroup = standaloneList.locator('[data-contract-lab-standalone-group]')
+  const beforeCollapse = (await matchingSession())!
+  await standaloneGroup.getByRole('button', { name: 'Collapse group Standalone group' }).click()
+  await expect(standaloneGroup).toHaveAttribute('data-collapsed', 'true')
+  const collapseWait = await bridge.wait(beforeCollapse, {
+    type: 'wait',
+    requestId: 'lab-standalone-collapse',
+    timeoutMs: 1000,
+    condition: { type: 'sequence_after', sequence: beforeCollapse.sequence },
+  })
+  expect(collapseWait).toMatchObject({ type: 'wait_result', outcome: 'satisfied' })
+  const collapsedSnapshot = await bridge.inspect((await matchingSession())!)
+  expect(
+    collapsedSnapshot.snapshot.scopes?.find((scope) => scope.id === standaloneListScopeId),
+  ).toEqual({
+    id: standaloneListScopeId,
+    metadata: {
+      dashList: {
+        groupOrders: [],
+        collapseOverrides: [['standalone-group', true]],
+      },
+    },
+  })
+  const beforeReorder = (await matchingSession())!
+  const actionsHandle = standaloneList.locator(
+    '[data-picodash-reorder-handle="standalone-actions"]',
+  )
+  await actionsHandle.press('Space')
+  await actionsHandle.press('ArrowUp')
+  await actionsHandle.press('Enter')
+  const reorderWait = await bridge.wait(beforeReorder, {
+    type: 'wait',
+    requestId: 'lab-standalone-reorder',
+    timeoutMs: 1000,
+    condition: { type: 'sequence_after', sequence: beforeReorder.sequence },
+  })
+  expect(reorderWait).toMatchObject({ type: 'wait_result', outcome: 'satisfied' })
+  const reorderedSnapshot = await bridge.inspect((await matchingSession())!)
+  expect(
+    reorderedSnapshot.snapshot.scopes?.find((scope) => scope.id === standaloneListScopeId),
+  ).toEqual({
+    id: standaloneListScopeId,
+    metadata: {
+      dashList: {
+        rootOrder: [
+          [0, 'standalone-actions'],
+          [1, 'standalone-group'],
+        ],
+        groupOrders: [],
+        collapseOverrides: [['standalone-group', true]],
+      },
+    },
+  })
+  const beforeReset = (await matchingSession())!
+  await standaloneList.getByRole('button', { name: 'Reset list' }).click()
+  await expect(standaloneList.getByRole('button', { name: 'Reset list' })).toBeDisabled()
+  const resetWait = await bridge.wait(beforeReset, {
+    type: 'wait',
+    requestId: 'lab-standalone-reset-list',
+    timeoutMs: 1000,
+    condition: { type: 'sequence_after', sequence: beforeReset.sequence },
+  })
+  expect(resetWait).toMatchObject({ type: 'wait_result', outcome: 'satisfied' })
+  const resetSnapshot = await bridge.inspect((await matchingSession())!)
+  expect(
+    resetSnapshot.snapshot.scopes?.find((scope) => scope.id === standaloneListScopeId),
+  ).toEqual({ id: standaloneListScopeId })
 })
 
 test('opens, cancels, and restores focus for the landed shared AlertDialog', async ({ page }) => {
@@ -136,7 +231,7 @@ test('opens, cancels, and restores focus for the landed shared AlertDialog', asy
 
   const trigger = page.getByRole('button', { name: 'Open shared AlertDialog' })
   await trigger.focus()
-  await trigger.click()
+  await trigger.press('Enter')
   const dialog = page.getByRole('alertdialog', { name: 'Contract Lab confirmation' })
   await expect(dialog).toBeVisible()
   await dialog.getByRole('button', { name: 'Cancel' }).click()
@@ -149,6 +244,46 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   browser,
 }) => {
   await openLab(page)
+  const standalonePanel = page.getByRole('complementary', { name: 'Standalone Panel' })
+  const portalTarget = page.locator('[data-contract-lab-standalone-portal-target]')
+  await expect(standalonePanel).toBeVisible()
+  await expect(portalTarget.locator('[data-contract-lab-standalone-panel]')).toHaveCount(1)
+  const specimenBoundary = page.locator('[data-contract-lab-specimen]')
+  const boundaryBox = (await specimenBoundary.boundingBox())!
+  const moveControl = standalonePanel.getByRole('button', {
+    name: 'Move panel Standalone Panel',
+  })
+  const beforePointer = (await standalonePanel.boundingBox())!
+  const moveBox = (await moveControl.boundingBox())!
+  await page.mouse.move(moveBox.x + moveBox.width / 2, moveBox.y + moveBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(moveBox.x + moveBox.width / 2 + 48, moveBox.y + moveBox.height / 2 + 32)
+  await page.mouse.up()
+  const afterPointer = (await standalonePanel.boundingBox())!
+  expect(afterPointer.x).not.toBe(beforePointer.x)
+  expect(afterPointer.y).not.toBe(beforePointer.y)
+  expect(afterPointer.x).toBeGreaterThanOrEqual(boundaryBox.x)
+  expect(afterPointer.y).toBeGreaterThanOrEqual(boundaryBox.y)
+  expect(afterPointer.x + afterPointer.width).toBeLessThanOrEqual(boundaryBox.x + boundaryBox.width)
+  expect(afterPointer.y + afterPointer.height).toBeLessThanOrEqual(
+    boundaryBox.y + boundaryBox.height,
+  )
+
+  await moveControl.focus()
+  const beforeKeyboard = (await standalonePanel.boundingBox())!
+  await moveControl.press('Enter')
+  await moveControl.press('Shift+ArrowRight')
+  await moveControl.press('Enter')
+  const afterKeyboard = (await standalonePanel.boundingBox())!
+  expect(afterKeyboard.x).not.toBe(beforeKeyboard.x)
+  await expect(moveControl).toBeFocused()
+  await expect(
+    standalonePanel.locator('[data-contract-lab-standalone-panel-placement]'),
+  ).toHaveText('floating-free')
+  await standalonePanel.getByRole('button', { name: 'Reset panel layout' }).click()
+  await expect(
+    standalonePanel.locator('[data-contract-lab-standalone-panel-placement]'),
+  ).toHaveText('floating-snapped')
   await page.getByRole('button', { name: /^Composition:/ }).click()
   const regularTrigger = page.getByRole('button', { name: 'Open shared AlertDialog' })
   const regular = await regularTrigger.evaluate((element) => {
@@ -250,7 +385,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   const persistenceStatusPeer = persistencePage.locator('[data-contract-lab-persistence-status]')
   await expect(persistenceStatus).toHaveText('Persistence status: clean')
   await expect(persistenceStatusPeer).toHaveText('Persistence status: clean')
-  await page.getByRole('button', { name: 'Write metadata probe' }).click()
+  await page.getByRole('button', { name: 'Write metadata probe' }).press('Enter')
   await expect(page.locator('[data-contract-lab-persistence-command]')).toHaveText(
     'Metadata write accepted.',
   )
@@ -300,7 +435,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   await expect(page.locator('[data-contract-lab-quarantine-default]')).toContainText(
     'current defaults',
   )
-  await page.getByRole('button', { name: 'Replace quarantined metadata' }).click()
+  await page.getByRole('button', { name: 'Replace quarantined metadata' }).press('Enter')
   await expect(page.locator('[data-contract-lab-quarantine-state]')).toHaveText(
     'Quarantined metadata replaced.',
   )
@@ -336,7 +471,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   expect(wait.type).toBe('wait_result')
   expect((wait as { outcome: string }).outcome).toBe('satisfied')
 
-  await page.getByRole('button', { name: 'Capture document' }).click()
+  await page.getByRole('button', { name: 'Capture document' }).press('Enter')
   await expect(page.locator('[data-contract-lab-document-status]')).toHaveText(
     'Document captured for local restore.',
   )
@@ -348,7 +483,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   })
   expect(documentMutation.type).toBe('command_result')
   await expect(page.locator('[data-contract-lab-bound-display]')).toHaveText('33')
-  await page.getByRole('button', { name: 'Restore captured document' }).click()
+  await page.getByRole('button', { name: 'Restore captured document' }).press('Enter')
   await expect(page.locator('[data-contract-lab-document-status]')).toHaveText(
     'Captured document restored.',
   )
@@ -389,7 +524,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     (await client.inspect(matches(await client.listSessions())!)).snapshot.values?.specimenMetric,
   ).toBe(37)
 
-  await page.getByRole('button', { name: 'Close panel Primary Panel' }).click()
+  await page.getByRole('button', { name: 'Close panel Primary Panel' }).press('Enter')
   await expect(specimenPanel).toBeHidden()
   const hiddenSession = matches(await client.listSessions())!
   const hiddenWrite = await client.setValues(hiddenSession, {
@@ -406,7 +541,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     )
     .toBe(42)
   const beforeReopen = matches(await client.listSessions())!
-  await page.getByRole('button', { name: 'Show primary panel' }).click()
+  await page.getByRole('button', { name: 'Show primary panel' }).press('Enter')
   await expect(specimenPanel).toBeVisible()
   await expect(page.getByRole('button', { name: 'Collapse panel Primary Panel' })).toBeFocused()
   await expect(page.locator('[data-contract-lab-bound-display]')).toHaveText('42')
@@ -419,17 +554,17 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   await boundInput.fill('37')
   await expect(boundInput).toHaveAttribute('data-stale', 'true')
   const beforeOverwriteSession = matches(await client.listSessions())!
-  await page.getByRole('button', { name: 'Overwrite value…' }).click()
+  await page.getByRole('button', { name: 'Overwrite value…' }).press('Enter')
   const overwriteDialog = page.getByRole('alertdialog', { name: 'Overwrite the current value?' })
   await expect(overwriteDialog).toBeVisible()
-  await overwriteDialog.getByRole('button', { name: 'Cancel' }).click()
+  await overwriteDialog.getByRole('button', { name: 'Cancel' }).press('Enter')
   await expect(overwriteDialog).toHaveCount(0)
   await expect(boundInput).toHaveValue('37')
   await expect(boundInput).toHaveAttribute('data-stale', 'true')
   expect(
     (await client.inspect(matches(await client.listSessions())!)).snapshot.values?.specimenMetric,
   ).toBe(42)
-  await page.getByRole('button', { name: 'Overwrite value…' }).click()
+  await page.getByRole('button', { name: 'Overwrite value…' }).press('Enter')
   await expect(overwriteDialog).toBeVisible()
   const changedWhileConfirming = await client.setValues(matches(await client.listSessions())!, {
     type: 'set_values',
@@ -437,7 +572,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     values: { specimenMetric: 39 },
   })
   expect(changedWhileConfirming.type).toBe('command_result')
-  await overwriteDialog.getByRole('button', { name: 'Overwrite value' }).click()
+  await overwriteDialog.getByRole('button', { name: 'Overwrite value' }).press('Enter')
   await expect(boundInput).toHaveValue('37')
   await expect(boundInput).toHaveAttribute('data-stale', 'true')
   await expect(
@@ -448,9 +583,9 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   expect(
     (await client.inspect(matches(await client.listSessions())!)).snapshot.values?.specimenMetric,
   ).toBe(39)
-  await page.getByRole('button', { name: 'Overwrite value…' }).click()
+  await page.getByRole('button', { name: 'Overwrite value…' }).press('Enter')
   await expect(overwriteDialog).toBeVisible()
-  await overwriteDialog.getByRole('button', { name: 'Overwrite value' }).click()
+  await overwriteDialog.getByRole('button', { name: 'Overwrite value' }).press('Enter')
   await expect(boundInput).toHaveValue('37')
   await expect(boundInput).toHaveAttribute('data-stale', 'false')
   await expect

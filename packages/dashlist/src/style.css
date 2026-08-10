@@ -35,6 +35,19 @@
   min-inline-size: 0;
 }
 
+[data-picodash-reorder-handle] {
+  cursor: grab;
+  touch-action: none;
+}
+
+[data-picodash-reorder-handle]:active {
+  cursor: grabbing;
+}
+
+[data-picodash-dashgroup-list][data-collapsed='true'] {
+  display: none;
+}
+
 [data-picodash-dashlist] > [role='status'] {
   block-size: 0;
   inline-size: 0;

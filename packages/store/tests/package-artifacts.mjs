@@ -136,6 +136,11 @@ if (import.meta.main) {
   assert.match(rootTypes, /InvalidResetOptionsReason/)
   assert.match(rootTypes, /resetRegisteredValues\(options: RootResetRegisteredValuesOptions\)/)
   assert.match(rootTypes, /resetRegisteredValues\(options\?: ResetRegisteredValuesOptions\)/)
+  assert.match(
+    rootTypes,
+    /inspectRegisteredValueReset\(options: RootResetRegisteredValuesOptions\)/,
+  )
+  assert.match(rootTypes, /inspectRegisteredValueReset\(options\?: ResetRegisteredValuesOptions\)/)
   assert.match(rootTypes, /PicodashPersistenceState/)
   assert.match(rootTypes, /PicodashPersistenceConflictResolutionPlan/)
   assert.match(rootTypes, /PicodashDocument/)

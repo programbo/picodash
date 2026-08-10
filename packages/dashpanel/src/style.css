@@ -5,11 +5,22 @@
 }
 
 .picodash-dashpanel {
-  position: relative;
+  position: absolute;
   box-sizing: border-box;
   inline-size: var(--picodash-panel-width);
   max-inline-size: 100%;
   z-index: 0;
+}
+
+.picodash-dashpanel > [data-slot='dash-header'] [data-picodash-panel-actions] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.picodash-dashpanel[data-picodash-placement$='free-preview'] {
+  outline: 2px dashed var(--picodash-focus-ring, currentColor);
+  outline-offset: 2px;
 }
 
 .picodash-dashpanel[data-active='true'] {

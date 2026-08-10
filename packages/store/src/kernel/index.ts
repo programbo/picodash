@@ -408,6 +408,9 @@ export type DashListMetadataRecord = {
   readonly collapseOverrides: ReadonlyMap<string, boolean>
 }
 
+/** One atomic DashList collapse override update: null removes the override. */
+export type DashListCollapseOverrideUpdate = readonly [string, boolean | null]
+
 export type DashPanelSnapPositionRecord =
   | 'top-left'
   | 'top'
@@ -555,6 +558,11 @@ export type RootResetRegisteredValuesOptions = ResetRegisteredValuesOptions & {
   readonly scopeId: string
 }
 
+export type RegisteredValueResetInspection = {
+  readonly registeredFields: readonly string[]
+  readonly changedFields: readonly string[]
+}
+
 export type StaleDraftConflict = {
   readonly kind: 'stale-draft'
   readonly baseRevision: number
@@ -700,6 +708,10 @@ export interface RootMetadataCommands<
   removeDashListGroupOrder(scopeId: string, groupId: string): Result
   setDashListCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result
   removeDashListCollapseOverride(scopeId: string, nodeId: string): Result
+  updateDashListCollapseOverrides(
+    scopeId: string,
+    updates: readonly DashListCollapseOverrideUpdate[],
+  ): Result
   resetDashListMetadata(scopeId: string): Result
   createPrunePlan(
     options: RootDashListPruneOptions & { readonly mode: 'review' },
@@ -721,6 +733,7 @@ export interface ScopedMetadataCommands<
   removeDashListGroupOrder(groupId: string): Result
   setDashListCollapseOverride(nodeId: string, collapsed: boolean): Result
   removeDashListCollapseOverride(nodeId: string): Result
+  updateDashListCollapseOverrides(updates: readonly DashListCollapseOverrideUpdate[]): Result
   resetDashListMetadata(): Result
   createPrunePlan(options: { readonly mode: 'review' }): DashListPruneReview
   createPrunePlan(
@@ -759,6 +772,9 @@ interface RootStoreBase<
   resetRegisteredValuesOrThrow(
     options: RootResetRegisteredValuesOptions,
   ): Extract<Result, { readonly ok: true }>
+  inspectRegisteredValueReset(
+    options: RootResetRegisteredValuesOptions,
+  ): RegisteredValueResetInspection
   setValues(values: Partial<ValuesOf<Fields>>): Result
   setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
   destroyScope(scopeId: string, options?: DestroyScopeOptions): Result
@@ -795,6 +811,9 @@ interface ScopedStoreBase<
   resetRegisteredValuesOrThrow(
     options?: ResetRegisteredValuesOptions,
   ): Extract<Result, { readonly ok: true }>
+  inspectRegisteredValueReset(
+    options?: ResetRegisteredValuesOptions,
+  ): RegisteredValueResetInspection
   setValues(values: Partial<ValuesOf<Fields>>): Result
   setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, { readonly ok: true }>
   destroyScope(options?: DestroyScopeOptions): Result
@@ -3014,6 +3033,11 @@ export function createPicodashStore<
       if (!result.ok) throw result.error
       return result
     },
+    inspectRegisteredValueReset(options) {
+      const parsed = validateResetOptions(options, true)
+      validateScopeId(parsed.scopeId)
+      return inspectRegisteredValueResetInternal(parsed.scopeId, parsed.includeDescendants)
+    },
     setValues(next) {
       return transact(next as Record<string, unknown>)
     },
@@ -3122,6 +3146,34 @@ export function createPicodashStore<
           ...(list.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
           groupOrders: list.groupOrders,
           collapseOverrides: overrides,
+        })
+        return { ...previous, dashList: normalized }
+      }),
+    updateDashListCollapseOverrides: (scopeId, updates) =>
+      metadataCommand(scopeId, (previous) => {
+        if (!Array.isArray(updates)) throw new TypeError('Invalid Store metadata record.')
+        const seen = new Set<string>()
+        for (const update of updates) {
+          if (
+            !Array.isArray(update) ||
+            update.length !== 2 ||
+            !validIdentity(update[0]) ||
+            (typeof update[1] !== 'boolean' && update[1] !== null) ||
+            seen.has(update[0])
+          )
+            throw new TypeError('Invalid Store metadata record.')
+          seen.add(update[0])
+        }
+        const list = previous?.dashList
+        const collapseOverrides = new Map(list?.collapseOverrides ?? [])
+        for (const [nodeId, collapsed] of updates) {
+          if (collapsed === null) collapseOverrides.delete(nodeId)
+          else collapseOverrides.set(nodeId, collapsed)
+        }
+        const normalized = normalizeDashListMetadataRecord({
+          ...(list?.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
+          groupOrders: list?.groupOrders ?? new Map(),
+          collapseOverrides,
         })
         return { ...previous, dashList: normalized }
       }),
@@ -3663,11 +3715,15 @@ export function createPicodashStore<
     }
   }
 
-  function resetRegisteredValuesInternal(
+  type RegisteredValueResetSelection = {
+    readonly targetScopeIds: readonly string[]
+    readonly registeredFields: readonly string[]
+  }
+
+  function selectRegisteredValueReset(
     scopeId: string,
     includeDescendants: boolean,
-    originScopeId?: string,
-  ): CoreTransactionResult {
+  ): RegisteredValueResetSelection {
     validateScopeId(scopeId)
     const controller = runtimeControllerFor(store as object)
     const targetScopeIds = new Set<string>([scopeId])
@@ -3688,11 +3744,37 @@ export function createPicodashStore<
         }
       }
     }
+    return Object.freeze({
+      targetScopeIds: Object.freeze(sortedTargetScopeIds),
+      registeredFields: Object.freeze([...selectedFields].sort()),
+    })
+  }
+
+  function inspectRegisteredValueResetInternal(
+    scopeId: string,
+    includeDescendants: boolean,
+  ): RegisteredValueResetInspection {
+    const selection = selectRegisteredValueReset(scopeId, includeDescendants)
+    const changedFields = selection.registeredFields.filter(
+      (fieldKey) => !picodashJsonEqual(values[fieldKey]!, baseline[fieldKey]!),
+    )
+    return Object.freeze({
+      registeredFields: selection.registeredFields,
+      changedFields: Object.freeze(changedFields),
+    })
+  }
+
+  function resetRegisteredValuesInternal(
+    scopeId: string,
+    includeDescendants: boolean,
+    originScopeId?: string,
+  ): CoreTransactionResult {
+    const selection = selectRegisteredValueReset(scopeId, includeDescendants)
     const supplied = Object.create(null) as Record<string, unknown>
-    for (const fieldKey of [...selectedFields].sort()) supplied[fieldKey] = baseline[fieldKey]!
+    for (const fieldKey of selection.registeredFields) supplied[fieldKey] = baseline[fieldKey]!
     return transactAttributed(supplied, originScopeId, 'reset', {
       canonicalSupplied: true,
-      targetScopeIds: Object.freeze(sortedTargetScopeIds),
+      targetScopeIds: selection.targetScopeIds,
       lockHeld: true,
     })
   }
@@ -4640,6 +4722,10 @@ export function createPicodashStore<
         if (!result.ok) throw result.error
         return result
       },
+      inspectRegisteredValueReset(options) {
+        const parsed = validateResetOptions(options === undefined ? {} : options, false)
+        return inspectRegisteredValueResetInternal(scopeId, parsed.includeDescendants)
+      },
       setValues(next) {
         return transactAttributed(next as Record<string, unknown>, scopeId)
       },
@@ -4666,6 +4752,8 @@ export function createPicodashStore<
         store.setDashListCollapseOverride(scopeId, nodeId, collapsed),
       removeDashListCollapseOverride: (nodeId) =>
         store.removeDashListCollapseOverride(scopeId, nodeId),
+      updateDashListCollapseOverrides: (updates) =>
+        store.updateDashListCollapseOverrides(scopeId, updates),
       resetDashListMetadata: () => store.resetDashListMetadata(scopeId),
       createPrunePlan: ((options: DashListPruneSelection) =>
         createScopedPrunePlanInternal(

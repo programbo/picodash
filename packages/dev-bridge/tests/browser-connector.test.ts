@@ -138,6 +138,50 @@ describe('browser connector', () => {
 
     store.setDashListRootOrder('visible-scope', ['item'])
     expect((await client.inspect(browser.session)).session.sequence).toBe(1)
+    await expect(
+      client.wait(browser.session, {
+        type: 'wait',
+        requestId: 'visible-metadata-sequence',
+        timeoutMs: 20,
+        condition: { type: 'sequence_after', sequence: 0 },
+      }),
+    ).resolves.toMatchObject({
+      type: 'wait_result',
+      outcome: 'satisfied',
+      session: { sequence: 1 },
+      snapshot: {
+        scopes: [
+          {
+            id: 'visible-scope',
+            metadata: {
+              dashList: {
+                rootOrder: [[0, 'item']],
+                groupOrders: [],
+                collapseOverrides: [],
+              },
+            },
+          },
+        ],
+      },
+    })
+    await expect(client.inspect(browser.session)).resolves.toMatchObject({
+      session: { sequence: 1 },
+      snapshot: {
+        values: { count: 1 },
+        scopes: [
+          {
+            id: 'visible-scope',
+            metadata: {
+              dashList: {
+                rootOrder: [[0, 'item']],
+                groupOrders: [],
+                collapseOverrides: [],
+              },
+            },
+          },
+        ],
+      },
+    })
     store.setValue(store.fields.count, 2)
     await expect(client.inspect(browser.session)).resolves.toMatchObject({
       session: { sequence: 2 },

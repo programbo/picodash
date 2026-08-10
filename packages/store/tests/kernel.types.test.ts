@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import {
   createPicodashStore,
+  type DashListCollapseOverrideUpdate,
   type DashListMetadataRecord,
   type DashPanelDockPositionRecord,
   type DashPanelLayoutRecord,
@@ -17,6 +18,7 @@ import {
   type CoreTransactionResult,
   type DestroyRootOptions,
   type RootStore,
+  type RegisteredValueResetInspection,
   type ScopedStore,
   type RootSnapshot,
   type StoreOwnedConfig,
@@ -254,6 +256,11 @@ test('exports exact immutable metadata record declarations', () => {
     readonly groupOrders: ReadonlyMap<string, readonly string[]>
     readonly collapseOverrides: ReadonlyMap<string, boolean>
   }>()
+  expectTypeOf<DashListCollapseOverrideUpdate>().toEqualTypeOf<readonly [string, boolean | null]>()
+  expectTypeOf<RegisteredValueResetInspection>().toEqualTypeOf<{
+    readonly registeredFields: readonly string[]
+    readonly changedFields: readonly string[]
+  }>()
   expectTypeOf<DashPanelSnapPositionRecord>().toEqualTypeOf<
     'top-left' | 'top' | 'top-right' | 'right' | 'bottom-right' | 'bottom' | 'bottom-left' | 'left'
   >()
@@ -290,6 +297,9 @@ test('preserves Fields and refined Result through root/scoped views and metadata
   expectTypeOf<ReturnType<Root['resetRegisteredValuesOrThrow']>>().toEqualTypeOf<
     Extract<RefinedResult, { readonly ok: true }>
   >()
+  expectTypeOf<
+    ReturnType<Root['inspectRegisteredValueReset']>
+  >().toEqualTypeOf<RegisteredValueResetInspection>()
   expectTypeOf<ReturnType<Scoped['setValue']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Scoped['setValueOrThrow']>>().toEqualTypeOf<
     Extract<RefinedResult, { readonly ok: true }>
@@ -302,6 +312,9 @@ test('preserves Fields and refined Result through root/scoped views and metadata
   expectTypeOf<ReturnType<Scoped['resetRegisteredValuesOrThrow']>>().toEqualTypeOf<
     Extract<RefinedResult, { readonly ok: true }>
   >()
+  expectTypeOf<
+    ReturnType<Scoped['inspectRegisteredValueReset']>
+  >().toEqualTypeOf<RegisteredValueResetInspection>()
   if (globalThis.process?.env.PICODASH_TYPE_TESTS === 'never') {
     const root = undefined as unknown as Root
     const scoped = undefined as unknown as Scoped
@@ -328,6 +341,7 @@ test('preserves Fields and refined Result through root/scoped views and metadata
   expectTypeOf<ReturnType<Root['removeDashListGroupOrder']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Root['setDashListCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Root['removeDashListCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['updateDashListCollapseOverrides']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Root['resetDashListMetadata']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Scoped['setDashPanelLayout']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Scoped['resetDashPanelLayout']>>().toEqualTypeOf<RefinedResult>()
@@ -338,6 +352,9 @@ test('preserves Fields and refined Result through root/scoped views and metadata
   expectTypeOf<ReturnType<Scoped['setDashListCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<
     ReturnType<Scoped['removeDashListCollapseOverride']>
+  >().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<
+    ReturnType<Scoped['updateDashListCollapseOverrides']>
   >().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Scoped['resetDashListMetadata']>>().toEqualTypeOf<RefinedResult>()
 })

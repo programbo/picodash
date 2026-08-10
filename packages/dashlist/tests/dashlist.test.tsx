@@ -1,13 +1,19 @@
 import { createElement, Fragment, StrictMode, type ReactElement, type ReactNode } from 'react'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore, PicodashContractError } from '@picodash/store'
 import {
   acquireDashListNodeLease,
   PicodashStoreProviderBoundary,
 } from '@picodash/store/integration'
 import { usePicodashScope } from '@picodash/store/react'
-import { DashGroup, DashList, Dashlet } from '../src/index.tsx'
+import {
+  DashGroup,
+  DashList,
+  Dashlet,
+  useDashListActions,
+  type SingleFieldDashletRenderContext,
+} from '../src/index.tsx'
 import {
   acquireRegisteredDashListNodeLease,
   createNodeRegistry,
@@ -37,6 +43,18 @@ function expectContract(action: () => unknown, code: string, context: Record<str
     expect((error as PicodashContractError).code).toBe(code)
     expect((error as PicodashContractError).context).toEqual(context)
   }
+}
+
+function ActionProbe({
+  capture,
+  scopeId,
+}: {
+  readonly capture: (actions: ReturnType<typeof useDashListActions>) => void
+  readonly scopeId?: string
+}) {
+  const actions = useDashListActions(scopeId)
+  capture(actions)
+  return null
 }
 
 describe('@picodash/dashlist alpha shell', () => {
@@ -208,6 +226,270 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     expect(renderer.root.findByProps({ role: 'status' }).props['aria-live']).toBe('polite')
     expect(renderer.root.findByType('input').props.defaultValue).toBe('retained')
+    act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('resolves durable group collapse metadata without unmounting descendants', () => {
+    const store = makeStore()
+    const scoped = store.scope('collapse')
+    scoped.setDashListCollapseOverride('group', true)
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'collapse', store },
+        createElement(DashGroup, {
+          id: 'group',
+          label: 'Group',
+          children: createElement(
+            Dashlet,
+            { id: 'item', label: 'Item' },
+            createElement('input', { defaultValue: 'retained' }),
+          ),
+        }),
+      ),
+    )
+    let content = renderer.root.findByProps({ 'data-picodash-dashgroup-list': true })
+    expect(content.props).toMatchObject({
+      hidden: true,
+      inert: true,
+      'aria-hidden': true,
+    })
+    expect(renderer.root.findByProps({ 'data-picodash-dashlet': 'item' })).toBeDefined()
+    const disclosure = renderer.root.findByProps({ 'aria-label': 'Expand group Group' })
+    expect(disclosure.props['aria-expanded']).toBe(false)
+
+    // Returning to the declared default removes the redundant durable override.
+    act(() => {
+      void disclosure.props.onClick()
+    })
+    expect(scoped.getState().scope?.dashList?.collapseOverrides.has('group') ?? false).toBe(false)
+    content = renderer.root.findByProps({ 'data-picodash-dashgroup-list': true })
+    expect(content.props.hidden).toBeUndefined()
+
+    act(() =>
+      renderer.update(
+        createElement(
+          DashList,
+          { id: 'collapse', store },
+          createElement(DashGroup, {
+            id: 'group',
+            label: 'Group',
+            defaultCollapsed: true,
+            children: createElement(Dashlet, { id: 'item', label: 'Item' }),
+          }),
+        ),
+      ),
+    )
+    content = renderer.root.findByProps({ 'data-picodash-dashgroup-list': true })
+    expect(content.props.hidden).toBe(true)
+
+    // Non-collapsible presentation is expanded while preserving dormant metadata.
+    act(() => {
+      scoped.setDashListCollapseOverride('group', true)
+    })
+    act(() =>
+      renderer.update(
+        createElement(
+          DashList,
+          { id: 'collapse', store },
+          createElement(DashGroup, {
+            id: 'group',
+            label: 'Group',
+            collapsible: false,
+            children: createElement(Dashlet, { id: 'item', label: 'Item' }),
+          }),
+        ),
+      ),
+    )
+    content = renderer.root.findByProps({ 'data-picodash-dashgroup-list': true })
+    expect(content.props.hidden).toBeUndefined()
+    expect(scoped.getState().scope?.dashList?.collapseOverrides.get('group')).toBe(true)
+    expect(renderer.root.findAllByProps({ 'aria-expanded': true })).toHaveLength(0)
+
+    // Content policies do not disable the group disclosure control.
+    act(() =>
+      renderer.update(
+        createElement(
+          DashList,
+          { id: 'collapse', store },
+          createElement(DashGroup, {
+            id: 'group',
+            label: 'Group',
+            disabled: true,
+            readOnly: true,
+            children: createElement(Dashlet, { id: 'item', label: 'Item' }),
+          }),
+        ),
+      ),
+    )
+    const policyDisclosure = renderer.root.findByProps({ 'aria-label': 'Expand group Group' })
+    expect(policyDisclosure.props.disabled).toBeUndefined()
+    act(() => {
+      void policyDisclosure.props.onClick()
+    })
+    expect(renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden).toBe(
+      undefined,
+    )
+    act(() => {
+      void renderer.root.findByProps({ 'aria-label': 'Collapse group Group' }).props.onClick()
+    })
+    expect(renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden).toBe(
+      true,
+    )
+
+    act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('repairs focus to the disclosure before collapsing content', () => {
+    const store = makeStore()
+    const focus = vi.fn()
+    const content = { contains: vi.fn(() => true) }
+    const activeElement = {}
+    vi.stubGlobal('document', { activeElement })
+    let renderer!: ReactTestRenderer
+    act(() => {
+      renderer = create(
+        createElement(
+          DashList,
+          { id: 'focus-collapse', store },
+          createElement(DashGroup, {
+            id: 'group',
+            label: 'Group',
+            children: createElement(Dashlet, { id: 'item', label: 'Item' }),
+          }),
+        ),
+        {
+          createNodeMock: (node) => {
+            if (node.type === 'button') return { focus }
+            if (
+              node.type === 'div' &&
+              (node.props as { readonly 'data-picodash-dashgroup-list'?: boolean })[
+                'data-picodash-dashgroup-list'
+              ]
+            )
+              return content
+            return null
+          },
+        },
+      )
+    })
+    const disclosure = renderer.root.findByProps({ 'aria-label': 'Collapse group Group' })
+    act(() => {
+      void disclosure.props.onClick()
+    })
+    expect(focus).toHaveBeenCalledTimes(1)
+    expect(renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden).toBe(
+      true,
+    )
+    act(() => renderer.unmount())
+    vi.unstubAllGlobals()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('exposes stable actions with atomic collapse, stale recheck, and value/list resets', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      initialValues: { value: 5 },
+      fields: {
+        value: {
+          defaultValue: 0,
+          parse: (input: unknown) =>
+            typeof input === 'number'
+              ? { ok: true as const, candidate: input }
+              : { ok: false as const, issues: [{ message: 'Draft value rejected.' }] },
+        },
+      },
+    })
+    const scoped = store.scope('actions')
+    let latest!: ReturnType<typeof useDashListActions>
+    const actionHistory: ReturnType<typeof useDashListActions>[] = []
+    let binding!: {
+      readonly setInput: (value: number) => void
+    }
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'actions', store },
+        createElement(DashGroup, {
+          id: 'group',
+          label: 'Group',
+          disabled: true,
+          readOnly: true,
+          children: createElement(Dashlet, {
+            id: 'item',
+            label: 'Item',
+            field: store.fields.value as never,
+            children(context: SingleFieldDashletRenderContext<number>) {
+              binding = context.binding
+              return createElement(ActionProbe, {
+                scopeId: 'actions',
+                capture: (actions) => {
+                  latest = actions
+                  actionHistory.push(actions)
+                },
+              })
+            },
+          }),
+        }),
+      ),
+    )
+    expect(latest.collapseAll.availability).toBe('enabled')
+    expect(latest.expandAll.availability).toBe('disabled')
+    expect(latest.resetValues.availability).toBe('enabled')
+    expect(actionHistory.length).toBeGreaterThan(0)
+    expect(Reflect.get(actionHistory[0]!.collapseAll, 'execute')).toBe(
+      Reflect.get(latest.collapseAll, 'execute'),
+    )
+    const initialActions = latest
+    const stale = latest.collapseAll
+    act(() => {
+      const result = stale.execute()
+      expect(result.status).toBe('executed')
+    })
+    expect(scoped.getState().scope?.dashList?.collapseOverrides.get('group')).toBe(true)
+    expect(latest.expandAll.availability).toBe('enabled')
+    expect(latest.collapseAll.availability).toBe('disabled')
+    expect(latest.resetValues).toBe(initialActions.resetValues)
+    expect(Reflect.get(latest.resetValues, 'execute')).toBe(
+      Reflect.get(initialActions.resetValues, 'execute'),
+    )
+
+    act(() => {
+      scoped.setValue(scoped.fields.value, 5)
+    })
+    expect(latest.resetValues.availability).toBe('enabled')
+    act(() => {
+      scoped.resetValue(scoped.fields.value)
+    })
+    expect(latest.resetValues.availability).toBe('disabled')
+
+    const staleExpand = latest.expandAll
+    act(() => {
+      scoped.setDashListCollapseOverride('group', false)
+    })
+    expect(staleExpand.execute()).toEqual({ status: 'not_executed', availability: 'disabled' })
+
+    act(() => binding.setInput('draft' as never))
+    expect(scoped.getState().interaction.bindings.size).toBe(1)
+    expect(latest.resetValues.availability).toBe('enabled')
+    scoped.setDashListRootOrder(['group'])
+    expect(latest.resetList.availability).toBe('enabled')
+    act(() => {
+      const result = latest.resetValues.execute()
+      expect(result.status).toBe('executed')
+    })
+    expect(scoped.getState().values.value).toBe(0)
+    expect(scoped.getState().interaction.bindings.size).toBe(0)
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['group'])
+
+    act(() => {
+      const result = latest.resetList.execute()
+      expect(result.status).toBe('executed')
+    })
+    expect(scoped.getState().scope?.dashList).toBeUndefined()
+    expect(scoped.getState().values.value).toBe(0)
     act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
@@ -396,6 +678,7 @@ describe('@picodash/dashlist alpha shell', () => {
 
   it('releases standalone leases under StrictMode and does not acquire during SSR', async () => {
     const store = makeStore()
+    let strictActions!: ReturnType<typeof useDashListActions>
     const renderer = render(
       createElement(
         StrictMode,
@@ -403,10 +686,21 @@ describe('@picodash/dashlist alpha shell', () => {
         createElement(DashList, {
           id: 'strict',
           store,
-          children: createElement(Dashlet, { id: 'item', label: 'Item' }),
+          children: createElement(DashGroup, {
+            id: 'group',
+            label: 'Group',
+            children: createElement(Dashlet, {
+              id: 'item',
+              label: 'Item',
+              children: createElement(ActionProbe, {
+                capture: (actions) => (strictActions = actions),
+              }),
+            }),
+          }),
         }),
       ),
     )
+    expect(strictActions.collapseAll.availability).toBe('enabled')
     expect(() => store.destroy()).toThrow(PicodashContractError)
     act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
@@ -420,7 +714,70 @@ describe('@picodash/dashlist alpha shell', () => {
         children: createElement(Dashlet, { id: 'item', label: 'Item' }),
       }),
     )
+    let ssrActions!: ReturnType<typeof useDashListActions>
+    const ssrProbe = render(
+      createElement(PicodashStoreProviderBoundary, {
+        store: ssrStore,
+        children: createElement(ActionProbe, {
+          scopeId: 'ssr',
+          capture: (actions) => (ssrActions = actions),
+        }),
+      }),
+    )
+    expect(ssrActions.expandAll.availability).toBe('unavailable')
+    act(() => ssrProbe.unmount())
     expect(() => ssrStore.destroy()).not.toThrow()
+
+    const failedStore = makeStore()
+    expect(() =>
+      render(
+        createElement(
+          Fragment,
+          null,
+          createElement(DashList, { id: 'failed', store: failedStore }),
+          createElement(DashList, { id: 'failed', store: failedStore }),
+        ),
+      ),
+    ).toThrow()
+    let failedActions!: ReturnType<typeof useDashListActions>
+    const failedProbe = render(
+      createElement(PicodashStoreProviderBoundary, {
+        store: failedStore,
+        children: createElement(ActionProbe, {
+          scopeId: 'failed',
+          capture: (actions) => (failedActions = actions),
+        }),
+      }),
+    )
+    expect(failedActions.expandAll.availability).toBe('unavailable')
+    act(() => failedProbe.unmount())
+    expect(() => failedStore.destroy()).not.toThrow()
+
+    const lateStore = makeStore()
+    let lateActions!: ReturnType<typeof useDashListActions>
+    const lateProbe = render(
+      createElement(PicodashStoreProviderBoundary, {
+        store: lateStore,
+        children: createElement(ActionProbe, {
+          scopeId: 'late',
+          capture: (actions) => (lateActions = actions),
+        }),
+      }),
+    )
+    expect(lateActions.collapseAll.availability).toBe('unavailable')
+    const lateList = render(
+      createElement(
+        DashList,
+        { id: 'late', store: lateStore },
+        createElement(DashGroup, { id: 'group', label: 'Group' }),
+      ),
+    )
+    act(() => {})
+    expect(lateActions.collapseAll.availability).toBe('enabled')
+    act(() => lateList.unmount())
+    expect(lateActions.collapseAll.availability).toBe('unavailable')
+    act(() => lateProbe.unmount())
+    expect(() => lateStore.destroy()).not.toThrow()
   })
 
   it('settles custom forwarding through StrictMode, keyed reparenting, cleanup, and nested Lists', () => {
@@ -557,5 +914,203 @@ describe('@picodash/dashlist alpha shell', () => {
         ),
       ).toThrow(new RegExp(`DashList node registration failed: ${failure.name}`))
     }
+  })
+
+  it('reorders root siblings with keyboard parity and announces the commit', () => {
+    const store = makeStore()
+    const scoped = store.scope('order-root')
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'order-root', store },
+        createElement(Dashlet, { id: 'first', label: 'First' }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+      ),
+    )
+    const order = () =>
+      renderer.root
+        .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
+        .map((item) => item.props['data-picodash-dashlet'])
+    let handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: ' ', preventDefault() {} })
+    })
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+    })
+    expect(order()).toEqual(['second', 'first'])
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: ' ', preventDefault() {} })
+    })
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['second', 'first'])
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('Committed')
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
+  it('keeps pin bands and supports pointer movement through the same model', () => {
+    const store = makeStore()
+    const scoped = store.scope('order-pin')
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'order-pin', store },
+        createElement(Dashlet, { id: 'start', label: 'Start', pin: 'start' }),
+        createElement(Dashlet, { id: 'auto-a', label: 'Auto A' }),
+        createElement(Dashlet, { id: 'auto-b', label: 'Auto B' }),
+        createElement(Dashlet, { id: 'end', label: 'End', pin: 'end' }),
+      ),
+    )
+    const order = () =>
+      renderer.root
+        .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
+        .map((item) => item.props['data-picodash-dashlet'])
+    const handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'auto-a' })
+    act(() => {
+      void handle.props.onPointerDown({ pointerId: 1, clientY: 100, preventDefault() {} })
+    })
+    act(() => {
+      void handle.props.onPointerMove({ pointerId: 1, clientY: 120 })
+    })
+    const movedHandle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'auto-a' })
+    act(() => {
+      void movedHandle.props.onPointerUp({ pointerId: 1 })
+    })
+    expect(order()).toEqual(['start', 'auto-b', 'auto-a', 'end'])
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual([
+      'start',
+      'auto-b',
+      'auto-a',
+      'end',
+    ])
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
+  it('captures the active pointer and releases it on pointer cancellation without writing', () => {
+    const store = makeStore()
+    const scoped = store.scope('pointer-cancel')
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'pointer-cancel', store },
+        createElement(Dashlet, { id: 'first', label: 'First' }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+      ),
+    )
+    const setPointerCapture = vi.fn()
+    const releasePointerCapture = vi.fn()
+    let handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onPointerDown({
+        pointerId: 7,
+        clientY: 100,
+        setPointerCapture,
+        releasePointerCapture,
+        preventDefault() {},
+      })
+    })
+    expect(setPointerCapture).toHaveBeenCalledWith(7)
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onPointerMove({ pointerId: 8, clientY: 20 })
+      void handle.props.onPointerCancel({ pointerId: 8 })
+    })
+    expect(releasePointerCapture).not.toHaveBeenCalled()
+    act(() => {
+      void handle.props.onPointerCancel({ pointerId: 7 })
+    })
+    expect(releasePointerCapture).toHaveBeenCalledWith(7)
+    expect(scoped.getState().scope?.dashList?.rootOrder).toBeUndefined()
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('cancelled')
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
+  it('reorders group children, cancels without a write, and cancels on drift', () => {
+    const store = makeStore()
+    const scoped = store.scope('order-group')
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'order-group', store },
+        createElement(DashGroup, {
+          id: 'group',
+          label: 'Group',
+          children: [
+            createElement(Dashlet, { id: 'one', label: 'One', key: 'one' }),
+            createElement(Dashlet, { id: 'two', label: 'Two', key: 'two' }),
+          ],
+        }),
+      ),
+    )
+    const childOrder = () =>
+      renderer.root
+        .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
+        .map((item) => item.props['data-picodash-dashlet'])
+    let handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'one' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+    })
+    expect(childOrder()).toEqual(['two', 'one'])
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'one' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'Escape', preventDefault() {} })
+    })
+    expect(scoped.getState().scope?.dashList?.groupOrders.size ?? 0).toBe(0)
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('cancelled')
+
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'one' })
+    act(() => {
+      void handle.props.onKeyDown({ key: ' ', preventDefault() {} })
+    })
+    act(() => {
+      void scoped.setDashListGroupOrder('group', ['two', 'one'])
+    })
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('changed')
+    expect(scoped.getState().scope?.dashList?.groupOrders.get('group')).toEqual(['two', 'one'])
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
+  it('does not write on a boundary no-op', () => {
+    const store = makeStore()
+    const scoped = store.scope('order-noop')
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'order-noop', store },
+        createElement(Dashlet, { id: 'first', label: 'First' }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+      ),
+    )
+    let handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: ' ', preventDefault() {} })
+    })
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowUp', preventDefault() {} })
+    })
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    expect(scoped.getState().scope?.dashList?.rootOrder).toBeUndefined()
+    act(() => renderer.unmount())
+    store.destroy()
   })
 })

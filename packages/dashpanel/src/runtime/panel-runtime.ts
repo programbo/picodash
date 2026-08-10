@@ -1,3 +1,47 @@
+import type {
+  CoreTransactionResult,
+  DashPanelLayoutRecord,
+  PersistentTransactionResult,
+} from '@picodash/store'
+import type {
+  DashPanelDefaultLayout,
+  DashPanelDockPosition,
+  DashPanelPlacement,
+  DashPanelPresentation,
+} from '../placement/placement.ts'
+import { resolveDashPanelDockSlot } from '../placement/dock-arena.ts'
+
+export type DashPanelCommandResult =
+  | { readonly status: 'executed' }
+  | {
+      readonly status: 'not_executed'
+      readonly reason: 'unavailable' | 'not_collapsible' | 'modal_occupied' | 'modal_presentation'
+    }
+
+export type DashPanelLayoutCommandResult =
+  | {
+      readonly status: 'executed'
+      readonly transaction: CoreTransactionResult | PersistentTransactionResult
+    }
+  | {
+      readonly status: 'not_executed'
+      readonly reason: 'unavailable' | 'dock_occupied' | 'position_disabled' | 'modal_presentation'
+    }
+
+interface PanelLayoutStore {
+  setDashPanelLayout(
+    layout: DashPanelLayoutRecord,
+  ): CoreTransactionResult | PersistentTransactionResult
+  resetDashPanelLayout(): CoreTransactionResult | PersistentTransactionResult
+}
+
+type PanelRuntimePanelConfig = Readonly<{
+  readonly defaultLayout: DashPanelDefaultLayout
+  readonly placement: DashPanelPlacement
+  readonly dockPositions: readonly DashPanelDockPosition[]
+  readonly presentation: DashPanelPresentation
+}>
+
 export interface PanelRuntimeConfig {
   readonly scopeId: string
   readonly defaultVisible?: boolean
@@ -5,11 +49,25 @@ export interface PanelRuntimeConfig {
   readonly collapsible?: boolean
   readonly onVisibilityChange?: (visible: boolean) => void
   readonly onCollapsedChange?: (collapsed: boolean) => void
+  readonly defaultLayout?: DashPanelDefaultLayout
+  readonly placement?: DashPanelPlacement
+  readonly dockPositions?: readonly DashPanelDockPosition[]
+  readonly presentation?: DashPanelPresentation
+  readonly store?: PanelLayoutStore
+  readonly currentPosition?: () => Readonly<{ x: number; y: number }> | undefined
 }
 
 export type PanelRuntimeUpdate = Pick<
   PanelRuntimeConfig,
-  'collapsible' | 'onVisibilityChange' | 'onCollapsedChange'
+  | 'collapsible'
+  | 'onVisibilityChange'
+  | 'onCollapsedChange'
+  | 'defaultLayout'
+  | 'placement'
+  | 'dockPositions'
+  | 'presentation'
+  | 'store'
+  | 'currentPosition'
 >
 
 export type PanelRuntimeCommandResult =
@@ -44,6 +102,9 @@ export interface PanelRuntime {
   expand(scopeId: string): PanelRuntimeCommandResult
   collapse(scopeId: string): PanelRuntimeCommandResult
   toggleCollapsed(scopeId: string): PanelRuntimeCommandResult
+  setPlacement(scopeId: string, placement: DashPanelPlacement): DashPanelLayoutCommandResult
+  resetLayout(scopeId: string): DashPanelLayoutCommandResult
+  getPanelConfig(scopeId: string): PanelRuntimePanelConfig | undefined
   registerElement(scopeId: string, element: HTMLElement | null): void
   getElement(scopeId: string): HTMLElement | null
 }
@@ -55,6 +116,13 @@ interface MutablePanel {
   collapsible: boolean
   onVisibilityChange?: (visible: boolean) => void
   onCollapsedChange?: (collapsed: boolean) => void
+  defaultLayout: DashPanelDefaultLayout
+  placement: DashPanelPlacement
+  dockPositions: readonly DashPanelDockPosition[]
+  presentation: DashPanelPresentation
+  store?: PanelRuntimeConfig['store']
+  currentPosition?: PanelRuntimeConfig['currentPosition']
+  configSnapshot?: PanelRuntimePanelConfig
   readonly generation: symbol
   element: HTMLElement | null
 }
@@ -67,6 +135,11 @@ const unavailable = (): PanelRuntimeCommandResult => ({
 const notCollapsible = (): PanelRuntimeCommandResult => ({
   status: 'not_executed',
   reason: 'not_collapsible',
+})
+
+const modalPresentation = (): DashPanelLayoutCommandResult => ({
+  status: 'not_executed',
+  reason: 'modal_presentation',
 })
 
 function freezePanel(panel: MutablePanel): PanelRuntimePanelSnapshot {
@@ -177,6 +250,25 @@ export function createPanelRuntime(): PanelRuntime {
         onCollapsedChange: config.onCollapsedChange,
         generation: Symbol(config.scopeId),
         element: null,
+        defaultLayout:
+          config.defaultLayout ??
+          ({
+            placement: {
+              mode: 'floating',
+              disposition: { kind: 'snapped', position: 'top-right' },
+            },
+          } as DashPanelDefaultLayout),
+        placement:
+          config.placement ??
+          config.defaultLayout?.placement ??
+          ({
+            mode: 'floating',
+            disposition: { kind: 'snapped', position: 'top-right' },
+          } as DashPanelPlacement),
+        dockPositions: [...(config.dockPositions ?? [])],
+        presentation: config.presentation ?? { kind: 'panel' },
+        store: config.store,
+        currentPosition: config.currentPosition,
       }
       panels.set(config.scopeId, panel)
       activationOrder.push(config.scopeId)
@@ -193,12 +285,45 @@ export function createPanelRuntime(): PanelRuntime {
             current.onVisibilityChange = update.onVisibilityChange
           if (Object.prototype.hasOwnProperty.call(update, 'onCollapsedChange'))
             current.onCollapsedChange = update.onCollapsedChange
-          if (update.collapsible === undefined || current.collapsible === update.collapsible) return
-          current.collapsible = update.collapsible
-          const collapsedChanged = !current.collapsible && current.collapsed
-          if (collapsedChanged) current.collapsed = false
-          publish()
-          if (collapsedChanged) current.onCollapsedChange?.(false)
+          let changed = false
+          if (update.collapsible !== undefined && current.collapsible !== update.collapsible) {
+            current.collapsible = update.collapsible
+            const collapsedChanged = !current.collapsible && current.collapsed
+            if (collapsedChanged) {
+              current.collapsed = false
+              current.onCollapsedChange?.(false)
+            }
+            changed = true
+          }
+          if (update.defaultLayout !== undefined) {
+            current.defaultLayout = update.defaultLayout
+            current.configSnapshot = undefined
+            changed = true
+          }
+          if (update.placement !== undefined) {
+            current.placement = update.placement
+            current.configSnapshot = undefined
+            changed = true
+          }
+          if (update.dockPositions !== undefined) {
+            current.dockPositions = [...update.dockPositions]
+            current.configSnapshot = undefined
+            changed = true
+          }
+          if (update.presentation !== undefined) {
+            current.presentation = update.presentation
+            current.configSnapshot = undefined
+            changed = true
+          }
+          if (Object.prototype.hasOwnProperty.call(update, 'store')) {
+            current.store = update.store
+            changed = true
+          }
+          if (Object.prototype.hasOwnProperty.call(update, 'currentPosition')) {
+            current.currentPosition = update.currentPosition
+            changed = true
+          }
+          if (changed) publish()
         },
         release() {
           if (released || panels.get(config.scopeId)?.generation !== generation) return
@@ -272,6 +397,62 @@ export function createPanelRuntime(): PanelRuntime {
         const changed = commitCollapsed(panel, !panel.collapsed)
         return { changed, notifyVisibility: false, notifyCollapsed: changed }
       })
+    },
+    setPlacement(scopeId, placement) {
+      const panel = panelFor(scopeId)
+      if (!panel) return { status: 'not_executed', reason: 'unavailable' }
+      if (panel.presentation.kind !== 'panel') return modalPresentation()
+      const docked =
+        placement.mode === 'fixed'
+          ? placement.disposition.position
+          : placement.mode === 'hybrid' && placement.disposition.kind === 'docked'
+            ? placement.disposition.position
+            : undefined
+      if (docked !== undefined && !panel.dockPositions.includes(docked))
+        return { status: 'not_executed', reason: 'position_disabled' }
+      const occupant = [...panels.values()].find((other) => {
+        if (other.scopeId === scopeId) return false
+        const otherDocked =
+          other.placement.mode === 'fixed'
+            ? other.placement.disposition.position
+            : other.placement.mode === 'hybrid' && other.placement.disposition.kind === 'docked'
+              ? other.placement.disposition.position
+              : undefined
+        return (
+          docked !== undefined &&
+          otherDocked !== undefined &&
+          resolveDashPanelDockSlot(otherDocked) === resolveDashPanelDockSlot(docked)
+        )
+      })
+      if (occupant) return { status: 'not_executed', reason: 'dock_occupied' }
+      const preferred = panel.currentPosition?.() ?? panel.defaultLayout.preferredPosition
+      if (!preferred) return { status: 'not_executed', reason: 'unavailable' }
+      const transaction = panel.store?.setDashPanelLayout({
+        placement,
+        preferredPosition: { x: preferred.x, y: preferred.y },
+      } as DashPanelLayoutRecord)
+      if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
+      return { status: 'executed', transaction }
+    },
+    resetLayout(scopeId) {
+      const panel = panelFor(scopeId)
+      if (!panel) return { status: 'not_executed', reason: 'unavailable' }
+      if (panel.presentation.kind !== 'panel') return modalPresentation()
+      const transaction = panel.store?.resetDashPanelLayout()
+      if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
+      return { status: 'executed', transaction }
+    },
+    getPanelConfig(scopeId) {
+      const panel = panelFor(scopeId)
+      if (!panel) return undefined
+      if (panel.configSnapshot) return panel.configSnapshot
+      panel.configSnapshot = Object.freeze({
+        defaultLayout: panel.defaultLayout,
+        placement: panel.placement,
+        dockPositions: Object.freeze([...panel.dockPositions]),
+        presentation: panel.presentation,
+      })
+      return panel.configSnapshot
     },
     registerElement(scopeId, element) {
       const panel = panelFor(scopeId)

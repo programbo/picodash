@@ -9,10 +9,15 @@ import {
   ActionSubmenu,
   DashHeader,
   DashPanel,
+  DashPanelActionItems,
   DashPanelLauncher,
   DashPanelProvider,
   DashPanelTrigger,
   type DashPanelLauncherProps,
+  type DashPanelRemoveRequest,
+  type DashPanelCommandResult,
+  type DashPanelController,
+  type DashPanelLayoutCommandResult,
   type DashPanelProps,
   type DashPanelProviderProps,
   type DashPanelTriggerProps,
@@ -26,6 +31,12 @@ import {
   type DashPanelSnapPosition,
   type DashPanelStyle,
 } from '../src/index.tsx'
+import {
+  DashPanelIntegrationProvider,
+  type DashPanelDefaultActionItems,
+  type DashPanelDefaultActionItemsProps,
+  type DashPanelIntegrationProviderProps,
+} from '../src/integration.tsx'
 
 const store = createPicodashStore({ valueOwner: 'store', fields: { value: { defaultValue: 1 } } })
 
@@ -38,6 +49,7 @@ describe('@picodash/dashpanel public types', () => {
       boundary,
       boundaryInset: [8, 16],
       dockPositions: ['top-left', 'center-left'],
+      portalContainer: boundary as HTMLElement,
     }
     const viewportProviderProps: DashPanelProviderProps = { ...providerProps, boundary: null }
     void viewportProviderProps
@@ -52,10 +64,18 @@ describe('@picodash/dashpanel public types', () => {
       collapsible: true,
       showCloseButton: false,
       onVisibilityChange: () => {},
+      onRequestRemove: (details: DashPanelRemoveRequest) => details.scopeId,
+      actionMenu: [],
       onCollapsedChange: () => {},
       boundary,
       boundaryInset: 8,
       dockPositions: ['top-left'],
+      defaultLayout: {
+        placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-right' } },
+        preferredPosition: { x: 0, y: 0 },
+      },
+      placementOptions: { snapOffset: 8, snapProximity: 16, detachDistance: 40 },
+      presentation: { kind: 'panel' },
     }
     const customThemePanelProps: DashPanelProps<'operator'> = {
       id: 'operator-inspector',
@@ -91,8 +111,16 @@ describe('@picodash/dashpanel public types', () => {
     void createElement(DashPanelTrigger, trigger)
     void createElement(DashPanelLauncher, launcher)
     void createElement(DashPanelLauncher, iconLauncher)
+    const controller = {} as DashPanelController
+    const commandResult = {} as DashPanelCommandResult
+    const layoutResult = {} as DashPanelLayoutCommandResult
+    void controller
+    void commandResult
+    void layoutResult
     void unnamedIconLauncher
     void DashHeader
+    void DashPanelActionItems
+    void DashPanelIntegrationProvider
     void ActionMenu
     void ActionMenuItem
     void ActionMenuSeparator
@@ -158,6 +186,19 @@ describe('@picodash/dashpanel public types', () => {
     void panelBoundary
     void panelInset
     void panelDocks
+  })
+
+  it('exposes the narrow action contribution and removal contracts', () => {
+    const Contributor: DashPanelDefaultActionItems = ({
+      scopeId,
+    }: DashPanelDefaultActionItemsProps) => createElement('span', null, scopeId)
+    const integrationProps: DashPanelIntegrationProviderProps = {
+      children: null,
+      defaultActionItems: Contributor,
+    }
+    const remove: DashPanelRemoveRequest = { scopeId: 'inspector' }
+    void integrationProps
+    void remove
   })
 
   it('keeps the style type aligned with React CSSProperties except reserved sizing keys', () => {
