@@ -816,6 +816,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       )
         layoutEventTargets.add(target as EventTarget)
     }
+    let rebuildMutationContext = () => undefined
+    const slotChangeTargets = new Set<EventTarget>()
+    const rebuildForSlotChange = () => rebuildMutationContext()
     const removeLayoutEventListeners = () => {
       for (const target of layoutEventTargets) {
         for (const eventName of settledLayoutEvents)
@@ -824,6 +827,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           target.removeEventListener(eventName, cancelForLayoutMotion, true)
       }
       layoutEventTargets.clear()
+      for (const target of slotChangeTargets)
+        target.removeEventListener('slotchange', rebuildForSlotChange)
+      slotChangeTargets.clear()
     }
     const rebuildLayoutEventContext = () => {
       removeLayoutEventListeners()
@@ -836,6 +842,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       for (const ancestor of observedBoundaryAncestors) relevantLayoutAncestors.add(ancestor)
       addLayoutEventTarget(ownerDocument)
       for (const target of relevantLayoutAncestors) addLayoutEventTarget(target)
+      for (const target of relevantLayoutAncestors) {
+        if (target.nodeType !== 1 || (target as Element).localName !== 'slot') continue
+        target.addEventListener('slotchange', rebuildForSlotChange)
+        slotChangeTargets.add(target)
+      }
       for (const target of layoutEventTargets) {
         for (const eventName of settledLayoutEvents)
           target.addEventListener(eventName, refreshGeometry, true)
@@ -843,7 +854,6 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           target.addEventListener(eventName, cancelForLayoutMotion, true)
       }
     }
-    let rebuildMutationContext = () => undefined
     const mutationObserver =
       mutationRoot && typeof MutationObserver === 'function'
         ? new MutationObserver((records) => {

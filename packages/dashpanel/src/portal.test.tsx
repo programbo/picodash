@@ -451,7 +451,7 @@ describe('DashPanel portal ownership', () => {
     slotRoot.append(secondSlotWrapper)
     await act(async () => {
       secondSlotWrapper.append(slot)
-      notifyPanelMutation(slotMotionWrapper)
+      slot.dispatchEvent(new Event('slotchange'))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
     await act(async () => {
