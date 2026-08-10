@@ -2,9 +2,16 @@ import { createElement, Fragment, StrictMode, type ReactElement, type ReactNode 
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it } from 'vite-plus/test'
 import { createPicodashStore, PicodashContractError } from '@picodash/store'
-import { PicodashStoreProviderBoundary } from '@picodash/store/integration'
+import {
+  acquireDashListNodeLease,
+  PicodashStoreProviderBoundary,
+} from '@picodash/store/integration'
 import { usePicodashScope } from '@picodash/store/react'
 import { DashGroup, DashList, Dashlet } from '../src/index.tsx'
+import {
+  acquireRegisteredDashListNodeLease,
+  createNodeRegistry,
+} from '../src/node-registration.tsx'
 
 ;(
   globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -33,6 +40,25 @@ function expectContract(action: () => unknown, code: string, context: Record<str
 }
 
 describe('@picodash/dashlist alpha shell', () => {
+  it('rolls back private node registration when public lease acquisition fails', () => {
+    const store = makeStore()
+    const scoped = store.scope('rollback')
+    const held = acquireDashListNodeLease(scoped, { nodeId: 'node' })
+    const registry = createNodeRegistry()
+    const failedToken = {}
+    const failedGeneration = registry.register(failedToken, {}, 'dashlet', 'node')
+
+    expect(() =>
+      acquireRegisteredDashListNodeLease(registry, failedToken, failedGeneration, scoped, 'node'),
+    ).toThrowError(expect.objectContaining({ code: 'duplicate-dash-list-node' }))
+    const correctedToken = {}
+    registry.register(correctedToken, {}, 'dashlet', 'node')
+    expect(registry.getFailure()).toBeNull()
+
+    held.release()
+    store.destroy()
+  })
+
   it('resolves explicit root/scoped Stores and rejects immutable mismatches', () => {
     const store = makeStore()
     const root = render(
@@ -155,6 +181,7 @@ describe('@picodash/dashlist alpha shell', () => {
         store,
         title: 'Settings',
         headingLevel: 3,
+        'aria-label': 'Explicit settings controls',
         children: [
           createElement(
             Fragment,
@@ -175,8 +202,58 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(renderer.root.findByType('h3').children).toEqual(['Settings'])
     expect(renderer.root.findAllByProps({ role: 'list' }).length).toBe(2)
     expect(renderer.root.findAllByProps({ role: 'listitem' }).length).toBe(2)
+    expect(renderer.root.findByProps({ 'data-picodash-dashlist-list': true }).props).toMatchObject({
+      'aria-label': 'Explicit settings controls',
+      'aria-labelledby': undefined,
+    })
     expect(renderer.root.findByProps({ role: 'status' }).props['aria-live']).toBe('polite')
     expect(renderer.root.findByType('input').props.defaultValue).toBe('retained')
+    act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('leases committed nodes for active prune exclusion and releases them without auto-delete', () => {
+    const store = makeStore()
+    const scoped = store.scope('presence')
+    scoped.setDashListRootOrder(['active', 'dormant'])
+    const renderer = render(
+      createElement(
+        StrictMode,
+        null,
+        createElement(
+          DashList,
+          { id: 'presence', store },
+          createElement(Dashlet, { id: 'active', label: 'Active' }),
+        ),
+      ),
+    )
+    expect(scoped.createPrunePlan({ mode: 'review' }).candidates).toEqual([
+      { nodeId: 'dormant', effects: ['root-order-entry'] },
+    ])
+    const explicit = scoped.createPrunePlan({
+      mode: 'explicit',
+      removeNodeIds: ['dormant'],
+      keepNodeIds: [],
+    })
+    expect(scoped.executePrunePlan(explicit)).toMatchObject({ ok: true })
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['active'])
+
+    act(() =>
+      renderer.update(
+        createElement(
+          DashList,
+          { id: 'presence', store },
+          createElement(Dashlet, { id: 'replacement', label: 'Replacement' }),
+        ),
+      ),
+    )
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['active'])
+    expect(scoped.createPrunePlan({ mode: 'review' }).candidates).toEqual([
+      { nodeId: 'active', effects: ['root-order-entry'] },
+    ])
+    const inventory = scoped.createPrunePlan({ mode: 'inventory', knownNodeIds: ['replacement'] })
+    expect(scoped.executePrunePlan(inventory)).toMatchObject({ ok: true })
+    expect(scoped.getState().scope).toBeUndefined()
     act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })

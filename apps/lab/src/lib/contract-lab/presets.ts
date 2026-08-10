@@ -28,14 +28,14 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Panel collapse is available; visibility, close/reopen, focus restoration, activation, and reordering remain planned.',
+      'Panel visibility, close/reopen, activation, and retained content are available; durable layout, removal, modal presentation, and reordering remain planned.',
     id: 'interaction',
     implementation: 'Partial',
     label: 'Interaction',
   },
   {
     description:
-      'Named Dashlets and one-level DashGroups render against a Store scope; bindings, ordering, collapse, and ready-made Dashlets remain planned.',
+      'Named Dashlets and one-level DashGroups render typed input, display, and compound Store bindings; shell-owned stale-draft confirmation is available while ordering and ready-made Dashlets remain planned.',
     id: 'composition',
     implementation: 'Partial',
     label: 'Composition',
@@ -49,9 +49,9 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Store documents and DashList import, export, repair, and reset actions remain planned.',
+      'Store document capture and restore plans are available; DashList-owned import, export, repair, and reset actions remain planned.',
     id: 'documents',
-    implementation: 'Planned',
+    implementation: 'Partial',
     label: 'Documents',
   },
   {

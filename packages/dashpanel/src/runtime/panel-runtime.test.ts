@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vite-plus/test'
+import { focusPanel, recordPanelEntry, restorePanelFocus } from './panel-lifecycle.ts'
 import { createPanelRuntime, type PanelRuntimeConfig } from './panel-runtime.ts'
 
 const config = (scopeId: string, overrides: Omit<PanelRuntimeConfig, 'scopeId'> = {}) => ({
@@ -210,5 +211,149 @@ describe('private DashPanel runtime model', () => {
     unsubscribe()
     runtime.acquire(config('again'))
     expect(listener).toHaveBeenCalledTimes(2)
+  })
+
+  it('skips hidden entry targets and continues focus restoration until focus moves', () => {
+    class FocusElement {
+      readonly isConnected = true
+      readonly parentElement: FocusElement | null
+      readonly children: FocusElement[]
+      readonly attributes = new Map<string, string>()
+      readonly style: { display: string; visibility: string }
+      tabIndex = 0
+
+      constructor(
+        readonly tagName: string,
+        options: {
+          readonly parent?: FocusElement
+          readonly display?: string
+          readonly focusSucceeds?: boolean
+          readonly focusRequiresTabindex?: boolean
+        } = {},
+      ) {
+        this.parentElement = options.parent ?? null
+        this.children = []
+        this.style = { display: options.display ?? 'block', visibility: 'visible' }
+        this.focusSucceeds = options.focusSucceeds ?? true
+        this.focusRequiresTabindex = options.focusRequiresTabindex ?? false
+        this.parentElement?.children.push(this)
+      }
+
+      readonly focusSucceeds: boolean
+      readonly focusRequiresTabindex: boolean
+
+      get hidden() {
+        return this.hasAttribute('hidden')
+      }
+
+      getAttribute(name: string) {
+        return this.attributes.get(name) ?? null
+      }
+
+      hasAttribute(name: string) {
+        return this.attributes.has(name)
+      }
+
+      setAttribute(name: string, value: string) {
+        this.attributes.set(name, value)
+      }
+
+      removeAttribute(name: string) {
+        this.attributes.delete(name)
+      }
+
+      closest(selector: string): FocusElement | null {
+        if (
+          (selector.includes('[hidden]') && this.hasAttribute('hidden')) ||
+          (selector.includes('[inert]') && this.hasAttribute('inert')) ||
+          (selector.includes('[aria-hidden="true"]') && this.getAttribute('aria-hidden') === 'true')
+        )
+          return this
+        return this.parentElement?.closest(selector) ?? null
+      }
+
+      querySelectorAll() {
+        return this.children
+      }
+
+      focus() {
+        if (this.focusSucceeds && (!this.focusRequiresTabindex || this.hasAttribute('tabindex')))
+          (globalThis.document as unknown as { activeElement: FocusElement | null }).activeElement =
+            this
+      }
+    }
+
+    const body = new FocusElement('BODY')
+    vi.stubGlobal('HTMLElement', FocusElement)
+    vi.stubGlobal('Element', FocusElement)
+    vi.stubGlobal('document', { activeElement: null, body })
+    vi.stubGlobal('getComputedStyle', (element: FocusElement) => element.style)
+    try {
+      const runtime = createPanelRuntime()
+      runtime.acquire(config('panel'))
+      const panel = new FocusElement('ASIDE')
+      const hiddenButton = new FocusElement('BUTTON', { parent: panel, display: 'none' })
+      const rejectedButton = new FocusElement('BUTTON', { parent: panel, focusSucceeds: false })
+      const editable = new FocusElement('DIV', { parent: panel })
+      editable.attributes.set('contenteditable', '')
+      const visibleButton = new FocusElement('BUTTON', { parent: panel })
+      runtime.registerElement('panel', panel as unknown as HTMLElement)
+      focusPanel(runtime, 'panel')
+      expect(document.activeElement).toBe(editable)
+      expect(document.activeElement).not.toBe(hiddenButton)
+      expect(document.activeElement).not.toBe(rejectedButton)
+      expect(document.activeElement).not.toBe(visibleButton)
+
+      runtime.acquire(config('explicit-tabindex'))
+      const explicitTabindexPanel = new FocusElement('ASIDE')
+      explicitTabindexPanel.attributes.set('tabindex', '0')
+      runtime.registerElement('explicit-tabindex', explicitTabindexPanel as unknown as HTMLElement)
+      focusPanel(runtime, 'explicit-tabindex')
+      expect(document.activeElement).toBe(explicitTabindexPanel)
+      expect(explicitTabindexPanel.getAttribute('tabindex')).toBe('0')
+
+      runtime.acquire(config('temporary-tabindex'))
+      const temporaryTabindexPanel = new FocusElement('ASIDE')
+      runtime.registerElement(
+        'temporary-tabindex',
+        temporaryTabindexPanel as unknown as HTMLElement,
+      )
+      focusPanel(runtime, 'temporary-tabindex')
+      expect(document.activeElement).toBe(temporaryTabindexPanel)
+      expect(temporaryTabindexPanel.hasAttribute('tabindex')).toBe(false)
+
+      const disabledTrigger = new FocusElement('BUTTON')
+      disabledTrigger.attributes.set('disabled', '')
+      const hiddenBeforeEntry = new FocusElement('BUTTON', { display: 'none' })
+      const unfocusableBoundary = new FocusElement('DIV', { focusSucceeds: false })
+      const portal = new FocusElement('DIV', { focusRequiresTabindex: true })
+      recordPanelEntry(
+        runtime,
+        'panel',
+        disabledTrigger as unknown as HTMLElement,
+        hiddenBeforeEntry as unknown as Element,
+      )
+      restorePanelFocus(
+        runtime,
+        'panel',
+        unfocusableBoundary as unknown as Element,
+        portal as unknown as HTMLElement,
+      )
+      expect(document.activeElement).toBe(portal)
+      expect(portal.hasAttribute('tabindex')).toBe(false)
+
+      const programmaticTrigger = new FocusElement('BUTTON')
+      programmaticTrigger.attributes.set('tabindex', '-1')
+      recordPanelEntry(
+        runtime,
+        'panel',
+        programmaticTrigger as unknown as HTMLElement,
+        portal as unknown as Element,
+      )
+      restorePanelFocus(runtime, 'panel', null, null)
+      expect(document.activeElement).toBe(programmaticTrigger)
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

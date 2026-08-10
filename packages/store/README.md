@@ -8,15 +8,15 @@ without requiring the application to replace its preferred state library.
 
 > Contract: Accepted target API
 >
-> Implementation: Partial overall; Store alpha verified for consumer dogfooding
+> Implementation: Partial overall; Store beta verified for consumer dogfooding
 
 Reconciling implementation evidence is tracked in [Store Reconciliation Ledger](./RECONCILIATION.md); these entries describe current branch transitions only and do not assign contract status.
 
-The Store alpha release gate is verified through the public root, React, and integration entries.
-Core/scoped values, durable metadata, synchronous Store-owned persistence, the manual external
-adapter, explicit React selectors, diagnostics, and Provider/entity/relationship leases are ready
-for DashPanel and DashList dogfooding. Binding interaction state, contextual hooks, documents,
-migrations, advanced recovery, external-owned persistence, and runtime inspection remain beta work.
+The Store beta release gate is verified through the public root, React, integration, and Web Storage
+entries plus Contract Lab consumer/browser proof. Core/scoped values, binding interaction, durable
+metadata, Store-owned and external-owned persistence, documents, migrations, recovery plans, the
+manual external adapter, selectors, diagnostics, and declarative leases are ready for consumer
+dogfooding. Broader runtime inspection and later product-owned UX remain unfinished.
 
 ## Target package surfaces
 
@@ -35,8 +35,7 @@ hooks remain planned; hook-generated state and reducer adapters are not part of 
 
 Store-owned mode owns canonical values and persists them according to explicit policy.
 External-owned mode projects one existing synchronous application store through an immutable root
-adapter. Alpha persistence is Store-owned; persisting Picodash metadata for external-owned Stores is
-an accepted beta target.
+adapter and can persist Picodash metadata without persisting adapter-owned values.
 
 Read the [Store target reference](../../docs/reference/store.md),
 [decision ledger](../../docs/reference/store-contract-decisions.md), and

@@ -58,7 +58,7 @@ type DiagnosticCondition = {
   readonly severity: 'error' | 'warning'
   readonly message: string
   readonly identity: object
-  readonly details?: Readonly<Record<string, string>>
+  readonly details?: Readonly<Record<string, string | number>>
 }
 
 type DiagnosticsRuntime = {

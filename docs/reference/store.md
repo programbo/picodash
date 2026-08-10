@@ -8,15 +8,13 @@ not claim that the prototype currently exports every API shown here.
 
 > Contract: Accepted target API
 > Implementation: Partial
-> Evidence: Store alpha is verified for consumer dogfooding; see the [conformance matrix](contract-conformance.md).
+> Evidence: Store beta is verified for consumer dogfooding; see the [conformance matrix](contract-conformance.md).
 
-The verified alpha slice includes the accepted scope-ID mapping, canonical root/scoped views, the
-stable empty interaction snapshot, built-in metadata commands, scope/root destruction,
-subscriber-exception diagnostics, Provider/entity/relationship integration leases, Provider-hosted
-and opted-in standalone React boundaries, fail-closed external adapters, Store-owned persistence,
-and weak view lifecycle. The page remains Partial because populated binding interaction, persistence
-recovery plans, documents, migrations, external-owned persistence, and broader runtime inspection
-remain beta work.
+The verified beta slice adds populated binding interaction, conflict and erase recovery, document
+import/export, schema migration, metadata quarantine recovery, external-owned metadata persistence,
+the optional Web Storage driver, reset/prune plans, and consumer/browser proof to the alpha
+foundation. This target page remains Partial because broader runtime inspection and later
+capability and product-owned UX contracts remain intentionally unfinished.
 
 ## Package surfaces
 
@@ -44,9 +42,9 @@ const store = createPicodashStore({
 })
 ```
 
-| API                     | Contract | Implementation | Notes                                                                                                                                                                                  |
-| ----------------------- | -------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `createPicodashStore()` | Accepted | Partial        | Core Store-owned configuration, scopes, and the manual synchronous external adapter are implemented and verified; external-owned persistence and document capabilities remain planned. |
+| API                     | Contract | Implementation | Notes                                                                                                                                                                                   |
+| ----------------------- | -------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createPicodashStore()` | Accepted | Partial        | The beta configuration, scopes, manual synchronous adapter, persistence, migration, recovery, and document capabilities are implemented and verified; later target capabilities remain. |
 
 Store construction is synchronous. Configuration that defines identity, schema, value authority,
 persistence, or disclosure remains immutable for the root lifetime.
@@ -109,9 +107,8 @@ type ExternalOwnedConfig<Fields> = {
 driver is also configured, its record must be absent or match the envelope identity, revision, and
 deterministic content fingerprint; disagreement throws during construction.
 
-External-owned persistence, documents, and migrations are accepted beta contracts. The alpha
-persistence capability is Store-owned and accepts only the Store-owned envelope branch defined
-below.
+External-owned metadata persistence, documents, and migrations are verified beta capabilities.
+Store-owned and external-owned envelope branches are defined below.
 
 ## Field definitions and handles
 
@@ -170,15 +167,15 @@ type PicodashFieldValidator<Value, Values> = (
 Parser and validator result objects use Picodash's `ok` and structured-issue conventions. Standard
 Schema retains its own v1 result shape at the `schema` boundary.
 
-| Behavior                    | Contract | Implementation | Notes                                                                     |
-| --------------------------- | -------- | -------------- | ------------------------------------------------------------------------- |
-| Stable typed field handles  | Accepted | Implemented    | Handles are nominally root-owned and enumerable by key only.              |
-| Immutable field set         | Accepted | Implemented    | Runtime field registration is rejected.                                   |
-| `parse` raw-input stage     | Accepted | Planned        | Typed result is exported; interactive execution belongs to a later phase. |
-| Standard Schema `schema`    | Accepted | Implemented    | Canonicalizes and drives inferred output type.                            |
-| Contextual `validate` stage | Accepted | Implemented    | Accepts or rejects; cannot transform.                                     |
-| Synchronous pipeline        | Accepted | Implemented    | Promise-like results are rejected.                                        |
-| Root ownership checks       | Accepted | Implemented    | Same-key handles from another root throw.                                 |
+| Behavior                    | Contract | Implementation | Notes                                                            |
+| --------------------------- | -------- | -------------- | ---------------------------------------------------------------- |
+| Stable typed field handles  | Accepted | Implemented    | Handles are nominally root-owned and enumerable by key only.     |
+| Immutable field set         | Accepted | Implemented    | Runtime field registration is rejected.                          |
+| `parse` raw-input stage     | Accepted | Verified       | Binding input executes the typed parse/schema/validate pipeline. |
+| Standard Schema `schema`    | Accepted | Implemented    | Canonicalizes and drives inferred output type.                   |
+| Contextual `validate` stage | Accepted | Implemented    | Accepts or rejects; cannot transform.                            |
+| Synchronous pipeline        | Accepted | Implemented    | Promise-like results are rejected.                               |
+| Root ownership checks       | Accepted | Implemented    | Same-key handles from another root throw.                        |
 
 Interactive binding input uses `parse → schema → validate`. Programmatic values, defaults,
 `initialValues`, adapter snapshots, persisted values, imports, and migration output use
@@ -380,9 +377,9 @@ immutable. Registration alone creates no entry. Default-only entries and empty n
 pruned. The empty interaction state is one frozen singleton containing two stable empty maps.
 
 > Contract: Accepted
-> Implementation: Partial
-> Notes: Root and scoped snapshots are implemented with the stable empty interaction singleton;
-> populated interaction state remains planned for beta with binding acquisition. The metadata record codec and scoped metadata
+> Implementation: Verified for the beta interaction slice
+> Notes: Root and scoped snapshots include populated binding interaction, input commands, stale
+> conflict plans, lease cleanup, and the stable empty interaction singleton. The metadata record codec and scoped metadata
 > commands are implemented. Adapter and
 > persistence status live on their configured capability namespaces rather than every ephemeral root snapshot.
 
@@ -600,9 +597,9 @@ durable.persistence.flush()
 ```
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Verified for the beta capability set
 > Notes: Export policy remains nested under `export: { documents, fields }`. Scoped views inherit
-> enabled capabilities with scope-aware defaults.
+> enabled capabilities with scope-aware defaults. Future named capability families remain later work.
 
 ## Value operations
 
@@ -617,19 +614,75 @@ if (!result.ok) {
 }
 ```
 
-| API                                  | Contract | Implementation | Notes                                         |
-| ------------------------------------ | -------- | -------------- | --------------------------------------------- |
-| `setValue(field, value)`             | Accepted | Implemented    | Safe typed single-field transaction.          |
-| `setValueOrThrow(field, value)`      | Accepted | Implemented    | Throws the corresponding transaction error.   |
-| `setValues(values)`                  | Accepted | Implemented    | Safe typed partial-record atomic transaction. |
-| `setValuesOrThrow(values)`           | Accepted | Implemented    | Throws the corresponding transaction error.   |
-| `setInput(binding, input)`           | Accepted | Planned        | Interactive; records invalid binding input.   |
-| `executeRepair(plan)`                | Accepted | Planned        | Single-use; revalidates a proposed repair.    |
-| `resetValue(field)`                  | Accepted | Planned        | Safe reset to the validated baseline.         |
-| `resetValueOrThrow(field)`           | Accepted | Planned        | Throws the corresponding transaction error.   |
-| `resetRegisteredValues(opts)`        | Accepted | Planned        | Active scope values; optional descendants.    |
-| `resetRegisteredValuesOrThrow(opts)` | Accepted | Planned        | Throws the corresponding transaction error.   |
-| `discardInput(binding)`              | Accepted | Prototype      | Returns whether interaction state changed.    |
+| API                                  | Contract | Implementation | Notes                                                                                        |
+| ------------------------------------ | -------- | -------------- | -------------------------------------------------------------------------------------------- |
+| `setValue(field, value)`             | Accepted | Implemented    | Safe typed single-field transaction.                                                         |
+| `setValueOrThrow(field, value)`      | Accepted | Implemented    | Throws the corresponding transaction error.                                                  |
+| `setValues(values)`                  | Accepted | Implemented    | Safe typed partial-record atomic transaction.                                                |
+| `setValuesOrThrow(values)`           | Accepted | Implemented    | Throws the corresponding transaction error.                                                  |
+| `setInput(binding, input)`           | Accepted | Implemented    | BIND-INTERACTION-CONTRACT-1 generic-key interaction command.                                 |
+| `executeRepair(plan)`                | Accepted | Implemented    | Single-use plan with validation source `repair`; BIND-INTERACTION-CONTRACT-1.                |
+| `resetValue(field)`                  | Accepted | Implemented    | Safe reset to the configured default baseline; preserves the configured `Result`.            |
+| `resetValueOrThrow(field)`           | Accepted | Implemented    | Throws the corresponding transaction error; successful calls return the configured `Result`. |
+| `resetRegisteredValues(opts)`        | Accepted | Implemented    | Active scope values; optional descendants; covered by the registered-reset runtime matrix.   |
+| `resetRegisteredValuesOrThrow(opts)` | Accepted | Implemented    | Throws the corresponding transaction error; preserves configured Result typing.              |
+| `discardInput(binding)`              | Accepted | Implemented    | Clears one interaction entry and returns exact boolean.                                      |
+
+The generic root and scoped reset methods are:
+
+```ts
+resetValue<Key extends keyof Fields & string>(field: FieldHandle<Fields, Key>): Result
+resetValueOrThrow<Key extends keyof Fields & string>(
+  field: FieldHandle<Fields, Key>,
+): Extract<Result, { ok: true }>
+```
+
+Aggregate registered reset uses these exact public option types and methods:
+
+```ts
+type InvalidResetOptionsReason =
+  | 'not-object'
+  | 'unknown-key'
+  | 'accessor-property'
+  | 'invalid-include-descendants'
+
+type ResetRegisteredValuesOptions = {
+  readonly includeDescendants?: boolean
+}
+
+type RootResetRegisteredValuesOptions = ResetRegisteredValuesOptions & {
+  readonly scopeId: string
+}
+
+root.resetRegisteredValues(options: RootResetRegisteredValuesOptions): Result
+root.resetRegisteredValuesOrThrow(
+  options: RootResetRegisteredValuesOptions,
+): Extract<Result, { ok: true }>
+scoped.resetRegisteredValues(options?: ResetRegisteredValuesOptions): Result
+scoped.resetRegisteredValuesOrThrow(
+  options?: ResetRegisteredValuesOptions,
+): Extract<Result, { ok: true }>
+```
+
+Options are exact own-key data records. The root object is required and accepts only `scopeId` and
+`includeDescendants`; scoped options may be omitted and accept only `includeDescendants`.
+Non-objects, unknown own string or symbol keys, and accessors are rejected before values are read.
+Those failures and a non-boolean descendant option throw `invalid-reset-options` with exactly
+`{ reason: InvalidResetOptionsReason }`. Structural option validation, including a present
+`includeDescendants` boolean check, completes before root scope identity uses the ordinary
+`invalid-scope-id` mapping, including a missing `scopeId`.
+
+Both input and display binding leases establish active registered-field membership. The command
+snapshots the selected scope and, when requested, its active descendants; sorts the target IDs;
+deduplicates shared root fields; and validates one complete configured-default candidate with
+source `reset`, never through a parser. A root call has no `originScopeId`; a scoped call uses its
+receiver scope. Adapter `targetScopeIds` contains the complete sorted selected scope set.
+
+Successful aggregate reset preserves the configured `Result`, reports only changed fields, and
+keeps `changedScopeIds` empty. Empty and already-default selections perform no write or
+notification, and rejection is atomic. The Store does not discard drafts: dirty bindings anywhere
+on a changed shared field retain their input and become stale. DashList composes targeted draft
+discard separately after successful canonical reset.
 
 Scoped calls may write any root field and add `originScopeId` attribution. Operations that target
 descendants deduplicate root fields before building one candidate snapshot.
@@ -643,11 +696,113 @@ contract error. Empty and semantically unchanged batches succeed as no-ops witho
 persistence work.
 
 Programmatic setters do not alter binding interaction state. Their canonical changes may mark
-existing drafts stale. `setInput` is safe-only: valid input commits and clears that binding's draft;
-invalid input returns issues while recording its draft, touched state, and input issues.
+existing drafts stale. `setInput` is safe-only: valid non-stale input commits and clears that
+binding's draft; invalid non-stale input records a frozen raw JSON draft, touched state, and pipeline
+issues. Root and scoped receivers use the binding handle's scope and identity, and any receiver from
+the same root may invoke the command. The configured Store `Result` is preserved.
 
-`setInput` accepts JSON-compatible input. Retained drafts are cloned and frozen. Non-JSON editing
-state remains component-local until the control can submit a JSON candidate.
+`setInput` accepts JSON-compatible input. Non-JSON input returns one identity-enriched `invalid_json`
+issue and is a zero-interaction, zero-callback, zero-notification short-circuit. Retained drafts are
+cloned and frozen. Non-JSON editing state remains component-local until the control can submit a JSON
+candidate.
+
+`resetValue(field)` and `resetValueOrThrow(field)` target the field's configured default baseline,
+after schema and complete-record validation (never the parser); the baseline is not the initial,
+hydrated, or current value. Root calls have no origin scope. Scoped calls use the receiver scope
+for validation and adapter attribution. The adapter source is `reset`. Foreign handles throw a
+contract error, and candidate rejection is atomic. Successful calls preserve the configured Store
+`Result`, report only
+the changed field with `changedScopeIds: []`, and persist the configured reset result. A semantic
+no-op performs no notification or write. When changed, dirty bindings for that field become stale
+without discarding drafts.
+
+### BIND-INTERACTION-CONTRACT-1: frozen interaction behavior
+
+The generic-key command surface is:
+
+```ts
+interface BindingInteractionCommands<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
+  setInput<Key extends keyof Fields & string>(
+    binding: BindingHandle<Fields, Key>,
+    input: PicodashJsonValue,
+  ): Result
+  discardInput<Key extends keyof Fields & string>(binding: BindingHandle<Fields, Key>): boolean
+  executeRepair(plan: PicodashRepairPlan): Result
+  createStaleInputOverwritePlan<Key extends keyof Fields & string>(
+    binding: BindingHandle<Fields, Key>,
+  ): PicodashStaleInputOverwritePlan
+  executeStaleInputOverwrite(plan: PicodashStaleInputOverwritePlan): Result
+}
+```
+
+The Store-owned `stale_input` issue is exact:
+
+```ts
+{
+  code: 'stale_input',
+  reason: 'canonical_changed',
+  message: 'Binding input is stale and requires explicit overwrite confirmation.',
+  path: ['values', fieldKey],
+  fieldKey,
+  scopeId,
+  itemId,
+  alias,
+}
+```
+
+`setInput` and `discardInput` accept only active binding handles with `mode: 'input'`. Passing an
+active display handle throws `invalid-binding-handle` with exactly `{ reason: 'wrong-kind' }`; it
+creates no interaction state and invokes no parser, validator, callback, subscriber, or notification.
+
+Pipeline issues precede `stale_input` in returned failures. Stored `inputIssues` excludes
+`stale_input`; it contains only parser/schema/field/root pipeline issues. A stale attempt replaces
+the raw frozen draft and pipeline feedback while preserving the original base/conflict and never
+committing. A valid stale attempt returns `stale_input` only. An authority rejection retains a valid
+dirty non-stale draft. Canonical changes mark dirty bindings stale and invalidate earlier repair plans
+with `stale_plan`.
+
+| Current interaction           | Input / outcome     | Required transition                                                                                                                                                                         |
+| ----------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Any                           | Non-JSON            | Identity-enriched `invalid_json`; no interaction, callback, subscriber, or notification                                                                                                     |
+| None/clean or dirty non-stale | Pipeline rejection  | Replace raw frozen JSON draft and pipeline issues; first rejection captures current field revision/value as base; later rejection preserves original base; parser failure may return repair |
+| None/clean or dirty non-stale | Accepted input      | Commit shared pipeline and clear interaction                                                                                                                                                |
+| Dirty stale                   | Any attempt         | Replace draft and pipeline feedback; preserve base/conflict; never commit; append/return `stale_input`; no repair                                                                           |
+| Dirty stale                   | Valid input         | Return `stale_input` only; preserve base/conflict; no repair                                                                                                                                |
+| Dirty non-stale               | Authority rejection | Retain valid dirty draft, touched state, base, and non-stale state                                                                                                                          |
+
+`discardInput(binding)` clears exactly one entry, prunes empty item/scope interaction maps, and
+returns `true` iff that entry changed, otherwise exactly `false`. Parser repair exists only for
+non-stale parser failure: the proposal is checked by schema, field, and root validation before an
+opaque root-owned single-use plan is returned. `executeRepair(plan)` revalidates with validation
+source `repair`, commits through the shared pipeline, and clears the originating interaction.
+Wrong-root/kind, released, or consumed plans throw contract errors; changed captured state returns
+`stale_plan`.
+
+Stale-input overwrite is an implemented and verified command. Creation requires an active input
+handle with a dirty stale draft and no `inputIssues`; handle misuse throws `invalid-binding-handle`.
+`createStaleInputOverwritePlan<Key>(binding)` captures the exact binding generation/draft and the
+current target-field revision/value without exposing them. Any same-root root or scoped receiver may
+execute it; the handle scope controls attribution, and an unrelated field change alone does not
+stale the plan. Creation state failure throws `invalid-stale-input-overwrite` with exactly
+`{ reason: 'not-stale' | 'invalid-draft' }`.
+
+The first valid execution attempt consumes the plan, including stale-plan, validation, or authority
+failure. Draft replacement/discard or target revision change returns `stale_plan`; released or
+replaced generations are lifecycle errors. Execution reruns parse → schema → field → root with
+validation and adapter source `interactive` plus binding origin. It never returns `stale_input` or a
+repair offer. Failure preserves stale interaction. Success coalesces commit and origin cleanup,
+marks other dirty bindings for the field stale, and preserves configured `Result`/persistence.
+Semantic no-op clears origin and notifies only the target scope; changed commit notifies canonical
+observers once with cleanup visible.
+
+Conformance evidence must cover root/scoped receivers, input/display mode rejection, configured
+Result preservation, all transition rows, callback/notification suppression, exact issue shape/order,
+repair and overwrite plan freshness/consumption, reset baseline/no-op/atomicity, notification
+coalescing, and pruning. It must exclude raw non-JSON input, arbitrary callback causes, captured
+plan values/revisions/fingerprints, and other undisclosed values.
 
 Scoped `resetRegisteredValues` uses that view's scope and does not accept another `scopeId`. The root
 signature requires `scopeId`. Both variants deduplicate shared fields before validating one complete
@@ -797,20 +952,29 @@ error before metadata validation. That error's context is exactly
 Binding interaction identity is `(scopeId, itemId, alias)`. Alias defaults to the field key and must
 be explicit when one item binds the same field more than once.
 
+The integration entry exports `acquireBindingLease(scopedStore, options)`, where options require
+`itemId`, a root-owned nominal `field`, and explicit `mode: 'input' | 'display'`; `alias` defaults
+to `field.key`. The returned `BindingHandle` exposes read-only `scopeId`, `itemId`, `alias`,
+`field`, `mode`, and idempotent `release()`. Binding acquisition does not require an EntityLease.
+Options are validated as an exact data record before field ownership or duplicate lookup. Failures
+use `invalid-binding-options` with one of `not-object`, `unknown-key`, `accessor-property`,
+`invalid-item-id`, `invalid-alias`, or `invalid-mode`; foreign fields use `foreign-handle`, and a
+live duplicate tuple uses `duplicate-binding` with `{ scopeId, itemId, alias }`.
+
 Commands receive an opaque nominal `BindingHandle` issued by the active registration. It is owned
 by one root Store and one registration generation, exposes read-only identity for reporting, and is
 not serializable. Foreign, released, and superseded handles throw contract errors. Remounting the
 same identity tuple issues a new generation.
 
-| Capability                               | Contract | Implementation | Notes                                      |
-| ---------------------------------------- | -------- | -------------- | ------------------------------------------ |
-| Binding draft/input                      | Accepted | Prototype      | Moves to scope/item/alias identity.        |
-| Touched and input issues                 | Accepted | Prototype      | Cleared on final binding unmount.          |
-| Stale-draft detection                    | Accepted | Planned        | Records field base revision/value.         |
-| `discardInput(binding)`                  | Accepted | Prototype      | Clears one draft immediately.              |
-| `createStaleInputOverwritePlan(binding)` | Accepted | Planned        | Fingerprints draft and canonical revision. |
-| `executeStaleInputOverwrite(plan)`       | Accepted | Planned        | Single-use; revalidates before commit.     |
-| Generic rebase                           | Deferred | —              | Requires explicit field merge semantics.   |
+| Capability                               | Contract | Implementation | Notes                                                                                    |
+| ---------------------------------------- | -------- | -------------- | ---------------------------------------------------------------------------------------- |
+| Binding draft/input                      | Accepted | Verified       | Moves to scope/item/alias identity.                                                      |
+| Touched and input issues                 | Accepted | Verified       | Cleared on final binding unmount.                                                        |
+| Stale-draft detection                    | Accepted | Verified       | Records field base revision/value.                                                       |
+| `discardInput(binding)`                  | Accepted | Verified       | Clears one draft immediately.                                                            |
+| `createStaleInputOverwritePlan(binding)` | Accepted | Verified       | Opaque root-owned single-use plan; active stale input only, no exposed values/revisions. |
+| `executeStaleInputOverwrite(plan)`       | Accepted | Verified       | Same-root receiver; interactive revalidation, stale-plan fencing, and coalesced cleanup. |
+| Generic rebase                           | Deferred | —              | Requires explicit field merge semantics.                                                 |
 
 Canonical field changes never silently delete dirty drafts. Unrelated bindings observe the new
 canonical value; dirty bindings become stale. Confirmation UX belongs to the application.
@@ -881,11 +1045,11 @@ accessor as `accessor-property` before reading it; and a present value of the wr
 `invalid-destroy-options` with exactly `{ reason: InvalidDestroyOptionsReason }`; context contains
 no rejected value, key, or property descriptor.
 
-| Additional API       | Contract | Implementation | Notes                                         |
-| -------------------- | -------- | -------------- | --------------------------------------------- |
-| `createPrunePlan()`  | Accepted | Planned        | Never infers obsolescence from mount absence. |
-| `executePrunePlan()` | Accepted | Planned        | Explicit node selection or known inventory.   |
-| `renameScope()`      | Deferred | —              | Use schema migration before activation.       |
+| Additional API       | Contract | Implementation | Notes                                                                                     |
+| -------------------- | -------- | -------------- | ----------------------------------------------------------------------------------------- |
+| `createPrunePlan()`  | Accepted | Partial        | Store review and executable plans are implemented; DashList dogfood remains pending.      |
+| `executePrunePlan()` | Accepted | Partial        | Explicit node selection or known inventory; Store lifecycle/plan evidence is implemented. |
+| `renameScope()`      | Deferred | —              | Use schema migration before activation.                                                   |
 
 Root reset commands require a `scopeId`; scoped reset commands target their own scope and cannot
 accept another identity. `setDashPanelLayout` replaces the complete Panel record. Each order setter
@@ -909,13 +1073,34 @@ declarative defaults without persisting an empty record; a later durable operati
 > Implementation: Verified for the alpha slice — [scope metadata and destruction tests](../../packages/store/tests/scope-metadata.test.ts) and [integration traversal tests](../../packages/store/tests/integration.test.ts).
 
 Scoped prune-plan creation targets that view's DashList metadata; root creation requires `scopeId`.
-Plans are opaque, root-owned, single-use, and fingerprint both stored metadata and active nodes.
-Active nodes are never candidates. Execution removes only approved dormant node metadata and never
-changes canonical values, bindings, or relationships.
+`DASHLIST-NODE-LEASE-1` supplies active presence through committed, release-only
+`acquireDashListNodeLease(scopedStore, { nodeId })` handles from `@picodash/store/integration`.
+Identity is `(scopeId, nodeId)`; duplicate active identities throw `duplicate-dash-list-node`.
+Exact option failures throw `invalid-dash-list-node-options`. The lease has no kind, containment,
+entity dependency, query API, snapshot state, or persistence representation.
+
+`createPrunePlan()` supports three exact modes: `review`; `explicit` with duplicate-free,
+disjoint `removeNodeIds` and `keepNodeIds` that exactly partition current candidates; and
+`inventory` with authoritative `knownNodeIds` that must include every active node. Root options
+also require `scopeId`; scoped operations infer their scope. Review returns an immutable
+`DashListPruneReview`; classified modes return an opaque `PicodashDashListPrunePlan`.
+
+Candidates are metadata-referenced IDs from root order, group-order owners and entries, and collapse
+overrides, excluding active nodes. Candidate effects identify
+`root-order-entry | group-order-owner | group-order-entry | collapse-override`, making deletion of a
+removed group's saved child order explicit. Invalid exact records, modes, ID arrays, partitions, or
+inventories throw `invalid-prune-options` with only a safe reason.
+
+Executable plans are root-owned and single-use. Misuse throws `invalid-prune-plan` with only
+`wrong-kind | foreign-root | consumed`. Target DashList metadata or active-membership changes return
+the safe `stale_plan` issue; unrelated values, bindings, relationships, and other scopes do not.
+Execution removes only the classified metadata references and prunes empty records. It never changes
+canonical values, drafts, bindings, relationships, active leases, or another scope.
 
 DashList presents `resetRegisteredValues()` as `Reset values…` and `resetDashListMetadata()` as
-`Reset list…`. These remain separate actions: the former resets current-List values and targeted
-drafts, while the latter resets order and group-collapse overrides without changing values.
+`Reset list…`. These remain separate actions: the former composes canonical registered-value reset
+with targeted draft discard after success, while the latter resets order and group-collapse
+overrides without changing values.
 
 ## External value adapter
 
@@ -1009,18 +1194,18 @@ Synchronous adapter notifications caused by Store's own whole-record write are c
 internal echo. Store validates the post-write projection once and publishes at most one completed
 Store notification. Metadata commands remain usable while adapter values are unhealthy because
 they do not cross value authority. External-owned `initialEnvelope` data may contain Picodash
-metadata but must not contain canonical values; that persistence branch is beta.
+metadata but must not contain canonical values.
 
 ## Persistence
 
 > Contract: Accepted
 >
-> Implementation: Verified for the Store-owned alpha slice — [persistence tests](../../packages/store/tests/persistence.test.ts), [persistence type tests](../../packages/store/tests/persistence.types.test.ts), and [memory persistence harness](../../packages/store/tests/support/memory-persistence.ts).
+> Implementation: Verified for the beta slice — [Store-owned persistence tests](../../packages/store/tests/persistence.test.ts), [external-owned integration tests](../../packages/store/tests/external-persistence.test.ts), [external persistence controller tests](../../packages/store/tests/external-persistence-controller.test.ts), [persistence type tests](../../packages/store/tests/persistence.types.test.ts), [adapter/configuration type tests](../../packages/store/tests/adapter.types.test.ts), [Web Storage tests](../../packages/store/tests/web-storage.test.ts), [Web Storage type tests](../../packages/store/tests/web-storage.types.test.ts), and [memory persistence harness](../../packages/store/tests/support/memory-persistence.ts).
 
-The alpha persistence capability is Store-owned: it persists the disclosed canonical value
-projection and all durable Picodash scope metadata. External-owned metadata persistence,
-conflict-resolution and erase plans, migrations, documents, quarantine recovery, and the built-in
-Web Storage driver remain beta work.
+The Store-owned persistence capability persists the disclosed canonical value projection and all
+durable Picodash scope metadata. External-owned persistence stores metadata only. Conflict and erase
+plans, migration/quarantine recovery, document integration, and the optional Web Storage driver are
+verified in the beta slice.
 
 ```ts
 type PicodashPersistenceDriver = {
@@ -1035,7 +1220,7 @@ type PicodashPersistenceDriver = {
 `identity` is a stable nominal token for the underlying backend; wrappers around the same backend
 share it. All methods are synchronous. Writes and removals are atomic or throw before visible
 mutation. Optional subscriptions carry no payload and only signal that Store must reread and
-validate. Alpha never calls `remove`. Driver failures are normalized without retaining causes,
+validate. Automatic persistence never calls `remove`; only a confirmed erase plan may do so. Driver failures are normalized without retaining causes,
 messages, or stacks.
 
 ```ts
@@ -1057,7 +1242,7 @@ type ExternalOwnedPersistenceConfig = {
 
 Store-owned mode requires an explicit value default and permits overrides only for declared fields.
 Durable Picodash metadata is always included. Encryption belongs in a custom synchronous driver.
-`ExternalOwnedPersistenceConfig` reserves the accepted beta branch; alpha rejects it.
+`ExternalOwnedPersistenceConfig` enables metadata-only persistence without changing value authority.
 
 ```ts
 persistence: {
@@ -1072,17 +1257,17 @@ persistence: {
 }
 ```
 
-| API/status                                          | Contract | Implementation | Notes                                                                                                                          |
-| --------------------------------------------------- | -------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Synchronous hydration                               | Accepted | Partial        | Alpha is all-or-nothing and has no async core; driver and driver-free initial-envelope paths are covered by persistence tests. |
-| One versioned root envelope                         | Accepted | Partial        | Store-owned envelope encoding, deterministic decoding, field disclosure, and durable metadata are implemented.                 |
-| `persistence.getState()`                            | Accepted | Partial        | Exact immutable discriminated state is implemented and covered by runtime/type tests.                                          |
-| `persistence.subscribe(listener)`                   | Accepted | Partial        | Separate capability subscriptions are implemented and share diagnostics dispatch.                                              |
-| `persistence.flush()`                               | Accepted | Partial        | Retries pending I/O and never resolves conflicts.                                                                              |
-| `persistence.createConflictResolutionPlan(options)` | Accepted | Planned        | Accepted beta reload/overwrite/reconcile surface.                                                                              |
-| `persistence.executeConflictResolution(plan)`       | Accepted | Planned        | Accepted beta plan execution.                                                                                                  |
-| `persistence.createErasePlan()`                     | Accepted | Planned        | Accepted beta erase preview.                                                                                                   |
-| `persistence.executeErase(plan, { confirm: true })` | Accepted | Planned        | Accepted beta confirmed erase.                                                                                                 |
+| API/status                                          | Contract | Implementation | Notes                                                                                                            |
+| --------------------------------------------------- | -------- | -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Synchronous hydration                               | Accepted | Verified       | Store-owned/external-owned driver and driver-free initial-envelope paths are covered.                            |
+| One versioned root envelope                         | Accepted | Verified       | Deterministic authority-specific encoding, disclosure, durable metadata, migration, and quarantine are covered.  |
+| `persistence.getState()`                            | Accepted | Verified       | Exact immutable discriminated state is covered by runtime and type tests.                                        |
+| `persistence.subscribe(listener)`                   | Accepted | Verified       | Capability subscriptions and shared diagnostics dispatch are covered.                                            |
+| `persistence.flush()`                               | Accepted | Verified       | Pending retry and conflict refusal behavior are covered.                                                         |
+| `persistence.createConflictResolutionPlan(options)` | Accepted | Verified       | Nominal, root-owned, single-use reload/overwrite/reconcile plans with exact option and freshness checks.         |
+| `persistence.executeConflictResolution(plan)`       | Accepted | Verified       | Deterministic merge, reread/write/verification fencing, atomic live commit, and safe failure issues are covered. |
+| `persistence.createErasePlan()`                     | Accepted | Verified       | Captures the exact durable target and pending-discard decision for a single-use erase plan.                      |
+| `persistence.executeErase(plan, { confirm: true })` | Accepted | Verified       | Confirmed remove plus null verification clears persistence state without changing live values or metadata.       |
 
 ```ts
 type PersistenceWriteStatus = 'unchanged' | 'saved' | 'pending'
@@ -1272,13 +1457,100 @@ refusal and cannot be bypassed by discard.
 
 Beta adds external-owned metadata persistence, validated quarantine and replacement, schema
 migrations, document integration, reload/overwrite/reconcile plans, explicit erase plans, and the
-browser Web Storage seam. These additions preserve the alpha envelope and state signatures and do
-not introduce automatic last-write-wins.
+browser Web Storage seam. These additions preserve the original envelope and state signatures and
+do not introduce automatic last-write-wins.
+
+### Beta conflict recovery and erase
+
+```ts
+type PersistenceConflictResolutionOptions =
+  | { readonly mode: 'reload' }
+  | { readonly mode: 'overwrite' }
+  | { readonly mode: 'reconcile'; readonly onOverlap: 'local' | 'durable' }
+
+interface PicodashPersistence {
+  createConflictResolutionPlan(
+    options: PersistenceConflictResolutionOptions,
+  ): PicodashPersistenceConflictResolutionPlan
+  executeConflictResolution(
+    plan: PicodashPersistenceConflictResolutionPlan,
+  ): PersistentTransactionResult
+  createErasePlan(): PicodashPersistenceErasePlan
+  executeErase(
+    plan: PicodashPersistenceErasePlan,
+    options: { readonly confirm: true },
+  ): PersistenceEraseResult
+}
+```
+
+> Contract: Accepted
+> Implementation: Verified — [persistence tests](../../packages/store/tests/persistence.test.ts) and [persistence type tests](../../packages/store/tests/persistence.types.test.ts).
+
+`reload` accepts the currently observed durable persisted fields and complete scope records while
+leaving policy-omitted fields live. `overwrite` writes the complete local pending projection.
+`reconcile` three-way merges against the last confirmed projection: a one-sided change wins, equal
+changes coalesce, and differing two-sided changes use the required `onOverlap`. Fields merge
+individually; a complete scope record, including quarantined raw metadata, is one merge unit. A
+foreign removal supplies baseline persisted fields and empty durable scope metadata as its side.
+
+Plans are nominal, root-owned, single-use, and consumed on the first otherwise-valid execution,
+including stale, validation, or driver failure. Their freshness includes the conflict/base, exact
+durable observation, current persisted projection, and quarantined records; erase also fingerprints
+whether pending data will be discarded. A changed fingerprint returns `stale_plan` with message
+`Persistence plan is stale.` Policy-omitted fields, drafts, interaction, leases, and unrelated
+diagnostics do not stale plans.
+
+Exact malformed-option reasons are `not-object`, `unknown-key`, `accessor-property`, `invalid-mode`,
+and `invalid-overlap` for conflict options, and `not-object`, `unknown-key`, `accessor-property`, and
+`confirmation-required` for erase confirmation. Plan misuse reports only kind plus
+`wrong-kind`, `foreign-root`, or `consumed`; creating a conflict plan outside conflict reports
+`not-conflicted`.
+
+Conflict execution rereads the captured durable target. Reload writes nothing; overwrite and
+nontrivial reconcile write a monotonic revision and require exact reread verification before any
+live reload/reconcile commit. Candidate, write, or verification failure leaves live state unchanged
+and conflicted. Success ends clean with no pending envelope and publishes at most one final Store and
+capability transition.
+
+Confirmed erase rereads the captured target, removes it once, requires a `null` reread, and only then
+clears conflict/error/pending state. It deliberately discards the in-memory pending envelope but
+never resets live values or scope metadata. Removal failure retains prior state and uses only safe
+`remove-failed` or `remove-verification-failed` diagnostics.
+
+### External-owned metadata persistence
+
+> Contract: Accepted
+> Implementation: Verified — [external-owned integration tests](../../packages/store/tests/external-persistence.test.ts), [controller tests](../../packages/store/tests/external-persistence-controller.test.ts), and [configuration type tests](../../packages/store/tests/adapter.types.test.ts).
+
+An identified external-owned Store may persist Picodash scope metadata while its adapter remains the
+sole value authority. Its configuration has only `storageKey` and `driver`; any own `values`
+property is invalid. External envelopes use `valueOwner: 'external'`, contain scopes, and omit
+`values`. Value-only commands report unchanged durability and perform no driver I/O.
+
+The root and every scope share the existing persistence capability. Hydration, conflicts,
+reload/overwrite/reconcile, quarantine replacement, and erase operate on metadata only and never
+recover adapter values. Migration receives an empty value record and must return it empty. Adapter
+health does not block metadata persistence, and persistence recovery never writes the adapter.
+
+### Web Storage driver
+
+> Contract: Accepted
+> Implementation: Verified — [Web Storage tests](../../packages/store/tests/web-storage.test.ts), [Web Storage type tests](../../packages/store/tests/web-storage.types.test.ts), and [package artifact checks](../../packages/store/tests/package-artifacts.mjs).
+
+`@picodash/store/web-storage` exports `createWebStoragePersistenceDriver(source)`, where callers
+explicitly choose `'local'`, `'session'`, or a supplied structural `PicodashWebStorage`. The root
+Store entry does not reference browser globals.
+
+Creating the helper performs no probe or mutation. Named storage is resolved on first use and fails
+safely when unavailable. Wrappers for the same current-realm Storage object share identity. Native
+storage events notify only for the selected backend and matching key or a `null` clear event;
+same-document events are not synthesized. Supplied non-browser backends work during SSR and have no
+implicit subscription. Strings pass through unchanged under the Store's existing persistence error
+and verification rules.
 
 ## Export
 
-Export, import, and migration are accepted beta contracts and are not part of the alpha persistence
-capability.
+Export and import are verified beta document capabilities, separate from persistence.
 
 ```ts
 export: {
@@ -1305,11 +1577,11 @@ Store document APIs exchange immutable JSON-compatible objects. `executeExport()
 filenames, downloads, clipboard access, MIME types, or JSON/YAML text parsing. Those concerns belong
 to the consuming product or a future dedicated codec entry.
 
-| API                                       | Contract | Implementation | Notes                                           |
-| ----------------------------------------- | -------- | -------------- | ----------------------------------------------- |
-| `documents.createExportPlan(options)`     | Accepted | Prototype      | Target plan becomes value-free and root-bound.  |
-| `documents.executeExport(plan, options?)` | Accepted | Prototype      | Explicit one-use promotion confirmation.        |
-| Scoped document export                    | Accepted | Prototype      | Active registered fields plus durable metadata. |
+| API                                       | Contract | Implementation | Notes                                                        |
+| ----------------------------------------- | -------- | -------------- | ------------------------------------------------------------ |
+| `documents.createExportPlan(options)`     | Accepted | Verified       | Target plan is value-free, root-bound, and freshness-fenced. |
+| `documents.executeExport(plan, options?)` | Accepted | Verified       | Explicit single-use disclosure promotion confirmation.       |
+| Scoped document export                    | Accepted | Verified       | Active registered fields, descendants, and durable metadata. |
 
 Hard-omitted fields leave no entry. Redacted fields use a structured marker. Per-call selection can
 narrow but not exceed immutable disclosure policy. Dormant scopes infer no registered fields.
@@ -1329,13 +1601,13 @@ scope. Every selection remains bounded by immutable policy.
 
 ## Import
 
-| API                                 | Contract | Implementation | Notes                                         |
-| ----------------------------------- | -------- | -------------- | --------------------------------------------- |
-| `documents.analyzeImport(document)` | Accepted | Prototype      | Produces target effects without mutation.     |
-| `documents.executeImport(plan)`     | Accepted | Prototype      | Revalidates and commits atomically.           |
-| `scopeMap`                          | Accepted | Planned        | Required for renamed descendants.             |
-| `createMissingScopes`               | Accepted | Planned        | Explicit; creates state, never registrations. |
-| Foreign Store permission            | Accepted | Planned        | Required when source Store identity differs.  |
+| API                                 | Contract | Implementation | Notes                                                            |
+| ----------------------------------- | -------- | -------------- | ---------------------------------------------------------------- |
+| `documents.analyzeImport(document)` | Accepted | Verified       | Produces value-free target effects without mutation.             |
+| `documents.executeImport(plan)`     | Accepted | Verified       | Revalidates and commits once across value/persistence authority. |
+| `scopeMap`                          | Accepted | Verified       | Explicitly maps renamed descendants.                             |
+| `createMissingScopes`               | Accepted | Verified       | Creates durable state, never registrations.                      |
+| Foreign Store permission            | Accepted | Verified       | Required when source Store identity differs.                     |
 
 ```ts
 documents.analyzeImport(document, {
@@ -1361,9 +1633,80 @@ relevant target state. Execution rechecks document kind, mappings, target revisi
 complete candidate. Root documents import only at root; scope documents target an explicit root
 scope or the current scoped view. Kind mismatches are not projected implicitly.
 
+### Version-one document contract
+
+```ts
+type PicodashDocumentFieldEntry = readonly [
+  fieldKey: string,
+  entry:
+    | Readonly<{ readonly status: 'included'; readonly value: PicodashJsonValue }>
+    | Readonly<{ readonly status: 'redacted' }>,
+]
+
+type PicodashRootDocument = Readonly<{
+  readonly formatVersion: 1
+  readonly kind: 'root'
+  readonly storeId: string
+  readonly schemaVersion: number
+  readonly fields: readonly PicodashDocumentFieldEntry[]
+  readonly scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[]
+}>
+
+type PicodashScopeDocument = Readonly<{
+  readonly formatVersion: 1
+  readonly kind: 'scope'
+  readonly storeId: string
+  readonly schemaVersion: number
+  readonly scopeId: string
+  readonly fields: readonly PicodashDocumentFieldEntry[]
+  readonly scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[]
+}>
+```
+
+> Contract: Accepted
+> Implementation: Verified — [document policy/codec tests](../../packages/store/tests/documents.test.ts), [Store integration tests](../../packages/store/tests/documents-integration.test.ts), [document type tests](../../packages/store/tests/documents.types.test.ts), [package artifact checks](../../packages/store/tests/package-artifacts.mjs), and the [Contract Lab browser/Bridge journey](../../apps/lab/tests/contract-lab.spec.ts).
+
+Documents require exact strict-JSON shapes, sorted duplicate-free entries, and immutable detached
+output. Import is overlay-only: included fields and present scope records replace mapped targets;
+redacted, absent, and absent-scope entries leave target state unchanged. Imported metadata must be
+valid; document import does not create hydration quarantine.
+
+Root export defaults to all fields and durable scopes. Scoped export infers active input/display
+binding fields and may follow active descendants. Explicit same-root nominal field handles replace
+inference. Per-call policy can narrow disclosure; configured redacted promotion requires one-use
+confirmation. Quarantined raw records are not exportable.
+
+Import mapping runs after strict decode, redacted-entry removal, and schema migration. Field maps use
+same-root nominal handles or `ignore`; scope maps use valid target IDs and reject duplicate targets.
+A target scope exists only through durable/quarantined state or active runtime registrations/edges,
+not from a scoped handle alone. Explicit `createMissingScopes` creates valid dormant metadata only.
+
+Export/import plans expose sorted identities and effect classifications but no values, documents,
+revisions, fingerprints, quarantine contents, or causes. They are nominal, root-owned, single-use,
+and consumed on the first structurally valid execution attempt. Misuse reports only plan kind and
+`wrong-kind`, `foreign-root`, `foreign-target`, or `consumed`. Stale execution returns the exact
+messages `Export plan is stale.` or `Import plan is stale.`
+
+Import validates one complete overlay with source `import`, never calls UI parsers, marks affected
+drafts stale, and crosses adapter/persistence authority once without partial mutation. Core Store
+owns object policy and execution only; filenames, text codecs, downloads, uploads, clipboard, and
+dialogs remain consumer concerns.
+
 ## Beta schema migration
 
 ```ts
+type PicodashSchemaMigrationPayload = Readonly<{
+  readonly schemaVersion: number
+  readonly values: Readonly<Record<string, PicodashJsonValue>>
+  readonly scopes: readonly (readonly [scopeId: string, metadata: PicodashJsonValue])[]
+}>
+
+type PicodashSchemaMigration = (
+  payload: PicodashSchemaMigrationPayload,
+) => PicodashSchemaMigrationPayload
+
+type SchemaMigrations = Readonly<Record<number, PicodashSchemaMigration>>
+
 migrations: {
   1: document => migrateVersion1To2(document),
   2: document => migrateVersion2To3(document),
@@ -1371,7 +1714,7 @@ migrations: {
 ```
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Verified for the beta slice — [migration/recovery tests](../../packages/store/tests/migration-recovery.test.ts), [document integration tests](../../packages/store/tests/documents-integration.test.ts), and the [Contract Lab browser/Bridge journey](../../apps/lab/tests/contract-lab.spec.ts).
 
 Migration functions are synchronous, pure, and operate on cloned JSON. Hydration requires a complete
 chain to the configured schema version and validates the final result before replacing persisted
@@ -1381,6 +1724,54 @@ Each entry keyed by `N` must migrate the application payload from `N` to `N + 1`
 permitted values and durable scope metadata, not Picodash format, Store identity, writer, or revision
 headers. Skipped versions and mismatched returned versions fail. The same chain applies during
 hydration and import; internal `formatVersion` migration remains Picodash-owned.
+
+Each callback receives a detached, deeply frozen strict-JSON payload and must return an exact payload
+at `N + 1`. Migration configuration rejects accessors, symbols, invalid numeric keys, non-functions,
+and keys at or beyond the configured schema version. Initialization failure uses
+`schema-migration-failed` with exactly `source-newer`, `missing-step`, `callback-threw`,
+`async-result`, `invalid-result`, `wrong-version`, or `final-validation`; it never exposes callback
+messages or payload data.
+
+Hydration validates identity and authority and compares driver/initial sources before migration. It
+then runs the complete chain, projects current fields while diagnosing ignored unknown fields,
+validates the complete value candidate, independently decodes or quarantines each scope, and commits
+once. Any migration or value failure commits nothing.
+
+## Beta metadata quarantine and recovery
+
+```ts
+type PicodashQuarantinedScopeMetadata = Readonly<{
+  readonly scopeId: string
+  readonly raw: PicodashJsonValue
+}>
+
+type PicodashMetadataRecoveryState = Readonly<{
+  readonly quarantinedScopes: ReadonlyMap<string, PicodashQuarantinedScopeMetadata>
+}>
+
+interface PicodashMetadataRecovery<Result> {
+  getState(): PicodashMetadataRecoveryState
+  subscribe(listener: () => void): () => void
+  replaceScope(scopeId: string, replacement: SerializedDurableScopeMetadata | null): Result
+}
+
+root.metadataRecovery satisfies PicodashMetadataRecovery<StoreResult>
+root.metadataRecovery === root.scope('advanced').metadataRecovery
+```
+
+> Contract: Accepted
+> Implementation: Verified for the beta slice — [migration/recovery tests](../../packages/store/tests/migration-recovery.test.ts), [external persistence tests](../../packages/store/tests/external-persistence.test.ts), [document integration tests](../../packages/store/tests/documents-integration.test.ts), and the [Contract Lab browser/Bridge journey](../../apps/lab/tests/contract-lab.spec.ts).
+
+An invalid complete scope record is retained as detached immutable JSON while that scope uses current
+defaults. Until deliberate replacement, ordinary durable metadata commands for the scope return
+`quarantined_metadata` and mutate nothing. A valid replacement atomically installs the complete
+record; `null` explicitly discards the raw record and restores defaults. Invalid replacement returns
+`invalid_metadata` at `['scopes', scopeId]`. Replacing an unquarantined scope throws
+`invalid-quarantine-replacement` with `{ reason: 'not-quarantined' }`.
+
+Persistence re-emits quarantined raw records unchanged and includes them in conflict fingerprints.
+Diagnostics reveal only the scope identity for `metadata_quarantined`, or `unknownFieldCount` for
+`unknown_persisted_fields`; raw metadata and unknown field names remain private.
 
 ## Root destruction
 
@@ -1501,8 +1892,8 @@ rejected.
 The first successful `release()` tears down that lifecycle generation; later calls are idempotent
 no-ops. Provider and entity release refuse while dependent leases remain. Teardown order is
 relationship, child entity, parent entity, then Provider. Abandoned renders acquire nothing, and
-Strict Mode reacquisition reruns all identity and graph checks. Binding acquisition and its
-`BindingHandle` remain a later Store slice, not part of the alpha integration surface.
+Strict Mode reacquisition reruns all identity and graph checks. Binding leases are independent
+scoped registrations and participate in root-destruction refusal.
 
 The exact integration errors and complete safe contexts are:
 

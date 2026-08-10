@@ -38,13 +38,13 @@ async function main() {
     'ActionSubmenu',
     'DashHeader',
     'DashPanel',
+    'DashPanelLauncher',
     'DashPanelProvider',
+    'DashPanelTrigger',
   ])
   for (const retired of [
     'PicodashPanel',
     'PicodashProvider',
-    'DashPanelTrigger',
-    'DashPanelLauncher',
     'useDashPanel',
     'Button',
     'AlertDialog',
@@ -57,6 +57,11 @@ async function main() {
     'DashPanelProviderProps',
     'DashPanel',
     'DashPanelProps',
+    'DashPanelTrigger',
+    'DashPanelTriggerProps',
+    'DashPanelLauncher',
+    'DashPanelLauncherItem',
+    'DashPanelLauncherProps',
     'DashPanelStyle',
     'DashPanelBoundary',
     'DashPanelBoundaryInset',
@@ -81,17 +86,13 @@ async function main() {
     'ActionSubmenuProps',
   ])
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
-  for (const retired of [
-    'PicodashPanel',
-    'PicodashProvider',
-    'DashPanelTrigger',
-    'DashPanelLauncher',
-  ])
+  for (const retired of ['PicodashPanel', 'PicodashProvider'])
     assert.doesNotMatch(declarations, new RegExp(`\\b${retired}\\b`))
 
   const css = await readFile(path.join(packageRoot, 'dist/style.css'), 'utf8')
   assert.match(css, /--picodash-panel-width/)
   assert.match(css, /picodash-dashpanel/)
+  assert.match(css, /data-active/)
   assert.doesNotMatch(css, /@picodash\/dashpanel\/src/)
   console.log('@picodash/dashpanel package artifact contract passed')
 }

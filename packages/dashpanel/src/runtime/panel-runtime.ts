@@ -44,6 +44,8 @@ export interface PanelRuntime {
   expand(scopeId: string): PanelRuntimeCommandResult
   collapse(scopeId: string): PanelRuntimeCommandResult
   toggleCollapsed(scopeId: string): PanelRuntimeCommandResult
+  registerElement(scopeId: string, element: HTMLElement | null): void
+  getElement(scopeId: string): HTMLElement | null
 }
 
 interface MutablePanel {
@@ -54,6 +56,7 @@ interface MutablePanel {
   onVisibilityChange?: (visible: boolean) => void
   onCollapsedChange?: (collapsed: boolean) => void
   readonly generation: symbol
+  element: HTMLElement | null
 }
 
 const executed = (): PanelRuntimeCommandResult => ({ status: 'executed' })
@@ -173,6 +176,7 @@ export function createPanelRuntime(): PanelRuntime {
         onVisibilityChange: config.onVisibilityChange,
         onCollapsedChange: config.onCollapsedChange,
         generation: Symbol(config.scopeId),
+        element: null,
       }
       panels.set(config.scopeId, panel)
       activationOrder.push(config.scopeId)
@@ -268,6 +272,13 @@ export function createPanelRuntime(): PanelRuntime {
         const changed = commitCollapsed(panel, !panel.collapsed)
         return { changed, notifyVisibility: false, notifyCollapsed: changed }
       })
+    },
+    registerElement(scopeId, element) {
+      const panel = panelFor(scopeId)
+      if (panel) panel.element = element
+    },
+    getElement(scopeId) {
+      return panelFor(scopeId)?.element ?? null
     },
   }
   return runtime

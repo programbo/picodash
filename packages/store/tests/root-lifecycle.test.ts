@@ -83,6 +83,27 @@ describe('Store root destruction', () => {
     expect(failure(() => store.destroy()).code).toBe('use-after-destroy')
   })
 
+  it('holds the write lock while root destroy options are reflected', () => {
+    const store = makeStore()
+    let nestedCode: string | undefined
+    const options = new Proxy(
+      { discardUnpersisted: true as const },
+      {
+        ownKeys(target) {
+          try {
+            store.setValue(store.fields.value, 2)
+          } catch (error) {
+            nestedCode = (error as PicodashContractError).code
+          }
+          return Reflect.ownKeys(target)
+        },
+      },
+    )
+
+    store.destroy(options)
+    expect(nestedCode).toBe('reentrant-write')
+  })
+
   it('refuses every active lease kind before pending-state checks', () => {
     const providerStore = makeStore()
     const provider = acquireProviderLease(providerStore)
@@ -182,6 +203,38 @@ describe('Store root destruction', () => {
     })
     expect(replacement.getState().values.value).toBe(1)
     replacement.destroy()
+  })
+
+  it('guards cached root and scoped capability objects after destruction', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      storeId: 'root-lifecycle-capabilities',
+      schemaVersion: 1,
+      fields: { value: { defaultValue: 1 } },
+      export: { documents: { defaultFieldPolicy: 'include' } },
+      persistence: {
+        storageKey: 'state',
+        driver: persistence,
+        values: { defaultFieldPolicy: 'include' },
+      },
+    })
+    const scoped = store.scope('scope')
+    expect(store.persistence).toBe(scoped.persistence)
+    expect(store.metadataRecovery).toBe(scoped.metadataRecovery)
+    const capabilities = [
+      store.documents,
+      scoped.documents,
+      store.persistence,
+      store.metadataRecovery,
+      store.diagnostics,
+    ].map((capability) => ({ capability, property: Reflect.ownKeys(capability)[0]! }))
+
+    store.destroy()
+    for (const { capability, property } of capabilities) {
+      expect(() => Object.keys(capability)).toThrowError(/use-after-destroy/)
+      expect(() => Reflect.get(capability, property)).toThrowError(/use-after-destroy/)
+    }
   })
 
   it('keeps root destruction reentrant-safe during a write notification', () => {

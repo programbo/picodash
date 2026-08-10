@@ -273,8 +273,65 @@ edges, cycles, cross-root edges, and cross-host edges are rejected.
 
 The first successful `release()` is lifecycle teardown and later calls are idempotent no-ops.
 Provider and entity release refuse while dependent leases remain active; callers tear down in the
-order relationship, child entity, parent entity, then Provider. Binding lease acquisition remains a
-later Store slice and is not part of this accepted alpha integration surface.
+order relationship, child entity, parent entity, then Provider. Binding acquisition is a separate
+Store integration lease and does not require an EntityLease or an active entity registration.
+
+### 3.9.1 Binding acquisition lease (BIND-LEASE-1)
+
+`@picodash/store/integration` exposes the minimal binding registration seam:
+
+```ts
+type StoreBindingMode = 'input' | 'display'
+
+type AcquireBindingOptions<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string,
+> = {
+  readonly itemId: string
+  readonly field: PicodashField<ValuesOf<Fields>, Key>
+  readonly alias?: string
+  readonly mode: StoreBindingMode
+}
+
+type BindingHandle<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string,
+> = Readonly<{
+  readonly scopeId: string
+  readonly itemId: string
+  readonly alias: string
+  readonly field: PicodashField<ValuesOf<Fields>, Key>
+  readonly mode: StoreBindingMode
+  release(): void
+}>
+
+declare function acquireBindingLease<
+  Fields extends Record<string, FieldLike>,
+  Key extends keyof Fields & string,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+>(
+  scopedStore: ScopedStore<Fields, Result>,
+  options: AcquireBindingOptions<Fields, Key>,
+): BindingHandle<Fields, Key>
+```
+
+Binding identity is `(scopeId, itemId, alias)`; an omitted alias defaults to `field.key`. Options
+are validated as an exact non-array object in deterministic order: own keys, data descriptors,
+lexical `itemId`, lexical explicit alias, exact mode, then same-root nominal field. Invalid options
+throw `invalid-binding-options` with exactly `{ reason }`, where reason is one of
+`not-object | unknown-key | accessor-property | invalid-item-id | invalid-alias | invalid-mode`.
+Foreign fields throw `foreign-handle`; a live duplicate tuple throws `duplicate-binding` with
+exactly `{ scopeId, itemId, alias }`.
+
+Each tuple has one active generation. A released handle is idempotent; a later command validating
+that handle classifies it as `released` when the tuple is absent and `superseded` when a newer
+generation occupies the tuple. Binding handles are nominal, root-owned, immutable tokens exposing
+only identity, field, mode, and `release()`. Binding leases participate in root destruction refusal.
+Registration and release with no populated interaction state preserve snapshot references and send
+no subscribers. Release clears only the binding's ephemeral interaction state and prunes an empty
+item interaction record; canonical values and durable scope metadata remain unchanged. Future Store
+commands receiving a bad handle throw `invalid-binding-handle` with exactly
+`{ reason: 'foreign-root' | 'released' | 'superseded' | 'wrong-kind' }`.
 
 The integration contract errors and their complete safe contexts are:
 
@@ -295,6 +352,48 @@ The integration contract errors and their complete safe contexts are:
 `InvalidProviderIdReason` is the same lexical reason union as `InvalidScopeIdReason`. Context never
 contains a Store, handle, root runtime identity, host generation, caller-supplied invalid value,
 stack, or arbitrary cause.
+
+### 3.9.2 DashList node presence lease (DASHLIST-NODE-LEASE-1)
+
+`@picodash/store/integration` exposes one narrow presence lease for DashList nodes that can own
+durable metadata, including groups and unbound Dashlets:
+
+```ts
+type InvalidDashListNodeOptionsReason =
+  'not-object' | 'unknown-key' | 'accessor-property' | 'invalid-node-id'
+
+type AcquireDashListNodeOptions = {
+  readonly nodeId: string
+}
+
+declare const dashListNodeLeaseBrand: unique symbol
+
+type DashListNodeLease = Readonly<{
+  readonly [dashListNodeLeaseBrand]: 'DashListNodeLease'
+  release(): void
+}>
+
+declare function acquireDashListNodeLease<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+>(scopedStore: ScopedStore<Fields, Result>, options: AcquireDashListNodeOptions): DashListNodeLease
+```
+
+Identity is `(scopeId, nodeId)`. Options are an exact own-key data record and are validated as
+non-null non-array object, no unknown own string or symbol keys, data descriptor for `nodeId`, then
+the ordinary lexical node-ID rule. Invalid records throw `invalid-dash-list-node-options` with
+exactly `{ reason: InvalidDashListNodeOptionsReason }`. A live duplicate throws
+`duplicate-dash-list-node` with exactly `{ scopeId, nodeId }`.
+
+The lease carries no node kind, containment, entity dependency, registration query, or durable
+state. DashList retains its private declaration agreement, kind, and containment validation and
+acquires this Store lease only from the committed leaf-node effect. Release is idempotent and only
+ends that presence generation. Acquisition and release notify no Store subscriber, create no scope
+metadata, and never delete dormant metadata. A live node lease participates in root-destruction
+refusal. Abandoned renders acquire nothing, and Strict Mode reacquisition reruns duplicate checks.
+
+Active membership is private Store runtime input for prune freshness. It never appears in root or
+scoped snapshots, diagnostics, persistence, documents, or a public query API.
 
 ### 3.10 Private runtime controller
 
@@ -776,11 +875,21 @@ type InvalidPersistenceEnvelopeReason =
 
 type HydrationSourceConflictReason = 'revision' | 'content'
 
+type SchemaMigrationFailureReason =
+  | 'source-newer'
+  | 'missing-step'
+  | 'callback-threw'
+  | 'async-result'
+  | 'invalid-result'
+  | 'wrong-version'
+  | 'final-validation'
+
 type PicodashInitializationErrorReasonByCode = {
   readonly 'adapter-initialization-failed': AdapterInitializationFailureReason
   readonly 'persistence-driver-unavailable': PersistenceDriverUnavailableReason
   readonly 'invalid-persistence-envelope': InvalidPersistenceEnvelopeReason
   readonly 'hydration-source-conflict': HydrationSourceConflictReason
+  readonly 'schema-migration-failed': SchemaMigrationFailureReason
 }
 
 type PicodashInitializationErrorCode = keyof PicodashInitializationErrorReasonByCode
@@ -798,12 +907,24 @@ type PicodashInitializationError = {
 Store construction is all-or-nothing and returns no partially active root. Invalid developer
 configuration remains a contract error; invalid external startup data is an initialization error.
 Initialization-error construction is package-internal; the public contract does not promise a
-class, public constructor, or `instanceof` behavior. Beta migration failures require a separately
-frozen addition to the reason map rather than a broad string reason.
+class, public constructor, or `instanceof` behavior. Migration failures expose only the exact safe
+reason above; causes, callback messages, payloads, values, and raw metadata remain private.
 
 Opaque plans and handles follow one rule across repairs, stale-input overwrite, pruning,
 persistence, export, and import: wrong-root, wrong-kind, released, or already-consumed objects throw
 a contract error; a valid plan whose captured state has changed returns a safe `stale_plan` issue.
+
+Repair and stale-input-overwrite plans use the shared contract error taxonomy:
+
+```ts
+type InvalidBindingPlanContext = {
+  readonly kind: 'repair' | 'stale-input-overwrite'
+  readonly reason: 'foreign-root' | 'wrong-kind' | 'released' | 'consumed'
+}
+```
+
+The `invalid-binding-plan` contract error exposes exactly that context. Plans are opaque,
+root-owned, single-use values and expose no captured values, revisions, or fingerprints.
 
 Successful results always report sorted `changedFields` and `changedScopeIds` arrays. A value-only
 operation leaves the latter empty; a metadata-only operation leaves the former empty.
@@ -856,9 +977,10 @@ At runtime, unknown batch keys return structured candidate issues without mutati
 handle is a contract error. An empty batch and a semantically unchanged batch succeed as no-ops and
 do not notify or persist.
 
-`setInput` is safe-only. Valid input commits and clears that binding's draft; invalid input returns
-issues while recording its draft, touched state, and input issues. Programmatic setters do not
-alter binding interaction state, although their canonical changes can make existing drafts stale.
+`setInput` is safe-only. Valid non-stale input commits and clears that binding's draft; invalid
+non-stale input records its frozen raw JSON draft, touched state, and pipeline issues. Programmatic
+setters do not alter binding interaction state, although their canonical changes can make existing
+drafts stale. BIND-INTERACTION-CONTRACT-1 below freezes stale and repair transitions.
 
 `discardInput(binding)` returns `true` only when interaction state changed and otherwise returns
 `false`; ownership and lifecycle misuse still throws a contract error.
@@ -890,9 +1012,74 @@ root.resetRegisteredValues({ scopeId, includeDescendants? })
 root.resetRegisteredValuesOrThrow({ scopeId, includeDescendants? })
 ```
 
-`resetValue` restores one field's validated baseline. Registered-value reset deduplicates root
-fields and validates one complete candidate. Scoped signatures do not accept another scope ID;
-root signatures require one.
+`RESET-REGISTERED-1` fixes the aggregate reset option and error surface:
+
+```ts
+type InvalidResetOptionsReason =
+  'not-object' | 'unknown-key' | 'accessor-property' | 'invalid-include-descendants'
+
+type ResetRegisteredValuesOptions = {
+  readonly includeDescendants?: boolean
+}
+
+type RootResetRegisteredValuesOptions = ResetRegisteredValuesOptions & {
+  readonly scopeId: string
+}
+```
+
+The scoped options argument may be omitted. The root options object is required. Both variants
+validate an exact own-key data record before reading values: non-null non-array object, no unknown
+own string or symbol keys, and data descriptors for every known key. Scoped options allow only
+`includeDescendants`; root options allow only `scopeId` and `includeDescendants`. Malformed option
+records throw `invalid-reset-options` with exactly `{ reason: InvalidResetOptionsReason }` and never
+retain a rejected key, value, or descriptor. Structural option validation, including a present
+`includeDescendants` boolean check, completes before root `scopeId` uses the ordinary
+`invalid-scope-id` contract, including when it is missing. A present `includeDescendants` must be a
+boolean; omission is `false`.
+
+Registered membership is active-only and includes both input and display binding leases. The Store
+snapshots the target scope plus the current active descendant graph at invocation time, sorts the
+target scope IDs, and deduplicates their registered root fields before building one complete
+candidate from configured defaults. Released bindings and relationships do not participate.
+
+The aggregate command runs schema, field, and complete-record validation once with source `reset`
+and never invokes parsers. Root calls omit `originScopeId`; scoped calls use the receiver scope.
+Both pass the complete sorted selected scope set as adapter `targetScopeIds`. Successful results
+preserve the configured `Result`, report only semantically changed fields, and keep
+`changedScopeIds` empty because the command changes values rather than scope state. Empty or
+already-default selections are no-ops without adapter writes, persistence writes, or
+notifications. Rejection is atomic.
+
+Store aggregate reset never discards binding interaction. Any dirty binding anywhere in the root
+for a changed shared field becomes stale while retaining its draft. DashList separately composes
+targeted draft discard after a successful reset; this keeps canonical reset and interaction
+discard as distinct Store operations.
+
+The generic root and scoped value-reset surfaces are:
+
+```ts
+interface RootValueCommands<Fields, Result> {
+  resetValue<Key extends keyof Fields & string>(field: FieldHandle<Fields, Key>): Result
+  resetValueOrThrow<Key extends keyof Fields & string>(
+    field: FieldHandle<Fields, Key>,
+  ): Extract<Result, { ok: true }>
+}
+
+interface ScopedValueCommands<Fields, Result> extends RootValueCommands<Fields, Result> {}
+```
+
+`resetValue` restores one field's configured default baseline after schema and complete-record
+validation, never parser execution; it is not the initial, hydrated, or current value. The root has
+no origin scope; scoped calls use the receiver scope. The reset source passed to validators and adapters is
+`source: 'reset'`. A foreign field handle is a contract error. Candidate rejection is atomic.
+
+Reset success preserves the configured Store `Result` (including persistence status), reports only
+the changed field, and leaves `changedScopeIds` empty. A semantic no-op does not notify or write.
+When the field changes, every dirty binding for that field becomes stale without discarding its
+draft; persistence records the configured reset result.
+
+Registered-value reset deduplicates root fields and validates one complete candidate. Scoped
+signatures do not accept another scope ID; root signatures require one.
 
 Scope-targeted metadata commands follow the same root/scoped targeting rule. The accepted authoring
 surface is:
@@ -987,21 +1174,137 @@ A dirty binding records the canonical field revision/value from which editing be
 canonical change preserves the draft but marks it stale. Stale drafts cannot commit implicitly;
 the binding must discard or explicitly overwrite after confirmation.
 
-The alpha recovery API is:
+Stale-input overwrite plans are a distinct implemented and verified command slice, specified here
+separately from the frozen input transition and repair behavior. Creation requires an active input
+handle, a dirty stale draft, and no stored `inputIssues`:
 
 ```ts
-store.discardInput(binding)
+declare const staleInputOverwritePlanBrand: unique symbol
+type PicodashStaleInputOverwritePlan = {
+  readonly [staleInputOverwritePlanBrand]: never
+}
+
+store.createStaleInputOverwritePlan<Key extends keyof Fields & string>(
+  binding: BindingHandle<Fields, Key>,
+): PicodashStaleInputOverwritePlan
+
+store.executeStaleInputOverwrite(plan: PicodashStaleInputOverwritePlan): Result
+```
+
+The plan captures the exact binding generation and draft plus the current target-field revision and
+value, but exposes none of those values. Any same-root root/scoped receiver may execute it; the
+handle's scope controls attribution. An unrelated field change alone does not stale the plan.
+Creation handle misuse is `invalid-binding-handle`. Creation state failure is the contract error
+`invalid-stale-input-overwrite` with exactly `{ reason: 'not-stale' | 'invalid-draft' }`.
+
+The state-failure contract error context is:
+
+```ts
+{
+  reason: 'not-stale' | 'invalid-draft',
+}
+```
+
+The first valid execution attempt consumes the plan, including stale-plan, validation, or authority
+failure. Draft replacement/discard or a target revision change returns `stale_plan`; released or
+replaced binding generations return the corresponding lifecycle contract error. Execution reruns
+parse, schema, field, and root validation with `source: 'interactive'` and binding origin; it never
+returns `stale_input` or a repair offer. Failure preserves stale interaction. Success coalesces the
+canonical commit and origin cleanup, marks other dirty bindings for the field stale, and preserves
+the configured Result/persistence. A semantic no-op clears origin and notifies only the target scope;
+a changed commit notifies canonical observers once with cleanup visible.
+
+```ts
 store.createStaleInputOverwritePlan(binding)
 store.executeStaleInputOverwrite(plan)
 ```
 
-The overwrite plan is opaque, root-owned, single-use, and fingerprints both the draft and current
-field revision. Execution re-runs the complete validation pipeline and rejects the plan if the
-draft or canonical value changed. Confirmation UX belongs to the application. Generic rebase is
-deferred until a field can declare explicit merge semantics; Picodash does not treat replaying an
-old absolute draft as a safe rebase.
+These commands remain `Accepted` / `Planned` and are specified separately from the frozen input
+transition and repair behavior below.
 
 Untouched bindings follow new canonical values immediately. Conflict state is ephemeral.
+
+### 8.3 BIND-INTERACTION-CONTRACT-1
+
+Root and scoped Stores expose the same generic-key interaction commands:
+
+```ts
+interface BindingInteractionCommands<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
+  setInput<Key extends keyof Fields & string>(
+    binding: BindingHandle<Fields, Key>,
+    input: PicodashJsonValue,
+  ): Result
+  discardInput<Key extends keyof Fields & string>(binding: BindingHandle<Fields, Key>): boolean
+  executeRepair(plan: PicodashRepairPlan): Result
+  createStaleInputOverwritePlan<Key extends keyof Fields & string>(
+    binding: BindingHandle<Fields, Key>,
+  ): PicodashStaleInputOverwritePlan
+  executeStaleInputOverwrite(plan: PicodashStaleInputOverwritePlan): Result
+}
+```
+
+The configured Store `Result` is preserved for every safe command (including persistence-enabled
+variants). A binding handle determines scope and `(itemId, alias, fieldKey)` identity; any root or
+scoped receiver from the same root may invoke the command. Receiver scope does not retarget the
+binding, and a foreign, released, or superseded handle remains a contract error.
+
+`setInput` and `discardInput` accept only an active binding handle whose `mode` is `'input'`. An
+active display handle throws `invalid-binding-handle` with exactly `{ reason: 'wrong-kind' }`; it
+creates no interaction state and invokes no parser, validator, callback, subscriber, or notification.
+
+The Store-owned issue code `stale_input` is exact:
+
+```ts
+{
+  code: 'stale_input',
+  reason: 'canonical_changed',
+  message: 'Binding input is stale and requires explicit overwrite confirmation.',
+  path: ['values', fieldKey],
+  fieldKey,
+  scopeId,
+  itemId,
+  alias,
+}
+```
+
+`fieldKey`, `scopeId`, `itemId`, and `alias` are present on every stale issue. Pipeline issues
+(`parse_failed`, `schema_failed`, or `validation_failed`) precede `stale_input` in a returned
+failure. Stored `inputIssues` contains only pipeline issues; `stale_input` is never stored there.
+
+#### Input transition table
+
+| Current interaction | Input / pipeline outcome                  | Interaction result                                                                                                  | Returned issues / repair                                                                                        |
+| ------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Any                 | Non-JSON input                            | No interaction mutation                                                                                             | One identity-enriched `invalid_json` issue; no parser, schema, field/root callback, subscriber, or notification |
+| None or clean       | Non-stale pipeline rejection              | Store frozen raw JSON draft, `touched: true`, and pipeline issues; capture current field revision/value as the base | Pipeline issues; parser failure may include a repair plan                                                       |
+| Dirty, non-stale    | Non-stale pipeline rejection              | Replace the frozen raw JSON draft and pipeline issues; preserve the original base                                   | Pipeline issues; parser failure may include a repair plan                                                       |
+| None or clean       | Accepted non-stale input                  | Commit the shared canonical pipeline and clear the binding interaction entry                                        | Configured successful `Result`                                                                                  |
+| Dirty, non-stale    | Accepted non-stale input                  | Commit and clear the binding interaction entry                                                                      | Configured successful `Result`                                                                                  |
+| Dirty, stale        | Any stale attempt                         | Replace the frozen raw JSON draft and pipeline feedback; preserve the original base/conflict; never commit          | Pipeline issues first, then `stale_input`; no repair plan                                                       |
+| Dirty, stale        | Valid stale input                         | Preserve the original base/conflict and never commit                                                                | `stale_input` only; no repair plan                                                                              |
+| Dirty, non-stale    | Authority rejection after valid candidate | Retain the valid dirty draft, touched state, original base, and non-stale conflict state                            | Configured failure; no interaction loss                                                                         |
+
+Canonical changes mark a dirty binding stale without deleting its draft. A stale binding invalidates
+any earlier repair plan with `stale_plan`; overwrite plans follow the explicit contract above. `discardInput` clears one
+binding entry, prunes an empty item map and scope interaction record, and returns exactly `true` iff
+that entry changed; absent/clean state returns exactly `false`.
+
+Parser repair is offered only for a non-stale parser failure. Before a plan is returned, its proposal
+passes schema, field validation, and root validation. A valid plan is opaque, root-owned, single-use;
+`executeRepair` revalidates with validation source `repair`, commits through the shared pipeline,
+and clears the originating interaction. Wrong-root/kind/released/consumed plans throw a contract
+error; changed captured state returns `stale_plan`.
+
+#### Evidence and privacy requirements
+
+Conformance evidence must exercise root and scoped receivers, input/display mode rejection,
+configured Result variants, every row of the transition table, callback/notification suppression,
+repair freshness, pruning, and exact issue shape/order. Evidence must not include raw non-JSON input,
+arbitrary callback causes, or other undisclosed values; identity fields are limited to the documented
+field/scope/item/alias tuple.
 
 ## 9. DashList metadata
 
@@ -1041,11 +1344,105 @@ Pruning uses explicit remove/keep IDs or an application-provided authoritative `
 inventory. A prune plan may list candidates but never deletes them automatically. Pruning does not
 change canonical values.
 
-Scoped views expose `createPrunePlan(options)` for their own DashList metadata. Root Stores require
-`scopeId` in the options. Plans are opaque, root-owned, single-use, and fingerprint stored metadata
-plus the active node registry. Active nodes are never candidates. `executePrunePlan(plan)` rejects a
-stale plan and removes only the approved dormant node metadata; it never changes fields, bindings,
-or scope relationships.
+`PRUNE-PLAN-1` fixes one review value and one executable plan surface:
+
+```ts
+type DashListPruneEffect =
+  | 'root-order-entry'
+  | 'group-order-owner'
+  | 'group-order-entry'
+  | 'collapse-override'
+
+type DashListPruneCandidate = Readonly<{
+  nodeId: string
+  effects: readonly DashListPruneEffect[]
+}>
+
+type DashListPruneReview = Readonly<{
+  kind: 'dash-list-prune-review'
+  scopeId: string
+  candidates: readonly DashListPruneCandidate[]
+}>
+
+type DashListPruneSelection =
+  | { readonly mode: 'review' }
+  | {
+      readonly mode: 'explicit'
+      readonly removeNodeIds: readonly string[]
+      readonly keepNodeIds: readonly string[]
+    }
+  | { readonly mode: 'inventory'; readonly knownNodeIds: readonly string[] }
+
+type RootDashListPruneOptions = DashListPruneSelection & { readonly scopeId: string }
+
+declare const dashListPrunePlanBrand: unique symbol
+
+type PicodashDashListPrunePlan = Readonly<{
+  readonly [dashListPrunePlanBrand]: 'PicodashDashListPrunePlan'
+  kind: 'dash-list-prune-plan'
+  mode: 'explicit' | 'inventory'
+  scopeId: string
+  candidates: readonly DashListPruneCandidate[]
+  removeNodeIds: readonly string[]
+  keepNodeIds: readonly string[]
+}>
+
+root.createPrunePlan(options: RootDashListPruneOptions):
+  | DashListPruneReview
+  | PicodashDashListPrunePlan
+scoped.createPrunePlan(options: DashListPruneSelection):
+  | DashListPruneReview
+  | PicodashDashListPrunePlan
+root.executePrunePlan(plan: PicodashDashListPrunePlan): Result
+scoped.executePrunePlan(plan: PicodashDashListPrunePlan): Result
+```
+
+The public declarations use overloads so literal `mode: 'review'` returns only
+`DashListPruneReview`, while literal `explicit | inventory` returns only the executable plan.
+Scoped operations always target that view. Root options require `scopeId`; after exact option
+record validation it uses the ordinary `invalid-scope-id` mapping.
+
+Candidates are the sorted union of IDs referenced by root order entries, group-order owners,
+group-order entries, and collapse overrides, minus currently active node IDs. Each candidate lists
+its applicable effects in the fixed order shown above. Review mode returns only that immutable
+metadata-derived projection and creates no executable plan.
+
+Explicit mode requires duplicate-free `removeNodeIds` and `keepNodeIds` that are disjoint and
+exactly partition the current candidates. Inventory mode treats `knownNodeIds` as authoritative; it
+must contain every active node and classifies dormant candidates as keep when known and remove when
+absent. IDs and arrays are cloned, validated, sorted, and frozen.
+
+Prune options are exact own-key data records. Invalid structures, modes, arrays, IDs, duplicates,
+overlap, unknown candidates, incomplete explicit partitions, or inventories missing an active node
+throw `invalid-prune-options` with exactly `{ reason }`, where reason is:
+
+```ts
+type InvalidPruneOptionsReason =
+  | 'not-object'
+  | 'unknown-key'
+  | 'accessor-property'
+  | 'invalid-mode'
+  | 'invalid-node-ids'
+  | 'duplicate-node-id'
+  | 'overlapping-node-id'
+  | 'unknown-candidate'
+  | 'incomplete-candidate-partition'
+  | 'missing-active-node'
+```
+
+Executable plans are opaque, root-owned, and single-use. Passing a forged, review, wrong-root, or
+consumed value throws `invalid-prune-plan` with exactly
+`{ reason: 'wrong-kind' | 'foreign-root' | 'consumed' }`. The first valid execution attempt consumes
+the plan. It fingerprints only normalized target-scope DashList metadata plus sorted active node
+membership; changes to either return one safe `stale_plan` issue with path `[]` and message
+`Prune plan is stale.` Unrelated values, bindings, relationships, and other scopes do not stale it.
+
+Execution removes every selected ID from root and group order arrays, deletes its owned group-order
+record, removes its collapse override, and prunes empty records. The `group-order-owner` effect makes
+loss of a removed group's saved child order explicit during review. Execution never changes values,
+drafts, bindings, relationships, active leases, or another scope. A changed execution reports
+`changedFields: []` and only the target in `changedScopeIds`; an empty removal succeeds as a no-op.
+Persistence and root/target notification use the existing atomic metadata pipeline.
 
 ## 10. Panel metadata and Provider runtime
 
@@ -1408,6 +1805,156 @@ migrations; document integration; reload, overwrite, and reconcile plans; explic
 the browser Web Storage seam. Those additions must preserve the alpha envelope and state signatures
 and may not introduce automatic last-write-wins.
 
+### 12.9 Conflict resolution and explicit erase
+
+The Store-owned beta capability adds opaque conflict-resolution and erase plans:
+
+```ts
+type PersistenceConflictResolutionOptions =
+  | { readonly mode: 'reload' }
+  | { readonly mode: 'overwrite' }
+  | { readonly mode: 'reconcile'; readonly onOverlap: 'local' | 'durable' }
+
+type PicodashPersistenceConflictResolutionPlan = Readonly<{
+  readonly kind: 'persistence-conflict-resolution-plan'
+  readonly mode: PersistenceConflictResolutionOptions['mode']
+}>
+
+type PicodashPersistenceErasePlan = Readonly<{
+  readonly kind: 'persistence-erase-plan'
+  readonly hasDurableEnvelope: boolean
+  readonly discardsPendingEnvelope: boolean
+}>
+
+type PersistenceEraseResult =
+  | Readonly<{ ok: true; erased: boolean; discardedPendingEnvelope: boolean }>
+  | Readonly<{ ok: false; error: PicodashTransactionError }>
+```
+
+Both plan types are nominal, root-owned, and single-use. `reload` accepts the currently observed
+durable projection: persisted fields and complete scope records replace their live counterparts,
+while policy-omitted fields remain live. `overwrite` retains the complete local pending projection.
+`reconcile` performs a deterministic three-way merge against the last driver-confirmed projection:
+one changed side wins, equal changes coalesce, and differing two-sided changes use the required
+`onOverlap`. Persisted fields merge individually; each complete scope record, including quarantined
+raw metadata, is one merge unit. For foreign removal, the durable side is the validated field
+baseline plus empty scope metadata. The complete reconciled value candidate validates before I/O.
+
+Exact option errors are:
+
+```ts
+type InvalidPersistenceConflictOptionsReason =
+  'not-object' | 'unknown-key' | 'accessor-property' | 'invalid-mode' | 'invalid-overlap'
+
+type InvalidPersistenceEraseOptionsReason =
+  'not-object' | 'unknown-key' | 'accessor-property' | 'confirmation-required'
+```
+
+`invalid-persistence-conflict-options` and `invalid-persistence-erase-options` expose only
+`{ reason }`. Creating a conflict plan while not conflicted throws
+`invalid-persistence-conflict-resolution` with `{ reason: 'not-conflicted' }`.
+`invalid-persistence-plan` exposes exactly
+`{ kind: 'conflict-resolution' | 'erase', reason: 'wrong-kind' | 'foreign-root' | 'consumed' }`.
+The first otherwise-valid execution consumes a plan, including stale, validation, or driver failure.
+
+Freshness covers the conflict generation and last confirmed base, the exact observed durable record
+or absence, the current local persisted projection, quarantined raw records, and—for erase—whether
+pending data will be discarded. Policy-omitted values, drafts, interaction, leases, and unrelated
+diagnostics do not stale a plan. Changed captured state returns exactly
+`{ code: 'stale_plan', path: [], message: 'Persistence plan is stale.' }`.
+
+Execution rereads the exact durable target before action. `reload` writes nothing. `overwrite` and a
+nontrivial `reconcile` write revision `max(local, observed durable, last confirmed) + 1`, reread, and
+require exact content, revision, and writer equality before any live reload/reconcile commit. A
+failed write, verification, or candidate validation changes no live Store state. Store-write echoes
+are coalesced. Successful reload/overwrite/reconcile ends clean with no pending envelope; only live
+value/scope changes notify root/scoped subscribers once, and existing dirty bindings become stale.
+
+`createErasePlan()` captures whether a durable envelope exists and whether pending state will be
+discarded. `executeErase(plan, { confirm: true })` rereads the captured target, calls `remove()` once,
+rereads and requires `null`, then clears conflict/error/pending state. It never resets live values or
+scope metadata and performs no compensating write. Success is clean with `durableRevision: null`, no
+pending envelope, and retained `liveRevision` for the next monotonic write. A failed erase retains
+the prior state. `PersistenceFailureReason` additionally includes `remove-failed` and
+`remove-verification-failed`; safe transaction issues use `persistence_resolution_failed` or
+`persistence_erase_failed`, path `[]`, and fixed messages. No public value exposes envelope contents,
+fingerprints, storage keys, driver identities, quarantine contents, arbitrary causes, or stacks.
+
+### 12.10 External-owned metadata persistence
+
+External-owned persistence uses the same root-wide persistence capability, controller, conflict
+plans, erase plans, revisions, backend identity claim, and lifecycle rules as Store-owned
+persistence. Its exact configuration is:
+
+```ts
+type ExternalOwnedPersistenceConfig = Readonly<{
+  storageKey: string
+  driver: PicodashPersistenceDriver
+  values?: never
+}>
+```
+
+An own `values` property is invalid even when `undefined` or exposed through an accessor, and
+validation does not read it. An identified external Store requires both `storeId` and
+`schemaVersion` and may configure persistence, migrations, an external `initialEnvelope`, and
+document export. Other external configurations expose none of those capabilities. Persistent
+external roots and scopes return `PersistentTransactionResult`; value-only changes report
+`persistence: 'unchanged'` and perform no persistence I/O.
+
+The external version-one envelope has the common header, `valueOwner: 'external'`, and `scopes`,
+with no own `values` property. An external envelope with `values` fails with reason `values`; an
+authority mismatch uses reason `authority`. Its fingerprint is the normalized
+`{ schemaVersion, valueOwner: 'external', scopes }` projection.
+
+Construction activates the external adapter before persistence and releases both subscriptions and
+ownership claims if later initialization fails. Hydration changes only scopes and quarantined raw
+scope records. Migration receives `values: {}` and must return it empty. Adapter notifications and
+value-only commands neither touch the driver nor advance persistence revisions. Metadata remains
+persistable while the adapter is unhealthy. A combined operation writes the validated adapter batch
+first, commits prevalidated metadata, then attempts durability; durability cannot roll back the
+external authority.
+
+Reload, overwrite, reconcile, quarantine replacement, and erase operate on complete metadata units
+only, report no changed fields, and never call `adapter.setValues()`. Persistence plans observe
+metadata, quarantine, and durable state but ignore adapter values and health. The existing
+controller is generalized with an authority strategy; a second controller or an empty Store-owned
+value policy is not conforming.
+
+### 12.11 Built-in Web Storage driver
+
+The browser helper is isolated to `@picodash/store/web-storage`; the root entry remains browser-free
+and compatible with `lib: ["es2023"]`:
+
+```ts
+export interface PicodashWebStorage {
+  getItem(key: string): string | null
+  setItem(key: string, value: string): void
+  removeItem(key: string): void
+}
+
+export type PicodashWebStorageSource = 'local' | 'session' | PicodashWebStorage
+
+export function createWebStoragePersistenceDriver(
+  source: PicodashWebStorageSource,
+): PicodashPersistenceDriver
+```
+
+There is no default. Import and construction do not mutate storage. Named browser storage is first
+resolved by the real `read()`; unavailable storage throws a fixed cause-free error that construction
+normalizes to `persistence-driver-unavailable` reason `read`. Supplied structural storage works
+without `window`. There is no sentinel probe or availability flag.
+
+Wrappers for the same exact Storage object in one realm share identity, including named and supplied
+references to the current realm's local/session object. Native `storage` subscriptions signal only
+for that backend and the configured key or a `null` clear event. Same-document events are not
+synthesized. Arbitrary supplied backends have no subscription unless they are the current realm's
+local/session Storage. Teardown is idempotent.
+
+The driver forwards strings without parsing or serialization. Malformed text, write/quota, seed,
+verification, and removal failures retain the existing safe Store classifications. Defaults,
+availability helpers, custom event targets, key builders, synthetic notifications, codecs,
+encryption, async storage, and automatic cross-tab merge are deferred.
+
 ## 13. Beta hydration recovery and migration
 
 These accepted beta contracts extend the strict, all-or-nothing alpha decoder in Section 12. Alpha
@@ -1437,6 +1984,73 @@ versions or returning a different version is an error. The payload contains perm
 durable scope metadata but not Picodash format, Store identity, writer, or revision headers. The same
 chain applies to persistence hydration and imported documents. Picodash-owned format migrations are
 internal and separate from application schema migrations.
+
+The public migration contract is exact:
+
+```ts
+type PicodashSchemaMigrationPayload = Readonly<{
+  readonly schemaVersion: number
+  readonly values: Readonly<Record<string, PicodashJsonValue>>
+  readonly scopes: readonly (readonly [scopeId: string, metadata: PicodashJsonValue])[]
+}>
+
+type PicodashSchemaMigration = (
+  payload: PicodashSchemaMigrationPayload,
+) => PicodashSchemaMigrationPayload
+
+type SchemaMigrations = Readonly<Record<number, PicodashSchemaMigration>>
+```
+
+`migrations[N]` receives a detached, deeply frozen strict-JSON payload at version `N` and must
+synchronously return an exact strict-JSON payload at `N + 1`. The value projection may be partial or
+empty so the same runner can later serve scoped documents. Scope entries contain raw serialized
+records. Envelope format, Store identity, value authority, revision, and writer headers never enter
+callbacks.
+
+Migration configuration rejects accessors, symbols, invalid numeric keys, non-functions, and keys
+greater than or equal to the configured `schemaVersion` as `invalid-configuration`. Hydration fails
+with `schema-migration-failed` for exactly `source-newer`, `missing-step`, `callback-threw`,
+`async-result`, `invalid-result`, `wrong-version`, or `final-validation`. Processing order is envelope
+shape/header/identity/authority, hydration-source comparison in original canonical form, the entire
+migration chain, current-field projection and complete value validation, independent scope decode
+or quarantine, then one commit before activation. Any migration or value failure commits nothing.
+
+### 13.4 Quarantine and deliberate replacement
+
+Identified Stores expose one root-wide recovery capability, shared by root and scoped views:
+
+```ts
+type PicodashQuarantinedScopeMetadata = Readonly<{
+  readonly scopeId: string
+  readonly raw: PicodashJsonValue
+}>
+
+type PicodashMetadataRecoveryState = Readonly<{
+  readonly quarantinedScopes: ReadonlyMap<string, PicodashQuarantinedScopeMetadata>
+}>
+
+interface PicodashMetadataRecovery<Result> {
+  getState(): PicodashMetadataRecoveryState
+  subscribe(listener: () => void): () => void
+  replaceScope(scopeId: string, replacement: SerializedDurableScopeMetadata | null): Result
+}
+```
+
+Quarantine retains a detached immutable raw JSON record. `null` deliberately discards it and restores
+current defaults. A valid complete replacement atomically removes quarantine and sets or prunes the
+scope record. Invalid replacement returns `invalid_metadata` at `['scopes', scopeId]` and preserves
+quarantine. Replacing a scope that is not quarantined throws `invalid-quarantine-replacement` with
+exactly `{ reason: 'not-quarantined' }`.
+
+Ordinary durable metadata commands against a quarantined scope return one `quarantined_metadata`
+issue and mutate nothing. Later persistence envelopes merge each quarantined raw record unchanged
+and include it in the content fingerprint until successful replacement.
+
+Quarantine emits a warning diagnostic `metadata_quarantined` with identity
+`{ kind: 'scope-metadata', scopeId }` and no raw record. Ignored persisted fields emit warning
+`unknown_persisted_fields` with identity `{ kind: 'schema' }` and only `unknownFieldCount`; field
+names remain private. The first diagnostic recovers only after successful replacement. The second
+recovers after the next verified write emits the current projection.
 
 ## 14. Export and import
 
@@ -1521,6 +2135,129 @@ revalidates its document kind, mappings, target revisions, policy, and candidate
 Root-document imports target a root; scope-document imports target an explicit root scope or the
 current scoped view. Kind mismatches fail rather than inferring a projection.
 
+### 14.7 Version-one document and plan contract
+
+The beta core uses one exact, deterministic strict-JSON union:
+
+```ts
+type PicodashDocumentFieldEntry = readonly [
+  fieldKey: string,
+  entry:
+    | Readonly<{ readonly status: 'included'; readonly value: PicodashJsonValue }>
+    | Readonly<{ readonly status: 'redacted' }>,
+]
+
+type PicodashRootDocument = Readonly<{
+  readonly formatVersion: 1
+  readonly kind: 'root'
+  readonly storeId: string
+  readonly schemaVersion: number
+  readonly fields: readonly PicodashDocumentFieldEntry[]
+  readonly scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[]
+}>
+
+type PicodashScopeDocument = Readonly<{
+  readonly formatVersion: 1
+  readonly kind: 'scope'
+  readonly storeId: string
+  readonly schemaVersion: number
+  readonly scopeId: string
+  readonly fields: readonly PicodashDocumentFieldEntry[]
+  readonly scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[]
+}>
+
+type PicodashDocument = PicodashRootDocument | PicodashScopeDocument
+```
+
+Objects require exact own enumerable data properties; arrays are strict, entry keys are lexically
+sorted and duplicate-free, and all output is detached and deeply immutable. Root documents omit
+`scopeId`; scope documents require it. Import is overlay-only: included fields replace mapped target
+values, redacted and absent fields leave values unchanged, present scope records replace complete
+mapped target records, and absent scope records do not delete or reset target state. Root replacement,
+deletion markers, selective scope ignore, and value-bearing document diffs are deferred.
+
+Export options are exact records with optional `scopeId` on a root receiver,
+`includeDescendants: boolean`, `fields` as a duplicate-free array of same-root nominal handles, and
+`promoteFields` as a duplicate-free subset of selected same-root handles. A scoped receiver cannot
+accept `scopeId`. When `fields` is absent, full-root export selects every root field, while scoped
+export selects active input/display binding fields across the captured target set. Explicit fields
+are the exact selection independent of registration. Descendants follow only active relationship
+edges. Full-root export includes every durable non-quarantined scope and needs no graph or binding
+freshness. Quarantined raw records are not exportable documents.
+
+Import analysis options are exact records with optional `allowForeignStore: boolean`,
+`createMissingScopes: boolean`, `fieldMap` from source keys to same-target-root nominal handles or
+`'ignore'`, `scopeMap` from source IDs to valid target IDs, and root-only `targetScopeId` for a scope
+document. A scoped receiver targets itself and cannot accept `targetScopeId`. Mapping records use own
+enumerable data properties, forbid duplicate target fields/scopes, and apply only after strict decode,
+redacted-entry removal, and the complete schema-migration chain. Same-key compatible fields and
+matching descendant IDs map automatically when no explicit entry overrides them.
+
+A scope exists for analysis when it has durable or quarantined state or an active entity, binding,
+DashList node, or relationship endpoint. Merely creating a scoped Store handle does not establish
+existence. `createMissingScopes: true` allows only valid imported metadata to create dormant durable
+state; it never creates runtime leases or ancestry. Invalid imported metadata rejects the complete
+analysis rather than entering hydration quarantine.
+
+Plans expose value-free review data only:
+
+```ts
+type PicodashExportPlan = Readonly<{
+  readonly kind: 'export-plan'
+  readonly documentKind: 'root' | 'scope'
+  readonly scopeId?: string
+  readonly fieldKeys: readonly string[]
+  readonly promotedFieldKeys: readonly string[]
+  readonly scopeIds: readonly string[]
+}>
+
+type PicodashImportPlan = Readonly<{
+  readonly kind: 'import-plan'
+  readonly documentKind: 'root' | 'scope'
+  readonly targetScopeId?: string
+  readonly changedFields: readonly string[]
+  readonly changedScopeIds: readonly string[]
+  readonly ignoredFields: readonly string[]
+  readonly createdScopes: readonly string[]
+  readonly fieldRemaps: readonly (readonly [string, string])[]
+  readonly scopeRemaps: readonly (readonly [string, string])[]
+  readonly foreignStore: boolean
+}>
+```
+
+Both are nominal, opaque, root-owned, and single-use. Plan misuse throws `invalid-document-plan` with
+exactly `{ kind: 'export' | 'import', reason: 'wrong-kind' | 'foreign-root' | 'foreign-target' |
+'consumed' }`. Malformed exact options throw `invalid-document-options` with only operation
+`'export' | 'export-execution' | 'import-analysis'` and reason `not-object`, `unknown-key`,
+`accessor-property`, `invalid-target`, `invalid-fields`, `duplicate-field`, `invalid-promotion`,
+`invalid-mapping`, `duplicate-target`, `invalid-boolean`, `confirmation-required`, or
+`unexpected-confirmation`.
+
+`executeExport()` returns `{ ok: true, document }` or a transaction error. Promotion confirmation is
+accepted only as exact `{ confirmRedactedPromotion: true }` when the plan lists promoted fields.
+`analyzeImport()` returns `{ ok: true, plan }` or a transaction error; review followed by
+`executeImport(plan)` is the confirmation sequence and needs no generic confirm flag. Structurally
+valid execution consumes the plan before stale, validation, adapter, or persistence failure;
+malformed execution options do not consume it.
+
+Document failures use `invalid_document` with reason `shape`, `format`, `kind`, `identity`, `schema`,
+`fields`, `scopes`, or `metadata`, plus `foreign_store`, `unknown_field`, `incompatible_field`,
+`missing_scope`, `schema_migration_failed`, configured validation issues, and `stale_plan`. Export
+staleness says `Export plan is stale.`; import says `Import plan is stale.` Both use path `[]`.
+Import-migration failure is a live transaction issue and never reuses initialization exceptions.
+
+Export freshness includes selected included/promoted values and metadata, plus active binding and
+descendant membership only when they determine a scoped projection. Import freshness includes the
+normalized migrated input, complete target values because root validation observes them, mapped
+metadata/quarantine, and scope-existence facts. Drafts, interaction, unrelated state/graph edges,
+diagnostics, persistence status, revisions, fingerprints, raw documents, and field values never enter
+plans or errors.
+
+Import validates the complete overlay with source `import`, never calls UI parsers, marks affected
+dirty bindings stale, and commits one value batch plus prevalidated metadata through the configured
+adapter/persistence boundary. It produces at most one persistence-envelope attempt and no partial
+mutation.
+
 ## 15. React API and selectors
 
 ### 15.1 Contextual Store hooks
@@ -1599,11 +2336,11 @@ React is an optional peer for installing the core package and becomes a runtime 
 when `/react` or `/integration` is imported. Artifact tests enforce this split.
 
 The integration entry exposes the shared Store boundary protocol and the exact Provider, entity,
-and relationship acquisition functions in Section 3.9. Acquisition occurs only after a declarative
-render commits. Every lease is one nominal generation with idempotent `release()`; release is
-lifecycle teardown, not a domain-level deregistration command. Abandoned renders acquire nothing,
-and React Strict Mode reacquisition reruns all identity and graph checks. Binding acquisition and
-its generation-owned `BindingHandle` remain a later Store slice.
+relationship, and binding acquisition functions in Section 3.9. Acquisition occurs only after a
+declarative render commits, except that binding acquisition is an explicit scoped Store seam and
+does not require an active entity. Every lease is one nominal generation with idempotent
+`release()`; release is lifecycle teardown, not a domain-level deregistration command. Abandoned
+renders acquire nothing, and React Strict Mode reacquisition reruns all identity and graph checks.
 
 The Store package does not add an application-facing global Provider or duplicate-package bridge.
 DashPanel, integrated Picodash, and standalone DashList remain the product-owned public context
@@ -1740,7 +2477,7 @@ The accepted contract intentionally defers:
 - an arbitrary public transaction callback;
 - a public context-only Store Provider;
 - runtime registration of arbitrary durable metadata kinds;
-- populated binding and item interaction snapshots before the binding-lease slice;
+- populated binding and item interaction snapshots before input-command support;
 - UI presentation compatibility contracts on Store fields;
 - automatic pruning based only on currently mounted nodes;
 - automatic cross-tab merge or collaboration;
@@ -1757,13 +2494,10 @@ the Store-owned persistence capability, scope and root destruction, bounded subs
 diagnostics, and weak canonical views without a public release or reference-count API. These are
 launch contracts rather than beta ergonomics.
 
-This alpha evidence boundary was revised on 2026-08-06 after implementation exposed an internal
-contract inconsistency: the accepted alpha integration surface explicitly defers binding
-acquisition, leaving no supported public operation that can create populated binding or item
-interaction state. Populated interaction snapshots and their cleanup evidence therefore move with
-binding acquisition to beta. Alpha still verifies the immutable singleton shape and reference
-stability of the empty interaction snapshot; this revision does not permit a private population
-path or weaken any value, metadata, lease, persistence, or destruction invariant.
+Binding acquisition is now frozen by BIND-LEASE-1 as the prerequisite for populated interaction
+state. Acquisition and empty-state cleanup evidence remains Partial until input commands populate
+interaction snapshots; this does not permit a private population path or weaken any value,
+metadata, lease, persistence, or destruction invariant.
 
 The signatures and semantics above are frozen for alpha even where exhaustive evidence continues
 during consumer dogfooding. Beta may continue broader generated relationship-graph traversal,

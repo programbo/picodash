@@ -95,6 +95,34 @@ describe('Store scoped views and metadata commands', () => {
     }
   })
 
+  it('holds the write lock while root and scoped destroy options are reflected', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+    })
+    const nestedCodes: string[] = []
+    const options = () =>
+      new Proxy(
+        { includeDescendants: false },
+        {
+          ownKeys(target) {
+            try {
+              store.setValue(store.fields.value, 2)
+            } catch (error) {
+              nestedCodes.push((error as PicodashContractError).code)
+            }
+            return Reflect.ownKeys(target)
+          },
+        },
+      )
+
+    expect(store.destroyScope('missing', options())).toMatchObject({ ok: true })
+    expect(store.scope('missing').destroyScope(options())).toMatchObject({ ok: true })
+    expect(nestedCodes).toEqual(['reentrant-write', 'reentrant-write'])
+    expect(store.getState().values.value).toBe(1)
+    store.destroy()
+  })
+
   it('refreshes affected snapshots before one callback and leaves unrelated scopes silent', () => {
     const store = createPicodashStore({
       valueOwner: 'store',

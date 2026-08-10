@@ -52,7 +52,7 @@ export function ContractLabDevBridgeConnector({
           registrationId: 'contract-lab-specimen',
           label: 'Contract Lab primary specimen',
           disclosure: {
-            valueFields: ['specimenMetric'],
+            valueFields: ['specimenMetric', 'specimenUnit'],
             scopeIds: ['contract-lab-specimen-panel'],
             diagnostics: true,
           },

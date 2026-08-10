@@ -4,6 +4,8 @@ import {
   forwardRef,
   useId,
   useEffect,
+  useLayoutEffect,
+  useImperativeHandle,
   useRef,
   type ComponentPropsWithoutRef,
   type CSSProperties,
@@ -24,6 +26,7 @@ import {
   Button,
   PicodashOverlayProvider,
   PicodashThemeProvider,
+  usePicodashOverlayDefaults,
 } from '@picodash/ui'
 import type { PanelRuntimeRegistration } from './runtime/panel-runtime.ts'
 import {
@@ -44,12 +47,21 @@ import type {
   ActionMenuProps,
   ActionMenuSeparatorProps,
   ActionSubmenuProps,
+  ButtonProps,
   DashHeaderProps,
   DashHeaderSlots,
   PicodashDensity,
   PicodashThemeOption,
 } from '@picodash/ui'
 import type { DashPanelDockPosition } from './placement/placement.ts'
+import {
+  clearPanelFocusRecord,
+  focusPanel,
+  recordPanelEntry,
+  recordPanelInteraction,
+  restorePanelFocus,
+} from './runtime/panel-lifecycle.ts'
+import { useDashPanelProviderPolicy } from './runtime/provider-policy-context.tsx'
 
 export type {
   DashPanelDefaultLayout,
@@ -82,7 +94,7 @@ export interface DashPanelProviderProps<
 
 export interface DashPanelProps<CustomTheme extends string = never> extends Omit<
   ComponentPropsWithoutRef<'aside'>,
-  'children' | 'id' | 'style' | 'title'
+  'aria-hidden' | 'children' | 'hidden' | 'id' | 'inert' | 'style' | 'title'
 > {
   id: string
   title: ReactNode
@@ -95,8 +107,35 @@ export interface DashPanelProps<CustomTheme extends string = never> extends Omit
   defaultCollapsed?: boolean
   collapsible?: boolean
   onCollapsedChange?: (collapsed: boolean) => void
+  defaultVisible?: boolean
+  showCloseButton?: boolean
+  onVisibilityChange?: (visible: boolean) => void
   theme?: PicodashThemeOption<CustomTheme>
   density?: PicodashDensity
+}
+
+export interface DashPanelTriggerProps extends Omit<ButtonProps, 'onPress'> {
+  panelId: string
+  action?: 'show' | 'toggle'
+}
+
+export type DashPanelLauncherItem =
+  | {
+      panelId: string
+      label: string
+      accessibleName?: string
+      disabled?: boolean
+    }
+  | {
+      panelId: string
+      label: Exclude<ReactNode, string>
+      accessibleName: string
+      disabled?: boolean
+    }
+
+export interface DashPanelLauncherProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  label: string
+  items: readonly DashPanelLauncherItem[]
 }
 
 function immutableProviderIdentity<Fields extends PicodashFieldDefinitions>(
@@ -196,7 +235,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     boundaryInset,
     dockPositions,
     defaultCollapsed,
+    defaultVisible,
+    showCloseButton = true,
     collapsible,
+    onVisibilityChange,
     onCollapsedChange,
     theme,
     density,
@@ -210,20 +252,32 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   assertPanelStyle(style)
   const root = usePicodashRootStore()
   const runtime = useDashPanelRuntime()
+  const providerPolicy = useDashPanelProviderPolicy()
+  const overlayDefaults = usePicodashOverlayDefaults()
   const runtimeState = useDashPanelRuntimeState(id)
   const scoped = root.scope(id)
   const headingId = `picodash-panel-heading-${useId()}`
   const bodyId = `picodash-panel-body-${useId()}`
+  const asideRef = useRef<HTMLElement | null>(null)
   const textualTitle = isTextTitle(title)
-  if (!textualTitle && (typeof ariaLabel !== 'string' || ariaLabel.trim() === ''))
+  const titleText = textualTitle ? textTitle(title) : ''
+  const hasAccessibleLabel = typeof ariaLabel === 'string' && ariaLabel.trim() !== ''
+  if (ariaLabel !== undefined && !hasAccessibleLabel)
+    throw new TypeError('DashPanel aria-label must not be empty.')
+  if (!textualTitle && !hasAccessibleLabel)
     throw new TypeError('DashPanel non-text titles require an explicit aria-label.')
+  if (textualTitle && titleText.trim() === '' && !hasAccessibleLabel)
+    throw new TypeError('DashPanel titles require non-empty text or an explicit aria-label.')
 
   const generation = useRef<{
     readonly scopeId: string
     readonly defaultCollapsed: boolean
+    readonly defaultVisible: boolean
     readonly collapsible: boolean
   } | null>(null)
-  if (generation.current === null || generation.current.scopeId !== id) {
+  if (generation.current !== null && generation.current.scopeId !== id)
+    throw new TypeError('DashPanel id is immutable while mounted.')
+  if (generation.current === null) {
     const initialCollapsed = defaultCollapsed ?? false
     const initialCollapsible = collapsible ?? true
     if (initialCollapsed && !initialCollapsible)
@@ -231,34 +285,46 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     generation.current = {
       scopeId: id,
       defaultCollapsed: initialCollapsed,
+      defaultVisible: defaultVisible ?? true,
       collapsible: initialCollapsible,
     }
   }
   const initial = generation.current
   const registration = useRef<PanelRuntimeRegistration | null>(null)
-  useEffect(() => {
+  useLayoutEffect(() => {
     const current = generation.current
     if (current === null || current.scopeId !== id) return
     const next = runtime.acquire({
       scopeId: id,
+      defaultVisible: current.defaultVisible,
       defaultCollapsed: current.defaultCollapsed,
       collapsible: current.collapsible,
+      onVisibilityChange,
       onCollapsedChange,
     })
     registration.current = next
+    runtime.registerElement(id, asideRef.current)
     return () => {
+      clearPanelFocusRecord(runtime, id)
+      runtime.registerElement(id, null)
       next.release()
       if (registration.current === next) registration.current = null
     }
   }, [id, runtime])
   useEffect(() => {
-    registration.current?.update({ collapsible, onCollapsedChange })
-  }, [collapsible, onCollapsedChange])
+    registration.current?.update({ collapsible, onVisibilityChange, onCollapsedChange })
+  }, [collapsible, onVisibilityChange, onCollapsedChange])
 
   const collapsed = runtimeState?.collapsed ?? initial.defaultCollapsed
   const currentCollapsible = runtimeState?.collapsible ?? initial.collapsible
-  const panelName = textualTitle ? textTitle(title) : ariaLabel!
+  const visible = runtimeState?.visible ?? initial.defaultVisible
+  const runtimeSnapshot = runtime.getSnapshot()
+  const activeVisiblePanelId = [...runtimeSnapshot.activationOrder]
+    .reverse()
+    .find((scopeId) => runtimeSnapshot.panels[scopeId]?.visible)
+  const panelName = titleText.trim() === '' ? ariaLabel! : titleText
   const collapseLabel = `${collapsed ? 'Expand' : 'Collapse'} panel ${panelName}`
+  useImperativeHandle(ref, () => asideRef.current as HTMLElement)
 
   const resolvedStyle = panelStyle(style, width)
   const labelledProps = textualTitle
@@ -282,10 +348,26 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           <aside
             {...asideProps}
             {...labelledProps}
-            ref={ref}
+            ref={asideRef}
             className={className ? `picodash-dashpanel ${className}` : 'picodash-dashpanel'}
             style={resolvedStyle}
             data-picodash-panel
+            data-visible={visible ? 'true' : 'false'}
+            data-active={activeVisiblePanelId === id ? 'true' : undefined}
+            hidden={!visible}
+            inert={!visible || undefined}
+            aria-hidden={!visible || undefined}
+            onFocusCapture={(event) => {
+              asideProps.onFocusCapture?.(event)
+              const related = event.relatedTarget
+              if (
+                typeof Node !== 'undefined' &&
+                related instanceof Node &&
+                event.currentTarget.contains(related)
+              )
+                return
+              recordPanelInteraction(runtime, id, related)
+            }}
             data-collapsed={collapsed ? 'true' : 'false'}
           >
             <DashHeader
@@ -306,6 +388,31 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                   </Button>
                 ) : undefined,
                 title: <h2 id={headingId}>{title}</h2>,
+                trailing: showCloseButton ? (
+                  <Button
+                    aria-label={`Close panel ${panelName}`}
+                    iconOnly
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => {
+                      const wasVisible = runtime.getSnapshot().panels[id]?.visible ?? false
+                      try {
+                        runtime.hide(id)
+                      } finally {
+                        const isVisible = runtime.getSnapshot().panels[id]?.visible ?? false
+                        if (wasVisible && !isVisible)
+                          restorePanelFocus(
+                            runtime,
+                            id,
+                            providerPolicy.boundary,
+                            overlayDefaults.portalContainer,
+                          )
+                      }
+                    }}
+                  >
+                    ×
+                  </Button>
+                ) : undefined,
               }}
             />
             <div
@@ -325,6 +432,67 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
 })
 
 export const DashPanel = DashPanelImpl
+
+export function DashPanelTrigger({
+  panelId,
+  action = 'show',
+  isDisabled,
+  ...props
+}: DashPanelTriggerProps) {
+  const runtime = useDashPanelRuntime()
+  const state = useDashPanelRuntimeState(panelId)
+  const policy = useDashPanelProviderPolicy()
+  const overlay = usePicodashOverlayDefaults()
+  return (
+    <Button
+      {...props}
+      isDisabled={isDisabled || !state}
+      onPress={(event) => {
+        const trigger = event.target as HTMLElement
+        const before = typeof document !== 'undefined' ? document.activeElement : null
+        const visible = runtime.getSnapshot().panels[panelId]?.visible ?? false
+        recordPanelEntry(runtime, panelId, trigger, before)
+        try {
+          if (action === 'toggle' && visible) runtime.hide(panelId)
+          else runtime.show(panelId)
+        } finally {
+          const nextVisible = runtime.getSnapshot().panels[panelId]?.visible ?? false
+          if (visible && !nextVisible)
+            restorePanelFocus(runtime, panelId, policy.boundary, overlay.portalContainer)
+          else if (nextVisible && (action === 'show' || !visible))
+            queueMicrotask(() => focusPanel(runtime, panelId))
+        }
+      }}
+    />
+  )
+}
+
+export function DashPanelLauncher({ label, items, ...props }: DashPanelLauncherProps) {
+  if (!label.trim()) throw new TypeError('DashPanelLauncher label must not be empty.')
+  return (
+    <div {...props} role="group" aria-label={label}>
+      {items.map((item) => {
+        const accessibleName = item.accessibleName
+        if (accessibleName !== undefined && !accessibleName.trim())
+          throw new TypeError('DashPanelLauncher item accessibleName must not be empty.')
+        if (accessibleName === undefined && (typeof item.label !== 'string' || !item.label.trim()))
+          throw new TypeError(
+            'DashPanelLauncher items require a non-empty text label or accessibleName.',
+          )
+        return (
+          <DashPanelTrigger
+            key={item.panelId}
+            panelId={item.panelId}
+            isDisabled={item.disabled}
+            aria-label={accessibleName}
+          >
+            {item.label}
+          </DashPanelTrigger>
+        )
+      })}
+    </div>
+  )
+}
 
 export { ActionMenu, ActionMenuItem, ActionMenuSeparator, ActionSubmenu, DashHeader }
 

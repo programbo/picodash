@@ -27,6 +27,7 @@
     ".": "./dist/index.mjs",
     "./integration": "./dist/integration.mjs",
     "./react": "./dist/react.mjs",
+    "./web-storage": "./dist/web-storage.mjs",
     "./package.json": "./package.json"
   },
   "publishConfig": {

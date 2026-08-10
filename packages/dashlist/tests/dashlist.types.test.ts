@@ -8,6 +8,7 @@ import {
   DashList,
   Dashlet,
   type DashListProps,
+  type CompoundDashletProps,
   type DashletProps,
 } from '../src/index.tsx'
 
@@ -46,11 +47,66 @@ describe('@picodash/dashlist public types', () => {
     // @ts-expect-error visible is not part of the alpha shell.
     const visible: DashListProps = { ...root, visible: true }
     void visible
-    // @ts-expect-error fields/bindings are not part of the alpha shell.
     const field: Parameters<typeof Dashlet>[0] = { id: 'bound', field: {} as never }
     void field
     // @ts-expect-error registered shells reserve semantic ARIA relationships.
     const reserved: DashletProps = { id: 'reserved', label: 'Reserved', 'aria-invalid': true }
     void reserved
+
+    type Values = { value: number }
+    const display: DashletProps<Values, 'value', 'display'> = {
+      id: 'display',
+      label: 'Display',
+      field: store.fields.value,
+      mode: 'display',
+      children(context) {
+        const mode: 'display' = context.binding.mode
+        const value: number = context.binding.value
+        // @ts-expect-error display bindings expose no mutation command.
+        void context.binding.setInput
+        return `${mode}:${value}`
+      },
+    }
+    void display
+
+    const compoundFields = {
+      readout: { field: store.fields.value, mode: 'display' as const },
+      editor: store.fields.value,
+    } as const
+    const compound: CompoundDashletProps<Values, typeof compoundFields> = {
+      id: 'compound',
+      label: 'Compound',
+      fields: compoundFields,
+      children(context) {
+        const readoutMode: 'display' = context.bindings.readout.mode
+        const editorMode: 'input' = context.bindings.editor.mode
+        const value: number = context.bindings.readout.value
+        // @ts-expect-error a literal display descriptor has no input command.
+        void context.bindings.readout.discardInput
+        context.bindings.editor.setInput(value)
+        // @ts-expect-error stale overwrite plans remain shell-owned and are not render-context API.
+        void context.bindings.editor.createStaleInputOverwritePlan
+        return `${readoutMode}:${editorMode}`
+      },
+    }
+    void compound
+
+    // @ts-expect-error unbound Dashlets cannot declare a top-level mode.
+    const unboundMode: DashletProps<Values> = { id: 'bad-mode', mode: 'display' }
+    void unboundMode
+    const compoundMode: CompoundDashletProps<Values, typeof compoundFields> = {
+      id: 'bad-compound-mode',
+      fields: compoundFields,
+      // @ts-expect-error compound Dashlets cannot declare a top-level mode.
+      mode: 'input',
+    }
+    void compoundMode
+    const presentation: DashletProps<Values, 'value'> = {
+      id: 'presentation',
+      field: store.fields.value,
+      // @ts-expect-error the deferred generic presentation contract is not public.
+      presentation: {},
+    }
+    void presentation
   })
 })

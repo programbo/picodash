@@ -6,13 +6,21 @@ import {
   forwardRef,
   isValidElement,
   useId,
+  useMemo,
   useRef,
+  useState,
   type ComponentPropsWithRef,
   type ReactElement,
   type MutableRefObject,
   type ReactNode,
 } from 'react'
-import type { PicodashFieldDefinitions, RootStore, ScopedStore } from '@picodash/store'
+import type {
+  PicodashField,
+  PicodashFieldDefinitions,
+  PicodashJsonValue,
+  RootStore,
+  ScopedStore,
+} from '@picodash/store'
 import { PicodashContractError } from '@picodash/store'
 import { PicodashStoreEntityBoundary } from '@picodash/store/integration'
 import { usePicodashStore } from '@picodash/store/react'
@@ -21,6 +29,16 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
   ActionSubmenu,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogTitle,
+  AlertDialogTrigger,
   DashHeader,
   PicodashThemeProvider,
   type PicodashDensity,
@@ -33,6 +51,31 @@ import {
   DashListNodeRegistryProvider,
   DashListNodeValidation,
 } from './node-registration.js'
+import {
+  normalizeBindingDescriptors,
+  useDashletBindings,
+  type DashletBindingMode,
+  type DashletFields,
+  type DashletRenderContext,
+  type SingleFieldDashletRenderContext,
+  type CompoundDashletRenderContext,
+  type DashletInputBindingContext,
+  type StaleOverwriteController,
+} from './bindings.js'
+import { DashListAnnouncementContext } from './bindings.js'
+
+export type {
+  DashletBindingMode,
+  DashletFieldBinding,
+  DashletFields,
+  DashletRenderContext,
+  SingleFieldDashletRenderContext,
+  CompoundDashletRenderContext,
+  DashletBindingContext,
+  DashletInputBindingContext,
+  DashletDisplayBindingContext,
+  DashletBindingContextFor,
+} from './bindings.js'
 
 export type {
   ActionMenuConfirmation,
@@ -99,13 +142,47 @@ export type DashGroupProps = RegisteredNodeNativeProps & {
   readonly children?: ReactNode
 }
 
-export type DashletProps = RegisteredNodeNativeProps & {
+type DashletBaseProps = RegisteredNodeNativeProps & {
   readonly id: string
   readonly label?: ReactNode
   readonly 'aria-label'?: string
   readonly description?: ReactNode
   readonly layout?: 'inline' | 'block' | 'full'
-  readonly children?: ReactNode
+  readonly disabled?: boolean
+  readonly readOnly?: boolean
+}
+export type DashletProps<
+  TValues extends object = Record<string, PicodashJsonValue>,
+  TKey extends Extract<keyof TValues, string> = Extract<keyof TValues, string>,
+  TMode extends DashletBindingMode = 'input',
+> =
+  | (DashletBaseProps & {
+      readonly field?: never
+      readonly fields?: never
+      readonly mode?: never
+      readonly children?: ReactNode | ((context: DashletRenderContext) => ReactNode)
+    })
+  | (DashletBaseProps & {
+      readonly field: PicodashField<TValues, TKey>
+      readonly fields?: never
+      readonly mode?: TMode
+      readonly children?:
+        | ReactNode
+        | ((
+            context: SingleFieldDashletRenderContext<TValues[TKey] & PicodashJsonValue, TMode>,
+          ) => ReactNode)
+    })
+
+export type CompoundDashletProps<
+  TValues extends object,
+  TFields extends DashletFields<TValues>,
+> = DashletBaseProps & {
+  readonly field?: never
+  readonly fields: TFields
+  readonly mode?: never
+  readonly children?:
+    | ReactNode
+    | ((context: CompoundDashletRenderContext<TValues, TFields>) => ReactNode)
 }
 
 const declarationMarker = Symbol('picodash.dashlist.declaration')
@@ -237,59 +314,216 @@ function classNames(base: string, className: string | undefined): string {
   return className ? `${base} ${className}` : base
 }
 
-const DashletImpl = forwardRef<HTMLDivElement, DashletProps>(function Dashlet(
-  {
-    id,
-    label,
-    'aria-label': ariaLabel,
-    description,
-    layout = 'inline',
-    children,
-    className,
-    ...props
-  },
-  ref,
-) {
-  requireAccessibleLabel(label, ariaLabel, 'Dashlet')
-  const labelId = `picodash-dashlet-label-${useId()}`
-  const descriptionIdToken = useId()
-  const descriptionId =
-    description === undefined ? undefined : `picodash-dashlet-description-${descriptionIdToken}`
-  return (
-    <DashListNodeLeafBoundary id={id} kind="dashlet">
-      <div
-        {...props}
-        ref={ref}
-        id={undefined}
-        role="listitem"
-        className={classNames('picodash-dashlist-item', className)}
-        data-picodash-dashlet={id}
-      >
-        <div
-          role="group"
-          tabIndex={-1}
-          aria-label={ariaLabel}
-          aria-labelledby={isTextLabel(label) ? labelId : undefined}
-          aria-describedby={descriptionId}
-          data-layout={layout}
-          data-picodash-dashlet-shell
-        >
-          {label !== undefined ? (
-            <span id={labelId} data-picodash-dashlet-label>
-              {label}
-            </span>
-          ) : null}
-          <div data-picodash-dashlet-content>{children}</div>
-          {description !== undefined ? (
-            <div id={descriptionId} data-picodash-dashlet-description>
-              {description}
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </DashListNodeLeafBoundary>
+function StaleInputConfirmation({
+  disabled,
+  readOnly,
+  controller,
+}: {
+  readonly disabled: boolean
+  readonly readOnly: boolean
+  readonly controller: StaleOverwriteController
+}) {
+  const [plan, setPlan] = useState<Parameters<StaleOverwriteController['executePlan']>[0] | null>(
+    null,
   )
-})
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const open = plan !== null
+  const openPlan = () => {
+    if (disabled || readOnly) return
+    const next = controller.openPlan()
+    if (next) setPlan(next)
+  }
+  return (
+    <>
+      <button ref={triggerRef} type="button" disabled={disabled || readOnly} onClick={openPlan}>
+        Overwrite value…
+      </button>
+      {plan ? (
+        <AlertDialog
+          isOpen={open}
+          onOpenChange={(next) => {
+            if (!next) {
+              setPlan(null)
+              if (typeof requestAnimationFrame === 'function')
+                requestAnimationFrame(() => triggerRef.current?.focus())
+            }
+          }}
+        >
+          <AlertDialogTrigger aria-label="Stale value confirmation" style={{ display: 'none' }} />
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Overwrite the current value?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  The application changed this value while you had draft changes. Overwriting keeps
+                  your draft and replaces the current canonical value.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onPress={() => setPlan(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  isDisabled={disabled || readOnly}
+                  onPress={() => {
+                    const currentPlan = plan
+                    setPlan(null)
+                    controller.executePlan(currentPlan)
+                  }}
+                >
+                  Overwrite value
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
+      ) : null}
+    </>
+  )
+}
+
+const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashletProps<any, any>>(
+  function Dashlet(props: any, ref) {
+    const {
+      id,
+      label,
+      'aria-label': ariaLabel,
+      description,
+      layout = 'inline',
+      disabled = false,
+      readOnly = false,
+      field,
+      fields,
+      mode,
+      children,
+      className,
+      ...nativeProps
+    } = props
+    requireAccessibleLabel(label, ariaLabel, 'Dashlet')
+    const labelId = `picodash-dashlet-label-${useId()}`
+    const descriptionIdToken = useId()
+    const descriptionId =
+      description === undefined ? undefined : `picodash-dashlet-description-${descriptionIdToken}`
+    const controlId = `picodash-dashlet-control-${useId()}`
+    const commonIssuesId = `${labelId}-issues`
+    const bindingIssuesId = `${labelId}-binding-issues`
+    const bindingStore = useOptionalStore<PicodashFieldDefinitions>()
+    const descriptors = useMemo(() => {
+      if (fields !== undefined && mode !== undefined)
+        throw new TypeError('Compound Dashlet bindings do not accept a top-level mode.')
+      if (field === undefined && fields === undefined && mode !== undefined)
+        throw new TypeError('Unbound Dashlets do not accept a binding mode.')
+      return normalizeBindingDescriptors(field as never, fields as never).map((descriptor) => {
+        const resolvedMode = field !== undefined && mode !== undefined ? mode : descriptor.mode
+        if (resolvedMode !== 'input' && resolvedMode !== 'display')
+          throw new TypeError('Dashlet binding mode must be input or display.')
+        return { ...descriptor, mode: resolvedMode }
+      })
+    }, [field, fields, mode])
+    const bindingRuntime = useDashletBindings(
+      bindingStore as ScopedStore<PicodashFieldDefinitions>,
+      id,
+      descriptors,
+      disabled,
+      readOnly,
+      controlId,
+      bindingIssuesId,
+    )
+    const renderContext: any = {
+      id,
+      disabled,
+      readOnly,
+      labelId,
+      ...(descriptionId ? { descriptionId } : {}),
+      issues: bindingRuntime.issues,
+      ...(bindingRuntime.issues.length ? { issuesId: commonIssuesId } : {}),
+    }
+    if (descriptors.length === 1)
+      renderContext.binding = bindingRuntime.bindings[descriptors[0]!.alias]
+    else if (descriptors.length > 1) renderContext.bindings = bindingRuntime.bindings
+    const renderedChildren =
+      typeof children === 'function' ? children(renderContext as never) : children
+    const inputBindings = Object.values(bindingRuntime.bindings).filter(
+      (binding): binding is DashletInputBindingContext<PicodashJsonValue> =>
+        'mode' in binding && binding.mode === 'input',
+    )
+    return (
+      <DashListNodeLeafBoundary id={id} kind="dashlet">
+        <div
+          {...nativeProps}
+          ref={ref}
+          id={undefined}
+          role="listitem"
+          className={classNames('picodash-dashlist-item', className)}
+          data-picodash-dashlet={id}
+        >
+          <div
+            role="group"
+            tabIndex={-1}
+            aria-label={ariaLabel}
+            aria-labelledby={isTextLabel(label) ? labelId : undefined}
+            aria-describedby={descriptionId}
+            aria-invalid={bindingRuntime.issues.length ? true : undefined}
+            aria-errormessage={bindingRuntime.issues.length ? commonIssuesId : undefined}
+            data-layout={layout}
+            data-read-only={readOnly ? 'true' : 'false'}
+            data-picodash-dashlet-shell
+          >
+            {label !== undefined ? (
+              <span id={labelId} data-picodash-dashlet-label>
+                {label}
+              </span>
+            ) : null}
+            <div data-picodash-dashlet-content>{renderedChildren}</div>
+            {description !== undefined ? (
+              <div id={descriptionId} data-picodash-dashlet-description>
+                {description}
+              </div>
+            ) : null}
+            {Object.values(bindingRuntime.bindings).map((binding) =>
+              binding.issuesId ? (
+                <div
+                  key={binding.alias}
+                  id={binding.issuesId}
+                  data-picodash-dashlet-binding-issues={binding.alias}
+                >
+                  {binding.issues.map((issue, issueIndex) => (
+                    <div key={`${issue.code}-${issue.reason ?? ''}-${issueIndex}`}>
+                      {issue.message}
+                    </div>
+                  ))}
+                </div>
+              ) : null,
+            )}
+            {inputBindings.map((binding) =>
+              binding.dirty ? (
+                <div key={`${binding.alias}-actions`} data-picodash-dashlet-actions>
+                  <button type="button" disabled={disabled} onClick={() => binding.discardInput()}>
+                    Discard changes
+                  </button>
+                  {binding.stale && bindingRuntime.staleOverwrite[binding.alias]?.eligible ? (
+                    <StaleInputConfirmation
+                      disabled={disabled}
+                      readOnly={readOnly}
+                      controller={bindingRuntime.staleOverwrite[binding.alias]!}
+                    />
+                  ) : null}
+                </div>
+              ) : null,
+            )}
+            {bindingRuntime.issues.length ? (
+              <div id={commonIssuesId} data-picodash-dashlet-issues>
+                {bindingRuntime.issues.map((issue, issueIndex) => (
+                  <div key={`${issue.code}-${issue.reason ?? ''}-${issueIndex}`}>
+                    {issue.message}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </DashListNodeLeafBoundary>
+    )
+  },
+)
 
 const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGroup(
   { id, label, 'aria-label': ariaLabel, children, className, ...props },
@@ -370,7 +604,9 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   const headingIdToken = useId()
   const headingId = title === undefined ? undefined : `picodash-dashlist-heading-${headingIdToken}`
   const statusId = `picodash-dashlist-status-${useId()}`
-  const listName = ariaLabelledBy ?? (title === undefined ? undefined : headingId)
+  const [announcement, setAnnouncement] = useState('')
+  const listName =
+    ariaLabelledBy ?? (ariaLabel === undefined && title !== undefined ? headingId : undefined)
   return (
     <PicodashThemeProvider theme={theme} density={density}>
       <PicodashStoreEntityBoundary
@@ -378,37 +614,41 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
         kind="dashList"
         allowStandalone={resolved.standalone}
       >
-        <DashListNodeRegistryProvider registry={registry}>
-          <DashListNodeValidation>
-            <div
-              {...props}
-              ref={ref}
-              className={classNames('picodash-dashlist', className)}
-              data-picodash-dashlist
-            >
-              {title !== undefined ? (
-                <DashHeader
-                  slots={{ title: createElement(`h${headingLevel}`, { id: headingId }, title) }}
-                />
-              ) : null}
+        <DashListAnnouncementContext.Provider value={setAnnouncement}>
+          <DashListNodeRegistryProvider registry={registry}>
+            <DashListNodeValidation>
               <div
-                role="list"
-                aria-label={ariaLabel}
-                aria-labelledby={listName}
-                data-picodash-dashlist-list
+                {...props}
+                ref={ref}
+                className={classNames('picodash-dashlist', className)}
+                data-picodash-dashlist
               >
-                {declarations.map((declaration, index) =>
-                  createElement(
-                    Fragment,
-                    { key: declaration.key ?? `${resolved.scopeId}-${index}` },
-                    wrapDeclaration(declaration, 'list', `${resolved.scopeId}-${index}`),
-                  ),
-                )}
+                {title !== undefined ? (
+                  <DashHeader
+                    slots={{ title: createElement(`h${headingLevel}`, { id: headingId }, title) }}
+                  />
+                ) : null}
+                <div
+                  role="list"
+                  aria-label={ariaLabel}
+                  aria-labelledby={listName}
+                  data-picodash-dashlist-list
+                >
+                  {declarations.map((declaration, index) =>
+                    createElement(
+                      Fragment,
+                      { key: declaration.key ?? `${resolved.scopeId}-${index}` },
+                      wrapDeclaration(declaration, 'list', `${resolved.scopeId}-${index}`),
+                    ),
+                  )}
+                </div>
+                <div id={statusId} role="status" aria-live="polite" aria-atomic="true">
+                  {announcement}
+                </div>
               </div>
-              <div id={statusId} role="status" aria-live="polite" aria-atomic="true" />
-            </div>
-          </DashListNodeValidation>
-        </DashListNodeRegistryProvider>
+            </DashListNodeValidation>
+          </DashListNodeRegistryProvider>
+        </DashListAnnouncementContext.Provider>
       </PicodashStoreEntityBoundary>
     </PicodashThemeProvider>
   )
@@ -421,7 +661,14 @@ export const DashList = DashListImpl as unknown as <
   props: DashListProps<Fields, CustomTheme>,
 ) => ReactElement | null
 export const DashGroup = DashGroupImpl as typeof DashGroupImpl
-export const Dashlet = DashletImpl as typeof DashletImpl
+export const Dashlet = DashletImpl as unknown as <
+  TValues extends object = Record<string, PicodashJsonValue>,
+  TKey extends Extract<keyof TValues, string> = Extract<keyof TValues, string>,
+  TMode extends DashletBindingMode = 'input',
+  TFields extends DashletFields<TValues> = DashletFields<TValues>,
+>(
+  props: DashletProps<TValues, TKey, TMode> | CompoundDashletProps<TValues, TFields>,
+) => ReactElement | null
 
 Object.assign(DashList, { [declarationMarker]: 'list', [listMarker]: true })
 Object.assign(DashGroup, { [declarationMarker]: 'group', [groupMarker]: true })

@@ -111,12 +111,21 @@ the Lab is already stopped, a new start performs stale-lock recovery as describe
 ## Scope and roadmap
 
 Implemented baseline: Store relay, browser connector, typed HTTP client, CLI, and Contract Lab
-dogfood (discover, inspect, set, wait, and reload-generation rejection). No Store changes were
-needed for this baseline.
+dogfood (discover, inspect, set, wait, and reload-generation rejection). The same journey now proves
+Bridge writes through single and compound DashList bindings, UI input observed by Bridge, stale
+draft behavior after an external write, confirmed DashList-owned overwrite observed through
+inspect/wait, identified Store migration with a projected disclosed value, quarantined metadata
+diagnostics, public metadata replacement, and a live Store session retained while DashPanel hides
+and reopens. The same browser journey also creates and executes a value-free Store document export
+plan, mutates the disclosed metric through Bridge, then analyzes and imports the captured document
+locally; browser state and Bridge inspect/wait confirm restoration without exposing document
+contents or adding Bridge authority. No Bridge extension was needed: focus, visibility, and
+activation remain Provider-owned browser behavior rather than agent protocol authority; raw
+quarantine payloads stay undisclosed.
 
-Next, dogfood DashList and DashPanel and send genuine public contract gaps to their owning package
-or Store. MCP stdio parity is a follow-on only if the CLI proves useful. Persistence, import, reset,
-and other dangerous extensions remain deferred; they require preview, explicit confirmation,
-idempotency, and an audit trail before implementation.
+MCP stdio parity is a follow-on only if the CLI proves useful. Bridge persistence, reset, and other
+dangerous extensions remain deferred; they require preview, explicit confirmation, idempotency, and
+an audit trail before implementation. Store document import/export remains a browser-local
+consumer capability; document contents are not added to the Bridge protocol.
 
 Background and tracking: [Picodash issue #80](https://github.com/programbo/picodash/issues/80).

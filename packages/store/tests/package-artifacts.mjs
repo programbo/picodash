@@ -18,6 +18,7 @@ const expectedExports = {
   '.': './dist/index.mjs',
   './react': './dist/react.mjs',
   './integration': './dist/integration.mjs',
+  './web-storage': './dist/web-storage.mjs',
   './package.json': './package.json',
 }
 
@@ -102,6 +103,8 @@ if (import.meta.main) {
   assert.deepEqual(Object.keys(integrationModule).sort(), [
     'PicodashStoreEntityBoundary',
     'PicodashStoreProviderBoundary',
+    'acquireBindingLease',
+    'acquireDashListNodeLease',
     'acquireEntityLease',
     'acquireProviderLease',
     'acquireRelationshipLease',
@@ -111,6 +114,14 @@ if (import.meta.main) {
   const rootModule = await import(
     `${pathToFileURL(path.join(packageRoot, 'dist/index.mjs')).href}?artifact-check-root`
   )
+  const webStorageModule = await import(
+    `${pathToFileURL(path.join(packageRoot, 'dist/web-storage.mjs')).href}?artifact-check-web-storage`
+  )
+  assert.deepEqual(Object.keys(webStorageModule), ['createWebStoragePersistenceDriver'])
+  const webStorageTypes = await readText(path.join(packageRoot, 'dist/web-storage.d.mts'))
+  assert.match(webStorageTypes, /interface PicodashWebStorage/)
+  assert.match(webStorageTypes, /type PicodashWebStorageSource/)
+  assert.match(webStorageTypes, /createWebStoragePersistenceDriver/)
   const rootDeclaration = (await readdir(path.join(packageRoot, 'dist'))).find((name) =>
     /^index-.*\.d\.mts$/.test(name),
   )
@@ -120,8 +131,23 @@ if (import.meta.main) {
   assert.match(rootTypes, /readonly diagnostics: PicodashDiagnostics/)
   assert.match(rootTypes, /PicodashValueAdapter/)
   assert.match(rootTypes, /ExternalOwnedConfig/)
+  assert.match(rootTypes, /ExternalOwnedPersistenceConfig/)
   assert.match(rootTypes, /PersistentTransactionResult/)
+  assert.match(rootTypes, /InvalidResetOptionsReason/)
+  assert.match(rootTypes, /resetRegisteredValues\(options: RootResetRegisteredValuesOptions\)/)
+  assert.match(rootTypes, /resetRegisteredValues\(options\?: ResetRegisteredValuesOptions\)/)
   assert.match(rootTypes, /PicodashPersistenceState/)
+  assert.match(rootTypes, /PicodashPersistenceConflictResolutionPlan/)
+  assert.match(rootTypes, /PicodashDocument/)
+  assert.match(rootTypes, /readonly documents: DocumentNamespace/)
+  assert.match(rootTypes, /createExportPlan\(options\?: PicodashRootExportOptions/)
+  assert.match(rootTypes, /createExportPlan\(options\?: PicodashScopedExportOptions/)
+  assert.match(
+    rootTypes,
+    /executeExport\(plan: PicodashExportPlan, options\?: PicodashExportExecutionOptions/,
+  )
+  assert.match(rootTypes, /PicodashPersistenceErasePlan/)
+  assert.match(rootTypes, /SerializedDurableScopeMetadata/)
   assert.match(rootTypes, /adapter_initialization_failed/)
   const integrationDeclaration = (await readdir(path.join(packageRoot, 'dist'))).find((name) =>
     /^integration(?:-.*)?\.d\.mts$/.test(name),
@@ -138,10 +164,27 @@ if (import.meta.main) {
   assert.match(scopedSection, /readonly diagnostics: PicodashDiagnostics/)
   assert.deepEqual(Object.keys(rootModule).sort(), [
     'PicodashContractError',
+    'PicodashDocumentError',
+    'PicodashDocumentOptionsError',
     'PicodashTransactionError',
+    'buildPicodashDocumentOverlay',
     'createPicodashStore',
+    'decodePicodashDocument',
+    'documentFromSchemaMigrationPayload',
+    'documentToSchemaMigrationPayload',
+    'encodePicodashDocument',
+    'migratePicodashDocument',
+    'normalizePicodashDocument',
+    'normalizePicodashExportExecutionOptions',
+    'normalizePicodashExportOptions',
+    'normalizePicodashExportPolicy',
+    'normalizePicodashFieldMap',
+    'normalizePicodashImportOptions',
+    'normalizePicodashScopeMap',
+    'stripRedactedPicodashDocumentFields',
   ])
   for (const integrationExport of [
+    'acquireBindingLease',
     'acquireProviderLease',
     'acquireEntityLease',
     'acquireRelationshipLease',
@@ -242,6 +285,16 @@ if (import.meta.main) {
   externalStore.destroy()
   assert.equal(releaseCalls, 1)
 
+  const webValues = new Map()
+  const webDriver = webStorageModule.createWebStoragePersistenceDriver({
+    getItem: (key) => webValues.get(key) ?? null,
+    setItem: (key, value) => webValues.set(key, value),
+    removeItem: (key) => webValues.delete(key),
+  })
+  assert.equal(webDriver.read('state'), null)
+  webDriver.write('state', 'opaque')
+  assert.equal(webDriver.read('state'), 'opaque')
+
   const persistentValues = new Map()
   const persistentListeners = new Set()
   let removeCalls = 0
@@ -277,6 +330,39 @@ if (import.meta.main) {
   assert.equal(persistentStore.persistence.getState().status, 'clean')
   persistentStore.destroy()
   assert.equal(removeCalls, 0)
+
+  let externalPersistentValue = 1
+  const externalPersistentListeners = new Set()
+  const externalPersistentStore = rootModule.createPicodashStore({
+    valueOwner: 'external',
+    storeId: 'artifact-external-persistence',
+    schemaVersion: 1,
+    fields: { value: { defaultValue: 1 } },
+    adapter: {
+      getSnapshot: () => ({ value: externalPersistentValue }),
+      subscribe(listener) {
+        externalPersistentListeners.add(listener)
+        return () => externalPersistentListeners.delete(listener)
+      },
+      setValues(values) {
+        externalPersistentValue = values.value
+        for (const listener of externalPersistentListeners) listener()
+      },
+    },
+    persistence: {
+      storageKey: 'external-state',
+      driver: persistentDriver,
+    },
+  })
+  assert.equal(externalPersistentStore.setValues({ value: 2 }).persistence, 'unchanged')
+  assert.equal(
+    externalPersistentStore.setDashListRootOrder('artifact', ['item']).persistence,
+    'saved',
+  )
+  const externalPersistentEnvelope = JSON.parse(persistentValues.get('external-state'))
+  assert.equal(externalPersistentEnvelope.valueOwner, 'external')
+  assert.equal(Object.hasOwn(externalPersistentEnvelope, 'values'), false)
+  externalPersistentStore.destroy()
 
   // Exercise the negative boundary with a temporary reachable React import.
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'picodash-store-artifact-'))

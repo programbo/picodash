@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 import {
   createPicodashStore,
   PicodashContractError,
@@ -7,6 +7,7 @@ import {
   type StoreOwnedConfig,
 } from '../src/index.ts'
 import { PicodashInitializationError } from '../src/adapter.ts'
+import { acquireBindingLease } from '../src/integration.ts'
 import { decodePersistenceEnvelope, encodePersistenceEnvelope } from '../src/persistence.ts'
 import { createMemoryPersistence } from './support/memory-persistence.js'
 
@@ -140,6 +141,307 @@ describe('Store-owned alpha persistence', () => {
     store.destroy()
   })
 
+  it('confirms an already-written pending envelope after verification recovers', () => {
+    const backend = createMemoryPersistence()
+    let armVerificationFailure = false
+    let failVerificationRead = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => {
+        if (failVerificationRead) {
+          failVerificationRead = false
+          throw new Error('transient verification failure')
+        }
+        return backend.read(key)
+      },
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (armVerificationFailure) {
+          armVerificationFailure = false
+          failVerificationRead = true
+        }
+      },
+      remove: (key) => backend.remove(key),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    armVerificationFailure = true
+    expect(store.setValues({ count: 2 })).toMatchObject({
+      ok: true,
+      persistence: 'pending',
+    })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(2)
+    const writesBeforeFlush = backend.calls.filter((call) => call.kind === 'write').length
+    expect(store.persistence.flush()).toBe('saved')
+    expect(backend.calls.filter((call) => call.kind === 'write')).toHaveLength(writesBeforeFlush)
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'clean',
+      hasPendingEnvelope: false,
+    })
+    store.destroy()
+  })
+
+  it('confirms an exact pending envelope observed by a subscription', () => {
+    const backend = createMemoryPersistence()
+    let listener: (() => void) | undefined
+    let armVerificationFailure = false
+    let failVerificationRead = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => {
+        if (failVerificationRead) {
+          failVerificationRead = false
+          throw new Error('transient verification failure')
+        }
+        return backend.read(key)
+      },
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (armVerificationFailure) {
+          armVerificationFailure = false
+          failVerificationRead = true
+        }
+      },
+      remove: (key) => backend.remove(key),
+      subscribe: (_key, nextListener) => {
+        listener = nextListener
+        return () => {
+          listener = undefined
+        }
+      },
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    armVerificationFailure = true
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'pending' })
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'error',
+      hasPendingEnvelope: true,
+    })
+    listener?.()
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'clean',
+      hasPendingEnvelope: false,
+    })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(2)
+    store.destroy()
+  })
+
+  it('rewrites confirmed content after an uncertain candidate reached durability', () => {
+    const backend = createMemoryPersistence()
+    let armVerificationFailure = false
+    let failVerificationRead = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => {
+        if (failVerificationRead) {
+          failVerificationRead = false
+          throw new Error('transient verification failure')
+        }
+        return backend.read(key)
+      },
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (armVerificationFailure) {
+          armVerificationFailure = false
+          failVerificationRead = true
+        }
+      },
+      remove: (key) => backend.remove(key),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    armVerificationFailure = true
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'pending' })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(2)
+    expect(store.setValues({ count: 1 })).toMatchObject({ persistence: 'saved' })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(1)
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'clean',
+      hasPendingEnvelope: false,
+    })
+    store.destroy()
+  })
+
+  it('advances from an uncertain durable candidate to a newer commit', () => {
+    const backend = createMemoryPersistence()
+    let armVerificationFailure = false
+    let failVerificationRead = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => {
+        if (failVerificationRead) {
+          failVerificationRead = false
+          throw new Error('transient verification failure')
+        }
+        return backend.read(key)
+      },
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (armVerificationFailure) {
+          armVerificationFailure = false
+          failVerificationRead = true
+        }
+      },
+      remove: (key) => backend.remove(key),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    armVerificationFailure = true
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'pending' })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(2)
+    expect(store.setValues({ count: 3 })).toMatchObject({ persistence: 'saved' })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(3)
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+    store.destroy()
+  })
+
+  it('keeps a conflict revert pending with the latest live revision', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'saved' })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'conflict-revert'
+    foreign.values.count = 9
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.setValues({ count: 3 })).toMatchObject({ persistence: 'pending' })
+    const beforeRevert = store.persistence.getState().liveRevision
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'pending' })
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'conflict',
+      hasPendingEnvelope: true,
+      liveRevision: beforeRevert + 1,
+    })
+    expect(JSON.parse(persistence.inspect('state') as string).values.count).toBe(9)
+    store.destroy({ discardUnpersisted: true })
+  })
+
+  it('ignores an absent-to-absent subscription notification before first durability', () => {
+    const backend = createMemoryPersistence()
+    let listener: (() => void) | undefined
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => backend.read(key),
+      write: (key, payload) => backend.write(key, payload),
+      remove: (key) => backend.remove(key),
+      subscribe: (_key, nextListener) => {
+        listener = nextListener
+        return () => {
+          listener = undefined
+        }
+      },
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    listener?.()
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'clean',
+      durableRevision: null,
+      hasPendingEnvelope: false,
+    })
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'saved' })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(2)
+    store.destroy()
+  })
+
+  it('rejects nested public conflict-plan execution before consuming the plan', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      fields: {
+        count: {
+          defaultValue: 1,
+          parse: (input: unknown) =>
+            typeof input === 'number'
+              ? { ok: true as const, candidate: input }
+              : { ok: false as const, issues: [{ message: 'number required' }] },
+        },
+        secret: { defaultValue: 'hidden' },
+      },
+    })
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'nested-conflict'
+    foreign.values.count = 9
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.setValues({ count: 3 })).toMatchObject({ persistence: 'pending' })
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    const scope = store.scope('nested-conflict')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.count,
+      mode: 'input',
+    })
+    expect(scope.setInput(binding, 'invalid' as never)).toMatchObject({ ok: false })
+    let nestedError: unknown
+    const unsubscribe = scope.subscribe(() => {
+      try {
+        store.persistence.executeConflictResolution(plan)
+      } catch (error) {
+        nestedError = error
+      }
+    })
+    scope.discardInput(binding)
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    unsubscribe()
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({ ok: true })
+    binding.release()
+    store.destroy()
+  })
+
+  it('rejects nested public erase-plan execution before consuming the plan', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      fields: {
+        count: {
+          defaultValue: 1,
+          parse: (input: unknown) =>
+            typeof input === 'number'
+              ? { ok: true as const, candidate: input }
+              : { ok: false as const, issues: [{ message: 'number required' }] },
+        },
+        secret: { defaultValue: 'hidden' },
+      },
+    })
+    store.setValues({ count: 2 })
+    const plan = store.persistence.createErasePlan()
+    const scope = store.scope('nested-erase')
+    const binding = acquireBindingLease(scope, {
+      itemId: 'item',
+      field: scope.fields.count,
+      mode: 'input',
+    })
+    expect(scope.setInput(binding, 'invalid' as never)).toMatchObject({ ok: false })
+    let nestedError: unknown
+    const unsubscribe = scope.subscribe(() => {
+      try {
+        store.persistence.executeErase(plan, { confirm: true })
+      } catch (error) {
+        nestedError = error
+      }
+    })
+    scope.discardInput(binding)
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    unsubscribe()
+    expect(store.persistence.executeErase(plan, { confirm: true })).toMatchObject({ ok: true })
+    binding.release()
+    store.destroy()
+  })
+
+  it('cancels a failed pending envelope when live state returns to durable content', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'saved' })
+    persistence.failNext('write')
+    expect(store.setValues({ count: 3 })).toMatchObject({ persistence: 'pending' })
+    expect(store.setValues({ count: 2 })).toMatchObject({ persistence: 'unchanged' })
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'clean',
+      hasPendingEnvelope: false,
+    })
+    expect(store.persistence.flush()).toBe('unchanged')
+    expect(JSON.parse(persistence.inspect('state') as string).values.count).toBe(2)
+    store.destroy()
+  })
+
   it('replaces an older pending envelope with the newest complete commit', () => {
     const persistence = createMemoryPersistence()
     const store = createPicodashStore(makeConfig(persistence))
@@ -176,7 +478,7 @@ describe('Store-owned alpha persistence', () => {
     store.destroy({ discardUnpersisted: true })
   })
 
-  it('keeps the live root and ownership when a later envelope is semantically invalid', () => {
+  it('fills missing current fields from the baseline during later hydration', () => {
     const persistence = createMemoryPersistence()
     const store = createPicodashStore(makeConfig(persistence))
     store.setValues({ count: 2 })
@@ -184,26 +486,11 @@ describe('Store-owned alpha persistence', () => {
     const invalid = JSON.parse(confirmed)
     delete invalid.values.secret
     persistence.foreignWrite('state', JSON.stringify(invalid))
-    expect(store.persistence.getState()).toMatchObject({
-      status: 'error',
-      lastError: { reason: 'invalid-later-envelope' },
-    })
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+    expect(store.getState().values.secret).toBe('hidden')
     expect(() => createPicodashStore(makeConfig(persistence))).toThrowError(
       expect.objectContaining({ code: 'persistence-identity-in-use' }),
     )
-    expect(() => store.destroy()).toThrowError(
-      expect.objectContaining({ code: 'root-has-unpersisted-state' }),
-    )
-    persistence.foreignWrite('state', confirmed)
-    expect(store.persistence.getState()).toMatchObject({
-      status: 'pending',
-      hasPendingEnvelope: true,
-    })
-    expect(store.persistence.flush()).toBe('saved')
-    expect(store.persistence.getState()).toMatchObject({
-      status: 'clean',
-      hasPendingEnvelope: false,
-    })
     store.destroy()
   })
 
@@ -286,7 +573,7 @@ describe('Store-owned alpha persistence', () => {
     }
   })
 
-  it('rejects disclosed fields outside the active persistence policy', () => {
+  it('projects fields outside the active persistence policy to their baseline', () => {
     const source = createMemoryPersistence()
     const envelope = encodePersistenceEnvelope({
       storeId: 'persistence-test',
@@ -298,18 +585,16 @@ describe('Store-owned alpha persistence', () => {
       includeField: () => true,
     }).serialized
     source.foreignWrite('state', envelope)
-    expect(() =>
-      createPicodashStore({
-        ...makeConfig(source),
-        persistence: {
-          storageKey: 'state',
-          driver: source,
-          values: { defaultFieldPolicy: 'omit' },
-        },
-      }),
-    ).toThrowError(
-      expect.objectContaining({ code: 'invalid-persistence-envelope', reason: 'values' }),
-    )
+    const store = createPicodashStore({
+      ...makeConfig(source),
+      persistence: {
+        storageKey: 'state',
+        driver: source,
+        values: { defaultFieldPolicy: 'omit' },
+      },
+    })
+    expect(store.getState().values.secret).toBe('hidden')
+    store.destroy({ discardUnpersisted: true })
   })
 
   it('rejects envelopes that omit a field disclosed by the active policy', () => {
@@ -323,17 +608,15 @@ describe('Store-owned alpha persistence', () => {
       includeField: (key) => key === 'count',
     }).serialized
     const driver = createMemoryPersistence({ state: envelope })
-    expect(() => createPicodashStore(makeConfig(driver))).toThrowError(
-      expect.objectContaining({ code: 'invalid-persistence-envelope', reason: 'values' }),
-    )
-    expect(() =>
-      createPicodashStore({
-        ...makeConfig(createMemoryPersistence()),
-        initialEnvelope: JSON.parse(envelope),
-      }),
-    ).toThrowError(
-      expect.objectContaining({ code: 'invalid-persistence-envelope', reason: 'values' }),
-    )
+    const store = createPicodashStore(makeConfig(driver))
+    expect(store.getState().values.secret).toBe('hidden')
+    store.destroy({ discardUnpersisted: true })
+    const initialStore = createPicodashStore({
+      ...makeConfig(createMemoryPersistence()),
+      initialEnvelope: JSON.parse(envelope),
+    })
+    expect(initialStore.getState().values.secret).toBe('hidden')
+    initialStore.destroy({ discardUnpersisted: true })
   })
 
   it('baseline-fills fields omitted by policy', () => {
@@ -485,6 +768,7 @@ describe('Store-owned alpha persistence', () => {
       ...backend,
       subscribe(key, listener) {
         backend.foreignWrite(key, raced)
+        listener()
         return backend.subscribe!(key, listener)
       },
     }
@@ -510,6 +794,40 @@ describe('Store-owned alpha persistence', () => {
     })
     expect(store.persistence.getState()).toMatchObject({ durableRevision: 7 })
     expect(JSON.parse(backend.inspect('state') as string).writerId).toBe('racing-writer')
+    expect(backend.calls.filter((call) => call.kind === 'write')).toHaveLength(0)
+    expect(store.setValue(store.fields.value, 7)).toMatchObject({
+      ok: true,
+      persistence: 'saved',
+    })
+    store.destroy()
+  })
+
+  it('uses the baseline when durable state is removed during subscription setup', () => {
+    const encoded = encodePersistenceEnvelope({
+      storeId: 'persistence-test',
+      schemaVersion: 1,
+      revision: 4,
+      writerId: 'removed-during-subscribe',
+      values: { count: 9, secret: 'durable' },
+      scopes: new Map(),
+      includeField: () => true,
+    }).serialized
+    const backend = createMemoryPersistence({ state: encoded })
+    const driver: PicodashPersistenceDriver = {
+      ...backend,
+      subscribe(key, listener) {
+        backend.foreignWrite(key, null)
+        return backend.subscribe(key, listener)
+      },
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    expect(store.getState().values).toEqual({ count: 1, secret: 'hidden' })
+    expect(store.persistence.getState()).toMatchObject({
+      status: 'clean',
+      durableRevision: null,
+      liveRevision: 0,
+    })
+    expect(backend.inspect('state')).toBeNull()
     expect(backend.calls.filter((call) => call.kind === 'write')).toHaveLength(0)
     store.destroy()
   })
@@ -546,7 +864,7 @@ describe('Store-owned alpha persistence', () => {
       includeField: () => true,
     }).serialized
     const invalid = JSON.parse(valid)
-    delete invalid.values.secret
+    invalid.values = []
     const invalidDriver: PicodashPersistenceDriver = {
       ...invalidBackend,
       subscribe(key, listener) {
@@ -722,6 +1040,14 @@ describe('Store-owned alpha persistence', () => {
     expect(
       decodePersistenceEnvelope(unsorted, { storeId: 'persistence-test', schemaVersion: 1 }),
     ).toMatchObject({ ok: false, reason: 'metadata' })
+    for (const schemaVersion of [0, -1, 1.5, '1'])
+      expect(
+        decodePersistenceEnvelope(
+          { ...valid, schemaVersion },
+          { storeId: 'persistence-test', schemaVersion: 1 },
+          { allowSchemaMismatch: true },
+        ),
+      ).toMatchObject({ ok: false, reason: 'schema' })
 
     let getterCalls = 0
     const tuple = ['scope', {}] as unknown as Record<string, unknown>
@@ -841,5 +1167,772 @@ describe('Store-owned alpha persistence', () => {
     ).toThrowError(
       expect.objectContaining({ code: 'invalid-persistence-envelope', reason: 'shape' }),
     )
+  })
+
+  it('reloads durable fields and scopes while retaining policy-omitted live fields', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      persistence: {
+        storageKey: 'state',
+        driver: persistence,
+        values: { defaultFieldPolicy: 'omit', fields: { count: 'include' } },
+      },
+    })
+    store.setValues({ count: 2, secret: 'live-only' })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-reload'
+    foreign.values.count = 9
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({
+      ok: true,
+      persistence: 'unchanged',
+    })
+    expect(store.getState().values).toEqual({ count: 9, secret: 'live-only' })
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+    store.destroy()
+  })
+
+  it('reconciles local and durable changes with deterministic overlap policy', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    persistence.failNext('write')
+    store.setValues({ count: 3 })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-reconcile'
+    foreign.values.count = 4
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    const plan = store.persistence.createConflictResolutionPlan({
+      mode: 'reconcile',
+      onOverlap: 'local',
+    })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({
+      ok: true,
+      persistence: 'saved',
+    })
+    expect(store.getState().values.count).toBe(3)
+    expect(JSON.parse(persistence.inspect('state') as string).values.count).toBe(3)
+    store.destroy()
+  })
+
+  it('uses the durable side for reconcile overlap when requested', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    persistence.failNext('write')
+    store.setValues({ count: 3 })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-durable-overlap'
+    foreign.values.count = 4
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    const plan = store.persistence.createConflictResolutionPlan({
+      mode: 'reconcile',
+      onOverlap: 'durable',
+    })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({ ok: true })
+    expect(store.getState().values.count).toBe(4)
+    expect(JSON.parse(persistence.inspect('state') as string).values.count).toBe(4)
+    store.destroy()
+  })
+
+  it('publishes quarantines and unknown fields accepted by conflict reload', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    const recoveryListener = vi.fn()
+    store.metadataRecovery.subscribe(recoveryListener)
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-quarantine-and-field'
+    foreign.values.retired = true
+    foreign.scopes = [['quarantined', { dashPanel: { invalid: true } }]]
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({ ok: true })
+    expect(recoveryListener).toHaveBeenCalledTimes(1)
+    expect(store.metadataRecovery.getState().quarantinedScopes.has('quarantined')).toBe(true)
+    expect([...store.diagnostics.getState().current.values()].map((entry) => entry.code)).toEqual(
+      expect.arrayContaining(['metadata_quarantined', 'unknown_persisted_fields']),
+    )
+    store.destroy({ discardUnpersisted: true })
+  })
+
+  it('merges quarantined raw scope records as complete reconciliation units', () => {
+    const persistence = createMemoryPersistence()
+    const initialEnvelope = {
+      kind: 'picodash-store-envelope',
+      formatVersion: 1,
+      storeId: 'persistence-test',
+      schemaVersion: 1,
+      revision: 1,
+      writerId: 'quarantine-source',
+      valueOwner: 'store',
+      values: { count: 1, secret: 'hidden' },
+      scopes: [['scope', { dashList: { invalid: true } }]],
+    } as const
+    const store = createPicodashStore({ ...makeConfig(persistence), initialEnvelope } as never)
+    persistence.failNext('write')
+    expect(store.metadataRecovery.replaceScope('scope', null)).toMatchObject({ ok: true })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-quarantine'
+    foreign.scopes[0][1].dashList.invalid = 'foreign'
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    const plan = store.persistence.createConflictResolutionPlan({
+      mode: 'reconcile',
+      onOverlap: 'local',
+    })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({ ok: true })
+    const persisted = JSON.parse(persistence.inspect('state') as string)
+    expect(persisted.scopes).toEqual([])
+    store.destroy()
+  })
+
+  it('consumes stale plans without mutating live state and permits a fresh plan', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-stale'
+    foreign.values.count = 7
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    const stale = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    store.setValues({ secret: 'local-change' })
+    expect(store.persistence.executeConflictResolution(stale)).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'stale_plan', path: [], message: 'Persistence plan is stale.' }] },
+    })
+    expect(store.getState().values.secret).toBe('local-change')
+    const fresh = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    expect(store.persistence.executeConflictResolution(fresh)).toMatchObject({ ok: true })
+    store.destroy()
+  })
+
+  it('reloads foreign removal from the validated baseline without writing', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    persistence.foreignWrite('state', null)
+    store.setValues({ count: 3 })
+    const callsBefore = persistence.calls.length
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({ ok: true })
+    expect(store.getState().values.count).toBe(1)
+    expect(persistence.calls.slice(callsBefore).some((call) => call.kind === 'write')).toBe(false)
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean', durableRevision: null })
+    store.destroy()
+  })
+
+  it('erases after confirmation and keeps live state intact', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 4 })
+    const before = store.getState().values
+    const plan = store.persistence.createErasePlan()
+    expect(store.persistence.executeErase(plan, { confirm: true })).toEqual({
+      ok: true,
+      erased: true,
+      discardedPendingEnvelope: false,
+    })
+    expect(persistence.inspect('state')).toBeNull()
+    expect(store.getState().values).toEqual(before)
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean', durableRevision: null })
+    store.destroy()
+  })
+
+  it('holds the write lock while parsing erase confirmation', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 4 })
+    const plan = store.persistence.createErasePlan()
+    let nestedError: unknown
+    const confirmation = new Proxy(
+      { confirm: true as const },
+      {
+        ownKeys(target) {
+          try {
+            store.setValue(store.fields.count, 9)
+          } catch (error) {
+            nestedError = error
+          }
+          return Reflect.ownKeys(target)
+        },
+      },
+    )
+    expect(store.persistence.executeErase(plan, confirmation)).toMatchObject({ ok: true })
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.count).toBe(4)
+    store.destroy()
+  })
+
+  it('holds the write lock while migrating subscription observations', () => {
+    const persistence = createMemoryPersistence()
+    let nestedWrite: (() => void) | undefined
+    let nestedError: unknown
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      schemaVersion: 2,
+      migrations: {
+        1: (payload) => {
+          try {
+            nestedWrite?.()
+          } catch (error) {
+            nestedError = error
+          }
+          return { ...payload, schemaVersion: 2 }
+        },
+      },
+    })
+    nestedWrite = () => store.setValue(store.fields.count, 9)
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.schemaVersion = 1
+    foreign.revision += 1
+    foreign.writerId = 'foreign-migrating-writer'
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.count).toBe(2)
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+    store.destroy({ discardUnpersisted: true })
+  })
+
+  it('holds the write lock while persistence plans snapshot migrated durable data', () => {
+    const persistence = createMemoryPersistence()
+    const writer = createPicodashStore(makeConfig(persistence))
+    writer.setValue(writer.fields.count, 2)
+    writer.destroy()
+    let nestedWrite: (() => void) | undefined
+    const nestedErrors: unknown[] = []
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      schemaVersion: 2,
+      migrations: {
+        1: (payload) => {
+          try {
+            nestedWrite?.()
+          } catch (error) {
+            nestedErrors.push(error)
+          }
+          return { ...payload, schemaVersion: 2 }
+        },
+      },
+    })
+    nestedWrite = () => store.setValue(store.fields.count, 9)
+    store.persistence.createErasePlan()
+    expect(nestedErrors.pop()).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
+    expect(store.getState().values.count).toBe(2)
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-plan-reader'
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    nestedErrors.length = 0
+    store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(nestedErrors).toEqual([expect.objectContaining({ code: 'reentrant-write' })])
+    expect(store.getState().values.count).toBe(2)
+    store.destroy({ discardUnpersisted: true })
+  })
+
+  it('completes Store teardown when persistence unsubscribe throws', () => {
+    const persistence = createMemoryPersistence()
+    let throwOnUnsubscribe = true
+    const driver: PicodashPersistenceDriver = {
+      identity: persistence.identity,
+      read: (key) => persistence.read(key),
+      write: (key, payload) => persistence.write(key, payload),
+      remove: (key) => persistence.remove(key),
+      subscribe: (key, listener) => {
+        const unsubscribe = persistence.subscribe(key, listener)
+        return () => {
+          unsubscribe()
+          if (throwOnUnsubscribe) throw new Error('unsubscribe failed')
+        }
+      },
+    }
+    const first = createPicodashStore(makeConfig(driver))
+    expect(() => first.destroy()).toThrow('unsubscribe failed')
+    expect(() => first.getState()).toThrowError(
+      expect.objectContaining({ code: 'use-after-destroy' }),
+    )
+    const replacement = createPicodashStore(makeConfig(driver))
+    throwOnUnsubscribe = false
+    expect(() => replacement.destroy()).not.toThrow()
+  })
+
+  it('performs one verified remove even when the captured durable target is absent', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    const plan = store.persistence.createErasePlan()
+    expect(plan.hasDurableEnvelope).toBe(false)
+    const before = persistence.calls.filter((call) => call.kind === 'remove').length
+    expect(store.persistence.executeErase(plan, { confirm: true })).toMatchObject({
+      ok: true,
+      erased: false,
+    })
+    expect(persistence.calls.filter((call) => call.kind === 'remove').length).toBe(before + 1)
+    store.destroy()
+  })
+
+  it('keeps live state and conflict status after a visibly corrupted recovery write', () => {
+    const backend = createMemoryPersistence()
+    let corruptNextWrite = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => backend.read(key),
+      subscribe: (key, listener) => backend.subscribe(key, listener),
+      remove: (key) => backend.remove(key),
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (corruptNextWrite) {
+          corruptNextWrite = false
+          const corrupted = JSON.parse(backend.inspect(key) as string)
+          corrupted.revision += 1
+          backend.foreignWrite(key, JSON.stringify(corrupted))
+        }
+      },
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    store.setValues({ count: 2 })
+    backend.failNext('write')
+    store.setValues({ count: 3 })
+    const foreign = JSON.parse(backend.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-corruption'
+    foreign.values.count = 4
+    backend.foreignWrite('state', JSON.stringify(foreign))
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    corruptNextWrite = true
+    const result = store.persistence.executeConflictResolution(plan)
+    expect(result).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'persistence_resolution_failed', path: [] }] },
+    })
+    expect(store.getState().values.count).toBe(3)
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+    expect(() =>
+      store.persistence.createConflictResolutionPlan({ mode: 'overwrite' }),
+    ).not.toThrow()
+    store.destroy({ discardUnpersisted: true })
+  })
+
+  it('refreshes the conflict observation after verification fails without subscriptions', () => {
+    const backend = createMemoryPersistence()
+    let armVerificationFailure = false
+    let failVerificationRead = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => {
+        if (failVerificationRead) {
+          failVerificationRead = false
+          throw new Error('transient verification failure')
+        }
+        return backend.read(key)
+      },
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (armVerificationFailure) {
+          armVerificationFailure = false
+          failVerificationRead = true
+        }
+      },
+      remove: (key) => backend.remove(key),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(backend.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-writer'
+    foreign.values.count = 9
+    backend.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.setValues({ count: 3 })).toMatchObject({ ok: true, persistence: 'pending' })
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+
+    armVerificationFailure = true
+    const first = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    expect(store.persistence.executeConflictResolution(first)).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'persistence_resolution_failed' }] },
+    })
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+
+    const retry = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    expect(store.persistence.executeConflictResolution(retry)).toMatchObject({ ok: true })
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+    expect(JSON.parse(backend.inspect('state') as string).values.count).toBe(3)
+    store.destroy()
+  })
+
+  it('clears uncertain writes after reload establishes a new durable baseline', () => {
+    const backend = createMemoryPersistence()
+    let failVerificationRead = false
+    let uncertainPayload = ''
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => {
+        if (failVerificationRead) {
+          failVerificationRead = false
+          throw new Error('transient verification failure')
+        }
+        return backend.read(key)
+      },
+      write: (key, payload) => {
+        uncertainPayload = payload
+        backend.write(key, payload)
+        failVerificationRead = true
+      },
+      remove: (key) => backend.remove(key),
+      subscribe: (key, listener) => backend.subscribe(key, listener),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    expect(store.setValue(store.fields.count, 2)).toMatchObject({
+      ok: true,
+      persistence: 'pending',
+    })
+    const foreign = JSON.parse(uncertainPayload)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-reload-baseline'
+    foreign.values.count = 7
+    backend.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+    const reload = store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(store.persistence.executeConflictResolution(reload)).toMatchObject({ ok: true })
+    expect(store.getState().values.count).toBe(7)
+    backend.foreignWrite('state', uncertainPayload)
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+    expect(store.getState().values.count).toBe(7)
+    store.destroy({ discardUnpersisted: true })
+  })
+
+  it('rejects conflict writes when exact durable content gains an unknown field', () => {
+    const backend = createMemoryPersistence()
+    let injectUnknownField = false
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => backend.read(key),
+      subscribe: (key, listener) => backend.subscribe(key, listener),
+      write: (key, payload) => {
+        backend.write(key, payload)
+        if (injectUnknownField) {
+          injectUnknownField = false
+          const foreign = JSON.parse(payload)
+          foreign.values.retired = 'foreign'
+          backend.foreignWrite(key, JSON.stringify(foreign))
+        }
+      },
+      remove: (key) => backend.remove(key),
+    }
+    const store = createPicodashStore(makeConfig(driver))
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(backend.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-writer'
+    foreign.values.count = 9
+    backend.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.setValues({ count: 3 })).toMatchObject({ ok: true, persistence: 'pending' })
+
+    injectUnknownField = true
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'persistence_resolution_failed' }] },
+    })
+    expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+    store.destroy({ discardUnpersisted: true })
+  })
+
+  it('fences clean stores against same-header unknown durable fields', () => {
+    for (const subscribed of [true, false]) {
+      const backend = createMemoryPersistence()
+      const driver: PicodashPersistenceDriver = {
+        identity: backend.identity,
+        read: (key) => backend.read(key),
+        write: (key, payload) => backend.write(key, payload),
+        remove: (key) => backend.remove(key),
+        ...(subscribed ? { subscribe: (key, listener) => backend.subscribe(key, listener) } : {}),
+      }
+      const store = createPicodashStore(makeConfig(driver))
+      store.setValues({ count: 2 })
+      const foreign = JSON.parse(backend.inspect('state') as string)
+      foreign.values.retired = 'foreign'
+      backend.foreignWrite('state', JSON.stringify(foreign))
+      if (subscribed) expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+      else {
+        expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+        expect(store.setValues({ count: 3 })).toMatchObject({ ok: true, persistence: 'pending' })
+        expect(store.persistence.getState()).toMatchObject({ status: 'conflict' })
+      }
+      expect(JSON.parse(backend.inspect('state') as string).values.retired).toBe('foreign')
+      store.destroy({ discardUnpersisted: true })
+    }
+  })
+
+  it('rejects wrong-kind and consumed plans with safe contexts', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    const erase = store.persistence.createErasePlan()
+    expect(() => store.persistence.executeConflictResolution(erase as never)).toThrowError(
+      expect.objectContaining({ code: 'invalid-persistence-plan' }),
+    )
+    expect(store.persistence.executeErase(erase, { confirm: true })).toMatchObject({ ok: true })
+    expect(() => store.persistence.executeErase(erase, { confirm: true })).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-persistence-plan',
+        context: { kind: 'erase', reason: 'consumed' },
+      }),
+    )
+    store.destroy()
+  })
+
+  it('uses exact safe option errors without invoking accessors', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    const conflictOptions = [
+      [undefined, 'not-object'],
+      [{ mode: 'invalid' }, 'invalid-mode'],
+      [{ mode: 'reconcile' }, 'invalid-overlap'],
+      [{ mode: 'reload', extra: true }, 'unknown-key'],
+    ] as const
+    for (const [input, reason] of conflictOptions)
+      expect(() => store.persistence.createConflictResolutionPlan(input as never)).toThrowError(
+        expect.objectContaining({
+          code: 'invalid-persistence-conflict-options',
+          context: { reason },
+        }),
+      )
+    let accessed = false
+    const hostile = Object.defineProperty({ mode: 'reload' }, 'onOverlap', {
+      enumerable: true,
+      get() {
+        accessed = true
+        return 'local'
+      },
+    })
+    expect(() => store.persistence.createConflictResolutionPlan(hostile as never)).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-persistence-conflict-options',
+        context: { reason: 'accessor-property' },
+      }),
+    )
+    expect(accessed).toBe(false)
+    const throwingProxy = new Proxy(
+      {},
+      {
+        ownKeys() {
+          throw new Error('private reflection failure')
+        },
+      },
+    )
+    expect(() =>
+      store.persistence.createConflictResolutionPlan(throwingProxy as never),
+    ).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-persistence-conflict-options',
+        context: { reason: 'not-object' },
+      }),
+    )
+    expect(() => store.persistence.executeErase({} as never, undefined as never)).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-persistence-erase-options',
+        context: { reason: 'not-object' },
+      }),
+    )
+    const erasePlan = store.persistence.createErasePlan()
+    expect(() => store.persistence.executeErase(erasePlan, throwingProxy as never)).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-persistence-erase-options',
+        context: { reason: 'not-object' },
+      }),
+    )
+    expect(store.persistence.executeErase(erasePlan, { confirm: true })).toMatchObject({ ok: true })
+    store.destroy()
+  })
+
+  it('keeps erase plans retryable after remove failure and verification failure', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    persistence.failNext('remove')
+    const failed = store.persistence.createErasePlan()
+    expect(store.persistence.executeErase(failed, { confirm: true })).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'persistence_erase_failed', path: [] }] },
+    })
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean', durableRevision: 1 })
+    const retry = store.persistence.createErasePlan()
+    expect(store.persistence.executeErase(retry, { confirm: true })).toMatchObject({ ok: true })
+    store.destroy()
+
+    const backend = createMemoryPersistence()
+    let reinsert = true
+    const driver: PicodashPersistenceDriver = {
+      identity: backend.identity,
+      read: (key) => backend.read(key),
+      subscribe: (key, listener) => backend.subscribe(key, listener),
+      write: (key, payload) => backend.write(key, payload),
+      remove: (key) => {
+        const payload = backend.inspect(key)
+        backend.remove(key)
+        if (reinsert && typeof payload === 'string') backend.foreignWrite(key, payload)
+      },
+    }
+    const reinsertStore = createPicodashStore(makeConfig(driver))
+    reinsertStore.setValues({ count: 2 })
+    const verificationPlan = reinsertStore.persistence.createErasePlan()
+    expect(
+      reinsertStore.persistence.executeErase(verificationPlan, { confirm: true }),
+    ).toMatchObject({
+      ok: false,
+      error: { issues: [{ code: 'persistence_erase_failed', path: [] }] },
+    })
+    expect(reinsertStore.persistence.getState()).toMatchObject({ status: 'clean' })
+    reinsert = false
+    const verificationRetry = reinsertStore.persistence.createErasePlan()
+    expect(
+      reinsertStore.persistence.executeErase(verificationRetry, { confirm: true }),
+    ).toMatchObject({
+      ok: true,
+    })
+    reinsertStore.destroy()
+  })
+
+  it('confirms erasure of a later invalid durable record', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    persistence.foreignWrite('state', '{"invalid":true}')
+    expect(store.setValues({ count: 3 })).toMatchObject({ ok: true, persistence: 'pending' })
+    const plan = store.persistence.createErasePlan()
+    expect(plan.hasDurableEnvelope).toBe(true)
+    expect(store.persistence.executeErase(plan, { confirm: true })).toMatchObject({
+      ok: true,
+      erased: true,
+      discardedPendingEnvelope: true,
+    })
+    expect(persistence.inspect('state')).toBeNull()
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+    store.destroy()
+  })
+
+  it('confirms erasure when a later durable record fails schema migration', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore({
+      ...makeConfig(persistence),
+      schemaVersion: 2,
+      migrations: {
+        1: () => {
+          throw new Error('migration failed')
+        },
+      },
+    })
+    store.setValues({ count: 2 })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.schemaVersion = 1
+    foreign.revision += 1
+    foreign.writerId = 'foreign-writer'
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    expect(store.setValues({ count: 3 })).toMatchObject({ ok: true, persistence: 'pending' })
+
+    const plan = store.persistence.createErasePlan()
+    expect(plan.hasDurableEnvelope).toBe(true)
+    expect(store.persistence.executeErase(plan, { confirm: true })).toMatchObject({
+      ok: true,
+      erased: true,
+      discardedPendingEnvelope: true,
+    })
+    expect(persistence.inspect('state')).toBeNull()
+    expect(store.persistence.getState()).toMatchObject({ status: 'clean' })
+    store.destroy()
+  })
+
+  it('rejects a plan from a foreign root without exposing root identity', () => {
+    const firstPersistence = createMemoryPersistence()
+    const first = createPicodashStore(makeConfig(firstPersistence))
+    first.setValues({ count: 2 })
+    const foreign = JSON.parse(firstPersistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-root'
+    firstPersistence.foreignWrite('state', JSON.stringify(foreign))
+    const plan = first.persistence.createConflictResolutionPlan({ mode: 'overwrite' })
+    const second = createPicodashStore(makeConfig(createMemoryPersistence()))
+    expect(() => second.persistence.executeConflictResolution(plan)).toThrowError(
+      expect.objectContaining({
+        code: 'invalid-persistence-plan',
+        context: { kind: 'conflict-resolution', reason: 'foreign-root' },
+      }),
+    )
+    second.destroy()
+    first.destroy({ discardUnpersisted: true })
+  })
+
+  it('publishes one final root/scope transition on a successful reload', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    const scope = store.scope('reload')
+    let rootNotifications = 0
+    let scopeNotifications = 0
+    let capabilityNotifications = 0
+    const unsubRoot = store.subscribe(() => {
+      rootNotifications += 1
+    })
+    const unsubScope = scope.subscribe(() => {
+      scopeNotifications += 1
+    })
+    const unsubCapability = store.persistence.subscribe(() => {
+      capabilityNotifications += 1
+    })
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-reload-notify'
+    foreign.values.count = 9
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    rootNotifications = 0
+    scopeNotifications = 0
+    capabilityNotifications = 0
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({ ok: true })
+    expect(rootNotifications).toBe(1)
+    expect(scopeNotifications).toBe(1)
+    expect(capabilityNotifications).toBe(1)
+    unsubRoot()
+    unsubScope()
+    unsubCapability()
+    store.destroy()
+  })
+
+  it('keeps Store subscribers silent for a semantic no-op conflict reload', () => {
+    const persistence = createMemoryPersistence()
+    const store = createPicodashStore(makeConfig(persistence))
+    store.setValues({ count: 2 })
+    const scope = store.scope('reload-no-op')
+    const rootListener = vi.fn()
+    const scopeListener = vi.fn()
+    const capabilityListener = vi.fn()
+    store.subscribe(rootListener)
+    scope.subscribe(scopeListener)
+    store.persistence.subscribe(capabilityListener)
+    const foreign = JSON.parse(persistence.inspect('state') as string)
+    foreign.revision += 1
+    foreign.writerId = 'foreign-no-op'
+    persistence.foreignWrite('state', JSON.stringify(foreign))
+    rootListener.mockClear()
+    scopeListener.mockClear()
+    capabilityListener.mockClear()
+    const plan = store.persistence.createConflictResolutionPlan({ mode: 'reload' })
+    expect(store.persistence.executeConflictResolution(plan)).toMatchObject({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: [],
+    })
+    expect(rootListener).not.toHaveBeenCalled()
+    expect(scopeListener).not.toHaveBeenCalled()
+    expect(capabilityListener).toHaveBeenCalledTimes(1)
+    store.destroy()
   })
 })

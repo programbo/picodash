@@ -12,6 +12,7 @@ export function classifyIdentity(value: unknown): IdentityReason | undefined {
 }
 
 export type EntityKind = 'dashPanel' | 'dashList'
+export type BindingMode = 'input' | 'display'
 
 export type RuntimeLifecycle = 'active' | 'destroying' | 'destroyed'
 
@@ -61,6 +62,27 @@ export type RelationshipRecord = {
   active: boolean
 }
 
+export type BindingRecord = {
+  readonly kind: 'binding'
+  readonly root: object
+  readonly scopeId: string
+  readonly itemId: string
+  readonly alias: string
+  readonly field: object
+  readonly mode: BindingMode
+  lease: object
+  active: boolean
+}
+
+export type DashListNodeRecord = {
+  readonly kind: 'dashList-node'
+  readonly root: object
+  readonly scopeId: string
+  readonly nodeId: string
+  lease: object
+  active: boolean
+}
+
 type ScopedViewRecord = {
   readonly controller: RuntimeController
   readonly scopeId: string
@@ -72,13 +94,22 @@ export class RuntimeController {
   readonly providers = new Map<string, ProviderRecord>()
   readonly entities = new Set<EntityRecord>()
   readonly relationships = new Set<RelationshipRecord>()
+  readonly bindings = new Map<string, Map<string, Map<string, BindingRecord>>>()
   readonly handles = new WeakMap<object, ProviderRecord | EntityRecord>()
+  readonly bindingHandles = new WeakMap<object, BindingRecord>()
+  readonly dashListNodes = new Map<string, Map<string, DashListNodeRecord>>()
+  readonly dashListNodeHandles = new WeakMap<object, DashListNodeRecord>()
   readonly relationshipHandles = new WeakMap<object, RelationshipRecord>()
   readonly scopedViews = new WeakMap<object, ScopedViewRecord>()
   readonly parentByChildScope = new Map<string, string>()
   readonly childrenByParentScope = new Map<string, Set<string>>()
   readonly edgeCounts = new Map<string, Map<string, number>>()
   readonly resources = new Set<RuntimeResource>()
+  private bindingInteractionCleanup:
+    | ((scopeId: string, itemId: string, alias: string) => void)
+    | undefined
+  private leaseMutationGuard: (() => void) | undefined
+  private leaseMutationRunner: (<T>(operation: () => T) => T) | undefined
   lifecycle: RuntimeLifecycle = 'active'
 
   constructor(root: object) {
@@ -106,7 +137,110 @@ export class RuntimeController {
     for (const provider of this.providers.values()) if (provider.active) return true
     for (const entity of this.entities) if (entity.active) return true
     for (const relationship of this.relationships) if (relationship.active) return true
+    for (const byNode of this.dashListNodes.values())
+      for (const node of byNode.values()) if (node.active) return true
+    for (const byItem of this.bindings.values())
+      for (const byAlias of byItem.values())
+        for (const binding of byAlias.values()) if (binding.active) return true
     return false
+  }
+
+  activeDashListNode(scopeId: string, nodeId: string): DashListNodeRecord | undefined {
+    const record = this.dashListNodes.get(scopeId)?.get(nodeId)
+    return record?.active ? record : undefined
+  }
+
+  registerDashListNode(record: DashListNodeRecord): void {
+    const byNode = this.dashListNodes.get(record.scopeId) ?? new Map<string, DashListNodeRecord>()
+    byNode.set(record.nodeId, record)
+    this.dashListNodes.set(record.scopeId, byNode)
+  }
+
+  releaseDashListNode(record: DashListNodeRecord): void {
+    const byNode = this.dashListNodes.get(record.scopeId)
+    if (byNode?.get(record.nodeId) === record) {
+      byNode.delete(record.nodeId)
+      if (byNode.size === 0) this.dashListNodes.delete(record.scopeId)
+    }
+  }
+
+  activeDashListNodeIds(scopeId: string): readonly string[] {
+    return [...(this.dashListNodes.get(scopeId)?.keys() ?? [])].sort()
+  }
+
+  setBindingInteractionCleanup(
+    cleanup: (scopeId: string, itemId: string, alias: string) => void,
+  ): void {
+    this.bindingInteractionCleanup = cleanup
+  }
+
+  setLeaseMutationGuard(guard: () => void): void {
+    this.leaseMutationGuard = guard
+  }
+
+  setLeaseMutationRunner(runner: <T>(operation: () => T) => T): void {
+    this.leaseMutationRunner = runner
+  }
+
+  guardLeaseMutation(): void {
+    this.leaseMutationGuard?.()
+  }
+
+  withLeaseMutation<T>(operation: () => T): T {
+    if (this.leaseMutationRunner) return this.leaseMutationRunner(operation)
+    this.guardLeaseMutation()
+    return operation()
+  }
+
+  activeBinding(scopeId: string, itemId: string, alias: string): BindingRecord | undefined {
+    return this.bindings.get(scopeId)?.get(itemId)?.get(alias)
+  }
+
+  activeBindingFieldKeys(scopeId: string): readonly string[] {
+    const fields = new Set<string>()
+    const byItem = this.bindings.get(scopeId)
+    if (!byItem) return []
+    for (const byAlias of byItem.values()) {
+      for (const binding of byAlias.values()) {
+        if (!binding.active) continue
+        const key = (binding.field as { readonly key?: unknown }).key
+        if (typeof key === 'string') fields.add(key)
+      }
+    }
+    return [...fields].sort()
+  }
+
+  hasActiveScope(scopeId: string): boolean {
+    if (this.bindings.has(scopeId) || this.dashListNodes.has(scopeId)) return true
+    for (const entity of this.entities) if (entity.active && entity.scopeId === scopeId) return true
+    for (const relationship of this.relationships)
+      if (
+        relationship.active &&
+        (relationship.parentScopeId === scopeId || relationship.childScopeId === scopeId)
+      )
+        return true
+    return false
+  }
+
+  registerBinding(record: BindingRecord): void {
+    const byItem =
+      this.bindings.get(record.scopeId) ?? new Map<string, Map<string, BindingRecord>>()
+    const byAlias = byItem.get(record.itemId) ?? new Map<string, BindingRecord>()
+    byAlias.set(record.alias, record)
+    byItem.set(record.itemId, byAlias)
+    this.bindings.set(record.scopeId, byItem)
+  }
+
+  releaseBinding(record: BindingRecord): void {
+    this.guardLeaseMutation()
+    const byItem = this.bindings.get(record.scopeId)
+    const byAlias = byItem?.get(record.itemId)
+    if (byAlias?.get(record.alias) === record) {
+      byAlias.delete(record.alias)
+      if (byAlias.size === 0) byItem?.delete(record.itemId)
+      if (byItem && byItem.size === 0) this.bindings.delete(record.scopeId)
+    }
+    this.bindingInteractionCleanup?.(record.scopeId, record.itemId, record.alias)
   }
 
   hasUnpersistedState(): boolean {
@@ -116,17 +250,29 @@ export class RuntimeController {
 
   destroyResources(context: RuntimeResourceContext): void {
     this.lifecycle = 'destroying'
-    for (const phase of ['capability', 'kernel'] as const)
-      for (const resource of this.resources)
-        if (resource.phase === phase) resource.teardown(context)
-    this.resources.clear()
-    this.providers.clear()
-    this.entities.clear()
-    this.relationships.clear()
-    this.parentByChildScope.clear()
-    this.childrenByParentScope.clear()
-    this.edgeCounts.clear()
-    this.lifecycle = 'destroyed'
+    let firstError: unknown
+    try {
+      for (const phase of ['capability', 'kernel'] as const)
+        for (const resource of this.resources)
+          if (resource.phase === phase)
+            try {
+              resource.teardown(context)
+            } catch (error) {
+              firstError ??= error
+            }
+    } finally {
+      this.resources.clear()
+      this.providers.clear()
+      this.entities.clear()
+      this.relationships.clear()
+      this.dashListNodes.clear()
+      this.bindings.clear()
+      this.parentByChildScope.clear()
+      this.childrenByParentScope.clear()
+      this.edgeCounts.clear()
+      this.lifecycle = 'destroyed'
+    }
+    if (firstError !== undefined) throw firstError
   }
 
   descendants(scopeId: string): readonly string[] {

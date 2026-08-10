@@ -3,7 +3,14 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore, PicodashContractError } from '@picodash/store'
 import { usePicodashRootStore, usePicodashScope } from '@picodash/store/react'
-import { DashPanel, DashPanelProvider, type DashPanelStyle } from '../src/index.tsx'
+import { Button } from '@picodash/ui'
+import {
+  DashPanel,
+  DashPanelLauncher,
+  DashPanelProvider,
+  DashPanelTrigger,
+  type DashPanelStyle,
+} from '../src/index.tsx'
 import { useDashPanelPolicy, type DashPanelPolicy } from '../src/runtime/panel-policy-context.tsx'
 import {
   useDashPanelProviderPolicy,
@@ -26,8 +33,20 @@ class MockHTMLElementBase {
     return false
   }
 
+  setAttribute() {}
+
+  removeAttribute() {}
+
   contains() {
     return true
+  }
+
+  closest() {
+    return null
+  }
+
+  focus() {
+    ;(globalThis.document as { activeElement: unknown }).activeElement = this
   }
 
   getBoundingClientRect() {
@@ -38,6 +57,7 @@ class MockHTMLElementBase {
 beforeEach(() => {
   vi.stubGlobal('document', {
     body: {},
+    activeElement: null,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   })
@@ -76,10 +96,9 @@ function panel(store: ReturnType<typeof makeStore>, children?: ReactElement, id 
 function pressButton(button: ReactTestInstance) {
   const target = new MockHTMLElementBase()
   void act(() =>
-    button.props.onClick({
-      button: 0,
-      currentTarget: target,
+    (button.props.onPress ?? button.props.onClick)({
       target,
+      currentTarget: target,
       nativeEvent: { detail: 0, pointerType: '' },
       preventDefault: vi.fn(),
       stopPropagation: vi.fn(),
@@ -553,6 +572,35 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(labelled.root.findByType('aside').props['aria-label']).toBe('Inspector')
     void act(() => labelled.unmount())
     expect(() => labelledStore.destroy()).not.toThrow()
+
+    const blankStore = makeStore()
+    expect(() =>
+      render(
+        createElement(DashPanelProvider, {
+          store: blankStore,
+          providerId: 'blank',
+          children: createElement(DashPanel, { id: 'blank', title: [' ', ''] }),
+        }),
+      ),
+    ).toThrow('DashPanel titles require non-empty text or an explicit aria-label')
+    expect(() => blankStore.destroy()).not.toThrow()
+
+    const blankLabelledStore = makeStore()
+    const blankLabelled = render(
+      createElement(DashPanelProvider, {
+        store: blankLabelledStore,
+        providerId: 'blank-labelled',
+        children: createElement(DashPanel, {
+          id: 'blank',
+          title: '',
+          'aria-label': 'Inspector',
+        }),
+      }),
+    )
+    expect(blankLabelled.root.findByType('aside').props['aria-label']).toBe('Inspector')
+    expect(blankLabelled.root.findByProps({ 'aria-label': 'Close panel Inspector' })).toBeTruthy()
+    void act(() => blankLabelled.unmount())
+    expect(() => blankLabelledStore.destroy()).not.toThrow()
   })
 
   it('writes width to the public token while preserving style and rejects reserved style keys', () => {
@@ -630,7 +678,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     const store = makeStore()
     const renderer = render(panel(store))
     const aside = renderer.root.findByType('aside')
-    const button = renderer.root.findByType('button')
+    const button = renderer.root.findByProps({ 'aria-label': 'Collapse panel Inspector' })
     const body = renderer.root.findByProps({ 'data-picodash-panel-body': true })
     expect(aside.props['data-collapsed']).toBe('false')
     expect(button.props).toMatchObject({
@@ -662,7 +710,7 @@ describe('@picodash/dashpanel alpha shell', () => {
         }),
       }),
     )
-    const button = renderer.root.findByType('button')
+    const button = renderer.root.findByProps({ 'aria-label': 'Expand panel Inspector' })
     const body = renderer.root.findByProps({ 'data-picodash-panel-body': true })
     expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('true')
     expect(body.props.hidden).toBe(true)
@@ -693,7 +741,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       }),
     )
     expect(callback).not.toHaveBeenCalled()
-    const button = renderer.root.findByType('button')
+    const button = renderer.root.findByProps({ 'aria-label': 'Collapse panel Inspector' })
     pressButton(button)
     expect(callback).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenLastCalledWith(true)
@@ -745,7 +793,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       ),
     )
     expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('false')
-    expect(renderer.root.findAllByType('button')).toHaveLength(0)
+    expect(renderer.root.findByProps({ 'aria-label': 'Close panel Inspector' })).toBeTruthy()
     expect(initialCallback).not.toHaveBeenCalled()
     expect(latestCallback).toHaveBeenCalledTimes(1)
     expect(latestCallback).toHaveBeenCalledWith(false)
@@ -791,14 +839,208 @@ describe('@picodash/dashpanel alpha shell', () => {
     )
     const asides = renderer.root.findAllByType('aside')
     expect(asides).toHaveLength(2)
-    const buttons = renderer.root.findAllByType('button')
-    pressButton(buttons[0]!)
+    pressButton(renderer.root.findByProps({ 'aria-label': 'Collapse panel Outer' }))
     expect(
       renderer.root.findAllByType('aside').map((aside) => aside.props['data-collapsed']),
     ).toEqual(['true', 'false'])
     void act(() => renderer.unmount())
     expect(() => outerStore.destroy()).not.toThrow()
     expect(() => innerStore.destroy()).not.toThrow()
+  })
+
+  it('hides without unmounting, restores retained child state, and reopens from a trigger', () => {
+    const store = makeStore()
+    const visibility = vi.fn()
+    function StatefulChild() {
+      const [count, setCount] = useState(0)
+      return createElement(
+        'button',
+        { 'aria-label': 'Increment retained state', onClick: () => setCount((value) => value + 1) },
+        `${count}`,
+      )
+    }
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: [
+          createElement(DashPanelTrigger, { key: 'trigger', panelId: 'panel' }, 'Open Inspector'),
+          createElement(
+            DashPanel,
+            {
+              key: 'panel',
+              id: 'panel',
+              title: 'Inspector',
+              onVisibilityChange: visibility,
+            },
+            createElement(StatefulChild),
+          ),
+        ],
+      }),
+    )
+    const aside = renderer.root.findByType('aside')
+    pressButton(renderer.root.findByProps({ 'aria-label': 'Increment retained state' }))
+    expect(
+      renderer.root.findByProps({ 'aria-label': 'Increment retained state' }).children,
+    ).toEqual(['1'])
+    pressButton(renderer.root.findByProps({ 'aria-label': 'Close panel Inspector' }))
+    expect(aside.props).toMatchObject({ hidden: true, inert: true, 'aria-hidden': true })
+    expect(
+      renderer.root.findByProps({ 'aria-label': 'Increment retained state' }).children,
+    ).toEqual(['1'])
+    expect(visibility).toHaveBeenLastCalledWith(false)
+    pressButton(
+      renderer.root
+        .findAllByType(Button)
+        .find((button) => button.props.children === 'Open Inspector')!,
+    )
+    expect(aside.props.hidden).toBe(false)
+    expect(aside.props['data-active']).toBe('true')
+    expect(
+      renderer.root.findByProps({ 'aria-label': 'Increment retained state' }).children,
+    ).toEqual(['1'])
+    expect(visibility).toHaveBeenLastCalledWith(true)
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('projects active state onto the highest visible panel', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: [
+          createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
+          createElement(DashPanel, { key: 'second', id: 'second', title: 'Second' }),
+        ],
+      }),
+    )
+    let asides = renderer.root.findAllByType('aside')
+    expect(asides[0]?.props['data-active']).toBeUndefined()
+    expect(asides[1]?.props['data-active']).toBe('true')
+    pressButton(renderer.root.findByProps({ 'aria-label': 'Close panel Second' }))
+    asides = renderer.root.findAllByType('aside')
+    expect(asides[0]?.props['data-active']).toBe('true')
+    expect(asides[1]?.props['data-active']).toBeUndefined()
+    expect(asides[1]?.props.hidden).toBe(true)
+    void act(() => renderer.unmount())
+    store.destroy()
+  })
+
+  it('focuses an already-visible Panel when show activates it', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: [
+          createElement(DashPanelTrigger, { key: 'trigger', panelId: 'first' }, 'Show First'),
+          createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
+          createElement(DashPanel, { key: 'second', id: 'second', title: 'Second' }),
+        ],
+      }),
+    )
+    const scheduleFocus = vi.fn()
+    vi.stubGlobal('queueMicrotask', scheduleFocus)
+    pressButton(
+      renderer.root.findAllByType(Button).find((button) => button.props.children === 'Show First')!,
+    )
+    expect(renderer.root.findAllByType('aside')[0]?.props['data-active']).toBe('true')
+    expect(scheduleFocus).toHaveBeenCalledOnce()
+    void act(() => renderer.unmount())
+    store.destroy()
+  })
+
+  it('seeds hidden visibility without focus and disables unavailable launcher targets', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: [
+          createElement(DashPanelLauncher, {
+            key: 'launcher',
+            label: 'Panels',
+            items: [
+              { panelId: 'hidden', label: 'Hidden panel' },
+              { panelId: 'missing', label: 'Missing panel' },
+              {
+                panelId: 'hidden',
+                label: createElement('span', { 'aria-hidden': true }, 'H'),
+                accessibleName: 'Hidden panel icon',
+              },
+            ],
+          }),
+          createElement(DashPanel, {
+            key: 'panel',
+            id: 'hidden',
+            title: 'Hidden',
+            defaultVisible: false,
+          }),
+        ],
+      }),
+    )
+    expect(renderer.root.findByType('aside').props.hidden).toBe(true)
+    const buttons = renderer.root.findAllByType(Button)
+    const hiddenTrigger = buttons.find((button) => button.props.children === 'Hidden panel')!
+    const missingTrigger = buttons.find((button) => button.props.children === 'Missing panel')!
+    expect(hiddenTrigger.props.isDisabled).toBeFalsy()
+    expect(missingTrigger.props.isDisabled).toBe(true)
+    expect(
+      buttons.find((button) => button.props['aria-label'] === 'Hidden panel icon'),
+    ).toBeTruthy()
+    pressButton(hiddenTrigger)
+    expect(renderer.root.findByType('aside').props.hidden).toBe(false)
+    void act(() => renderer.unmount())
+  })
+
+  it('restores focus after a committed visibility callback throws', () => {
+    const store = makeStore()
+    const boundary = new MockHTMLElementBase()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        boundary: boundary as unknown as HTMLElement,
+        children: createElement(DashPanel, {
+          id: 'throwing-visibility',
+          title: 'Throwing visibility',
+          onVisibilityChange: (visible) => {
+            if (!visible) throw new Error('visibility callback failed')
+          },
+        }),
+      }),
+    )
+    expect(() =>
+      pressButton(renderer.root.findByProps({ 'aria-label': 'Close panel Throwing visibility' })),
+    ).toThrow('visibility callback failed')
+    expect(document.activeElement).toBe(boundary)
+    void act(() => renderer.unmount())
+    store.destroy()
+  })
+
+  it('rejects launcher items without a non-empty accessible name', () => {
+    expect(() =>
+      render(createElement(DashPanelLauncher, { label: '   ', items: [] })),
+    ).toThrowError('DashPanelLauncher label must not be empty.')
+    expect(() =>
+      render(
+        createElement(DashPanelLauncher, {
+          label: 'Panels',
+          items: [{ panelId: 'blank', label: '   ' }],
+        }),
+      ),
+    ).toThrowError('DashPanelLauncher items require a non-empty text label or accessibleName.')
+    expect(() =>
+      render(
+        createElement(DashPanelLauncher, {
+          label: 'Panels',
+          items: [
+            {
+              panelId: 'blank-explicit',
+              label: createElement('span', null, 'Icon'),
+              accessibleName: '   ',
+            },
+          ],
+        }),
+      ),
+    ).toThrowError('DashPanelLauncher item accessibleName must not be empty.')
   })
 
   it('reexports shared UI identities without retired aliases', async () => {

@@ -4,6 +4,7 @@ import {
   type AdapterHealthDiagnostic,
   type AdapterWriteContext,
   type ExternalOwnedConfig,
+  type ExternalOwnedPersistenceConfig,
   type PicodashInitializationErrorCode,
   type PicodashInitializationErrorReasonByCode,
   type PicodashValueAdapter,
@@ -48,6 +49,7 @@ test('adapter diagnostics and initialization errors retain correlated reason typ
     | 'persistence-driver-unavailable'
     | 'invalid-persistence-envelope'
     | 'hydration-source-conflict'
+    | 'schema-migration-failed'
   >()
   expectTypeOf<
     PicodashInitializationErrorReasonByCode['adapter-initialization-failed']
@@ -75,4 +77,25 @@ test('store-owned and external-owned configuration surfaces remain disjoint', ()
     void invalidStore
     void invalidExternal
   }
+})
+
+test('identified external configuration accepts metadata persistence without a values policy', () => {
+  const persistence: ExternalOwnedPersistenceConfig = {
+    storageKey: 'metadata',
+    driver: {
+      identity: {},
+      read: () => null,
+      write: () => undefined,
+      remove: () => undefined,
+    },
+  }
+  const config: ExternalOwnedConfig<Fields> = {
+    valueOwner: 'external',
+    storeId: 'external-config',
+    schemaVersion: 1,
+    fields: { count: { defaultValue: 1 }, label: { defaultValue: 'one' } },
+    adapter,
+    persistence,
+  }
+  void config
 })

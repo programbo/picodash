@@ -9,9 +9,13 @@ import {
   ActionSubmenu,
   DashHeader,
   DashPanel,
+  DashPanelLauncher,
   DashPanelProvider,
+  DashPanelTrigger,
+  type DashPanelLauncherProps,
   type DashPanelProps,
   type DashPanelProviderProps,
+  type DashPanelTriggerProps,
   type DashPanelBoundary,
   type DashPanelBoundaryInset,
   type DashPanelDefaultLayout,
@@ -44,7 +48,10 @@ describe('@picodash/dashpanel public types', () => {
       style: { opacity: 0.8, '--consumer-token': 'ok' } as DashPanelStyle,
       width: '24rem',
       defaultCollapsed: true,
+      defaultVisible: false,
       collapsible: true,
+      showCloseButton: false,
+      onVisibilityChange: () => {},
       onCollapsedChange: () => {},
       boundary,
       boundaryInset: 8,
@@ -59,6 +66,32 @@ describe('@picodash/dashpanel public types', () => {
     void createElement(DashPanelProvider, providerProps)
     void createElement(DashPanel, { ...panelProps, ref })
     void createElement(DashPanel, customThemePanelProps)
+    const trigger: DashPanelTriggerProps = { panelId: 'inspector', action: 'toggle' }
+    const launcher: DashPanelLauncherProps = {
+      label: 'Panels',
+      items: [{ panelId: 'inspector', label: 'Inspector', disabled: false }],
+    }
+    const iconLauncher: DashPanelLauncherProps = {
+      label: 'Panels',
+      items: [
+        {
+          panelId: 'inspector',
+          label: createElement('span', { 'aria-hidden': true }, 'I'),
+          accessibleName: 'Inspector',
+        },
+      ],
+    }
+    const unnamedIconLauncher: DashPanelLauncherProps = {
+      label: 'Panels',
+      items: [
+        // @ts-expect-error non-text launcher labels require an explicit accessible name.
+        { panelId: 'inspector', label: createElement('span', null, 'I') },
+      ],
+    }
+    void createElement(DashPanelTrigger, trigger)
+    void createElement(DashPanelLauncher, launcher)
+    void createElement(DashPanelLauncher, iconLauncher)
+    void unnamedIconLauncher
     void DashHeader
     void ActionMenu
     void ActionMenuItem
@@ -76,6 +109,16 @@ describe('@picodash/dashpanel public types', () => {
     // @ts-expect-error inlineSize is controlled by the width prop.
     const directInlineSize: DashPanelProps = { ...panelProps, style: { inlineSize: '1px' } }
     void directInlineSize
+
+    // @ts-expect-error visibility attributes are owned by the lifecycle runtime.
+    const nativeHidden: DashPanelProps = { ...panelProps, hidden: true }
+    // @ts-expect-error visibility attributes are owned by the lifecycle runtime.
+    const nativeInert: DashPanelProps = { ...panelProps, inert: true }
+    // @ts-expect-error visibility attributes are owned by the lifecycle runtime.
+    const nativeAriaHidden: DashPanelProps = { ...panelProps, 'aria-hidden': true }
+    void nativeHidden
+    void nativeInert
+    void nativeAriaHidden
 
     // @ts-expect-error Provider does not own persistence or placement policy in this cut.
     const retiredProvider: DashPanelProviderProps = { ...providerProps, storageKey: 'old' }
@@ -98,9 +141,16 @@ describe('@picodash/dashpanel public types', () => {
     const retiredPanel: DashPanelProps = { ...panelProps, contentMode: 'plain' }
     void retiredPanel
 
-    // @ts-expect-error visibility/controller props remain excluded from this cut.
+    // @ts-expect-error controlled visibility remains excluded from this cut.
     const retiredVisibility: DashPanelProps = { ...panelProps, visible: false }
     void retiredVisibility
+
+    const invalidTrigger: DashPanelTriggerProps = {
+      panelId: 'inspector',
+      // @ts-expect-error trigger actions are limited to show and toggle.
+      action: 'hide',
+    }
+    void invalidTrigger
 
     const panelBoundary: DashPanelProps = { ...panelProps, boundary: null }
     const panelInset: DashPanelProps = { ...panelProps, boundaryInset: [1, 2, 3, 4] }
