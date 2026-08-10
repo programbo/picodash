@@ -757,6 +757,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const movingLayoutEvents = ['animationstart', 'transitionrun', 'transitionstart'] as const
     const relevantLayoutAncestors = new Set<Node>()
     let observedPanelAncestors: readonly Node[] = []
+    let observedBoundaryAncestors: readonly Node[] = []
     const layoutEventTargets = new Set<EventTarget>()
     const composedHost = (root: unknown): Node | null => {
       if (root === null || typeof root !== 'object' || !('host' in root)) return null
@@ -820,8 +821,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       relevantLayoutAncestors.clear()
       observedPanelAncestors = readComposedAncestors(panel)
       for (const ancestor of observedPanelAncestors) relevantLayoutAncestors.add(ancestor)
-      for (const ancestor of readComposedAncestors(observedBoundary))
-        relevantLayoutAncestors.add(ancestor)
+      observedBoundaryAncestors = readComposedAncestors(observedBoundary)
+      for (const ancestor of observedBoundaryAncestors) relevantLayoutAncestors.add(ancestor)
       addLayoutEventTarget(ownerDocument)
       for (const target of relevantLayoutAncestors) addLayoutEventTarget(target)
       for (const target of layoutEventTargets) {
@@ -859,13 +860,19 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
               observedPanelAncestors,
               readComposedAncestors(panel),
             )
-            if (rootChanged || panelAncestorsChanged) rebuildMutationContext()
+            const boundaryAncestorsChanged = !sameNodeSequence(
+              observedBoundaryAncestors,
+              readComposedAncestors(observedBoundary),
+            )
+            if (rootChanged || panelAncestorsChanged || boundaryAncestorsChanged)
+              rebuildMutationContext()
             if (
               (panelChanged ||
                 panelAncestorChanged ||
                 inheritedContextChanged ||
                 rootChanged ||
-                panelAncestorsChanged) &&
+                panelAncestorsChanged ||
+                boundaryAncestorsChanged) &&
               panel.hidden
             ) {
               refreshGeometry()
@@ -898,6 +905,15 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         if (observedPanelRoot && observedPanelRoot !== ownerDocument) {
           inheritedMutationTargets.add(observedPanelRoot)
           mutationObserver.observe(observedPanelRoot, mutationOptions)
+        }
+        const observedBoundaryRoot = observedBoundary?.getRootNode?.()
+        if (
+          observedBoundaryRoot &&
+          observedBoundaryRoot !== ownerDocument &&
+          observedBoundaryRoot !== observedPanelRoot
+        ) {
+          inheritedMutationTargets.add(observedBoundaryRoot)
+          mutationObserver.observe(observedBoundaryRoot, mutationOptions)
         }
         let ancestor: Element | null = panel.parentElement
         while (ancestor) {

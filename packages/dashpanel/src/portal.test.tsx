@@ -253,6 +253,11 @@ describe('DashPanel portal ownership', () => {
     const firstShadowHost = document.createElement('div')
     firstShadowHost.attachShadow({ mode: 'open' }).append(portal)
     const boundary = document.createElement('div')
+    const boundaryShadowHost = document.createElement('div')
+    const boundaryShadowRoot = boundaryShadowHost.attachShadow({ mode: 'open' })
+    const firstBoundaryWrapper = document.createElement('div')
+    boundaryShadowRoot.append(firstBoundaryWrapper)
+    firstBoundaryWrapper.append(boundary)
     let boundaryWidth = 300
     let resize!: ResizeObserverCallback
     let mutate!: MutationCallback
@@ -373,6 +378,25 @@ describe('DashPanel portal ownership', () => {
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
     await act(async () => {
       secondWrapper.dispatchEvent(new Event('animationstart'))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    const secondBoundaryWrapper = document.createElement('div')
+    boundaryShadowRoot.append(secondBoundaryWrapper)
+    await act(async () => {
+      secondBoundaryWrapper.append(boundary)
+      mutate([{ target: firstBoundaryWrapper } as unknown as MutationRecord], {} as never)
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+    await act(async () => {
+      secondBoundaryWrapper.dispatchEvent(new Event('transitionstart'))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
     expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
