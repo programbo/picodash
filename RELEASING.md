@@ -1,10 +1,9 @@
 # Releasing Picodash
 
-The current prototype publishable set is `@picodash/store`, `@picodash/theme`,
-`@picodash/dashpanel`, `@picodash/dashlist`, and `@picodash/picodash`. Before the first
-contract-led release, `@picodash/ui` replaces `@picodash/theme`; do not publish both as theme
-authorities or retain an alias unless a later compatibility decision explicitly requires it. The
-repository root remains private.
+The current prototype publishable set is `@picodash/store`, `@picodash/ui`,
+`@picodash/dashpanel`, `@picodash/dashlist`, and `@picodash/picodash`. `@picodash/ui` is the sole
+shared theme authority; do not publish a second theme package or retain an alias unless a later
+compatibility decision explicitly requires it. The repository root remains private.
 
 ## Version policy
 

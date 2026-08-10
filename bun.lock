@@ -174,23 +174,6 @@
         "react",
       ],
     },
-    "packages/theme": {
-      "name": "@picodash/theme",
-      "version": "0.0.0",
-      "devDependencies": {
-        "@types/node": "catalog:",
-        "@types/react": "catalog:",
-        "@types/react-dom": "catalog:",
-        "react": "catalog:",
-        "react-dom": "catalog:",
-        "typescript": "catalog:",
-        "vite-plus": "catalog:",
-      },
-      "peerDependencies": {
-        "react": ">=19",
-        "react-dom": ">=19",
-      },
-    },
     "packages/ui": {
       "name": "@picodash/ui",
       "version": "0.0.0",
@@ -486,8 +469,6 @@
     "@picodash/picodash": ["@picodash/picodash@workspace:packages/picodash"],
 
     "@picodash/store": ["@picodash/store@workspace:packages/store"],
-
-    "@picodash/theme": ["@picodash/theme@workspace:packages/theme"],
 
     "@picodash/ui": ["@picodash/ui@workspace:packages/ui"],
 

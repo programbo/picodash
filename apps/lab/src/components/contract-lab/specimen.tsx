@@ -215,7 +215,12 @@ export function ContractLabSpecimen({
   }, [diagnosticCount, onDiagnosticCountChange])
 
   return (
-    <PicodashProvider store={store} boundary={boundary} theme="dark">
+    <PicodashProvider
+      store={store}
+      boundary={boundary}
+      theme="dark"
+      density={preset.id === 'themes' ? 'compact' : 'regular'}
+    >
       <ContractLabDevBridgeConnector store={store} />
       <ContractLabPersistenceProbe />
       <div className="flex flex-wrap items-center gap-2" data-contract-lab-panel-controls>

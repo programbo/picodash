@@ -56,7 +56,7 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Theme and density Providers are available; detached portal carriers and complete compact geometry remain planned.',
+      'Theme and density Providers are available; this preset renders the compact recipe while detached portal carriers remain planned.',
     id: 'themes',
     implementation: 'Partial',
     label: 'Themes',

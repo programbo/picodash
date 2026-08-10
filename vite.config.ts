@@ -13,7 +13,6 @@ const tailwindEntryPoints = workspaceCwd.endsWith('/packages/ui')
             { files: 'packages/dashpanel/**', use: 'packages/dashpanel/style.css' },
             { files: 'packages/dashlist/**', use: 'packages/dashlist/style.css' },
             { files: 'packages/picodash/**', use: 'packages/picodash/style.css' },
-            { files: 'packages/theme/**', use: 'packages/theme/src/styles.css' },
             { files: 'apps/web/**', use: 'apps/web/src/style.css' },
             { files: '**', use: 'apps/web/src/style.css' },
           ]

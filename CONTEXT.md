@@ -10,7 +10,7 @@ Picodash ships three foundational products and one integrated product:
 - `@picodash/picodash`: the integrated facade combining DashPanel and DashList.
 
 `@picodash/ui` is the supporting theme, density, token, and generic accessible UI foundation. The
-current `@picodash/theme` package is prototype evidence scheduled for replacement.
+former `@picodash/theme` package was retired in the pre-release clean replacement.
 
 The production website has one public route, `/`. The Contract Lab runs in `apps/lab` under `/lab`
 for local debugging and is not deployed with the website.

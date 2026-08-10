@@ -16,7 +16,7 @@ them. Re-read the routes when the task expands into another package.
 - Dev Bridge or agent-facing inspection: [`docs/agents/dev-bridge.md`](docs/agents/dev-bridge.md),
   [`docs/development/agent-dev-bridge.md`](docs/development/agent-dev-bridge.md), and
   [`packages/dev-bridge/README.md`](packages/dev-bridge/README.md).
-- Shared UI or replacement of `packages/theme`: [`docs/agents/ui.md`](docs/agents/ui.md),
+- Shared UI maintenance: [`docs/agents/ui.md`](docs/agents/ui.md),
   [`docs/adr/0003-shared-ui-foundation.md`](docs/adr/0003-shared-ui-foundation.md), and
   [`docs/reference/ui.md`](docs/reference/ui.md).
 - DashPanel behavior or docs: [`docs/agents/dashpanel.md`](docs/agents/dashpanel.md) and
@@ -227,7 +227,7 @@ server.
 
 - `packages/store`: Store prototype and tests.
 - `packages/dev-bridge`: private authenticated loopback Store inspection bridge.
-- `packages/theme`: theme prototype scheduled to be replaced by `packages/ui`.
+- `packages/ui`: shared theme, density, token, and generic accessible UI foundation.
 - `packages/dashpanel`: standalone DashPanel prototype.
 - `packages/dashlist`: standalone DashList prototype.
 - `packages/picodash`: integrated facade prototype.

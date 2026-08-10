@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { devices, expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
@@ -142,6 +142,82 @@ test('opens, cancels, and restores focus for the landed shared AlertDialog', asy
   await dialog.getByRole('button', { name: 'Cancel' }).click()
   await expect(dialog).toHaveCount(0)
   await expect(trigger).toBeFocused()
+})
+
+test('proves regular and compact UI geometry plus coarse-pointer hit targets', async ({
+  page,
+  browser,
+}) => {
+  await openLab(page)
+  await page.getByRole('button', { name: /^Composition:/ }).click()
+  const regularTrigger = page.getByRole('button', { name: 'Open shared AlertDialog' })
+  const regular = await regularTrigger.evaluate((element) => {
+    const style = getComputedStyle(element)
+    const rect = element.getBoundingClientRect()
+    return {
+      density: element.closest('[data-picodash-density]')?.getAttribute('data-picodash-density'),
+      height: rect.height,
+      width: rect.width,
+      controlHeight: style.getPropertyValue('--picodash-control-height-md').trim(),
+      fontSize: style.fontSize,
+    }
+  })
+  expect(regular.density).toBe('regular')
+  expect(regular.height).toBe(32)
+  expect(regular.controlHeight).toBe('2rem')
+
+  await page.getByRole('button', { name: /^Themes:/ }).click()
+  const compactTrigger = page.getByRole('button', { name: 'Open shared AlertDialog' })
+  const compact = await compactTrigger.evaluate((element) => {
+    const style = getComputedStyle(element)
+    const rect = element.getBoundingClientRect()
+    return {
+      density: element.closest('[data-picodash-density]')?.getAttribute('data-picodash-density'),
+      height: rect.height,
+      width: rect.width,
+      controlHeight: style.getPropertyValue('--picodash-control-height-md').trim(),
+      fontSize: style.fontSize,
+    }
+  })
+  expect(compact.density).toBe('compact')
+  expect(compact.height).toBe(28)
+  expect(compact.height).toBeLessThan(regular.height)
+  expect(compact.controlHeight).toBe('1.75rem')
+  expect(compact.fontSize).toBe(regular.fontSize)
+
+  const coarseContext = await browser.newContext({
+    ...devices['iPhone 13'],
+    baseURL: new URL(page.url()).origin,
+  })
+  try {
+    const coarseErrors: string[] = []
+    const coarsePage = await coarseContext.newPage()
+    coarsePage.on('console', (message) => {
+      if (message.type() === 'error') coarseErrors.push(message.text())
+    })
+    coarsePage.on('pageerror', (error) => coarseErrors.push(error.message))
+    await openLab(coarsePage)
+    await coarsePage.addStyleTag({ content: ':root { font-size: 12px; }' })
+    await expect
+      .poll(() => coarsePage.evaluate(() => getComputedStyle(document.documentElement).fontSize))
+      .toBe('12px')
+    await coarsePage.getByRole('button', { name: /^Themes:/ }).click()
+    const coarseTrigger = coarsePage.getByRole('button', { name: 'Open shared AlertDialog' })
+    const coarse = await coarseTrigger.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        coarsePointer: matchMedia('(pointer: coarse)').matches,
+        width: rect.width,
+        height: rect.height,
+      }
+    })
+    expect(coarse.coarsePointer).toBe(true)
+    expect(coarse.width).toBeGreaterThanOrEqual(44)
+    expect(coarse.height).toBeGreaterThanOrEqual(44)
+    expect(coarseErrors).toEqual([])
+  } finally {
+    await coarseContext.close()
+  }
 })
 
 test('connects the real browser specimen through the dev bridge and rejects the retired generation', async ({
