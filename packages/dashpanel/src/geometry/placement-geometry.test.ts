@@ -83,12 +83,12 @@ describe('DashPanel placement geometry', () => {
       height: 150,
     })
     expect(dockDashPanelRect('center-right', boundary, size, { allocation: 50 })).toEqual({
-      top: 60,
+      top: 65,
       left: 160,
       right: 220,
-      bottom: 110,
+      bottom: 105,
       width: 60,
-      height: 50,
+      height: 40,
     })
     expect(dockDashPanelRect('bottom-left', boundary, size, { allocation: 25 })).toEqual({
       top: 135,
@@ -98,6 +98,16 @@ describe('DashPanel placement geometry', () => {
       width: 60,
       height: 25,
     })
+    expect(dockDashPanelRect('full-left', boundary, size, { allocation: 100, offset: 50 })).toEqual(
+      {
+        top: 60,
+        left: 20,
+        right: 80,
+        bottom: 160,
+        width: 60,
+        height: 100,
+      },
+    )
     expect(dockDashPanelRect('full-top', boundary, size)).toEqual({
       top: 10,
       left: 20,

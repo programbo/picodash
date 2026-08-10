@@ -223,7 +223,7 @@ function StandalonePhase2Evidence({
         <div
           ref={setPortalTarget}
           data-contract-lab-standalone-portal-target
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 z-10"
         />
         <DashPanelProvider
           store={store}

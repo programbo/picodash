@@ -312,6 +312,40 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('preserves Hybrid mode when keyboard movement commits a free placement', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'panel',
+          title: 'Inspector',
+          defaultLayout: {
+            placement: {
+              mode: 'hybrid',
+              disposition: { kind: 'docked', position: 'full-left' },
+            },
+            preferredPosition: { x: 4, y: 6 },
+          },
+        }),
+      }),
+    )
+    let move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    act(() => {
+      void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    act(() => {
+      void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    expect(store.getState().scopes.get('panel')?.dashPanel).toEqual({
+      placement: { mode: 'hybrid', disposition: { kind: 'free' } },
+      preferredPosition: { x: 4, y: 6 },
+    })
+    act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('requires a root Store and rejects scoped Stores', () => {
     const store = makeStore()
     expect(() => render(createElement(DashPanel, { id: 'outside', title: 'Outside' }))).toThrow(

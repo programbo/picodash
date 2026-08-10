@@ -15,6 +15,8 @@ export interface DashPanelSize {
 export interface DashPanelDockTargetOptions {
   /** Maximum height for a left or right side occupant. */
   readonly allocation?: number
+  /** Offset of the allocated side segment from the boundary's top edge. */
+  readonly offset?: number
 }
 
 const finite = (value: unknown, label: string): number => {
@@ -191,6 +193,17 @@ function sideAllocationHeight(
   return Math.min(allocation, boundaryHeight)
 }
 
+function sideAllocationOffset(
+  position: DashPanelDockPosition,
+  options: DashPanelDockTargetOptions | undefined,
+  boundaryHeight: number,
+): number | undefined {
+  if (!position.endsWith('-left') && !position.endsWith('-right')) return undefined
+  if (options?.offset === undefined) return undefined
+  const offset = nonNegative(options.offset, 'DashPanel dock allocation offset')
+  return Math.min(offset, boundaryHeight)
+}
+
 /** Returns the flush rectangle for one of the twelve canonical dock targets. */
 export function dockDashPanelRect(
   position: DashPanelDockPosition,
@@ -203,38 +216,66 @@ export function dockDashPanelRect(
   const width = Math.min(panelSize.width, target.width)
   const height = Math.min(panelSize.height, target.height)
   const sideHeight = sideAllocationHeight(position, options, target.height)
+  const sideOffset = sideAllocationOffset(position, options, target.height)
   const isFullSide = position === 'full-left' || position === 'full-right'
-  const allocatedHeight = sideHeight ?? (isFullSide ? target.height : height)
+  const allocatedHeight =
+    sideHeight === undefined
+      ? isFullSide
+        ? target.height
+        : height
+      : isFullSide
+        ? sideHeight
+        : Math.min(height, sideHeight)
   let x = target.left
   let y = target.top
   let resultWidth = width
   let resultHeight = allocatedHeight
   switch (position) {
     case 'top-left':
+      if (sideHeight !== undefined) y = target.top + (sideOffset ?? 0)
       break
     case 'top-right':
       x = target.right - width
+      if (sideHeight !== undefined) y = target.top + (sideOffset ?? 0)
       break
     case 'bottom-right':
       x = target.right - width
-      y = target.bottom - allocatedHeight
+      y =
+        sideHeight === undefined
+          ? target.bottom - allocatedHeight
+          : target.top + (sideOffset ?? target.height - sideHeight) + sideHeight - allocatedHeight
       resultHeight = allocatedHeight
       break
     case 'bottom-left':
-      y = target.bottom - allocatedHeight
+      y =
+        sideHeight === undefined
+          ? target.bottom - allocatedHeight
+          : target.top + (sideOffset ?? target.height - sideHeight) + sideHeight - allocatedHeight
       resultHeight = allocatedHeight
       break
     case 'full-left':
+      if (sideHeight !== undefined) y = target.top + (sideOffset ?? 0)
       break
     case 'center-left':
-      y = target.top + (target.height - allocatedHeight) / 2
+      y =
+        sideHeight === undefined
+          ? target.top + (target.height - allocatedHeight) / 2
+          : target.top +
+            (sideOffset ?? (target.height - sideHeight) / 2) +
+            (sideHeight - allocatedHeight) / 2
       break
     case 'full-right':
       x = target.right - width
+      if (sideHeight !== undefined) y = target.top + (sideOffset ?? 0)
       break
     case 'center-right':
       x = target.right - width
-      y = target.top + (target.height - allocatedHeight) / 2
+      y =
+        sideHeight === undefined
+          ? target.top + (target.height - allocatedHeight) / 2
+          : target.top +
+            (sideOffset ?? (target.height - sideHeight) / 2) +
+            (sideHeight - allocatedHeight) / 2
       break
     case 'full-top':
       resultWidth = target.width

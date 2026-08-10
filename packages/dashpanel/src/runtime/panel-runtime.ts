@@ -9,7 +9,10 @@ import type {
   DashPanelPlacement,
   DashPanelPresentation,
 } from '../placement/placement.ts'
-import { resolveDashPanelDockSlot } from '../placement/dock-arena.ts'
+import {
+  resolveDashPanelDockSideAllocation,
+  resolveDashPanelDockSlot,
+} from '../placement/dock-arena.ts'
 
 export type DashPanelCommandResult =
   | { readonly status: 'executed' }
@@ -42,6 +45,16 @@ type PanelRuntimePanelConfig = Readonly<{
   readonly presentation: DashPanelPresentation
 }>
 
+export interface PanelRuntimeDockArena {
+  readonly boundary: object | null
+  readonly inset: Readonly<{ top: number; right: number; bottom: number; left: number }>
+}
+
+export interface PanelRuntimeDockTarget {
+  readonly allocation: number
+  readonly offset: number
+}
+
 export interface PanelRuntimeConfig {
   readonly scopeId: string
   readonly defaultVisible?: boolean
@@ -55,6 +68,9 @@ export interface PanelRuntimeConfig {
   readonly presentation?: DashPanelPresentation
   readonly store?: PanelLayoutStore
   readonly currentPosition?: () => Readonly<{ x: number; y: number }> | undefined
+  readonly freeMovePosition?: () => Readonly<{ x: number; y: number }> | undefined
+  readonly preferredPosition?: Readonly<{ x: number; y: number }>
+  readonly resolveDockArena?: () => PanelRuntimeDockArena
 }
 
 export type PanelRuntimeUpdate = Pick<
@@ -68,6 +84,9 @@ export type PanelRuntimeUpdate = Pick<
   | 'presentation'
   | 'store'
   | 'currentPosition'
+  | 'freeMovePosition'
+  | 'preferredPosition'
+  | 'resolveDockArena'
 >
 
 export type PanelRuntimeCommandResult =
@@ -84,6 +103,8 @@ export interface PanelRuntimePanelSnapshot {
   readonly visible: boolean
   readonly collapsed: boolean
   readonly collapsible: boolean
+  readonly placement: DashPanelPlacement
+  readonly placementFallbackReason?: 'dock_occupied'
 }
 
 export interface PanelRuntimeSnapshot {
@@ -105,6 +126,7 @@ export interface PanelRuntime {
   setPlacement(scopeId: string, placement: DashPanelPlacement): DashPanelLayoutCommandResult
   resetLayout(scopeId: string): DashPanelLayoutCommandResult
   getPanelConfig(scopeId: string): PanelRuntimePanelConfig | undefined
+  getDockTarget(scopeId: string, available: number): PanelRuntimeDockTarget | undefined
   registerElement(scopeId: string, element: HTMLElement | null): void
   getElement(scopeId: string): HTMLElement | null
 }
@@ -120,8 +142,13 @@ interface MutablePanel {
   placement: DashPanelPlacement
   dockPositions: readonly DashPanelDockPosition[]
   presentation: DashPanelPresentation
+  requestedPlacement: DashPanelPlacement
+  placementFallbackReason?: 'dock_occupied'
   store?: PanelRuntimeConfig['store']
   currentPosition?: PanelRuntimeConfig['currentPosition']
+  freeMovePosition?: PanelRuntimeConfig['freeMovePosition']
+  preferredPosition?: PanelRuntimeConfig['preferredPosition']
+  resolveDockArena?: PanelRuntimeConfig['resolveDockArena']
   configSnapshot?: PanelRuntimePanelConfig
   readonly generation: symbol
   element: HTMLElement | null
@@ -148,7 +175,42 @@ function freezePanel(panel: MutablePanel): PanelRuntimePanelSnapshot {
     visible: panel.visible,
     collapsed: panel.collapsed,
     collapsible: panel.collapsible,
+    placement: panel.placement,
+    ...(panel.placementFallbackReason
+      ? { placementFallbackReason: panel.placementFallbackReason }
+      : {}),
   })
+}
+
+const DEFAULT_DOCK_ARENA: PanelRuntimeDockArena = Object.freeze({
+  boundary: null,
+  inset: Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 }),
+})
+
+const CONTAINED_FLOATING_FALLBACK: DashPanelPlacement = Object.freeze({
+  mode: 'floating',
+  disposition: Object.freeze({ kind: 'snapped', position: 'top-right' }),
+})
+
+function dockedPosition(placement: DashPanelPlacement): DashPanelDockPosition | undefined {
+  if (placement.mode === 'fixed') return placement.disposition.position
+  return placement.mode === 'hybrid' && placement.disposition.kind === 'docked'
+    ? placement.disposition.position
+    : undefined
+}
+
+function placementKey(placement: DashPanelPlacement): string {
+  return `${placement.mode}:${placement.disposition.kind}:${'position' in placement.disposition ? placement.disposition.position : ''}`
+}
+
+function sameDockArena(first: PanelRuntimeDockArena, second: PanelRuntimeDockArena): boolean {
+  return (
+    first.boundary === second.boundary &&
+    first.inset.top === second.inset.top &&
+    first.inset.right === second.inset.right &&
+    first.inset.bottom === second.inset.bottom &&
+    first.inset.left === second.inset.left
+  )
 }
 
 function freezePanels(
@@ -177,6 +239,44 @@ export function createPanelRuntime(): PanelRuntime {
   }
 
   const panelFor = (scopeId: string): MutablePanel | undefined => panels.get(scopeId)
+
+  const dockArenaFor = (panel: MutablePanel): PanelRuntimeDockArena =>
+    panel.resolveDockArena?.() ?? DEFAULT_DOCK_ARENA
+
+  const dockOccupant = (
+    panel: MutablePanel,
+    position: DashPanelDockPosition,
+  ): MutablePanel | undefined =>
+    [...panels.values()].find((other) => {
+      if (
+        other.scopeId === panel.scopeId ||
+        !sameDockArena(dockArenaFor(panel), dockArenaFor(other))
+      )
+        return false
+      const otherPosition = dockedPosition(other.placement)
+      return (
+        otherPosition !== undefined &&
+        resolveDashPanelDockSlot(otherPosition) === resolveDashPanelDockSlot(position)
+      )
+    })
+
+  const materializePlacement = (
+    panel: MutablePanel,
+    requested: DashPanelPlacement,
+  ): { placement: DashPanelPlacement; fallbackReason?: 'dock_occupied' } => {
+    const position = dockedPosition(requested)
+    if (position === undefined || dockOccupant(panel, position) === undefined)
+      return { placement: requested }
+    const declared = panel.defaultLayout.placement
+    const declaredPosition = dockedPosition(declared)
+    if (declaredPosition === undefined || dockOccupant(panel, declaredPosition) === undefined)
+      return { placement: declared, fallbackReason: 'dock_occupied' }
+    const fallback =
+      requested.mode === 'hybrid'
+        ? ({ mode: 'hybrid', disposition: { kind: 'snapped', position: 'top' } } as const)
+        : CONTAINED_FLOATING_FALLBACK
+    return { placement: fallback, fallbackReason: 'dock_occupied' }
+  }
 
   const activatePanel = (panel: MutablePanel): boolean => {
     const currentIndex = activationOrder.indexOf(panel.scopeId)
@@ -241,6 +341,13 @@ export function createPanelRuntime(): PanelRuntime {
       if (panels.has(config.scopeId))
         throw new TypeError(`Panel scope is already active: ${config.scopeId}`)
 
+      const requestedPlacement =
+        config.placement ??
+        config.defaultLayout?.placement ??
+        ({
+          mode: 'floating',
+          disposition: { kind: 'snapped', position: 'top-right' },
+        } as DashPanelPlacement)
       const panel: MutablePanel = {
         scopeId: config.scopeId,
         visible: config.defaultVisible ?? true,
@@ -258,18 +365,19 @@ export function createPanelRuntime(): PanelRuntime {
               disposition: { kind: 'snapped', position: 'top-right' },
             },
           } as DashPanelDefaultLayout),
-        placement:
-          config.placement ??
-          config.defaultLayout?.placement ??
-          ({
-            mode: 'floating',
-            disposition: { kind: 'snapped', position: 'top-right' },
-          } as DashPanelPlacement),
+        placement: requestedPlacement,
+        requestedPlacement,
         dockPositions: [...(config.dockPositions ?? [])],
         presentation: config.presentation ?? { kind: 'panel' },
         store: config.store,
         currentPosition: config.currentPosition,
+        freeMovePosition: config.freeMovePosition,
+        preferredPosition: config.preferredPosition,
+        resolveDockArena: config.resolveDockArena,
       }
+      const materialized = materializePlacement(panel, requestedPlacement)
+      panel.placement = materialized.placement
+      panel.placementFallbackReason = materialized.fallbackReason
       panels.set(config.scopeId, panel)
       activationOrder.push(config.scopeId)
       publish()
@@ -301,9 +409,14 @@ export function createPanelRuntime(): PanelRuntime {
             changed = true
           }
           if (update.placement !== undefined) {
-            current.placement = update.placement
-            current.configSnapshot = undefined
-            changed = true
+            if (placementKey(update.placement) !== placementKey(current.requestedPlacement)) {
+              current.requestedPlacement = update.placement
+              const materialized = materializePlacement(current, update.placement)
+              current.placement = materialized.placement
+              current.placementFallbackReason = materialized.fallbackReason
+              current.configSnapshot = undefined
+              changed = true
+            }
           }
           if (update.dockPositions !== undefined) {
             current.dockPositions = [...update.dockPositions]
@@ -321,6 +434,24 @@ export function createPanelRuntime(): PanelRuntime {
           }
           if (Object.prototype.hasOwnProperty.call(update, 'currentPosition')) {
             current.currentPosition = update.currentPosition
+            changed = true
+          }
+          if (Object.prototype.hasOwnProperty.call(update, 'freeMovePosition')) {
+            current.freeMovePosition = update.freeMovePosition
+            changed = true
+          }
+          if (Object.prototype.hasOwnProperty.call(update, 'preferredPosition')) {
+            current.preferredPosition = update.preferredPosition
+            changed = true
+          }
+          if (Object.prototype.hasOwnProperty.call(update, 'resolveDockArena')) {
+            current.resolveDockArena = update.resolveDockArena
+            if (!current.placementFallbackReason) {
+              const materialized = materializePlacement(current, current.placement)
+              current.placement = materialized.placement
+              current.placementFallbackReason = materialized.fallbackReason
+            }
+            current.configSnapshot = undefined
             changed = true
           }
           if (changed) publish()
@@ -410,28 +541,27 @@ export function createPanelRuntime(): PanelRuntime {
             : undefined
       if (docked !== undefined && !panel.dockPositions.includes(docked))
         return { status: 'not_executed', reason: 'position_disabled' }
-      const occupant = [...panels.values()].find((other) => {
-        if (other.scopeId === scopeId) return false
-        const otherDocked =
-          other.placement.mode === 'fixed'
-            ? other.placement.disposition.position
-            : other.placement.mode === 'hybrid' && other.placement.disposition.kind === 'docked'
-              ? other.placement.disposition.position
-              : undefined
-        return (
-          docked !== undefined &&
-          otherDocked !== undefined &&
-          resolveDashPanelDockSlot(otherDocked) === resolveDashPanelDockSlot(docked)
-        )
-      })
+      const occupant = docked === undefined ? undefined : dockOccupant(panel, docked)
       if (occupant) return { status: 'not_executed', reason: 'dock_occupied' }
-      const preferred = panel.currentPosition?.() ?? panel.defaultLayout.preferredPosition
+      const preferred =
+        (placement.disposition.kind === 'free' ? panel.freeMovePosition?.() : undefined) ??
+        panel.preferredPosition ??
+        panel.defaultLayout.preferredPosition ??
+        panel.currentPosition?.()
       if (!preferred) return { status: 'not_executed', reason: 'unavailable' }
       const transaction = panel.store?.setDashPanelLayout({
         placement,
         preferredPosition: { x: preferred.x, y: preferred.y },
       } as DashPanelLayoutRecord)
       if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
+      if (transaction.ok) {
+        panel.requestedPlacement = placement
+        panel.placement = placement
+        panel.placementFallbackReason = undefined
+        panel.preferredPosition = Object.freeze({ x: preferred.x, y: preferred.y })
+        panel.configSnapshot = undefined
+        publish()
+      }
       return { status: 'executed', transaction }
     },
     resetLayout(scopeId) {
@@ -440,6 +570,15 @@ export function createPanelRuntime(): PanelRuntime {
       if (panel.presentation.kind !== 'panel') return modalPresentation()
       const transaction = panel.store?.resetDashPanelLayout()
       if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
+      if (transaction.ok) {
+        panel.requestedPlacement = panel.defaultLayout.placement
+        const materialized = materializePlacement(panel, panel.defaultLayout.placement)
+        panel.placement = materialized.placement
+        panel.placementFallbackReason = materialized.fallbackReason
+        panel.preferredPosition = panel.defaultLayout.preferredPosition
+        panel.configSnapshot = undefined
+        publish()
+      }
       return { status: 'executed', transaction }
     },
     getPanelConfig(scopeId) {
@@ -453,6 +592,31 @@ export function createPanelRuntime(): PanelRuntime {
         presentation: panel.presentation,
       })
       return panel.configSnapshot
+    },
+    getDockTarget(scopeId, available) {
+      const panel = panelFor(scopeId)
+      if (!panel || !Number.isFinite(available) || available < 0) return undefined
+      const position = dockedPosition(panel.placement)
+      if (!position || (!position.endsWith('-left') && !position.endsWith('-right')))
+        return undefined
+      const arena = dockArenaFor(panel)
+      const occupants = [...panels.values()].flatMap((other) => {
+        if (!sameDockArena(arena, dockArenaFor(other))) return []
+        const otherPosition = dockedPosition(other.placement)
+        return otherPosition &&
+          (otherPosition.endsWith('-left') || otherPosition.endsWith('-right'))
+          ? [{ id: other.scopeId, position: otherPosition }]
+          : []
+      })
+      const side = position.endsWith('-left') ? 'left' : 'right'
+      const allocation = resolveDashPanelDockSideAllocation(
+        side,
+        occupants,
+        available,
+      ).allocations.find((value) => value.position === position)
+      return allocation
+        ? Object.freeze({ allocation: allocation.max, offset: allocation.offset })
+        : undefined
     },
     registerElement(scopeId, element) {
       const panel = panelFor(scopeId)

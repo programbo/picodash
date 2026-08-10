@@ -1,5 +1,4 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
-import { usePicodashRootSelector } from '@picodash/store/react'
 import type {
   DashPanelCommandResult,
   DashPanelLayoutCommandResult,
@@ -11,7 +10,6 @@ import {
   type DashPanelPlacement,
   type DashPanelPresentation,
 } from '../placement/placement.ts'
-import { classifyDashPanelPlacement } from '../placement/dock-policy.ts'
 
 export type { DashPanelCommandResult, DashPanelLayoutCommandResult }
 
@@ -97,21 +95,15 @@ export function useDashPanel(panelId?: string): DashPanelController {
     throw new TypeError('useDashPanel without panelId requires a nearest DashPanel.')
   const state = useDashPanelRuntimeState(scopeId)
   const config = runtime.getPanelConfig(scopeId)
-  const metadata = usePicodashRootSelector((snapshot) => snapshot.scopes.get(scopeId)?.dashPanel)
   return useMemo(() => {
     if (!state || !config) return unavailableController(runtime, scopeId)
-    const effectivePlacement =
-      metadata &&
-      classifyDashPanelPlacement(metadata.placement, config.dockPositions).status === 'available'
-        ? (metadata.placement as DashPanelPlacement)
-        : config.placement
     return Object.freeze({
       availability: 'available' as const,
       scopeId,
       visible: state.visible,
       collapsed: state.collapsed,
       collapsible: state.collapsible,
-      placement: effectivePlacement,
+      placement: state.placement,
       presentation: config.presentation,
       show: () => runtime.show(scopeId),
       hide: () => runtime.hide(scopeId),
@@ -124,5 +116,5 @@ export function useDashPanel(panelId?: string): DashPanelController {
         runtime.setPlacement(scopeId, normalizeDashPanelPlacement(placement)),
       resetLayout: () => runtime.resetLayout(scopeId),
     }) as DashPanelController
-  }, [config, metadata, runtime, scopeId, state])
+  }, [config, runtime, scopeId, state])
 }

@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore } from '@picodash/store'
 import { usePicodashScope } from '@picodash/store/react'
+import { PicodashOverlayProvider } from '@picodash/ui'
 import { DashPanel, DashPanelProvider } from './index.tsx'
 
 let root: Root
@@ -57,15 +58,115 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
-  it('keeps an explicit null portal inline', async () => {
+  it('resolves an explicit null portal to document.body', async () => {
     const store = makeStore()
     await render(
       <DashPanelProvider store={store} portalContainer={null}>
         <DashPanel id="inspector" title="Inspector" />
       </DashPanelProvider>,
     )
-    expect(container.querySelector('[data-picodash-panel]')).toBeTruthy()
+    const panel = document.body.querySelector('[data-picodash-panel]')
+    expect(container.querySelector('[data-picodash-panel]')).toBeNull()
+    expect(panel).toBeTruthy()
+    expect(panel?.closest('[data-picodash-theme]')?.parentElement).toBe(document.body)
     await act(async () => root.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('inherits the resolved overlay portal when the Panel Provider omits one', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    await render(
+      <PicodashOverlayProvider portalContainer={portal}>
+        <DashPanelProvider store={store}>
+          <DashPanel id="inspector" title="Inspector" />
+        </DashPanelProvider>
+      </PicodashOverlayProvider>,
+    )
+    expect(container.querySelector('[data-picodash-panel]')).toBeNull()
+    expect(portal.querySelector('[data-picodash-panel]')).toBeTruthy()
+    await act(async () => root.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('projects a persisted free anchor into the rendered boundary', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    const boundaryRect = {
+      top: 20,
+      right: 210,
+      bottom: 120,
+      left: 10,
+      width: 200,
+      height: 100,
+    } as DOMRect
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary) return boundaryRect
+        if (this.hasAttribute('data-picodash-panel'))
+          return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'floating', disposition: { kind: 'free' } },
+            preferredPosition: { x: 999, y: -100 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    expect(panel.style.left).toBe('130px')
+    expect(panel.style.top).toBe('20px')
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('applies side allocation segments to compatible dock occupants', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 300, left: 0, width: 300, height: 300 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel'))
+          return { top: 0, right: 80, bottom: 240, left: 0, width: 80, height: 240 } as DOMRect
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="corner"
+          title="Corner"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'top-left' } },
+          }}
+        />
+        <DashPanel
+          id="main"
+          title="Main"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panels = [...portal.querySelectorAll('[data-picodash-panel]')] as HTMLElement[]
+    expect(panels[0]?.style.top).toBe('0px')
+    expect(panels[0]?.style.maxBlockSize).toBe('100px')
+    expect(panels[1]?.style.top).toBe('100px')
+    expect(panels[1]?.style.blockSize).toBe('200px')
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()
   })
 

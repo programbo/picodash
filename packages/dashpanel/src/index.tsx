@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  createContext,
   forwardRef,
   useId,
   useEffect,
@@ -10,7 +9,6 @@ import {
   useRef,
   useMemo,
   useState,
-  useContext,
   type ComponentPropsWithoutRef,
   type CSSProperties,
   type ReactElement,
@@ -97,6 +95,7 @@ import { resolvePanelDockPositions, classifyDashPanelPlacement } from './placeme
 import {
   dockDashPanelRect,
   projectDashPanelPosition,
+  projectDashPanelRect,
   rectFromDashPanelPosition,
   snapDashPanelRect,
   type DashPanelPoint,
@@ -126,8 +125,6 @@ export {
 export type { DashPanelRemoveRequest } from './actions.tsx'
 
 export type DashPanelStyle = Omit<CSSProperties, 'inlineSize' | 'width'>
-
-const DashPanelPortalContext = createContext<HTMLElement | null | undefined>(undefined)
 
 export interface DashPanelProviderProps<
   Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions,
@@ -238,9 +235,7 @@ export function DashPanelProvider<
           <DashPanelRuntimeProvider>
             <PicodashThemeProvider<CustomTheme> theme={theme} density={density}>
               <PicodashOverlayProvider portalContainer={portalContainer} layerBase={layerBase}>
-                <DashPanelPortalContext.Provider value={portalContainer}>
-                  {children}
-                </DashPanelPortalContext.Provider>
+                {children}
               </PicodashOverlayProvider>
             </PicodashThemeProvider>
           </DashPanelRuntimeProvider>
@@ -312,22 +307,29 @@ function placementRect(
   size: DashPanelSize,
   preferredPosition: DashPanelPoint,
   snapOffset: number,
+  dockTarget?: Readonly<{ allocation: number; offset: number }>,
 ): DashPanelRect {
   if (placement.mode === 'floating') {
     if (placement.disposition.kind === 'snapped')
       return snapDashPanelRect(placement.disposition.position, boundary, size, snapOffset)
-    return rectFromDashPanelPosition(
-      { x: boundary.left + preferredPosition.x, y: boundary.top + preferredPosition.y },
-      size,
+    return projectDashPanelRect(
+      rectFromDashPanelPosition(
+        { x: boundary.left + preferredPosition.x, y: boundary.top + preferredPosition.y },
+        size,
+      ),
+      boundary,
     )
   }
   if (placement.disposition.kind === 'docked')
-    return dockDashPanelRect(placement.disposition.position, boundary, size)
+    return dockDashPanelRect(placement.disposition.position, boundary, size, dockTarget)
   if (placement.disposition.kind === 'snapped')
     return snapDashPanelRect(placement.disposition.position, boundary, size, snapOffset)
-  return rectFromDashPanelPosition(
-    { x: boundary.left + preferredPosition.x, y: boundary.top + preferredPosition.y },
-    size,
+  return projectDashPanelRect(
+    rectFromDashPanelPosition(
+      { x: boundary.left + preferredPosition.x, y: boundary.top + preferredPosition.y },
+      size,
+    ),
+    boundary,
   )
 }
 
@@ -377,10 +379,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
 ) {
   assertPanelStyle(style)
   const root = usePicodashRootStore()
-  const panelPortal = useContext(DashPanelPortalContext)
   const runtime = useDashPanelRuntime()
   const providerPolicy = useDashPanelProviderPolicy()
   const overlayDefaults = usePicodashOverlayDefaults()
+  const resolvedPortalContainer = overlayDefaults.portalContainer
+  const panelPortal = resolvedPortalContainer?.nodeType === 1 ? resolvedPortalContainer : null
   const defaultActionItems = useDashPanelDefaultActionItems()
   const runtimeState = useDashPanelRuntimeState(id)
   const scoped = root.scope(id)
@@ -413,6 +416,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       'available'
       ? (durableLayout.placement as DashPanelPlacement)
       : resolvedDefaultLayout.placement
+  const effectivePlacement = runtimeState?.placement ?? resolvedPlacement
   const headingId = `picodash-panel-heading-${useId()}`
   const bodyId = `picodash-panel-body-${useId()}`
   const asideRef = useRef<HTMLElement | null>(null)
@@ -446,6 +450,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     },
     [boundary, providerPolicy.boundary, resolvedBoundaryInset],
   )
+  const freeMovePosition = useMemo(() => () => previewPositionRef.current ?? undefined, [])
+  const resolveDockArena = useMemo(
+    () => () => ({
+      boundary: resolveDashPanelBoundary(boundary, providerPolicy.boundary),
+      inset: resolvedBoundaryInset,
+    }),
+    [boundary, providerPolicy.boundary, resolvedBoundaryInset],
+  )
   const measureGeometry = useMemo(
     () => (): PanelGeometryState | null => {
       const element = asideRef.current
@@ -467,14 +479,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   useLayoutEffect(() => {
     const next = measureGeometry()
     if (next) setGeometry(next)
-  }, [measureGeometry, resolvedPlacement])
+  }, [effectivePlacement, measureGeometry, panelPortal])
 
   const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
+    const preferred = durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition
     const current =
-      currentPosition() ??
-      durableLayout?.preferredPosition ??
-      resolvedDefaultLayout.preferredPosition ??
-      ({ x: 0, y: 0 } as const)
+      (effectivePlacement.disposition.kind === 'free'
+        ? (currentPosition() ?? preferred)
+        : (preferred ?? currentPosition())) ?? ({ x: 0, y: 0 } as const)
     const session = {
       mode,
       ...(event
@@ -519,7 +531,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       return { status: 'not_executed' as const, reason: 'unavailable' as const }
     }
     const result = runtime.setPlacement(id, {
-      mode: 'floating',
+      mode: effectivePlacement.mode === 'hybrid' ? 'hybrid' : 'floating',
       disposition: { kind: 'free' },
     })
     if (result.status !== 'executed') {
@@ -697,6 +709,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       presentation: resolvedPresentation,
       store: scoped,
       currentPosition,
+      freeMovePosition,
+      preferredPosition:
+        durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition,
+      resolveDockArena,
     })
     registration.current = next
     runtime.registerElement(id, asideRef.current)
@@ -718,6 +734,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       presentation: resolvedPresentation,
       store: scoped,
       currentPosition,
+      freeMovePosition,
+      preferredPosition:
+        durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition,
+      resolveDockArena,
     })
   }, [
     collapsible,
@@ -729,6 +749,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     resolvedPresentation,
     scoped,
     currentPosition,
+    freeMovePosition,
+    durableLayout?.preferredPosition,
+    resolveDockArena,
   ])
 
   const collapsed = runtimeState?.collapsed ?? initial.defaultCollapsed
@@ -761,13 +784,30 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     resolvedDefaultLayout.preferredPosition ??
     currentPosition() ??
     ({ x: 0, y: 0 } as const)
+  const renderedPlacement = moveMode
+    ? ({
+        mode: effectivePlacement.mode === 'hybrid' ? 'hybrid' : 'floating',
+        disposition: { kind: 'free' },
+      } as const)
+    : effectivePlacement
+  const renderedDockPosition =
+    renderedPlacement.mode === 'fixed'
+      ? renderedPlacement.disposition.position
+      : renderedPlacement.mode === 'hybrid' && renderedPlacement.disposition.kind === 'docked'
+        ? renderedPlacement.disposition.position
+        : undefined
+  const dockTarget =
+    geometry && renderedDockPosition
+      ? runtime.getDockTarget(id, geometry.boundary.height)
+      : undefined
   const renderedRect = geometry
     ? placementRect(
-        moveMode ? { mode: 'floating', disposition: { kind: 'free' } } : resolvedPlacement,
+        renderedPlacement,
         geometry.boundary,
         geometry.size,
         preferredPosition,
         normalizeDashPanelPlacementOptions(placementOptions).snapOffset,
+        dockTarget,
       )
     : null
   const geometryStyle: CSSProperties | undefined = renderedRect
@@ -776,6 +816,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         left: `${mapRectToContainingBlock(asideRef.current, renderedRect).left}px`,
         top: `${mapRectToContainingBlock(asideRef.current, renderedRect).top}px`,
         ...(renderedRect.width > 0 ? { inlineSize: `${renderedRect.width}px` } : {}),
+        ...(dockTarget && renderedDockPosition?.startsWith('full-')
+          ? { blockSize: `${renderedRect.height}px` }
+          : dockTarget
+            ? { maxBlockSize: `${dockTarget.allocation}px` }
+            : {}),
       }
     : undefined
   const combinedStyle =
@@ -809,8 +854,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 data-picodash-panel
                 data-picodash-placement={
                   moveMode
-                    ? 'floating-free-preview'
-                    : `${resolvedPlacement.mode}-${resolvedPlacement.disposition.kind}`
+                    ? `${renderedPlacement.mode}-free-preview`
+                    : `${effectivePlacement.mode}-${effectivePlacement.disposition.kind}`
                 }
                 data-visible={visible ? 'true' : 'false'}
                 data-active={activeVisiblePanelId === id ? 'true' : undefined}

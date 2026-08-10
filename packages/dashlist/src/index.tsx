@@ -383,6 +383,7 @@ type OrderingController = {
   readonly move: (direction: 'up' | 'down' | 'home' | 'end') => void
   readonly commit: () => void
   readonly cancel: () => void
+  readonly blur: (id: string) => void
   readonly pointerDown: (id: string, event: PointerLike) => void
   readonly pointerMove: (event: PointerLike) => void
   readonly pointerUp: (event: { readonly pointerId?: number }) => void
@@ -606,6 +607,10 @@ function useOrderingController({
     move: (direction) => dispatch({ type: 'move', direction }),
     commit,
     cancel,
+    blur: (id) => {
+      if (pointerRef.current || stateRef.current.session?.nodeId !== id) return
+      cancel()
+    },
     pointerDown,
     pointerMove,
     pointerUp,
@@ -644,6 +649,7 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
           else controller.start(id)
         }
       },
+      onBlur: () => controller.blur(id),
       onPointerDown: (event: {
         pointerId?: number
         clientY?: number

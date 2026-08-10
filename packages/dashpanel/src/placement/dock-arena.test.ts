@@ -106,5 +106,6 @@ describe('DashPanel side allocation caps', () => {
     )
     expect(result.unused).toBe(40)
     expect(result.allocations.map((value) => value.max)).toEqual([40, 40])
+    expect(result.allocations.map((value) => value.offset)).toEqual([0, 40])
   })
 })

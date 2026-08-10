@@ -22,7 +22,7 @@ async function render(element: React.ReactNode) {
 }
 
 async function openActions() {
-  const trigger = container.querySelector(
+  const trigger = document.querySelector(
     '[data-slot="button"][aria-label="Actions for Inspector"]',
   ) as HTMLButtonElement
   expect(trigger).toBeTruthy()
@@ -84,7 +84,7 @@ describe('DashPanel action composition', () => {
   it('implements false, replacement, and empty-array menu semantics', async () => {
     const store = makeStore()
     await render(panel(store, { actionMenu: false }))
-    expect(container.querySelector('[data-slot="action-menu"]')).toBeNull()
+    expect(document.querySelector('[data-slot="action-menu"]')).toBeNull()
 
     await render(
       panel(store, {
@@ -96,7 +96,7 @@ describe('DashPanel action composition', () => {
     expect(document.body.textContent).not.toContain('Placement')
 
     await render(panel(store, { actionMenu: [] }))
-    expect(container.querySelector('[data-slot="action-menu"]')).toBeNull()
+    expect(document.querySelector('[data-slot="action-menu"]')).toBeNull()
     await act(async () => root.unmount())
     store.destroy()
   })

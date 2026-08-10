@@ -952,6 +952,61 @@ describe('@picodash/dashlist alpha shell', () => {
     store.destroy()
   })
 
+  it('cancels a keyboard reorder when focus leaves its handle', () => {
+    const store = makeStore()
+    const scoped = store.scope('order-blur')
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'order-blur', store },
+        createElement(Dashlet, { id: 'first', label: 'First' }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+      ),
+    )
+    let first = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void first.props.onKeyDown({ key: ' ', preventDefault() {} })
+    })
+    first = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void first.props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+    })
+    expect(
+      renderer.root
+        .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
+        .map((item) => item.props['data-picodash-dashlet']),
+    ).toEqual(['second', 'first'])
+    first = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void first.props.onBlur()
+    })
+    expect(scoped.getState().scope?.dashList?.rootOrder).toBeUndefined()
+    expect(
+      renderer.root
+        .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
+        .map((item) => item.props['data-picodash-dashlet']),
+    ).toEqual(['first', 'second'])
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('cancelled')
+
+    let second = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'second' })
+    act(() => {
+      void second.props.onKeyDown({ key: ' ', preventDefault() {} })
+    })
+    second = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'second' })
+    act(() => {
+      void second.props.onKeyDown({ key: 'ArrowUp', preventDefault() {} })
+    })
+    second = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'second' })
+    act(() => {
+      void second.props.onKeyDown({ key: ' ', preventDefault() {} })
+    })
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['second', 'first'])
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
   it('keeps pin bands and supports pointer movement through the same model', () => {
     const store = makeStore()
     const scoped = store.scope('order-pin')

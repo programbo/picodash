@@ -119,18 +119,18 @@ test('renders the landed same-scope Panel and List composition and reports colla
   await openLab(page)
   await page.getByRole('button', { name: /^Composition:/ }).click()
 
-  const specimen = page.locator('[data-contract-lab-specimen]')
-  await expect(specimen.getByRole('complementary', { name: 'Primary Panel' })).toBeVisible()
-  const primaryList = specimen.getByRole('list', { name: 'Primary Panel List' })
+  const primaryPanel = page.getByRole('complementary', { name: 'Primary Panel' })
+  await expect(primaryPanel).toBeVisible()
+  const primaryList = primaryPanel.getByRole('list', { name: 'Primary Panel List' })
   await expect(primaryList).toBeVisible()
-  await expect(specimen.locator('[data-picodash-dashgroup="specimen-group"]')).toBeVisible()
+  await expect(primaryPanel.locator('[data-picodash-dashgroup="specimen-group"]')).toBeVisible()
   await expect(primaryList.locator('[data-picodash-dashlet]')).toHaveCount(3)
 
-  const collapsePanel = specimen.getByRole('button', { name: 'Collapse panel Primary Panel' })
+  const collapsePanel = primaryPanel.getByRole('button', { name: 'Collapse panel Primary Panel' })
   await collapsePanel.focus()
   await collapsePanel.press('Enter')
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('collapsed')
-  await specimen.getByRole('button', { name: 'Expand panel Primary Panel' }).press('Enter')
+  await primaryPanel.getByRole('button', { name: 'Expand panel Primary Panel' }).press('Enter')
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('expanded')
 
   const standaloneList = page.getByRole('region', { name: 'Standalone List evidence' })
@@ -253,6 +253,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   const moveControl = standalonePanel.getByRole('button', {
     name: 'Move panel Standalone Panel',
   })
+  await page.getByRole('button', { name: 'Close panel Primary Panel' }).press('Enter')
   const beforePointer = (await standalonePanel.boundingBox())!
   const moveBox = (await moveControl.boundingBox())!
   await page.mouse.move(moveBox.x + moveBox.width / 2, moveBox.y + moveBox.height / 2)
@@ -336,7 +337,8 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     await expect
       .poll(() => coarsePage.evaluate(() => getComputedStyle(document.documentElement).fontSize))
       .toBe('12px')
-    await coarsePage.getByRole('button', { name: /^Themes:/ }).click()
+    await coarsePage.getByRole('button', { name: 'Close panel Primary Panel' }).press('Enter')
+    await coarsePage.getByRole('button', { name: /^Themes:/ }).press('Enter')
     const coarseTrigger = coarsePage.getByRole('button', { name: 'Open shared AlertDialog' })
     const coarse = await coarseTrigger.evaluate((element) => {
       const rect = element.getBoundingClientRect()

@@ -40,6 +40,7 @@ export interface DashPanelSideAllocation {
   readonly position: DashPanelDockPosition
   readonly ratio: number
   readonly max: number
+  readonly offset: number
 }
 
 export interface DashPanelDockSideAllocation {
@@ -216,7 +217,19 @@ export function resolveDashPanelDockSideAllocation(
   }
   const allocations = occupants.map((value) => {
     const ratio = value === main ? mainRatio : cornerRatio
-    return Object.freeze({ position: value.position, ratio, max: available * ratio })
+    const max = available * ratio
+    const isTop = value.position === `top-${side}`
+    const isBottom = value.position === `bottom-${side}`
+    const offset = isTop
+      ? 0
+      : isBottom
+        ? available - max
+        : value.position === `center-${side}` && corners.length > 0
+          ? (available - max) / 2
+          : corners.some((corner) => corner.position === `top-${side}`)
+            ? cornerRatio * available
+            : 0
+    return Object.freeze({ position: value.position, ratio, max, offset })
   })
   const used = allocations.reduce((total, value) => total + value.max, 0)
   return Object.freeze({
