@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@picodash/store": "workspace:*",
-    "ws": "^8.18.0"
+    "ws": "^8.21.2"
   },
   "devDependencies": {
     "@types/node": "catalog:",
