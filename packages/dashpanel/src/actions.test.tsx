@@ -173,4 +173,50 @@ describe('DashPanel action composition', () => {
     await act(async () => root.unmount())
     store.destroy()
   })
+
+  it('keeps Fixed dock actions when the rendered placement is an occupied fallback', async () => {
+    const store = makeStore()
+    await render(
+      <DashPanelProvider store={store}>
+        <DashPanel
+          id="occupied"
+          title="Occupied"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
+          }}
+        />
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    expect(
+      document.querySelector('[aria-label="Move panel Inspector"]')?.getAttribute('disabled'),
+    ).not.toBeNull()
+    await openActions()
+    const submenu = document.querySelector('[data-slot="action-submenu"]') as HTMLElement
+    submenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await act(async () => {})
+    const labels = [...document.querySelectorAll('[data-slot="action-menu-item"]')].map(
+      (item) => item.textContent,
+    )
+    expect(labels).toContain('Dock full-right')
+    expect(labels).not.toContain('Free')
+    expect(labels).not.toContain('Snap top')
+
+    const fullRight = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
+      (item) => item.textContent === 'Dock full-right',
+    ) as HTMLElement
+    await act(async () => fullRight.click())
+    expect(store.getState().scopes.get('inspector')?.dashPanel?.placement).toEqual({
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'full-right' },
+    })
+    await act(async () => root.unmount())
+    store.destroy()
+  })
 })

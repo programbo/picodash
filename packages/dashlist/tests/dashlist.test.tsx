@@ -1093,7 +1093,7 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['second', 'first'])
     expect(
       JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
-    ).toContain('Committed')
+    ).toContain('Reorder complete: First, position 2 of 2')
     act(() => renderer.unmount())
     store.destroy()
   })
@@ -1252,7 +1252,14 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     expect(order()).toEqual(['start', 'auto-a', 'auto-b', 'auto-c', 'auto-d', 'end'])
     act(() => {
-      void handle.props.onPointerMove({ pointerId: 1, clientY: 75 })
+      void handle.props.onPointerMove({ pointerId: 1, clientY: 40 })
+    })
+    expect(order()).toEqual(['start', 'auto-b', 'auto-a', 'auto-c', 'auto-d', 'end'])
+    const crossedHandle = renderer.root.findByProps({
+      'data-picodash-reorder-handle': 'auto-a',
+    })
+    act(() => {
+      void crossedHandle.props.onPointerMove({ pointerId: 1, clientY: 80 })
     })
     const movedHandle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'auto-a' })
     act(() => {
@@ -1285,9 +1292,18 @@ describe('@picodash/dashlist alpha shell', () => {
         createElement(Dashlet, { id: 'second', label: 'Second' }),
       ),
     )
+    let handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'icon' })
+    expect(handle.props['aria-label']).toBe('Reorder Favorite metric')
+    act(() => {
+      void handle.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'icon' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
     expect(
-      renderer.root.findByProps({ 'data-picodash-reorder-handle': 'icon' }).props['aria-label'],
-    ).toBe('Reorder Favorite metric')
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('Reorder complete: Favorite metric, position 1 of 2')
     act(() => renderer.unmount())
     store.destroy()
   })
@@ -1411,6 +1427,9 @@ describe('@picodash/dashlist alpha shell', () => {
       void handle.props.onKeyDown({ key: 'Enter', preventDefault() {} })
     })
     expect(scoped.getState().scope?.dashList?.rootOrder).toBeUndefined()
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('Reorder complete: First, position 1 of 2')
     act(() => renderer.unmount())
     store.destroy()
   })

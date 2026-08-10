@@ -135,7 +135,8 @@ export function DashPanelPlacementSubmenu() {
   const runtime = useDashPanelRuntime()
   if (controller.availability === 'unavailable') return null
 
-  const mode = controller.placement.mode
+  const mode =
+    runtime.getPanelConfig(controller.scopeId)?.requestedPlacement.mode ?? controller.placement.mode
   const snaps =
     mode === 'floating'
       ? snapPositions.map((position) =>

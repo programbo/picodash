@@ -273,6 +273,14 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   )
 
   await portalTarget.evaluate((target) => document.body.append(target))
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+      ),
+  )
   const beforeBoundaryTranslation = (await standalonePanel.boundingBox())!
   await specimenBoundary.evaluate((boundary) => {
     boundary.style.transform = 'translate(20px, 12px)'
@@ -289,6 +297,14 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   await portalTarget.evaluate((target) => {
     document.querySelector('[data-contract-lab-specimen]')?.append(target)
   })
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+      ),
+  )
 
   await moveControl.focus()
   const beforeKeyboard = (await standalonePanel.boundingBox())!

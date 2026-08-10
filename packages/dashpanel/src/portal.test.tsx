@@ -137,7 +137,7 @@ describe('DashPanel portal ownership', () => {
       function (this: HTMLElement) {
         if (this === boundary) return boundaryRect
         if (this.hasAttribute('data-picodash-panel'))
-          return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
+          return { top: 0, right: 80, bottom: 240, left: 0, width: 80, height: 240 } as DOMRect
         return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
       },
     )
@@ -156,6 +156,7 @@ describe('DashPanel portal ownership', () => {
     const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
     expect(panel.style.left).toBe('130px')
     expect(panel.style.top).toBe('20px')
+    expect(panel.style.maxBlockSize).toBe('100px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()
@@ -227,6 +228,11 @@ describe('DashPanel portal ownership', () => {
     expect(observe).toHaveBeenCalledWith(panel)
     expect(panel.style.left).toBe('250px')
 
+    const geometryStyleReads = vi.spyOn(panel.style, 'getPropertyValue')
+    const stableStyleReadCount = geometryStyleReads.mock.calls.length
+    await act(async () => animationFrame(0))
+    expect(geometryStyleReads).toHaveBeenCalledTimes(stableStyleReadCount)
+
     boundaryWidth = 120
     await act(async () => resize([], {} as ResizeObserver))
     expect(panel.style.left).toBe('70px')
@@ -240,6 +246,60 @@ describe('DashPanel portal ownership', () => {
     expect(panel.style.left).toBe('70px')
     await act(async () => root.unmount())
     expect(disconnect).toHaveBeenCalledTimes(1)
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('restores preferred width after a temporary boundary constraint', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    let boundaryWidth = 100
+    let resize!: ResizeObserverCallback
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          resize = callback
+        }
+        observe = vi.fn()
+        disconnect = vi.fn()
+      },
+    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return {
+            top: 0,
+            right: boundaryWidth,
+            bottom: 200,
+            left: 0,
+            width: boundaryWidth,
+            height: 200,
+          } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const declaredCap = Number.parseFloat(this.style.maxInlineSize)
+          const width = Number.isFinite(declaredCap) ? Math.min(180, declaredCap) : 180
+          return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel id="inspector" title="Inspector" />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    expect(panel.style.maxInlineSize).toBe('100px')
+
+    boundaryWidth = 240
+    await act(async () =>
+      resize([{ target: boundary } as unknown as ResizeObserverEntry], {} as ResizeObserver),
+    )
+    expect(panel.style.maxInlineSize).toBe('180px')
+
+    await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()
   })
@@ -344,6 +404,112 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('does not commit raw pointer or keyboard input projected back to the session origin', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 100, bottom: 100, left: 0, width: 100, height: 100 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel'))
+          return { top: 0, right: 100, bottom: 40, left: 60, width: 40, height: 40 } as DOMRect
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'floating', disposition: { kind: 'free' } },
+            preferredPosition: { x: 60, y: 0 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    const pointer = (type: string, x: number, y: number) => {
+      const event = new MouseEvent(type, { bubbles: true, button: 0, clientX: x, clientY: y })
+      Object.defineProperty(event, 'pointerId', { value: 7 })
+      return event
+    }
+    await act(async () => {
+      move.dispatchEvent(pointer('pointerdown', 90, 10))
+      window.dispatchEvent(pointer('pointermove', 110, 10))
+      window.dispatchEvent(pointer('pointerup', 110, 10))
+    })
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('detaches a Hybrid full-edge dock using preferred preview geometry', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const declaredWidth = Number.parseFloat(this.style.inlineSize)
+          const declaredHeight = Number.parseFloat(this.style.blockSize)
+          const width = Number.isFinite(declaredWidth) ? declaredWidth : 80
+          const height = Number.isFinite(declaredHeight) ? declaredHeight : 40
+          return { top: 0, right: width, bottom: height, left: 0, width, height } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'hybrid', disposition: { kind: 'docked', position: 'full-left' } },
+            preferredPosition: { x: 0, y: 0 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    expect(panel.style.blockSize).toBe('200px')
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toEqual({
+      placement: { mode: 'hybrid', disposition: { kind: 'free' } },
+      preferredPosition: { x: 1, y: 0 },
+    })
+
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('applies side allocation segments to compatible dock occupants', async () => {
     const store = makeStore()
     const portal = document.createElement('div')
@@ -389,6 +555,7 @@ describe('DashPanel portal ownership', () => {
     expect(panels[1]?.style.blockSize).toBe('200px')
     expect(panels[2]?.style.left).toBe('80px')
     expect(panels[2]?.style.inlineSize).toBe('220px')
+    expect(panels[2]?.style.maxBlockSize).toBe('240px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()

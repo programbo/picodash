@@ -41,6 +41,7 @@ interface PanelLayoutStore {
 type PanelRuntimePanelConfig = Readonly<{
   readonly defaultLayout: DashPanelDefaultLayout
   readonly placement: DashPanelPlacement
+  readonly requestedPlacement: DashPanelPlacement
   readonly dockPositions: readonly DashPanelDockPosition[]
   readonly presentation: DashPanelPresentation
 }>
@@ -595,6 +596,7 @@ export function createPanelRuntime(): PanelRuntime {
       panel.configSnapshot = Object.freeze({
         defaultLayout: panel.defaultLayout,
         placement: panel.placement,
+        requestedPlacement: panel.requestedPlacement,
         dockPositions: Object.freeze([...panel.dockPositions]),
         presentation: panel.presentation,
       })

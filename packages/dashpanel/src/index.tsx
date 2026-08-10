@@ -287,6 +287,44 @@ interface PanelGeometryState {
   readonly rect: DashPanelRect
 }
 
+const geometryOwnedSizeProperties = [
+  'inline-size',
+  'max-inline-size',
+  'block-size',
+  'max-block-size',
+] as const
+
+function measurePreferredPanelRect(element: HTMLElement): DOMRect {
+  const owned = geometryOwnedSizeProperties.map((property) => ({
+    property,
+    value: element.style.getPropertyValue(property),
+    priority: element.style.getPropertyPriority(property),
+  }))
+  for (const { property } of owned) element.style.removeProperty(property)
+  element.style.setProperty('max-inline-size', 'none')
+  element.style.setProperty('max-block-size', 'none')
+  try {
+    return element.getBoundingClientRect()
+  } finally {
+    for (const { property, value, priority } of owned) {
+      if (value) element.style.setProperty(property, value, priority)
+      else element.style.removeProperty(property)
+    }
+  }
+}
+
+function sameMeasuredRect(left: DOMRect | undefined, right: DOMRect | undefined): boolean {
+  if (!left || !right) return left === right
+  return (
+    left.top === right.top &&
+    left.right === right.right &&
+    left.bottom === right.bottom &&
+    left.left === right.left &&
+    left.width === right.width &&
+    left.height === right.height
+  )
+}
+
 function viewportRect(): DashPanelRect {
   const visualViewport = typeof window !== 'undefined' ? window.visualViewport : undefined
   if (
@@ -457,6 +495,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       'available'
       ? (durableLayout.placement as DashPanelPlacement)
       : resolvedPolicyDefaultLayout.placement
+  const requestedPlacementMode = resolvedPlacement.mode
   const effectivePlacement = runtimeState?.placement ?? resolvedPlacement
   const headingId = `picodash-panel-heading-${useId()}`
   const bodyId = `picodash-panel-body-${useId()}`
@@ -505,7 +544,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     () => (): PanelGeometryState | null => {
       const element = asideRef.current
       if (!element || typeof element.getBoundingClientRect !== 'function') return null
-      const panelRect = element.getBoundingClientRect()
+      const panelRect = measurePreferredPanelRect(element)
       const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
       const boundaryRect = target?.getBoundingClientRect?.() ?? viewportRect()
       const insetBoundary = insetDashPanelRect(boundaryRect, resolvedBoundaryInset)
@@ -561,8 +600,22 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     observer?.observe(panel)
     if (observedBoundary) observer?.observe(observedBoundary)
     let animationFrame: number | undefined
+    let trackedBoundary = observedBoundary
+    let trackedBoundaryRect = observedBoundary?.getBoundingClientRect()
+    let trackedPanelRect = panel.getBoundingClientRect()
     const refreshOnAnimationFrame = () => {
-      refreshGeometry()
+      const nextBoundary = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
+      const nextBoundaryRect = nextBoundary?.getBoundingClientRect()
+      const nextPanelRect = panel.getBoundingClientRect()
+      if (
+        trackedBoundary !== nextBoundary ||
+        !sameMeasuredRect(trackedBoundaryRect, nextBoundaryRect) ||
+        !sameMeasuredRect(trackedPanelRect, nextPanelRect)
+      )
+        refreshGeometry()
+      trackedBoundary = nextBoundary
+      trackedBoundaryRect = nextBoundaryRect
+      trackedPanelRect = nextPanelRect
       animationFrame = window.requestAnimationFrame(refreshOnAnimationFrame)
     }
     if (typeof window !== 'undefined') {
@@ -584,7 +637,16 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           window.cancelAnimationFrame(animationFrame)
       }
     }
-  }, [id, observedBoundary, panelPortal, refreshGeometry, runtime, tracksBoundary])
+  }, [
+    boundary,
+    id,
+    observedBoundary,
+    panelPortal,
+    providerPolicy.boundary,
+    refreshGeometry,
+    runtime,
+    tracksBoundary,
+  ])
 
   const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
     const preferred = durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition
@@ -625,7 +687,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       cancelMove()
       return { status: 'executed' as const }
     }
-    if (effectivePlacement.mode === 'fixed') {
+    if (requestedPlacementMode === 'fixed') {
       cancelMove()
       return { status: 'not_executed' as const, reason: 'unavailable' as const }
     }
@@ -645,7 +707,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       return { status: 'not_executed' as const, reason: 'unavailable' as const }
     }
     const result = runtime.setPlacement(id, {
-      mode: effectivePlacement.mode === 'hybrid' ? 'hybrid' : 'floating',
+      mode: requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating',
       disposition: { kind: 'free' },
     })
     if (result.status !== 'executed') {
@@ -657,7 +719,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   }
 
   const onMovePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
-    if (effectivePlacement.mode === 'fixed' || event.button !== 0 || moveSession.current) return
+    if (requestedPlacementMode === 'fixed' || event.button !== 0 || moveSession.current) return
     event.preventDefault()
     event.currentTarget.setPointerCapture?.(event.pointerId)
     beginMove('pointer', event)
@@ -668,8 +730,6 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const currentGeometry = geometryRef.current
     if (!session || session.mode !== 'pointer' || session.pointerId !== event.pointerId) return
     const startClient = session.startClient!
-    if (event.clientX !== startClient.x || event.clientY !== startClient.y)
-      moveSession.current = { ...session, moved: true }
     if (!currentGeometry) return
     const projected = projectDashPanelPosition(
       {
@@ -683,8 +743,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       x: projected.x - currentGeometry.boundary.left,
       y: projected.y - currentGeometry.boundary.top,
     }
-    if (next.x !== session.startPosition.x || next.y !== session.startPosition.y)
-      moveSession.current = { ...session, moved: true }
+    moveSession.current = {
+      ...session,
+      moved: next.x !== session.startPosition.x || next.y !== session.startPosition.y,
+    }
     previewPositionRef.current = next
     setPreviewPosition(next)
   }
@@ -744,7 +806,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const onMoveKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     const session = moveSession.current
     if (!session) {
-      if (effectivePlacement.mode === 'fixed') return
+      if (requestedPlacementMode === 'fixed') return
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault()
         beginMove('keyboard')
@@ -771,7 +833,6 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (event.key === 'ArrowDown') dy = distance
     if (dx === 0 && dy === 0) return
     event.preventDefault()
-    moveSession.current = { ...session, moved: true }
     const current = previewPositionRef.current ?? session.startPosition
     const currentGeometry = geometryRef.current
     if (!currentGeometry) return
@@ -787,8 +848,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       x: projected.x - currentGeometry.boundary.left,
       y: projected.y - currentGeometry.boundary.top,
     }
-    if (next.x !== session.startPosition.x || next.y !== session.startPosition.y)
-      moveSession.current = { ...session, moved: true }
+    moveSession.current = {
+      ...session,
+      moved: next.x !== session.startPosition.x || next.y !== session.startPosition.y,
+    }
     previewPositionRef.current = next
     setPreviewPosition(next)
   }
@@ -923,7 +986,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     ({ x: 0, y: 0 } as const)
   const renderedPlacement = moveMode
     ? ({
-        mode: effectivePlacement.mode === 'hybrid' ? 'hybrid' : 'floating',
+        mode: requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating',
         disposition: { kind: 'free' },
       } as const)
     : effectivePlacement
@@ -957,8 +1020,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             : {}),
         ...(renderedDockPosition === 'full-left' || renderedDockPosition === 'full-right'
           ? { blockSize: `${renderedRect.height}px` }
-          : dockTarget?.allocation !== undefined
-            ? { maxBlockSize: `${dockTarget.allocation}px` }
+          : renderedRect.height > 0
+            ? { maxBlockSize: `${renderedRect.height}px` }
             : {}),
       }
     : undefined
@@ -1045,7 +1108,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                         <Button
                           aria-label={`Move panel ${panelName}`}
                           aria-pressed={moveMode !== null}
-                          isDisabled={effectivePlacement.mode === 'fixed'}
+                          isDisabled={requestedPlacementMode === 'fixed'}
                           iconOnly
                           variant="ghost"
                           size="sm"

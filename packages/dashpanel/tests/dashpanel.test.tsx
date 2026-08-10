@@ -25,6 +25,23 @@ import {
 class MockHTMLElementBase {
   readonly tagName = 'BUTTON'
   readonly ownerDocument = { defaultView: globalThis }
+  readonly style = {
+    values: new Map<string, { value: string; priority: string }>(),
+    getPropertyValue(property: string) {
+      return this.values.get(property)?.value ?? ''
+    },
+    getPropertyPriority(property: string) {
+      return this.values.get(property)?.priority ?? ''
+    },
+    setProperty(property: string, value: string, priority = '') {
+      this.values.set(property, { value, priority })
+    },
+    removeProperty(property: string) {
+      const value = this.values.get(property)?.value ?? ''
+      this.values.delete(property)
+      return value
+    },
+  }
 
   getAttribute() {
     return null
@@ -67,6 +84,10 @@ beforeEach(() => {
   vi.stubGlobal('window', {
     document,
     HTMLElement: MockHTMLElementBase,
+    innerWidth: 300,
+    innerHeight: 200,
+    scrollX: 0,
+    scrollY: 0,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     matchMedia: () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
@@ -92,6 +113,14 @@ function render(element: ReactElement): ReactTestRenderer {
   let renderer!: ReactTestRenderer
   void act(() => {
     renderer = create(element)
+  })
+  return renderer
+}
+
+function renderWithHostNodes(element: ReactElement): ReactTestRenderer {
+  let renderer!: ReactTestRenderer
+  void act(() => {
+    renderer = create(element, { createNodeMock: () => new MockHTMLElementBase() })
   })
   return renderer
 }
@@ -243,7 +272,7 @@ describe('@picodash/dashpanel alpha shell', () => {
 
   it('uses the accessible move control for keyboard and pointer commit/cancel without preview persistence', () => {
     const store = makeStore()
-    const renderer = render(
+    const renderer = renderWithHostNodes(
       createElement(DashPanelProvider, {
         store,
         children: createElement(DashPanel, {
@@ -344,7 +373,7 @@ describe('@picodash/dashpanel alpha shell', () => {
 
   it('preserves Hybrid mode when keyboard movement commits a free placement', () => {
     const store = makeStore()
-    const renderer = render(
+    const renderer = renderWithHostNodes(
       createElement(DashPanelProvider, {
         store,
         children: createElement(DashPanel, {
@@ -380,7 +409,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     })
     expect(store.getState().scopes.get('panel')?.dashPanel).toEqual({
       placement: { mode: 'hybrid', disposition: { kind: 'free' } },
-      preferredPosition: { x: 4, y: 6 },
+      preferredPosition: { x: 5, y: 6 },
     })
     act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()

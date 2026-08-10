@@ -565,6 +565,7 @@ function useOrderingController({
     }
     if (event.type === 'commit') {
       coordinator.active.current = false
+      const session = previous.session
       if (transition.effect.kind === 'write-order') {
         const result = groupId
           ? store.setDashListGroupOrder(groupId, transition.effect.order)
@@ -574,7 +575,23 @@ function useOrderingController({
           stateRef.current = reset
           setState(reset)
           publish('Reorder was rejected.')
-        } else publish(`Committed ${transition.state.ordering.order.join(', ')} order.`)
+        } else if (session) {
+          const node = inputRef.current.declarations.find((item) => item.id === session.nodeId)
+          const bandOrder = transition.state.ordering.order.filter((id) =>
+            transition.state.ordering.visibleBands[session.band].includes(id),
+          )
+          publish(
+            `Reorder complete: ${node?.name ?? session.nodeId}, position ${bandOrder.indexOf(session.nodeId) + 1} of ${bandOrder.length}.`,
+          )
+        }
+      } else if (session) {
+        const node = inputRef.current.declarations.find((item) => item.id === session.nodeId)
+        const bandOrder = transition.state.ordering.order.filter((id) =>
+          transition.state.ordering.visibleBands[session.band].includes(id),
+        )
+        publish(
+          `Reorder complete: ${node?.name ?? session.nodeId}, position ${bandOrder.indexOf(session.nodeId) + 1} of ${bandOrder.length}.`,
+        )
       }
     }
     if (event.type === 'reset') {
@@ -638,18 +655,17 @@ function useOrderingController({
         )
         .sort((left, right) => left.top - right.top)
       const draggedCenter = event.clientY! - (pointer.grabOffset ?? 0)
-      const target =
-        bandRows.find((row) => draggedCenter <= (row.top + row.bottom) / 2) ?? bandRows.at(-1)
-      if (!target) return
-      let order = candidateOrder(stateRef.current)
-      let currentIndex = order.indexOf(session.nodeId)
-      const targetIndex = order.indexOf(target.id)
-      if (currentIndex < 0 || targetIndex < 0) return
-      const direction = currentIndex < targetIndex ? 'down' : 'up'
-      while (currentIndex !== targetIndex) {
+      const desiredIndex = bandRows.filter(
+        (row) => row.id !== session.nodeId && (row.top + row.bottom) / 2 < draggedCenter,
+      ).length
+      let visibleOrder = candidateOrder(stateRef.current).filter((id) => bandIds.has(id))
+      let currentIndex = visibleOrder.indexOf(session.nodeId)
+      if (currentIndex < 0) return
+      const direction = currentIndex < desiredIndex ? 'down' : 'up'
+      while (currentIndex !== desiredIndex) {
         dispatch({ type: 'move', direction })
-        order = candidateOrder(stateRef.current)
-        const nextIndex = order.indexOf(session.nodeId)
+        visibleOrder = candidateOrder(stateRef.current).filter((id) => bandIds.has(id))
+        const nextIndex = visibleOrder.indexOf(session.nodeId)
         if (nextIndex === currentIndex) break
         currentIndex = nextIndex
       }
