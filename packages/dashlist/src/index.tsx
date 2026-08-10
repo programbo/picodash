@@ -474,6 +474,18 @@ function useOrderingController({
   if (coordinatorRef.current === null)
     coordinatorRef.current = inheritedCoordinator ?? { active: { current: false } }
   const coordinator = coordinatorRef.current
+  const pointerRef = useRef<{
+    readonly id: string
+    readonly pointerId?: number
+    readonly clientY?: number
+    readonly grabOffset?: number
+    readonly releasePointerCapture?: (pointerId: number) => void
+    readonly rowBounds?: () => readonly OrderingRowBounds[]
+  } | null>(null)
+  const releasePointerCapture = (): void => {
+    const pointer = pointerRef.current
+    if (pointer?.pointerId !== undefined) pointer.releasePointerCapture?.(pointer.pointerId)
+  }
   const input = useMemo(
     () => ({
       declarations: declarations.map((node) => ({
@@ -498,6 +510,8 @@ function useOrderingController({
   const effectiveState = reconciled.state
   useEffect(() => {
     if (reconciled.effect.kind === 'stale-cancel') {
+      releasePointerCapture()
+      pointerRef.current = null
       coordinator.active.current = false
       publish('Reorder cancelled because the List changed.')
     }
@@ -510,18 +524,6 @@ function useOrderingController({
 
   const stateRef = useRef(effectiveState)
   stateRef.current = effectiveState
-  const pointerRef = useRef<{
-    readonly id: string
-    readonly pointerId?: number
-    readonly clientY?: number
-    readonly grabOffset?: number
-    readonly releasePointerCapture?: (pointerId: number) => void
-    readonly rowBounds?: () => readonly OrderingRowBounds[]
-  } | null>(null)
-  const releasePointerCapture = (): void => {
-    const pointer = pointerRef.current
-    if (pointer?.pointerId !== undefined) pointer.releasePointerCapture?.(pointer.pointerId)
-  }
   const dispatch = (event: Parameters<typeof transitionOrdering>[1]): void => {
     const previous = stateRef.current
     const previousCandidateIndex =

@@ -14,4 +14,9 @@ describe('DashPanel stylesheet contract', () => {
       /\[data-picodash-panel-body\]\s*\{[^}]*min-block-size:\s*0;[^}]*overflow:\s*auto;/s,
     )
   })
+
+  it('reserves touch gestures for the Panel move handle', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    expect(css).toMatch(/\[data-picodash-panel-move-handle\]\s*\{[^}]*touch-action:\s*none;/s)
+  })
 })

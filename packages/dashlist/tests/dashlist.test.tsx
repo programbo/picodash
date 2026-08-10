@@ -1413,6 +1413,59 @@ describe('@picodash/dashlist alpha shell', () => {
     store.destroy()
   })
 
+  it('releases a captured pointer when external order drift cancels the session', () => {
+    const store = makeStore()
+    const scoped = store.scope('pointer-drift')
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'pointer-drift', store },
+        createElement(Dashlet, { id: 'first', label: 'First' }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+      ),
+    )
+    const firstCapture = vi.fn()
+    const firstRelease = vi.fn()
+    let handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onPointerDown({
+        pointerId: 7,
+        clientY: 100,
+        setPointerCapture: firstCapture,
+        releasePointerCapture: firstRelease,
+        preventDefault() {},
+      })
+    })
+    expect(firstCapture).toHaveBeenCalledWith(7)
+    act(() => {
+      void scoped.setDashListRootOrder(['second', 'first'])
+    })
+    expect(firstRelease).toHaveBeenCalledWith(7)
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('changed')
+
+    const secondCapture = vi.fn()
+    const secondRelease = vi.fn()
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'second' })
+    act(() => {
+      void handle.props.onPointerDown({
+        pointerId: 8,
+        clientY: 100,
+        setPointerCapture: secondCapture,
+        releasePointerCapture: secondRelease,
+        preventDefault() {},
+      })
+    })
+    expect(secondCapture).toHaveBeenCalledWith(8)
+    act(() => {
+      void handle.props.onPointerCancel({ pointerId: 8 })
+    })
+    expect(secondRelease).toHaveBeenCalledWith(8)
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
   it('reorders group children, cancels without a write, and cancels on drift', () => {
     const store = makeStore()
     const scoped = store.scope('order-group')

@@ -1216,6 +1216,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                     trailing: (
                       <div data-picodash-panel-actions>
                         <Button
+                          data-picodash-panel-move-handle
                           aria-label={`Move panel ${panelName}`}
                           aria-pressed={moveMode !== null}
                           isDisabled={requestedPlacementMode === 'fixed'}

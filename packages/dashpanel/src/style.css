@@ -21,6 +21,10 @@
   gap: 0.125rem;
 }
 
+[data-picodash-panel-move-handle] {
+  touch-action: none;
+}
+
 .picodash-dashpanel[data-picodash-placement$='free-preview'] {
   outline: 2px dashed var(--picodash-focus-ring, currentColor);
   outline-offset: 2px;
