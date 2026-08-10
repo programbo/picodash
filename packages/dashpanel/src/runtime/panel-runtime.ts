@@ -160,6 +160,7 @@ interface MutablePanel {
   configSnapshot?: PanelRuntimePanelConfig
   readonly generation: symbol
   element: HTMLElement | null
+  lastCornerInlineSize?: number
 }
 
 const executed = (): PanelRuntimeCommandResult => ({ status: 'executed' })
@@ -639,8 +640,13 @@ export function createPanelRuntime(): PanelRuntime {
       const edge = position === 'full-top' ? 'top' : 'bottom'
       const cornerWidth = (cornerPosition: DashPanelDockPosition) => {
         const occupant = occupants.find((value) => value.position === cornerPosition)
-        const width = occupant?.panel.element?.getBoundingClientRect().width
-        return typeof width === 'number' && Number.isFinite(width) && width > 0 ? width : 0
+        if (!occupant) return 0
+        const width = occupant.panel.element?.getBoundingClientRect().width
+        if (typeof width === 'number' && Number.isFinite(width) && width > 0) {
+          occupant.panel.lastCornerInlineSize = width
+          return width
+        }
+        return occupant.panel.lastCornerInlineSize ?? 0
       }
       const left = Math.min(cornerWidth(`${edge}-left`), available.width)
       const right = Math.min(cornerWidth(`${edge}-right`), available.width - left)
