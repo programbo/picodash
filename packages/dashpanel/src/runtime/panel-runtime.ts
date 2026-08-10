@@ -323,7 +323,8 @@ export function createPanelRuntime(): PanelRuntime {
         }
       }
     }
-    if (Number.isFinite(width) && width > 0) panel.lastCornerInlineSize = width
+    if (Number.isFinite(width) && (width > 0 || (width === 0 && panel.visible)))
+      panel.lastCornerInlineSize = width
   }
 
   const activatePanel = (panel: MutablePanel): boolean => {
@@ -693,7 +694,11 @@ export function createPanelRuntime(): PanelRuntime {
         const occupant = occupants.find((value) => value.position === cornerPosition)
         if (!occupant) return 0
         const width = occupant.panel.element?.getBoundingClientRect().width
-        if (typeof width === 'number' && Number.isFinite(width) && width > 0) {
+        if (
+          typeof width === 'number' &&
+          Number.isFinite(width) &&
+          (width > 0 || (width === 0 && occupant.panel.visible))
+        ) {
           occupant.panel.lastCornerInlineSize = width
           return width
         }

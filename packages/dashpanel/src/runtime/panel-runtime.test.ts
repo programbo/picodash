@@ -570,6 +570,38 @@ describe('private DashPanel runtime model', () => {
     })
   })
 
+  it('releases a corner allocation when its visible width becomes zero', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('edge', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-top' },
+        },
+      }),
+    )
+    let renderedWidth = 80
+    runtime.registerElement('corner', {
+      getBoundingClientRect: () => ({ width: renderedWidth }),
+    } as never)
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+      inlineAllocation: 220,
+      inlineOffset: 80,
+    })
+
+    renderedWidth = 0
+    runtime.notifyElementResize('corner', 0)
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toBeUndefined()
+  })
+
   it('caches a corner width before a later edge requests its allocation', () => {
     const runtime = createPanelRuntime()
     runtime.acquire(
