@@ -454,11 +454,9 @@ export function createPanelRuntime(): PanelRuntime {
           }
           if (Object.prototype.hasOwnProperty.call(update, 'resolveDockArena')) {
             current.resolveDockArena = update.resolveDockArena
-            if (!current.placementFallbackReason) {
-              const materialized = materializePlacement(current, current.placement)
-              current.placement = materialized.placement
-              current.placementFallbackReason = materialized.fallbackReason
-            }
+            const materialized = materializePlacement(current, current.requestedPlacement)
+            current.placement = materialized.placement
+            current.placementFallbackReason = materialized.fallbackReason
             current.configSnapshot = undefined
             changed = true
           }

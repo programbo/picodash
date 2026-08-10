@@ -695,6 +695,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     let trackedPanelRect = panel.getBoundingClientRect()
     const refreshOnAnimationFrame = () => {
       const nextBoundary = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
+      const boundaryIdentityChanged = trackedBoundary !== nextBoundary
       const nextBoundaryRect = nextBoundary?.getBoundingClientRect()
       const nextPanelRect = panel.getBoundingClientRect()
       if (
@@ -703,6 +704,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         !sameMeasuredRect(trackedPanelRect, nextPanelRect)
       )
         refreshGeometry()
+      if (boundaryIdentityChanged) registration.current?.update({ resolveDockArena })
       trackedBoundary = nextBoundary
       trackedBoundaryRect = nextBoundaryRect
       trackedPanelRect = nextPanelRect
@@ -734,6 +736,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     panelPortal,
     providerPolicy.boundary,
     refreshGeometry,
+    resolveDockArena,
     runtime,
     tracksBoundary,
   ])

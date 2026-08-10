@@ -1260,6 +1260,56 @@ describe('@picodash/dashlist alpha shell', () => {
     store.destroy()
   })
 
+  it('ignores repeated pickup keys and non-primary pointer buttons', () => {
+    const store = makeStore()
+    const scoped = store.scope('input-guards')
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'input-guards', store },
+        createElement(Dashlet, { id: 'first', label: 'First' }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+      ),
+    )
+    let handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    const repeatedPreventDefault = vi.fn()
+    act(() => {
+      void handle.props.onKeyDown({ key: 'Enter', repeat: false, preventDefault() {} })
+      void handle.props.onKeyDown({
+        key: 'Enter',
+        repeat: true,
+        preventDefault: repeatedPreventDefault,
+      })
+    })
+    expect(repeatedPreventDefault).not.toHaveBeenCalled()
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+      void handle.props.onKeyDown({ key: 'Enter', repeat: false, preventDefault() {} })
+    })
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['second', 'first'])
+
+    const setPointerCapture = vi.fn()
+    const pointerPreventDefault = vi.fn()
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'second' })
+    act(() => {
+      void handle.props.onPointerDown({
+        button: 2,
+        pointerId: 9,
+        clientY: 100,
+        setPointerCapture,
+        preventDefault: pointerPreventDefault,
+      })
+    })
+    expect(setPointerCapture).not.toHaveBeenCalled()
+    expect(pointerPreventDefault).not.toHaveBeenCalled()
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('Reorder complete')
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
   it('releases the shared reorder coordinator when an active group unmounts', () => {
     const store = makeStore()
     const scoped = store.scope('order-unmount')

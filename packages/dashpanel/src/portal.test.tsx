@@ -324,6 +324,80 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('revalidates dock occupancy when a boundary ref retargets', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundaryA = document.createElement('div')
+    const boundaryB = document.createElement('div')
+    const boundaryRef: { current: HTMLElement | null } = { current: boundaryB }
+    const frames = new Set<FrameRequestCallback>()
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.add(callback)
+      return frames.size
+    })
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundaryA)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this === boundaryB)
+          return {
+            top: 0,
+            right: 700,
+            bottom: 200,
+            left: 400,
+            width: 300,
+            height: 200,
+          } as DOMRect
+        if (this.hasAttribute('data-picodash-panel'))
+          return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    const fixedLeft = {
+      placement: {
+        mode: 'fixed' as const,
+        disposition: { kind: 'docked' as const, position: 'full-left' as const },
+      },
+    }
+    await render(
+      <DashPanelProvider store={store} portalContainer={portal}>
+        <DashPanel
+          id="first"
+          title="First"
+          boundary={boundaryA}
+          dockPositions={['full-left']}
+          defaultLayout={fixedLeft}
+        />
+        <DashPanel
+          id="second"
+          title="Second"
+          boundary={boundaryRef}
+          dockPositions={['full-left']}
+          defaultLayout={fixedLeft}
+        />
+      </DashPanelProvider>,
+    )
+    const second = portal.querySelectorAll<HTMLElement>('[data-picodash-panel]')[1]!
+    expect(second.getAttribute('data-picodash-placement')).toBe('fixed-docked')
+
+    boundaryRef.current = boundaryA
+    const pending = [...frames]
+    frames.clear()
+    await act(async () => pending.forEach((callback) => callback(0)))
+    expect(second.getAttribute('data-picodash-placement')).toBe('floating-snapped')
+
+    boundaryRef.current = boundaryB
+    const nextPending = [...frames]
+    frames.clear()
+    await act(async () => nextPending.forEach((callback) => callback(1)))
+    expect(second.getAttribute('data-picodash-placement')).toBe('fixed-docked')
+
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('restores preferred width after a temporary boundary constraint', async () => {
     const store = makeStore()
     const portal = document.createElement('div')

@@ -279,7 +279,7 @@ describe('private DashPanel runtime model', () => {
         store: store(),
       }),
     )
-    runtime.acquire(
+    const otherBoundary = runtime.acquire(
       config('other-boundary', {
         placement,
         preferredPosition: { x: 0, y: 0 },
@@ -299,6 +299,17 @@ describe('private DashPanel runtime model', () => {
     )
     expect(runtime.getSnapshot().panels['other-boundary']?.placement).toEqual(placement)
     expect(runtime.getSnapshot().panels['other-inset']?.placement).toEqual(placement)
+
+    otherBoundary.update({ resolveDockArena: arena(boundaryA) })
+    expect(runtime.getSnapshot().panels['other-boundary']).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'top-right' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+    otherBoundary.update({ resolveDockArena: arena(boundaryB) })
+    expect(runtime.getSnapshot().panels['other-boundary']?.placement).toEqual(placement)
   })
 
   it('keeps the first dock lease and materializes later conflicts as a non-durable fallback', () => {

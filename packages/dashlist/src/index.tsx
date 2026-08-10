@@ -769,7 +769,7 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
       'aria-describedby': instructionsId,
       'aria-keyshortcuts': 'Enter Space ArrowUp ArrowDown Home End Escape',
       'data-picodash-reorder-handle': id,
-      onKeyDown: (event: { key: string; preventDefault?: () => void }) => {
+      onKeyDown: (event: { key: string; repeat?: boolean; preventDefault?: () => void }) => {
         const ownsKeyboardSession = controller.canMoveWithKeyboard(id)
         if (event.key === 'Escape' && ownsKeyboardSession) {
           event.preventDefault?.()
@@ -787,6 +787,7 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
           event.preventDefault?.()
           controller.move('end')
         } else if (event.key === ' ' || event.key === 'Enter') {
+          if (event.repeat) return
           if (controller.session && !ownsKeyboardSession) return
           event.preventDefault?.()
           if (ownsKeyboardSession) controller.commit()
@@ -795,6 +796,7 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
       },
       onBlur: () => controller.blur(id),
       onPointerDown: (event: {
+        button?: number
         pointerId?: number
         clientY?: number
         preventDefault?: () => void
@@ -805,6 +807,7 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
           releasePointerCapture?: (pointerId: number) => void
         }
       }) => {
+        if (event.button !== undefined && event.button !== 0) return
         const pointerTarget = event.currentTarget
         const rowBounds = pointerTarget
           ? () => {
