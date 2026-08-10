@@ -51,8 +51,10 @@ export interface PanelRuntimeDockArena {
 }
 
 export interface PanelRuntimeDockTarget {
-  readonly allocation: number
-  readonly offset: number
+  readonly allocation?: number
+  readonly offset?: number
+  readonly inlineAllocation?: number
+  readonly inlineOffset?: number
 }
 
 export interface PanelRuntimeConfig {
@@ -126,7 +128,10 @@ export interface PanelRuntime {
   setPlacement(scopeId: string, placement: DashPanelPlacement): DashPanelLayoutCommandResult
   resetLayout(scopeId: string): DashPanelLayoutCommandResult
   getPanelConfig(scopeId: string): PanelRuntimePanelConfig | undefined
-  getDockTarget(scopeId: string, available: number): PanelRuntimeDockTarget | undefined
+  getDockTarget(
+    scopeId: string,
+    available: Readonly<{ width: number; height: number }>,
+  ): PanelRuntimeDockTarget | undefined
   registerElement(scopeId: string, element: HTMLElement | null): void
   getElement(scopeId: string): HTMLElement | null
 }
@@ -595,32 +600,54 @@ export function createPanelRuntime(): PanelRuntime {
     },
     getDockTarget(scopeId, available) {
       const panel = panelFor(scopeId)
-      if (!panel || !Number.isFinite(available) || available < 0) return undefined
-      const position = dockedPosition(panel.placement)
-      if (!position || (!position.endsWith('-left') && !position.endsWith('-right')))
+      if (
+        !panel ||
+        !Number.isFinite(available.width) ||
+        available.width < 0 ||
+        !Number.isFinite(available.height) ||
+        available.height < 0
+      )
         return undefined
+      const position = dockedPosition(panel.placement)
+      if (!position) return undefined
       const arena = dockArenaFor(panel)
       const occupants = [...panels.values()].flatMap((other) => {
         if (!sameDockArena(arena, dockArenaFor(other))) return []
         const otherPosition = dockedPosition(other.placement)
-        return otherPosition &&
-          (otherPosition.endsWith('-left') || otherPosition.endsWith('-right'))
-          ? [{ id: other.scopeId, position: otherPosition }]
-          : []
+        return otherPosition ? [{ id: other.scopeId, position: otherPosition, panel: other }] : []
       })
-      const side = position.endsWith('-left') ? 'left' : 'right'
-      const allocation = resolveDashPanelDockSideAllocation(
-        side,
-        occupants,
-        available,
-      ).allocations.find((value) => value.position === position)
-      return allocation
-        ? Object.freeze({ allocation: allocation.max, offset: allocation.offset })
-        : undefined
+      if (position.endsWith('-left') || position.endsWith('-right')) {
+        const side = position.endsWith('-left') ? 'left' : 'right'
+        const allocation = resolveDashPanelDockSideAllocation(
+          side,
+          occupants,
+          available.height,
+        ).allocations.find((value) => value.position === position)
+        return allocation
+          ? Object.freeze({ allocation: allocation.max, offset: allocation.offset })
+          : undefined
+      }
+      if (position !== 'full-top' && position !== 'full-bottom') return undefined
+      const edge = position === 'full-top' ? 'top' : 'bottom'
+      const cornerWidth = (cornerPosition: DashPanelDockPosition) => {
+        const occupant = occupants.find((value) => value.position === cornerPosition)
+        const width = occupant?.panel.element?.getBoundingClientRect().width
+        return typeof width === 'number' && Number.isFinite(width) && width > 0 ? width : 0
+      }
+      const left = Math.min(cornerWidth(`${edge}-left`), available.width)
+      const right = Math.min(cornerWidth(`${edge}-right`), available.width - left)
+      if (left === 0 && right === 0) return undefined
+      return Object.freeze({
+        inlineAllocation: available.width - left - right,
+        inlineOffset: left,
+      })
     },
     registerElement(scopeId, element) {
       const panel = panelFor(scopeId)
-      if (panel) panel.element = element
+      if (panel && panel.element !== element) {
+        panel.element = element
+        publish()
+      }
     },
     getElement(scopeId) {
       return panelFor(scopeId)?.element ?? null

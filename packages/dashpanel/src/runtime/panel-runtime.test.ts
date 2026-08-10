@@ -352,8 +352,41 @@ describe('private DashPanel runtime model', () => {
         },
       }),
     )
-    expect(runtime.getDockTarget('corner', 300)).toEqual({ allocation: 100, offset: 0 })
-    expect(runtime.getDockTarget('main', 300)).toEqual({ allocation: 200, offset: 100 })
+    expect(runtime.getDockTarget('corner', { width: 300, height: 300 })).toEqual({
+      allocation: 100,
+      offset: 0,
+    })
+    expect(runtime.getDockTarget('main', { width: 300, height: 300 })).toEqual({
+      allocation: 200,
+      offset: 100,
+    })
+  })
+
+  it('shortens full horizontal edges to the measured inner edges of occupied corners', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('edge', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-top' },
+        },
+      }),
+    )
+    runtime.registerElement('corner', {
+      getBoundingClientRect: () => ({ width: 80 }),
+    } as never)
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+      inlineAllocation: 220,
+      inlineOffset: 80,
+    })
   })
 
   it('skips hidden entry targets and continues focus restoration until focus moves', () => {

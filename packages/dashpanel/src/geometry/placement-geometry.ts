@@ -17,6 +17,10 @@ export interface DashPanelDockTargetOptions {
   readonly allocation?: number
   /** Offset of the allocated side segment from the boundary's top edge. */
   readonly offset?: number
+  /** Available width for a full top or bottom occupant after occupied corners. */
+  readonly inlineAllocation?: number
+  /** Offset of the available inline segment from the boundary's left edge. */
+  readonly inlineOffset?: number
 }
 
 const finite = (value: unknown, label: string): number => {
@@ -204,6 +208,32 @@ function sideAllocationOffset(
   return Math.min(offset, boundaryHeight)
 }
 
+function edgeAllocationWidth(
+  position: DashPanelDockPosition,
+  options: DashPanelDockTargetOptions | undefined,
+  boundaryWidth: number,
+): number | undefined {
+  if (position !== 'full-top' && position !== 'full-bottom') return undefined
+  if (options?.inlineAllocation === undefined) return undefined
+  return Math.min(
+    nonNegative(options.inlineAllocation, 'DashPanel dock inline allocation'),
+    boundaryWidth,
+  )
+}
+
+function edgeAllocationOffset(
+  position: DashPanelDockPosition,
+  options: DashPanelDockTargetOptions | undefined,
+  boundaryWidth: number,
+): number | undefined {
+  if (position !== 'full-top' && position !== 'full-bottom') return undefined
+  if (options?.inlineOffset === undefined) return undefined
+  return Math.min(
+    nonNegative(options.inlineOffset, 'DashPanel dock inline allocation offset'),
+    boundaryWidth,
+  )
+}
+
 /** Returns the flush rectangle for one of the twelve canonical dock targets. */
 export function dockDashPanelRect(
   position: DashPanelDockPosition,
@@ -217,6 +247,8 @@ export function dockDashPanelRect(
   const height = Math.min(panelSize.height, target.height)
   const sideHeight = sideAllocationHeight(position, options, target.height)
   const sideOffset = sideAllocationOffset(position, options, target.height)
+  const edgeWidth = edgeAllocationWidth(position, options, target.width)
+  const edgeOffset = edgeAllocationOffset(position, options, target.width)
   const isFullSide = position === 'full-left' || position === 'full-right'
   const allocatedHeight =
     sideHeight === undefined
@@ -278,7 +310,8 @@ export function dockDashPanelRect(
             (sideHeight - allocatedHeight) / 2
       break
     case 'full-top':
-      resultWidth = target.width
+      x = target.left + (edgeOffset ?? 0)
+      resultWidth = edgeWidth ?? target.width
       resultHeight = height
       break
     case 'center-top':
@@ -286,8 +319,9 @@ export function dockDashPanelRect(
       resultHeight = height
       break
     case 'full-bottom':
+      x = target.left + (edgeOffset ?? 0)
       y = target.bottom - height
-      resultWidth = target.width
+      resultWidth = edgeWidth ?? target.width
       resultHeight = height
       break
     case 'center-bottom':

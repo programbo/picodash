@@ -821,14 +821,14 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
         Object.values(bindingRuntime.bindings).map((binding) => ({
           discardInput: () => {
             if ('mode' in binding && binding.mode === 'input')
-              (binding as DashletInputBindingContext<PicodashJsonValue>).discardInput()
+              bindingRuntime.discardInputs[binding.alias]?.()
           },
           dirty:
             'mode' in binding && binding.mode === 'input'
               ? (binding as DashletInputBindingContext<PicodashJsonValue>).dirty
               : false,
         })),
-      [bindingRuntime.bindings],
+      [bindingRuntime.bindings, bindingRuntime.discardInputs],
     )
     useEffect(
       () => actionRegistry?.registerBindings(id, resetBindings),

@@ -98,6 +98,7 @@ import {
   projectDashPanelRect,
   rectFromDashPanelPosition,
   snapDashPanelRect,
+  type DashPanelDockTargetOptions,
   type DashPanelPoint,
   type DashPanelSize,
 } from './geometry/placement-geometry.ts'
@@ -307,7 +308,7 @@ function placementRect(
   size: DashPanelSize,
   preferredPosition: DashPanelPoint,
   snapOffset: number,
-  dockTarget?: Readonly<{ allocation: number; offset: number }>,
+  dockTarget?: DashPanelDockTargetOptions,
 ): DashPanelRect {
   if (placement.mode === 'floating') {
     if (placement.disposition.kind === 'snapped')
@@ -797,9 +798,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         ? renderedPlacement.disposition.position
         : undefined
   const dockTarget =
-    geometry && renderedDockPosition
-      ? runtime.getDockTarget(id, geometry.boundary.height)
-      : undefined
+    geometry && renderedDockPosition ? runtime.getDockTarget(id, geometry.boundary) : undefined
   const renderedRect = geometry
     ? placementRect(
         renderedPlacement,
@@ -815,10 +814,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         position: 'absolute',
         left: `${mapRectToContainingBlock(asideRef.current, renderedRect).left}px`,
         top: `${mapRectToContainingBlock(asideRef.current, renderedRect).top}px`,
-        ...(renderedRect.width > 0 ? { inlineSize: `${renderedRect.width}px` } : {}),
-        ...(dockTarget && renderedDockPosition?.startsWith('full-')
+        ...(renderedDockPosition === 'full-top' || renderedDockPosition === 'full-bottom'
+          ? { inlineSize: `${renderedRect.width}px` }
+          : renderedRect.width > 0
+            ? { maxInlineSize: `${renderedRect.width}px` }
+            : {}),
+        ...(renderedDockPosition === 'full-left' || renderedDockPosition === 'full-right'
           ? { blockSize: `${renderedRect.height}px` }
-          : dockTarget
+          : dockTarget?.allocation !== undefined
             ? { maxBlockSize: `${dockTarget.allocation}px` }
             : {}),
       }

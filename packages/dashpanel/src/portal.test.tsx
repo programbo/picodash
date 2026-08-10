@@ -158,6 +158,13 @@ describe('DashPanel portal ownership', () => {
             placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
           }}
         />
+        <DashPanel
+          id="edge"
+          title="Edge"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-top' } },
+          }}
+        />
       </DashPanelProvider>,
     )
     const panels = [...portal.querySelectorAll('[data-picodash-panel]')] as HTMLElement[]
@@ -165,6 +172,47 @@ describe('DashPanel portal ownership', () => {
     expect(panels[0]?.style.maxBlockSize).toBe('100px')
     expect(panels[1]?.style.top).toBe('100px')
     expect(panels[1]?.style.blockSize).toBe('200px')
+    expect(panels[2]?.style.left).toBe('80px')
+    expect(panels[2]?.style.inlineSize).toBe('220px')
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('restores the preferred intrinsic width after leaving a full horizontal dock', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel'))
+          return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-top' } },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    expect(panel.style.inlineSize).toBe('300px')
+    await act(async () => {
+      store.scope('inspector').setDashPanelLayout({
+        placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
+        preferredPosition: { x: 0, y: 0 },
+      })
+    })
+    expect(panel.style.inlineSize).toBe('')
+    expect(panel.style.maxInlineSize).toBe('80px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()

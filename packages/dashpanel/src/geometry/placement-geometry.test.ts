@@ -116,6 +116,19 @@ describe('DashPanel placement geometry', () => {
       width: 200,
       height: 40,
     })
+    expect(
+      dockDashPanelRect('full-top', boundary, size, {
+        inlineAllocation: 140,
+        inlineOffset: 30,
+      }),
+    ).toEqual({
+      top: 10,
+      right: 190,
+      bottom: 50,
+      left: 50,
+      width: 140,
+      height: 40,
+    })
   })
 
   it('rejects hostile rectangles, sizes, offsets, and positions', () => {
