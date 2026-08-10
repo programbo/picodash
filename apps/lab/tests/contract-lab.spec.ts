@@ -210,7 +210,9 @@ test('renders the landed same-scope Panel and List composition and reports colla
     },
   })
   const beforeReset = (await matchingSession())!
-  await standaloneList.getByRole('button', { name: 'Reset list' }).click()
+  const resetList = standaloneList.getByRole('button', { name: 'Reset list' })
+  await resetList.focus()
+  await resetList.press('Enter')
   await expect(standaloneList.getByRole('button', { name: 'Reset list' })).toBeDisabled()
   const resetWait = await bridge.wait(beforeReset, {
     type: 'wait',
