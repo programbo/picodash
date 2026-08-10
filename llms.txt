@@ -102,8 +102,8 @@ Products:
   prop. Intrinsic CSS widths are supported and boundary-capped; resolved width is not persisted.
 - @picodash/picodash: integrated facade after Store, DashPanel, and DashList stabilize.
 - @picodash/ui: supporting theme, density, token, structural CSS, and generic accessible UI
-  foundation shared by DashPanel and DashList. The current @picodash/theme package is a prototype
-  scheduled for clean replacement, not a second target authority.
+  foundation shared by DashPanel and DashList. The former @picodash/theme package was retired in
+  the pre-release clean replacement; it is not a second target authority.
 - PicodashThemeProvider resolves color theme and density. The independent
   PicodashOverlayProvider supplies portal and layer defaults. Product Providers compose both;
   detached roots repeat resolved theme and density without mutating a shared portal container.

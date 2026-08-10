@@ -64,6 +64,14 @@ function selectorBody(css: string, selector: string) {
   return css.slice(open + 1, close)
 }
 
+function declarations(body: string) {
+  return Object.fromEntries(
+    [...body.matchAll(/(--picodash-[a-z0-9-]+|min-(?:block|inline)-size)\s*:\s*([^;]+);/g)].map(
+      ([, name, value]) => [name, value.trim()],
+    ),
+  )
+}
+
 describe('@picodash/ui stylesheet contract', () => {
   it('owns exactly the accepted 79 public token names', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
@@ -106,6 +114,92 @@ describe('@picodash/ui stylesheet contract', () => {
     expect(css).toContain("[data-picodash-density='regular']")
     expect(css).toContain("[data-picodash-density='compact']")
     expect(css).not.toContain('display: contents')
+  })
+
+  it('keeps the regular recipe and applies only the current verified compact geometry groups', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    const regular = declarations(selectorBody(css, ':where([data-picodash-theme])'))
+    expect(regular).toMatchObject({
+      '--picodash-space-0-5': '0.125rem',
+      '--picodash-space-1': '0.25rem',
+      '--picodash-space-1-5': '0.375rem',
+      '--picodash-space-2': '0.5rem',
+      '--picodash-space-2-5': '0.625rem',
+      '--picodash-space-3': '0.75rem',
+      '--picodash-space-4': '1rem',
+      '--picodash-space-5': '1.25rem',
+      '--picodash-font-size-xs': '0.5625rem',
+      '--picodash-font-size-sm': '0.625rem',
+      '--picodash-font-size-md': '0.6875rem',
+      '--picodash-font-size-lg': '0.75rem',
+      '--picodash-font-size-xl': '0.875rem',
+      '--picodash-font-size-2xl': '1.25rem',
+      '--picodash-font-size-3xl': '1.5rem',
+      '--picodash-line-height-none': '1em',
+      '--picodash-line-height-tight': '1.1em',
+      '--picodash-line-height-normal': '1.25em',
+      '--picodash-line-height-relaxed': '1.5em',
+      '--picodash-control-height-xs': '1.5rem',
+      '--picodash-control-height-sm': '1.75rem',
+      '--picodash-control-height-md': '2rem',
+      '--picodash-control-height-lg': '2.25rem',
+      '--picodash-icon-xs': '0.75rem',
+      '--picodash-icon-sm': '0.875rem',
+      '--picodash-icon-md': '1rem',
+      '--picodash-icon-lg': '1.25rem',
+    })
+    const compact = declarations(selectorBody(css, ":where([data-picodash-density='compact'])"))
+    expect(compact).toEqual({
+      '--picodash-space-0-5': '0.125rem',
+      '--picodash-space-1': '0.1875rem',
+      '--picodash-space-1-5': '0.25rem',
+      '--picodash-space-2': '0.375rem',
+      '--picodash-space-2-5': '0.5rem',
+      '--picodash-space-3': '0.625rem',
+      '--picodash-space-4': '0.75rem',
+      '--picodash-space-5': '1rem',
+      '--picodash-font-size-xs': '0.5625rem',
+      '--picodash-font-size-sm': '0.625rem',
+      '--picodash-font-size-md': '0.6875rem',
+      '--picodash-font-size-lg': '0.75rem',
+      '--picodash-font-size-xl': '0.8125rem',
+      '--picodash-font-size-2xl': '1.125rem',
+      '--picodash-font-size-3xl': '1.375rem',
+      '--picodash-line-height-none': '1em',
+      '--picodash-line-height-tight': '1.05em',
+      '--picodash-line-height-normal': '1.2em',
+      '--picodash-line-height-relaxed': '1.4em',
+      '--picodash-control-height-xs': '1.25rem',
+      '--picodash-control-height-sm': '1.5rem',
+      '--picodash-control-height-md': '1.75rem',
+      '--picodash-control-height-lg': '2rem',
+      '--picodash-icon-xs': '0.625rem',
+      '--picodash-icon-sm': '0.75rem',
+      '--picodash-icon-md': '0.875rem',
+      '--picodash-icon-lg': '1rem',
+    })
+    expect(compact).not.toHaveProperty('--picodash-font-family')
+    expect(compact).not.toHaveProperty('--picodash-font-weight-normal')
+    expect(compact).not.toHaveProperty('--picodash-letter-spacing-normal')
+    expect(compact).not.toHaveProperty('--picodash-radius-control')
+    expect(compact).not.toHaveProperty('--picodash-color-text')
+    expect(compact).not.toHaveProperty('--picodash-shadow-sm')
+    expect(compact).not.toHaveProperty('--picodash-duration-fast')
+  })
+
+  it('keeps UI-owned coarse-pointer controls at 44px in both axes', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    const start = css.indexOf('@media (pointer: coarse)')
+    expect(start).toBeGreaterThanOrEqual(0)
+    expect(start).toBeGreaterThan(css.indexOf('min-block-size: var(--picodash-control-height-sm)'))
+    const media = css.slice(start, css.indexOf('\n}', start) + 2)
+    expect(media).toContain("[data-slot='button']")
+    expect(media).toContain("[data-slot='action-menu-item']")
+    expect(media).toContain("[data-slot='action-submenu']")
+    expect(media).toContain('min-block-size: 44px;')
+    expect(media).toContain('min-inline-size: 44px;')
+    expect(media).not.toContain('::before')
+    expect(media).not.toContain('::after')
   })
 
   it('uses an explicit stylesheet build entry and package subpath', async () => {

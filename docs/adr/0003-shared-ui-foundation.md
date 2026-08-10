@@ -2,8 +2,9 @@
 
 ## Status
 
-Accepted target contract. The current `@picodash/theme` package, duplicated product primitives,
-and inline Panel header remain prototype evidence until the package migration is implemented.
+Accepted target contract. The former `@picodash/theme` package, duplicated product primitives,
+and inline Panel header were prototype evidence; the theme package is now retired by the
+pre-release clean replacement.
 
 ## Context
 

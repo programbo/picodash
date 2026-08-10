@@ -8,15 +8,16 @@ accessible presentation primitives without making either product depend on the o
 > Contract: Accepted package boundary, initial component inventory, and reexport boundaries;
 > revised portal-container element type
 >
-> Implementation: Partial
+> Implementation: Implemented — the full accepted inventory and stylesheet surface are available;
+> remaining behavioral/browser seams and exhaustive audits retain their owning statuses below.
 >
 > Evidence: [Theme provider component tests](../../packages/ui/tests/theme-provider.test.tsx),
 > [theme provider type tests](../../packages/ui/tests/theme-provider.types.test.ts), [Button
 > component tests](../../packages/ui/tests/button.test.tsx), [Button type tests](../../packages/ui/tests/button.types.test.ts),
 > [AlertDialog component tests](../../packages/ui/tests/alert-dialog.test.tsx), [AlertDialog type
 > tests](../../packages/ui/tests/alert-dialog.types.test.ts),
-> [CSS contract tests](../../packages/ui/tests/css-contract.test.ts), and the [package artifact
-> checker](../../packages/ui/tests/package-artifacts.mjs).
+> [CSS contract tests](../../packages/ui/tests/css-contract.test.ts), the [Contract Lab Themes
+> journey](../../apps/lab/tests/contract-lab.spec.ts), and the [package artifact checker](../../packages/ui/tests/package-artifacts.mjs).
 >
 > Notes: `@picodash/ui` replaces `@picodash/theme` in the target architecture. No compatibility
 > alias is planned before the first stable release.
@@ -70,8 +71,8 @@ token-consumption tables are implementation evidence rather than unresolved API 
 
 > Contract: Revised — portal containers are HTML elements
 >
-> Implementation: Partial — theme and overlay Providers plus the initial ActionMenu family are
-> implemented; the remaining shared UI inventory is planned.
+> Implementation: Verified for inventory and export surface; behavioral and browser seams retain
+> their owning section statuses below.
 
 The initial public components are exported from the `@picodash/ui` root. Every component exports a
 named `*Props` type. No dedicated component subpath is introduced for this inventory.
@@ -104,7 +105,7 @@ foundational products demonstrate the same product-neutral contract. DashList's 
 
 > Contract: Accepted
 >
-> Implementation: Planned
+> Implementation: Verified
 
 Every public component exports a named Picodash-owned `*Props` type. A type may extend an identified
 public React Aria props interface when the inherited interaction surface is intentionally part of
@@ -129,7 +130,8 @@ portal behavior Picodash fixes.
 
 > Contract: Accepted
 >
-> Implementation: Partial
+> Implementation: Partial — accepted token names and current recipes are verified; detached-root
+> browser behavior and exhaustive selector audits remain partial.
 >
 > Evidence: [Theme provider component tests](../../packages/ui/tests/theme-provider.test.tsx) and
 > [theme provider type tests](../../packages/ui/tests/theme-provider.types.test.ts). Overlay
@@ -288,7 +290,8 @@ The initial implementation uses the private `picodash-button` class for structur
 composing caller-provided string or render-function class names. The focused tests cover semantic
 output, ref forwarding, defaults, explicit hooks and native type, React Aria press/click wiring,
 disabled and pending semantics, render-function children and escape hatch, and the negative public
-type surface. Compact geometry values and coarse-pointer hit-target review remain UI-CSS work.
+type surface. The CSS contract and Contract Lab Themes journey prove compact geometry and coarse-
+pointer hit targets for the shared Button surface.
 
 The initial UI package does not export `LinkButton`. If a product later needs a shared Link, it must
 define navigation behavior and accessibility as a separate contract.
@@ -763,9 +766,10 @@ presentation props, and product behavior.
 >
 > Implementation: Partial
 >
-> Evidence: [CSS contract tests](../../packages/ui/tests/css-contract.test.ts). Built-in recipes,
-> accepted token names, and carriers are covered; compact numeric recipes and shared structural
-> primitives remain Partial or Planned.
+> Evidence: [CSS contract tests](../../packages/ui/tests/css-contract.test.ts) and the [Contract Lab
+> Themes journey](../../apps/lab/tests/contract-lab.spec.ts). Built-in recipes, accepted token names,
+> current compact defaults, carriers, and coarse-pointer targets are covered; detached-root browser
+> behavior and exhaustive selector audits remain partial.
 
 Theme and density remain independent. Density changes geometry tokens but not color-theme identity,
 semantics, or durable state. Portaled or otherwise detached roots repeat the resolved
@@ -815,7 +819,7 @@ consumers a complete dependency list while retaining one owner for each contract
 
 > Contract: Accepted names and semantic roles
 >
-> Implementation: Prototype values require migration to the accepted names
+> Implementation: Verified accepted names and migration
 
 The 79 public shared tokens are exactly:
 
@@ -850,8 +854,22 @@ the accepted density vocabulary or semantic token roles.
 
 `regular` and `compact` recipes override shared spacing, typography, control-height, and icon tokens.
 They do not change colors, elevations, radii, or layer ordering. Product-specific geometry may also
-respond to density through its product-owned tokens. Coarse-pointer media rules preserve at least
-44 CSS pixel hit targets even when compact visual geometry is smaller.
+respond to density through its product-owned tokens. The current verified compact recipe uses these
+defaults:
+
+| Group                                   | Compact values                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------- |
+| Spacing `0-5,1,1-5,2,2-5,3,4,5`         | `0.125rem, 0.1875rem, 0.25rem, 0.375rem, 0.5rem, 0.625rem, 0.75rem, 1rem` |
+| Font size `xs,sm,md,lg,xl,2xl,3xl`      | `0.5625rem, 0.625rem, 0.6875rem, 0.75rem, 0.8125rem, 1.125rem, 1.375rem`  |
+| Line height `none,tight,normal,relaxed` | `1em, 1.05em, 1.2em, 1.4em`                                               |
+| Control height `xs,sm,md,lg`            | `1.25rem, 1.5rem, 1.75rem, 2rem`                                          |
+| Icon `xs,sm,md,lg`                      | `0.625rem, 0.75rem, 0.875rem, 1rem`                                       |
+
+The four smallest compact font sizes intentionally retain their regular values for legibility.
+Under `@media (pointer: coarse)`, UI-owned `Button`, `ActionMenuItem`, and `ActionSubmenu`
+targets have minimum block and inline sizes of `44px` in both densities. The Contract Lab Themes
+journey measures a regular UI-owned trigger, its compact counterpart, and an actual coarse-pointer
+compact target, including under a 12px host root.
 
 ### CSS verification
 
@@ -868,13 +886,13 @@ all required shared styles through documented imports and does not depend on Pic
 
 ## Public surfaces
 
-| Surface                  | Contract | Implementation | Purpose                                                                                            |
-| ------------------------ | -------- | -------------- | -------------------------------------------------------------------------------------------------- |
-| `@picodash/ui`           | Accepted | Partial        | Theme/density slice is available; remaining shared UI inventory is Planned.                        |
-| `@picodash/ui/style.css` | Accepted | Partial        | Shared token recipes and carriers are available; compact values and structural CSS remain Planned. |
-| Product reexports        | Accepted | Planned        | Explicit stable conveniences only.                                                                 |
-| Additional UI subpaths   | Deferred | Not started    | Added only for a demonstrated package need.                                                        |
-| `@picodash/theme` alias  | Rejected | Prototype      | Current package is replaced during migration.                                                      |
+| Surface                  | Contract | Implementation | Purpose                                                                                                                                                        |
+| ------------------------ | -------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@picodash/ui`           | Accepted | Implemented    | Full accepted inventory and stylesheet surface are implemented; behavioral/browser seams and exhaustive audits retain their owning statuses.                   |
+| `@picodash/ui/style.css` | Accepted | Implemented    | Regular/compact token recipes, carriers, structural slots, and coarse-pointer target rules are verified; remaining behavioral/browser seams are tracked below. |
+| Product reexports        | Accepted | Implemented    | Explicit stable reexports are implemented and artifact-checked.                                                                                                |
+| Additional UI subpaths   | Deferred | Not started    | Added only for a demonstrated package need.                                                                                                                    |
+| `@picodash/theme` alias  | Rejected | Retired        | The former package was removed; `@picodash/ui` is the sole shared UI authority.                                                                                |
 
 There is no initial `@picodash/ui/catalog`. The component catalog is product-composition metadata,
 while UI primitives remain documented through this reference and their TypeScript declarations.
@@ -883,7 +901,7 @@ while UI primitives remain documented through this reference and their TypeScrip
 
 > Contract: Accepted
 >
-> Implementation: Planned
+> Implementation: Implemented
 
 - `@picodash/ui` exports the complete accepted inventory and every named public type defined in this
   reference.
@@ -902,11 +920,12 @@ while UI primitives remain documented through this reference and their TypeScrip
 
 ## Implementation evidence to complete
 
-No unresolved shared-UI contract question blocks implementation. Conformance work must still record:
+No unresolved shared-UI contract question blocks implementation. The compact recipe and coarse-
+pointer target contract are verified by the CSS contract tests and the Contract Lab Themes journey.
+Conformance work must still record:
 
-1. exact compact recipe defaults established by cohesive visual and coarse-pointer review;
-2. exhaustive shared-token consumption tables generated from the implemented stylesheets; and
-3. public data-slot inventories plus private structural-selector audits for each implemented
+1. exhaustive shared-token consumption tables generated from the implemented stylesheets; and
+2. public data-slot inventories plus private structural-selector audits for each implemented
    component.
 
 ## Related documents

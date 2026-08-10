@@ -15,6 +15,9 @@ import type {
   SingleFieldDashletRenderContext,
 } from '@picodash/dashlist'
 import {
+  ActionMenu,
+  ActionMenuItem,
+  ActionSubmenu,
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
@@ -215,7 +218,12 @@ export function ContractLabSpecimen({
   }, [diagnosticCount, onDiagnosticCountChange])
 
   return (
-    <PicodashProvider store={store} boundary={boundary} theme="dark">
+    <PicodashProvider
+      store={store}
+      boundary={boundary}
+      theme="dark"
+      density={preset.id === 'themes' ? 'compact' : 'regular'}
+    >
       <ContractLabDevBridgeConnector store={store} />
       <ContractLabPersistenceProbe />
       <div className="flex flex-wrap items-center gap-2" data-contract-lab-panel-controls>
@@ -364,6 +372,12 @@ export function ContractLabSpecimen({
                   </AlertDialogContent>
                 </AlertDialogOverlay>
               </AlertDialog>
+              <ActionMenu label="Open shared ActionMenu">
+                <ActionMenuItem label="Inspect shared action" onAction={() => undefined} />
+                <ActionSubmenu label="More shared actions">
+                  <ActionMenuItem label="Nested shared action" onAction={() => undefined} />
+                </ActionSubmenu>
+              </ActionMenu>
             </Dashlet>
           </DashGroup>
         </DashList>

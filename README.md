@@ -86,8 +86,7 @@ document UI requires a separate Picodash contract.
 ## Workspace
 
 - `packages/store`: framework-independent Store prototype.
-- `packages/theme`: current theme prototype, scheduled to be replaced by the target
-  `@picodash/ui` foundation.
+- `packages/ui`: shared theme, density, token, and generic accessible UI foundation.
 - `packages/dashpanel`: standalone DashPanel prototype.
 - `packages/dashlist`: standalone DashList prototype.
 - `packages/picodash`: integrated facade prototype.

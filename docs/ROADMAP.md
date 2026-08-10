@@ -66,6 +66,22 @@ theme and density contracts, independent portal/layer context, semantic tokens, 
 product-neutral primitives used by both products. DashPanel and DashList consume only public Store
 and UI APIs. They do not depend on each other and may advance independently.
 
+### Phase 2 status: In progress
+
+The minimum `@picodash/ui` foundation is implemented: it is the sole shared presentation authority
+after the `@picodash/theme` retirement, and its current density recipe and coarse-pointer hit
+targets have focused UI and Contract Lab evidence. DashPanel and DashList have initial independent
+consumer slices, including Bridge-backed Store-visible behavior, but both remain in active
+dogfooding. Those existing slices establish a baseline; they do not by themselves complete this
+phase.
+
+Phase 2 completes after additional representative DashPanel and DashList slices exercise the public
+Store and UI boundaries described below, applicable Store-visible outcomes use Dev Bridge evidence
+or record why that evidence is not applicable, and the resulting findings are reconciled in the
+owning foundation without private bypasses. Completion does not require either product to pass its
+Phase 3 stability gate, but the remaining Partial and Planned work must be explicitly separated
+between unfinished Phase 2 dogfooding and Phase 3 stabilization.
+
 UI work is driven by demonstrated cross-product contracts, not speculative extraction. A component
 enters UI only when both products use the same product-neutral semantics, accessibility, theme, and
 interaction behavior without product state or commands.
