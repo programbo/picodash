@@ -212,6 +212,14 @@ function placementKey(placement: DashPanelPlacement): string {
   return `${placement.mode}:${placement.disposition.kind}:${'position' in placement.disposition ? placement.disposition.position : ''}`
 }
 
+function sameDefaultLayout(first: DashPanelDefaultLayout, second: DashPanelDefaultLayout): boolean {
+  return (
+    placementKey(first.placement) === placementKey(second.placement) &&
+    first.preferredPosition?.x === second.preferredPosition?.x &&
+    first.preferredPosition?.y === second.preferredPosition?.y
+  )
+}
+
 function sameDockArena(first: PanelRuntimeDockArena, second: PanelRuntimeDockArena): boolean {
   return (
     first.boundary === second.boundary &&
@@ -444,7 +452,10 @@ export function createPanelRuntime(): PanelRuntime {
             }
             changed = true
           }
-          if (update.defaultLayout !== undefined) {
+          if (
+            update.defaultLayout !== undefined &&
+            !sameDefaultLayout(current.defaultLayout, update.defaultLayout)
+          ) {
             current.defaultLayout = update.defaultLayout
             const materialized = materializePlacement(current, current.requestedPlacement)
             current.placement = materialized.placement

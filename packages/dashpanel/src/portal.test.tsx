@@ -309,6 +309,18 @@ describe('DashPanel portal ownership', () => {
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
 
+    await act(async () => {
+      boundary.dispatchEvent(new Event('transitionrun', { bubbles: true }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
     boundaryWidth = 280
     await act(async () =>
       resize([{ target: boundary } as unknown as ResizeObserverEntry], {} as ResizeObserver),

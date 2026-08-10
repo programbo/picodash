@@ -828,10 +828,26 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       'transitioncancel',
       'transitionend',
     ] as const
-    const canObserveDocument = typeof ownerDocument.addEventListener === 'function'
-    if (canObserveDocument)
+    const movingLayoutEvents = ['animationstart', 'transitionrun', 'transitionstart'] as const
+    const cancelForLayoutMotion = () => cancelObservedMoveRef.current()
+    const layoutEventTargets = new Set<EventTarget>()
+    const addLayoutEventTarget = (target: unknown) => {
+      if (
+        target !== null &&
+        typeof target === 'object' &&
+        typeof (target as EventTarget).addEventListener === 'function'
+      )
+        layoutEventTargets.add(target as EventTarget)
+    }
+    addLayoutEventTarget(ownerDocument)
+    addLayoutEventTarget(observedBoundary)
+    addLayoutEventTarget(observedPanelRoot)
+    for (const target of layoutEventTargets) {
       for (const eventName of settledLayoutEvents)
-        ownerDocument.addEventListener(eventName, refreshGeometry, true)
+        target.addEventListener(eventName, refreshGeometry, true)
+      for (const eventName of movingLayoutEvents)
+        target.addEventListener(eventName, cancelForLayoutMotion, true)
+    }
     let animationFrame: number | undefined
     let trackedBoundary = observedBoundary
     let trackedBoundaryRect = observedBoundary?.getBoundingClientRect()
@@ -867,9 +883,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     return () => {
       observer?.disconnect()
       mutationObserver?.disconnect()
-      if (canObserveDocument)
+      for (const target of layoutEventTargets) {
         for (const eventName of settledLayoutEvents)
-          ownerDocument.removeEventListener(eventName, refreshGeometry, true)
+          target.removeEventListener(eventName, refreshGeometry, true)
+        for (const eventName of movingLayoutEvents)
+          target.removeEventListener(eventName, cancelForLayoutMotion, true)
+      }
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', refreshGeometry)
         window.removeEventListener('scroll', refreshGeometry, true)

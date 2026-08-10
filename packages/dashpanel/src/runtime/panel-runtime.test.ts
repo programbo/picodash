@@ -410,6 +410,46 @@ describe('private DashPanel runtime model', () => {
     })
   })
 
+  it('does not treat an equivalent recreated default as an explicit dock recovery request', () => {
+    const runtime = createPanelRuntime()
+    const occupied = {
+      mode: 'fixed' as const,
+      disposition: { kind: 'docked' as const, position: 'full-left' as const },
+    }
+    const occupant = runtime.acquire(config('occupant', { placement: occupied }))
+    const registration = runtime.acquire(
+      config('conflict', {
+        placement: occupied,
+        defaultLayout: {
+          placement: {
+            mode: 'floating',
+            disposition: { kind: 'snapped', position: 'top-left' },
+          },
+          preferredPosition: { x: 12, y: 18 },
+        },
+      }),
+    )
+    occupant.release()
+
+    registration.update({
+      defaultLayout: {
+        placement: {
+          mode: 'floating',
+          disposition: { kind: 'snapped', position: 'top-left' },
+        },
+        preferredPosition: { x: 12, y: 18 },
+      },
+    })
+
+    expect(runtime.getSnapshot().panels.conflict).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'top-left' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+  })
+
   it('returns side allocation segments for the rendered occupants in one arena', () => {
     const runtime = createPanelRuntime()
     runtime.acquire(
