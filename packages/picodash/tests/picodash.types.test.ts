@@ -25,6 +25,7 @@ import {
   Dashlet,
   PicodashProvider,
   type ActionMenuConfirmation,
+  type ActionMenuConfirmationGuard,
   type ActionMenuItemProps,
   type ActionMenuItemVariant,
   type ActionMenuProps,
@@ -82,6 +83,12 @@ describe('@picodash/picodash facade public types', () => {
       description: 'Confirm the action.',
       actionLabel: 'Confirm',
     }
+    const confirmationGuard: ActionMenuConfirmationGuard = {
+      fingerprint: 'facade:v1',
+      getFingerprint: () => 'facade:v1',
+      subscribe: () => () => undefined,
+    }
+    void confirmationGuard
     const menuItem: ActionMenuItemProps = { label: 'Action', onAction: () => {}, confirmation }
     const variant: ActionMenuItemVariant = 'destructive'
     const menu: ActionMenuProps = { label: 'Actions', children: null }

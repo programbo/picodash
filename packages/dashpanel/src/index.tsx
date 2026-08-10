@@ -63,6 +63,7 @@ import {
 } from './runtime/panel-controller.tsx'
 import type {
   ActionMenuConfirmation,
+  ActionMenuConfirmationGuard,
   ActionMenuItemProps,
   ActionMenuItemVariant,
   ActionMenuProps,
@@ -516,6 +517,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const commitMove = () => {
     const session = moveSession.current
     if (!session) return
+    if (effectivePlacement.mode === 'fixed') {
+      cancelMove()
+      return { status: 'not_executed' as const, reason: 'unavailable' as const }
+    }
     const latestGeometry = measureGeometry()
     const initialGeometry = session.initialGeometry
     if (
@@ -544,7 +549,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   }
 
   const onMovePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button !== 0 || moveSession.current) return
+    if (effectivePlacement.mode === 'fixed' || event.button !== 0 || moveSession.current) return
     event.preventDefault()
     event.currentTarget.setPointerCapture?.(event.pointerId)
     beginMove('pointer', event)
@@ -618,6 +623,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const onMoveKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     const session = moveSession.current
     if (!session) {
+      if (effectivePlacement.mode === 'fixed') return
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault()
         beginMove('keyboard')
@@ -909,6 +915,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                         <Button
                           aria-label={`Move panel ${panelName}`}
                           aria-pressed={moveMode !== null}
+                          isDisabled={effectivePlacement.mode === 'fixed'}
                           iconOnly
                           variant="ghost"
                           size="sm"
@@ -1035,6 +1042,7 @@ export { ActionMenu, ActionMenuItem, ActionMenuSeparator, ActionSubmenu, DashHea
 
 export type {
   ActionMenuConfirmation,
+  ActionMenuConfirmationGuard,
   ActionMenuItemProps,
   ActionMenuItemVariant,
   ActionMenuProps,

@@ -43,6 +43,7 @@ type GroupRecord = Readonly<{
 }>
 
 type BindingRecord = Readonly<{
+  readonly key: string
   readonly discardInput: () => void
   readonly dirty: boolean
 }>
@@ -225,6 +226,25 @@ function resetListAvailability(snapshot: DashListActionSnapshot) {
     : ('disabled' as const)
 }
 
+function resetValuesFingerprint(registry: DashListActionRegistry): string {
+  const snapshot = registry.snapshot()
+  const inspection = registry.store.inspectRegisteredValueReset()
+  return JSON.stringify([
+    inspection.registeredFields,
+    inspection.changedFields,
+    snapshot.bindings.filter((binding) => binding.dirty).map((binding) => binding.key),
+  ])
+}
+
+function resetListFingerprint(registry: DashListActionRegistry): string {
+  const list = registry.snapshot().scope?.dashList
+  return JSON.stringify([
+    list?.rootOrder ?? null,
+    [...(list?.groupOrders ?? [])].sort(([left], [right]) => left.localeCompare(right)),
+    [...(list?.collapseOverrides ?? [])].sort(([left], [right]) => left.localeCompare(right)),
+  ])
+}
+
 function resetValuesAvailability(
   registry: DashListActionRegistry,
   snapshot: DashListActionSnapshot,
@@ -394,11 +414,43 @@ const resetListConfirmation = {
   actionLabel: 'Reset list',
 } as const
 
+function useResetConfirmationGuard(scopeId: string | undefined, kind: 'values' | 'list') {
+  const store = usePicodashStore()
+  const registry = registryForScope(store, scopeId, useContext(DashListActionRegistryContext))
+  const fingerprint = registry
+    ? kind === 'values'
+      ? resetValuesFingerprint(registry)
+      : resetListFingerprint(registry)
+    : 'unavailable'
+  return useMemo(
+    () => ({
+      fingerprint,
+      getFingerprint: () =>
+        registry
+          ? kind === 'values'
+            ? resetValuesFingerprint(registry)
+            : resetListFingerprint(registry)
+          : 'unavailable',
+      subscribe: registry?.subscribe ?? noopSubscribe,
+    }),
+    [fingerprint, kind, registry],
+  )
+}
+
+export function executeDashListActionIfCurrent(
+  action: DashListActionController,
+  guard: NonNullable<ActionMenuItemProps['confirmation']>['guard'],
+): void {
+  if (guard && guard.getFingerprint() === guard.fingerprint) void action.execute()
+}
+
 export function DashListResetValuesItem(props: DashListActionProps) {
   const action = useDashListActions(props.scopeId).resetValues
+  const guard = useResetConfirmationGuard(props.scopeId, 'values')
   return (
     <ActionMenuItem
-      {...actionItemProps(action, 'Reset values…', resetValuesConfirmation)}
+      {...actionItemProps(action, 'Reset values…', { ...resetValuesConfirmation, guard })}
+      onAction={() => executeDashListActionIfCurrent(action, guard)}
       variant="destructive"
     />
   )
@@ -406,9 +458,11 @@ export function DashListResetValuesItem(props: DashListActionProps) {
 
 export function DashListResetListItem(props: DashListActionProps) {
   const action = useDashListActions(props.scopeId).resetList
+  const guard = useResetConfirmationGuard(props.scopeId, 'list')
   return (
     <ActionMenuItem
-      {...actionItemProps(action, 'Reset list…', resetListConfirmation)}
+      {...actionItemProps(action, 'Reset list…', { ...resetListConfirmation, guard })}
+      onAction={() => executeDashListActionIfCurrent(action, guard)}
       variant="destructive"
     />
   )

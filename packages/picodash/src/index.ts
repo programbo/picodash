@@ -33,6 +33,7 @@ export type {
   DashHeaderProps,
   DashHeaderSlots,
   ActionMenuConfirmation,
+  ActionMenuConfirmationGuard,
   ActionMenuItemProps,
   ActionMenuItemVariant,
   ActionMenuProps,

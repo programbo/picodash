@@ -15,6 +15,7 @@ import {
   DashListResetValuesItem,
   useDashListActions,
   type DashListProps,
+  type ActionMenuConfirmationGuard,
   type CompoundDashletProps,
   type DashletProps,
 } from '../src/index.tsx'
@@ -41,6 +42,12 @@ describe('@picodash/dashlist public types', () => {
       theme: 'operator',
     }
     const ref: RefObject<HTMLDivElement | null> = { current: null }
+    const guard: ActionMenuConfirmationGuard = {
+      fingerprint: 'list:v1',
+      getFingerprint: () => 'list:v1',
+      subscribe: () => () => undefined,
+    }
+    void guard
     void createElement(DashList, { ...root, ref })
     void createElement(DashList, scoped)
     void createElement(DashList, customTheme)

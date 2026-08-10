@@ -185,6 +185,43 @@ describe('@picodash/ui ActionMenu composition', () => {
     expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeNull()
   })
 
+  it('closes a confirmation when its reviewed operation fingerprint changes', async () => {
+    const onAction = vi.fn()
+    const listeners = new Set<() => void>()
+    let fingerprint = 'first'
+    await render(
+      tree(
+        <ActionMenuItem
+          label="Reset"
+          onAction={onAction}
+          confirmation={{
+            title: 'Reset?',
+            description: 'Defaults are restored.',
+            actionLabel: 'Reset values',
+            guard: {
+              fingerprint,
+              getFingerprint: () => fingerprint,
+              subscribe(listener) {
+                listeners.add(listener)
+                return () => listeners.delete(listener)
+              },
+            },
+          }}
+        />,
+      ),
+    )
+    await openMenu()
+    ;(document.querySelector('[data-slot="action-menu-item"]') as HTMLElement).click()
+    await act(async () => {})
+    expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeTruthy()
+    await act(async () => {
+      fingerprint = 'second'
+      for (const listener of listeners) listener()
+    })
+    expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeNull()
+    expect(onAction).not.toHaveBeenCalled()
+  })
+
   it('cancels confirmation without action and refuses to open when a controlled menu stays open', async () => {
     const onAction = vi.fn()
     const onOpenChange = vi.fn()

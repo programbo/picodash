@@ -14,6 +14,7 @@ import {
   DashPanelProvider,
   DashPanelTrigger,
   type DashPanelLauncherProps,
+  type ActionMenuConfirmationGuard,
   type DashPanelRemoveRequest,
   type DashPanelCommandResult,
   type DashPanelController,
@@ -43,6 +44,12 @@ const store = createPicodashStore({ valueOwner: 'store', fields: { value: { defa
 describe('@picodash/dashpanel public types', () => {
   it('exposes the frozen provider/panel shell and rejects retired or reserved props', () => {
     const boundary = {} as Element
+    const guard: ActionMenuConfirmationGuard = {
+      fingerprint: 'panel:v1',
+      getFingerprint: () => 'panel:v1',
+      subscribe: () => () => undefined,
+    }
+    void guard
     const providerProps: DashPanelProviderProps = {
       store,
       children: null,

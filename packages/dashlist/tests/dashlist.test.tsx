@@ -14,6 +14,7 @@ import {
   useDashListActions,
   type SingleFieldDashletRenderContext,
 } from '../src/index.tsx'
+import { executeDashListActionIfCurrent } from '../src/actions.tsx'
 import {
   acquireRegisteredDashListNodeLease,
   createNodeRegistry,
@@ -522,6 +523,30 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('refuses a queued reset callback after its reviewed fingerprint changes', () => {
+    const execute = vi.fn(() => ({ status: 'not_executed', availability: 'disabled' }) as const)
+    let fingerprint = 'reviewed'
+    executeDashListActionIfCurrent(
+      { availability: 'enabled', execute },
+      {
+        fingerprint,
+        getFingerprint: () => fingerprint,
+        subscribe: () => () => undefined,
+      },
+    )
+    expect(execute).toHaveBeenCalledTimes(1)
+    fingerprint = 'changed'
+    executeDashListActionIfCurrent(
+      { availability: 'enabled', execute },
+      {
+        fingerprint: 'reviewed',
+        getFingerprint: () => fingerprint,
+        subscribe: () => () => undefined,
+      },
+    )
+    expect(execute).toHaveBeenCalledTimes(1)
+  })
+
   it('leases committed nodes for active prune exclusion and releases them without auto-delete', () => {
     const store = makeStore()
     const scoped = store.scope('presence')
@@ -970,6 +995,25 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(order()).toEqual(['second', 'first'])
     handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
     act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+    })
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('boundary')
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowUp', preventDefault() {} })
+    })
+    expect(order()).toEqual(['first', 'second'])
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('Moved')
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+    })
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
       void handle.props.onKeyDown({ key: ' ', preventDefault() {} })
     })
     expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['second', 'first'])
@@ -1031,6 +1075,50 @@ describe('@picodash/dashlist alpha shell', () => {
       void second.props.onKeyDown({ key: ' ', preventDefault() {} })
     })
     expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['second', 'first'])
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
+  it('releases the shared reorder coordinator when an active group unmounts', () => {
+    const store = makeStore()
+    const scoped = store.scope('order-unmount')
+    const list = (includeGroup: boolean) =>
+      createElement(
+        DashList,
+        { id: 'order-unmount', store },
+        includeGroup
+          ? createElement(DashGroup, {
+              id: 'group',
+              label: 'Group',
+              key: 'group',
+              children: [
+                createElement(Dashlet, { id: 'child-a', label: 'Child A', key: 'child-a' }),
+                createElement(Dashlet, { id: 'child-b', label: 'Child B', key: 'child-b' }),
+              ],
+            })
+          : null,
+        createElement(Dashlet, { id: 'root-a', label: 'Root A', key: 'root-a' }),
+        createElement(Dashlet, { id: 'root-b', label: 'Root B', key: 'root-b' }),
+      )
+    const renderer = render(list(true))
+    let handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'child-a' })
+    act(() => {
+      void handle.props.onKeyDown({ key: ' ', preventDefault() {} })
+      renderer.update(list(false))
+    })
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'root-a' })
+    act(() => {
+      void handle.props.onKeyDown({ key: ' ', preventDefault() {} })
+    })
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'root-a' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
+    })
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'root-a' })
+    act(() => {
+      void handle.props.onKeyDown({ key: ' ', preventDefault() {} })
+    })
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['root-b', 'root-a'])
     act(() => renderer.unmount())
     store.destroy()
   })

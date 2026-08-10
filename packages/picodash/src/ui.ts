@@ -41,6 +41,7 @@ export type {
   PicodashOverlayDefaults,
   PicodashOverlayProviderProps,
   ActionMenuConfirmation,
+  ActionMenuConfirmationGuard,
   ActionMenuItemProps,
   ActionMenuItemVariant,
   ActionMenuProps,

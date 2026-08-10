@@ -346,6 +346,41 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('keeps the move control unavailable for Fixed Panels instead of changing placement mode', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'panel',
+          title: 'Inspector',
+          defaultLayout: {
+            placement: {
+              mode: 'fixed',
+              disposition: { kind: 'docked', position: 'full-left' },
+            },
+            preferredPosition: { x: 4, y: 6 },
+          },
+        }),
+      }),
+    )
+    const move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    expect(move.props.isDisabled).toBe(true)
+    act(() => {
+      void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+      void move.props.onPointerDown({
+        button: 0,
+        pointerId: 1,
+        preventDefault() {},
+        currentTarget: new MockHTMLElementBase(),
+      })
+    })
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(renderer.root.findByType('aside').props['data-picodash-placement']).toBe('fixed-docked')
+    act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('requires a root Store and rejects scoped Stores', () => {
     const store = makeStore()
     expect(() => render(createElement(DashPanel, { id: 'outside', title: 'Outside' }))).toThrow(

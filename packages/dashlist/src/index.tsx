@@ -124,6 +124,7 @@ export type {
 
 export type {
   ActionMenuConfirmation,
+  ActionMenuConfirmationGuard,
   ActionMenuItemProps,
   ActionMenuItemVariant,
   ActionMenuProps,
@@ -482,7 +483,12 @@ function useOrderingController({
     if (pointer?.pointerId !== undefined) pointer.releasePointerCapture?.(pointer.pointerId)
   }
   const dispatch = (event: Parameters<typeof transitionOrdering>[1]): void => {
-    const transition = transitionOrdering(stateRef.current, event)
+    const previous = stateRef.current
+    const previousCandidateIndex =
+      event.type === 'move' && previous.session
+        ? candidateOrder(previous).indexOf(previous.session.nodeId)
+        : -1
+    const transition = transitionOrdering(previous, event)
     if (transition.state !== stateRef.current) {
       stateRef.current = transition.state
       setState(transition.state)
@@ -493,10 +499,8 @@ function useOrderingController({
     }
     if (event.type === 'move' && stateRef.current.session) {
       const current = stateRef.current.session
-      const before = stateRef.current.ordering.visibleBands[current.band]
-      const index = before.indexOf(current.nodeId)
       const candidateIndex = current.candidateOrder.indexOf(current.nodeId)
-      if (candidateIndex === index) {
+      if (candidateIndex === previousCandidateIndex) {
         publish(
           `${current.nodeId} is already at the ${event.direction === 'up' || event.direction === 'home' ? 'start' : 'end'} boundary.`,
         )
@@ -587,6 +591,15 @@ function useOrderingController({
     pointerRef.current = null
     dispatch({ type: 'commit' })
   }
+  useEffect(
+    () => () => {
+      if (!stateRef.current.session) return
+      releasePointerCapture()
+      pointerRef.current = null
+      coordinator.active.current = false
+    },
+    [coordinator],
+  )
   return {
     coordinator,
     ordering: effectiveState.ordering,
@@ -819,6 +832,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     const resetBindings = useMemo(
       () =>
         Object.values(bindingRuntime.bindings).map((binding) => ({
+          key: `${id}:${binding.alias}`,
           discardInput: () => {
             if ('mode' in binding && binding.mode === 'input')
               bindingRuntime.discardInputs[binding.alias]?.()
