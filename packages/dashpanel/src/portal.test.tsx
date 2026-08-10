@@ -620,6 +620,67 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('cancels an active move when an external settled layout replaces its origin', async () => {
+    const store = makeStore()
+    const scoped = store.scope('inspector')
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const left = Number.parseFloat(this.style.left) || 0
+          const top = Number.parseFloat(this.style.top) || 0
+          return {
+            top,
+            right: left + 80,
+            bottom: top + 40,
+            left,
+            width: 80,
+            height: 40,
+          } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'floating', disposition: { kind: 'free' } },
+            preferredPosition: { x: 30, y: 30 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    await act(async () => {
+      scoped.setDashPanelLayout({
+        placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
+        preferredPosition: { x: 30, y: 30 },
+      })
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-snapped')
+    expect(scoped.getState().scope?.dashPanel?.placement).toEqual({
+      mode: 'floating',
+      disposition: { kind: 'snapped', position: 'top-left' },
+    })
+
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('projects an unreachable preferred origin before comparing pointer or keyboard movement', async () => {
     const store = makeStore()
     const portal = document.createElement('div')

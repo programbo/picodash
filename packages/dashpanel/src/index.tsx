@@ -593,6 +593,18 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     readonly moved: boolean
   } | null>(null)
   const cancelObservedMoveRef = useRef<() => void>(() => undefined)
+  const settledPreferredPosition =
+    durableLayout?.preferredPosition ?? resolvedPolicyDefaultLayout.preferredPosition
+  const settledLayoutFingerprint = JSON.stringify([
+    resolvedPlacement,
+    settledPreferredPosition ?? null,
+  ])
+  const settledLayoutFingerprintRef = useRef(settledLayoutFingerprint)
+  useLayoutEffect(() => {
+    if (settledLayoutFingerprintRef.current !== settledLayoutFingerprint && moveSession.current)
+      cancelObservedMoveRef.current()
+    settledLayoutFingerprintRef.current = settledLayoutFingerprint
+  }, [settledLayoutFingerprint])
   const currentPosition = useMemo(
     () => () => {
       if (previewPositionRef.current) return previewPositionRef.current
@@ -1036,8 +1048,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       store: scoped,
       currentPosition,
       freeMovePosition,
-      preferredPosition:
-        durableLayout?.preferredPosition ?? resolvedPolicyDefaultLayout.preferredPosition,
+      preferredPosition: settledPreferredPosition,
       resolveDockArena,
     })
     registration.current = next
@@ -1061,8 +1072,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       store: scoped,
       currentPosition,
       freeMovePosition,
-      preferredPosition:
-        durableLayout?.preferredPosition ?? resolvedPolicyDefaultLayout.preferredPosition,
+      preferredPosition: settledPreferredPosition,
       resolveDockArena,
     })
   }, [
@@ -1076,7 +1086,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     scoped,
     currentPosition,
     freeMovePosition,
-    durableLayout?.preferredPosition,
+    settledPreferredPosition,
     resolveDockArena,
   ])
 

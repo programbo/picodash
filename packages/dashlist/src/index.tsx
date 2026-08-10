@@ -1362,8 +1362,10 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
             (group) =>
               [
                 group.id,
-                actionSnapshot.scope?.dashList?.collapseOverrides.get(group.id) ??
-                  group.defaultCollapsed,
+                group.collapsible
+                  ? (actionSnapshot.scope?.dashList?.collapseOverrides.get(group.id) ??
+                    group.defaultCollapsed)
+                  : false,
               ] as const,
           )
           .sort(([left], [right]) => left.localeCompare(right)),
