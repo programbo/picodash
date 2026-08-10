@@ -214,6 +214,19 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     expect(coarse.coarsePointer).toBe(true)
     expect(coarse.width).toBeGreaterThanOrEqual(44)
     expect(coarse.height).toBeGreaterThanOrEqual(44)
+
+    await coarsePage.getByRole('button', { name: 'Open shared ActionMenu' }).press('Enter')
+    for (const menuItem of [
+      coarsePage.getByRole('menuitem', { name: 'Inspect shared action' }),
+      coarsePage.getByRole('menuitem', { name: 'More shared actions' }),
+    ]) {
+      const bounds = await menuItem.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        return { width: rect.width, height: rect.height }
+      })
+      expect(bounds.width).toBeGreaterThanOrEqual(44)
+      expect(bounds.height).toBeGreaterThanOrEqual(44)
+    }
     expect(coarseErrors).toEqual([])
   } finally {
     await coarseContext.close()

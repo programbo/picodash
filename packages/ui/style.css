@@ -181,15 +181,6 @@
   --picodash-icon-lg: 1rem;
 }
 
-@media (pointer: coarse) {
-  :where([data-slot='button']),
-  :where([data-slot='action-menu-item']),
-  :where([data-slot='action-submenu']) {
-    min-block-size: 44px;
-    min-inline-size: 44px;
-  }
-}
-
 /* Product-neutral Button structure and recipes. */
 :where([data-slot='button']) {
   align-items: center;
@@ -499,4 +490,13 @@
 
 :where(.picodash-action-menu-confirmation-trigger) {
   display: none;
+}
+
+@media (pointer: coarse) {
+  :where([data-slot='button']),
+  :where([data-slot='action-menu-item']),
+  :where([data-slot='action-submenu']) {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
 }

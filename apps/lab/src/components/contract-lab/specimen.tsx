@@ -15,6 +15,9 @@ import type {
   SingleFieldDashletRenderContext,
 } from '@picodash/dashlist'
 import {
+  ActionMenu,
+  ActionMenuItem,
+  ActionSubmenu,
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
@@ -369,6 +372,12 @@ export function ContractLabSpecimen({
                   </AlertDialogContent>
                 </AlertDialogOverlay>
               </AlertDialog>
+              <ActionMenu label="Open shared ActionMenu">
+                <ActionMenuItem label="Inspect shared action" onAction={() => undefined} />
+                <ActionSubmenu label="More shared actions">
+                  <ActionMenuItem label="Nested shared action" onAction={() => undefined} />
+                </ActionSubmenu>
+              </ActionMenu>
             </Dashlet>
           </DashGroup>
         </DashList>

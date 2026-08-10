@@ -191,6 +191,7 @@ describe('@picodash/ui stylesheet contract', () => {
     const css = await readFile(stylesheetPath, 'utf8')
     const start = css.indexOf('@media (pointer: coarse)')
     expect(start).toBeGreaterThanOrEqual(0)
+    expect(start).toBeGreaterThan(css.indexOf('min-block-size: var(--picodash-control-height-sm)'))
     const media = css.slice(start, css.indexOf('\n}', start) + 2)
     expect(media).toContain("[data-slot='button']")
     expect(media).toContain("[data-slot='action-menu-item']")
