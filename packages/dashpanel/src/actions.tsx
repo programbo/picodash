@@ -2,6 +2,7 @@ import { Fragment, useContext, createContext, type ReactNode } from 'react'
 import { ActionMenuItem, ActionMenuSeparator, ActionSubmenu } from '@picodash/ui'
 import { useDashPanel, type DashPanelController } from './runtime/panel-controller.tsx'
 import { useDashPanelPolicy } from './runtime/panel-policy-context.tsx'
+import { useDashPanelRuntime } from './runtime/panel-runtime-context.tsx'
 import type {
   DashPanelDockPosition,
   DashPanelPlacement,
@@ -51,6 +52,7 @@ function placementItem(
   controller: DashPanelController,
   placement: DashPanelPlacement,
   label: string,
+  occupied = false,
 ) {
   if (controller.availability === 'unavailable') return null
   return (
@@ -59,7 +61,7 @@ function placementItem(
         placement.disposition.kind === 'free' ? 'free' : placement.disposition.position
       }`}
       label={label}
-      isDisabled={samePlacement(controller.placement, placement)}
+      isDisabled={occupied || samePlacement(controller.placement, placement)}
       onAction={() => {
         void controller.setPlacement(placement)
       }}
@@ -130,6 +132,7 @@ function hybridPlacement(disposition: DashPanelPlacement['disposition']): DashPa
 export function DashPanelPlacementSubmenu() {
   const controller = useDashPanel()
   const policy = useDashPanelPolicy()
+  const runtime = useDashPanelRuntime()
   if (controller.availability === 'unavailable') return null
 
   const mode = controller.placement.mode
@@ -168,6 +171,7 @@ export function DashPanelPlacementSubmenu() {
                 ? { mode: 'fixed', disposition: { kind: 'docked', position } }
                 : { mode: 'hybrid', disposition: { kind: 'docked', position } },
               dockLabels[position],
+              runtime.isDockPositionOccupied(controller.scopeId, position),
             ),
           )
       : []

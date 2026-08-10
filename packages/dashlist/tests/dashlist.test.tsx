@@ -547,6 +547,66 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(execute).toHaveBeenCalledTimes(1)
   })
 
+  it('announces a rejected built-in value reset', () => {
+    let snapshot = { value: 5 }
+    let rejectWrites = false
+    const listeners = new Set<() => void>()
+    const store = createPicodashStore({
+      valueOwner: 'external',
+      adapter: {
+        getSnapshot: () => snapshot,
+        subscribe(listener: () => void) {
+          listeners.add(listener)
+          return () => listeners.delete(listener)
+        },
+        setValues(next: Readonly<{ value: number }>) {
+          if (rejectWrites) throw new Error('adapter rejected reset')
+          snapshot = { ...next }
+          for (const listener of listeners) listener()
+        },
+      },
+      fields: {
+        value: {
+          defaultValue: 0,
+          parse: (input: unknown) =>
+            typeof input === 'number'
+              ? { ok: true as const, candidate: input }
+              : { ok: false as const, issues: [{ message: 'Expected a number.' }] },
+        },
+      },
+    })
+    let latest!: ReturnType<typeof useDashListActions>
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'rejected-reset', store },
+        createElement(Dashlet, {
+          id: 'item',
+          label: 'Item',
+          field: store.fields.value as never,
+          children() {
+            return createElement(ActionProbe, {
+              capture: (actions) => {
+                latest = actions
+              },
+            })
+          },
+        }),
+      ),
+    )
+    rejectWrites = true
+    act(() => {
+      const result = latest.resetValues.execute()
+      expect(result.status).toBe('executed')
+      if (result.status === 'executed') expect(result.result.ok).toBe(false)
+    })
+    expect(renderer.root.findByProps({ role: 'status' }).children).toEqual([
+      'Reset values was rejected.',
+    ])
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
   it('leases committed nodes for active prune exclusion and releases them without auto-delete', () => {
     const store = makeStore()
     const scoped = store.scope('presence')

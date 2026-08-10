@@ -12,6 +12,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ComponentPropsWithRef,
   type ReactElement,
   type MutableRefObject,
@@ -1135,7 +1136,6 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   } | null>(null)
   immutableIdentity(identityRef, resolved.store, resolved.scopeId)
   const declarations = useMemo(() => flattenDeclarations(children, 'list'), [children])
-  const [announcement, setAnnouncement] = useState('')
   const orderingDeclarations = useMemo(
     () =>
       declarations.map((declaration) => ({
@@ -1154,6 +1154,11 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   if (actionRegistryRef.current === undefined)
     actionRegistryRef.current = createDashListActionRegistry(resolved.store, resolved.scopeId)
   const actionRegistry = actionRegistryRef.current
+  const actionSnapshot = useSyncExternalStore(
+    actionRegistry.subscribe,
+    actionRegistry.getSnapshot,
+    actionRegistry.getSnapshot,
+  )
   useEffect(() => {
     actionRegistry.activate()
     return () => actionRegistry.dispose()
@@ -1167,7 +1172,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     declarations: orderingDeclarations,
     durableOrder: rootOrder,
     reorderable,
-    announce: setAnnouncement,
+    announce: actionRegistry.announce,
   })
   const declarationById = useMemo(
     () =>
@@ -1196,7 +1201,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
         kind="dashList"
         allowStandalone={resolved.standalone}
       >
-        <DashListAnnouncementContext.Provider value={setAnnouncement}>
+        <DashListAnnouncementContext.Provider value={actionRegistry.announce}>
           <DashListOrderingCoordinatorContext.Provider value={rootOrdering.coordinator}>
             <DashListOrderingContext.Provider value={rootOrdering}>
               <DashListActionRegistryContext.Provider value={actionRegistry}>
@@ -1234,7 +1239,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
                         )}
                       </div>
                       <div id={statusId} role="status" aria-live="polite" aria-atomic="true">
-                        {announcement}
+                        {actionSnapshot.announcement}
                       </div>
                     </div>
                   </DashListNodeValidation>

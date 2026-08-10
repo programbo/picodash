@@ -138,4 +138,39 @@ describe('DashPanel action composition', () => {
     await act(async () => root.unmount())
     store.destroy()
   })
+
+  it('disables dock targets occupied by another Panel in the same arena', async () => {
+    const store = makeStore()
+    await render(
+      <DashPanelProvider store={store}>
+        <DashPanel
+          id="occupied"
+          title="Occupied"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
+            preferredPosition: { x: 0, y: 0 },
+          }}
+        />
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
+            preferredPosition: { x: 0, y: 0 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    await openActions()
+    const submenu = document.querySelector('[data-slot="action-submenu"]') as HTMLElement
+    submenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await act(async () => {})
+    const occupied = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
+      (item) => item.textContent === 'Dock full-left',
+    ) as HTMLElement
+    expect(occupied).toBeTruthy()
+    expect(occupied.getAttribute('aria-disabled')).toBe('true')
+    await act(async () => root.unmount())
+    store.destroy()
+  })
 })

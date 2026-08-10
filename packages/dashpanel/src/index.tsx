@@ -924,6 +924,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                           onPointerUpCapture={onMovePointerUp}
                           onPointerCancelCapture={onMovePointerCancel}
                           onKeyDown={onMoveKeyDown}
+                          onBlur={() => {
+                            if (moveSession.current?.mode === 'keyboard') cancelMove()
+                          }}
                         >
                           ↕
                         </Button>

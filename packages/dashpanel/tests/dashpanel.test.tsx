@@ -266,6 +266,14 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
 
     void keyEvent('Enter')
+    void keyEvent('ArrowRight', true)
+    void act(() => move.props.onBlur())
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(renderer.root.findByType('aside').props['data-picodash-placement']).toBe(
+      'floating-snapped',
+    )
+
+    void keyEvent('Enter')
     void keyEvent('ArrowDown')
     void keyEvent('Enter')
     expect(store.getState().scopes.get('panel')?.dashPanel?.placement).toEqual({

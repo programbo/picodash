@@ -128,6 +128,7 @@ export interface PanelRuntime {
   setPlacement(scopeId: string, placement: DashPanelPlacement): DashPanelLayoutCommandResult
   resetLayout(scopeId: string): DashPanelLayoutCommandResult
   getPanelConfig(scopeId: string): PanelRuntimePanelConfig | undefined
+  isDockPositionOccupied(scopeId: string, position: DashPanelDockPosition): boolean
   getDockTarget(
     scopeId: string,
     available: Readonly<{ width: number; height: number }>,
@@ -597,6 +598,10 @@ export function createPanelRuntime(): PanelRuntime {
         presentation: panel.presentation,
       })
       return panel.configSnapshot
+    },
+    isDockPositionOccupied(scopeId, position) {
+      const panel = panelFor(scopeId)
+      return panel ? dockOccupant(panel, position) !== undefined : false
     },
     getDockTarget(scopeId, available) {
       const panel = panelFor(scopeId)

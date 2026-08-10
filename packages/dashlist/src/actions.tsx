@@ -52,11 +52,13 @@ export type DashListActionSnapshot = Readonly<{
   readonly groups: readonly GroupRecord[]
   readonly bindings: readonly BindingRecord[]
   readonly scope: ReturnType<ScopedStore<PicodashFieldDefinitions>['getState']>['scope']
+  readonly announcement: string
 }>
 
 export type DashListActionRegistry = Readonly<{
   readonly scopeId: string
   readonly store: ScopedStore<PicodashFieldDefinitions>
+  readonly announce: (message: string) => void
   readonly activate: () => void
   readonly subscribe: (listener: () => void) => () => void
   readonly getSnapshot: () => DashListActionSnapshot
@@ -79,7 +81,12 @@ function hubForRoot(root: object): RegistryHub {
   const current = hubsByRoot.get(root)
   if (current) return current
   const listeners = new Set<() => void>()
-  let snapshot: DashListActionSnapshot = { groups: [], bindings: [], scope: undefined }
+  let snapshot: DashListActionSnapshot = {
+    groups: [],
+    bindings: [],
+    scope: undefined,
+    announcement: '',
+  }
   const hub: RegistryHub = {
     subscribe(listener) {
       listeners.add(listener)
@@ -106,6 +113,7 @@ function createRegistry(
   const listeners = new Set<() => void>()
   let revision = 0
   let active = false
+  let announcement = ''
   let unsubscribeStore: (() => void) | undefined
   const root = store.root
   const hub = hubForRoot(root)
@@ -114,6 +122,7 @@ function createRegistry(
     groups: [...groups.values()],
     bindings: [...bindings.values()].flat(),
     scope: store.getState().scope,
+    announcement,
   })
   const notify = () => {
     revision += 1
@@ -125,6 +134,10 @@ function createRegistry(
   const registry: DashListActionRegistry = {
     scopeId,
     store,
+    announce(message) {
+      announcement = message
+      notify()
+    },
     activate() {
       if (active) return
       active = true
@@ -203,6 +216,7 @@ const emptySnapshot: DashListActionSnapshot = {
   groups: [],
   bindings: [],
   scope: undefined,
+  announcement: '',
 }
 
 function availabilityFor(snapshot: DashListActionSnapshot, kind: 'expand' | 'collapse') {
@@ -290,12 +304,19 @@ function executeAction(
         return [[group.id, desired === group.defaultCollapsed ? null : desired] as const]
       })
     const result = registry!.store.updateDashListCollapseOverrides(updates)
+    if (!result.ok)
+      registry!.announce(`${kind === 'expand' ? 'Expand all' : 'Collapse all'} was rejected.`)
     return { status: 'executed', result }
   }
-  if (kind === 'resetList')
-    return { status: 'executed', result: registry!.store.resetDashListMetadata() }
+  if (kind === 'resetList') {
+    const result = registry!.store.resetDashListMetadata()
+    if (!result.ok) registry!.announce('Reset list was rejected.')
+    return { status: 'executed', result }
+  }
   const result = registry!.store.resetRegisteredValues()
-  if (result.ok) for (const binding of snapshot.bindings) if (binding.dirty) binding.discardInput()
+  if (result.ok) {
+    for (const binding of snapshot.bindings) if (binding.dirty) binding.discardInput()
+  } else registry!.announce('Reset values was rejected.')
   return { status: 'executed', result }
 }
 
