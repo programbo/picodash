@@ -177,6 +177,10 @@ describe('DashPanel action composition', () => {
 
   it('keeps Fixed dock actions when the rendered placement is an occupied fallback', async () => {
     const store = makeStore()
+    store.scope('inspector').setDashPanelLayout({
+      placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
+      preferredPosition: { x: 0, y: 0 },
+    })
     await render(
       <DashPanelProvider store={store}>
         <DashPanel
@@ -190,7 +194,7 @@ describe('DashPanel action composition', () => {
           id="inspector"
           title="Inspector"
           defaultLayout={{
-            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
           }}
         />
       </DashPanelProvider>,
@@ -212,6 +216,7 @@ describe('DashPanel action composition', () => {
     const fullRight = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
       (item) => item.textContent === 'Dock full-right',
     ) as HTMLElement
+    expect(fullRight.getAttribute('aria-disabled')).not.toBe('true')
     await act(async () => fullRight.click())
     expect(store.getState().scopes.get('inspector')?.dashPanel?.placement).toEqual({
       mode: 'fixed',

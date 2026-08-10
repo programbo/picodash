@@ -1169,6 +1169,40 @@ describe('@picodash/dashlist alpha shell', () => {
     store.destroy()
   })
 
+  it('remounts the live region for repeated identical announcements', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'repeat-announcement', store },
+        createElement(Dashlet, { id: 'first', label: 'First' }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+      ),
+    )
+    let handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowUp', preventDefault() {} })
+    })
+    const firstStatus = renderer.root.findByProps({ role: 'status' })
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowUp', preventDefault() {} })
+    })
+    const secondStatus = renderer.root.findByProps({ role: 'status' })
+    expect(secondStatus).not.toBe(firstStatus)
+    expect(JSON.stringify(secondStatus.children[0] ?? '')).toContain('boundary')
+    handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    act(() => {
+      void handle.props.onKeyDown({ key: 'Escape', preventDefault() {} })
+      renderer.unmount()
+    })
+    store.destroy()
+  })
+
   it('cancels a keyboard reorder when focus leaves its handle', () => {
     const store = makeStore()
     const scoped = store.scope('order-blur')

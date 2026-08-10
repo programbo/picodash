@@ -53,6 +53,7 @@ export type DashListActionSnapshot = Readonly<{
   readonly bindings: readonly BindingRecord[]
   readonly scope: ReturnType<ScopedStore<PicodashFieldDefinitions>['getState']>['scope']
   readonly announcement: string
+  readonly announcementSequence: number
 }>
 
 export type DashListActionRegistry = Readonly<{
@@ -86,6 +87,7 @@ function hubForRoot(root: object): RegistryHub {
     bindings: [],
     scope: undefined,
     announcement: '',
+    announcementSequence: 0,
   }
   const hub: RegistryHub = {
     subscribe(listener) {
@@ -114,6 +116,7 @@ function createRegistry(
   let revision = 0
   let active = false
   let announcement = ''
+  let announcementSequence = 0
   let unsubscribeStore: (() => void) | undefined
   const root = store.root
   const hub = hubForRoot(root)
@@ -123,6 +126,7 @@ function createRegistry(
     bindings: [...bindings.values()].flat(),
     scope: store.getState().scope,
     announcement,
+    announcementSequence,
   })
   const notify = () => {
     revision += 1
@@ -136,6 +140,7 @@ function createRegistry(
     store,
     announce(message) {
       announcement = message
+      announcementSequence += 1
       notify()
     },
     activate() {
@@ -217,6 +222,7 @@ const emptySnapshot: DashListActionSnapshot = {
   bindings: [],
   scope: undefined,
   announcement: '',
+  announcementSequence: 0,
 }
 
 function availabilityFor(snapshot: DashListActionSnapshot, kind: 'expand' | 'collapse') {

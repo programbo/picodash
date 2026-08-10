@@ -59,6 +59,7 @@ function placementItem(
   placement: DashPanelPlacement,
   label: string,
   announce: (message: string) => void,
+  requestedPlacement: DashPanelPlacement,
   occupied = false,
 ) {
   if (controller.availability === 'unavailable') return null
@@ -68,7 +69,7 @@ function placementItem(
         placement.disposition.kind === 'free' ? 'free' : placement.disposition.position
       }`}
       label={label}
-      isDisabled={occupied || samePlacement(controller.placement, placement)}
+      isDisabled={occupied || samePlacement(requestedPlacement, placement)}
       onAction={() => {
         announceDashPanelLayoutFailure(
           'Panel placement',
@@ -171,8 +172,9 @@ export function DashPanelPlacementSubmenu() {
   const runtime = useDashPanelRuntime()
   if (controller.availability === 'unavailable') return null
 
-  const mode =
-    runtime.getPanelConfig(controller.scopeId)?.requestedPlacement.mode ?? controller.placement.mode
+  const requestedPlacement =
+    runtime.getPanelConfig(controller.scopeId)?.requestedPlacement ?? controller.placement
+  const mode = requestedPlacement.mode
   const snaps =
     mode === 'floating'
       ? snapPositions.map((position) =>
@@ -181,6 +183,7 @@ export function DashPanelPlacementSubmenu() {
             floatingPlacement({ kind: 'snapped', position }),
             snapLabels[position],
             announce,
+            requestedPlacement,
           ),
         )
       : mode === 'hybrid'
@@ -190,14 +193,27 @@ export function DashPanelPlacementSubmenu() {
               hybridPlacement({ kind: 'snapped', position }),
               snapLabels[position],
               announce,
+              requestedPlacement,
             ),
           )
         : []
   const free =
     mode === 'floating'
-      ? placementItem(controller, floatingPlacement({ kind: 'free' }), 'Free', announce)
+      ? placementItem(
+          controller,
+          floatingPlacement({ kind: 'free' }),
+          'Free',
+          announce,
+          requestedPlacement,
+        )
       : mode === 'hybrid'
-        ? placementItem(controller, hybridPlacement({ kind: 'free' }), 'Free', announce)
+        ? placementItem(
+            controller,
+            hybridPlacement({ kind: 'free' }),
+            'Free',
+            announce,
+            requestedPlacement,
+          )
         : null
   const docks =
     mode === 'fixed' || mode === 'hybrid'
@@ -211,6 +227,7 @@ export function DashPanelPlacementSubmenu() {
                 : { mode: 'hybrid', disposition: { kind: 'docked', position } },
               dockLabels[position],
               announce,
+              requestedPlacement,
               runtime.isDockPositionOccupied(controller.scopeId, position),
             ),
           )

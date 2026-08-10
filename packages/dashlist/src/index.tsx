@@ -1448,7 +1448,13 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
                             ),
                           )}
                         </div>
-                        <div id={statusId} role="status" aria-live="polite" aria-atomic="true">
+                        <div
+                          key={actionSnapshot.announcementSequence}
+                          id={statusId}
+                          role="status"
+                          aria-live="polite"
+                          aria-atomic="true"
+                        >
                           {actionSnapshot.announcement}
                         </div>
                         <span id={reorderInstructionsId} data-picodash-reorder-instructions>
