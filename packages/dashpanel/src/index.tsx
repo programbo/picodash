@@ -769,6 +769,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       let current = start
       while (current) {
         ancestors.push(current)
+        const assignedSlot =
+          'assignedSlot' in current
+            ? (current as Node & { assignedSlot?: HTMLSlotElement }).assignedSlot
+            : null
+        if (assignedSlot) {
+          current = assignedSlot
+          continue
+        }
         if (current.parentNode) {
           current = current.parentNode
           continue

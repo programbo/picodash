@@ -450,6 +450,36 @@ describe('private DashPanel runtime model', () => {
     })
   })
 
+  it('does not treat an equivalent recreated dock arena as an explicit recovery request', () => {
+    const runtime = createPanelRuntime()
+    const boundary = {}
+    const arena = () => ({
+      boundary,
+      inset: { top: 8, right: 8, bottom: 8, left: 8 },
+    })
+    const occupied = {
+      mode: 'fixed' as const,
+      disposition: { kind: 'docked' as const, position: 'full-left' as const },
+    }
+    const occupant = runtime.acquire(
+      config('occupant', { placement: occupied, resolveDockArena: arena }),
+    )
+    const registration = runtime.acquire(
+      config('conflict', { placement: occupied, resolveDockArena: arena }),
+    )
+    occupant.release()
+
+    registration.update({ resolveDockArena: () => arena() })
+
+    expect(runtime.getSnapshot().panels.conflict).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'top-right' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+  })
+
   it('returns side allocation segments for the rendered occupants in one arena', () => {
     const runtime = createPanelRuntime()
     runtime.acquire(

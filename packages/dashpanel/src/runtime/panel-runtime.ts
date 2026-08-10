@@ -157,6 +157,7 @@ interface MutablePanel {
   freeMovePosition?: PanelRuntimeConfig['freeMovePosition']
   preferredPosition?: PanelRuntimeConfig['preferredPosition']
   resolveDockArena?: PanelRuntimeConfig['resolveDockArena']
+  dockArena: PanelRuntimeDockArena
   configSnapshot?: PanelRuntimePanelConfig
   readonly generation: symbol
   element: HTMLElement | null
@@ -257,8 +258,7 @@ export function createPanelRuntime(): PanelRuntime {
 
   const panelFor = (scopeId: string): MutablePanel | undefined => panels.get(scopeId)
 
-  const dockArenaFor = (panel: MutablePanel): PanelRuntimeDockArena =>
-    panel.resolveDockArena?.() ?? DEFAULT_DOCK_ARENA
+  const dockArenaFor = (panel: MutablePanel): PanelRuntimeDockArena => panel.dockArena
 
   const dockOccupant = (
     panel: MutablePanel,
@@ -422,6 +422,7 @@ export function createPanelRuntime(): PanelRuntime {
         freeMovePosition: config.freeMovePosition,
         preferredPosition: config.preferredPosition,
         resolveDockArena: config.resolveDockArena,
+        dockArena: config.resolveDockArena?.() ?? DEFAULT_DOCK_ARENA,
       }
       const materialized = materializePlacement(panel, requestedPlacement)
       panel.placement = materialized.placement
@@ -500,12 +501,17 @@ export function createPanelRuntime(): PanelRuntime {
             changed = true
           }
           if (Object.prototype.hasOwnProperty.call(update, 'resolveDockArena')) {
+            const previousArena = dockArenaFor(current)
             current.resolveDockArena = update.resolveDockArena
-            const materialized = materializePlacement(current, current.requestedPlacement)
-            current.placement = materialized.placement
-            current.placementFallbackReason = materialized.fallbackReason
-            current.configSnapshot = undefined
-            changed = true
+            const nextArena = current.resolveDockArena?.() ?? DEFAULT_DOCK_ARENA
+            current.dockArena = nextArena
+            if (!sameDockArena(previousArena, nextArena)) {
+              const materialized = materializePlacement(current, current.requestedPlacement)
+              current.placement = materialized.placement
+              current.placementFallbackReason = materialized.fallbackReason
+              current.configSnapshot = undefined
+              changed = true
+            }
           }
           if (changed) publish()
           if (notifyExpandedAfterPublish) current.onCollapsedChange?.(false)

@@ -407,6 +407,30 @@ describe('DashPanel portal ownership', () => {
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
 
+    const slotHost = document.createElement('div')
+    const slotRoot = slotHost.attachShadow({ mode: 'open' })
+    const slotMotionWrapper = document.createElement('div')
+    const slot = document.createElement('slot')
+    slotMotionWrapper.append(slot)
+    slotRoot.append(slotMotionWrapper)
+    await act(async () => {
+      slotHost.append(portal)
+      mutate([{ target: secondWrapper } as unknown as MutationRecord], {} as never)
+    })
+    expect(portal.assignedSlot).toBe(slot)
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+    await act(async () => {
+      slotMotionWrapper.dispatchEvent(new Event('transitionrun'))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
     boundaryWidth = 280
     await act(async () =>
       resize([{ target: boundary } as unknown as ResizeObserverEntry], {} as ResizeObserver),
