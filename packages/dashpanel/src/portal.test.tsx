@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore } from '@picodash/store'
 import { usePicodashScope } from '@picodash/store/react'
 import { PicodashOverlayProvider } from '@picodash/ui'
-import { DashPanel, DashPanelProvider } from './index.tsx'
+import { DashPanel, DashPanelProvider, useDashPanel } from './index.tsx'
 import { useDashPanelRuntime } from './runtime/panel-runtime-context.tsx'
 
 let root: Root
@@ -358,6 +358,74 @@ describe('DashPanel portal ownership', () => {
     expect(visualViewport.removeEventListener).toHaveBeenCalledWith('scroll', expect.any(Function))
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('materializes free anchors from the inset visual viewport origin', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    vi.stubGlobal('visualViewport', {
+      width: 240,
+      height: 160,
+      offsetLeft: 30,
+      offsetTop: 20,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this.hasAttribute('data-picodash-panel')) {
+          const left = Number.parseFloat(this.style.left) || 0
+          const top = Number.parseFloat(this.style.top) || 0
+          return {
+            top,
+            right: left + 80,
+            bottom: top + 40,
+            left,
+            width: 80,
+            height: 40,
+          } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    function FreeControl() {
+      const controller = useDashPanel()
+      return (
+        <button
+          type="button"
+          data-free-control
+          onClick={() =>
+            controller.setPlacement({ mode: 'floating', disposition: { kind: 'free' } })
+          }
+        >
+          Free
+        </button>
+      )
+    }
+    await render(
+      <DashPanelProvider store={store} portalContainer={portal} boundaryInset={100}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
+          }}
+        >
+          <FreeControl />
+        </DashPanel>
+      </DashPanelProvider>,
+    )
+    await act(async () =>
+      (portal.querySelector('[data-free-control]') as HTMLButtonElement).click(),
+    )
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toEqual({
+      placement: { mode: 'floating', disposition: { kind: 'free' } },
+      preferredPosition: { x: 0, y: 0 },
+    })
+
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    store.destroy()
   })
 
   it('uses current geometry when native move listeners finish after boundary drift', async () => {

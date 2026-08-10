@@ -598,12 +598,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       if (!element || typeof element.getBoundingClientRect !== 'function') return undefined
       const rect = element.getBoundingClientRect()
       const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
-      const boundaryRect = target?.getBoundingClientRect?.()
-      const originX = boundaryRect?.left ?? 0
-      const originY = boundaryRect?.top ?? 0
-      const inset = resolvedBoundaryInset
-      const x = rect.left - originX - inset.left
-      const y = rect.top - originY - inset.top
+      const effectiveBoundary = insetDashPanelRect(
+        target?.getBoundingClientRect?.() ?? viewportRect(),
+        resolvedBoundaryInset,
+      )
+      const x = rect.left - effectiveBoundary.left
+      const y = rect.top - effectiveBoundary.top
       return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : undefined
     },
     [boundary, providerPolicy.boundary, resolvedBoundaryInset],

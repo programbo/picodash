@@ -1061,6 +1061,13 @@ describe('@picodash/dashlist alpha shell', () => {
         .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
         .map((item) => item.props['data-picodash-dashlet'])
     let handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
+    const beforePickupPreventDefault = vi.fn()
+    act(() => {
+      void handle.props.onKeyDown({ key: 'ArrowDown', preventDefault: beforePickupPreventDefault })
+      void handle.props.onKeyDown({ key: 'Home', preventDefault: beforePickupPreventDefault })
+    })
+    expect(beforePickupPreventDefault).not.toHaveBeenCalled()
+    expect(order()).toEqual(['first', 'second'])
     act(() => {
       void handle.props.onKeyDown({ key: ' ', preventDefault() {} })
     })

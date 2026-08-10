@@ -402,6 +402,7 @@ type OrderingController = {
   readonly candidate: readonly string[]
   readonly session: OrderingState['session']
   readonly canHandle: (id: string) => boolean
+  readonly canMoveWithKeyboard: (id: string) => boolean
   readonly start: (id: string) => void
   readonly move: (direction: 'up' | 'down' | 'home' | 'end') => void
   readonly commit: () => void
@@ -734,6 +735,8 @@ function useOrderingController({
         ].length > 1,
       )
     },
+    canMoveWithKeyboard: (id) =>
+      stateRef.current.session?.nodeId === id && pointerRef.current === null,
     start,
     move: (direction) => dispatch({ type: 'move', direction }),
     commit,
@@ -762,24 +765,26 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
       'aria-keyshortcuts': 'Enter Space ArrowUp ArrowDown Home End Escape',
       'data-picodash-reorder-handle': id,
       onKeyDown: (event: { key: string; preventDefault?: () => void }) => {
-        if (event.key === 'Escape') {
+        const ownsKeyboardSession = controller.canMoveWithKeyboard(id)
+        if (event.key === 'Escape' && ownsKeyboardSession) {
           event.preventDefault?.()
           controller.cancel()
-        } else if (event.key === 'ArrowUp') {
+        } else if (event.key === 'ArrowUp' && ownsKeyboardSession) {
           event.preventDefault?.()
           controller.move('up')
-        } else if (event.key === 'ArrowDown') {
+        } else if (event.key === 'ArrowDown' && ownsKeyboardSession) {
           event.preventDefault?.()
           controller.move('down')
-        } else if (event.key === 'Home') {
+        } else if (event.key === 'Home' && ownsKeyboardSession) {
           event.preventDefault?.()
           controller.move('home')
-        } else if (event.key === 'End') {
+        } else if (event.key === 'End' && ownsKeyboardSession) {
           event.preventDefault?.()
           controller.move('end')
         } else if (event.key === ' ' || event.key === 'Enter') {
+          if (controller.session && !ownsKeyboardSession) return
           event.preventDefault?.()
-          if (controller.session) controller.commit()
+          if (ownsKeyboardSession) controller.commit()
           else controller.start(id)
         }
       },
