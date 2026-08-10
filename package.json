@@ -68,7 +68,7 @@
   },
   "devDependencies": {
     "@tsdown/css": "catalog:",
-    "oxlint-tailwindcss": "1.6.0",
+    "oxlint-tailwindcss": "1.7.1",
     "tsdown": "catalog:",
     "vite-plus": "catalog:"
   },
