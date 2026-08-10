@@ -135,7 +135,7 @@ export interface PanelRuntime {
     available: Readonly<{ width: number; height: number }>,
   ): PanelRuntimeDockTarget | undefined
   registerElement(scopeId: string, element: HTMLElement | null): void
-  notifyElementResize(scopeId: string): void
+  notifyElementResize(scopeId: string, inlineSize?: number): void
   getElement(scopeId: string): HTMLElement | null
 }
 
@@ -287,7 +287,7 @@ export function createPanelRuntime(): PanelRuntime {
     return { placement: fallback, fallbackReason: 'dock_occupied' }
   }
 
-  const cacheCornerInlineSize = (panel: MutablePanel): void => {
+  const cacheCornerInlineSize = (panel: MutablePanel, measuredInlineSize?: number): void => {
     const position = dockedPosition(panel.placement)
     if (
       position !== 'top-left' &&
@@ -298,7 +298,7 @@ export function createPanelRuntime(): PanelRuntime {
       return
     const element = panel.element
     if (!element) return
-    let width = element.getBoundingClientRect().width
+    let width = measuredInlineSize ?? element.getBoundingClientRect().width
     if ((!Number.isFinite(width) || width <= 0) && panel.lastCornerInlineSize === undefined) {
       const wasHidden = element.hidden
       if (wasHidden) {
@@ -698,10 +698,10 @@ export function createPanelRuntime(): PanelRuntime {
         publish()
       }
     },
-    notifyElementResize(scopeId) {
+    notifyElementResize(scopeId, inlineSize) {
       const panel = panelFor(scopeId)
       if (panel?.element) {
-        cacheCornerInlineSize(panel)
+        cacheCornerInlineSize(panel, inlineSize)
         publish()
       }
     },

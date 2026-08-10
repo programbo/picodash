@@ -393,6 +393,24 @@ describe('Store scoped views and metadata commands', () => {
     expect(scoped.getState()).toBe(duplicateBefore)
     expect(rootCalls).toBe(rootCallsAfterBatch)
     expect(scopedCalls).toBe(1)
+
+    let collapsedReads = 0
+    const changingTuple = ['captured', true] as [string, boolean]
+    Object.defineProperty(changingTuple, 1, {
+      configurable: true,
+      enumerable: true,
+      get: () => {
+        collapsedReads += 1
+        return collapsedReads === 1
+      },
+    })
+    expect(scoped.updateDashListCollapseOverrides([changingTuple])).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: ['batch'],
+    })
+    expect(collapsedReads).toBe(1)
+    expect(scoped.getState().scope?.dashList?.collapseOverrides.get('captured')).toBe(true)
   })
 
   property.prop([fc.array(fc.constantFrom('a', 'b', 'c'), { maxLength: 6 })])(

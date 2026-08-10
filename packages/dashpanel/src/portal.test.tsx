@@ -1166,7 +1166,12 @@ describe('DashPanel portal ownership', () => {
         if (this === boundary)
           return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
         if (this.hasAttribute('data-picodash-panel')) {
-          const width = this.hidden ? 0 : 80
+          const configuredWidth = Number.parseFloat(
+            this.style.getPropertyValue('--picodash-panel-width'),
+          )
+          const preferredWidth =
+            configuredWidth || (this.textContent?.includes('Wide content') ? 140 : 80)
+          const width = this.hidden ? 0 : preferredWidth
           return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
         }
         return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
@@ -1204,6 +1209,41 @@ describe('DashPanel portal ownership', () => {
     expect(corner.hidden).toBe(true)
     expect(edge.style.left).toBe('80px')
     expect(edge.style.inlineSize).toBe('220px')
+
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel id="corner" title="Corner" defaultVisible={false} width="120px" />
+        <DashPanel
+          id="edge"
+          title="Edge"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-top' } },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    expect(corner.hidden).toBe(true)
+    expect(corner.style.getPropertyValue('--picodash-panel-width')).toBe('120px')
+    expect(edge.style.left).toBe('120px')
+    expect(edge.style.inlineSize).toBe('180px')
+
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel id="corner" title="Corner" defaultVisible={false}>
+          Wide content
+        </DashPanel>
+        <DashPanel
+          id="edge"
+          title="Edge"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-top' } },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    expect(corner.hidden).toBe(true)
+    expect(edge.style.left).toBe('140px')
+    expect(edge.style.inlineSize).toBe('160px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()

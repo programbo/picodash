@@ -3153,20 +3153,26 @@ export function createPicodashStore<
       metadataCommand(scopeId, (previous) => {
         if (!Array.isArray(updates)) throw new TypeError('Invalid Store metadata record.')
         const seen = new Set<string>()
-        for (const update of updates) {
+        const validatedUpdates: DashListCollapseOverrideUpdate[] = []
+        const updateCount = updates.length
+        for (let index = 0; index < updateCount; index += 1) {
+          const update = updates[index]
+          if (!Array.isArray(update) || update.length !== 2)
+            throw new TypeError('Invalid Store metadata record.')
+          const nodeId = update[0]
+          const collapsed = update[1]
           if (
-            !Array.isArray(update) ||
-            update.length !== 2 ||
-            !validIdentity(update[0]) ||
-            (typeof update[1] !== 'boolean' && update[1] !== null) ||
-            seen.has(update[0])
+            !validIdentity(nodeId) ||
+            (typeof collapsed !== 'boolean' && collapsed !== null) ||
+            seen.has(nodeId)
           )
             throw new TypeError('Invalid Store metadata record.')
-          seen.add(update[0])
+          seen.add(nodeId)
+          validatedUpdates.push(Object.freeze([nodeId, collapsed]))
         }
         const list = previous?.dashList
         const collapseOverrides = new Map(list?.collapseOverrides ?? [])
-        for (const [nodeId, collapsed] of updates) {
+        for (const [nodeId, collapsed] of validatedUpdates) {
           if (collapsed === null) collapseOverrides.delete(nodeId)
           else collapseOverrides.set(nodeId, collapsed)
         }

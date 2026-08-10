@@ -332,6 +332,9 @@ const geometryOwnedSizeProperties = [
 ] as const
 
 function measurePreferredPanelRect(element: HTMLElement): DOMRect {
+  const wasHidden = element.hidden
+  const visibility = element.style.getPropertyValue('visibility')
+  const visibilityPriority = element.style.getPropertyPriority('visibility')
   const owned = geometryOwnedSizeProperties.map((property) => ({
     property,
     value: element.style.getPropertyValue(property),
@@ -340,9 +343,18 @@ function measurePreferredPanelRect(element: HTMLElement): DOMRect {
   for (const { property } of owned) element.style.removeProperty(property)
   element.style.setProperty('max-inline-size', 'none')
   element.style.setProperty('max-block-size', 'none')
+  if (wasHidden) {
+    element.style.setProperty('visibility', 'hidden', 'important')
+    element.hidden = false
+  }
   try {
     return element.getBoundingClientRect()
   } finally {
+    if (wasHidden) {
+      element.hidden = true
+      if (visibility) element.style.setProperty('visibility', visibility, visibilityPriority)
+      else element.style.removeProperty('visibility')
+    }
     for (const { property, value, priority } of owned) {
       if (value) element.style.setProperty(property, value, priority)
       else element.style.removeProperty(property)
@@ -728,6 +740,18 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const mutationObserver =
       mutationRoot && typeof MutationObserver === 'function'
         ? new MutationObserver((records) => {
+            const panelChanged = records.some((record) => {
+              const target = record.target
+              const targetElement =
+                target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement
+              return (
+                targetElement === panel || (targetElement !== null && panel.contains(targetElement))
+              )
+            })
+            if (panelChanged && panel.hidden) {
+              runtime.notifyElementResize(id, measurePreferredPanelRect(panel).width)
+              mutationObserver?.takeRecords()
+            }
             if (
               records.every((record) => {
                 const target = record.target
@@ -740,13 +764,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             refreshGeometry()
           })
         : undefined
-    if (mutationObserver && mutationRoot)
-      mutationObserver.observe(mutationRoot, {
-        attributes: true,
-        characterData: true,
-        childList: true,
-        subtree: true,
-      })
+    const mutationOptions = {
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    } as const
+    mutationObserver?.observe(panel, mutationOptions)
+    if (mutationObserver && mutationRoot) mutationObserver.observe(mutationRoot, mutationOptions)
     const settledLayoutEvents = [
       'animationcancel',
       'animationend',
@@ -1199,7 +1224,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         ? renderedPlacement.disposition.position
         : undefined
   useLayoutEffect(() => {
-    if (isCornerDockPosition(renderedDockPosition)) runtime.notifyElementResize(id)
+    const panel = asideRef.current
+    if (panel && isCornerDockPosition(renderedDockPosition))
+      runtime.notifyElementResize(id, measurePreferredPanelRect(panel).width)
   }, [id, renderedDockPosition, runtime])
   const dockTarget =
     geometry && renderedDockPosition ? runtime.getDockTarget(id, geometry.boundary) : undefined
