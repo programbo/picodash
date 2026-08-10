@@ -25,6 +25,8 @@ export type OrderingInput = {
   /** Undefined means that this container has no durable override. */
   readonly durableOrder?: readonly string[]
   readonly reorderable?: boolean
+  /** External layout state that must invalidate an active interaction when it changes. */
+  readonly sessionFence?: string
 }
 
 export type ReconciledOrdering = {
@@ -37,6 +39,7 @@ export type ReconciledOrdering = {
   readonly durableOrder: readonly string[] | undefined
   readonly customized: boolean
   readonly reorderable: boolean
+  readonly sessionFence: string | undefined
   readonly fingerprint: string
 }
 
@@ -113,6 +116,7 @@ function stableFingerprint(input: {
   readonly declarations: readonly OrderingNode[]
   readonly durableOrder: readonly string[] | undefined
   readonly reorderable: boolean
+  readonly sessionFence: string | undefined
 }): string {
   return JSON.stringify({
     declarations: input.declarations.map((node) => ({
@@ -122,6 +126,7 @@ function stableFingerprint(input: {
     })),
     durableOrder: input.durableOrder ?? null,
     reorderable: input.reorderable,
+    sessionFence: input.sessionFence ?? null,
   })
 }
 
@@ -177,11 +182,17 @@ export function reconcileOrdering(input: OrderingInput): ReconciledOrdering {
     durableOrder,
     customized: durableOrder !== undefined,
     reorderable,
+    sessionFence: input.sessionFence,
     fingerprint: '',
   }
   return Object.freeze({
     ...result,
-    fingerprint: stableFingerprint({ declarations, durableOrder, reorderable }),
+    fingerprint: stableFingerprint({
+      declarations,
+      durableOrder,
+      reorderable,
+      sessionFence: input.sessionFence,
+    }),
   })
 }
 
@@ -245,7 +256,7 @@ function mergeCommittedHistory(
     .map((id, index) => (current.has(id) ? index : -1))
     .filter((index) => index >= 0)
   const next = [...history]
-  if (currentSlots.length === 0) return Object.freeze([...candidateOrder])
+  if (currentSlots.length === 0) return Object.freeze([...history, ...candidateOrder])
   candidateOrder.forEach((id, index) => {
     if (index < currentSlots.length) next[currentSlots[index]] = id
     else next.push(id)
@@ -282,6 +293,7 @@ export function transitionOrdering(state: OrderingState, event: OrderingEvent): 
     const nextOrdering = reconcileOrdering({
       declarations: state.ordering.declarations,
       reorderable: state.ordering.reorderable,
+      sessionFence: state.ordering.sessionFence,
     })
     return {
       state: Object.freeze({ ordering: nextOrdering, session: null }),
@@ -326,6 +338,7 @@ export function transitionOrdering(state: OrderingState, event: OrderingEvent): 
     declarations: state.ordering.declarations,
     durableOrder: order,
     reorderable: state.ordering.reorderable,
+    sessionFence: state.ordering.sessionFence,
   })
   return {
     state: Object.freeze({ ordering: nextOrdering, session: null }),

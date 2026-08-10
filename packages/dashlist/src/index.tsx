@@ -457,6 +457,7 @@ function useOrderingController({
   reorderable,
   groupId,
   visible,
+  sessionFence,
   announce,
 }: {
   readonly store: ScopedStore<PicodashFieldDefinitions>
@@ -465,6 +466,7 @@ function useOrderingController({
   readonly reorderable: boolean
   readonly groupId?: string
   readonly visible?: boolean
+  readonly sessionFence?: string
   readonly announce?: (message: string) => void
 }): OrderingController {
   const contextPublish = useContext(DashListAnnouncementContext)
@@ -494,8 +496,9 @@ function useOrderingController({
       })),
       durableOrder,
       reorderable,
+      sessionFence,
     }),
-    [declarations, durableOrder, reorderable, visible],
+    [declarations, durableOrder, reorderable, sessionFence, visible],
   )
   const inputRef = useRef(input)
   inputRef.current = input
@@ -1340,11 +1343,28 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     resolved.store,
     (state) => state.scope?.dashList?.rootOrder,
   )
+  const rootCollapseFence = useMemo(
+    () =>
+      JSON.stringify(
+        actionSnapshot.groups
+          .map(
+            (group) =>
+              [
+                group.id,
+                actionSnapshot.scope?.dashList?.collapseOverrides.get(group.id) ??
+                  group.defaultCollapsed,
+              ] as const,
+          )
+          .sort(([left], [right]) => left.localeCompare(right)),
+      ),
+    [actionSnapshot],
+  )
   const rootOrdering = useOrderingController({
     store: resolved.store,
     declarations: orderingDeclarations,
     durableOrder: rootOrder,
     reorderable,
+    sessionFence: rootCollapseFence,
     announce: actionRegistry.announce,
   })
   const declarationById = useMemo(

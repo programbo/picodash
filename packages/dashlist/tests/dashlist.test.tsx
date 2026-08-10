@@ -1466,6 +1466,44 @@ describe('@picodash/dashlist alpha shell', () => {
     store.destroy()
   })
 
+  it('cancels a root pointer reorder when group collapse changes row geometry', () => {
+    const store = makeStore()
+    const scoped = store.scope('collapse-drift')
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'collapse-drift', store },
+        createElement(DashGroup, {
+          id: 'group',
+          label: 'Group',
+          children: createElement(Dashlet, { id: 'nested', label: 'Nested' }),
+        }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+      ),
+    )
+    const releasePointerCapture = vi.fn()
+    const handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'group' })
+    act(() => {
+      void handle.props.onPointerDown({
+        pointerId: 7,
+        clientY: 100,
+        setPointerCapture() {},
+        releasePointerCapture,
+        preventDefault() {},
+      })
+    })
+    act(() => {
+      void scoped.setDashListCollapseOverride('group', true)
+    })
+    expect(releasePointerCapture).toHaveBeenCalledWith(7)
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('changed')
+    expect(scoped.getState().scope?.dashList?.rootOrder).toBeUndefined()
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
   it('reorders group children, cancels without a write, and cancels on drift', () => {
     const store = makeStore()
     const scoped = store.scope('order-group')

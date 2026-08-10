@@ -122,6 +122,25 @@ describe('DashList ordering model', () => {
     ])
   })
 
+  it('preserves all-dormant durable history when newly declared nodes are reordered', () => {
+    let state = createOrderingState({
+      declarations: nodes('a', 'b'),
+      durableOrder: ['dormant'],
+    })
+    state = apply(state, { type: 'start', nodeId: 'b' }, { type: 'move', direction: 'up' })
+    const committed = transitionOrdering(state, { type: 'commit' })
+    expect(committed.effect).toEqual({
+      kind: 'write-order',
+      order: ['dormant', 'b', 'a'],
+    })
+    expect(
+      reconcileOrdering({
+        declarations: nodes('dormant', 'a', 'b'),
+        durableOrder: committed.effect.kind === 'write-order' ? committed.effect.order : undefined,
+      }).order,
+    ).toEqual(['dormant', 'b', 'a'])
+  })
+
   it('enforces one active session and cancels a stale session on external drift', () => {
     let state = createOrderingState({ declarations: nodes('a', 'b', 'c') })
     state = apply(state, { type: 'start', nodeId: 'b' })
@@ -135,6 +154,18 @@ describe('DashList ordering model', () => {
     expect(stale.effect).toEqual({ kind: 'stale-cancel', reason: 'external-change' })
     expect(stale.state.session).toBeNull()
     expect(candidateOrder(stale.state)).toEqual(['b', 'a', 'c'])
+
+    let fenced = createOrderingState({
+      declarations: nodes('a', 'b'),
+      sessionFence: 'expanded',
+    })
+    fenced = apply(fenced, { type: 'start', nodeId: 'a' })
+    expect(
+      transitionOrdering(fenced, {
+        type: 'reconcile',
+        input: { declarations: nodes('a', 'b'), sessionFence: 'collapsed' },
+      }).effect,
+    ).toEqual({ kind: 'stale-cancel', reason: 'external-change' })
   })
 
   it('resets to current declaration order and emits a removal only for a durable override', () => {
