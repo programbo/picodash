@@ -9,6 +9,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -397,10 +398,18 @@ type PointerLike = {
   readonly clientY?: number
   readonly setPointerCapture?: (pointerId: number) => void
   readonly releasePointerCapture?: (pointerId: number) => void
+  readonly rowBounds?: () => readonly OrderingRowBounds[]
 }
+
+type OrderingRowBounds = Readonly<{
+  readonly id: string
+  readonly top: number
+  readonly bottom: number
+}>
 
 const DashListOrderingContext = createContext<OrderingController | null>(null)
 const DashListOrderingCoordinatorContext = createContext<OrderingCoordinator | null>(null)
+const DashListReorderInstructionsContext = createContext<string | undefined>(undefined)
 
 function safeOrderingState(input: Parameters<typeof createOrderingState>[0]): OrderingState {
   try {
@@ -478,6 +487,7 @@ function useOrderingController({
     readonly pointerId?: number
     readonly clientY?: number
     readonly releasePointerCapture?: (pointerId: number) => void
+    readonly rowBounds?: () => readonly OrderingRowBounds[]
   } | null>(null)
   const releasePointerCapture = (): void => {
     const pointer = pointerRef.current
@@ -549,6 +559,7 @@ function useOrderingController({
         pointerId: event.pointerId,
         clientY: event.clientY,
         releasePointerCapture: event.releasePointerCapture,
+        rowBounds: event.rowBounds,
       }
     }
   }
@@ -562,8 +573,43 @@ function useOrderingController({
       return
     if (pointer.clientY === undefined || event.clientY === undefined) return
     const delta = event.clientY - pointer.clientY
-    if (Math.abs(delta) < 2) return
     pointerRef.current = { ...pointer, clientY: event.clientY }
+    const rows = pointer.rowBounds?.()
+    const session = stateRef.current.session
+    if (rows?.length && session) {
+      const declaration = stateRef.current.ordering.declarations.find(
+        (node) => node.id === session.nodeId,
+      )
+      const band =
+        declaration?.pin === 'start' ? 'start' : declaration?.pin === 'end' ? 'end' : 'automatic'
+      const bandIds = new Set(stateRef.current.ordering.visibleBands[band])
+      const bandRows = rows
+        .filter(
+          (row) =>
+            bandIds.has(row.id) &&
+            Number.isFinite(row.top) &&
+            Number.isFinite(row.bottom) &&
+            row.bottom >= row.top,
+        )
+        .sort((left, right) => left.top - right.top)
+      const target =
+        bandRows.find((row) => event.clientY! < (row.top + row.bottom) / 2) ?? bandRows.at(-1)
+      if (!target) return
+      let order = candidateOrder(stateRef.current)
+      let currentIndex = order.indexOf(session.nodeId)
+      const targetIndex = order.indexOf(target.id)
+      if (currentIndex < 0 || targetIndex < 0) return
+      const direction = currentIndex < targetIndex ? 'down' : 'up'
+      while (currentIndex !== targetIndex) {
+        dispatch({ type: 'move', direction })
+        order = candidateOrder(stateRef.current)
+        const nextIndex = order.indexOf(session.nodeId)
+        if (nextIndex === currentIndex) break
+        currentIndex = nextIndex
+      }
+      return
+    }
+    if (Math.abs(delta) < 2) return
     dispatch({ type: 'move', direction: delta < 0 ? 'up' : 'down' })
   }
   const pointerUp = (event: { readonly pointerId?: number }) => {
@@ -634,12 +680,15 @@ function useOrderingController({
 
 function useOrderingHandle(id: string, label: string): ReactElement | null {
   const controller = useContext(DashListOrderingContext)
+  const instructionsId = useContext(DashListReorderInstructionsContext)
   if (!controller || !controller.canHandle(id)) return null
   return createElement(
     'button',
     {
       type: 'button',
       'aria-label': `Reorder ${label}`,
+      'aria-describedby': instructionsId,
+      'aria-keyshortcuts': 'Enter Space ArrowUp ArrowDown Home End Escape',
       'data-picodash-reorder-handle': id,
       onKeyDown: (event: { key: string; preventDefault?: () => void }) => {
         if (event.key === 'Escape') {
@@ -670,12 +719,31 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
         preventDefault?: () => void
         setPointerCapture?: (pointerId: number) => void
         releasePointerCapture?: (pointerId: number) => void
-        currentTarget?: {
+        currentTarget?: HTMLElement & {
           setPointerCapture?: (pointerId: number) => void
           releasePointerCapture?: (pointerId: number) => void
         }
       }) => {
         event.preventDefault?.()
+        const pointerTarget = event.currentTarget
+        const rowBounds = pointerTarget
+          ? () => {
+              const list = pointerTarget.closest('[role="list"]')
+              if (!list) return []
+              return [
+                ...list.querySelectorAll<HTMLElement>(
+                  '[data-picodash-dashlet], [data-picodash-dashgroup]',
+                ),
+              ].flatMap((node) => {
+                const rowId =
+                  node.getAttribute('data-picodash-dashlet') ??
+                  node.getAttribute('data-picodash-dashgroup')
+                if (!rowId || !controller.canHandle(rowId)) return []
+                const rect = node.getBoundingClientRect()
+                return [{ id: rowId, top: rect.top, bottom: rect.bottom }]
+              })
+            }
+          : undefined
         controller.pointerDown(id, {
           pointerId: event.pointerId,
           clientY: event.clientY,
@@ -685,6 +753,7 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
           releasePointerCapture:
             event.releasePointerCapture ??
             event.currentTarget?.releasePointerCapture?.bind(event.currentTarget),
+          rowBounds,
         })
       },
       onPointerMove: controller.pointerMove,
@@ -959,6 +1028,19 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     state.scope?.dashList?.collapseOverrides.get(id),
   )
   const collapsed = collapsible ? (collapseOverride ?? defaultCollapsed) : false
+  const previousCollapsedRef = useRef(collapsed)
+  useLayoutEffect(() => {
+    if (
+      !previousCollapsedRef.current &&
+      collapsed &&
+      contentRef.current &&
+      typeof document !== 'undefined' &&
+      document.activeElement &&
+      contentRef.current.contains(document.activeElement)
+    )
+      disclosureRef.current?.focus()
+    previousCollapsedRef.current = collapsed
+  }, [collapsed])
   const labelText =
     ariaLabel ?? (typeof label === 'string' || typeof label === 'number' ? String(label) : 'group')
   const disclosureLabel = `${collapsed ? 'Expand' : 'Collapse'} group ${labelText}`
@@ -1192,6 +1274,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   const headingIdToken = useId()
   const headingId = title === undefined ? undefined : `picodash-dashlist-heading-${headingIdToken}`
   const statusId = `picodash-dashlist-status-${useId()}`
+  const reorderInstructionsId = `picodash-dashlist-reorder-instructions-${useId()}`
   const listName =
     ariaLabelledBy ?? (ariaLabel === undefined && title !== undefined ? headingId : undefined)
   return (
@@ -1203,49 +1286,55 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
       >
         <DashListAnnouncementContext.Provider value={actionRegistry.announce}>
           <DashListOrderingCoordinatorContext.Provider value={rootOrdering.coordinator}>
-            <DashListOrderingContext.Provider value={rootOrdering}>
-              <DashListActionRegistryContext.Provider value={actionRegistry}>
-                <DashListNodeRegistryProvider registry={registry}>
-                  <DashListNodeValidation>
-                    <div
-                      {...props}
-                      ref={ref}
-                      className={classNames('picodash-dashlist', className)}
-                      data-picodash-dashlist
-                    >
-                      {title !== undefined ? (
-                        <DashHeader
-                          slots={{
-                            title: createElement(`h${headingLevel}`, { id: headingId }, title),
-                          }}
-                        />
-                      ) : null}
+            <DashListReorderInstructionsContext.Provider value={reorderInstructionsId}>
+              <DashListOrderingContext.Provider value={rootOrdering}>
+                <DashListActionRegistryContext.Provider value={actionRegistry}>
+                  <DashListNodeRegistryProvider registry={registry}>
+                    <DashListNodeValidation>
                       <div
-                        role="list"
-                        aria-label={ariaLabel}
-                        aria-labelledby={listName}
-                        data-picodash-dashlist-list
+                        {...props}
+                        ref={ref}
+                        className={classNames('picodash-dashlist', className)}
+                        data-picodash-dashlist
                       >
-                        {orderedDeclarations.map((declaration, index) =>
-                          createElement(
-                            Fragment,
-                            {
-                              key:
-                                declaration.key ??
-                                declarationIdentity(declaration, `${resolved.scopeId}-${index}`),
-                            },
-                            wrapDeclaration(declaration, 'list', `${resolved.scopeId}-${index}`),
-                          ),
-                        )}
+                        {title !== undefined ? (
+                          <DashHeader
+                            slots={{
+                              title: createElement(`h${headingLevel}`, { id: headingId }, title),
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          role="list"
+                          aria-label={ariaLabel}
+                          aria-labelledby={listName}
+                          data-picodash-dashlist-list
+                        >
+                          {orderedDeclarations.map((declaration, index) =>
+                            createElement(
+                              Fragment,
+                              {
+                                key:
+                                  declaration.key ??
+                                  declarationIdentity(declaration, `${resolved.scopeId}-${index}`),
+                              },
+                              wrapDeclaration(declaration, 'list', `${resolved.scopeId}-${index}`),
+                            ),
+                          )}
+                        </div>
+                        <div id={statusId} role="status" aria-live="polite" aria-atomic="true">
+                          {actionSnapshot.announcement}
+                        </div>
+                        <span id={reorderInstructionsId} data-picodash-reorder-instructions>
+                          Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
+                          Press Space or Enter to commit, or Escape to cancel.
+                        </span>
                       </div>
-                      <div id={statusId} role="status" aria-live="polite" aria-atomic="true">
-                        {actionSnapshot.announcement}
-                      </div>
-                    </div>
-                  </DashListNodeValidation>
-                </DashListNodeRegistryProvider>
-              </DashListActionRegistryContext.Provider>
-            </DashListOrderingContext.Provider>
+                    </DashListNodeValidation>
+                  </DashListNodeRegistryProvider>
+                </DashListActionRegistryContext.Provider>
+              </DashListOrderingContext.Provider>
+            </DashListReorderInstructionsContext.Provider>
           </DashListOrderingCoordinatorContext.Provider>
         </DashListAnnouncementContext.Provider>
       </PicodashStoreEntityBoundary>

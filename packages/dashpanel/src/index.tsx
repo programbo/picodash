@@ -478,10 +478,45 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     },
     [boundary, providerPolicy.boundary, resolvedBoundaryInset],
   )
+  const refreshGeometry = useMemo(
+    () => () => {
+      const next = measureGeometry()
+      if (!next) return
+      setGeometry((current) =>
+        current &&
+        current.boundary.left === next.boundary.left &&
+        current.boundary.top === next.boundary.top &&
+        current.boundary.right === next.boundary.right &&
+        current.boundary.bottom === next.boundary.bottom &&
+        current.size.width === next.size.width &&
+        current.size.height === next.size.height &&
+        current.rect.left === next.rect.left &&
+        current.rect.top === next.rect.top &&
+        current.rect.right === next.rect.right &&
+        current.rect.bottom === next.rect.bottom
+          ? current
+          : next,
+      )
+    },
+    [measureGeometry],
+  )
   useLayoutEffect(() => {
-    const next = measureGeometry()
-    if (next) setGeometry(next)
-  }, [effectivePlacement, measureGeometry, panelPortal])
+    refreshGeometry()
+  }, [effectivePlacement, panelPortal, refreshGeometry])
+  const observedBoundary = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
+  useEffect(() => {
+    const panel = asideRef.current
+    if (!panel) return
+    const observer =
+      typeof ResizeObserver === 'function' ? new ResizeObserver(refreshGeometry) : undefined
+    observer?.observe(panel)
+    if (observedBoundary) observer?.observe(observedBoundary)
+    if (typeof window !== 'undefined') window.addEventListener('resize', refreshGeometry)
+    return () => {
+      observer?.disconnect()
+      if (typeof window !== 'undefined') window.removeEventListener('resize', refreshGeometry)
+    }
+  }, [observedBoundary, panelPortal, refreshGeometry])
 
   const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
     const preferred = durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition

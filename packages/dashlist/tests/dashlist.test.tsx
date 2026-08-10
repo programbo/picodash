@@ -345,10 +345,15 @@ describe('@picodash/dashlist alpha shell', () => {
 
   it('repairs focus to the disclosure before collapsing content', () => {
     const store = makeStore()
-    const focus = vi.fn()
-    const content = { contains: vi.fn(() => true) }
     const activeElement = {}
-    vi.stubGlobal('document', { activeElement })
+    const documentStub: { activeElement: object } = { activeElement }
+    const disclosureElement = {
+      focus: vi.fn(() => {
+        documentStub.activeElement = disclosureElement
+      }),
+    }
+    const content = { contains: vi.fn((element) => element === activeElement) }
+    vi.stubGlobal('document', documentStub)
     let renderer!: ReactTestRenderer
     act(() => {
       renderer = create(
@@ -363,7 +368,7 @@ describe('@picodash/dashlist alpha shell', () => {
         ),
         {
           createNodeMock: (node) => {
-            if (node.type === 'button') return { focus }
+            if (node.type === 'button') return disclosureElement
             if (
               node.type === 'div' &&
               (node.props as { readonly 'data-picodash-dashgroup-list'?: boolean })[
@@ -380,10 +385,18 @@ describe('@picodash/dashlist alpha shell', () => {
     act(() => {
       void disclosure.props.onClick()
     })
-    expect(focus).toHaveBeenCalledTimes(1)
+    expect(disclosureElement.focus).toHaveBeenCalledTimes(1)
     expect(renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden).toBe(
       true,
     )
+    act(() => {
+      void renderer.root.findByProps({ 'aria-label': 'Expand group Group' }).props.onClick()
+    })
+    documentStub.activeElement = activeElement
+    act(() => {
+      store.scope('focus-collapse').setDashListCollapseOverride('group', true)
+    })
+    expect(disclosureElement.focus).toHaveBeenCalledTimes(2)
     act(() => renderer.unmount())
     vi.unstubAllGlobals()
     expect(() => store.destroy()).not.toThrow()
@@ -1193,6 +1206,8 @@ describe('@picodash/dashlist alpha shell', () => {
         createElement(Dashlet, { id: 'start', label: 'Start', pin: 'start' }),
         createElement(Dashlet, { id: 'auto-a', label: 'Auto A' }),
         createElement(Dashlet, { id: 'auto-b', label: 'Auto B' }),
+        createElement(Dashlet, { id: 'auto-c', label: 'Auto C' }),
+        createElement(Dashlet, { id: 'auto-d', label: 'Auto D' }),
         createElement(Dashlet, { id: 'end', label: 'End', pin: 'end' }),
       ),
     )
@@ -1201,20 +1216,53 @@ describe('@picodash/dashlist alpha shell', () => {
         .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
         .map((item) => item.props['data-picodash-dashlet'])
     const handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'auto-a' })
+    const row = (id: string, top: number) => ({
+      getAttribute(name: string) {
+        return name === 'data-picodash-dashlet' ? id : null
+      },
+      getBoundingClientRect() {
+        return { top, bottom: top + 20 }
+      },
+    })
+    const list = {
+      querySelectorAll: () => [
+        row('start', -20),
+        row('auto-a', 0),
+        row('auto-b', 20),
+        row('auto-c', 40),
+        row('auto-d', 60),
+        row('end', 80),
+      ],
+    }
+    const currentTarget = { closest: () => list }
+    expect(handle.props['aria-keyshortcuts']).toBe('Enter Space ArrowUp ArrowDown Home End Escape')
+    const instructions = renderer.root.findByProps({ id: handle.props['aria-describedby'] })
+    expect(JSON.stringify(instructions.children)).toContain('Escape to cancel')
     act(() => {
-      void handle.props.onPointerDown({ pointerId: 1, clientY: 100, preventDefault() {} })
+      void handle.props.onPointerDown({
+        pointerId: 1,
+        clientY: 5,
+        currentTarget,
+        preventDefault() {},
+      })
     })
     act(() => {
-      void handle.props.onPointerMove({ pointerId: 1, clientY: 120 })
+      void handle.props.onPointerMove({ pointerId: 1, clientY: 8 })
+    })
+    expect(order()).toEqual(['start', 'auto-a', 'auto-b', 'auto-c', 'auto-d', 'end'])
+    act(() => {
+      void handle.props.onPointerMove({ pointerId: 1, clientY: 75 })
     })
     const movedHandle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'auto-a' })
     act(() => {
       void movedHandle.props.onPointerUp({ pointerId: 1 })
     })
-    expect(order()).toEqual(['start', 'auto-b', 'auto-a', 'end'])
+    expect(order()).toEqual(['start', 'auto-b', 'auto-c', 'auto-d', 'auto-a', 'end'])
     expect(scoped.getState().scope?.dashList?.rootOrder).toEqual([
       'start',
       'auto-b',
+      'auto-c',
+      'auto-d',
       'auto-a',
       'end',
     ])

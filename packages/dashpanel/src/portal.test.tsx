@@ -129,6 +129,78 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('remeasures placement when the boundary or Panel size changes', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    let boundaryWidth = 300
+    let panelWidth = 50
+    let resize!: ResizeObserverCallback
+    const observe = vi.fn()
+    const disconnect = vi.fn()
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          resize = callback
+        }
+        observe = observe
+        disconnect = disconnect
+      },
+    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return {
+            top: 0,
+            right: boundaryWidth,
+            bottom: 200,
+            left: 0,
+            width: boundaryWidth,
+            height: 200,
+          } as DOMRect
+        if (this.hasAttribute('data-picodash-panel'))
+          return {
+            top: 0,
+            right: panelWidth,
+            bottom: 40,
+            left: 0,
+            width: panelWidth,
+            height: 40,
+          } as DOMRect
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'floating', disposition: { kind: 'free' } },
+            preferredPosition: { x: 250, y: 0 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    expect(observe).toHaveBeenCalledWith(boundary)
+    expect(observe).toHaveBeenCalledWith(panel)
+    expect(panel.style.left).toBe('250px')
+
+    boundaryWidth = 120
+    await act(async () => resize([], {} as ResizeObserver))
+    expect(panel.style.left).toBe('70px')
+
+    panelWidth = 80
+    await act(async () => resize([], {} as ResizeObserver))
+    expect(panel.style.left).toBe('40px')
+    await act(async () => root.unmount())
+    expect(disconnect).toHaveBeenCalledTimes(1)
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('applies side allocation segments to compatible dock occupants', async () => {
     const store = makeStore()
     const portal = document.createElement('div')
