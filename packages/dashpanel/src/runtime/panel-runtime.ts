@@ -474,17 +474,6 @@ export function createPanelRuntime(): PanelRuntime {
           panels.delete(config.scopeId)
           const index = activationOrder.indexOf(config.scopeId)
           if (index >= 0) activationOrder.splice(index, 1)
-          for (const remaining of panels.values()) {
-            const materialized = materializePlacement(remaining, remaining.requestedPlacement)
-            if (
-              placementKey(remaining.placement) !== placementKey(materialized.placement) ||
-              remaining.placementFallbackReason !== materialized.fallbackReason
-            ) {
-              remaining.placement = materialized.placement
-              remaining.placementFallbackReason = materialized.fallbackReason
-              remaining.configSnapshot = undefined
-            }
-          }
           publish()
         },
       }

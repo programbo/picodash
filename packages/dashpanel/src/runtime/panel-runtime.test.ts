@@ -359,9 +359,12 @@ describe('private DashPanel runtime model', () => {
     })
     expect(setDashPanelLayout).not.toHaveBeenCalled()
     first.release()
+    expect(runtime.getSnapshot().panels.second?.placement).toEqual({
+      mode: 'floating',
+      disposition: { kind: 'snapped', position: 'top-right' },
+    })
+    expect(runtime.setPlacement('second', placement).status).toBe('executed')
     expect(runtime.getSnapshot().panels.second?.placement).toEqual(placement)
-    expect(runtime.getSnapshot().panels.second?.placementFallbackReason).toBeUndefined()
-    expect(setDashPanelLayout).not.toHaveBeenCalled()
   })
 
   it('rematerializes an occupied dock request when its declared fallback changes', () => {
