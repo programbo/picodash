@@ -13,6 +13,8 @@ export type ReorderDirection = 'up' | 'down' | 'home' | 'end'
 
 export type OrderingNode = {
   readonly id: string
+  /** Accessible name used by the interaction layer; it does not affect durable identity. */
+  readonly name?: string
   readonly pin?: DashListPin
   /** Hidden nodes remain declared and ordered, but are not movement targets. */
   readonly visible?: boolean

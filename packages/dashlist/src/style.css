@@ -53,6 +53,13 @@
   cursor: grabbing;
 }
 
+@media (pointer: coarse) {
+  [data-picodash-reorder-handle] {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+}
+
 [data-picodash-dashgroup-list][data-collapsed='true'] {
   display: none;
 }

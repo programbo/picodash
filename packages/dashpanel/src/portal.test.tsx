@@ -6,6 +6,7 @@ import { createPicodashStore } from '@picodash/store'
 import { usePicodashScope } from '@picodash/store/react'
 import { PicodashOverlayProvider } from '@picodash/ui'
 import { DashPanel, DashPanelProvider } from './index.tsx'
+import { useDashPanelRuntime } from './runtime/panel-runtime-context.tsx'
 
 let root: Root
 let container: HTMLDivElement
@@ -89,6 +90,37 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it('re-registers the mounted Panel element when portal ownership changes', async () => {
+    const store = makeStore()
+    const firstPortal = document.createElement('div')
+    const secondPortal = document.createElement('div')
+    document.body.append(firstPortal, secondPortal)
+    let runtime!: ReturnType<typeof useDashPanelRuntime>
+    function Probe() {
+      runtime = useDashPanelRuntime()
+      return null
+    }
+    const provider = (portalContainer: HTMLElement) => (
+      <DashPanelProvider store={store} portalContainer={portalContainer}>
+        <DashPanel id="inspector" title="Inspector" />
+        <Probe />
+      </DashPanelProvider>
+    )
+    await render(provider(firstPortal))
+    const firstPanel = firstPortal.querySelector('[data-picodash-panel]') as HTMLElement
+    expect(runtime.getElement('inspector')).toBe(firstPanel)
+
+    await render(provider(secondPortal))
+    const secondPanel = secondPortal.querySelector('[data-picodash-panel]') as HTMLElement
+    expect(firstPanel.isConnected).toBe(false)
+    expect(runtime.getElement('inspector')).toBe(secondPanel)
+
+    await act(async () => root.unmount())
+    firstPortal.remove()
+    secondPortal.remove()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('projects a persisted free anchor into the rendered boundary', async () => {
     const store = makeStore()
     const portal = document.createElement('div')
@@ -134,8 +166,10 @@ describe('DashPanel portal ownership', () => {
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     let boundaryWidth = 300
+    let boundaryLeft = 0
     let panelWidth = 50
     let resize!: ResizeObserverCallback
+    let animationFrame!: FrameRequestCallback
     const observe = vi.fn()
     const disconnect = vi.fn()
     vi.stubGlobal(
@@ -148,14 +182,19 @@ describe('DashPanel portal ownership', () => {
         disconnect = disconnect
       },
     )
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      animationFrame = callback
+      return 1
+    })
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
       function (this: HTMLElement) {
         if (this === boundary)
           return {
             top: 0,
-            right: boundaryWidth,
+            right: boundaryLeft + boundaryWidth,
             bottom: 200,
-            left: 0,
+            left: boundaryLeft,
             width: boundaryWidth,
             height: 200,
           } as DOMRect
@@ -195,8 +234,56 @@ describe('DashPanel portal ownership', () => {
     panelWidth = 80
     await act(async () => resize([], {} as ResizeObserver))
     expect(panel.style.left).toBe('40px')
+
+    boundaryLeft = 30
+    await act(async () => animationFrame(0))
+    expect(panel.style.left).toBe('70px')
     await act(async () => root.unmount())
     expect(disconnect).toHaveBeenCalledTimes(1)
+    vi.restoreAllMocks()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('uses current geometry when native move listeners finish after boundary drift', async () => {
+    const store = makeStore()
+    const portal = document.createElement('div')
+    const firstBoundary = document.createElement('div')
+    const secondBoundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === firstBoundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this === secondBoundary)
+          return { top: 50, right: 350, bottom: 250, left: 50, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel'))
+          return { top: 8, right: 88, bottom: 48, left: 8, width: 80, height: 40 } as DOMRect
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    const provider = (boundary: HTMLElement) => (
+      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+        <DashPanel id="inspector" title="Inspector" />
+      </DashPanelProvider>
+    )
+    await render(provider(firstBoundary))
+    const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    const pointer = (type: string, x: number, y: number) => {
+      const event = new MouseEvent(type, { bubbles: true, button: 0, clientX: x, clientY: y })
+      Object.defineProperty(event, 'pointerId', { value: 7 })
+      return event
+    }
+    await act(async () => {
+      move.dispatchEvent(pointer('pointerdown', 10, 10))
+      window.dispatchEvent(pointer('pointermove', 30, 10))
+    })
+    expect(
+      portal.querySelector('[data-picodash-panel]')?.getAttribute('data-picodash-placement'),
+    ).toBe('floating-free-preview')
+    await render(provider(secondBoundary))
+    await act(async () => window.dispatchEvent(pointer('pointerup', 30, 10)))
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => store.destroy()).not.toThrow()
   })

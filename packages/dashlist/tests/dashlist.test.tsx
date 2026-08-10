@@ -430,8 +430,6 @@ describe('@picodash/dashlist alpha shell', () => {
         createElement(DashGroup, {
           id: 'group',
           label: 'Group',
-          disabled: true,
-          readOnly: true,
           children: createElement(Dashlet, {
             id: 'item',
             label: 'Item',
@@ -1061,6 +1059,9 @@ describe('@picodash/dashlist alpha shell', () => {
     act(() => {
       void handle.props.onKeyDown({ key: ' ', preventDefault() {} })
     })
+    expect(
+      JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
+    ).toContain('Picked up First, position 1 of 2')
     handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
     act(() => {
       void handle.props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
@@ -1080,7 +1081,7 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(order()).toEqual(['first', 'second'])
     expect(
       JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
-    ).toContain('Moved')
+    ).toContain('First moved to position 1 of 2')
     handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'first' })
     act(() => {
       void handle.props.onKeyDown({ key: 'ArrowDown', preventDefault() {} })
@@ -1241,13 +1242,13 @@ describe('@picodash/dashlist alpha shell', () => {
     act(() => {
       void handle.props.onPointerDown({
         pointerId: 1,
-        clientY: 5,
+        clientY: 19,
         currentTarget,
         preventDefault() {},
       })
     })
     act(() => {
-      void handle.props.onPointerMove({ pointerId: 1, clientY: 8 })
+      void handle.props.onPointerMove({ pointerId: 1, clientY: 19 })
     })
     expect(order()).toEqual(['start', 'auto-a', 'auto-b', 'auto-c', 'auto-d', 'end'])
     act(() => {
@@ -1266,6 +1267,27 @@ describe('@picodash/dashlist alpha shell', () => {
       'auto-a',
       'end',
     ])
+    act(() => renderer.unmount())
+    store.destroy()
+  })
+
+  it('uses explicit accessible names for icon-labelled reorder handles', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'order-names', store },
+        createElement(Dashlet, {
+          id: 'icon',
+          label: createElement('span', { 'aria-hidden': true }, '★'),
+          'aria-label': 'Favorite metric',
+        }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+      ),
+    )
+    expect(
+      renderer.root.findByProps({ 'data-picodash-reorder-handle': 'icon' }).props['aria-label'],
+    ).toBe('Reorder Favorite metric')
     act(() => renderer.unmount())
     store.destroy()
   })

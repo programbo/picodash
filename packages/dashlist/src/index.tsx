@@ -316,6 +316,26 @@ function requireAccessibleLabel(
   throw new TypeError(`${component} non-text labels require an explicit aria-label.`)
 }
 
+function textLabel(value: ReactNode): string {
+  if (Array.isArray(value)) return value.map(textLabel).join('')
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint')
+    return String(value)
+  return ''
+}
+
+function accessibleName(label: ReactNode, ariaLabel: string | undefined, fallback: string): string {
+  return ariaLabel?.trim() || textLabel(label).trim() || fallback
+}
+
+function declarationAccessibleName(declaration: ReactElement): string {
+  const props = declaration.props as {
+    readonly id?: unknown
+    readonly label?: ReactNode
+    readonly 'aria-label'?: string
+  }
+  return accessibleName(props.label, props['aria-label'], String(props.id))
+}
+
 function useOptionalStore<Fields extends PicodashFieldDefinitions>(): AnyStore<Fields> | null {
   try {
     return usePicodashStore() as AnyStore<Fields>
@@ -400,6 +420,13 @@ type PointerLike = {
   readonly releasePointerCapture?: (pointerId: number) => void
   readonly rowBounds?: () => readonly OrderingRowBounds[]
 }
+
+type DashListContentPolicy = Readonly<{ disabled: boolean; readOnly: boolean }>
+
+const DashListContentPolicyContext = createContext<DashListContentPolicy>({
+  disabled: false,
+  readOnly: false,
+})
 
 type OrderingRowBounds = Readonly<{
   readonly id: string
@@ -486,6 +513,7 @@ function useOrderingController({
     readonly id: string
     readonly pointerId?: number
     readonly clientY?: number
+    readonly grabOffset?: number
     readonly releasePointerCapture?: (pointerId: number) => void
     readonly rowBounds?: () => readonly OrderingRowBounds[]
   } | null>(null)
@@ -506,17 +534,29 @@ function useOrderingController({
     }
     if (event.type === 'start' && transition.state.session) {
       coordinator.active.current = true
-      publish(`Picked up ${event.nodeId}. Use arrow keys to move, then Space to commit.`)
+      const session = transition.state.session
+      const node = inputRef.current.declarations.find((item) => item.id === session.nodeId)
+      const bandOrder = session.candidateOrder.filter((id) =>
+        transition.state.ordering.visibleBands[session.band].includes(id),
+      )
+      publish(
+        `Picked up ${node?.name ?? event.nodeId}, position ${bandOrder.indexOf(session.nodeId) + 1} of ${bandOrder.length}. Use arrow keys to move, then Space or Enter to commit.`,
+      )
     }
     if (event.type === 'move' && stateRef.current.session) {
       const current = stateRef.current.session
       const candidateIndex = current.candidateOrder.indexOf(current.nodeId)
+      const node = inputRef.current.declarations.find((item) => item.id === current.nodeId)
+      const bandOrder = current.candidateOrder.filter((id) =>
+        stateRef.current.ordering.visibleBands[current.band].includes(id),
+      )
+      const positionText = `position ${bandOrder.indexOf(current.nodeId) + 1} of ${bandOrder.length}`
       if (candidateIndex === previousCandidateIndex) {
         publish(
-          `${current.nodeId} is already at the ${event.direction === 'up' || event.direction === 'home' ? 'start' : 'end'} boundary.`,
+          `${node?.name ?? current.nodeId} is already at the ${event.direction === 'up' || event.direction === 'home' ? 'start' : 'end'} boundary, ${positionText}.`,
         )
       } else {
-        publish(`Moved ${current.nodeId}.`)
+        publish(`${node?.name ?? current.nodeId} moved to ${positionText}.`)
       }
     }
     if (event.type === 'cancel') {
@@ -558,6 +598,11 @@ function useOrderingController({
         id,
         pointerId: event.pointerId,
         clientY: event.clientY,
+        grabOffset: (() => {
+          if (event.clientY === undefined) return undefined
+          const source = event.rowBounds?.().find((row) => row.id === id)
+          return source ? event.clientY - (source.top + source.bottom) / 2 : undefined
+        })(),
         releasePointerCapture: event.releasePointerCapture,
         rowBounds: event.rowBounds,
       }
@@ -592,8 +637,9 @@ function useOrderingController({
             row.bottom >= row.top,
         )
         .sort((left, right) => left.top - right.top)
+      const draggedCenter = event.clientY! - (pointer.grabOffset ?? 0)
       const target =
-        bandRows.find((row) => event.clientY! < (row.top + row.bottom) / 2) ?? bandRows.at(-1)
+        bandRows.find((row) => draggedCenter <= (row.top + row.bottom) / 2) ?? bandRows.at(-1)
       if (!target) return
       let order = candidateOrder(stateRef.current)
       let currentIndex = order.indexOf(session.nodeId)
@@ -838,8 +884,8 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       'aria-label': ariaLabel,
       description,
       layout = 'inline',
-      disabled = false,
-      readOnly = false,
+      disabled: declaredDisabled = false,
+      readOnly: declaredReadOnly = false,
       pin,
       field,
       fields,
@@ -849,6 +895,10 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       ...nativeProps
     } = props
     requireAccessibleLabel(label, ariaLabel, 'Dashlet')
+    const inheritedPolicy = useContext(DashListContentPolicyContext)
+    const disabled = inheritedPolicy.disabled || declaredDisabled
+    const readOnly = inheritedPolicy.readOnly || declaredReadOnly
+    const resolvedName = accessibleName(label, ariaLabel, id)
     const labelId = `picodash-dashlet-label-${useId()}`
     const descriptionIdToken = useId()
     const descriptionId =
@@ -892,7 +942,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     else if (descriptors.length > 1) renderContext.bindings = bindingRuntime.bindings
     const renderedChildren =
       typeof children === 'function' ? children(renderContext as never) : children
-    const reorderHandle = useOrderingHandle(id, String(label ?? id))
+    const reorderHandle = useOrderingHandle(id, resolvedName)
     void pin
     const inputBindings = Object.values(bindingRuntime.bindings).filter(
       (binding): binding is DashletInputBindingContext<PicodashJsonValue> =>
@@ -1017,6 +1067,14 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   ref,
 ) {
   requireAccessibleLabel(label, ariaLabel, 'DashGroup')
+  const inheritedPolicy = useContext(DashListContentPolicyContext)
+  const contentPolicy = useMemo(
+    () => ({
+      disabled: inheritedPolicy.disabled || disabled,
+      readOnly: inheritedPolicy.readOnly || readOnly === true,
+    }),
+    [disabled, inheritedPolicy.disabled, inheritedPolicy.readOnly, readOnly],
+  )
   const declarations = useMemo(() => flattenDeclarations(children, 'group'), [children])
   const labelId = `picodash-dashgroup-label-${useId()}`
   const contentId = `picodash-dashgroup-content-${useId()}`
@@ -1041,8 +1099,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
       disclosureRef.current?.focus()
     previousCollapsedRef.current = collapsed
   }, [collapsed])
-  const labelText =
-    ariaLabel ?? (typeof label === 'string' || typeof label === 'number' ? String(label) : 'group')
+  const labelText = accessibleName(label, ariaLabel, id)
   const disclosureLabel = `${collapsed ? 'Expand' : 'Collapse'} group ${labelText}`
 
   useEffect(
@@ -1055,13 +1112,12 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     [actionRegistry, collapsible, defaultCollapsed, id],
   )
 
-  void readOnly
-
   const parentOrdering = useContext(DashListOrderingContext)
   const groupOrderingDeclarations = useMemo(
     () =>
       declarations.map((declaration) => ({
         id: String((declaration.props as { readonly id?: unknown }).id),
+        name: declarationAccessibleName(declaration),
         pin: (declaration.props as { readonly pin?: 'start' | 'end' }).pin,
         visible: !collapsed,
       })),
@@ -1078,7 +1134,6 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     groupId: id,
   })
   const groupReorderHandle = useOrderingHandle(id, labelText)
-  void disabled
   void pin
   const declarationById = useMemo(
     () =>
@@ -1166,17 +1221,19 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
             hidden={collapsed || undefined}
             inert={collapsed || undefined}
           >
-            <DashListOrderingContext.Provider value={childOrdering}>
-              {orderedDeclarations.map((declaration, index) =>
-                createElement(
-                  Fragment,
-                  {
-                    key: declaration.key ?? declarationIdentity(declaration, `${id}-${index}`),
-                  },
-                  wrapDeclaration(declaration, 'group', `${id}-${index}`),
-                ),
-              )}
-            </DashListOrderingContext.Provider>
+            <DashListContentPolicyContext.Provider value={contentPolicy}>
+              <DashListOrderingContext.Provider value={childOrdering}>
+                {orderedDeclarations.map((declaration, index) =>
+                  createElement(
+                    Fragment,
+                    {
+                      key: declaration.key ?? declarationIdentity(declaration, `${id}-${index}`),
+                    },
+                    wrapDeclaration(declaration, 'group', `${id}-${index}`),
+                  ),
+                )}
+              </DashListOrderingContext.Provider>
+            </DashListContentPolicyContext.Provider>
           </div>
         </div>
       </div>
@@ -1222,6 +1279,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     () =>
       declarations.map((declaration) => ({
         id: String((declaration.props as { readonly id?: unknown }).id),
+        name: declarationAccessibleName(declaration),
         pin: (declaration.props as { readonly pin?: 'start' | 'end' }).pin,
         visible: true,
       })),

@@ -194,7 +194,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
-  it('keeps a policy-disabled durable dock record dormant while rendering the declared fallback', () => {
+  it('keeps a policy-disabled durable dock dormant and also enforces policy on its fallback', () => {
     const store = makeStore()
     store.setDashPanelLayout('panel', {
       placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
@@ -205,25 +205,33 @@ describe('@picodash/dashpanel alpha shell', () => {
       controller = useDashPanel()
       return null
     }
-    const renderer = render(
+    const renderedPanel = (dockPositions: readonly ('top-left' | 'bottom-right')[]) =>
       createElement(DashPanelProvider, {
         store,
         children: createElement(DashPanel, {
           id: 'panel',
           title: 'Panel',
-          dockPositions: [],
+          dockPositions,
           defaultLayout: {
-            placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
+            placement: {
+              mode: 'fixed',
+              disposition: { kind: 'docked', position: 'bottom-right' },
+            },
           },
           children: createElement(Probe),
         }),
-      }),
-    )
+      })
+    const renderer = render(renderedPanel(['top-left', 'bottom-right']))
     expect(controller.availability).toBe('available')
     if (controller.availability !== 'available') throw new Error('controller unavailable')
     expect(controller.placement).toEqual({
-      mode: 'floating',
-      disposition: { kind: 'snapped', position: 'top-left' },
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'bottom-right' },
+    })
+    act(() => renderer.update(renderedPanel(['top-left'])))
+    expect(controller.placement).toEqual({
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'top-left' },
     })
     expect(store.getState().scopes.get('panel')?.dashPanel?.preferredPosition).toEqual({
       x: 12,
@@ -299,7 +307,11 @@ describe('@picodash/dashpanel alpha shell', () => {
         }),
       ),
     )
+    act(() => {
+      store.scope('panel').resetDashPanelLayout()
+    })
     const pointerMove = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    const pointerTarget = new MockHTMLElementBase()
     void act(() => {
       pointerMove.props.onPointerDown({
         button: 0,
@@ -307,15 +319,25 @@ describe('@picodash/dashpanel alpha shell', () => {
         clientX: 10,
         clientY: 10,
         preventDefault: vi.fn(),
-        currentTarget: new MockHTMLElementBase(),
+        currentTarget: pointerTarget,
       })
+      pointerMove.props.onPointerUpCapture({ pointerId: 1 })
+    })
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    void act(() => {
+      pointerMove.props.onPointerDown({
+        button: 0,
+        pointerId: 2,
+        clientX: 10,
+        clientY: 10,
+        preventDefault: vi.fn(),
+        currentTarget: pointerTarget,
+      })
+      pointerMove.props.onPointerCancelCapture({ pointerId: 99 })
     })
     const aside = renderer.root.findByType('aside')
-    void act(() => aside.props.onPointerCancel())
-    expect(store.getState().scopes.get('panel')?.dashPanel?.placement).toEqual({
-      mode: 'floating',
-      disposition: { kind: 'free' },
-    })
+    void act(() => aside.props.onPointerCancel({ pointerId: 2 }))
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     void act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
@@ -344,6 +366,16 @@ describe('@picodash/dashpanel alpha shell', () => {
     })
     move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
     act(() => {
+      void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    act(() => {
+      void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    act(() => {
+      void move.props.onKeyDown({ key: 'ArrowRight', preventDefault() {} })
       void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
     })
     expect(store.getState().scopes.get('panel')?.dashPanel).toEqual({

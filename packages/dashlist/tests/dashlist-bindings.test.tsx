@@ -3,7 +3,7 @@ import { act, create } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashStore } from '@picodash/store'
 import { acquireBindingLease } from '@picodash/store/integration'
-import { DashList, Dashlet } from '../src/index.tsx'
+import { DashGroup, DashList, Dashlet } from '../src/index.tsx'
 import { issuesForDashlet, normalizeBindingDescriptors } from '../src/bindings.tsx'
 
 ;(
@@ -11,6 +11,48 @@ import { issuesForDashlet, normalizeBindingDescriptors } from '../src/bindings.t
 ).IS_REACT_ACT_ENVIRONMENT = true
 
 describe('DashList bindings', () => {
+  it('cascades additive group content policies without changing group controls', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { count: { defaultValue: 1 } },
+    })
+    let context: any
+    let view!: ReturnType<typeof create>
+    act(() => {
+      view = create(
+        createElement(
+          DashList,
+          { id: 'list', store },
+          createElement(
+            DashGroup,
+            { id: 'group', label: 'Group', disabled: true, readOnly: true },
+            createElement(Dashlet as any, {
+              id: 'count',
+              label: 'Count',
+              field: store.fields.count,
+              children: (value: any) => {
+                context = value
+                return null
+              },
+            }),
+          ),
+        ),
+      )
+    })
+    expect(context).toMatchObject({ disabled: true, readOnly: true })
+    act(() => {
+      void context.binding.setInput(2)
+      void context.binding.resetValue()
+    })
+    expect(store.getState().values.count).toBe(1)
+    const disclosure = view.root.findByProps({ 'aria-label': 'Collapse group Group' })
+    expect(disclosure.props.disabled).toBeUndefined()
+    act(() => void disclosure.props.onClick())
+    expect(view.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden).toBe(true)
+    act(() => view.unmount())
+    store.destroy()
+  })
+
   it('renders a typed single input context and commits through its lease', () => {
     const store = createPicodashStore({
       valueOwner: 'store',

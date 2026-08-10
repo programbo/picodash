@@ -6,9 +6,12 @@
 
 .picodash-dashpanel {
   position: absolute;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
   inline-size: var(--picodash-panel-width);
   max-inline-size: 100%;
+  overflow: hidden;
   z-index: 0;
 }
 
@@ -29,9 +32,13 @@
 
 .picodash-dashpanel > [data-slot='dash-header'] {
   display: flex;
+  flex: none;
   align-items: center;
 }
 
 .picodash-dashpanel > [data-picodash-panel-body] {
+  flex: 1 1 auto;
   min-inline-size: 0;
+  min-block-size: 0;
+  overflow: auto;
 }

@@ -272,6 +272,24 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     boundaryBox.y + boundaryBox.height,
   )
 
+  await portalTarget.evaluate((target) => document.body.append(target))
+  const beforeBoundaryTranslation = (await standalonePanel.boundingBox())!
+  await specimenBoundary.evaluate((boundary) => {
+    boundary.style.transform = 'translate(20px, 12px)'
+  })
+  await expect
+    .poll(async () => (await standalonePanel.boundingBox())?.x)
+    .toBeCloseTo(beforeBoundaryTranslation.x + 20, 0)
+  await expect
+    .poll(async () => (await standalonePanel.boundingBox())?.y)
+    .toBeCloseTo(beforeBoundaryTranslation.y + 12, 0)
+  await specimenBoundary.evaluate((boundary) => {
+    boundary.style.transform = ''
+  })
+  await portalTarget.evaluate((target) => {
+    document.querySelector('[data-contract-lab-specimen]')?.append(target)
+  })
+
   await moveControl.focus()
   const beforeKeyboard = (await standalonePanel.boundingBox())!
   await moveControl.press('Enter')
@@ -340,6 +358,14 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
       .poll(() => coarsePage.evaluate(() => getComputedStyle(document.documentElement).fontSize))
       .toBe('12px')
     await coarsePage.getByRole('button', { name: 'Close panel Primary Panel' }).press('Enter')
+    await coarsePage.getByRole('button', { name: /^Composition:/ }).press('Enter')
+    const coarseReorder = coarsePage.getByRole('button', { name: 'Reorder Standalone group' })
+    const coarseReorderBounds = await coarseReorder.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return { width: rect.width, height: rect.height }
+    })
+    expect(coarseReorderBounds.width).toBeGreaterThanOrEqual(44)
+    expect(coarseReorderBounds.height).toBeGreaterThanOrEqual(44)
     await coarsePage.getByRole('button', { name: /^Themes:/ }).press('Enter')
     const coarseTrigger = coarsePage.getByRole('button', { name: 'Open shared AlertDialog' })
     const coarse = await coarseTrigger.evaluate((element) => {
