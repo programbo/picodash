@@ -70,7 +70,11 @@ function placementItem(
       label={label}
       isDisabled={occupied || samePlacement(controller.placement, placement)}
       onAction={() => {
-        announceLayoutFailure('Panel placement', controller.setPlacement(placement), announce)
+        announceDashPanelLayoutFailure(
+          'Panel placement',
+          controller.setPlacement(placement),
+          announce,
+        )
       }}
     />
   )
@@ -83,7 +87,7 @@ const layoutFailureReasons = {
   modal_presentation: 'The current presentation does not support layout changes.',
 } as const
 
-function announceLayoutFailure(
+export function announceDashPanelLayoutFailure(
   action: string,
   result: DashPanelLayoutCommandResult,
   announce: (message: string) => void,
@@ -228,7 +232,7 @@ export function DashPanelResetLayoutItem() {
     <ActionMenuItem
       label="Reset layout"
       onAction={() => {
-        announceLayoutFailure('Panel layout reset', controller.resetLayout(), announce)
+        announceDashPanelLayoutFailure('Panel layout reset', controller.resetLayout(), announce)
       }}
     />
   )

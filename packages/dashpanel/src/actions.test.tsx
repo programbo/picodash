@@ -221,7 +221,7 @@ describe('DashPanel action composition', () => {
     store.destroy()
   })
 
-  it('announces a Store rejection when layout reset cannot clear quarantined metadata', async () => {
+  it('announces Store rejections from direct movement and action commands', async () => {
     const store = createPicodashStore({
       valueOwner: 'store',
       storeId: 'dashpanel-actions-quarantine',
@@ -245,6 +245,16 @@ describe('DashPanel action composition', () => {
         <DashPanel id="inspector" title="Inspector" />
       </DashPanelProvider>,
     )
+    const move = document.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+    expect(document.querySelector('[data-picodash-panel-status]')?.textContent).toBe(
+      'Panel movement failed: Scope metadata is quarantined.',
+    )
+
     await openActions()
     const submenu = document.querySelector('[data-slot="action-submenu"]') as HTMLElement
     submenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))

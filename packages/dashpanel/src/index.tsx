@@ -38,6 +38,7 @@ import {
 import {
   DashPanelActionItems,
   DashPanelActionProvider,
+  announceDashPanelLayoutFailure,
   type DashPanelRemoveRequest,
 } from './actions.tsx'
 import { useDashPanelDefaultActionItems } from './runtime/panel-integration-context.tsx'
@@ -816,10 +817,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       snapPlacementForMove(movableMode, preview, latestGeometry, resolvedPlacementOptions) ??
       ({ mode: movableMode, disposition: { kind: 'free' } } as const)
     const result = runtime.setPlacement(id, placement)
-    if (result.status !== 'executed') {
-      cancelMove()
-      return result
-    }
+    announceDashPanelLayoutFailure('Panel movement', result, announceAction)
     cancelMove()
     return result
   }
