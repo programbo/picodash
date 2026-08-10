@@ -1262,6 +1262,8 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
             ref={contentRef}
             id={contentId}
             role="list"
+            aria-label={isTextLabel(label) ? undefined : ariaLabel}
+            aria-labelledby={isTextLabel(label) ? labelId : undefined}
             data-picodash-dashgroup-list
             data-collapsed={renderedCollapsed ? 'true' : 'false'}
             aria-hidden={renderedCollapsed || undefined}

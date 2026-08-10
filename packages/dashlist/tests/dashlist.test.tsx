@@ -225,6 +225,13 @@ describe('@picodash/dashlist alpha shell', () => {
       'aria-label': 'Explicit settings controls',
       'aria-labelledby': undefined,
     })
+    const groupLabel = renderer.root.findByProps({ 'data-picodash-dashgroup-label': true })
+    expect(renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props).toMatchObject(
+      {
+        'aria-label': undefined,
+        'aria-labelledby': groupLabel.props.id,
+      },
+    )
     expect(renderer.root.findByProps({ role: 'status' }).props['aria-live']).toBe('polite')
     expect(renderer.root.findByType('input').props.defaultValue).toBe('retained')
     act(() => renderer.unmount())
@@ -779,7 +786,15 @@ describe('@picodash/dashlist alpha shell', () => {
       }),
     )
     expect(renderer.root.findAllByProps({ 'data-picodash-dashlet': 'custom' })).toHaveLength(1)
-    expect(renderer.root.findByProps({ 'aria-label': 'Icon group' })).toBeDefined()
+    expect(
+      renderer.root.findAllByProps({ 'aria-label': 'Icon group' }).length,
+    ).toBeGreaterThanOrEqual(2)
+    expect(renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props).toMatchObject(
+      {
+        'aria-label': 'Icon group',
+        'aria-labelledby': undefined,
+      },
+    )
     expect(renderer.root.findByProps({ 'aria-label': 'Icon item' })).toBeDefined()
     act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()

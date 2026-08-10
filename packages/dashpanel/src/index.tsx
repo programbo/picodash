@@ -946,6 +946,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (!session) {
       if (requestedPlacementMode === 'fixed') return
       if (event.key === 'Enter' || event.key === ' ') {
+        if (event.repeat) return
         event.preventDefault()
         beginMove('keyboard')
       }
@@ -958,6 +959,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       return
     }
     if (event.key === 'Enter') {
+      if (event.repeat) return
       event.preventDefault()
       commitMove()
       return

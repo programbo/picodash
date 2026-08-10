@@ -620,7 +620,7 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
-  it('cancels an active move when an external settled layout replaces its origin', async () => {
+  it('ignores repeated Enter and cancels a move when external layout replaces its origin', async () => {
     const store = makeStore()
     const scoped = store.scope('inspector')
     const portal = document.createElement('div')
@@ -659,7 +659,19 @@ describe('DashPanel portal ownership', () => {
     const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
     const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
     await act(async () => {
+      move.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', repeat: true }),
+      )
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'Enter', repeat: true }),
+      )
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+    await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
