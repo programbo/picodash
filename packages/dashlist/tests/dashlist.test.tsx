@@ -357,7 +357,9 @@ describe('@picodash/dashlist alpha shell', () => {
   it('repairs focus to the disclosure before collapsing content', () => {
     const store = makeStore()
     const activeElement = {}
-    const documentStub: { activeElement: object } = { activeElement }
+    const shadowHost = {}
+    const shadowRootStub: { activeElement: object } = { activeElement }
+    const documentStub: { activeElement: object } = { activeElement: shadowHost }
     const hiddenWhenFocused: unknown[] = []
     let renderer!: ReactTestRenderer
     const disclosureElement = {
@@ -365,10 +367,13 @@ describe('@picodash/dashlist alpha shell', () => {
         hiddenWhenFocused.push(
           renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden,
         )
-        documentStub.activeElement = disclosureElement
+        shadowRootStub.activeElement = disclosureElement
       }),
     }
-    const content = { contains: vi.fn((element) => element === activeElement) }
+    const content = {
+      contains: vi.fn((element) => element === activeElement),
+      getRootNode: vi.fn(() => shadowRootStub),
+    }
     vi.stubGlobal('document', documentStub)
     act(() => {
       renderer = create(
@@ -407,7 +412,7 @@ describe('@picodash/dashlist alpha shell', () => {
     act(() => {
       void renderer.root.findByProps({ 'aria-label': 'Expand group Group' }).props.onClick()
     })
-    documentStub.activeElement = activeElement
+    shadowRootStub.activeElement = activeElement
     act(() => {
       store.scope('focus-collapse').setDashListCollapseOverride('group', true)
     })
@@ -546,7 +551,17 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     expect(scoped.getState().scope?.dashList).toBeUndefined()
     expect(scoped.getState().values.value).toBe(0)
+    act(() => {
+      scoped.setDashListRootOrder(['group'])
+    })
+    const disposedResetList = latest.resetList
+    expect(disposedResetList.availability).toBe('enabled')
     act(() => renderer.unmount())
+    expect(disposedResetList.execute()).toEqual({
+      status: 'not_executed',
+      availability: 'unavailable',
+    })
+    expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['group'])
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -577,6 +592,7 @@ describe('@picodash/dashlist alpha shell', () => {
   it('invalidates a reset guard when a dirty alias moves to another Dashlet', () => {
     const store = makeStore()
     const registry = createDashListActionRegistry(store.scope('guard'), 'guard')
+    registry.activate()
     const first = registry.registerBindings('first', [
       { key: 'value', dirty: true, discardInput: vi.fn() },
     ])
@@ -594,6 +610,7 @@ describe('@picodash/dashlist alpha shell', () => {
       },
     )
     expect(execute).not.toHaveBeenCalled()
+    registry.dispose()
     store.destroy()
   })
 

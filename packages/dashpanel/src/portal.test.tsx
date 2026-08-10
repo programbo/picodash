@@ -787,6 +787,53 @@ describe('DashPanel portal ownership', () => {
     expect(() => store.destroy()).not.toThrow()
   })
 
+  it("uses the portaled Panel's owner document viewport", async () => {
+    const store = makeStore()
+    const frame = document.createElement('iframe')
+    document.body.append(frame)
+    const frameDocument = frame.contentDocument!
+    const frameWindow = frame.contentWindow!
+    const frameGlobal = frameWindow as Window & typeof globalThis
+    const portal = frameDocument.createElement('div')
+    frameDocument.body.append(portal)
+    Object.defineProperties(frameWindow, {
+      innerWidth: { configurable: true, value: 180 },
+      innerHeight: { configurable: true, value: 120 },
+      visualViewport: { configurable: true, value: undefined },
+    })
+    const rect = vi
+      .spyOn(frameGlobal.HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.hasAttribute('data-picodash-panel'))
+          return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      })
+
+    await render(
+      <DashPanelProvider store={store} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: {
+              mode: 'floating',
+              disposition: { kind: 'snapped', position: 'top-right' },
+            },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    expect(panel.ownerDocument).toBe(frameDocument)
+    expect(panel.style.left).toBe('92px')
+    expect(panel.style.top).toBe('8px')
+
+    await act(async () => root.unmount())
+    rect.mockRestore()
+    frame.remove()
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('materializes free anchors from the inset visual viewport origin', async () => {
     const store = makeStore()
     const portal = document.createElement('div')

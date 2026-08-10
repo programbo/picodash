@@ -73,6 +73,7 @@ export type DashListActionRegistry = Readonly<{
 
 export const DashListActionRegistryContext = createContext<DashListActionRegistry | null>(null)
 const registriesByRoot = new WeakMap<object, Map<string, DashListActionRegistry>>()
+const activeRegistries = new WeakSet<DashListActionRegistry>()
 type RegistryHub = Readonly<{
   readonly subscribe: (listener: () => void) => () => void
   readonly getSnapshot: () => DashListActionSnapshot
@@ -148,6 +149,7 @@ function createRegistry(
     activate() {
       if (active) return
       active = true
+      activeRegistries.add(registry)
       const byScope = registriesByRoot.get(root) ?? new Map<string, DashListActionRegistry>()
       byScope.set(scopeId, registry)
       registriesByRoot.set(root, byScope)
@@ -188,6 +190,7 @@ function createRegistry(
     dispose() {
       if (!active) return
       active = false
+      activeRegistries.delete(registry)
       unsubscribeStore?.()
       unsubscribeStore = undefined
       groups.clear()
@@ -250,6 +253,7 @@ function resetListAvailability(snapshot: DashListActionSnapshot) {
 }
 
 export function dashListResetValuesFingerprint(registry: DashListActionRegistry): string {
+  if (!activeRegistries.has(registry)) return 'unavailable'
   const snapshot = registry.snapshot()
   const inspection = registry.store.inspectRegisteredValueReset()
   return JSON.stringify([
@@ -262,7 +266,9 @@ export function dashListResetValuesFingerprint(registry: DashListActionRegistry)
 }
 
 function resetListFingerprint(registry: DashListActionRegistry): string {
-  const list = registry.snapshot().scope?.dashList
+  if (!activeRegistries.has(registry)) return 'unavailable'
+  const snapshot = registry.snapshot()
+  const list = snapshot.scope?.dashList
   return JSON.stringify([
     list?.rootOrder ?? null,
     [...(list?.groupOrders ?? [])].sort(([left], [right]) => left.localeCompare(right)),
@@ -289,6 +295,7 @@ function currentAvailability(
 ) {
   if (!registry || (scopeId !== undefined && scopeId !== registry.scopeId))
     return 'unavailable' as const
+  if (!activeRegistries.has(registry)) return 'unavailable' as const
   const snapshot = registry.snapshot()
   if (kind === 'expand' || kind === 'collapse') return availabilityFor(snapshot, kind)
   return kind === 'resetValues'

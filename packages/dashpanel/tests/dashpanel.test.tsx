@@ -24,7 +24,11 @@ import {
 
 class MockHTMLElementBase {
   readonly tagName = 'BUTTON'
-  readonly ownerDocument = { defaultView: globalThis }
+  readonly ownerDocument = {
+    get defaultView() {
+      return globalThis.window
+    },
+  }
   readonly style = {
     values: new Map<string, { value: string; priority: string }>(),
     getPropertyValue(property: string) {

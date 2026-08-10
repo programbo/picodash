@@ -1127,13 +1127,19 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   const [renderedCollapsed, setRenderedCollapsed] = useState(collapsed)
   useLayoutEffect(() => {
     if (renderedCollapsed === collapsed) return
+    const content = contentRef.current
+    const contentRoot = content?.getRootNode?.()
+    const activeElement =
+      contentRoot && 'activeElement' in contentRoot
+        ? (contentRoot as Document | ShadowRoot).activeElement
+        : (content?.ownerDocument?.activeElement ??
+          (typeof document !== 'undefined' ? document.activeElement : null))
     if (
       !renderedCollapsed &&
       collapsed &&
-      contentRef.current &&
-      typeof document !== 'undefined' &&
-      document.activeElement &&
-      contentRef.current.contains(document.activeElement)
+      content &&
+      activeElement &&
+      content.contains(activeElement)
     )
       disclosureRef.current?.focus()
     setRenderedCollapsed(collapsed)

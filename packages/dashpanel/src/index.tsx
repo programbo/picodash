@@ -374,8 +374,10 @@ function sameMeasuredRect(left: DOMRect | undefined, right: DOMRect | undefined)
   )
 }
 
-function viewportRect(): DashPanelRect {
-  const visualViewport = typeof window !== 'undefined' ? window.visualViewport : undefined
+function viewportRect(ownerDocument?: Document): DashPanelRect {
+  const ownerWindow =
+    ownerDocument?.defaultView ?? (typeof window !== 'undefined' ? window : undefined)
+  const visualViewport = ownerWindow?.visualViewport
   if (
     visualViewport &&
     Number.isFinite(visualViewport.width) &&
@@ -390,17 +392,21 @@ function viewportRect(): DashPanelRect {
     return { top, right: left + width, bottom: top + height, left, width, height }
   }
   const width =
-    typeof window !== 'undefined' && Number.isFinite(window.innerWidth)
-      ? window.innerWidth
-      : typeof document !== 'undefined'
-        ? (document.documentElement?.clientWidth ?? 0)
-        : 0
+    ownerWindow && Number.isFinite(ownerWindow.innerWidth)
+      ? ownerWindow.innerWidth
+      : ownerDocument
+        ? (ownerDocument.documentElement?.clientWidth ?? 0)
+        : typeof document !== 'undefined'
+          ? (document.documentElement?.clientWidth ?? 0)
+          : 0
   const height =
-    typeof window !== 'undefined' && Number.isFinite(window.innerHeight)
-      ? window.innerHeight
-      : typeof document !== 'undefined'
-        ? (document.documentElement?.clientHeight ?? 0)
-        : 0
+    ownerWindow && Number.isFinite(ownerWindow.innerHeight)
+      ? ownerWindow.innerHeight
+      : ownerDocument
+        ? (ownerDocument.documentElement?.clientHeight ?? 0)
+        : typeof document !== 'undefined'
+          ? (document.documentElement?.clientHeight ?? 0)
+          : 0
   return { top: 0, right: width, bottom: height, left: 0, width, height }
 }
 
@@ -499,8 +505,9 @@ function policySafeDefaultLayout(
 function mapRectToContainingBlock(element: HTMLElement | null, rect: DashPanelRect) {
   const offsetParent = element?.offsetParent as HTMLElement | null
   if (!offsetParent) {
-    const scrollX = typeof window !== 'undefined' ? window.scrollX || 0 : 0
-    const scrollY = typeof window !== 'undefined' ? window.scrollY || 0 : 0
+    const ownerWindow = element?.ownerDocument.defaultView
+    const scrollX = ownerWindow?.scrollX || 0
+    const scrollY = ownerWindow?.scrollY || 0
     return { left: rect.left + scrollX, top: rect.top + scrollY }
   }
   const parentRect = offsetParent.getBoundingClientRect()
@@ -645,7 +652,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       const rect = element.getBoundingClientRect()
       const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
       const effectiveBoundary = insetDashPanelRect(
-        target?.getBoundingClientRect?.() ?? viewportRect(),
+        target?.getBoundingClientRect?.() ?? viewportRect(element.ownerDocument),
         resolvedBoundaryInset,
       )
       const x = rect.left - effectiveBoundary.left
@@ -668,7 +675,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       if (!element || typeof element.getBoundingClientRect !== 'function') return null
       const panelRect = measurePreferredPanelRect(element)
       const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
-      const boundaryRect = target?.getBoundingClientRect?.() ?? viewportRect()
+      const boundaryRect = target?.getBoundingClientRect?.() ?? viewportRect(element.ownerDocument)
       const insetBoundary = insetDashPanelRect(boundaryRect, resolvedBoundaryInset)
       const next = {
         boundary: insetBoundary,
@@ -745,6 +752,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     observer?.observe(panel)
     if (observedBoundary) observer?.observe(observedBoundary)
     const ownerDocument = panel.ownerDocument
+    const ownerWindow = ownerDocument.defaultView
     const mutationRoot = ownerDocument.documentElement
     const inheritedMutationTargets = new Set<Node>()
     let observedPanelRoot: Node | undefined
@@ -1052,15 +1060,15 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       trackedBoundary = nextBoundary
       trackedBoundaryRect = nextBoundaryRect
       trackedPanelRect = nextPanelRect
-      animationFrame = window.requestAnimationFrame(refreshOnAnimationFrame)
+      animationFrame = ownerWindow?.requestAnimationFrame(refreshOnAnimationFrame)
     }
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', refreshGeometry)
-      window.addEventListener('scroll', refreshGeometry, { capture: true, passive: true })
-      window.visualViewport?.addEventListener('resize', refreshGeometry)
-      window.visualViewport?.addEventListener('scroll', refreshGeometry)
-      if (tracksBoundaryReference && typeof window.requestAnimationFrame === 'function')
-        animationFrame = window.requestAnimationFrame(refreshOnAnimationFrame)
+    if (ownerWindow && typeof ownerWindow.addEventListener === 'function') {
+      ownerWindow.addEventListener('resize', refreshGeometry)
+      ownerWindow.addEventListener('scroll', refreshGeometry, { capture: true, passive: true })
+      ownerWindow.visualViewport?.addEventListener('resize', refreshGeometry)
+      ownerWindow.visualViewport?.addEventListener('scroll', refreshGeometry)
+      if (tracksBoundaryReference && typeof ownerWindow.requestAnimationFrame === 'function')
+        animationFrame = ownerWindow.requestAnimationFrame(refreshOnAnimationFrame)
     }
     return () => {
       if (revalidateLayoutObservationRef.current === revalidateLayoutObservation)
@@ -1068,13 +1076,13 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       observer?.disconnect()
       mutationObserver?.disconnect()
       removeLayoutEventListeners()
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('resize', refreshGeometry)
-        window.removeEventListener('scroll', refreshGeometry, true)
-        window.visualViewport?.removeEventListener('resize', refreshGeometry)
-        window.visualViewport?.removeEventListener('scroll', refreshGeometry)
-        if (animationFrame !== undefined && typeof window.cancelAnimationFrame === 'function')
-          window.cancelAnimationFrame(animationFrame)
+      if (ownerWindow && typeof ownerWindow.removeEventListener === 'function') {
+        ownerWindow.removeEventListener('resize', refreshGeometry)
+        ownerWindow.removeEventListener('scroll', refreshGeometry, true)
+        ownerWindow.visualViewport?.removeEventListener('resize', refreshGeometry)
+        ownerWindow.visualViewport?.removeEventListener('scroll', refreshGeometry)
+        if (animationFrame !== undefined && typeof ownerWindow.cancelAnimationFrame === 'function')
+          ownerWindow.cancelAnimationFrame(animationFrame)
       }
     }
   }, [
@@ -1257,20 +1265,27 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   })
 
   useEffect(() => {
-    if (moveMode !== 'pointer' || typeof window === 'undefined') return
+    const ownerWindow = asideRef.current?.ownerDocument.defaultView
+    if (
+      moveMode !== 'pointer' ||
+      !ownerWindow ||
+      typeof ownerWindow.addEventListener !== 'function' ||
+      typeof ownerWindow.removeEventListener !== 'function'
+    )
+      return
     const move = (event: PointerEvent) =>
       nativeMoveHandlersRef.current.move(event as unknown as ReactPointerEvent<HTMLElement>)
     const up = (event: PointerEvent) =>
       nativeMoveHandlersRef.current.up(event as unknown as ReactPointerEvent<HTMLElement>)
     const cancel = (event: PointerEvent) =>
       nativeMoveHandlersRef.current.cancel(event as unknown as ReactPointerEvent<HTMLElement>)
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
-    window.addEventListener('pointercancel', cancel)
+    ownerWindow.addEventListener('pointermove', move)
+    ownerWindow.addEventListener('pointerup', up)
+    ownerWindow.addEventListener('pointercancel', cancel)
     return () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
-      window.removeEventListener('pointercancel', cancel)
+      ownerWindow.removeEventListener('pointermove', move)
+      ownerWindow.removeEventListener('pointerup', up)
+      ownerWindow.removeEventListener('pointercancel', cancel)
       const session = moveSession.current
       if (session?.mode === 'pointer') {
         session.captureTarget?.releasePointerCapture?.(session.pointerId ?? -1)
