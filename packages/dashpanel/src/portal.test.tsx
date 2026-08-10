@@ -332,9 +332,19 @@ describe('DashPanel portal ownership', () => {
       (observer) =>
         observer.targets.includes(panel) && observer.targets.includes(firstShadowHost.shadowRoot!),
     )!
-    const notifyPanelMutation = (target: Node) =>
+    const notifyPanelMutation = (
+      target: Node,
+      changedNodes?: { readonly added?: readonly Node[]; readonly removed?: readonly Node[] },
+    ) =>
       panelMutationObserver.callback(
-        [{ target } as unknown as MutationRecord],
+        [
+          {
+            target,
+            type: changedNodes ? 'childList' : 'attributes',
+            addedNodes: changedNodes?.added ?? [],
+            removedNodes: changedNodes?.removed ?? [],
+          } as unknown as MutationRecord,
+        ],
         {} as MutationObserver,
       )
     await act(async () => {
@@ -424,6 +434,14 @@ describe('DashPanel portal ownership', () => {
 
     const slotHost = document.createElement('div')
     const slotRoot = slotHost.attachShadow({ mode: 'open', slotAssignment: 'manual' })
+    await act(async () => {
+      slotHost.append(portal)
+      notifyPanelMutation(secondWrapper)
+    })
+    expect(portal.assignedSlot).toBeNull()
+    expect(panelMutationObserver.targets).toContain(slotRoot)
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
     const slotMotionWrapper = document.createElement('div')
     const slot = document.createElement('slot')
     slot.name = 'manual-target'
@@ -433,12 +451,10 @@ describe('DashPanel portal ownership', () => {
       get: () => (manuallyAssigned ? slot : null),
     })
     slotMotionWrapper.append(slot)
-    slotRoot.append(slotMotionWrapper)
     await act(async () => {
-      slotHost.append(portal)
-      notifyPanelMutation(secondWrapper)
+      slotRoot.append(slotMotionWrapper)
+      notifyPanelMutation(slotRoot, { added: [slotMotionWrapper] })
     })
-    expect(portal.assignedSlot).toBeNull()
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
     await act(async () => {
       // jsdom does not implement HTMLSlotElement.assign(); emulate its observable distribution.
@@ -446,7 +462,6 @@ describe('DashPanel portal ownership', () => {
       slot.dispatchEvent(new Event('slotchange'))
     })
     expect(portal.assignedSlot).toBe(slot)
-    expect(panelMutationObserver.targets).toContain(slotRoot)
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
     expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 

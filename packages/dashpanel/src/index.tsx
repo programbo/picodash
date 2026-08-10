@@ -818,6 +818,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
     let rebuildMutationContext = () => undefined
     const slotChangeTargets = new Set<EventTarget>()
+    const slotDiscoveryRoots = new Set<Node>()
     const rebuildForSlotChange = () => {
       cancelObservedMoveRef.current()
       rebuildMutationContext()
@@ -836,6 +837,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         typeof root.querySelectorAll !== 'function'
       )
         return
+      if ('nodeType' in root) slotDiscoveryRoots.add(root as unknown as Node)
       for (const slot of root.querySelectorAll('slot')) addSlotChangeTarget(slot)
     }
     const removeLayoutEventListeners = () => {
@@ -849,6 +851,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       for (const target of slotChangeTargets)
         target.removeEventListener('slotchange', rebuildForSlotChange)
       slotChangeTargets.clear()
+      slotDiscoveryRoots.clear()
     }
     const rebuildLayoutEventContext = () => {
       removeLayoutEventListeners()
@@ -895,6 +898,22 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             const inheritedContextChanged = records.some((record) =>
               inheritedMutationTargets.has(record.target),
             )
+            const slotDiscoveryChanged = records.some((record) => {
+              if (record.type !== 'childList') return false
+              const changedNodes = [...record.addedNodes, ...record.removedNodes]
+              if (
+                !changedNodes.some(
+                  (node) =>
+                    node.nodeType === 1 &&
+                    ((node as Element).localName === 'slot' ||
+                      (node as Element).querySelector('slot') !== null),
+                )
+              )
+                return false
+              return [...slotDiscoveryRoots].some(
+                (root) => root === record.target || containsTarget(root, record.target),
+              )
+            })
             const currentPanelRoot =
               typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined
             const rootChanged = currentPanelRoot !== observedPanelRoot
@@ -914,7 +933,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
               rootChanged ||
               panelAncestorsChanged ||
               portalAncestorsChanged ||
-              boundaryAncestorsChanged
+              boundaryAncestorsChanged ||
+              slotDiscoveryChanged
             )
               rebuildMutationContext()
             if (
@@ -924,7 +944,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 rootChanged ||
                 panelAncestorsChanged ||
                 portalAncestorsChanged ||
-                boundaryAncestorsChanged) &&
+                boundaryAncestorsChanged ||
+                slotDiscoveryChanged) &&
               panel.hidden
             ) {
               refreshGeometry()
@@ -972,6 +993,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           if (ancestor.nodeType !== 11 || inheritedMutationTargets.has(ancestor)) continue
           inheritedMutationTargets.add(ancestor)
           mutationObserver.observe(ancestor, mutationOptions)
+        }
+        for (const root of slotDiscoveryRoots) {
+          if (inheritedMutationTargets.has(root)) continue
+          inheritedMutationTargets.add(root)
+          mutationObserver.observe(root, mutationOptions)
         }
         let ancestor: Element | null = panel.parentElement
         while (ancestor) {
