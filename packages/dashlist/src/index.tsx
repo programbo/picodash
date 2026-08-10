@@ -990,7 +990,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     const resetBindings = useMemo(
       () =>
         Object.values(bindingRuntime.bindings).map((binding) => ({
-          key: `${id}:${binding.alias}`,
+          key: binding.alias,
           discardInput: () => {
             if ('mode' in binding && binding.mode === 'input')
               bindingRuntime.discardInputs[binding.alias]?.()

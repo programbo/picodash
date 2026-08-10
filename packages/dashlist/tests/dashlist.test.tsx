@@ -14,7 +14,11 @@ import {
   useDashListActions,
   type SingleFieldDashletRenderContext,
 } from '../src/index.tsx'
-import { executeDashListActionIfCurrent } from '../src/actions.tsx'
+import {
+  createDashListActionRegistry,
+  dashListResetValuesFingerprint,
+  executeDashListActionIfCurrent,
+} from '../src/actions.tsx'
 import {
   acquireRegisteredDashListNodeLease,
   createNodeRegistry,
@@ -568,6 +572,29 @@ describe('@picodash/dashlist alpha shell', () => {
       },
     )
     expect(execute).toHaveBeenCalledTimes(1)
+  })
+
+  it('invalidates a reset guard when a dirty alias moves to another Dashlet', () => {
+    const store = makeStore()
+    const registry = createDashListActionRegistry(store.scope('guard'), 'guard')
+    const first = registry.registerBindings('first', [
+      { key: 'value', dirty: true, discardInput: vi.fn() },
+    ])
+    const fingerprint = dashListResetValuesFingerprint(registry)
+    first()
+    registry.registerBindings('second', [{ key: 'value', dirty: true, discardInput: vi.fn() }])
+    const execute = vi.fn(() => ({ status: 'not_executed', availability: 'disabled' }) as const)
+
+    executeDashListActionIfCurrent(
+      { availability: 'enabled', execute },
+      {
+        fingerprint,
+        getFingerprint: () => dashListResetValuesFingerprint(registry),
+        subscribe: registry.subscribe,
+      },
+    )
+    expect(execute).not.toHaveBeenCalled()
+    store.destroy()
   })
 
   it('announces a rejected built-in value reset', () => {

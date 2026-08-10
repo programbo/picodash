@@ -43,10 +43,12 @@ type GroupRecord = Readonly<{
 }>
 
 type BindingRecord = Readonly<{
+  readonly itemId: string
   readonly key: string
   readonly discardInput: () => void
   readonly dirty: boolean
 }>
+type BindingInputRecord = Omit<BindingRecord, 'itemId'>
 
 export type DashListActionSnapshot = Readonly<{
   readonly groups: readonly GroupRecord[]
@@ -64,7 +66,7 @@ export type DashListActionRegistry = Readonly<{
   readonly subscribe: (listener: () => void) => () => void
   readonly getSnapshot: () => DashListActionSnapshot
   readonly registerGroup: (record: GroupRecord) => () => void
-  readonly registerBindings: (itemId: string, bindings: readonly BindingRecord[]) => () => void
+  readonly registerBindings: (itemId: string, bindings: readonly BindingInputRecord[]) => () => void
   readonly snapshot: () => DashListActionSnapshot
   readonly dispose: () => void
 }>
@@ -172,10 +174,11 @@ function createRegistry(
       }
     },
     registerBindings(itemId, next) {
-      bindings.set(itemId, next)
+      const registered = next.map((binding) => Object.freeze({ ...binding, itemId }))
+      bindings.set(itemId, registered)
       notify()
       return () => {
-        if (bindings.get(itemId) === next) {
+        if (bindings.get(itemId) === registered) {
           bindings.delete(itemId)
           notify()
         }
@@ -246,13 +249,15 @@ function resetListAvailability(snapshot: DashListActionSnapshot) {
     : ('disabled' as const)
 }
 
-function resetValuesFingerprint(registry: DashListActionRegistry): string {
+export function dashListResetValuesFingerprint(registry: DashListActionRegistry): string {
   const snapshot = registry.snapshot()
   const inspection = registry.store.inspectRegisteredValueReset()
   return JSON.stringify([
     inspection.registeredFields,
     inspection.changedFields,
-    snapshot.bindings.filter((binding) => binding.dirty).map((binding) => binding.key),
+    snapshot.bindings
+      .filter((binding) => binding.dirty)
+      .map((binding) => [binding.itemId, binding.key]),
   ])
 }
 
@@ -446,7 +451,7 @@ function useResetConfirmationGuard(scopeId: string | undefined, kind: 'values' |
   const registry = registryForScope(store, scopeId, useContext(DashListActionRegistryContext))
   const fingerprint = registry
     ? kind === 'values'
-      ? resetValuesFingerprint(registry)
+      ? dashListResetValuesFingerprint(registry)
       : resetListFingerprint(registry)
     : 'unavailable'
   return useMemo(
@@ -455,7 +460,7 @@ function useResetConfirmationGuard(scopeId: string | undefined, kind: 'values' |
       getFingerprint: () =>
         registry
           ? kind === 'values'
-            ? resetValuesFingerprint(registry)
+            ? dashListResetValuesFingerprint(registry)
             : resetListFingerprint(registry)
           : 'unavailable',
       subscribe: registry?.subscribe ?? noopSubscribe,
