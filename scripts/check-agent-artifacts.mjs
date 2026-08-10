@@ -27,7 +27,7 @@ const packageExportContracts = {
     './package.json',
   ],
   'packages/ui/package.json': ['.', './package.json', './style.css'],
-  'packages/dashpanel/package.json': ['.', './package.json', './style.css'],
+  'packages/dashpanel/package.json': ['.', './integration', './package.json', './style.css'],
   'packages/dashlist/package.json': ['.', './package.json', './style.css'],
   'packages/picodash/package.json': ['.', './package.json', './style.css', './ui'],
 }
