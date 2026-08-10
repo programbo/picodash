@@ -214,9 +214,13 @@ describe('@picodash/ui ActionMenu composition', () => {
     ;(document.querySelector('[data-slot="action-menu-item"]') as HTMLElement).click()
     await act(async () => {})
     expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeTruthy()
+    const confirm = [...document.querySelectorAll('[data-slot="button"]')].find(
+      (button) => button.textContent === 'Reset values',
+    ) as HTMLButtonElement
     await act(async () => {
       fingerprint = 'second'
       for (const listener of listeners) listener()
+      confirm.click()
     })
     expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeNull()
     expect(onAction).not.toHaveBeenCalled()

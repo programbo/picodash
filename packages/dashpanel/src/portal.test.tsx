@@ -260,24 +260,30 @@ describe('DashPanel portal ownership', () => {
     firstBoundaryWrapper.append(boundary)
     let boundaryWidth = 300
     let resize!: ResizeObserverCallback
-    let mutate!: MutationCallback
+    const resizeTargets: Node[] = []
+    const mutationObservers: Array<{
+      callback: MutationCallback
+      targets: Node[]
+    }> = []
     vi.stubGlobal(
       'ResizeObserver',
       class {
         constructor(callback: ResizeObserverCallback) {
           resize = callback
         }
-        observe = vi.fn()
+        observe = (target: Node) => resizeTargets.push(target)
         disconnect = vi.fn()
       },
     )
     vi.stubGlobal(
       'MutationObserver',
       class {
+        private readonly record: (typeof mutationObservers)[number]
         constructor(callback: MutationCallback) {
-          mutate = callback
+          this.record = { callback, targets: [] }
+          mutationObservers.push(this.record)
         }
-        observe = vi.fn()
+        observe = (target: Node) => this.record.targets.push(target)
         disconnect = vi.fn()
         takeRecords = vi.fn(() => [])
       },
@@ -322,6 +328,15 @@ describe('DashPanel portal ownership', () => {
     )
     const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
     const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    const panelMutationObserver = mutationObservers.find(
+      (observer) =>
+        observer.targets.includes(panel) && observer.targets.includes(firstShadowHost.shadowRoot!),
+    )!
+    const notifyPanelMutation = (target: Node) =>
+      panelMutationObserver.callback(
+        [{ target } as unknown as MutationRecord],
+        {} as MutationObserver,
+      )
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
@@ -354,7 +369,7 @@ describe('DashPanel portal ownership', () => {
     secondShadowRoot.append(firstWrapper)
     await act(async () => {
       firstWrapper.append(portal)
-      mutate([{ target: firstShadowHost.shadowRoot } as unknown as MutationRecord], {} as never)
+      notifyPanelMutation(firstShadowHost.shadowRoot!)
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
     await act(async () => {
@@ -373,7 +388,7 @@ describe('DashPanel portal ownership', () => {
     secondShadowRoot.append(secondWrapper)
     await act(async () => {
       secondWrapper.append(portal)
-      mutate([{ target: firstWrapper } as unknown as MutationRecord], {} as never)
+      notifyPanelMutation(firstWrapper)
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
     await act(async () => {
@@ -392,7 +407,7 @@ describe('DashPanel portal ownership', () => {
     boundaryShadowRoot.append(secondBoundaryWrapper)
     await act(async () => {
       secondBoundaryWrapper.append(boundary)
-      mutate([{ target: firstBoundaryWrapper } as unknown as MutationRecord], {} as never)
+      notifyPanelMutation(firstBoundaryWrapper)
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
     await act(async () => {
@@ -415,12 +430,32 @@ describe('DashPanel portal ownership', () => {
     slotRoot.append(slotMotionWrapper)
     await act(async () => {
       slotHost.append(portal)
-      mutate([{ target: secondWrapper } as unknown as MutationRecord], {} as never)
+      notifyPanelMutation(secondWrapper)
     })
     expect(portal.assignedSlot).toBe(slot)
+    expect(panelMutationObserver.targets).toContain(slotRoot)
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
     await act(async () => {
       slotMotionWrapper.dispatchEvent(new Event('transitionrun'))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    const secondSlotWrapper = document.createElement('div')
+    slotRoot.append(secondSlotWrapper)
+    await act(async () => {
+      secondSlotWrapper.append(slot)
+      notifyPanelMutation(slotMotionWrapper)
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+    await act(async () => {
+      secondSlotWrapper.dispatchEvent(new Event('animationstart'))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
     expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()

@@ -280,6 +280,12 @@ export function ActionMenu({
                   <AlertDialogAction
                     variant={pending.variant === 'destructive' ? 'destructive' : 'primary'}
                     onPress={() => {
+                      const guard = pending.confirmation.guard
+                      if (guard && guard.getFingerprint() !== guard.fingerprint) {
+                        setConfirmationOpen(false)
+                        setPending(null)
+                        return
+                      }
                       const action = pending.onAction
                       setConfirmationOpen(false)
                       setPending(null)
