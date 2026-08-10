@@ -10,13 +10,13 @@ change. It does not expose an arbitrary Store debugger and must never run in pro
 From the repository root:
 
 ```bash
-bun run port:reserve
 bun run lab
 ```
 
 Wait until the Lab host writes `.picodash/dev-bridge.json`. The file is private (`0600`),
 gitignored, and contains the agent URL and bearer token. The relay and browser-credential broker
-use ephemeral loopback ports; the Lab web server uses its Hermes-reserved fixed port.
+use ephemeral loopback ports; in a linked worktree, `bun run lab` selects a free port from the
+Hermes-assigned range before it starts the Lab web server.
 
 Load the two values into the environment without placing the token in argv or shell history. This
 example reads the file in short-lived Node processes and exports only the resulting environment

@@ -203,5 +203,5 @@ bun run --filter @picodash/dashlist check
 bun run --filter @picodash/picodash check
 ```
 
-Use `bun run ready` only for the full gate or when explicitly requested. Reserve worktree ports with
-`bun run port:reserve` before starting local servers.
+Use `bun run ready` only for the full gate or when explicitly requested. The root web, Lab, and E2E
+commands select a worktree port automatically when they run from a linked worktree.

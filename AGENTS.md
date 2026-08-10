@@ -206,10 +206,10 @@ do not run broad suites merely because they exist. Use `bun run ready` only for 
 or when explicitly requested. If toolchain setup is wrong, run `vp env doctor` and retain its
 output.
 
-For local servers, reserve the worktree's Hermes range with `bun run port:reserve` and release it
-with `bun run port:release` after the work is merged. Do not invent web-server ports outside the
-allocated range. Read [`docs/agents/apps.md`](docs/agents/apps.md) before starting or changing a
-server.
+The root web, Lab, and E2E commands keep the primary checkout on its default ports. In a linked
+worktree, they select the first free port in the assigned `6034-6039` range and record it in that
+worktree's ignored `.env.local`; they never use the default server ports. Read
+[`docs/agents/apps.md`](docs/agents/apps.md) before starting or changing a server.
 
 ## Documentation maintenance
 
