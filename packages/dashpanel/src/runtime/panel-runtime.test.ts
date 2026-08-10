@@ -500,6 +500,84 @@ describe('private DashPanel runtime model', () => {
     })
   })
 
+  it('caches a corner width before a later edge requests its allocation', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    let renderedWidth = 80
+    runtime.registerElement('corner', {
+      hidden: false,
+      style: {
+        getPropertyValue: () => '',
+        getPropertyPriority: () => '',
+        setProperty: vi.fn(),
+        removeProperty: vi.fn(),
+      },
+      getBoundingClientRect: () => ({ width: renderedWidth }),
+    } as never)
+    runtime.hide('corner')
+    renderedWidth = 0
+    runtime.acquire(
+      config('edge', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-top' },
+        },
+      }),
+    )
+
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+      inlineAllocation: 220,
+      inlineOffset: 80,
+    })
+  })
+
+  it('measures an initially hidden corner without exposing it', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        defaultVisible: false,
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    const element = {
+      hidden: true,
+      style: {
+        getPropertyValue: () => '',
+        getPropertyPriority: () => '',
+        setProperty: vi.fn(),
+        removeProperty: vi.fn(),
+      },
+      getBoundingClientRect() {
+        return { width: this.hidden ? 0 : 80 }
+      },
+    }
+    runtime.registerElement('corner', element as never)
+    runtime.acquire(
+      config('edge', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-top' },
+        },
+      }),
+    )
+
+    expect(element.hidden).toBe(true)
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+      inlineAllocation: 220,
+      inlineOffset: 80,
+    })
+  })
+
   it('skips hidden entry targets and continues focus restoration until focus moves', () => {
     class FocusElement {
       readonly isConnected = true

@@ -287,6 +287,37 @@ export function createPanelRuntime(): PanelRuntime {
     return { placement: fallback, fallbackReason: 'dock_occupied' }
   }
 
+  const cacheCornerInlineSize = (panel: MutablePanel): void => {
+    const position = dockedPosition(panel.placement)
+    if (
+      position !== 'top-left' &&
+      position !== 'top-right' &&
+      position !== 'bottom-left' &&
+      position !== 'bottom-right'
+    )
+      return
+    const element = panel.element
+    if (!element) return
+    let width = element.getBoundingClientRect().width
+    if ((!Number.isFinite(width) || width <= 0) && panel.lastCornerInlineSize === undefined) {
+      const wasHidden = element.hidden
+      if (wasHidden) {
+        const visibility = element.style.getPropertyValue('visibility')
+        const priority = element.style.getPropertyPriority('visibility')
+        element.style.setProperty('visibility', 'hidden', 'important')
+        element.hidden = false
+        try {
+          width = element.getBoundingClientRect().width
+        } finally {
+          element.hidden = true
+          if (visibility) element.style.setProperty('visibility', visibility, priority)
+          else element.style.removeProperty('visibility')
+        }
+      }
+    }
+    if (Number.isFinite(width) && width > 0) panel.lastCornerInlineSize = width
+  }
+
   const activatePanel = (panel: MutablePanel): boolean => {
     const currentIndex = activationOrder.indexOf(panel.scopeId)
     if (currentIndex === activationOrder.length - 1) return false
@@ -663,11 +694,16 @@ export function createPanelRuntime(): PanelRuntime {
       const panel = panelFor(scopeId)
       if (panel && panel.element !== element) {
         panel.element = element
+        cacheCornerInlineSize(panel)
         publish()
       }
     },
     notifyElementResize(scopeId) {
-      if (panelFor(scopeId)?.element) publish()
+      const panel = panelFor(scopeId)
+      if (panel?.element) {
+        cacheCornerInlineSize(panel)
+        publish()
+      }
     },
     getElement(scopeId) {
       return panelFor(scopeId)?.element ?? null
