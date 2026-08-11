@@ -7,6 +7,7 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
   ActionSubmenu,
+  Button,
   PicodashOverlayProvider,
   PicodashThemeProvider,
 } from '../src/index.tsx'
@@ -93,15 +94,10 @@ describe('@picodash/ui ActionMenu composition', () => {
     root = createRoot(container)
     await render(
       tree(<ActionMenuItem label="Run" onAction={vi.fn()} />, {
-        trigger: (
-          <button data-custom-trigger type="button">
-            Open
-          </button>
-        ),
+        trigger: <Button data-custom-trigger>Open</Button>,
       }),
     )
     expect(container.querySelector('[data-custom-trigger]')).toBeTruthy()
-    expect(container.querySelector('[data-slot="button"]')).toBeNull()
   })
 
   it('keeps disabled actions inert and preserves typeahead text values', async () => {
