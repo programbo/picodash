@@ -1,24 +1,48 @@
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
 import { describe, expect, test } from 'vite-plus/test'
-import * as ts from 'typescript'
+
+const require = createRequire(import.meta.url)
+const typescriptPackageRoot = dirname(require.resolve('typescript/package.json'))
+const tscPath = join(typescriptPackageRoot, 'bin', 'tsc')
 
 function diagnosticsFor(source: string) {
-  const fileName = '/tmp/picodash-dev-bridge-type-surface.ts'
-  const compilerOptions: ts.CompilerOptions = {
-    module: ts.ModuleKind.NodeNext,
-    moduleResolution: ts.ModuleResolutionKind.NodeNext,
-    target: ts.ScriptTarget.ESNext,
-    strict: true,
-    skipLibCheck: true,
-    noEmit: true,
+  const directory = mkdtempSync(join(tmpdir(), 'picodash-dev-bridge-type-surface-'))
+  const fileName = join(directory, 'surface.mts')
+  writeFileSync(fileName, source)
+
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [
+        tscPath,
+        '--module',
+        'NodeNext',
+        '--moduleResolution',
+        'NodeNext',
+        '--target',
+        'ESNext',
+        '--strict',
+        '--skipLibCheck',
+        '--noEmit',
+        '--ignoreConfig',
+        '--pretty',
+        'false',
+        fileName,
+      ],
+      { encoding: 'utf8' },
+    )
+    if (result.error) throw result.error
+    return {
+      status: result.status,
+      output: `${result.stdout}${result.stderr}`.trim(),
+    }
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
   }
-  const host = ts.createCompilerHost(compilerOptions)
-  const original = host.getSourceFile.bind(host)
-  host.getSourceFile = (name, languageVersion, onError, shouldCreateNewSourceFile) =>
-    name === fileName
-      ? ts.createSourceFile(fileName, source, languageVersion, true)
-      : original(name, languageVersion, onError, shouldCreateNewSourceFile)
-  const program = ts.createProgram([fileName], compilerOptions, host)
-  return ts.getPreEmitDiagnostics(program)
 }
 
 describe('dev bridge type publication surface', () => {
@@ -30,13 +54,14 @@ describe('dev bridge type publication surface', () => {
       void disclosure
       void command
     `)
-    expect(valid).toHaveLength(0)
+    expect(valid).toEqual({ status: 0, output: '' })
 
     const compact = diagnosticsFor(`
       import type { Disclosure, Command } from '${process.cwd()}/src/index.js'
       void ({} as Disclosure)
       void ({} as Command)
     `)
-    expect(compact.length).toBeGreaterThan(0)
+    expect(compact.status).not.toBe(0)
+    expect(compact.output).toContain('has no exported member')
   })
 })
