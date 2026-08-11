@@ -1306,20 +1306,28 @@ describe('@picodash/dashpanel alpha shell', () => {
           createElement(DashPanelLauncher, { key: 'launcher', label: 'Panels', items }),
           createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
           createElement(DashPanel, { key: 'second', id: 'second', title: 'Second' }),
-          createElement(DashPanel, { key: 'third', id: 'third', title: 'Third' }),
         ],
       })
-    const first = { panelId: 'first', label: 'First panel' }
+    const first = { itemId: 'second', panelId: 'first', label: 'First panel' }
     const second = { panelId: 'second', label: 'Second panel' }
-    const third = { panelId: 'third', label: 'Third panel' }
-    const renderer = render(launcher([first, second, third]))
+    const firstIcon = {
+      itemId: 'first-icon',
+      panelId: 'first',
+      label: createElement('span', { 'aria-hidden': true }, 'F'),
+      accessibleName: 'First panel icon',
+    }
+    const renderer = render(launcher([first, second, firstIcon]))
     const secondTrigger = renderer.root.findByProps({ children: 'Second panel' }).element
-    act(() => secondTrigger.focus())
+    const iconTrigger = renderer.root.findByProps({ 'aria-label': 'First panel icon' }).element
+    act(() => iconTrigger.focus())
 
-    act(() => renderer.update(launcher([second, third, first])))
+    act(() => renderer.update(launcher([firstIcon, first, second])))
 
     expect(renderer.root.findByProps({ children: 'Second panel' }).element).toBe(secondTrigger)
-    expect(document.activeElement).toBe(secondTrigger)
+    expect(renderer.root.findByProps({ 'aria-label': 'First panel icon' }).element).toBe(
+      iconTrigger,
+    )
+    expect(document.activeElement).toBe(iconTrigger)
     act(() => renderer.unmount())
     store.destroy()
   })
@@ -1358,7 +1366,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     store.destroy()
   })
 
-  it('rejects invalid launcher labels and duplicate panel targets', () => {
+  it('rejects invalid launcher labels and item identities', () => {
     expect(() =>
       render(createElement(DashPanelLauncher, { label: '   ', items: [] })),
     ).toThrowError('DashPanelLauncher label must not be empty.')
@@ -1389,12 +1397,31 @@ describe('@picodash/dashpanel alpha shell', () => {
         createElement(DashPanelLauncher, {
           label: 'Panels',
           items: [
-            { panelId: 'duplicate', label: 'First trigger' },
-            { panelId: 'duplicate', label: 'Second trigger' },
+            { panelId: 'repeated', label: 'First trigger' },
+            { panelId: 'repeated', label: 'Second trigger' },
           ],
         }),
       ),
-    ).toThrowError('DashPanelLauncher items require unique panelId values.')
+    ).toThrowError('DashPanelLauncher items with repeated panelId values require itemId.')
+    expect(() =>
+      render(
+        createElement(DashPanelLauncher, {
+          label: 'Panels',
+          items: [
+            { itemId: 'duplicate', panelId: 'first', label: 'First trigger' },
+            { itemId: 'duplicate', panelId: 'second', label: 'Second trigger' },
+          ],
+        }),
+      ),
+    ).toThrowError('DashPanelLauncher items require unique itemId values.')
+    expect(() =>
+      render(
+        createElement(DashPanelLauncher, {
+          label: 'Panels',
+          items: [{ itemId: '   ', panelId: 'blank-item', label: 'Blank item ID' }],
+        }),
+      ),
+    ).toThrowError('DashPanelLauncher itemId must not be empty.')
   })
 
   it('reexports shared UI identities without retired aliases', async () => {

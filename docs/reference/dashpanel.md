@@ -813,12 +813,14 @@ interface DashPanelTriggerProps extends Omit<ButtonProps, 'onPress'> {
 
 type DashPanelLauncherItem =
   | {
+      itemId?: string
       panelId: string
       label: string
       accessibleName?: string
       disabled?: boolean
     }
   | {
+      itemId?: string
       panelId: string
       label: Exclude<ReactNode, string>
       accessibleName: string
@@ -838,10 +840,13 @@ for a hidden Panel.
 
 `DashPanelLauncher` renders an application-declared group of Panel triggers. It does not discover
 Panels through a registry, infer labels from mounted content, or acquire authority to mount missing
-JSX. Each `panelId` must be unique within one launcher's `items`. Text labels provide the trigger
-name directly; non-text labels require `accessibleName`, which is forwarded as the trigger's
-accessible name. A launcher item for an unavailable Panel renders as a disabled trigger and does
-not create it.
+JSX. `panelId` identifies the target Panel; optional `itemId` identifies the launcher entry. A
+target that occurs once may omit `itemId` and uses `panelId` as its stable entry identity. When a
+`panelId` occurs more than once, every occurrence requires a unique, stable, non-empty `itemId`.
+Supplied `itemId` values are unique within that launcher and never become DOM IDs, Store scope IDs,
+or persisted state. Text labels provide the trigger name directly; non-text labels require
+`accessibleName`, which is forwarded as the trigger's accessible name. A launcher item for an
+unavailable Panel renders as a disabled trigger and does not create it.
 
 Both components require the nearest DashPanel Provider. Their button behavior and public prop base
 come from `@picodash/ui`, but DashPanel owns panel targeting, visibility, activation, and focus.
@@ -955,6 +960,8 @@ action ownership without an explicit contract revision.
 
 - [Shared UI target reference](ui.md)
 - [DashPanel value proposition](../product/value-propositions.md#dashpanel)
+- [DashPanel contract decisions](dashpanel-contract-decisions.md)
+- [ADR 0004: DashPanel launcher item identity](../adr/0004-dashpanel-launcher-item-identity.md)
 - [Store target reference](store.md)
 - [Store decisions](store-contract-decisions.md)
 - [Component catalog target reference](catalog.md)

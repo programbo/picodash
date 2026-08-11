@@ -98,6 +98,13 @@ describe('@picodash/dashpanel public types', () => {
       label: 'Panels',
       items: [{ panelId: 'inspector', label: 'Inspector', disabled: false }],
     }
+    const repeatedLauncher: DashPanelLauncherProps = {
+      label: 'Panels',
+      items: [
+        { itemId: 'inspector-text', panelId: 'inspector', label: 'Inspector' },
+        { itemId: 'inspector-compact', panelId: 'inspector', label: 'Open inspector' },
+      ],
+    }
     const iconLauncher: DashPanelLauncherProps = {
       label: 'Panels',
       items: [
@@ -117,6 +124,7 @@ describe('@picodash/dashpanel public types', () => {
     }
     void createElement(DashPanelTrigger, trigger)
     void createElement(DashPanelLauncher, launcher)
+    void createElement(DashPanelLauncher, repeatedLauncher)
     void createElement(DashPanelLauncher, iconLauncher)
     const controller = {} as DashPanelController
     const commandResult = {} as DashPanelCommandResult

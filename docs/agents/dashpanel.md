@@ -1,8 +1,11 @@
 # DashPanel agent instructions
 
 Read this file before changing DashPanel behavior, examples, or docs. Then read
-[`../reference/dashpanel.md`](../reference/dashpanel.md), the Store agent instructions for Store
-interactions, and the UI agent instructions for shared presentation.
+[`../reference/dashpanel-contract-decisions.md`](../reference/dashpanel-contract-decisions.md),
+[`../reference/dashpanel.md`](../reference/dashpanel.md),
+[`../adr/0004-dashpanel-launcher-item-identity.md`](../adr/0004-dashpanel-launcher-item-identity.md),
+the Store agent instructions for Store interactions, and the UI agent instructions for shared
+presentation.
 
 ## Decision lens
 

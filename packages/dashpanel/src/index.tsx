@@ -193,12 +193,14 @@ export interface DashPanelTriggerProps extends Omit<ButtonProps, 'onPress'> {
 
 export type DashPanelLauncherItem =
   | {
+      itemId?: string
       panelId: string
       label: string
       accessibleName?: string
       disabled?: boolean
     }
   | {
+      itemId?: string
       panelId: string
       label: Exclude<ReactNode, string>
       accessibleName: string
@@ -1721,7 +1723,10 @@ export function DashPanelTrigger({
 
 export function DashPanelLauncher({ label, items, ...props }: DashPanelLauncherProps) {
   if (!label.trim()) throw new TypeError('DashPanelLauncher label must not be empty.')
-  const panelIds = new Set<string>()
+  const panelIdCounts = new Map<string, number>()
+  for (const item of items)
+    panelIdCounts.set(item.panelId, (panelIdCounts.get(item.panelId) ?? 0) + 1)
+  const itemIds = new Set<string>()
   return (
     <div {...props} role="group" aria-label={label}>
       {items.map((item) => {
@@ -1732,12 +1737,21 @@ export function DashPanelLauncher({ label, items, ...props }: DashPanelLauncherP
           throw new TypeError(
             'DashPanelLauncher items require a non-empty text label or accessibleName.',
           )
-        if (panelIds.has(item.panelId))
-          throw new TypeError('DashPanelLauncher items require unique panelId values.')
-        panelIds.add(item.panelId)
+        if (item.itemId !== undefined && !item.itemId.trim())
+          throw new TypeError('DashPanelLauncher itemId must not be empty.')
+        if ((panelIdCounts.get(item.panelId) ?? 0) > 1 && item.itemId === undefined)
+          throw new TypeError(
+            'DashPanelLauncher items with repeated panelId values require itemId.',
+          )
+        if (item.itemId !== undefined) {
+          if (itemIds.has(item.itemId))
+            throw new TypeError('DashPanelLauncher items require unique itemId values.')
+          itemIds.add(item.itemId)
+        }
+        const itemKey = item.itemId === undefined ? `panel:${item.panelId}` : `item:${item.itemId}`
         return (
           <DashPanelTrigger
-            key={item.panelId}
+            key={itemKey}
             panelId={item.panelId}
             isDisabled={item.disabled}
             aria-label={accessibleName}

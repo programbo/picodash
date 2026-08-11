@@ -19,8 +19,10 @@ them. Re-read the routes when the task expands into another package.
 - Shared UI maintenance: [`docs/agents/ui.md`](docs/agents/ui.md),
   [`docs/adr/0003-shared-ui-foundation.md`](docs/adr/0003-shared-ui-foundation.md), and
   [`docs/reference/ui.md`](docs/reference/ui.md).
-- DashPanel behavior or docs: [`docs/agents/dashpanel.md`](docs/agents/dashpanel.md) and
-  [`docs/reference/dashpanel.md`](docs/reference/dashpanel.md).
+- DashPanel behavior or docs: [`docs/agents/dashpanel.md`](docs/agents/dashpanel.md),
+  [`docs/reference/dashpanel-contract-decisions.md`](docs/reference/dashpanel-contract-decisions.md),
+  [`docs/reference/dashpanel.md`](docs/reference/dashpanel.md), and
+  [`docs/adr/0004-dashpanel-launcher-item-identity.md`](docs/adr/0004-dashpanel-launcher-item-identity.md).
 - DashList or Dashlet behavior or docs: [`docs/agents/dashlist.md`](docs/agents/dashlist.md) and
   [`docs/reference/dashlist.md`](docs/reference/dashlist.md).
 - Picodash or cross-product integration: [`docs/agents/picodash.md`](docs/agents/picodash.md) and
