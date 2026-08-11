@@ -47,18 +47,11 @@ describe('DashPanel action composition', () => {
     container = document.createElement('div')
     document.body.append(container)
     root = createRoot(container)
-    vi.stubGlobal('matchMedia', () => ({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
-    vi.stubGlobal('CSS', { escape: (value: string) => value })
   })
 
   afterEach(async () => {
     await act(async () => root.unmount())
     container.remove()
-    vi.unstubAllGlobals()
   })
 
   it('exposes keyboard movement shortcuts and shared instructions on the move control', async () => {

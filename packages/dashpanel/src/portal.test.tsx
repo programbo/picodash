@@ -20,17 +20,9 @@ async function render(element: React.ReactNode) {
 
 describe('DashPanel portal ownership', () => {
   beforeEach(() => {
-    ;(
-      globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
-    ).IS_REACT_ACT_ENVIRONMENT = true
     container = document.createElement('div')
     document.body.append(container)
     root = createRoot(container)
-    vi.stubGlobal('matchMedia', () => ({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
   })
 
   afterEach(async () => {

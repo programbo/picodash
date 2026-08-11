@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite-plus'
+import { reactTestConfig } from '../../test/config.ts'
 
 export default defineConfig({
+  test: reactTestConfig,
   pack: {
     entry: ['src/index.ts', 'src/ui.ts'],
     dts: { tsgo: true },

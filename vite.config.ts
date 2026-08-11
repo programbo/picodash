@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite-plus'
+import { reactTestConfig } from './test/config.ts'
 
 const workspaceCwd = process.cwd().replaceAll('\\', '/')
 const tailwindEntryPoints = workspaceCwd.endsWith('/packages/ui')
@@ -18,6 +19,7 @@ const tailwindEntryPoints = workspaceCwd.endsWith('/packages/ui')
           ]
 
 export default defineConfig({
+  test: reactTestConfig,
   staged: {
     '*': 'vp check --fix',
   },

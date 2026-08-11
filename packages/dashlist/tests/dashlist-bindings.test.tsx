@@ -6,10 +6,6 @@ import { acquireBindingLease } from '@picodash/store/integration'
 import { DashGroup, DashList, Dashlet } from '../src/index.tsx'
 import { issuesForDashlet, normalizeBindingDescriptors } from '../src/bindings.tsx'
 
-;(
-  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true
-
 describe('DashList bindings', () => {
   it('cascades additive group content policies without changing group controls', () => {
     const store = createPicodashStore({

@@ -42,18 +42,11 @@ describe('@picodash/ui ActionMenu composition', () => {
     container = document.createElement('div')
     document.body.append(container)
     root = createRoot(container)
-    vi.stubGlobal('matchMedia', () => ({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
-    vi.stubGlobal('CSS', { escape: (value: string) => value })
   })
 
   afterEach(async () => {
     await act(async () => root.unmount())
     container.remove()
-    vi.unstubAllGlobals()
   })
 
   it('normalizes uncontrolled and controlled open state and calls onOpenChange', async () => {

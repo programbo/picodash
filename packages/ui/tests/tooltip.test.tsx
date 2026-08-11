@@ -50,18 +50,11 @@ describe('@picodash/ui Tooltip', () => {
     host = document.createElement('div')
     document.body.append(host)
     root = createRoot(host)
-    vi.stubGlobal('matchMedia', () => ({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
-    vi.stubGlobal('CSS', { escape: (value: string) => value })
   })
 
   afterEach(async () => {
     await act(async () => root.unmount())
     host.remove()
-    vi.unstubAllGlobals()
   })
 
   it('inherits provider timing and allows an instance override', async () => {

@@ -78,17 +78,11 @@ describe('@picodash/ui AlertDialog composition', () => {
     container = document.createElement('div')
     document.body.append(container)
     root = createRoot(container)
-    vi.stubGlobal('matchMedia', () => ({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
   })
 
   afterEach(async () => {
     await act(async () => root.unmount())
     container.remove()
-    vi.unstubAllGlobals()
   })
 
   it('opens uncontrolled state and renders alertdialog semantics and descriptions', async () => {

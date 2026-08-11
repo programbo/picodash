@@ -18,10 +18,6 @@ import {
   type DashPanelProviderPolicy,
 } from '../src/runtime/provider-policy-context.tsx'
 
-;(
-  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true
-
 class MockHTMLElementBase {
   readonly tagName = 'BUTTON'
   readonly ownerDocument = {

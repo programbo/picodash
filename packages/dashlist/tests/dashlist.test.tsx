@@ -24,10 +24,6 @@ import {
   createNodeRegistry,
 } from '../src/node-registration.tsx'
 
-;(
-  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true
-
 const makeStore = () =>
   createPicodashStore({ valueOwner: 'store', fields: { value: { defaultValue: 0 } } })
 

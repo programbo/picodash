@@ -7,10 +7,6 @@ import { createPicodashStore } from '@picodash/store'
 import { usePicodashScope } from '@picodash/store/react'
 import { DashPanel, DashList, Dashlet, PicodashProvider } from '../src/index.ts'
 
-;(
-  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true
-
 function render(element: ReactElement): ReactTestRenderer {
   let renderer!: ReactTestRenderer
   act(() => {
