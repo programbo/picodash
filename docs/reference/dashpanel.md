@@ -838,9 +838,10 @@ for a hidden Panel.
 
 `DashPanelLauncher` renders an application-declared group of Panel triggers. It does not discover
 Panels through a registry, infer labels from mounted content, or acquire authority to mount missing
-JSX. Text labels provide the trigger name directly; non-text labels require `accessibleName`, which
-is forwarded as the trigger's accessible name. A launcher item for an unavailable Panel renders as
-a disabled trigger and does not create it.
+JSX. Each `panelId` must be unique within one launcher's `items`. Text labels provide the trigger
+name directly; non-text labels require `accessibleName`, which is forwarded as the trigger's
+accessible name. A launcher item for an unavailable Panel renders as a disabled trigger and does
+not create it.
 
 Both components require the nearest DashPanel Provider. Their button behavior and public prop base
 come from `@picodash/ui`, but DashPanel owns panel targeting, visibility, activation, and focus.
