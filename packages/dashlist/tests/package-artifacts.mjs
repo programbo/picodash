@@ -18,7 +18,7 @@ assert.deepEqual(manifest.exports, {
   './style.css': './dist/style.css',
 })
 assert.deepEqual(manifest.dependencies, {
-  '@picodash/store': 'workspace:*',
+  '@picodash/nexus': 'workspace:*',
   '@picodash/ui': 'workspace:*',
 })
 assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })
@@ -30,7 +30,7 @@ const runtime = await import(
 )
 const React = await import('react')
 const { renderToString } = await import('react-dom/server')
-const { createPicodashStore } = await import('@picodash/store')
+const { createPicodashNexus } = await import('@picodash/nexus')
 assert.deepEqual(Object.keys(runtime).sort(), [
   'ActionMenu',
   'ActionMenuItem',
@@ -87,7 +87,7 @@ for (const name of [
   'DashListActions',
   'DashListActionController',
   'DashListActionExecutionResult',
-  'DashListActionStoreResult',
+  'DashListActionNexusResult',
   'DashListActionProps',
   'DashListActionAvailability',
   'DashListActionItems',
@@ -114,17 +114,17 @@ assert.match(css, /@picodash\/ui\/style\.css|picodash-dashlist/)
 assert.match(css, /--picodash-dashlet-label-width/)
 assert.doesNotMatch(css, /picodash-panel|picodash-dock|zustand/)
 
-const ssrStore = createPicodashStore({
-  valueOwner: 'store',
+const ssrNexus = createPicodashNexus({
+  valueOwner: 'nexus',
   fields: { value: { defaultValue: 0 } },
 })
 const html = renderToString(
   React.createElement(runtime.DashList, {
     id: 'artifact-ssr',
-    store: ssrStore,
+    nexus: ssrNexus,
     children: React.createElement(runtime.Dashlet, { id: 'item', label: 'Item' }),
   }),
 )
 assert.match(html, /role="list"/)
-assert.doesNotThrow(() => ssrStore.destroy())
+assert.doesNotThrow(() => ssrNexus.destroy())
 console.log('@picodash/dashlist package artifact contract passed')

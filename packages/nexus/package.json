@@ -1,0 +1,75 @@
+{
+  "name": "@picodash/nexus",
+  "version": "0.0.0",
+  "description": "Typed state hub for settings panels, inspectors, and control dashboards.",
+  "keywords": [
+    "control-panel",
+    "dashboard",
+    "developer-tools",
+    "persistence",
+    "settings",
+    "state-management",
+    "typescript",
+    "validation"
+  ],
+  "homepage": "https://github.com/programbo/picodash#readme",
+  "bugs": {
+    "url": "https://github.com/programbo/picodash/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/programbo/picodash"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./integration": "./dist/integration.mjs",
+    "./react": "./dist/react.mjs",
+    "./web-storage": "./dist/web-storage.mjs",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "test:package": "node tests/package-artifacts.mjs",
+    "check": "vp check",
+    "lint": "vp lint src tests --fix",
+    "format": "vp fmt . --write",
+    "release:check": "vp check && vp test && vp run build && bun run test:package && bun pm pack --dry-run",
+    "release:version": "bumpp --commit=false --tag=false --push=false",
+    "prepublishOnly": "vp check && vp test && vp run build"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0"
+  },
+  "devDependencies": {
+    "@fast-check/vitest": "^0.4.1",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
+    "bumpp": "^12.2.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}

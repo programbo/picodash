@@ -10,17 +10,17 @@ import type {
   CoreTransactionResult,
   PicodashFieldDefinitions,
   PersistentTransactionResult,
-  RootStore,
-  ScopedStore,
-} from '@picodash/store'
-import { usePicodashStore } from '@picodash/store/react'
+  RootNexus,
+  ScopedNexus,
+} from '@picodash/nexus'
+import { usePicodashNexus } from '@picodash/nexus/react'
 import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from 'react'
 
 export type DashListActionAvailability = 'unavailable' | 'disabled' | 'enabled'
-export type DashListActionStoreResult = CoreTransactionResult | PersistentTransactionResult
+export type DashListActionNexusResult = CoreTransactionResult | PersistentTransactionResult
 export type DashListActionExecutionResult =
   | { readonly status: 'not_executed'; readonly availability: 'unavailable' | 'disabled' }
-  | { readonly status: 'executed'; readonly result: DashListActionStoreResult }
+  | { readonly status: 'executed'; readonly result: DashListActionNexusResult }
 
 export interface DashListActionController {
   readonly availability: DashListActionAvailability
@@ -53,14 +53,14 @@ type BindingInputRecord = Omit<BindingRecord, 'itemId'>
 export type DashListActionSnapshot = Readonly<{
   readonly groups: readonly GroupRecord[]
   readonly bindings: readonly BindingRecord[]
-  readonly scope: ReturnType<ScopedStore<PicodashFieldDefinitions>['getState']>['scope']
+  readonly scope: ReturnType<ScopedNexus<PicodashFieldDefinitions>['getState']>['scope']
   readonly announcement: string
   readonly announcementSequence: number
 }>
 
 export type DashListActionRegistry = Readonly<{
   readonly scopeId: string
-  readonly store: ScopedStore<PicodashFieldDefinitions>
+  readonly nexus: ScopedNexus<PicodashFieldDefinitions>
   readonly announce: (message: string) => void
   readonly activate: () => void
   readonly subscribe: (listener: () => void) => () => void
@@ -110,7 +110,7 @@ function hubForRoot(root: object): RegistryHub {
 }
 
 function createRegistry(
-  store: ScopedStore<PicodashFieldDefinitions>,
+  nexus: ScopedNexus<PicodashFieldDefinitions>,
   scopeId: string,
 ): DashListActionRegistry {
   const groups = new Map<string, GroupRecord>()
@@ -120,14 +120,14 @@ function createRegistry(
   let active = false
   let announcement = ''
   let announcementSequence = 0
-  let unsubscribeStore: (() => void) | undefined
-  const root = store.root
+  let unsubscribeNexus: (() => void) | undefined
+  const root = nexus.root
   const hub = hubForRoot(root)
   let cachedSnapshot: DashListActionSnapshot
   const buildSnapshot = (): DashListActionSnapshot => ({
     groups: [...groups.values()],
     bindings: [...bindings.values()].flat(),
-    scope: store.getState().scope,
+    scope: nexus.getState().scope,
     announcement,
     announcementSequence,
   })
@@ -140,7 +140,7 @@ function createRegistry(
   const snapshot = (): DashListActionSnapshot => cachedSnapshot
   const registry: DashListActionRegistry = {
     scopeId,
-    store,
+    nexus,
     announce(message) {
       announcement = message
       announcementSequence += 1
@@ -153,7 +153,7 @@ function createRegistry(
       const byScope = registriesByRoot.get(root) ?? new Map<string, DashListActionRegistry>()
       byScope.set(scopeId, registry)
       registriesByRoot.set(root, byScope)
-      unsubscribeStore = store.subscribe(notify)
+      unsubscribeNexus = nexus.subscribe(notify)
       notify()
       hub.notify()
     },
@@ -191,8 +191,8 @@ function createRegistry(
       if (!active) return
       active = false
       activeRegistries.delete(registry)
-      unsubscribeStore?.()
-      unsubscribeStore = undefined
+      unsubscribeNexus?.()
+      unsubscribeNexus = undefined
       groups.clear()
       bindings.clear()
       notify()
@@ -205,20 +205,20 @@ function createRegistry(
 }
 
 export function createDashListActionRegistry(
-  store: ScopedStore<PicodashFieldDefinitions>,
+  nexus: ScopedNexus<PicodashFieldDefinitions>,
   scopeId: string,
 ): DashListActionRegistry {
-  return createRegistry(store, scopeId)
+  return createRegistry(nexus, scopeId)
 }
 
 function registryForScope(
-  store: RootStore<PicodashFieldDefinitions> | ScopedStore<PicodashFieldDefinitions>,
+  nexus: RootNexus<PicodashFieldDefinitions> | ScopedNexus<PicodashFieldDefinitions>,
   scopeId: string | undefined,
   nearest: DashListActionRegistry | null,
 ): DashListActionRegistry | null {
   if (scopeId === undefined) return nearest
   if (nearest?.scopeId === scopeId) return nearest
-  const root = store.kind === 'root' ? store : store.root
+  const root = nexus.kind === 'root' ? nexus : nexus.root
   return registriesByRoot.get(root)?.get(scopeId) ?? null
 }
 
@@ -255,7 +255,7 @@ function resetListAvailability(snapshot: DashListActionSnapshot) {
 export function dashListResetValuesFingerprint(registry: DashListActionRegistry): string {
   if (!activeRegistries.has(registry)) return 'unavailable'
   const snapshot = registry.snapshot()
-  const inspection = registry.store.inspectRegisteredValueReset()
+  const inspection = registry.nexus.inspectRegisteredValueReset()
   return JSON.stringify([
     inspection.registeredFields,
     inspection.changedFields,
@@ -280,7 +280,7 @@ function resetValuesAvailability(
   registry: DashListActionRegistry,
   snapshot: DashListActionSnapshot,
 ) {
-  const inspection = registry.store.inspectRegisteredValueReset()
+  const inspection = registry.nexus.inspectRegisteredValueReset()
   const hasDirtyDraft = snapshot.bindings.some((binding) => binding.dirty)
   if (!inspection.registeredFields.length && !hasDirtyDraft) return 'unavailable' as const
   return inspection.changedFields.length || hasDirtyDraft
@@ -321,17 +321,17 @@ function executeAction(
         if (effective === desired) return []
         return [[group.id, desired === group.defaultCollapsed ? null : desired] as const]
       })
-    const result = registry!.store.updateDashListCollapseOverrides(updates)
+    const result = registry!.nexus.updateDashListCollapseOverrides(updates)
     if (!result.ok)
       registry!.announce(`${kind === 'expand' ? 'Expand all' : 'Collapse all'} was rejected.`)
     return { status: 'executed', result }
   }
   if (kind === 'resetList') {
-    const result = registry!.store.resetDashListMetadata()
+    const result = registry!.nexus.resetDashListMetadata()
     if (!result.ok) registry!.announce('Reset list was rejected.')
     return { status: 'executed', result }
   }
-  const result = registry!.store.resetRegisteredValues()
+  const result = registry!.nexus.resetRegisteredValues()
   if (result.ok) {
     for (const binding of snapshot.bindings) if (binding.dirty) binding.discardInput()
   } else registry!.announce('Reset values was rejected.')
@@ -339,10 +339,10 @@ function executeAction(
 }
 
 export function useDashListActions(scopeId?: string): DashListActions {
-  // Preserve the public hook contract: calling actions without Store context is an error.
-  const store = usePicodashStore()
-  const registry = registryForScope(store, scopeId, useContext(DashListActionRegistryContext))
-  const root = store.kind === 'root' ? store : store.root
+  // Preserve the public hook contract: calling actions without Nexus context is an error.
+  const nexus = usePicodashNexus()
+  const registry = registryForScope(nexus, scopeId, useContext(DashListActionRegistryContext))
+  const root = nexus.kind === 'root' ? nexus : nexus.root
   const hub = scopeId === undefined ? null : hubForRoot(root)
   const subscribe = useCallback(
     (listener: () => void) => {
@@ -454,8 +454,8 @@ const resetListConfirmation = {
 } as const
 
 function useResetConfirmationGuard(scopeId: string | undefined, kind: 'values' | 'list') {
-  const store = usePicodashStore()
-  const registry = registryForScope(store, scopeId, useContext(DashListActionRegistryContext))
+  const nexus = usePicodashNexus()
+  const registry = registryForScope(nexus, scopeId, useContext(DashListActionRegistryContext))
   const fingerprint = registry
     ? kind === 'values'
       ? dashListResetValuesFingerprint(registry)

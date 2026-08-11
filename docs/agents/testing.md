@@ -4,7 +4,7 @@ Read [`../../TESTING.md`](../../TESTING.md), the conformance matrix, and the mat
 reference before changing tests. One contract has one primary test owner; verify it at the cheapest
 layer that can faithfully observe the behavior.
 
-- Store pure, type, reducer, serialization, and model tests own state invariants.
+- Nexus pure, type, reducer, serialization, and model tests own state invariants.
 - DashPanel and DashList component tests own React wiring, semantic DOM, ARIA, and deterministic
   events.
 - Pure product tests own geometry, ordering, reconciliation, and graph algorithms.

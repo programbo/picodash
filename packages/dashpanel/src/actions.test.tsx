@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vite-plus/test'
 import { clickElement, dispatchElement, renderReactRoot } from '../../../test/react.ts'
 import { ActionMenuItem } from '@picodash/ui'
-import { createPicodashStore } from '@picodash/store'
+import { createPicodashNexus } from '@picodash/nexus'
 import { DashPanel, DashPanelProvider } from './index.tsx'
 import { DashPanelIntegrationProvider } from './integration.tsx'
 import { useDashPanelRuntime } from './runtime/panel-runtime-context.tsx'
@@ -12,9 +12,9 @@ import { useDashPanelRuntime } from './runtime/panel-runtime-context.tsx'
 let container: HTMLDivElement
 let root: Root
 
-const makeStore = () =>
-  createPicodashStore({
-    valueOwner: 'store',
+const makeNexus = () =>
+  createPicodashNexus({
+    valueOwner: 'nexus',
     fields: { value: { defaultValue: 1 } },
   })
 
@@ -31,11 +31,11 @@ async function openActions() {
 }
 
 function panel(
-  store: ReturnType<typeof makeStore>,
+  nexus: ReturnType<typeof makeNexus>,
   props: Partial<React.ComponentProps<typeof DashPanel>> = {},
 ) {
   return (
-    <DashPanelProvider store={store}>
+    <DashPanelProvider nexus={nexus}>
       <DashPanel id="inspector" title="Inspector" {...props} />
     </DashPanelProvider>
   )
@@ -54,8 +54,8 @@ describe('DashPanel action composition', () => {
   })
 
   it('exposes keyboard movement shortcuts and shared instructions on the move control', async () => {
-    const store = makeStore()
-    await render(panel(store))
+    const nexus = makeNexus()
+    await render(panel(nexus))
     const move = document.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
     const instructionsId = move.getAttribute('aria-describedby')
     expect(move.getAttribute('aria-keyshortcuts')).toBe(
@@ -69,17 +69,17 @@ describe('DashPanel action composition', () => {
       'Press Enter to commit, or Escape to cancel.',
     )
     await act(async () => root.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('renders contributor content before built-in actions only when omitted', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     function Contributor({ scopeId }: { scopeId: string }) {
       return <ActionMenuItem label={`Contributed ${scopeId}`} onAction={vi.fn()} />
     }
     await render(
       <DashPanelIntegrationProvider defaultActionItems={Contributor}>
-        {panel(store)}
+        {panel(nexus)}
       </DashPanelIntegrationProvider>,
     )
     await openActions()
@@ -90,16 +90,16 @@ describe('DashPanel action composition', () => {
     ).toContain('Contributed inspector')
     expect(document.querySelector('[data-slot="action-submenu"]')).toBeTruthy()
     await act(async () => root.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('implements false, replacement, and empty-array menu semantics', async () => {
-    const store = makeStore()
-    await render(panel(store, { actionMenu: false }))
+    const nexus = makeNexus()
+    await render(panel(nexus, { actionMenu: false }))
     expect(document.querySelector('[data-slot="action-menu"]')).toBeNull()
 
     await render(
-      panel(store, {
+      panel(nexus, {
         actionMenu: [<ActionMenuItem key="custom" label="Custom" onAction={vi.fn()} />],
       }),
     )
@@ -107,16 +107,16 @@ describe('DashPanel action composition', () => {
     expect(document.body.textContent).toContain('Custom')
     expect(document.body.textContent).not.toContain('Placement')
 
-    await render(panel(store, { actionMenu: [] }))
+    await render(panel(nexus, { actionMenu: [] }))
     expect(document.querySelector('[data-slot="action-menu"]')).toBeNull()
     await act(async () => root.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('confirms request-remove and never invokes the callback on cancellation', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const onRequestRemove = vi.fn()
-    await render(panel(store, { onRequestRemove }))
+    await render(panel(nexus, { onRequestRemove }))
     await openActions()
     const remove = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
       (item) => item.textContent === 'Remove panel…',
@@ -144,13 +144,13 @@ describe('DashPanel action composition', () => {
     expect(onRequestRemove).toHaveBeenCalledTimes(1)
     expect(onRequestRemove).toHaveBeenCalledWith({ scopeId: 'inspector' })
     await act(async () => root.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('disables dock targets occupied by another Panel in the same arena', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     await render(
-      <DashPanelProvider store={store}>
+      <DashPanelProvider nexus={nexus}>
         <DashPanel
           id="occupied"
           title="Occupied"
@@ -181,12 +181,12 @@ describe('DashPanel action composition', () => {
     expect(occupied).toBeTruthy()
     expect(occupied.getAttribute('aria-disabled')).toBe('true')
     await act(async () => root.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('keeps Fixed dock actions when the rendered placement is an occupied fallback', async () => {
-    const store = makeStore()
-    store.scope('inspector').setDashPanelLayout({
+    const nexus = makeNexus()
+    nexus.scope('inspector').setDashPanelLayout({
       placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
       preferredPosition: { x: 0, y: 0 },
     })
@@ -197,7 +197,7 @@ describe('DashPanel action composition', () => {
           <button type="button" data-release-dock onClick={() => setOccupied(false)}>
             Release dock
           </button>
-          <DashPanelProvider store={store}>
+          <DashPanelProvider nexus={nexus}>
             {occupied ? (
               <DashPanel
                 key="occupied"
@@ -255,35 +255,35 @@ describe('DashPanel action composition', () => {
     await clickElement(document.querySelector('[data-release-dock]') as HTMLButtonElement)
     expect(fullLeft.getAttribute('aria-disabled')).not.toBe('true')
     await clickElement(fullLeft)
-    expect(store.getState().scopes.get('inspector')?.dashPanel?.placement).toEqual({
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel?.placement).toEqual({
       mode: 'fixed',
       disposition: { kind: 'docked', position: 'full-left' },
     })
     await act(async () => root.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
-  it('announces Store rejections from direct movement and action commands', async () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
-      storeId: 'dashpanel-actions-quarantine',
+  it('announces Nexus rejections from direct movement and action commands', async () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      nexusId: 'dashpanel-actions-quarantine',
       schemaVersion: 1,
       fields: { value: { defaultValue: 1 } },
       initialEnvelope: {
-        kind: 'picodash-store-envelope',
+        kind: 'picodash-nexus-envelope',
         formatVersion: 1,
-        storeId: 'dashpanel-actions-quarantine',
+        nexusId: 'dashpanel-actions-quarantine',
         schemaVersion: 1,
         revision: 1,
         writerId: 'fixture',
-        valueOwner: 'store',
+        valueOwner: 'nexus',
         values: { value: 1 },
         scopes: [['inspector', { dashPanel: { invalid: true } }]],
       },
     } as never)
-    expect(store.metadataRecovery.getState().quarantinedScopes.has('inspector')).toBe(true)
+    expect(nexus.metadataRecovery.getState().quarantinedScopes.has('inspector')).toBe(true)
     await render(
-      <DashPanelProvider store={store}>
+      <DashPanelProvider nexus={nexus}>
         <DashPanel id="inspector" title="Inspector" />
       </DashPanelProvider>,
     )
@@ -318,18 +318,18 @@ describe('DashPanel action composition', () => {
       'Panel layout reset failed: Scope metadata is quarantined.',
     )
     await act(async () => root.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('announces a dock race rejected after the placement menu was rendered', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     let runtime!: ReturnType<typeof useDashPanelRuntime>
     function RuntimeProbe() {
       runtime = useDashPanelRuntime()
       return null
     }
     await render(
-      <DashPanelProvider store={store}>
+      <DashPanelProvider nexus={nexus}>
         <RuntimeProbe />
         <DashPanel
           id="inspector"
@@ -375,6 +375,6 @@ describe('DashPanel action composition', () => {
       occupied?.release()
     })
     await act(async () => root.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 })

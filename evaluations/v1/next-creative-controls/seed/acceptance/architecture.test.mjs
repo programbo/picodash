@@ -21,7 +21,7 @@ test('uses public Picodash surfaces and a manual whole-record adapter', async ()
   const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies }
   assert.ok(dependencies['@picodash/picodash'], 'add @picodash/picodash')
   assert.ok(dependencies['@picodash/dashlist'], 'add @picodash/dashlist for public anatomy')
-  assert.ok(dependencies['@picodash/store'], 'add @picodash/store')
+  assert.ok(dependencies['@picodash/nexus'], 'add @picodash/nexus')
 
   const source = await sourceText('app')
   assert.match(source, /@picodash\/picodash\/style\.css/)
@@ -31,7 +31,7 @@ test('uses public Picodash surfaces and a manual whole-record adapter', async ()
   assert.match(source, /\bsubscribe\s*[:(]/)
   assert.match(source, /\bsetValues\s*[:(]/)
   assert.match(source, /\bfields\s*=\s*\{\{/s, 'Atmosphere must bind multiple fields')
-  assert.doesNotMatch(source, /@picodash\/(?:dashlist|picodash|store)\/src/)
+  assert.doesNotMatch(source, /@picodash\/(?:dashlist|picodash|nexus)\/src/)
   assert.doesNotMatch(source, /@picodash\/picodash\/dashlet/)
   assert.doesNotMatch(
     source,

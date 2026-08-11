@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactElement } from 'react'
-import type { PicodashFieldDefinitions } from '@picodash/store'
+import type { PicodashFieldDefinitions } from '@picodash/nexus'
 import {
   DashPanelProvider,
   type DashPanelDockPosition,

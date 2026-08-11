@@ -6,7 +6,7 @@ Reorient Picodash as the fastest reliable way to add flexible, unobtrusive contr
 
 The release will combine four mutually reinforcing capabilities:
 
-1. A typed `@picodash/store` state engine.
+1. A typed `@picodash/nexus` state engine.
 2. Polished Panels and built-in Dashlets from `@picodash/picodash`.
 3. A theme-aware composition system for custom compound Dashlets.
 4. Shared human/agent guidance, realistic examples, and verifiable implementation workflows.
@@ -33,13 +33,13 @@ Rewrite `CONTEXT.md` in the required glossary format:
 - **Panel:** an independently placeable container represented by `PicodashPanel`.
 - **Dashlet:** a control, readout, visualization, preview, action, or compound item inside a Panel.
 - **Compound Dashlet:** one registered Dashlet whose body composes multiple elements and may bind several typed fields while retaining one ordering, visibility, status, and reset boundary.
-- **Picodash Store:** the complete state engine for one Panel, including values, contracts, drafts, validation, repair, registration, ordering, collapse, focus, hover, and interaction state.
+- **Picodash Nexus:** the complete state engine for one Panel, including values, contracts, drafts, validation, repair, registration, ordering, collapse, focus, hover, and interaction state.
 - Retain precise placement, disposition, boundary, and coordinate terminology.
 - Supersede the previous glossary statement that a Dashlet corresponds to `PicodashPanel`.
 
-Add `docs/adr/0001-agent-first-store-and-dashlet-boundaries.md`, recording:
+Add `docs/adr/0001-agent-first-nexus-and-dashlet-boundaries.md`, recording:
 
-- `@picodash/store` owns the complete per-Panel state engine.
+- `@picodash/nexus` owns the complete per-Panel state engine.
 - Typed JSX remains the canonical authoring representation.
 - Fields use typed handles rather than string identifiers.
 - External state uses whole-record adapters.
@@ -52,20 +52,20 @@ Use `apps/web/DESIGN.md` only for the evolved website visual system.
 
 The public package graph becomes:
 
-- `@picodash/store`: typed per-Panel state engine.
-- `@picodash/store/react`: React selectors and controlled whole-record bindings.
-- `@picodash/picodash`: providers, Panels, built-in Dashlets, actions, and common Store re-exports.
+- `@picodash/nexus`: typed per-Panel state engine.
+- `@picodash/nexus/react`: React selectors and controlled whole-record bindings.
+- `@picodash/picodash`: providers, Panels, built-in Dashlets, actions, and common Nexus re-exports.
 - `@picodash/picodash/dashlet`: semantic theme-aware elements for custom compound Dashlets.
 - `@picodash/picodash/ui`: lower-level React Aria foundations.
 - `@picodash/picodash/advanced`: advanced provider and Panel integration.
 - `@picodash/picodash/catalog`: serializable built-in and composition metadata.
 - `@picodash/picodash/style.css`: complete styles and theme recipes.
 
-## `@picodash/store`
+## `@picodash/nexus`
 
-Add `packages/store` with its own package manifest, build configuration, README, tests, and release check.
+Add `packages/nexus` with its own package manifest, build configuration, README, tests, and release check.
 
-Move the pure state engine from the legacy panel implementation into `packages/store`:
+Move the pure state engine from the legacy panel implementation into `packages/nexus`:
 
 - Values, metadata, field definitions, drafts, errors, and validation.
 - Atomic writes, resets, imports, repairs, and JSON compatibility.
@@ -75,14 +75,14 @@ Move the pure state engine from the legacy panel implementation into `packages/s
 
 Keep DOM geometry, React contexts, Motion integration, portals, styles, themes, and rendering in `@picodash/picodash`.
 
-### Store API
+### Nexus API
 
 Introduce:
 
 ```ts
-createPicodashStore<TValues>(options)
-PicodashStore<TValues>
-PicodashStoreState<TValues>
+createPicodashNexus<TValues>(options)
+PicodashNexus<TValues>
+PicodashNexusState<TValues>
 PicodashField<TValues, TKey>
 PicodashFieldDefinition<TValue>
 PicodashValueAdapter<TValues>
@@ -100,7 +100,7 @@ type SceneValues = {
   quality: 'draft' | 'balanced' | 'final'
 }
 
-const scene = createPicodashStore<SceneValues>({
+const scene = createPicodashNexus<SceneValues>({
   panelId: 'scene-controls',
   fields: {
     bloom: { defaultValue: true },
@@ -138,37 +138,37 @@ Invalid host snapshots:
 - Expose a repair proposal when a valid repair exists.
 - Preserve the host as the authoritative source.
 
-Add `@picodash/store/react` for:
+Add `@picodash/nexus/react` for:
 
-- `usePicodashStoreSelector`.
+- `usePicodashNexusSelector`.
 - A Strict Mode-safe whole-record binding for `useState` and `useReducer`.
 - Controlled updates delivered as one complete validated value record.
 
 Document verified adapters for Zustand, XState actors, Redux-like stores, and domain stores without adding framework-specific runtime dependencies.
 
-## Store Naming Collision
+## Nexus Naming Collision
 
-Reserve `createPicodashStore` and `PicodashStore` for the public per-Panel Store.
+Reserve `createPicodashNexus` and `PicodashNexus` for the public per-Panel Nexus.
 
 Rename the existing advanced provider-wide APIs:
 
-- `createPicodashStore` → `createPicodashProviderStore`.
-- Provider-wide Store types → `PicodashProviderStore` and `PicodashProviderState`.
+- `createPicodashNexus` → `createPicodashProviderStore`.
+- Provider-wide Nexus types → `PicodashProviderStore` and `PicodashProviderState`.
 
-Provider state continues to own cross-Panel visibility, placement, z-order, activation, and layout persistence. The per-Panel Store owns Dashlet values and interaction state.
+Provider state continues to own cross-Panel visibility, placement, z-order, activation, and layout persistence. The per-Panel Nexus owns Dashlet values and interaction state.
 
 No compatibility aliases are retained.
 
 ## `@picodash/picodash` Breaking API
 
-Make every `PicodashPanel` require an explicit `store`. Remove the internal `id + initialValues + initialMeta` mode.
+Make every `PicodashPanel` require an explicit `nexus`. Remove the internal `id + initialValues + initialMeta` mode.
 
 Rename:
 
-- `createPicodashPanelStore` → `createPicodashStore`.
-- `PicodashPanelStore` → `PicodashStore`.
-- `PicodashPanelState` → `PicodashStoreState`.
-- `usePicodashPanelStoreSelector` → `usePicodashStoreSelector`.
+- `createPicodashPanelStore` → `createPicodashNexus`.
+- `PicodashPanelStore` → `PicodashNexus`.
+- `PicodashPanelState` → `PicodashNexusState`.
+- `usePicodashPanelStoreSelector` → `usePicodashNexusSelector`.
 
 Replace string fields and component-owned defaults:
 
@@ -176,7 +176,7 @@ Replace string fields and component-owned defaults:
 <PicodashSlider field="exposure" defaultValue={1.2} />
 ```
 
-with typed Store handles:
+with typed Nexus handles:
 
 ```tsx
 <PicodashSlider field={scene.fields.exposure} />
@@ -303,7 +303,7 @@ Remove them from `/ui`; do not retain aliases.
 - Every component exports a named `*Props` type.
 - Every component emits stable semantic `data-slot` attributes.
 - Internal `cva` helpers and variant functions remain private.
-- High-frequency visualization samples remain outside persisted Store values.
+- High-frequency visualization samples remain outside persisted Nexus values.
 
 ## `@picodash/picodash/ui`
 
@@ -348,10 +348,10 @@ Add new public tokens only when no existing semantic role expresses the requirem
 Add:
 
 ```tsx
-<PicodashPanelTrigger store={scene}>Scene controls</PicodashPanelTrigger>
+<PicodashPanelTrigger nexus={scene}>Scene controls</PicodashPanelTrigger>
 ```
 
-and a multi-Panel launcher accepting explicit `{ store, label }` entries.
+and a multi-Panel launcher accepting explicit `{ nexus, label }` entries.
 
 Contracts:
 
@@ -450,7 +450,7 @@ Cover:
 - Reset and import/export behavior.
 - Existing-state adapters.
 - Structured object values versus several independent fields.
-- Keeping streaming and animation samples outside persisted Store state.
+- Keeping streaming and animation samples outside persisted Nexus state.
 
 ### Theme Guide
 
@@ -519,9 +519,9 @@ The homepage will contain:
    - Application monitoring.
    - Debug and feature controls.
 5. Custom compound Dashlets featured in every scenario rather than only built-in control rows.
-6. Live typed implementation code using Store field handles and `/dashlet` composition.
+6. Live typed implementation code using Nexus field handles and `/dashlet` composition.
 7. A Dashboard → Panel → Dashlet explanation.
-8. The native Store versus existing-state adapter decision.
+8. The native Nexus versus existing-state adapter decision.
 9. Reliability proof covering types, themes, accessibility, diagnostics, fixtures, and agent evaluations.
 
 Do not simulate an AI conversation or invent customers, adoption counts, testimonials, or benchmarks.
@@ -537,7 +537,7 @@ Add:
 - `/docs/guides/compound-dashlets`
 - `/docs/guides/dashlet-themes`
 - `/docs/guides/dashlet-accessibility`
-- `/docs/reference/store`
+- `/docs/reference/nexus`
 - `/docs/reference/panel`
 - `/docs/reference/dashlets`
 - `/docs/reference/dashlet-components`
@@ -552,7 +552,7 @@ Redirect existing public routes to their closest new homes, including `/usage/co
 Provide three versioned agent scenarios:
 
 - Next.js creative controls using React-owned state and a custom compound control.
-- Vite application monitor using the native Store, metrics, statuses, progress, and streaming visuals.
+- Vite application monitor using the native Nexus, metrics, statuses, progress, and streaming visuals.
 - Next.js debug/feature controls using an external adapter, explicit exposure policy, actions, and a launcher.
 
 Each includes:
@@ -569,12 +569,12 @@ Manual release evaluations run coding agents against clean seed copies. CI runs 
 
 Migrate `apps/web`, `apps/lab`, package tests, examples, and documentation:
 
-1. Create explicit typed Stores.
+1. Create explicit typed Nexuses.
 2. Move defaults and durable validators into field definitions.
 3. Replace string fields with handles.
 4. Replace old selector and type names.
-5. Rename provider-wide Store APIs.
-6. Replace internal-store Panels.
+5. Rename provider-wide Nexus APIs.
+6. Replace internal-Nexus Panels.
 7. Move `Item*` composition imports from `/ui` to renamed `/dashlet` elements.
 8. Refactor raw custom-Dashlet markup to the new semantic anatomy.
 9. Remove host-only token use inside package-consumer examples.
@@ -585,7 +585,7 @@ No deprecated aliases are retained.
 
 ## Tests and Acceptance
 
-### Pure Type and Store Tests
+### Pure Type and Nexus Tests
 
 - Field handles infer valid keys and values.
 - Incorrect field/Dashlet combinations fail compilation.
@@ -594,8 +594,8 @@ No deprecated aliases are retained.
 - Duplicate and incompatible field maps fail predictably.
 - Multi-field reset, import/export, drafts, validation, and repair work atomically.
 - External adapters receive one complete validated record.
-- Interaction, ordering, focus, hover, and collapse survive Store extraction.
-- Pure tests own deterministic Store behavior, parsers, validators, document transforms, placement
+- Interaction, ordering, focus, hover, and collapse survive Nexus extraction.
+- Pure tests own deterministic Nexus behavior, parsers, validators, document transforms, placement
   calculations, ordering constraints, and serialization. They do not render React or duplicate
   browser journeys.
 
@@ -612,7 +612,7 @@ No deprecated aliases are retained.
 - Importing `/dashlet` does not pull chart, dropzone, or unrelated heavy implementations into the bundle.
 - Component tests own React registration and context contracts, semantic DOM and ARIA output, event
   wiring, diagnostics, theme propagation, and focused overlay behavior that does not depend on real
-  layout. They do not reproduce Store matrices or full user journeys.
+  layout. They do not reproduce Nexus matrices or full user journeys.
 
 ### Contract Lab
 
@@ -625,7 +625,7 @@ The canvas has three deliberately separate host surfaces:
 
 1. A stable **Lab Console Panel** in its own `PicodashProvider`. It selects presets, invokes
    operations, and controls the primary Specimen Panel plus an optional Peer Panel. Preset changes
-   may replace the specimen Stores and contents, but must not unmount, move, or restyle the Console.
+   may replace the specimen Nexuses and contents, but must not unmount, move, or restyle the Console.
 2. A specimen provider containing the primary **Specimen Panel** and, only when the preset needs
    cross-Panel behavior, a **Peer Panel**. This is the product surface under test.
 3. Host-owned chrome outside both providers: an explicit reopen trigger for the primary Specimen
@@ -660,7 +660,7 @@ window.__PICODASH_LAB__ = {
 
 `loadPreset` and `reset` provide deterministic setup for browser tests and update the same
 application state as the visible Console controls. Tests use them to enter a known state, then
-exercise and assert the public UI. The driver must not expose Store internals, geometry mutation,
+exercise and assert the public UI. The driver must not expose Nexus internals, geometry mutation,
 synthetic interaction shortcuts, or assertion-only state. It is absent from production website
 bundles. Readiness and outcomes remain observable through the independent status strip and public
 DOM.
@@ -672,7 +672,7 @@ Do not retain a legacy route quarantine, compatibility redirects, or a second hi
 
 Browser tests own only behavior requiring a real browser: computed geometry, pointer capture and
 dragging, keyboard focus traversal and restoration, portal stacking, scroll and viewport behavior,
-media-query themes, reduced motion, zoom, and complete cross-surface flows. Pure Store matrices stay
+media-query themes, reduced motion, zoom, and complete cross-surface flows. Pure Nexus matrices stay
 in pure tests; render and ARIA permutations stay in component tests.
 
 Keep the Lab browser suite at no more than 40 tests. Prefer one preset load followed by a cohesive
@@ -697,7 +697,7 @@ their results separately, while the release gate requires both.
 
 Update `bun run ready` to include:
 
-- `@picodash/store` build, check, tests, and release check.
+- `@picodash/nexus` build, check, tests, and release check.
 - `@picodash/picodash` build, check, tests, and release check.
 - Documentation and generated-agent-artifact drift checks.
 - Next.js and Vite fixture builds.

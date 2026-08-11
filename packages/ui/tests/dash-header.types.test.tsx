@@ -49,8 +49,8 @@ describe('@picodash/ui DashHeader types', () => {
     // @ts-expect-error product behavior does not belong to the shared primitive.
     const drag: DashHeaderProps = { slots, draggable: true, onMove: () => {} }
     void drag
-    // @ts-expect-error Store/product props are not part of DashHeader.
-    const store: DashHeaderProps = { slots, store: {} }
-    void store
+    // @ts-expect-error Nexus/product props are not part of DashHeader.
+    const nexus: DashHeaderProps = { slots, nexus: {} }
+    void nexus
   })
 })

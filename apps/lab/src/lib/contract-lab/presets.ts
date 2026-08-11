@@ -35,7 +35,7 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Named Dashlets and one-level DashGroups render typed input, display, and compound Store bindings; standalone List collapse, keyboard ordering, and reset are available while ready-made Dashlets remain planned.',
+      'Named Dashlets and one-level DashGroups render typed input, display, and compound Nexus bindings; standalone List collapse, keyboard ordering, and reset are available while ready-made Dashlets remain planned.',
     id: 'composition',
     implementation: 'Partial',
     label: 'Composition',
@@ -49,7 +49,7 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Store document capture and restore plans are available; DashList-owned import, export, repair, and reset actions remain planned.',
+      'Nexus document capture and restore plans are available; DashList-owned import, export, repair, and reset actions remain planned.',
     id: 'documents',
     implementation: 'Partial',
     label: 'Documents',

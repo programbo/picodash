@@ -13,6 +13,8 @@ describe('dev bridge publication surface', () => {
     expect('Disclosure' in bridge).toBe(false)
     expect('Command' in bridge).toBe(false)
     expect('WireFrame' in bridge).toBe(false)
+    expect(bridge.PICODASH_DEV_BRIDGE_PROTOCOL_VERSION).toBe(2)
+    expect(bridge.PICODASH_DEV_BRIDGE_SUBPROTOCOL).toBe('picodash.dev-bridge.v2')
   })
 
   test('browser source and artifact do not import Node or ws modules', async () => {

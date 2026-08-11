@@ -3,11 +3,11 @@
 import { useEffect, useRef } from 'react'
 import { DashList, Dashlet } from '@picodash/dashlist'
 import { DashPanel, DashPanelProvider } from '@picodash/dashpanel'
-import { createPicodashStore } from '@picodash/store'
+import { createPicodashNexus } from '@picodash/nexus'
 import type { ContractLabPreset, ContractLabPresetId } from '@lab/lib/contract-lab'
-import { useContractLabDiagnosticCount } from './store-diagnostics'
+import { useContractLabDiagnosticCount } from './nexus-diagnostics'
 
-const consoleStore = createPicodashStore({ valueOwner: 'store', fields: {} })
+const consoleNexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
 
 export interface ContractLabConsoleProps {
   readonly activePreset: ContractLabPresetId
@@ -29,7 +29,7 @@ export function ContractLabConsole({
   specimenAvailable,
 }: ContractLabConsoleProps) {
   const boundaryRef = useRef<HTMLDivElement>(null)
-  const diagnosticCount = useContractLabDiagnosticCount([consoleStore])
+  const diagnosticCount = useContractLabDiagnosticCount([consoleNexus])
 
   useEffect(() => {
     onDiagnosticCountChange(diagnosticCount)
@@ -41,13 +41,13 @@ export function ContractLabConsole({
       className="border-border/70 bg-card/25 relative min-h-[32rem] overflow-hidden rounded-xl border border-dashed"
       data-contract-lab-console
     >
-      <DashPanelProvider store={consoleStore} boundary={boundaryRef} theme="dark">
+      <DashPanelProvider nexus={consoleNexus} boundary={boundaryRef} theme="dark">
         <DashPanel id="contract-lab-console-panel" title="Lab Console" collapsible={false}>
           <DashList aria-label="Contract Lab Console">
             <Dashlet id="contract-lab-controls" label="Contract Lab controls" layout="full">
               <div className="grid gap-4 p-4">
                 <p className="text-muted-foreground text-sm leading-6">
-                  The Console owns its Store and Provider. Preset changes replace only the specimen.
+                  The Console owns its Nexus and Provider. Preset changes replace only the specimen.
                 </p>
                 <div aria-label="Contract preset" className="grid gap-2" role="group">
                   {presets.map((preset, index) => {

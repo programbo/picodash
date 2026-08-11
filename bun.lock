@@ -23,7 +23,7 @@
         "@picodash/dashpanel": "workspace:*",
         "@picodash/dev-bridge": "workspace:*",
         "@picodash/picodash": "workspace:*",
-        "@picodash/store": "workspace:*",
+        "@picodash/nexus": "workspace:*",
         "@picodash/ui": "workspace:*",
         "next": "16.3.0",
         "react": "catalog:",
@@ -46,7 +46,7 @@
       "dependencies": {
         "@picodash/dashlist": "workspace:*",
         "@picodash/dashpanel": "workspace:*",
-        "@picodash/store": "workspace:*",
+        "@picodash/nexus": "workspace:*",
         "@picodash/ui": "workspace:*",
         "next": "16.3.0",
         "react": "catalog:",
@@ -67,7 +67,7 @@
       "name": "@picodash/dashlist",
       "version": "0.0.0",
       "dependencies": {
-        "@picodash/store": "workspace:*",
+        "@picodash/nexus": "workspace:*",
         "@picodash/ui": "workspace:*",
       },
       "devDependencies": {
@@ -88,7 +88,7 @@
       "name": "@picodash/dashpanel",
       "version": "0.0.0",
       "dependencies": {
-        "@picodash/store": "workspace:*",
+        "@picodash/nexus": "workspace:*",
         "@picodash/ui": "workspace:*",
       },
       "devDependencies": {
@@ -111,7 +111,7 @@
         "picodash-dev-bridge": "dist/cli.mjs",
       },
       "dependencies": {
-        "@picodash/store": "workspace:*",
+        "@picodash/nexus": "workspace:*",
         "ws": "^8.21.3",
       },
       "devDependencies": {
@@ -127,7 +127,7 @@
       "dependencies": {
         "@picodash/dashlist": "workspace:*",
         "@picodash/dashpanel": "workspace:*",
-        "@picodash/store": "workspace:*",
+        "@picodash/nexus": "workspace:*",
         "@picodash/ui": "workspace:*",
       },
       "devDependencies": {
@@ -144,8 +144,8 @@
         "react-dom": ">=19",
       },
     },
-    "packages/store": {
-      "name": "@picodash/store",
+    "packages/nexus": {
+      "name": "@picodash/nexus",
       "version": "0.0.0",
       "dependencies": {
         "@standard-schema/spec": "^1.1.0",
@@ -471,7 +471,7 @@
 
     "@picodash/picodash": ["@picodash/picodash@workspace:packages/picodash"],
 
-    "@picodash/store": ["@picodash/store@workspace:packages/store"],
+    "@picodash/nexus": ["@picodash/nexus@workspace:packages/nexus"],
 
     "@picodash/ui": ["@picodash/ui@workspace:packages/ui"],
 

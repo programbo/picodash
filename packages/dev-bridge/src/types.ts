@@ -3,13 +3,13 @@ import type {
   PersistentTransactionResult,
   PicodashDiagnostic,
   PicodashJsonValue,
-  RootStore,
+  RootNexus,
   PicodashFieldDefinitions,
   TransactionIssue,
-} from '@picodash/store'
+} from '@picodash/nexus'
 
-export const PICODASH_DEV_BRIDGE_PROTOCOL_VERSION = 1 as const
-export const PICODASH_DEV_BRIDGE_SUBPROTOCOL = 'picodash.dev-bridge.v1' as const
+export const PICODASH_DEV_BRIDGE_PROTOCOL_VERSION = 2 as const
+export const PICODASH_DEV_BRIDGE_SUBPROTOCOL = 'picodash.dev-bridge.v2' as const
 export type PicodashDevBridgeDisclosure = Readonly<{
   valueFields: readonly string[]
   scopeIds: readonly string[]
@@ -49,7 +49,7 @@ export type PicodashDevBridgeSessionDescriptor = PicodashDevBridgeSessionRef &
     diagnosticsDisclosed: boolean
     capabilities: readonly ['inspect', 'set_values', 'wait']
   }>
-export type PicodashDevBridgeStoreOutcome<
+export type PicodashDevBridgeNexusOutcome<
   Result extends CoreTransactionResult | PersistentTransactionResult =
     | CoreTransactionResult
     | PersistentTransactionResult,
@@ -94,7 +94,7 @@ export type PicodashDevBridgeCommandResult<
   session: PicodashDevBridgeSessionRef
   beforeSequence: number
   afterSequence: number
-  outcome: PicodashDevBridgeStoreOutcome<Result>
+  outcome: PicodashDevBridgeNexusOutcome<Result>
 }>
 export type PicodashDevBridgeWaitResult = Readonly<{
   type: 'wait_result'
@@ -141,7 +141,7 @@ export type PicodashDevBridgeConnectOptions<
   Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions,
   Result extends CoreTransactionResult | PersistentTransactionResult = CoreTransactionResult,
 > = Readonly<{
-  store: RootStore<Fields, Result>
+  nexus: RootNexus<Fields, Result>
   credential: PicodashDevBridgeBrowserCredential
   registrationId: string
   label?: string
@@ -155,7 +155,7 @@ export type PicodashDevBridgeBrowserConnection = Readonly<{
 }>
 export type PicodashDevBridgeRegistration = Readonly<{
   type: 'register'
-  protocolVersion: 1
+  protocolVersion: 2
   token: string
   registration: {
     registrationId: string
@@ -188,7 +188,7 @@ export type PicodashDevBridgeWireFrame =
       nextSequence: number
     }>
   | PicodashDevBridgeError
-export type StoreLike = {
+export type NexusLike = {
   readonly fields: Record<string, unknown>
   getState(): Readonly<{
     values: Readonly<Record<string, PicodashJsonValue>>

@@ -30,21 +30,21 @@ or a home for miscellaneous reusable code.
 
 | Package               | Direct foundations                 |
 | --------------------- | ---------------------------------- |
-| `@picodash/store`     | None                               |
-| `@picodash/ui`        | None; it does not import Store     |
-| `@picodash/dashpanel` | Store and UI                       |
-| `@picodash/dashlist`  | Store and UI                       |
-| `@picodash/picodash`  | Store, UI, DashPanel, and DashList |
+| `@picodash/nexus`     | None                               |
+| `@picodash/ui`        | None; it does not import Nexus     |
+| `@picodash/dashpanel` | Nexus and UI                       |
+| `@picodash/dashlist`  | Nexus and UI                       |
+| `@picodash/picodash`  | Nexus, UI, DashPanel, and DashList |
 
-Store remains framework-independent and never imports UI. DashPanel and DashList may each consume
-Store and UI, but never one another. Picodash is the integrated facade above those foundations.
+Nexus remains framework-independent and never imports UI. DashPanel and DashList may each consume
+Nexus and UI, but never one another. Picodash is the integrated facade above those foundations.
 
 ## Admission rules
 
 A public component or presentation contract belongs here only when:
 
 1. at least DashPanel and DashList use it without product-specific behavior;
-2. its semantics do not mention Panel, List, Dashlet, Store, scope, placement, or ordering;
+2. its semantics do not mention Panel, List, Dashlet, Nexus, scope, placement, or ordering;
 3. its accessibility, theme, and interaction behavior should be identical for every consumer; and
 4. it owns no product state, commands, registration, persistence, or domain policy.
 
@@ -192,7 +192,7 @@ usePicodashOverlayDefaults(): Readonly<PicodashOverlayDefaults>
   rather than implementing a second resolver.
 
 `PicodashOverlayProvider` owns product-neutral defaults for detached UI primitives. It is a context
-boundary, not a theme carrier or Store boundary.
+boundary, not a theme carrier or Nexus boundary.
 
 The current implementation evidence is in
 [overlay-provider.test.tsx](../../packages/ui/tests/overlay-provider.test.tsx) and
@@ -220,8 +220,8 @@ an unsafe narrowing before React Aria could consume it.
   defaults; active parent-overlay layers and z-index calculations remain private.
 
 Product Providers compose both shared Providers internally. A standalone application may also use
-either shared Provider without Store, DashPanel, or DashList. Neither shared Provider imports or
-subscribes to Store.
+either shared Provider without Nexus, DashPanel, or DashList. Neither shared Provider imports or
+subscribes to Nexus.
 
 Each detached overlay root repeats the resolved theme and density attributes. The shared portal
 container itself is never decorated or mutated, because one container may host overlays from
@@ -629,7 +629,7 @@ root-owned trigger ref or React Aria's unstable portal prop.
 ```
 
 - `TooltipProvider` is an optional timing context. It accepts `delay` and `closeDelay`, which
-  default to 500 and 0 milliseconds. It owns no theme, portal, layer, Product Provider, or Store
+  default to 500 and 0 milliseconds. It owns no theme, portal, layer, Product Provider, or Nexus
   state.
 - Omitted Provider timing props inherit from the nearest `TooltipProvider`. A per-instance value on
   `Tooltip` takes precedence. DashPanel, DashList, and Picodash Providers do not expose duplicate
@@ -664,7 +664,7 @@ expanding the Tooltip contract.
 
 UI does not own:
 
-- Store values, scopes, bindings, persistence, documents, or selectors;
+- Nexus values, scopes, bindings, persistence, documents, or selectors;
 - Panel placement, drag surfaces, collapse, close, visibility, Panel portal ownership, or Panel
   actions;
 - List nodes, groups, Dashlets, ordering, disclosure, resets, or field presentation;

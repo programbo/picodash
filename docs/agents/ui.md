@@ -11,7 +11,7 @@ structural, overlay, and accessibility behavior. Admit a primitive only when bot
 the same semantics and interactions without product state or commands.
 
 UI is supporting infrastructure, not another state or behavior owner. It must not know about
-Stores, Panels, Lists, Dashlets, placement, ordering, or persistence.
+Nexuses, Panels, Lists, Dashlets, placement, ordering, or persistence.
 
 ## Implementation constraints
 

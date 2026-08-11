@@ -13,17 +13,17 @@ import type {
   PicodashFieldDefinitions,
   PicodashJsonValue,
   PicodashStaleInputOverwritePlan,
-  ScopedStore,
+  ScopedNexus,
   TransactionIssue,
-} from '@picodash/store'
+} from '@picodash/nexus'
 import {
   acquireBindingLease,
   type BindingHandle,
-  type StoreBindingMode,
-} from '@picodash/store/integration'
-import { PicodashContractError } from '@picodash/store'
+  type NexusBindingMode,
+} from '@picodash/nexus/integration'
+import { PicodashContractError } from '@picodash/nexus'
 
-export type DashletBindingMode = StoreBindingMode
+export type DashletBindingMode = NexusBindingMode
 export type DashletFieldBinding<TValues extends object> = {
   [TKey in Extract<keyof TValues, string>]:
     | PicodashField<TValues, TKey>
@@ -213,7 +213,7 @@ function sameDescriptors(
 }
 
 function assertBindingDescriptorsOwned(
-  store: ScopedStore<PicodashFieldDefinitions>,
+  nexus: ScopedNexus<PicodashFieldDefinitions>,
   descriptors: readonly BindingDescriptor[],
 ): void {
   for (const descriptor of descriptors) {
@@ -223,7 +223,7 @@ function assertBindingDescriptorsOwned(
         !key ||
         !('value' in key) ||
         typeof key.value !== 'string' ||
-        (store.fields as Record<string, unknown>)[key.value] !== descriptor.field
+        (nexus.fields as Record<string, unknown>)[key.value] !== descriptor.field
       )
         throw new PicodashContractError('foreign-handle')
     } catch (error) {
@@ -234,7 +234,7 @@ function assertBindingDescriptorsOwned(
 }
 
 function issuesFromResult(
-  result: ReturnType<ScopedStore<PicodashFieldDefinitions>['setInput']>,
+  result: ReturnType<ScopedNexus<PicodashFieldDefinitions>['setInput']>,
 ): readonly TransactionIssue[] {
   return result.ok ? [] : result.error.issues
 }
@@ -273,7 +273,7 @@ function issueFromOverwriteError(
 }
 
 export function useDashletBindings(
-  store: ScopedStore<PicodashFieldDefinitions>,
+  nexus: ScopedNexus<PicodashFieldDefinitions>,
   itemId: string,
   descriptors: readonly BindingDescriptor[],
   disabled: boolean,
@@ -287,9 +287,9 @@ export function useDashletBindings(
   readonly staleOverwrite: Record<string, StaleOverwriteController>
 } {
   const storeSnapshot = useSyncExternalStore(
-    (listener) => store.subscribe(listener),
-    () => store.getState(),
-    () => store.getState(),
+    (listener) => nexus.subscribe(listener),
+    () => nexus.getState(),
+    () => nexus.getState(),
   )
   const runtimes = useRef<Runtime[]>([])
   const initialDescriptors = useRef<readonly BindingDescriptor[] | null>(null)
@@ -299,7 +299,7 @@ export function useDashletBindings(
       'Dashlet binding descriptors are immutable while mounted; use a keyed remount.',
     )
   const stableDescriptors = initialDescriptors.current
-  assertBindingDescriptorsOwned(store, stableDescriptors)
+  assertBindingDescriptorsOwned(nexus, stableDescriptors)
   const [commandIssues, setCommandIssues] = useState<readonly TransactionIssue[]>([])
   const previousValues = useRef(storeSnapshot.values)
   useEffect(() => {
@@ -313,7 +313,7 @@ export function useDashletBindings(
     const acquired: Runtime[] = []
     try {
       for (const descriptor of stableDescriptors) {
-        const handle = acquireBindingLease(store as ScopedStore<PicodashFieldDefinitions>, {
+        const handle = acquireBindingLease(nexus as ScopedNexus<PicodashFieldDefinitions>, {
           itemId,
           field: descriptor.field as never,
           alias: descriptor.alias,
@@ -330,7 +330,7 @@ export function useDashletBindings(
       for (const runtime of acquired.slice().reverse()) runtime.handle?.release()
       if (runtimes.current === acquired) runtimes.current = []
     }
-  }, [store, itemId, stableDescriptors])
+  }, [nexus, itemId, stableDescriptors])
 
   const result = useMemo(() => {
     const state = storeSnapshot
@@ -344,7 +344,7 @@ export function useDashletBindings(
           .flatMap((descriptor) => interaction?.get(descriptor.alias)?.inputIssues ?? [])
           .concat(commandIssues),
       ),
-      store.scopeId,
+      nexus.scopeId,
       itemId,
     )
     const owners = new Map<string, string>()
@@ -385,7 +385,7 @@ export function useDashletBindings(
         const discardInput = () => {
           const runtime = runtimes.current.find((entry) => entry.descriptor.alias === key)
           if (!runtime?.handle) return
-          store.discardInput(runtime.handle)
+          nexus.discardInput(runtime.handle)
           setCommandIssues([])
           publishAnnouncement('')
         }
@@ -401,8 +401,8 @@ export function useDashletBindings(
             const runtime = runtimes.current.find((entry) => entry.descriptor.alias === key)
             if (!runtime?.handle) return
             const nextIssues = issuesForDashlet(
-              issuesFromResult(store.setInput(runtime.handle, candidate)),
-              store.scopeId,
+              issuesFromResult(nexus.setInput(runtime.handle, candidate)),
+              nexus.scopeId,
               itemId,
             )
             setCommandIssues(nextIssues)
@@ -422,8 +422,8 @@ export function useDashletBindings(
           resetValue: () => {
             if (policy.current.disabled || policy.current.readOnly) return
             const nextIssues = issuesForDashlet(
-              issuesFromResult(store.resetValue(descriptor.field)),
-              store.scopeId,
+              issuesFromResult(nexus.resetValue(descriptor.field)),
+              nexus.scopeId,
               itemId,
             )
             setCommandIssues(nextIssues)
@@ -446,7 +446,7 @@ export function useDashletBindings(
             const runtime = runtimes.current.find((entry) => entry.descriptor.alias === key)
             if (!runtime?.handle) return undefined
             try {
-              return store.createStaleInputOverwritePlan(runtime.handle)
+              return nexus.createStaleInputOverwritePlan(runtime.handle)
             } catch (error) {
               const issue = issueFromOverwriteError(error, descriptor.field.key, itemId, key)
               setCommandIssues([issue])
@@ -456,16 +456,16 @@ export function useDashletBindings(
           },
           executePlan: (plan) => {
             if (policy.current.disabled || policy.current.readOnly) return
-            let result: ReturnType<ScopedStore<PicodashFieldDefinitions>['setInput']>
+            let result: ReturnType<ScopedNexus<PicodashFieldDefinitions>['setInput']>
             try {
-              result = store.executeStaleInputOverwrite(plan)
+              result = nexus.executeStaleInputOverwrite(plan)
             } catch (error) {
               const issue = issueFromOverwriteError(error, descriptor.field.key, itemId, key)
               setCommandIssues([issue])
               publishAnnouncement(issue.message)
               return
             }
-            const nextIssues = issuesForDashlet(issuesFromResult(result), store.scopeId, itemId)
+            const nextIssues = issuesForDashlet(issuesFromResult(result), nexus.scopeId, itemId)
             setCommandIssues(nextIssues)
             publishAnnouncement(nextIssues.map((issue) => issue.message).join('. '))
           },
@@ -481,7 +481,7 @@ export function useDashletBindings(
     itemId,
     publishAnnouncement,
     stableDescriptors,
-    store,
+    nexus,
     storeSnapshot,
   ])
   return result

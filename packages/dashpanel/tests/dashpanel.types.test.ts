@@ -1,7 +1,7 @@
 import { createElement, type CSSProperties, type RefObject } from 'react'
 import { describe, it } from 'vite-plus/test'
-import type { DashPanelPlacementRecord } from '@picodash/store'
-import { createPicodashStore } from '@picodash/store'
+import type { DashPanelPlacementRecord } from '@picodash/nexus'
+import { createPicodashNexus } from '@picodash/nexus'
 import {
   ActionMenu,
   ActionMenuItem,
@@ -39,7 +39,7 @@ import {
   type DashPanelIntegrationProviderProps,
 } from '../src/integration.tsx'
 
-const store = createPicodashStore({ valueOwner: 'store', fields: { value: { defaultValue: 1 } } })
+const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { value: { defaultValue: 1 } } })
 
 describe('@picodash/dashpanel public types', () => {
   it('exposes the frozen provider/panel shell and rejects retired or reserved props', () => {
@@ -51,7 +51,7 @@ describe('@picodash/dashpanel public types', () => {
     }
     void guard
     const providerProps: DashPanelProviderProps = {
-      store,
+      nexus,
       children: null,
       boundary,
       boundaryInset: [8, 16],
@@ -141,8 +141,8 @@ describe('@picodash/dashpanel public types', () => {
     void ActionMenuSeparator
     void ActionSubmenu
 
-    // @ts-expect-error scoped Stores cannot satisfy the Provider root Store contract.
-    const scoped: DashPanelProviderProps = { store: store.scope('scope'), children: null }
+    // @ts-expect-error scoped Nexuses cannot satisfy the Provider root Nexus contract.
+    const scoped: DashPanelProviderProps = { nexus: nexus.scope('scope'), children: null }
     void scoped
 
     // @ts-expect-error width is controlled by the width prop.
@@ -270,7 +270,7 @@ describe('@picodash/dashpanel public types', () => {
     void minBlockSize
   })
 
-  it('exports placement vocabulary compatible with Store records in both directions', () => {
+  it('exports placement vocabulary compatible with Nexus records in both directions', () => {
     const snap: DashPanelSnapPosition = 'top-right'
     const dock: DashPanelDockPosition = 'center-bottom'
     const placement: DashPanelPlacement = {

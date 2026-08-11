@@ -1,5 +1,5 @@
-import type { PicodashDiagnostic, PicodashJsonValue } from '@picodash/store'
-import type { PicodashDevBridgeDisclosure, PicodashDevBridgeSnapshot, StoreLike } from './types.js'
+import type { PicodashDiagnostic, PicodashJsonValue } from '@picodash/nexus'
+import type { PicodashDevBridgeDisclosure, PicodashDevBridgeSnapshot, NexusLike } from './types.js'
 
 const isJson = (value: unknown): value is PicodashJsonValue => {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return true
@@ -28,17 +28,17 @@ const safeJsonObject = (value: unknown): Record<string, PicodashJsonValue> => {
 }
 
 export function validateDisclosure(
-  store: StoreLike,
+  nexus: NexusLike,
   disclosure: Partial<PicodashDevBridgeDisclosure> = {},
 ) {
-  const fieldKeys = Object.keys(store.fields).sort()
+  const fieldKeys = Object.keys(nexus.fields).sort()
   const values = [...(disclosure.valueFields ?? [])]
   const scopeIds = [...(disclosure.scopeIds ?? [])]
   const unique = (items: readonly string[]) => [...new Set(items)]
   if (!values.every((key) => typeof key === 'string' && fieldKeys.includes(key)))
     throw new Error('invalid disclosure field')
   if (!scopeIds.every((id) => typeof id === 'string')) throw new Error('invalid disclosure scope')
-  for (const scopeId of scopeIds) store.scope(scopeId)
+  for (const scopeId of scopeIds) nexus.scope(scopeId)
   return {
     fieldKeys,
     valueFields: unique(values),
@@ -48,17 +48,17 @@ export function validateDisclosure(
 }
 
 export function makeSnapshot(
-  store: StoreLike,
+  nexus: NexusLike,
   disclosure: ReturnType<typeof validateDisclosure>,
 ): PicodashDevBridgeSnapshot {
-  const state = store.getState()
+  const state = nexus.getState()
   const values = Object.fromEntries(
     disclosure.valueFields
       .filter((key) => Object.hasOwn(state.values, key))
       .map((key) => [key, state.values[key]]),
   ) as Record<string, PicodashJsonValue>
   const scopes = disclosure.scopeIds.map((id) => {
-    const scoped = store.scope(id)
+    const scoped = nexus.scope(id)
     const scopedState = scoped.getState() as { scope?: unknown }
     return {
       id,
@@ -68,7 +68,7 @@ export function makeSnapshot(
     }
   })
   const diagnostics = disclosure.diagnostics
-    ? [...store.diagnostics.getState().current.entries()].map(([key, diagnostic]) =>
+    ? [...nexus.diagnostics.getState().current.entries()].map(([key, diagnostic]) =>
         diagnosticToJson(key, diagnostic),
       )
     : undefined

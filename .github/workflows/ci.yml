@@ -46,7 +46,7 @@ jobs:
       - name: Check documentation and agent artifacts
         run: bun run artifacts:check
 
-  store-alpha:
+  nexus-alpha:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 10
 
@@ -66,8 +66,8 @@ jobs:
           run-install: |
             args: ['--frozen-lockfile']
 
-      - name: Check Store alpha release
-        run: bun run --filter @picodash/store release:check
+      - name: Check Nexus alpha release
+        run: bun run --filter @picodash/nexus release:check
 
   ui-foundation:
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -113,7 +113,7 @@ jobs:
             args: ['--frozen-lockfile']
 
       - name: Build DashPanel foundations
-        run: bun run --filter @picodash/store build && bun run --filter @picodash/ui build
+        run: bun run --filter @picodash/nexus build && bun run --filter @picodash/ui build
 
       - name: Check DashPanel alpha release
         run: bun run --filter @picodash/dashpanel release:check
@@ -139,7 +139,7 @@ jobs:
             args: ['--frozen-lockfile']
 
       - name: Build DashList foundations
-        run: bun run --filter @picodash/store build && bun run --filter @picodash/ui build
+        run: bun run --filter @picodash/nexus build && bun run --filter @picodash/ui build
 
       - name: Check DashList alpha release
         run: bun run --filter @picodash/dashlist release:check
@@ -165,7 +165,7 @@ jobs:
             args: ['--frozen-lockfile']
 
       - name: Build Picodash foundations
-        run: bun run --filter @picodash/store build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashlist build
+        run: bun run --filter @picodash/nexus build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashlist build
 
       - name: Check Picodash alpha release
         run: bun run --filter @picodash/picodash release:check

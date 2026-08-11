@@ -1,6 +1,6 @@
 import { createElement } from 'react'
 import { describe, expectTypeOf, it } from 'vite-plus/test'
-import { createPicodashStore } from '@picodash/store'
+import { createPicodashNexus } from '@picodash/nexus'
 import {
   DashPanel as OwnerDashPanel,
   type DashPanelProps as OwnerDashPanelProps,
@@ -50,12 +50,12 @@ import {
   type PicodashProviderProps,
 } from '../src/index.ts'
 
-const store = createPicodashStore({ valueOwner: 'store', fields: { value: { defaultValue: 0 } } })
+const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { value: { defaultValue: 0 } } })
 
 describe('@picodash/picodash facade public types', () => {
   it('keeps owner identities and the narrowed Provider contract explicit', () => {
     const provider: PicodashProviderProps = {
-      store,
+      nexus,
       children: null,
       dockPositions: ['top-left', 'center-right'],
       boundary: null,
@@ -64,7 +64,7 @@ describe('@picodash/picodash facade public types', () => {
     const dock: PicodashDockPosition = 'full-left'
     const panelDock: DashPanelDockPosition = 'center-bottom'
     const panelProps: DashPanelProps = { id: 'panel', title: 'Panel' }
-    const listProps: DashListProps = { id: 'list', store, children: null }
+    const listProps: DashListProps = { id: 'list', nexus, children: null }
     const groupProps: DashGroupProps = { id: 'group', label: 'Group' }
     const dashletProps: DashletProps = { id: 'item', label: 'Item' }
     const style: DashPanelStyle = { color: 'red' }
@@ -135,39 +135,39 @@ describe('@picodash/picodash facade public types', () => {
     expectTypeOf<DashGroupProps>().toEqualTypeOf<OwnerDashGroupProps>()
     expectTypeOf<DashletProps>().toEqualTypeOf<OwnerDashletProps>()
 
-    // @ts-expect-error a scoped Store cannot be supplied to the facade Provider.
-    const scopedProvider: PicodashProviderProps = { store: store.scope('scope'), children: null }
+    // @ts-expect-error a scoped Nexus cannot be supplied to the facade Provider.
+    const scopedProvider: PicodashProviderProps = { nexus: nexus.scope('scope'), children: null }
     void scopedProvider
     const forbiddenTop: PicodashProviderProps = {
-      store,
+      nexus,
       children: null,
       // @ts-expect-error Picodash excludes full-top from its Provider dock policy.
       dockPositions: ['full-top'],
     }
     void forbiddenTop
     const forbiddenCenterTop: PicodashProviderProps = {
-      store,
+      nexus,
       children: null,
       // @ts-expect-error Picodash excludes center-top from its Provider dock policy.
       dockPositions: ['center-top'],
     }
     void forbiddenCenterTop
     const forbiddenBottom: PicodashProviderProps = {
-      store,
+      nexus,
       children: null,
       // @ts-expect-error Picodash excludes full-bottom from its Provider dock policy.
       dockPositions: ['full-bottom'],
     }
     void forbiddenBottom
     const forbiddenCenterBottom: PicodashProviderProps = {
-      store,
+      nexus,
       children: null,
       // @ts-expect-error Picodash excludes center-bottom from its Provider dock policy.
       dockPositions: ['center-bottom'],
     }
     void forbiddenCenterBottom
     // @ts-expect-error retired Provider extension props are not part of the alpha facade.
-    const retired: PicodashProviderProps = { store, children: null, storageKey: 'old' }
+    const retired: PicodashProviderProps = { nexus, children: null, storageKey: 'old' }
     void retired
   })
 

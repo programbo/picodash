@@ -5,12 +5,12 @@ import {
   createDomTestRenderer as create,
   type DomTestRenderer,
 } from '../../../test/dom-renderer.ts'
-import { createPicodashStore, PicodashContractError } from '@picodash/store'
+import { createPicodashNexus, PicodashContractError } from '@picodash/nexus'
 import {
   acquireDashListNodeLease,
-  PicodashStoreProviderBoundary,
-} from '@picodash/store/integration'
-import { usePicodashScope } from '@picodash/store/react'
+  PicodashNexusProviderBoundary,
+} from '@picodash/nexus/integration'
+import { usePicodashScope } from '@picodash/nexus/react'
 import {
   DashGroup,
   DashList,
@@ -28,8 +28,8 @@ import {
   createNodeRegistry,
 } from '../src/node-registration.tsx'
 
-const makeStore = () =>
-  createPicodashStore({ valueOwner: 'store', fields: { value: { defaultValue: 0 } } })
+const makeNexus = () =>
+  createPicodashNexus({ valueOwner: 'nexus', fields: { value: { defaultValue: 0 } } })
 
 function render(element: ReactElement): DomTestRenderer {
   let renderer!: DomTestRenderer
@@ -64,8 +64,8 @@ function ActionProbe({
 
 describe('@picodash/dashlist alpha shell', () => {
   it('rolls back private node registration when public lease acquisition fails', () => {
-    const store = makeStore()
-    const scoped = store.scope('rollback')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('rollback')
     const held = acquireDashListNodeLease(scoped, { nodeId: 'node' })
     const registry = createNodeRegistry()
     const failedToken = {}
@@ -79,15 +79,15 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(registry.getFailure()).toBeNull()
 
     held.release()
-    store.destroy()
+    nexus.destroy()
   })
 
-  it('resolves explicit root/scoped Stores and rejects immutable mismatches', () => {
-    const store = makeStore()
+  it('resolves explicit root/scoped Nexuses and rejects immutable mismatches', () => {
+    const nexus = makeNexus()
     const root = render(
       createElement(DashList, {
         id: 'root-list',
-        store,
+        nexus,
         children: createElement(Dashlet, { id: 'item', label: 'Item' }),
       }),
     )
@@ -96,7 +96,7 @@ describe('@picodash/dashlist alpha shell', () => {
       root.update(
         createElement(DashList, {
           id: 'root-list',
-          store,
+          nexus,
           children: createElement(Dashlet, { id: 'item', label: 'Item' }),
         }),
       )
@@ -106,15 +106,15 @@ describe('@picodash/dashlist alpha shell', () => {
         root.update(
           createElement(DashList, {
             id: 'changed',
-            store,
+            nexus,
           }),
         ),
       ),
-    ).toThrow('DashList Store and id are immutable while mounted.')
+    ).toThrow('DashList Nexus and id are immutable while mounted.')
     const scoped = render(
       createElement(DashList, {
         id: 'scope',
-        store: store.scope('scope'),
+        nexus: nexus.scope('scope'),
       }),
     )
     expect(scoped.root.findByProps({ 'data-picodash-dashlist': true })).toBeDefined()
@@ -122,53 +122,53 @@ describe('@picodash/dashlist alpha shell', () => {
       render(
         createElement(DashList, {
           id: 'different',
-          store: store.scope('scope'),
+          nexus: nexus.scope('scope'),
         }),
       ),
-    ).toThrow('DashList scoped Store and id must name the same scope.')
+    ).toThrow('DashList scoped Nexus and id must name the same scope.')
     act(() => root.unmount())
     act(() => scoped.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('keeps the context resolution matrix and exact missing-context errors', () => {
-    const noContextStore = makeStore()
-    expectContract(() => render(createElement(DashList)), 'missing-store-context', {
+    const noContextNexus = makeNexus()
+    expectContract(() => render(createElement(DashList)), 'missing-nexus-context', {
       required: 'root-or-scoped',
     })
-    expect(() => render(createElement(DashList, { store: noContextStore } as never))).toThrow(
-      'DashList requires id when resolving a root Store.',
+    expect(() => render(createElement(DashList, { nexus: noContextNexus } as never))).toThrow(
+      'DashList requires id when resolving a root Nexus.',
     )
-    const scoped = noContextStore.scope('scoped')
-    const omitted = render(createElement(DashList, { store: scoped }))
+    const scoped = noContextNexus.scope('scoped')
+    const omitted = render(createElement(DashList, { nexus: scoped }))
     act(() => omitted.unmount())
-    const same = render(createElement(DashList, { store: scoped, id: 'scoped' }))
-    expect(() => render(createElement(DashList, { store: scoped, id: 'other' }))).toThrow(
-      'DashList scoped Store and id must name the same scope.',
+    const same = render(createElement(DashList, { nexus: scoped, id: 'scoped' }))
+    expect(() => render(createElement(DashList, { nexus: scoped, id: 'other' }))).toThrow(
+      'DashList scoped Nexus and id must name the same scope.',
     )
     act(() => same.unmount())
-    expect(() => noContextStore.destroy()).not.toThrow()
+    expect(() => noContextNexus.destroy()).not.toThrow()
 
-    const nearestRoot = makeStore()
+    const nearestRoot = makeNexus()
     expect(() =>
       render(
-        createElement(PicodashStoreProviderBoundary, {
-          store: nearestRoot,
+        createElement(PicodashNexusProviderBoundary, {
+          nexus: nearestRoot,
           children: createElement(DashList),
         }),
       ),
-    ).toThrow('DashList requires id when resolving a root Store.')
+    ).toThrow('DashList requires id when resolving a root Nexus.')
     expect(() => nearestRoot.destroy()).not.toThrow()
   })
 
   it('uses nearest Provider/entity context and nested child relationships', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     function ScopeProbe() {
       return createElement('output', { 'data-scope': usePicodashScope().scopeId })
     }
     const renderer = render(
-      createElement(PicodashStoreProviderBoundary, {
-        store,
+      createElement(PicodashNexusProviderBoundary, {
+        nexus,
         children: createElement(
           DashList,
           { id: 'primary' },
@@ -183,7 +183,7 @@ describe('@picodash/dashlist alpha shell', () => {
             ),
             createElement(DashList, {
               id: 'explicit',
-              store: store.scope('explicit'),
+              nexus: nexus.scope('explicit'),
               children: createElement(Dashlet, { id: 'explicit-item', label: 'Explicit' }),
             }),
           ),
@@ -193,15 +193,15 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(renderer.root.findByType('output').props['data-scope']).toBe('primary')
     expect(renderer.root.findAllByProps({ 'data-picodash-dashlist': true })).toHaveLength(3)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('retains children and renders neutral/list/group semantics with labels', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = render(
       createElement(DashList, {
         id: 'semantic',
-        store,
+        nexus,
         title: 'Settings',
         headingLevel: 3,
         'aria-label': 'Explicit settings controls',
@@ -239,17 +239,17 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(renderer.root.findByProps({ role: 'status' }).props['aria-live']).toBe('polite')
     expect(renderer.root.findByType('input').props.defaultValue).toBe('retained')
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('resolves durable group collapse metadata without unmounting descendants', () => {
-    const store = makeStore()
-    const scoped = store.scope('collapse')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('collapse')
     scoped.setDashListCollapseOverride('group', true)
     const renderer = render(
       createElement(
         DashList,
-        { id: 'collapse', store },
+        { id: 'collapse', nexus },
         createElement(DashGroup, {
           id: 'group',
           label: 'Group',
@@ -283,7 +283,7 @@ describe('@picodash/dashlist alpha shell', () => {
       renderer.update(
         createElement(
           DashList,
-          { id: 'collapse', store },
+          { id: 'collapse', nexus },
           createElement(DashGroup, {
             id: 'group',
             label: 'Group',
@@ -304,7 +304,7 @@ describe('@picodash/dashlist alpha shell', () => {
       renderer.update(
         createElement(
           DashList,
-          { id: 'collapse', store },
+          { id: 'collapse', nexus },
           createElement(DashGroup, {
             id: 'group',
             label: 'Group',
@@ -324,7 +324,7 @@ describe('@picodash/dashlist alpha shell', () => {
       renderer.update(
         createElement(
           DashList,
-          { id: 'collapse', store },
+          { id: 'collapse', nexus },
           createElement(DashGroup, {
             id: 'group',
             label: 'Group',
@@ -351,16 +351,16 @@ describe('@picodash/dashlist alpha shell', () => {
     )
 
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('repairs focus to the disclosure before collapsing content', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const hiddenWhenFocused: unknown[] = []
     const renderer = render(
       createElement(
         DashList,
-        { id: 'focus-collapse', store },
+        { id: 'focus-collapse', nexus },
         createElement(DashGroup, {
           id: 'group',
           label: 'Group',
@@ -395,17 +395,17 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     focusTarget.focus()
     act(() => {
-      store.scope('focus-collapse').setDashListCollapseOverride('group', true)
+      nexus.scope('focus-collapse').setDashListCollapseOverride('group', true)
     })
     expect(focus).toHaveBeenCalledTimes(2)
     expect(hiddenWhenFocused).toEqual([undefined, undefined])
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('exposes stable actions with atomic collapse, stale recheck, and value/list resets', () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       initialValues: { value: 5 },
       fields: {
         value: {
@@ -417,7 +417,7 @@ describe('@picodash/dashlist alpha shell', () => {
         },
       },
     })
-    const scoped = store.scope('actions')
+    const scoped = nexus.scope('actions')
     let latest!: ReturnType<typeof useDashListActions>
     const actionHistory: ReturnType<typeof useDashListActions>[] = []
     let binding!: {
@@ -427,14 +427,14 @@ describe('@picodash/dashlist alpha shell', () => {
     const renderer = render(
       createElement(
         DashList,
-        { id: 'actions', store },
+        { id: 'actions', nexus },
         createElement(DashGroup, {
           id: 'group',
           label: 'Group',
           children: createElement(Dashlet, {
             id: 'item',
             label: 'Item',
-            field: store.fields.value as never,
+            field: nexus.fields.value as never,
             children(context: SingleFieldDashletRenderContext<number>) {
               binding = context.binding
               return createElement(ActionProbe, {
@@ -492,7 +492,7 @@ describe('@picodash/dashlist alpha shell', () => {
       renderer.update(
         createElement(
           DashList,
-          { id: 'actions', store },
+          { id: 'actions', nexus },
           createElement(DashGroup, {
             id: 'group',
             label: 'Group',
@@ -500,7 +500,7 @@ describe('@picodash/dashlist alpha shell', () => {
               id: 'item',
               label: 'Item',
               disabled: true,
-              field: store.fields.value as never,
+              field: nexus.fields.value as never,
               children(context: SingleFieldDashletRenderContext<number>) {
                 binding = context.binding
                 return createElement(ActionProbe, {
@@ -546,7 +546,7 @@ describe('@picodash/dashlist alpha shell', () => {
       availability: 'unavailable',
     })
     expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['group'])
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('refuses a queued reset callback after its reviewed fingerprint changes', () => {
@@ -574,8 +574,8 @@ describe('@picodash/dashlist alpha shell', () => {
   })
 
   it('invalidates a reset guard when a dirty alias moves to another Dashlet', () => {
-    const store = makeStore()
-    const registry = createDashListActionRegistry(store.scope('guard'), 'guard')
+    const nexus = makeNexus()
+    const registry = createDashListActionRegistry(nexus.scope('guard'), 'guard')
     registry.activate()
     const first = registry.registerBindings('first', [
       { key: 'value', dirty: true, discardInput: vi.fn() },
@@ -595,14 +595,14 @@ describe('@picodash/dashlist alpha shell', () => {
     )
     expect(execute).not.toHaveBeenCalled()
     registry.dispose()
-    store.destroy()
+    nexus.destroy()
   })
 
   it('announces a rejected built-in value reset', () => {
     let snapshot = { value: 5 }
     let rejectWrites = false
     const listeners = new Set<() => void>()
-    const store = createPicodashStore({
+    const nexus = createPicodashNexus({
       valueOwner: 'external',
       adapter: {
         getSnapshot: () => snapshot,
@@ -630,11 +630,11 @@ describe('@picodash/dashlist alpha shell', () => {
     const renderer = render(
       createElement(
         DashList,
-        { id: 'rejected-reset', store },
+        { id: 'rejected-reset', nexus },
         createElement(Dashlet, {
           id: 'item',
           label: 'Item',
-          field: store.fields.value as never,
+          field: nexus.fields.value as never,
           children() {
             return createElement(ActionProbe, {
               capture: (actions) => {
@@ -655,34 +655,34 @@ describe('@picodash/dashlist alpha shell', () => {
       'Reset values was rejected.',
     ])
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('announces a rejected group disclosure metadata write', () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
-      storeId: 'dashlist-collapse-quarantine',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      nexusId: 'dashlist-collapse-quarantine',
       schemaVersion: 1,
       fields: { value: { defaultValue: 1 } },
       initialEnvelope: {
-        kind: 'picodash-store-envelope',
+        kind: 'picodash-nexus-envelope',
         formatVersion: 1,
-        storeId: 'dashlist-collapse-quarantine',
+        nexusId: 'dashlist-collapse-quarantine',
         schemaVersion: 1,
         revision: 1,
         writerId: 'fixture',
-        valueOwner: 'store',
+        valueOwner: 'nexus',
         values: { value: 1 },
         scopes: [['collapse-quarantine', { dashList: { invalid: true } }]],
       },
     } as never)
-    expect(store.metadataRecovery.getState().quarantinedScopes.has('collapse-quarantine')).toBe(
+    expect(nexus.metadataRecovery.getState().quarantinedScopes.has('collapse-quarantine')).toBe(
       true,
     )
     const renderer = render(
       createElement(
         DashList,
-        { id: 'collapse-quarantine', store },
+        { id: 'collapse-quarantine', nexus },
         createElement(DashGroup, {
           id: 'group',
           label: 'Group',
@@ -699,12 +699,12 @@ describe('@picodash/dashlist alpha shell', () => {
     ).toContain('Group disclosure failed for Group: Scope metadata is quarantined.')
     expect(disclosure.props['aria-expanded']).toBe(true)
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('leases committed nodes for active prune exclusion and releases them without auto-delete', () => {
-    const store = makeStore()
-    const scoped = store.scope('presence')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('presence')
     scoped.setDashListRootOrder(['active', 'dormant'])
     const renderer = render(
       createElement(
@@ -712,7 +712,7 @@ describe('@picodash/dashlist alpha shell', () => {
         null,
         createElement(
           DashList,
-          { id: 'presence', store },
+          { id: 'presence', nexus },
           createElement(Dashlet, { id: 'active', label: 'Active' }),
         ),
       ),
@@ -734,7 +734,7 @@ describe('@picodash/dashlist alpha shell', () => {
       renderer.update(
         createElement(
           DashList,
-          { id: 'presence', store },
+          { id: 'presence', nexus },
           createElement(Dashlet, { id: 'replacement', label: 'Replacement' }),
         ),
       ),
@@ -749,16 +749,16 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     expect(scoped.getState().scope).toBeUndefined()
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('rejects invalid declarations and non-text labels synchronously', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     expect(() =>
       render(
         createElement(DashList, {
           id: 'invalid',
-          store,
+          nexus,
           children: createElement('div', null, 'not a declaration'),
         }),
       ),
@@ -767,7 +767,7 @@ describe('@picodash/dashlist alpha shell', () => {
       render(
         createElement(DashList, {
           id: 'labels',
-          store,
+          nexus,
           children: createElement(Dashlet, {
             id: 'item',
             label: createElement('span', null, 'Icon'),
@@ -779,7 +779,7 @@ describe('@picodash/dashlist alpha shell', () => {
       render(
         createElement(DashList, {
           id: 'nested',
-          store,
+          nexus,
           children: createElement(DashGroup, {
             id: 'group',
             label: 'Group',
@@ -788,18 +788,18 @@ describe('@picodash/dashlist alpha shell', () => {
         }),
       ),
     ).toThrow('DashGroup cannot contain another DashGroup.')
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('accepts custom declarations and explicit non-text accessible labels', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     function CustomDeclaration({ id }: { readonly id: string }) {
       return createElement(Dashlet, { id, label: 'Custom' }, 'retained')
     }
     const renderer = render(
       createElement(DashList, {
         id: 'custom-list',
-        store,
+        nexus,
         children: [
           null,
           false,
@@ -829,16 +829,16 @@ describe('@picodash/dashlist alpha shell', () => {
     )
     expect(renderer.root.findByProps({ 'aria-label': 'Icon item' })).toBeDefined()
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('validates hostile heading values and preserves custom theme props', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     expect(() =>
       render(
         createElement(DashList, {
           id: 'bad-heading',
-          store,
+          nexus,
           title: 'Bad',
           headingLevel: 7 as never,
         }),
@@ -848,7 +848,7 @@ describe('@picodash/dashlist alpha shell', () => {
       render(
         createElement(DashList, {
           id: 'missing-heading',
-          store,
+          nexus,
           title: 'Missing',
         } as never),
       ),
@@ -857,7 +857,7 @@ describe('@picodash/dashlist alpha shell', () => {
     const renderer = render(
       createElement(DashList, {
         id: 'custom-theme',
-        store,
+        nexus,
         theme: 'operator',
         ref,
         children: createElement(Dashlet, { id: 'item', label: 'Item' }),
@@ -865,27 +865,27 @@ describe('@picodash/dashlist alpha shell', () => {
     )
     expect(renderer.root.findByProps({ 'data-picodash-dashlist': true })).toBeDefined()
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('rejects duplicate active Lists and cleans standalone/provider precedence', () => {
-    const duplicateStore = makeStore()
-    const first = render(createElement(DashList, { id: 'duplicate', store: duplicateStore }))
+    const duplicateNexus = makeNexus()
+    const first = render(createElement(DashList, { id: 'duplicate', nexus: duplicateNexus }))
     expectContract(
-      () => render(createElement(DashList, { id: 'duplicate', store: duplicateStore })),
+      () => render(createElement(DashList, { id: 'duplicate', nexus: duplicateNexus })),
       'duplicate-entity',
       { scopeId: 'duplicate', entityKind: 'dashList' },
     )
     act(() => first.unmount())
-    expect(() => duplicateStore.destroy()).not.toThrow()
+    expect(() => duplicateNexus.destroy()).not.toThrow()
 
-    const hostedStore = makeStore()
-    const standalone = render(createElement(DashList, { id: 'shared', store: hostedStore }))
+    const hostedNexus = makeNexus()
+    const standalone = render(createElement(DashList, { id: 'shared', nexus: hostedNexus }))
     expectContract(
       () =>
         render(
-          createElement(PicodashStoreProviderBoundary, {
-            store: hostedStore,
+          createElement(PicodashNexusProviderBoundary, {
+            nexus: hostedNexus,
             children: createElement(DashList, { id: 'shared' }),
           }),
         ),
@@ -893,11 +893,11 @@ describe('@picodash/dashlist alpha shell', () => {
       { scopeId: 'shared', entityKind: 'dashList' },
     )
     act(() => standalone.unmount())
-    expect(() => hostedStore.destroy()).not.toThrow()
+    expect(() => hostedNexus.destroy()).not.toThrow()
   })
 
   it('releases standalone leases under StrictMode and does not acquire during SSR', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     let strictActions!: ReturnType<typeof useDashListActions>
     const renderer = render(
       createElement(
@@ -905,7 +905,7 @@ describe('@picodash/dashlist alpha shell', () => {
         null,
         createElement(DashList, {
           id: 'strict',
-          store,
+          nexus,
           children: createElement(DashGroup, {
             id: 'group',
             label: 'Group',
@@ -921,23 +921,23 @@ describe('@picodash/dashlist alpha shell', () => {
       ),
     )
     expect(strictActions.collapseAll.availability).toBe('enabled')
-    expect(() => store.destroy()).toThrow(PicodashContractError)
+    expect(() => nexus.destroy()).toThrow(PicodashContractError)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
 
     const { renderToString } = await import('react-dom/server')
-    const ssrStore = makeStore()
+    const ssrNexus = makeNexus()
     renderToString(
       createElement(DashList, {
         id: 'ssr',
-        store: ssrStore,
+        nexus: ssrNexus,
         children: createElement(Dashlet, { id: 'item', label: 'Item' }),
       }),
     )
     let ssrActions!: ReturnType<typeof useDashListActions>
     const ssrProbe = render(
-      createElement(PicodashStoreProviderBoundary, {
-        store: ssrStore,
+      createElement(PicodashNexusProviderBoundary, {
+        nexus: ssrNexus,
         children: createElement(ActionProbe, {
           scopeId: 'ssr',
           capture: (actions) => (ssrActions = actions),
@@ -946,23 +946,23 @@ describe('@picodash/dashlist alpha shell', () => {
     )
     expect(ssrActions.expandAll.availability).toBe('unavailable')
     act(() => ssrProbe.unmount())
-    expect(() => ssrStore.destroy()).not.toThrow()
+    expect(() => ssrNexus.destroy()).not.toThrow()
 
-    const failedStore = makeStore()
+    const failedNexus = makeNexus()
     expect(() =>
       render(
         createElement(
           Fragment,
           null,
-          createElement(DashList, { id: 'failed', store: failedStore }),
-          createElement(DashList, { id: 'failed', store: failedStore }),
+          createElement(DashList, { id: 'failed', nexus: failedNexus }),
+          createElement(DashList, { id: 'failed', nexus: failedNexus }),
         ),
       ),
     ).toThrow()
     let failedActions!: ReturnType<typeof useDashListActions>
     const failedProbe = render(
-      createElement(PicodashStoreProviderBoundary, {
-        store: failedStore,
+      createElement(PicodashNexusProviderBoundary, {
+        nexus: failedNexus,
         children: createElement(ActionProbe, {
           scopeId: 'failed',
           capture: (actions) => (failedActions = actions),
@@ -971,13 +971,13 @@ describe('@picodash/dashlist alpha shell', () => {
     )
     expect(failedActions.expandAll.availability).toBe('unavailable')
     act(() => failedProbe.unmount())
-    expect(() => failedStore.destroy()).not.toThrow()
+    expect(() => failedNexus.destroy()).not.toThrow()
 
-    const lateStore = makeStore()
+    const lateNexus = makeNexus()
     let lateActions!: ReturnType<typeof useDashListActions>
     const lateProbe = render(
-      createElement(PicodashStoreProviderBoundary, {
-        store: lateStore,
+      createElement(PicodashNexusProviderBoundary, {
+        nexus: lateNexus,
         children: createElement(ActionProbe, {
           scopeId: 'late',
           capture: (actions) => (lateActions = actions),
@@ -988,7 +988,7 @@ describe('@picodash/dashlist alpha shell', () => {
     const lateList = render(
       createElement(
         DashList,
-        { id: 'late', store: lateStore },
+        { id: 'late', nexus: lateNexus },
         createElement(DashGroup, { id: 'group', label: 'Group' }),
       ),
     )
@@ -997,11 +997,11 @@ describe('@picodash/dashlist alpha shell', () => {
     act(() => lateList.unmount())
     expect(lateActions.collapseAll.availability).toBe('unavailable')
     act(() => lateProbe.unmount())
-    expect(() => lateStore.destroy()).not.toThrow()
+    expect(() => lateNexus.destroy()).not.toThrow()
   })
 
   it('settles custom forwarding through StrictMode, keyed reparenting, cleanup, and nested Lists', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     function CustomDeclaration({ id }: { readonly id: string }) {
       return createElement(Dashlet, { id, label: 'Custom' })
     }
@@ -1010,7 +1010,7 @@ describe('@picodash/dashlist alpha shell', () => {
       null,
       createElement(
         DashList,
-        { id: 'lifecycle', store },
+        { id: 'lifecycle', nexus },
         createElement(DashGroup, {
           id: 'first-group',
           label: 'First',
@@ -1035,7 +1035,7 @@ describe('@picodash/dashlist alpha shell', () => {
           null,
           createElement(
             DashList,
-            { id: 'lifecycle', store },
+            { id: 'lifecycle', nexus },
             createElement(DashGroup, {
               id: 'second-group',
               label: 'Second',
@@ -1055,7 +1055,7 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     expect(renderer.root.findAllByProps({ 'data-picodash-dashlet': 'moving' })).toHaveLength(1)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('reports deterministic declaration agreement failures after commit', () => {
@@ -1123,12 +1123,12 @@ describe('@picodash/dashlist alpha shell', () => {
     )
 
     for (const failure of failures) {
-      const store = makeStore()
+      const nexus = makeNexus()
       expect(() =>
         render(
           createElement(DashList, {
             id: `failure-${failure.name}`,
-            store,
+            nexus,
             children: failure.children,
           }),
         ),
@@ -1137,12 +1137,12 @@ describe('@picodash/dashlist alpha shell', () => {
   })
 
   it('reorders root siblings with keyboard parity and announces the commit', () => {
-    const store = makeStore()
-    const scoped = store.scope('order-root')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('order-root')
     const renderer = render(
       createElement(
         DashList,
-        { id: 'order-root', store },
+        { id: 'order-root', nexus },
         createElement(Dashlet, { id: 'first', label: 'First' }),
         createElement(Dashlet, { id: 'second', label: 'Second' }),
       ),
@@ -1198,15 +1198,15 @@ describe('@picodash/dashlist alpha shell', () => {
       JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
     ).toContain('Reorder complete: First, position 2 of 2')
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('remounts the live region for repeated identical announcements', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = render(
       createElement(
         DashList,
-        { id: 'repeat-announcement', store },
+        { id: 'repeat-announcement', nexus },
         createElement(Dashlet, { id: 'first', label: 'First' }),
         createElement(Dashlet, { id: 'second', label: 'Second' }),
       ),
@@ -1232,16 +1232,16 @@ describe('@picodash/dashlist alpha shell', () => {
       void handle.props.onKeyDown({ key: 'Escape', preventDefault() {} })
       renderer.unmount()
     })
-    store.destroy()
+    nexus.destroy()
   })
 
   it('cancels a keyboard reorder when focus leaves its handle', () => {
-    const store = makeStore()
-    const scoped = store.scope('order-blur')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('order-blur')
     const renderer = render(
       createElement(
         DashList,
-        { id: 'order-blur', store },
+        { id: 'order-blur', nexus },
         createElement(Dashlet, { id: 'first', label: 'First' }),
         createElement(Dashlet, { id: 'second', label: 'Second' }),
       ),
@@ -1287,15 +1287,15 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['second', 'first'])
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('does not attach another handle pointer to a keyboard reorder session', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = render(
       createElement(
         DashList,
-        { id: 'order-modality', store },
+        { id: 'order-modality', nexus },
         createElement(Dashlet, { id: 'first', label: 'First' }),
         createElement(Dashlet, { id: 'second', label: 'Second' }),
       ),
@@ -1338,16 +1338,16 @@ describe('@picodash/dashlist alpha shell', () => {
       void first.props.onKeyDown({ key: 'Escape', preventDefault() {} })
       renderer.unmount()
     })
-    store.destroy()
+    nexus.destroy()
   })
 
   it('ignores repeated pickup keys and non-primary pointer buttons', () => {
-    const store = makeStore()
-    const scoped = store.scope('input-guards')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('input-guards')
     const renderer = render(
       createElement(
         DashList,
-        { id: 'input-guards', store },
+        { id: 'input-guards', nexus },
         createElement(Dashlet, { id: 'first', label: 'First' }),
         createElement(Dashlet, { id: 'second', label: 'Second' }),
       ),
@@ -1388,16 +1388,16 @@ describe('@picodash/dashlist alpha shell', () => {
       JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
     ).toContain('Reorder complete')
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('releases the shared reorder coordinator when an active group unmounts', () => {
-    const store = makeStore()
-    const scoped = store.scope('order-unmount')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('order-unmount')
     const list = (includeGroup: boolean) =>
       createElement(
         DashList,
-        { id: 'order-unmount', store },
+        { id: 'order-unmount', nexus },
         includeGroup
           ? createElement(DashGroup, {
               id: 'group',
@@ -1432,16 +1432,16 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['root-b', 'root-a'])
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('keeps pin bands and supports pointer movement through the same model', () => {
-    const store = makeStore()
-    const scoped = store.scope('order-pin')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('order-pin')
     const renderer = render(
       createElement(
         DashList,
-        { id: 'order-pin', store },
+        { id: 'order-pin', nexus },
         createElement(Dashlet, { id: 'start', label: 'Start', pin: 'start' }),
         createElement(Dashlet, { id: 'auto-a', label: 'Auto A' }),
         createElement(Dashlet, { id: 'auto-b', label: 'Auto B' }),
@@ -1513,15 +1513,15 @@ describe('@picodash/dashlist alpha shell', () => {
       'end',
     ])
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('uses explicit accessible names for icon-labelled reorder handles', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = render(
       createElement(
         DashList,
-        { id: 'order-names', store },
+        { id: 'order-names', nexus },
         createElement(Dashlet, {
           id: 'icon',
           label: createElement('span', { 'aria-hidden': true }, '★'),
@@ -1543,16 +1543,16 @@ describe('@picodash/dashlist alpha shell', () => {
       JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
     ).toContain('Reorder complete: Favorite metric, position 1 of 2')
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('captures the active pointer and releases it on pointer cancellation without writing', () => {
-    const store = makeStore()
-    const scoped = store.scope('pointer-cancel')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('pointer-cancel')
     const renderer = render(
       createElement(
         DashList,
-        { id: 'pointer-cancel', store },
+        { id: 'pointer-cancel', nexus },
         createElement(Dashlet, { id: 'first', label: 'First' }),
         createElement(Dashlet, { id: 'second', label: 'Second' }),
       ),
@@ -1585,16 +1585,16 @@ describe('@picodash/dashlist alpha shell', () => {
       JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
     ).toContain('cancelled')
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('releases a captured pointer when external order drift cancels the session', () => {
-    const store = makeStore()
-    const scoped = store.scope('pointer-drift')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('pointer-drift')
     const renderer = render(
       createElement(
         DashList,
-        { id: 'pointer-drift', store },
+        { id: 'pointer-drift', nexus },
         createElement(Dashlet, { id: 'first', label: 'First' }),
         createElement(Dashlet, { id: 'second', label: 'Second' }),
       ),
@@ -1638,16 +1638,16 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     expect(secondRelease).toHaveBeenCalledWith(8)
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('cancels a root pointer reorder when group collapse changes row geometry', () => {
-    const store = makeStore()
-    const scoped = store.scope('collapse-drift')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('collapse-drift')
     const renderer = render(
       createElement(
         DashList,
-        { id: 'collapse-drift', store },
+        { id: 'collapse-drift', nexus },
         createElement(DashGroup, {
           id: 'group',
           label: 'Group',
@@ -1676,17 +1676,17 @@ describe('@picodash/dashlist alpha shell', () => {
     ).toContain('changed')
     expect(scoped.getState().scope?.dashList?.rootOrder).toBeUndefined()
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('cancels a root pointer reorder when collapsibility expands a stored collapse', () => {
-    const store = makeStore()
-    const scoped = store.scope('collapsible-drift')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('collapsible-drift')
     scoped.setDashListCollapseOverride('group', true)
     const list = (collapsible: boolean) =>
       createElement(
         DashList,
-        { id: 'collapsible-drift', store },
+        { id: 'collapsible-drift', nexus },
         createElement(DashGroup, {
           id: 'group',
           label: 'Group',
@@ -1714,16 +1714,16 @@ describe('@picodash/dashlist alpha shell', () => {
     ).toContain('changed')
     expect(scoped.getState().scope?.dashList?.rootOrder).toBeUndefined()
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('reorders group children, cancels without a write, and cancels on drift', () => {
-    const store = makeStore()
-    const scoped = store.scope('order-group')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('order-group')
     const renderer = render(
       createElement(
         DashList,
-        { id: 'order-group', store },
+        { id: 'order-group', nexus },
         createElement(DashGroup, {
           id: 'group',
           label: 'Group',
@@ -1767,16 +1767,16 @@ describe('@picodash/dashlist alpha shell', () => {
     ).toContain('changed')
     expect(scoped.getState().scope?.dashList?.groupOrders.get('group')).toEqual(['two', 'one'])
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('does not write on a boundary no-op', () => {
-    const store = makeStore()
-    const scoped = store.scope('order-noop')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('order-noop')
     const renderer = render(
       createElement(
         DashList,
-        { id: 'order-noop', store },
+        { id: 'order-noop', nexus },
         createElement(Dashlet, { id: 'first', label: 'First' }),
         createElement(Dashlet, { id: 'second', label: 'Second' }),
       ),
@@ -1798,6 +1798,6 @@ describe('@picodash/dashlist alpha shell', () => {
       JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
     ).toContain('Reorder complete: First, position 1 of 2')
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 })

@@ -9,7 +9,7 @@ const scriptSourcePolicy = [
 
 const nextConfig: NextConfig = {
   transpilePackages: [
-    '@picodash/store',
+    '@picodash/nexus',
     '@picodash/ui',
     '@picodash/dashpanel',
     '@picodash/dashlist',

@@ -57,7 +57,7 @@ test('keeps non-home routes unavailable on the single-route alpha site', async (
   for (const path of [
     '/docs',
     '/examples',
-    '/store',
+    '/nexus',
     '/usage',
     '/themes',
     '/more-examples',

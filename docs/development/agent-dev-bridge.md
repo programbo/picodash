@@ -1,9 +1,9 @@
 # Agent Dev Bridge
 
-The Agent Dev Bridge is a local development adapter for the public `@picodash/store` API. It gives
+The Agent Dev Bridge is a local development adapter for the public `@picodash/nexus` API. It gives
 an agent a narrow, authenticated view of explicitly disclosed Contract Lab state: discover a
 session, inspect values/scopes/diagnostics, set allowlisted values, and wait for a value or sequence
-change. It does not expose an arbitrary Store debugger and must never run in production.
+change. It does not expose an arbitrary Nexus debugger and must never run in production.
 
 ## Quickstart with Contract Lab
 
@@ -60,8 +60,8 @@ printf '%s\n' '{"values":{"specimenMetric":42}}' |
     --session-id SESSION_ID --generation 1
 ```
 
-The response distinguishes a successful transaction from a Store rejection or contract error.
-The bridge does not bypass Store validation.
+The response distinguishes a successful transaction from a Nexus rejection or contract error.
+The bridge does not bypass Nexus validation.
 
 ### Wait for a change
 
@@ -83,7 +83,7 @@ The other condition is `{"type":"sequence_after","sequence":7}`. A wait returns
 - `3`: transport, protocol, or local internal failure.
 - `4`: bridge error such as unauthorized, unavailable session, stale generation, unsynchronized
   browser, or denied capability.
-- `5`: Store set-values contract error or rejected transaction.
+- `5`: Nexus set-values contract error or rejected transaction.
 - `6`: wait timed out.
 - `130`: wait interrupted with Ctrl-C.
 
@@ -110,13 +110,13 @@ the Lab is already stopped, a new start performs stale-lock recovery as describe
 
 ## Scope and roadmap
 
-Implemented baseline: Store relay, browser connector, typed HTTP client, CLI, and Contract Lab
+Implemented baseline: Nexus relay, browser connector, typed HTTP client, CLI, and Contract Lab
 dogfood (discover, inspect, set, wait, and reload-generation rejection). The same journey now proves
 Bridge writes through single and compound DashList bindings, UI input observed by Bridge, stale
 draft behavior after an external write, confirmed DashList-owned overwrite observed through
-inspect/wait, identified Store migration with a projected disclosed value, quarantined metadata
-diagnostics, public metadata replacement, and a live Store session retained while DashPanel hides
-and reopens. The same browser journey also creates and executes a value-free Store document export
+inspect/wait, identified Nexus migration with a projected disclosed value, quarantined metadata
+diagnostics, public metadata replacement, and a live Nexus session retained while DashPanel hides
+and reopens. The same browser journey also creates and executes a value-free Nexus document export
 plan, mutates the disclosed metric through Bridge, then analyzes and imports the captured document
 locally; browser state and Bridge inspect/wait confirm restoration without exposing document
 contents or adding Bridge authority. No Bridge extension was needed: focus, visibility, and
@@ -125,7 +125,7 @@ quarantine payloads stay undisclosed.
 
 MCP stdio parity is a follow-on only if the CLI proves useful. Bridge persistence, reset, and other
 dangerous extensions remain deferred; they require preview, explicit confirmation, idempotency, and
-an audit trail before implementation. Store document import/export remains a browser-local
+an audit trail before implementation. Nexus document import/export remains a browser-local
 consumer capability; document contents are not added to the Bridge protocol.
 
 Background and tracking: [Picodash issue #80](https://github.com/programbo/picodash/issues/80).

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test'
 import WebSocket from 'ws'
-import { createPicodashStore } from '@picodash/store'
+import { createPicodashNexus } from '@picodash/nexus'
 import { createPicodashDevBridgeClient } from '../src/client.js'
 import { startPicodashDevBridgeRelay } from '../src/relay.js'
 
@@ -28,20 +28,20 @@ describe('dev bridge relay', () => {
   })
 
   test('authenticates origin and bearer, discloses metadata only, and executes atomic writes', async () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { count: { defaultValue: 1 }, secret: { defaultValue: 'hidden' } },
     })
     const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
     const browser = relay.issueBrowserCredential('http://localhost')
-    const socket = new WebSocket(browser.webSocketUrl, 'picodash.dev-bridge.v1', {
+    const socket = new WebSocket(browser.webSocketUrl, 'picodash.dev-bridge.v2', {
       headers: { Origin: browser.origin },
     })
     await new Promise<void>((resolve) => socket.once('open', resolve))
     socket.send(
       JSON.stringify({
         type: 'register',
-        protocolVersion: 1,
+        protocolVersion: 2,
         token: browser.token,
         registration: {
           registrationId: 'test',
@@ -102,9 +102,9 @@ describe('dev bridge relay', () => {
       type: 'command_result',
       outcome: { type: 'transaction_result' },
     })
-    expect(store.getState().values.count).toBe(1)
+    expect(nexus.getState().values.count).toBe(1)
     socket.close()
     await relay.close()
-    store.destroy()
+    nexus.destroy()
   })
 })

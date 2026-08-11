@@ -1,7 +1,7 @@
 /**
  * Pure ordering model for one DashList ordering container.
  *
- * The model deliberately has no React, Store, or DOM dependencies. A caller
+ * The model deliberately has no React, Nexus, or DOM dependencies. A caller
  * supplies the current declaration and durable metadata snapshot, then feeds
  * the returned state to the same transition function for pointer and keyboard
  * interactions.
@@ -37,7 +37,7 @@ export type ReconciledOrdering = {
   readonly visibleBands: Readonly<Record<OrderingBand, readonly string[]>>
   /** Sanitized durable history, including dormant/unknown valid IDs. */
   readonly durableOrder: readonly string[] | undefined
-  /** Last Store-owned durable history used to derive the effective history. */
+  /** Last Nexus-owned durable history used to derive the effective history. */
   readonly sourceDurableOrder: readonly string[] | undefined
   readonly customized: boolean
   readonly reorderable: boolean
@@ -306,8 +306,8 @@ function reconcileAgainstPrevious(
   const sourceOrdering = reconcileOrdering(input)
   if (!sourceOrdering.customized) return sourceOrdering
 
-  // Pin changes are declarative, so they do not rewrite Store metadata. Keep
-  // the already-derived effective history while the Store-owned source is
+  // Pin changes are declarative, so they do not rewrite Nexus metadata. Keep
+  // the already-derived effective history while the Nexus-owned source is
   // unchanged, and let a genuinely new source override become authoritative.
   const sourceUnchanged = sameOptionalOrder(
     sourceOrdering.durableOrder,

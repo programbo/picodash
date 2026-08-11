@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: '%s · Picodash',
   },
   description:
-    'Picodash provides a typed Store plus standalone DashPanel and DashList packages for React applications.',
+    'Picodash provides a typed Nexus plus standalone DashPanel and DashList packages for React applications.',
   icons: {
     icon: '/favicon.svg',
   },

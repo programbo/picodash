@@ -1,7 +1,7 @@
 {
   "name": "@picodash/picodash",
   "version": "0.0.0",
-  "description": "The Picodash facade for Store-backed DashPanel and DashList compositions.",
+  "description": "The Picodash facade for Nexus-backed DashPanel and DashList compositions.",
   "license": "MIT",
   "files": [
     "dist",
@@ -30,7 +30,7 @@
   "dependencies": {
     "@picodash/dashlist": "workspace:*",
     "@picodash/dashpanel": "workspace:*",
-    "@picodash/store": "workspace:*",
+    "@picodash/nexus": "workspace:*",
     "@picodash/ui": "workspace:*"
   },
   "devDependencies": {

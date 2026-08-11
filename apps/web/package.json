@@ -9,14 +9,14 @@
     "dev": "bun run picodash:build && next dev --hostname 127.0.0.1 --port ${WEBSITE_PORT:-6030}",
     "build": "bun run picodash:build && next build",
     "check": "bun run picodash:build && tsc --noEmit",
-    "picodash:build": "bun run --filter @picodash/store build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashlist build",
+    "picodash:build": "bun run --filter @picodash/nexus build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashlist build",
     "test:e2e": "playwright test",
     "start": "next start --hostname 127.0.0.1 --port ${WEBSITE_PORT:-6031}"
   },
   "dependencies": {
     "@picodash/dashlist": "workspace:*",
     "@picodash/dashpanel": "workspace:*",
-    "@picodash/store": "workspace:*",
+    "@picodash/nexus": "workspace:*",
     "@picodash/ui": "workspace:*",
     "next": "16.3.0",
     "react": "catalog:",

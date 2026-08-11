@@ -38,5 +38,5 @@ must not run or simulate a coding agent.
 | Scenario                      | Host               | Required state boundary         |
 | ----------------------------- | ------------------ | ------------------------------- |
 | `next-creative-controls`      | Next.js App Router | Existing React-owned state      |
-| `vite-application-monitor`    | Vite               | Native Picodash Store           |
+| `vite-application-monitor`    | Vite               | Native Picodash Nexus           |
 | `next-debug-feature-controls` | Next.js App Router | Existing external store adapter |

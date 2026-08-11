@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState, type RefObject } from 'react'
 import {
-  createPicodashStore,
+  createPicodashNexus,
   type DashPanelLayoutRecord,
   type PicodashFieldDefinitions,
   type PicodashDocument,
   type PicodashEnvelopeInput,
-  type RootStore,
-} from '@picodash/store'
-import { createWebStoragePersistenceDriver } from '@picodash/store/web-storage'
+  type RootNexus,
+} from '@picodash/nexus'
+import { createWebStoragePersistenceDriver } from '@picodash/nexus/web-storage'
 import { DashGroup, DashList, DashPanel, Dashlet, PicodashProvider } from '@picodash/picodash'
 import {
   DashPanelProvider,
@@ -43,7 +43,7 @@ import {
 } from '@picodash/picodash/ui'
 import type { ContractLabPreset } from '@lab/lib/contract-lab'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
-import { useContractLabDiagnosticCount } from './store-diagnostics'
+import { useContractLabDiagnosticCount } from './nexus-diagnostics'
 
 export interface ContractLabSpecimenProps {
   readonly boundary: RefObject<HTMLElement | null>
@@ -65,13 +65,13 @@ const contractLabPersistenceLayout: DashPanelLayoutRecord = {
 }
 
 const migratedSpecimenEnvelope = {
-  kind: 'picodash-store-envelope',
+  kind: 'picodash-nexus-envelope',
   formatVersion: 1,
-  storeId: 'contract-lab-specimen',
+  nexusId: 'contract-lab-specimen',
   schemaVersion: 1,
   revision: 1,
   writerId: 'contract-lab-fixture',
-  valueOwner: 'store',
+  valueOwner: 'nexus',
   values: { legacyMetric: 24, specimenUnit: 'requests/minute' },
   scopes: [
     [
@@ -87,10 +87,10 @@ const migratedSpecimenEnvelope = {
   ],
 } as unknown as PicodashEnvelopeInput<SpecimenValues>
 
-function createContractLabPersistenceProbeStore() {
-  return createPicodashStore({
-    valueOwner: 'store',
-    storeId: 'contract-lab-persistence-probe',
+function createContractLabPersistenceProbeNexus() {
+  return createPicodashNexus({
+    valueOwner: 'nexus',
+    nexusId: 'contract-lab-persistence-probe',
     schemaVersion: 1,
     persistence: {
       storageKey: contractLabPersistenceStorageKey,
@@ -101,17 +101,17 @@ function createContractLabPersistenceProbeStore() {
   })
 }
 
-type ContractLabPersistenceProbeStore = ReturnType<typeof createContractLabPersistenceProbeStore>
+type ContractLabPersistenceProbeNexus = ReturnType<typeof createContractLabPersistenceProbeNexus>
 
 function ContractLabPersistenceProbe() {
-  const [store, setStore] = useState<ContractLabPersistenceProbeStore | null>(null)
+  const [nexus, setNexus] = useState<ContractLabPersistenceProbeNexus | null>(null)
   const [persistenceStatus, setPersistenceStatus] = useState('loading')
   const [commandStatus, setCommandStatus] = useState('No metadata write requested.')
 
   useEffect(() => {
-    let nextStore: ContractLabPersistenceProbeStore
+    let nextNexus: ContractLabPersistenceProbeNexus
     try {
-      nextStore = createContractLabPersistenceProbeStore()
+      nextNexus = createContractLabPersistenceProbeNexus()
     } catch (error) {
       if (
         error instanceof Error &&
@@ -121,18 +121,18 @@ function ContractLabPersistenceProbe() {
       ) {
         setPersistenceStatus('unavailable')
         setCommandStatus('Web Storage is unavailable.')
-        setStore(null)
+        setNexus(null)
         return
       }
       throw error
     }
-    setStore(nextStore)
-    const updateStatus = () => setPersistenceStatus(nextStore.persistence.getState().status)
+    setNexus(nextNexus)
+    const updateStatus = () => setPersistenceStatus(nextNexus.persistence.getState().status)
     updateStatus()
-    const unsubscribe = nextStore.persistence.subscribe(updateStatus)
+    const unsubscribe = nextNexus.persistence.subscribe(updateStatus)
     return () => {
       unsubscribe()
-      nextStore.destroy({ discardUnpersisted: true })
+      nextNexus.destroy({ discardUnpersisted: true })
     }
   }, [])
 
@@ -149,10 +149,10 @@ function ContractLabPersistenceProbe() {
       <output data-contract-lab-persistence-command>{commandStatus}</output>
       <button
         type="button"
-        disabled={store === null}
+        disabled={nexus === null}
         onClick={() => {
-          if (store === null) return
-          const result = store.setDashPanelLayout(
+          if (nexus === null) return
+          const result = nexus.setDashPanelLayout(
             contractLabPersistenceScopeId,
             contractLabPersistenceLayout,
           )
@@ -210,11 +210,11 @@ function StandaloneListActions() {
 function StandalonePhase2Evidence({
   boundary,
   preset,
-  store,
+  nexus,
 }: {
   readonly boundary: RefObject<HTMLElement | null>
   readonly preset: ContractLabPreset
-  readonly store: RootStore<PicodashFieldDefinitions>
+  readonly nexus: RootNexus<PicodashFieldDefinitions>
 }) {
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null)
   if (preset.id === 'placement')
@@ -226,7 +226,7 @@ function StandalonePhase2Evidence({
           className="pointer-events-none absolute inset-0 z-10"
         />
         <DashPanelProvider
-          store={store}
+          nexus={nexus}
           providerId="contract-lab-standalone-panel-provider"
           boundary={boundary}
           portalContainer={portalTarget}
@@ -260,7 +260,7 @@ function StandalonePhase2Evidence({
       >
         <StandaloneDashList
           id={standaloneListScopeId}
-          store={store}
+          nexus={nexus}
           aria-label="Standalone List"
           reorderable
         >
@@ -296,11 +296,11 @@ export function ContractLabSpecimen({
   const [quarantineResolved, setQuarantineResolved] = useState(false)
   const [capturedDocument, setCapturedDocument] = useState<PicodashDocument | null>(null)
   const [documentStatus, setDocumentStatus] = useState('No document captured.')
-  const store = useMemo(
+  const nexus = useMemo(
     () =>
-      createPicodashStore({
-        valueOwner: 'store',
-        storeId: 'contract-lab-specimen',
+      createPicodashNexus({
+        valueOwner: 'nexus',
+        nexusId: 'contract-lab-specimen',
         schemaVersion: 2,
         initialEnvelope: migratedSpecimenEnvelope,
         migrations: {
@@ -342,13 +342,13 @@ export function ContractLabSpecimen({
   const metricFields = useMemo(
     () =>
       ({
-        metric: store.fields.specimenMetric,
-        unit: { field: store.fields.specimenUnit, mode: 'display' as const },
+        metric: nexus.fields.specimenMetric,
+        unit: { field: nexus.fields.specimenUnit, mode: 'display' as const },
       }) as const,
-    [store],
+    [nexus],
   )
-  const diagnosticStores = useMemo(() => [store], [store])
-  const diagnosticCount = useContractLabDiagnosticCount(diagnosticStores)
+  const diagnosticNexuss = useMemo(() => [nexus], [nexus])
+  const diagnosticCount = useContractLabDiagnosticCount(diagnosticNexuss)
 
   useEffect(() => {
     onDiagnosticCountChange(diagnosticCount)
@@ -358,12 +358,12 @@ export function ContractLabSpecimen({
   return (
     <>
       <PicodashProvider
-        store={store}
+        nexus={nexus}
         boundary={boundary}
         theme="dark"
         density={preset.id === 'themes' ? 'compact' : 'regular'}
       >
-        <ContractLabDevBridgeConnector store={store} />
+        <ContractLabDevBridgeConnector nexus={nexus} />
         <ContractLabPersistenceProbe />
         <div className="flex flex-wrap items-center gap-2" data-contract-lab-panel-controls>
           <DashPanelTrigger panelId="contract-lab-specimen-panel">
@@ -398,7 +398,7 @@ export function ContractLabSpecimen({
               type="button"
               disabled={quarantineResolved}
               onClick={() => {
-                const result = store.metadataRecovery.replaceScope('quarantined-panel', null)
+                const result = nexus.metadataRecovery.replaceScope('quarantined-panel', null)
                 if (result.ok) setQuarantineResolved(true)
               }}
             >
@@ -416,11 +416,11 @@ export function ContractLabSpecimen({
             <button
               type="button"
               onClick={() => {
-                const plan = store.documents.createExportPlan({
+                const plan = nexus.documents.createExportPlan({
                   includeDescendants: false,
-                  fields: [store.fields.specimenMetric, store.fields.specimenUnit],
+                  fields: [nexus.fields.specimenMetric, nexus.fields.specimenUnit],
                 })
-                const result = store.documents.executeExport(plan)
+                const result = nexus.documents.executeExport(plan)
                 if (result.ok) {
                   setCapturedDocument(result.document)
                   setDocumentStatus('Document captured for local restore.')
@@ -434,12 +434,12 @@ export function ContractLabSpecimen({
               disabled={capturedDocument === null}
               onClick={() => {
                 if (capturedDocument === null) return
-                const analysis = store.documents.analyzeImport(capturedDocument)
+                const analysis = nexus.documents.analyzeImport(capturedDocument)
                 if (!analysis.ok) {
                   setDocumentStatus('Document restore analysis failed.')
                   return
                 }
-                const result = store.documents.executeImport(analysis.plan)
+                const result = nexus.documents.executeImport(analysis.plan)
                 setDocumentStatus(
                   result.ok ? 'Captured document restored.' : 'Document restore failed.',
                 )
@@ -454,7 +454,7 @@ export function ContractLabSpecimen({
               id="specimen-summary"
               label="Specimen summary"
               layout="full"
-              field={store.fields.specimenMetric}
+              field={nexus.fields.specimenMetric}
               mode="display"
             >
               {({ binding }: SingleFieldDashletRenderContext<number, 'display'>) => (
@@ -527,7 +527,7 @@ export function ContractLabSpecimen({
           </DashList>
         </DashPanel>
       </PicodashProvider>
-      <StandalonePhase2Evidence boundary={boundary} preset={preset} store={store} />
+      <StandalonePhase2Evidence boundary={boundary} preset={preset} nexus={nexus} />
     </>
   )
 }

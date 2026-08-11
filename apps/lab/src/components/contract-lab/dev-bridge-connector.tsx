@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import type { CoreTransactionResult, PicodashFieldDefinitions, RootStore } from '@picodash/store'
+import type { CoreTransactionResult, PicodashFieldDefinitions, RootNexus } from '@picodash/nexus'
 
 const credentialUrl = process.env.NEXT_PUBLIC_PICODASH_DEV_BRIDGE_CREDENTIAL_URL
 
@@ -23,9 +23,9 @@ function validUrl(value: string | undefined) {
 }
 
 export function ContractLabDevBridgeConnector({
-  store,
+  nexus,
 }: {
-  readonly store: RootStore<PicodashFieldDefinitions, CoreTransactionResult>
+  readonly nexus: RootNexus<PicodashFieldDefinitions, CoreTransactionResult>
 }) {
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development' || !validUrl(credentialUrl)) return
@@ -47,7 +47,7 @@ export function ContractLabDevBridgeConnector({
         const bridge = await import('@picodash/dev-bridge/browser')
         if (!active) return
         const connected = await bridge.connectPicodashDevBridge({
-          store,
+          nexus,
           credential,
           registrationId: 'contract-lab-specimen',
           label: 'Contract Lab primary specimen',
@@ -74,6 +74,6 @@ export function ContractLabDevBridgeConnector({
       abort.abort()
       void connection?.close()
     }
-  }, [store])
+  }, [nexus])
   return null
 }

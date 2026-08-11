@@ -10,9 +10,10 @@ Before editing files, match every affected route below and read every listed doc
 mandatory instructions, not optional background. If a change crosses several routes, read all of
 them. Re-read the routes when the task expands into another package.
 
-- Store implementation or contracts: [`docs/agents/store.md`](docs/agents/store.md),
-  [`docs/reference/store-contract-decisions.md`](docs/reference/store-contract-decisions.md), and
-  [`docs/reference/store.md`](docs/reference/store.md).
+- Nexus implementation or contracts: [`docs/agents/nexus.md`](docs/agents/nexus.md),
+  [`docs/reference/nexus-contract-decisions.md`](docs/reference/nexus-contract-decisions.md),
+  [`docs/reference/nexus.md`](docs/reference/nexus.md), and
+  [`docs/adr/0005-picodash-nexus-name-and-public-identity.md`](docs/adr/0005-picodash-nexus-name-and-public-identity.md).
 - Dev Bridge or agent-facing inspection: [`docs/agents/dev-bridge.md`](docs/agents/dev-bridge.md),
   [`docs/development/agent-dev-bridge.md`](docs/development/agent-dev-bridge.md), and
   [`packages/dev-bridge/README.md`](packages/dev-bridge/README.md).
@@ -60,7 +61,7 @@ constraint and revise the decision explicitly. Current code remains prototype ev
 implicit compatibility requirement. Prefer clean pre-v1 breaks over aliases unless compatibility
 is explicitly required.
 
-Implementation follows the accepted Store, shared UI, DashPanel, DashList, and Picodash roadmap.
+Implementation follows the accepted Nexus, shared UI, DashPanel, DashList, and Picodash roadmap.
 Do not skip ahead through private cross-package APIs. A higher product may reveal a foundation gap,
 but it must not solve that gap through a private bypass.
 
@@ -70,15 +71,14 @@ Use these propositions to guide scope, API decisions, examples, and documentatio
 accepted explanation in [`docs/product/value-propositions.md`](docs/product/value-propositions.md)
 before changing product behavior or public copy.
 
-### `@picodash/store`
+### `@picodash/nexus`
 
-Store is a typed state foundation for configurable React interfaces. It gives applications one
-synchronous, validated value authority plus scoped Panel and List metadata while allowing the
-application to retain an existing state library through an adapter. Its value is predictable state
-meaning: typed fields, atomic changes, drafts, persistence, repair, documents, and diagnostics that
-all consumers can share without inventing their own rules.
+Picodash Nexus is the typed state hub behind settings panels, inspectors, and control dashboards.
+It can own application values or adapt an existing synchronous state store while providing one
+contract for typed fields, valid atomic changes, drafts, scoped Panel and List preferences,
+persistence, repair, documents, and diagnostics.
 
-Store is independently useful and renders no UI. It owns state meaning and valid changes, not
+Nexus is independently useful and renders no UI. It owns state meaning and valid changes, not
 Panel placement, List composition, authentication, or authorization.
 
 ### `@picodash/ui`
@@ -89,7 +89,7 @@ It exists so product packages can concentrate on their distinct behavior while a
 provide one coherent visual contract.
 
 UI supports the products; it is not a separately marketed control-interface product and owns no
-Store, Panel, List, Dashlet, placement, ordering, or persistence behavior.
+Nexus, Panel, List, Dashlet, placement, ordering, or persistence behavior.
 
 ### `@picodash/dashpanel`
 
@@ -104,7 +104,7 @@ content's form, ordering, field bindings, or application-value model.
 ### `@picodash/dashlist`
 
 DashList is a standalone React composition system for ordered, groupable controls, readouts,
-visualizations, previews, and actions backed by typed Store fields. It saves applications from
+visualizations, previews, and actions backed by typed Nexus fields. It saves applications from
 rebuilding binding drafts, accessible reordering, grouping, collapse behavior, durable user order,
 and the relationship between canonical values and compound controls.
 
@@ -113,7 +113,7 @@ not floating placement, Panel hosting, portals, routing, or application transpor
 
 ### `@picodash/picodash`
 
-Picodash is the integrated control and monitoring interface built from Store, DashPanel, DashList,
+Picodash is the integrated control and monitoring interface built from Nexus, DashPanel, DashList,
 and UI. It lets a developer or coding agent add configurable controls, live readouts,
 visualizations, previews, and actions to an existing application without inventing the state,
 Panel, and List infrastructure separately.
@@ -124,32 +124,32 @@ composition.
 
 ### `@picodash/dev-bridge`
 
-Dev Bridge is a private development adapter over the public Store contract. It lets coding agents
+Dev Bridge is a private development adapter over the public Nexus contract. It lets coding agents
 discover an explicitly disclosed browser session, inspect state, make allowlisted writes, and wait
 for observable changes without receiving arbitrary runtime authority. Its value is a short,
-verifiable feedback loop between an agent's intent, Store behavior, and the real browser UI.
+verifiable feedback loop between an agent's intent, Nexus behavior, and the real browser UI.
 
 Dev Bridge is development tooling, not a production product or alternate state authority. It must
-preserve Store validation, disclosure, generation, and security boundaries.
+preserve Nexus validation, disclosure, generation, and security boundaries.
 
-## Concurrent Store-consumer dogfooding
+## Concurrent Nexus-consumer dogfooding
 
-Treat Dev Bridge, DashPanel, and DashList as three concurrent consumers of the public Store
+Treat Dev Bridge, DashPanel, and DashList as three concurrent consumers of the public Nexus
 contract. Improvements discovered by one consumer must strengthen the shared public contract when
 the need is general; they must not create consumer-specific private access.
 
 When developing DashPanel or DashList:
 
 1. Use Dev Bridge in the Contract Lab whenever the behavior can be observed through disclosed
-   Store state, mutation results, diagnostics, or browser-visible effects.
-2. Keep the other UI consumer in mind when changing Store contracts. A convenience that only fits
-   one package is not automatically a Store abstraction.
+   Nexus state, mutation results, diagnostics, or browser-visible effects.
+2. Keep the other UI consumer in mind when changing Nexus contracts. A convenience that only fits
+   one package is not automatically a Nexus abstraction.
 3. If missing or awkward Dev Bridge behavior makes the DashPanel or DashList task harder to inspect,
    automate, or verify, prioritize the smallest safe Dev Bridge improvement before continuing the
    product workaround.
-4. Exercise the new Bridge capability against a real public Store consumer before relying on it.
-5. Feed genuine Store contract gaps back into Store with its tests and documentation; do not add a
-   Bridge-only Store bypass.
+4. Exercise the new Bridge capability against a real public Nexus consumer before relying on it.
+5. Feed genuine Nexus contract gaps back into Nexus with its tests and documentation; do not add a
+   Bridge-only Nexus bypass.
 
 This priority does not broaden Bridge authority. Production refusal, loopback binding,
 authentication, explicit disclosure and write allowlists, generation fencing, and redacted errors
@@ -158,7 +158,7 @@ use as many ephemeral loopback ports as its relay and browser broker require.
 
 ## Package and ownership boundaries
 
-- `@picodash/store` owns values, scopes, transactions, adapters, persistence, documents, durable
+- `@picodash/nexus` owns values, scopes, transactions, adapters, persistence, documents, durable
   metadata, diagnostics, React selectors, and its public integration lease protocol.
 - `@picodash/ui` owns product-neutral theme, density, tokens, structural CSS, overlays, and generic
   accessible primitives used unchanged by both UI products.
@@ -167,19 +167,19 @@ use as many ephemeral loopback ports as its relay and browser broker require.
   unbound DashList controls, and package-owned catalog entries.
 - `@picodash/picodash` integrates and explicitly reexports stable foundation contracts. A component
   belongs here only when it necessarily coordinates DashPanel and DashList behavior.
-- `@picodash/dev-bridge` consumes public Store behavior for local agent tooling. Store never depends
+- `@picodash/dev-bridge` consumes public Nexus behavior for local agent tooling. Nexus never depends
   on it.
 
-DashPanel and DashList depend on compatible Store and UI foundations, not on one another. Do not
+DashPanel and DashList depend on compatible Nexus and UI foundations, not on one another. Do not
 use blanket exports or cross-package source imports. Generated `dist/` output is never edited
 directly. The exact accepted entrypoints and component surfaces live in the matching target
 references and must be read before package work.
 
 ## Roadmap boundaries
 
-1. Complete Store contracts and reach a useful Store alpha.
+1. Complete Nexus contracts and reach a useful Nexus alpha.
 2. Establish the shared UI foundation needed by both UI products.
-3. Dogfood Store, UI, and Dev Bridge independently through DashPanel and DashList.
+3. Dogfood Nexus, UI, and Dev Bridge independently through DashPanel and DashList.
 4. Feed consumer findings back into their owning foundations before stability.
 5. Stabilize DashPanel and DashList against their own release gates.
 6. Build Picodash integration after the three products are stable.
@@ -192,7 +192,7 @@ implementation or duplicate lower-layer tests.
 
 - Keep canonical values and persisted payloads strict JSON data.
 - Validate complete candidate batches before canonical mutation.
-- Keep high-frequency pointer and visual state outside persisted Store snapshots.
+- Keep high-frequency pointer and visual state outside persisted Nexus snapshots.
 - Persist settled overrides, not declared defaults, previews, visibility, focus, activation, or
   z-order.
 - Preserve pointer and keyboard outcome parity for reordering and placement.
@@ -227,8 +227,8 @@ server.
 
 ## Repository map
 
-- `packages/store`: Store prototype and tests.
-- `packages/dev-bridge`: private authenticated loopback Store inspection bridge.
+- `packages/nexus`: Nexus prototype and tests.
+- `packages/dev-bridge`: private authenticated loopback Nexus inspection bridge.
 - `packages/ui`: shared theme, density, token, and generic accessible UI foundation.
 - `packages/dashpanel`: standalone DashPanel prototype.
 - `packages/dashlist`: standalone DashList prototype.

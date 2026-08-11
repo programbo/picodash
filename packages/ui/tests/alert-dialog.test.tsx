@@ -53,7 +53,7 @@ function tree({
                 <AlertDialogDescription id="current-values">
                   Current values will be replaced.
                 </AlertDialogDescription>
-                <AlertDialogDescription>Defaults come from the Store.</AlertDialogDescription>
+                <AlertDialogDescription>Defaults come from the Nexus.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>

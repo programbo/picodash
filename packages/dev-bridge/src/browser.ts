@@ -1,5 +1,5 @@
-import { PicodashContractError } from '@picodash/store'
-import type { CoreTransactionResult, PersistentTransactionResult } from '@picodash/store'
+import { PicodashContractError } from '@picodash/nexus'
+import type { CoreTransactionResult, PersistentTransactionResult } from '@picodash/nexus'
 import type {
   PicodashDevBridgeConnectOptions,
   PicodashDevBridgeBrowserConnection,
@@ -17,7 +17,7 @@ export async function connectPicodashDevBridge(
     typeof globalThis.location?.origin === 'string' ? globalThis.location.origin : undefined
   if (origin !== undefined && options.credential.origin !== origin)
     throw new Error('Credential origin mismatch.')
-  const disclosure = validateDisclosure(options.store, options.disclosure)
+  const disclosure = validateDisclosure(options.nexus, options.disclosure)
   const writable = [...(options.permissions?.writableFields ?? [])]
   if (writable.some((key) => !disclosure.valueFields.includes(key)))
     throw new Error('Writable fields must be disclosed.')
@@ -46,7 +46,7 @@ export async function connectPicodashDevBridge(
   const sendSnapshot = (
     type: 'snapshot' | 'resync' = 'snapshot',
     forcedSequence = sequence,
-    nextSnapshot = makeSnapshot(options.store, disclosure),
+    nextSnapshot = makeSnapshot(options.nexus, disclosure),
   ) => {
     snapshot = nextSnapshot
     socket.send(
@@ -63,7 +63,7 @@ export async function connectPicodashDevBridge(
     )
   }
   const publishSnapshotChange = () => {
-    const nextSnapshot = makeSnapshot(options.store, disclosure)
+    const nextSnapshot = makeSnapshot(options.nexus, disclosure)
     if (snapshot && snapshotsEqual(snapshot, nextSnapshot)) return
     sequence += 1
     sendSnapshot('snapshot', sequence, nextSnapshot)
@@ -129,7 +129,7 @@ export async function connectPicodashDevBridge(
   })
   const session = await registration
   const unsubs = [
-    options.store.subscribe(() => {
+    options.nexus.subscribe(() => {
       if (!closed && socket.readyState === WebSocket.OPEN) {
         publishSnapshotChange()
       }
@@ -137,7 +137,7 @@ export async function connectPicodashDevBridge(
   ]
   if (disclosure.diagnostics)
     unsubs.push(
-      options.store.diagnostics.subscribe(() => {
+      options.nexus.diagnostics.subscribe(() => {
         if (!closed && socket.readyState === WebSocket.OPEN) {
           publishSnapshotChange()
         }
@@ -145,7 +145,7 @@ export async function connectPicodashDevBridge(
     )
   async function execute(command: PicodashDevBridgeCommand) {
     const beforeSequence = sequence
-    let outcome: import('./types.js').PicodashDevBridgeStoreOutcome<
+    let outcome: import('./types.js').PicodashDevBridgeNexusOutcome<
       CoreTransactionResult | PersistentTransactionResult
     >
     if (command.type !== 'set_values') return
@@ -157,7 +157,7 @@ export async function connectPicodashDevBridge(
       }
     else
       try {
-        const result = options.store.setValues(command.values)
+        const result = options.nexus.setValues(command.values)
         outcome = result.ok
           ? { type: 'transaction_result', result }
           : {
@@ -178,7 +178,7 @@ export async function connectPicodashDevBridge(
                   generation: session.generation,
                   sequence,
                 },
-                error: { code: 'internal_error', message: 'Store operation failed.' },
+                error: { code: 'internal_error', message: 'Nexus operation failed.' },
               }),
             )
           return
@@ -241,7 +241,7 @@ export type {
   PicodashDevBridgeSnapshotDiagnostic,
   PicodashDevBridgeSessionRef,
   PicodashDevBridgeSessionDescriptor,
-  PicodashDevBridgeStoreOutcome,
+  PicodashDevBridgeNexusOutcome,
   PicodashDevBridgeSetValuesCommand,
   PicodashDevBridgeWaitCondition,
   PicodashDevBridgeWaitCommand,

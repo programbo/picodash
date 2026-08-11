@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { createPicodashStore } from '@picodash/store'
+import { createPicodashNexus } from '@picodash/nexus'
 import { DashHeader } from '@picodash/ui'
 import { DashPanel, DashPanelProvider } from '@picodash/dashpanel'
 import { DashGroup, Dashlet, DashList } from '@picodash/dashlist'
 
 export function AlphaProducts() {
-  const [panelStore] = useState(() => createPicodashStore({ valueOwner: 'store', fields: {} }))
-  const [listStore] = useState(() => createPicodashStore({ valueOwner: 'store', fields: {} }))
+  const [panelNexus] = useState(() => createPicodashNexus({ valueOwner: 'nexus', fields: {} }))
+  const [listNexus] = useState(() => createPicodashNexus({ valueOwner: 'nexus', fields: {} }))
   const [panelPortalContainer, setPanelPortalContainer] = useState<HTMLDivElement | null>(null)
 
   return (
@@ -17,7 +17,7 @@ export function AlphaProducts() {
         <div ref={setPanelPortalContainer} className="alpha-product-demo alpha-panel-demo">
           {panelPortalContainer ? (
             <DashPanelProvider
-              store={panelStore}
+              nexus={panelNexus}
               providerId="alpha-panel"
               boundary={panelPortalContainer}
               portalContainer={panelPortalContainer}
@@ -34,7 +34,7 @@ export function AlphaProducts() {
 
       <article className="alpha-product-card" data-alpha-product="dashlist">
         <div className="alpha-product-demo alpha-list-demo">
-          <DashList store={listStore} id="alpha-list" title="DashList" headingLevel={2}>
+          <DashList nexus={listNexus} id="alpha-list" title="DashList" headingLevel={2}>
             <DashGroup id="alpha-group" label="First group">
               <Dashlet id="alpha-dashlet" label="Named Dashlet">
                 <p>Dashlet content is composed directly in the List.</p>

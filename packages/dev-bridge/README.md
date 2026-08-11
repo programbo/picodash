@@ -1,9 +1,9 @@
 # `@picodash/dev-bridge`
 
 `@picodash/dev-bridge` is a development-only, adapter-like consumer of the public
-`@picodash/store` contract. It lets a local agent discover explicitly disclosed Store sessions,
+`@picodash/nexus` contract. It lets a local agent discover explicitly disclosed Nexus sessions,
 inspect disclosed values/scopes/diagnostics, set allowlisted values, and wait for a value or
-sequence change while the Contract Lab is running. It is not a Store extension, application API,
+sequence change while the Contract Lab is running. It is not a Nexus extension, application API,
 or production transport.
 
 ## Current surface
@@ -12,7 +12,9 @@ or production transport.
   also provides the separate `picodash-dev-bridge` CLI binary.
 - `@picodash/dev-bridge/browser` exports the browser connector used by the Contract Lab.
 - The relay serves an authenticated HTTP client API and an origin-bound, single-use browser
-  credential over the `picodash.dev-bridge.v1` WebSocket subprotocol.
+  credential over the `picodash.dev-bridge.v2` WebSocket subprotocol. Version 2 names Nexus in
+  redacted operation failures; the subprotocol cutover prevents version-1 peers from silently
+  accepting an incompatible error contract.
 - Browser registrations disclose value fields, scope IDs, and diagnostics explicitly; writable
   fields must be a subset of disclosed value fields.
 
@@ -23,15 +25,15 @@ credential handling, and exit codes are in [the operational guide](../../docs/de
 
 The relay refuses to start when `NODE_ENV=production`. It binds loopback only, uses ephemeral
 ports, keeps agent and browser credentials separate, and writes no credentials to command-line
-arguments. The bridge does not add Store behavior or change Store persistence semantics.
+arguments. The bridge does not add Nexus behavior or change Nexus persistence semantics.
 
-The implemented baseline is Store relay/browser/client/CLI plus Contract Lab dogfood. The Lab now
+The implemented baseline is Nexus relay/browser/client/CLI plus Contract Lab dogfood. The Lab now
 uses the existing inspect/set/wait surface to verify bound Dashlets, retained Panel lifecycle, and
 DashList stale-draft overwrite confirmation without exposing transient UI plans through the Bridge.
-The same disclosed session now dogfoods an identified Store migration, safe quarantined-metadata
+The same disclosed session now dogfoods an identified Nexus migration, safe quarantined-metadata
 diagnostics, and public metadata replacement without exposing raw quarantine payloads. It also
-captures a value-free Store document export plan, mutates the disclosed metric through Bridge, and
-restores the captured document through public Store analysis/import while Bridge inspect/wait
+captures a value-free Nexus document export plan, mutates the disclosed metric through Bridge, and
+restores the captured document through public Nexus analysis/import while Bridge inspect/wait
 observes the result; document contents stay browser-local and the protocol is unchanged.
 Consider MCP stdio parity only if the CLI proves useful. Bridge persistence/reset extensions are
 deferred; any future dangerous operation needs preview, confirmation, idempotency, and an audit

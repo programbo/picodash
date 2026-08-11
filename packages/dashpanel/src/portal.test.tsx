@@ -2,8 +2,8 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
-import { createPicodashStore } from '@picodash/store'
-import { usePicodashScope } from '@picodash/store/react'
+import { createPicodashNexus } from '@picodash/nexus'
+import { usePicodashScope } from '@picodash/nexus/react'
 import { PicodashOverlayProvider } from '@picodash/ui'
 import { DashPanel, DashPanelProvider, useDashPanel } from './index.tsx'
 import { useDashPanelRuntime } from './runtime/panel-runtime-context.tsx'
@@ -11,7 +11,7 @@ import { useDashPanelRuntime } from './runtime/panel-runtime-context.tsx'
 let root: Root
 let container: HTMLDivElement
 
-const makeStore = () => createPicodashStore({ valueOwner: 'store', fields: {} })
+const makeNexus = () => createPicodashNexus({ valueOwner: 'nexus', fields: {} })
 
 async function render(element: React.ReactNode) {
   await act(async () => root.render(element))
@@ -31,12 +31,12 @@ describe('DashPanel portal ownership', () => {
     vi.unstubAllGlobals()
   })
 
-  it('portals the Panel root to the exact provider container while retaining Store and theme context', async () => {
-    const store = makeStore()
+  it('portals the Panel root to the exact provider container while retaining Nexus and theme context', async () => {
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const Probe = () => <output data-scope={usePicodashScope().scopeId}>content</output>
     await render(
-      <DashPanelProvider store={store} portalContainer={portal} theme="light" density="compact">
+      <DashPanelProvider nexus={nexus} portalContainer={portal} theme="light" density="compact">
         <DashPanel id="inspector" title="Inspector">
           <Probe />
         </DashPanel>
@@ -48,13 +48,13 @@ describe('DashPanel portal ownership', () => {
     expect(portal.querySelector('[data-picodash-theme="light"]')).toBeTruthy()
     expect(portal.querySelector('[data-picodash-density="compact"]')).toBeTruthy()
     await act(async () => root.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('resolves an explicit null portal to document.body', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     await render(
-      <DashPanelProvider store={store} portalContainer={null}>
+      <DashPanelProvider nexus={nexus} portalContainer={null}>
         <DashPanel id="inspector" title="Inspector" />
       </DashPanelProvider>,
     )
@@ -63,15 +63,15 @@ describe('DashPanel portal ownership', () => {
     expect(panel).toBeTruthy()
     expect(panel?.closest('[data-picodash-theme]')?.parentElement).toBe(document.body)
     await act(async () => root.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('inherits the resolved overlay portal when the Panel Provider omits one', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     await render(
       <PicodashOverlayProvider portalContainer={portal}>
-        <DashPanelProvider store={store}>
+        <DashPanelProvider nexus={nexus}>
           <DashPanel id="inspector" title="Inspector" />
         </DashPanelProvider>
       </PicodashOverlayProvider>,
@@ -79,11 +79,11 @@ describe('DashPanel portal ownership', () => {
     expect(container.querySelector('[data-picodash-panel]')).toBeNull()
     expect(portal.querySelector('[data-picodash-panel]')).toBeTruthy()
     await act(async () => root.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('re-registers the mounted Panel element when portal ownership changes', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const firstPortal = document.createElement('div')
     const secondPortal = document.createElement('div')
     document.body.append(firstPortal, secondPortal)
@@ -93,7 +93,7 @@ describe('DashPanel portal ownership', () => {
       return null
     }
     const provider = (portalContainer: HTMLElement) => (
-      <DashPanelProvider store={store} portalContainer={portalContainer}>
+      <DashPanelProvider nexus={nexus} portalContainer={portalContainer}>
         <DashPanel id="inspector" title="Inspector" />
         <Probe />
       </DashPanelProvider>
@@ -110,11 +110,11 @@ describe('DashPanel portal ownership', () => {
     await act(async () => root.unmount())
     firstPortal.remove()
     secondPortal.remove()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('projects a persisted free anchor into the rendered boundary', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     const boundaryRect = {
@@ -134,7 +134,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -151,11 +151,11 @@ describe('DashPanel portal ownership', () => {
     expect(panel.style.maxBlockSize).toBe('100px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('remeasures placement when the boundary or Panel size changes', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     let boundaryWidth = 300
@@ -201,7 +201,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -236,11 +236,11 @@ describe('DashPanel portal ownership', () => {
     await act(async () => root.unmount())
     expect(disconnect).toHaveBeenCalledTimes(1)
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('cancels an active move as soon as observed geometry changes', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const firstShadowHost = document.createElement('div')
     firstShadowHost.attachShadow({ mode: 'open' }).append(portal)
@@ -307,7 +307,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -356,7 +356,7 @@ describe('DashPanel portal ownership', () => {
       boundary.dispatchEvent(new Event('transitionrun', { bubbles: true }))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
     unrelated.remove()
 
     await act(async () => {
@@ -378,7 +378,7 @@ describe('DashPanel portal ownership', () => {
       secondShadowHost.dispatchEvent(new Event('transitionrun'))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
@@ -397,7 +397,7 @@ describe('DashPanel portal ownership', () => {
       secondWrapper.dispatchEvent(new Event('animationstart'))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
@@ -416,7 +416,7 @@ describe('DashPanel portal ownership', () => {
       secondBoundaryWrapper.dispatchEvent(new Event('transitionstart'))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
@@ -455,7 +455,7 @@ describe('DashPanel portal ownership', () => {
     })
     expect(portal.assignedSlot).toBe(slot)
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
@@ -466,7 +466,7 @@ describe('DashPanel portal ownership', () => {
       slotMotionWrapper.dispatchEvent(new Event('transitionrun'))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
@@ -481,7 +481,7 @@ describe('DashPanel portal ownership', () => {
       slot.dispatchEvent(new Event('slotchange'))
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
@@ -494,7 +494,7 @@ describe('DashPanel portal ownership', () => {
       resize([{ target: boundary } as unknown as ResizeObserverEntry], {} as ResizeObserver),
     )
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
@@ -516,15 +516,15 @@ describe('DashPanel portal ownership', () => {
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
     expect(panelMutationObserver.targets).toContain(latePanelRoot)
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('revalidates dock occupancy when a boundary ref retargets', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundaryA = document.createElement('div')
     const boundaryB = document.createElement('div')
@@ -560,7 +560,7 @@ describe('DashPanel portal ownership', () => {
       },
     }
     await render(
-      <DashPanelProvider store={store} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} portalContainer={portal}>
         <DashPanel
           id="first"
           title="First"
@@ -594,11 +594,11 @@ describe('DashPanel portal ownership', () => {
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('cancels an active move when a boundary ref retargets without geometry drift', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundaryA = document.createElement('div')
     const boundaryB = document.createElement('div')
@@ -629,7 +629,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -660,17 +660,17 @@ describe('DashPanel portal ownership', () => {
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }))
       root.unmount()
     })
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('restores preferred width after a temporary boundary constraint', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     let boundaryWidth = 100
@@ -705,7 +705,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel id="inspector" title="Inspector" />
       </DashPanelProvider>,
     )
@@ -720,11 +720,11 @@ describe('DashPanel portal ownership', () => {
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('uses and tracks the visual viewport when no element boundary is declared', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const listeners = new Map<string, EventListener>()
     const visualViewport = {
@@ -748,7 +748,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -776,11 +776,11 @@ describe('DashPanel portal ownership', () => {
     expect(visualViewport.removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function))
     expect(visualViewport.removeEventListener).toHaveBeenCalledWith('scroll', expect.any(Function))
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it("uses the portaled Panel's owner document viewport", async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const frame = document.createElement('iframe')
     document.body.append(frame)
     const frameDocument = frame.contentDocument!
@@ -802,7 +802,7 @@ describe('DashPanel portal ownership', () => {
       })
 
     await render(
-      <DashPanelProvider store={store} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -823,11 +823,11 @@ describe('DashPanel portal ownership', () => {
     await act(async () => root.unmount())
     rect.mockRestore()
     frame.remove()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('materializes free anchors from the inset visual viewport origin', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     vi.stubGlobal('visualViewport', {
       width: 240,
@@ -869,7 +869,7 @@ describe('DashPanel portal ownership', () => {
       )
     }
     await render(
-      <DashPanelProvider store={store} portalContainer={portal} boundaryInset={100}>
+      <DashPanelProvider nexus={nexus} portalContainer={portal} boundaryInset={100}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -884,18 +884,18 @@ describe('DashPanel portal ownership', () => {
     await act(async () =>
       (portal.querySelector('[data-free-control]') as HTMLButtonElement).click(),
     )
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toEqual({
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 0, y: 0 },
     })
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    store.destroy()
+    nexus.destroy()
   })
 
   it('uses current geometry when native move listeners finish after boundary drift', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const firstBoundary = document.createElement('div')
     const secondBoundary = document.createElement('div')
@@ -911,7 +911,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     const provider = (boundary: HTMLElement) => (
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel id="inspector" title="Inspector" />
       </DashPanelProvider>
     )
@@ -931,16 +931,16 @@ describe('DashPanel portal ownership', () => {
     ).toBe('floating-free-preview')
     await render(provider(secondBoundary))
     await act(async () => window.dispatchEvent(pointer('pointerup', 30, 10)))
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('ignores repeated Enter and cancels a move when external layout replaces its origin', async () => {
-    const store = makeStore()
-    const scoped = store.scope('inspector')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('inspector')
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
@@ -963,7 +963,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -1008,12 +1008,12 @@ describe('DashPanel portal ownership', () => {
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('cancels a move when raw durable placement changes behind the same policy fallback', async () => {
-    const store = makeStore()
-    const scoped = store.scope('inspector')
+    const nexus = makeNexus()
+    const scoped = nexus.scope('inspector')
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     scoped.setDashPanelLayout({
@@ -1040,7 +1040,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -1079,11 +1079,11 @@ describe('DashPanel portal ownership', () => {
       root.unmount()
     })
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('projects an unreachable preferred origin before comparing pointer or keyboard movement', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
@@ -1096,7 +1096,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -1118,14 +1118,14 @@ describe('DashPanel portal ownership', () => {
       window.dispatchEvent(pointer('pointermove', 110, 10))
       window.dispatchEvent(pointer('pointerup', 110, 10))
     })
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
@@ -1133,15 +1133,15 @@ describe('DashPanel portal ownership', () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('detaches a Hybrid full-edge dock using preferred preview geometry', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
@@ -1159,7 +1159,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -1178,7 +1178,7 @@ describe('DashPanel portal ownership', () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toBeUndefined()
 
     await act(async () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
@@ -1188,18 +1188,18 @@ describe('DashPanel portal ownership', () => {
         )
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
-    expect(store.getState().scopes.get('inspector')?.dashPanel).toEqual({
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({
       placement: { mode: 'hybrid', disposition: { kind: 'free' } },
       preferredPosition: { x: 40, y: 0 },
     })
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('settles pointer and keyboard movement onto targets within snapProximity', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
@@ -1226,7 +1226,7 @@ describe('DashPanel portal ownership', () => {
       preferredPosition,
     })
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="pointer"
           title="Pointer"
@@ -1252,7 +1252,7 @@ describe('DashPanel portal ownership', () => {
       window.dispatchEvent(pointer('pointermove', 10, 8))
       window.dispatchEvent(pointer('pointerup', 10, 8))
     })
-    expect(store.getState().scopes.get('pointer')?.dashPanel).toEqual({
+    expect(nexus.getState().scopes.get('pointer')?.dashPanel).toEqual({
       placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
       preferredPosition: { x: 30, y: 30 },
     })
@@ -1270,18 +1270,18 @@ describe('DashPanel portal ownership', () => {
         )
       keyboardMove.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
-    expect(store.getState().scopes.get('keyboard')?.dashPanel).toEqual({
+    expect(nexus.getState().scopes.get('keyboard')?.dashPanel).toEqual({
       placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
       preferredPosition: { x: 40, y: 40 },
     })
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    store.destroy()
+    nexus.destroy()
   })
 
   it('applies side allocation segments to compatible dock occupants', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
@@ -1294,7 +1294,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="corner"
           title="Corner"
@@ -1328,11 +1328,11 @@ describe('DashPanel portal ownership', () => {
     expect(panels[2]?.style.maxBlockSize).toBe('240px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('recomputes full-edge allocation when a corner occupant changes width', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     let cornerWidth = 80
@@ -1364,7 +1364,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="corner"
           title="Corner"
@@ -1403,11 +1403,11 @@ describe('DashPanel portal ownership', () => {
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('reserves a hidden corner after an external placement transition', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const shadowHost = document.createElement('div')
     const shadowRoot = shadowHost.attachShadow({ mode: 'open' })
     const portal = document.createElement('div')
@@ -1445,7 +1445,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel id="corner" title="Corner" defaultVisible={false} />
         <DashPanel
           id="edge"
@@ -1467,7 +1467,7 @@ describe('DashPanel portal ownership', () => {
     expect(edge.style.inlineSize).toBe('300px')
 
     await act(async () => {
-      store.scope('corner').setDashPanelLayout({
+      nexus.scope('corner').setDashPanelLayout({
         placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'top-left' } },
         preferredPosition: { x: 0, y: 0 },
       })
@@ -1478,7 +1478,7 @@ describe('DashPanel portal ownership', () => {
     expect(edge.style.inlineSize).toBe('220px')
 
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel id="corner" title="Corner" defaultVisible={false} width="120px" />
         <DashPanel
           id="edge"
@@ -1495,7 +1495,7 @@ describe('DashPanel portal ownership', () => {
     expect(edge.style.inlineSize).toBe('180px')
 
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel id="corner" title="Corner" defaultVisible={false}>
           Wide content
         </DashPanel>
@@ -1546,11 +1546,11 @@ describe('DashPanel portal ownership', () => {
     expect(edge.style.inlineSize).toBe('80px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('restores the preferred intrinsic width after leaving a full horizontal dock', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
@@ -1563,7 +1563,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     await render(
-      <DashPanelProvider store={store} boundary={boundary} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
           id="inspector"
           title="Inspector"
@@ -1576,7 +1576,7 @@ describe('DashPanel portal ownership', () => {
     const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
     expect(panel.style.inlineSize).toBe('300px')
     await act(async () => {
-      store.scope('inspector').setDashPanelLayout({
+      nexus.scope('inspector').setDashPanelLayout({
         placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
         preferredPosition: { x: 0, y: 0 },
       })
@@ -1585,11 +1585,11 @@ describe('DashPanel portal ownership', () => {
     expect(panel.style.maxInlineSize).toBe('80px')
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('keeps client-space placement coordinates stable across differently positioned portal targets', async () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const firstPortal = document.createElement('div')
     const secondPortal = document.createElement('div')
     firstPortal.style.transform = 'translate(120px, 40px)'
@@ -1637,7 +1637,7 @@ describe('DashPanel portal ownership', () => {
       },
     )
     const panel = (portal: HTMLElement) => (
-      <DashPanelProvider store={store} portalContainer={portal}>
+      <DashPanelProvider nexus={nexus} portalContainer={portal}>
         <DashPanel id="inspector" title="Inspector" />
       </DashPanelProvider>
     )
@@ -1662,6 +1662,6 @@ describe('DashPanel portal ownership', () => {
     }).toEqual(firstActual)
     await act(async () => root.unmount())
     vi.restoreAllMocks()
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 })

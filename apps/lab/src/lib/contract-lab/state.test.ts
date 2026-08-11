@@ -28,9 +28,9 @@ test('defines exactly the six curated Contract Lab presets', () => {
   expect(CONTRACT_LAB_PRESETS.map(({ description }) => description)).toEqual([
     'Standalone Panel movement, placement reset, and persisted layout are available; broader docking and modal presentation remain planned.',
     'Panel visibility, close/reopen, activation, and retained content are available; durable layout, removal, modal presentation, and reordering remain planned.',
-    'Named Dashlets and one-level DashGroups render typed input, display, and compound Store bindings; standalone List collapse, keyboard ordering, and reset are available while ready-made Dashlets remain planned.',
+    'Named Dashlets and one-level DashGroups render typed input, display, and compound Nexus bindings; standalone List collapse, keyboard ordering, and reset are available while ready-made Dashlets remain planned.',
     'Shared UI AlertDialog behavior is available; Panel/List portal coordination and stacked overlay journeys remain planned.',
-    'Store document capture and restore plans are available; DashList-owned import, export, repair, and reset actions remain planned.',
+    'Nexus document capture and restore plans are available; DashList-owned import, export, repair, and reset actions remain planned.',
     'Theme and density Providers are available; this preset renders the compact recipe while detached portal carriers are verified in the placement journey.',
   ])
 })

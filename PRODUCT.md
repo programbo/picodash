@@ -11,7 +11,7 @@ agent that composes or migrates Dashlets against explicit host contracts.
 
 The package family is organized around three foundational products and one integrated product:
 
-- `@picodash/store` provides typed values, scopes, metadata, persistence, and adapters.
+- `@picodash/nexus` provides typed values, scopes, metadata, persistence, and adapters.
 - `@picodash/dashpanel` provides the standalone panel shell, placement, visibility, and lifecycle.
 - `@picodash/dashlist` provides standalone lists, groups, and Dashlet composition.
 - `@picodash/picodash` combines both products for an integrated control surface.
@@ -74,7 +74,7 @@ This is an engineering target, not a claim of third-party certification.
 - `Panel`: the concrete place where controls and readouts render; exposed through `DashPanel` in
   both the standalone and integrated products.
 - `Dashlet`: a unit of control, readout, visualization, preview, action, or compound composition.
-- `Picodash Store`: the root typed state kernel for canonical values, field contracts, scopes,
-  product metadata, interaction state, persistence, and repairs. Scoped Stores are immutable views
-  of that root, not separate per-Panel stores.
+- `Picodash Nexus`: the root typed state kernel for canonical values, field contracts, scopes,
+  product metadata, interaction state, persistence, and repairs. Scoped Nexuses are immutable views
+  of that root, not separate per-Panel authorities.
 - `Dashboard`: the application-level composition of one or more Panels and their Dashlets.

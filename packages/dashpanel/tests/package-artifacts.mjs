@@ -22,7 +22,7 @@ async function main() {
   const manifest = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8'))
   assert.deepEqual(manifest.exports, expectedExports)
   assert.deepEqual(manifest.dependencies, {
-    '@picodash/store': 'workspace:*',
+    '@picodash/nexus': 'workspace:*',
     '@picodash/ui': 'workspace:*',
   })
   assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })
