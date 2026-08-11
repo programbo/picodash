@@ -2,6 +2,7 @@
 import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vite-plus/test'
+import { clickElement, dispatchElement, renderReactRoot } from '../../../test/react.ts'
 import { ActionMenuItem } from '@picodash/ui'
 import { createPicodashStore } from '@picodash/store'
 import { DashPanel, DashPanelProvider } from './index.tsx'
@@ -18,8 +19,7 @@ const makeStore = () =>
   })
 
 async function render(element: React.ReactNode) {
-  await act(async () => root.render(element))
-  await act(async () => {})
+  await renderReactRoot(root, element)
 }
 
 async function openActions() {
@@ -27,8 +27,7 @@ async function openActions() {
     '[data-slot="button"][aria-label="Actions for Inspector"]',
   ) as HTMLButtonElement
   expect(trigger).toBeTruthy()
-  await act(async () => trigger.click())
-  await act(async () => {})
+  await clickElement(trigger)
 }
 
 function panel(
@@ -123,29 +122,25 @@ describe('DashPanel action composition', () => {
       (item) => item.textContent === 'Remove panel…',
     ) as HTMLElement
     expect(remove).toBeTruthy()
-    await act(async () => remove.click())
-    await act(async () => {})
+    await clickElement(remove)
     expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeTruthy()
-    ;(
+    await clickElement(
       [...document.querySelectorAll('[data-slot="button"]')].find(
         (button) => button.textContent === 'Cancel',
-      ) as HTMLButtonElement
-    ).click()
-    await act(async () => {})
+      ) as HTMLButtonElement,
+    )
     expect(onRequestRemove).not.toHaveBeenCalled()
 
     await openActions()
     const secondRemove = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
       (item) => item.textContent === 'Remove panel…',
     ) as HTMLElement
-    await act(async () => secondRemove.click())
-    await act(async () => {})
-    ;(
+    await clickElement(secondRemove)
+    await clickElement(
       [...document.querySelectorAll('[data-slot="button"]')].find(
         (button) => button.textContent === 'Remove panel',
-      ) as HTMLButtonElement
-    ).click()
-    await act(async () => {})
+      ) as HTMLButtonElement,
+    )
     expect(onRequestRemove).toHaveBeenCalledTimes(1)
     expect(onRequestRemove).toHaveBeenCalledWith({ scopeId: 'inspector' })
     await act(async () => root.unmount())
@@ -176,8 +171,10 @@ describe('DashPanel action composition', () => {
     )
     await openActions()
     const submenu = document.querySelector('[data-slot="action-submenu"]') as HTMLElement
-    submenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-    await act(async () => {})
+    await dispatchElement(
+      submenu,
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    )
     const occupied = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
       (item) => item.textContent === 'Dock full-left',
     ) as HTMLElement
@@ -235,8 +232,10 @@ describe('DashPanel action composition', () => {
     ).not.toBeNull()
     await openActions()
     const submenu = document.querySelector('[data-slot="action-submenu"]') as HTMLElement
-    submenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-    await act(async () => {})
+    await dispatchElement(
+      submenu,
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    )
     const labels = [...document.querySelectorAll('[data-slot="action-menu-item"]')].map(
       (item) => item.textContent,
     )
@@ -253,11 +252,9 @@ describe('DashPanel action composition', () => {
     ) as HTMLElement
     expect(fullLeft.getAttribute('aria-disabled')).toBe('true')
 
-    await act(async () => {
-      ;(document.querySelector('[data-release-dock]') as HTMLButtonElement).click()
-    })
+    await clickElement(document.querySelector('[data-release-dock]') as HTMLButtonElement)
     expect(fullLeft.getAttribute('aria-disabled')).not.toBe('true')
-    await act(async () => fullLeft.click())
+    await clickElement(fullLeft)
     expect(store.getState().scopes.get('inspector')?.dashPanel?.placement).toEqual({
       mode: 'fixed',
       disposition: { kind: 'docked', position: 'full-left' },
@@ -291,23 +288,23 @@ describe('DashPanel action composition', () => {
       </DashPanelProvider>,
     )
     const move = document.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
-    await act(async () => {
-      move.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
-      move.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-      move.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
-    })
+    await dispatchElement(move, new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await dispatchElement(move, new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await dispatchElement(move, new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     expect(document.querySelector('[data-picodash-panel-status]')?.textContent).toBe(
       'Panel movement failed: Scope metadata is quarantined.',
     )
 
     await openActions()
     const submenu = document.querySelector('[data-slot="action-submenu"]') as HTMLElement
-    submenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-    await act(async () => {})
+    await dispatchElement(
+      submenu,
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    )
     const snap = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
       (item) => item.textContent === 'Snap top-left',
     ) as HTMLElement
-    await act(async () => snap.click())
+    await clickElement(snap)
     expect(document.querySelector('[data-picodash-panel-status]')?.textContent).toBe(
       'Panel placement failed: Scope metadata is quarantined.',
     )
@@ -316,7 +313,7 @@ describe('DashPanel action composition', () => {
     const reset = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
       (item) => item.textContent === 'Reset layout',
     ) as HTMLElement
-    await act(async () => reset.click())
+    await clickElement(reset)
     expect(document.querySelector('[data-picodash-panel-status]')?.textContent).toBe(
       'Panel layout reset failed: Scope metadata is quarantined.',
     )
@@ -348,8 +345,10 @@ describe('DashPanel action composition', () => {
     )
     await openActions()
     const submenu = document.querySelector('[data-slot="action-submenu"]') as HTMLElement
-    submenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-    await act(async () => {})
+    await dispatchElement(
+      submenu,
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    )
     const fullLeft = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
       (item) => item.textContent === 'Dock full-left',
     ) as HTMLElement
@@ -368,11 +367,13 @@ describe('DashPanel action composition', () => {
       })
       return originalSetPlacement(scopeId, placement)
     })
-    await act(async () => fullLeft.click())
+    await clickElement(fullLeft)
     expect(document.querySelector('[data-picodash-panel-status]')?.textContent).toBe(
       'Panel placement failed: The dock position is occupied.',
     )
-    occupied?.release()
+    await act(async () => {
+      occupied?.release()
+    })
     await act(async () => root.unmount())
     store.destroy()
   })

@@ -95,16 +95,21 @@ describe('@picodash/dashpanel alpha shell', () => {
       mode: 'floating',
       disposition: { kind: 'snapped', position: 'top-left' },
     })
-    const placementResult = controller.setPlacement({
-      mode: 'fixed',
-      disposition: { kind: 'docked', position: 'full-right' },
+    let placementResult!: ReturnType<typeof controller.setPlacement>
+    act(() => {
+      placementResult = controller.setPlacement({
+        mode: 'fixed',
+        disposition: { kind: 'docked', position: 'full-right' },
+      })
     })
     expect(placementResult.status).toBe('executed')
     expect(store.getState().scopes.get('panel')?.dashPanel?.placement).toEqual({
       mode: 'fixed',
       disposition: { kind: 'docked', position: 'full-right' },
     })
-    expect(controller.resetLayout().status).toBe('executed')
+    act(() => {
+      expect(controller.resetLayout().status).toBe('executed')
+    })
     expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
@@ -134,12 +139,14 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(nearest.availability).toBe('available')
     expect(explicit.availability).toBe('available')
     expect(missing.availability).toBe('unavailable')
-    expect(nearest.show().status).toBe('executed')
-    expect(nearest.activate().status).toBe('executed')
-    expect(nearest.hide().status).toBe('executed')
-    expect(nearest.expand().status).toBe('executed')
-    expect(nearest.collapse().status).toBe('executed')
-    expect(nearest.toggleCollapsed().status).toBe('executed')
+    act(() => {
+      expect(nearest.show().status).toBe('executed')
+      expect(nearest.activate().status).toBe('executed')
+      expect(nearest.hide().status).toBe('executed')
+      expect(nearest.expand().status).toBe('executed')
+      expect(nearest.collapse().status).toBe('executed')
+      expect(nearest.toggleCollapsed().status).toBe('executed')
+    })
     expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()

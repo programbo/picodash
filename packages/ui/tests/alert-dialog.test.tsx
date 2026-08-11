@@ -2,6 +2,7 @@
 import { act, type CSSProperties, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vite-plus/test'
+import { clickElement, dispatchElement, renderReactRoot } from '../../../test/react.ts'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,10 +68,7 @@ function tree({
 }
 
 async function render(element: ReactNode) {
-  await act(async () => {
-    root.render(element)
-  })
-  await act(async () => {})
+  await renderReactRoot(root, element)
 }
 
 describe('@picodash/ui AlertDialog composition', () => {
@@ -88,8 +86,7 @@ describe('@picodash/ui AlertDialog composition', () => {
   it('opens uncontrolled state and renders alertdialog semantics and descriptions', async () => {
     await render(tree())
     expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).toBeNull()
-    ;(container.querySelector('[data-slot="button"]') as HTMLButtonElement).click()
-    await act(async () => {})
+    await clickElement(container.querySelector('[data-slot="button"]') as HTMLButtonElement)
     expect(
       (document.querySelector('[data-slot="alert-dialog-overlay"]') as HTMLElement).parentElement,
     ).toBe(container)
@@ -109,14 +106,12 @@ describe('@picodash/ui AlertDialog composition', () => {
     await render(
       tree({ action: <AlertDialogAction onPress={defaultOnPress}>Run</AlertDialogAction> }),
     )
-    ;(container.querySelector('[data-slot="button"]') as HTMLButtonElement).click()
-    await act(async () => {})
-    ;(
+    await clickElement(container.querySelector('[data-slot="button"]') as HTMLButtonElement)
+    await clickElement(
       [...document.querySelectorAll('[data-slot="button"]')].find(
         (button) => button.textContent === 'Run',
-      ) as HTMLButtonElement
-    ).click()
-    await act(async () => {})
+      ) as HTMLButtonElement,
+    )
     expect(defaultOnPress).toHaveBeenCalledTimes(1)
     expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).toBeNull()
 
@@ -132,17 +127,15 @@ describe('@picodash/ui AlertDialog composition', () => {
         ),
       }),
     )
-    ;(container.querySelector('[data-slot="button"]') as HTMLButtonElement).click()
-    await act(async () => {})
+    await clickElement(container.querySelector('[data-slot="button"]') as HTMLButtonElement)
     const action = [...document.querySelectorAll('[data-slot="button"]')].find(
       (button) => button.textContent === 'Run',
     ) as HTMLButtonElement
-    action.click()
-    await act(async () => {})
+    await clickElement(action)
     expect(onPress).toHaveBeenCalledTimes(1)
     expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).toBeTruthy()
-    ;(document.querySelector('.picodash-alert-dialog-cancel') as HTMLButtonElement | null)?.click()
-    await act(async () => {})
+    const cancel = document.querySelector('.picodash-alert-dialog-cancel') as HTMLButtonElement
+    await clickElement(cancel)
     expect(document.querySelector('[data-slot="alert-dialog-overlay"]')).toBeNull()
   })
 
@@ -154,11 +147,9 @@ describe('@picodash/ui AlertDialog composition', () => {
     expect(overlay.dataset.picodashDensity).toBe('compact')
     expect(overlay.style.zIndex).toContain('var(--picodash-layer-dialog)')
     expect(overlay.style.zIndex).toContain('100')
-    overlay.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
-    await act(async () => {})
+    await dispatchElement(overlay, new MouseEvent('pointerdown', { bubbles: true }))
     expect(onOpenChange).not.toHaveBeenCalledWith(false)
-    ;(document.querySelector('.picodash-alert-dialog-cancel') as HTMLButtonElement).click()
-    await act(async () => {})
+    await clickElement(document.querySelector('.picodash-alert-dialog-cancel') as HTMLButtonElement)
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 

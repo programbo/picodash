@@ -488,34 +488,38 @@ describe('@picodash/dashlist alpha shell', () => {
     act(() => binding.setInput('draft' as never))
     expect(scoped.getState().interaction.bindings.size).toBe(1)
     expect(latest.resetValues.availability).toBe('enabled')
-    renderer.update(
-      createElement(
-        DashList,
-        { id: 'actions', store },
-        createElement(DashGroup, {
-          id: 'group',
-          label: 'Group',
-          children: createElement(Dashlet, {
-            id: 'item',
-            label: 'Item',
-            disabled: true,
-            field: store.fields.value as never,
-            children(context: SingleFieldDashletRenderContext<number>) {
-              binding = context.binding
-              return createElement(ActionProbe, {
-                scopeId: 'actions',
-                capture: (actions) => {
-                  latest = actions
-                  actionHistory.push(actions)
-                },
-              })
-            },
+    act(() => {
+      renderer.update(
+        createElement(
+          DashList,
+          { id: 'actions', store },
+          createElement(DashGroup, {
+            id: 'group',
+            label: 'Group',
+            children: createElement(Dashlet, {
+              id: 'item',
+              label: 'Item',
+              disabled: true,
+              field: store.fields.value as never,
+              children(context: SingleFieldDashletRenderContext<number>) {
+                binding = context.binding
+                return createElement(ActionProbe, {
+                  scopeId: 'actions',
+                  capture: (actions) => {
+                    latest = actions
+                    actionHistory.push(actions)
+                  },
+                })
+              },
+            }),
           }),
-        }),
-      ),
-    )
+        ),
+      )
+    })
     expect(binding.dirty).toBe(true)
-    scoped.setDashListRootOrder(['group'])
+    act(() => {
+      scoped.setDashListRootOrder(['group'])
+    })
     expect(latest.resetList.availability).toBe('enabled')
     act(() => {
       const result = latest.resetValues.execute()
@@ -721,7 +725,9 @@ describe('@picodash/dashlist alpha shell', () => {
       removeNodeIds: ['dormant'],
       keepNodeIds: [],
     })
-    expect(scoped.executePrunePlan(explicit)).toMatchObject({ ok: true })
+    act(() => {
+      expect(scoped.executePrunePlan(explicit)).toMatchObject({ ok: true })
+    })
     expect(scoped.getState().scope?.dashList?.rootOrder).toEqual(['active'])
 
     act(() =>
@@ -738,7 +744,9 @@ describe('@picodash/dashlist alpha shell', () => {
       { nodeId: 'active', effects: ['root-order-entry'] },
     ])
     const inventory = scoped.createPrunePlan({ mode: 'inventory', knownNodeIds: ['replacement'] })
-    expect(scoped.executePrunePlan(inventory)).toMatchObject({ ok: true })
+    act(() => {
+      expect(scoped.executePrunePlan(inventory)).toMatchObject({ ok: true })
+    })
     expect(scoped.getState().scope).toBeUndefined()
     act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
