@@ -40,6 +40,14 @@ export interface ActionMenuConfirmation {
   title: ReactNode
   description: ReactNode
   actionLabel: ReactNode
+  /** Invalidates an open confirmation when the reviewed operation changes. */
+  guard?: ActionMenuConfirmationGuard
+}
+
+export interface ActionMenuConfirmationGuard {
+  readonly fingerprint: string
+  readonly getFingerprint: () => string
+  readonly subscribe: (listener: () => void) => () => void
 }
 
 export type ActionMenuItemVariant = 'default' | 'destructive'
@@ -168,6 +176,18 @@ export function ActionMenu({
     if (pending && !open && !confirmationOpen) setConfirmationOpen(true)
   }, [confirmationOpen, open, pending])
 
+  useEffect(() => {
+    const guard = pending?.confirmation.guard
+    if (!guard) return
+    const validate = () => {
+      if (guard.getFingerprint() === guard.fingerprint) return
+      setConfirmationOpen(false)
+      setPending(null)
+    }
+    validate()
+    return guard.subscribe(validate)
+  }, [pending])
+
   const context = useMemo<ActionMenuContextValue>(
     () => ({ enqueueConfirmation }),
     [enqueueConfirmation],
@@ -260,6 +280,12 @@ export function ActionMenu({
                   <AlertDialogAction
                     variant={pending.variant === 'destructive' ? 'destructive' : 'primary'}
                     onPress={() => {
+                      const guard = pending.confirmation.guard
+                      if (guard && guard.getFingerprint() !== guard.fingerprint) {
+                        setConfirmationOpen(false)
+                        setPending(null)
+                        return
+                      }
                       const action = pending.onAction
                       setConfirmationOpen(false)
                       setPending(null)

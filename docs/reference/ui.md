@@ -476,6 +476,13 @@ interface ActionMenuConfirmation {
   title: ReactNode
   description: ReactNode
   actionLabel: ReactNode
+  guard?: ActionMenuConfirmationGuard
+}
+
+interface ActionMenuConfirmationGuard {
+  readonly fingerprint: string
+  readonly getFingerprint: () => string
+  readonly subscribe: (listener: () => void) => () => void
 }
 
 type ActionMenuItemVariant = 'default' | 'destructive'
@@ -521,6 +528,9 @@ type ActionMenuSeparatorProps = Omit<ReactAriaSeparatorProps, 'orientation'>
   `isDisabled`, `variant`, and optional `confirmation`. String labels preserve reliable typeahead.
 - Confirmation and destructive appearance are independent. A non-destructive operation may require
   confirmation, while `variant="destructive"` supplies danger styling without generating copy.
+- A dangerous operation whose reviewed target can change supplies a `guard`. ActionMenu closes the
+  confirmation without executing when a subscription reports that the current fingerprint differs
+  from the reviewed fingerprint. The product owner computes the fingerprint and subscription.
 - Product code supplies all confirmation copy and the action callback. ActionMenu does not await,
   parse, or announce asynchronous results; an asynchronous callback owns its failure and status
   reporting.

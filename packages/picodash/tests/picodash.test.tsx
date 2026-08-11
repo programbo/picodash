@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { createElement, type ReactElement } from 'react'
+import { act as domAct, createElement, type ReactElement } from 'react'
+import { createRoot } from 'react-dom/client'
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it } from 'vite-plus/test'
 import { createPicodashStore } from '@picodash/store'
@@ -24,33 +25,39 @@ const makeStore = () =>
 describe('@picodash/picodash facade alpha', () => {
   it('composes Provider, Panel, id-less primary List, and Dashlet in one Panel scope', () => {
     const store = makeStore()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
     function ScopeProbe() {
       return createElement('output', { 'data-scope': usePicodashScope().scopeId })
     }
-    const renderer = render(
-      createElement(
-        PicodashProvider,
-        { store, children: null },
+    domAct(() => {
+      root.render(
         createElement(
-          DashPanel,
-          { id: 'settings', title: 'Settings' },
+          PicodashProvider,
+          { store, children: null },
           createElement(
-            DashList,
-            null,
-            createElement(Dashlet, {
-              id: 'value',
-              label: 'Value',
-              children: createElement(ScopeProbe),
-            }),
+            DashPanel,
+            { id: 'settings', title: 'Settings' },
+            createElement(
+              DashList,
+              null,
+              createElement(Dashlet, {
+                id: 'value',
+                label: 'Value',
+                children: createElement(ScopeProbe),
+              }),
+            ),
           ),
         ),
-      ),
-    )
-    expect(renderer.root.findByProps({ 'data-picodash-panel': true })).toBeDefined()
-    expect(renderer.root.findByProps({ 'data-picodash-dashlist': true })).toBeDefined()
-    expect(renderer.root.findByProps({ 'data-picodash-dashlet': 'value' })).toBeDefined()
-    expect(renderer.root.findByType('output').props['data-scope']).toBe('settings')
-    act(() => renderer.unmount())
+      )
+    })
+    expect(document.body.querySelector('[data-picodash-panel]')).toBeTruthy()
+    expect(document.body.querySelector('[data-picodash-dashlist]')).toBeTruthy()
+    expect(document.body.querySelector('[data-picodash-dashlet="value"]')).toBeTruthy()
+    expect(document.body.querySelector('output')?.getAttribute('data-scope')).toBe('settings')
+    domAct(() => root.unmount())
+    container.remove()
     expect(() => store.destroy()).not.toThrow()
   })
 

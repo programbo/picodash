@@ -6,17 +6,24 @@ import {
   useEffect,
   useLayoutEffect,
   useImperativeHandle,
+  useCallback,
   useRef,
+  useMemo,
+  useState,
   type ComponentPropsWithoutRef,
   type CSSProperties,
+  type ReactElement,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
+import { createPortal } from 'react-dom'
 import type { PicodashFieldDefinitions, RootStore } from '@picodash/store'
 import {
   PicodashStoreEntityBoundary,
   PicodashStoreProviderBoundary,
 } from '@picodash/store/integration'
-import { usePicodashRootStore } from '@picodash/store/react'
+import { usePicodashRootStore, usePicodashStoreSelector } from '@picodash/store/react'
 import {
   ActionMenu,
   ActionMenuItem,
@@ -28,6 +35,13 @@ import {
   PicodashThemeProvider,
   usePicodashOverlayDefaults,
 } from '@picodash/ui'
+import {
+  DashPanelActionItems,
+  DashPanelActionProvider,
+  announceDashPanelLayoutFailure,
+  type DashPanelRemoveRequest,
+} from './actions.tsx'
+import { useDashPanelDefaultActionItems } from './runtime/panel-integration-context.tsx'
 import type { PanelRuntimeRegistration } from './runtime/panel-runtime.ts'
 import {
   DashPanelPolicyBoundary,
@@ -35,13 +49,23 @@ import {
 } from './runtime/panel-policy-context.tsx'
 import { DashPanelProviderPolicyProvider } from './runtime/provider-policy-context.tsx'
 import type { DashPanelBoundary, DashPanelBoundaryInset } from './geometry/boundary.ts'
+import { resolveDashPanelBoundary } from './geometry/boundary.ts'
+import { resolveDashPanelBoundaryInset } from './geometry/inset.ts'
 import {
   DashPanelRuntimeProvider,
   useDashPanelRuntime,
   useDashPanelRuntimeState,
 } from './runtime/panel-runtime-context.tsx'
+import {
+  DashPanelIdentityProvider,
+  useDashPanel,
+  type DashPanelController,
+  type DashPanelCommandResult,
+  type DashPanelLayoutCommandResult,
+} from './runtime/panel-controller.tsx'
 import type {
   ActionMenuConfirmation,
+  ActionMenuConfirmationGuard,
   ActionMenuItemProps,
   ActionMenuItemVariant,
   ActionMenuProps,
@@ -53,7 +77,16 @@ import type {
   PicodashDensity,
   PicodashThemeOption,
 } from '@picodash/ui'
-import type { DashPanelDockPosition } from './placement/placement.ts'
+import {
+  normalizeDashPanelDefaultLayout,
+  normalizeDashPanelPlacementOptions,
+  type DashPanelPlacement,
+  type DashPanelDockPosition,
+  type DashPanelDefaultLayout,
+  type DashPanelPlacementOptions,
+  type DashPanelPresentation,
+  type DashPanelSnapPosition,
+} from './placement/placement.ts'
 import {
   clearPanelFocusRecord,
   focusPanel,
@@ -62,6 +95,19 @@ import {
   restorePanelFocus,
 } from './runtime/panel-lifecycle.ts'
 import { useDashPanelProviderPolicy } from './runtime/provider-policy-context.tsx'
+import { resolvePanelDockPositions, classifyDashPanelPlacement } from './placement/dock-policy.ts'
+import {
+  dockDashPanelRect,
+  projectDashPanelPosition,
+  projectDashPanelRect,
+  rectFromDashPanelPosition,
+  snapDashPanelRect,
+  snapDashPanelTargets,
+  type DashPanelDockTargetOptions,
+  type DashPanelPoint,
+  type DashPanelSize,
+} from './geometry/placement-geometry.ts'
+import { insetDashPanelRect, type DashPanelRect } from './geometry/inset.ts'
 
 export type {
   DashPanelDefaultLayout,
@@ -72,9 +118,30 @@ export type {
   DashPanelSnapPosition,
 } from './placement/placement.ts'
 
-export type { DashPanelBoundary, DashPanelBoundaryInset } from './geometry/boundary.ts'
+export type { DashPanelController, DashPanelCommandResult, DashPanelLayoutCommandResult }
+export { useDashPanel }
 
-export type DashPanelStyle = Omit<CSSProperties, 'inlineSize' | 'width'>
+export type { DashPanelBoundary, DashPanelBoundaryInset } from './geometry/boundary.ts'
+export {
+  DashPanelActionItems,
+  DashPanelPlacementSubmenu,
+  DashPanelResetLayoutItem,
+  DashPanelRequestRemoveItem,
+} from './actions.tsx'
+export type { DashPanelRemoveRequest } from './actions.tsx'
+
+export type DashPanelStyle = Omit<
+  CSSProperties,
+  | 'blockSize'
+  | 'inlineSize'
+  | 'maxBlockSize'
+  | 'maxInlineSize'
+  | 'minBlockSize'
+  | 'minHeight'
+  | 'minInlineSize'
+  | 'minWidth'
+  | 'width'
+>
 
 export interface DashPanelProviderProps<
   Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions,
@@ -104,12 +171,17 @@ export interface DashPanelProps<CustomTheme extends string = never> extends Omit
   boundary?: DashPanelBoundary | null
   boundaryInset?: DashPanelBoundaryInset
   dockPositions?: readonly DashPanelDockPosition[]
+  defaultLayout?: DashPanelDefaultLayout
+  placementOptions?: DashPanelPlacementOptions
+  presentation?: DashPanelPresentation
   defaultCollapsed?: boolean
   collapsible?: boolean
   onCollapsedChange?: (collapsed: boolean) => void
   defaultVisible?: boolean
   showCloseButton?: boolean
   onVisibilityChange?: (visible: boolean) => void
+  onRequestRemove?: (details: DashPanelRemoveRequest) => void
+  actionMenu?: false | readonly ReactElement[]
   theme?: PicodashThemeOption<CustomTheme>
   density?: PicodashDensity
 }
@@ -204,12 +276,34 @@ function textTitle(value: ReactNode): string {
   return ''
 }
 
+function isCornerDockPosition(position: DashPanelDockPosition | undefined): boolean {
+  return (
+    position === 'top-left' ||
+    position === 'top-right' ||
+    position === 'bottom-left' ||
+    position === 'bottom-right'
+  )
+}
+
 function assertPanelStyle(style: DashPanelStyle | undefined): void {
   if (!style) return
-  if (Object.prototype.hasOwnProperty.call(style, 'width'))
-    throw new TypeError('DashPanel style.width is reserved; use the width prop instead.')
-  if (Object.prototype.hasOwnProperty.call(style, 'inlineSize'))
-    throw new TypeError('DashPanel style.inlineSize is reserved; use the width prop instead.')
+  for (const property of [
+    'width',
+    'inlineSize',
+    'maxInlineSize',
+    'blockSize',
+    'maxBlockSize',
+    'minWidth',
+    'minInlineSize',
+    'minHeight',
+    'minBlockSize',
+  ] as const)
+    if (Object.prototype.hasOwnProperty.call(style, property))
+      throw new TypeError(
+        `DashPanel style.${property} is reserved for placement geometry${
+          property === 'width' || property === 'inlineSize' ? '; use the width prop instead' : ''
+        }.`,
+      )
 }
 
 function panelStyle(
@@ -224,6 +318,205 @@ function panelStyle(
   return resolved
 }
 
+interface PanelGeometryState {
+  readonly boundary: DashPanelRect
+  readonly size: DashPanelSize
+  readonly rect: DashPanelRect
+}
+
+const geometryOwnedSizeProperties = [
+  'inline-size',
+  'max-inline-size',
+  'block-size',
+  'max-block-size',
+] as const
+
+function measurePreferredPanelRect(element: HTMLElement): DOMRect {
+  const wasHidden = element.hidden
+  const visibility = element.style.getPropertyValue('visibility')
+  const visibilityPriority = element.style.getPropertyPriority('visibility')
+  const owned = geometryOwnedSizeProperties.map((property) => ({
+    property,
+    value: element.style.getPropertyValue(property),
+    priority: element.style.getPropertyPriority(property),
+  }))
+  for (const { property } of owned) element.style.removeProperty(property)
+  element.style.setProperty('max-inline-size', 'none')
+  element.style.setProperty('max-block-size', 'none')
+  if (wasHidden) {
+    element.style.setProperty('visibility', 'hidden', 'important')
+    element.hidden = false
+  }
+  try {
+    return element.getBoundingClientRect()
+  } finally {
+    if (wasHidden) {
+      element.hidden = true
+      if (visibility) element.style.setProperty('visibility', visibility, visibilityPriority)
+      else element.style.removeProperty('visibility')
+    }
+    for (const { property, value, priority } of owned) {
+      if (value) element.style.setProperty(property, value, priority)
+      else element.style.removeProperty(property)
+    }
+  }
+}
+
+function sameMeasuredRect(left: DOMRect | undefined, right: DOMRect | undefined): boolean {
+  if (!left || !right) return left === right
+  return (
+    left.top === right.top &&
+    left.right === right.right &&
+    left.bottom === right.bottom &&
+    left.left === right.left &&
+    left.width === right.width &&
+    left.height === right.height
+  )
+}
+
+function viewportRect(ownerDocument?: Document): DashPanelRect {
+  const ownerWindow =
+    ownerDocument?.defaultView ?? (typeof window !== 'undefined' ? window : undefined)
+  const visualViewport = ownerWindow?.visualViewport
+  if (
+    visualViewport &&
+    Number.isFinite(visualViewport.width) &&
+    Number.isFinite(visualViewport.height) &&
+    Number.isFinite(visualViewport.offsetLeft) &&
+    Number.isFinite(visualViewport.offsetTop)
+  ) {
+    const left = visualViewport.offsetLeft
+    const top = visualViewport.offsetTop
+    const width = visualViewport.width
+    const height = visualViewport.height
+    return { top, right: left + width, bottom: top + height, left, width, height }
+  }
+  const width =
+    ownerWindow && Number.isFinite(ownerWindow.innerWidth)
+      ? ownerWindow.innerWidth
+      : ownerDocument
+        ? (ownerDocument.documentElement?.clientWidth ?? 0)
+        : typeof document !== 'undefined'
+          ? (document.documentElement?.clientWidth ?? 0)
+          : 0
+  const height =
+    ownerWindow && Number.isFinite(ownerWindow.innerHeight)
+      ? ownerWindow.innerHeight
+      : ownerDocument
+        ? (ownerDocument.documentElement?.clientHeight ?? 0)
+        : typeof document !== 'undefined'
+          ? (document.documentElement?.clientHeight ?? 0)
+          : 0
+  return { top: 0, right: width, bottom: height, left: 0, width, height }
+}
+
+function placementRect(
+  placement: DashPanelPlacement,
+  boundary: DashPanelRect,
+  size: DashPanelSize,
+  preferredPosition: DashPanelPoint,
+  snapOffset: number,
+  dockTarget?: DashPanelDockTargetOptions,
+): DashPanelRect {
+  if (placement.mode === 'floating') {
+    if (placement.disposition.kind === 'snapped')
+      return snapDashPanelRect(placement.disposition.position, boundary, size, snapOffset)
+    return projectDashPanelRect(
+      rectFromDashPanelPosition(
+        { x: boundary.left + preferredPosition.x, y: boundary.top + preferredPosition.y },
+        size,
+      ),
+      boundary,
+    )
+  }
+  if (placement.disposition.kind === 'docked')
+    return dockDashPanelRect(placement.disposition.position, boundary, size, dockTarget)
+  if (placement.disposition.kind === 'snapped')
+    return snapDashPanelRect(placement.disposition.position, boundary, size, snapOffset)
+  return projectDashPanelRect(
+    rectFromDashPanelPosition(
+      { x: boundary.left + preferredPosition.x, y: boundary.top + preferredPosition.y },
+      size,
+    ),
+    boundary,
+  )
+}
+
+const floatingSnapPositions: readonly DashPanelSnapPosition[] = [
+  'top-left',
+  'top',
+  'top-right',
+  'right',
+  'bottom-right',
+  'bottom',
+  'bottom-left',
+  'left',
+]
+
+function snapPlacementForMove(
+  mode: 'floating' | 'hybrid',
+  position: DashPanelPoint,
+  geometry: PanelGeometryState | null,
+  options: Readonly<{ snapOffset: number; snapProximity: number }>,
+): DashPanelPlacement | undefined {
+  if (!geometry) return undefined
+  const targets = snapDashPanelTargets(geometry.boundary, geometry.size, options.snapOffset)
+  const positions = mode === 'hybrid' ? (['top', 'bottom'] as const) : floatingSnapPositions
+  const absolute = {
+    x: geometry.boundary.left + position.x,
+    y: geometry.boundary.top + position.y,
+  }
+  let nearest: DashPanelSnapPosition | undefined
+  let nearestDistance = Number.POSITIVE_INFINITY
+  for (const candidate of positions) {
+    const target = targets[candidate]
+    const distance = Math.hypot(target.left - absolute.x, target.top - absolute.y)
+    if (distance <= options.snapProximity && distance < nearestDistance) {
+      nearest = candidate
+      nearestDistance = distance
+    }
+  }
+  return nearest === undefined
+    ? undefined
+    : ({ mode, disposition: { kind: 'snapped', position: nearest } } as DashPanelPlacement)
+}
+
+function policySafeDefaultLayout(
+  layout: DashPanelDefaultLayout,
+  dockPositions: readonly DashPanelDockPosition[],
+): DashPanelDefaultLayout {
+  if (classifyDashPanelPlacement(layout.placement, dockPositions).status === 'available')
+    return layout
+  const placement: DashPanelPlacement =
+    layout.placement.mode === 'hybrid'
+      ? { mode: 'hybrid', disposition: { kind: 'snapped', position: 'top' } }
+      : dockPositions[0]
+        ? { mode: 'fixed', disposition: { kind: 'docked', position: dockPositions[0] } }
+        : { mode: 'floating', disposition: { kind: 'snapped', position: 'top-right' } }
+  return Object.freeze({
+    placement: Object.freeze({
+      ...placement,
+      disposition: Object.freeze({ ...placement.disposition }),
+    }) as DashPanelPlacement,
+    ...(layout.preferredPosition ? { preferredPosition: layout.preferredPosition } : {}),
+  })
+}
+
+function mapRectToContainingBlock(element: HTMLElement | null, rect: DashPanelRect) {
+  const offsetParent = element?.offsetParent as HTMLElement | null
+  if (!offsetParent) {
+    const ownerWindow = element?.ownerDocument.defaultView
+    const scrollX = ownerWindow?.scrollX || 0
+    const scrollY = ownerWindow?.scrollY || 0
+    return { left: rect.left + scrollX, top: rect.top + scrollY }
+  }
+  const parentRect = offsetParent.getBoundingClientRect()
+  return {
+    left: rect.left - parentRect.left + offsetParent.scrollLeft - offsetParent.clientLeft,
+    top: rect.top - parentRect.top + offsetParent.scrollTop - offsetParent.clientTop,
+  }
+}
+
 const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function DashPanel(
   {
     id,
@@ -234,11 +527,16 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     boundary,
     boundaryInset,
     dockPositions,
+    defaultLayout,
+    placementOptions,
+    presentation,
     defaultCollapsed,
     defaultVisible,
     showCloseButton = true,
     collapsible,
     onVisibilityChange,
+    onRequestRemove,
+    actionMenu,
     onCollapsedChange,
     theme,
     density,
@@ -254,11 +552,803 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const runtime = useDashPanelRuntime()
   const providerPolicy = useDashPanelProviderPolicy()
   const overlayDefaults = usePicodashOverlayDefaults()
+  const resolvedPortalContainer = overlayDefaults.portalContainer
+  const panelPortal = resolvedPortalContainer?.nodeType === 1 ? resolvedPortalContainer : null
+  const defaultActionItems = useDashPanelDefaultActionItems()
   const runtimeState = useDashPanelRuntimeState(id)
   const scoped = root.scope(id)
+  const durableLayout = usePicodashStoreSelector(scoped, (state) => state.scope?.dashPanel)
+  const resolvedDefaultLayout = useMemo(
+    () => normalizeDashPanelDefaultLayout(defaultLayout),
+    [defaultLayout],
+  )
+  const resolvedPlacementOptions = useMemo(
+    () => normalizeDashPanelPlacementOptions(placementOptions),
+    [placementOptions],
+  )
+  const resolvedPresentation = useMemo(
+    () => presentation ?? { kind: 'panel' as const },
+    [presentation],
+  )
+  if (resolvedPresentation.kind !== 'panel')
+    throw new TypeError('DashPanel drawer and sheet presentations are not implemented yet.')
+  const resolvedDockPositions = useMemo(
+    () => resolvePanelDockPositions(providerPolicy.dockPositions, dockPositions),
+    [dockPositions, providerPolicy.dockPositions],
+  )
+  const resolvedPolicyDefaultLayout = useMemo(
+    () => policySafeDefaultLayout(resolvedDefaultLayout, resolvedDockPositions),
+    [resolvedDefaultLayout, resolvedDockPositions],
+  )
+  const resolvedBoundaryInset = useMemo(
+    () =>
+      boundaryInset === undefined
+        ? providerPolicy.boundaryInset
+        : resolveDashPanelBoundaryInset(boundaryInset),
+    [boundaryInset, providerPolicy.boundaryInset],
+  )
+  const resolvedPlacement =
+    durableLayout &&
+    classifyDashPanelPlacement(durableLayout.placement, resolvedDockPositions).status ===
+      'available'
+      ? (durableLayout.placement as DashPanelPlacement)
+      : resolvedPolicyDefaultLayout.placement
+  const requestedPlacementMode = resolvedPlacement.mode
+  const effectivePlacement = runtimeState?.placement ?? resolvedPlacement
   const headingId = `picodash-panel-heading-${useId()}`
   const bodyId = `picodash-panel-body-${useId()}`
+  const moveInstructionsId = `picodash-panel-move-instructions-${useId()}`
   const asideRef = useRef<HTMLElement | null>(null)
+  const registration = useRef<PanelRuntimeRegistration | null>(null)
+  const previewPositionRef = useRef<DashPanelPoint | null>(null)
+  const geometryRef = useRef<PanelGeometryState | null>(null)
+  const [geometry, setGeometry] = useState<PanelGeometryState | null>(null)
+  const [previewPosition, setPreviewPosition] = useState<DashPanelPoint | null>(null)
+  const [moveMode, setMoveMode] = useState<'pointer' | 'keyboard' | null>(null)
+  const announcementSequence = useRef(0)
+  const [actionAnnouncement, setActionAnnouncement] = useState({ sequence: 0, message: '' })
+  const announceAction = useCallback((message: string) => {
+    announcementSequence.current += 1
+    setActionAnnouncement({ sequence: announcementSequence.current, message })
+  }, [])
+  const registerMoveHandle = useCallback((element: HTMLButtonElement | null) => {
+    // React Aria's Button currently filters this valid global ARIA attribute.
+    // Preserve the shared primitive while ensuring the native control exposes it.
+    element?.setAttribute(
+      'aria-keyshortcuts',
+      'Enter Space ArrowUp ArrowDown ArrowLeft ArrowRight Escape',
+    )
+  }, [])
+  const moveSession = useRef<{
+    readonly mode: 'pointer' | 'keyboard'
+    readonly pointerId?: number
+    readonly startClient?: DashPanelPoint
+    readonly startPosition: DashPanelPoint
+    readonly initialGeometry: PanelGeometryState | null
+    readonly captureTarget?: HTMLElement
+    readonly startedDocked: boolean
+    readonly moved: boolean
+  } | null>(null)
+  const cancelObservedMoveRef = useRef<() => void>(() => undefined)
+  const revalidateLayoutObservationRef = useRef<() => boolean>(() => true)
+  const settledPreferredPosition =
+    durableLayout?.preferredPosition ?? resolvedPolicyDefaultLayout.preferredPosition
+  const settledLayoutFingerprint = JSON.stringify([
+    durableLayout?.placement ?? null,
+    resolvedPlacement,
+    settledPreferredPosition ?? null,
+  ])
+  const settledLayoutFingerprintRef = useRef(settledLayoutFingerprint)
+  useLayoutEffect(() => {
+    if (settledLayoutFingerprintRef.current !== settledLayoutFingerprint && moveSession.current)
+      cancelObservedMoveRef.current()
+    settledLayoutFingerprintRef.current = settledLayoutFingerprint
+  }, [settledLayoutFingerprint])
+  const currentPosition = useMemo(
+    () => () => {
+      if (previewPositionRef.current) return previewPositionRef.current
+      const element = asideRef.current
+      if (!element || typeof element.getBoundingClientRect !== 'function') return undefined
+      const rect = element.getBoundingClientRect()
+      const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
+      const effectiveBoundary = insetDashPanelRect(
+        target?.getBoundingClientRect?.() ?? viewportRect(element.ownerDocument),
+        resolvedBoundaryInset,
+      )
+      const x = rect.left - effectiveBoundary.left
+      const y = rect.top - effectiveBoundary.top
+      return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : undefined
+    },
+    [boundary, providerPolicy.boundary, resolvedBoundaryInset],
+  )
+  const freeMovePosition = useMemo(() => () => previewPositionRef.current ?? undefined, [])
+  const resolveDockArena = useMemo(
+    () => () => ({
+      boundary: resolveDashPanelBoundary(boundary, providerPolicy.boundary),
+      inset: resolvedBoundaryInset,
+    }),
+    [boundary, providerPolicy.boundary, resolvedBoundaryInset],
+  )
+  const measureGeometry = useMemo(
+    () => (): PanelGeometryState | null => {
+      const element = asideRef.current
+      if (!element || typeof element.getBoundingClientRect !== 'function') return null
+      const panelRect = measurePreferredPanelRect(element)
+      const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
+      const boundaryRect = target?.getBoundingClientRect?.() ?? viewportRect(element.ownerDocument)
+      const insetBoundary = insetDashPanelRect(boundaryRect, resolvedBoundaryInset)
+      const next = {
+        boundary: insetBoundary,
+        size: { width: Math.max(0, panelRect.width), height: Math.max(0, panelRect.height) },
+        rect: panelRect,
+      }
+      geometryRef.current = next
+      return next
+    },
+    [boundary, providerPolicy.boundary, resolvedBoundaryInset],
+  )
+  const refreshGeometry = useMemo(
+    () => () => {
+      const previous = geometryRef.current
+      const next = measureGeometry()
+      if (!next) return
+      const dockPosition =
+        effectivePlacement.mode === 'fixed'
+          ? effectivePlacement.disposition.position
+          : effectivePlacement.mode === 'hybrid' && effectivePlacement.disposition.kind === 'docked'
+            ? effectivePlacement.disposition.position
+            : undefined
+      if (asideRef.current?.hidden && isCornerDockPosition(dockPosition))
+        runtime.notifyElementResize(id, next.size.width)
+      if (
+        moveSession.current &&
+        previous &&
+        (previous.boundary.left !== next.boundary.left ||
+          previous.boundary.top !== next.boundary.top ||
+          previous.boundary.right !== next.boundary.right ||
+          previous.boundary.bottom !== next.boundary.bottom ||
+          previous.size.width !== next.size.width ||
+          previous.size.height !== next.size.height)
+      )
+        cancelObservedMoveRef.current()
+      setGeometry((current) =>
+        current &&
+        current.boundary.left === next.boundary.left &&
+        current.boundary.top === next.boundary.top &&
+        current.boundary.right === next.boundary.right &&
+        current.boundary.bottom === next.boundary.bottom &&
+        current.size.width === next.size.width &&
+        current.size.height === next.size.height &&
+        current.rect.left === next.rect.left &&
+        current.rect.top === next.rect.top &&
+        current.rect.right === next.rect.right &&
+        current.rect.bottom === next.rect.bottom
+          ? current
+          : next,
+      )
+    },
+    [effectivePlacement, id, measureGeometry, runtime],
+  )
+  useLayoutEffect(() => {
+    refreshGeometry()
+  }, [effectivePlacement, panelPortal, refreshGeometry])
+  const observedBoundary = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
+  const configuredBoundary = boundary === undefined ? providerPolicy.boundary : boundary
+  const tracksBoundaryReference =
+    configuredBoundary !== null &&
+    configuredBoundary !== undefined &&
+    typeof configuredBoundary === 'object' &&
+    'current' in configuredBoundary
+  useEffect(() => {
+    const panel = asideRef.current
+    if (!panel) return
+    const observer =
+      typeof ResizeObserver === 'function'
+        ? new ResizeObserver((entries) => {
+            refreshGeometry()
+            if (entries.some((entry) => entry.target === panel)) runtime.notifyElementResize(id)
+          })
+        : undefined
+    observer?.observe(panel)
+    if (observedBoundary) observer?.observe(observedBoundary)
+    const ownerDocument = panel.ownerDocument
+    const ownerWindow = ownerDocument.defaultView
+    const mutationRoot = ownerDocument.documentElement
+    const inheritedMutationTargets = new Set<Node>()
+    let observedPanelRoot: Node | undefined
+    const settledLayoutEvents = [
+      'animationcancel',
+      'animationend',
+      'load',
+      'transitioncancel',
+      'transitionend',
+    ] as const
+    const movingLayoutEvents = ['animationstart', 'transitionrun', 'transitionstart'] as const
+    const relevantLayoutAncestors = new Set<Node>()
+    let observedPanelAncestors: readonly Node[] = []
+    let observedPortalAncestors: readonly Node[] = []
+    let observedBoundaryAncestors: readonly Node[] = []
+    const layoutEventTargets = new Set<EventTarget>()
+    const composedHost = (root: unknown): Node | null => {
+      if (root === null || typeof root !== 'object' || !('host' in root)) return null
+      const host = (root as { readonly host?: unknown }).host
+      return host !== null && typeof host === 'object' && 'nodeType' in host ? (host as Node) : null
+    }
+    const readComposedAncestors = (start: Node | null | undefined) => {
+      const ancestors: Node[] = []
+      let current = start
+      while (current) {
+        ancestors.push(current)
+        const assignedSlot =
+          'assignedSlot' in current
+            ? (current as Node & { assignedSlot?: HTMLSlotElement }).assignedSlot
+            : null
+        if (assignedSlot) {
+          current = assignedSlot
+          continue
+        }
+        if (current.parentNode) {
+          current = current.parentNode
+          continue
+        }
+        const root = typeof current.getRootNode === 'function' ? current.getRootNode() : undefined
+        current = composedHost(root)
+      }
+      return ancestors
+    }
+    const sameNodeSequence = (first: readonly Node[], second: readonly Node[]) => {
+      if (first.length !== second.length) return false
+      return first.every((node, index) => node === second[index])
+    }
+    const containsTarget = (container: Node | null | undefined, target: EventTarget) => {
+      try {
+        return container?.contains(target as Node) ?? false
+      } catch {
+        return false
+      }
+    }
+    const cancelForLayoutMotion = (event: Event) => {
+      const target = event.target
+      if (target === null || typeof target !== 'object') return
+      if (
+        relevantLayoutAncestors.has(target as Node) ||
+        containsTarget(panel, target) ||
+        containsTarget(observedBoundary, target)
+      )
+        cancelObservedMoveRef.current()
+    }
+    const addLayoutEventTarget = (target: unknown) => {
+      if (
+        target !== null &&
+        typeof target === 'object' &&
+        typeof (target as EventTarget).addEventListener === 'function'
+      )
+        layoutEventTargets.add(target as EventTarget)
+    }
+    let rebuildMutationContext = () => undefined
+    const slotChangeTargets = new Set<EventTarget>()
+    const slotDiscoveryRoots = new Set<Node>()
+    const rebuildForSlotChange = () => {
+      cancelObservedMoveRef.current()
+      rebuildMutationContext()
+      refreshGeometry()
+    }
+    const addSlotChangeTarget = (target: EventTarget) => {
+      if (slotChangeTargets.has(target)) return
+      target.addEventListener('slotchange', rebuildForSlotChange)
+      slotChangeTargets.add(target)
+    }
+    const addSlotsFromRoot = (root: unknown) => {
+      if (
+        root === null ||
+        typeof root !== 'object' ||
+        !('querySelectorAll' in root) ||
+        typeof root.querySelectorAll !== 'function'
+      )
+        return
+      if ('nodeType' in root) slotDiscoveryRoots.add(root as unknown as Node)
+      for (const slot of root.querySelectorAll('slot')) addSlotChangeTarget(slot)
+    }
+    const removeLayoutEventListeners = () => {
+      for (const target of layoutEventTargets) {
+        for (const eventName of settledLayoutEvents)
+          target.removeEventListener(eventName, refreshGeometry, true)
+        for (const eventName of movingLayoutEvents)
+          target.removeEventListener(eventName, cancelForLayoutMotion, true)
+      }
+      layoutEventTargets.clear()
+      for (const target of slotChangeTargets)
+        target.removeEventListener('slotchange', rebuildForSlotChange)
+      slotChangeTargets.clear()
+      slotDiscoveryRoots.clear()
+    }
+    const rebuildLayoutEventContext = () => {
+      removeLayoutEventListeners()
+      relevantLayoutAncestors.clear()
+      observedPanelAncestors = readComposedAncestors(panel)
+      for (const ancestor of observedPanelAncestors) relevantLayoutAncestors.add(ancestor)
+      observedPortalAncestors = readComposedAncestors(panelPortal)
+      for (const ancestor of observedPortalAncestors) relevantLayoutAncestors.add(ancestor)
+      observedBoundaryAncestors = readComposedAncestors(observedBoundary)
+      for (const ancestor of observedBoundaryAncestors) relevantLayoutAncestors.add(ancestor)
+      addLayoutEventTarget(ownerDocument)
+      for (const target of relevantLayoutAncestors) addLayoutEventTarget(target)
+      for (const target of relevantLayoutAncestors) {
+        if (target.nodeType === 1 && (target as Element).localName === 'slot')
+          addSlotChangeTarget(target)
+        if (target.nodeType === 11) addSlotsFromRoot(target)
+        if (target.nodeType === 1 && 'shadowRoot' in target)
+          addSlotsFromRoot((target as Element).shadowRoot)
+      }
+      for (const target of layoutEventTargets) {
+        for (const eventName of settledLayoutEvents)
+          target.addEventListener(eventName, refreshGeometry, true)
+        for (const eventName of movingLayoutEvents)
+          target.addEventListener(eventName, cancelForLayoutMotion, true)
+      }
+    }
+    const mutationObserver =
+      mutationRoot && typeof MutationObserver === 'function'
+        ? new MutationObserver((records) => {
+            const panelChanged = records.some((record) => {
+              const target = record.target
+              const targetElement =
+                target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement
+              return (
+                targetElement === panel || (targetElement !== null && panel.contains(targetElement))
+              )
+            })
+            const panelAncestorChanged = records.some((record) => {
+              const target = record.target
+              const targetElement =
+                target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement
+              return targetElement !== null && targetElement.contains(panel)
+            })
+            const inheritedContextChanged = records.some((record) =>
+              inheritedMutationTargets.has(record.target),
+            )
+            const slotDiscoveryChanged = records.some((record) => {
+              if (record.type !== 'childList') return false
+              const changedNodes = [...record.addedNodes, ...record.removedNodes]
+              if (
+                !changedNodes.some(
+                  (node) =>
+                    node.nodeType === 1 &&
+                    ((node as Element).localName === 'slot' ||
+                      (node as Element).querySelector('slot') !== null),
+                )
+              )
+                return false
+              return [...slotDiscoveryRoots].some(
+                (root) => root === record.target || containsTarget(root, record.target),
+              )
+            })
+            const currentPanelRoot =
+              typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined
+            const rootChanged = currentPanelRoot !== observedPanelRoot
+            const panelAncestorsChanged = !sameNodeSequence(
+              observedPanelAncestors,
+              readComposedAncestors(panel),
+            )
+            const portalAncestorsChanged = !sameNodeSequence(
+              observedPortalAncestors,
+              readComposedAncestors(panelPortal),
+            )
+            const boundaryAncestorsChanged = !sameNodeSequence(
+              observedBoundaryAncestors,
+              readComposedAncestors(observedBoundary),
+            )
+            if (
+              rootChanged ||
+              panelAncestorsChanged ||
+              portalAncestorsChanged ||
+              boundaryAncestorsChanged ||
+              slotDiscoveryChanged
+            )
+              rebuildMutationContext()
+            if (
+              (panelChanged ||
+                panelAncestorChanged ||
+                inheritedContextChanged ||
+                rootChanged ||
+                panelAncestorsChanged ||
+                portalAncestorsChanged ||
+                boundaryAncestorsChanged ||
+                slotDiscoveryChanged) &&
+              panel.hidden
+            ) {
+              refreshGeometry()
+              mutationObserver?.takeRecords()
+            }
+            if (
+              records.every((record) => {
+                const target = record.target
+                const targetElement =
+                  target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement
+                return targetElement?.closest('[data-picodash-panel]') !== null
+              })
+            )
+              return
+            refreshGeometry()
+          })
+        : undefined
+    const mutationOptions = {
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    } as const
+    rebuildMutationContext = () => {
+      mutationObserver?.disconnect()
+      inheritedMutationTargets.clear()
+      observedPanelRoot = typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined
+      rebuildLayoutEventContext()
+      if (mutationObserver) {
+        mutationObserver.observe(panel, mutationOptions)
+        if (observedPanelRoot && observedPanelRoot !== ownerDocument) {
+          inheritedMutationTargets.add(observedPanelRoot)
+          mutationObserver.observe(observedPanelRoot, mutationOptions)
+        }
+        const observedBoundaryRoot = observedBoundary?.getRootNode?.()
+        if (
+          observedBoundaryRoot &&
+          observedBoundaryRoot !== ownerDocument &&
+          observedBoundaryRoot !== observedPanelRoot
+        ) {
+          inheritedMutationTargets.add(observedBoundaryRoot)
+          mutationObserver.observe(observedBoundaryRoot, mutationOptions)
+        }
+        for (const ancestor of relevantLayoutAncestors) {
+          if (ancestor.nodeType !== 11 || inheritedMutationTargets.has(ancestor)) continue
+          inheritedMutationTargets.add(ancestor)
+          mutationObserver.observe(ancestor, mutationOptions)
+        }
+        for (const root of slotDiscoveryRoots) {
+          if (inheritedMutationTargets.has(root)) continue
+          inheritedMutationTargets.add(root)
+          mutationObserver.observe(root, mutationOptions)
+        }
+        let ancestor: Element | null = panel.parentElement
+        while (ancestor) {
+          inheritedMutationTargets.add(ancestor)
+          mutationObserver.observe(ancestor, { attributes: true })
+          if (ancestor.parentElement) {
+            ancestor = ancestor.parentElement
+            continue
+          }
+          const root =
+            typeof ancestor.getRootNode === 'function' ? ancestor.getRootNode() : undefined
+          ancestor = composedHost(root) as Element | null
+        }
+        if (mutationRoot) mutationObserver.observe(mutationRoot, mutationOptions)
+      }
+    }
+    rebuildMutationContext()
+    const revalidateLayoutObservation = () => {
+      const layoutContextChanged =
+        (typeof panel.getRootNode === 'function' ? panel.getRootNode() : undefined) !==
+          observedPanelRoot ||
+        !sameNodeSequence(observedPanelAncestors, readComposedAncestors(panel)) ||
+        !sameNodeSequence(observedPortalAncestors, readComposedAncestors(panelPortal)) ||
+        !sameNodeSequence(observedBoundaryAncestors, readComposedAncestors(observedBoundary))
+      rebuildMutationContext()
+      if (!layoutContextChanged || !moveSession.current) return true
+      cancelObservedMoveRef.current()
+      refreshGeometry()
+      return false
+    }
+    revalidateLayoutObservationRef.current = revalidateLayoutObservation
+    let animationFrame: number | undefined
+    let trackedBoundary = observedBoundary
+    let trackedBoundaryRect = observedBoundary?.getBoundingClientRect()
+    let trackedPanelRect = panel.getBoundingClientRect()
+    const refreshOnAnimationFrame = () => {
+      const nextBoundary = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
+      const boundaryIdentityChanged = trackedBoundary !== nextBoundary
+      const nextBoundaryRect = nextBoundary?.getBoundingClientRect()
+      const nextPanelRect = panel.getBoundingClientRect()
+      if (
+        trackedBoundary !== nextBoundary ||
+        !sameMeasuredRect(trackedBoundaryRect, nextBoundaryRect) ||
+        !sameMeasuredRect(trackedPanelRect, nextPanelRect)
+      )
+        refreshGeometry()
+      if (boundaryIdentityChanged) {
+        cancelObservedMoveRef.current()
+        registration.current?.update({ resolveDockArena })
+      }
+      trackedBoundary = nextBoundary
+      trackedBoundaryRect = nextBoundaryRect
+      trackedPanelRect = nextPanelRect
+      animationFrame = ownerWindow?.requestAnimationFrame(refreshOnAnimationFrame)
+    }
+    if (ownerWindow && typeof ownerWindow.addEventListener === 'function') {
+      ownerWindow.addEventListener('resize', refreshGeometry)
+      ownerWindow.addEventListener('scroll', refreshGeometry, { capture: true, passive: true })
+      ownerWindow.visualViewport?.addEventListener('resize', refreshGeometry)
+      ownerWindow.visualViewport?.addEventListener('scroll', refreshGeometry)
+      if (tracksBoundaryReference && typeof ownerWindow.requestAnimationFrame === 'function')
+        animationFrame = ownerWindow.requestAnimationFrame(refreshOnAnimationFrame)
+    }
+    return () => {
+      if (revalidateLayoutObservationRef.current === revalidateLayoutObservation)
+        revalidateLayoutObservationRef.current = () => true
+      observer?.disconnect()
+      mutationObserver?.disconnect()
+      removeLayoutEventListeners()
+      if (ownerWindow && typeof ownerWindow.removeEventListener === 'function') {
+        ownerWindow.removeEventListener('resize', refreshGeometry)
+        ownerWindow.removeEventListener('scroll', refreshGeometry, true)
+        ownerWindow.visualViewport?.removeEventListener('resize', refreshGeometry)
+        ownerWindow.visualViewport?.removeEventListener('scroll', refreshGeometry)
+        if (animationFrame !== undefined && typeof ownerWindow.cancelAnimationFrame === 'function')
+          ownerWindow.cancelAnimationFrame(animationFrame)
+      }
+    }
+  }, [
+    boundary,
+    id,
+    observedBoundary,
+    panelPortal,
+    providerPolicy.boundary,
+    refreshGeometry,
+    resolveDockArena,
+    runtime,
+    tracksBoundaryReference,
+  ])
+
+  const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
+    revalidateLayoutObservationRef.current()
+    const preferred = durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition
+    const requested =
+      (effectivePlacement.disposition.kind === 'free'
+        ? (currentPosition() ?? preferred)
+        : (preferred ?? currentPosition())) ?? ({ x: 0, y: 0 } as const)
+    const initialGeometry = measureGeometry() ?? geometryRef.current
+    const projected = initialGeometry
+      ? projectDashPanelPosition(
+          {
+            x: initialGeometry.boundary.left + requested.x,
+            y: initialGeometry.boundary.top + requested.y,
+          },
+          initialGeometry.size,
+          initialGeometry.boundary,
+        )
+      : undefined
+    const current =
+      projected && initialGeometry
+        ? {
+            x: projected.x - initialGeometry.boundary.left,
+            y: projected.y - initialGeometry.boundary.top,
+          }
+        : requested
+    const session = {
+      mode,
+      ...(event
+        ? {
+            pointerId: event.pointerId,
+            startClient: { x: event.clientX, y: event.clientY },
+            captureTarget: event.currentTarget,
+          }
+        : {}),
+      startPosition: current,
+      initialGeometry,
+      startedDocked:
+        effectivePlacement.mode === 'hybrid' && effectivePlacement.disposition.kind === 'docked',
+      moved: false,
+    } as const
+    moveSession.current = session
+    previewPositionRef.current = current
+    setPreviewPosition(current)
+    setMoveMode(mode)
+  }
+
+  const cancelMove = () => {
+    moveSession.current = null
+    previewPositionRef.current = null
+    setPreviewPosition(null)
+    setMoveMode(null)
+  }
+  cancelObservedMoveRef.current = () => {
+    const session = moveSession.current
+    if (session?.mode === 'pointer' && session.pointerId !== undefined)
+      session.captureTarget?.releasePointerCapture?.(session.pointerId)
+    cancelMove()
+  }
+
+  const commitMove = () => {
+    const session = moveSession.current
+    if (!session) return
+    if (!revalidateLayoutObservationRef.current())
+      return { status: 'not_executed' as const, reason: 'unavailable' as const }
+    if (!session.moved) {
+      cancelMove()
+      return { status: 'executed' as const }
+    }
+    if (requestedPlacementMode === 'fixed') {
+      cancelMove()
+      return { status: 'not_executed' as const, reason: 'unavailable' as const }
+    }
+    const preview = previewPositionRef.current ?? session.startPosition
+    if (
+      session.startedDocked &&
+      Math.hypot(preview.x - session.startPosition.x, preview.y - session.startPosition.y) <
+        resolvedPlacementOptions.detachDistance
+    ) {
+      cancelMove()
+      return { status: 'executed' as const }
+    }
+    const latestGeometry = measureGeometry()
+    const initialGeometry = session.initialGeometry
+    if (
+      initialGeometry &&
+      (!latestGeometry ||
+        initialGeometry.boundary.left !== latestGeometry.boundary.left ||
+        initialGeometry.boundary.top !== latestGeometry.boundary.top ||
+        initialGeometry.boundary.right !== latestGeometry.boundary.right ||
+        initialGeometry.boundary.bottom !== latestGeometry.boundary.bottom ||
+        initialGeometry.size.width !== latestGeometry.size.width ||
+        initialGeometry.size.height !== latestGeometry.size.height)
+    ) {
+      cancelMove()
+      return { status: 'not_executed' as const, reason: 'unavailable' as const }
+    }
+    const movableMode = requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating'
+    const placement =
+      snapPlacementForMove(movableMode, preview, latestGeometry, resolvedPlacementOptions) ??
+      ({ mode: movableMode, disposition: { kind: 'free' } } as const)
+    const result = runtime.setPlacement(id, placement)
+    announceDashPanelLayoutFailure('Panel movement', result, announceAction)
+    cancelMove()
+    return result
+  }
+
+  const onMovePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if (requestedPlacementMode === 'fixed' || event.button !== 0 || moveSession.current) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    beginMove('pointer', event)
+  }
+
+  const onMovePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
+    const session = moveSession.current
+    const currentGeometry = geometryRef.current
+    if (!session || session.mode !== 'pointer' || session.pointerId !== event.pointerId) return
+    const startClient = session.startClient!
+    if (!currentGeometry) return
+    const projected = projectDashPanelPosition(
+      {
+        x: currentGeometry.boundary.left + session.startPosition.x + event.clientX - startClient.x,
+        y: currentGeometry.boundary.top + session.startPosition.y + event.clientY - startClient.y,
+      },
+      currentGeometry.size,
+      currentGeometry.boundary,
+    )
+    const next = {
+      x: projected.x - currentGeometry.boundary.left,
+      y: projected.y - currentGeometry.boundary.top,
+    }
+    moveSession.current = {
+      ...session,
+      moved: next.x !== session.startPosition.x || next.y !== session.startPosition.y,
+    }
+    previewPositionRef.current = next
+    setPreviewPosition(next)
+  }
+
+  const onMovePointerUp = (event: ReactPointerEvent<HTMLElement>) => {
+    const session = moveSession.current
+    if (!session || session.mode !== 'pointer' || session.pointerId !== event.pointerId) return
+    session.captureTarget?.releasePointerCapture?.(event.pointerId)
+    commitMove()
+  }
+
+  const onMovePointerCancel = (event?: ReactPointerEvent<HTMLElement>) => {
+    const session = moveSession.current
+    if (!session || session.mode !== 'pointer') return
+    if (event && session.pointerId !== event.pointerId) return
+    if (event) session.captureTarget?.releasePointerCapture?.(event.pointerId)
+    cancelMove()
+  }
+
+  const nativeMoveHandlersRef = useRef({
+    move: onMovePointerMove,
+    up: onMovePointerUp,
+    cancel: onMovePointerCancel,
+  })
+  useLayoutEffect(() => {
+    nativeMoveHandlersRef.current = {
+      move: onMovePointerMove,
+      up: onMovePointerUp,
+      cancel: onMovePointerCancel,
+    }
+  })
+
+  useEffect(() => {
+    const ownerWindow = asideRef.current?.ownerDocument.defaultView
+    if (
+      moveMode !== 'pointer' ||
+      !ownerWindow ||
+      typeof ownerWindow.addEventListener !== 'function' ||
+      typeof ownerWindow.removeEventListener !== 'function'
+    )
+      return
+    const move = (event: PointerEvent) =>
+      nativeMoveHandlersRef.current.move(event as unknown as ReactPointerEvent<HTMLElement>)
+    const up = (event: PointerEvent) =>
+      nativeMoveHandlersRef.current.up(event as unknown as ReactPointerEvent<HTMLElement>)
+    const cancel = (event: PointerEvent) =>
+      nativeMoveHandlersRef.current.cancel(event as unknown as ReactPointerEvent<HTMLElement>)
+    ownerWindow.addEventListener('pointermove', move)
+    ownerWindow.addEventListener('pointerup', up)
+    ownerWindow.addEventListener('pointercancel', cancel)
+    return () => {
+      ownerWindow.removeEventListener('pointermove', move)
+      ownerWindow.removeEventListener('pointerup', up)
+      ownerWindow.removeEventListener('pointercancel', cancel)
+      const session = moveSession.current
+      if (session?.mode === 'pointer') {
+        session.captureTarget?.releasePointerCapture?.(session.pointerId ?? -1)
+        moveSession.current = null
+        previewPositionRef.current = null
+      }
+    }
+  }, [moveMode])
+
+  const onMoveKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    const session = moveSession.current
+    if (!session) {
+      if (requestedPlacementMode === 'fixed') return
+      if (event.key === 'Enter' || event.key === ' ') {
+        if (event.repeat) return
+        event.preventDefault()
+        beginMove('keyboard')
+      }
+      return
+    }
+    if (session.mode !== 'keyboard') return
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      cancelMove()
+      return
+    }
+    if (event.key === 'Enter') {
+      if (event.repeat) return
+      event.preventDefault()
+      commitMove()
+      return
+    }
+    const distance = event.shiftKey ? 10 : 1
+    let dx = 0
+    let dy = 0
+    if (event.key === 'ArrowLeft') dx = -distance
+    if (event.key === 'ArrowRight') dx = distance
+    if (event.key === 'ArrowUp') dy = -distance
+    if (event.key === 'ArrowDown') dy = distance
+    if (dx === 0 && dy === 0) return
+    event.preventDefault()
+    const current = previewPositionRef.current ?? session.startPosition
+    const currentGeometry = geometryRef.current
+    if (!currentGeometry) return
+    const projected = projectDashPanelPosition(
+      {
+        x: currentGeometry.boundary.left + current.x + dx,
+        y: currentGeometry.boundary.top + current.y + dy,
+      },
+      currentGeometry.size,
+      currentGeometry.boundary,
+    )
+    const next = {
+      x: projected.x - currentGeometry.boundary.left,
+      y: projected.y - currentGeometry.boundary.top,
+    }
+    moveSession.current = {
+      ...session,
+      moved: next.x !== session.startPosition.x || next.y !== session.startPosition.y,
+    }
+    previewPositionRef.current = next
+    setPreviewPosition(next)
+  }
   const textualTitle = isTextTitle(title)
   const titleText = textualTitle ? textTitle(title) : ''
   const hasAccessibleLabel = typeof ariaLabel === 'string' && ariaLabel.trim() !== ''
@@ -290,7 +1380,13 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
   }
   const initial = generation.current
-  const registration = useRef<PanelRuntimeRegistration | null>(null)
+  const setAsideElement = useMemo(
+    () => (element: HTMLElement | null) => {
+      asideRef.current = element
+      if (registration.current) runtime.registerElement(id, element)
+    },
+    [id, runtime],
+  )
   useLayoutEffect(() => {
     const current = generation.current
     if (current === null || current.scopeId !== id) return
@@ -301,6 +1397,15 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       collapsible: current.collapsible,
       onVisibilityChange,
       onCollapsedChange,
+      defaultLayout: resolvedPolicyDefaultLayout,
+      placement: resolvedPlacement,
+      dockPositions: resolvedDockPositions,
+      presentation: resolvedPresentation,
+      store: scoped,
+      currentPosition,
+      freeMovePosition,
+      preferredPosition: settledPreferredPosition,
+      resolveDockArena,
     })
     registration.current = next
     runtime.registerElement(id, asideRef.current)
@@ -310,10 +1415,36 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       next.release()
       if (registration.current === next) registration.current = null
     }
-  }, [id, runtime])
+  }, [id, runtime, scoped])
   useEffect(() => {
-    registration.current?.update({ collapsible, onVisibilityChange, onCollapsedChange })
-  }, [collapsible, onVisibilityChange, onCollapsedChange])
+    registration.current?.update({
+      collapsible,
+      onVisibilityChange,
+      onCollapsedChange,
+      defaultLayout: resolvedPolicyDefaultLayout,
+      placement: resolvedPlacement,
+      dockPositions: resolvedDockPositions,
+      presentation: resolvedPresentation,
+      store: scoped,
+      currentPosition,
+      freeMovePosition,
+      preferredPosition: settledPreferredPosition,
+      resolveDockArena,
+    })
+  }, [
+    collapsible,
+    onVisibilityChange,
+    onCollapsedChange,
+    resolvedPolicyDefaultLayout,
+    resolvedPlacement,
+    resolvedDockPositions,
+    resolvedPresentation,
+    scoped,
+    currentPosition,
+    freeMovePosition,
+    settledPreferredPosition,
+    resolveDockArena,
+  ])
 
   const collapsed = runtimeState?.collapsed ?? initial.defaultCollapsed
   const currentCollapsible = runtimeState?.collapsible ?? initial.collapsible
@@ -324,9 +1455,70 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     .find((scopeId) => runtimeSnapshot.panels[scopeId]?.visible)
   const panelName = titleText.trim() === '' ? ariaLabel! : titleText
   const collapseLabel = `${collapsed ? 'Expand' : 'Collapse'} panel ${panelName}`
+  const renderActionMenu =
+    actionMenu !== false && (actionMenu === undefined || actionMenu.length > 0)
+  const DefaultActionItems = defaultActionItems
+  const actionMenuChildren =
+    actionMenu === undefined ? (
+      <>
+        {DefaultActionItems ? <DefaultActionItems scopeId={id} /> : null}
+        <DashPanelActionItems />
+      </>
+    ) : (
+      actionMenu
+    )
   useImperativeHandle(ref, () => asideRef.current as HTMLElement)
 
   const resolvedStyle = panelStyle(style, width)
+  const preferredPosition =
+    previewPosition ??
+    durableLayout?.preferredPosition ??
+    resolvedDefaultLayout.preferredPosition ??
+    currentPosition() ??
+    ({ x: 0, y: 0 } as const)
+  const renderedPlacement = moveMode
+    ? ({
+        mode: requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating',
+        disposition: { kind: 'free' },
+      } as const)
+    : effectivePlacement
+  const renderedDockPosition =
+    renderedPlacement.mode === 'fixed'
+      ? renderedPlacement.disposition.position
+      : renderedPlacement.mode === 'hybrid' && renderedPlacement.disposition.kind === 'docked'
+        ? renderedPlacement.disposition.position
+        : undefined
+  const dockTarget =
+    geometry && renderedDockPosition ? runtime.getDockTarget(id, geometry.boundary) : undefined
+  const renderedRect = geometry
+    ? placementRect(
+        renderedPlacement,
+        geometry.boundary,
+        geometry.size,
+        preferredPosition,
+        resolvedPlacementOptions.snapOffset,
+        dockTarget,
+      )
+    : null
+  const geometryStyle: CSSProperties | undefined = renderedRect
+    ? {
+        position: 'absolute',
+        left: `${mapRectToContainingBlock(asideRef.current, renderedRect).left}px`,
+        top: `${mapRectToContainingBlock(asideRef.current, renderedRect).top}px`,
+        ...(renderedDockPosition === 'full-top' || renderedDockPosition === 'full-bottom'
+          ? { inlineSize: `${renderedRect.width}px` }
+          : renderedRect.width > 0
+            ? { maxInlineSize: `${renderedRect.width}px` }
+            : {}),
+        ...(renderedDockPosition === 'full-left' || renderedDockPosition === 'full-right'
+          ? { blockSize: `${renderedRect.height}px` }
+          : renderedRect.height > 0
+            ? { maxBlockSize: `${renderedRect.height}px` }
+            : {}),
+      }
+    : undefined
+  const combinedStyle =
+    resolvedStyle || geometryStyle ? { ...resolvedStyle, ...geometryStyle } : undefined
   const labelledProps = textualTitle
     ? {
         ...(ariaLabel === undefined && ariaLabelledBy === undefined
@@ -337,98 +1529,158 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       }
     : { 'aria-label': ariaLabel }
 
-  return (
+  const panelRoot = (
     <DashPanelPolicyProvider
       boundary={boundary}
       boundaryInset={boundaryInset}
       dockPositions={dockPositions}
     >
-      <PicodashStoreEntityBoundary store={scoped} kind="dashPanel">
-        <PicodashThemeProvider<string> theme={theme} density={density}>
-          <aside
-            {...asideProps}
-            {...labelledProps}
-            ref={asideRef}
-            className={className ? `picodash-dashpanel ${className}` : 'picodash-dashpanel'}
-            style={resolvedStyle}
-            data-picodash-panel
-            data-visible={visible ? 'true' : 'false'}
-            data-active={activeVisiblePanelId === id ? 'true' : undefined}
-            hidden={!visible}
-            inert={!visible || undefined}
-            aria-hidden={!visible || undefined}
-            onFocusCapture={(event) => {
-              asideProps.onFocusCapture?.(event)
-              const related = event.relatedTarget
-              if (
-                typeof Node !== 'undefined' &&
-                related instanceof Node &&
-                event.currentTarget.contains(related)
-              )
-                return
-              recordPanelInteraction(runtime, id, related)
-            }}
-            data-collapsed={collapsed ? 'true' : 'false'}
-          >
-            <DashHeader
-              slots={{
-                leading: currentCollapsible ? (
-                  <Button
-                    aria-label={collapseLabel}
-                    aria-expanded={!collapsed}
-                    aria-controls={bodyId}
-                    iconOnly
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => {
-                      runtime.toggleCollapsed(id)
-                    }}
-                  >
-                    {collapsed ? '+' : '−'}
-                  </Button>
-                ) : undefined,
-                title: <h2 id={headingId}>{title}</h2>,
-                trailing: showCloseButton ? (
-                  <Button
-                    aria-label={`Close panel ${panelName}`}
-                    iconOnly
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => {
-                      const wasVisible = runtime.getSnapshot().panels[id]?.visible ?? false
-                      try {
-                        runtime.hide(id)
-                      } finally {
-                        const isVisible = runtime.getSnapshot().panels[id]?.visible ?? false
-                        if (wasVisible && !isVisible)
-                          restorePanelFocus(
-                            runtime,
-                            id,
-                            providerPolicy.boundary,
-                            overlayDefaults.portalContainer,
-                          )
-                      }
-                    }}
-                  >
-                    ×
-                  </Button>
-                ) : undefined,
-              }}
-            />
-            <div
-              id={bodyId}
-              data-picodash-panel-body
-              hidden={collapsed}
-              inert={collapsed || undefined}
-              aria-hidden={collapsed || undefined}
-            >
-              {children}
-            </div>
-          </aside>
-        </PicodashThemeProvider>
-      </PicodashStoreEntityBoundary>
+      <DashPanelIdentityProvider scopeId={id}>
+        <DashPanelActionProvider
+          scopeId={id}
+          onRequestRemove={onRequestRemove}
+          announce={announceAction}
+        >
+          <PicodashStoreEntityBoundary store={scoped} kind="dashPanel">
+            <PicodashThemeProvider<string> theme={theme} density={density}>
+              <aside
+                {...asideProps}
+                {...labelledProps}
+                ref={setAsideElement}
+                className={className ? `picodash-dashpanel ${className}` : 'picodash-dashpanel'}
+                style={combinedStyle}
+                data-picodash-panel
+                data-picodash-placement={
+                  moveMode
+                    ? `${renderedPlacement.mode}-free-preview`
+                    : `${effectivePlacement.mode}-${effectivePlacement.disposition.kind}`
+                }
+                data-visible={visible ? 'true' : 'false'}
+                data-active={activeVisiblePanelId === id ? 'true' : undefined}
+                hidden={!visible}
+                inert={!visible || undefined}
+                aria-hidden={!visible || undefined}
+                onFocusCapture={(event) => {
+                  asideProps.onFocusCapture?.(event)
+                  const related = event.relatedTarget
+                  if (
+                    typeof Node !== 'undefined' &&
+                    related instanceof Node &&
+                    event.currentTarget.contains(related)
+                  )
+                    return
+                  recordPanelInteraction(runtime, id, related)
+                }}
+                onPointerMove={onMovePointerMove}
+                onPointerUp={onMovePointerUp}
+                onPointerCancel={onMovePointerCancel}
+                data-collapsed={collapsed ? 'true' : 'false'}
+              >
+                <DashHeader
+                  slots={{
+                    leading: currentCollapsible ? (
+                      <Button
+                        aria-label={collapseLabel}
+                        aria-expanded={!collapsed}
+                        aria-controls={bodyId}
+                        iconOnly
+                        variant="ghost"
+                        size="sm"
+                        onPress={() => {
+                          runtime.toggleCollapsed(id)
+                        }}
+                      >
+                        {collapsed ? '+' : '−'}
+                      </Button>
+                    ) : undefined,
+                    title: <h2 id={headingId}>{title}</h2>,
+                    actions: renderActionMenu ? (
+                      <ActionMenu label={`Actions for ${panelName}`}>
+                        {actionMenuChildren}
+                      </ActionMenu>
+                    ) : undefined,
+                    trailing: (
+                      <div data-picodash-panel-actions>
+                        <Button
+                          ref={registerMoveHandle}
+                          data-picodash-panel-move-handle
+                          aria-label={`Move panel ${panelName}`}
+                          aria-pressed={moveMode !== null}
+                          aria-describedby={moveInstructionsId}
+                          isDisabled={requestedPlacementMode === 'fixed'}
+                          iconOnly
+                          variant="ghost"
+                          size="sm"
+                          onPointerDown={onMovePointerDown}
+                          onPointerMoveCapture={onMovePointerMove}
+                          onPointerUpCapture={onMovePointerUp}
+                          onPointerCancelCapture={onMovePointerCancel}
+                          onKeyDown={onMoveKeyDown}
+                          onBlur={() => {
+                            if (moveSession.current?.mode === 'keyboard') cancelMove()
+                          }}
+                        >
+                          ↕
+                        </Button>
+                        {showCloseButton ? (
+                          <Button
+                            aria-label={`Close panel ${panelName}`}
+                            iconOnly
+                            variant="ghost"
+                            size="sm"
+                            onPress={() => {
+                              const wasVisible = runtime.getSnapshot().panels[id]?.visible ?? false
+                              try {
+                                runtime.hide(id)
+                              } finally {
+                                const isVisible = runtime.getSnapshot().panels[id]?.visible ?? false
+                                if (wasVisible && !isVisible)
+                                  restorePanelFocus(
+                                    runtime,
+                                    id,
+                                    providerPolicy.boundary,
+                                    overlayDefaults.portalContainer,
+                                  )
+                              }
+                            }}
+                          >
+                            ×
+                          </Button>
+                        ) : undefined}
+                      </div>
+                    ),
+                  }}
+                />
+                <div
+                  id={bodyId}
+                  data-picodash-panel-body
+                  hidden={collapsed}
+                  inert={collapsed || undefined}
+                  aria-hidden={collapsed || undefined}
+                >
+                  {children}
+                </div>
+                <div
+                  key={actionAnnouncement.sequence}
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                  data-picodash-panel-status
+                >
+                  {actionAnnouncement.message}
+                </div>
+                <span id={moveInstructionsId} data-picodash-panel-move-instructions>
+                  Press Space or Enter to pick up. Use the arrow keys to move; hold Shift for larger
+                  steps. Press Enter to commit, or Escape to cancel.
+                </span>
+              </aside>
+            </PicodashThemeProvider>
+          </PicodashStoreEntityBoundary>
+        </DashPanelActionProvider>
+      </DashPanelIdentityProvider>
     </DashPanelPolicyProvider>
   )
+  return panelPortal ? createPortal(panelRoot, panelPortal) : panelRoot
 })
 
 export const DashPanel = DashPanelImpl
@@ -498,6 +1750,7 @@ export { ActionMenu, ActionMenuItem, ActionMenuSeparator, ActionSubmenu, DashHea
 
 export type {
   ActionMenuConfirmation,
+  ActionMenuConfirmationGuard,
   ActionMenuItemProps,
   ActionMenuItemVariant,
   ActionMenuProps,

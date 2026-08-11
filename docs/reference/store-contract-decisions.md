@@ -1010,6 +1010,14 @@ scoped.resetRegisteredValues({ includeDescendants? })
 scoped.resetRegisteredValuesOrThrow({ includeDescendants? })
 root.resetRegisteredValues({ scopeId, includeDescendants? })
 root.resetRegisteredValuesOrThrow({ scopeId, includeDescendants? })
+
+type RegisteredValueResetInspection = {
+  readonly registeredFields: readonly string[]
+  readonly changedFields: readonly string[]
+}
+
+scoped.inspectRegisteredValueReset({ includeDescendants? }): RegisteredValueResetInspection
+root.inspectRegisteredValueReset({ scopeId, includeDescendants? }): RegisteredValueResetInspection
 ```
 
 `RESET-REGISTERED-1` fixes the aggregate reset option and error surface:
@@ -1081,6 +1089,13 @@ draft; persistence records the configured reset result.
 Registered-value reset deduplicates root fields and validates one complete candidate. Scoped
 signatures do not accept another scope ID; root signatures require one.
 
+`inspectRegisteredValueReset` uses that exact active-binding and descendant selection but does not
+construct or validate a candidate. It reports sorted registered fields and the sorted subset whose
+current canonical values differ from the configured defaults. The returned record and both arrays
+are deeply immutable. Inspection performs no writes, persistence, notifications, diagnostics, draft
+reads, or Store metadata changes; it only applies the shared lifecycle and exact reset-option
+validation. Its root/scoped option signatures match the corresponding aggregate reset command.
+
 Scope-targeted metadata commands follow the same root/scoped targeting rule. The accepted authoring
 surface is:
 
@@ -1094,6 +1109,10 @@ interface RootMetadataCommands<Result extends CoreTransactionResult = CoreTransa
   removeDashListGroupOrder(scopeId: string, groupId: string): Result
   setDashListCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result
   removeDashListCollapseOverride(scopeId: string, nodeId: string): Result
+  updateDashListCollapseOverrides(
+    scopeId: string,
+    updates: readonly (readonly [nodeId: string, collapsed: boolean | null])[],
+  ): Result
   resetDashListMetadata(scopeId: string): Result
 }
 
@@ -1106,6 +1125,9 @@ interface ScopedMetadataCommands<Result extends CoreTransactionResult = CoreTran
   removeDashListGroupOrder(groupId: string): Result
   setDashListCollapseOverride(nodeId: string, collapsed: boolean): Result
   removeDashListCollapseOverride(nodeId: string): Result
+  updateDashListCollapseOverrides(
+    updates: readonly (readonly [nodeId: string, collapsed: boolean | null])[],
+  ): Result
   resetDashListMetadata(): Result
 }
 ```
@@ -1121,6 +1143,15 @@ Malformed layout, order, group, or node data returns `invalid_metadata` without 
 metadata change returns `changedFields: []` and the affected scope in `changedScopeIds`; a no-op
 returns both arrays empty. The root and affected scoped subscribers are each notified once after the
 complete commit. Unrelated scoped subscribers are not notified.
+
+`updateDashListCollapseOverrides` is the accepted batch form for DashList collapse actions. Its
+readonly tuple array is validated in full before mutation; tuples are `[nodeId, collapsed]`, where a
+boolean sets an explicit override and `null` removes one. Node IDs must be valid and unique within
+the batch, and entries apply in order. The operation is one atomic metadata transaction that
+preserves root/group orders and unrelated or dormant collapse overrides. Empty and semantic no-op
+batches succeed without notification, while malformed tuples, IDs, values, or duplicates return
+`invalid_metadata` without changing the prior snapshot. Empty product and scope records are pruned
+through the normal metadata codec.
 
 Destruction retains its separate signatures:
 

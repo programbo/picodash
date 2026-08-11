@@ -5,11 +5,29 @@
 }
 
 .picodash-dashpanel {
-  position: relative;
+  position: absolute;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
   inline-size: var(--picodash-panel-width);
   max-inline-size: 100%;
+  overflow: hidden;
   z-index: 0;
+}
+
+.picodash-dashpanel > [data-slot='dash-header'] [data-picodash-panel-actions] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+[data-picodash-panel-move-handle] {
+  touch-action: none;
+}
+
+.picodash-dashpanel[data-picodash-placement$='free-preview'] {
+  outline: 2px dashed var(--picodash-focus-ring, currentColor);
+  outline-offset: 2px;
 }
 
 .picodash-dashpanel[data-active='true'] {
@@ -18,9 +36,23 @@
 
 .picodash-dashpanel > [data-slot='dash-header'] {
   display: flex;
+  flex: none;
   align-items: center;
 }
 
 .picodash-dashpanel > [data-picodash-panel-body] {
+  flex: 1 1 auto;
   min-inline-size: 0;
+  min-block-size: 0;
+  overflow: auto;
+}
+
+[data-picodash-panel-status],
+[data-picodash-panel-move-instructions] {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

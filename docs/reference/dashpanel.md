@@ -10,11 +10,11 @@ source of truth.
 > Implementation: Partial
 > Evidence: The first standalone shell subset is covered by
 > `packages/dashpanel/tests/dashpanel.test.tsx`, `dashpanel.types.test.ts`, and
-> `package-artifacts.mjs`.
-> Notes: This cut implements only Provider/Panel composition, shared DashHeader and ActionMenu
-> reexports, Store scope boundaries, theme/density composition, semantic naming, and width-token
-> styling. Placement, lifecycle controls, persistence, modal projections, catalogs, and later
-> package entries remain unimplemented.
+> `package-artifacts.mjs`, `runtime/panel-runtime.test.ts`, and `portal.test.tsx`.
+> Notes: This cut implements Provider/Panel composition, rendered ordinary-Panel placement,
+> Store-backed durable layout, pointer and keyboard movement, portal ownership, actions, confirmed
+> removal, and the integration contribution entry. Drawer/sheet presentation, catalog coverage, and
+> exhaustive stabilization remain planned.
 
 ## Package purpose
 
@@ -47,16 +47,16 @@ function Tools() {
 }
 ```
 
-| API                 | Contract | Implementation | Purpose                                                  |
-| ------------------- | -------- | -------------- | -------------------------------------------------------- |
-| `DashPanelProvider` | Accepted | Partial        | Hosts Panels over one explicit root Store.               |
-| `DashPanel`         | Accepted | Partial        | Renders one Panel with arbitrary React content.          |
-| `DashPanelTrigger`  | Accepted | Implemented    | Application-placed show/focus control for one Panel.     |
-| `DashPanelLauncher` | Accepted | Implemented    | Provider-level discovery/reopen control for its Panels.  |
-| `useDashPanel`      | Accepted | Planned        | Controls declared visibility, collapse, and activation.  |
-| `id`                | Accepted | Implemented    | Resolves immutable Store scope identity; not a DOM `id`. |
-| `title`             | Accepted | Implemented    | Required accessible Panel name and visible heading.      |
-| `children`          | Accepted | Implemented    | Arbitrary React content.                                 |
+| API                 | Contract | Implementation | Purpose                                                          |
+| ------------------- | -------- | -------------- | ---------------------------------------------------------------- |
+| `DashPanelProvider` | Accepted | Partial        | Hosts Panels over one explicit root Store.                       |
+| `DashPanel`         | Accepted | Partial        | Renders one Panel with arbitrary React content.                  |
+| `DashPanelTrigger`  | Accepted | Implemented    | Application-placed show/focus control for one Panel.             |
+| `DashPanelLauncher` | Accepted | Implemented    | Provider-level discovery/reopen control for its Panels.          |
+| `useDashPanel`      | Accepted | Implemented    | Controls visibility, collapse, activation, placement, and reset. |
+| `id`                | Accepted | Implemented    | Resolves immutable Store scope identity; not a DOM `id`.         |
+| `title`             | Accepted | Implemented    | Required accessible Panel name and visible heading.              |
+| `children`          | Accepted | Implemented    | Arbitrary React content.                                         |
 
 The package-native names are the target. `PicodashProvider` and `PicodashPanel` remain prototype
 and integrated-facade evidence, not a second standalone API.
@@ -67,16 +67,16 @@ the stable foundational components and provides its own integration Provider com
 
 ## Provider contract
 
-| Provider capability       | Contract | Implementation | Rule                                                                                                     |
-| ------------------------- | -------- | -------------- | -------------------------------------------------------------------------------------------------------- |
-| Required root `store`     | Accepted | Implemented    | Scoped Stores are rejected.                                                                              |
-| `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                                                     |
-| Hard Store/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                                                  |
-| Shared `boundary`         | Accepted | Partial        | Provider and Panel resolution are wired; measurement and rendered geometry remain planned.               |
-| Shared `boundaryInset`    | Accepted | Partial        | Provider and Panel resolution/normalization are wired; measurement and rendered geometry remain planned. |
-| Dock-position policy      | Accepted | Implemented    | Provider resolves the maximum canonical set; Panels may narrow it without widening.                      |
-| Portal ownership          | Accepted | Partial        | Shared overlay defaults are composed; Panel portal ownership is later work.                              |
-| Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                                                      |
+| Provider capability       | Contract | Implementation | Rule                                                                                                           |
+| ------------------------- | -------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| Required root `store`     | Accepted | Implemented    | Scoped Stores are rejected.                                                                                    |
+| `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                                                           |
+| Hard Store/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                                                        |
+| Shared `boundary`         | Accepted | Partial        | Resolution, measurement, containment, and rendered ordinary-Panel geometry are wired.                          |
+| Shared `boundaryInset`    | Accepted | Partial        | Inheritance, normalization, measurement, and rendered ordinary-Panel geometry are wired.                       |
+| Dock-position policy      | Accepted | Implemented    | Provider resolves the maximum canonical set; Panels may narrow it without widening.                            |
+| Portal ownership          | Accepted | Implemented    | Shared overlay defaults are composed and ownership is provided through Provider `portalContainer`/`layerBase`. |
+| Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                                                            |
 
 The root Store and `providerId` are immutable while mounted. Theme, boundary, inset, and enabled
 dock positions are runtime policy and may change through their declared props.
@@ -136,7 +136,18 @@ presentation, and other future prop groups remain planned.
 The exact launch prop surface is:
 
 ```ts
-type DashPanelStyle = Omit<CSSProperties, 'inlineSize' | 'width'>
+type DashPanelStyle = Omit<
+  CSSProperties,
+  | 'blockSize'
+  | 'inlineSize'
+  | 'maxBlockSize'
+  | 'maxInlineSize'
+  | 'minBlockSize'
+  | 'minHeight'
+  | 'minInlineSize'
+  | 'minWidth'
+  | 'width'
+>
 
 interface DashPanelProps<CustomTheme extends string = never> extends Omit<
   ComponentPropsWithoutRef<'aside'>,
@@ -205,10 +216,11 @@ When `preferredPosition` is omitted, the first transition to free placement uses
 contained rendered position. Declared defaults never become persisted overrides merely because a
 Panel mounts.
 
-`style.width` and `style.inlineSize` are reserved so they cannot compete with the `width` prop and
-the public Panel-width token. Callers use `width` for one Panel or a `className`/stylesheet rule for
-selector-based sizing. Other ordinary `aside` attributes and styles remain available. DashPanel
-forwards an `HTMLAsideElement` ref.
+`style.width`, logical-size, and physical/logical minimum-size properties are reserved so consumer
+styles cannot compete with the `width` prop or projected placement constraints. Width uses the
+`width` prop; maximum logical sizes and all minimum sizes are owned by placement geometry. Callers
+use `width` for one Panel or a `className`/stylesheet rule for selector-based sizing. Other ordinary
+`aside` attributes and styles remain available. DashPanel forwards an `HTMLAsideElement` ref.
 
 The prototype props `store`, `contentMode`, `close`, `onClose`, controlled visibility/collapse, and
 Motion-specific animation or drag props do not enter the target API. DashPanel exposes behavior
@@ -244,7 +256,7 @@ state.
 > controls, hidden/inert retained bodies, callback ordering, dynamic policy updates, triggers,
 > launchers, transient close/reopen, and cleanup. `apps/lab/tests/contract-lab.spec.ts` covers real
 > browser focus entry/restoration and Bridge-backed retained Store behavior.
-> Notes: `useDashPanel`, durable layout, confirmed removal, and modal presentation remain planned.
+> Notes: `useDashPanel`, durable layout, and confirmed removal are implemented; modal presentation remains deferred.
 
 DashPanel renders a non-modal `aside` with a required title, generated accessible relationships,
 header actions, and a body for arbitrary children. Scope `id` never doubles as an HTML `id`; DOM
@@ -255,7 +267,7 @@ The first public contract is Provider-owned uncontrolled visibility and collapse
 - `defaultVisible` and `defaultCollapsed` seed transient state;
 - callbacks report committed visibility and collapse changes;
 - `DashPanelTrigger` and `DashPanelLauncher` control visibility and activation in this lifecycle
-  cut; `useDashPanel` remains deferred until layout commands are implemented;
+  cut; `useDashPanel` controls the same lifecycle fields and layout reset when called programmatically;
 - a controlled `visible` prop is deferred until a concrete consumer requires it.
 
 A hidden Panel remains mounted, retains child React state and all leases, is absent visually and
@@ -271,15 +283,15 @@ mechanism and does not add a public z-index prop or token.
 
 > Contract: Accepted
 > Implementation: Partial
-> Evidence: `packages/dashpanel/src/placement/placement.test.ts` covers canonical placement
-> combinations, defaults, option normalization, finite coordinates, hostile records, and recursive
-> freezing. `packages/dashpanel/src/placement/dock-policy.test.ts` covers canonical policy
-> resolution, provider inheritance, panel narrowing, disabled-position classification, and frozen
-> detached outputs. The root type exports are checked by `dashpanel.types.test.ts` and the package
-> artifact test.
-> Notes: This cut establishes vocabulary, pure normalization, and pure dock-position policy only.
-> Boundary math, docking, occupancy, allocation, pointer input, persistence, and runtime placement
-> remain unimplemented.
+> Evidence: `packages/dashpanel/src/placement/placement.test.ts`,
+> `packages/dashpanel/src/placement/dock-policy.test.ts`,
+> `packages/dashpanel/src/geometry/placement-geometry.test.ts`,
+> `packages/dashpanel/src/placement/dock-arena.test.ts`, and
+> `packages/dashpanel/tests/dashpanel.test.tsx` cover normalization, policy, containment, snap/dock
+> projection, occupancy, allocation, rendered placement, movement, and durable commit/reset.
+> `apps/lab/tests/contract-lab.spec.ts` covers real browser geometry and input choreography.
+> Notes: Resize observers, viewport-change stabilization, and adaptive modal projection remain
+> Phase 3 work.
 
 Placement mode describes the permitted behavior model. Disposition describes the current settled
 result.
@@ -586,6 +598,9 @@ accessibility, and conflict contract.
 Pointer and keyboard operations must reach the same canonical placements and reject the same
 occupied targets. Pointer movement uses capture, contained unsnapped Panel geometry, and current
 pointer position. A Hybrid proxy is visual intent only and never becomes the input to geometry.
+On commit, the projected proxy settles to the nearest permitted snap target when its top-left is
+within `snapProximity` CSS pixels of that target's top-left. Floating Panels use all eight targets;
+Hybrid Panels use only top and bottom.
 
 Keyboard movement uses the Panel's move control:
 
@@ -617,7 +632,7 @@ move focus; the initiating UI component coordinates focus after the visibility c
 | ------------------------- | -------- | -------------- | ------------------------------------------- |
 | Hide/close                | Accepted | Prototype      | Changes transient visibility.               |
 | Reopen                    | Accepted | Prototype      | Restores visibility without remounting.     |
-| Request permanent removal | Accepted | Planned        | Notifies application; application unmounts. |
+| Request permanent removal | Accepted | Implemented    | Notifies application; application unmounts. |
 | Imperative deregistration | Rejected | Prototype      | Legacy behavior removed during conformance. |
 
 The Close button calls the transient hide command; it never requests permanent removal.
@@ -838,7 +853,7 @@ remain part of the broader partial Panel lifecycle.
 ## Panel controller
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
 
 ```ts
 type DashPanelCommandResult =
@@ -901,10 +916,9 @@ structured persistent transaction result; `status: 'executed'` means the Store c
 the transaction necessarily committed. Structured Store rejection remains visible in `transaction`.
 Ownership, lifecycle, and malformed-placement contract errors continue to throw.
 
-The public hook remains unimplemented in the lifecycle alpha because this exact accepted controller
-also exposes placement state and durable layout commands. DashPanelTrigger and DashPanelLauncher use
-a package-private lifecycle controller until `PANEL-LAYOUT` can implement the accepted hook without
-stubs or a second staged public API.
+The public hook is now implemented and exposed through the accepted API. It is the command-level entry
+for visibility, activation, placement, collapse, and layout-reset operations when callers need explicit
+programmatic control. DashPanelTrigger and DashPanelLauncher continue to use their focused control paths.
 
 DashPanel exposes no mutable Provider store, generic runtime selector, or `/advanced` entrypoint in
 the initial contract. Applications select Store values through `@picodash/store/react`; DashPanel
@@ -915,7 +929,7 @@ does not create another equality or value-subscription API.
 | Surface                           | Contract | Implementation | Purpose                                             |
 | --------------------------------- | -------- | -------------- | --------------------------------------------------- |
 | `@picodash/dashpanel`             | Accepted | Prototype      | Provider, Panel, controller, actions, UI reexports. |
-| `@picodash/dashpanel/integration` | Accepted | Planned        | Narrow default-action contribution seam.            |
+| `@picodash/dashpanel/integration` | Accepted | Implemented    | Narrow default-action contribution seam.            |
 | `@picodash/dashpanel/catalog`     | Accepted | Planned        | Static accepted-component metadata.                 |
 | `@picodash/dashpanel/style.css`   | Accepted | Prototype      | UI foundation plus Panel structural styles.         |
 

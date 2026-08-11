@@ -1,3 +1,4 @@
+import { fc, test as property } from '@fast-check/vitest'
 import { describe, expect, it } from 'vite-plus/test'
 import {
   createPicodashStore,
@@ -25,6 +26,35 @@ const failure = (run: () => unknown) => {
 }
 
 describe('registered value reset', () => {
+  property.prop([fc.uniqueArray(fc.constantFrom('a', 'b', 'c'), { maxLength: 3 })])(
+    'reports the same selected and changed fields for every active registration subset',
+    (ids) => {
+      const store = createPicodashStore({
+        valueOwner: 'store',
+        initialValues: { a: 1, b: 1, c: 1 },
+        fields: {
+          a: { defaultValue: 0 as number },
+          b: { defaultValue: 0 as number },
+          c: { defaultValue: 0 as number },
+        },
+      })
+      const scope = store.scope('property')
+      const fields = { a: scope.fields.a, b: scope.fields.b, c: scope.fields.c }
+      const leases = ids.map((id) =>
+        acquireBindingLease(scope, { itemId: id, field: fields[id], mode: 'display' }),
+      )
+      const before = store.getState()
+      const expected = [...ids].sort()
+      expect(scope.inspectRegisteredValueReset()).toEqual({
+        registeredFields: expected,
+        changedFields: expected,
+      })
+      expect(store.getState()).toBe(before)
+      for (const lease of leases) lease.release()
+      store.destroy()
+    },
+  )
+
   it('uses active input and display registrations once, excluding released bindings', () => {
     const store = createPicodashStore({
       valueOwner: 'store',
@@ -47,6 +77,19 @@ describe('registered value reset', () => {
       field: scope.fields.second,
       mode: 'display',
     })
+    const beforeInspection = store.getState()
+    let notifications = 0
+    store.subscribe(() => notifications++)
+    const inspection = scope.inspectRegisteredValueReset()
+    expect(inspection).toEqual({
+      registeredFields: ['first', 'second'],
+      changedFields: ['first', 'second'],
+    })
+    expect(Object.isFrozen(inspection)).toBe(true)
+    expect(Object.isFrozen(inspection.registeredFields)).toBe(true)
+    expect(Object.isFrozen(inspection.changedFields)).toBe(true)
+    expect(store.getState()).toBe(beforeInspection)
+    expect(notifications).toBe(0)
     expect(scope.resetRegisteredValues()).toEqual({
       ok: true,
       changedFields: ['first', 'second'],
@@ -86,6 +129,12 @@ describe('registered value reset', () => {
       itemId: 'child',
       field: store.fields.second,
       mode: 'input',
+    })
+    expect(
+      store.inspectRegisteredValueReset({ scopeId: 'parent', includeDescendants: true }),
+    ).toEqual({
+      registeredFields: ['first', 'second'],
+      changedFields: ['first', 'second'],
     })
     expect(
       store.resetRegisteredValues({ scopeId: 'parent', includeDescendants: true }),
@@ -158,6 +207,11 @@ describe('registered value reset', () => {
     first.setInput(firstBinding, 'reject')
     second.setInput(secondBinding, 'reject')
     const before = driver.calls.length
+    expect(first.inspectRegisteredValueReset()).toEqual({
+      registeredFields: ['value'],
+      changedFields: ['value'],
+    })
+    expect(driver.calls.length).toBe(before)
     expect(first.resetRegisteredValues()).toMatchObject({
       ok: true,
       changedFields: ['value'],
@@ -200,6 +254,9 @@ describe('registered value reset', () => {
       expect(failure(() => store.resetRegisteredValues(options as never)).context).toEqual({
         reason,
       })
+      expect(failure(() => store.inspectRegisteredValueReset(options as never)).context).toEqual({
+        reason,
+      })
     }
     let nestedError: unknown
     const rootOptions = new Proxy(
@@ -235,7 +292,15 @@ describe('registered value reset', () => {
     expect(store.scope('scope').resetRegisteredValues(scopedOptions)).toMatchObject({ ok: false })
     expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
     expect(store.getState().values.second).toBe(2)
+    expect(
+      failure(() =>
+        store.scope('scope').inspectRegisteredValueReset({ includeDescendants: 1 } as never),
+      ),
+    ).toMatchObject({ context: { reason: 'invalid-include-descendants' } })
     expect(failure(() => store.resetRegisteredValues({} as never)).code).toBe('invalid-scope-id')
+    expect(failure(() => store.inspectRegisteredValueReset({} as never)).code).toBe(
+      'invalid-scope-id',
+    )
     const before = store.getState()
     expect(store.resetRegisteredValues({ scopeId: 'scope' })).toMatchObject({ ok: false })
     expect(store.getState().values).toEqual(before.values)

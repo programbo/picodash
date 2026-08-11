@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vite-plus/test'
+import type { DashPanelLayoutRecord } from '@picodash/store'
 import { focusPanel, recordPanelEntry, restorePanelFocus } from './panel-lifecycle.ts'
 import { createPanelRuntime, type PanelRuntimeConfig } from './panel-runtime.ts'
 
@@ -17,6 +18,10 @@ describe('private DashPanel runtime model', () => {
       visible: true,
       collapsed: false,
       collapsible: true,
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'top-right' },
+      },
     })
     expect(first.activationOrder).toEqual(['first'])
     expect(Object.isFrozen(first)).toBe(true)
@@ -152,6 +157,28 @@ describe('private DashPanel runtime model', () => {
     expect(runtime.getSnapshot().panels.panel?.collapsed).toBe(false)
   })
 
+  it('publishes forced expansion before invoking its callback and stays consistent if it throws', () => {
+    const runtime = createPanelRuntime()
+    const callback = vi.fn(() => {
+      expect(runtime.getSnapshot().panels.panel).toMatchObject({
+        collapsed: false,
+        collapsible: false,
+      })
+      throw new Error('consumer callback failed')
+    })
+    const registration = runtime.acquire(config('panel'))
+    runtime.collapse('panel')
+
+    expect(() => registration.update({ collapsible: false, onCollapsedChange: callback })).toThrow(
+      'consumer callback failed',
+    )
+    expect(runtime.getSnapshot().panels.panel).toMatchObject({
+      collapsed: false,
+      collapsible: false,
+    })
+    expect(callback).toHaveBeenCalledWith(false)
+  })
+
   it('updates callback references without publishing and uses the latest callback', () => {
     const runtime = createPanelRuntime()
     const first = vi.fn()
@@ -211,6 +238,446 @@ describe('private DashPanel runtime model', () => {
     unsubscribe()
     runtime.acquire(config('again'))
     expect(listener).toHaveBeenCalledTimes(2)
+  })
+
+  it('preserves the durable free anchor across snap and dock commands', () => {
+    const runtime = createPanelRuntime()
+    const setDashPanelLayout = vi.fn((_layout: DashPanelLayoutRecord) => ({ ok: true }) as never)
+    const registration = runtime.acquire(
+      config('panel', {
+        defaultLayout: {
+          placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
+          preferredPosition: { x: 7, y: 9 },
+        },
+        placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
+        preferredPosition: { x: 7, y: 9 },
+        dockPositions: ['full-left'],
+        currentPosition: () => ({ x: 90, y: 80 }),
+        store: { setDashPanelLayout, resetDashPanelLayout: vi.fn() },
+      }),
+    )
+    runtime.setPlacement('panel', {
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'full-left' },
+    })
+    runtime.setPlacement('panel', { mode: 'floating', disposition: { kind: 'free' } })
+    expect(setDashPanelLayout.mock.calls.map(([layout]) => layout.preferredPosition)).toEqual([
+      { x: 7, y: 9 },
+      { x: 7, y: 9 },
+    ])
+
+    registration.update({ freeMovePosition: () => ({ x: 20, y: 30 }) })
+    runtime.setPlacement('panel', { mode: 'hybrid', disposition: { kind: 'free' } })
+    expect(setDashPanelLayout).toHaveBeenLastCalledWith({
+      placement: { mode: 'hybrid', disposition: { kind: 'free' } },
+      preferredPosition: { x: 20, y: 30 },
+    })
+  })
+
+  it('scopes occupancy to boundary identity and inset', () => {
+    const runtime = createPanelRuntime()
+    const boundaryA = {}
+    const boundaryB = {}
+    const arena =
+      (boundary: object, inset = 0) =>
+      () => ({
+        boundary,
+        inset: { top: inset, right: inset, bottom: inset, left: inset },
+      })
+    const placement = {
+      mode: 'fixed' as const,
+      disposition: { kind: 'docked' as const, position: 'full-left' as const },
+    }
+    const store = () => ({
+      setDashPanelLayout: vi.fn(() => ({ ok: true }) as never),
+      resetDashPanelLayout: vi.fn(() => ({ ok: true }) as never),
+    })
+    runtime.acquire(
+      config('first', {
+        placement,
+        preferredPosition: { x: 0, y: 0 },
+        dockPositions: ['full-left'],
+        resolveDockArena: arena(boundaryA),
+        store: store(),
+      }),
+    )
+    const otherBoundary = runtime.acquire(
+      config('other-boundary', {
+        placement,
+        preferredPosition: { x: 0, y: 0 },
+        dockPositions: ['full-left'],
+        resolveDockArena: arena(boundaryB),
+        store: store(),
+      }),
+    )
+    runtime.acquire(
+      config('other-inset', {
+        placement,
+        preferredPosition: { x: 0, y: 0 },
+        dockPositions: ['full-left'],
+        resolveDockArena: arena(boundaryA, 8),
+        store: store(),
+      }),
+    )
+    expect(runtime.getSnapshot().panels['other-boundary']?.placement).toEqual(placement)
+    expect(runtime.getSnapshot().panels['other-inset']?.placement).toEqual(placement)
+
+    otherBoundary.update({ resolveDockArena: arena(boundaryA) })
+    expect(runtime.getSnapshot().panels['other-boundary']).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'top-right' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+    otherBoundary.update({ resolveDockArena: arena(boundaryB) })
+    expect(runtime.getSnapshot().panels['other-boundary']?.placement).toEqual(placement)
+  })
+
+  it('keeps the first dock lease and materializes later conflicts as a non-durable fallback', () => {
+    const runtime = createPanelRuntime()
+    const placement = {
+      mode: 'fixed' as const,
+      disposition: { kind: 'docked' as const, position: 'full-left' as const },
+    }
+    const first = runtime.acquire(config('first', { placement }))
+    const setDashPanelLayout = vi.fn(() => ({ ok: true }) as never)
+    runtime.acquire(
+      config('second', {
+        placement,
+        preferredPosition: { x: 4, y: 6 },
+        dockPositions: ['full-left'],
+        store: { setDashPanelLayout, resetDashPanelLayout: vi.fn() },
+      }),
+    )
+    expect(runtime.getSnapshot().panels.second).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'top-right' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+    expect(setDashPanelLayout).not.toHaveBeenCalled()
+    first.release()
+    expect(runtime.getSnapshot().panels.second?.placement).toEqual({
+      mode: 'floating',
+      disposition: { kind: 'snapped', position: 'top-right' },
+    })
+    expect(runtime.setPlacement('second', placement).status).toBe('executed')
+    expect(runtime.getSnapshot().panels.second?.placement).toEqual(placement)
+  })
+
+  it('rematerializes an occupied dock request when its declared fallback changes', () => {
+    const runtime = createPanelRuntime()
+    const occupied = {
+      mode: 'fixed' as const,
+      disposition: { kind: 'docked' as const, position: 'full-left' as const },
+    }
+    runtime.acquire(config('occupant', { placement: occupied }))
+    const registration = runtime.acquire(
+      config('conflict', {
+        placement: occupied,
+        defaultLayout: {
+          placement: {
+            mode: 'floating',
+            disposition: { kind: 'snapped', position: 'top-left' },
+          },
+        },
+      }),
+    )
+    expect(runtime.getSnapshot().panels.conflict).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'top-left' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+
+    registration.update({
+      defaultLayout: {
+        placement: {
+          mode: 'floating',
+          disposition: { kind: 'snapped', position: 'bottom-right' },
+        },
+      },
+    })
+    expect(runtime.getSnapshot().panels.conflict).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'bottom-right' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+  })
+
+  it('does not treat an equivalent recreated default as an explicit dock recovery request', () => {
+    const runtime = createPanelRuntime()
+    const occupied = {
+      mode: 'fixed' as const,
+      disposition: { kind: 'docked' as const, position: 'full-left' as const },
+    }
+    const occupant = runtime.acquire(config('occupant', { placement: occupied }))
+    const registration = runtime.acquire(
+      config('conflict', {
+        placement: occupied,
+        defaultLayout: {
+          placement: {
+            mode: 'floating',
+            disposition: { kind: 'snapped', position: 'top-left' },
+          },
+          preferredPosition: { x: 12, y: 18 },
+        },
+      }),
+    )
+    occupant.release()
+
+    registration.update({
+      defaultLayout: {
+        placement: {
+          mode: 'floating',
+          disposition: { kind: 'snapped', position: 'top-left' },
+        },
+        preferredPosition: { x: 12, y: 18 },
+      },
+    })
+
+    expect(runtime.getSnapshot().panels.conflict).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'top-left' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+  })
+
+  it('does not treat an equivalent recreated dock arena as an explicit recovery request', () => {
+    const runtime = createPanelRuntime()
+    const boundary = {}
+    const arena = () => ({
+      boundary,
+      inset: { top: 8, right: 8, bottom: 8, left: 8 },
+    })
+    const occupied = {
+      mode: 'fixed' as const,
+      disposition: { kind: 'docked' as const, position: 'full-left' as const },
+    }
+    const occupant = runtime.acquire(
+      config('occupant', { placement: occupied, resolveDockArena: arena }),
+    )
+    const registration = runtime.acquire(
+      config('conflict', { placement: occupied, resolveDockArena: arena }),
+    )
+    occupant.release()
+
+    registration.update({ resolveDockArena: () => arena() })
+
+    expect(runtime.getSnapshot().panels.conflict).toMatchObject({
+      placement: {
+        mode: 'floating',
+        disposition: { kind: 'snapped', position: 'top-right' },
+      },
+      placementFallbackReason: 'dock_occupied',
+    })
+  })
+
+  it('returns side allocation segments for the rendered occupants in one arena', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('main', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-left' },
+        },
+      }),
+    )
+    expect(runtime.getDockTarget('corner', { width: 300, height: 300 })).toEqual({
+      allocation: 100,
+      offset: 0,
+    })
+    expect(runtime.getDockTarget('main', { width: 300, height: 300 })).toEqual({
+      allocation: 200,
+      offset: 100,
+    })
+  })
+
+  it('shortens full horizontal edges to the measured inner edges of occupied corners', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('edge', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-top' },
+        },
+      }),
+    )
+    runtime.registerElement('corner', {
+      getBoundingClientRect: () => ({ width: 80 }),
+    } as never)
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+      inlineAllocation: 220,
+      inlineOffset: 80,
+    })
+  })
+
+  it('retains a hidden corner allocation from its last settled width', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('edge', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-top' },
+        },
+      }),
+    )
+    let renderedWidth = 80
+    runtime.registerElement('corner', {
+      getBoundingClientRect: () => ({ width: renderedWidth }),
+    } as never)
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+      inlineAllocation: 220,
+      inlineOffset: 80,
+    })
+
+    runtime.hide('corner')
+    renderedWidth = 0
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+      inlineAllocation: 220,
+      inlineOffset: 80,
+    })
+  })
+
+  it('releases a corner allocation when its visible width becomes zero', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('edge', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-top' },
+        },
+      }),
+    )
+    let renderedWidth = 80
+    runtime.registerElement('corner', {
+      getBoundingClientRect: () => ({ width: renderedWidth }),
+    } as never)
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+      inlineAllocation: 220,
+      inlineOffset: 80,
+    })
+
+    renderedWidth = 0
+    runtime.notifyElementResize('corner', 0)
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toBeUndefined()
+  })
+
+  it('caches a corner width before a later edge requests its allocation', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    let renderedWidth = 80
+    runtime.registerElement('corner', {
+      hidden: false,
+      style: {
+        getPropertyValue: () => '',
+        getPropertyPriority: () => '',
+        setProperty: vi.fn(),
+        removeProperty: vi.fn(),
+      },
+      getBoundingClientRect: () => ({ width: renderedWidth }),
+    } as never)
+    runtime.hide('corner')
+    renderedWidth = 0
+    runtime.acquire(
+      config('edge', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-top' },
+        },
+      }),
+    )
+
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+      inlineAllocation: 220,
+      inlineOffset: 80,
+    })
+  })
+
+  it('measures an initially hidden corner without exposing it', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        defaultVisible: false,
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    const element = {
+      hidden: true,
+      style: {
+        getPropertyValue: () => '',
+        getPropertyPriority: () => '',
+        setProperty: vi.fn(),
+        removeProperty: vi.fn(),
+      },
+      getBoundingClientRect() {
+        return { width: this.hidden ? 0 : 80 }
+      },
+    }
+    runtime.registerElement('corner', element as never)
+    runtime.acquire(
+      config('edge', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-top' },
+        },
+      }),
+    )
+
+    expect(element.hidden).toBe(true)
+    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+      inlineAllocation: 220,
+      inlineOffset: 80,
+    })
   })
 
   it('skips hidden entry targets and continues focus restoration until focus moves', () => {

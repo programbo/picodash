@@ -282,6 +282,7 @@ export function useDashletBindings(
   issuesId: string,
 ): {
   readonly bindings: Record<string, DashletBindingContext<PicodashJsonValue>>
+  readonly discardInputs: Readonly<Record<string, () => void>>
   readonly issues: readonly TransactionIssue[]
   readonly staleOverwrite: Record<string, StaleOverwriteController>
 } {
@@ -335,6 +336,7 @@ export function useDashletBindings(
     const state = storeSnapshot
     const interaction = state.interaction.bindings.get(itemId)
     const bindings: Record<string, DashletBindingContext<PicodashJsonValue>> = Object.create(null)
+    const discardInputs: Record<string, () => void> = Object.create(null)
     const staleOverwrite: Record<string, StaleOverwriteController> = Object.create(null)
     const allIssues = issuesForDashlet(
       dedupeIssues(
@@ -380,6 +382,13 @@ export function useDashletBindings(
           mode: 'display',
         } as DashletDisplayBindingContext<PicodashJsonValue>
       else {
+        const discardInput = () => {
+          const runtime = runtimes.current.find((entry) => entry.descriptor.alias === key)
+          if (!runtime?.handle) return
+          store.discardInput(runtime.handle)
+          setCommandIssues([])
+          publishAnnouncement('')
+        }
         const input: DashletInputBindingContext<PicodashJsonValue> = {
           ...base,
           mode: 'input',
@@ -408,11 +417,7 @@ export function useDashletBindings(
           },
           discardInput: () => {
             if (policy.current.disabled) return
-            const runtime = runtimes.current.find((entry) => entry.descriptor.alias === key)
-            if (!runtime?.handle) return
-            store.discardInput(runtime.handle)
-            setCommandIssues([])
-            publishAnnouncement('')
+            discardInput()
           },
           resetValue: () => {
             if (policy.current.disabled || policy.current.readOnly) return
@@ -433,6 +438,7 @@ export function useDashletBindings(
           },
         }
         bindings[key] = input
+        discardInputs[key] = discardInput
         staleOverwrite[key] = {
           eligible: (bindingState?.inputIssues.length ?? 0) === 0,
           openPlan: () => {
@@ -467,7 +473,7 @@ export function useDashletBindings(
       }
     }
     const issues = dedupeIssues(common)
-    return { bindings, issues, staleOverwrite }
+    return { bindings, discardInputs, issues, staleOverwrite }
   }, [
     commandIssues,
     controlId,

@@ -10,9 +10,9 @@ readouts, visualizations, previews, and actions. This page describes the aspirat
 > Implementation: Partial
 > Evidence: `packages/dashlist/tests/dashlist.test.tsx`, `packages/dashlist/tests/dashlist.types.test.ts`, and `packages/dashlist/tests/package-artifacts.mjs` cover the alpha shell, semantic structure, Store resolution boundary, and package surface.
 > Notes: The initial launch contract is accepted. The remaining prototype behavior must be
-> reconciled through the conformance matrix; ordering, collapse, actions, rail behavior, and
-> catalogs remain Planned or Prototype. List node declaration agreement and the initial binding
-> interaction surface are Verified.
+> reconciled through the conformance matrix; ordering, collapse, and action resets are now implemented,
+> while rail behavior and catalog coverage remain deferred to later stabilization work. List node declaration
+> agreement and the initial binding interaction surface are Verified.
 
 ## Package purpose
 
@@ -229,7 +229,7 @@ action, or compound composition. A writable control is one Dashlet type, not the
 Dashlet.
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Partial
 > Notes: The Dashlet role, anatomy boundary, and core structural anatomy are accepted. Supporting
 > helper families remain Draft.
 
@@ -542,7 +542,7 @@ not its children, owns the reorder rail and standard error region.
 #### Row focus
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Partial
 
 The Dashlet row is an intentional pointer focus affordance. Clicking safe, otherwise inert space
 within the row focuses its registered primary focus target. Built-in single-control and action
@@ -568,7 +568,7 @@ it selects.
 #### Labels, supporting content, and issues
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Partial
 
 The visible Dashlet `label` is neutral shell text with a stable ID. It is not automatically an HTML
 `label` around or pointing to arbitrary content. Actual controls reference that ID through their own
@@ -619,7 +619,7 @@ second Dashlet.
 #### Core structural anatomy
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Partial
 
 | Component     | Element           | Contract                                                                |
 | ------------- | ----------------- | ----------------------------------------------------------------------- |
@@ -1197,7 +1197,7 @@ or aggregated behavior in the initial contract.
 ## Ordering
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Partial
 
 - Before customization, siblings follow declaration order.
 - A completed user reorder creates a per-container durable override.
@@ -1213,7 +1213,7 @@ or aggregated behavior in the initial contract.
 ### Pin bands
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Partial
 
 Every ordering container has `start`, automatic, and `end` bands. Dashlet and DashGroup nodes accept
 `pin?: "start" | "end"`; omitting the prop selects the automatic band. Pinning is declarative
@@ -1296,9 +1296,6 @@ A membership, visibility, pin, effective reorder policy, or external order chang
 session stale and cancels it. Reduced-motion preference removes transition animation without
 changing candidate, commit, cancellation, focus, or announcement behavior.
 
-The prototype currently mutates durable Store order during keyboard arrow-key previews and restores
-it on cancellation. That behavior does not conform to the accepted target.
-
 #### Accessible feedback
 
 Each handle is named `Reorder {accessibleName}` and references one shared set of keyboard
@@ -1315,7 +1312,7 @@ the accessibility tree and never create extra focus targets.
 ## Collapse overrides
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Partial
 
 Only DashGroup exposes collapse behavior in the initial DashList contract. Dashlet has no collapse
 props or durable collapse metadata. `collapsible` defaults to `true`, and `defaultCollapsed` defaults
@@ -1368,8 +1365,8 @@ values, bindings, drafts, or declarative relationships.
 | Action                  | Contract | Implementation | Behavior                                     |
 | ----------------------- | -------- | -------------- | -------------------------------------------- |
 | Discard one draft       | Accepted | Prototype      | Leaves canonical value unchanged.            |
-| Reset registered values | Accepted | Planned        | Active fields; atomic; optional descendants. |
-| Reset List metadata     | Accepted | Planned        | Removes order/collapse overrides.            |
+| Reset registered values | Accepted | Partial        | Active fields; atomic; optional descendants. |
+| Reset List metadata     | Accepted | Partial        | Removes order/collapse overrides.            |
 | Destroy scope           | Accepted | Planned        | Erases scope state but not identity.         |
 
 The built-in “Reset values” action combines canonical reset with discarding drafts in targeted
@@ -1378,7 +1375,7 @@ bindings. Other scopes' drafts remain and become stale if they share reset field
 ## List behavior actions
 
 > Contract: Accepted
-> Implementation: Prototype migration required
+> Implementation: Partial
 
 DashList owns and exports List-specific action behaviors. Standalone applications may compose them
 into their own controls, and Picodash may place the same exports in an integrated Panel action menu.

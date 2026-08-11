@@ -314,6 +314,132 @@ describe('Store scoped views and metadata commands', () => {
     expect(store.getState().scopes.size).toBe(0)
   })
 
+  it('updates DashList collapse overrides as one validated batch', () => {
+    const store = createPicodashStore({
+      valueOwner: 'store',
+      fields: { value: { defaultValue: 1 } },
+    })
+    const scoped = store.scope('batch')
+    scoped.setDashPanelLayout(panel)
+    scoped.setDashListRootOrder(['root'])
+    scoped.setDashListGroupOrder('group', ['a', 'b'])
+    scoped.setDashListCollapseOverride('dormant', true)
+    let rootCalls = 0
+    let scopedCalls = 0
+    store.subscribe(() => rootCalls++)
+    scoped.subscribe(() => scopedCalls++)
+    expect(
+      scoped.updateDashListCollapseOverrides([
+        ['group', true],
+        ['dormant', null],
+        ['new', false],
+      ]),
+    ).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: ['batch'],
+    })
+    expect(rootCalls).toBe(1)
+    expect(scopedCalls).toBe(1)
+    const dashList = scoped.getState().scope?.dashList
+    expect(dashList?.rootOrder).toEqual(['root'])
+    expect([...dashList!.groupOrders.entries()]).toEqual([['group', ['a', 'b']]])
+    expect([...dashList!.collapseOverrides.entries()]).toEqual([
+      ['group', true],
+      ['new', false],
+    ])
+    const after = scoped.getState()
+
+    expect(
+      scoped.updateDashListCollapseOverrides([
+        ['group', true],
+        ['new', false],
+      ]),
+    ).toEqual({ ok: true, changedFields: [], changedScopeIds: [] })
+    expect(scoped.updateDashListCollapseOverrides([])).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: [],
+    })
+    expect(rootCalls).toBe(1)
+    expect(scopedCalls).toBe(1)
+    expect(scoped.getState()).toBe(after) // semantic no-ops leave the snapshot stable
+
+    expect(store.updateDashListCollapseOverrides('root-batch', [['root', true]])).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: ['root-batch'],
+    })
+    expect([
+      ...(store.scope('root-batch').getState().scope?.dashList?.collapseOverrides ?? new Map()),
+    ]).toEqual([['root', true]])
+    const rootCallsAfterBatch = rootCalls
+
+    const malformed = scoped.updateDashListCollapseOverrides([
+      ['valid', true],
+      ['bad', 1],
+    ] as never)
+    expect(malformed.ok).toBe(false)
+    expect(scoped.getState()).toBe(after)
+    expect(rootCalls).toBe(rootCallsAfterBatch)
+    expect(scopedCalls).toBe(1)
+
+    const duplicateBefore = scoped.getState()
+    const duplicate = scoped.updateDashListCollapseOverrides([
+      ['same', true],
+      ['same', null],
+    ] as never)
+    expect(duplicate.ok).toBe(false)
+    expect(scoped.getState()).toBe(duplicateBefore)
+    expect(rootCalls).toBe(rootCallsAfterBatch)
+    expect(scopedCalls).toBe(1)
+
+    let collapsedReads = 0
+    const changingTuple = ['captured', true] as [string, boolean]
+    Object.defineProperty(changingTuple, 1, {
+      configurable: true,
+      enumerable: true,
+      get: () => {
+        collapsedReads += 1
+        return collapsedReads === 1
+      },
+    })
+    expect(scoped.updateDashListCollapseOverrides([changingTuple])).toEqual({
+      ok: true,
+      changedFields: [],
+      changedScopeIds: ['batch'],
+    })
+    expect(collapsedReads).toBe(1)
+    expect(scoped.getState().scope?.dashList?.collapseOverrides.get('captured')).toBe(true)
+  })
+
+  property.prop([fc.array(fc.constantFrom('a', 'b', 'c'), { maxLength: 6 })])(
+    'applies every valid collapse batch in order and leaves no empty product record',
+    (ids) => {
+      const store = createPicodashStore({
+        valueOwner: 'store',
+        fields: { value: { defaultValue: 1 } },
+      })
+      const scoped = store.scope('batch-property')
+      const updates = [...new Set(ids)].map(
+        (nodeId, index) => [nodeId, index % 2 === 0 ? true : null] as const,
+      )
+      const result = scoped.updateDashListCollapseOverrides(updates)
+      expect(result.ok).toBe(true)
+      const expected = new Map<string, boolean>()
+      updates.forEach(([nodeId, collapsed]) => {
+        if (collapsed === null) expected.delete(nodeId)
+        else expected.set(nodeId, collapsed)
+      })
+      const actual = scoped.getState().scope?.dashList?.collapseOverrides
+      expect([...(actual ?? new Map()).entries()]).toEqual(
+        [...expected.entries()].sort(([left], [right]) => left.localeCompare(right)),
+      )
+      expect(scoped.getState().scope?.dashList === undefined).toBe(expected.size === 0)
+      store.destroy()
+    },
+  )
+
   it('refreshes every affected snapshot before listeners and rejects hostile orders privately', () => {
     const store = createPicodashStore({
       valueOwner: 'store',

@@ -9,6 +9,7 @@ import {
   DashPanelLauncher,
   DashPanelProvider,
   DashPanelTrigger,
+  useDashPanel,
   type DashPanelStyle,
 } from '../src/index.tsx'
 import { useDashPanelPolicy, type DashPanelPolicy } from '../src/runtime/panel-policy-context.tsx'
@@ -23,7 +24,28 @@ import {
 
 class MockHTMLElementBase {
   readonly tagName = 'BUTTON'
-  readonly ownerDocument = { defaultView: globalThis }
+  readonly ownerDocument = {
+    get defaultView() {
+      return globalThis.window
+    },
+  }
+  readonly style = {
+    values: new Map<string, { value: string; priority: string }>(),
+    getPropertyValue(property: string) {
+      return this.values.get(property)?.value ?? ''
+    },
+    getPropertyPriority(property: string) {
+      return this.values.get(property)?.priority ?? ''
+    },
+    setProperty(property: string, value: string, priority = '') {
+      this.values.set(property, { value, priority })
+    },
+    removeProperty(property: string) {
+      const value = this.values.get(property)?.value ?? ''
+      this.values.delete(property)
+      return value
+    },
+  }
 
   getAttribute() {
     return null
@@ -55,11 +77,24 @@ class MockHTMLElementBase {
 }
 
 beforeEach(() => {
-  vi.stubGlobal('document', {
+  const document = {
     body: {},
     activeElement: null,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
+    documentElement: { clientWidth: 0, clientHeight: 0 },
+  }
+  vi.stubGlobal('document', document)
+  vi.stubGlobal('window', {
+    document,
+    HTMLElement: MockHTMLElementBase,
+    innerWidth: 300,
+    innerHeight: 200,
+    scrollX: 0,
+    scrollY: 0,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    matchMedia: () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
   })
   vi.stubGlobal('HTMLElement', MockHTMLElementBase)
   vi.stubGlobal('Element', MockHTMLElementBase)
@@ -86,6 +121,14 @@ function render(element: ReactElement): ReactTestRenderer {
   return renderer
 }
 
+function renderWithHostNodes(element: ReactElement): ReactTestRenderer {
+  let renderer!: ReactTestRenderer
+  void act(() => {
+    renderer = create(element, { createNodeMock: () => new MockHTMLElementBase() })
+  })
+  return renderer
+}
+
 function panel(store: ReturnType<typeof makeStore>, children?: ReactElement, id = 'panel') {
   return createElement(DashPanelProvider, {
     store,
@@ -107,6 +150,312 @@ function pressButton(button: ReactTestInstance) {
 }
 
 describe('@picodash/dashpanel alpha shell', () => {
+  it('exposes the Store-backed nearest controller and durable layout commands', () => {
+    const store = makeStore()
+    let controller!: ReturnType<typeof useDashPanel>
+    function Probe() {
+      controller = useDashPanel()
+      return null
+    }
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'panel',
+          title: 'Panel',
+          defaultLayout: {
+            placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
+            preferredPosition: { x: 4, y: 6 },
+          },
+          children: createElement(Probe),
+        }),
+      }),
+    )
+    expect(controller.availability).toBe('available')
+    if (controller.availability !== 'available') throw new Error('controller unavailable')
+    expect(controller.placement).toEqual({
+      mode: 'floating',
+      disposition: { kind: 'snapped', position: 'top-left' },
+    })
+    const placementResult = controller.setPlacement({
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'full-right' },
+    })
+    expect(placementResult.status).toBe('executed')
+    expect(store.getState().scopes.get('panel')?.dashPanel?.placement).toEqual({
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'full-right' },
+    })
+    expect(controller.resetLayout().status).toBe('executed')
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('targets nearest, explicit, and unavailable panels while transient commands stay out of Store', () => {
+    const store = makeStore()
+    let nearest!: ReturnType<typeof useDashPanel>
+    let explicit!: ReturnType<typeof useDashPanel>
+    let missing!: ReturnType<typeof useDashPanel>
+    function Probe() {
+      nearest = useDashPanel()
+      explicit = useDashPanel('panel')
+      missing = useDashPanel('missing')
+      return null
+    }
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'panel',
+          title: 'Panel',
+          children: createElement(Probe),
+        }),
+      }),
+    )
+    expect(nearest.availability).toBe('available')
+    expect(explicit.availability).toBe('available')
+    expect(missing.availability).toBe('unavailable')
+    expect(nearest.show().status).toBe('executed')
+    expect(nearest.activate().status).toBe('executed')
+    expect(nearest.hide().status).toBe('executed')
+    expect(nearest.expand().status).toBe('executed')
+    expect(nearest.collapse().status).toBe('executed')
+    expect(nearest.toggleCollapsed().status).toBe('executed')
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('keeps a policy-disabled durable dock dormant and also enforces policy on its fallback', () => {
+    const store = makeStore()
+    store.setDashPanelLayout('panel', {
+      placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
+      preferredPosition: { x: 12, y: 18 },
+    })
+    let controller!: ReturnType<typeof useDashPanel>
+    function Probe() {
+      controller = useDashPanel()
+      return null
+    }
+    const renderedPanel = (dockPositions: readonly ('top-left' | 'bottom-right')[]) =>
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'panel',
+          title: 'Panel',
+          dockPositions,
+          defaultLayout: {
+            placement: {
+              mode: 'fixed',
+              disposition: { kind: 'docked', position: 'bottom-right' },
+            },
+          },
+          children: createElement(Probe),
+        }),
+      })
+    const renderer = render(renderedPanel(['top-left', 'bottom-right']))
+    expect(controller.availability).toBe('available')
+    if (controller.availability !== 'available') throw new Error('controller unavailable')
+    expect(controller.placement).toEqual({
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'bottom-right' },
+    })
+    act(() => renderer.update(renderedPanel(['top-left'])))
+    expect(controller.placement).toEqual({
+      mode: 'fixed',
+      disposition: { kind: 'docked', position: 'top-left' },
+    })
+    expect(store.getState().scopes.get('panel')?.dashPanel?.preferredPosition).toEqual({
+      x: 12,
+      y: 18,
+    })
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('uses the accessible move control for keyboard and pointer commit/cancel without preview persistence', () => {
+    const store = makeStore()
+    const renderer = renderWithHostNodes(
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'panel',
+          title: 'Inspector',
+          defaultLayout: {
+            placement: {
+              mode: 'floating',
+              disposition: { kind: 'snapped', position: 'top-right' },
+            },
+            preferredPosition: { x: 4, y: 6 },
+          },
+          placementOptions: { snapProximity: 0 },
+        }),
+      }),
+    )
+    const move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    const keyEvent = (key: string, shiftKey = false) =>
+      act(() =>
+        move.props.onKeyDown({
+          key,
+          shiftKey,
+          preventDefault: vi.fn(),
+        }),
+      )
+    void keyEvent('Enter')
+    void keyEvent('ArrowRight', true)
+    void keyEvent('Escape')
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+
+    void keyEvent('Enter')
+    void keyEvent('ArrowRight', true)
+    void act(() => move.props.onBlur())
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(renderer.root.findByType('aside').props['data-picodash-placement']).toBe(
+      'floating-snapped',
+    )
+
+    void keyEvent('Enter')
+    void keyEvent('ArrowDown')
+    void keyEvent('Enter')
+    expect(store.getState().scopes.get('panel')?.dashPanel?.placement).toEqual({
+      mode: 'floating',
+      disposition: { kind: 'free' },
+    })
+
+    void act(() =>
+      renderer.update(
+        createElement(DashPanelProvider, {
+          store,
+          children: createElement(DashPanel, {
+            id: 'panel',
+            title: 'Inspector',
+            defaultLayout: {
+              placement: {
+                mode: 'floating',
+                disposition: { kind: 'snapped', position: 'top-right' },
+              },
+              preferredPosition: { x: 4, y: 6 },
+            },
+          }),
+        }),
+      ),
+    )
+    act(() => {
+      store.scope('panel').resetDashPanelLayout()
+    })
+    const pointerMove = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    const pointerTarget = new MockHTMLElementBase()
+    void act(() => {
+      pointerMove.props.onPointerDown({
+        button: 0,
+        pointerId: 1,
+        clientX: 10,
+        clientY: 10,
+        preventDefault: vi.fn(),
+        currentTarget: pointerTarget,
+      })
+      pointerMove.props.onPointerUpCapture({ pointerId: 1 })
+    })
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    void act(() => {
+      pointerMove.props.onPointerDown({
+        button: 0,
+        pointerId: 2,
+        clientX: 10,
+        clientY: 10,
+        preventDefault: vi.fn(),
+        currentTarget: pointerTarget,
+      })
+      pointerMove.props.onPointerCancelCapture({ pointerId: 99 })
+    })
+    const aside = renderer.root.findByType('aside')
+    void act(() => aside.props.onPointerCancel({ pointerId: 2 }))
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    void act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('preserves Hybrid mode when keyboard movement commits a free placement', () => {
+    const store = makeStore()
+    const renderer = renderWithHostNodes(
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'panel',
+          title: 'Inspector',
+          defaultLayout: {
+            placement: {
+              mode: 'hybrid',
+              disposition: { kind: 'docked', position: 'full-left' },
+            },
+            preferredPosition: { x: 4, y: 6 },
+          },
+          placementOptions: { detachDistance: 1 },
+        }),
+      }),
+    )
+    let move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    act(() => {
+      void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    act(() => {
+      void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    act(() => {
+      void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    act(() => {
+      void move.props.onKeyDown({ key: 'ArrowRight', preventDefault() {} })
+      void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+    })
+    expect(store.getState().scopes.get('panel')?.dashPanel).toEqual({
+      placement: { mode: 'hybrid', disposition: { kind: 'free' } },
+      preferredPosition: { x: 5, y: 6 },
+    })
+    act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
+  it('keeps the move control unavailable for Fixed Panels instead of changing placement mode', () => {
+    const store = makeStore()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        store,
+        children: createElement(DashPanel, {
+          id: 'panel',
+          title: 'Inspector',
+          defaultLayout: {
+            placement: {
+              mode: 'fixed',
+              disposition: { kind: 'docked', position: 'full-left' },
+            },
+            preferredPosition: { x: 4, y: 6 },
+          },
+        }),
+      }),
+    )
+    const move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
+    expect(move.props.isDisabled).toBe(true)
+    act(() => {
+      void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+      void move.props.onPointerDown({
+        button: 0,
+        pointerId: 1,
+        preventDefault() {},
+        currentTarget: new MockHTMLElementBase(),
+      })
+    })
+    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(renderer.root.findByType('aside').props['data-picodash-placement']).toBe('fixed-docked')
+    act(() => renderer.unmount())
+    expect(() => store.destroy()).not.toThrow()
+  })
+
   it('requires a root Store and rejects scoped Stores', () => {
     const store = makeStore()
     expect(() => render(createElement(DashPanel, { id: 'outside', title: 'Outside' }))).toThrow(
@@ -625,7 +974,17 @@ describe('@picodash/dashpanel alpha shell', () => {
     void act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
 
-    for (const reserved of ['width', 'inlineSize'] as const) {
+    for (const reserved of [
+      'width',
+      'inlineSize',
+      'maxInlineSize',
+      'blockSize',
+      'maxBlockSize',
+      'minWidth',
+      'minInlineSize',
+      'minHeight',
+      'minBlockSize',
+    ] as const) {
       const next = makeStore()
       expect(() =>
         render(
@@ -668,6 +1027,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       ]),
     ).toEqual([
       ['light', 'regular'],
+      ['dark', 'compact'],
       ['dark', 'compact'],
     ])
     void act(() => renderer.unmount())

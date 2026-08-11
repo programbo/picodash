@@ -7,7 +7,15 @@ import {
   DashHeader,
   DashList,
   Dashlet,
+  DashListActionItems,
+  DashListCollapseAllItem,
+  DashListExpandAllItem,
+  DashListResetListItem,
+  DashListResetSubmenu,
+  DashListResetValuesItem,
+  useDashListActions,
   type DashListProps,
+  type ActionMenuConfirmationGuard,
   type CompoundDashletProps,
   type DashletProps,
 } from '../src/index.tsx'
@@ -25,6 +33,7 @@ describe('@picodash/dashlist public types', () => {
       theme: 'dark',
       density: 'compact',
       'aria-label': 'Settings list',
+      reorderable: true,
     }
     const scoped: DashListProps = { store: store.scope('settings') }
     const customTheme: DashListProps<Fields, 'operator'> = {
@@ -33,13 +42,40 @@ describe('@picodash/dashlist public types', () => {
       theme: 'operator',
     }
     const ref: RefObject<HTMLDivElement | null> = { current: null }
+    const guard: ActionMenuConfirmationGuard = {
+      fingerprint: 'list:v1',
+      getFingerprint: () => 'list:v1',
+      subscribe: () => () => undefined,
+    }
+    void guard
     void createElement(DashList, { ...root, ref })
     void createElement(DashList, scoped)
     void createElement(DashList, customTheme)
-    void createElement(DashGroup, { id: 'group', label: 'Group' })
-    void createElement(Dashlet, { id: 'item', label: 'Item', children: 'Value' })
+    void createElement(DashGroup, {
+      id: 'group',
+      label: 'Group',
+      collapsible: true,
+      defaultCollapsed: false,
+      reorderable: false,
+      pin: 'start',
+      disabled: false,
+      readOnly: false,
+    })
+    // @ts-expect-error collapse is Store-controlled and cannot be supplied as a controlled prop.
+    void createElement(DashGroup, { id: 'controlled', label: 'Controlled', collapsed: true })
+    void createElement(Dashlet, { id: 'item', label: 'Item', pin: 'end', children: 'Value' })
     void DashHeader
     void ActionMenu
+    void DashListActionItems
+    void DashListExpandAllItem
+    void DashListCollapseAllItem
+    void DashListResetSubmenu
+    void DashListResetValuesItem
+    void DashListResetListItem
+    void useDashListActions
+    void createElement(DashListExpandAllItem, { scopeId: 'settings' })
+    // @ts-expect-error action items target Store context, not a supplied Store prop.
+    void createElement(DashListExpandAllItem, { store })
 
     // @ts-expect-error root Store resolution requires an explicit id.
     const rootless: DashListProps = { store }

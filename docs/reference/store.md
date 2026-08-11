@@ -626,6 +626,7 @@ if (!result.ok) {
 | `resetValueOrThrow(field)`           | Accepted | Implemented    | Throws the corresponding transaction error; successful calls return the configured `Result`. |
 | `resetRegisteredValues(opts)`        | Accepted | Implemented    | Active scope values; optional descendants; covered by the registered-reset runtime matrix.   |
 | `resetRegisteredValuesOrThrow(opts)` | Accepted | Implemented    | Throws the corresponding transaction error; preserves configured Result typing.              |
+| `inspectRegisteredValueReset(opts)`  | Accepted | Implemented    | Read-only availability for the same active registrations and descendant target.              |
 | `discardInput(binding)`              | Accepted | Implemented    | Clears one interaction entry and returns exact boolean.                                      |
 
 The generic root and scoped reset methods are:
@@ -662,6 +663,18 @@ scoped.resetRegisteredValues(options?: ResetRegisteredValuesOptions): Result
 scoped.resetRegisteredValuesOrThrow(
   options?: ResetRegisteredValuesOptions,
 ): Extract<Result, { ok: true }>
+
+type RegisteredValueResetInspection = {
+  readonly registeredFields: readonly string[]
+  readonly changedFields: readonly string[]
+}
+
+root.inspectRegisteredValueReset(
+  options: RootResetRegisteredValuesOptions,
+): RegisteredValueResetInspection
+scoped.inspectRegisteredValueReset(
+  options?: ResetRegisteredValuesOptions,
+): RegisteredValueResetInspection
 ```
 
 Options are exact own-key data records. The root object is required and accepts only `scopeId` and
@@ -683,6 +696,12 @@ keeps `changedScopeIds` empty. Empty and already-default selections perform no w
 notification, and rejection is atomic. The Store does not discard drafts: dirty bindings anywhere
 on a changed shared field retain their input and become stale. DashList composes targeted draft
 discard separately after successful canonical reset.
+
+`inspectRegisteredValueReset` uses the same active binding registry, descendant graph, field
+deduplication, configured default baseline, and current canonical values as the matching reset
+command. It returns a deeply immutable record with sorted `registeredFields` and sorted
+`changedFields`; it performs no candidate validation, notification, persistence, diagnostic
+publication, draft access, or canonical mutation beyond the shared reset-option and lifecycle checks.
 
 Scoped calls may write any root field and add `originScopeId` attribution. Operations that target
 descendants deduplicate root fields before building one candidate snapshot.
@@ -1006,6 +1025,10 @@ interface RootMetadataCommands<Result extends CoreTransactionResult = CoreTransa
   removeDashListGroupOrder(scopeId: string, groupId: string): Result
   setDashListCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result
   removeDashListCollapseOverride(scopeId: string, nodeId: string): Result
+  updateDashListCollapseOverrides(
+    scopeId: string,
+    updates: readonly (readonly [nodeId: string, collapsed: boolean | null])[],
+  ): Result
   resetDashListMetadata(scopeId: string): Result
 }
 
@@ -1018,6 +1041,9 @@ interface ScopedMetadataCommands<Result extends CoreTransactionResult = CoreTran
   removeDashListGroupOrder(groupId: string): Result
   setDashListCollapseOverride(nodeId: string, collapsed: boolean): Result
   removeDashListCollapseOverride(nodeId: string): Result
+  updateDashListCollapseOverrides(
+    updates: readonly (readonly [nodeId: string, collapsed: boolean | null])[],
+  ): Result
   resetDashListMetadata(): Result
 }
 
@@ -1062,6 +1088,14 @@ Commands normalize and detach one complete metadata candidate. Invalid layout/or
 returns `invalid_metadata` without mutation. A metadata-only change returns `changedFields: []` and
 the affected scope in sorted `changedScopeIds`; a no-op returns both arrays empty. Root and affected
 scoped subscribers are each notified once after commit; unrelated scoped subscribers are not.
+
+`updateDashListCollapseOverrides` validates the complete readonly tuple array before applying any
+entry. Each node ID may occur once; a boolean stores an explicit collapse override and `null`
+removes it. Entries apply in array order, while root order, group orders, unrelated collapse
+overrides, and dormant node metadata remain unchanged. The whole batch is one metadata transaction:
+malformed IDs, tuple shapes, value types, or duplicate IDs return `invalid_metadata` without
+mutation, and an empty or semantic no-op batch succeeds without notification. Empty DashList and
+scope records are normalized away exactly like the individual metadata commands.
 
 `destroyScope` clears durable metadata and ephemeral interaction but not canonical values,
 registrations, relationships, or leases. Omitted `includeDescendants` targets only the explicit

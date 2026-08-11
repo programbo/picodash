@@ -19,6 +19,11 @@ describe('@picodash/ui ActionMenu types', () => {
       title: 'Reset?',
       description: 'Restore defaults.',
       actionLabel: 'Reset values',
+      guard: {
+        fingerprint: 'values:a',
+        getFingerprint: () => 'values:a',
+        subscribe: () => () => undefined,
+      },
     }
     const variant: ActionMenuItemVariant = 'destructive'
     const itemProps: ActionMenuItemProps = {

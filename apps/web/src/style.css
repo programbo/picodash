@@ -178,6 +178,11 @@ h2 {
   padding: clamp(1rem, 3vw, 1.5rem);
 }
 
+.alpha-panel-demo {
+  position: relative;
+  min-block-size: 14rem;
+}
+
 .alpha-panel-demo [data-picodash-theme],
 .alpha-list-demo [data-picodash-theme] {
   display: block;

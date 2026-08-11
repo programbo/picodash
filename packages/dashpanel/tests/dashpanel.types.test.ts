@@ -9,10 +9,16 @@ import {
   ActionSubmenu,
   DashHeader,
   DashPanel,
+  DashPanelActionItems,
   DashPanelLauncher,
   DashPanelProvider,
   DashPanelTrigger,
   type DashPanelLauncherProps,
+  type ActionMenuConfirmationGuard,
+  type DashPanelRemoveRequest,
+  type DashPanelCommandResult,
+  type DashPanelController,
+  type DashPanelLayoutCommandResult,
   type DashPanelProps,
   type DashPanelProviderProps,
   type DashPanelTriggerProps,
@@ -26,18 +32,31 @@ import {
   type DashPanelSnapPosition,
   type DashPanelStyle,
 } from '../src/index.tsx'
+import {
+  DashPanelIntegrationProvider,
+  type DashPanelDefaultActionItems,
+  type DashPanelDefaultActionItemsProps,
+  type DashPanelIntegrationProviderProps,
+} from '../src/integration.tsx'
 
 const store = createPicodashStore({ valueOwner: 'store', fields: { value: { defaultValue: 1 } } })
 
 describe('@picodash/dashpanel public types', () => {
   it('exposes the frozen provider/panel shell and rejects retired or reserved props', () => {
     const boundary = {} as Element
+    const guard: ActionMenuConfirmationGuard = {
+      fingerprint: 'panel:v1',
+      getFingerprint: () => 'panel:v1',
+      subscribe: () => () => undefined,
+    }
+    void guard
     const providerProps: DashPanelProviderProps = {
       store,
       children: null,
       boundary,
       boundaryInset: [8, 16],
       dockPositions: ['top-left', 'center-left'],
+      portalContainer: boundary as HTMLElement,
     }
     const viewportProviderProps: DashPanelProviderProps = { ...providerProps, boundary: null }
     void viewportProviderProps
@@ -52,10 +71,18 @@ describe('@picodash/dashpanel public types', () => {
       collapsible: true,
       showCloseButton: false,
       onVisibilityChange: () => {},
+      onRequestRemove: (details: DashPanelRemoveRequest) => details.scopeId,
+      actionMenu: [],
       onCollapsedChange: () => {},
       boundary,
       boundaryInset: 8,
       dockPositions: ['top-left'],
+      defaultLayout: {
+        placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-right' } },
+        preferredPosition: { x: 0, y: 0 },
+      },
+      placementOptions: { snapOffset: 8, snapProximity: 16, detachDistance: 40 },
+      presentation: { kind: 'panel' },
     }
     const customThemePanelProps: DashPanelProps<'operator'> = {
       id: 'operator-inspector',
@@ -91,8 +118,16 @@ describe('@picodash/dashpanel public types', () => {
     void createElement(DashPanelTrigger, trigger)
     void createElement(DashPanelLauncher, launcher)
     void createElement(DashPanelLauncher, iconLauncher)
+    const controller = {} as DashPanelController
+    const commandResult = {} as DashPanelCommandResult
+    const layoutResult = {} as DashPanelLayoutCommandResult
+    void controller
+    void commandResult
+    void layoutResult
     void unnamedIconLauncher
     void DashHeader
+    void DashPanelActionItems
+    void DashPanelIntegrationProvider
     void ActionMenu
     void ActionMenuItem
     void ActionMenuSeparator
@@ -109,6 +144,28 @@ describe('@picodash/dashpanel public types', () => {
     // @ts-expect-error inlineSize is controlled by the width prop.
     const directInlineSize: DashPanelProps = { ...panelProps, style: { inlineSize: '1px' } }
     void directInlineSize
+
+    // @ts-expect-error placement geometry owns logical maximum width.
+    const directMaxInlineSize: DashPanelProps = { ...panelProps, style: { maxInlineSize: '1px' } }
+    // @ts-expect-error placement geometry owns logical height.
+    const directBlockSize: DashPanelProps = { ...panelProps, style: { blockSize: '1px' } }
+    // @ts-expect-error placement geometry owns logical maximum height.
+    const directMaxBlockSize: DashPanelProps = { ...panelProps, style: { maxBlockSize: '1px' } }
+    // @ts-expect-error placement geometry owns physical minimum width.
+    const directMinWidth: DashPanelProps = { ...panelProps, style: { minWidth: '1px' } }
+    // @ts-expect-error placement geometry owns logical minimum width.
+    const directMinInlineSize: DashPanelProps = { ...panelProps, style: { minInlineSize: '1px' } }
+    // @ts-expect-error placement geometry owns physical minimum height.
+    const directMinHeight: DashPanelProps = { ...panelProps, style: { minHeight: '1px' } }
+    // @ts-expect-error placement geometry owns logical minimum height.
+    const directMinBlockSize: DashPanelProps = { ...panelProps, style: { minBlockSize: '1px' } }
+    void directMaxInlineSize
+    void directBlockSize
+    void directMaxBlockSize
+    void directMinWidth
+    void directMinInlineSize
+    void directMinHeight
+    void directMinBlockSize
 
     // @ts-expect-error visibility attributes are owned by the lifecycle runtime.
     const nativeHidden: DashPanelProps = { ...panelProps, hidden: true }
@@ -160,6 +217,19 @@ describe('@picodash/dashpanel public types', () => {
     void panelDocks
   })
 
+  it('exposes the narrow action contribution and removal contracts', () => {
+    const Contributor: DashPanelDefaultActionItems = ({
+      scopeId,
+    }: DashPanelDefaultActionItemsProps) => createElement('span', null, scopeId)
+    const integrationProps: DashPanelIntegrationProviderProps = {
+      children: null,
+      defaultActionItems: Contributor,
+    }
+    const remove: DashPanelRemoveRequest = { scopeId: 'inspector' }
+    void integrationProps
+    void remove
+  })
+
   it('keeps the style type aligned with React CSSProperties except reserved sizing keys', () => {
     const style: DashPanelStyle = { color: 'red', minWidth: 0 } as CSSProperties
     void style
@@ -169,6 +239,27 @@ describe('@picodash/dashpanel public types', () => {
     // @ts-expect-error inlineSize is intentionally omitted from DashPanelStyle.
     const inlineSize: DashPanelStyle = { inlineSize: '1rem' }
     void inlineSize
+    // @ts-expect-error maxInlineSize is intentionally omitted from DashPanelStyle.
+    const maxInlineSize: DashPanelStyle = { maxInlineSize: '1rem' }
+    // @ts-expect-error blockSize is intentionally omitted from DashPanelStyle.
+    const blockSize: DashPanelStyle = { blockSize: '1rem' }
+    // @ts-expect-error maxBlockSize is intentionally omitted from DashPanelStyle.
+    const maxBlockSize: DashPanelStyle = { maxBlockSize: '1rem' }
+    // @ts-expect-error minWidth is intentionally omitted from DashPanelStyle.
+    const minWidth: DashPanelStyle = { minWidth: '1rem' }
+    // @ts-expect-error minInlineSize is intentionally omitted from DashPanelStyle.
+    const minInlineSize: DashPanelStyle = { minInlineSize: '1rem' }
+    // @ts-expect-error minHeight is intentionally omitted from DashPanelStyle.
+    const minHeight: DashPanelStyle = { minHeight: '1rem' }
+    // @ts-expect-error minBlockSize is intentionally omitted from DashPanelStyle.
+    const minBlockSize: DashPanelStyle = { minBlockSize: '1rem' }
+    void maxInlineSize
+    void blockSize
+    void maxBlockSize
+    void minWidth
+    void minInlineSize
+    void minHeight
+    void minBlockSize
   })
 
   it('exports placement vocabulary compatible with Store records in both directions', () => {

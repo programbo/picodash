@@ -5,6 +5,7 @@ export {
   ActionMenuSeparator,
   ActionSubmenu,
   type ActionMenuConfirmation,
+  type ActionMenuConfirmationGuard,
   type ActionMenuItemProps,
   type ActionMenuItemVariant,
   type ActionMenuProps,
