@@ -1789,7 +1789,7 @@ interface PicodashMetadataRecovery<Result> {
   replaceScope(scopeId: string, replacement: SerializedDurableScopeMetadata | null): Result
 }
 
-root.metadataRecovery satisfies PicodashMetadataRecovery<StoreResult>
+root.metadataRecovery satisfies PicodashMetadataRecovery<CoreTransactionResult>
 root.metadataRecovery === root.scope('advanced').metadataRecovery
 ```
 
