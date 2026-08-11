@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
-import { act, createElement, StrictMode, useState, type ReactElement } from 'react'
+import {
+  act,
+  createElement,
+  StrictMode,
+  useState,
+  type ComponentProps,
+  type ReactElement,
+} from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
 import {
   createDomTestRenderer as create,
@@ -1288,6 +1295,32 @@ describe('@picodash/dashpanel alpha shell', () => {
     pressButton(hiddenTrigger)
     expect(renderer.root.findByType('aside').props.hidden).toBe(false)
     act(() => renderer.unmount())
+  })
+
+  it('preserves launcher trigger identity when panel targets reorder', () => {
+    const store = makeStore()
+    const launcher = (items: ComponentProps<typeof DashPanelLauncher>['items']) =>
+      createElement(DashPanelProvider, {
+        store,
+        children: [
+          createElement(DashPanelLauncher, { key: 'launcher', label: 'Panels', items }),
+          createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
+          createElement(DashPanel, { key: 'second', id: 'second', title: 'Second' }),
+        ],
+      })
+    const first = { panelId: 'first', label: 'First panel' }
+    const second = { panelId: 'second', label: 'Second panel' }
+    const firstDuplicate = { panelId: 'first', label: 'First panel duplicate' }
+    const renderer = render(launcher([first, second, firstDuplicate]))
+    const secondTrigger = renderer.root.findByProps({ children: 'Second panel' }).element
+    act(() => secondTrigger.focus())
+
+    act(() => renderer.update(launcher([second, first, firstDuplicate])))
+
+    expect(renderer.root.findByProps({ children: 'Second panel' }).element).toBe(secondTrigger)
+    expect(document.activeElement).toBe(secondTrigger)
+    act(() => renderer.unmount())
+    store.destroy()
   })
 
   it('restores focus after a committed visibility callback throws', () => {

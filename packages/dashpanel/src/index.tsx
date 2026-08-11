@@ -1721,9 +1721,10 @@ export function DashPanelTrigger({
 
 export function DashPanelLauncher({ label, items, ...props }: DashPanelLauncherProps) {
   if (!label.trim()) throw new TypeError('DashPanelLauncher label must not be empty.')
+  const panelIdOccurrences = new Map<string, number>()
   return (
     <div {...props} role="group" aria-label={label}>
-      {items.map((item, index) => {
+      {items.map((item) => {
         const accessibleName = item.accessibleName
         if (accessibleName !== undefined && !accessibleName.trim())
           throw new TypeError('DashPanelLauncher item accessibleName must not be empty.')
@@ -1731,9 +1732,11 @@ export function DashPanelLauncher({ label, items, ...props }: DashPanelLauncherP
           throw new TypeError(
             'DashPanelLauncher items require a non-empty text label or accessibleName.',
           )
+        const occurrence = panelIdOccurrences.get(item.panelId) ?? 0
+        panelIdOccurrences.set(item.panelId, occurrence + 1)
         return (
           <DashPanelTrigger
-            key={`${item.panelId}:${index}`}
+            key={`${item.panelId}:${occurrence}`}
             panelId={item.panelId}
             isDisabled={item.disabled}
             aria-label={accessibleName}
