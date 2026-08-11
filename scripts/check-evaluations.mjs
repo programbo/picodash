@@ -126,7 +126,7 @@ for (const scenario of scenarios) {
 
   for (const relativePath of await implementationFiles(seedRoot)) {
     const contents = await readFile(path.join(seedRoot, relativePath), 'utf8')
-    if (/@picodash\/|from\s+['"]picodash|Picodash(?:Panel|Item|Provider|Store)/u.test(contents)) {
+    if (/@picodash\/|from\s+['"]picodash|Picodash(?:Panel|Item|Nexus|Provider)/u.test(contents)) {
       errors.push(`${scenario.id}: seed implementation ${relativePath} already contains Picodash`)
     }
   }

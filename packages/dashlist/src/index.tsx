@@ -23,12 +23,12 @@ import type {
   PicodashField,
   PicodashFieldDefinitions,
   PicodashJsonValue,
-  RootStore,
-  ScopedStore,
-} from '@picodash/store'
-import { PicodashContractError } from '@picodash/store'
-import { PicodashStoreEntityBoundary } from '@picodash/store/integration'
-import { usePicodashStore, usePicodashStoreSelector } from '@picodash/store/react'
+  RootNexus,
+  ScopedNexus,
+} from '@picodash/nexus'
+import { PicodashContractError } from '@picodash/nexus'
+import { PicodashNexusEntityBoundary } from '@picodash/nexus/integration'
+import { usePicodashNexus, usePicodashNexusSelector } from '@picodash/nexus/react'
 import {
   ActionMenu,
   ActionMenuItem,
@@ -83,7 +83,7 @@ import {
   type DashListActionAvailability,
   type DashListActionController,
   type DashListActionExecutionResult,
-  type DashListActionStoreResult,
+  type DashListActionNexusResult,
 } from './actions.js'
 import {
   candidateOrder,
@@ -119,7 +119,7 @@ export type {
   DashListActionAvailability,
   DashListActionController,
   DashListActionExecutionResult,
-  DashListActionStoreResult,
+  DashListActionNexusResult,
   DashListActionProps,
   DashListActions,
 }
@@ -138,9 +138,9 @@ export type {
   PicodashThemeOption,
 } from '@picodash/ui'
 
-type AnyStore<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions> =
-  | RootStore<Fields>
-  | ScopedStore<Fields>
+type AnyNexus<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions> =
+  | RootNexus<Fields>
+  | ScopedNexus<Fields>
 
 type NeutralDivProps = Omit<
   ComponentPropsWithRef<'div'>,
@@ -165,9 +165,9 @@ export type DashListProps<
     readonly 'aria-labelledby'?: string
     readonly reorderable?: boolean
   } & (
-    | { readonly store: RootStore<Fields>; readonly id: string }
-    | { readonly store: ScopedStore<Fields>; readonly id?: string }
-    | { readonly store?: undefined; readonly id?: string }
+    | { readonly nexus: RootNexus<Fields>; readonly id: string }
+    | { readonly nexus: ScopedNexus<Fields>; readonly id?: string }
+    | { readonly nexus?: undefined; readonly id?: string }
   )
 
 type RegisteredNodeNativeProps = Omit<
@@ -336,54 +336,54 @@ function declarationAccessibleName(declaration: ReactElement): string {
   return accessibleName(props.label, props['aria-label'], String(props.id))
 }
 
-function useOptionalStore<Fields extends PicodashFieldDefinitions>(): AnyStore<Fields> | null {
+function useOptionalNexus<Fields extends PicodashFieldDefinitions>(): AnyNexus<Fields> | null {
   try {
-    return usePicodashStore() as AnyStore<Fields>
+    return usePicodashNexus() as AnyNexus<Fields>
   } catch (error) {
-    if (error instanceof PicodashContractError && error.code === 'missing-store-context')
+    if (error instanceof PicodashContractError && error.code === 'missing-nexus-context')
       return null
     throw error
   }
 }
 
-function resolveStore<Fields extends PicodashFieldDefinitions>(
-  explicitStore: AnyStore<Fields> | undefined,
-  contextStore: AnyStore<Fields> | null,
+function resolveNexus<Fields extends PicodashFieldDefinitions>(
+  explicitNexus: AnyNexus<Fields> | undefined,
+  contextNexus: AnyNexus<Fields> | null,
   id: string | undefined,
-): { readonly store: ScopedStore<Fields>; readonly standalone: boolean; readonly scopeId: string } {
-  const suppliedRoot = explicitStore?.kind === 'root' ? explicitStore : explicitStore?.root
-  const contextRoot = contextStore?.kind === 'root' ? contextStore : contextStore?.root
-  if (explicitStore && contextRoot && suppliedRoot !== contextRoot)
-    throw new TypeError('DashList store does not agree with the nearest Store context.')
+): { readonly nexus: ScopedNexus<Fields>; readonly standalone: boolean; readonly scopeId: string } {
+  const suppliedRoot = explicitNexus?.kind === 'root' ? explicitNexus : explicitNexus?.root
+  const contextRoot = contextNexus?.kind === 'root' ? contextNexus : contextNexus?.root
+  if (explicitNexus && contextRoot && suppliedRoot !== contextRoot)
+    throw new TypeError('DashList nexus does not agree with the nearest Nexus context.')
 
-  const source = explicitStore ?? contextStore
+  const source = explicitNexus ?? contextNexus
   if (!source)
-    throw new PicodashContractError('missing-store-context', { required: 'root-or-scoped' })
+    throw new PicodashContractError('missing-nexus-context', { required: 'root-or-scoped' })
   if (source.kind === 'root') {
-    if (id === undefined) throw new TypeError('DashList requires id when resolving a root Store.')
-    return { store: source.scope(id), standalone: contextStore === null, scopeId: id }
+    if (id === undefined) throw new TypeError('DashList requires id when resolving a root Nexus.')
+    return { nexus: source.scope(id), standalone: contextNexus === null, scopeId: id }
   }
-  if (explicitStore?.kind === 'scoped' && id !== undefined && id !== source.scopeId)
-    throw new TypeError('DashList scoped Store and id must name the same scope.')
-  if (!explicitStore && id !== undefined && id !== source.scopeId)
-    return { store: source.root.scope(id), standalone: contextStore === null, scopeId: id }
-  return { store: source, standalone: contextStore === null, scopeId: source.scopeId }
+  if (explicitNexus?.kind === 'scoped' && id !== undefined && id !== source.scopeId)
+    throw new TypeError('DashList scoped Nexus and id must name the same scope.')
+  if (!explicitNexus && id !== undefined && id !== source.scopeId)
+    return { nexus: source.root.scope(id), standalone: contextNexus === null, scopeId: id }
+  return { nexus: source, standalone: contextNexus === null, scopeId: source.scopeId }
 }
 
 function immutableIdentity<Fields extends PicodashFieldDefinitions>(
   identityRef: MutableRefObject<{
-    readonly store: AnyStore<Fields>
+    readonly nexus: AnyNexus<Fields>
     readonly scopeId: string
   } | null>,
-  store: AnyStore<Fields>,
+  nexus: AnyNexus<Fields>,
   scopeId: string,
 ): void {
   if (identityRef.current === null) {
-    identityRef.current = { store, scopeId }
+    identityRef.current = { nexus, scopeId }
     return
   }
-  if (identityRef.current.store !== store || identityRef.current.scopeId !== scopeId)
-    throw new TypeError('DashList Store and id are immutable while mounted.')
+  if (identityRef.current.nexus !== nexus || identityRef.current.scopeId !== scopeId)
+    throw new TypeError('DashList Nexus and id are immutable while mounted.')
 }
 
 function classNames(base: string, className: string | undefined): string {
@@ -451,7 +451,7 @@ function safeOrderingState(input: Parameters<typeof createOrderingState>[0]): Or
 }
 
 function useOrderingController({
-  store,
+  nexus,
   declarations,
   durableOrder,
   reorderable,
@@ -460,7 +460,7 @@ function useOrderingController({
   sessionFence,
   announce,
 }: {
-  readonly store: ScopedStore<PicodashFieldDefinitions>
+  readonly nexus: ScopedNexus<PicodashFieldDefinitions>
   readonly declarations: readonly OrderingNode[]
   readonly durableOrder: readonly string[] | undefined
   readonly reorderable: boolean
@@ -574,8 +574,8 @@ function useOrderingController({
       const session = previous.session
       if (transition.effect.kind === 'write-order') {
         const result = groupId
-          ? store.setDashListGroupOrder(groupId, transition.effect.order)
-          : store.setDashListRootOrder(transition.effect.order)
+          ? nexus.setDashListGroupOrder(groupId, transition.effect.order)
+          : nexus.setDashListRootOrder(transition.effect.order)
         if (!result.ok) {
           const reset = safeOrderingState(inputRef.current)
           stateRef.current = reset
@@ -603,8 +603,8 @@ function useOrderingController({
     if (event.type === 'reset') {
       coordinator.active.current = false
       if (transition.effect.kind === 'remove-order') {
-        if (groupId) store.removeDashListGroupOrder(groupId)
-        else store.removeDashListRootOrder()
+        if (groupId) nexus.removeDashListGroupOrder(groupId)
+        else nexus.removeDashListRootOrder()
       }
     }
   }
@@ -944,7 +944,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     const controlId = `picodash-dashlet-control-${useId()}`
     const commonIssuesId = `${labelId}-issues`
     const bindingIssuesId = `${labelId}-binding-issues`
-    const bindingStore = useOptionalStore<PicodashFieldDefinitions>()
+    const bindingNexus = useOptionalNexus<PicodashFieldDefinitions>()
     const descriptors = useMemo(() => {
       if (fields !== undefined && mode !== undefined)
         throw new TypeError('Compound Dashlet bindings do not accept a top-level mode.')
@@ -958,7 +958,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       })
     }, [field, fields, mode])
     const bindingRuntime = useDashletBindings(
-      bindingStore as ScopedStore<PicodashFieldDefinitions>,
+      bindingNexus as ScopedNexus<PicodashFieldDefinitions>,
       id,
       descriptors,
       disabled,
@@ -1118,9 +1118,9 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   const contentId = `picodash-dashgroup-content-${useId()}`
   const disclosureRef = useRef<HTMLButtonElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
-  const scopedStore = usePicodashStore() as ScopedStore<PicodashFieldDefinitions>
+  const scopedNexus = usePicodashNexus() as ScopedNexus<PicodashFieldDefinitions>
   const actionRegistry = useContext(DashListActionRegistryContext)
-  const collapseOverride = usePicodashStoreSelector(scopedStore, (state) =>
+  const collapseOverride = usePicodashNexusSelector(scopedNexus, (state) =>
     state.scope?.dashList?.collapseOverrides.get(id),
   )
   const collapsed = collapsible ? (collapseOverride ?? defaultCollapsed) : false
@@ -1168,11 +1168,11 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
       })),
     [declarations, renderedCollapsed],
   )
-  const groupOrder = usePicodashStoreSelector(scopedStore, (state) =>
+  const groupOrder = usePicodashNexusSelector(scopedNexus, (state) =>
     state.scope?.dashList?.groupOrders.get(id),
   )
   const childOrdering = useOrderingController({
-    store: scopedStore,
+    nexus: scopedNexus,
     declarations: groupOrderingDeclarations,
     durableOrder: groupOrder,
     reorderable: reorderable ?? parentOrdering?.ordering.reorderable ?? true,
@@ -1206,18 +1206,18 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
       document.activeElement &&
       contentRef.current.contains(document.activeElement)
     ) {
-      // Move focus while descendants are still interactive; the Store update below synchronously
+      // Move focus while descendants are still interactive; the Nexus update below synchronously
       // causes the content to become inert and hidden.
       disclosureRef.current?.focus()
     }
     const result =
       nextCollapsed === defaultCollapsed
-        ? scopedStore.removeDashListCollapseOverride(id)
-        : scopedStore.setDashListCollapseOverride(id, nextCollapsed)
+        ? scopedNexus.removeDashListCollapseOverride(id)
+        : scopedNexus.setDashListCollapseOverride(id, nextCollapsed)
     if (!result.ok)
       actionRegistry?.announce(
         `Group disclosure failed for ${labelText}: ${
-          result.error.issues[0]?.message ?? 'The Store rejected the change.'
+          result.error.issues[0]?.message ?? 'The Nexus rejected the change.'
         }`,
       )
   }
@@ -1299,7 +1299,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
 const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList(
   {
     id,
-    store: explicitStore,
+    nexus: explicitNexus,
     title,
     headingLevel,
     children,
@@ -1322,13 +1322,13 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     (!Number.isInteger(headingLevel) || headingLevel < 1 || headingLevel > 6)
   )
     throw new TypeError('DashList headingLevel must be an integer from 1 through 6.')
-  const contextStore = useOptionalStore<PicodashFieldDefinitions>()
-  const resolved = resolveStore(explicitStore, contextStore, id)
+  const contextNexus = useOptionalNexus<PicodashFieldDefinitions>()
+  const resolved = resolveNexus(explicitNexus, contextNexus, id)
   const identityRef = useRef<{
-    readonly store: AnyStore<PicodashFieldDefinitions>
+    readonly nexus: AnyNexus<PicodashFieldDefinitions>
     readonly scopeId: string
   } | null>(null)
-  immutableIdentity(identityRef, resolved.store, resolved.scopeId)
+  immutableIdentity(identityRef, resolved.nexus, resolved.scopeId)
   const declarations = useMemo(() => flattenDeclarations(children, 'list'), [children])
   const orderingDeclarations = useMemo(
     () =>
@@ -1347,7 +1347,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     undefined,
   )
   if (actionRegistryRef.current === undefined)
-    actionRegistryRef.current = createDashListActionRegistry(resolved.store, resolved.scopeId)
+    actionRegistryRef.current = createDashListActionRegistry(resolved.nexus, resolved.scopeId)
   const actionRegistry = actionRegistryRef.current
   const actionSnapshot = useSyncExternalStore(
     actionRegistry.subscribe,
@@ -1358,8 +1358,8 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     actionRegistry.activate()
     return () => actionRegistry.dispose()
   }, [actionRegistry])
-  const rootOrder = usePicodashStoreSelector(
-    resolved.store,
+  const rootOrder = usePicodashNexusSelector(
+    resolved.nexus,
     (state) => state.scope?.dashList?.rootOrder,
   )
   const rootCollapseFence = useMemo(
@@ -1381,7 +1381,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     [actionSnapshot],
   )
   const rootOrdering = useOrderingController({
-    store: resolved.store,
+    nexus: resolved.nexus,
     declarations: orderingDeclarations,
     durableOrder: rootOrder,
     reorderable,
@@ -1411,8 +1411,8 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     ariaLabelledBy ?? (ariaLabel === undefined && title !== undefined ? headingId : undefined)
   return (
     <PicodashThemeProvider theme={theme} density={density}>
-      <PicodashStoreEntityBoundary
-        store={resolved.store}
+      <PicodashNexusEntityBoundary
+        nexus={resolved.nexus}
         kind="dashList"
         allowStandalone={resolved.standalone}
       >
@@ -1475,7 +1475,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
             </DashListReorderInstructionsContext.Provider>
           </DashListOrderingCoordinatorContext.Provider>
         </DashListAnnouncementContext.Provider>
-      </PicodashStoreEntityBoundary>
+      </PicodashNexusEntityBoundary>
     </PicodashThemeProvider>
   )
 })

@@ -76,8 +76,8 @@ describe('DashList ordering model', () => {
     expect(state.ordering.durableOrder).toEqual(['b', 'a', 's'])
     expect(state.ordering.sourceDurableOrder).toEqual(['s', 'b', 'a'])
 
-    // Reconciliation with the unchanged Store metadata must not undo the
-    // declarative migration, while a new Store override remains authoritative.
+    // Reconciliation with the unchanged Nexus metadata must not undo the
+    // declarative migration, while a new Nexus override remains authoritative.
     state = transitionOrdering(state, { type: 'reconcile', input }).state
     expect(candidateOrder(state)).toEqual(['b', 'a', 's'])
     state = transitionOrdering(state, {

@@ -9,11 +9,11 @@ export default function HomePage() {
         <p className="eyebrow">React components</p>
         <h1 id="hero-title">{heroTitle}</h1>
         <p className="hero-intro">
-          Picodash provides a typed Store plus standalone DashPanel and DashList packages for React
-          applications.
+          Picodash provides Nexus, a typed state hub for validated application values and saved
+          interface preferences, plus standalone DashPanel and DashList packages for React apps.
         </p>
         <p className="hero-expectation">
-          The current alpha supports provider-hosted Panel shells and Store-scoped List composition.
+          The current alpha supports provider-hosted Panel shells and Nexus-scoped List composition.
           Placement, field bindings, ready-made Dashlets, and integrated Picodash workflows are
           still under development.
         </p>
@@ -37,11 +37,11 @@ export default function HomePage() {
         </div>
         <div className="alpha-copy-grid">
           <p>
-            DashPanel renders arbitrary React content in a Store-backed Panel with Provider-owned
+            DashPanel renders arbitrary React content in a Nexus-backed Panel with Provider-owned
             scope and theme context.
           </p>
           <p>
-            DashList composes named Dashlets and one level of groups against a root or scoped Store.
+            DashList composes named Dashlets and one level of groups against a root or scoped Nexus.
           </p>
         </div>
         <AlphaProducts />

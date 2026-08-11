@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { realpathSync } from 'node:fs'
 import { stdin, stdout, stderr } from 'node:process'
 import { fileURLToPath } from 'node:url'
-import type { PicodashJsonValue } from '@picodash/store'
+import type { PicodashJsonValue } from '@picodash/nexus'
 import { createPicodashDevBridgeClient } from './client.js'
 import type { PicodashDevBridgeClient } from './client.js'
 import type {

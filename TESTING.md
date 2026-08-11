@@ -8,12 +8,12 @@ layer's input matrix.
 
 | Owner                  | Location                                                             | Owns                                                                                                                                                                                                                                                                                                                                                                            | Does not own                                                                                                                                  |
 | ---------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Store pure tests       | `packages/store/tests`                                               | Types and field-handle inference; values, drafts, errors, validation, repair, atomic writes, resets, document objects/plans, persistence serialization, adapters, entity/relationship registration, metadata codecs/commands, and binding interaction state                                                                                                                     | Product ordering reconciliation, collapse presentation, React rendering, browser I/O, DOM/ARIA, CSS, pointer choreography, or website content |
-| Agent Dev Bridge tests | `packages/dev-bridge/tests` and `apps/lab/scripts/dev-host.test.mjs` | Relay authentication, disclosure/write enforcement, session generations, CLI protocol/exit behavior, and the Contract Lab dev-host credential/lock lifecycle                                                                                                                                                                                                                    | Store invariants, product rendering, or public website journeys                                                                               |
-| Shared UI tests        | `packages/ui/src`                                                    | Theme/density resolution; shared primitive props, semantic DOM, ARIA, and deterministic interaction; DashHeader composition; public token and package export contracts                                                                                                                                                                                                          | Store facts, Panel/List behavior, browser layout, or integrated facade behavior                                                               |
-| DashPanel tests        | `packages/dashpanel/src`                                             | Panel exports, catalog entries, and named prop types; React registration and contexts; component rendering; semantic DOM and ARIA; event wiring; diagnostics; theme carriers; modal projection; overlay behavior that does not need real layout; package-owned pure geometry                                                                                                    | Store behavior matrices, computed browser layout, or public website journeys                                                                  |
-| DashList tests         | `packages/dashlist/src`                                              | List/Dashlet exports, catalog entries, and prop types; declarations, bindings, groups, ordering reconciliation, collapse presentation, resets, scope-document JSON codec/dialog composition, semantic DOM/ARIA, deterministic reorder interaction, and responsive/rail behavior                                                                                                 | Store plan/transaction matrices, DashPanel placement, browser clipboard/file I/O, or public journeys                                          |
-| Contract Lab E2E       | `apps/lab/tests`                                                     | Only browser seams: computed geometry, pointer capture and dragging, keyboard focus traversal and restoration, portal stacking, scrolling and viewport changes, browser persistence, media-query themes, reduced motion, zoom, and cohesive cross-surface workflows; the bridge dogfood journey owns browser-to-agent discovery, mutation, wait, and reload-generation behavior | Pure Store matrices, type tests, render/ARIA permutations, catalog inventories, or website navigation                                         |
+| Nexus pure tests       | `packages/nexus/tests`                                               | Types and field-handle inference; values, drafts, errors, validation, repair, atomic writes, resets, document objects/plans, persistence serialization, adapters, entity/relationship registration, metadata codecs/commands, and binding interaction state                                                                                                                     | Product ordering reconciliation, collapse presentation, React rendering, browser I/O, DOM/ARIA, CSS, pointer choreography, or website content |
+| Agent Dev Bridge tests | `packages/dev-bridge/tests` and `apps/lab/scripts/dev-host.test.mjs` | Relay authentication, disclosure/write enforcement, session generations, CLI protocol/exit behavior, and the Contract Lab dev-host credential/lock lifecycle                                                                                                                                                                                                                    | Nexus invariants, product rendering, or public website journeys                                                                               |
+| Shared UI tests        | `packages/ui/src`                                                    | Theme/density resolution; shared primitive props, semantic DOM, ARIA, and deterministic interaction; DashHeader composition; public token and package export contracts                                                                                                                                                                                                          | Nexus facts, Panel/List behavior, browser layout, or integrated facade behavior                                                               |
+| DashPanel tests        | `packages/dashpanel/src`                                             | Panel exports, catalog entries, and named prop types; React registration and contexts; component rendering; semantic DOM and ARIA; event wiring; diagnostics; theme carriers; modal projection; overlay behavior that does not need real layout; package-owned pure geometry                                                                                                    | Nexus behavior matrices, computed browser layout, or public website journeys                                                                  |
+| DashList tests         | `packages/dashlist/src`                                              | List/Dashlet exports, catalog entries, and prop types; declarations, bindings, groups, ordering reconciliation, collapse presentation, resets, scope-document JSON codec/dialog composition, semantic DOM/ARIA, deterministic reorder interaction, and responsive/rail behavior                                                                                                 | Nexus plan/transaction matrices, DashPanel placement, browser clipboard/file I/O, or public journeys                                          |
+| Contract Lab E2E       | `apps/lab/tests`                                                     | Only browser seams: computed geometry, pointer capture and dragging, keyboard focus traversal and restoration, portal stacking, scrolling and viewport changes, browser persistence, media-query themes, reduced motion, zoom, and cohesive cross-surface workflows; the bridge dogfood journey owns browser-to-agent discovery, mutation, wait, and reload-generation behavior | Pure Nexus matrices, type tests, render/ARIA permutations, catalog inventories, or website navigation                                         |
 | Website E2E            | `apps/web/tests`                                                     | Public journeys: homepage scenarios at desktop and mobile sizes, documentation navigation, redirects, prompt copying, catalog references, and the public examples' no-error baseline                                                                                                                                                                                            | Contract Lab presets, package permutations, internal style details, or `window.__PICODASH_LAB__`                                              |
 
 Code location does not decide ownership. For example, a shared primitive reexported by Picodash is
@@ -39,7 +39,7 @@ A proposed browser assertion is admitted only when all of the following are true
 The browser is refused for parsers, validators, reducers, serialization, ordering matrices,
 geometry calculations, prop/type combinations, static export lists, semantic DOM/ARIA that a
 component renderer can inspect, or implementation-only class and pixel snapshots. Move those
-contracts to the Store or Panel owner.
+contracts to the Nexus or Panel owner.
 
 Delete or merge a browser test when its only remaining value is duplicated below the browser,
 superseded by the new API or website, tied to a deleted Lab route, or covered by a broader admitted
@@ -69,7 +69,7 @@ Select the same surface a user or assistive technology uses:
 
 Use exact roles and accessible names when ambiguity would hide a regression. Scope locators to a
 named Panel, group, dialog, menu, or region before selecting repeated controls. Do not select by
-Tailwind utility, generated class, DOM depth, `nth()` ordering, visual color, or internal Store
+Tailwind utility, generated class, DOM depth, `nth()` ordering, visual color, or internal Nexus
 shape. A `data-slot` may verify a public semantic slot; it is not the default interaction selector.
 Lab-only status outputs must have stable accessible labels.
 
@@ -83,7 +83,7 @@ parameters, hashes, or hidden fixture variants. The canvas contains:
 - host-owned reopen controls and an independent, labelled status strip.
 
 Exactly six presets are supported: `placement`, `interaction`, `composition`, `overlays`,
-`documents`, and `themes`. Preset changes may replace specimen Stores and content but must not
+`documents`, and `themes`. Preset changes may replace specimen Nexuses and content but must not
 unmount, move, or restyle the Console. Closing, hiding, deregistering, or breaking a specimen must
 not remove the host reopen control or status strip. The active preset may survive reload for the
 browser session; no preset is encoded in a route or durable user preference.
@@ -111,7 +111,7 @@ Each Lab test starts at `/lab`, waits for the labelled status strip to report re
 readiness signal again. The test then interacts through roles and labels and asserts the public DOM,
 status strip, downloads, clipboard, focus, geometry, or browser state.
 
-The driver must not expose Store internals, set geometry, synthesize drag/reorder outcomes, bypass
+The driver must not expose Nexus internals, set geometry, synthesize drag/reorder outcomes, bypass
 validation, return assertion-only state, or exist in production website bundles. Operations beyond
 `loadPreset` and `reset` use visible Console controls. Readiness, last operation, and diagnostics
 remain independently observable when the specimen is unavailable.
@@ -141,14 +141,14 @@ navigation, or redirects.
 
 Verify narrowly first and widen only after the owning layer passes:
 
-1. Run the single changed Store or Panel test file, or the single Playwright project/file/title.
+1. Run the single changed Nexus or Panel test file, or the single Playwright project/file/title.
 2. Run the owning package test command or affected browser suite.
 3. Run `vp check` for cross-package type and formatting contracts.
 4. Run affected builds when exports, bundling, routes, or fixtures changed.
 5. Run both browser suites only when their shared infrastructure changed.
 6. Run `bun run ready` for the release gate or when the task explicitly requires the full gate.
 
-Build `@picodash/store` and `@picodash/picodash` before browser discovery when their built entrypoints
+Build `@picodash/nexus` and `@picodash/picodash` before browser discovery when their built entrypoints
 are required. Use allocated Picodash ports and the suite-specific environment variables. A single
 unrelated browser failure may be rerun once to establish whether it is reproducible, but it may not
 be hidden, quarantined, or used to justify unrelated product changes.

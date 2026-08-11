@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('advances one native Store transaction across host and Panel', async ({ page }) => {
+test('advances one native Nexus transaction across host and Panel', async ({ page }) => {
   await page.goto('/')
   const panel = page.getByRole('region', { name: 'Application monitor' })
   const health = page.getByRole('group', { name: 'Service health' })

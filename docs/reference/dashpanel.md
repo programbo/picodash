@@ -12,7 +12,7 @@ source of truth.
 > `packages/dashpanel/tests/dashpanel.test.tsx`, `dashpanel.types.test.ts`, and
 > `package-artifacts.mjs`, `runtime/panel-runtime.test.ts`, and `portal.test.tsx`.
 > Notes: This cut implements Provider/Panel composition, rendered ordinary-Panel placement,
-> Store-backed durable layout, pointer and keyboard movement, portal ownership, actions, confirmed
+> Nexus-backed durable layout, pointer and keyboard movement, portal ownership, actions, confirmed
 > removal, and the integration contribution entry. Drawer/sheet presentation, catalog coverage, and
 > exhaustive stabilization remain planned.
 
@@ -20,25 +20,25 @@ source of truth.
 
 DashPanel renders arbitrary React content in a host-coordinated Panel without requiring DashList.
 It owns Panel composition, placement, portals, accessible actions, transient host runtime, and the
-translation between Panel behavior and Store-owned durable layout records.
+translation between Panel behavior and Nexus-owned durable layout records.
 
-Store owns durable layout data and scope identity. `@picodash/ui` owns shared theme and density
+Nexus owns durable layout data and scope identity. `@picodash/ui` owns shared theme and density
 contracts, semantic tokens, and product-neutral primitives. DashPanel does not own application
 values, DashList composition, routing, authorization, or permanent component removal.
 
 ## Target composition
 
 ```tsx
-const store = createPicodashStore({
-  storeId: 'tools',
+const nexus = createPicodashNexus({
+  nexusId: 'tools',
   schemaVersion: 1,
-  valueOwner: 'store',
+  valueOwner: 'nexus',
   fields: {},
 })
 
 function Tools() {
   return (
-    <DashPanelProvider store={store}>
+    <DashPanelProvider nexus={nexus}>
       <DashPanel id="inspector" title="Inspector">
         <Inspector />
       </DashPanel>
@@ -49,19 +49,19 @@ function Tools() {
 
 | API                 | Contract | Implementation | Purpose                                                          |
 | ------------------- | -------- | -------------- | ---------------------------------------------------------------- |
-| `DashPanelProvider` | Accepted | Partial        | Hosts Panels over one explicit root Store.                       |
+| `DashPanelProvider` | Accepted | Partial        | Hosts Panels over one explicit root Nexus.                       |
 | `DashPanel`         | Accepted | Partial        | Renders one Panel with arbitrary React content.                  |
 | `DashPanelTrigger`  | Accepted | Implemented    | Application-placed show/focus control for one Panel.             |
 | `DashPanelLauncher` | Accepted | Implemented    | Provider-level discovery/reopen control for its Panels.          |
 | `useDashPanel`      | Accepted | Implemented    | Controls visibility, collapse, activation, placement, and reset. |
-| `id`                | Accepted | Implemented    | Resolves immutable Store scope identity; not a DOM `id`.         |
+| `id`                | Accepted | Implemented    | Resolves immutable Nexus scope identity; not a DOM `id`.         |
 | `title`             | Accepted | Implemented    | Required accessible Panel name and visible heading.              |
 | `children`          | Accepted | Implemented    | Arbitrary React content.                                         |
 
 The package-native names are the target. `PicodashProvider` and `PicodashPanel` remain prototype
 and integrated-facade evidence, not a second standalone API.
 
-DashPanel does not accept an independent `store` prop. `DashPanelProvider` supplies a root Store,
+DashPanel does not accept an independent `nexus` prop. `DashPanelProvider` supplies a root Nexus,
 and each Panel supplies its scoped view to descendants. The integrated Picodash facade may reexport
 the stable foundational components and provides its own integration Provider composition.
 
@@ -69,19 +69,19 @@ the stable foundational components and provides its own integration Provider com
 
 | Provider capability       | Contract | Implementation | Rule                                                                                                           |
 | ------------------------- | -------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
-| Required root `store`     | Accepted | Implemented    | Scoped Stores are rejected.                                                                                    |
+| Required root `nexus`     | Accepted | Implemented    | Scoped Nexuses are rejected.                                                                                   |
 | `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                                                           |
-| Hard Store/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                                                        |
+| Hard Nexus/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                                                        |
 | Shared `boundary`         | Accepted | Partial        | Resolution, measurement, containment, and rendered ordinary-Panel geometry are wired.                          |
 | Shared `boundaryInset`    | Accepted | Partial        | Inheritance, normalization, measurement, and rendered ordinary-Panel geometry are wired.                       |
 | Dock-position policy      | Accepted | Implemented    | Provider resolves the maximum canonical set; Panels may narrow it without widening.                            |
 | Portal ownership          | Accepted | Implemented    | Shared overlay defaults are composed and ownership is provided through Provider `portalContainer`/`layerBase`. |
 | Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                                                            |
 
-The root Store and `providerId` are immutable while mounted. Theme, boundary, inset, and enabled
+The root Nexus and `providerId` are immutable while mounted. Theme, boundary, inset, and enabled
 dock positions are runtime policy and may change through their declared props.
 
-More than one Provider may use a root Store, but each requires a distinct Provider ID. Provider IDs
+More than one Provider may use a root Nexus, but each requires a distinct Provider ID. Provider IDs
 do not namespace scopes. The same Panel scope cannot be active in two Providers over one root.
 
 The exact Provider shape is:
@@ -97,7 +97,7 @@ type DashPanelBoundaryInset =
 
 interface DashPanelProviderProps<TValues extends object, CustomTheme extends string = never> {
   children: ReactNode
-  store: RootStore<TValues>
+  nexus: RootNexus<TValues>
   providerId?: string
   boundary?: DashPanelBoundary | null
   boundaryInset?: DashPanelBoundaryInset
@@ -117,7 +117,7 @@ interface DashPanelProviderProps<TValues extends object, CustomTheme extends str
   ownership. Geometry continues to resolve independently through `boundary` and `boundaryInset`.
 - Portal containers are HTML elements because they feed the shared React Aria portal context.
   `boundary` remains the broader `Element` type because geometry may legitimately resolve from SVG.
-- The Provider owns no persistence configuration. Store construction supplies persistence policy,
+- The Provider owns no persistence configuration. Nexus construction supplies persistence policy,
   driver, and storage identity.
 - The prototype props `panelBoundary`, `panelBoundaryInset`, `persistLayout`, and `storageKey` do not
   enter the target API.
@@ -127,7 +127,7 @@ interface DashPanelProviderProps<TValues extends object, CustomTheme extends str
 > Contract: Accepted
 > Implementation: Partial
 
-The current subset implements Provider/Panel composition, Store scope boundaries, theme/density,
+The current subset implements Provider/Panel composition, Nexus scope boundaries, theme/density,
 semantic naming, width-token styling, and the `boundary`, `boundaryInset`, and `dockPositions` Panel
 policy props. It also implements uncontrolled visibility, transient close/reopen, triggers, and the
 explicit launcher. Confirmed removal, durable layout and placement options, action menus, modal
@@ -222,7 +222,7 @@ styles cannot compete with the `width` prop or projected placement constraints. 
 use `width` for one Panel or a `className`/stylesheet rule for selector-based sizing. Other ordinary
 `aside` attributes and styles remain available. DashPanel forwards an `HTMLAsideElement` ref.
 
-The prototype props `store`, `contentMode`, `close`, `onClose`, controlled visibility/collapse, and
+The prototype props `nexus`, `contentMode`, `close`, `onClose`, controlled visibility/collapse, and
 Motion-specific animation or drag props do not enter the target API. DashPanel exposes behavior
 through its accepted props and controller rather than leaking its animation implementation.
 
@@ -241,7 +241,7 @@ state.
 - A Panel and one primary DashList may share a scope.
 - A Panel resolving a different scope from its nearest scoped context registers an active
   declarative parent-child relationship.
-- Store entity and relationship leases follow committed React lifecycle.
+- Nexus entity and relationship leases follow committed React lifecycle.
 - Hiding or collapsing a Panel does not release its entity, relationship, or dock occupancy.
 - Effect deactivation and unmount release runtime leases. Permanent removal is application-owned
   unmounting.
@@ -255,7 +255,7 @@ state.
 > `packages/dashpanel/tests/dashpanel.test.tsx` cover the private model plus React collapse
 > controls, hidden/inert retained bodies, callback ordering, dynamic policy updates, triggers,
 > launchers, transient close/reopen, and cleanup. `apps/lab/tests/contract-lab.spec.ts` covers real
-> browser focus entry/restoration and Bridge-backed retained Store behavior.
+> browser focus entry/restoration and Bridge-backed retained Nexus behavior.
 > Notes: `useDashPanel`, durable layout, and confirmed removal are implemented; modal presentation remains deferred.
 
 DashPanel renders a non-modal `aside` with a required title, generated accessible relationships,
@@ -366,7 +366,7 @@ dock target. Panel omission inherits the Provider maximum, while an explicit set
 widening or unknown positions throw synchronously. Placement classification reports `available` for
 floating placements and permitted Hybrid snaps, or a frozen dormant result with status `dormant`,
 reason `position_disabled`, and the disabled target for a Fixed or Hybrid dock placement. It does
-not select fallbacks or materialize Store state.
+not select fallbacks or materialize Nexus state.
 
 ## Dock occupancy and allocation
 
@@ -378,7 +378,7 @@ Docking coordinates multiple Fixed and Hybrid Panels within a Provider. These te
 - **Dock occupancy:** the active runtime lease between a Panel and a dock slot.
 - **Dock allocation:** the runtime size cap assigned to occupants sharing an edge.
 
-Occupancy and allocation are host runtime, not Store metadata.
+Occupancy and allocation are host runtime, not Nexus metadata.
 
 ### Occupancy rules
 
@@ -503,7 +503,7 @@ placement coordinates; changing a boundary must not implicitly move ownership of
 > Contract: Accepted
 > Implementation: Prototype
 
-Store persists one settled layout override per Panel scope:
+Nexus persists one settled layout override per Panel scope:
 
 ```ts
 type DashPanelLayoutRecord = {
@@ -516,14 +516,14 @@ type DashPanelLayoutRecord = {
 inset and before snap offset. It preserves the preferred contained free position through snapping
 or docking and gives Hybrid detachment a stable destination.
 
-Store does not persist resolved size, visibility, collapse, focus, activation, z-order, drag proxy,
+Nexus does not persist resolved size, visibility, collapse, focus, activation, z-order, drag proxy,
 occupancy, allocations, allocation ratios, peer identity, boundary object, inset, enabled positions,
 fallback layout, or responsive projection.
 
 A completed move, snap, or dock writes the override. Cancellation writes nothing.
 `resetDashPanelLayout()` removes it so the current declared `defaultLayout` applies. A record with
 an unknown position, an invalid mode/disposition combination, or non-finite coordinates enters
-Store recovery; a valid record merely disabled by current UI policy remains dormant.
+Nexus recovery; a valid record merely disabled by current UI policy remains dormant.
 
 ## Resize and responsive behavior
 
@@ -643,7 +643,7 @@ unmount its JSX. Omitting the callback omits the permanent-removal action.
 ## Action menu
 
 The built-in DashPanel menu contains only Panel-owned placement and layout-reset actions. Value
-reset, group expansion, copy, import, export, and disclosure policy belong to DashList, Store, or
+reset, group expansion, copy, import, export, and disclosure policy belong to DashList, Nexus, or
 integrated Picodash composition.
 
 | Configuration                      | Contract | Behavior                                              |
@@ -655,7 +655,7 @@ integrated Picodash composition.
 
 DashPanel exports the menu item, submenu, separator, and built-in placement/reset components needed
 to compose the accepted custom-content path. They use public controller commands and must not
-mutate Store or Provider internals.
+mutate Nexus or Provider internals.
 
 The Panel-owned action exports are:
 
@@ -732,7 +732,7 @@ attributes; their descendants inherit.
 
 Density changes shared geometry tokens without changing color roles, placement semantics, or
 durable layout. Compact presentation keeps coarse-pointer hit targets at least 44 CSS pixels. An
-application may persist its own preference in Store and pass it back as an ordinary prop.
+application may persist its own preference in Nexus and pass it back as an ordinary prop.
 
 Custom themes override public `--picodash-*` tokens under their named theme selector. Consumers must
 not rely on `--_picodash-*` variables, which are package-private derived values.
@@ -843,7 +843,7 @@ Panels through a registry, infer labels from mounted content, or acquire authori
 JSX. `panelId` identifies the target Panel; optional `itemId` identifies the launcher entry. A
 target that occurs once may omit `itemId` and uses `panelId` as its stable entry identity. When a
 `panelId` occurs more than once, every occurrence requires a unique, stable, non-empty `itemId`.
-Supplied `itemId` values are unique within that launcher and never become DOM IDs, Store scope IDs,
+Supplied `itemId` values are unique within that launcher and never become DOM IDs, Nexus scope IDs,
 or persisted state. Text labels provide the trigger name directly; non-text labels require
 `accessibleName`, which is forwarded as the trigger's accessible name. A launcher item for an
 unavailable Panel renders as a disabled trigger and does not create it.
@@ -917,17 +917,17 @@ without a nearest Panel, is a lifecycle contract error. An explicit ID that is n
 returns an immutable unavailable controller rather than creating runtime state.
 
 Every command rechecks current availability at execution time. Visibility, activation, and collapse
-commands mutate transient Provider runtime. Placement and reset commands invoke Store and return its
-structured persistent transaction result; `status: 'executed'` means the Store command ran, not that
-the transaction necessarily committed. Structured Store rejection remains visible in `transaction`.
+commands mutate transient Provider runtime. Placement and reset commands invoke Nexus and return its
+structured persistent transaction result; `status: 'executed'` means the Nexus command ran, not that
+the transaction necessarily committed. Structured Nexus rejection remains visible in `transaction`.
 Ownership, lifecycle, and malformed-placement contract errors continue to throw.
 
 The public hook is now implemented and exposed through the accepted API. It is the command-level entry
 for visibility, activation, placement, collapse, and layout-reset operations when callers need explicit
 programmatic control. DashPanelTrigger and DashPanelLauncher continue to use their focused control paths.
 
-DashPanel exposes no mutable Provider store, generic runtime selector, or `/advanced` entrypoint in
-the initial contract. Applications select Store values through `@picodash/store/react`; DashPanel
+DashPanel exposes no mutable Provider Nexus, generic runtime selector, or `/advanced` entrypoint in
+the initial contract. Applications select Nexus values through `@picodash/nexus/react`; DashPanel
 does not create another equality or value-subscription API.
 
 ## Public package surfaces
@@ -952,7 +952,7 @@ No unresolved DashPanel contract question blocks implementation. Conformance sti
 3. package and type evidence for every accepted public surface; and
 4. proof that private geometry selectors and formulas have not become customization promises.
 
-These are implementation and verification obligations. They do not reopen Store ownership,
+These are implementation and verification obligations. They do not reopen Nexus ownership,
 declarative lifecycle, placement semantics, adaptive presentation, persistence, accessibility, or
 action ownership without an explicit contract revision.
 
@@ -962,8 +962,8 @@ action ownership without an explicit contract revision.
 - [DashPanel value proposition](../product/value-propositions.md#dashpanel)
 - [DashPanel contract decisions](dashpanel-contract-decisions.md)
 - [ADR 0004: DashPanel launcher item identity](../adr/0004-dashpanel-launcher-item-identity.md)
-- [Store target reference](store.md)
-- [Store decisions](store-contract-decisions.md)
+- [Nexus target reference](nexus.md)
+- [Nexus decisions](nexus-contract-decisions.md)
 - [Component catalog target reference](catalog.md)
 - [Contract conformance](contract-conformance.md)
 - [Roadmap](../ROADMAP.md)

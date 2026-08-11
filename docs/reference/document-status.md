@@ -39,7 +39,7 @@ Use this form for a section:
 > Contract: Accepted
 > Implementation: Planned
 > Evidence: None
-> Notes: Requires canonical scoped Store views.
+> Notes: Requires canonical scoped Nexus views.
 ```
 
 Use status columns when documenting several APIs:

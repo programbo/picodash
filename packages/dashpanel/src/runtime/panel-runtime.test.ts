@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vite-plus/test'
-import type { DashPanelLayoutRecord } from '@picodash/store'
+import type { DashPanelLayoutRecord } from '@picodash/nexus'
 import { focusPanel, recordPanelEntry, restorePanelFocus } from './panel-lifecycle.ts'
 import { createPanelRuntime, type PanelRuntimeConfig } from './panel-runtime.ts'
 
@@ -253,7 +253,7 @@ describe('private DashPanel runtime model', () => {
         preferredPosition: { x: 7, y: 9 },
         dockPositions: ['full-left'],
         currentPosition: () => ({ x: 90, y: 80 }),
-        store: { setDashPanelLayout, resetDashPanelLayout: vi.fn() },
+        nexus: { setDashPanelLayout, resetDashPanelLayout: vi.fn() },
       }),
     )
     runtime.setPlacement('panel', {
@@ -288,7 +288,7 @@ describe('private DashPanel runtime model', () => {
       mode: 'fixed' as const,
       disposition: { kind: 'docked' as const, position: 'full-left' as const },
     }
-    const store = () => ({
+    const nexus = () => ({
       setDashPanelLayout: vi.fn(() => ({ ok: true }) as never),
       resetDashPanelLayout: vi.fn(() => ({ ok: true }) as never),
     })
@@ -298,7 +298,7 @@ describe('private DashPanel runtime model', () => {
         preferredPosition: { x: 0, y: 0 },
         dockPositions: ['full-left'],
         resolveDockArena: arena(boundaryA),
-        store: store(),
+        nexus: nexus(),
       }),
     )
     const otherBoundary = runtime.acquire(
@@ -307,7 +307,7 @@ describe('private DashPanel runtime model', () => {
         preferredPosition: { x: 0, y: 0 },
         dockPositions: ['full-left'],
         resolveDockArena: arena(boundaryB),
-        store: store(),
+        nexus: nexus(),
       }),
     )
     runtime.acquire(
@@ -316,7 +316,7 @@ describe('private DashPanel runtime model', () => {
         preferredPosition: { x: 0, y: 0 },
         dockPositions: ['full-left'],
         resolveDockArena: arena(boundaryA, 8),
-        store: store(),
+        nexus: nexus(),
       }),
     )
     expect(runtime.getSnapshot().panels['other-boundary']?.placement).toEqual(placement)
@@ -347,7 +347,7 @@ describe('private DashPanel runtime model', () => {
         placement,
         preferredPosition: { x: 4, y: 6 },
         dockPositions: ['full-left'],
-        store: { setDashPanelLayout, resetDashPanelLayout: vi.fn() },
+        nexus: { setDashPanelLayout, resetDashPanelLayout: vi.fn() },
       }),
     )
     expect(runtime.getSnapshot().panels.second).toMatchObject({

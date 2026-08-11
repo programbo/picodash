@@ -10,16 +10,16 @@ const artifactContracts = {
     '@picodash/dashpanel',
     '@picodash/dashlist',
     '@picodash/picodash',
-    '@picodash/store',
+    '@picodash/nexus',
   ],
   'SKILL.md': ['@picodash/dashpanel', '@picodash/dashlist', '@picodash/picodash'],
   'llms.txt': ['@picodash/dashpanel', '@picodash/dashlist', '@picodash/picodash'],
   'PRODUCT.md': ['AI coding agent', 'WCAG 2.2 Level AA'],
-  'CONTEXT.md': ['Compound Dashlet', 'Picodash Store'],
+  'CONTEXT.md': ['Compound Dashlet', 'Picodash Nexus', 'Root Nexus', 'Scoped Nexus'],
 }
 
 const packageExportContracts = {
-  'packages/store/package.json': [
+  'packages/nexus/package.json': [
     '.',
     './react',
     './integration',
@@ -38,7 +38,7 @@ const activePaths = [
   'apps/web/src',
   'apps/lab/package.json',
   'apps/lab/src',
-  'packages/store',
+  'packages/nexus',
   'packages/ui',
   'packages/dashpanel',
   'packages/dashlist',

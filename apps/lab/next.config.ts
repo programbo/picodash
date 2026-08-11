@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     '@picodash/dashlist',
     '@picodash/dashpanel',
     '@picodash/picodash',
-    '@picodash/store',
+    '@picodash/nexus',
     '@picodash/ui',
   ],
   turbopack: {

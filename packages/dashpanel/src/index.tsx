@@ -18,12 +18,12 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
-import type { PicodashFieldDefinitions, RootStore } from '@picodash/store'
+import type { PicodashFieldDefinitions, RootNexus } from '@picodash/nexus'
 import {
-  PicodashStoreEntityBoundary,
-  PicodashStoreProviderBoundary,
-} from '@picodash/store/integration'
-import { usePicodashRootStore, usePicodashStoreSelector } from '@picodash/store/react'
+  PicodashNexusEntityBoundary,
+  PicodashNexusProviderBoundary,
+} from '@picodash/nexus/integration'
+import { usePicodashRootNexus, usePicodashNexusSelector } from '@picodash/nexus/react'
 import {
   ActionMenu,
   ActionMenuItem,
@@ -148,7 +148,7 @@ export interface DashPanelProviderProps<
   CustomTheme extends string = never,
 > {
   children: ReactNode
-  store: RootStore<Fields>
+  nexus: RootNexus<Fields>
   providerId?: string
   boundary?: DashPanelBoundary | null
   boundaryInset?: DashPanelBoundaryInset
@@ -213,16 +213,16 @@ export interface DashPanelLauncherProps extends Omit<ComponentPropsWithoutRef<'d
 }
 
 function immutableProviderIdentity<Fields extends PicodashFieldDefinitions>(
-  store: RootStore<Fields>,
+  nexus: RootNexus<Fields>,
   providerId: string,
 ) {
   const identity = useRef<{
-    readonly store: RootStore<Fields>
+    readonly nexus: RootNexus<Fields>
     readonly providerId: string
   } | null>(null)
-  if (identity.current === null) identity.current = { store, providerId }
-  else if (identity.current.store !== store || identity.current.providerId !== providerId)
-    throw new TypeError('DashPanelProvider store and providerId are immutable while mounted.')
+  if (identity.current === null) identity.current = { nexus, providerId }
+  else if (identity.current.nexus !== nexus || identity.current.providerId !== providerId)
+    throw new TypeError('DashPanelProvider nexus and providerId are immutable while mounted.')
 }
 
 export function DashPanelProvider<
@@ -230,7 +230,7 @@ export function DashPanelProvider<
   CustomTheme extends string = never,
 >({
   children,
-  store,
+  nexus,
   providerId,
   boundary,
   boundaryInset,
@@ -240,11 +240,11 @@ export function DashPanelProvider<
   theme,
   density,
 }: DashPanelProviderProps<Fields, CustomTheme>) {
-  if (store.kind !== 'root') throw new TypeError('DashPanelProvider requires a root Store.')
+  if (nexus.kind !== 'root') throw new TypeError('DashPanelProvider requires a root Nexus.')
   const resolvedProviderId = providerId ?? 'default'
-  immutableProviderIdentity(store, resolvedProviderId)
+  immutableProviderIdentity(nexus, resolvedProviderId)
   return (
-    <PicodashStoreProviderBoundary store={store} providerId={resolvedProviderId}>
+    <PicodashNexusProviderBoundary nexus={nexus} providerId={resolvedProviderId}>
       <DashPanelProviderPolicyProvider
         boundary={boundary}
         boundaryInset={boundaryInset}
@@ -260,7 +260,7 @@ export function DashPanelProvider<
           </DashPanelRuntimeProvider>
         </DashPanelPolicyBoundary>
       </DashPanelProviderPolicyProvider>
-    </PicodashStoreProviderBoundary>
+    </PicodashNexusProviderBoundary>
   )
 }
 
@@ -550,7 +550,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   ref,
 ) {
   assertPanelStyle(style)
-  const root = usePicodashRootStore()
+  const root = usePicodashRootNexus()
   const runtime = useDashPanelRuntime()
   const providerPolicy = useDashPanelProviderPolicy()
   const overlayDefaults = usePicodashOverlayDefaults()
@@ -559,7 +559,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const defaultActionItems = useDashPanelDefaultActionItems()
   const runtimeState = useDashPanelRuntimeState(id)
   const scoped = root.scope(id)
-  const durableLayout = usePicodashStoreSelector(scoped, (state) => state.scope?.dashPanel)
+  const durableLayout = usePicodashNexusSelector(scoped, (state) => state.scope?.dashPanel)
   const resolvedDefaultLayout = useMemo(
     () => normalizeDashPanelDefaultLayout(defaultLayout),
     [defaultLayout],
@@ -1403,7 +1403,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       placement: resolvedPlacement,
       dockPositions: resolvedDockPositions,
       presentation: resolvedPresentation,
-      store: scoped,
+      nexus: scoped,
       currentPosition,
       freeMovePosition,
       preferredPosition: settledPreferredPosition,
@@ -1427,7 +1427,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       placement: resolvedPlacement,
       dockPositions: resolvedDockPositions,
       presentation: resolvedPresentation,
-      store: scoped,
+      nexus: scoped,
       currentPosition,
       freeMovePosition,
       preferredPosition: settledPreferredPosition,
@@ -1543,7 +1543,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           onRequestRemove={onRequestRemove}
           announce={announceAction}
         >
-          <PicodashStoreEntityBoundary store={scoped} kind="dashPanel">
+          <PicodashNexusEntityBoundary nexus={scoped} kind="dashPanel">
             <PicodashThemeProvider<string> theme={theme} density={density}>
               <aside
                 {...asideProps}
@@ -1677,7 +1677,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 </span>
               </aside>
             </PicodashThemeProvider>
-          </PicodashStoreEntityBoundary>
+          </PicodashNexusEntityBoundary>
         </DashPanelActionProvider>
       </DashPanelIdentityProvider>
     </DashPanelPolicyProvider>

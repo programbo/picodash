@@ -8,7 +8,7 @@ readouts, visualizations, previews, and actions. This page describes the aspirat
 
 > Contract: Accepted
 > Implementation: Partial
-> Evidence: `packages/dashlist/tests/dashlist.test.tsx`, `packages/dashlist/tests/dashlist.types.test.ts`, and `packages/dashlist/tests/package-artifacts.mjs` cover the alpha shell, semantic structure, Store resolution boundary, and package surface.
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx`, `packages/dashlist/tests/dashlist.types.test.ts`, and `packages/dashlist/tests/package-artifacts.mjs` cover the alpha shell, semantic structure, Nexus resolution boundary, and package surface.
 > Notes: The initial launch contract is accepted. The remaining prototype behavior must be
 > reconciled through the conformance matrix; ordering, collapse, and action resets are now implemented,
 > while rail behavior and catalog coverage remain deferred to later stabilization work. List node declaration
@@ -22,10 +22,10 @@ layout. It does not require DashPanel or `PicodashProvider`.
 ## Standalone composition
 
 ```tsx
-const store = createPicodashStore({
-  storeId: 'settings',
+const nexus = createPicodashNexus({
+  nexusId: 'settings',
   schemaVersion: 1,
-  valueOwner: 'store',
+  valueOwner: 'nexus',
   fields: {
     theme: { defaultValue: 'system' },
     density: { defaultValue: 1 },
@@ -34,14 +34,14 @@ const store = createPicodashStore({
 
 function Settings() {
   return (
-    <DashList id="settings" store={store}>
+    <DashList id="settings" nexus={nexus}>
       <SelectDashlet
         id="theme"
-        field={store.fields.theme}
+        field={nexus.fields.theme}
         label="Theme"
         options={['light', 'dark', 'system']}
       />
-      <SliderDashlet id="density" field={store.fields.density} label="Density" />
+      <SliderDashlet id="density" field={nexus.fields.density} label="Density" />
     </DashList>
   )
 }
@@ -49,9 +49,9 @@ function Settings() {
 
 | API/component       | Contract | Implementation | Notes                                                                                                                         |
 | ------------------- | -------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `DashList`          | Accepted | Partial        | Package-native List root and scope boundary; shell and Store boundary are implemented.                                        |
-| root `store` + `id` | Accepted | Partial        | Resolves an explicit scope and opts into standalone hosting without context.                                                  |
-| scoped `store`      | Accepted | Partial        | `id` may be omitted or must agree; explicit mismatch is rejected.                                                             |
+| `DashList`          | Accepted | Partial        | Package-native List root and scope boundary; shell and Nexus boundary are implemented.                                        |
+| root `nexus` + `id` | Accepted | Partial        | Resolves an explicit scope and opts into standalone hosting without context.                                                  |
+| scoped `nexus`      | Accepted | Partial        | `id` may be omitted or must agree; explicit mismatch is rejected.                                                             |
 | `children`          | Accepted | Verified       | Arrays/fragments are transparent; every direct declaration commits exactly one matching node, including custom ID forwarding. |
 
 ## Context composition
@@ -67,7 +67,7 @@ scope.
 
 Additional DashLists are permitted in advanced compositions but are not additional primary Lists.
 Each requires an explicit ID, resolves a child scope, and registers an active declarative
-relationship from the nearest scope. DashList supplies its scoped Store context to descendants. A
+relationship from the nearest scope. DashList supplies its scoped Nexus context to descendants. A
 Provider boundary resets ancestry.
 
 > Contract: Accepted
@@ -108,7 +108,7 @@ type DashListProps<TValues extends object, CustomTheme extends string = never> =
 > &
   DashListHeadingProps & {
     id?: string
-    store?: RootStore<TValues> | ScopedStore<TValues>
+    nexus?: RootNexus<TValues> | ScopedNexus<TValues>
     children?: ReactNode
     presentation?: DashListPresentation
     orientation?: DashListOrientation
@@ -123,31 +123,31 @@ type DashListProps<TValues extends object, CustomTheme extends string = never> =
   }
 ```
 
-`RootStore` and `ScopedStore` above denote the corresponding accepted Store surfaces; DashList does
-not introduce wrapper Store types. The generic theme parameter preserves the shared UI foundation's
+`RootNexus` and `ScopedNexus` above denote the corresponding accepted Nexus surfaces; DashList does
+not introduce wrapper Nexus types. The generic theme parameter preserves the shared UI foundation's
 strict custom-theme union.
 
 The props have these rules:
 
-- `id` is immutable Store scope identity for the mount lifetime. It never becomes the root DOM
+- `id` is immutable Nexus scope identity for the mount lifetime. It never becomes the root DOM
   `id`; a Panel and its primary List may intentionally share the same scope, and opaque scope IDs
   are not suitable DOM identifiers. Internal accessible relationships use independently generated
   IDs.
 - The public root forwards its React 19 ref, `className`, `style`, event handlers, and ordinary
   `data-*` and neutral `div` attributes. The initial API has no second public DOM-ID prop; consumers
   use the forwarded ref, a class, or a `data-*` hook when they need to address the root.
-- `store` follows the accepted standalone and nearest-context resolution matrix. It is required only
-  when context cannot resolve the intended scope. A supplied root/scoped Store, `id`, and nearest
-  Store context must agree where more than one is present.
+- `nexus` follows the accepted standalone and nearest-context resolution matrix. It is required only
+  when context cannot resolve the intended scope. A supplied root/scoped Nexus, `id`, and nearest
+  Nexus context must agree where more than one is present.
 - `title` renders a visible heading and requires `headingLevel`. Omitting both is valid in normal
-  presentation. A Store scope ID or component `id` never supplies title text or a heading level.
+  presentation. A Nexus scope ID or component `id` never supplies title text or a heading level.
 - `aria-label` and `aria-labelledby` name the active semantic collection: the normal List or the
   rail toolbar. They are deliberately removed from the neutral root's native prop spread.
 - `presentation` defaults to `list`. `orientation` defaults to `vertical`, remains dormant while
   normal List presentation is active, and takes effect when the List enters rail presentation.
   Keeping a dormant declared orientation lets an application change presentation without replacing
   the prop.
-- An active Store orientation override still takes precedence over the declared `orientation`.
+- An active Nexus orientation override still takes precedence over the declared `orientation`.
 - `reorderable` defaults to `true`. `disabled` and `readOnly` default to `false` and cascade under
   the accepted content-policy rules. These and all other runtime presentation props are ordinary
   resolved React values, not `ReactiveProp` callbacks.
@@ -215,7 +215,7 @@ conditional cleanup, keyed reparenting, and nested DashList roots do not acquire
 | DashGroup `id`         | Accepted | Verified       | Required; shares the List-wide node-ID namespace.                                                    |
 | Field-derived node ID  | Rejected | Prototype      | Binding identity cannot stand in for node ID.                                                        |
 | Binding alias          | Accepted | Verified       | Defaults to field key; explicit aliases are leased per Dashlet item and cleaned up in reverse order. |
-| React key or `useId()` | Rejected | Prototype      | Not durable Store identity.                                                                          |
+| React key or `useId()` | Rejected | Prototype      | Not durable Nexus identity.                                                                          |
 
 IDs are opaque and exact. Every Dashlet and DashGroup requires an explicit `id`, including a
 single-field Dashlet. Rebinding a Dashlet must not change its order or interaction identity. Several
@@ -234,7 +234,7 @@ Dashlet.
 > helper families remain Draft.
 
 The package-native composition names are `DashList`, `DashGroup`, and `Dashlet`. `DashGroup` is a
-declarative container node, not a Store scope. `Dashlet` is a leaf List node and the presentation and
+declarative container node, not a Nexus scope. `Dashlet` is a leaf List node and the presentation and
 binding boundary for zero, one, or several fields.
 
 The `@picodash/dashlist/dashlet` subpath is the **Dashlet anatomy** surface. Its `Frame`, `Header`,
@@ -285,7 +285,7 @@ type DashGroupProps = RegisteredNodeNativeProps & {
 `DashGroup.label` is required. A non-text label additionally requires `aria-label`. `collapsible`
 defaults to `true`; `defaultCollapsed` defaults to `false`; and an omitted `reorderable` inherits
 the containing DashList policy. The Group exposes no controlled `collapsed`, `visible`, generic
-`states`, generic `status`, actions, or Store prop. Conditional JSX owns presence, while the accepted
+`states`, generic `status`, actions, or Nexus prop. Conditional JSX owns presence, while the accepted
 collapse override owns user visibility of mounted children.
 
 The Dashlet base surface is:
@@ -391,7 +391,7 @@ The stable prop surface does not include:
   region;
 - `valueMode`, which is replaced by the binding descriptor's `mode`;
 - `value`, `defaultValue`, `onChange`, or `onValueChange`, because canonical values and observation
-  belong to Store; or
+  belong to Nexus; or
 - Dashlet-level `parse`, `validate`, or reset defaults, which belong to the field contract.
 
 `DashGroup`, `Dashlet`, and their accepted ready-made variants forward their ref, `className`,
@@ -408,7 +408,7 @@ these roles or structural tab-index rules through the native prop surface.
 `primaryFocusRef?: RefObject<HTMLElement | null>` is the sole public registration path for a custom
 Dashlet's primary focus target. The caller owns the ref and attaches it to the intended control.
 Dashlet reads its current element only when focus redirection or rail reveal requires it; changing
-the ref object is an ordinary prop update and does not create Store metadata.
+the ref object is an ordinary prop update and does not create Nexus metadata.
 
 Ready-made single-control and action Dashlets supply their control ref internally. Compound and
 custom Dashlets nominate one explicitly when safe-area or rail activation should focus a control.
@@ -504,11 +504,11 @@ caller does not need the context.
 
 The common `issues` collection contains composition-level, ambiguous, and cross-field issues.
 Binding `issues` contains only issues attributed to that binding. Both retain complete structured
-Store identities. `issuesId` exists only while its corresponding rendered region exists. The
+Nexus identities. `issuesId` exists only while its corresponding rendered region exists. The
 single-field control may use the common `labelId`; compound controls provide their own individual
 labels because the Dashlet label names the composition, not every field.
 
-Input callbacks are UI event callbacks and deliberately return `void`. Dashlet owns Store result
+Input callbacks are UI event callbacks and deliberately return `void`. Dashlet owns Nexus result
 handling, shared announcements, issue presentation, and the accepted stale-input confirmation
 flow. They enforce resolved policy: `disabled` blocks every input action; `readOnly` blocks
 `setInput` and `resetValue` but still permits `discardInput`. Display contexts expose no mutation or
@@ -612,7 +612,7 @@ Compact controls and readouts may render directly in the shell's content region.
 Dashlets may place one anatomy `Frame` in that region and compose `Header`, `Heading`, `Description`,
 `Actions`, `Body`, `Footer`, and supporting readout/state primitives inside it.
 
-The anatomy layer is optional and non-registering. It does not own List identity, Store bindings,
+The anatomy layer is optional and non-registering. It does not own List identity, Nexus bindings,
 reordering, shell focus state, or durable metadata. A Frame is content inside one Dashlet, not a
 second Dashlet.
 
@@ -700,7 +700,7 @@ field schema.
 > Contract: Accepted
 > Implementation: Planned
 
-DashList owns every generic Store-bound ready-made Dashlet that can operate without a DashPanel. It
+DashList owns every generic Nexus-bound ready-made Dashlet that can operate without a DashPanel. It
 owns the component implementation and the corresponding catalog metadata. Catalog entries live
 with their public components so component behavior, documentation, compatibility metadata, and
 agent discovery cannot acquire separate sources of truth.
@@ -717,7 +717,7 @@ foundation-level Dashlets merely because they render inside a Panel.
 Third-party Dashlet packages own their own catalog entries. Applications and integration packages
 may combine catalogs without transferring ownership. Catalog metadata supports documentation,
 discovery, compatibility guidance, and agent tooling; it does not register components, authorize
-Store access, or otherwise control runtime behavior.
+Nexus access, or otherwise control runtime behavior.
 
 `@picodash/dashlist/catalog` publishes one deeply frozen entry for every Accepted public DashList
 component it owns. Its exact JSON-compatible fields, exclusions, reexport rules, and artifact checks
@@ -740,7 +740,7 @@ The initial `@picodash/dashlist` root exports are:
 
 This set covers the common scalar, choice, and readout cases without making optional chart, media,
 or file dependencies part of the base product. Each ready-made component composes the same public
-Dashlet shell, anatomy, Store handles, and UI primitives available to application authors. It does
+Dashlet shell, anatomy, Nexus handles, and UI primitives available to application authors. It does
 not use a privileged registration or binding path.
 
 `RangeDashlet`, `Vector3Dashlet`, `XYPadDashlet`, `AlignmentDashlet`, `Matrix2DDashlet`,
@@ -772,22 +772,22 @@ prototype already exists.
 > Contract: Accepted
 > Implementation: Planned
 
-Every initial ready-made Dashlet requires an explicit `id`, a type-compatible Store `field` handle,
+Every initial ready-made Dashlet requires an explicit `id`, a type-compatible Nexus `field` handle,
 and a visible `label`. A non-text label also requires an explicit accessible string under the
 accepted Dashlet-label contract. Ready-made Dashlets share applicable shell props such as
 `description`, `help`, `pin`, `disabled`, `readOnly`, and `layout` rather than defining parallel
 versions of those behaviors.
 
-Field defaults belong exclusively to Store. A ready-made Dashlet does not accept `defaultValue`,
-and a Store-bound Dashlet does not expose generic `value`, `onChange`, `onValueChange`, `parse`, or
+Field defaults belong exclusively to Nexus. A ready-made Dashlet does not accept `defaultValue`,
+and a Nexus-bound Dashlet does not expose generic `value`, `onChange`, `onValueChange`, `parse`, or
 `validate` props. The component owns only the presentation conversion required by its control, such
-as turning number-input text into a numeric candidate. Store owns canonical parsing, schema
+as turning number-input text into a numeric candidate. Nexus owns canonical parsing, schema
 validation, field validation, mutation, and observation.
 
 Ready-made configuration uses ordinary React prop values rather than prototype `ReactiveProp`
 callbacks. An application derives dynamic options, bounds, labels, or formatting with an explicit
-Store selector or its own state and passes the resolved value. React prop changes remain supported;
-they do not create an implicit second Store subscription inside every component.
+Nexus selector or its own state and passes the resolved value. React prop changes remain supported;
+they do not create an implicit second Nexus subscription inside every component.
 
 Changing options, bounds, formatting, or other presentation configuration never silently replaces,
 clamps, or otherwise writes a canonical value that the new presentation cannot represent. The
@@ -802,9 +802,9 @@ The component layers are:
 
 1. underlying accessible primitives, whether upstream or package-private;
 2. unbound, themed components exported from `@picodash/dashlist/ui`; and
-3. Store-bound `*Dashlet` components exported from the DashList root.
+3. Nexus-bound `*Dashlet` components exported from the DashList root.
 
-The `/ui` layer exposes ordinary controlled component APIs and has no Store-binding knowledge.
+The `/ui` layer exposes ordinary controlled component APIs and has no Nexus-binding knowledge.
 Picodash reexports the exact DashList components and prop types instead of wrapping them with
 facade-specific state or behavior.
 
@@ -842,7 +842,7 @@ readout type: text, number, slider, switch, select, segmented control, or displa
 replace that icon through the shared rail configuration described below.
 
 `DisplayDashlet` renders primitive values as text and structured values as readable JSON by
-default. `formatValue` replaces that presentation. Store fields always have concrete JSON values,
+default. `formatValue` replaces that presentation. Nexus fields always have concrete JSON values,
 so Display has no unbound `value` or fallback-default prop.
 
 Ready-made Dashlets accept neither `children` nor arbitrary inner-control prop bags. Applications
@@ -855,9 +855,9 @@ Dashlet shell.
 > Contract: Accepted
 > Implementation: Planned
 
-A **presentation mismatch** occurs when a canonical Store value is valid but the current ready-made
+A **presentation mismatch** occurs when a canonical Nexus value is valid but the current ready-made
 control configuration cannot represent it faithfully. It is distinct from both invalid component
-configuration and a rejected Store transaction.
+configuration and a rejected Nexus transaction.
 
 Invalid component configuration is a developer contract error. Examples include duplicate option
 values, non-finite bounds, `min > max`, and a non-positive step. A built-in throws the package's
@@ -870,8 +870,8 @@ replacement. When the control can honestly represent no current selection, it ma
 so the user can explicitly choose a replacement. Otherwise, editing is unavailable until the
 configuration or canonical value changes.
 
-An explicit replacement is an ordinary Store transaction, not an automatic repair. A later value
-or prop change that restores compatibility clears the warning without a Store write.
+An explicit replacement is an ordinary Nexus transaction, not an automatic repair. A later value
+or prop change that restores compatibility clears the warning without a Nexus write.
 
 Presentation warnings relate to the affected control or named Dashlet composition through
 descriptive ARIA relationships. They do not use `aria-invalid`, because the canonical value remains
@@ -931,7 +931,7 @@ may wrap, and coarse-pointer targets retain the accepted minimum size.
 
 > Contract: Accepted
 > Implementation: Planned
-> Notes: Behavior, precedence, and the Store integration lease are accepted.
+> Notes: Behavior, precedence, and the Nexus integration lease are accepted.
 
 Rail presentation reduces a DashList to a vertical or horizontal strip of Dashlet icons. Activating
 an ordinary icon reveals that Dashlet's content without unmounting its siblings. It supports compact
@@ -954,16 +954,16 @@ control and its tooltip continue to use that name. Ready-made Dashlets provide t
 icons; a custom Dashlet used in rail presentation must provide one.
 
 The effective orientation is `vertical` or `horizontal`. An active orientation supplied through the
-scoped Store takes precedence over an orientation declared on DashList. Picodash uses this
+scoped Nexus takes precedence over an orientation declared on DashList. Picodash uses this
 precedence to force `full/center-left` and `full/center-right` Panels to vertical and
 `full/center-top` and `full/center-bottom` Panels to horizontal. Corner docks publish no Picodash
-override: their effective Store or prop orientation chooses which adjoining edge the rail follows.
+override: their effective Nexus or prop orientation chooses which adjoining edge the rail follows.
 Free and snapped Panels also publish no override. Orientation changes presentation only: it neither
 reorders nodes nor creates an order override.
 
 The override is supplied only through
-`@picodash/store/integration.acquireDashListOrientationOverrideLease`. DashList observes it through
-the accepted scoped getter/subscription channel. Applications receive no general Store override
+`@picodash/nexus/integration.acquireDashListOrientationOverrideLease`. DashList observes it through
+the accepted scoped getter/subscription channel. Applications receive no general Nexus override
 command: they use the public `orientation` prop, and an absent integration lease reveals that prop or
 the `vertical` default. The runtime channel creates and persists no DashList metadata.
 
@@ -1028,7 +1028,7 @@ follows visual order in both left-to-right and right-to-left contexts.
 ## Field bindings
 
 ```tsx
-<Dashlet id="exposure" label="Exposure" field={store.fields.exposure}>
+<Dashlet id="exposure" label="Exposure" field={nexus.fields.exposure}>
   {({ binding }) => (
     <Slider
       id={binding.controlId}
@@ -1044,7 +1044,7 @@ follows visual order in both left-to-right and right-to-left contexts.
 The exact render-context names and properties are defined in [Render contexts](#render-contexts).
 Accepted binding behavior is:
 
-- handles are nominally owned by the root Store;
+- handles are nominally owned by the root Nexus;
 - canonical values are root-global;
 - drafts, touched state, input issues, and stale conflicts are binding-local;
 - the same root field may appear in several items/scopes;
@@ -1053,11 +1053,11 @@ Accepted binding behavior is:
 
 | Binding capability               | Contract | Implementation | Notes                                                                                                                                                                                |
 | -------------------------------- | -------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Typed canonical field handle     | Accepted | Verified       | `dashlist-bindings.test.tsx` exercises single and compound public leases; Store owns cross-root rejection.                                                                           |
-| Draft and parse feedback         | Accepted | Verified       | Input contexts expose Store-owned draft, touched, stale, issues, set/discard/reset operations.                                                                                       |
+| Typed canonical field handle     | Accepted | Verified       | `dashlist-bindings.test.tsx` exercises single and compound public leases; Nexus owns cross-root rejection.                                                                           |
+| Draft and parse feedback         | Accepted | Verified       | Input contexts expose Nexus-owned draft, touched, stale, issues, set/discard/reset operations.                                                                                       |
 | Stale-draft conflict             | Accepted | Verified       | Shell keeps the draft, offers discard and shared-UI confirmed overwrite, preserves it on cancel or stale/failed plans, and routes structured issues through the List status channel. |
 | Compound multi-field transaction | Accepted | Prototype      | Whole candidate validates atomically.                                                                                                                                                |
-| Cross-field issue presentation   | Accepted | Verified       | Alias, unique field-key, and unique `values`-path attribution preserve Store order; ambiguous and cross-field issues remain on the named composition.                                |
+| Cross-field issue presentation   | Accepted | Verified       | Alias, unique field-key, and unique `values`-path attribution preserve Nexus order; ambiguous and cross-field issues remain on the named composition.                                |
 
 The single `field` and compound `fields` forms are mutually exclusive. Compound bindings use
 explicit aliases as keys. A Dashlet with neither form is an unbound readout, visualization, preview,
@@ -1069,10 +1069,10 @@ or action and still participates in node identity and ordering.
 > Implementation: Verified
 > Evidence: `packages/dashlist/tests/dashlist-bindings.test.tsx` covers compound ownership,
 > composition-level rejection, exact deduplication, and issue-region relationships;
-> `packages/store/tests/binding-interaction.test.ts` covers binding, cross-field, and root issue
+> `packages/nexus/tests/binding-interaction.test.ts` covers binding, cross-field, and root issue
 > identity preservation.
 
-DashList consumes Store-normalized `TransactionIssue` records. It never parses issue messages or
+DashList consumes Nexus-normalized `TransactionIssue` records. It never parses issue messages or
 creates a second issue-path convention. An issue with an explicit `scopeId` or `itemId` that does
 not match the current Dashlet is not a local binding issue.
 
@@ -1083,7 +1083,7 @@ this order:
 2. a `fieldKey` matching exactly one registered binding;
 3. a canonical `['values', fieldKey, ...path]` path matching exactly one registered binding.
 
-The alias is decisive when Store can attribute an issue to the binding that originated an input
+The alias is decisive when Nexus can attribute an issue to the binding that originated an input
 operation. Field and path matching cover field validators and whole-value validators that do not
 know about presentation aliases. A nested path identifies detail within the field value but does
 not create another binding identity.
@@ -1104,7 +1104,7 @@ introduced input issue.
 Custom Dashlet content receives the complete structured issues, including code, path, and known
 identity properties. Presentation may format their messages but must not discard that structured
 identity. DashList collapses exact duplicates by code, path, message, scope, item, field, and alias
-while preserving Store order.
+while preserving Nexus order.
 
 ## Content availability and value mutability
 
@@ -1118,7 +1118,7 @@ while preserving Store order.
 | `disabled` | Dashlet content controls and action interactions are unavailable.        |
 | `readOnly` | Input bindings cannot change or reset canonical values through DashList. |
 
-Neither policy is authorization or a Store write restriction. External Store commands, adapters,
+Neither policy is authorization or a Nexus write restriction. External Nexus commands, adapters,
 imports, and other bindings continue to update canonical values under their own contracts.
 
 DashList, DashGroup, and Dashlet may declare either policy. Container values cascade to descendant
@@ -1152,8 +1152,8 @@ are not included in persisted or exported documents.
 
 ```tsx
 <DashGroup id="rendering" label="Rendering">
-  <SliderDashlet id="exposure" field={store.fields.exposure} />
-  <SelectDashlet id="quality" field={store.fields.quality} />
+  <SliderDashlet id="exposure" field={nexus.fields.exposure} />
+  <SelectDashlet id="quality" field={nexus.fields.quality} />
 </DashGroup>
 ```
 
@@ -1217,7 +1217,7 @@ or aggregated behavior in the initial contract.
 
 Every ordering container has `start`, automatic, and `end` bands. Dashlet and DashGroup nodes accept
 `pin?: "start" | "end"`; omitting the prop selects the automatic band. Pinning is declarative
-application configuration, not user-owned Store state. There is no built-in pin or unpin interaction
+application configuration, not user-owned Nexus state. There is no built-in pin or unpin interaction
 in the initial contract.
 
 A durable container order controls relative order within each band. Nodes reorder only against
@@ -1289,7 +1289,7 @@ on that handle when its node still exists.
 #### Session and persistence rules
 
 Only one reorder session may be active in a DashList. Pointer and keyboard candidate orders are
-ephemeral interaction state outside persisted Store snapshots. A changed order commits atomically
+ephemeral interaction state outside persisted Nexus snapshots. A changed order commits atomically
 once on completion; cancellation never persists a temporary order or compensating write.
 
 A membership, visibility, pin, effective reorder policy, or external order change makes an active
@@ -1324,7 +1324,7 @@ its current declared default removes the redundant override. Reset also deletes 
 latest declared default applies.
 
 The initial contract does not expose a controlled `collapsed` prop. Application commands and user
-interaction both update the scoped Store override, preserving one state authority. Setting
+interaction both update the scoped Nexus override, preserving one state authority. Setting
 `collapsible={false}` forces expanded presentation and renders a non-interactive label. Existing
 collapse metadata becomes dormant and is diagnosed as ignored rather than deleted; it may apply
 again if collapse support returns.
@@ -1353,7 +1353,7 @@ or scope destruction.
 | `knownNodeIds` inventory    | Accepted | Planned        | Application asserts authoritative completeness. |
 | Automatic unmounted pruning | Rejected | —              | Conditional rendering makes it unsafe.          |
 
-DashList acquires one committed Store node-presence lease per Dashlet and DashGroup while retaining
+DashList acquires one committed Nexus node-presence lease per Dashlet and DashGroup while retaining
 its private declaration, kind, and containment validation. Unmount releases presence but never
 deletes metadata. Prune review lists dormant metadata references and their effects. Execution is
 available only after an explicit remove/keep partition or an authoritative `knownNodeIds`
@@ -1386,7 +1386,7 @@ The public surface has a headless controller layer and UI-bound menu-item layer:
 ```ts
 type DashListActionAvailability = 'unavailable' | 'disabled' | 'enabled'
 
-type DashListActionStoreResult = CoreTransactionResult | PersistentTransactionResult
+type DashListActionNexusResult = CoreTransactionResult | PersistentTransactionResult
 
 type DashListActionExecutionResult =
   | {
@@ -1395,7 +1395,7 @@ type DashListActionExecutionResult =
     }
   | {
       status: 'executed'
-      result: DashListActionStoreResult
+      result: DashListActionNexusResult
     }
 
 interface DashListActionController {
@@ -1414,23 +1414,23 @@ declare function useDashListActions(scopeId?: string): DashListActions
 ```
 
 The hook returns an immutable action snapshot; unchanged entries and every `execute` function retain
-`Object.is` identity across renders. A narrow Store subscription replaces only entries whose
-availability changed. `execute()` rechecks the current target. If it is no longer enabled, no Store
+`Object.is` identity across renders. A narrow Nexus subscription replaces only entries whose
+availability changed. `execute()` rechecks the current target. If it is no longer enabled, no Nexus
 command runs and the result is `not_executed` with the current availability.
 
-`executed` means that the Store command ran, not that it necessarily committed. Consumers inspect
+`executed` means that the Nexus command ran, not that it necessarily committed. Consumers inspect
 `result.ok` for a structured transaction rejection and the sorted changed-identity arrays for a
 successful no-op or mutation. Persistence-capable results retain their accepted persistence status.
 Programmer/lifecycle failures such as a destroyed root, illegal reentrancy, or ownership misuse
 remain thrown `PicodashContractError` objects; the action layer does not disguise them as ordinary
 disabled or transaction results.
 
-An omitted `scopeId` targets the active DashList in the nearest Store scope. An explicit `scopeId`
-targets that root-global scope in the same Store and need not equal the nearest scope because an
-action is a control, not a new entity boundary. The hook throws outside Store context. A scope with
+An omitted `scopeId` targets the active DashList in the nearest Nexus scope. An explicit `scopeId`
+targets that root-global scope in the same Nexus and need not equal the nearest scope because an
+action is a control, not a new entity boundary. The hook throws outside Nexus context. A scope with
 no active DashList is temporarily `unavailable`, not a contract exception, because declarative
 mounts and conditional rendering may legitimately change target availability. The API accepts no
-`store` prop.
+`nexus` prop.
 
 Availability has one meaning across custom and built-in renderers:
 
@@ -1495,7 +1495,7 @@ standard fragment, individual items, or their own controls using the hook.
 
 DashList uses and explicitly reexports the presentational `DashHeader` from `@picodash/ui`. A List
 may supply its title and List behavior menu through the shared named slots, while DashList retains
-the actions and all List semantics. The header does not read Store state, expand groups, reset a
+the actions and all List semantics. The header does not read Nexus state, expand groups, reset a
 List, or execute commands.
 
 The shared API has `leading`, `title`, `actions`, and `trailing` slots in fixed DOM order and no
@@ -1510,7 +1510,7 @@ extension path. The complete target is recorded in the [shared UI reference](ui.
 > Implementation: Prototype migration required
 
 DashList delegates import/export validation, field disclosure, sensitive promotion, and atomic value
-writes to Store. A scoped document may include:
+writes to Nexus. A scoped document may include:
 
 - the List scope's durable order/collapse overrides;
 - optionally active descendant scopes;
@@ -1519,9 +1519,9 @@ writes to Store. A scoped document may include:
 It never contains drafts, focus/hover state, active relationships, or inferred dormant field
 membership.
 
-DashList owns the browser-facing workflow around those Store objects: JSON text, clipboard writes,
+DashList owns the browser-facing workflow around those Nexus objects: JSON text, clipboard writes,
 file selection and download, scoped preview/confirmation dialogs, structured issue presentation,
-and accessible announcements. Store does not acquire browser or codec dependencies.
+and accessible announcements. Nexus does not acquire browser or codec dependencies.
 
 The root package exports:
 
@@ -1532,7 +1532,7 @@ The root package exports:
 - `DashListImportItem`.
 
 `DashListActionItems` composes `DashListDocumentItems` automatically. Export is unavailable when the
-Store lacks export policy; import is unavailable when the Store lacks the identified document
+Nexus lacks export policy; import is unavailable when the Nexus lacks the identified document
 capability. Missing capabilities omit their items rather than rendering controls that fail when
 used. The headless document hook owns no dialog; custom UI must preserve the same review and
 confirmation requirements.
@@ -1544,9 +1544,9 @@ limit explicitly.
 
 ### JSON codec and browser policy
 
-The initial codec serializes the immutable Store document as UTF-8 JSON with two-space indentation
+The initial codec serializes the immutable Nexus document as UTF-8 JSON with two-space indentation
 and one trailing newline. `Copy JSON` and `Download JSON` use the exact same serialized text. The
-codec preserves the property order returned by Store and does not apply an independent key-sorting
+codec preserves the property order returned by Nexus and does not apply an independent key-sorting
 pass. Byte-for-byte stability across separate, semantically equivalent documents is not an initial
 contract.
 
@@ -1558,7 +1558,7 @@ The filename never determines document or target identity.
 
 The import picker advertises `.json,application/json`, but extension and reported MIME type are
 advisory. DashList accepts one selected file whose byte size is within the configured limit, reads
-it as UTF-8, parses it as JSON, and then delegates document validation and analysis to Store. It
+it as UTF-8, parses it as JSON, and then delegates document validation and analysis to Nexus. It
 does not infer YAML from content or accept multiple files.
 
 Browser capabilities affect only the relevant destination:
@@ -1577,11 +1577,11 @@ claim implies durable storage.
 
 ### Export action
 
-`Export…` creates a Store export plan for the current List scope with `includeDescendants: false`.
-The preview identifies the source Store and scope and summarizes included, redacted, omitted, and
+`Export…` creates a Nexus export plan for the current List scope with `includeDescendants: false`.
+The preview identifies the source Nexus and scope and summarizes included, redacted, omitted, and
 shared fields without displaying field values. It never promotes redacted fields by default.
 
-If immutable Store policy permits promotion, the dialog may offer an explicit include-sensitive
+If immutable Nexus policy permits promotion, the dialog may offer an explicit include-sensitive
 choice. Promotion uses the dangerous-operation confirmation and passes
 `confirmRedactedPromotion: true` only for that single plan execution. Consent is never remembered.
 Any stale plan requires a fresh preview and confirmation.
@@ -1597,15 +1597,15 @@ A root document or a scope document containing descendant scopes is rejected rat
 or partially imported. Source and target scope IDs may differ, but the preview shows both
 identities prominently.
 
-The initial UI uses Store's compatible same-key field mapping. Unknown or incompatible fields block
+The initial UI uses Nexus's compatible same-key field mapping. Unknown or incompatible fields block
 execution; it does not expose arbitrary `fieldMap`, `scopeMap`, or `createMissingScopes` controls.
-A foreign Store document requires explicit confirmation before analysis is executed with
-`allowForeignStore: true`. Redacted or absent entries remain unchanged according to Store rules.
+A foreign Nexus document requires explicit confirmation before analysis is executed with
+`allowForeignNexus: true`. Redacted or absent entries remain unchanged according to Nexus rules.
 
-Store analysis supplies the value, metadata, shared-field, identity, migration, and validation
+Nexus analysis supplies the value, metadata, shared-field, identity, migration, and validation
 effects shown in the confirmation dialog. Import executes the opaque plan atomically. If the plan
 becomes stale, DashList discards it and requires review of a new analysis. Announcements reflect the
-structured Store result and never claim that an external application store durably saved imported
+structured Nexus result and never claim that an external application store durably saved imported
 values.
 
 ## Styling and theming
@@ -1712,7 +1712,7 @@ accessibility tree and cannot receive focus.
 A rendered DashList title is an explicitly levelled document heading and labels the collection
 through `aria-labelledby`. An application may instead supply `aria-label` or `aria-labelledby`.
 Normal presentation may be unnamed when the surrounding document already supplies sufficient
-context; rail presentation always requires a name. A Store scope ID or component `id` never becomes
+context; rail presentation always requires a name. A Nexus scope ID or component `id` never becomes
 an inferred user-facing name.
 
 Each Dashlet's named shell is a `role="group"` inside its List item. Its canonical accessible name
@@ -1770,7 +1770,7 @@ the accepted reorder contract. Handles are named buttons and do not expose `aria
 
 The initial `/ui` inventory is exactly `TextField`, `NumberField`, `Slider`, `Switch`, `Select`,
 `SegmentedControl`, and `Display`, plus their owning public prop types. These are unbound controls
-used to compose custom Dashlets; they do not read Store context. Shared Button, Label, Tooltip,
+used to compose custom Dashlets; they do not read Nexus context. Shared Button, Label, Tooltip,
 Toolbar, confirmation, ActionMenu, and Provider components remain canonically UI-owned and are not
 copied into this entrypoint.
 
@@ -1788,7 +1788,7 @@ the accepted launch surface:
 ## Implementation readiness
 
 No unresolved DashList contract question blocks implementation. Work begins only after compatible
-Store and shared UI foundations reach the roadmap's dogfooding threshold. DashList conformance must
+Nexus and shared UI foundations reach the roadmap's dogfooding threshold. DashList conformance must
 still produce:
 
 1. cohesive regular, compact, normal List, and rail visual evidence;
@@ -1800,7 +1800,7 @@ still produce:
 
 - [DashList value proposition](../product/value-propositions.md#dashlist)
 - [Shared UI target reference](ui.md)
-- [Store target reference](store.md)
-- [Store decisions](store-contract-decisions.md)
+- [Nexus target reference](nexus.md)
+- [Nexus decisions](nexus-contract-decisions.md)
 - [Component catalog target reference](catalog.md)
 - [Roadmap](../ROADMAP.md)

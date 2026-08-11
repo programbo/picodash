@@ -25,7 +25,7 @@ owns:
 
 - theme and density types, context, resolution, data attributes, recipes, and semantic tokens;
 - independent theme/density and portal/layer Providers that Product Providers may compose without
-  introducing a Store dependency;
+  introducing a Nexus dependency;
 - shared structural CSS needed by its public components;
 - generic accessible chrome and interaction primitives used unchanged by at least two foundational
   products;
@@ -34,12 +34,12 @@ owns:
 A component belongs in `@picodash/ui` only when all of these rules hold:
 
 1. DashPanel and DashList both use the same public behavior.
-2. Its semantics do not mention Panel, List, Dashlet, Store, scope, placement, ordering, or another
+2. Its semantics do not mention Panel, List, Dashlet, Nexus, scope, placement, ordering, or another
    product concept.
 3. Its accessibility, theme, and interaction contract should remain identical for every consumer.
 4. It owns no product state, product commands, registration, persistence, or domain policy.
 
-`@picodash/store` has no UI dependency. DashPanel and DashList may each depend on Store and UI, but
+`@picodash/nexus` has no UI dependency. DashPanel and DashList may each depend on Nexus and UI, but
 not on one another. `@picodash/picodash` depends on the foundations and reexports shared UI where
 the facade promises that convenience.
 

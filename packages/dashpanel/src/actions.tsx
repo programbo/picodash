@@ -99,7 +99,7 @@ export function announceDashPanelLayoutFailure(
   if (!result.transaction.ok)
     announce(
       `${action} failed: ${
-        result.transaction.error.issues[0]?.message ?? 'The Store rejected the change.'
+        result.transaction.error.issues[0]?.message ?? 'The Nexus rejected the change.'
       }`,
     )
 }

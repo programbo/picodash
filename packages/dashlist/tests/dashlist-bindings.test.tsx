@@ -2,15 +2,15 @@
 import { act, createElement, StrictMode, type ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
 import { createDomTestRenderer as create } from '../../../test/dom-renderer.ts'
-import { createPicodashStore } from '@picodash/store'
-import { acquireBindingLease } from '@picodash/store/integration'
+import { createPicodashNexus } from '@picodash/nexus'
+import { acquireBindingLease } from '@picodash/nexus/integration'
 import { DashGroup, DashList, Dashlet } from '../src/index.tsx'
 import { issuesForDashlet, normalizeBindingDescriptors } from '../src/bindings.tsx'
 
 describe('DashList bindings', () => {
   it('cascades additive group content policies without changing group controls', () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { count: { defaultValue: 1 } },
     })
     let context: any
@@ -19,14 +19,14 @@ describe('DashList bindings', () => {
       view = create(
         createElement(
           DashList,
-          { id: 'list', store },
+          { id: 'list', nexus },
           createElement(
             DashGroup,
             { id: 'group', label: 'Group', disabled: true, readOnly: true },
             createElement(Dashlet as any, {
               id: 'count',
               label: 'Count',
-              field: store.fields.count,
+              field: nexus.fields.count,
               children: (value: any) => {
                 context = value
                 return null
@@ -41,18 +41,18 @@ describe('DashList bindings', () => {
       void context.binding.setInput(2)
       void context.binding.resetValue()
     })
-    expect(store.getState().values.count).toBe(1)
+    expect(nexus.getState().values.count).toBe(1)
     const disclosure = view.root.findByProps({ 'aria-label': 'Collapse group Group' })
     expect(disclosure.props.disabled).toBeUndefined()
     act(() => void disclosure.props.onClick())
     expect(view.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden).toBe(true)
     act(() => view.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('renders a typed single input context and commits through its lease', () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { count: { defaultValue: 1 } },
     })
     let context: any
@@ -64,11 +64,11 @@ describe('DashList bindings', () => {
           null,
           createElement(
             DashList,
-            { id: 'list', store },
+            { id: 'list', nexus },
             createElement(Dashlet as any, {
               id: 'count',
               label: 'Count',
-              field: store.fields.count,
+              field: nexus.fields.count,
               children: (value: any) => {
                 context = value
                 return createElement('output', { 'data-value': String(value.binding.value) })
@@ -81,15 +81,15 @@ describe('DashList bindings', () => {
     expect(context.binding.mode).toBe('input')
     expect(context.binding.value).toBe(1)
     act(() => void context.binding.setInput(2))
-    expect(store.getState().values.count).toBe(2)
+    expect(nexus.getState().values.count).toBe(2)
     expect(view.root.findByType('output').props['data-value']).toBe('2')
     act(() => view.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('supports compound display/input aliases and cleans leases on unmount', () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { first: { defaultValue: 'a' }, second: { defaultValue: 'b' } },
     })
     let context: any
@@ -98,13 +98,13 @@ describe('DashList bindings', () => {
       view = create(
         createElement(
           DashList,
-          { id: 'list', store },
+          { id: 'list', nexus },
           createElement(Dashlet as any, {
             id: 'pair',
             label: 'Pair',
             fields: {
-              left: { field: store.fields.first, mode: 'display' },
-              right: store.fields.second,
+              left: { field: nexus.fields.first, mode: 'display' },
+              right: nexus.fields.second,
             },
             children: (value: any) => {
               context = value
@@ -117,17 +117,17 @@ describe('DashList bindings', () => {
     expect(context.bindings.left.mode).toBe('display')
     expect(context.bindings.right.mode).toBe('input')
     act(() => view.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('preserves opaque compound aliases that match object prototype keys', () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { first: { defaultValue: 'a' }, second: { defaultValue: 'b' } },
     })
     const fields = Object.fromEntries([
-      ['__proto__', store.fields.first],
-      ['safe', store.fields.second],
+      ['__proto__', nexus.fields.first],
+      ['safe', nexus.fields.second],
     ])
     let context: any
     let view!: ReturnType<typeof create>
@@ -135,7 +135,7 @@ describe('DashList bindings', () => {
       view = create(
         createElement(
           DashList,
-          { id: 'list', store },
+          { id: 'list', nexus },
           createElement(Dashlet as any, {
             id: 'pair',
             label: 'Pair',
@@ -153,35 +153,35 @@ describe('DashList bindings', () => {
     expect(context.bindings.__proto__.value).toBe('a')
     expect(Object.keys(context.bindings)).toEqual(['__proto__', 'safe'])
     act(() => view.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('rejects invalid compound aliases and modes before server output', async () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { value: { defaultValue: 1 } },
     })
     const render = (alias: string) =>
       createElement(
         DashList,
-        { id: 'list', store },
+        { id: 'list', nexus },
         createElement(Dashlet as any, {
           id: 'invalid-alias',
           label: 'Invalid alias',
-          fields: Object.fromEntries([[alias, store.fields.value]]),
+          fields: Object.fromEntries([[alias, nexus.fields.value]]),
         }),
       )
 
     const { renderToString } = await import('react-dom/server')
     for (const alias of ['', ' ', 'surrounded ', 'control\u0000alias']) {
-      const fields = Object.fromEntries([[alias, store.fields.value]])
+      const fields = Object.fromEntries([[alias, nexus.fields.value]])
       expect(() => normalizeBindingDescriptors(undefined, fields)).toThrow(
         /binding aliases must be non-empty/,
       )
       expect(() => renderToString(render(alias))).toThrow(/binding aliases must be non-empty/)
     }
     const invalidModeFields = {
-      value: { field: store.fields.value, mode: 'other' },
+      value: { field: nexus.fields.value, mode: 'other' },
     } as never
     expect(() => normalizeBindingDescriptors(undefined, invalidModeFields)).toThrow(
       /binding mode must be input or display/,
@@ -190,7 +190,7 @@ describe('DashList bindings', () => {
       renderToString(
         createElement(
           DashList,
-          { id: 'invalid-mode-list', store },
+          { id: 'invalid-mode-list', nexus },
           createElement(Dashlet as any, {
             id: 'invalid-mode',
             label: 'Invalid mode',
@@ -203,22 +203,22 @@ describe('DashList bindings', () => {
       renderToString(
         createElement(
           DashList,
-          { id: 'invalid-single-mode-list', store },
+          { id: 'invalid-single-mode-list', nexus },
           createElement(Dashlet as any, {
             id: 'invalid-single-mode',
             label: 'Invalid single mode',
-            field: store.fields.value,
+            field: nexus.fields.value,
             mode: 'other',
           }),
         ),
       ),
     ).toThrow(/binding mode must be input or display/)
-    store.destroy()
+    nexus.destroy()
   })
 
   it('renders binding issues at their IDs and announces the first post-input rejection', () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: {
         count: {
           defaultValue: 1,
@@ -235,11 +235,11 @@ describe('DashList bindings', () => {
       view = create(
         createElement(
           DashList,
-          { id: 'list', store },
+          { id: 'list', nexus },
           createElement(Dashlet as any, {
             id: 'count',
             label: 'Count',
-            field: store.fields.count,
+            field: nexus.fields.count,
             children: (value: any) => {
               context = value
               return null
@@ -268,8 +268,8 @@ describe('DashList bindings', () => {
   })
 
   it('keeps cross-field reset rejection common and enforces the latest read-only policy', () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       initialValues: { count: 1 },
       fields: { count: { defaultValue: 3 }, limit: { defaultValue: 2 } },
       validateValues: (values: { readonly count: number; readonly limit: number }) =>
@@ -280,11 +280,11 @@ describe('DashList bindings', () => {
     const render = (readOnly: boolean) =>
       createElement(
         DashList,
-        { id: 'list', store },
+        { id: 'list', nexus },
         createElement(Dashlet as any, {
           id: 'count',
           label: 'Count',
-          field: store.fields.count,
+          field: nexus.fields.count,
           readOnly,
           children: (value: any) => {
             context = value
@@ -301,9 +301,9 @@ describe('DashList bindings', () => {
       view.update(render(true))
     })
     act(() => void firstContext.binding.setInput(2))
-    expect(store.getState().values.count).toBe(1)
+    expect(nexus.getState().values.count).toBe(1)
     act(() => void context.binding.resetValue())
-    expect(store.getState().values.count).toBe(1)
+    expect(nexus.getState().values.count).toBe(1)
     act(() => {
       view.update(render(false))
     })
@@ -321,8 +321,8 @@ describe('DashList bindings', () => {
   })
 
   it('does not apply aria-disabled to the Dashlet group container', () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { count: { defaultValue: 1 } },
     })
     let context: any
@@ -331,11 +331,11 @@ describe('DashList bindings', () => {
       view = create(
         createElement(
           DashList,
-          { id: 'list', store },
+          { id: 'list', nexus },
           createElement(Dashlet as any, {
             id: 'count',
             label: 'Count',
-            field: store.fields.count,
+            field: nexus.fields.count,
             disabled: true,
             children: (value: any) => {
               context = value
@@ -349,7 +349,7 @@ describe('DashList bindings', () => {
     expect(view.root.findByProps({ role: 'group' }).props['aria-disabled']).toBeUndefined()
     expect(view.root.findByType('a').props.href).toBe('#help')
     act(() => view.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('does not render issues explicitly attributed to another Dashlet', () => {
@@ -367,8 +367,8 @@ describe('DashList bindings', () => {
   })
 
   it('offers shell-owned stale overwrite confirmation without exposing a plan in context', () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: {
         count: {
           defaultValue: 1,
@@ -385,11 +385,11 @@ describe('DashList bindings', () => {
       view = create(
         createElement(
           DashList,
-          { id: 'list', store },
+          { id: 'list', nexus },
           createElement(Dashlet as any, {
             id: 'count',
             label: 'Count',
-            field: store.fields.count,
+            field: nexus.fields.count,
             children: (value: any) => {
               context = value
               return null
@@ -400,7 +400,7 @@ describe('DashList bindings', () => {
     })
     expect(context.binding).not.toHaveProperty('createStaleInputOverwritePlan')
     act(() => void context.binding.setInput('invalid'))
-    act(() => void store.setValue(store.fields.count, 2))
+    act(() => void nexus.setValue(nexus.fields.count, 2))
     expect(
       view.root
         .findAllByType('button')
@@ -418,29 +418,29 @@ describe('DashList bindings', () => {
         ),
     ).toContain('Overwrite value…')
     act(() => view.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('rejects descriptor mutation and foreign fields before rendering binding values', async () => {
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { first: { defaultValue: 1 }, second: { defaultValue: 2 } },
     })
-    const foreign = createPicodashStore({
-      valueOwner: 'store',
+    const foreign = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { second: { defaultValue: 2 } },
     })
-    const render = (field: typeof store.fields.first | typeof store.fields.second) =>
+    const render = (field: typeof nexus.fields.first | typeof nexus.fields.second) =>
       createElement(
         DashList,
-        { id: 'list', store },
+        { id: 'list', nexus },
         createElement(Dashlet as any, { id: 'value', label: 'Value', field }),
       )
     let view!: ReturnType<typeof create>
     act(() => {
-      view = create(render(store.fields.first))
+      view = create(render(nexus.fields.first))
     })
-    expect(() => act(() => view.update(render(store.fields.second)))).toThrow(
+    expect(() => act(() => view.update(render(nexus.fields.second)))).toThrow(
       /binding descriptors are immutable/,
     )
     act(() => view.unmount())
@@ -451,11 +451,11 @@ describe('DashList bindings', () => {
         create(
           createElement(
             DashList,
-            { id: 'rollback', store },
+            { id: 'rollback', nexus },
             createElement(Dashlet as any, {
               id: 'pair',
               label: 'Pair',
-              fields: { first: store.fields.first, second: foreign.fields.second },
+              fields: { first: nexus.fields.first, second: foreign.fields.second },
               children: renderForeignContext,
             }),
           ),
@@ -468,7 +468,7 @@ describe('DashList bindings', () => {
       renderToString(
         createElement(
           DashList,
-          { id: 'server-foreign', store },
+          { id: 'server-foreign', nexus },
           createElement(Dashlet as any, {
             id: 'foreign',
             label: 'Foreign',
@@ -478,10 +478,10 @@ describe('DashList bindings', () => {
         ),
       ),
     ).toThrowError(expect.objectContaining({ code: 'foreign-handle' }))
-    const lease = acquireBindingLease(store.scope('rollback'), {
+    const lease = acquireBindingLease(nexus.scope('rollback'), {
       itemId: 'pair',
       alias: 'first',
-      field: store.fields.first,
+      field: nexus.fields.first,
       mode: 'input',
     })
     lease.release()

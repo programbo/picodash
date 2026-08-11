@@ -90,7 +90,7 @@ packages.
 
 `field` is coarse discovery metadata only:
 
-- `none` means the component has no Store field binding;
+- `none` means the component has no Nexus field binding;
 - `optional` means a field binding is supported but not required;
 - `one` means one compatible field is required; and
 - `many` means the component may bind several fields as one composition.
@@ -137,7 +137,7 @@ There is no default export. The three type declarations are structurally identic
 consume any catalog independently without introducing a dependency between the standalone products
 or on the facade.
 
-Each entrypoint has no browser, React-rendering, Store-runtime, or stylesheet side effect. The
+Each entrypoint has no browser, React-rendering, Nexus-runtime, or stylesheet side effect. The
 published object is deeply frozen and JSON-serializable. `schemaVersion` changes only when a
 consumer must interpret the data differently; adding an entry under the same schema does not
 change it.

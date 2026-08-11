@@ -8,9 +8,9 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from 'react'
-import type { PicodashFieldDefinitions, ScopedStore } from '@picodash/store'
-import { acquireDashListNodeLease } from '@picodash/store/integration'
-import { usePicodashStore } from '@picodash/store/react'
+import type { PicodashFieldDefinitions, ScopedNexus } from '@picodash/nexus'
+import { acquireDashListNodeLease } from '@picodash/nexus/integration'
+import { usePicodashNexus } from '@picodash/nexus/react'
 
 type NodeKind = 'dashlet' | 'group'
 type DeclarationKind = NodeKind | 'custom'
@@ -281,11 +281,11 @@ export function acquireRegisteredDashListNodeLease(
   registry: NodeRegistry,
   token: Token,
   generation: number,
-  store: ScopedStore<PicodashFieldDefinitions>,
+  nexus: ScopedNexus<PicodashFieldDefinitions>,
   nodeId: string,
 ): { readonly release: () => void } {
   try {
-    return acquireDashListNodeLease(store, { nodeId })
+    return acquireDashListNodeLease(nexus, { nodeId })
   } catch (error) {
     registry.releaseRegistration(token, generation)
     throw error
@@ -296,7 +296,7 @@ export function useCommittedDashListNode(kind: NodeKind, id: unknown): void {
   const registry = useContext(RegistryContext)
   const declaration = useContext(DeclarationContext)
   const nestedDashlet = useContext(DashletLeafContext)
-  const store = usePicodashStore() as ScopedStore<PicodashFieldDefinitions>
+  const nexus = usePicodashNexus() as ScopedNexus<PicodashFieldDefinitions>
   const tokenRef = useRef<Token | null>(null)
   if (tokenRef.current === null) tokenRef.current = {}
   const token = tokenRef.current
@@ -311,12 +311,12 @@ export function useCommittedDashListNode(kind: NodeKind, id: unknown): void {
     )
     let lease: { readonly release: () => void } | undefined
     if (!registry.getFailure() && typeof id === 'string')
-      lease = acquireRegisteredDashListNodeLease(registry, token, generation, store, id)
+      lease = acquireRegisteredDashListNodeLease(registry, token, generation, nexus, id)
     return () => {
       lease?.release()
       registry.releaseRegistration(token, generation)
     }
-  }, [declaration?.token, id, kind, nestedDashlet, registry, store, token])
+  }, [declaration?.token, id, kind, nestedDashlet, registry, nexus, token])
 }
 
 export function DashListNodeValidation({ children }: { readonly children?: ReactNode }) {

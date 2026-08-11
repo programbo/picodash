@@ -1,6 +1,6 @@
 # Product value propositions
 
-This explanation distinguishes Store, DashPanel, DashList, and Picodash as products. It guides
+This explanation distinguishes Nexus, DashPanel, DashList, and Picodash as products. It guides
 roadmap priority, documentation depth, examples, and package boundaries before implementation.
 
 ## Status
@@ -9,30 +9,30 @@ roadmap priority, documentation depth, examples, and package boundaries before i
 > Implementation: Prototype
 > Evidence: Product purposes, users, independent value, and package boundaries are accepted.
 
-## Store
+## Nexus
 
 > Contract: Accepted
 > Implementation: Prototype
 
 ### Proposition
 
-Store is a typed state foundation for configurable React interfaces. It gives applications one
-synchronous, validated value authority plus durable metadata for Panels and Lists, without forcing
-the application to replace its preferred state library.
+Picodash Nexus connects settings panels, inspectors, and control dashboards to typed application
+state, adding validation, drafts, saved preferences, and import/export without forcing a second
+source of truth. It can own the values or adapt an existing synchronous state store; multi-field
+changes are validated as a complete candidate and committed atomically.
 
 ### User and problem
 
-Store is for developers and coding agents building control, configuration, and monitoring
-interfaces that need more than disconnected component state. Those interfaces commonly need typed
-values, validation, drafts, atomic resets, persistence, import/export, and several organized UI
-scopes. Rebuilding those contracts for every Panel or settings screen creates inconsistent behavior
-and difficult migrations.
+Nexus is for developers and coding agents building settings panels, inspectors, and control or
+monitoring dashboards that need more than disconnected component state. Rebuilding validation,
+drafts, persistence, import/export, and saved UI preferences for every interface creates
+inconsistent behavior and difficult migrations.
 
 ### Concrete value
 
 - Define canonical typed fields once and bind them across several UI scopes.
 - Keep multi-field writes synchronous, validated, and atomic.
-- Persist application values when Store owns them, or adapt an existing application store without
+- Persist application values when Nexus owns them, or adapt an existing application store without
   creating a second value authority.
 - Organize Panel and List metadata with scoped views while keeping root values reusable.
 - Give agents explicit contracts, structured diagnostics, and predictable documents instead of
@@ -40,12 +40,12 @@ and difficult migrations.
 
 ### Independent use
 
-Store can power a custom application UI without DashPanel or DashList. Its React selector API can
-subscribe directly to an explicit root or scoped Store.
+Nexus can power a custom application UI without DashPanel or DashList. Its React selector API can
+subscribe directly to an explicit root or scoped Nexus.
 
 ### Boundary
 
-Store does not render controls, Panels, Lists, or dashboards. Scopes organize trusted application
+Nexus does not render controls, Panels, Lists, or dashboards. Scopes organize trusted application
 state; they do not sandbox plugins or restrict field access.
 
 ## DashPanel
@@ -71,7 +71,7 @@ visibility controls, portal layering, themes, responsive containment, and restor
 - Render arbitrary React content in a Panel that can float, snap, dock, collapse, hide, and reopen.
 - Choose the dock positions a host permits and distribute same-edge Panels through predictable
   occupancy and allocation rules.
-- Persist settled placement as a Store scope override while keeping visibility and drag previews
+- Persist settled placement as a Nexus scope override while keeping visibility and drag previews
   transient.
 - Resolve viewport or element boundaries, insets, portals, themes, and action menus through one
   Provider contract.
@@ -81,7 +81,7 @@ visibility controls, portal layering, themes, responsive containment, and restor
 
 ### Independent use
 
-A DashPanel-only application creates a root Store, supplies it to `DashPanelProvider`, and renders
+A DashPanel-only application creates a root Nexus, supplies it to `DashPanelProvider`, and renders
 one or more Panels containing arbitrary application UI.
 
 ### Boundary
@@ -98,7 +98,7 @@ unmounting rather than imperative deregistration.
 ### Proposition
 
 DashList is a standalone React composition system for building ordered, groupable collections of
-controls, readouts, visualizations, previews, and actions backed by typed Store fields.
+controls, readouts, visualizations, previews, and actions backed by typed Nexus fields.
 
 ### User and problem
 
@@ -110,17 +110,17 @@ not understand canonical values, validation, or compound Dashlets.
 ### Concrete value
 
 - Compose typed Dashlets as explicit JSX rather than generating an opaque form from a schema.
-- Bind several editors and displays to one canonical Store field while keeping interaction drafts
+- Bind several editors and displays to one canonical Nexus field while keeping interaction drafts
   local to each binding.
 - Group and reorder stable items with pointer and keyboard parity.
 - Persist user order and collapse overrides without persisting declarative containment.
 - Reset active List content and import or export one reviewed JSON scope document through the same
-  Store transaction and disclosure contracts.
-- Run standalone with an explicit Store or inherit a scope when composed under Picodash.
+  Nexus transaction and disclosure contracts.
+- Run standalone with an explicit Nexus or inherit a scope when composed under Picodash.
 
 ### Independent use
 
-A DashList-only application supplies a root Store and List ID, or a scoped Store whose identity
+A DashList-only application supplies a root Nexus and List ID, or a scoped Nexus whose identity
 agrees with the List. DashList establishes scoped context for its Dashlets without requiring a
 PicodashProvider or DashPanel.
 
@@ -137,7 +137,7 @@ declarative group membership.
 
 ### Proposition
 
-Picodash is an integrated React control and monitoring interface built from Store, DashPanel, and
+Picodash is an integrated React control and monitoring interface built from Nexus, DashPanel, and
 DashList. It lets a developer or coding agent add configurable controls, live readouts,
 visualizations, previews, and actions to an existing application without inventing the state,
 panel, and List infrastructure separately.
@@ -151,7 +151,7 @@ contract.
 
 ### Concrete value
 
-- Compose DashPanels and DashLists over one root Store and field model.
+- Compose DashPanels and DashLists over one root Nexus and field model.
 - Use one same-scope primary List by default, with explicit child scopes for advanced composition.
 - Contribute the primary DashList's actions to its Panel while keeping additional explicitly scoped
   Lists independent.
@@ -168,22 +168,22 @@ which Panels and Dashlets are mounted.
 ## Product relationship
 
 ```text
-@picodash/store       @picodash/ui
+@picodash/nexus       @picodash/ui
        |  \             /  |
        |   +-- DashPanel ---+
        |   +-- DashList ----+
        +----- Picodash -----+
 ```
 
-DashPanel and DashList depend on Store and the shared UI foundation, not on one another. UI owns
+DashPanel and DashList depend on Nexus and the shared UI foundation, not on one another. UI owns
 theme, density, tokens, and generic accessible presentation primitives; it is supporting
 infrastructure rather than a fourth product proposition. Picodash integrates the three products
 after their independent contracts are stable.
 
 ## Contract-strength assessment
 
-- **Store:** accepted API. Ownership, scope, persistence, adapter, transaction, and document
-  boundaries are internally consistent, including the Store-owned DashPanel layout record.
+- **Nexus:** accepted API. Ownership, scope, persistence, adapter, transaction, and document
+  boundaries are internally consistent, including the Nexus-owned DashPanel layout record.
 - **DashPanel:** accepted initial API. Product ownership, lifecycle, placement, docking, adaptive
   presentation, sizing, accessibility, actions, and theme behavior are internally consistent.
 - **DashList:** accepted initial API. Anatomy, authoring, group behavior, rail presentation,

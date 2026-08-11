@@ -4,15 +4,15 @@ Picodash is a React package family for adding configurable controls, readouts, v
 movable tool panels to existing applications.
 
 Status:
-- Store, UI, DashPanel, DashList, and Picodash initial target contracts: accepted.
+- Nexus, UI, DashPanel, DashList, and Picodash initial target contracts: accepted.
 - Current source and tests: working prototypes, not automatic compatibility requirements.
-- Product implementation: ready to begin with Store after the documentation baseline commit.
+- Product implementation: ready to begin with Nexus after the documentation baseline commit.
 
 Products:
-- @picodash/store: framework-independent typed values, atomic validation, scoped metadata,
+- @picodash/nexus: framework-independent typed values, atomic validation, scoped metadata,
   persistence, import/export, diagnostics, and external-value adapters.
-- @picodash/store/react: public React hooks and typed selectors.
-- @picodash/store/integration: advanced shared context and declarative lifecycle leases.
+- @picodash/nexus/react: public React hooks and typed selectors.
+- @picodash/nexus/integration: advanced shared context and declarative lifecycle leases.
 - @picodash/dashpanel: standalone DashPanelProvider and DashPanel shell with configurable docking.
 - @picodash/dashlist: standalone DashList, DashGroup, Dashlet, binding, and reorder composition;
   Dashlet and DashGroup IDs are explicit and independent of field bindings.
@@ -33,7 +33,7 @@ Products:
 - Collapse belongs to DashGroup only at initial launch. Collapsed descendants stay mounted and
   registered while their content becomes inert and unavailable to accessibility APIs.
 - Disabled/read-only policies cascade to Dashlet content but remain separate from reorder,
-  disclosure, authorization, and external Store writes. Read-only does not disable unbound actions.
+  disclosure, authorization, and external Nexus writes. Read-only does not disable unbound actions.
 - Safe-area Dashlet clicks focus an explicit primary target or the named `tabIndex={-1}` shell.
   Compound Dashlets nominate the target; DOM scanning is not part of the target contract.
 - Labels, descriptions, and field issues attach to the actual Dashlet controls. Dirty draft discard
@@ -50,15 +50,15 @@ Products:
 - DashList owns and exports List behavior actions. Expand/Collapse all target active collapsible
   groups in one List scope and commit once; Picodash composes the same exports into integrated menus.
 - The action surface is useDashListActions(scopeId?), DashListActionItems, named expand/collapse
-  items, and named Reset submenu/items. Omission targets nearest Store scope; an explicit scope stays
+  items, and named Reset submenu/items. Omission targets nearest Nexus scope; an explicit scope stays
   within the same root. Availability is unavailable, disabled, or enabled. Built-in reset items
   repeat confirmation if the displayed effect changes.
-- Action execution returns not_executed with unavailable/disabled state or executed with the Store
+- Action execution returns not_executed with unavailable/disabled state or executed with the Nexus
   CoreTransactionResult or PersistentTransactionResult. Transaction rejection remains structured;
   contract errors throw.
 - Standalone document exports are useDashListDocumentActions(scopeId?), DashListDocumentItems,
   DashListExportItem, and DashListImportItem. They operate on one current-scope JSON document with
-  no descendants. Store owns plans and validation; DashList owns browser I/O and review UX;
+  no descendants. Nexus owns plans and validation; DashList owns browser I/O and review UX;
   initial Picodash reuses the primary-List workflow without inferred additional-List aggregation.
   Initial UI has no field/scope mapping or missing-scope creation.
 - DashList separates `Reset values…` from `Reset list…`: the first resets current-List registered
@@ -69,10 +69,10 @@ Products:
 - DashList `/ui` exports exactly TextField, NumberField, Slider, Switch, Select, SegmentedControl,
   and Display. There is no initial Picodash `/advanced` or `/dashlet`, DashPanel `/advanced` or
   `/ui`, or UI catalog. Draft anatomy is `@experimental` and excluded from catalogs.
-- Ready-made Dashlets require explicit id, typed field, and visible label. Store owns defaults and
+- Ready-made Dashlets require explicit id, typed field, and visible label. Nexus owns defaults and
   validation; configuration is passed as ordinary React props, and incompatible presentations never
   silently write canonical values.
-- Invalid ready-made props are contract errors. Valid but unrepresentable Store values produce an
+- Invalid ready-made props are contract errors. Valid but unrepresentable Nexus values produce an
   ephemeral presentation warning that shows the real value and requires explicit replacement.
 - Ready-made-specific props cover text shape, numeric bounds/formatting, explicit Slider marks,
   unique string-or-number choices, and Display formatting. No implicit choice fallback, children,
@@ -80,10 +80,10 @@ Products:
 - DashList rows respond to their container through shared handle/label/control/trailing tracks;
   groups establish new grids, compact rows stack, and drag previews preserve captured geometry.
 - Rail presentation represents Dashlets as named icons in a vertical or horizontal strip. Built-ins
-  supply type icons, groups retain disclosure behavior, and an active scoped Store orientation wins
+  supply type icons, groups retain disclosure behavior, and an active scoped Nexus orientation wins
   over a DashList prop. Picodash forces main side docks vertical and main top/bottom docks horizontal;
   corner, free, and snapped Panels publish no Picodash orientation override.
-- At a corner, effective Store or prop orientation selects the rail's physical edge. Picodash-only
+- At a corner, effective Nexus or prop orientation selects the rail's physical edge. Picodash-only
   arena allocation gives same-axis corner pairs halves, lets perpendicular rails stop at one
   another's inner edges, and gives two corners plus a main rail thirds. These caps are transient.
 - Long press enters transient rail reorder mode and reveals eligible handles. Dashlet icon activation
@@ -100,7 +100,7 @@ Products:
   documented focus, dismissal, backdrop, scroll, portal, and width behavior.
 - DashPanel width resolves from inherited `--picodash-panel-width` and then the per-Panel `width`
   prop. Intrinsic CSS widths are supported and boundary-capped; resolved width is not persisted.
-- @picodash/picodash: integrated facade after Store, DashPanel, and DashList stabilize.
+- @picodash/picodash: integrated facade after Nexus, DashPanel, and DashList stabilize.
 - @picodash/ui: supporting theme, density, token, structural CSS, and generic accessible UI
   foundation shared by DashPanel and DashList. The former @picodash/theme package was retired in
   the pre-release clean replacement; it is not a second target authority.
@@ -114,10 +114,10 @@ Authoritative documents:
 - AGENTS.md: workspace rules, glossary, documentation precedence, QA, and commands.
 - docs/product/value-propositions.md: product purpose and boundaries.
 - docs/ROADMAP.md: implementation and dogfooding sequence.
-- docs/adr/0002-provider-level-store-and-scoped-views.md: Store architecture.
+- docs/adr/0002-provider-level-nexus-and-scoped-views.md: Nexus architecture.
 - docs/adr/0003-shared-ui-foundation.md: shared presentation ownership and dependency architecture.
-- docs/reference/store-contract-decisions.md: searchable accepted Store decisions.
-- docs/reference/store.md: accepted Store target API.
+- docs/reference/nexus-contract-decisions.md: searchable accepted Nexus decisions.
+- docs/reference/nexus.md: accepted Nexus target API.
 - docs/reference/ui.md: accepted shared UI target.
 - docs/reference/dashpanel.md: accepted DashPanel target.
 - docs/reference/dashlist.md: accepted DashList target.
@@ -127,18 +127,18 @@ Authoritative documents:
 - docs/reference/contract-conformance.md: test ownership and release gates.
 - TESTING.md: test-layer policy.
 
-Core Store contract:
+Core Nexus contract:
 - One root owns canonical field values and durable scope metadata.
 - root.scope(scopeId) returns an immutable view of the same authority.
 - Scopes organize trusted state and attribution; they do not restrict field access.
-- Snapshots contain immutable data and commands live on Store APIs.
+- Snapshots contain immutable data and commands live on Nexus APIs.
 - Binding input uses parse, Standard Schema canonicalization, and validation. Other sources skip the
   UI parser and use schema plus validation.
-- Store-owned mode persists permitted application values and Picodash metadata.
+- Nexus-owned mode persists permitted application values and Picodash metadata.
 - External-owned mode uses one synchronous root adapter and persists Picodash metadata only.
 - Persistence, document, repair, overwrite, and prune recovery use explicit root-owned plans.
 - DashPanel and DashList register active entities and relationships through declarative leases.
-- DashPanel dock occupancy and allocation are transient Provider runtime; Store persists only
+- DashPanel dock occupancy and allocation are transient Provider runtime; Nexus persists only
   settled placement and preferred boundary-relative free position.
 - Imperative Panel deregistration is retired.
 

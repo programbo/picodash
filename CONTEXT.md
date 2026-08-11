@@ -4,7 +4,7 @@
 
 Picodash ships three foundational products and one integrated product:
 
-- `@picodash/store`: the typed value, scope, metadata, persistence, and adapter foundation.
+- `@picodash/nexus`: the typed state hub for configurable controls, readouts, and dashboards.
 - `@picodash/dashpanel`: the standalone draggable, dockable panel shell.
 - `@picodash/dashlist`: standalone list, group, and Dashlet composition primitives.
 - `@picodash/picodash`: the integrated facade combining DashPanel and DashList.
@@ -32,17 +32,17 @@ preference.
 _Avoid_: Mobile mode, responsive placement, docked sheet
 
 **DashList**
-An ordered, groupable collection of registered Dashlets associated with one Store scope.
+An ordered, groupable collection of registered Dashlets associated with one Nexus scope.
 _Avoid_: Panel, field registry, schema-generated form
 
 **Primary DashList**
-The DashList that shares a Panel's Store scope. A Panel has at most one primary DashList, while
+The DashList that shares a Panel's Nexus scope. A Panel has at most one primary DashList, while
 additional DashLists occupy explicitly identified child scopes.
 _Avoid_: First List, default List, only List
 
 **DashGroup**
 A declarative DashList container with one stable node identity, optional collapse, and one
-immediate-child ordering container. It is not a Store scope.
+immediate-child ordering container. It is not a Nexus scope.
 _Avoid_: Scope, nested List, Dashlet group
 
 **Dashlet**
@@ -67,24 +67,34 @@ It is not a runtime registry or prop schema.
 _Avoid_: Component registry, plugin catalog, API schema
 
 **Scope document**
-A versioned projection targeting one Store scope's permitted canonical values and durable metadata,
+A versioned projection targeting one Nexus scope's permitted canonical values and durable metadata,
 optionally including active descendants. It is not a value dump, draft snapshot, or record of
 historical relationships.
 _Avoid_: Settings file, scope backup, exported values
 
-**Picodash Store**
-A root typed state kernel owning canonical values, field contracts, scopes, durable product metadata,
-and registered binding interaction state. A scoped Store is an immutable view of that root, not a
-separate value store.
-_Avoid_: Provider Store, global Store, field registry
+**Picodash Nexus**
+The state hub that gives configurable interfaces one typed value contract and one place for valid
+changes, scoped preferences, and documents. It may own the values or adapt an existing application
+store.
+_Avoid_: Store, Provider Nexus, global Nexus, field registry
+
+**Root Nexus**
+The single Picodash Nexus authority that owns field contracts, shared values or their adapter, and
+all scopes. It is represented by the public `RootNexus` type.
+_Avoid_: Global Nexus, Provider Nexus, root Store
+
+**Scoped Nexus**
+An immutable organizational view of one Root Nexus with scope-local metadata and interaction state.
+It shares all root fields and values and is not a separate authority.
+_Avoid_: Child Nexus, local Store, permission scope
 
 **DashPanel Provider**
 The host-owned `DashPanelProvider` boundary for Panel visibility, activation, z-order, placement
-policy, and layout coordination over one root Store.
+policy, and layout coordination over one root Nexus.
 _Avoid_: Picodash Provider, global panel manager, app-level panel service
 
 **Picodash Provider**
-The integrated `PicodashProvider` boundary that composes the Store, DashPanel Provider, shared UI,
+The integrated `PicodashProvider` boundary that composes the Nexus, DashPanel Provider, shared UI,
 and Picodash-only coordination without creating another state authority.
 _Avoid_: Dashboard component, global registry, renamed DashPanel Provider
 

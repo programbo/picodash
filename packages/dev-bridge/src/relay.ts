@@ -454,7 +454,7 @@ function validateRegistration(
   if (
     !value ||
     value.type !== 'register' ||
-    value.protocolVersion !== 1 ||
+    value.protocolVersion !== 2 ||
     !value.registration ||
     typeof value.registration !== 'object'
   )
@@ -673,7 +673,7 @@ function validBridgeError(value: Record<string, unknown>) {
     value.error.message.length > 256
   )
     return false
-  if (value.error.code === 'internal_error' && value.error.message !== 'Store operation failed.')
+  if (value.error.code === 'internal_error' && value.error.message !== 'Nexus operation failed.')
     return false
   return true
 }

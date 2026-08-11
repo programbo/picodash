@@ -22,7 +22,7 @@ assert.deepEqual(manifest.exports, {
 assert.deepEqual(manifest.dependencies, {
   '@picodash/dashlist': 'workspace:*',
   '@picodash/dashpanel': 'workspace:*',
-  '@picodash/store': 'workspace:*',
+  '@picodash/nexus': 'workspace:*',
   '@picodash/ui': 'workspace:*',
 })
 assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })
@@ -65,8 +65,8 @@ assert.deepEqual(
     'DashPanel',
     'Dashlet',
     'PicodashProvider',
-    'createPicodashStore',
-    'usePicodashStoreSelector',
+    'createPicodashNexus',
+    'usePicodashNexusSelector',
   ].sort(),
 )
 const uiRuntime = await import(

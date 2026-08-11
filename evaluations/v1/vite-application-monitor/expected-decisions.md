@@ -2,9 +2,9 @@
 
 ## State
 
-- One `createPicodashStore<MonitorValues>` instance owns all monitor values.
+- One `createPicodashNexus<MonitorValues>` instance owns all monitor values.
 - Typed field handles bind every built-in or compound Dashlet.
-- One atomic Store write advances request rate, latency, errors, progress, status, and history.
+- One atomic Nexus write advances request rate, latency, errors, progress, status, and history.
 - History validation enforces JSON-compatible samples and a maximum of 12 entries.
 - No React effect or duplicate mutable record is used to synchronize host and Panel.
 

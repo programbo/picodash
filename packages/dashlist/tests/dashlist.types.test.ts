@@ -1,6 +1,6 @@
 import { createElement, type RefObject } from 'react'
 import { describe, it } from 'vite-plus/test'
-import { createPicodashStore } from '@picodash/store'
+import { createPicodashNexus } from '@picodash/nexus'
 import {
   ActionMenu,
   DashGroup,
@@ -20,14 +20,14 @@ import {
   type DashletProps,
 } from '../src/index.tsx'
 
-const store = createPicodashStore({ valueOwner: 'store', fields: { value: { defaultValue: 1 } } })
+const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { value: { defaultValue: 1 } } })
 type Fields = { value: { defaultValue: number } }
 
 describe('@picodash/dashlist public types', () => {
   it('exposes only the shell props and shared identity types', () => {
     const root: DashListProps = {
       id: 'settings',
-      store,
+      nexus,
       title: 'Settings',
       headingLevel: 2,
       theme: 'dark',
@@ -35,10 +35,10 @@ describe('@picodash/dashlist public types', () => {
       'aria-label': 'Settings list',
       reorderable: true,
     }
-    const scoped: DashListProps = { store: store.scope('settings') }
+    const scoped: DashListProps = { nexus: nexus.scope('settings') }
     const customTheme: DashListProps<Fields, 'operator'> = {
       id: 'operator',
-      store,
+      nexus,
       theme: 'operator',
     }
     const ref: RefObject<HTMLDivElement | null> = { current: null }
@@ -61,7 +61,7 @@ describe('@picodash/dashlist public types', () => {
       disabled: false,
       readOnly: false,
     })
-    // @ts-expect-error collapse is Store-controlled and cannot be supplied as a controlled prop.
+    // @ts-expect-error collapse is Nexus-controlled and cannot be supplied as a controlled prop.
     void createElement(DashGroup, { id: 'controlled', label: 'Controlled', collapsed: true })
     void createElement(Dashlet, { id: 'item', label: 'Item', pin: 'end', children: 'Value' })
     void DashHeader
@@ -74,11 +74,11 @@ describe('@picodash/dashlist public types', () => {
     void DashListResetListItem
     void useDashListActions
     void createElement(DashListExpandAllItem, { scopeId: 'settings' })
-    // @ts-expect-error action items target Store context, not a supplied Store prop.
-    void createElement(DashListExpandAllItem, { store })
+    // @ts-expect-error action items target Nexus context, not a supplied Nexus prop.
+    void createElement(DashListExpandAllItem, { nexus })
 
-    // @ts-expect-error root Store resolution requires an explicit id.
-    const rootless: DashListProps = { store }
+    // @ts-expect-error root Nexus resolution requires an explicit id.
+    const rootless: DashListProps = { nexus }
     void rootless
     // @ts-expect-error visible is not part of the alpha shell.
     const visible: DashListProps = { ...root, visible: true }
@@ -93,7 +93,7 @@ describe('@picodash/dashlist public types', () => {
     const display: DashletProps<Values, 'value', 'display'> = {
       id: 'display',
       label: 'Display',
-      field: store.fields.value,
+      field: nexus.fields.value,
       mode: 'display',
       children(context) {
         const mode: 'display' = context.binding.mode
@@ -106,8 +106,8 @@ describe('@picodash/dashlist public types', () => {
     void display
 
     const compoundFields = {
-      readout: { field: store.fields.value, mode: 'display' as const },
-      editor: store.fields.value,
+      readout: { field: nexus.fields.value, mode: 'display' as const },
+      editor: nexus.fields.value,
     } as const
     const compound: CompoundDashletProps<Values, typeof compoundFields> = {
       id: 'compound',
@@ -139,7 +139,7 @@ describe('@picodash/dashlist public types', () => {
     void compoundMode
     const presentation: DashletProps<Values, 'value'> = {
       id: 'presentation',
-      field: store.fields.value,
+      field: nexus.fields.value,
       // @ts-expect-error the deferred generic presentation contract is not public.
       presentation: {},
     }

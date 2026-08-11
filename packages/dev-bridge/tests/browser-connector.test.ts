@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'vite-plus/test'
 import WebSocket from 'ws'
-import { createPicodashStore } from '@picodash/store'
+import { createPicodashNexus } from '@picodash/nexus'
 import { connectPicodashDevBridge } from '../src/browser.js'
 import { createPicodashDevBridgeClient } from '../src/client.js'
 import { startPicodashDevBridgeRelay } from '../src/relay.js'
@@ -48,15 +48,15 @@ const stores: Array<{ destroy(): void }> = []
 afterEach(async () => {
   await Promise.all(connections.splice(0).map((connection) => connection.close()))
   await Promise.all(relays.splice(0).map((relay) => relay.close()))
-  stores.splice(0).forEach((store) => store.destroy())
+  stores.splice(0).forEach((nexus) => nexus.destroy())
   ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = previousWebSocket
 })
 
 describe('browser connector', () => {
-  test('uses a real public Store, reports structured rejection, and advances snapshots', async () => {
+  test('uses a real public Nexus, reports structured rejection, and advances snapshots', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: {
         count: {
           defaultValue: 1,
@@ -64,11 +64,11 @@ describe('browser connector', () => {
         },
       },
     })
-    stores.push(store)
+    stores.push(nexus)
     const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
     relays.push(relay)
     const browser = await connectPicodashDevBridge({
-      store,
+      nexus,
       credential: relay.issueBrowserCredential('http://localhost'),
       registrationId: 'browser-test',
       browserTabId: 'browser-tab',
@@ -85,7 +85,7 @@ describe('browser connector', () => {
       values: { count: 2 },
     })
     expect(success).toMatchObject({ outcome: { type: 'transaction_result', result: { ok: true } } })
-    expect(store.getState().values.count).toBe(2)
+    expect(nexus.getState().values.count).toBe(2)
     expect((await client.inspect(browser.session)).snapshot).toEqual({ values: { count: 2 } })
     const rejected = await client.setValues(browser.session, {
       type: 'set_values',
@@ -98,23 +98,23 @@ describe('browser connector', () => {
         result: { ok: false, issues: [{ message: 'No threes.' }] },
       },
     })
-    expect(store.getState().values.count).toBe(2)
+    expect(nexus.getState().values.count).toBe(2)
   })
 
-  test('advances sequence only when explicitly disclosed Store state changes', async () => {
+  test('advances sequence only when explicitly disclosed Nexus state changes', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: {
         count: { defaultValue: 1 },
         secret: { defaultValue: 'hidden' },
       },
     })
-    stores.push(store)
+    stores.push(nexus)
     const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
     relays.push(relay)
     const browser = await connectPicodashDevBridge({
-      store,
+      nexus,
       credential: relay.issueBrowserCredential('http://localhost'),
       registrationId: 'disclosed-sequence',
       browserTabId: 'browser-tab',
@@ -124,8 +124,8 @@ describe('browser connector', () => {
     const client = createPicodashDevBridgeClient(relay.agentCredential)
 
     expect((await client.inspect(browser.session)).session.sequence).toBe(0)
-    store.setValue(store.fields.secret, 'still-hidden')
-    store.setDashListRootOrder('hidden-scope', ['item'])
+    nexus.setValue(nexus.fields.secret, 'still-hidden')
+    nexus.setDashListRootOrder('hidden-scope', ['item'])
     expect((await client.inspect(browser.session)).session.sequence).toBe(0)
     await expect(
       client.wait(browser.session, {
@@ -136,7 +136,7 @@ describe('browser connector', () => {
       }),
     ).resolves.toMatchObject({ type: 'wait_result', outcome: 'timed_out' })
 
-    store.setDashListRootOrder('visible-scope', ['item'])
+    nexus.setDashListRootOrder('visible-scope', ['item'])
     expect((await client.inspect(browser.session)).session.sequence).toBe(1)
     await expect(
       client.wait(browser.session, {
@@ -182,7 +182,7 @@ describe('browser connector', () => {
         ],
       },
     })
-    store.setValue(store.fields.count, 2)
+    nexus.setValue(nexus.fields.count, 2)
     await expect(client.inspect(browser.session)).resolves.toMatchObject({
       session: { sequence: 2 },
       snapshot: { values: { count: 2 } },
@@ -191,15 +191,15 @@ describe('browser connector', () => {
 
   test('reconnects with a new generation and removes subscriptions on close', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { count: { defaultValue: 1 } },
     })
-    stores.push(store)
+    stores.push(nexus)
     const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
     relays.push(relay)
     const first = await connectPicodashDevBridge({
-      store,
+      nexus,
       credential: relay.issueBrowserCredential('http://localhost'),
       registrationId: 'reload',
       browserTabId: 'tab',
@@ -208,7 +208,7 @@ describe('browser connector', () => {
     })
     connections.push(first)
     const second = await connectPicodashDevBridge({
-      store,
+      nexus,
       credential: relay.issueBrowserCredential('http://localhost'),
       registrationId: 'reload',
       browserTabId: 'tab',
@@ -225,14 +225,14 @@ describe('browser connector', () => {
     ).resolves.toHaveLength(0)
   })
 
-  test('maps plain Store exceptions to a request-bound redacted bridge error', async () => {
+  test('maps plain Nexus exceptions to a request-bound redacted bridge error', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
-    const store = createPicodashStore({
-      valueOwner: 'store',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: { count: { defaultValue: 1 } },
     })
-    stores.push(store)
-    const throwingStore = new Proxy(store, {
+    stores.push(nexus)
+    const throwingNexus = new Proxy(nexus, {
       get(target, property, receiver) {
         if (property === 'setValues')
           return () => {
@@ -244,7 +244,7 @@ describe('browser connector', () => {
     const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
     relays.push(relay)
     const browser = await connectPicodashDevBridge({
-      store: throwingStore,
+      nexus: throwingNexus,
       credential: relay.issueBrowserCredential('http://localhost'),
       registrationId: 'plain-error',
       browserTabId: 'tab',
@@ -259,12 +259,12 @@ describe('browser connector', () => {
     expect(result).toMatchObject({
       type: 'bridge_error',
       requestId: 'plain-error',
-      error: { code: 'internal_error', message: 'Store operation failed.' },
+      error: { code: 'internal_error', message: 'Nexus operation failed.' },
     })
     expect(JSON.stringify(result)).not.toContain('secret details')
   })
 
-  test('keeps Store contract errors as structured outcomes and preserves persistence status', async () => {
+  test('keeps Nexus contract errors as structured outcomes and preserves persistence status', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
     let payload: string | null = null
     const driver = {
@@ -277,9 +277,9 @@ describe('browser connector', () => {
         payload = null
       },
     }
-    const store = createPicodashStore({
-      valueOwner: 'store',
-      storeId: 'dev-bridge-persistence',
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      nexusId: 'dev-bridge-persistence',
       schemaVersion: 1,
       fields: { count: { defaultValue: 1 } },
       persistence: {
@@ -288,11 +288,11 @@ describe('browser connector', () => {
         values: { defaultFieldPolicy: 'include' },
       },
     })
-    stores.push(store)
+    stores.push(nexus)
     const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
     relays.push(relay)
     const browser = await connectPicodashDevBridge({
-      store,
+      nexus,
       credential: relay.issueBrowserCredential('http://localhost'),
       registrationId: 'persistent',
       browserTabId: 'tab',
@@ -307,8 +307,8 @@ describe('browser connector', () => {
       values: { count: 2 },
     })
     expect(saved).toMatchObject({ outcome: { result: { ok: true, persistence: 'saved' } } })
-    stores.splice(stores.indexOf(store), 1)
-    store.destroy({ discardUnpersisted: true })
+    stores.splice(stores.indexOf(nexus), 1)
+    nexus.destroy({ discardUnpersisted: true })
     const destroyed = await client.setValues(browser.session, {
       type: 'set_values',
       requestId: 'destroyed',

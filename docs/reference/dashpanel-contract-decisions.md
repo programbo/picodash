@@ -14,7 +14,7 @@ identity and ownership model exists; this page states the exact public behavior 
 
 ### 1.1 Panel targets
 
-A DashPanel `id` resolves its Store scope and its identity in the nearest Provider. A launcher
+A DashPanel `id` resolves its Nexus scope and its identity in the nearest Provider. A launcher
 entry's `panelId` is a target reference to that Panel. It is not the identity of the launcher entry
 when several controls target the same Panel.
 
@@ -31,7 +31,7 @@ controls for the same Panel; it never creates or selects between duplicate mount
 - every supplied `itemId` is a non-empty, case-sensitive string unique within that launcher;
 - a supplied `itemId` remains stable across reorders and ordinary rerenders; changing it is an
   intentional React remount of that launcher entry; and
-- `itemId` is not a DOM ID, Store scope, Panel ID, persisted value, or cross-launcher registry key.
+- `itemId` is not a DOM ID, Nexus scope, Panel ID, persisted value, or cross-launcher registry key.
 
 The runtime namespaces explicit item identities separately from fallback Panel identities. An
 explicit `itemId` may therefore equal another entry's `panelId` without producing a React key
@@ -48,4 +48,4 @@ renders a disabled trigger.
 
 - [ADR 0004: DashPanel launcher item identity](../adr/0004-dashpanel-launcher-item-identity.md)
 - [DashPanel target reference](dashpanel.md)
-- [Store contract decisions](store-contract-decisions.md)
+- [Nexus contract decisions](nexus-contract-decisions.md)

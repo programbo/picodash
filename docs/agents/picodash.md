@@ -1,7 +1,7 @@
 # Picodash integration agent instructions
 
 Read this file before changing the facade or behavior that coordinates products. Then read
-[`../reference/picodash.md`](../reference/picodash.md) and the agent instructions for Store, UI,
+[`../reference/picodash.md`](../reference/picodash.md) and the agent instructions for Nexus, UI,
 DashPanel, and DashList.
 
 ## Decision lens
@@ -23,9 +23,9 @@ private imports, copied components, or a monolithic Dashboard abstraction.
 - Keep rail allocation that necessarily coordinates Panel placement and List presentation in
   Picodash, and keep it transient.
 - Aggregate package-owned catalogs without copying entries or inventing a runtime registry.
-- Picodash owns no duplicate Dashlet family, theme recipe, Store behavior, or implicit multi-List
+- Picodash owns no duplicate Dashlet family, theme recipe, Nexus behavior, or implicit multi-List
   document/reset operation.
 
-Integration tests prove composition and lease ordering without repeating Store, DashPanel, or
+Integration tests prove composition and lease ordering without repeating Nexus, DashPanel, or
 DashList matrices. Add Contract Lab coverage only for a cohesive browser seam that cannot be owned
 more cheaply below the facade.

@@ -50,8 +50,8 @@ describe('@picodash/ui overlay provider types', () => {
     // @ts-expect-error overlay defaults do not expose a ref.
     const ref: PicodashOverlayProviderProps = { children: null, ref: { current: null } }
     void ref
-    // @ts-expect-error overlay provider does not accept Store or product props.
-    const product: PicodashOverlayProviderProps = { children: null, store: {} }
+    // @ts-expect-error overlay provider does not accept Nexus or product props.
+    const product: PicodashOverlayProviderProps = { children: null, nexus: {} }
     void product
   })
 })

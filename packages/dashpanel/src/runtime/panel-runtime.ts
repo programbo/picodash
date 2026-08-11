@@ -2,7 +2,7 @@ import type {
   CoreTransactionResult,
   DashPanelLayoutRecord,
   PersistentTransactionResult,
-} from '@picodash/store'
+} from '@picodash/nexus'
 import type {
   DashPanelDefaultLayout,
   DashPanelDockPosition,
@@ -31,7 +31,7 @@ export type DashPanelLayoutCommandResult =
       readonly reason: 'unavailable' | 'dock_occupied' | 'position_disabled' | 'modal_presentation'
     }
 
-interface PanelLayoutStore {
+interface PanelLayoutNexus {
   setDashPanelLayout(
     layout: DashPanelLayoutRecord,
   ): CoreTransactionResult | PersistentTransactionResult
@@ -69,7 +69,7 @@ export interface PanelRuntimeConfig {
   readonly placement?: DashPanelPlacement
   readonly dockPositions?: readonly DashPanelDockPosition[]
   readonly presentation?: DashPanelPresentation
-  readonly store?: PanelLayoutStore
+  readonly nexus?: PanelLayoutNexus
   readonly currentPosition?: () => Readonly<{ x: number; y: number }> | undefined
   readonly freeMovePosition?: () => Readonly<{ x: number; y: number }> | undefined
   readonly preferredPosition?: Readonly<{ x: number; y: number }>
@@ -85,7 +85,7 @@ export type PanelRuntimeUpdate = Pick<
   | 'placement'
   | 'dockPositions'
   | 'presentation'
-  | 'store'
+  | 'nexus'
   | 'currentPosition'
   | 'freeMovePosition'
   | 'preferredPosition'
@@ -152,7 +152,7 @@ interface MutablePanel {
   presentation: DashPanelPresentation
   requestedPlacement: DashPanelPlacement
   placementFallbackReason?: 'dock_occupied'
-  store?: PanelRuntimeConfig['store']
+  nexus?: PanelRuntimeConfig['nexus']
   currentPosition?: PanelRuntimeConfig['currentPosition']
   freeMovePosition?: PanelRuntimeConfig['freeMovePosition']
   preferredPosition?: PanelRuntimeConfig['preferredPosition']
@@ -418,7 +418,7 @@ export function createPanelRuntime(): PanelRuntime {
         requestedPlacement,
         dockPositions: [...(config.dockPositions ?? [])],
         presentation: config.presentation ?? { kind: 'panel' },
-        store: config.store,
+        nexus: config.nexus,
         currentPosition: config.currentPosition,
         freeMovePosition: config.freeMovePosition,
         preferredPosition: config.preferredPosition,
@@ -485,8 +485,8 @@ export function createPanelRuntime(): PanelRuntime {
             current.configSnapshot = undefined
             changed = true
           }
-          if (Object.prototype.hasOwnProperty.call(update, 'store')) {
-            current.store = update.store
+          if (Object.prototype.hasOwnProperty.call(update, 'nexus')) {
+            current.nexus = update.nexus
             changed = true
           }
           if (Object.prototype.hasOwnProperty.call(update, 'currentPosition')) {
@@ -610,7 +610,7 @@ export function createPanelRuntime(): PanelRuntime {
         panel.defaultLayout.preferredPosition ??
         panel.currentPosition?.()
       if (!preferred) return { status: 'not_executed', reason: 'unavailable' }
-      const transaction = panel.store?.setDashPanelLayout({
+      const transaction = panel.nexus?.setDashPanelLayout({
         placement,
         preferredPosition: { x: preferred.x, y: preferred.y },
       } as DashPanelLayoutRecord)
@@ -629,7 +629,7 @@ export function createPanelRuntime(): PanelRuntime {
       const panel = panelFor(scopeId)
       if (!panel) return { status: 'not_executed', reason: 'unavailable' }
       if (panel.presentation.kind !== 'panel') return modalPresentation()
-      const transaction = panel.store?.resetDashPanelLayout()
+      const transaction = panel.nexus?.resetDashPanelLayout()
       if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
       if (transaction.ok) {
         panel.requestedPlacement = panel.defaultLayout.placement

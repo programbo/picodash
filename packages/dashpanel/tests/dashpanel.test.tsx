@@ -13,8 +13,8 @@ import {
   type DomTestInstance,
   type DomTestRenderer,
 } from '../../../test/dom-renderer.ts'
-import { createPicodashStore, PicodashContractError } from '@picodash/store'
-import { usePicodashRootStore, usePicodashScope } from '@picodash/store/react'
+import { createPicodashNexus, PicodashContractError } from '@picodash/nexus'
+import { usePicodashRootNexus, usePicodashScope } from '@picodash/nexus/react'
 import {
   DashPanel,
   DashPanelLauncher,
@@ -47,9 +47,9 @@ function createMockElement() {
   return element
 }
 
-const makeStore = () =>
-  createPicodashStore({
-    valueOwner: 'store',
+const makeNexus = () =>
+  createPicodashNexus({
+    valueOwner: 'nexus',
     fields: { count: { defaultValue: 0 } },
   })
 
@@ -63,9 +63,9 @@ function render(element: ReactElement): DomTestRenderer {
 
 const renderWithHostNodes = render
 
-function panel(store: ReturnType<typeof makeStore>, children?: ReactElement, id = 'panel') {
+function panel(nexus: ReturnType<typeof makeNexus>, children?: ReactElement, id = 'panel') {
   return createElement(DashPanelProvider, {
-    store,
+    nexus,
     children: createElement(DashPanel, { id, title: 'Inspector', children }),
   })
 }
@@ -75,8 +75,8 @@ function pressButton(button: DomTestInstance) {
 }
 
 describe('@picodash/dashpanel alpha shell', () => {
-  it('exposes the Store-backed nearest controller and durable layout commands', () => {
-    const store = makeStore()
+  it('exposes the Nexus-backed nearest controller and durable layout commands', () => {
+    const nexus = makeNexus()
     let controller!: ReturnType<typeof useDashPanel>
     function Probe() {
       controller = useDashPanel()
@@ -84,7 +84,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'panel',
           title: 'Panel',
@@ -110,20 +110,20 @@ describe('@picodash/dashpanel alpha shell', () => {
       })
     })
     expect(placementResult.status).toBe('executed')
-    expect(store.getState().scopes.get('panel')?.dashPanel?.placement).toEqual({
+    expect(nexus.getState().scopes.get('panel')?.dashPanel?.placement).toEqual({
       mode: 'fixed',
       disposition: { kind: 'docked', position: 'full-right' },
     })
     act(() => {
       expect(controller.resetLayout().status).toBe('executed')
     })
-    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('targets nearest, explicit, and unavailable panels while transient commands stay out of Store', () => {
-    const store = makeStore()
+  it('targets nearest, explicit, and unavailable panels while transient commands stay out of Nexus', () => {
+    const nexus = makeNexus()
     let nearest!: ReturnType<typeof useDashPanel>
     let explicit!: ReturnType<typeof useDashPanel>
     let missing!: ReturnType<typeof useDashPanel>
@@ -135,7 +135,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'panel',
           title: 'Panel',
@@ -154,14 +154,14 @@ describe('@picodash/dashpanel alpha shell', () => {
       expect(nearest.collapse().status).toBe('executed')
       expect(nearest.toggleCollapsed().status).toBe('executed')
     })
-    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('keeps a policy-disabled durable dock dormant and also enforces policy on its fallback', () => {
-    const store = makeStore()
-    store.setDashPanelLayout('panel', {
+    const nexus = makeNexus()
+    nexus.setDashPanelLayout('panel', {
       placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
       preferredPosition: { x: 12, y: 18 },
     })
@@ -172,7 +172,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const renderedPanel = (dockPositions: readonly ('top-left' | 'bottom-right')[]) =>
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'panel',
           title: 'Panel',
@@ -198,19 +198,19 @@ describe('@picodash/dashpanel alpha shell', () => {
       mode: 'fixed',
       disposition: { kind: 'docked', position: 'top-left' },
     })
-    expect(store.getState().scopes.get('panel')?.dashPanel?.preferredPosition).toEqual({
+    expect(nexus.getState().scopes.get('panel')?.dashPanel?.preferredPosition).toEqual({
       x: 12,
       y: 18,
     })
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('uses the accessible move control for keyboard and pointer commit/cancel without preview persistence', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = renderWithHostNodes(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'panel',
           title: 'Inspector',
@@ -237,12 +237,12 @@ describe('@picodash/dashpanel alpha shell', () => {
     void keyEvent('Enter')
     void keyEvent('ArrowRight', true)
     void keyEvent('Escape')
-    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
 
     void keyEvent('Enter')
     void keyEvent('ArrowRight', true)
     void act(() => move.props.onBlur())
-    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     expect(renderer.root.findByType('aside').props['data-picodash-placement']).toBe(
       'floating-snapped',
     )
@@ -250,7 +250,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     void keyEvent('Enter')
     void keyEvent('ArrowDown')
     void keyEvent('Enter')
-    expect(store.getState().scopes.get('panel')?.dashPanel?.placement).toEqual({
+    expect(nexus.getState().scopes.get('panel')?.dashPanel?.placement).toEqual({
       mode: 'floating',
       disposition: { kind: 'free' },
     })
@@ -258,7 +258,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     act(() =>
       renderer.update(
         createElement(DashPanelProvider, {
-          store,
+          nexus,
           children: createElement(DashPanel, {
             id: 'panel',
             title: 'Inspector',
@@ -274,7 +274,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       ),
     )
     act(() => {
-      store.scope('panel').resetDashPanelLayout()
+      nexus.scope('panel').resetDashPanelLayout()
     })
     const pointerMove = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
     const pointerTarget = createMockElement()
@@ -289,7 +289,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       })
       pointerMove.props.onPointerUpCapture({ pointerId: 1 })
     })
-    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     act(() => {
       pointerMove.props.onPointerDown({
         button: 0,
@@ -303,16 +303,16 @@ describe('@picodash/dashpanel alpha shell', () => {
     })
     const aside = renderer.root.findByType('aside')
     void act(() => aside.props.onPointerCancel({ pointerId: 2 }))
-    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('preserves Hybrid mode when keyboard movement commits a free placement', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = renderWithHostNodes(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'panel',
           title: 'Inspector',
@@ -335,7 +335,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     act(() => {
       void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
     })
-    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
     act(() => {
       void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
@@ -345,19 +345,19 @@ describe('@picodash/dashpanel alpha shell', () => {
       void move.props.onKeyDown({ key: 'ArrowRight', preventDefault() {} })
       void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
     })
-    expect(store.getState().scopes.get('panel')?.dashPanel).toEqual({
+    expect(nexus.getState().scopes.get('panel')?.dashPanel).toEqual({
       placement: { mode: 'hybrid', disposition: { kind: 'free' } },
       preferredPosition: { x: 5, y: 6 },
     })
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('keeps the move control unavailable for Fixed Panels instead of changing placement mode', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'panel',
           title: 'Inspector',
@@ -382,40 +382,40 @@ describe('@picodash/dashpanel alpha shell', () => {
         currentTarget: createMockElement(),
       })
     })
-    expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
+    expect(nexus.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     expect(renderer.root.findByType('aside').props['data-picodash-placement']).toBe('fixed-docked')
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('requires a root Store and rejects scoped Stores', () => {
-    const store = makeStore()
+  it('requires a root Nexus and rejects scoped Nexuses', () => {
+    const nexus = makeNexus()
     expect(() => render(createElement(DashPanel, { id: 'outside', title: 'Outside' }))).toThrow(
-      /missing-store-context/,
+      /missing-nexus-context/,
     )
     expect(() =>
       render(
         createElement(DashPanelProvider, {
-          store: store.scope('nested') as never,
+          nexus: nexus.scope('nested') as never,
           children: null,
         }),
       ),
-    ).toThrow('DashPanelProvider requires a root Store')
-    expect(() => store.destroy()).not.toThrow()
+    ).toThrow('DashPanelProvider requires a root Nexus')
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('defaults the Provider id and rejects duplicate active Providers', () => {
-    const store = makeStore()
-    const first = render(panel(store))
-    expect(() => render(panel(store, undefined, 'other'))).toThrow(/duplicate-provider/)
+    const nexus = makeNexus()
+    const first = render(panel(nexus))
+    expect(() => render(panel(nexus, undefined, 'other'))).toThrow(/duplicate-provider/)
     act(() => first.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('propagates root and scoped Store context, and nests relationships by scope', () => {
-    const store = makeStore()
+  it('propagates root and scoped Nexus context, and nests relationships by scope', () => {
+    const nexus = makeNexus()
     function Probe() {
-      const root = usePicodashRootStore()
+      const root = usePicodashRootNexus()
       const scope = usePicodashScope()
       return createElement(
         'output',
@@ -423,21 +423,21 @@ describe('@picodash/dashpanel alpha shell', () => {
         root === scope.root ? 'root' : 'wrong',
       )
     }
-    const renderer = render(panel(store, createElement(Probe)))
+    const renderer = render(panel(nexus, createElement(Probe)))
     const output = renderer.root.findByType('output')
     expect(output.props['data-scope']).toBe('panel')
     expect(output.children).toEqual(['root'])
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('resets Store ancestry for nested Providers and tears down safely in Strict Mode', () => {
-    const store = makeStore()
+  it('resets Nexus ancestry for nested Providers and tears down safely in Strict Mode', () => {
+    const nexus = makeNexus()
     function Probe() {
       return createElement('output', { 'data-scope': usePicodashScope().scopeId })
     }
     const nested = createElement(DashPanelProvider, {
-      store,
+      nexus,
       providerId: 'nested',
       children: createElement(DashPanel, {
         id: 'inner',
@@ -450,26 +450,26 @@ describe('@picodash/dashpanel alpha shell', () => {
         StrictMode,
         null,
         createElement(DashPanelProvider, {
-          store,
+          nexus,
           children: createElement(DashPanel, { id: 'outer', title: 'Outer', children: nested }),
         }),
       ),
     )
     expect(renderer.root.findByType('output').props['data-scope']).toBe('inner')
-    expect(() => store.destroy()).toThrow(/root-has-active-leases/)
+    expect(() => nexus.destroy()).toThrow(/root-has-active-leases/)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('publishes frozen default Provider policy without adding DOM or Store behavior', () => {
-    const store = makeStore()
+  it('publishes frozen default Provider policy without adding DOM or Nexus behavior', () => {
+    const nexus = makeNexus()
     let observed!: DashPanelProviderPolicy
     function Probe() {
       observed = useDashPanelProviderPolicy()
       return createElement('section', { 'data-policy-probe': true }, 'content')
     }
     const renderer = render(
-      createElement(DashPanelProvider, { store, children: createElement(Probe) }),
+      createElement(DashPanelProvider, { nexus, children: createElement(Probe) }),
     )
     expect(observed.boundary).toBeNull()
     expect(observed.boundaryInset).toEqual({ top: 0, right: 0, bottom: 0, left: 0 })
@@ -492,11 +492,11 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(Object.isFrozen(observed.dockPositions)).toBe(true)
     expect(renderer.root.findByProps({ 'data-policy-probe': true }).children).toEqual(['content'])
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('retains boundary identity, validates live refs, and publishes dynamic policy synchronously', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const boundaryRef = { current: null as Element | null }
     let observed!: DashPanelProviderPolicy
     function Probe() {
@@ -505,7 +505,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const makeProvider = (boundaryInset: unknown, dockPositions: unknown) =>
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         boundary: boundaryRef,
         boundaryInset: boundaryInset as never,
         dockPositions: dockPositions as never,
@@ -531,11 +531,11 @@ describe('@picodash/dashpanel alpha shell', () => {
       }),
     ).toThrow(TypeError)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('resets policy at nested Providers and keeps nearest context', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const outerBoundary = createMockElement()
     const observed = new Map<string, DashPanelProviderPolicy>()
     function Probe({ name }: { name: string }) {
@@ -544,7 +544,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         boundary: outerBoundary,
         boundaryInset: 8,
         dockPositions: ['top-left'],
@@ -553,7 +553,7 @@ describe('@picodash/dashpanel alpha shell', () => {
           null,
           createElement(Probe, { name: 'outer' }),
           createElement(DashPanelProvider, {
-            store,
+            nexus,
             providerId: 'nested-policy',
             children: createElement(Probe, { name: 'inner' }),
           }),
@@ -567,11 +567,11 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(observed.get('inner')?.boundaryInset).toEqual({ top: 0, right: 0, bottom: 0, left: 0 })
     expect(observed.get('inner')?.dockPositions).toHaveLength(12)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('accepts an explicit empty dock set and rejects invalid policy representatives', () => {
-    const emptyStore = makeStore()
+    const emptyNexus = makeNexus()
     let emptyObserved!: DashPanelProviderPolicy
     function EmptyProbe() {
       emptyObserved = useDashPanelProviderPolicy()
@@ -579,14 +579,14 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const emptyRenderer = render(
       createElement(DashPanelProvider, {
-        store: emptyStore,
+        nexus: emptyNexus,
         dockPositions: [],
         children: createElement(EmptyProbe),
       }),
     )
     expect(emptyObserved.dockPositions).toEqual([])
     act(() => emptyRenderer.unmount())
-    expect(() => emptyStore.destroy()).not.toThrow()
+    expect(() => emptyNexus.destroy()).not.toThrow()
 
     const invalid: Array<Record<string, unknown>> = [
       { boundary: '#selector' },
@@ -596,10 +596,10 @@ describe('@picodash/dashpanel alpha shell', () => {
       { dockPositions: ['middle-left'] },
     ]
     for (const policyProps of invalid) {
-      const store = makeStore()
-      const props = { store, ...policyProps, children: null } as never
+      const nexus = makeNexus()
+      const props = { nexus, ...policyProps, children: null } as never
       expect(() => render(createElement(DashPanelProvider, props))).toThrow(TypeError)
-      expect(() => store.destroy()).not.toThrow()
+      expect(() => nexus.destroy()).not.toThrow()
     }
   })
 
@@ -614,7 +614,7 @@ describe('@picodash/dashpanel alpha shell', () => {
   })
 
   it('resolves Panel policy inheritance, overrides, narrowing, and frozen records synchronously', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const providerBoundary = createMockElement()
     const panelBoundary = createMockElement()
     let observed!: DashPanelPolicy
@@ -624,7 +624,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         boundary: providerBoundary,
         boundaryInset: [1, 2],
         dockPositions: ['top-left', 'center-bottom'],
@@ -648,7 +648,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     act(() =>
       renderer.update(
         createElement(DashPanelProvider, {
-          store,
+          nexus,
           boundary: providerBoundary,
           boundaryInset: [1, 2],
           dockPositions: ['top-left', 'center-bottom'],
@@ -667,11 +667,11 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(observed.boundaryInset).toEqual({ top: 0, right: 0, bottom: 0, left: 0 })
     expect(observed.dockPositions).toEqual([])
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('keeps Panel and Provider boundary refs live without rerendering', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const providerRef = { current: null as Element | null }
     const panelRef = { current: null as Element | null }
     let observed!: DashPanelPolicy
@@ -681,7 +681,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         boundary: providerRef,
         children: createElement(DashPanel, {
           id: 'live-policy',
@@ -703,7 +703,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     panelRef.current = panelElement
     expect(observed.getBoundary()).toBe(panelElement)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('rejects invalid Panel policy values and widening dock sets', () => {
@@ -715,9 +715,9 @@ describe('@picodash/dashpanel alpha shell', () => {
       { dockPositions: ['center-right'] },
     ]
     for (const policyProps of invalid) {
-      const store = makeStore()
+      const nexus = makeNexus()
       const props = {
-        store,
+        nexus,
         dockPositions: ['top-left'] as const,
         children: createElement(DashPanel, {
           id: 'invalid-policy',
@@ -727,12 +727,12 @@ describe('@picodash/dashpanel alpha shell', () => {
         }),
       } as never
       expect(() => render(createElement(DashPanelProvider, props))).toThrow(TypeError)
-      expect(() => store.destroy()).not.toThrow()
+      expect(() => nexus.destroy()).not.toThrow()
     }
   })
 
   it('uses Provider defaults for nested Panels and resets at nested Providers', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const outerBoundary = createMockElement()
     const observed = new Map<string, DashPanelPolicy>()
     function Probe({ name }: { name: string }) {
@@ -741,7 +741,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         boundary: outerBoundary,
         boundaryInset: 8,
         dockPositions: ['top-left'],
@@ -760,7 +760,7 @@ describe('@picodash/dashpanel alpha shell', () => {
               children: createElement(Probe, { name: 'nested' }),
             }),
             createElement(DashPanelProvider, {
-              store,
+              nexus,
               providerId: 'nested-policy-provider',
               children: createElement(DashPanel, {
                 id: 'reset-policy',
@@ -779,7 +779,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(observed.get('reset')?.boundaryInset).toEqual({ top: 0, right: 0, bottom: 0, left: 0 })
     expect(observed.get('reset')?.dockPositions).toHaveLength(12)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('rejects the private Panel policy hook outside an active Panel', () => {
@@ -787,19 +787,19 @@ describe('@picodash/dashpanel alpha shell', () => {
       useDashPanelPolicy()
       return null
     }
-    const store = makeStore()
+    const nexus = makeNexus()
     expect(() =>
-      render(createElement(DashPanelProvider, { store, children: createElement(Probe) })),
+      render(createElement(DashPanelProvider, { nexus, children: createElement(Probe) })),
     ).toThrow('DashPanel policy requires an active DashPanel')
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('renders a named semantic aside with visible heading, arbitrary children, and no scope DOM id', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const ref = { current: null as HTMLElement | null }
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'scope-id',
           title: 'Inspector',
@@ -820,15 +820,15 @@ describe('@picodash/dashpanel alpha shell', () => {
       renderer.root.findAllByType('button').some((button) => button.children.includes('Apply')),
     ).toBe(true)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('requires aria-label for non-text titles', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     expect(() =>
       render(
         createElement(DashPanelProvider, {
-          store,
+          nexus,
           children: createElement(DashPanel, {
             id: 'icon',
             title: createElement('span', null, 'I'),
@@ -836,12 +836,12 @@ describe('@picodash/dashpanel alpha shell', () => {
         }),
       ),
     ).toThrow('DashPanel non-text titles require an explicit aria-label')
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
 
-    const labelledStore = makeStore()
+    const labelledNexus = makeNexus()
     const labelled = render(
       createElement(DashPanelProvider, {
-        store: labelledStore,
+        nexus: labelledNexus,
         providerId: 'labelled',
         children: createElement(DashPanel, {
           id: 'icon',
@@ -852,24 +852,24 @@ describe('@picodash/dashpanel alpha shell', () => {
     )
     expect(labelled.root.findByType('aside').props['aria-label']).toBe('Inspector')
     act(() => labelled.unmount())
-    expect(() => labelledStore.destroy()).not.toThrow()
+    expect(() => labelledNexus.destroy()).not.toThrow()
 
-    const blankStore = makeStore()
+    const blankNexus = makeNexus()
     expect(() =>
       render(
         createElement(DashPanelProvider, {
-          store: blankStore,
+          nexus: blankNexus,
           providerId: 'blank',
           children: createElement(DashPanel, { id: 'blank', title: [' ', ''] }),
         }),
       ),
     ).toThrow('DashPanel titles require non-empty text or an explicit aria-label')
-    expect(() => blankStore.destroy()).not.toThrow()
+    expect(() => blankNexus.destroy()).not.toThrow()
 
-    const blankLabelledStore = makeStore()
+    const blankLabelledNexus = makeNexus()
     const blankLabelled = render(
       createElement(DashPanelProvider, {
-        store: blankLabelledStore,
+        nexus: blankLabelledNexus,
         providerId: 'blank-labelled',
         children: createElement(DashPanel, {
           id: 'blank',
@@ -881,15 +881,15 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(blankLabelled.root.findByType('aside').props['aria-label']).toBe('Inspector')
     expect(blankLabelled.root.findByProps({ 'aria-label': 'Close panel Inspector' })).toBeTruthy()
     act(() => blankLabelled.unmount())
-    expect(() => blankLabelledStore.destroy()).not.toThrow()
+    expect(() => blankLabelledNexus.destroy()).not.toThrow()
   })
 
   it('writes width to the public token while preserving style and rejects reserved style keys', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const customStyle = { opacity: 0.8, '--consumer-token': 'ok' } as DashPanelStyle
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'sized',
           title: 'Sized',
@@ -904,7 +904,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       '--picodash-panel-width': '24rem',
     })
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
 
     for (const reserved of [
       'width',
@@ -917,11 +917,11 @@ describe('@picodash/dashpanel alpha shell', () => {
       'minHeight',
       'minBlockSize',
     ] as const) {
-      const next = makeStore()
+      const next = makeNexus()
       expect(() =>
         render(
           createElement(DashPanelProvider, {
-            store: next,
+            nexus: next,
             children: createElement(DashPanel, {
               id: reserved,
               title: 'Reserved',
@@ -935,10 +935,10 @@ describe('@picodash/dashpanel alpha shell', () => {
   })
 
   it('composes independent theme and density overrides', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         theme: 'light',
         density: 'regular',
         children: createElement(DashPanel, {
@@ -962,12 +962,12 @@ describe('@picodash/dashpanel alpha shell', () => {
       ['dark', 'compact'],
     ])
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('renders an expanded collapsible Panel with its accessible control and body relationship', () => {
-    const store = makeStore()
-    const renderer = render(panel(store))
+    const nexus = makeNexus()
+    const renderer = render(panel(nexus))
     const aside = renderer.root.findByType('aside')
     const button = renderer.root.findByProps({ 'aria-label': 'Collapse panel Inspector' })
     const body = renderer.root.findByProps({ 'data-picodash-panel-body': true })
@@ -980,11 +980,11 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(body.props.hidden).toBe(false)
     expect(body.props.inert).toBeUndefined()
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('keeps collapsed children mounted and inert while preserving their state across expand', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     let nextToken = 0
     function Child() {
       const [token] = useState(() => ++nextToken)
@@ -992,7 +992,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'collapsed',
           title: 'Inspector',
@@ -1009,21 +1009,21 @@ describe('@picodash/dashpanel alpha shell', () => {
     const child = renderer.root.findByProps({ 'data-child': true })
     const childToken = child.children[0]
     expect(childToken).toBe('child-state-1')
-    expect(() => store.destroy()).toThrow(/root-has-active-leases/)
+    expect(() => nexus.destroy()).toThrow(/root-has-active-leases/)
     pressButton(button)
     expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('false')
     expect(renderer.root.findByProps({ 'data-picodash-panel-body': true }).props.hidden).toBe(false)
     expect(renderer.root.findByProps({ 'data-child': true }).children[0]).toBe(childToken)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('calls the collapse callback only for committed transitions and ignores default changes after mount', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const callback = vi.fn()
     let renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'callback',
           title: 'Inspector',
@@ -1039,7 +1039,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     act(() =>
       renderer.update(
         createElement(DashPanelProvider, {
-          store,
+          nexus,
           children: createElement(DashPanel, {
             id: 'callback',
             title: 'Inspector',
@@ -1052,16 +1052,16 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('true')
     expect(callback).toHaveBeenCalledTimes(1)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('uses the latest callback and expands when dynamic collapsibility is disabled', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const initialCallback = vi.fn()
     const latestCallback = vi.fn()
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: createElement(DashPanel, {
           id: 'dynamic',
           title: 'Inspector',
@@ -1073,7 +1073,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     act(() =>
       renderer.update(
         createElement(DashPanelProvider, {
-          store,
+          nexus,
           children: createElement(DashPanel, {
             id: 'dynamic',
             title: 'Inspector',
@@ -1089,15 +1089,15 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(latestCallback).toHaveBeenCalledTimes(1)
     expect(latestCallback).toHaveBeenCalledWith(false)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('rejects invalid initial collapse policy before acquiring runtime or Store leases', () => {
-    const store = makeStore()
+  it('rejects invalid initial collapse policy before acquiring runtime or Nexus leases', () => {
+    const nexus = makeNexus()
     expect(() =>
       render(
         createElement(DashPanelProvider, {
-          store,
+          nexus,
           children: createElement(DashPanel, {
             id: 'invalid-collapse',
             title: 'Inspector',
@@ -1107,20 +1107,20 @@ describe('@picodash/dashpanel alpha shell', () => {
         }),
       ),
     ).toThrow('non-collapsible Panel cannot start collapsed')
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('isolates equal scope ids across nested Providers with separate roots', () => {
-    const outerStore = makeStore()
-    const innerStore = makeStore()
+    const outerNexus = makeNexus()
+    const innerNexus = makeNexus()
     const nested = createElement(DashPanelProvider, {
-      store: innerStore,
+      nexus: innerNexus,
       providerId: 'inner',
       children: createElement(DashPanel, { id: 'shared', title: 'Inner' }),
     })
     const renderer = render(
       createElement(DashPanelProvider, {
-        store: outerStore,
+        nexus: outerNexus,
         children: createElement(DashPanel, {
           id: 'shared',
           title: 'Outer',
@@ -1148,12 +1148,12 @@ describe('@picodash/dashpanel alpha shell', () => {
       ],
     ).toBe('false')
     act(() => renderer.unmount())
-    expect(() => outerStore.destroy()).not.toThrow()
-    expect(() => innerStore.destroy()).not.toThrow()
+    expect(() => outerNexus.destroy()).not.toThrow()
+    expect(() => innerNexus.destroy()).not.toThrow()
   })
 
   it('hides without unmounting, restores retained child state, and reopens from a trigger', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const visibility = vi.fn()
     function StatefulChild() {
       const [count, setCount] = useState(0)
@@ -1165,7 +1165,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     }
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: [
           createElement(DashPanelTrigger, { key: 'trigger', panelId: 'panel' }, 'Open Inspector'),
           createElement(
@@ -1204,14 +1204,14 @@ describe('@picodash/dashpanel alpha shell', () => {
     ).toEqual(['1'])
     expect(visibility).toHaveBeenLastCalledWith(true)
     act(() => renderer.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 
   it('projects active state onto the highest visible panel', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: [
           createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
           createElement(DashPanel, { key: 'second', id: 'second', title: 'Second' }),
@@ -1227,14 +1227,14 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(asides[1]?.props['data-active']).toBeUndefined()
     expect(asides[1]?.props.hidden).toBe(true)
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('focuses an already-visible Panel when show activates it', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: [
           createElement(DashPanelTrigger, { key: 'trigger', panelId: 'first' }, 'Show First'),
           createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
@@ -1252,14 +1252,14 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(renderer.root.findAllByType('aside')[0]?.props['data-active']).toBe('true')
     expect(scheduleFocus).toHaveBeenCalledOnce()
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('seeds hidden visibility without focus and disables unavailable launcher targets', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: [
           createElement(DashPanelLauncher, {
             key: 'launcher',
@@ -1298,10 +1298,10 @@ describe('@picodash/dashpanel alpha shell', () => {
   })
 
   it('preserves launcher trigger identity when panel targets reorder', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const launcher = (items: ComponentProps<typeof DashPanelLauncher>['items']) =>
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         children: [
           createElement(DashPanelLauncher, { key: 'launcher', label: 'Panels', items }),
           createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
@@ -1329,15 +1329,15 @@ describe('@picodash/dashpanel alpha shell', () => {
     )
     expect(document.activeElement).toBe(iconTrigger)
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('restores focus after a committed visibility callback throws', () => {
-    const store = makeStore()
+    const nexus = makeNexus()
     const boundary = createMockElement()
     const renderer = render(
       createElement(DashPanelProvider, {
-        store,
+        nexus,
         boundary: boundary as unknown as HTMLElement,
         children: createElement(DashPanel, {
           id: 'throwing-visibility',
@@ -1363,7 +1363,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     ).toThrow('visibility callback failed')
     expect(document.activeElement).toBe(boundary)
     act(() => renderer.unmount())
-    store.destroy()
+    nexus.destroy()
   })
 
   it('rejects invalid launcher labels and item identities', () => {
@@ -1436,15 +1436,15 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect('PicodashProvider' in dashpanel).toBe(false)
   })
 
-  it('keeps the Store contract error type visible for provider conflicts', () => {
-    const store = makeStore()
-    const first = render(panel(store))
+  it('keeps the Nexus contract error type visible for provider conflicts', () => {
+    const nexus = makeNexus()
+    const first = render(panel(nexus))
     try {
-      render(panel(store, undefined, 'other'))
+      render(panel(nexus, undefined, 'other'))
     } catch (error) {
       expect(error).toBeInstanceOf(PicodashContractError)
     }
     act(() => first.unmount())
-    expect(() => store.destroy()).not.toThrow()
+    expect(() => nexus.destroy()).not.toThrow()
   })
 })

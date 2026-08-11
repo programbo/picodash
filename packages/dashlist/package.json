@@ -23,7 +23,7 @@
     "release:check": "vp check && vp test && vp run build && bun run test:package && bun pm pack --dry-run"
   },
   "dependencies": {
-    "@picodash/store": "workspace:*",
+    "@picodash/nexus": "workspace:*",
     "@picodash/ui": "workspace:*"
   },
   "devDependencies": {

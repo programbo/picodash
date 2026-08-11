@@ -11,8 +11,8 @@ export {
   DashPanel,
 } from '@picodash/dashpanel'
 export { DashGroup, DashList, Dashlet } from '@picodash/dashlist'
-export { createPicodashStore } from '@picodash/store'
-export { usePicodashStoreSelector } from '@picodash/store/react'
+export { createPicodashNexus } from '@picodash/nexus'
+export { usePicodashNexusSelector } from '@picodash/nexus/react'
 
 export type { PicodashProviderProps, PicodashDockPosition } from './picodash-provider.tsx'
 

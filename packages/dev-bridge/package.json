@@ -2,7 +2,7 @@
   "name": "@picodash/dev-bridge",
   "version": "0.0.0",
   "private": true,
-  "description": "Private authenticated loopback bridge for Store inspection and automation.",
+  "description": "Private authenticated loopback bridge for Nexus inspection and automation.",
   "bin": {
     "picodash-dev-bridge": "dist/cli.mjs"
   },
@@ -30,7 +30,7 @@
     "release:check": "vp check && vp pack && vp test && bun run test:package && bun pm pack --dry-run"
   },
   "dependencies": {
-    "@picodash/store": "workspace:*",
+    "@picodash/nexus": "workspace:*",
     "ws": "^8.21.3"
   },
   "devDependencies": {

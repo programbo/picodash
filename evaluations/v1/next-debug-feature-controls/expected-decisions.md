@@ -16,7 +16,7 @@
 - Feature rollout is one compound Dashlet with one registration and reset boundary.
 - Clear cache and Simulate failure are fieldless action Dashlets or action elements. They call
   explicit domain methods and expose state through status/live-region semantics.
-- Domain actions are not encoded as booleans or magic Store values.
+- Domain actions are not encoded as booleans or magic Nexus values.
 
 ## Exposure and UX
 

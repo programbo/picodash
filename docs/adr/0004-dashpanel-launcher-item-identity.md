@@ -33,7 +33,7 @@ Launcher target identity and launcher entry identity are separate:
 - Explicit item keys and fallback Panel keys use separate internal namespaces.
 
 `itemId` is launcher-local React identity only. It is not rendered as a DOM ID, registered with
-Store, persisted, disclosed through Dev Bridge, or interpreted as Panel identity. Changing a
+Nexus, persisted, disclosed through Dev Bridge, or interpreted as Panel identity. Changing a
 supplied `itemId` intentionally remounts that launcher control.
 
 ## Consequences

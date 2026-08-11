@@ -4,7 +4,7 @@ import { createServer } from 'node:http'
 import { access } from 'node:fs/promises'
 import path from 'node:path'
 import WebSocket from 'ws'
-import { createPicodashStore } from '@picodash/store'
+import { createPicodashNexus } from '@picodash/nexus'
 import { connectPicodashDevBridge } from '../src/browser.js'
 import { startPicodashDevBridgeRelay } from '../src/relay.js'
 
@@ -113,15 +113,15 @@ let relay: Awaited<ReturnType<typeof startPicodashDevBridgeRelay>> | undefined
 let browser:
   | { close(): Promise<void>; session: { sessionId: string; generation: number } }
   | undefined
-let store: ReturnType<typeof createPicodashStore> | undefined
+let nexus: ReturnType<typeof createPicodashNexus> | undefined
 
 afterEach(async () => {
   await browser?.close()
   await relay?.close()
-  if (store) store.destroy({ discardUnpersisted: true })
+  if (nexus) nexus.destroy({ discardUnpersisted: true })
   browser = undefined
   relay = undefined
-  store = undefined
+  nexus = undefined
   ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = previousWebSocket
 })
 
@@ -332,10 +332,10 @@ describe('dev bridge CLI', () => {
     }
   })
 
-  test('runs sessions, inspect, set-values, and wait through a live relay and Store', async () => {
+  test('runs sessions, inspect, set-values, and wait through a live relay and Nexus', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
-    store = createPicodashStore({
-      valueOwner: 'store',
+    nexus = createPicodashNexus({
+      valueOwner: 'nexus',
       fields: {
         count: {
           defaultValue: 1,
@@ -345,7 +345,7 @@ describe('dev bridge CLI', () => {
     })
     relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
     browser = await connectPicodashDevBridge({
-      store,
+      nexus,
       credential: relay.issueBrowserCredential('http://localhost'),
       registrationId: 'cli-test',
       browserTabId: 'tab',
@@ -395,8 +395,8 @@ describe('dev bridge CLI', () => {
     )
     expect(timedOut.code).toBe(6)
     expect(JSON.parse(timedOut.stdout)).toMatchObject({ type: 'wait_result', outcome: 'timed_out' })
-    store.destroy({ discardUnpersisted: true })
-    store = undefined
+    nexus.destroy({ discardUnpersisted: true })
+    nexus = undefined
     const contract = await run(['set-values', ...sessionArgs], env, '{"values":{"count":4}}')
     expect(contract.code).toBe(5)
     expect(JSON.parse(contract.stdout)).toMatchObject({
@@ -407,10 +407,10 @@ describe('dev bridge CLI', () => {
 
   test('rejects invalid stdin and stale generations with specified exits', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
-    store = createPicodashStore({ valueOwner: 'store', fields: { count: { defaultValue: 1 } } })
+    nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { count: { defaultValue: 1 } } })
     relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
     browser = await connectPicodashDevBridge({
-      store,
+      nexus,
       credential: relay.issueBrowserCredential('http://localhost'),
       registrationId: 'cli-input',
       browserTabId: 'tab',
@@ -459,10 +459,10 @@ describe('dev bridge CLI', () => {
 
   test('aborts wait on SIGINT with exit 130', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
-    store = createPicodashStore({ valueOwner: 'store', fields: { count: { defaultValue: 1 } } })
+    nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { count: { defaultValue: 1 } } })
     relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
     browser = await connectPicodashDevBridge({
-      store,
+      nexus,
       credential: relay.issueBrowserCredential('http://localhost'),
       registrationId: 'cli-sigint',
       browserTabId: 'tab',

@@ -10,7 +10,7 @@ export type {
   PicodashDevBridgeSnapshotDiagnostic,
   PicodashDevBridgeSessionRef,
   PicodashDevBridgeSessionDescriptor,
-  PicodashDevBridgeStoreOutcome,
+  PicodashDevBridgeNexusOutcome,
   PicodashDevBridgeSetValuesCommand,
   PicodashDevBridgeWaitCondition,
   PicodashDevBridgeWaitCommand,
