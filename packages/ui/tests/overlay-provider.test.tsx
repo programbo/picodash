@@ -1,6 +1,10 @@
-import { createElement, type ReactElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+// @vitest-environment jsdom
+import { act, createElement, type ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
+import {
+  createDomTestRenderer as create,
+  type DomTestRenderer,
+} from '../../../test/dom-renderer.ts'
 import { useUNSAFE_PortalContext } from 'react-aria'
 import {
   PicodashOverlayProvider,
@@ -9,7 +13,7 @@ import {
 } from '../src/index.tsx'
 
 function render(element: ReactElement) {
-  let renderer!: ReactTestRenderer
+  let renderer!: DomTestRenderer
   act(() => {
     renderer = create(element)
   })

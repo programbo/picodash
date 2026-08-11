@@ -21,6 +21,7 @@
       "@tsdown/css": "0.22.14",
       "tsdown": "0.22.14",
       "@playwright/test": "^1.62.1",
+      "@testing-library/react": "^16.3.0",
       "highlight.js": "^11.11.1",
       "zustand": "^5.0.14",
       "zod": "^4.4.3",
@@ -67,8 +68,12 @@
     "prepare": "vp config"
   },
   "devDependencies": {
+    "@testing-library/react": "catalog:",
     "@tsdown/css": "catalog:",
+    "@types/react": "catalog:",
     "oxlint-tailwindcss": "1.8.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "tsdown": "catalog:",
     "vite-plus": "catalog:"
   },

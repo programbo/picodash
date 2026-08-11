@@ -1,67 +1,25 @@
-import { createElement, createRef, type ReactElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+// @vitest-environment jsdom
+import { act, createElement, createRef, type ReactElement } from 'react'
+import { describe, expect, it, vi } from 'vite-plus/test'
+import {
+  createDomTestRenderer as create,
+  type DomTestRenderer,
+} from '../../../test/dom-renderer.ts'
 import { Button } from '../src/index.tsx'
 
-class MockHTMLElementBase {
-  readonly tagName = 'BUTTON'
-  readonly ownerDocument = { defaultView: globalThis }
-
-  getAttribute() {
-    return null
-  }
-
-  hasAttribute() {
-    return false
-  }
-
-  contains() {
-    return true
-  }
-
-  getBoundingClientRect() {
-    return { left: 0, top: 0, width: 100, height: 32 } as DOMRect
-  }
-}
-
-type MockButton = HTMLButtonElement & MockHTMLElementBase
-
-function createMockButton(): MockButton {
-  return new MockHTMLElementBase() as unknown as MockButton
-}
-
-function render(element: ReactElement, button = createMockButton()) {
-  let renderer!: ReactTestRenderer
+function render(element: ReactElement) {
+  let renderer!: DomTestRenderer
   act(() => {
-    renderer = create(element, {
-      createNodeMock: (node) => (node.type === 'button' ? button : null),
-    })
+    renderer = create(element)
   })
-  return { renderer, button }
+  return { renderer, button: renderer.root.findByType('button').element as HTMLButtonElement }
 }
 
-function host(renderer: ReactTestRenderer) {
+function host(renderer: DomTestRenderer) {
   return renderer.root.findByType('button')
 }
 
 describe('@picodash/ui Button', () => {
-  beforeEach(() => {
-    vi.stubGlobal('document', {
-      body: {},
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })
-    vi.stubGlobal('HTMLElement', MockHTMLElementBase)
-    vi.stubGlobal('Element', MockHTMLElementBase)
-    vi.stubGlobal('SVGElement', class extends MockHTMLElementBase {})
-    vi.stubGlobal('HTMLInputElement', class extends MockHTMLElementBase {})
-    vi.stubGlobal('HTMLTextAreaElement', class extends MockHTMLElementBase {})
-  })
-
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
   it('renders a semantic button, forwards its ref, and exposes defaults', () => {
     const ref = createRef<HTMLButtonElement>()
     const { renderer, button } = render(createElement(Button, { ref, children: 'Save' }))
@@ -149,7 +107,6 @@ describe('@picodash/ui Button', () => {
     const onClick = vi.fn()
     const { renderer, button } = render(
       createElement(Button, { onPress, onClick, children: 'Activate' }),
-      createMockButton(),
     )
     const output = host(renderer)
     const event = {

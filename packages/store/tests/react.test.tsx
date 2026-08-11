@@ -1,6 +1,10 @@
-import { createElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+// @vitest-environment jsdom
+import { act, createElement } from 'react'
 import { describe, expect, it } from 'vite-plus/test'
+import {
+  createDomTestRenderer as create,
+  type DomTestRenderer,
+} from '../../../test/dom-renderer.ts'
 import { createPicodashStore } from '../src/index.ts'
 import type { RootStore, ScopedStore } from '../src/index.ts'
 import { shallowEqual, usePicodashStoreSelector } from '../src/react.ts'
@@ -40,8 +44,8 @@ function mountSelector<T>(
     latestSelection = selected
     return createElement('output', null, JSON.stringify(selected))
   }
-  let renderer!: ReactTestRenderer
-  void act(() => {
+  let renderer!: DomTestRenderer
+  act(() => {
     renderer = create(
       createElement(View, {
         currentStore: store,
@@ -61,7 +65,7 @@ function mountSelector<T>(
       return latestSelection
     },
     update(nextStore: TestStore, nextSelector: (state: any) => T, nextEquality?: typeof equality) {
-      void act(() => {
+      act(() => {
         renderer.update(
           createElement(View, {
             currentStore: nextStore,
@@ -72,7 +76,7 @@ function mountSelector<T>(
       })
     },
     unmount() {
-      void act(() => renderer.unmount())
+      act(() => renderer.unmount())
     },
   }
 }
@@ -113,20 +117,20 @@ describe('@picodash/store/react explicit selectors', () => {
       },
     } as typeof store
 
-    let renderer!: ReactTestRenderer
+    let renderer!: DomTestRenderer
     function View({ tick }: { readonly tick: number }) {
       const value = usePicodashStoreSelector(countedStore, selector)
       return createElement('output', { 'data-tick': tick }, String(value))
     }
-    void act(() => {
+    act(() => {
       renderer = create(createElement(View, { tick: 0 }))
     })
-    void act(() => {
+    act(() => {
       renderer.update(createElement(View, { tick: 1 }))
     })
     expect(subscribeCalls).toBe(1)
     expect(unsubscribeCalls).toBe(0)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(unsubscribeCalls).toBe(1)
   })
 
@@ -138,7 +142,7 @@ describe('@picodash/store/react explicit selectors', () => {
     expect(root.output).toMatchObject({ type: 'output', children: ['1'] })
     expect(scopedView.output).toMatchObject({ type: 'output', children: ['1'] })
 
-    void act(() => {
+    act(() => {
       store.setValues({ count: 2 })
     })
     expect(root.output).toMatchObject({ children: ['2'] })
@@ -154,7 +158,7 @@ describe('@picodash/store/react explicit selectors', () => {
     const scoped = store.scope('settings')
     const view = mountSelector(scoped, (state) => state.values)
     const initialRenders = view.renders
-    void act(() => {
+    act(() => {
       scoped.setDashListRootOrder(['a', 'b'])
     })
     expect(view.renders).toBe(initialRenders)
@@ -173,7 +177,7 @@ describe('@picodash/store/react explicit selectors', () => {
     })
     const callsAfterMount = selectorCalls
     const rendersAfterMount = view.renders
-    void act(() => {
+    act(() => {
       scopeB.setDashListRootOrder(['b-item'])
     })
     expect(selectorCalls).toBe(callsAfterMount)
@@ -189,7 +193,7 @@ describe('@picodash/store/react explicit selectors', () => {
     const view = mountSelector(store, () => first, equal)
     const initialSelection = view.selection
     expect(view.renders).toBe(1)
-    void act(() => {
+    act(() => {
       store.setValues({ count: 1 })
     })
     expect(view.renders).toBe(1)
@@ -213,17 +217,17 @@ describe('@picodash/store/react explicit selectors', () => {
     view.update(second, (state) => state.values.count)
     expect(view.output).toMatchObject({ children: ['10'] })
     const rendersAfterReplacement = view.renders
-    void act(() => {
+    act(() => {
       first.setValues({ count: 2 })
     })
     expect(view.renders).toBe(rendersAfterReplacement)
-    void act(() => {
+    act(() => {
       second.setValues({ count: 11 })
     })
     expect(view.output).toMatchObject({ children: ['11'] })
     view.unmount()
     const rendersAfterUnmount = view.renders
-    void act(() => {
+    act(() => {
       second.setValues({ count: 12 })
     })
     expect(view.renders).toBe(rendersAfterUnmount)

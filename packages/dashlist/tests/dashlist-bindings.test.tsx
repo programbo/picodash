@@ -1,6 +1,7 @@
-import { createElement, StrictMode, type ReactElement } from 'react'
-import { act, create } from 'react-test-renderer'
+// @vitest-environment jsdom
+import { act, createElement, StrictMode, type ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
+import { createDomTestRenderer as create } from '../../../test/dom-renderer.ts'
 import { createPicodashStore } from '@picodash/store'
 import { acquireBindingLease } from '@picodash/store/integration'
 import { DashGroup, DashList, Dashlet } from '../src/index.tsx'

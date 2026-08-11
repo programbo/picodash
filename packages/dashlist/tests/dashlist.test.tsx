@@ -1,6 +1,10 @@
-import { createElement, Fragment, StrictMode, type ReactElement, type ReactNode } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+// @vitest-environment jsdom
+import { act, createElement, Fragment, StrictMode, type ReactElement, type ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
+import {
+  createDomTestRenderer as create,
+  type DomTestRenderer,
+} from '../../../test/dom-renderer.ts'
 import { createPicodashStore, PicodashContractError } from '@picodash/store'
 import {
   acquireDashListNodeLease,
@@ -27,8 +31,8 @@ import {
 const makeStore = () =>
   createPicodashStore({ valueOwner: 'store', fields: { value: { defaultValue: 0 } } })
 
-function render(element: ReactElement): ReactTestRenderer {
-  let renderer!: ReactTestRenderer
+function render(element: ReactElement): DomTestRenderer {
+  let renderer!: DomTestRenderer
   act(() => {
     renderer = create(element)
   })
@@ -352,70 +356,50 @@ describe('@picodash/dashlist alpha shell', () => {
 
   it('repairs focus to the disclosure before collapsing content', () => {
     const store = makeStore()
-    const activeElement = {}
-    const shadowHost = {}
-    const shadowRootStub: { activeElement: object } = { activeElement }
-    const documentStub: { activeElement: object } = { activeElement: shadowHost }
     const hiddenWhenFocused: unknown[] = []
-    let renderer!: ReactTestRenderer
-    const disclosureElement = {
-      focus: vi.fn(() => {
-        hiddenWhenFocused.push(
-          renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden,
-        )
-        shadowRootStub.activeElement = disclosureElement
-      }),
-    }
-    const content = {
-      contains: vi.fn((element) => element === activeElement),
-      getRootNode: vi.fn(() => shadowRootStub),
-    }
-    vi.stubGlobal('document', documentStub)
-    act(() => {
-      renderer = create(
-        createElement(
-          DashList,
-          { id: 'focus-collapse', store },
-          createElement(DashGroup, {
-            id: 'group',
-            label: 'Group',
-            children: createElement(Dashlet, { id: 'item', label: 'Item' }),
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'focus-collapse', store },
+        createElement(DashGroup, {
+          id: 'group',
+          label: 'Group',
+          children: createElement(Dashlet, {
+            id: 'item',
+            label: 'Item',
+            children: createElement('button', { 'aria-label': 'Focus target' }, 'Target'),
           }),
-        ),
-        {
-          createNodeMock: (node) => {
-            if (node.type === 'button') return disclosureElement
-            if (
-              node.type === 'div' &&
-              (node.props as { readonly 'data-picodash-dashgroup-list'?: boolean })[
-                'data-picodash-dashgroup-list'
-              ]
-            )
-              return content
-            return null
-          },
-        },
-      )
-    })
+        }),
+      ),
+    )
     const disclosure = renderer.root.findByProps({ 'aria-label': 'Collapse group Group' })
+    const disclosureElement = disclosure.element
+    const focusTarget = renderer.root.findByProps({ 'aria-label': 'Focus target' }).element
+    const nativeFocus = disclosureElement.focus.bind(disclosureElement)
+    const focus = vi.spyOn(disclosureElement, 'focus').mockImplementation(() => {
+      hiddenWhenFocused.push(
+        renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden,
+      )
+      nativeFocus()
+    })
+    focusTarget.focus()
     act(() => {
       void disclosure.props.onClick()
     })
-    expect(disclosureElement.focus).toHaveBeenCalledTimes(1)
+    expect(focus).toHaveBeenCalledTimes(1)
     expect(renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props.hidden).toBe(
       true,
     )
     act(() => {
       void renderer.root.findByProps({ 'aria-label': 'Expand group Group' }).props.onClick()
     })
-    shadowRootStub.activeElement = activeElement
+    focusTarget.focus()
     act(() => {
       store.scope('focus-collapse').setDashListCollapseOverride('group', true)
     })
-    expect(disclosureElement.focus).toHaveBeenCalledTimes(2)
+    expect(focus).toHaveBeenCalledTimes(2)
     expect(hiddenWhenFocused).toEqual([undefined, undefined])
     act(() => renderer.unmount())
-    vi.unstubAllGlobals()
     expect(() => store.destroy()).not.toThrow()
   })
 

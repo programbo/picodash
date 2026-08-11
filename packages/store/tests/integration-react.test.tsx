@@ -1,7 +1,11 @@
-import { createElement, StrictMode, type ReactElement } from 'react'
+// @vitest-environment jsdom
+import { act, createElement, StrictMode, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it } from 'vite-plus/test'
+import {
+  createDomTestRenderer as create,
+  type DomTestRenderer,
+} from '../../../test/dom-renderer.ts'
 import { createPicodashStore, PicodashContractError } from '../src/index.ts'
 import { PicodashStoreEntityBoundary, PicodashStoreProviderBoundary } from '../src/integration.ts'
 import {
@@ -18,9 +22,9 @@ const makeStore = () =>
     fields: { count: { defaultValue: 0 }, label: { defaultValue: 'initial' } },
   })
 
-const render = (element: ReactElement): ReactTestRenderer => {
-  let renderer!: ReactTestRenderer
-  void act(() => {
+const render = (element: ReactElement): DomTestRenderer => {
+  let renderer!: DomTestRenderer
+  act(() => {
     renderer = create(element)
   })
   return renderer
@@ -57,7 +61,7 @@ describe('Store React boundaries and contextual hooks', () => {
       }),
     )
     expect(renderer.toJSON()).toMatchObject({ type: 'output', children: ['root:scoped:settings'] })
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -82,7 +86,7 @@ describe('Store React boundaries and contextual hooks', () => {
       children: ['root:scoped:standalone'],
     })
     expect(() => store.destroy()).toThrow()
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -107,7 +111,7 @@ describe('Store React boundaries and contextual hooks', () => {
     )
     expect(scopeId).toBe('child')
     expect(() => store.destroy()).toThrow()
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -147,7 +151,7 @@ describe('Store React boundaries and contextual hooks', () => {
       }),
     )
     expect(() => store.destroy()).toThrow()
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -177,7 +181,7 @@ describe('Store React boundaries and contextual hooks', () => {
       'scope-host-conflict',
       { scopeId: 'shared' },
     )
-    void act(() => standalone.unmount())
+    act(() => standalone.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -242,7 +246,7 @@ describe('Store React boundaries and contextual hooks', () => {
     expect(resolvedScope).toBe('selected')
     expect(nearestKind).toBe('root')
     expect(store.getState().scopes.has('selected')).toBe(false)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -272,23 +276,26 @@ describe('Store React boundaries and contextual hooks', () => {
         children: createElement(PicodashStoreEntityBoundary, {
           store: store.scope('settings'),
           kind: 'dashList',
-          children: [createElement(RootProbe), createElement(ScopeProbe)],
+          children: [
+            createElement(RootProbe, { key: 'root' }),
+            createElement(ScopeProbe, { key: 'scope' }),
+          ],
         }),
       }),
     )
     const initialRootRenders = rootRenders
     const initialScopeRenders = scopeRenders
-    void act(() => {
+    act(() => {
       store.scope('settings').setDashListRootOrder(['one'])
     })
     expect(rootRenders).toBe(initialRootRenders)
     expect(scopeRenders).toBe(initialScopeRenders)
-    void act(() => {
+    act(() => {
       store.setValues({ count: 1, label: 'updated' })
     })
     expect(rootRenders).toBe(initialRootRenders + 1)
     expect(scopeRenders).toBe(initialScopeRenders + 1)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -356,7 +363,7 @@ describe('Store React boundaries and contextual hooks', () => {
       }),
     )
     expect(renderer.toJSON()).toMatchObject({ type: 'output', children: ['inner'] })
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -400,7 +407,7 @@ describe('Store React boundaries and contextual hooks', () => {
       ),
     )
     expect(() => store.destroy()).toThrow()
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -423,7 +430,7 @@ describe('Store React boundaries and contextual hooks', () => {
       ),
     )
     expect(() => store.destroy()).toThrow()
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
