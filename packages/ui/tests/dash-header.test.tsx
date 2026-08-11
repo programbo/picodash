@@ -1,23 +1,22 @@
-import { createElement, createRef, type ReactElement } from 'react'
-import { act, create, type ReactTestRenderer, type ReactTestInstance } from 'react-test-renderer'
+// @vitest-environment jsdom
+import { act, createElement, createRef, type ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
+import {
+  createDomTestRenderer as create,
+  type DomTestInstance,
+  type DomTestRenderer,
+} from '../../../test/dom-renderer.ts'
 import { DashHeader } from '../src/index.tsx'
 
-function render(element: ReactElement, rootNode: HTMLDivElement = {} as HTMLDivElement) {
-  let renderer!: ReactTestRenderer
+function render(element: ReactElement) {
+  let renderer!: DomTestRenderer
   act(() => {
-    renderer = create(element, {
-      createNodeMock: (node) =>
-        node.type === 'div' &&
-        (node.props as { 'data-slot'?: string })['data-slot'] === 'dash-header'
-          ? rootNode
-          : null,
-    })
+    renderer = create(element)
   })
-  return { renderer, rootNode }
+  return { renderer, rootNode: renderer.root.findByProps({ 'data-slot': 'dash-header' }).element }
 }
 
-function root(renderer: ReactTestRenderer): ReactTestInstance {
+function root(renderer: DomTestRenderer): DomTestInstance {
   return renderer.root.findByProps({ 'data-slot': 'dash-header' })
 }
 
@@ -49,9 +48,10 @@ describe('@picodash/ui DashHeader', () => {
       style,
       'aria-label': 'Inspector',
       'data-testid': 'header',
-      onClick,
       'data-slot': 'dash-header',
     })
+    void act(() => output.props.onClick())
+    expect(onClick).toHaveBeenCalledOnce()
     act(() => renderer.unmount())
   })
 
@@ -68,9 +68,12 @@ describe('@picodash/ui DashHeader', () => {
     )
     const output = root(renderer)
 
-    expect(output.children.map((child) => (child as ReactTestInstance).props['data-slot'])).toEqual(
-      ['dash-header-leading', 'dash-header-title', 'dash-header-actions', 'dash-header-trailing'],
-    )
+    expect(output.children.map((child) => (child as DomTestInstance).props['data-slot'])).toEqual([
+      'dash-header-leading',
+      'dash-header-title',
+      'dash-header-actions',
+      'dash-header-trailing',
+    ])
     expect(output.props['data-slot']).toBe('dash-header')
     act(() => renderer.unmount())
   })
@@ -87,9 +90,12 @@ describe('@picodash/ui DashHeader', () => {
       }),
     )
     const output = root(renderer)
-    expect(output.children.map((child) => (child as ReactTestInstance).props['data-slot'])).toEqual(
-      ['dash-header-leading', 'dash-header-title', 'dash-header-actions', 'dash-header-trailing'],
-    )
+    expect(output.children.map((child) => (child as DomTestInstance).props['data-slot'])).toEqual([
+      'dash-header-leading',
+      'dash-header-title',
+      'dash-header-actions',
+      'dash-header-trailing',
+    ])
     act(() => renderer.unmount())
 
     const { renderer: emptyRenderer } = render(
@@ -99,7 +105,7 @@ describe('@picodash/ui DashHeader', () => {
     )
     const emptyOutput = root(emptyRenderer)
     expect(
-      emptyOutput.children.map((child) => (child as ReactTestInstance).props['data-slot']),
+      emptyOutput.children.map((child) => (child as DomTestInstance).props['data-slot']),
     ).toEqual(['dash-header-title'])
     act(() => emptyRenderer.unmount())
   })
@@ -115,11 +121,20 @@ describe('@picodash/ui DashHeader', () => {
     const { renderer } = render(createElement(DashHeader, { slots }))
     const output = root(renderer)
 
-    expect(output.findByType('button').props).toEqual(slots.leading.props)
-    expect(output.findByType('h2').props).toEqual(slots.title.props)
-    expect(output.findByType('span').props).toEqual(slots.actions.props)
-    expect(output.findByType('strong').props).toEqual(slots.trailing.props)
-    expect(output.findByType('button').props.onClick).toBe(onClick)
+    expect(output.findByType('button').props).toMatchObject({
+      type: 'button',
+      'aria-label': 'Move',
+      children: 'Move',
+    })
+    expect(output.findByType('h2').props).toMatchObject({ id: 'title', children: 'Inspector' })
+    expect(output.findByType('span').props).toMatchObject({
+      role: 'img',
+      'aria-label': 'Status',
+      children: '●',
+    })
+    expect(output.findByType('strong').props).toMatchObject({ title: 'Close', children: 'X' })
+    void act(() => output.findByType('button').props.onClick())
+    expect(onClick).toHaveBeenCalledOnce()
     expect(output.findByType('button').props['data-slot']).toBeUndefined()
     act(() => renderer.unmount())
   })

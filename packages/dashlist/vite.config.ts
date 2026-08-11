@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite-plus'
+import { reactTestConfig } from '../../test/config.ts'
 
 export default defineConfig({
+  test: reactTestConfig,
   pack: {
     entry: {
       index: 'src/index.tsx',

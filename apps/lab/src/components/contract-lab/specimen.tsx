@@ -480,13 +480,18 @@ export function ContractLabSpecimen({
                       className="border-input bg-background rounded border px-2 py-1"
                       aria-invalid={bindings.metric.invalid || undefined}
                       aria-errormessage={bindings.metric.issuesId}
-                      value={String(bindings.metric.draftValue ?? bindings.metric.value)}
+                      value={
+                        typeof bindings.metric.draftValue === 'string' ||
+                        typeof bindings.metric.draftValue === 'number'
+                          ? bindings.metric.draftValue
+                          : bindings.metric.value
+                      }
                       data-contract-lab-bound-input
                       data-stale={bindings.metric.stale ? 'true' : 'false'}
                       onChange={(event) => bindings.metric.setInput(event.currentTarget.value)}
                     />
                     <output data-contract-lab-bound-unit>{bindings.unit.value}</output>
-                    <button type="button" onClick={bindings.metric.resetValue}>
+                    <button type="button" onClick={() => bindings.metric.resetValue()}>
                       Reset value
                     </button>
                   </div>

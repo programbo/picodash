@@ -1,6 +1,10 @@
-import { createElement, type ComponentType, type ReactElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+// @vitest-environment jsdom
+import { act, createElement, type ComponentType, type ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
+import {
+  createDomTestRenderer as create,
+  type DomTestRenderer,
+} from '../../../test/dom-renderer.ts'
 import {
   PicodashThemeProvider,
   usePicodashDensity,
@@ -18,12 +22,12 @@ function Probe() {
   )
 }
 
-function carrier(renderer: ReactTestRenderer, theme: string) {
+function carrier(renderer: DomTestRenderer, theme: string) {
   return renderer.root.findByProps({ 'data-picodash-theme': theme })
 }
 
 function render(element: ReactElement) {
-  let renderer!: ReactTestRenderer
+  let renderer!: DomTestRenderer
   act(() => {
     renderer = create(element)
   })

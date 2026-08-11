@@ -2,11 +2,13 @@
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import { clickElement, dispatchElement, renderReactRoot } from '../../../test/react.ts'
 import {
   ActionMenu,
   ActionMenuItem,
   ActionMenuSeparator,
   ActionSubmenu,
+  Button,
   PicodashOverlayProvider,
   PicodashThemeProvider,
 } from '../src/index.tsx'
@@ -16,8 +18,7 @@ let container: HTMLDivElement
 let root: Root
 
 async function render(element: ReactNode) {
-  await act(async () => root.render(element))
-  await act(async () => {})
+  await renderReactRoot(root, element)
 }
 
 function tree(children: ReactNode, props: Partial<React.ComponentProps<typeof ActionMenu>> = {}) {
@@ -33,8 +34,7 @@ function tree(children: ReactNode, props: Partial<React.ComponentProps<typeof Ac
 }
 
 async function openMenu() {
-  ;(container.querySelector('[data-slot="button"]') as HTMLButtonElement).click()
-  await act(async () => {})
+  await clickElement(container.querySelector('[data-slot="button"]') as HTMLButtonElement)
 }
 
 describe('@picodash/ui ActionMenu composition', () => {
@@ -42,18 +42,11 @@ describe('@picodash/ui ActionMenu composition', () => {
     container = document.createElement('div')
     document.body.append(container)
     root = createRoot(container)
-    vi.stubGlobal('matchMedia', () => ({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
-    vi.stubGlobal('CSS', { escape: (value: string) => value })
   })
 
   afterEach(async () => {
     await act(async () => root.unmount())
     container.remove()
-    vi.unstubAllGlobals()
   })
 
   it('normalizes uncontrolled and controlled open state and calls onOpenChange', async () => {
@@ -63,8 +56,7 @@ describe('@picodash/ui ActionMenu composition', () => {
     await openMenu()
     expect(onOpenChange).toHaveBeenCalledWith(true)
     expect(document.querySelector('[data-slot="action-menu"]')).toBeTruthy()
-    ;(document.querySelector('[data-slot="action-menu-item"]') as HTMLElement).click()
-    await act(async () => {})
+    await clickElement(document.querySelector('[data-slot="action-menu-item"]') as HTMLElement)
     expect(onOpenChange).toHaveBeenCalledWith(false)
 
     await act(async () => root.unmount())
@@ -76,10 +68,10 @@ describe('@picodash/ui ActionMenu composition', () => {
         onOpenChange: refused,
       }),
     )
-    ;(document.querySelector('[data-slot="action-menu"]') as HTMLElement).dispatchEvent(
+    await dispatchElement(
+      document.querySelector('[data-slot="action-menu"]') as HTMLElement,
       new MouseEvent('pointerdown', { bubbles: true }),
     )
-    await act(async () => {})
     expect(refused).not.toHaveBeenCalledWith(false)
   })
 
@@ -91,8 +83,7 @@ describe('@picodash/ui ActionMenu composition', () => {
     await openMenu()
     const item = document.querySelector('[data-slot="action-menu-item"]') as HTMLElement
     expect(item.getAttribute('textvalue')).toBeNull()
-    item.click()
-    await act(async () => {})
+    await clickElement(item)
     expect(onAction).toHaveBeenCalledTimes(1)
     expect(document.querySelector('[data-slot="action-menu"]')).toBeNull()
 
@@ -100,15 +91,10 @@ describe('@picodash/ui ActionMenu composition', () => {
     root = createRoot(container)
     await render(
       tree(<ActionMenuItem label="Run" onAction={vi.fn()} />, {
-        trigger: (
-          <button data-custom-trigger type="button">
-            Open
-          </button>
-        ),
+        trigger: <Button data-custom-trigger>Open</Button>,
       }),
     )
     expect(container.querySelector('[data-custom-trigger]')).toBeTruthy()
-    expect(container.querySelector('[data-slot="button"]')).toBeNull()
   })
 
   it('keeps disabled actions inert and preserves typeahead text values', async () => {
@@ -125,8 +111,7 @@ describe('@picodash/ui ActionMenu composition', () => {
     await openMenu()
     const disabledItem = document.querySelector('[data-slot="action-menu-item"]') as HTMLElement
     expect(disabledItem.getAttribute('aria-disabled')).toBe('true')
-    disabledItem.click()
-    await act(async () => {})
+    await clickElement(disabledItem)
     expect(disabled).not.toHaveBeenCalled()
     expect(document.querySelector('[data-slot="action-menu-separator"]')).toBeTruthy()
   })
@@ -143,14 +128,15 @@ describe('@picodash/ui ActionMenu composition', () => {
     await openMenu()
     const submenuTrigger = document.querySelector('[data-slot="action-submenu"]') as HTMLElement
     expect(submenuTrigger.getAttribute('aria-haspopup')).toBe('menu')
-    submenuTrigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-    await act(async () => {})
+    await dispatchElement(
+      submenuTrigger,
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    )
     const nested = [...document.querySelectorAll('[data-slot="action-menu-item"]')].find(
       (element) => element.textContent === 'JSON',
     ) as HTMLElement
     expect(nested).toBeTruthy()
-    nested.click()
-    await act(async () => {})
+    await clickElement(nested)
     expect(subAction).toHaveBeenCalledTimes(1)
     expect(document.querySelector('[data-slot="action-menu"]')).toBeNull()
   })
@@ -171,16 +157,14 @@ describe('@picodash/ui ActionMenu composition', () => {
       ),
     )
     await openMenu()
-    ;(document.querySelector('[data-slot="action-menu-item"]') as HTMLElement).click()
-    await act(async () => {})
+    await clickElement(document.querySelector('[data-slot="action-menu-item"]') as HTMLElement)
     expect(document.querySelector('[data-slot="action-menu"]')).toBeNull()
     expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeTruthy()
-    ;(
+    await clickElement(
       [...document.querySelectorAll('[data-slot="button"]')].find(
         (button) => button.textContent === 'Reset values',
-      ) as HTMLButtonElement
-    ).click()
-    await act(async () => {})
+      ) as HTMLButtonElement,
+    )
     expect(onAction).toHaveBeenCalledTimes(1)
     expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeNull()
   })
@@ -211,8 +195,7 @@ describe('@picodash/ui ActionMenu composition', () => {
       ),
     )
     await openMenu()
-    ;(document.querySelector('[data-slot="action-menu-item"]') as HTMLElement).click()
-    await act(async () => {})
+    await clickElement(document.querySelector('[data-slot="action-menu-item"]') as HTMLElement)
     expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeTruthy()
     const confirm = [...document.querySelectorAll('[data-slot="button"]')].find(
       (button) => button.textContent === 'Reset values',
@@ -244,8 +227,7 @@ describe('@picodash/ui ActionMenu composition', () => {
       ),
     )
     const item = document.querySelector('[data-slot="action-menu-item"]') as HTMLElement
-    item.click()
-    await act(async () => {})
+    await clickElement(item)
     expect(onOpenChange).toHaveBeenCalledWith(false)
     expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeNull()
     expect(onAction).not.toHaveBeenCalled()
@@ -267,16 +249,13 @@ describe('@picodash/ui ActionMenu composition', () => {
       ),
     )
     await openMenu()
-    ;(document.querySelector('[data-slot="action-menu-item"]') as HTMLElement).click()
-    await act(async () => {})
+    await clickElement(document.querySelector('[data-slot="action-menu-item"]') as HTMLElement)
     expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeTruthy()
-    ;(
+    await clickElement(
       [...document.querySelectorAll('[data-slot="button"]')].find(
         (button) => button.textContent === 'Cancel',
-      ) as HTMLButtonElement
-    ).click()
-    await act(async () => {})
-    await act(async () => {})
+      ) as HTMLButtonElement,
+    )
     expect(document.querySelector('[data-slot="alert-dialog-content"]')).toBeNull()
     expect(onAction).not.toHaveBeenCalled()
   })

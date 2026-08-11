@@ -1,18 +1,17 @@
 // @vitest-environment jsdom
-import { act as domAct, createElement, type ReactElement } from 'react'
+import { act, createElement, type ReactElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it } from 'vite-plus/test'
+import {
+  createDomTestRenderer as create,
+  type DomTestRenderer,
+} from '../../../test/dom-renderer.ts'
 import { createPicodashStore } from '@picodash/store'
 import { usePicodashScope } from '@picodash/store/react'
 import { DashPanel, DashList, Dashlet, PicodashProvider } from '../src/index.ts'
 
-;(
-  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true
-
-function render(element: ReactElement): ReactTestRenderer {
-  let renderer!: ReactTestRenderer
+function render(element: ReactElement): DomTestRenderer {
+  let renderer!: DomTestRenderer
   act(() => {
     renderer = create(element)
   })
@@ -31,7 +30,7 @@ describe('@picodash/picodash facade alpha', () => {
     function ScopeProbe() {
       return createElement('output', { 'data-scope': usePicodashScope().scopeId })
     }
-    domAct(() => {
+    act(() => {
       root.render(
         createElement(
           PicodashProvider,
@@ -56,7 +55,7 @@ describe('@picodash/picodash facade alpha', () => {
     expect(document.body.querySelector('[data-picodash-dashlist]')).toBeTruthy()
     expect(document.body.querySelector('[data-picodash-dashlet="value"]')).toBeTruthy()
     expect(document.body.querySelector('output')?.getAttribute('data-scope')).toBe('settings')
-    domAct(() => root.unmount())
+    act(() => root.unmount())
     container.remove()
     expect(() => store.destroy()).not.toThrow()
   })

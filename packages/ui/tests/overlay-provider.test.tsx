@@ -1,6 +1,10 @@
-import { createElement, type ReactElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
-import { describe, expect, it, vi } from 'vite-plus/test'
+// @vitest-environment jsdom
+import { act, createElement, type ReactElement } from 'react'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+import {
+  createDomTestRenderer as create,
+  type DomTestRenderer,
+} from '../../../test/dom-renderer.ts'
 import { useUNSAFE_PortalContext } from 'react-aria'
 import {
   PicodashOverlayProvider,
@@ -9,7 +13,7 @@ import {
 } from '../src/index.tsx'
 
 function render(element: ReactElement) {
-  let renderer!: ReactTestRenderer
+  let renderer!: DomTestRenderer
   act(() => {
     renderer = create(element)
   })
@@ -20,28 +24,38 @@ function provider(props: Omit<PicodashOverlayProviderProps, 'children'>, childre
   return createElement(PicodashOverlayProvider, { ...props, children })
 }
 
+interface DefaultsObservation {
+  readonly portalContainer: HTMLElement | null
+  readonly layerBase: number | undefined
+  readonly ariaPortalContainer: Element | null | undefined
+}
+
+const observations = new Map<string, DefaultsObservation>()
+
 function DefaultsProbe({ id = 'probe' }: { id?: string }) {
   const defaults = usePicodashOverlayDefaults()
   const { getContainer } = useUNSAFE_PortalContext()
-  return createElement('output', {
-    id,
+  observations.set(id, {
     portalContainer: defaults.portalContainer,
     layerBase: defaults.layerBase,
     ariaPortalContainer: getContainer?.(),
   })
+  return createElement('output', { id })
 }
 
 describe('@picodash/ui overlay provider', () => {
+  beforeEach(() => observations.clear())
+
   it('uses body and null standalone defaults depending on the document', () => {
     const body = {} as HTMLElement
     vi.stubGlobal('document', { body })
     let renderer = render(createElement(DefaultsProbe))
-    expect(renderer.root.findByType('output').props).toMatchObject({ portalContainer: body })
+    expect(observations.get('probe')).toMatchObject({ portalContainer: body })
     act(() => renderer.unmount())
 
     vi.stubGlobal('document', undefined)
     renderer = render(createElement(DefaultsProbe))
-    expect(renderer.root.findByType('output').props.portalContainer).toBeNull()
+    expect(observations.get('probe')?.portalContainer).toBeNull()
     act(() => renderer.unmount())
     vi.unstubAllGlobals()
   })
@@ -67,15 +81,16 @@ describe('@picodash/ui overlay provider', () => {
         ),
       ),
     )
-    expect(renderer.root.findAllByType('output').map((output) => output.props)).toMatchObject([
-      {
-        id: 'inherited',
-        portalContainer: replacement,
-        layerBase: -3,
-        ariaPortalContainer: replacement,
-      },
-      { id: 'reset', portalContainer: body, layerBase: 0, ariaPortalContainer: body },
-    ])
+    expect(observations.get('inherited')).toMatchObject({
+      portalContainer: replacement,
+      layerBase: -3,
+      ariaPortalContainer: replacement,
+    })
+    expect(observations.get('reset')).toMatchObject({
+      portalContainer: body,
+      layerBase: 0,
+      ariaPortalContainer: body,
+    })
     expect(renderer.toJSON()).toMatchObject({ type: 'section' })
     act(() => renderer.unmount())
     vi.unstubAllGlobals()
@@ -90,7 +105,7 @@ describe('@picodash/ui overlay provider', () => {
         provider({ portalContainer: null }, createElement(DefaultsProbe)),
       ),
     )
-    expect(renderer.root.findByType('output').props).toMatchObject({
+    expect(observations.get('probe')).toMatchObject({
       portalContainer: null,
       ariaPortalContainer: undefined,
     })
@@ -98,7 +113,7 @@ describe('@picodash/ui overlay provider', () => {
 
     vi.stubGlobal('document', { body: host })
     const inherited = render(provider({}, createElement(DefaultsProbe)))
-    expect(inherited.root.findByType('output').props.ariaPortalContainer).toBe(host)
+    expect(observations.get('probe')?.ariaPortalContainer).toBe(host)
     act(() => inherited.unmount())
     vi.unstubAllGlobals()
   })

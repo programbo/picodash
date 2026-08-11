@@ -1,9 +1,20 @@
-import { createElement, StrictMode, useState, type ReactElement } from 'react'
-import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+// @vitest-environment jsdom
+import {
+  act,
+  createElement,
+  StrictMode,
+  useState,
+  type ComponentProps,
+  type ReactElement,
+} from 'react'
+import { describe, expect, it, vi } from 'vite-plus/test'
+import {
+  createDomTestRenderer as create,
+  type DomTestInstance,
+  type DomTestRenderer,
+} from '../../../test/dom-renderer.ts'
 import { createPicodashStore, PicodashContractError } from '@picodash/store'
 import { usePicodashRootStore, usePicodashScope } from '@picodash/store/react'
-import { Button } from '@picodash/ui'
 import {
   DashPanel,
   DashPanelLauncher,
@@ -18,94 +29,23 @@ import {
   type DashPanelProviderPolicy,
 } from '../src/runtime/provider-policy-context.tsx'
 
-;(
-  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
-).IS_REACT_ACT_ENVIRONMENT = true
-
-class MockHTMLElementBase {
-  readonly tagName = 'BUTTON'
-  readonly ownerDocument = {
-    get defaultView() {
-      return globalThis.window
-    },
-  }
-  readonly style = {
-    values: new Map<string, { value: string; priority: string }>(),
-    getPropertyValue(property: string) {
-      return this.values.get(property)?.value ?? ''
-    },
-    getPropertyPriority(property: string) {
-      return this.values.get(property)?.priority ?? ''
-    },
-    setProperty(property: string, value: string, priority = '') {
-      this.values.set(property, { value, priority })
-    },
-    removeProperty(property: string) {
-      const value = this.values.get(property)?.value ?? ''
-      this.values.delete(property)
-      return value
-    },
-  }
-
-  getAttribute() {
-    return null
-  }
-
-  hasAttribute() {
-    return false
-  }
-
-  setAttribute() {}
-
-  removeAttribute() {}
-
-  contains() {
-    return true
-  }
-
-  closest() {
-    return null
-  }
-
-  focus() {
-    ;(globalThis.document as { activeElement: unknown }).activeElement = this
-  }
-
-  getBoundingClientRect() {
-    return { left: 0, top: 0, width: 100, height: 32 } as DOMRect
-  }
+function createMockElement() {
+  const element = document.createElement('button')
+  element.getBoundingClientRect = () =>
+    ({
+      bottom: 32,
+      height: 32,
+      left: 0,
+      right: 100,
+      top: 0,
+      width: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }) as DOMRect
+  document.body.append(element)
+  return element
 }
-
-beforeEach(() => {
-  const document = {
-    body: {},
-    activeElement: null,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    documentElement: { clientWidth: 0, clientHeight: 0 },
-  }
-  vi.stubGlobal('document', document)
-  vi.stubGlobal('window', {
-    document,
-    HTMLElement: MockHTMLElementBase,
-    innerWidth: 300,
-    innerHeight: 200,
-    scrollX: 0,
-    scrollY: 0,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    matchMedia: () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
-  })
-  vi.stubGlobal('HTMLElement', MockHTMLElementBase)
-  vi.stubGlobal('Element', MockHTMLElementBase)
-  vi.stubGlobal('SVGElement', class extends MockHTMLElementBase {})
-  vi.stubGlobal('HTMLInputElement', class extends MockHTMLElementBase {})
-  vi.stubGlobal('HTMLTextAreaElement', class extends MockHTMLElementBase {})
-})
-
-afterEach(() => {
-  vi.unstubAllGlobals()
-})
 
 const makeStore = () =>
   createPicodashStore({
@@ -113,21 +53,15 @@ const makeStore = () =>
     fields: { count: { defaultValue: 0 } },
   })
 
-function render(element: ReactElement): ReactTestRenderer {
-  let renderer!: ReactTestRenderer
-  void act(() => {
+function render(element: ReactElement): DomTestRenderer {
+  let renderer!: DomTestRenderer
+  act(() => {
     renderer = create(element)
   })
   return renderer
 }
 
-function renderWithHostNodes(element: ReactElement): ReactTestRenderer {
-  let renderer!: ReactTestRenderer
-  void act(() => {
-    renderer = create(element, { createNodeMock: () => new MockHTMLElementBase() })
-  })
-  return renderer
-}
+const renderWithHostNodes = render
 
 function panel(store: ReturnType<typeof makeStore>, children?: ReactElement, id = 'panel') {
   return createElement(DashPanelProvider, {
@@ -136,17 +70,8 @@ function panel(store: ReturnType<typeof makeStore>, children?: ReactElement, id 
   })
 }
 
-function pressButton(button: ReactTestInstance) {
-  const target = new MockHTMLElementBase()
-  void act(() =>
-    (button.props.onPress ?? button.props.onClick)({
-      target,
-      currentTarget: target,
-      nativeEvent: { detail: 0, pointerType: '' },
-      preventDefault: vi.fn(),
-      stopPropagation: vi.fn(),
-    }),
-  )
+function pressButton(button: DomTestInstance) {
+  act(() => button.element.click())
 }
 
 describe('@picodash/dashpanel alpha shell', () => {
@@ -177,18 +102,23 @@ describe('@picodash/dashpanel alpha shell', () => {
       mode: 'floating',
       disposition: { kind: 'snapped', position: 'top-left' },
     })
-    const placementResult = controller.setPlacement({
-      mode: 'fixed',
-      disposition: { kind: 'docked', position: 'full-right' },
+    let placementResult!: ReturnType<typeof controller.setPlacement>
+    act(() => {
+      placementResult = controller.setPlacement({
+        mode: 'fixed',
+        disposition: { kind: 'docked', position: 'full-right' },
+      })
     })
     expect(placementResult.status).toBe('executed')
     expect(store.getState().scopes.get('panel')?.dashPanel?.placement).toEqual({
       mode: 'fixed',
       disposition: { kind: 'docked', position: 'full-right' },
     })
-    expect(controller.resetLayout().status).toBe('executed')
+    act(() => {
+      expect(controller.resetLayout().status).toBe('executed')
+    })
     expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -216,14 +146,16 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(nearest.availability).toBe('available')
     expect(explicit.availability).toBe('available')
     expect(missing.availability).toBe('unavailable')
-    expect(nearest.show().status).toBe('executed')
-    expect(nearest.activate().status).toBe('executed')
-    expect(nearest.hide().status).toBe('executed')
-    expect(nearest.expand().status).toBe('executed')
-    expect(nearest.collapse().status).toBe('executed')
-    expect(nearest.toggleCollapsed().status).toBe('executed')
+    act(() => {
+      expect(nearest.show().status).toBe('executed')
+      expect(nearest.activate().status).toBe('executed')
+      expect(nearest.hide().status).toBe('executed')
+      expect(nearest.expand().status).toBe('executed')
+      expect(nearest.collapse().status).toBe('executed')
+      expect(nearest.toggleCollapsed().status).toBe('executed')
+    })
     expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -270,7 +202,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       x: 12,
       y: 18,
     })
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -323,7 +255,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       disposition: { kind: 'free' },
     })
 
-    void act(() =>
+    act(() =>
       renderer.update(
         createElement(DashPanelProvider, {
           store,
@@ -345,8 +277,8 @@ describe('@picodash/dashpanel alpha shell', () => {
       store.scope('panel').resetDashPanelLayout()
     })
     const pointerMove = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
-    const pointerTarget = new MockHTMLElementBase()
-    void act(() => {
+    const pointerTarget = createMockElement()
+    act(() => {
       pointerMove.props.onPointerDown({
         button: 0,
         pointerId: 1,
@@ -358,7 +290,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       pointerMove.props.onPointerUpCapture({ pointerId: 1 })
     })
     expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
-    void act(() => {
+    act(() => {
       pointerMove.props.onPointerDown({
         button: 0,
         pointerId: 2,
@@ -372,7 +304,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     const aside = renderer.root.findByType('aside')
     void act(() => aside.props.onPointerCancel({ pointerId: 2 }))
     expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -447,7 +379,7 @@ describe('@picodash/dashpanel alpha shell', () => {
         button: 0,
         pointerId: 1,
         preventDefault() {},
-        currentTarget: new MockHTMLElementBase(),
+        currentTarget: createMockElement(),
       })
     })
     expect(store.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
@@ -476,7 +408,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     const store = makeStore()
     const first = render(panel(store))
     expect(() => render(panel(store, undefined, 'other'))).toThrow(/duplicate-provider/)
-    void act(() => first.unmount())
+    act(() => first.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -495,7 +427,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     const output = renderer.root.findByType('output')
     expect(output.props['data-scope']).toBe('panel')
     expect(output.children).toEqual(['root'])
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -525,7 +457,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     )
     expect(renderer.root.findByType('output').props['data-scope']).toBe('inner')
     expect(() => store.destroy()).toThrow(/root-has-active-leases/)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -559,7 +491,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(Object.isFrozen(observed.boundaryInset)).toBe(true)
     expect(Object.isFrozen(observed.dockPositions)).toBe(true)
     expect(renderer.root.findByProps({ 'data-policy-probe': true }).children).toEqual(['content'])
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -584,9 +516,9 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(observed.boundaryInset).toEqual({ top: 1, right: 2, bottom: 1, left: 2 })
     expect(observed.dockPositions).toEqual(['top-left', 'center-bottom'])
 
-    const element = new MockHTMLElementBase() as unknown as Element
+    const element = createMockElement()
     boundaryRef.current = element
-    void act(() => renderer.update(makeProvider([3, 4, 5], [])))
+    act(() => renderer.update(makeProvider([3, 4, 5], [])))
     expect(observed.boundary).toBe(boundaryRef)
     expect(observed.boundaryInset).toEqual({ top: 3, right: 4, bottom: 5, left: 4 })
     expect(observed.dockPositions).toEqual([])
@@ -598,13 +530,13 @@ describe('@picodash/dashpanel alpha shell', () => {
         renderer.update(makeProvider(0, []))
       }),
     ).toThrow(TypeError)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
   it('resets policy at nested Providers and keeps nearest context', () => {
     const store = makeStore()
-    const outerBoundary = new MockHTMLElementBase() as unknown as Element
+    const outerBoundary = createMockElement()
     const observed = new Map<string, DashPanelProviderPolicy>()
     function Probe({ name }: { name: string }) {
       observed.set(name, useDashPanelProviderPolicy())
@@ -634,7 +566,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(observed.get('inner')?.boundary).toBeNull()
     expect(observed.get('inner')?.boundaryInset).toEqual({ top: 0, right: 0, bottom: 0, left: 0 })
     expect(observed.get('inner')?.dockPositions).toHaveLength(12)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -653,7 +585,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       }),
     )
     expect(emptyObserved.dockPositions).toEqual([])
-    void act(() => emptyRenderer.unmount())
+    act(() => emptyRenderer.unmount())
     expect(() => emptyStore.destroy()).not.toThrow()
 
     const invalid: Array<Record<string, unknown>> = [
@@ -683,8 +615,8 @@ describe('@picodash/dashpanel alpha shell', () => {
 
   it('resolves Panel policy inheritance, overrides, narrowing, and frozen records synchronously', () => {
     const store = makeStore()
-    const providerBoundary = new MockHTMLElementBase() as unknown as Element
-    const panelBoundary = new MockHTMLElementBase() as unknown as Element
+    const providerBoundary = createMockElement()
+    const panelBoundary = createMockElement()
     let observed!: DashPanelPolicy
     function Probe() {
       observed = useDashPanelPolicy()
@@ -713,7 +645,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(Object.isFrozen(observed.boundaryInset)).toBe(true)
     expect(Object.isFrozen(observed.dockPositions)).toBe(true)
 
-    void act(() =>
+    act(() =>
       renderer.update(
         createElement(DashPanelProvider, {
           store,
@@ -734,7 +666,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(observed.getBoundary()).toBeNull()
     expect(observed.boundaryInset).toEqual({ top: 0, right: 0, bottom: 0, left: 0 })
     expect(observed.dockPositions).toEqual([])
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -760,8 +692,8 @@ describe('@picodash/dashpanel alpha shell', () => {
       }),
     )
     expect(observed.getBoundary()).toBeNull()
-    const panelElement = new MockHTMLElementBase() as unknown as Element
-    const providerElement = new MockHTMLElementBase() as unknown as Element
+    const panelElement = createMockElement()
+    const providerElement = createMockElement()
     panelRef.current = panelElement
     expect(observed.getBoundary()).toBe(panelElement)
     panelRef.current = null
@@ -770,7 +702,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(observed.getBoundary()).toBe(providerElement)
     panelRef.current = panelElement
     expect(observed.getBoundary()).toBe(panelElement)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -801,7 +733,7 @@ describe('@picodash/dashpanel alpha shell', () => {
 
   it('uses Provider defaults for nested Panels and resets at nested Providers', () => {
     const store = makeStore()
-    const outerBoundary = new MockHTMLElementBase() as unknown as Element
+    const outerBoundary = createMockElement()
     const observed = new Map<string, DashPanelPolicy>()
     function Probe({ name }: { name: string }) {
       observed.set(name, useDashPanelPolicy())
@@ -816,7 +748,7 @@ describe('@picodash/dashpanel alpha shell', () => {
         children: createElement(DashPanel, {
           id: 'outer-policy',
           title: 'Outer policy',
-          boundary: new MockHTMLElementBase() as unknown as Element,
+          boundary: createMockElement(),
           boundaryInset: 2,
           dockPositions: ['top-left'],
           children: createElement(
@@ -846,7 +778,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(observed.get('reset')?.getBoundary()).toBeNull()
     expect(observed.get('reset')?.boundaryInset).toEqual({ top: 0, right: 0, bottom: 0, left: 0 })
     expect(observed.get('reset')?.dockPositions).toHaveLength(12)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -887,7 +819,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(
       renderer.root.findAllByType('button').some((button) => button.children.includes('Apply')),
     ).toBe(true)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -919,7 +851,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       }),
     )
     expect(labelled.root.findByType('aside').props['aria-label']).toBe('Inspector')
-    void act(() => labelled.unmount())
+    act(() => labelled.unmount())
     expect(() => labelledStore.destroy()).not.toThrow()
 
     const blankStore = makeStore()
@@ -948,7 +880,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     )
     expect(blankLabelled.root.findByType('aside').props['aria-label']).toBe('Inspector')
     expect(blankLabelled.root.findByProps({ 'aria-label': 'Close panel Inspector' })).toBeTruthy()
-    void act(() => blankLabelled.unmount())
+    act(() => blankLabelled.unmount())
     expect(() => blankLabelledStore.destroy()).not.toThrow()
   })
 
@@ -966,12 +898,12 @@ describe('@picodash/dashpanel alpha shell', () => {
         }),
       }),
     )
-    expect(renderer.root.findByType('aside').props.style).toEqual({
+    expect(renderer.root.findByType('aside').props.style).toMatchObject({
       opacity: 0.8,
       '--consumer-token': 'ok',
       '--picodash-panel-width': '24rem',
     })
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
 
     for (const reserved of [
@@ -1018,19 +950,18 @@ describe('@picodash/dashpanel alpha shell', () => {
       }),
     )
     const carriers = renderer.root.findAll(
-      (node: ReactTestInstance) => node.props['data-picodash-theme'] !== undefined,
+      (node: DomTestInstance) => node.props['data-picodash-theme'] !== undefined,
     )
     expect(
-      carriers.map((node: ReactTestInstance) => [
+      carriers.map((node: DomTestInstance) => [
         node.props['data-picodash-theme'],
         node.props['data-picodash-density'],
       ]),
     ).toEqual([
       ['light', 'regular'],
       ['dark', 'compact'],
-      ['dark', 'compact'],
     ])
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -1048,7 +979,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     })
     expect(body.props.hidden).toBe(false)
     expect(body.props.inert).toBeUndefined()
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -1083,7 +1014,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('false')
     expect(renderer.root.findByProps({ 'data-picodash-panel-body': true }).props.hidden).toBe(false)
     expect(renderer.root.findByProps({ 'data-child': true }).children[0]).toBe(childToken)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -1105,7 +1036,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     pressButton(button)
     expect(callback).toHaveBeenCalledTimes(1)
     expect(callback).toHaveBeenLastCalledWith(true)
-    void act(() =>
+    act(() =>
       renderer.update(
         createElement(DashPanelProvider, {
           store,
@@ -1120,7 +1051,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     )
     expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('true')
     expect(callback).toHaveBeenCalledTimes(1)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -1139,7 +1070,7 @@ describe('@picodash/dashpanel alpha shell', () => {
         }),
       }),
     )
-    void act(() =>
+    act(() =>
       renderer.update(
         createElement(DashPanelProvider, {
           store,
@@ -1157,7 +1088,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(initialCallback).not.toHaveBeenCalled()
     expect(latestCallback).toHaveBeenCalledTimes(1)
     expect(latestCallback).toHaveBeenCalledWith(false)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -1200,10 +1131,23 @@ describe('@picodash/dashpanel alpha shell', () => {
     const asides = renderer.root.findAllByType('aside')
     expect(asides).toHaveLength(2)
     pressButton(renderer.root.findByProps({ 'aria-label': 'Collapse panel Outer' }))
+    const outerHeading = renderer.root
+      .findAllByType('h2')
+      .find((heading) => heading.props.children === 'Outer')!
+    const innerHeading = renderer.root
+      .findAllByType('h2')
+      .find((heading) => heading.props.children === 'Inner')!
     expect(
-      renderer.root.findAllByType('aside').map((aside) => aside.props['data-collapsed']),
-    ).toEqual(['true', 'false'])
-    void act(() => renderer.unmount())
+      renderer.root.findByProps({ 'aria-labelledby': outerHeading.props.id }).props[
+        'data-collapsed'
+      ],
+    ).toBe('true')
+    expect(
+      renderer.root.findByProps({ 'aria-labelledby': innerHeading.props.id }).props[
+        'data-collapsed'
+      ],
+    ).toBe('false')
+    act(() => renderer.unmount())
     expect(() => outerStore.destroy()).not.toThrow()
     expect(() => innerStore.destroy()).not.toThrow()
   })
@@ -1250,7 +1194,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(visibility).toHaveBeenLastCalledWith(false)
     pressButton(
       renderer.root
-        .findAllByType(Button)
+        .findAllByType('button')
         .find((button) => button.props.children === 'Open Inspector')!,
     )
     expect(aside.props.hidden).toBe(false)
@@ -1259,7 +1203,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       renderer.root.findByProps({ 'aria-label': 'Increment retained state' }).children,
     ).toEqual(['1'])
     expect(visibility).toHaveBeenLastCalledWith(true)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 
@@ -1282,7 +1226,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(asides[0]?.props['data-active']).toBe('true')
     expect(asides[1]?.props['data-active']).toBeUndefined()
     expect(asides[1]?.props.hidden).toBe(true)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     store.destroy()
   })
 
@@ -1301,11 +1245,13 @@ describe('@picodash/dashpanel alpha shell', () => {
     const scheduleFocus = vi.fn()
     vi.stubGlobal('queueMicrotask', scheduleFocus)
     pressButton(
-      renderer.root.findAllByType(Button).find((button) => button.props.children === 'Show First')!,
+      renderer.root
+        .findAllByType('button')
+        .find((button) => button.props.children === 'Show First')!,
     )
     expect(renderer.root.findAllByType('aside')[0]?.props['data-active']).toBe('true')
     expect(scheduleFocus).toHaveBeenCalledOnce()
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     store.destroy()
   })
 
@@ -1322,9 +1268,9 @@ describe('@picodash/dashpanel alpha shell', () => {
               { panelId: 'hidden', label: 'Hidden panel' },
               { panelId: 'missing', label: 'Missing panel' },
               {
-                panelId: 'hidden',
+                panelId: 'missing-icon',
                 label: createElement('span', { 'aria-hidden': true }, 'H'),
-                accessibleName: 'Hidden panel icon',
+                accessibleName: 'Unavailable panel icon',
               },
             ],
           }),
@@ -1338,22 +1284,57 @@ describe('@picodash/dashpanel alpha shell', () => {
       }),
     )
     expect(renderer.root.findByType('aside').props.hidden).toBe(true)
-    const buttons = renderer.root.findAllByType(Button)
+    const buttons = renderer.root.findAllByType('button')
     const hiddenTrigger = buttons.find((button) => button.props.children === 'Hidden panel')!
     const missingTrigger = buttons.find((button) => button.props.children === 'Missing panel')!
     expect(hiddenTrigger.props.isDisabled).toBeFalsy()
     expect(missingTrigger.props.isDisabled).toBe(true)
     expect(
-      buttons.find((button) => button.props['aria-label'] === 'Hidden panel icon'),
+      buttons.find((button) => button.props['aria-label'] === 'Unavailable panel icon'),
     ).toBeTruthy()
     pressButton(hiddenTrigger)
     expect(renderer.root.findByType('aside').props.hidden).toBe(false)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
+  })
+
+  it('preserves launcher trigger identity when panel targets reorder', () => {
+    const store = makeStore()
+    const launcher = (items: ComponentProps<typeof DashPanelLauncher>['items']) =>
+      createElement(DashPanelProvider, {
+        store,
+        children: [
+          createElement(DashPanelLauncher, { key: 'launcher', label: 'Panels', items }),
+          createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
+          createElement(DashPanel, { key: 'second', id: 'second', title: 'Second' }),
+        ],
+      })
+    const first = { itemId: 'second', panelId: 'first', label: 'First panel' }
+    const second = { panelId: 'second', label: 'Second panel' }
+    const firstIcon = {
+      itemId: 'first-icon',
+      panelId: 'first',
+      label: createElement('span', { 'aria-hidden': true }, 'F'),
+      accessibleName: 'First panel icon',
+    }
+    const renderer = render(launcher([first, second, firstIcon]))
+    const secondTrigger = renderer.root.findByProps({ children: 'Second panel' }).element
+    const iconTrigger = renderer.root.findByProps({ 'aria-label': 'First panel icon' }).element
+    act(() => iconTrigger.focus())
+
+    act(() => renderer.update(launcher([firstIcon, first, second])))
+
+    expect(renderer.root.findByProps({ children: 'Second panel' }).element).toBe(secondTrigger)
+    expect(renderer.root.findByProps({ 'aria-label': 'First panel icon' }).element).toBe(
+      iconTrigger,
+    )
+    expect(document.activeElement).toBe(iconTrigger)
+    act(() => renderer.unmount())
+    store.destroy()
   })
 
   it('restores focus after a committed visibility callback throws', () => {
     const store = makeStore()
-    const boundary = new MockHTMLElementBase()
+    const boundary = createMockElement()
     const renderer = render(
       createElement(DashPanelProvider, {
         store,
@@ -1367,15 +1348,25 @@ describe('@picodash/dashpanel alpha shell', () => {
         }),
       }),
     )
+    const close = renderer.root.findByProps({ 'aria-label': 'Close panel Throwing visibility' })
     expect(() =>
-      pressButton(renderer.root.findByProps({ 'aria-label': 'Close panel Throwing visibility' })),
+      act(() =>
+        close.rawProps.onClick({
+          button: 0,
+          currentTarget: close.element,
+          target: close.element,
+          nativeEvent: { detail: 0, pointerType: '' },
+          preventDefault: vi.fn(),
+          stopPropagation: vi.fn(),
+        }),
+      ),
     ).toThrow('visibility callback failed')
     expect(document.activeElement).toBe(boundary)
-    void act(() => renderer.unmount())
+    act(() => renderer.unmount())
     store.destroy()
   })
 
-  it('rejects launcher items without a non-empty accessible name', () => {
+  it('rejects invalid launcher labels and item identities', () => {
     expect(() =>
       render(createElement(DashPanelLauncher, { label: '   ', items: [] })),
     ).toThrowError('DashPanelLauncher label must not be empty.')
@@ -1401,6 +1392,36 @@ describe('@picodash/dashpanel alpha shell', () => {
         }),
       ),
     ).toThrowError('DashPanelLauncher item accessibleName must not be empty.')
+    expect(() =>
+      render(
+        createElement(DashPanelLauncher, {
+          label: 'Panels',
+          items: [
+            { panelId: 'repeated', label: 'First trigger' },
+            { panelId: 'repeated', label: 'Second trigger' },
+          ],
+        }),
+      ),
+    ).toThrowError('DashPanelLauncher items with repeated panelId values require itemId.')
+    expect(() =>
+      render(
+        createElement(DashPanelLauncher, {
+          label: 'Panels',
+          items: [
+            { itemId: 'duplicate', panelId: 'first', label: 'First trigger' },
+            { itemId: 'duplicate', panelId: 'second', label: 'Second trigger' },
+          ],
+        }),
+      ),
+    ).toThrowError('DashPanelLauncher items require unique itemId values.')
+    expect(() =>
+      render(
+        createElement(DashPanelLauncher, {
+          label: 'Panels',
+          items: [{ itemId: '   ', panelId: 'blank-item', label: 'Blank item ID' }],
+        }),
+      ),
+    ).toThrowError('DashPanelLauncher itemId must not be empty.')
   })
 
   it('reexports shared UI identities without retired aliases', async () => {
@@ -1423,7 +1444,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(PicodashContractError)
     }
-    void act(() => first.unmount())
+    act(() => first.unmount())
     expect(() => store.destroy()).not.toThrow()
   })
 })
