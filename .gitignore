@@ -33,6 +33,7 @@ dist-ssr
 .worktree-ports
 .worktree-ports.lock
 .picodash/
+/.cache/evaluation-seeds/
 
 # AI agent screenshots
 .screenshots-*

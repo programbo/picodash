@@ -1,4 +1,4 @@
-import { cp, mkdtemp, rm } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import os from 'node:os'
@@ -10,6 +10,8 @@ const scenarios = [
   'next-debug-feature-controls',
   'vite-application-monitor',
 ]
+const nextScenarios = new Set(['next-creative-controls', 'next-debug-feature-controls'])
+const cacheRoot = path.join(repositoryRoot, '.cache', 'evaluation-seeds')
 
 run('node', ['scripts/check-evaluations.mjs'], repositoryRoot)
 
@@ -25,9 +27,26 @@ try {
         !['node_modules', '.next', 'dist'].includes(path.basename(sourcePath)),
     })
 
+    if (nextScenarios.has(scenario)) {
+      const persistentCache = path.join(cacheRoot, scenario)
+      const buildCache = path.join(destination, '.next', 'cache')
+      await mkdir(buildCache, { recursive: true })
+      await cp(persistentCache, buildCache, { recursive: true, force: true }).catch((error) => {
+        if (error.code !== 'ENOENT') throw error
+      })
+    }
+
     console.log(`\nBuilding clean evaluation seed: ${scenario}`)
     run('bun', ['install', '--frozen-lockfile'], destination)
     run('bun', ['run', 'build'], destination)
+
+    if (nextScenarios.has(scenario)) {
+      await mkdir(path.join(cacheRoot, scenario), { recursive: true })
+      await cp(path.join(destination, '.next', 'cache'), path.join(cacheRoot, scenario), {
+        recursive: true,
+        force: true,
+      })
+    }
   }
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true })
