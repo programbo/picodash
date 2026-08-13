@@ -301,8 +301,8 @@ function CheckboxGroupDashletInner<T extends ChoiceValue, F extends AnyField = A
             />
             {!compatible ? (
               <PresentationWarning context={context}>
-                The current value ({jsonText(canonical)}) contains values that are not in the
-                configured choices.
+                The current value ({jsonText(canonical)}) cannot be represented by the configured
+                choices. Values must be configured, unique, and in declared option order.
               </PresentationWarning>
             ) : null}
           </>
@@ -351,8 +351,8 @@ function MultiSelectDashletInner<T extends ChoiceValue, F extends AnyField = Any
             />
             {!compatible ? (
               <PresentationWarning context={context}>
-                The current value ({jsonText(canonical)}) contains values that are not in the
-                configured choices.
+                The current value ({jsonText(canonical)}) cannot be represented by the configured
+                choices. Values must be configured, unique, and in declared option order.
               </PresentationWarning>
             ) : null}
           </>

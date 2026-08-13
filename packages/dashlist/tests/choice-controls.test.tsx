@@ -454,6 +454,9 @@ describe('choice controls', () => {
       'The current value (other) is not in the configured choices.',
     )
     expect(view.root.element.textContent).toContain('["other","one"]')
+    expect(view.root.element.textContent).toContain(
+      'Values must be configured, unique, and in declared option order.',
+    )
     expect(
       view.root.element.querySelectorAll('[data-picodash-dashlet-presentation-warning]'),
     ).toHaveLength(3)
@@ -504,6 +507,12 @@ describe('choice controls', () => {
     ).toHaveLength(2)
     expect(view.root.element.textContent).toContain('["one","one"]')
     expect(view.root.element.textContent).toContain('["two","one"]')
+    expect(view.root.element.textContent).toContain(
+      'Values must be configured, unique, and in declared option order.',
+    )
+    expect(view.root.element.textContent).not.toContain(
+      'contains values that are not in the configured choices',
+    )
     expect(nexus.getState().values).toEqual({
       duplicate: ['one', 'one'],
       reversed: ['two', 'one'],
