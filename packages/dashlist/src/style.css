@@ -137,10 +137,18 @@
   grid-template-columns: subgrid;
 }
 
-[data-picodash-dashlet-content-cell] {
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-cell] {
   display: grid;
   grid-template-columns: subgrid;
   min-inline-size: 0;
+}
+
+[data-picodash-dashlet-shell]:not([data-layout='inline'])
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-cell] {
+  display: contents;
 }
 
 [data-picodash-dashlet-content-cell]:empty {
