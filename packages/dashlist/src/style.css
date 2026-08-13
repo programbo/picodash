@@ -135,6 +135,10 @@
   grid-template-columns: subgrid;
 }
 
+[data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-content]:not(:has(> *)) {
+  display: block;
+}
+
 [data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-content] > :only-child {
   grid-column: 1 / -1;
   min-inline-size: 0;

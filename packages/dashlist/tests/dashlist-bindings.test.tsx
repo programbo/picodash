@@ -116,6 +116,9 @@ describe('DashList bindings', () => {
     })
     expect(context.bindings.left.mode).toBe('display')
     expect(context.bindings.right.mode).toBe('input')
+    expect(
+      view.root.findByProps({ 'data-picodash-dashlet-shell': true }).props['data-layout'],
+    ).toBe('block')
     act(() => view.unmount())
     expect(() => nexus.destroy()).not.toThrow()
   })

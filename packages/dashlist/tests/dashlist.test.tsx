@@ -242,22 +242,21 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('wraps text-only Dashlet content so the inline grid can span it', () => {
+  it('preserves text-only content returned by a Dashlet child component', () => {
     const nexus = makeNexus()
+    function Readout() {
+      return 'Plain text'
+    }
     const renderer = render(
       createElement(
         DashList,
         { id: 'text-content', nexus },
-        createElement(
-          Dashlet,
-          { id: 'readout', label: 'Readout' },
-          createElement(Fragment, null, 'Plain text'),
-        ),
+        createElement(Dashlet, { id: 'readout', label: 'Readout' }, createElement(Readout)),
       ),
     )
-    const text = renderer.root.findByProps({ 'data-picodash-dashlet-text': true })
-    expect(text.type).toBe('span')
-    expect(text.children).toEqual(['Plain text'])
+    expect(renderer.root.findByProps({ 'data-picodash-dashlet-content': true }).children).toEqual([
+      'Plain text',
+    ])
 
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()

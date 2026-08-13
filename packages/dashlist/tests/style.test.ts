@@ -21,6 +21,9 @@ describe('DashList stylesheet contract', () => {
       /\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s+\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*subgrid;/s,
     )
     expect(css).toMatch(
+      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content\]:not\(:has\(>\s*\*\)\)\s*\{[^}]*display:\s*block;/s,
+    )
+    expect(css).toMatch(
       /\.picodash-dashlist-item:not\(\.picodash-dashlist-group-item\)\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*subgrid;/s,
     )
     expect(css).toMatch(
