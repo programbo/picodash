@@ -9,18 +9,16 @@ describe('DashPanel stylesheet contract', () => {
     const css = await readFile(stylesheetPath, 'utf8')
     const panelRule = css.match(/\.picodash-dashpanel\s*\{([^}]*)\}/s)?.[1]
 
-    expect(panelRule).toContain('isolation: isolate;')
+    expect(panelRule).not.toContain('isolation: isolate;')
     expect(panelRule).toContain('background: var(--picodash-color-surface);')
     expect(panelRule).toContain(
       'background: color-mix(in oklab, var(--picodash-color-surface) 72%, transparent);',
     )
-    expect(panelRule).not.toContain('backdrop-filter')
+    expect(panelRule).toContain('backdrop-filter: blur(calc(2 * var(--picodash-blur-surface)));')
     expect(css).toMatch(
-      /\.picodash-dashpanel\s*\{[^}]*isolation:\s*isolate;[^}]*border:\s*var\(--picodash-border-width-thin\)[^}]*background:\s*var\(--picodash-color-surface\);[^}]*background:\s*color-mix\(in oklab,\s*var\(--picodash-color-surface\)\s+72%,\s*transparent\);[^}]*box-shadow:/s,
+      /\.picodash-dashpanel\s*\{[^}]*border:\s*var\(--picodash-border-width-thin\)[^}]*background:\s*var\(--picodash-color-surface\);[^}]*background:\s*color-mix\(in oklab,\s*var\(--picodash-color-surface\)\s+72%,\s*transparent\);[^}]*backdrop-filter:\s*blur\(calc\(2 \* var\(--picodash-blur-surface\)\)\);[^}]*box-shadow:/s,
     )
-    expect(css).toMatch(
-      /\.picodash-dashpanel::before\s*\{[^}]*z-index:\s*-1;[^}]*\n\s*backdrop-filter:\s*blur\(calc\(2 \* var\(--picodash-blur-surface\)\)\);[^}]*pointer-events:\s*none;/s,
-    )
+    expect(css).not.toContain('.picodash-dashpanel::before')
     expect(css).toMatch(
       /\.picodash-dashpanel\s*>\s*\[data-slot='dash-header'\]\s*\{[^}]*box-sizing:\s*border-box;[^}]*border-block-end:[^}]*padding:/s,
     )

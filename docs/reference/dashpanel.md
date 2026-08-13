@@ -727,6 +727,9 @@ target is recorded in the [shared UI reference](ui.md#dashheader).
 > the width token, dense shell/header geometry, translucent surface material, and shared token
 > consumption. The exhaustive dependency-table audit remains planned.
 
+The translucent surface applies its backdrop filter at the Panel boundary so it samples application
+content behind the Panel rather than an isolated internal backdrop.
+
 `@picodash/ui` owns `dark`, `light`, `system`, custom named-theme resolution, the accepted
 `regular | compact` density axis, and all shared semantic tokens. `DashPanelProvider` establishes
 the inherited theme and density; a Panel may override either. Theme and density are runtime

@@ -17,28 +17,19 @@
   inline-size: var(--picodash-panel-width);
   max-inline-size: 100%;
   overflow: hidden;
-  isolation: isolate;
   z-index: 0;
   border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
   border-radius: var(--picodash-radius-surface);
   background: var(--picodash-color-surface);
   background: color-mix(in oklab, var(--picodash-color-surface) 72%, transparent);
+  -webkit-backdrop-filter: blur(calc(2 * var(--picodash-blur-surface)));
+  backdrop-filter: blur(calc(2 * var(--picodash-blur-surface)));
   box-shadow:
     var(--picodash-shadow-elevated),
     0 0 0 var(--picodash-border-width-thin)
       color-mix(in oklab, var(--picodash-color-text-strong) 5%, transparent);
   color: var(--picodash-color-text);
   font-family: var(--picodash-font-family);
-}
-
-.picodash-dashpanel::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  -webkit-backdrop-filter: blur(calc(2 * var(--picodash-blur-surface)));
-  backdrop-filter: blur(calc(2 * var(--picodash-blur-surface)));
-  content: '';
-  pointer-events: none;
 }
 
 .picodash-dashpanel > [data-slot='dash-header'] {
