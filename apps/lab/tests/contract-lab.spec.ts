@@ -132,6 +132,8 @@ test('renders the landed same-scope Panel and List composition and reports colla
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('collapsed')
   await primaryPanel.getByRole('button', { name: 'Expand panel Primary Panel' }).press('Enter')
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('expanded')
+  await primaryPanel.getByRole('button', { name: 'Close panel Primary Panel' }).click()
+  await expect(primaryPanel).toBeHidden()
 
   const standaloneList = page.getByRole('region', { name: 'Standalone List evidence' })
   await expect(standaloneList.getByRole('list', { name: 'Standalone List' })).toBeVisible()

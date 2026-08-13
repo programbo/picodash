@@ -2,7 +2,9 @@
 
 Read this file before changing DashList, Dashlets, actions, examples, or docs. Then read
 [`../reference/dashlist.md`](../reference/dashlist.md), the Nexus agent instructions for field and
-metadata behavior, and the UI agent instructions for shared presentation.
+metadata behavior, the UI agent instructions for shared presentation, and
+[`../adr/0006-dashlist-responsive-measurement.md`](../adr/0006-dashlist-responsive-measurement.md)
+for the responsive layout constraint.
 
 ## Decision lens
 

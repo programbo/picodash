@@ -242,6 +242,472 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('wraps inline component children in separate layout cells', () => {
+    const nexus = makeNexus()
+    function Control() {
+      return createElement('input', { 'aria-label': 'Control' })
+    }
+    function Readout() {
+      return '48%'
+    }
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'text-content', nexus },
+        createElement(
+          Dashlet,
+          { id: 'readout', label: 'Readout' },
+          createElement(Fragment, null, createElement(Control), ' ', createElement(Readout)),
+        ),
+      ),
+    )
+    const cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells).toHaveLength(2)
+    expect(cells[0]!.findByType('input').props['aria-label']).toBe('Control')
+    expect(cells[1]!.children).toEqual(['48%'])
+    expect(
+      renderer.root.findByProps({ 'data-picodash-dashlet-content-whitespace': true }).children,
+    ).toEqual([' '])
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('keeps multiple roots returned by one component in one subgrid cell', () => {
+    const nexus = makeNexus()
+    function SliderCells() {
+      return createElement(
+        Fragment,
+        null,
+        createElement('input', { 'aria-label': 'Slider control' }),
+        createElement('output', null, '48%'),
+      )
+    }
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'component-cells', nexus },
+        createElement(Dashlet, { id: 'slider', label: 'Slider' }, createElement(SliderCells)),
+      ),
+    )
+    const cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cell.findByType('input').props['aria-label']).toBe('Slider control')
+    expect(cell.findByType('output').children).toEqual(['48%'])
+    expect(cell.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(false)
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('keeps element and text roots in separate inline subgrid tracks', () => {
+    const nexus = makeNexus()
+    function MixedCells() {
+      return createElement(
+        Fragment,
+        null,
+        createElement('input', { 'aria-label': 'Mixed control' }),
+        '48%',
+      )
+    }
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'mixed-component-cells', nexus },
+        createElement(Dashlet, { id: 'mixed', label: 'Mixed' }, createElement(MixedCells)),
+      ),
+    )
+    const cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cell.findByType('input').props['aria-label']).toBe('Mixed control')
+    expect(cell.children[1]).toBe('48%')
+    expect(cell.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(false)
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('resyncs inline content cells when a rendered root is hidden', async () => {
+    const nexus = makeNexus()
+    const renderVisibility = (hidden: boolean) =>
+      createElement(
+        DashList,
+        { id: 'hidden-content-cell', nexus },
+        createElement(
+          Dashlet,
+          { id: 'visibility', label: 'Visibility' },
+          createElement('output', { hidden }, '48%'),
+          createElement('input', { 'aria-label': 'Visible control' }),
+        ),
+      )
+    const renderer = render(renderVisibility(false))
+    let cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells[0]!.element.hasAttribute('data-picodash-dashlet-content-empty')).toBe(false)
+
+    await act(async () => {
+      renderer.update(renderVisibility(true))
+      await Promise.resolve()
+    })
+    cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells[0]!.findByType('output').props.hidden).toBe(true)
+    expect(cells[0]!.element.hasAttribute('data-picodash-dashlet-content-empty')).toBe(true)
+    expect(cells[1]!.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(true)
+
+    await act(async () => {
+      renderer.update(renderVisibility(false))
+      await Promise.resolve()
+    })
+    cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells[0]!.element.hasAttribute('data-picodash-dashlet-content-empty')).toBe(false)
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('marks component-composed content as single-root when its siblings are hidden', async () => {
+    const nexus = makeNexus()
+    function VisibilityCells({ hidden }: { readonly hidden: boolean }) {
+      return createElement(
+        Fragment,
+        null,
+        createElement('output', { hidden }, '48%'),
+        createElement('input', { 'aria-label': 'Composed visible control' }),
+      )
+    }
+    const renderVisibility = (hidden: boolean) =>
+      createElement(
+        DashList,
+        { id: 'component-hidden-content', nexus },
+        createElement(
+          Dashlet,
+          { id: 'visibility', label: 'Visibility' },
+          createElement(VisibilityCells, { hidden }),
+        ),
+      )
+    const renderer = render(renderVisibility(false))
+    let cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cell.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(false)
+
+    await act(async () => {
+      renderer.update(renderVisibility(true))
+      await Promise.resolve()
+    })
+    cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cell.findByType('output').props.hidden).toBe(true)
+    expect(cell.findByType('input').props['aria-label']).toBe('Composed visible control')
+    expect(cell.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(true)
+
+    await act(async () => {
+      renderer.update(renderVisibility(false))
+      await Promise.resolve()
+    })
+    cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cell.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(false)
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('preserves control DOM identity when the Dashlet layout changes', () => {
+    const nexus = makeNexus()
+    const renderLayout = (layout: 'inline' | 'block' | 'full') =>
+      createElement(
+        DashList,
+        { id: 'layout-identity', nexus },
+        createElement(
+          Dashlet,
+          { id: 'control', label: 'Control', layout },
+          createElement('input', { 'aria-label': 'Persistent control', defaultValue: 'retained' }),
+        ),
+      )
+    const renderer = render(renderLayout('inline'))
+    const initialControl = renderer.root.findByProps({ 'aria-label': 'Persistent control' }).element
+    initialControl.focus()
+
+    act(() => renderer.update(renderLayout('block')))
+    const blockControl = renderer.root.findByProps({ 'aria-label': 'Persistent control' }).element
+    expect(blockControl).toBe(initialControl)
+    expect(blockControl.ownerDocument.activeElement).toBe(blockControl)
+
+    act(() => renderer.update(renderLayout('full')))
+    expect(renderer.root.findByProps({ 'aria-label': 'Persistent control' }).element).toBe(
+      initialControl,
+    )
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('preserves explicit whitespace in block and full Dashlet content', () => {
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'content-whitespace', nexus },
+        createElement(
+          Dashlet,
+          { id: 'quality', label: 'Quality', layout: 'block' },
+          createElement('span', null, 'Low'),
+          ' ',
+          createElement('span', null, 'quality'),
+        ),
+      ),
+    )
+    expect(
+      renderer.root.findByProps({ 'data-picodash-dashlet-content-whitespace': true }).children,
+    ).toEqual([' '])
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('marks whitespace returned by an inline child component as layout-empty', () => {
+    const nexus = makeNexus()
+    function Spacer() {
+      return ' '
+    }
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'component-whitespace', nexus },
+        createElement(
+          Dashlet,
+          { id: 'control', label: 'Control' },
+          createElement(Spacer),
+          createElement('input', { 'aria-label': 'Visible control' }),
+        ),
+      ),
+    )
+    const cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells).toHaveLength(2)
+    expect(cells[0]!.element.hasAttribute('data-picodash-dashlet-content-empty')).toBe(true)
+    expect(cells[1]!.findByType('input').props['aria-label']).toBe('Visible control')
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('marks the List compact from its observed inline size', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver')
+    const originalRootFontSize = document.documentElement.style.fontSize
+    document.documentElement.style.fontSize = '16px'
+    let resize!: ResizeObserverCallback
+    const observed: Element[] = []
+    const disconnect = vi.fn()
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+      configurable: true,
+      value: class {
+        constructor(callback: ResizeObserverCallback) {
+          resize = callback
+        }
+        observe(target: Element) {
+          observed.push(target)
+        }
+        disconnect() {
+          disconnect()
+        }
+      },
+    })
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'responsive-list', nexus },
+        createElement(Dashlet, { id: 'control', label: 'Control' }, createElement('input')),
+      ),
+    )
+    const root = renderer.root.findByProps({ 'data-picodash-dashlist': true }).element
+    const remProbe = observed.find((target) =>
+      target.hasAttribute('data-picodash-dashlist-rem-probe'),
+    )!
+
+    act(() =>
+      resize(
+        [{ target: root, contentBoxSize: [{ inlineSize: 320 }] } as unknown as ResizeObserverEntry],
+        {} as ResizeObserver,
+      ),
+    )
+    expect(root.hasAttribute('data-picodash-dashlist-compact')).toBe(false)
+
+    document.documentElement.style.fontSize = '20px'
+    act(() =>
+      resize(
+        [
+          {
+            target: remProbe,
+            contentBoxSize: [{ inlineSize: 20 }],
+          } as unknown as ResizeObserverEntry,
+        ],
+        {} as ResizeObserver,
+      ),
+    )
+    expect(root.hasAttribute('data-picodash-dashlist-compact')).toBe(true)
+
+    act(() => renderer.unmount())
+    expect(disconnect).toHaveBeenCalledOnce()
+    expect(remProbe.isConnected).toBe(false)
+    if (original) Object.defineProperty(globalThis, 'ResizeObserver', original)
+    else Reflect.deleteProperty(globalThis, 'ResizeObserver')
+    document.documentElement.style.fontSize = originalRootFontSize
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('scopes compact layout state to the nearest nested List', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver')
+    const observers: Array<{
+      callback: ResizeObserverCallback
+      targets: Element[]
+    }> = []
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+      configurable: true,
+      value: class {
+        readonly record: (typeof observers)[number]
+        constructor(callback: ResizeObserverCallback) {
+          this.record = { callback, targets: [] }
+          observers.push(this.record)
+        }
+        observe(target: Element) {
+          this.record.targets.push(target)
+        }
+        disconnect() {}
+      },
+    })
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'outer-list', nexus },
+        createElement(
+          DashGroup,
+          { id: 'group', label: 'Group' },
+          createElement(Dashlet, { id: 'group-control', label: 'Group control' }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'nested-host', label: 'Nested host', layout: 'block' },
+          createElement(
+            DashList,
+            { id: 'inner-list' },
+            createElement(Dashlet, { id: 'inner-control', label: 'Inner control' }),
+          ),
+        ),
+      ),
+    )
+    const roots = renderer.root.findAllByProps({ 'data-picodash-dashlist': true })
+    const outer = roots[0]!.element
+    const inner = roots[1]!.element
+    const notify = (target: Element, inlineSize: number) => {
+      const observer = observers.find((record) => record.targets.includes(target))!
+      observer.callback(
+        [
+          {
+            target,
+            contentBoxSize: [{ inlineSize }],
+          } as unknown as ResizeObserverEntry,
+        ],
+        {} as ResizeObserver,
+      )
+    }
+
+    act(() => {
+      notify(outer, 287)
+      notify(inner, 320)
+    })
+    expect(outer.hasAttribute('data-picodash-dashlist-compact')).toBe(true)
+    expect(
+      outer
+        .querySelector(':scope > [data-picodash-dashlist-list]')
+        ?.hasAttribute('data-picodash-dashlist-compact'),
+    ).toBe(true)
+    expect(
+      outer
+        .querySelector('[data-picodash-dashgroup-list]')
+        ?.hasAttribute('data-picodash-dashlist-compact'),
+    ).toBe(true)
+    expect(inner.hasAttribute('data-picodash-dashlist-compact')).toBe(false)
+    expect(
+      inner
+        .querySelector(':scope > [data-picodash-dashlist-list]')
+        ?.hasAttribute('data-picodash-dashlist-compact'),
+    ).toBe(false)
+
+    act(() => renderer.unmount())
+    if (original) Object.defineProperty(globalThis, 'ResizeObserver', original)
+    else Reflect.deleteProperty(globalThis, 'ResizeObserver')
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('keeps callback refs stable and forwards React cleanup', () => {
+    const nexus = makeNexus()
+    const cleanup = vi.fn()
+    const callbackRef = vi.fn((element: HTMLDivElement | null) =>
+      element === null ? undefined : cleanup,
+    )
+    const renderList = (title: string) =>
+      createElement(
+        DashList,
+        { id: 'forwarded-ref', nexus, ref: callbackRef, title, headingLevel: 2 },
+        createElement(Dashlet, { id: 'control', label: 'Control' }, createElement('input')),
+      )
+    const renderer = render(renderList('First'))
+    expect(callbackRef).toHaveBeenCalledTimes(1)
+
+    act(() => renderer.update(renderList('Second')))
+    expect(callbackRef).toHaveBeenCalledTimes(1)
+    expect(cleanup).not.toHaveBeenCalled()
+
+    act(() => renderer.unmount())
+    expect(cleanup).toHaveBeenCalledOnce()
+    expect(callbackRef).toHaveBeenCalledTimes(1)
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('keeps group reorder and disclosure controls in visual DOM order', () => {
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'group-control-order', nexus },
+        createElement(DashGroup, { id: 'first', label: 'First' }),
+        createElement(DashGroup, { id: 'second', label: 'Second' }),
+      ),
+    )
+    const firstGroup = renderer.root.findByProps({ 'data-picodash-dashgroup': 'first' })
+    expect(
+      firstGroup
+        .findByProps({ 'data-slot': 'dash-header-leading' })
+        .findAllByType('button')
+        .map((button) => button.props['aria-label']),
+    ).toEqual(['Reorder First', 'Collapse group First'])
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('retains an empty inline cell when a child component renders nothing', () => {
+    const nexus = makeNexus()
+    function MaybeReadout() {
+      return null
+    }
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'conditional-content', nexus },
+        createElement(
+          Dashlet,
+          { id: 'conditional', label: 'Conditional' },
+          createElement(MaybeReadout),
+          createElement('input', { 'aria-label': 'Only visible control' }),
+        ),
+      ),
+    )
+    const cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells).toHaveLength(2)
+    expect(cells[0]!.children).toEqual([])
+    expect(cells[1]!.findByType('input').props['aria-label']).toBe('Only visible control')
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('resolves durable group collapse metadata without unmounting descendants', () => {
     const nexus = makeNexus()
     const scoped = nexus.scope('collapse')

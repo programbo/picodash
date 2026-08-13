@@ -890,10 +890,18 @@ slice does not emit `presentation_incompatible`.
 
 ## Responsive row and compound layout
 
-> Contract: Accepted
-> Implementation: Planned
-> Notes: This is the initial evidence-sensitive target. Contract Lab implementation may revise its
-> exact threshold or track tokens when measured behavior reveals a genuine constraint.
+> Contract: Revised
+> Implementation: Partial
+> Evidence: `packages/dashlist/src/style.css`, `packages/dashlist/tests/style.test.ts`, and
+> `packages/dashlist/tests/dashlist.test.tsx` cover the shared four-track ordering-grid recipe,
+> label-width token, bounded trailing-value track, List-width compact marker, inline stacking, and
+> coarse pointer target declarations. Rendered responsive geometry and drag-preview geometry remain
+> planned.
+> Notes: The original `cqi` label default required inline-size containment on the intrinsically
+> sized List root, which is incompatible with DashPanel's accepted `fit-content` behavior. The grid
+> now derives its fluid label share directly from its own width while the public token provides a
+> length cap. The `18rem` compact threshold uses a non-persisted `ResizeObserver` marker because CSS
+> size queries require the same incompatible containment.
 
 DashList responsiveness follows its own container width, never the viewport. Each ordering
 container owns one shared alignment grid across its start, automatic, and end pin bands. A
@@ -908,11 +916,18 @@ track so sibling Slider controls retain equal track widths.
 threshold. `layout="block"` always places content below the label while preserving the handle inset.
 `layout="full"` places content on a new row spanning the complete Dashlet width. Label/actions,
 content, description, and issues retain their DOM and focus order under every visual arrangement.
+Content-cell wrappers establish subgrid cells only for inline layout; in block and full layouts they
+do not establish layout boxes, so application content retains its own internal layout and explicit
+whitespace. Whitespace-only output from a child component is layout-empty in inline mode. A lone
+inline control spans the fluid control and optional trailing-value tracks, while mixed element and
+text roots retain separate control and trailing tracks. Native `hidden` roots do not reserve inline
+cells, including when component-composed siblings share one content cell, and toggling `hidden`
+updates the layout without remounting content.
 
-The initial label-width token is
-`--picodash-dashlet-label-width: clamp(6rem, 30cqi, 10rem)`. Long labels wrap rather than truncate.
-Trailing values are never ellipsized: their track has a documented maximum, wraps when necessary,
-and cannot consume the control's minimum usable width.
+The initial label track uses `clamp(6rem, 30%, var(--picodash-dashlet-label-width))`, with
+`--picodash-dashlet-label-width: 10rem` as its public preferred cap. Long labels wrap rather than
+truncate. Trailing values are never ellipsized: their track has an initial `8rem` maximum, wraps
+when necessary, and cannot consume the control's initial `6rem` minimum usable width.
 
 Compound Dashlets default to block layout. Their controls use a separate responsive internal grid
 and cannot alter sibling Dashlets' shared outer tracks. At compact widths, compound content reduces
@@ -921,8 +936,11 @@ reflow and overflow requirements.
 
 The resolved row arrangement is captured at reorder pickup. A detached or fixed-position drag
 preview retains that geometry instead of losing its subgrid or crossing a responsive threshold.
-Ordinary responsive layout uses CSS container queries without JavaScript measurement; measurement
-is permitted only to preserve drag-preview geometry.
+Ordinary responsive layout uses one `ResizeObserver` only to project whether the List is below the
+`18rem` compact threshold. It observes both the List root and a private, out-of-flow `1rem` probe in
+the owner document, so root-font-size changes update the threshold independently of List size; CSS
+owns the resulting layout. The observation is transient and is never stored in Nexus or
+persistence. Drag-preview measurement separately preserves captured geometry during reorder.
 
 The package avoids horizontal page overflow at 320 CSS pixels and under 200% zoom. Segmented choices
 may wrap, and coarse-pointer targets retain the accepted minimum size.
@@ -1633,10 +1651,10 @@ List and Dashlet tokens use `--picodash-list-*` or `--picodash-dashlet-*`; priva
 
 DashList initially owns exactly two public product tokens:
 
-| Variable                              | Purpose                                              | Syntax     | Regular default             |
-| ------------------------------------- | ---------------------------------------------------- | ---------- | --------------------------- |
-| `--picodash-dashlet-label-width`      | Preferred label track width in inline row layout.    | `<length>` | `clamp(6rem, 30cqi, 10rem)` |
-| `--picodash-dashlet-field-min-height` | Minimum field visualization and state-region height. | `<length>` | `6rem`                      |
+| Variable                              | Purpose                                              | Syntax     | Regular default |
+| ------------------------------------- | ---------------------------------------------------- | ---------- | --------------- |
+| `--picodash-dashlet-label-width`      | Preferred label track width cap in inline layout.    | `<length>` | `10rem`         |
+| `--picodash-dashlet-field-min-height` | Minimum field visualization and state-region height. | `<length>` | `6rem`          |
 
 The label token is a preferred track width rather than a truncation boundary; long labels wrap.
 The field token replaces the prototype's generic `--picodash-field-surface-min-height` name.
@@ -1798,6 +1816,7 @@ still produce:
 
 ## Related documents
 
+- [DashList responsive measurement decision](../adr/0006-dashlist-responsive-measurement.md)
 - [DashList value proposition](../product/value-propositions.md#dashlist)
 - [Shared UI target reference](ui.md)
 - [Nexus target reference](nexus.md)

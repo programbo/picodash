@@ -1,11 +1,13 @@
 'use client'
 
 import {
+  Children,
   Fragment,
   createElement,
   forwardRef,
   isValidElement,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useId,
@@ -15,6 +17,7 @@ import {
   useState,
   useSyncExternalStore,
   type ComponentPropsWithRef,
+  type ForwardedRef,
   type ReactElement,
   type MutableRefObject,
   type ReactNode,
@@ -438,6 +441,7 @@ type OrderingRowBounds = Readonly<{
 const DashListOrderingContext = createContext<OrderingController | null>(null)
 const DashListOrderingCoordinatorContext = createContext<OrderingCoordinator | null>(null)
 const DashListReorderInstructionsContext = createContext<string | undefined>(undefined)
+const DashListCompactContext = createContext(false)
 
 function safeOrderingState(input: Parameters<typeof createOrderingState>[0]): OrderingState {
   try {
@@ -914,6 +918,37 @@ function StaleInputConfirmation({
   )
 }
 
+function wrapDashletContent(children: ReactNode): ReactNode {
+  return Children.map(children, (child) => {
+    if (isValidElement<{ readonly children?: ReactNode }>(child) && child.type === Fragment)
+      return wrapDashletContent(child.props.children)
+    if (child == null || typeof child === 'boolean') return child
+    if (typeof child === 'string' && child.trim() === '')
+      return <span data-picodash-dashlet-content-whitespace>{child}</span>
+    return <div data-picodash-dashlet-content-cell>{child}</div>
+  })
+}
+
+function syncDashletContentCells(container: HTMLDivElement): void {
+  for (const cell of container.children) {
+    if (!cell.hasAttribute('data-picodash-dashlet-content-cell')) continue
+    const renderedNodes = Array.from(cell.childNodes).filter((node) => {
+      if (node.nodeType === 1) return !(node as Element).hasAttribute('hidden')
+      return node.nodeType === 3 && Boolean(node.textContent?.trim())
+    })
+    cell.toggleAttribute('data-picodash-dashlet-content-empty', renderedNodes.length === 0)
+    cell.toggleAttribute('data-picodash-dashlet-content-single-root', renderedNodes.length === 1)
+  }
+}
+
+function assignForwardedRef<T>(ref: ForwardedRef<T>, value: T | null): void | (() => void) {
+  if (typeof ref === 'function') {
+    const cleanup = ref(value)
+    return typeof cleanup === 'function' ? cleanup : undefined
+  }
+  if (ref) ref.current = value
+}
+
 const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashletProps<any, any>>(
   function Dashlet(props: any, ref) {
     const {
@@ -921,7 +956,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       label,
       'aria-label': ariaLabel,
       description,
-      layout = 'inline',
+      layout: declaredLayout,
       disabled: declaredDisabled = false,
       readOnly: declaredReadOnly = false,
       pin,
@@ -980,6 +1015,25 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     else if (descriptors.length > 1) renderContext.bindings = bindingRuntime.bindings
     const renderedChildren =
       typeof children === 'function' ? children(renderContext as never) : children
+    const layout = declaredLayout ?? (fields === undefined ? 'inline' : 'block')
+    const contentChildren = wrapDashletContent(renderedChildren)
+    const contentRef = useRef<HTMLDivElement>(null)
+    useLayoutEffect(() => {
+      const content = contentRef.current
+      if (!content) return
+      const sync = () => syncDashletContentCells(content)
+      sync()
+      if (typeof MutationObserver !== 'function') return
+      const observer = new MutationObserver(sync)
+      observer.observe(content, {
+        attributes: true,
+        attributeFilter: ['hidden'],
+        childList: true,
+        characterData: true,
+        subtree: true,
+      })
+      return () => observer.disconnect()
+    }, [])
     const reorderHandle = useOrderingHandle(id, resolvedName)
     void pin
     const inputBindings = Object.values(bindingRuntime.bindings).filter(
@@ -1034,7 +1088,9 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
               </span>
             ) : null}
             {reorderHandle}
-            <div data-picodash-dashlet-content>{renderedChildren}</div>
+            <div ref={contentRef} data-picodash-dashlet-content>
+              {contentChildren}
+            </div>
             {description !== undefined ? (
               <div id={descriptionId} data-picodash-dashlet-description>
                 {description}
@@ -1106,6 +1162,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
 ) {
   requireAccessibleLabel(label, ariaLabel, 'DashGroup')
   const inheritedPolicy = useContext(DashListContentPolicyContext)
+  const compact = useContext(DashListCompactContext)
   const contentPolicy = useMemo(
     () => ({
       disabled: inheritedPolicy.disabled || disabled,
@@ -1242,6 +1299,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
             slots={{
               leading: collapsible ? (
                 <>
+                  {groupReorderHandle}
                   <button
                     ref={disclosureRef}
                     aria-label={disclosureLabel}
@@ -1252,7 +1310,6 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
                   >
                     {renderedCollapsed ? '+' : '−'}
                   </button>
-                  {groupReorderHandle}
                 </>
               ) : (
                 groupReorderHandle
@@ -1271,6 +1328,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
             aria-label={isTextLabel(label) ? undefined : ariaLabel}
             aria-labelledby={isTextLabel(label) ? labelId : undefined}
             data-picodash-dashgroup-list
+            data-picodash-dashlist-compact={compact || undefined}
             data-collapsed={renderedCollapsed ? 'true' : 'false'}
             aria-hidden={renderedCollapsed || undefined}
             hidden={renderedCollapsed || undefined}
@@ -1407,6 +1465,73 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   const headingId = title === undefined ? undefined : `picodash-dashlist-heading-${headingIdToken}`
   const statusId = `picodash-dashlist-status-${useId()}`
   const reorderInstructionsId = `picodash-dashlist-reorder-instructions-${useId()}`
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [compact, setCompact] = useState(false)
+  const setRootRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      rootRef.current = element
+      if (element === null) {
+        assignForwardedRef(ref, null)
+        return
+      }
+      const cleanup = assignForwardedRef(ref, element)
+      return () => {
+        rootRef.current = null
+        if (cleanup) cleanup()
+        else assignForwardedRef(ref, null)
+      }
+    },
+    [ref],
+  )
+  useLayoutEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const ownerWindow = root.ownerDocument.defaultView
+    const ResizeObserverConstructor = ownerWindow?.ResizeObserver ?? globalThis.ResizeObserver
+    if (typeof ResizeObserverConstructor !== 'function') return
+    const remProbe = root.ownerDocument.createElement('span')
+    remProbe.setAttribute('aria-hidden', 'true')
+    remProbe.setAttribute('data-picodash-dashlist-rem-probe', '')
+    const probeHost = root.ownerDocument.body ?? root.ownerDocument.documentElement
+    probeHost.append(remProbe)
+    let inlineSize = root.getBoundingClientRect().width
+    let remSize =
+      remProbe.getBoundingClientRect().width ||
+      Number.parseFloat(
+        ownerWindow?.getComputedStyle(root.ownerDocument.documentElement).fontSize ?? '',
+      ) ||
+      16
+    const sync = () => {
+      setCompact(inlineSize < 18 * remSize)
+    }
+    const readInlineSize = (entry: ResizeObserverEntry) => {
+      const box = Array.isArray(entry.contentBoxSize)
+        ? entry.contentBoxSize[0]
+        : entry.contentBoxSize
+      return box?.inlineSize ?? entry.contentRect.width
+    }
+    sync()
+    const observer = new ResizeObserverConstructor((entries) => {
+      let changed = false
+      for (const entry of entries) {
+        const observedInlineSize = readInlineSize(entry)
+        if (entry.target === root) {
+          inlineSize = observedInlineSize
+          changed = true
+        } else if (entry.target === remProbe && observedInlineSize > 0) {
+          remSize = observedInlineSize
+          changed = true
+        }
+      }
+      if (changed) sync()
+    })
+    observer.observe(root)
+    observer.observe(remProbe)
+    return () => {
+      observer.disconnect()
+      remProbe.remove()
+    }
+  }, [])
   const listName =
     ariaLabelledBy ?? (ariaLabel === undefined && title !== undefined ? headingId : undefined)
   return (
@@ -1421,55 +1546,66 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
             <DashListReorderInstructionsContext.Provider value={reorderInstructionsId}>
               <DashListOrderingContext.Provider value={rootOrdering}>
                 <DashListActionRegistryContext.Provider value={actionRegistry}>
-                  <DashListNodeRegistryProvider registry={registry}>
-                    <DashListNodeValidation>
-                      <div
-                        {...props}
-                        ref={ref}
-                        className={classNames('picodash-dashlist', className)}
-                        data-picodash-dashlist
-                      >
-                        {title !== undefined ? (
-                          <DashHeader
-                            slots={{
-                              title: createElement(`h${headingLevel}`, { id: headingId }, title),
-                            }}
-                          />
-                        ) : null}
+                  <DashListCompactContext.Provider value={compact}>
+                    <DashListNodeRegistryProvider registry={registry}>
+                      <DashListNodeValidation>
                         <div
-                          role="list"
-                          aria-label={ariaLabel}
-                          aria-labelledby={listName}
-                          data-picodash-dashlist-list
+                          {...props}
+                          ref={setRootRef}
+                          className={classNames('picodash-dashlist', className)}
+                          data-picodash-dashlist
+                          data-picodash-dashlist-compact={compact || undefined}
                         >
-                          {orderedDeclarations.map((declaration, index) =>
-                            createElement(
-                              Fragment,
-                              {
-                                key:
-                                  declaration.key ??
-                                  declarationIdentity(declaration, `${resolved.scopeId}-${index}`),
-                              },
-                              wrapDeclaration(declaration, 'list', `${resolved.scopeId}-${index}`),
-                            ),
-                          )}
+                          {title !== undefined ? (
+                            <DashHeader
+                              slots={{
+                                title: createElement(`h${headingLevel}`, { id: headingId }, title),
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            role="list"
+                            aria-label={ariaLabel}
+                            aria-labelledby={listName}
+                            data-picodash-dashlist-list
+                            data-picodash-dashlist-compact={compact || undefined}
+                          >
+                            {orderedDeclarations.map((declaration, index) =>
+                              createElement(
+                                Fragment,
+                                {
+                                  key:
+                                    declaration.key ??
+                                    declarationIdentity(
+                                      declaration,
+                                      `${resolved.scopeId}-${index}`,
+                                    ),
+                                },
+                                wrapDeclaration(
+                                  declaration,
+                                  'list',
+                                  `${resolved.scopeId}-${index}`,
+                                ),
+                              ),
+                            )}
+                          </div>
+                          <div
+                            key={actionSnapshot.announcementSequence}
+                            id={statusId}
+                            role="status"
+                            aria-live="polite"
+                            aria-atomic="true"
+                          >
+                            {actionSnapshot.announcement}
+                          </div>
+                          <span id={reorderInstructionsId} data-picodash-reorder-instructions>
+                            Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
+                            Press Space or Enter to commit, or Escape to cancel.
+                          </span>
                         </div>
-                        <div
-                          key={actionSnapshot.announcementSequence}
-                          id={statusId}
-                          role="status"
-                          aria-live="polite"
-                          aria-atomic="true"
-                        >
-                          {actionSnapshot.announcement}
-                        </div>
-                        <span id={reorderInstructionsId} data-picodash-reorder-instructions>
-                          Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
-                          Press Space or Enter to commit, or Escape to cancel.
-                        </span>
-                      </div>
-                    </DashListNodeValidation>
-                  </DashListNodeRegistryProvider>
+                      </DashListNodeValidation>
+                    </DashListNodeRegistryProvider>
+                  </DashListCompactContext.Provider>
                 </DashListActionRegistryContext.Provider>
               </DashListOrderingContext.Provider>
             </DashListReorderInstructionsContext.Provider>
