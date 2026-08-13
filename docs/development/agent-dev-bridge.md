@@ -123,6 +123,14 @@ contents or adding Bridge authority. No Bridge extension was needed: focus, visi
 activation remain Provider-owned browser behavior rather than agent protocol authority; raw
 quarantine payloads stay undisclosed.
 
+The Contract Lab composition preset also mounts an independent read-only registration for the
+Style Lab: `registrationId: "dashlet-style-lab"`, label `Contract Lab Style Lab`, disclosure of
+only `switchValue` with no scopes or diagnostics, and no writable fields. Its browser journey
+selects this session by registration ID and browser tab ID, toggles the public `SwitchDashlet`, and
+proves the canonical boolean through `wait` and `inspect` while the primary specimen session stays
+unchanged. This is a representative consumer disclosure; it does not add Bridge or Nexus
+authority.
+
 MCP stdio parity is a follow-on only if the CLI proves useful. Bridge persistence, reset, and other
 dangerous extensions remain deferred; they require preview, explicit confirmation, idempotency, and
 an audit trail before implementation. Nexus document import/export remains a browser-local

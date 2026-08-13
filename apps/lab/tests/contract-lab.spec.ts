@@ -748,6 +748,56 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     (old as { error: { code: string } }).error.code,
   )
   await expect(page.locator('[data-contract-lab-bound-display]')).toHaveText('24')
+
+  const primaryBeforeStyle = matches(await client.listSessions())!
+  const primaryBeforeStyleSnapshot = await client.inspect(primaryBeforeStyle)
+  await page.getByRole('button', { name: /^Style lab:/ }).click()
+  await expect(page.locator('[data-contract-lab-specimen]')).toHaveAttribute(
+    'data-preset',
+    'composition',
+  )
+  const styleMatches = (items: Awaited<ReturnType<typeof client.listSessions>>) =>
+    items.find(
+      (item) => item.registrationId === 'dashlet-style-lab' && item.browserTabId === browserTabId,
+    )
+  await expect.poll(async () => styleMatches(await client.listSessions())).toBeTruthy()
+  const styleInitial = styleMatches(await client.listSessions())!
+  expect(styleInitial.label).toBe('Contract Lab Style Lab')
+  expect(styleInitial.disclosedValueFields).toEqual(['switchValue'])
+  expect(styleInitial.disclosedScopeIds).toEqual([])
+  expect(styleInitial.diagnosticsDisclosed).toBe(false)
+  expect(styleInitial.writableFields).toEqual([])
+  const styleInitialSnapshot = await client.inspect(styleInitial)
+  expect(styleInitialSnapshot.snapshot.values?.switchValue).toBe(true)
+
+  const styleSwitch = page.getByRole('switch', { name: 'SwitchDashlet' })
+  await expect(styleSwitch).toBeChecked()
+  await styleSwitch.press('Space')
+  await expect(styleSwitch).not.toBeChecked()
+  const styleWait = await client.wait(styleInitial, {
+    type: 'wait',
+    requestId: 'lab-style-switch-false',
+    timeoutMs: 1000,
+    condition: {
+      type: 'value_equals',
+      field: 'switchValue',
+      value: false,
+      afterSequence: styleInitial.sequence,
+    },
+  })
+  expect(styleWait.type).toBe('wait_result')
+  expect((styleWait as { outcome: string }).outcome).toBe('satisfied')
+  const styleChanged = styleMatches(await client.listSessions())!
+  expect(styleChanged.sequence).toBeGreaterThan(styleInitial.sequence)
+  expect((await client.inspect(styleChanged)).snapshot.values?.switchValue).toBe(false)
+
+  const primaryAfterStyle = matches(await client.listSessions())!
+  expect(primaryAfterStyle.registrationId).toBe('contract-lab-specimen')
+  expect(primaryAfterStyle.browserTabId).toBe(browserTabId)
+  expect(primaryAfterStyle.sequence).toBe(primaryBeforeStyle.sequence)
+  expect((await client.inspect(primaryAfterStyle)).snapshot).toEqual(
+    primaryBeforeStyleSnapshot.snapshot,
+  )
   await page.evaluate((key) => {
     localStorage.removeItem(key)
     localStorage.removeItem('contract-lab-unrelated-key')

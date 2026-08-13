@@ -30,6 +30,11 @@ import {
   TextDashlet,
   TimeDashlet,
 } from '@picodash/picodash'
+import type {
+  PicodashDevBridgeDisclosure,
+  PicodashDevBridgePermissions,
+} from '@picodash/dev-bridge'
+import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
 
 type Choice = 'Option A' | 'Option B' | 'Option C'
 
@@ -89,6 +94,13 @@ const styleLabFields: StyleLabFields = {
   dateRange: { defaultValue: { start: '2026-08-18', end: '2026-08-24' } },
 }
 
+const styleLabBridgeDisclosure: PicodashDevBridgeDisclosure = {
+  valueFields: ['switchValue'],
+  scopeIds: [],
+  diagnostics: false,
+}
+const styleLabBridgePermissions: PicodashDevBridgePermissions = { writableFields: [] }
+
 export interface DashletStyleLabProps {
   readonly boundary: RefObject<HTMLElement | null>
 }
@@ -112,6 +124,13 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
       boundary={boundary}
       boundaryInset={16}
     >
+      <ContractLabDevBridgeConnector
+        nexus={nexus}
+        registrationId="dashlet-style-lab"
+        label="Contract Lab Style Lab"
+        disclosure={styleLabBridgeDisclosure}
+        permissions={styleLabBridgePermissions}
+      />
       <DashPanel
         id="style-lab-basics-panel"
         title="Basics & readout"

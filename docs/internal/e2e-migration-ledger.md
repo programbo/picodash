@@ -16,7 +16,7 @@ the Console, status strip, diagnostics, and Dev Bridge connector remain on the s
 | Lab   | `apps/lab/tests/contract-lab.spec.ts` | Same-scope Panel/List composition, migrated diagnostics, public Style Lab Panel collapse/expand with focus retention, and the reachable gallery/chart |
 | Lab   | `apps/lab/tests/contract-lab.spec.ts` | Shared AlertDialog open, cancel, and focus restoration                                                                                                |
 | Lab   | `apps/lab/tests/contract-lab.spec.ts` | Regular/compact density, coarse-pointer geometry, and portal-boundary movement                                                                        |
-| Lab   | `apps/lab/tests/contract-lab.spec.ts` | Browser Dev Bridge discovery, disclosed writes/waits, restore, and stale-generation rejection                                                         |
+| Lab   | `apps/lab/tests/contract-lab.spec.ts` | Browser Dev Bridge discovery, disclosed writes/waits, restore, stale-generation rejection, and the independent read-only Style Lab registration       |
 
 The six Lab titles are the public acceptance surface. They collect browser console and page errors,
 use no skips, retries, hidden exclusions, or parameterized test expansion, and are listed together
