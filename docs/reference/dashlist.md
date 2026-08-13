@@ -893,9 +893,9 @@ slice does not emit `presentation_incompatible`.
 > Contract: Accepted
 > Implementation: Partial
 > Evidence: `packages/dashlist/src/style.css` and `packages/dashlist/tests/style.test.ts` cover the
-> shared four-track ordering-grid recipe, label-width token, `18rem` inline fallback, and coarse
-> pointer target declarations. Rendered responsive geometry, drag-preview geometry, and bounded
-> trailing-value behavior remain planned.
+> shared four-track ordering-grid recipe, label-width token, bounded trailing-value track, `18rem`
+> inline fallback, and coarse pointer target declarations. Rendered responsive geometry and
+> drag-preview geometry remain planned.
 
 DashList responsiveness follows its own container width, never the viewport. Each ordering
 container owns one shared alignment grid across its start, automatic, and end pin bands. A
@@ -913,8 +913,8 @@ content, description, and issues retain their DOM and focus order under every vi
 
 The initial label-width token is
 `--picodash-dashlet-label-width: clamp(6rem, 30cqi, 10rem)`. Long labels wrap rather than truncate.
-Trailing values are never ellipsized: their track has a documented maximum, wraps when necessary,
-and cannot consume the control's minimum usable width.
+Trailing values are never ellipsized: their track has an initial `8rem` maximum, wraps when
+necessary, and cannot consume the control's initial `6rem` minimum usable width.
 
 Compound Dashlets default to block layout. Their controls use a separate responsive internal grid
 and cannot alter sibling Dashlets' shared outer tracks. At compact widths, compound content reduces

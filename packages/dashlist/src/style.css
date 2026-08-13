@@ -5,7 +5,9 @@
   --picodash-dashlet-field-min-height: 6rem;
 
   --_picodash-dashlist-nested-inset: calc(-1 * var(--picodash-space-0-5));
+  --_picodash-dashlist-control-min-inline-size: 6rem;
   --_picodash-dashlist-reorder-track: var(--picodash-control-height-xs);
+  --_picodash-dashlist-trailing-max-inline-size: 8rem;
   --_picodash-dashlist-row-hover: color-mix(
     in oklab,
     var(--picodash-color-surface-muted) 65%,
@@ -55,8 +57,8 @@
   grid-template-columns:
     var(--_picodash-dashlist-reorder-track)
     minmax(4.5rem, var(--picodash-dashlet-label-width))
-    minmax(0, 1fr)
-    max-content;
+    minmax(var(--_picodash-dashlist-control-min-inline-size), 1fr)
+    fit-content(var(--_picodash-dashlist-trailing-max-inline-size));
   column-gap: var(--picodash-space-1);
   row-gap: var(--picodash-space-1);
   margin: 0;
@@ -136,6 +138,14 @@
 [data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-content] > :only-child {
   grid-column: 1 / -1;
   min-inline-size: 0;
+}
+
+[data-picodash-dashlet-shell][data-layout='inline']
+  [data-picodash-dashlet-content]
+  > :not(:only-child):last-child {
+  min-inline-size: 0;
+  max-inline-size: var(--_picodash-dashlist-trailing-max-inline-size);
+  overflow-wrap: anywhere;
 }
 
 [data-picodash-dashlet-description],

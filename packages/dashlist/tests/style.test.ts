@@ -9,8 +9,13 @@ describe('DashList stylesheet contract', () => {
     const css = await readFile(stylesheetPath, 'utf8')
     expect(css).toContain('--picodash-dashlet-label-width: clamp(6rem, 30cqi, 10rem)')
     expect(css).toContain('--picodash-dashlet-field-min-height: 6rem')
+    expect(css).toContain('--_picodash-dashlist-control-min-inline-size: 6rem')
+    expect(css).toContain('--_picodash-dashlist-trailing-max-inline-size: 8rem')
     expect(css).toMatch(
-      /\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:[^}]*var\(--picodash-dashlet-label-width\)[^}]*minmax\(0,\s*1fr\)[^}]*max-content;/s,
+      /\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:[^}]*var\(--picodash-dashlet-label-width\)[^}]*minmax\(var\(--_picodash-dashlist-control-min-inline-size\),\s*1fr\)[^}]*fit-content\(var\(--_picodash-dashlist-trailing-max-inline-size\)\);/s,
+    )
+    expect(css).toMatch(
+      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content\][^{]*>\s*:not\(:only-child\):last-child\s*\{[^}]*max-inline-size:\s*var\(--_picodash-dashlist-trailing-max-inline-size\);[^}]*overflow-wrap:\s*anywhere;/s,
     )
     expect(css).toMatch(
       /\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s+\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*subgrid;/s,
