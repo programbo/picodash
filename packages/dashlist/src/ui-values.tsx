@@ -304,7 +304,10 @@ export function Status<T extends string | number>({ value, options, ...props }: 
   validateStatusOptions(options)
   const option = options.find((candidate) => Object.is(candidate.value, value))
   const label = option?.label ?? String(value)
-  const accessible = option?.textValue ?? (typeof label === 'string' ? label : props['aria-label'])
+  const accessible =
+    'aria-label' in props
+      ? props['aria-label']
+      : (option?.textValue ?? (typeof label === 'string' ? label : undefined))
   return (
     <span
       id={props.id}

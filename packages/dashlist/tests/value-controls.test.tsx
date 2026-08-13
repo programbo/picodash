@@ -368,6 +368,131 @@ describe('value controls', () => {
     nexus.destroy()
   })
 
+  it('prefers explicit Status names while forwarding aria-labelledby', () => {
+    const options = [{ value: 'ready', label: 'Ready', tone: 'success' as const }]
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement('span', { id: 'status-heading' }, 'Deployment'),
+        createElement(Status, {
+          className: 'explicit-status',
+          value: 'ready',
+          options,
+          'aria-label': 'Build status',
+          'aria-labelledby': 'status-heading',
+        }),
+        createElement(Status, {
+          className: 'explicit-text-value-status',
+          value: 'ready',
+          options: [
+            {
+              value: 'ready',
+              label: createElement('strong', null, 'Ready'),
+              textValue: 'Ready to ship',
+              tone: 'success' as const,
+            },
+          ],
+          'aria-label': 'Release status',
+        }),
+        createElement(Status, {
+          className: 'empty-explicit-status',
+          value: 'ready',
+          options,
+          'aria-label': '',
+        }),
+      ),
+    )
+
+    const explicit = view.root.element.querySelector('.explicit-status')
+    expect(explicit?.getAttribute('aria-label')).toBe('Build status')
+    expect(explicit?.getAttribute('aria-labelledby')).toBe('status-heading')
+    expect(explicit?.textContent).toBe('Ready')
+    expect(
+      view.root.element.querySelector('.explicit-text-value-status')?.getAttribute('aria-label'),
+    ).toBe('Release status')
+    expect(
+      view.root.element.querySelector('.empty-explicit-status')?.getAttribute('aria-label'),
+    ).toBe('')
+    act(() => view.unmount())
+  })
+
+  it('derives omitted Status names while preserving presentation and validation', () => {
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement('p', { id: 'status-description' }, 'Reported by the build service.'),
+        createElement('p', { id: 'status-error' }, 'The report is stale.'),
+        createElement(Status, {
+          className: 'string-status',
+          value: 'ready',
+          options: [{ value: 'ready', label: 'Ready', tone: 'success' as const }],
+        }),
+        createElement(Status, {
+          className: 'text-value-status',
+          value: 1,
+          options: [
+            { value: '1', label: 'String one', tone: 'neutral' as const },
+            {
+              value: 1,
+              label: createElement('strong', null, 'Numeric one'),
+              textValue: 'Numeric status one',
+              tone: 'warning' as const,
+              icon: createElement('span', { 'data-status-icon': true }, '!'),
+            },
+          ],
+          disabled: true,
+          readOnly: true,
+          'aria-describedby': 'status-description',
+          'aria-invalid': true,
+          'aria-errormessage': 'status-error',
+        }),
+        createElement(Status, {
+          className: 'unmatched-status',
+          value: 'unknown',
+          options: [{ value: 'ready', label: 'Ready', tone: 'success' as const }],
+        }),
+      ),
+    )
+
+    expect(view.root.element.querySelector('.string-status')?.getAttribute('aria-label')).toBe(
+      'Ready',
+    )
+    const textValueStatus = view.root.element.querySelector('.text-value-status')
+    expect(textValueStatus?.getAttribute('aria-label')).toBe('Numeric status one')
+    expect(textValueStatus?.getAttribute('data-tone')).toBe('warning')
+    expect(textValueStatus?.getAttribute('aria-disabled')).toBe('true')
+    expect(textValueStatus?.getAttribute('aria-readonly')).toBe('true')
+    expect(textValueStatus?.getAttribute('aria-describedby')).toBe('status-description')
+    expect(textValueStatus?.getAttribute('aria-invalid')).toBe('true')
+    expect(textValueStatus?.getAttribute('aria-errormessage')).toBe('status-error')
+    expect(textValueStatus?.querySelector('[data-status-icon]')?.textContent).toBe('!')
+    expect(textValueStatus?.textContent).toBe('!Numeric one')
+    const unmatched = view.root.element.querySelector('.unmatched-status')
+    expect(unmatched?.getAttribute('aria-label')).toBe('unknown')
+    expect(unmatched?.textContent).toBe('unknown')
+    expect(unmatched?.hasAttribute('data-tone')).toBe(false)
+    expect(unmatched?.hasAttribute('role')).toBe(false)
+    expect(unmatched?.hasAttribute('aria-live')).toBe(false)
+    act(() => view.unmount())
+
+    expect(() =>
+      render(
+        createElement(Status, {
+          value: 'ready',
+          options: [
+            {
+              value: 'ready',
+              label: createElement('span', null, 'Ready'),
+              tone: 'success',
+            },
+          ],
+        }),
+      ),
+    ).toThrowError(new TypeError('non-text status labels require textValue.'))
+  })
+
   it('renders range, meter, progress, and explicit status semantics', () => {
     const view = render(
       createElement(
