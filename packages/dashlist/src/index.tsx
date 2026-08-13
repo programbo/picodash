@@ -932,11 +932,12 @@ function wrapDashletContent(children: ReactNode): ReactNode {
 function syncDashletContentCells(container: HTMLDivElement): void {
   for (const cell of container.children) {
     if (!cell.hasAttribute('data-picodash-dashlet-content-cell')) continue
-    const hasRenderedContent = Array.from(cell.childNodes).some((node) => {
+    const renderedNodes = Array.from(cell.childNodes).filter((node) => {
       if (node.nodeType === 1) return true
       return node.nodeType === 3 && Boolean(node.textContent?.trim())
     })
-    cell.toggleAttribute('data-picodash-dashlet-content-empty', !hasRenderedContent)
+    cell.toggleAttribute('data-picodash-dashlet-content-empty', renderedNodes.length === 0)
+    cell.toggleAttribute('data-picodash-dashlet-content-single-root', renderedNodes.length === 1)
   }
 }
 

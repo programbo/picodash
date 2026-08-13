@@ -919,7 +919,8 @@ content, description, and issues retain their DOM and focus order under every vi
 Content-cell wrappers establish subgrid cells only for inline layout; in block and full layouts they
 do not establish layout boxes, so application content retains its own internal layout and explicit
 whitespace. Whitespace-only output from a child component is layout-empty in inline mode. A lone
-inline control spans the fluid control and optional trailing-value tracks.
+inline control spans the fluid control and optional trailing-value tracks, while mixed element and
+text roots retain separate control and trailing tracks.
 
 The initial label track uses `clamp(6rem, 30%, var(--picodash-dashlet-label-width))`, with
 `--picodash-dashlet-label-width: 10rem` as its public preferred cap. Long labels wrap rather than

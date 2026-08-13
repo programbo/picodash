@@ -143,7 +143,7 @@
 
 [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content]
-  > [data-picodash-dashlet-content-cell]
+  > [data-picodash-dashlet-content-cell][data-picodash-dashlet-content-single-root]
   > :only-child {
   grid-column: 1 / -1;
   min-inline-size: 0;

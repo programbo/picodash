@@ -293,6 +293,33 @@ describe('@picodash/dashlist alpha shell', () => {
     const cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
     expect(cell.findByType('input').props['aria-label']).toBe('Slider control')
     expect(cell.findByType('output').children).toEqual(['48%'])
+    expect(cell.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(false)
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('keeps element and text roots in separate inline subgrid tracks', () => {
+    const nexus = makeNexus()
+    function MixedCells() {
+      return createElement(
+        Fragment,
+        null,
+        createElement('input', { 'aria-label': 'Mixed control' }),
+        '48%',
+      )
+    }
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'mixed-component-cells', nexus },
+        createElement(Dashlet, { id: 'mixed', label: 'Mixed' }, createElement(MixedCells)),
+      ),
+    )
+    const cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cell.findByType('input').props['aria-label']).toBe('Mixed control')
+    expect(cell.children[1]).toBe('48%')
+    expect(cell.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(false)
 
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()
