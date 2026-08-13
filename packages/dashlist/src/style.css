@@ -1,7 +1,7 @@
 @import '@picodash/ui/style.css';
 
 :where([data-picodash-theme]) {
-  --picodash-dashlet-label-width: clamp(6rem, 30cqi, 10rem);
+  --picodash-dashlet-label-width: 10rem;
   --picodash-dashlet-field-min-height: 6rem;
 
   --_picodash-dashlist-nested-inset: calc(-1 * var(--picodash-space-0-5));
@@ -54,7 +54,7 @@
   display: grid;
   grid-template-columns:
     var(--_picodash-dashlist-reorder-track)
-    minmax(4.5rem, var(--picodash-dashlet-label-width))
+    minmax(4.5rem, clamp(6rem, 30%, var(--picodash-dashlet-label-width)))
     minmax(var(--_picodash-dashlist-control-min-inline-size), 1fr)
     fit-content(var(--_picodash-dashlist-trailing-max-inline-size));
   column-gap: var(--picodash-space-1);
@@ -109,7 +109,7 @@
 [data-picodash-dashgroup-label] {
   display: block;
   min-inline-size: 0;
-  max-inline-size: var(--picodash-dashlet-label-width);
+  max-inline-size: 100%;
   overflow-wrap: anywhere;
 }
 

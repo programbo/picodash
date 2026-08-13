@@ -890,12 +890,16 @@ slice does not emit `presentation_incompatible`.
 
 ## Responsive row and compound layout
 
-> Contract: Accepted
+> Contract: Revised
 > Implementation: Partial
 > Evidence: `packages/dashlist/src/style.css` and `packages/dashlist/tests/style.test.ts` cover the
 > shared four-track ordering-grid recipe, label-width token, bounded trailing-value track, and
 > coarse pointer target declarations. Container-specific stacking, rendered responsive geometry,
 > and drag-preview geometry remain planned.
+> Notes: The original `cqi` label default required inline-size containment on the intrinsically
+> sized List root, which is incompatible with DashPanel's accepted `fit-content` behavior. The grid
+> now derives its fluid label share directly from its own width while the public token provides a
+> length cap.
 
 DashList responsiveness follows its own container width, never the viewport. Each ordering
 container owns one shared alignment grid across its start, automatic, and end pin bands. A
@@ -914,10 +918,10 @@ Content-cell wrappers establish subgrid cells only for inline layout; in block a
 do not establish layout boxes, so application content retains its own internal layout and explicit
 whitespace. A lone inline control spans the fluid control and optional trailing-value tracks.
 
-The initial label-width token is
-`--picodash-dashlet-label-width: clamp(6rem, 30cqi, 10rem)`. Long labels wrap rather than truncate.
-Trailing values are never ellipsized: their track has an initial `8rem` maximum, wraps when
-necessary, and cannot consume the control's initial `6rem` minimum usable width.
+The initial label track uses `clamp(6rem, 30%, var(--picodash-dashlet-label-width))`, with
+`--picodash-dashlet-label-width: 10rem` as its public preferred cap. Long labels wrap rather than
+truncate. Trailing values are never ellipsized: their track has an initial `8rem` maximum, wraps
+when necessary, and cannot consume the control's initial `6rem` minimum usable width.
 
 Compound Dashlets default to block layout. Their controls use a separate responsive internal grid
 and cannot alter sibling Dashlets' shared outer tracks. At compact widths, compound content reduces
@@ -1638,10 +1642,10 @@ List and Dashlet tokens use `--picodash-list-*` or `--picodash-dashlet-*`; priva
 
 DashList initially owns exactly two public product tokens:
 
-| Variable                              | Purpose                                              | Syntax     | Regular default             |
-| ------------------------------------- | ---------------------------------------------------- | ---------- | --------------------------- |
-| `--picodash-dashlet-label-width`      | Preferred label track width in inline row layout.    | `<length>` | `clamp(6rem, 30cqi, 10rem)` |
-| `--picodash-dashlet-field-min-height` | Minimum field visualization and state-region height. | `<length>` | `6rem`                      |
+| Variable                              | Purpose                                              | Syntax     | Regular default |
+| ------------------------------------- | ---------------------------------------------------- | ---------- | --------------- |
+| `--picodash-dashlet-label-width`      | Preferred label track width cap in inline layout.    | `<length>` | `10rem`         |
+| `--picodash-dashlet-field-min-height` | Minimum field visualization and state-region height. | `<length>` | `6rem`          |
 
 The label token is a preferred track width rather than a truncation boundary; long labels wrap.
 The field token replaces the prototype's generic `--picodash-field-surface-min-height` name.
