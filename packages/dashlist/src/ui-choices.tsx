@@ -60,6 +60,17 @@ export function choiceKey(value: ChoiceValue): string {
   return `${typeof value}:${String(value)}`
 }
 
+export function removeMultiSelectValues<T extends ChoiceValue>(
+  value: readonly T[],
+  removedKeys: ReadonlySet<string | number>,
+  disabledKeys: ReadonlySet<string>,
+): readonly T[] {
+  return value.filter((item) => {
+    const key = choiceKey(item)
+    return disabledKeys.has(key) || !removedKeys.has(key)
+  })
+}
+
 export function validateChoiceOptions<T extends ChoiceValue>(
   options: readonly SelectOption<T>[],
 ): void {
@@ -295,6 +306,9 @@ export function MultiSelect<T extends ChoiceValue>({
   validateChoiceOptions(options)
   const parts = options.map(optionParts)
   const selected = value.map(choiceKey)
+  const disabledKeys = new Set(
+    parts.filter((item) => item.disabled).map((item) => choiceKey(item.value)),
+  )
   return (
     <AriaComboBox
       className={composeControlClassName('picodash-dashlist-multi-select', props.className)}
@@ -336,8 +350,8 @@ export function MultiSelect<T extends ChoiceValue>({
           props.disabled || props.readOnly
             ? undefined
             : (keys) => {
-                const next = value.filter((item) => !keys.has(choiceKey(item)))
-                onChange(next)
+                const next = removeMultiSelectValues(value, keys, disabledKeys)
+                if (next.length !== value.length) onChange(next)
               }
         }
       >
@@ -349,9 +363,14 @@ export function MultiSelect<T extends ChoiceValue>({
             const part = parts.find((candidate) => choiceKey(candidate.value) === item.key)
             const textValue = part?.textValue ?? String(item.value)
             return (
-              <Tag className="picodash-dashlist-tag" id={item.key} textValue={textValue}>
+              <Tag
+                className="picodash-dashlist-tag"
+                id={item.key}
+                textValue={textValue}
+                isDisabled={part?.disabled}
+              >
                 {part?.label ?? String(item.value)}
-                {props.disabled || props.readOnly ? null : (
+                {props.disabled || props.readOnly || part?.disabled ? null : (
                   <Button
                     slot="remove"
                     aria-label={`Remove ${textValue}`}

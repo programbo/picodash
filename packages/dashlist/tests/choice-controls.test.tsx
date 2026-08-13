@@ -24,6 +24,7 @@ import {
   SegmentedControl,
   type SelectOption,
 } from '../src/ui.tsx'
+import { choiceKey, removeMultiSelectValues } from '../src/ui-choices.tsx'
 
 type DirectChoiceOptions = readonly SelectOption<string | number>[]
 type DirectChoiceControl = {
@@ -322,6 +323,95 @@ describe('choice controls', () => {
     )
     expect(view.root.element.querySelectorAll('[slot="remove"]')).toHaveLength(0)
     expect(changes).toEqual([])
+    act(() => view.unmount())
+  })
+
+  it('keeps disabled selected MultiSelect options unavailable through the listbox and tags', () => {
+    const changes: (string | number)[][] = []
+    const view = render(
+      createElement(MultiSelect, {
+        value: ['1', 1],
+        onChange: (next) => changes.push([...next]),
+        options: [
+          { value: '1', label: 'String one' },
+          { value: 1, label: 'Number one', disabled: true },
+        ],
+        'aria-label': 'Choices',
+      }),
+    )
+
+    const tags = [...view.root.element.querySelectorAll('.picodash-dashlist-tag')]
+    const stringTag = tags.find((tag) => tag.textContent?.includes('String one'))
+    const lockedTag = tags.find((tag) => tag.textContent?.includes('Number one'))
+    expect(stringTag?.hasAttribute('data-disabled')).toBe(false)
+    expect(lockedTag?.hasAttribute('data-disabled')).toBe(true)
+    expect(view.root.element.querySelector('[aria-label="Remove String one"]')).not.toBeNull()
+    expect(view.root.element.querySelector('[aria-label="Remove Number one"]')).toBeNull()
+
+    act(() => {
+      void fireEvent.keyDown(lockedTag!, { key: 'Delete' })
+    })
+    expect(changes).toEqual([])
+
+    const showChoices = view.root.element.querySelector('[aria-label="Show choices"]')
+    act(() => {
+      void fireEvent.click(showChoices!)
+    })
+    const lockedOption = [...view.root.element.querySelectorAll('[role="option"]')].find(
+      (option) => option.textContent === 'Number one',
+    )
+    expect(lockedOption?.getAttribute('aria-disabled')).toBe('true')
+    act(() => {
+      void fireEvent.click(lockedOption!)
+    })
+    expect(changes).toEqual([])
+
+    const removeString = view.root.element.querySelector('[aria-label="Remove String one"]')
+    act(() => {
+      void fireEvent.click(removeString!)
+    })
+    expect(changes).toEqual([[1]])
+    act(() => view.unmount())
+  })
+
+  it('filters disabled keys from MultiSelect bulk tag removal in controlled order', () => {
+    const value = ['first', 'locked', 'last'] as const
+    const disabledKeys = new Set([choiceKey('locked')])
+
+    expect(
+      removeMultiSelectValues(
+        value,
+        new Set([choiceKey('first'), choiceKey('locked'), choiceKey('last')]),
+        disabledKeys,
+      ),
+    ).toEqual(['locked'])
+    expect(removeMultiSelectValues(value, new Set([choiceKey('locked')]), disabledKeys)).toEqual(
+      value,
+    )
+  })
+
+  it('emits one ordered MultiSelect change for keyboard removal of an enabled tag', () => {
+    const changes: string[][] = []
+    const view = render(
+      createElement(MultiSelect, {
+        value: ['first', 'locked', 'last'],
+        onChange: (next) => changes.push(next.map(String)),
+        options: [
+          { value: 'first', label: 'First' },
+          { value: 'locked', label: 'Locked', disabled: true },
+          { value: 'last', label: 'Last' },
+        ],
+        'aria-label': 'Choices',
+      }),
+    )
+
+    const firstTag = [...view.root.element.querySelectorAll('.picodash-dashlist-tag')].find((tag) =>
+      tag.textContent?.includes('First'),
+    )
+    act(() => {
+      void fireEvent.keyDown(firstTag!, { key: 'Delete' })
+    })
+    expect(changes).toEqual([['locked', 'last']])
     act(() => view.unmount())
   })
 
