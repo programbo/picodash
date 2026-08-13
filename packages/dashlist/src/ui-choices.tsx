@@ -18,6 +18,7 @@ import {
   TagList,
 } from 'react-aria-components'
 import type { SelectOption } from './ui.js'
+import { composeControlClassName } from './ui-class-name.js'
 
 export type ChoiceControlProps = {
   readonly id?: string
@@ -92,7 +93,7 @@ export function Checkbox({ isSelected, onChange, ...props }: CheckboxProps) {
   return (
     <AriaCheckbox
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-checkbox'}
+      className={composeControlClassName('picodash-dashlist-checkbox', props.className)}
       isSelected={isSelected}
       onChange={onChange}
       isDisabled={props.disabled}
@@ -129,7 +130,7 @@ export function RadioGroup<T extends ChoiceValue>({
   return (
     <AriaRadioGroup
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-radio-group'}
+      className={composeControlClassName('picodash-dashlist-radio-group', props.className)}
       value={value === undefined ? undefined : choiceKey(value)}
       onChange={(next) => {
         const match = parts.find((item) => choiceKey(item.value) === next)
@@ -179,7 +180,7 @@ export function Combobox<T extends ChoiceValue>({
   const parts = options.map(optionParts)
   return (
     <AriaComboBox
-      className={props.className ?? 'picodash-dashlist-combobox'}
+      className={composeControlClassName('picodash-dashlist-combobox', props.className)}
       items={parts}
       value={value === undefined ? null : choiceKey(value)}
       onChange={(next) => {
@@ -243,7 +244,7 @@ export function CheckboxGroup<T extends ChoiceValue>({
   return (
     <AriaCheckboxGroup
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-checkbox-group'}
+      className={composeControlClassName('picodash-dashlist-checkbox-group', props.className)}
       value={selected}
       onChange={(keys) => {
         const selectedKeys = new Set(keys)
@@ -296,7 +297,7 @@ export function MultiSelect<T extends ChoiceValue>({
   const selected = value.map(choiceKey)
   return (
     <AriaComboBox
-      className={props.className ?? 'picodash-dashlist-multi-select'}
+      className={composeControlClassName('picodash-dashlist-multi-select', props.className)}
       selectionMode="multiple"
       items={parts}
       value={selected}
@@ -391,7 +392,7 @@ export type SearchFieldProps = ChoiceControlProps & {
 export function SearchField({ value, onChange, placeholder, ...props }: SearchFieldProps) {
   return (
     <AriaSearchField
-      className={props.className ?? 'picodash-dashlist-search-field'}
+      className={composeControlClassName('picodash-dashlist-search-field', props.className)}
       value={value}
       onChange={onChange}
       isDisabled={props.disabled}

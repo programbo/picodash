@@ -21,6 +21,7 @@ import {
 } from 'react-aria-components'
 import type { ReactNode } from 'react'
 import { validateChoiceOptions } from './ui-choices.js'
+import { composeControlClassName } from './ui-class-name.js'
 
 export type DashlistControlProps = {
   readonly id?: string
@@ -61,7 +62,7 @@ export function TextField({
   }
   return (
     <AriaTextField
-      className={props.className ?? 'picodash-dashlist-field'}
+      className={composeControlClassName('picodash-dashlist-field', props.className)}
       value={value}
       onChange={onChange}
       isDisabled={props.disabled}
@@ -99,7 +100,7 @@ export function NumberField({
 }: NumberFieldProps) {
   return (
     <AriaNumberField
-      className={props.className ?? 'picodash-dashlist-field'}
+      className={composeControlClassName('picodash-dashlist-field', props.className)}
       value={value}
       onChange={onChange}
       minValue={min}
@@ -150,7 +151,7 @@ export function Slider({
   return (
     <AriaSlider
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-slider'}
+      className={composeControlClassName('picodash-dashlist-slider', props.className)}
       value={value}
       onChange={props.readOnly ? undefined : onChange}
       minValue={min}
@@ -193,7 +194,7 @@ export function Switch({ isSelected, onChange, ...props }: SwitchProps) {
   return (
     <AriaSwitch
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-switch'}
+      className={composeControlClassName('picodash-dashlist-switch', props.className)}
       isSelected={isSelected}
       onChange={onChange}
       isDisabled={props.disabled}
@@ -263,7 +264,7 @@ export function Select<T extends string | number>({
   const parts = options.map(optionParts)
   return (
     <AriaSelect<OptionParts<T>>
-      className={props.className ?? 'picodash-dashlist-select'}
+      className={composeControlClassName('picodash-dashlist-select', props.className)}
       selectedKey={value === undefined ? null : choiceKey(value)}
       placeholder={placeholder}
       onSelectionChange={
@@ -327,7 +328,7 @@ export function SegmentedControl<T extends string | number>({
   return (
     <RadioGroup
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-segmented'}
+      className={composeControlClassName('picodash-dashlist-segmented', props.className)}
       value={value === undefined ? undefined : choiceKey(value)}
       onChange={(next) => {
         const match = parts.find((item) => choiceKey(item.value) === next)
@@ -376,7 +377,7 @@ export function Display({ value, renderedValue, isFormatted, ...props }: Display
   return (
     <output
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-display'}
+      className={composeControlClassName('picodash-dashlist-display', props.className)}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}

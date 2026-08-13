@@ -178,18 +178,18 @@ describe('value controls', () => {
       'value-color',
     ])
       expect(view.root.element.querySelector(`#${id}`)).not.toBeNull()
-    for (const className of [
-      'value-range-hook',
-      'value-meter-hook',
-      'value-progress-hook',
-      'value-status-hook',
-      'value-date-hook',
-      'value-time-hook',
-      'value-date-time-hook',
-      'value-date-range-hook',
-      'value-color-hook',
+    for (const [className, structuralClassName] of [
+      ['value-range-hook', 'picodash-dashlist-range-slider'],
+      ['value-meter-hook', 'picodash-dashlist-meter'],
+      ['value-progress-hook', 'picodash-dashlist-progress'],
+      ['value-status-hook', 'picodash-dashlist-status'],
+      ['value-date-hook', 'picodash-dashlist-date-field'],
+      ['value-time-hook', 'picodash-dashlist-time-field'],
+      ['value-date-time-hook', 'picodash-dashlist-date-time-field'],
+      ['value-date-range-hook', 'picodash-dashlist-date-range-field'],
+      ['value-color-hook', 'picodash-dashlist-color-field'],
     ])
-      expect(view.root.element.querySelector(`.${className}`)).not.toBeNull()
+      expect(view.root.element.querySelector(`.${structuralClassName}.${className}`)).not.toBeNull()
     act(() => view.unmount())
   })
 

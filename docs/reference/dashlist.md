@@ -1869,6 +1869,17 @@ progress exists only at this unbound layer. Shared Button, Label, Tooltip, Toolb
 ActionMenu, and Provider components remain canonically UI-owned and are not copied into this
 entrypoint.
 
+> Contract: Accepted
+> Implementation: Verified for root class composition
+> Evidence: `packages/dashlist/tests/ui-controls.test.tsx`,
+> `packages/dashlist/tests/choice-controls.test.tsx`, and
+> `packages/dashlist/tests/value-controls.test.tsx`
+> Notes: Every public `/ui` control keeps its package structural root class when `className` is
+> omitted or empty. A non-empty string `className` is appended to that same root. `ColorField`
+> applies the same rule to both its React Aria root for valid colors and its native input fallback
+> for an invalid color string. This evidence covers class composition only; it does not promote the
+> broader `/ui` inventory beyond its existing implementation status.
+
 ## Deferred product questions
 
 These questions do not block the initial implementation because their related features are outside

@@ -29,6 +29,7 @@ import {
 } from '@internationalized/date'
 import type { ReactNode } from 'react'
 import type { DashlistControlProps } from './ui.js'
+import { composeControlClassName } from './ui-class-name.js'
 
 export type NumberRangeValue = {
   readonly start: number
@@ -121,7 +122,7 @@ export function RangeSlider({
   return (
     <AriaSlider<number[]>
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-range-slider'}
+      className={composeControlClassName('picodash-dashlist-range-slider', props.className)}
       value={[value.start, value.end]}
       onChange={
         props.readOnly
@@ -184,7 +185,7 @@ export function Meter({
   return (
     <AriaMeter
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-meter'}
+      className={composeControlClassName('picodash-dashlist-meter', props.className)}
       value={value}
       minValue={min}
       maxValue={max}
@@ -233,7 +234,7 @@ export function ProgressBar({
   return (
     <AriaProgressBar
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-progress'}
+      className={composeControlClassName('picodash-dashlist-progress', props.className)}
       value={value}
       minValue={min}
       maxValue={max}
@@ -297,7 +298,7 @@ export function Status<T extends string | number>({ value, options, ...props }: 
   return (
     <span
       id={props.id}
-      className={props.className ?? 'picodash-dashlist-status'}
+      className={composeControlClassName('picodash-dashlist-status', props.className)}
       data-picodash-dashlist-status
       data-tone={option?.tone}
       aria-label={accessible}
@@ -339,7 +340,7 @@ export function DateField({
   return localize(
     locale,
     <AriaDateField<CalendarDate>
-      className={props.className ?? 'picodash-dashlist-date-field'}
+      className={composeControlClassName('picodash-dashlist-date-field', props.className)}
       value={dateValue(value)}
       onChange={(next) => onChange(next ? next.toString() : null)}
       minValue={min ? parseDate(min) : undefined}
@@ -380,7 +381,7 @@ export function TimeField({
   return localize(
     locale,
     <AriaTimeField<Time>
-      className={props.className ?? 'picodash-dashlist-time-field'}
+      className={composeControlClassName('picodash-dashlist-time-field', props.className)}
       value={timeValue(value)}
       onChange={(next) => onChange(next ? next.toString() : null)}
       minValue={min ? parseTime(min) : undefined}
@@ -427,7 +428,7 @@ export function DateTimeField({
   return localize(
     locale,
     <AriaDateField<ZonedDateTime>
-      className={props.className ?? 'picodash-dashlist-date-time-field'}
+      className={composeControlClassName('picodash-dashlist-date-time-field', props.className)}
       value={dateTimeValue(value, timeZone)}
       onChange={(next) => onChange(next ? dateTimeString(next) : null)}
       minValue={min ? parseAbsolute(min, timeZone) : undefined}
@@ -462,7 +463,7 @@ export function DateRangeField({
   return localize(
     locale,
     <AriaDateRangePicker
-      className={props.className ?? 'picodash-dashlist-date-range-field'}
+      className={composeControlClassName('picodash-dashlist-date-range-field', props.className)}
       value={parsed}
       onChange={(next) =>
         onChange(next ? { start: next.start.toString(), end: next.end.toString() } : null)
@@ -498,7 +499,7 @@ export function ColorField({ value, onChange, format = 'hex', ...props }: ColorF
     return (
       <input
         id={props.id}
-        className={props.className ?? 'picodash-dashlist-color-field'}
+        className={composeControlClassName('picodash-dashlist-color-field', props.className)}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
         disabled={props.disabled}
@@ -513,7 +514,7 @@ export function ColorField({ value, onChange, format = 'hex', ...props }: ColorF
   }
   return (
     <AriaColorField
-      className={props.className ?? 'picodash-dashlist-color-field'}
+      className={composeControlClassName('picodash-dashlist-color-field', props.className)}
       value={parsed}
       onChange={(next) => onChange(next ? next.toString(format) : null)}
       isDisabled={props.disabled}

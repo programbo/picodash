@@ -241,6 +241,7 @@ describe('choice controls', () => {
       }),
       createElement(SegmentedControl, {
         id: 'choice-segmented',
+        className: 'choice-segmented-hook',
         value: 'one',
         onChange: () => undefined,
         options: ['one', 'two'],
@@ -284,15 +285,16 @@ describe('choice controls', () => {
       'choice-search',
     ])
       expect(view.root.element.querySelector(`#${id}`)).not.toBeNull()
-    for (const className of [
-      'choice-checkbox-hook',
-      'choice-radio-hook',
-      'choice-combobox-hook',
-      'choice-checkbox-group-hook',
-      'choice-multi-hook',
-      'choice-search-hook',
+    for (const [className, structuralClassName] of [
+      ['choice-checkbox-hook', 'picodash-dashlist-checkbox'],
+      ['choice-radio-hook', 'picodash-dashlist-radio-group'],
+      ['choice-segmented-hook', 'picodash-dashlist-segmented'],
+      ['choice-combobox-hook', 'picodash-dashlist-combobox'],
+      ['choice-checkbox-group-hook', 'picodash-dashlist-checkbox-group'],
+      ['choice-multi-hook', 'picodash-dashlist-multi-select'],
+      ['choice-search-hook', 'picodash-dashlist-search-field'],
     ])
-      expect(view.root.element.querySelector(`.${className}`)).not.toBeNull()
+      expect(view.root.element.querySelector(`.${structuralClassName}.${className}`)).not.toBeNull()
     act(() => view.unmount())
   })
 
