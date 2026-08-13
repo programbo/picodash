@@ -1,7 +1,9 @@
 'use client'
 
 import {
+  Children,
   Fragment,
+  cloneElement,
   createElement,
   forwardRef,
   isValidElement,
@@ -914,6 +916,16 @@ function StaleInputConfirmation({
   )
 }
 
+function wrapDashletTextChildren(children: ReactNode): ReactNode {
+  return Children.map(children, (child) => {
+    if (typeof child === 'string' || typeof child === 'number' || typeof child === 'bigint')
+      return <span data-picodash-dashlet-text>{child}</span>
+    if (isValidElement<{ readonly children?: ReactNode }>(child) && child.type === Fragment)
+      return cloneElement(child, undefined, wrapDashletTextChildren(child.props.children))
+    return child
+  })
+}
+
 const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashletProps<any, any>>(
   function Dashlet(props: any, ref) {
     const {
@@ -980,6 +992,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     else if (descriptors.length > 1) renderContext.bindings = bindingRuntime.bindings
     const renderedChildren =
       typeof children === 'function' ? children(renderContext as never) : children
+    const wrappedChildren = wrapDashletTextChildren(renderedChildren)
     const reorderHandle = useOrderingHandle(id, resolvedName)
     void pin
     const inputBindings = Object.values(bindingRuntime.bindings).filter(
@@ -1034,7 +1047,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
               </span>
             ) : null}
             {reorderHandle}
-            <div data-picodash-dashlet-content>{renderedChildren}</div>
+            <div data-picodash-dashlet-content>{wrappedChildren}</div>
             {description !== undefined ? (
               <div id={descriptionId} data-picodash-dashlet-description>
                 {description}

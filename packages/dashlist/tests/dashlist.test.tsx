@@ -242,6 +242,27 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('wraps text-only Dashlet content so the inline grid can span it', () => {
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'text-content', nexus },
+        createElement(
+          Dashlet,
+          { id: 'readout', label: 'Readout' },
+          createElement(Fragment, null, 'Plain text'),
+        ),
+      ),
+    )
+    const text = renderer.root.findByProps({ 'data-picodash-dashlet-text': true })
+    expect(text.type).toBe('span')
+    expect(text.children).toEqual(['Plain text'])
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('resolves durable group collapse metadata without unmounting descendants', () => {
     const nexus = makeNexus()
     const scoped = nexus.scope('collapse')
