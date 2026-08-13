@@ -14,15 +14,36 @@ const exists = (file) =>
 const manifest = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8'))
 assert.deepEqual(manifest.exports, {
   '.': './dist/index.mjs',
+  './catalog': './dist/catalog.mjs',
+  './ui': './dist/ui.mjs',
+  './charts': './dist/charts.mjs',
   './package.json': './package.json',
   './style.css': './dist/style.css',
 })
 assert.deepEqual(manifest.dependencies, {
+  '@internationalized/date': 'catalog:',
   '@picodash/nexus': 'workspace:*',
   '@picodash/ui': 'workspace:*',
+  'react-aria-components': 'catalog:',
 })
-assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })
-for (const file of ['dist/index.mjs', 'dist/index.d.mts', 'dist/style.css'])
+assert.deepEqual(manifest.devDependencies['@tanstack/charts'], 'catalog:')
+assert.deepEqual(manifest.peerDependencies, {
+  '@tanstack/charts': '0.12.0',
+  react: '>=19',
+  'react-dom': '>=19',
+})
+assert.deepEqual(manifest.peerDependenciesMeta, { '@tanstack/charts': { optional: true } })
+for (const file of [
+  'dist/index.mjs',
+  'dist/index.d.mts',
+  'dist/catalog.mjs',
+  'dist/catalog.d.mts',
+  'dist/ui.mjs',
+  'dist/ui.d.mts',
+  'dist/charts.mjs',
+  'dist/charts.d.mts',
+  'dist/style.css',
+])
   assert.equal(await exists(path.join(packageRoot, file)), true, `missing ${file}`)
 
 const runtime = await import(
@@ -31,23 +52,99 @@ const runtime = await import(
 const React = await import('react')
 const { renderToString } = await import('react-dom/server')
 const { createPicodashNexus } = await import('@picodash/nexus')
-assert.deepEqual(Object.keys(runtime).sort(), [
-  'ActionMenu',
-  'ActionMenuItem',
-  'ActionMenuSeparator',
-  'ActionSubmenu',
-  'DashGroup',
-  'DashHeader',
-  'DashList',
-  'DashListActionItems',
-  'DashListCollapseAllItem',
-  'DashListExpandAllItem',
-  'DashListResetListItem',
-  'DashListResetSubmenu',
-  'DashListResetValuesItem',
-  'Dashlet',
-  'useDashListActions',
-])
+assert.deepEqual(
+  Object.keys(runtime).sort(),
+  [
+    'ActionMenu',
+    'ActionMenuItem',
+    'ActionMenuSeparator',
+    'ActionSubmenu',
+    'DashGroup',
+    'DashHeader',
+    'DashList',
+    'DashListActionItems',
+    'DashListCollapseAllItem',
+    'DashListExpandAllItem',
+    'DashListResetListItem',
+    'DashListResetSubmenu',
+    'DashListResetValuesItem',
+    'Dashlet',
+    'CheckboxDashlet',
+    'CheckboxGroupDashlet',
+    'ColorDashlet',
+    'ComboboxDashlet',
+    'DateDashlet',
+    'DateRangeDashlet',
+    'DateTimeDashlet',
+    'DisplayDashlet',
+    'MeterDashlet',
+    'MultiSelectDashlet',
+    'NumberDashlet',
+    'ProgressDashlet',
+    'RadioGroupDashlet',
+    'RangeDashlet',
+    'SearchDashlet',
+    'SegmentedDashlet',
+    'SelectDashlet',
+    'SliderDashlet',
+    'StatusDashlet',
+    'SwitchDashlet',
+    'TextDashlet',
+    'TimeDashlet',
+    'useDashListActions',
+  ].sort(),
+)
+const ui = await import(
+  `${pathToFileURL(path.join(packageRoot, 'dist/ui.mjs')).href}?dashlist-ui-artifact`
+)
+const charts = await import(
+  `${pathToFileURL(path.join(packageRoot, 'dist/charts.mjs')).href}?dashlist-charts-artifact`
+)
+assert.deepEqual(Object.keys(charts).sort(), ['ChartDashlet', 'SparklineDashlet'])
+const catalog = await import(
+  `${pathToFileURL(path.join(packageRoot, 'dist/catalog.mjs')).href}?dashlist-catalog-artifact`
+)
+assert.equal(catalog.catalog.schemaVersion, 1)
+assert.equal(catalog.catalog.entries.length, 25)
+assert.equal(Object.isFrozen(catalog.catalog), true)
+assert.equal(Object.isFrozen(catalog.catalog.entries), true)
+assert.equal(Object.isFrozen(catalog.catalog.entries[0]), true)
+assert.deepEqual(catalog.catalog.reexports, [])
+assert.equal(
+  catalog.catalog.entries.filter((entry) => entry.exportName === 'ChartDashlet').length,
+  0,
+)
+assert.equal(
+  catalog.catalog.entries.filter((entry) => entry.exportName === 'SparklineDashlet').length,
+  0,
+)
+assert.deepEqual(
+  Object.keys(ui).sort(),
+  [
+    'Checkbox',
+    'CheckboxGroup',
+    'ColorField',
+    'Combobox',
+    'DateField',
+    'DateRangeField',
+    'DateTimeField',
+    'Display',
+    'Meter',
+    'MultiSelect',
+    'NumberField',
+    'ProgressBar',
+    'RadioGroup',
+    'RangeSlider',
+    'SearchField',
+    'SegmentedControl',
+    'Select',
+    'Slider',
+    'Status',
+    'Switch',
+    'TextField',
+    'TimeField',
+  ].sort(),
+)
 for (const retired of [
   'Dashlist',
   'PicodashList',
@@ -62,6 +159,8 @@ for (const retired of [
   assert.equal(retired in runtime, false, `retired export remains: ${retired}`)
 
 const declarations = await readFile(path.join(packageRoot, 'dist/index.d.mts'), 'utf8')
+const rootBundle = await readFile(path.join(packageRoot, 'dist/index.mjs'), 'utf8')
+assert.doesNotMatch(rootBundle, /@tanstack\/charts|\.\/charts\.mjs/)
 for (const name of [
   'DashList',
   'DashListProps',
@@ -97,6 +196,28 @@ for (const name of [
   'DashListResetValuesItem',
   'DashListResetListItem',
   'useDashListActions',
+  'TextDashletProps',
+  'NumberDashletProps',
+  'SliderDashletProps',
+  'SwitchDashletProps',
+  'SelectDashletProps',
+  'SegmentedDashletProps',
+  'DisplayDashletProps',
+  'CheckboxDashletProps',
+  'CheckboxGroupDashletProps',
+  'ColorDashletProps',
+  'ComboboxDashletProps',
+  'DateDashletProps',
+  'DateRangeDashletProps',
+  'DateTimeDashletProps',
+  'MeterDashletProps',
+  'MultiSelectDashletProps',
+  'ProgressDashletProps',
+  'RadioGroupDashletProps',
+  'RangeDashletProps',
+  'SearchDashletProps',
+  'StatusDashletProps',
+  'TimeDashletProps',
 ])
   assert.match(declarations, new RegExp(`\\b${name}\\b`))
 for (const retired of [
@@ -108,6 +229,16 @@ for (const retired of [
   'PicodashItem',
 ])
   assert.doesNotMatch(declarations, new RegExp(`\\b${retired}\\b`))
+
+const chartDeclarations = await readFile(path.join(packageRoot, 'dist/charts.d.mts'), 'utf8')
+for (const name of [
+  'ChartDashlet',
+  'ChartDashletProps',
+  'SparklineDashlet',
+  'SparklineDashletProps',
+  'SparklineSource',
+])
+  assert.match(chartDeclarations, new RegExp(`\\b${name}\\b`))
 
 const css = await readFile(path.join(packageRoot, 'dist/style.css'), 'utf8')
 assert.match(css, /@picodash\/ui\/style\.css|picodash-dashlist/)

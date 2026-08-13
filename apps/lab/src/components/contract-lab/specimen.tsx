@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type RefObject } from 'react'
 import {
   createPicodashNexus,
+  type CoreTransactionResult,
   type DashPanelLayoutRecord,
   type PicodashFieldDefinitions,
   type PicodashDocument,
@@ -21,11 +22,26 @@ import type {
   CompoundDashletRenderContext,
   SingleFieldDashletRenderContext,
 } from '@picodash/dashlist'
+import { SparklineDashlet, type SparklineSource } from '@picodash/dashlist/charts'
 import {
   DashGroup as StandaloneDashGroup,
   DashList as StandaloneDashList,
   Dashlet as StandaloneDashlet,
   useDashListActions,
+} from '@picodash/dashlist'
+import {
+  CheckboxDashlet,
+  ColorDashlet,
+  DateDashlet,
+  MeterDashlet,
+  MultiSelectDashlet,
+  NumberDashlet,
+  ProgressDashlet,
+  RangeDashlet,
+  SelectDashlet,
+  SliderDashlet,
+  StatusDashlet,
+  TextDashlet,
 } from '@picodash/dashlist'
 import {
   ActionMenu,
@@ -52,7 +68,27 @@ export interface ContractLabSpecimenProps {
   readonly preset: ContractLabPreset
 }
 
-type SpecimenValues = { specimenMetric: number; specimenUnit: string }
+type SpecimenValues = {
+  specimenMetric: number
+  specimenUnit: string
+  galleryText: string
+  galleryNumber: number
+  galleryEnabled: boolean
+  galleryChoice: 'light' | 'dark' | 'system'
+  gallerySelected: readonly ('controls' | 'readouts' | 'media')[]
+  gallerySlider: number
+  galleryRange: { start: number; end: number }
+  galleryDate: string
+  galleryColor: string
+  galleryReadout: number
+  galleryStatus: 'ready' | 'running' | 'attention'
+}
+
+type SpecimenFieldDefinitions = {
+  readonly [Key in keyof SpecimenValues]: { readonly defaultValue: SpecimenValues[Key] }
+}
+
+type SpecimenNexus = RootNexus<SpecimenFieldDefinitions, CoreTransactionResult, true, true>
 
 const standalonePanelScopeId = 'contract-lab-standalone-panel'
 const standaloneListScopeId = 'contract-lab-standalone-list'
@@ -207,6 +243,169 @@ function StandaloneListActions() {
   )
 }
 
+const gallerySparklineSource: SparklineSource = (emit) => {
+  for (const value of [38, 44, 41, 56, 62, 58, 67, 64]) emit(value)
+}
+
+function DashletGallery({ nexus }: { readonly nexus: SpecimenNexus }) {
+  const compoundFields = {
+    number: { field: nexus.fields.galleryNumber },
+    enabled: { field: nexus.fields.galleryEnabled },
+  } as const
+
+  return (
+    <>
+      <div className="border-border/70 mt-4 border-y px-4 py-3" data-contract-lab-dashlet-gallery>
+        <h2 className="text-sm font-semibold">Dashlet gallery</h2>
+        <p className="text-muted-foreground mt-1 text-xs leading-5">
+          Ready-made Dashlets bind typed Nexus fields. Deferred specialists are labeled where no
+          accepted package contract exists yet.
+        </p>
+      </div>
+      <DashList
+        id="contract-lab-gallery-list"
+        aria-label="Dashlet gallery"
+        data-contract-lab-dashlet-gallery-list
+      >
+        <DashGroup
+          id="gallery-common-inputs"
+          label="Common inputs"
+          data-contract-lab-gallery-group="common-inputs"
+        >
+          <TextDashlet id="gallery-text" field={nexus.fields.galleryText} label="Text" />
+          <NumberDashlet
+            id="gallery-number"
+            field={nexus.fields.galleryNumber}
+            label="Number"
+            min={0}
+            max={100}
+          />
+          <CheckboxDashlet
+            id="gallery-enabled"
+            field={nexus.fields.galleryEnabled}
+            label="Enabled"
+          />
+          <SelectDashlet<string>
+            id="gallery-choice"
+            field={nexus.fields.galleryChoice}
+            label="Choice"
+            options={['light', 'dark', 'system']}
+          />
+          <DateDashlet id="gallery-date" field={nexus.fields.galleryDate} label="Date" />
+          <ColorDashlet id="gallery-color" field={nexus.fields.galleryColor} label="Color" />
+          <MultiSelectDashlet<string>
+            id="gallery-selected"
+            field={nexus.fields.gallerySelected}
+            label="Selected features"
+            options={['controls', 'readouts', 'media']}
+          />
+        </DashGroup>
+
+        <DashGroup
+          id="gallery-direct-manipulation"
+          label="Direct manipulation"
+          data-contract-lab-gallery-group="direct-manipulation"
+        >
+          <SliderDashlet
+            id="gallery-slider"
+            field={nexus.fields.gallerySlider}
+            label="Slider"
+            min={0}
+            max={100}
+            step={1}
+          />
+          <RangeDashlet
+            id="gallery-range"
+            field={nexus.fields.galleryRange}
+            label="Range"
+            min={0}
+            max={100}
+          />
+        </DashGroup>
+
+        <DashGroup
+          id="gallery-media-files"
+          label="Media and files"
+          data-contract-lab-gallery-group="media-files"
+        >
+          <Dashlet id="gallery-media-deferred" label="Media and files (deferred)">
+            <div className="grid gap-1 text-xs" data-contract-lab-gallery-deferred="media">
+              <p>
+                File and media input Dashlets are deferred until a host transport contract is
+                accepted.
+              </p>
+              <output>No file selected.</output>
+            </div>
+          </Dashlet>
+        </DashGroup>
+
+        <DashGroup id="gallery-charts" label="Charts" data-contract-lab-gallery-group="charts">
+          <SparklineDashlet
+            id="gallery-sparkline"
+            label="Request trend"
+            description="Experimental local history; samples are not persisted in Nexus."
+            source={gallerySparklineSource}
+            maxSamples={24}
+            data-contract-lab-gallery-chart="sparkline"
+          />
+        </DashGroup>
+
+        <DashGroup
+          id="gallery-readouts"
+          label="Readouts"
+          data-contract-lab-gallery-group="readouts"
+        >
+          <MeterDashlet
+            id="gallery-meter"
+            field={nexus.fields.galleryReadout}
+            label="Meter"
+            min={0}
+            max={100}
+          />
+          <ProgressDashlet
+            id="gallery-progress"
+            field={nexus.fields.galleryReadout}
+            label="Progress"
+            min={0}
+            max={100}
+          />
+          <StatusDashlet
+            id="gallery-status"
+            field={nexus.fields.galleryStatus}
+            label="Status"
+            options={[
+              { value: 'ready', label: 'Ready', tone: 'success' },
+              { value: 'running', label: 'Running', tone: 'info' },
+              { value: 'attention', label: 'Attention', tone: 'warning' },
+            ]}
+          />
+        </DashGroup>
+
+        <DashGroup
+          id="gallery-compound-recipes"
+          label="Compound recipes"
+          data-contract-lab-gallery-group="compound-recipes"
+        >
+          <Dashlet id="gallery-compound-recipe" label="Number and enabled" fields={compoundFields}>
+            {({
+              bindings,
+            }: CompoundDashletRenderContext<SpecimenValues, typeof compoundFields>) => (
+              <div className="flex flex-wrap items-center gap-2" data-contract-lab-gallery-compound>
+                <output>{bindings.number.value}</output>
+                <span aria-hidden="true">·</span>
+                <output>{bindings.enabled.value ? 'Enabled' : 'Disabled'}</output>
+                <button type="button" onClick={() => bindings.number.resetValue()}>
+                  Reset number
+                </button>
+              </div>
+            )}
+          </Dashlet>
+        </DashGroup>
+      </DashList>
+    </>
+  )
+}
+
 function StandalonePhase2Evidence({
   boundary,
   preset,
@@ -335,6 +534,17 @@ export function ContractLabSpecimen({
             },
           },
           specimenUnit: { defaultValue: 'requests/minute' },
+          galleryText: { defaultValue: 'Requests per minute' },
+          galleryNumber: { defaultValue: 42 },
+          galleryEnabled: { defaultValue: true },
+          galleryChoice: { defaultValue: 'system' },
+          gallerySelected: { defaultValue: ['controls', 'readouts'] },
+          gallerySlider: { defaultValue: 64 },
+          galleryRange: { defaultValue: { start: 20, end: 80 } },
+          galleryDate: { defaultValue: '2026-08-13' },
+          galleryColor: { defaultValue: '#2dd4bf' },
+          galleryReadout: { defaultValue: 68 },
+          galleryStatus: { defaultValue: 'ready' },
         },
       }),
     [],
@@ -449,6 +659,7 @@ export function ContractLabSpecimen({
             </button>
             <output data-contract-lab-document-status>{documentStatus}</output>
           </div>
+          {preset.id === 'composition' ? <DashletGallery nexus={nexus} /> : null}
           <DashList aria-label="Primary Panel List">
             <Dashlet
               id="specimen-summary"

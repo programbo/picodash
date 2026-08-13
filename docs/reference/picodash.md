@@ -230,10 +230,15 @@ than a foundational Dashlet.
 The prototype currently sources ready-made controls and catalog metadata from DashPanel. That
 ownership is non-conforming and must not constrain the target migration.
 
-Picodash reexports the exact DashList-owned `TextDashlet`, `NumberDashlet`, `SliderDashlet`,
-`SwitchDashlet`, `SelectDashlet`, `SegmentedDashlet`, and `DisplayDashlet` from its root. It combines
-foundation metadata through `@picodash/picodash/catalog`. DashList anatomy remains available only
-from its owning subpath; the facade does not add a `/dashlet` convenience surface.
+Picodash reexports the exact stable DashList-owned inventory from its root: `TextDashlet`,
+`NumberDashlet`, `SliderDashlet`, `SwitchDashlet`, `SelectDashlet`, `SegmentedDashlet`,
+`DisplayDashlet`, `CheckboxDashlet`, `RadioGroupDashlet`, `ComboboxDashlet`,
+`CheckboxGroupDashlet`, `MultiSelectDashlet`, `SearchDashlet`, `RangeDashlet`, `MeterDashlet`,
+`ProgressDashlet`, `StatusDashlet`, `DateDashlet`, `TimeDashlet`, `DateTimeDashlet`,
+`DateRangeDashlet`, and `ColorDashlet`. It combines foundation metadata through
+`@picodash/picodash/catalog`. Experimental chart subpath exports are not root reexports or catalog
+entries. DashList anatomy remains available only from its owning subpath; the facade does not add a
+`/dashlet` convenience surface.
 
 An optional family with a meaningful third-party runtime dependency ships as a separate package,
 not as a required Picodash dependency or root reexport. Its package name, dependency policy, public

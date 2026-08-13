@@ -74,11 +74,14 @@ Picodash facade merely to describe their exports.
 
 - DashPanel publishes one entry for every Accepted public React component it owns.
 - DashList publishes one entry for every Accepted public React component it owns, including each
-  initial ready-made Dashlet.
+  stable ready-made Dashlet in the inventory defined by the [DashList reference](dashlist.md#stable-ready-made-inventory).
 - Picodash publishes its `PicodashProvider` entry, combines the exact foundation entry objects, and
   records facade import paths in `reexports`.
 - A facade reexport never becomes a copied entry or changes the entry's `owner`.
 - Draft or experimental Dashlet anatomy helpers are excluded until their contracts become Accepted.
+- Experimental chart exports (`ChartDashlet` and `SparklineDashlet`) are excluded from the root
+  inventory and catalog. They remain isolated subpath capabilities until their pre-alpha contract
+  and browser evidence are complete.
 - `@picodash/ui` has no initial catalog. Product-neutral primitives are documented through their
   public declarations and reference rather than marketed as Picodash composition choices.
 

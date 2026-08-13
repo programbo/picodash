@@ -4,19 +4,21 @@ import { reactTestConfig } from './test/config.ts'
 const workspaceCwd = process.cwd().replaceAll('\\', '/')
 const tailwindEntryPoints = workspaceCwd.endsWith('/packages/ui')
   ? [{ files: '**', use: 'style.css' }]
-  : workspaceCwd.endsWith('/packages/dashpanel') || workspaceCwd.endsWith('/packages/dashlist')
+  : workspaceCwd.endsWith('/packages/dashpanel')
     ? [{ files: '**', use: 'style.css' }]
-    : workspaceCwd.endsWith('/apps/web')
+    : workspaceCwd.endsWith('/packages/dashlist')
       ? [{ files: '**', use: 'src/style.css' }]
-      : workspaceCwd.endsWith('/apps/lab')
+      : workspaceCwd.endsWith('/apps/web')
         ? [{ files: '**', use: 'src/style.css' }]
-        : [
-            { files: 'packages/dashpanel/**', use: 'packages/dashpanel/style.css' },
-            { files: 'packages/dashlist/**', use: 'packages/dashlist/style.css' },
-            { files: 'packages/picodash/**', use: 'packages/picodash/style.css' },
-            { files: 'apps/web/**', use: 'apps/web/src/style.css' },
-            { files: '**', use: 'apps/web/src/style.css' },
-          ]
+        : workspaceCwd.endsWith('/apps/lab')
+          ? [{ files: '**', use: 'src/style.css' }]
+          : [
+              { files: 'packages/dashpanel/**', use: 'packages/dashpanel/style.css' },
+              { files: 'packages/dashlist/**', use: 'packages/dashlist/src/style.css' },
+              { files: 'packages/picodash/**', use: 'packages/picodash/style.css' },
+              { files: 'apps/web/**', use: 'apps/web/src/style.css' },
+              { files: '**', use: 'apps/web/src/style.css' },
+            ]
 
 export default defineConfig({
   test: reactTestConfig,

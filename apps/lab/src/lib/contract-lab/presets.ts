@@ -35,10 +35,10 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Named Dashlets and one-level DashGroups render typed input, display, and compound Nexus bindings; standalone List collapse, keyboard ordering, and reset are available while ready-made Dashlets remain planned.',
+      'Two movable hybrid Panels group the ready-made controls by task, with Search pinned to the first start lane and Color in the second automatic lane.',
     id: 'composition',
     implementation: 'Partial',
-    label: 'Composition',
+    label: 'Style lab',
   },
   {
     description:

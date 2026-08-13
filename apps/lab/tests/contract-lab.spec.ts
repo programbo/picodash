@@ -5,7 +5,6 @@ import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
 
 const consoleErrors = new WeakMap<Page, string[]>()
 const persistenceProbeStorageKey = 'picodash-contract-lab-web-storage-probe-v1'
-const standaloneListScopeId = 'contract-lab-standalone-list'
 
 test.beforeEach(async ({ page }) => {
   const errors: string[] = []
@@ -25,7 +24,7 @@ test.afterEach(async ({ page }) => {
 const presets = [
   ['placement', 'Placement'],
   ['interaction', 'Interaction'],
-  ['composition', 'Composition'],
+  ['composition', 'Style lab'],
   ['overlays', 'Overlays'],
   ['documents', 'Documents'],
   ['themes', 'Themes'],
@@ -113,120 +112,37 @@ test('loads all six accepted presets, persists the selection for the session, an
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('Placement')
 })
 
-test('renders the landed same-scope Panel and List composition and reports collapse state', async ({
+test('renders the two-panel Dashlet style lab with the accepted groups and lanes', async ({
   page,
 }) => {
   await openLab(page)
-  await page.getByRole('button', { name: /^Composition:/ }).click()
+  await page.getByRole('button', { name: /^Style lab:/ }).click()
 
-  const primaryPanel = page.getByRole('complementary', { name: 'Primary Panel' })
-  await expect(primaryPanel).toBeVisible()
-  const primaryList = primaryPanel.getByRole('list', { name: 'Primary Panel List' })
-  await expect(primaryList).toBeVisible()
-  await expect(primaryPanel.locator('[data-picodash-dashgroup="specimen-group"]')).toBeVisible()
-  await expect(primaryList.locator('[data-picodash-dashlet]')).toHaveCount(3)
+  const basicsPanel = page.getByRole('complementary', { name: 'Basics & readout' })
+  const choicesPanel = page.getByRole('complementary', { name: 'Choices & temporal' })
+  await expect(basicsPanel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
+  await expect(choicesPanel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
 
-  const collapsePanel = primaryPanel.getByRole('button', { name: 'Collapse panel Primary Panel' })
-  await collapsePanel.focus()
-  await collapsePanel.press('Enter')
-  await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('collapsed')
-  await primaryPanel.getByRole('button', { name: 'Expand panel Primary Panel' }).press('Enter')
-  await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('expanded')
-  await primaryPanel.getByRole('button', { name: 'Close panel Primary Panel' }).click()
-  await expect(primaryPanel).toBeHidden()
+  const basicsList = basicsPanel.getByRole('list', { name: 'Basics and readout Dashlets' })
+  const choicesList = choicesPanel.getByRole('list', { name: 'Choices and temporal Dashlets' })
+  await expect(basicsList.getByRole('group', { name: 'Basics' })).toBeVisible()
+  await expect(basicsList.getByRole('group', { name: 'Readout' })).toBeVisible()
+  await expect(choicesList.getByRole('group', { name: 'Choices' })).toBeVisible()
+  await expect(choicesList.getByRole('group', { name: 'Temporal' })).toBeVisible()
 
-  const standaloneList = page.getByRole('region', { name: 'Standalone List evidence' })
-  await expect(standaloneList.getByRole('list', { name: 'Standalone List' })).toBeVisible()
-  await expect
-    .poll(() => page.evaluate(() => window.sessionStorage.getItem('picodash-dev-bridge-tab')))
-    .toEqual(expect.any(String))
-  const browserTabId = await page.evaluate(() =>
-    window.sessionStorage.getItem('picodash-dev-bridge-tab'),
+  await expect(basicsList.locator('[data-style-lab-lane="start"]')).toHaveAttribute(
+    'data-picodash-dashlet',
+    'style-lab-search',
   )
-  const credential = JSON.parse(
-    await readFile(resolve(process.cwd(), '../../.picodash/dev-bridge.json'), 'utf8'),
-  ) as { url: string; token: string }
-  const bridge = createPicodashDevBridgeClient({ baseUrl: credential.url, token: credential.token })
-  const matchingSession = () =>
-    bridge
-      .listSessions()
-      .then((sessions) =>
-        sessions.find(
-          (session) =>
-            session.registrationId === 'contract-lab-specimen' &&
-            session.browserTabId === browserTabId,
-        ),
-      )
-  await expect.poll(matchingSession).toBeTruthy()
-  const standaloneGroup = standaloneList.locator('[data-contract-lab-standalone-group]')
-  const beforeCollapse = (await matchingSession())!
-  await standaloneGroup.getByRole('button', { name: 'Collapse group Standalone group' }).click()
-  await expect(standaloneGroup).toHaveAttribute('data-collapsed', 'true')
-  const collapseWait = await bridge.wait(beforeCollapse, {
-    type: 'wait',
-    requestId: 'lab-standalone-collapse',
-    timeoutMs: 1000,
-    condition: { type: 'sequence_after', sequence: beforeCollapse.sequence },
-  })
-  expect(collapseWait).toMatchObject({ type: 'wait_result', outcome: 'satisfied' })
-  const collapsedSnapshot = await bridge.inspect((await matchingSession())!)
-  expect(
-    collapsedSnapshot.snapshot.scopes?.find((scope) => scope.id === standaloneListScopeId),
-  ).toEqual({
-    id: standaloneListScopeId,
-    metadata: {
-      dashList: {
-        groupOrders: [],
-        collapseOverrides: [['standalone-group', true]],
-      },
-    },
-  })
-  const beforeReorder = (await matchingSession())!
-  const actionsHandle = standaloneList.locator(
-    '[data-picodash-reorder-handle="standalone-actions"]',
+  await expect(choicesList.locator('[data-style-lab-lane="auto"]')).toHaveAttribute(
+    'data-picodash-dashlet',
+    'style-lab-color',
   )
-  await actionsHandle.press('Space')
-  await actionsHandle.press('ArrowUp')
-  await actionsHandle.press('Enter')
-  const reorderWait = await bridge.wait(beforeReorder, {
-    type: 'wait',
-    requestId: 'lab-standalone-reorder',
-    timeoutMs: 1000,
-    condition: { type: 'sequence_after', sequence: beforeReorder.sequence },
-  })
-  expect(reorderWait).toMatchObject({ type: 'wait_result', outcome: 'satisfied' })
-  const reorderedSnapshot = await bridge.inspect((await matchingSession())!)
-  expect(
-    reorderedSnapshot.snapshot.scopes?.find((scope) => scope.id === standaloneListScopeId),
-  ).toEqual({
-    id: standaloneListScopeId,
-    metadata: {
-      dashList: {
-        rootOrder: [
-          [0, 'standalone-actions'],
-          [1, 'standalone-group'],
-        ],
-        groupOrders: [],
-        collapseOverrides: [['standalone-group', true]],
-      },
-    },
-  })
-  const beforeReset = (await matchingSession())!
-  const resetList = standaloneList.getByRole('button', { name: 'Reset list' })
-  await resetList.focus()
-  await resetList.press('Enter')
-  await expect(standaloneList.getByRole('button', { name: 'Reset list' })).toBeDisabled()
-  const resetWait = await bridge.wait(beforeReset, {
-    type: 'wait',
-    requestId: 'lab-standalone-reset-list',
-    timeoutMs: 1000,
-    condition: { type: 'sequence_after', sequence: beforeReset.sequence },
-  })
-  expect(resetWait).toMatchObject({ type: 'wait_result', outcome: 'satisfied' })
-  const resetSnapshot = await bridge.inspect((await matchingSession())!)
-  expect(
-    resetSnapshot.snapshot.scopes?.find((scope) => scope.id === standaloneListScopeId),
-  ).toEqual({ id: standaloneListScopeId })
+  await expect(
+    basicsList
+      .getByRole('group', { name: 'Basics' })
+      .locator('[data-picodash-dashlet="style-lab-range"]'),
+  ).toBeVisible()
 })
 
 test('opens, cancels, and restores focus for the landed shared AlertDialog', async ({ page }) => {
@@ -323,7 +239,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   await expect(
     standalonePanel.locator('[data-contract-lab-standalone-panel-placement]'),
   ).toHaveText('floating-snapped')
-  await page.getByRole('button', { name: /^Composition:/ }).click()
+  await page.getByRole('button', { name: /^Overlays:/ }).click()
   const regularTrigger = page.getByRole('button', { name: 'Open shared AlertDialog' })
   const regular = await regularTrigger.evaluate((element) => {
     const style = getComputedStyle(element)
@@ -376,8 +292,8 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
       .poll(() => coarsePage.evaluate(() => getComputedStyle(document.documentElement).fontSize))
       .toBe('12px')
     await coarsePage.getByRole('button', { name: 'Close panel Primary Panel' }).press('Enter')
-    await coarsePage.getByRole('button', { name: /^Composition:/ }).press('Enter')
-    const coarseReorder = coarsePage.getByRole('button', { name: 'Reorder Standalone group' })
+    await coarsePage.getByRole('button', { name: /^Style lab:/ }).press('Enter')
+    const coarseReorder = coarsePage.getByRole('button', { name: 'Reorder Basics' })
     const coarseReorderBounds = await coarseReorder.evaluate((element) => {
       const rect = element.getBoundingClientRect()
       return { width: rect.width, height: rect.height }
