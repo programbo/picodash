@@ -135,9 +135,9 @@
   grid-template-columns: subgrid;
 }
 
-[data-picodash-dashlet-shell][data-layout='inline']
-  > [data-picodash-dashlet-content]:not(:has(> *)) {
-  display: block;
+[data-picodash-dashlet-content-cell] {
+  display: grid;
+  min-inline-size: 0;
 }
 
 [data-picodash-dashlet-shell][data-layout='inline']

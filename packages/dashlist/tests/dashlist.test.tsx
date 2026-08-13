@@ -242,21 +242,29 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('preserves text-only content returned by a Dashlet child component', () => {
+  it('wraps inline component children in separate layout cells', () => {
     const nexus = makeNexus()
+    function Control() {
+      return createElement('input', { 'aria-label': 'Control' })
+    }
     function Readout() {
-      return 'Plain text'
+      return '48%'
     }
     const renderer = render(
       createElement(
         DashList,
         { id: 'text-content', nexus },
-        createElement(Dashlet, { id: 'readout', label: 'Readout' }, createElement(Readout)),
+        createElement(
+          Dashlet,
+          { id: 'readout', label: 'Readout' },
+          createElement(Fragment, null, createElement(Control), createElement(Readout)),
+        ),
       ),
     )
-    expect(renderer.root.findByProps({ 'data-picodash-dashlet-content': true }).children).toEqual([
-      'Plain text',
-    ])
+    const cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells).toHaveLength(2)
+    expect(cells[0]!.findByType('input').props['aria-label']).toBe('Control')
+    expect(cells[1]!.children).toEqual(['48%'])
 
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()

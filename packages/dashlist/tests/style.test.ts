@@ -21,7 +21,7 @@ describe('DashList stylesheet contract', () => {
       /\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*subgrid;/s,
     )
     expect(css).toMatch(
-      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\]:not\(:has\(>\s*\*\)\)\s*\{[^}]*display:\s*block;/s,
+      /\[data-picodash-dashlet-content-cell\]\s*\{[^}]*display:\s*grid;[^}]*min-inline-size:\s*0;/s,
     )
     expect(css).toMatch(
       /@container picodash-dashlist \(max-width: 18rem\)[\s\S]*\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\]/s,
