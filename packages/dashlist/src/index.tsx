@@ -926,6 +926,17 @@ function wrapDashletContent(children: ReactNode): ReactNode {
   })
 }
 
+function syncDashletContentCells(container: HTMLDivElement): void {
+  for (const cell of container.children) {
+    if (!cell.hasAttribute('data-picodash-dashlet-content-cell')) continue
+    const hasRenderedContent = Array.from(cell.childNodes).some((node) => {
+      if (node.nodeType === 1) return true
+      return node.nodeType === 3 && Boolean(node.textContent?.trim())
+    })
+    cell.toggleAttribute('data-picodash-dashlet-content-empty', !hasRenderedContent)
+  }
+}
+
 const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashletProps<any, any>>(
   function Dashlet(props: any, ref) {
     const {
@@ -994,6 +1005,17 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       typeof children === 'function' ? children(renderContext as never) : children
     const layout = declaredLayout ?? (fields === undefined ? 'inline' : 'block')
     const contentChildren = wrapDashletContent(renderedChildren)
+    const contentRef = useRef<HTMLDivElement>(null)
+    useLayoutEffect(() => {
+      const content = contentRef.current
+      if (!content) return
+      const sync = () => syncDashletContentCells(content)
+      sync()
+      if (typeof MutationObserver !== 'function') return
+      const observer = new MutationObserver(sync)
+      observer.observe(content, { childList: true, characterData: true, subtree: true })
+      return () => observer.disconnect()
+    }, [])
     const reorderHandle = useOrderingHandle(id, resolvedName)
     void pin
     const inputBindings = Object.values(bindingRuntime.bindings).filter(
@@ -1048,7 +1070,9 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
               </span>
             ) : null}
             {reorderHandle}
-            <div data-picodash-dashlet-content>{contentChildren}</div>
+            <div ref={contentRef} data-picodash-dashlet-content>
+              {contentChildren}
+            </div>
             {description !== undefined ? (
               <div id={descriptionId} data-picodash-dashlet-description>
                 {description}

@@ -916,7 +916,8 @@ threshold. `layout="block"` always places content below the label while preservi
 content, description, and issues retain their DOM and focus order under every visual arrangement.
 Content-cell wrappers establish subgrid cells only for inline layout; in block and full layouts they
 do not establish layout boxes, so application content retains its own internal layout and explicit
-whitespace. A lone inline control spans the fluid control and optional trailing-value tracks.
+whitespace. Whitespace-only output from a child component is layout-empty in inline mode. A lone
+inline control spans the fluid control and optional trailing-value tracks.
 
 The initial label track uses `clamp(6rem, 30%, var(--picodash-dashlet-label-width))`, with
 `--picodash-dashlet-label-width: 10rem` as its public preferred cap. Long labels wrap rather than

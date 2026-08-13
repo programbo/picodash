@@ -351,6 +351,32 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('marks whitespace returned by an inline child component as layout-empty', () => {
+    const nexus = makeNexus()
+    function Spacer() {
+      return ' '
+    }
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'component-whitespace', nexus },
+        createElement(
+          Dashlet,
+          { id: 'control', label: 'Control' },
+          createElement(Spacer),
+          createElement('input', { 'aria-label': 'Visible control' }),
+        ),
+      ),
+    )
+    const cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells).toHaveLength(2)
+    expect(cells[0]!.element.hasAttribute('data-picodash-dashlet-content-empty')).toBe(true)
+    expect(cells[1]!.findByType('input').props['aria-label']).toBe('Visible control')
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('keeps group reorder and disclosure controls in visual DOM order', () => {
     const nexus = makeNexus()
     const renderer = render(

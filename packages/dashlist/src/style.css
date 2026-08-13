@@ -151,7 +151,9 @@
 
 [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content]
-  > [data-picodash-dashlet-content-cell]:not(:has(> *)):not(:empty) {
+  > [data-picodash-dashlet-content-cell]:not(:has(> *)):not(:empty):not(
+    [data-picodash-dashlet-content-empty]
+  ) {
   display: block;
 }
 
@@ -173,15 +175,18 @@
   display: contents;
 }
 
-[data-picodash-dashlet-content-cell]:empty {
+[data-picodash-dashlet-content-cell]:empty,
+[data-picodash-dashlet-content-cell][data-picodash-dashlet-content-empty] {
   display: none;
 }
 
 [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content]
   > [data-picodash-dashlet-content-cell]:nth-child(
-    1 of [data-picodash-dashlet-content-cell]:not(:empty)
-  ):nth-last-child(1 of [data-picodash-dashlet-content-cell]:not(:empty)) {
+    1 of [data-picodash-dashlet-content-cell]:not(:empty):not([data-picodash-dashlet-content-empty])
+  ):nth-last-child(
+    1 of [data-picodash-dashlet-content-cell]:not(:empty):not([data-picodash-dashlet-content-empty])
+  ) {
   grid-column: 1 / -1;
   min-inline-size: 0;
 }
@@ -189,8 +194,14 @@
 [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content]
   > [data-picodash-dashlet-content-cell]:nth-last-child(
-    1 of [data-picodash-dashlet-content-cell]:not(:empty)
-  ):not(:nth-child(1 of [data-picodash-dashlet-content-cell]:not(:empty))) {
+    1 of [data-picodash-dashlet-content-cell]:not(:empty):not([data-picodash-dashlet-content-empty])
+  ):not(
+    :nth-child(
+      1 of [data-picodash-dashlet-content-cell]:not(:empty):not(
+          [data-picodash-dashlet-content-empty]
+        )
+    )
+  ) {
   min-inline-size: 0;
   max-inline-size: var(--_picodash-dashlist-trailing-max-inline-size);
   overflow-wrap: anywhere;
