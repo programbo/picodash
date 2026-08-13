@@ -5,6 +5,7 @@ import {
   Checkbox as AriaCheckbox,
   CheckboxGroup as AriaCheckboxGroup,
   ComboBox as AriaComboBox,
+  ComboBoxValue,
   Input,
   Label,
   ListBox,
@@ -78,6 +79,22 @@ function validateMultiSelectValue(value: readonly ChoiceValue[]): void {
     if (seen.has(key)) throw new TypeError('MultiSelect value must contain unique values.')
     seen.add(key)
   }
+}
+
+function reconcileMultiSelectSelection<T extends ChoiceValue>(
+  value: readonly T[],
+  parts: readonly OptionParts<T>[],
+  selectedKeys: ReadonlySet<string | number>,
+): readonly T[] {
+  const configuredKeys = new Set(parts.map((item) => choiceKey(item.value)))
+  const configuredSelection = parts
+    .filter((item) => selectedKeys.has(choiceKey(item.value)))
+    .map((item) => item.value)
+  const unavailableSelection = value.filter((item) => {
+    const key = choiceKey(item)
+    return !configuredKeys.has(key) && selectedKeys.has(key)
+  })
+  return [...configuredSelection, ...unavailableSelection]
 }
 
 function validateCheckboxGroupValue(value: readonly ChoiceValue[]): void {
@@ -338,9 +355,7 @@ export function MultiSelect<T extends ChoiceValue>({
       onChange={(keys) => {
         if (!Array.isArray(keys)) return
         const selectedKeys = new Set(keys)
-        const next = parts
-          .filter((item) => selectedKeys.has(choiceKey(item.value)))
-          .map((item) => item.value)
+        const next = reconcileMultiSelectSelection(value, parts, selectedKeys)
         onChange(next)
       }}
       isDisabled={props.disabled}
@@ -363,47 +378,52 @@ export function MultiSelect<T extends ChoiceValue>({
       <Button className="picodash-dashlist-disclosure-button" aria-label="Show choices">
         ▾
       </Button>
-      <TagGroup
-        className="picodash-dashlist-tag-group"
-        aria-label={`${props['aria-label'] ?? 'Selected'} values`}
-        onRemove={
-          props.disabled || props.readOnly
-            ? undefined
-            : (keys) => {
-                const next = removeMultiSelectValues(value, keys, disabledKeys)
-                if (next.length !== value.length) onChange(next)
-              }
-        }
-      >
-        <TagList<{ key: string; value: T }>
-          className="picodash-dashlist-tag-list"
-          items={value.map((item) => ({ key: choiceKey(item), value: item }))}
-        >
-          {(item) => {
-            const part = parts.find((candidate) => choiceKey(candidate.value) === item.key)
-            const textValue = part?.textValue ?? String(item.value)
-            return (
-              <Tag
-                className="picodash-dashlist-tag"
-                id={item.key}
-                textValue={textValue}
-                isDisabled={part?.disabled}
-              >
-                {part?.label ?? String(item.value)}
-                {props.disabled || props.readOnly || part?.disabled ? null : (
-                  <Button
-                    slot="remove"
-                    aria-label={`Remove ${textValue}`}
-                    data-picodash-dashlist-tag-remove
+      <ComboBoxValue<OptionParts<T>>>
+        {({ state }) => (
+          <TagGroup
+            className="picodash-dashlist-tag-group"
+            aria-label={`${props['aria-label'] ?? 'Selected'} values`}
+            onRemove={
+              props.disabled || props.readOnly
+                ? undefined
+                : (keys) => {
+                    const next = removeMultiSelectValues(value, keys, disabledKeys)
+                    if (next.length !== value.length) state.setValue(next.map(choiceKey))
+                  }
+            }
+          >
+            <TagList<{ key: string; value: T }>
+              className="picodash-dashlist-tag-list"
+              items={value.map((item) => ({ key: choiceKey(item), value: item }))}
+            >
+              {(item) => {
+                const part = parts.find((candidate) => choiceKey(candidate.value) === item.key)
+                const textValue = part?.textValue ?? String(item.value)
+                return (
+                  <Tag
+                    className="picodash-dashlist-tag"
+                    id={item.key}
+                    textValue={textValue}
+                    isDisabled={part?.disabled}
                   >
-                    ×
-                  </Button>
-                )}
-              </Tag>
-            )
-          }}
-        </TagList>
-      </TagGroup>
+                    {part?.icon}
+                    {part?.label ?? String(item.value)}
+                    {props.disabled || props.readOnly || part?.disabled ? null : (
+                      <Button
+                        slot="remove"
+                        aria-label={`Remove ${textValue}`}
+                        data-picodash-dashlist-tag-remove
+                      >
+                        ×
+                      </Button>
+                    )}
+                  </Tag>
+                )
+              }}
+            </TagList>
+          </TagGroup>
+        )}
+      </ComboBoxValue>
       <ChoicePopover>
         <ListBox<OptionParts<T>> className="picodash-dashlist-listbox">
           {(item) => (

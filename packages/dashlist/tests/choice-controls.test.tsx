@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement, type ReactElement } from 'react'
+import { act, createElement, type ReactElement, useState } from 'react'
 import { describe, expect, it } from 'vite-plus/test'
 import { fireEvent } from '@testing-library/react'
 import { createPicodashNexus } from '@picodash/nexus'
@@ -102,6 +102,29 @@ function render(element: ReactElement): DomTestRenderer {
     renderer = createDomTestRenderer(element)
   })
   return renderer
+}
+
+function ControlledMultiSelect({
+  initialValue,
+  onChange,
+  options,
+}: {
+  readonly initialValue: readonly (string | number)[]
+  readonly onChange: (value: readonly (string | number)[]) => void
+  readonly options: DirectChoiceOptions
+}) {
+  const [value, setValue] = useState(initialValue)
+  return (
+    <MultiSelect
+      aria-label="Choices"
+      value={value}
+      onChange={(next) => {
+        onChange(next)
+        setValue(next)
+      }}
+      options={options}
+    />
+  )
 }
 
 describe('choice controls', () => {
@@ -298,12 +321,78 @@ describe('choice controls', () => {
     act(() => view.unmount())
   })
 
-  it('preserves mixed and unavailable MultiSelect values in controlled order', () => {
+  it('preserves unavailable MultiSelect values when adding a configured selection', () => {
+    const changes: (string | number)[][] = []
+    const view = render(
+      createElement(ControlledMultiSelect, {
+        initialValue: ['unavailable', '1', 1, 404, 'locked'],
+        onChange: (next) => changes.push([...next]),
+        options: [
+          { value: 1, label: 'Number one' },
+          { value: '1', label: 'String one' },
+          { value: 'two', label: 'Two' },
+          { value: 'locked', label: 'Locked', disabled: true },
+        ],
+      }),
+    )
+    expect(changes).toEqual([])
+
+    act(() => {
+      void fireEvent.click(view.root.element.querySelector('[aria-label="Show choices"]')!)
+    })
+    const option = [...view.root.element.querySelectorAll('[role="option"]')].find(
+      (candidate) => candidate.textContent === 'Two',
+    )
+    expect(option).not.toBeUndefined()
+    act(() => {
+      void fireEvent.click(option!)
+    })
+    expect(changes).toEqual([[1, '1', 'two', 'locked', 'unavailable', 404]])
+    expect(view.root.element.querySelector('[aria-label="Remove Two"]')).not.toBeNull()
+    expect(view.root.element.querySelector('[aria-label="Remove unavailable"]')).not.toBeNull()
+    expect(view.root.element.querySelector('[aria-label="Remove 404"]')).not.toBeNull()
+    act(() => view.unmount())
+  })
+
+  it('preserves unavailable MultiSelect values when removing a configured selection', () => {
+    const changes: (string | number)[][] = []
+    const view = render(
+      createElement(ControlledMultiSelect, {
+        initialValue: [404, 'two', '1', 'unavailable', 1, 'locked'],
+        onChange: (next) => changes.push([...next]),
+        options: [
+          { value: 1, label: 'Number one' },
+          { value: '1', label: 'String one' },
+          { value: 'two', label: 'Two' },
+          { value: 'locked', label: 'Locked', disabled: true },
+        ],
+      }),
+    )
+    expect(changes).toEqual([])
+
+    act(() => {
+      void fireEvent.click(view.root.element.querySelector('[aria-label="Show choices"]')!)
+    })
+    const option = [...view.root.element.querySelectorAll('[role="option"]')].find(
+      (candidate) => candidate.textContent === 'String one',
+    )
+    expect(option).not.toBeUndefined()
+    act(() => {
+      void fireEvent.click(option!)
+    })
+    expect(changes).toEqual([[1, 'two', 'locked', 404, 'unavailable']])
+    expect(view.root.element.querySelector('[aria-label="Remove String one"]')).toBeNull()
+    expect(view.root.element.querySelector('[aria-label="Remove unavailable"]')).not.toBeNull()
+    expect(view.root.element.querySelector('[aria-label="Remove 404"]')).not.toBeNull()
+    act(() => view.unmount())
+  })
+
+  it('removes only an explicitly removed unavailable MultiSelect value', () => {
     const changes: (string | number)[][] = []
     const view = render(
       createElement(MultiSelect, {
         'aria-label': 'Choices',
-        value: ['1', 1, 'unavailable'],
+        value: ['1', 'unavailable', 1, 404],
         onChange: (next) => changes.push([...next]),
         options: [
           { value: '1', label: 'String one' },
@@ -311,17 +400,50 @@ describe('choice controls', () => {
         ],
       }),
     )
+    expect(changes).toEqual([])
 
     expect(
       [...view.root.element.querySelectorAll('[data-picodash-dashlist-tag-remove]')].map((button) =>
         button.getAttribute('aria-label'),
       ),
-    ).toEqual(['Remove String one', 'Remove Number one', 'Remove unavailable'])
+    ).toEqual(['Remove String one', 'Remove unavailable', 'Remove Number one', 'Remove 404'])
 
     act(() => {
       void fireEvent.click(view.root.element.querySelector('[aria-label="Remove unavailable"]')!)
     })
-    expect(changes).toEqual([['1', 1]])
+    expect(changes).toEqual([['1', 1, 404]])
+
+    act(() => {
+      view.update(
+        createElement(MultiSelect, {
+          'aria-label': 'Choices',
+          value: changes[0]!,
+          onChange: (next) => changes.push([...next]),
+          options: [
+            { value: '1', label: 'String one' },
+            { value: 1, label: 'Number one' },
+          ],
+        }),
+      )
+    })
+    expect(view.root.element.querySelector('[aria-label="Remove unavailable"]')).toBeNull()
+    expect(view.root.element.querySelector('[aria-label="Remove 404"]')).not.toBeNull()
+
+    act(() => {
+      view.update(
+        createElement(MultiSelect, {
+          'aria-label': 'Choices',
+          value: ['1', 1],
+          onChange: (next) => changes.push([...next]),
+          options: [
+            { value: '1', label: 'String one' },
+            { value: 1, label: 'Number one' },
+          ],
+        }),
+      )
+    })
+    expect(view.root.element.querySelector('[aria-label="Remove 404"]')).toBeNull()
+    expect(changes).toEqual([['1', 1, 404]])
     act(() => view.unmount())
   })
 
@@ -495,14 +617,14 @@ describe('choice controls', () => {
         null,
         createElement(MultiSelect, {
           id: 'disabled-multi',
-          value: ['one'],
+          value: ['one', 'unavailable'],
           onChange: (next) => changes.push(next.map(String)),
           options: ['one', 'two'],
           disabled: true,
         }),
         createElement(MultiSelect, {
           id: 'readonly-multi',
-          value: ['one'],
+          value: ['one', 'unavailable'],
           onChange: (next) => changes.push(next.map(String)),
           options: ['one', 'two'],
           readOnly: true,
@@ -510,6 +632,7 @@ describe('choice controls', () => {
       ),
     )
     expect(view.root.element.querySelectorAll('[slot="remove"]')).toHaveLength(0)
+    expect(view.root.element.querySelectorAll('.picodash-dashlist-tag')).toHaveLength(4)
     expect(changes).toEqual([])
     act(() => view.unmount())
   })
@@ -605,6 +728,7 @@ describe('choice controls', () => {
 
   it('uses selected option text alternatives for MultiSelect tags and removal actions', () => {
     const icon = createElement('span', { 'aria-hidden': true }, '●')
+    const label = createElement('span', null, 'Visible choice')
     const view = render(
       createElement(MultiSelect, {
         value: ['internal-code'],
@@ -612,7 +736,8 @@ describe('choice controls', () => {
         options: [
           {
             value: 'internal-code',
-            label: icon,
+            icon,
+            label,
             textValue: 'Readable choice',
           },
         ],
@@ -621,6 +746,8 @@ describe('choice controls', () => {
     )
     const tag = view.root.element.querySelector('.picodash-dashlist-tag')
     expect(tag).not.toBeNull()
+    expect(tag?.textContent).toContain('●')
+    expect(tag?.textContent).toContain('Visible choice')
     expect(tag?.textContent).not.toContain('internal-code')
     expect(view.root.element.querySelector('[aria-label="Remove Readable choice"]')).not.toBeNull()
     expect(view.root.element.querySelector('[aria-label="Remove internal-code"]')).toBeNull()
