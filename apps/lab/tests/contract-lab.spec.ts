@@ -5,6 +5,7 @@ import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
 
 const consoleErrors = new WeakMap<Page, string[]>()
 const persistenceProbeStorageKey = 'picodash-contract-lab-web-storage-probe-v1'
+const standaloneListScopeId = 'contract-lab-standalone-list'
 
 test.beforeEach(async ({ page }) => {
   const errors: string[] = []
@@ -798,6 +799,52 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   expect((await client.inspect(primaryAfterStyle)).snapshot).toEqual(
     primaryBeforeStyleSnapshot.snapshot,
   )
+
+  const standaloneList = page.getByRole('region', { name: 'Standalone List evidence' })
+  const collapseStandaloneGroup = standaloneList.getByRole('button', {
+    name: 'Collapse group Standalone group',
+  })
+  await collapseStandaloneGroup.focus()
+  await expect(collapseStandaloneGroup).toBeFocused()
+  await collapseStandaloneGroup.press('Enter')
+  const expandStandaloneGroup = standaloneList.getByRole('button', {
+    name: 'Expand group Standalone group',
+  })
+  await expect(expandStandaloneGroup).toBeVisible()
+  await expect(expandStandaloneGroup).toHaveAttribute('aria-expanded', 'false')
+
+  const collapseWait = await client.wait(primaryAfterStyle, {
+    type: 'wait',
+    requestId: 'lab-primary-standalone-collapse',
+    timeoutMs: 1000,
+    condition: { type: 'sequence_after', sequence: primaryAfterStyle.sequence },
+  })
+  expect(collapseWait).toMatchObject({ type: 'wait_result', outcome: 'satisfied' })
+
+  const primaryAfterStandaloneCollapse = matches(await client.listSessions())!
+  expect(primaryAfterStandaloneCollapse).toMatchObject({
+    registrationId: 'contract-lab-specimen',
+    browserTabId,
+    generation: primaryAfterStyle.generation,
+  })
+  expect(primaryAfterStandaloneCollapse.sequence).toBeGreaterThan(primaryAfterStyle.sequence)
+  const collapsedSnapshot = await client.inspect(primaryAfterStandaloneCollapse)
+  expect(collapsedSnapshot.session).toMatchObject({
+    registrationId: 'contract-lab-specimen',
+    browserTabId,
+    generation: primaryAfterStyle.generation,
+    sequence: primaryAfterStandaloneCollapse.sequence,
+  })
+  expect(
+    collapsedSnapshot.snapshot.scopes?.find((scope) => scope.id === standaloneListScopeId),
+  ).toMatchObject({
+    id: standaloneListScopeId,
+    metadata: {
+      dashList: {
+        collapseOverrides: [['standalone-group', true]],
+      },
+    },
+  })
   await page.evaluate((key) => {
     localStorage.removeItem(key)
     localStorage.removeItem('contract-lab-unrelated-key')

@@ -131,6 +131,14 @@ proves the canonical boolean through `wait` and `inspect` while the primary spec
 unchanged. This is a representative consumer disclosure; it does not add Bridge or Nexus
 authority.
 
+After proving that isolation, the same journey performs one public UI-to-Bridge metadata
+correlation on the primary `contract-lab-specimen` registration. It collapses `Standalone group`
+through its accessible disclosure control, waits for the primary session sequence to advance,
+rediscovers the current generation, and inspects the already disclosed
+`contract-lab-standalone-list` scope for the durable `standalone-group` collapse override. The
+journey does not write metadata through Bridge or expand disclosure. Deterministic collapse,
+reorder, and reset behavior remains owned by the focused DashList and Nexus tests.
+
 MCP stdio parity is a follow-on only if the CLI proves useful. Bridge persistence, reset, and other
 dangerous extensions remain deferred; they require preview, explicit confirmation, idempotency, and
 an audit trail before implementation. Nexus document import/export remains a browser-local
