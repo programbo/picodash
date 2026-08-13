@@ -933,7 +933,7 @@ function syncDashletContentCells(container: HTMLDivElement): void {
   for (const cell of container.children) {
     if (!cell.hasAttribute('data-picodash-dashlet-content-cell')) continue
     const renderedNodes = Array.from(cell.childNodes).filter((node) => {
-      if (node.nodeType === 1) return true
+      if (node.nodeType === 1) return !(node as Element).hasAttribute('hidden')
       return node.nodeType === 3 && Boolean(node.textContent?.trim())
     })
     cell.toggleAttribute('data-picodash-dashlet-content-empty', renderedNodes.length === 0)
@@ -1025,7 +1025,13 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       sync()
       if (typeof MutationObserver !== 'function') return
       const observer = new MutationObserver(sync)
-      observer.observe(content, { childList: true, characterData: true, subtree: true })
+      observer.observe(content, {
+        attributes: true,
+        attributeFilter: ['hidden'],
+        childList: true,
+        characterData: true,
+        subtree: true,
+      })
       return () => observer.disconnect()
     }, [])
     const reorderHandle = useOrderingHandle(id, resolvedName)

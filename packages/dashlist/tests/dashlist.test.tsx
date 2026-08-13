@@ -325,6 +325,43 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('resyncs inline content cells when a rendered root is hidden', async () => {
+    const nexus = makeNexus()
+    const renderVisibility = (hidden: boolean) =>
+      createElement(
+        DashList,
+        { id: 'hidden-content-cell', nexus },
+        createElement(
+          Dashlet,
+          { id: 'visibility', label: 'Visibility' },
+          createElement('output', { hidden }, '48%'),
+          createElement('input', { 'aria-label': 'Visible control' }),
+        ),
+      )
+    const renderer = render(renderVisibility(false))
+    let cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells[0]!.element.hasAttribute('data-picodash-dashlet-content-empty')).toBe(false)
+
+    await act(async () => {
+      renderer.update(renderVisibility(true))
+      await Promise.resolve()
+    })
+    cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells[0]!.findByType('output').props.hidden).toBe(true)
+    expect(cells[0]!.element.hasAttribute('data-picodash-dashlet-content-empty')).toBe(true)
+    expect(cells[1]!.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(true)
+
+    await act(async () => {
+      renderer.update(renderVisibility(false))
+      await Promise.resolve()
+    })
+    cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells[0]!.element.hasAttribute('data-picodash-dashlet-content-empty')).toBe(false)
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('preserves control DOM identity when the Dashlet layout changes', () => {
     const nexus = makeNexus()
     const renderLayout = (layout: 'inline' | 'block' | 'full') =>
