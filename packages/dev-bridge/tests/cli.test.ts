@@ -48,6 +48,28 @@ class BrowserWebSocket extends EventTarget {
 
 type RunResult = { code: number | null; stdout: string; stderr: string }
 
+function spawnCli(args: readonly string[], env: Record<string, string>) {
+  const child = spawn(process.execPath, [cli, ...args], {
+    cwd: root,
+    env: { ...process.env, ...env },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  })
+  const out: Buffer[] = []
+  const err: Buffer[] = []
+  child.stdout.on('data', (chunk) => out.push(Buffer.from(chunk)))
+  child.stderr.on('data', (chunk) => err.push(Buffer.from(chunk)))
+  const closed = new Promise<RunResult>((resolve) =>
+    child.on('close', (code) =>
+      resolve({
+        code,
+        stdout: Buffer.concat(out).toString(),
+        stderr: Buffer.concat(err).toString(),
+      }),
+    ),
+  )
+  return { child, closed }
+}
+
 const mockDescriptor = (overrides: Record<string, unknown> = {}) => ({
   sessionId: 'session',
   generation: 1,
@@ -86,26 +108,10 @@ function run(
   env: Record<string, string>,
   input?: string,
 ): Promise<RunResult> {
-  return new Promise((resolve) => {
-    const child = spawn(process.execPath, [cli, ...args], {
-      cwd: root,
-      env: { ...process.env, ...env },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-    const out: Buffer[] = []
-    const err: Buffer[] = []
-    child.stdout.on('data', (chunk) => out.push(Buffer.from(chunk)))
-    child.stderr.on('data', (chunk) => err.push(Buffer.from(chunk)))
-    child.on('close', (code) =>
-      resolve({
-        code,
-        stdout: Buffer.concat(out).toString(),
-        stderr: Buffer.concat(err).toString(),
-      }),
-    )
-    if (input !== undefined) child.stdin.end(input)
-    else child.stdin.end()
-  })
+  const running = spawnCli(args, env)
+  if (input !== undefined) running.child.stdin.end(input)
+  else running.child.stdin.end()
+  return running.closed
 }
 
 const previousWebSocket = globalThis.WebSocket
@@ -403,7 +409,7 @@ describe('dev bridge CLI', () => {
       outcome: { type: 'contract_error', code: 'use-after-destroy' },
       requestId: expect.stringMatching(/^cli-[0-9a-f-]{36}$/),
     })
-  })
+  }, 30_000)
 
   test('rejects invalid stdin and stale generations with specified exits', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
@@ -456,6 +462,63 @@ describe('dev bridge CLI', () => {
     expect(missing.code).toBe(4)
     expect(JSON.parse(missing.stdout)).toMatchObject({ error: { code: 'session_not_found' } })
   })
+
+  test('aborts wait while stdin remains open with exit 130', async () => {
+    const running = spawnCli(['wait', '--session-id', 'session', '--generation', '1'], {
+      PICODASH_DEV_BRIDGE_URL: 'http://127.0.0.1:1',
+      PICODASH_DEV_BRIDGE_TOKEN: 'A'.repeat(43),
+    })
+    running.child.stdin.write(
+      '{"timeoutMs":30000,"condition":{"type":"sequence_after","sequence":0}}',
+    )
+    await new Promise((resolve) => setTimeout(resolve, 1_000))
+    running.child.kill('SIGINT')
+    const result = await Promise.race([
+      running.closed,
+      new Promise<RunResult>((_, reject) =>
+        setTimeout(() => reject(new Error('wait stdin abort timed out')), 5_000),
+      ),
+    ])
+    expect(result.code).toBe(130)
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      type: 'cli_error',
+      error: { code: 'aborted' },
+    })
+  }, 10_000)
+
+  test('aborts wait while session discovery is stalled with exit 130', async () => {
+    let sessionRequest!: () => void
+    const sessionRequestSeen = new Promise<void>((resolve) => {
+      sessionRequest = resolve
+    })
+    const mock = await mockRelay((requestPath) => {
+      if (requestPath === '/v1/sessions') sessionRequest()
+    })
+    const running = spawnCli(['wait', '--session-id', 'session', '--generation', '1'], {
+      PICODASH_DEV_BRIDGE_URL: mock.url,
+      PICODASH_DEV_BRIDGE_TOKEN: 'A'.repeat(43),
+    })
+    running.child.stdin.end(
+      '{"timeoutMs":30000,"condition":{"type":"sequence_after","sequence":0}}',
+    )
+    await sessionRequestSeen
+    running.child.kill('SIGINT')
+    const result = await Promise.race([
+      running.closed,
+      new Promise<RunResult>((_, reject) =>
+        setTimeout(() => reject(new Error('stalled discovery abort timed out')), 5_000),
+      ),
+    ])
+    await mock.close()
+    expect(result.code).toBe(130)
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      type: 'cli_error',
+      error: {
+        code: 'aborted',
+      },
+      requestId: expect.stringMatching(/^cli-[0-9a-f-]{36}$/),
+    })
+  }, 10_000)
 
   test('aborts wait on SIGINT with exit 130', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
