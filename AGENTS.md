@@ -24,8 +24,9 @@ them. Re-read the routes when the task expands into another package.
   [`docs/reference/dashpanel-contract-decisions.md`](docs/reference/dashpanel-contract-decisions.md),
   [`docs/reference/dashpanel.md`](docs/reference/dashpanel.md), and
   [`docs/adr/0004-dashpanel-launcher-item-identity.md`](docs/adr/0004-dashpanel-launcher-item-identity.md).
-- DashList or Dashlet behavior or docs: [`docs/agents/dashlist.md`](docs/agents/dashlist.md) and
-  [`docs/reference/dashlist.md`](docs/reference/dashlist.md).
+- DashList or Dashlet behavior or docs: [`docs/agents/dashlist.md`](docs/agents/dashlist.md),
+  [`docs/reference/dashlist.md`](docs/reference/dashlist.md), and
+  [`docs/adr/0006-dashlist-responsive-measurement.md`](docs/adr/0006-dashlist-responsive-measurement.md).
 - Picodash or cross-product integration: [`docs/agents/picodash.md`](docs/agents/picodash.md) and
   [`docs/reference/picodash.md`](docs/reference/picodash.md).
 - Product copy, examples, or package READMEs: the matching package route,

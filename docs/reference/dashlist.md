@@ -1812,6 +1812,7 @@ still produce:
 
 ## Related documents
 
+- [DashList responsive measurement decision](../adr/0006-dashlist-responsive-measurement.md)
 - [DashList value proposition](../product/value-propositions.md#dashlist)
 - [Shared UI target reference](ui.md)
 - [Nexus target reference](nexus.md)
