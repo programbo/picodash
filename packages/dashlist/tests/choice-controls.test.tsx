@@ -137,6 +137,24 @@ describe('choice controls', () => {
         ).toThrowError(new TypeError(`${invalidCase.message}`))
   })
 
+  it('rejects runtime-escaped non-string and non-number option values for every direct choice control', () => {
+    const runtimeEscapes: readonly {
+      readonly name: string
+      readonly options: readonly unknown[]
+    }[] = [
+      { name: 'boolean', options: [true] },
+      { name: 'null', options: [null] },
+      { name: 'object', options: [{ value: {} }] },
+    ]
+
+    for (const runtimeEscape of runtimeEscapes)
+      for (const control of directChoiceControls)
+        expect(
+          () => render(control.render(runtimeEscape.options as unknown as DirectChoiceOptions)),
+          `${control.name} should reject a runtime-escaped ${runtimeEscape.name} option value`,
+        ).toThrowError(new TypeError('option values must be finite strings or numbers.'))
+  })
+
   it('keeps React Aria choice roots stateful and names non-text options from textValue', () => {
     const icon = createElement('span', { 'aria-hidden': true }, '●')
     const view = render(
