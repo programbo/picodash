@@ -295,6 +295,36 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('preserves control DOM identity when the Dashlet layout changes', () => {
+    const nexus = makeNexus()
+    const renderLayout = (layout: 'inline' | 'block' | 'full') =>
+      createElement(
+        DashList,
+        { id: 'layout-identity', nexus },
+        createElement(
+          Dashlet,
+          { id: 'control', label: 'Control', layout },
+          createElement('input', { 'aria-label': 'Persistent control', defaultValue: 'retained' }),
+        ),
+      )
+    const renderer = render(renderLayout('inline'))
+    const initialControl = renderer.root.findByProps({ 'aria-label': 'Persistent control' }).element
+    initialControl.focus()
+
+    act(() => renderer.update(renderLayout('block')))
+    const blockControl = renderer.root.findByProps({ 'aria-label': 'Persistent control' }).element
+    expect(blockControl).toBe(initialControl)
+    expect(blockControl.ownerDocument.activeElement).toBe(blockControl)
+
+    act(() => renderer.update(renderLayout('full')))
+    expect(renderer.root.findByProps({ 'aria-label': 'Persistent control' }).element).toBe(
+      initialControl,
+    )
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('keeps group reorder and disclosure controls in visual DOM order', () => {
     const nexus = makeNexus()
     const renderer = render(

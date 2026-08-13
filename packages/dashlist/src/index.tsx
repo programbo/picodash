@@ -992,8 +992,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     const renderedChildren =
       typeof children === 'function' ? children(renderContext as never) : children
     const layout = declaredLayout ?? (fields === undefined ? 'inline' : 'block')
-    const contentChildren =
-      layout === 'inline' ? wrapInlineDashletCells(renderedChildren) : renderedChildren
+    const contentChildren = wrapInlineDashletCells(renderedChildren)
     const reorderHandle = useOrderingHandle(id, resolvedName)
     void pin
     const inputBindings = Object.values(bindingRuntime.bindings).filter(
