@@ -110,6 +110,14 @@ export type RangeSliderProps = DashlistControlProps & {
   readonly formatOptions?: Intl.NumberFormatOptions
 }
 
+function validateRangeSliderConfiguration(min: number, max: number, step: number): void {
+  if (!Number.isFinite(min)) throw new TypeError('min must be finite.')
+  if (!Number.isFinite(max)) throw new TypeError('max must be finite.')
+  if (min > max) throw new TypeError('min must be less than or equal to max.')
+  if (!Number.isFinite(step) || step <= 0)
+    throw new TypeError('step must be a positive finite number.')
+}
+
 export function RangeSlider({
   value,
   onChange,
@@ -119,6 +127,8 @@ export function RangeSlider({
   formatOptions,
   ...props
 }: RangeSliderProps) {
+  validateRangeSliderConfiguration(min, max, step)
+
   return (
     <AriaSlider<number[]>
       id={props.id}

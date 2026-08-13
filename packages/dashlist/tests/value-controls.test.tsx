@@ -16,6 +16,7 @@ import {
   Status,
   TimeField,
 } from '../src/ui.js'
+import type { RangeSliderProps } from '../src/ui.js'
 import {
   DashList,
   DateDashlet,
@@ -99,6 +100,129 @@ describe('value controls', () => {
       expect(thumb.hasAttribute('aria-invalid')).toBe(false)
       expect(thumb.hasAttribute('aria-errormessage')).toBe(false)
     }
+    act(() => view.unmount())
+  })
+
+  it('rejects invalid direct RangeSlider configuration synchronously', () => {
+    const invalidConfigurations: readonly {
+      readonly name: string
+      readonly props: Pick<RangeSliderProps, 'min' | 'max' | 'step'>
+      readonly error: TypeError
+    }[] = [
+      ...[Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((min) => ({
+        name: `non-finite min ${String(min)}`,
+        props: { min },
+        error: new TypeError('min must be finite.'),
+      })),
+      ...[Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((max) => ({
+        name: `non-finite max ${String(max)}`,
+        props: { max },
+        error: new TypeError('max must be finite.'),
+      })),
+      {
+        name: 'descending bounds',
+        props: { min: 2, max: 1 },
+        error: new TypeError('min must be less than or equal to max.'),
+      },
+      ...[0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((step) => ({
+        name: `non-positive or non-finite step ${String(step)}`,
+        props: { step },
+        error: new TypeError('step must be a positive finite number.'),
+      })),
+    ]
+
+    for (const configuration of invalidConfigurations)
+      expect(
+        () =>
+          render(
+            createElement(RangeSlider, {
+              value: { start: 0, end: 1 },
+              onChange: () => undefined,
+              'aria-label': 'Invalid range',
+              ...configuration.props,
+            }),
+          ),
+        configuration.name,
+      ).toThrowError(configuration.error)
+  })
+
+  it('preserves valid RangeSlider bounds, formatting, policies, and controlled values', async () => {
+    const changes: RangeSliderProps['value'][] = []
+    const view = render(
+      createElement(I18nProvider, {
+        locale: 'en-US',
+        children: createElement(
+          'div',
+          null,
+          createElement(RangeSlider, {
+            className: 'default-range',
+            value: { start: 20, end: 80 },
+            onChange: (next) => changes.push(next),
+            'aria-label': 'Default range',
+          }),
+          createElement(RangeSlider, {
+            className: 'signed-range',
+            value: { start: -5, end: 5 },
+            onChange: (next) => changes.push(next),
+            min: -10,
+            max: 10,
+            step: 0.5,
+            formatOptions: { style: 'currency', currency: 'USD' },
+            'aria-label': 'Signed range',
+          }),
+          createElement(RangeSlider, {
+            className: 'fixed-range',
+            value: { start: 5, end: 5 },
+            onChange: (next) => changes.push(next),
+            min: 5,
+            max: 5,
+            'aria-label': 'Fixed range',
+          }),
+          createElement(RangeSlider, {
+            className: 'controlled-range',
+            value: { start: 12, end: -2 },
+            onChange: (next) => changes.push(next),
+            min: 0,
+            max: 10,
+            'aria-label': 'Controlled range',
+          }),
+          createElement(RangeSlider, {
+            className: 'disabled-range',
+            value: { start: 2, end: 8 },
+            onChange: (next) => changes.push(next),
+            disabled: true,
+            'aria-label': 'Disabled range',
+          }),
+          createElement(RangeSlider, {
+            className: 'read-only-range',
+            value: { start: 2, end: 8 },
+            onChange: (next) => changes.push(next),
+            readOnly: true,
+            'aria-label': 'Read-only range',
+          }),
+        ),
+      }),
+    )
+
+    const rangeInputs = (className: string) => [
+      ...view.root.element.querySelectorAll<HTMLInputElement>(`.${className} input[type="range"]`),
+    ]
+    expect(rangeInputs('default-range').map(({ min, max, step }) => ({ min, max, step }))).toEqual([
+      { min: '0', max: '80', step: '1' },
+      { min: '20', max: '100', step: '1' },
+    ])
+    expect(rangeInputs('signed-range').map(({ min, max, step }) => ({ min, max, step }))).toEqual([
+      { min: '-10', max: '5', step: '0.5' },
+      { min: '-5', max: '10', step: '0.5' },
+    ])
+    expect(view.root.element.querySelector('.signed-range output')?.textContent).toContain('$5.00')
+    expect(rangeInputs('fixed-range').map(({ value }) => value)).toEqual(['5', '5'])
+    expect(rangeInputs('controlled-range')).toHaveLength(2)
+    expect(rangeInputs('disabled-range').every((input) => input.disabled)).toBe(true)
+    await act(() =>
+      fireEvent.change(rangeInputs('read-only-range')[1]!, { target: { value: '9' } }),
+    )
+    expect(changes).toEqual([])
     act(() => view.unmount())
   })
 
