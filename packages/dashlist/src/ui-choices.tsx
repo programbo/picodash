@@ -24,6 +24,8 @@ export type ChoiceControlProps = {
   readonly 'aria-label'?: string
   readonly 'aria-labelledby'?: string
   readonly 'aria-describedby'?: string
+  readonly 'aria-invalid'?: boolean | 'true' | 'false'
+  readonly 'aria-errormessage'?: string
   readonly disabled?: boolean
   readonly readOnly?: boolean
   readonly className?: string
@@ -85,14 +87,18 @@ export type CheckboxProps = ChoiceControlProps & {
 export function Checkbox({ isSelected, onChange, ...props }: CheckboxProps) {
   return (
     <AriaCheckbox
+      id={props.id}
       className={props.className ?? 'picodash-dashlist-checkbox'}
       isSelected={isSelected}
       onChange={onChange}
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
       <span aria-hidden="true" data-picodash-dashlist-checkbox-box />
       {props['aria-label'] ? <span>{props['aria-label']}</span> : null}
@@ -117,6 +123,7 @@ export function RadioGroup<T extends ChoiceValue>({
   const parts = options.map(optionParts)
   return (
     <AriaRadioGroup
+      id={props.id}
       className={props.className ?? 'picodash-dashlist-radio-group'}
       value={value === undefined ? undefined : choiceKey(value)}
       onChange={(next) => {
@@ -126,9 +133,12 @@ export function RadioGroup<T extends ChoiceValue>({
       orientation={orientation}
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
       {parts.map((item) => (
         <Radio
@@ -172,12 +182,21 @@ export function Combobox<T extends ChoiceValue>({
       }}
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
       <Label>{props['aria-label']}</Label>
-      <Input id={props.id} placeholder={placeholder} className="picodash-dashlist-control" />
+      <Input
+        id={props.id}
+        placeholder={placeholder}
+        className="picodash-dashlist-control"
+        aria-invalid={props['aria-invalid']}
+        aria-errormessage={props['aria-errormessage']}
+      />
       <Button className="picodash-dashlist-disclosure-button" aria-label="Show choices">
         ▾
       </Button>
@@ -215,6 +234,7 @@ export function CheckboxGroup<T extends ChoiceValue>({
   const selected = value.map(choiceKey)
   return (
     <AriaCheckboxGroup
+      id={props.id}
       className={props.className ?? 'picodash-dashlist-checkbox-group'}
       value={selected}
       onChange={(keys) => {
@@ -226,9 +246,12 @@ export function CheckboxGroup<T extends ChoiceValue>({
       }}
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
       {parts.map((item) => (
         <AriaCheckbox
@@ -277,22 +300,35 @@ export function MultiSelect<T extends ChoiceValue>({
       }}
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
       <Label>{props['aria-label']}</Label>
-      <Input id={props.id} placeholder={placeholder} className="picodash-dashlist-control" />
+      <Input
+        id={props.id}
+        placeholder={placeholder}
+        className="picodash-dashlist-control"
+        aria-invalid={props['aria-invalid']}
+        aria-errormessage={props['aria-errormessage']}
+      />
       <Button className="picodash-dashlist-disclosure-button" aria-label="Show choices">
         ▾
       </Button>
       <TagGroup
         className="picodash-dashlist-tag-group"
         aria-label={`${props['aria-label'] ?? 'Selected'} values`}
-        onRemove={(keys) => {
-          const next = value.filter((item) => !keys.has(choiceKey(item)))
-          onChange(next)
-        }}
+        onRemove={
+          props.disabled || props.readOnly
+            ? undefined
+            : (keys) => {
+                const next = value.filter((item) => !keys.has(choiceKey(item)))
+                onChange(next)
+              }
+        }
       >
         <TagList<{ key: string; value: T }>
           className="picodash-dashlist-tag-list"
@@ -302,9 +338,11 @@ export function MultiSelect<T extends ChoiceValue>({
             <Tag className="picodash-dashlist-tag" id={item.key} textValue={String(item.value)}>
               {parts.find((part) => choiceKey(part.value) === item.key)?.label ??
                 String(item.value)}
-              <Button slot="remove" aria-label={`Remove ${String(item.value)}`}>
-                ×
-              </Button>
+              {props.disabled || props.readOnly ? null : (
+                <Button slot="remove" aria-label={`Remove ${String(item.value)}`}>
+                  ×
+                </Button>
+              )}
             </Tag>
           )}
         </TagList>
@@ -341,11 +379,20 @@ export function SearchField({ value, onChange, placeholder, ...props }: SearchFi
       onChange={onChange}
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
-      <Input id={props.id} placeholder={placeholder} className="picodash-dashlist-control" />
+      <Input
+        id={props.id}
+        placeholder={placeholder}
+        className="picodash-dashlist-control"
+        aria-invalid={props['aria-invalid']}
+        aria-errormessage={props['aria-errormessage']}
+      />
       <Button className="picodash-dashlist-clear-button" aria-label="Clear search">
         ×
       </Button>

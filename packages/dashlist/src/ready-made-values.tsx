@@ -42,7 +42,10 @@ type FieldValue<F> =
     : never
 type FieldProps<F extends AnyField, Value> =
   FieldValue<F> extends Value ? { readonly field: F } : { readonly field: never }
-type Shell = Omit<DashletProps<any, any, 'input'>, 'field' | 'children' | 'label' | 'mode'> & {
+type Shell = Omit<
+  DashletProps<any, any, 'input'>,
+  'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef'
+> & {
   readonly label: ReactNode
 }
 
@@ -50,13 +53,23 @@ function warningId(controlId: string): string {
   return `${controlId}-presentation-warning`
 }
 
-function describedBy(context: any, warning: boolean): string | undefined {
+function describedBy(context: any, warning: boolean, binding?: any): string | undefined {
   const ids = [
     context.descriptionId,
-    context.issuesId,
+    binding?.issuesId ?? context.issuesId,
     warning ? warningId(context.binding.controlId) : undefined,
   ].filter((id): id is string => Boolean(id))
   return ids.length ? ids.join(' ') : undefined
+}
+
+function bindingAria(binding: any): {
+  readonly 'aria-invalid'?: boolean
+  readonly 'aria-errormessage'?: string
+} {
+  return {
+    'aria-invalid': binding.invalid || undefined,
+    'aria-errormessage': binding.invalid ? binding.issuesId : undefined,
+  }
 }
 
 function PresentationWarning({
@@ -78,6 +91,15 @@ function PresentationWarning({
   )
 }
 
+function validateLocale(locale: string | undefined): void {
+  if (locale === undefined) return
+  try {
+    Intl.getCanonicalLocales(locale)
+  } catch {
+    throw new TypeError('locale must be a valid BCP 47 language tag.')
+  }
+}
+
 function validateFinite(name: string, value: number | undefined): void {
   if (value !== undefined && !Number.isFinite(value)) throw new TypeError(`${name} must be finite.`)
 }
@@ -94,18 +116,36 @@ function validateStep(step: number | undefined): void {
     throw new TypeError('step must be a positive finite number.')
 }
 
-function rangeCompatible(value: NumberRangeValue, min: number, max: number): boolean {
+function onStep(value: number, min: number, step: number): boolean {
+  const quotient = (value - min) / step
+  return Math.abs(quotient - Math.round(quotient)) <= Number.EPSILON * 100
+}
+
+function rangeCompatible(value: NumberRangeValue, min: number, max: number, step: number): boolean {
   return (
     Number.isFinite(value.start) &&
     Number.isFinite(value.end) &&
     value.start <= value.end &&
     value.start >= min &&
-    value.end <= max
+    value.end <= max &&
+    onStep(value.start, min, step) &&
+    onStep(value.end, min, step)
   )
 }
 
 function rangeText(value: NumberRangeValue): string {
   return `{ start: ${String(value.start)}, end: ${String(value.end)} }`
+}
+
+function temporalPrecisionCompatible(
+  value: { readonly minute: number; readonly second: number; readonly millisecond: number },
+  granularity: 'hour' | 'minute' | 'second' | undefined,
+): boolean {
+  if (granularity === 'hour')
+    return value.minute === 0 && value.second === 0 && value.millisecond === 0
+  if (granularity === 'minute') return value.second === 0 && value.millisecond === 0
+  if (granularity === 'second') return value.millisecond === 0
+  return true
 }
 
 export type RangeDashletProps<F extends AnyField = AnyField> = Shell &
@@ -126,7 +166,7 @@ export const RangeDashlet = forwardRef<HTMLDivElement, RangeDashletProps>(functi
         const binding = context.binding
         const canonical = binding.value as NumberRangeValue
         const value = (binding.draftValue ?? canonical) as NumberRangeValue
-        const mismatch = !rangeCompatible(canonical, min, max)
+        const mismatch = !rangeCompatible(canonical, min, max, step)
         return (
           <>
             {mismatch ? (
@@ -134,7 +174,7 @@ export const RangeDashlet = forwardRef<HTMLDivElement, RangeDashletProps>(functi
                 id={binding.controlId}
                 data-picodash-dashlist-range-value
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, true)}
+                aria-describedby={describedBy(context, true, binding)}
               >
                 {formatValue ? formatValue(canonical) : rangeText(canonical)}
               </output>
@@ -150,7 +190,8 @@ export const RangeDashlet = forwardRef<HTMLDivElement, RangeDashletProps>(functi
                 disabled={context.disabled}
                 readOnly={context.readOnly}
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, false)}
+                aria-describedby={describedBy(context, false, binding)}
+                {...bindingAria(binding)}
               />
             )}
             {mismatch ? (
@@ -184,7 +225,7 @@ export const MeterDashlet = forwardRef<HTMLDivElement, MeterDashletProps>(functi
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as number
-        const mismatch = canonical < min || canonical > max
+        const mismatch = !Number.isFinite(canonical) || canonical < min || canonical > max
         return (
           <>
             {mismatch ? (
@@ -192,7 +233,7 @@ export const MeterDashlet = forwardRef<HTMLDivElement, MeterDashletProps>(functi
                 id={binding.controlId}
                 data-picodash-dashlist-meter-value
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, true)}
+                aria-describedby={describedBy(context, true, binding)}
               >
                 {formatValue ? formatValue(canonical) : String(canonical)}
               </output>
@@ -205,7 +246,8 @@ export const MeterDashlet = forwardRef<HTMLDivElement, MeterDashletProps>(functi
                 formatOptions={formatOptions}
                 formatValue={formatValue}
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, false)}
+                aria-describedby={describedBy(context, false, binding)}
+                {...bindingAria(binding)}
               />
             )}
             {mismatch ? (
@@ -240,7 +282,7 @@ export const ProgressDashlet = forwardRef<HTMLDivElement, ProgressDashletProps>(
         {(context: any) => {
           const binding = context.binding
           const canonical = binding.value as number
-          const mismatch = canonical < min || canonical > max
+          const mismatch = !Number.isFinite(canonical) || canonical < min || canonical > max
           return (
             <>
               {mismatch ? (
@@ -248,7 +290,7 @@ export const ProgressDashlet = forwardRef<HTMLDivElement, ProgressDashletProps>(
                   id={binding.controlId}
                   data-picodash-dashlist-progress-value
                   aria-labelledby={context.labelId}
-                  aria-describedby={describedBy(context, true)}
+                  aria-describedby={describedBy(context, true, binding)}
                 >
                   {formatValue ? formatValue(canonical) : String(canonical)}
                 </output>
@@ -261,7 +303,8 @@ export const ProgressDashlet = forwardRef<HTMLDivElement, ProgressDashletProps>(
                   formatOptions={formatOptions}
                   formatValue={formatValue}
                   aria-labelledby={context.labelId}
-                  aria-describedby={describedBy(context, false)}
+                  aria-describedby={describedBy(context, false, binding)}
+                  {...bindingAria(binding)}
                 />
               )}
               {mismatch ? (
@@ -278,12 +321,12 @@ export const ProgressDashlet = forwardRef<HTMLDivElement, ProgressDashletProps>(
 )
 
 type StatusChoice<T extends string | number> = StatusOption<T>
-export type StatusDashletProps<F extends AnyField = AnyField> = Omit<
+export type StatusDashletProps<T extends string | number, F extends AnyField = AnyField> = Omit<
   Shell,
   'readOnly' | 'disabled'
 > &
   (FieldValue<F> extends string | number ? { readonly field: F } : { readonly field: never }) & {
-    readonly options: readonly StatusChoice<string | number>[]
+    readonly options: readonly StatusChoice<T>[]
   }
 
 function validateStatusOptions<T extends string | number>(
@@ -291,16 +334,23 @@ function validateStatusOptions<T extends string | number>(
 ): void {
   const seen = new Set<string>()
   for (const option of options) {
+    if (
+      (typeof option.value !== 'string' && typeof option.value !== 'number') ||
+      (typeof option.value === 'number' && !Number.isFinite(option.value))
+    )
+      throw new TypeError('status values must be finite strings or numbers.')
     const key = `${typeof option.value}:${String(option.value)}`
     if (seen.has(key)) throw new TypeError('options must contain unique values.')
     seen.add(key)
     if (typeof option.label !== 'string' && !option.textValue)
       throw new TypeError('non-text status labels require textValue.')
+    if (!['neutral', 'info', 'success', 'warning', 'danger'].includes(option.tone))
+      throw new TypeError('status options require a valid tone.')
   }
 }
 
-function StatusDashletInner<F extends AnyField = AnyField>(
-  props: StatusDashletProps<F>,
+function StatusDashletInner<T extends string | number, F extends AnyField = AnyField>(
+  props: StatusDashletProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateStatusOptions(props.options)
@@ -318,7 +368,8 @@ function StatusDashletInner<F extends AnyField = AnyField>(
               value={canonical}
               options={options}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, !compatible)}
+              aria-describedby={describedBy(context, !compatible, binding)}
+              {...bindingAria(binding)}
             />
             {!compatible ? (
               <PresentationWarning context={context}>
@@ -331,23 +382,32 @@ function StatusDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const StatusDashlet = forwardRef(StatusDashletInner) as <F extends AnyField = AnyField>(
-  props: StatusDashletProps<F> & RefAttributes<HTMLDivElement>,
+export const StatusDashlet = forwardRef(StatusDashletInner) as <
+  T extends string | number,
+  F extends AnyField = AnyField,
+>(
+  props: StatusDashletProps<T, F> & RefAttributes<HTMLDivElement>,
 ) => ReactElement | null
 
-type TemporalCommon = Pick<
-  DateFieldProps,
-  'min' | 'max' | 'locale' | 'hourCycle' | 'shouldForceLeadingZeros'
->
+type TemporalCommon = Pick<DateFieldProps, 'min' | 'max' | 'locale' | 'shouldForceLeadingZeros'>
 export type DateDashletProps<F extends AnyField = AnyField> = Shell &
   FieldProps<F, string> &
   TemporalCommon
 
 export const DateDashlet = forwardRef<HTMLDivElement, DateDashletProps>(function DateDashlet(
-  { field, min, max, locale, hourCycle, shouldForceLeadingZeros, ...props },
+  { field, min, max, locale, shouldForceLeadingZeros, ...props },
   ref,
 ) {
-  if (min !== undefined && max !== undefined && min > max)
+  validateLocale(locale)
+  let parsedMin
+  let parsedMax
+  try {
+    parsedMin = min === undefined ? undefined : parseDate(min)
+    parsedMax = max === undefined ? undefined : parseDate(max)
+  } catch {
+    throw new TypeError('date bounds must be valid ISO dates.')
+  }
+  if (parsedMin && parsedMax && parsedMin.compare(parsedMax) > 0)
     throw new TypeError('min must be less than or equal to max.')
   return (
     <Dashlet {...props} ref={ref} field={field}>
@@ -357,8 +417,8 @@ export const DateDashlet = forwardRef<HTMLDivElement, DateDashletProps>(function
         let compatible = true
         try {
           const parsed = parseDate(canonical)
-          if (min !== undefined && parsed.compare(parseDate(min)) < 0) compatible = false
-          if (max !== undefined && parsed.compare(parseDate(max)) > 0) compatible = false
+          if (parsedMin && parsed.compare(parsedMin) < 0) compatible = false
+          if (parsedMax && parsed.compare(parsedMax) > 0) compatible = false
         } catch {
           compatible = false
         }
@@ -372,18 +432,18 @@ export const DateDashlet = forwardRef<HTMLDivElement, DateDashletProps>(function
                 min={min}
                 max={max}
                 locale={locale}
-                hourCycle={hourCycle}
                 shouldForceLeadingZeros={shouldForceLeadingZeros}
                 disabled={context.disabled}
                 readOnly={context.readOnly}
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, false)}
+                aria-describedby={describedBy(context, false, binding)}
+                {...bindingAria(binding)}
               />
             ) : (
               <output
                 id={binding.controlId}
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, true)}
+                aria-describedby={describedBy(context, true, binding)}
               >
                 {canonical}
               </output>
@@ -412,7 +472,16 @@ export const TimeDashlet = forwardRef<HTMLDivElement, TimeDashletProps>(function
   { field, min, max, locale, granularity, hourCycle, shouldForceLeadingZeros, ...props },
   ref,
 ) {
-  if (min !== undefined && max !== undefined && min > max)
+  validateLocale(locale)
+  let parsedMin
+  let parsedMax
+  try {
+    parsedMin = min === undefined ? undefined : parseTime(min)
+    parsedMax = max === undefined ? undefined : parseTime(max)
+  } catch {
+    throw new TypeError('time bounds must be valid ISO local times.')
+  }
+  if (parsedMin && parsedMax && parsedMin.compare(parsedMax) > 0)
     throw new TypeError('min must be less than or equal to max.')
   return (
     <Dashlet {...props} ref={ref} field={field}>
@@ -422,8 +491,9 @@ export const TimeDashlet = forwardRef<HTMLDivElement, TimeDashletProps>(function
         let compatible = true
         try {
           const parsed = parseTime(canonical)
-          if (min !== undefined && parsed.compare(parseTime(min)) < 0) compatible = false
-          if (max !== undefined && parsed.compare(parseTime(max)) > 0) compatible = false
+          if (!temporalPrecisionCompatible(parsed, granularity)) compatible = false
+          if (parsedMin && parsed.compare(parsedMin) < 0) compatible = false
+          if (parsedMax && parsed.compare(parsedMax) > 0) compatible = false
         } catch {
           compatible = false
         }
@@ -443,13 +513,14 @@ export const TimeDashlet = forwardRef<HTMLDivElement, TimeDashletProps>(function
                 disabled={context.disabled}
                 readOnly={context.readOnly}
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, false)}
+                aria-describedby={describedBy(context, false, binding)}
+                {...bindingAria(binding)}
               />
             ) : (
               <output
                 id={binding.controlId}
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, true)}
+                aria-describedby={describedBy(context, true, binding)}
               >
                 {canonical}
               </output>
@@ -498,7 +569,23 @@ export const DateTimeDashlet = forwardRef<HTMLDivElement, DateTimeDashletProps>(
     },
     ref,
   ) {
+    validateLocale(locale)
     if (!timeZone || typeof timeZone !== 'string') throw new TypeError('timeZone is required.')
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone }).format()
+    } catch {
+      throw new TypeError('timeZone must be a valid IANA time zone.')
+    }
+    let parsedMin
+    let parsedMax
+    try {
+      parsedMin = min === undefined ? undefined : parseAbsolute(min, timeZone)
+      parsedMax = max === undefined ? undefined : parseAbsolute(max, timeZone)
+    } catch {
+      throw new TypeError('date-time bounds must be valid RFC 3339 date-times.')
+    }
+    if (parsedMin && parsedMax && parsedMin.compare(parsedMax) > 0)
+      throw new TypeError('min must be less than or equal to max.')
     return (
       <Dashlet {...props} ref={ref} field={field}>
         {(context: any) => {
@@ -507,8 +594,9 @@ export const DateTimeDashlet = forwardRef<HTMLDivElement, DateTimeDashletProps>(
           let compatible = true
           try {
             const parsed = parseAbsolute(canonical, timeZone)
-            if (min && parsed.compare(parseAbsolute(min, timeZone)) < 0) compatible = false
-            if (max && parsed.compare(parseAbsolute(max, timeZone)) > 0) compatible = false
+            if (!temporalPrecisionCompatible(parsed, granularity)) compatible = false
+            if (parsedMin && parsed.compare(parsedMin) < 0) compatible = false
+            if (parsedMax && parsed.compare(parsedMax) > 0) compatible = false
           } catch {
             compatible = false
           }
@@ -530,13 +618,14 @@ export const DateTimeDashlet = forwardRef<HTMLDivElement, DateTimeDashletProps>(
                   disabled={context.disabled}
                   readOnly={context.readOnly}
                   aria-labelledby={context.labelId}
-                  aria-describedby={describedBy(context, false)}
+                  aria-describedby={describedBy(context, false, binding)}
+                  {...bindingAria(binding)}
                 />
               ) : (
                 <output
                   id={binding.controlId}
                   aria-labelledby={context.labelId}
-                  aria-describedby={describedBy(context, true)}
+                  aria-describedby={describedBy(context, true, binding)}
                 >
                   {canonical}
                 </output>
@@ -561,6 +650,7 @@ export type DateRangeDashletProps<F extends AnyField = AnyField> = Shell &
 
 export const DateRangeDashlet = forwardRef<HTMLDivElement, DateRangeDashletProps>(
   function DateRangeDashlet({ field, locale, shouldForceLeadingZeros, ...props }, ref) {
+    validateLocale(locale)
     return (
       <Dashlet {...props} ref={ref} field={field} layout={props.layout ?? 'block'}>
         {(context: any) => {
@@ -586,13 +676,14 @@ export const DateRangeDashlet = forwardRef<HTMLDivElement, DateRangeDashletProps
                   disabled={context.disabled}
                   readOnly={context.readOnly}
                   aria-labelledby={context.labelId}
-                  aria-describedby={describedBy(context, false)}
+                  aria-describedby={describedBy(context, false, binding)}
+                  {...bindingAria(binding)}
                 />
               ) : (
                 <output
                   id={binding.controlId}
                   aria-labelledby={context.labelId}
-                  aria-describedby={describedBy(context, true)}
+                  aria-describedby={describedBy(context, true, binding)}
                 >
                   {JSON.stringify(canonical)}
                 </output>
@@ -619,6 +710,8 @@ export const ColorDashlet = forwardRef<HTMLDivElement, ColorDashletProps>(functi
   { field, format = 'hex', ...props },
   ref,
 ) {
+  if (!['hex', 'hexa', 'rgb', 'rgba', 'hsl', 'hsla', 'hsb', 'hsba'].includes(format))
+    throw new TypeError('format must be a supported color format.')
   return (
     <Dashlet {...props} ref={ref} field={field}>
       {(context: any) => {
@@ -642,13 +735,14 @@ export const ColorDashlet = forwardRef<HTMLDivElement, ColorDashletProps>(functi
                 disabled={context.disabled}
                 readOnly={context.readOnly}
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, false)}
+                aria-describedby={describedBy(context, false, binding)}
+                {...bindingAria(binding)}
               />
             ) : (
               <output
                 id={binding.controlId}
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, true)}
+                aria-describedby={describedBy(context, true, binding)}
               >
                 {canonical}
               </output>

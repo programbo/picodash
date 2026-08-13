@@ -13,7 +13,14 @@ import {
   RadioGroupDashlet,
   SearchDashlet,
 } from '../src/index.tsx'
-import { Checkbox, CheckboxGroup, RadioGroup } from '../src/ui.tsx'
+import {
+  Checkbox,
+  CheckboxGroup,
+  Combobox,
+  MultiSelect,
+  RadioGroup,
+  SearchField,
+} from '../src/ui.tsx'
 
 function render(element: ReactElement): DomTestRenderer {
   let renderer!: DomTestRenderer
@@ -24,6 +31,98 @@ function render(element: ReactElement): DomTestRenderer {
 }
 
 describe('choice controls', () => {
+  it('forwards declared ids to controls and class names to public roots', () => {
+    const controls: ReactElement[] = [
+      createElement(Checkbox, {
+        id: 'choice-checkbox',
+        className: 'choice-checkbox-hook',
+        isSelected: false,
+        onChange: () => undefined,
+      }),
+      createElement(RadioGroup, {
+        id: 'choice-radio',
+        className: 'choice-radio-hook',
+        value: 'one',
+        onChange: () => undefined,
+        options: ['one', 'two'],
+      }),
+      createElement(Combobox, {
+        id: 'choice-combobox',
+        className: 'choice-combobox-hook',
+        value: 'one',
+        onChange: () => undefined,
+        options: ['one', 'two'],
+      }),
+      createElement(CheckboxGroup, {
+        id: 'choice-checkbox-group',
+        className: 'choice-checkbox-group-hook',
+        value: ['one'],
+        onChange: () => undefined,
+        options: ['one', 'two'],
+      }),
+      createElement(MultiSelect, {
+        id: 'choice-multi',
+        className: 'choice-multi-hook',
+        value: ['one'],
+        onChange: () => undefined,
+        options: ['one', 'two'],
+      }),
+      createElement(SearchField, {
+        id: 'choice-search',
+        className: 'choice-search-hook',
+        value: '',
+        onChange: () => undefined,
+      }),
+    ]
+    const view = render(createElement('div', null, controls))
+    for (const id of [
+      'choice-checkbox',
+      'choice-radio',
+      'choice-combobox',
+      'choice-checkbox-group',
+      'choice-multi',
+      'choice-search',
+    ])
+      expect(view.root.element.querySelector(`#${id}`)).not.toBeNull()
+    for (const className of [
+      'choice-checkbox-hook',
+      'choice-radio-hook',
+      'choice-combobox-hook',
+      'choice-checkbox-group-hook',
+      'choice-multi-hook',
+      'choice-search-hook',
+    ])
+      expect(view.root.element.querySelector(`.${className}`)).not.toBeNull()
+    act(() => view.unmount())
+  })
+
+  it('does not expose MultiSelect removal actions when disabled or read-only', () => {
+    const changes: string[][] = []
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement(MultiSelect, {
+          id: 'disabled-multi',
+          value: ['one'],
+          onChange: (next) => changes.push(next.map(String)),
+          options: ['one', 'two'],
+          disabled: true,
+        }),
+        createElement(MultiSelect, {
+          id: 'readonly-multi',
+          value: ['one'],
+          onChange: (next) => changes.push(next.map(String)),
+          options: ['one', 'two'],
+          readOnly: true,
+        }),
+      ),
+    )
+    expect(view.root.element.querySelectorAll('[slot="remove"]')).toHaveLength(0)
+    expect(changes).toEqual([])
+    act(() => view.unmount())
+  })
+
   it('renders six bound controls with accessible roles and forwards root refs', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',
@@ -143,6 +242,45 @@ describe('choice controls', () => {
       choice: 'other',
       selected: ['other', 'one'],
       checked: ['other', 'one'],
+    })
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('treats duplicate and out-of-order array choices as presentation mismatches', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: {
+        duplicate: { defaultValue: ['one', 'one'] },
+        reversed: { defaultValue: ['two', 'one'] },
+      },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'array-mismatch', nexus },
+        createElement(CheckboxGroupDashlet, {
+          id: 'duplicate',
+          field: nexus.fields.duplicate,
+          label: 'Duplicate',
+          options: ['one', 'two'],
+        }),
+        createElement(MultiSelectDashlet, {
+          id: 'reversed',
+          field: nexus.fields.reversed,
+          label: 'Reversed',
+          options: ['one', 'two'],
+        }),
+      ),
+    )
+    expect(
+      view.root.element.querySelectorAll('[data-picodash-dashlet-presentation-warning]'),
+    ).toHaveLength(2)
+    expect(view.root.element.textContent).toContain('["one","one"]')
+    expect(view.root.element.textContent).toContain('["two","one"]')
+    expect(nexus.getState().values).toEqual({
+      duplicate: ['one', 'one'],
+      reversed: ['two', 'one'],
     })
     act(() => view.unmount())
     nexus.destroy()

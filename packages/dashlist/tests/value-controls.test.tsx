@@ -23,6 +23,7 @@ import {
   StatusDashlet,
   TimeDashlet,
 } from '../src/index.tsx'
+import { I18nProvider } from 'react-aria-components'
 
 function render(element: ReactElement): DomTestRenderer {
   let renderer!: DomTestRenderer
@@ -33,6 +34,148 @@ function render(element: ReactElement): DomTestRenderer {
 }
 
 describe('value controls', () => {
+  it('forwards declared ids to value controls and class names to public roots', () => {
+    const controls: ReactElement[] = [
+      createElement(RangeSlider, {
+        id: 'value-range',
+        className: 'value-range-hook',
+        value: { start: 2, end: 8 },
+        onChange: () => undefined,
+      }),
+      createElement(Meter, {
+        id: 'value-meter',
+        className: 'value-meter-hook',
+        value: 4,
+        'aria-label': 'Meter',
+      }),
+      createElement(ProgressBar, {
+        id: 'value-progress',
+        className: 'value-progress-hook',
+        value: 4,
+        'aria-label': 'Progress',
+      }),
+      createElement(Status, {
+        id: 'value-status',
+        className: 'value-status-hook',
+        value: 'ready',
+        options: [{ value: 'ready', label: 'Ready', tone: 'success' as const }],
+      }),
+      createElement(DateField, {
+        id: 'value-date',
+        className: 'value-date-hook',
+        value: '2026-08-13',
+        onChange: () => undefined,
+        'aria-label': 'Date',
+      }),
+      createElement(TimeField, {
+        id: 'value-time',
+        className: 'value-time-hook',
+        value: '12:30:00',
+        onChange: () => undefined,
+        'aria-label': 'Time',
+      }),
+      createElement(DateTimeField, {
+        id: 'value-date-time',
+        className: 'value-date-time-hook',
+        value: '2026-08-13T12:30:00+08:00',
+        timeZone: 'Australia/Perth',
+        onChange: () => undefined,
+        'aria-label': 'Date time',
+      }),
+      createElement(DateRangeField, {
+        id: 'value-date-range',
+        className: 'value-date-range-hook',
+        value: { start: '2026-08-01', end: '2026-08-13' },
+        onChange: () => undefined,
+        'aria-label': 'Date range',
+      }),
+      createElement(ColorField, {
+        id: 'value-color',
+        className: 'value-color-hook',
+        value: '#ff0000',
+        onChange: () => undefined,
+        'aria-label': 'Color',
+      }),
+    ]
+    const view = render(createElement('div', null, controls))
+    for (const id of [
+      'value-range',
+      'value-meter',
+      'value-progress',
+      'value-status',
+      'value-date',
+      'value-time',
+      'value-date-time',
+      'value-date-range',
+      'value-color',
+    ])
+      expect(view.root.element.querySelector(`#${id}`)).not.toBeNull()
+    for (const className of [
+      'value-range-hook',
+      'value-meter-hook',
+      'value-progress-hook',
+      'value-status-hook',
+      'value-date-hook',
+      'value-time-hook',
+      'value-date-time-hook',
+      'value-date-range-hook',
+      'value-color-hook',
+    ])
+      expect(view.root.element.querySelector(`.${className}`)).not.toBeNull()
+    act(() => view.unmount())
+  })
+
+  it('inherits ambient locale and applies a local locale override', () => {
+    const view = render(
+      createElement(I18nProvider, {
+        locale: 'en-US',
+        children: createElement(
+          'div',
+          null,
+          createElement(DateField, {
+            value: '2026-08-13',
+            onChange: () => undefined,
+            'aria-label': 'Ambient',
+          }),
+          createElement(DateField, {
+            value: '2026-08-13',
+            onChange: () => undefined,
+            locale: 'en-AU',
+            'aria-label': 'Override',
+          }),
+        ),
+      }),
+    )
+    const fields = [...view.root.element.querySelectorAll('.picodash-dashlist-date-field')]
+    expect(fields).toHaveLength(2)
+    const segmentTypes = (field: Element) =>
+      [...field.querySelectorAll('[data-type]')]
+        .map((segment) => segment.getAttribute('data-type'))
+        .filter((type) => type !== 'literal')
+    expect(segmentTypes(fields[0]!)).toEqual(['month', 'day', 'year'])
+    expect(segmentTypes(fields[1]!)).toEqual(['day', 'month', 'year'])
+    act(() => view.unmount())
+  })
+
+  it('rejects invalid locale configuration without touching Nexus', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { date: { defaultValue: '2026-08-13' } },
+    })
+    expect(() =>
+      render(
+        createElement(DateDashlet, {
+          id: 'invalid-locale',
+          field: nexus.fields.date,
+          label: 'Date',
+          locale: 'not a locale',
+        }),
+      ),
+    ).toThrow(TypeError)
+    expect(nexus.getState().values).toEqual({ date: '2026-08-13' })
+    nexus.destroy()
+  })
+
   it('renders range, meter, progress, and explicit status semantics', () => {
     const view = render(
       createElement(
@@ -192,6 +335,9 @@ describe('value controls', () => {
     expect(
       view.root.element.querySelectorAll('[data-picodash-dashlet-presentation-warning]'),
     ).toHaveLength(3)
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="status"] [data-tone]'),
+    ).toBeNull()
     expect(nexus.getState().values).toEqual({
       range: { start: -2, end: 4 },
       status: 'unknown',

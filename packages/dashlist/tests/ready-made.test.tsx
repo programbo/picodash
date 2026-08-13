@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, createElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vite-plus/test'
+import { fireEvent } from '@testing-library/react'
 import { createPicodashNexus } from '@picodash/nexus'
 import { createDomTestRenderer, type DomTestRenderer } from '../../../test/dom-renderer.ts'
 import {
@@ -11,6 +12,7 @@ import {
   SelectDashlet,
   SliderDashlet,
   SwitchDashlet,
+  RadioGroupDashlet,
   TextDashlet,
 } from '../src/index.tsx'
 
@@ -23,6 +25,69 @@ function render(element: ReactElement): DomTestRenderer {
 }
 
 describe('@picodash/dashlist ready-made Dashlets', () => {
+  it('wires rejected binding input issues to original, choice, and value controls', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: {
+        text: {
+          defaultValue: 'hello',
+          validate: (value) =>
+            (value as string) === 'bad' ? [{ message: 'Text is not allowed.' }] : [],
+        },
+        slider: {
+          defaultValue: 4,
+          validate: (value) =>
+            (value as number) === 9 ? [{ message: 'Nine is not allowed.' }] : [],
+        },
+        choice: {
+          defaultValue: 'one',
+          validate: (value) =>
+            (value as string) === 'two' ? [{ message: 'Two is not allowed.' }] : [],
+        },
+      },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'binding-aria', nexus },
+        createElement(TextDashlet, { id: 'text', field: nexus.fields.text, label: 'Text' }),
+        createElement(SliderDashlet, { id: 'slider', field: nexus.fields.slider, label: 'Slider' }),
+        createElement(RadioGroupDashlet, {
+          id: 'choice',
+          field: nexus.fields.choice,
+          label: 'Choice',
+          options: ['one', 'two'],
+        }),
+      ),
+    )
+    act(() => {
+      fireEvent.input(view.root.element.querySelector('[data-picodash-dashlet="text"] input')!, {
+        target: { value: 'bad' },
+      })
+      fireEvent.change(view.root.element.querySelector('[data-picodash-dashlet="slider"] input')!, {
+        target: { value: '9' },
+      })
+      fireEvent.click(
+        view.root.element.querySelectorAll('[data-picodash-dashlet="choice"] input')[1]!,
+      )
+    })
+    for (const [dashletId, message] of [
+      ['text', 'Text is not allowed.'],
+      ['slider', 'Nine is not allowed.'],
+      ['choice', 'Two is not allowed.'],
+    ] as const) {
+      const control = view.root.element.querySelector(
+        `[data-picodash-dashlet="${dashletId}"] [aria-invalid="true"]`,
+      )
+      expect(control).not.toBeNull()
+      const errorId = control?.getAttribute('aria-errormessage')
+      expect(errorId).toBeTruthy()
+      expect(view.root.element.querySelector(`#${errorId}`)?.textContent).toContain(message)
+    }
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
   it('renders the complete seven-control slice with semantic controls', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',

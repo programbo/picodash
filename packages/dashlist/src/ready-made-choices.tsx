@@ -32,7 +32,10 @@ type FieldValue<F> =
     : never
 type FieldProps<F extends AnyField, Value> =
   FieldValue<F> extends Value ? { readonly field: F } : { readonly field: never }
-type Shell = Omit<DashletProps<any, any, 'input'>, 'field' | 'children' | 'label' | 'mode'> & {
+type Shell = Omit<
+  DashletProps<any, any, 'input'>,
+  'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef'
+> & {
   readonly label: ReactNode
 }
 
@@ -46,13 +49,23 @@ function warningId(controlId: string): string {
   return `${controlId}-presentation-warning`
 }
 
-function describedBy(context: any, warning: boolean): string | undefined {
+function describedBy(context: any, warning: boolean, binding?: any): string | undefined {
   const ids = [
     context.descriptionId,
-    context.issuesId,
+    binding?.issuesId ?? context.issuesId,
     warning ? warningId(context.binding.controlId) : undefined,
   ].filter((id): id is string => Boolean(id))
   return ids.length ? ids.join(' ') : undefined
+}
+
+function bindingAria(binding: any): {
+  readonly 'aria-invalid'?: boolean
+  readonly 'aria-errormessage'?: string
+} {
+  return {
+    'aria-invalid': binding.invalid || undefined,
+    'aria-errormessage': binding.invalid ? binding.issuesId : undefined,
+  }
 }
 
 function PresentationWarning({
@@ -86,7 +99,17 @@ function arrayCompatible<T extends ChoiceValue>(
   options: readonly SelectOption<T>[],
   value: readonly T[],
 ): boolean {
-  return value.every((item) => hasChoice(options, item))
+  const seen = new Set<string>()
+  let previousIndex = -1
+  for (const item of value) {
+    const key = `${typeof item}:${String(item)}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    const index = options.findIndex((option) => optionValue(option) === item)
+    if (index < 0 || index < previousIndex) return false
+    previousIndex = index
+  }
+  return true
 }
 
 function jsonText(value: unknown): string {
@@ -109,7 +132,8 @@ export const CheckboxDashlet = forwardRef<HTMLDivElement, CheckboxDashletProps>(
               disabled={context.disabled}
               readOnly={context.readOnly}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, false)}
+              aria-describedby={describedBy(context, false, binding)}
+              {...bindingAria(binding)}
             />
           )
         }}
@@ -146,7 +170,8 @@ function RadioGroupDashletInner<T extends ChoiceValue, F extends AnyField = AnyF
               disabled={context.disabled}
               readOnly={context.readOnly}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, !compatible)}
+              aria-describedby={describedBy(context, !compatible, binding)}
+              {...bindingAria(binding)}
             />
             {!compatible ? (
               <PresentationWarning context={context}>
@@ -194,7 +219,8 @@ function ComboboxDashletInner<T extends ChoiceValue, F extends AnyField = AnyFie
               disabled={context.disabled}
               readOnly={context.readOnly}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, !compatible)}
+              aria-describedby={describedBy(context, !compatible, binding)}
+              {...bindingAria(binding)}
             />
             {!compatible ? (
               <PresentationWarning context={context}>
@@ -241,7 +267,8 @@ function CheckboxGroupDashletInner<T extends ChoiceValue, F extends AnyField = A
               disabled={context.disabled || !compatible}
               readOnly={context.readOnly}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, !compatible)}
+              aria-describedby={describedBy(context, !compatible, binding)}
+              {...bindingAria(binding)}
             />
             {!compatible ? (
               <PresentationWarning context={context}>
@@ -290,7 +317,8 @@ function MultiSelectDashletInner<T extends ChoiceValue, F extends AnyField = Any
               disabled={context.disabled || !compatible}
               readOnly={context.readOnly}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, !compatible)}
+              aria-describedby={describedBy(context, !compatible, binding)}
+              {...bindingAria(binding)}
             />
             {!compatible ? (
               <PresentationWarning context={context}>
@@ -331,7 +359,8 @@ export const SearchDashlet = forwardRef<HTMLDivElement, SearchDashletProps>(func
             disabled={context.disabled}
             readOnly={context.readOnly}
             aria-labelledby={context.labelId}
-            aria-describedby={describedBy(context, false)}
+            aria-describedby={describedBy(context, false, binding)}
+            {...bindingAria(binding)}
           />
         )
       }}
@@ -343,6 +372,11 @@ function validateChoices<T extends ChoiceValue>(options: readonly SelectOption<T
   const seen = new Set<string>()
   for (const option of options) {
     const value = optionValue(option)
+    if (
+      (typeof value !== 'string' && typeof value !== 'number') ||
+      (typeof value === 'number' && !Number.isFinite(value))
+    )
+      throw new TypeError('choice values must be finite strings or numbers.')
     const key = `${typeof value}:${String(value)}`
     if (seen.has(key)) throw new TypeError('options must contain unique values.')
     seen.add(key)

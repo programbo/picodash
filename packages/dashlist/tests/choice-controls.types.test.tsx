@@ -9,6 +9,10 @@ import {
   SearchDashlet,
   type MultiSelectDashletProps,
   type RadioGroupDashletProps,
+  type CheckboxDashletProps,
+  type CheckboxGroupDashletProps,
+  type ComboboxDashletProps,
+  type SearchDashletProps,
 } from '../src/index.tsx'
 import {
   Checkbox,
@@ -34,6 +38,35 @@ void createElement(CheckboxDashlet, {
   field: nexus.fields.enabled,
   label: 'Enabled',
 })
+
+const checkboxProps: CheckboxDashletProps<typeof nexus.fields.enabled> = {
+  id: 'checkbox-props',
+  field: nexus.fields.enabled,
+  label: 'Enabled',
+}
+const checkboxGroupProps: CheckboxGroupDashletProps<string, typeof nexus.fields.selected> = {
+  id: 'checkbox-group-props',
+  field: nexus.fields.selected,
+  label: 'Selected',
+  options: ['one', 'two'],
+}
+const comboboxProps: ComboboxDashletProps<string, typeof nexus.fields.choice> = {
+  id: 'combobox-props',
+  field: nexus.fields.choice,
+  label: 'Choice',
+  options: ['one', 'two'],
+  placeholder: 'Choose',
+}
+const searchProps: SearchDashletProps<typeof nexus.fields.search> = {
+  id: 'search-props',
+  field: nexus.fields.search,
+  label: 'Search',
+  placeholder: 'Find',
+}
+void checkboxProps
+void checkboxGroupProps
+void comboboxProps
+void searchProps
 void createElement(RadioGroupDashlet, {
   id: 'choice',
   field: nexus.fields.choice,
@@ -119,4 +152,12 @@ void createElement(CheckboxDashlet, {
   label: 'Bad',
   // @ts-expect-error bound controls do not accept children.
   children: 'x',
+})
+void createElement(RadioGroupDashlet, {
+  id: 'bad-focus',
+  field: nexus.fields.choice,
+  label: 'Bad focus',
+  options: ['one'],
+  // @ts-expect-error built-in Dashlets do not expose primaryFocusRef overrides.
+  primaryFocusRef: { current: null },
 })

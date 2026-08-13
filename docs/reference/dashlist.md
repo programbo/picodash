@@ -844,17 +844,58 @@ facade-specific state or behavior.
 ### Component-specific ready-made props
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Verified for the focused prop, mismatch, and locale slice; broader DashList
+> stabilization remains Partial.
 
-| Component             | Field type         | Component-specific props                                            |
-| --------------------- | ------------------ | ------------------------------------------------------------------- |
-| `TextDashlet`         | `string`           | `multiline?`, `minRows?`, `placeholder?`                            |
-| `NumberDashlet`       | `number`           | `min?`, `max?`, `step?`, `placeholder?`, `formatOptions?`           |
-| `SliderDashlet`       | `number`           | `min?`, `max?`, `step?`, `marks?`, `formatOptions?`, `formatValue?` |
-| `SwitchDashlet`       | `boolean`          | None                                                                |
-| `SelectDashlet<T>`    | `string \| number` | `options`, `placeholder?`                                           |
-| `SegmentedDashlet<T>` | `string \| number` | `options`                                                           |
-| `DisplayDashlet<T>`   | Any JSON value     | `formatValue?`                                                      |
+| Component                 | Field type                           | Component-specific props                                                                                                    |
+| ------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `TextDashlet`             | `string`                             | `multiline?`, `minRows?`, `placeholder?`                                                                                    |
+| `NumberDashlet`           | `number`                             | `min?`, `max?`, `step?`, `placeholder?`, `formatOptions?`                                                                   |
+| `SliderDashlet`           | `number`                             | `min?`, `max?`, `step?`, `marks?`, `formatOptions?`, `formatValue?`                                                         |
+| `SwitchDashlet`           | `boolean`                            | None                                                                                                                        |
+| `SelectDashlet<T>`        | `string \| number`                   | `options`, `placeholder?`                                                                                                   |
+| `SegmentedDashlet<T>`     | `string \| number`                   | `options`                                                                                                                   |
+| `DisplayDashlet<T>`       | Any JSON value                       | `formatValue?`                                                                                                              |
+| `CheckboxDashlet`         | `boolean`                            | None                                                                                                                        |
+| `RadioGroupDashlet<T>`    | `string \| number`                   | `options`, `orientation?: 'vertical' \| 'horizontal'` (default `vertical`)                                                  |
+| `ComboboxDashlet<T>`      | `string \| number`                   | `options`, `placeholder?`                                                                                                   |
+| `CheckboxGroupDashlet<T>` | `readonly T[]`                       | `options`                                                                                                                   |
+| `MultiSelectDashlet<T>`   | `readonly T[]`                       | `options`, `placeholder?`                                                                                                   |
+| `SearchDashlet`           | `string`                             | `placeholder?`                                                                                                              |
+| `RangeDashlet`            | `{ start: number; end: number }`     | `min?=0`, `max?=100`, `step?=1`, `formatOptions?`, `formatValue?`                                                           |
+| `MeterDashlet`            | `number`                             | `min?=0`, `max?=100`, `formatOptions?`, `formatValue?`                                                                      |
+| `ProgressDashlet`         | `number`                             | `min?=0`, `max?=100`, `formatOptions?`, `formatValue?`                                                                      |
+| `StatusDashlet<T>`        | `string \| number`                   | `options`                                                                                                                   |
+| `DateDashlet`             | ISO date string                      | `min?`, `max?`, `locale?`, `shouldForceLeadingZeros?`                                                                       |
+| `TimeDashlet`             | ISO local-time string                | `min?`, `max?`, `locale?`, `granularity?`, `hourCycle?`, `shouldForceLeadingZeros?`                                         |
+| `DateTimeDashlet`         | RFC 3339 offset date-time            | `timeZone` (required), `min?`, `max?`, `locale?`, `granularity?`, `hourCycle?`, `hideTimeZone?`, `shouldForceLeadingZeros?` |
+| `DateRangeDashlet`        | `{ start: ISO date; end: ISO date }` | `locale?`, `shouldForceLeadingZeros?`                                                                                       |
+| `ColorDashlet`            | CSS color string                     | `format?: 'hex' \| 'hexa' \| 'rgb' \| 'rgba' \| 'hsl' \| 'hsla' \| 'hsb' \| 'hsba'` (default `hex`)                         |
+
+Built-ins accept the shared Dashlet shell, except `children`, `mode`, `primaryFocusRef`, generic
+value authorities (`value`, `defaultValue`, `onChange`, `onValueChange`), parser/validator props,
+and arbitrary inner-control prop bags. `MeterDashlet`, `ProgressDashlet`, and `StatusDashlet` are
+display bindings and therefore omit `disabled` and `readOnly`.
+
+The four temporal Dashlets and their `/ui` controls keep `locale?: string` as a local presentation
+override. A supplied value must be a valid BCP 47 tag and wraps only that control in React Aria's
+nested `I18nProvider`; omission renders no local provider and inherits the nearest ambient locale.
+Locale changes segment order, direction, localized text, and number presentation. It is never stored
+in Nexus, persistence, or canonical JSON, and does not alter `timeZone`.
+
+Configuration failures are developer errors: structural and relational validation throws `TypeError`
+(duplicate or non-finite choice values, missing text alternatives for non-text labels, invalid
+bounds, non-positive steps, invalid temporal bounds, invalid locale or time zone, and unsupported
+color formats). Standard Intl option failures may retain their platform `RangeError`, and formatter
+or `formatValue` callback exceptions propagate unchanged. Configuration failure never writes Nexus.
+
+A valid canonical value that the current props cannot represent is an ephemeral presentation
+mismatch. The Dashlet renders the exact canonical JSON value and a descriptive warning, without
+clamping, normalization, inferred Status tone/icon, persistence, or writes. Scalar unavailable
+choices may remain operable for an explicit replacement; array, range, temporal, status, and color
+mismatches that cannot be edited honestly render an unavailable editor. Mismatch warnings use
+descriptive relationships, never `aria-invalid`; rejected Nexus input issues use the binding's own
+invalid and error-message relationships.
 
 `TextDashlet.minRows` is a positive integer valid only when `multiline` is true. Multiline content
 grows from that minimum. `SliderDashlet` defaults to `min={0}`, `max={100}`, and `step={1}`. Its

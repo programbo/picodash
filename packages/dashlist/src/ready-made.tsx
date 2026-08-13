@@ -33,7 +33,10 @@ type FieldValue<F> =
     : never
 type FieldProps<F extends AnyField, Value> =
   FieldValue<F> extends Value ? { readonly field: F } : { readonly field: never }
-type Shell = Omit<DashletProps<any, any, 'input'>, 'field' | 'children' | 'label' | 'mode'> & {
+type Shell = Omit<
+  DashletProps<any, any, 'input'>,
+  'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef'
+> & {
   readonly label: ReactNode
 }
 
@@ -44,13 +47,23 @@ function warningId(controlId: string): string {
   return `${controlId}-presentation-warning`
 }
 
-function describedBy(context: any, warning: boolean): string | undefined {
+function describedBy(context: any, warning: boolean, binding?: any): string | undefined {
   const ids = [
     context.descriptionId,
-    context.issuesId,
+    binding?.issuesId ?? context.issuesId,
     warning ? warningId(context.binding.controlId) : undefined,
   ].filter((id): id is string => Boolean(id))
   return ids.length ? ids.join(' ') : undefined
+}
+
+function bindingAria(binding: any): {
+  readonly 'aria-invalid'?: boolean
+  readonly 'aria-errormessage'?: string
+} {
+  return {
+    'aria-invalid': binding.invalid || undefined,
+    'aria-errormessage': binding.invalid ? binding.issuesId : undefined,
+  }
 }
 
 function PresentationWarning({
@@ -127,7 +140,8 @@ export const TextDashlet = forwardRef<HTMLDivElement, TextDashletProps>(function
             disabled={context.disabled}
             readOnly={context.readOnly}
             aria-labelledby={context.labelId}
-            aria-describedby={describedBy(context, false)}
+            aria-describedby={describedBy(context, false, binding)}
+            {...bindingAria(binding)}
           />
         )
       }}
@@ -159,7 +173,7 @@ export const NumberDashlet = forwardRef<HTMLDivElement, NumberDashletProps>(func
                 id={binding.controlId}
                 data-picodash-dashlist-number-value
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, true)}
+                aria-describedby={describedBy(context, true, binding)}
               >
                 {String(canonical)}
               </output>
@@ -176,7 +190,8 @@ export const NumberDashlet = forwardRef<HTMLDivElement, NumberDashletProps>(func
                 disabled={context.disabled}
                 readOnly={context.readOnly}
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, false)}
+                aria-describedby={describedBy(context, false, binding)}
+                {...bindingAria(binding)}
               />
             )}
             {mismatch ? (
@@ -218,7 +233,7 @@ export const SliderDashlet = forwardRef<HTMLDivElement, SliderDashletProps>(func
                 id={binding.controlId}
                 data-picodash-dashlist-slider-canonical
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, true)}
+                aria-describedby={describedBy(context, true, binding)}
               >
                 {String(canonical)}
               </output>
@@ -235,7 +250,8 @@ export const SliderDashlet = forwardRef<HTMLDivElement, SliderDashletProps>(func
                 disabled={context.disabled}
                 readOnly={context.readOnly}
                 aria-labelledby={context.labelId}
-                aria-describedby={describedBy(context, false)}
+                aria-describedby={describedBy(context, false, binding)}
+                {...bindingAria(binding)}
               />
             )}
             {formatValue && !mismatch ? (
@@ -270,7 +286,8 @@ export const SwitchDashlet = forwardRef<HTMLDivElement, SwitchDashletProps>(func
             disabled={context.disabled}
             readOnly={context.readOnly}
             aria-labelledby={context.labelId}
-            aria-describedby={describedBy(context, false)}
+            aria-describedby={describedBy(context, false, binding)}
+            {...bindingAria(binding)}
           />
         )
       }}
@@ -312,7 +329,8 @@ function SelectDashletInner<T extends string | number, F extends AnyField = AnyF
               disabled={context.disabled}
               readOnly={context.readOnly}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, !compatible)}
+              aria-describedby={describedBy(context, !compatible, binding)}
+              {...bindingAria(binding)}
             />
             {!compatible ? (
               <PresentationWarning context={context}>
@@ -361,7 +379,8 @@ function SegmentedDashletInner<T extends string | number, F extends AnyField = A
               disabled={context.disabled}
               readOnly={context.readOnly}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, !compatible)}
+              aria-describedby={describedBy(context, !compatible, binding)}
+              {...bindingAria(binding)}
             />
             {!compatible ? (
               <PresentationWarning context={context}>
@@ -401,7 +420,8 @@ export const DisplayDashlet = forwardRef<HTMLDivElement, DisplayDashletProps>(
               renderedValue={formatValue ? formatValue(value) : undefined}
               isFormatted={Boolean(formatValue)}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, false)}
+              aria-describedby={describedBy(context, false, context.binding)}
+              {...bindingAria(context.binding)}
             />
           )
         }}

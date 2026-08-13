@@ -26,6 +26,8 @@ export type DashlistControlProps = {
   readonly 'aria-label'?: string
   readonly 'aria-labelledby'?: string
   readonly 'aria-describedby'?: string
+  readonly 'aria-invalid'?: boolean | 'true' | 'false'
+  readonly 'aria-errormessage'?: string
   readonly disabled?: boolean
   readonly readOnly?: boolean
   readonly className?: string
@@ -53,6 +55,8 @@ export function TextField({
     readOnly: props.readOnly,
     placeholder,
     className: 'picodash-dashlist-control',
+    'aria-invalid': props['aria-invalid'],
+    'aria-errormessage': props['aria-errormessage'],
   }
   return (
     <AriaTextField
@@ -64,6 +68,8 @@ export function TextField({
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
       {multiline ? <TextArea {...inputProps} rows={minRows} /> : <Input {...inputProps} />}
     </AriaTextField>
@@ -101,11 +107,20 @@ export function NumberField({
       formatOptions={formatOptions}
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
-      <Input id={props.id} placeholder={placeholder} className="picodash-dashlist-control" />
+      <Input
+        id={props.id}
+        placeholder={placeholder}
+        className="picodash-dashlist-control"
+        aria-invalid={props['aria-invalid']}
+        aria-errormessage={props['aria-errormessage']}
+      />
     </AriaNumberField>
   )
 }
@@ -133,6 +148,7 @@ export function Slider({
 }: SliderProps) {
   return (
     <AriaSlider
+      id={props.id}
       className={props.className ?? 'picodash-dashlist-slider'}
       value={value}
       onChange={props.readOnly ? undefined : onChange}
@@ -145,10 +161,17 @@ export function Slider({
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
       <SliderOutput>{({ state }) => state.getThumbValueLabel(0)}</SliderOutput>
       <SliderTrack className="picodash-dashlist-slider-track">
-        <SliderThumb index={0} aria-label={props['aria-label']} />
+        <SliderThumb
+          index={0}
+          aria-label={props['aria-label']}
+          isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+          aria-errormessage={props['aria-errormessage']}
+        />
       </SliderTrack>
       {marks?.map((mark) => (
         <span key={mark.value} data-picodash-dashlist-slider-mark={mark.value}>
@@ -167,6 +190,7 @@ export type SwitchProps = DashlistControlProps & {
 export function Switch({ isSelected, onChange, ...props }: SwitchProps) {
   return (
     <AriaSwitch
+      id={props.id}
       className={props.className ?? 'picodash-dashlist-switch'}
       isSelected={isSelected}
       onChange={onChange}
@@ -175,6 +199,8 @@ export function Switch({ isSelected, onChange, ...props }: SwitchProps) {
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
       <span aria-hidden="true" data-picodash-dashlist-switch-track />
       <span data-picodash-dashlist-switch-label>{props['aria-label']}</span>
@@ -251,8 +277,15 @@ export function Select<T extends string | number>({
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
-      <Button id={props.id} className="picodash-dashlist-control">
+      <Button
+        id={props.id}
+        className="picodash-dashlist-control"
+        aria-invalid={props['aria-invalid']}
+        aria-errormessage={props['aria-errormessage']}
+      >
         <SelectValue<OptionParts<T>> />
       </Button>
       <Popover className="picodash-dashlist-popover">
@@ -299,9 +332,12 @@ export function SegmentedControl<T extends string | number>({
       orientation="horizontal"
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
     >
       {options.map((option) => {
         const item = optionParts(option)
@@ -339,6 +375,8 @@ export function Display({ value, renderedValue, isFormatted, ...props }: Display
       aria-label={props['aria-label']}
       aria-labelledby={props['aria-labelledby']}
       aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
       data-picodash-dashlist-display
     >
       {text}
