@@ -43,6 +43,31 @@ type FieldValue<F> =
 type FieldProps<F extends AnyField, Value> = {
   readonly field: F & (FieldValue<F> extends Value ? unknown : never)
 }
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+type ExactCompoundValueMember<Candidate, Emitted extends object> = Candidate extends object
+  ? Exclude<keyof Candidate, keyof Emitted> extends never
+    ? Exclude<keyof Emitted, keyof Candidate> extends never
+      ? Candidate extends Emitted
+        ? Emitted extends Candidate
+          ? true
+          : false
+        : false
+      : false
+    : false
+  : false
+type IsExactCompoundValue<Candidate, Emitted extends object> =
+  IsAny<Candidate> extends true
+    ? true
+    : [Candidate] extends [never]
+      ? false
+      : false extends (
+            Candidate extends unknown ? ExactCompoundValueMember<Candidate, Emitted> : never
+          )
+        ? false
+        : true
+type ExactCompoundFieldProps<F extends AnyField, Emitted extends object> = {
+  readonly field: F & (IsExactCompoundValue<FieldValue<F>, Emitted> extends true ? unknown : never)
+}
 type Shell = Omit<
   DashletProps<any, any, 'input'>,
   'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef'
@@ -152,7 +177,7 @@ function temporalPrecisionCompatible(
 }
 
 export type RangeDashletProps<F extends AnyField = AnyField> = Shell &
-  FieldProps<F, NumberRangeValue> &
+  ExactCompoundFieldProps<F, NumberRangeValue> &
   Pick<RangeSliderProps, 'min' | 'max' | 'step' | 'formatOptions'> & {
     readonly formatValue?: (value: NumberRangeValue) => ReactNode
   }
@@ -694,7 +719,7 @@ export const DateTimeDashlet = forwardRef(DateTimeDashletInner) as <F extends An
 ) => ReactElement | null
 
 export type DateRangeDashletProps<F extends AnyField = AnyField> = Shell &
-  FieldProps<F, { start: string; end: string }> &
+  ExactCompoundFieldProps<F, { start: string; end: string }> &
   Pick<DateRangeFieldProps, 'locale' | 'shouldForceLeadingZeros'>
 
 function DateRangeDashletInner<F extends AnyField = AnyField>(

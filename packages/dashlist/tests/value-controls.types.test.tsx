@@ -51,6 +51,55 @@ const numberOrStringField = null as unknown as PicodashField<CompatibilityValues
 const rangeOrStringField = null as unknown as PicodashField<CompatibilityValues, 'rangeOrString'>
 const statusUnionField = null as unknown as PicodashField<CompatibilityValues, 'statusUnion'>
 
+type ExactCompoundCompatibilityValues = {
+  mutableRange: { start: number; end: number }
+  readonlyRange: { readonly start: number; readonly end: number }
+  rangeWithRequiredExtra: { start: number; end: number; unit: string }
+  rangeWithOptionalExtra: { start: number; end: number; unit?: string }
+  indexedRange: { start: number; end: number; [key: string]: number }
+  literalRange: { start: 0; end: 100 }
+  optionalRangeMember: { start: number; end?: number }
+  unionRange: { start: number; end: number } | { start: number; end: number; unit: string }
+  mutableDateRange: { start: string; end: string }
+  readonlyDateRange: { readonly start: string; readonly end: string }
+  dateRangeWithRequiredExtra: { start: string; end: string; calendar: string }
+  dateRangeWithOptionalExtra: { start: string; end: string; calendar?: string }
+  indexedDateRange: { start: string; end: string; [key: string]: string }
+  literalDateRange: { start: '2026-08-01'; end: '2026-08-13' }
+  incompatibleDateRange: { start: string; end: string | null }
+  unionDateRange: { start: string; end: string } | string
+}
+
+type ExactCompoundField<Key extends keyof ExactCompoundCompatibilityValues> = PicodashField<
+  ExactCompoundCompatibilityValues,
+  Key
+>
+
+function exactCompoundField<Key extends keyof ExactCompoundCompatibilityValues>(
+  _key: Key,
+): ExactCompoundField<Key> {
+  return null as unknown as ExactCompoundField<Key>
+}
+
+const exactCompoundFields = {
+  mutableRange: exactCompoundField('mutableRange'),
+  readonlyRange: exactCompoundField('readonlyRange'),
+  rangeWithRequiredExtra: exactCompoundField('rangeWithRequiredExtra'),
+  rangeWithOptionalExtra: exactCompoundField('rangeWithOptionalExtra'),
+  indexedRange: exactCompoundField('indexedRange'),
+  literalRange: exactCompoundField('literalRange'),
+  optionalRangeMember: exactCompoundField('optionalRangeMember'),
+  unionRange: exactCompoundField('unionRange'),
+  mutableDateRange: exactCompoundField('mutableDateRange'),
+  readonlyDateRange: exactCompoundField('readonlyDateRange'),
+  dateRangeWithRequiredExtra: exactCompoundField('dateRangeWithRequiredExtra'),
+  dateRangeWithOptionalExtra: exactCompoundField('dateRangeWithOptionalExtra'),
+  indexedDateRange: exactCompoundField('indexedDateRange'),
+  literalDateRange: exactCompoundField('literalDateRange'),
+  incompatibleDateRange: exactCompoundField('incompatibleDateRange'),
+  unionDateRange: exactCompoundField('unionDateRange'),
+}
+
 describe('@picodash/dashlist value control types', () => {
   it('accepts value control props and rejects invalid overrides', () => {
     ;<RangeSlider value={{ start: 1, end: 2 }} onChange={(value) => value.end} />
@@ -64,6 +113,16 @@ describe('@picodash/dashlist value control types', () => {
     ;<ColorField value="#fff" onChange={() => undefined} format="hex" />
 
     ;<RangeDashlet field={nexus.fields.range} id="range" label="Range" />
+    ;<RangeDashlet
+      field={exactCompoundFields.mutableRange}
+      id="mutable-range"
+      label="Mutable range"
+    />
+    ;<RangeDashlet
+      field={exactCompoundFields.readonlyRange}
+      id="readonly-range"
+      label="Readonly range"
+    />
     ;<ProgressDashlet field={nexus.fields.progress} id="progress" label="Progress" />
     ;<StatusDashlet
       field={nexus.fields.status}
@@ -79,6 +138,16 @@ describe('@picodash/dashlist value control types', () => {
       timeZone="Australia/Perth"
     />
     ;<DateRangeDashlet field={nexus.fields.dateRange} id="date-range" label="Date range" />
+    ;<DateRangeDashlet
+      field={exactCompoundFields.mutableDateRange}
+      id="mutable-date-range"
+      label="Mutable date range"
+    />
+    ;<DateRangeDashlet
+      field={exactCompoundFields.readonlyDateRange}
+      id="readonly-date-range"
+      label="Readonly date range"
+    />
     ;<ColorDashlet field={nexus.fields.color} id="color" label="Color" format="rgba" />
     ;<MeterDashlet
       field={nexus.fields.progress}
@@ -121,6 +190,42 @@ describe('@picodash/dashlist value control types', () => {
       id="range-union-mismatch"
       label="Union mismatch"
     />
+    ;<RangeDashlet
+      // @ts-expect-error compound range fields cannot contain extra required keys.
+      field={exactCompoundFields.rangeWithRequiredExtra}
+      id="range-required-extra"
+      label="Required extra"
+    />
+    ;<RangeDashlet
+      // @ts-expect-error compound range fields cannot contain extra optional keys.
+      field={exactCompoundFields.rangeWithOptionalExtra}
+      id="range-optional-extra"
+      label="Optional extra"
+    />
+    ;<RangeDashlet
+      // @ts-expect-error compound range fields cannot have an index signature.
+      field={exactCompoundFields.indexedRange}
+      id="range-index-signature"
+      label="Index signature"
+    />
+    ;<RangeDashlet
+      // @ts-expect-error the field must accept every numeric range emitted by the control.
+      field={exactCompoundFields.literalRange}
+      id="range-literals"
+      label="Literal range"
+    />
+    ;<RangeDashlet
+      // @ts-expect-error both compound range members must be required.
+      field={exactCompoundFields.optionalRangeMember}
+      id="range-optional-member"
+      label="Optional member"
+    />
+    ;<RangeDashlet
+      // @ts-expect-error every member of a compound field union must be the exact range value.
+      field={exactCompoundFields.unionRange}
+      id="range-object-union"
+      label="Object union"
+    />
     // @ts-expect-error DateDashlet rejects a number field at a direct JSX call site.
     ;<DateDashlet field={nexus.fields.progress} id="date-mismatch" label="Mismatch" />
     // @ts-expect-error TimeDashlet rejects a number field at a direct JSX call site.
@@ -134,6 +239,42 @@ describe('@picodash/dashlist value control types', () => {
     />
     // @ts-expect-error DateRangeDashlet rejects a date field at a direct JSX call site.
     ;<DateRangeDashlet field={nexus.fields.date} id="date-range-mismatch" label="Mismatch" />
+    ;<DateRangeDashlet
+      // @ts-expect-error compound date ranges cannot contain extra required keys.
+      field={exactCompoundFields.dateRangeWithRequiredExtra}
+      id="date-range-required-extra"
+      label="Required extra"
+    />
+    ;<DateRangeDashlet
+      // @ts-expect-error compound date ranges cannot contain extra optional keys.
+      field={exactCompoundFields.dateRangeWithOptionalExtra}
+      id="date-range-optional-extra"
+      label="Optional extra"
+    />
+    ;<DateRangeDashlet
+      // @ts-expect-error compound date ranges cannot have an index signature.
+      field={exactCompoundFields.indexedDateRange}
+      id="date-range-index-signature"
+      label="Index signature"
+    />
+    ;<DateRangeDashlet
+      // @ts-expect-error the field must accept every date string range emitted by the control.
+      field={exactCompoundFields.literalDateRange}
+      id="date-range-literals"
+      label="Literal range"
+    />
+    ;<DateRangeDashlet
+      // @ts-expect-error compound date range members must have equivalent string domains.
+      field={exactCompoundFields.incompatibleDateRange}
+      id="date-range-incompatible-member"
+      label="Incompatible member"
+    />
+    ;<DateRangeDashlet
+      // @ts-expect-error every member of a compound field union must be the exact date range value.
+      field={exactCompoundFields.unionDateRange}
+      id="date-range-union"
+      label="Union range"
+    />
     // @ts-expect-error ColorDashlet rejects a number field at a direct JSX call site.
     ;<ColorDashlet field={nexus.fields.progress} id="color-mismatch" label="Mismatch" />
 
