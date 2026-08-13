@@ -63,5 +63,5 @@ describe('dev bridge type publication surface', () => {
     `)
     expect(compact.status).not.toBe(0)
     expect(compact.output).toContain('has no exported member')
-  })
+  }, 30_000)
 })

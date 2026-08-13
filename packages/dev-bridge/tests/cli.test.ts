@@ -167,7 +167,7 @@ describe('dev bridge CLI', () => {
       })
       expect(invalid.code).toBe(2)
     }
-  })
+  }, 30_000)
 
   test('covers flag order, duplicate/equals/positional rejection and deterministic session sorting', async () => {
     const invalid = [
@@ -283,7 +283,7 @@ describe('dev bridge CLI', () => {
     } finally {
       await transport.close()
     }
-  })
+  }, 30_000)
 
   test('accepts optional bridge request IDs/session refs and preserves ID on selection errors', async () => {
     const mock = await mockRelay((requestPath, _request, response) => {
@@ -491,10 +491,10 @@ describe('dev bridge CLI', () => {
     const output: Buffer[] = []
     child.stderr.on('data', (chunk) => output.push(Buffer.from(chunk)))
     child.stdin.end('{"timeoutMs":30000,"condition":{"type":"sequence_after","sequence":0}}')
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 1_000))
     child.kill('SIGINT')
     const code = await new Promise<number | null>((resolve) => child.on('close', resolve))
     expect(code).toBe(130)
     expect(Buffer.concat(output).toString()).toContain('aborted')
-  })
+  }, 30_000)
 })

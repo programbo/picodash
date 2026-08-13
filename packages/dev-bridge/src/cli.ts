@@ -110,14 +110,14 @@ export async function runPicodashDevBridgeCli(argv = process.argv.slice(2)): Pro
           ? 5
           : 0
     }
-    const input = await readInput('wait')
-    const requestId = `cli-${randomUUID().toLowerCase()}`
-    activeRequestId = requestId
-    const session = await resolveSession(client, parsed.sessionId, parsed.generation, requestId)
     const abort = new AbortController()
     const onInterrupt = () => abort.abort()
     process.once('SIGINT', onInterrupt)
     try {
+      const input = await readInput('wait')
+      const requestId = `cli-${randomUUID().toLowerCase()}`
+      activeRequestId = requestId
+      const session = await resolveSession(client, parsed.sessionId, parsed.generation, requestId)
       const result = await client.wait(
         session,
         {
