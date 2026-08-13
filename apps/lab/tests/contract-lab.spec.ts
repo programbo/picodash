@@ -1,4 +1,4 @@
-import { devices, expect, test, type Page } from '@playwright/test'
+import { devices, expect, test, type Locator, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
@@ -148,6 +148,41 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
       .getByRole('group', { name: 'Basics' })
       .locator('[data-picodash-dashlet="style-lab-range"]'),
   ).toBeVisible()
+
+  const focusWithKeyboard = async (control: Locator) => {
+    for (let index = 0; index < 80; index += 1) {
+      if (await control.evaluate((element) => element === document.activeElement)) return
+      await page.keyboard.press('Tab')
+    }
+    throw new Error('keyboard traversal did not reach the target control')
+  }
+  const expectKeyboardOutline = async (
+    control: Locator,
+    outlineTarget: Locator = control,
+    stateTarget: Locator = outlineTarget,
+  ) => {
+    await focusWithKeyboard(control)
+    expect(
+      await stateTarget.evaluate((element) => element.hasAttribute('data-focus-visible')),
+    ).toBe(true)
+    const outline = await outlineTarget.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return { style: style.outlineStyle, width: style.outlineWidth }
+    })
+    expect(outline.style).not.toBe('none')
+    expect(outline.width).not.toBe('0px')
+  }
+
+  const switchControl = basicsList.getByRole('switch', { name: 'SwitchDashlet' })
+  await expectKeyboardOutline(switchControl, switchControl.locator('xpath=ancestor::label[1]'))
+
+  const colorControl = choicesList.getByRole('textbox', { name: 'ColorDashlet', exact: true })
+  await expectKeyboardOutline(colorControl)
+
+  const choiceControl = choicesList
+    .getByRole('radiogroup', { name: 'RadioGroupDashlet' })
+    .getByRole('radio', { name: 'Option B', exact: true })
+  await expectKeyboardOutline(choiceControl, choiceControl.locator('xpath=ancestor::label[1]'))
 
   const gallery = page.getByRole('list', { name: 'Dashlet gallery' })
   for (const group of [

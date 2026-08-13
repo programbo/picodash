@@ -91,6 +91,15 @@ describe('DashList stylesheet contract', () => {
       /\.picodash-dashlist-segmented\s+\[data-picodash-dashlist-segment\]\[data-focus-visible\]/s,
     )
     expect(css).toMatch(
+      /\.picodash-dashlist-switch\[data-focus-visible\],[\s\S]*\.picodash-dashlist-checkbox\[data-focus-visible\],[\s\S]*\.picodash-dashlist-choice\[data-focus-visible\]/s,
+    )
+    expect(css).not.toMatch(
+      /\.picodash-dashlist-(?:switch|checkbox|choice):focus-visible|\.picodash-dashlist-color-field:focus-within/,
+    )
+    expect(css).toMatch(
+      /\.picodash-dashlist-color-field\s+\[data-focus-visible\]\s*\{[^}]*outline:\s*calc\(2 \* var\(--picodash-border-width-thin\)\) solid var\(--picodash-color-focus\);[^}]*outline-offset:\s*2px;/s,
+    )
+    expect(css).toMatch(
       /@media\s*\(pointer:\s*coarse\)[\s\S]*\.picodash-dashlist-slider\s+\[data-picodash-dashlist-slider-thumb\],[\s\S]*min-inline-size:\s*44px;[\s\S]*min-block-size:\s*44px;/s,
     )
     expect(css).not.toMatch(/\.picodash-dashlist-slider\s+\[role='slider'\]/)

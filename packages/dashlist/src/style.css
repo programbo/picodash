@@ -42,7 +42,9 @@
 .picodash-dashlist-control:focus-visible,
 .picodash-dashlist-select > button:focus-visible,
 .picodash-dashlist-segmented [data-picodash-dashlist-segment][data-focus-visible],
-.picodash-dashlist-switch:focus-visible,
+.picodash-dashlist-switch[data-focus-visible],
+.picodash-dashlist-checkbox[data-focus-visible],
+.picodash-dashlist-choice[data-focus-visible],
 .picodash-dashlist-slider [data-picodash-dashlist-slider-thumb][data-focus-visible],
 .picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb][data-focus-visible] {
   outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
@@ -337,6 +339,12 @@
   color: inherit;
   font: inherit;
   outline: none;
+}
+
+.picodash-dashlist-color-field [data-focus-visible] {
+  border-radius: var(--picodash-radius-control);
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+  outline-offset: 2px;
 }
 
 [data-picodash-dashlet-presentation-warning] {
