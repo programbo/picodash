@@ -891,9 +891,11 @@ slice does not emit `presentation_incompatible`.
 ## Responsive row and compound layout
 
 > Contract: Accepted
-> Implementation: Planned
-> Notes: This is the initial evidence-sensitive target. Contract Lab implementation may revise its
-> exact threshold or track tokens when measured behavior reveals a genuine constraint.
+> Implementation: Partial
+> Evidence: `packages/dashlist/src/style.css` and `packages/dashlist/tests/style.test.ts` cover the
+> shared four-track ordering-grid recipe, label-width token, `18rem` inline fallback, and coarse
+> pointer target declarations. Rendered responsive geometry, drag-preview geometry, and bounded
+> trailing-value behavior remain planned.
 
 DashList responsiveness follows its own container width, never the viewport. Each ordering
 container owns one shared alignment grid across its start, automatic, and end pin bands. A

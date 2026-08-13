@@ -4,6 +4,11 @@
   --picodash-panel-width: min(20rem, calc(100dvw - 2rem));
 }
 
+/*
+ * Restore the dense inspector treatment from the original Picodash Panel while
+ * keeping placement, interaction, and shared primitive styling with their
+ * current package owners.
+ */
 .picodash-dashpanel {
   position: absolute;
   display: flex;
@@ -12,32 +17,109 @@
   inline-size: var(--picodash-panel-width);
   max-inline-size: 100%;
   overflow: hidden;
+  isolation: isolate;
   z-index: 0;
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-radius: var(--picodash-radius-surface);
+  background: var(--picodash-color-surface);
+  background: color-mix(in oklab, var(--picodash-color-surface) 72%, transparent);
+  box-shadow:
+    var(--picodash-shadow-elevated),
+    0 0 0 var(--picodash-border-width-thin)
+      color-mix(in oklab, var(--picodash-color-text-strong) 5%, transparent);
+  color: var(--picodash-color-text);
+  font-family: var(--picodash-font-family);
 }
 
-.picodash-dashpanel > [data-slot='dash-header'] [data-picodash-panel-actions] {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.125rem;
-}
-
-[data-picodash-panel-move-handle] {
-  touch-action: none;
-}
-
-.picodash-dashpanel[data-picodash-placement$='free-preview'] {
-  outline: 2px dashed var(--picodash-focus-ring, currentColor);
-  outline-offset: 2px;
-}
-
-.picodash-dashpanel[data-active='true'] {
-  z-index: var(--picodash-layer-raised);
+.picodash-dashpanel::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  -webkit-backdrop-filter: blur(calc(2 * var(--picodash-blur-surface)));
+  backdrop-filter: blur(calc(2 * var(--picodash-blur-surface)));
+  content: '';
+  pointer-events: none;
 }
 
 .picodash-dashpanel > [data-slot='dash-header'] {
   display: flex;
   flex: none;
   align-items: center;
+  box-sizing: border-box;
+  min-block-size: var(--picodash-control-height-lg);
+  gap: var(--picodash-space-1);
+  border-block-end: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  padding: var(--picodash-space-2) var(--picodash-space-3);
+  user-select: none;
+}
+
+.picodash-dashpanel > [data-slot='dash-header']:has([data-slot='dash-header-leading'] > *) {
+  padding-inline-start: var(--picodash-space-1);
+}
+
+.picodash-dashpanel > [data-slot='dash-header'] [data-slot='dash-header-leading'],
+.picodash-dashpanel > [data-slot='dash-header'] [data-slot='dash-header-actions'],
+.picodash-dashpanel > [data-slot='dash-header'] [data-slot='dash-header-trailing'] {
+  flex: none;
+  gap: var(--picodash-space-0-5);
+}
+
+.picodash-dashpanel > [data-slot='dash-header'] [data-slot='dash-header-title'] {
+  min-inline-size: 0;
+}
+
+.picodash-dashpanel > [data-slot='dash-header'] [data-slot='button'][data-icon-only] {
+  inline-size: var(--picodash-icon-lg);
+  block-size: var(--picodash-icon-lg);
+  font-size: var(--picodash-icon-sm);
+}
+
+.picodash-dashpanel
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading']
+  > [data-slot='button'] {
+  color: var(--picodash-color-text-muted);
+  font-size: 0;
+}
+
+.picodash-dashpanel
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading']
+  > [data-slot='button']::before {
+  display: inline-block;
+  box-sizing: border-box;
+  inline-size: calc(var(--picodash-icon-sm) / 2);
+  block-size: calc(var(--picodash-icon-sm) / 2);
+  border-right: var(--picodash-border-width-thin) solid currentColor;
+  border-bottom: var(--picodash-border-width-thin) solid currentColor;
+  content: '';
+  transform: rotate(45deg);
+  transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+
+.picodash-dashpanel[data-collapsed='true']
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading']
+  > [data-slot='button']::before {
+  transform: rotate(-45deg);
+}
+
+.picodash-dashpanel > [data-slot='dash-header'] h2 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--picodash-color-text-strong);
+  font-size: var(--picodash-font-size-xl);
+  font-weight: var(--picodash-font-weight-semibold);
+  letter-spacing: var(--picodash-letter-spacing-normal);
+  line-height: var(--picodash-line-height-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picodash-dashpanel > [data-slot='dash-header'] [data-picodash-panel-actions] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--picodash-space-0-5);
 }
 
 .picodash-dashpanel > [data-picodash-panel-body] {
@@ -45,6 +127,33 @@
   min-inline-size: 0;
   min-block-size: 0;
   overflow: auto;
+  overscroll-behavior: contain;
+}
+
+[data-picodash-panel-move-handle] {
+  touch-action: none;
+}
+
+.picodash-dashpanel [data-picodash-panel-move-handle] {
+  color: var(--picodash-color-text-muted);
+  cursor: grab;
+}
+
+.picodash-dashpanel [data-picodash-panel-move-handle]:active {
+  cursor: grabbing;
+}
+
+.picodash-dashpanel [data-picodash-panel-move-handle][data-disabled] {
+  cursor: default;
+}
+
+.picodash-dashpanel[data-picodash-placement$='free-preview'] {
+  outline: 2px dashed var(--picodash-color-focus);
+  outline-offset: 2px;
+}
+
+.picodash-dashpanel[data-active='true'] {
+  z-index: var(--picodash-layer-raised);
 }
 
 [data-picodash-panel-status],
@@ -55,4 +164,13 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picodash-dashpanel
+    > [data-slot='dash-header']
+    [data-slot='dash-header-leading']
+    > [data-slot='button']::before {
+    transition: none;
+  }
 }
