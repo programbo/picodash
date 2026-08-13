@@ -116,6 +116,7 @@ assert.deepEqual(
     'DashHeader',
     'PicodashOverlayProvider',
     'PicodashThemeProvider',
+    'Popover',
     'Tooltip',
     'TooltipContent',
     'TooltipProvider',
@@ -179,6 +180,7 @@ for (const name of [
   'ActionMenuProps',
   'AlertDialogProps',
   'TooltipProps',
+  'PopoverProps',
 ])
   assert.match(uiDeclarations, new RegExp(`\\b${name}\\b`))
 

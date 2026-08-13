@@ -55,6 +55,7 @@ async function main() {
     'DashHeader',
     'PicodashOverlayProvider',
     'PicodashThemeProvider',
+    'Popover',
     'Tooltip',
     'TooltipContent',
     'TooltipProvider',
@@ -100,6 +101,7 @@ async function main() {
     'TooltipProps',
     'TooltipTriggerProps',
     'TooltipContentProps',
+    'PopoverProps',
   ]) {
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
   }
@@ -108,6 +110,9 @@ async function main() {
     'resolvePicodashTheme',
     'readPicodashSystemTheme',
     'PicodashThemeProviderPropsWithPortal',
+    'ActiveOverlayLayer',
+    'useActiveOverlayLayer',
+    'resolveOverlayLayer',
   ]) {
     assert.doesNotMatch(declarations, new RegExp(`\\b${retired}\\b`))
   }

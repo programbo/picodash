@@ -382,16 +382,18 @@ The reused primary-List workflow retains the accepted DashList requirements to:
 
 ## Package facade
 
-| Surface                        | Contract | Implementation | Notes                                       |
-| ------------------------------ | -------- | -------------- | ------------------------------------------- |
-| `@picodash/picodash`           | Accepted | Partial        | Alpha root exports and Provider delegation. |
-| `@picodash/picodash/ui`        | Accepted | Partial        | Explicit reexports of stable shared UI.     |
-| `@picodash/picodash/catalog`   | Accepted | Planned        | Aggregates package-owned catalogs.          |
-| `@picodash/picodash/style.css` | Accepted | Partial        | Public UI, DashPanel, and DashList imports. |
+| Surface                        | Contract | Implementation | Notes                                                     |
+| ------------------------------ | -------- | -------------- | --------------------------------------------------------- |
+| `@picodash/picodash`           | Accepted | Partial        | Alpha root exports and Provider delegation.               |
+| `@picodash/picodash/ui`        | Accepted | Partial        | Exact reexports of stable shared UI, including `Popover`. |
+| `@picodash/picodash/catalog`   | Accepted | Planned        | Aggregates package-owned catalogs.                        |
+| `@picodash/picodash/style.css` | Accepted | Partial        | Public UI, DashPanel, and DashList imports.               |
 
 The root uses named reexports and exposes no `Picodash*` aliases for foundation-owned components.
 The facade does not fork their types or behavior. Its `/ui` entrypoint explicitly mirrors the
 accepted `@picodash/ui` inventory, never the lower-level owner consumed by DashPanel or DashList.
+It reexports `Popover` and `PopoverProps` as the exact UI-owned identities without exposing private
+active-layer machinery.
 Product-specific DashList controls retain their owning package surfaces even when Picodash
 reexports them separately.
 

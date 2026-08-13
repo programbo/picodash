@@ -343,6 +343,7 @@ describe('choice controls', () => {
 
       const popup = portal.querySelector('.picodash-dashlist-popover') as HTMLElement | null
       expect(popup, `${choiceCase.name} should use the Provider portal`).not.toBeNull()
+      expect(popup?.dataset.slot).toBe('popover')
       expect(control?.contains(popup)).toBe(false)
       expect(popup?.dataset.picodashTheme).toBe('light')
       expect(popup?.dataset.picodashDensity).toBe('compact')

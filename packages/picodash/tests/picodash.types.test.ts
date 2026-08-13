@@ -49,10 +49,24 @@ import {
   type PicodashDockPosition,
   type PicodashProviderProps,
 } from '../src/index.ts'
+import { Popover as OwnerPopover, type PopoverProps as OwnerPopoverProps } from '@picodash/ui'
+import { Popover as FacadePopover, type PopoverProps as FacadePopoverProps } from '../src/ui.ts'
 
 const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { value: { defaultValue: 0 } } })
 
 describe('@picodash/picodash facade public types', () => {
+  it('reexports the exact shared Popover from the /ui facade', () => {
+    const props: FacadePopoverProps = {
+      children: null,
+      portalContainer: null,
+      layerBase: 20,
+      placement: 'bottom',
+    }
+    void props
+    expectTypeOf(FacadePopover).toEqualTypeOf(OwnerPopover)
+    expectTypeOf<FacadePopoverProps>().toEqualTypeOf<OwnerPopoverProps>()
+  })
+
   it('keeps owner identities and the narrowed Provider contract explicit', () => {
     const provider: PicodashProviderProps = {
       nexus,

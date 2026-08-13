@@ -311,6 +311,25 @@ test('opens, cancels, and restores focus for the landed shared AlertDialog', asy
   await trigger.press('Enter')
   const dialog = page.getByRole('alertdialog', { name: 'Contract Lab confirmation' })
   await expect(dialog).toBeVisible()
+  const choiceTrigger = dialog.getByRole('button', { name: /AlertDialog choice/ })
+  await choiceTrigger.click()
+  const choicePopover = page.locator('[data-slot="popover"]')
+  const dialogOverlay = page.locator('[data-slot="alert-dialog-overlay"]')
+  await expect(choicePopover).toBeVisible()
+  expect(
+    await choicePopover.evaluate((element) => Number(getComputedStyle(element).zIndex)),
+  ).toBeGreaterThan(
+    await dialogOverlay.evaluate((element) => Number(getComputedStyle(element).zIndex)),
+  )
+  expect(
+    await dialog.evaluate((element) =>
+      element.contains(document.querySelector('[data-slot="popover"]')),
+    ),
+  ).toBe(false)
+  await choicePopover.getByRole('option', { name: 'Details' }).click()
+  await expect(choicePopover).toHaveCount(0)
+  await expect(choiceTrigger).toBeFocused()
+  await expect(choiceTrigger).toContainText('Details')
   await dialog.getByRole('button', { name: 'Cancel' }).click()
   await expect(dialog).toHaveCount(0)
   await expect(trigger).toBeFocused()

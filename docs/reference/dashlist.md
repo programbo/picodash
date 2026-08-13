@@ -1822,6 +1822,11 @@ Menus, popovers, and confirmation dialogs inherit their keyboard, focus containm
 restoration behavior from the accepted `@picodash/ui` primitives. DashList adds behavior only where
 the List operation requires it.
 
+Select, Combobox, and MultiSelect use the public shared UI `Popover` composition for their detached
+listboxes. DashList retains only its structural choice-popup class and choice behavior; shared UI
+owns Provider portal defaults, repeated theme/density attributes, and ordering above an active
+parent overlay.
+
 ### Announcements
 
 Each mounted DashList owns exactly one persistent, initially empty, visually hidden
@@ -1873,7 +1878,7 @@ The unbound `/ui` inventory is `TextField`, `NumberField`, `Slider`, `Switch`, `
 `DateTimeField`, `DateRangeField`, and `ColorField`, plus their owning public prop types. These are
 controlled components used to compose custom Dashlets; they do not read Nexus context. Indeterminate
 progress exists only at this unbound layer. Shared Button, Label, Tooltip, Toolbar, confirmation,
-ActionMenu, and Provider components remain canonically UI-owned and are not copied into this
+ActionMenu, Popover, and Provider components remain canonically UI-owned and are not copied into this
 entrypoint.
 
 > Contract: Accepted

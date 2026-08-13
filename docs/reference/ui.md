@@ -16,6 +16,8 @@ accessible presentation primitives without making either product depend on the o
 > component tests](../../packages/ui/tests/button.test.tsx), [Button type tests](../../packages/ui/tests/button.types.test.ts),
 > [AlertDialog component tests](../../packages/ui/tests/alert-dialog.test.tsx), [AlertDialog type
 > tests](../../packages/ui/tests/alert-dialog.types.test.ts),
+> [Popover component tests](../../packages/ui/tests/popover.test.tsx), [Popover type
+> tests](../../packages/ui/tests/popover.types.test.tsx),
 > [CSS contract tests](../../packages/ui/tests/css-contract.test.ts), the [Contract Lab Themes
 > journey](../../apps/lab/tests/contract-lab.spec.ts), and the [package artifact checker](../../packages/ui/tests/package-artifacts.mjs).
 >
@@ -88,6 +90,7 @@ named `*Props` type. No dedicated component subpath is introduced for this inven
 |              | `AlertDialogMedia`, `AlertDialogOverlay`, `AlertDialogTitle`,                  |
 |              | `AlertDialogTrigger`.                                                          |
 | Action menu  | `ActionMenu`, `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`.        |
+| Popover      | `Popover`.                                                                     |
 | Tooltip      | `Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger`.              |
 
 The public `ActionMenu` root replaces the prototype technique in which `ActionSubmenu` changes
@@ -241,6 +244,45 @@ The prototype exports `PicodashThemeContextProvider`, `useResolvedPicodashTheme`
 during migration: consumers configure presentation through the public Providers and read resolved
 context through the three accepted hooks.
 
+## Popover
+
+> Contract: Accepted
+>
+> Implementation: Verified
+>
+> Evidence: [Popover component tests](../../packages/ui/tests/popover.test.tsx), [Popover type
+> tests](../../packages/ui/tests/popover.types.test.tsx), the [package artifact
+> checker](../../packages/ui/tests/package-artifacts.mjs), and the existing [Contract Lab
+> AlertDialog journey](../../apps/lab/tests/contract-lab.spec.ts).
+
+`Popover` renders a product-neutral React Aria overlay positioned relative to its trigger. It owns
+Picodash portal, detached presentation, and nested layer policy without adding product behavior or
+styling.
+
+```ts
+import type { PopoverProps as ReactAriaPopoverProps } from 'react-aria-components'
+
+type PopoverProps = Omit<ReactAriaPopoverProps, 'UNSTABLE_portalContainer'> &
+  RefAttributes<HTMLElement> & {
+    portalContainer?: HTMLElement | null
+    layerBase?: number
+  }
+```
+
+- React Aria owns positioning, controlled or uncontrolled state, dismissal, focus, SSR, children,
+  class, style, and constrained render-function behavior. The rendered overlay ref is preserved.
+- `portalContainer` and `layerBase` use the standard explicit-over-inherited overlay rules. The
+  upstream unstable portal prop is reserved so one Picodash portal vocabulary remains public.
+- The root repeats resolved theme and density attributes without decorating the portal host.
+- The semantic popover token, explicit or inherited layer base, and active parent-overlay layer
+  form minimums. A nested Popover resolves above its opener and privately supplies its resolved
+  layer to descendants.
+- The active parent layer, exact expression, resolver, hook, and context remain package-private.
+  Consumers cannot calculate or propagate Picodash overlay ordering themselves.
+
+DashList choice controls use this shared composition with a DashList-owned structural class.
+`Popover` is not added to DashList's ready-made inventory or catalog.
+
 ## Button
 
 > Contract: Accepted
@@ -307,8 +349,9 @@ The prototype's `default` variant becomes `primary`. Its duplicate `default`/`md
 >
 > Evidence: [AlertDialog component tests](../../packages/ui/tests/alert-dialog.test.tsx) and
 > [AlertDialog type tests](../../packages/ui/tests/alert-dialog.types.test.ts). React Aria Escape
-> ordering, focus restoration, outside-content hiding, and computed nested stacking remain browser
-> verification seams.
+> ordering and outside-content hiding remain browser verification seams. The existing Contract Lab
+> AlertDialog journey verifies nested computed stacking, choice interaction, and trigger-focus
+> restoration.
 
 `AlertDialog` presents a consequential choice that requires an explicit action or cancellation. It
 does not analyze an operation, generate confirmation copy, or execute a product command.
@@ -919,7 +962,7 @@ while UI primitives remain documented through this reference and their TypeScrip
   `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`, and their public types, including
   `ActionMenuConfirmation`. These are the shared identities used by each product's header and
   action-composition APIs.
-- The product roots do not reexport `Button`, AlertDialog, Tooltip, or the shared Providers merely
+- The product roots do not reexport `Button`, AlertDialog, Popover, Tooltip, or the shared Providers merely
   because their implementations use them. Consumers needing those generic primitives import them
   from `@picodash/ui`.
 - `@picodash/picodash` reexports the same header and ActionMenu identities needed by its integrated

@@ -22,7 +22,7 @@ Nexuses, Panels, Lists, Dashlets, placement, ordering, or persistence.
 - Use semantic `--picodash-*` tokens and named Picodash-owned public prop types.
 - Extend React Aria interfaces deliberately and omit reserved semantic or structural props.
 - Do not publish internal variant-helper types or `ComponentProps<typeof InternalComponent>`.
-- Keep generic Button, AlertDialog, Tooltip, and Provider imports UI-owned. DashPanel and DashList
+- Keep generic Button, AlertDialog, Popover, Tooltip, and Provider imports UI-owned. DashPanel and DashList
   explicitly reexport only the shared contracts accepted by their references.
 - Replace the theme prototype cleanly; do not retain a second theme authority or compatibility
   alias without an accepted decision.

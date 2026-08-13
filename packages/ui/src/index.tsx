@@ -64,3 +64,4 @@ export {
   type TooltipTriggerProps,
   type TooltipContentProps,
 } from './tooltip.tsx'
+export { Popover, type PopoverProps } from './popover.tsx'

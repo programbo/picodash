@@ -22,6 +22,7 @@ import type {
   CompoundDashletRenderContext,
   SingleFieldDashletRenderContext,
 } from '@picodash/dashlist'
+import { Select } from '@picodash/dashlist/ui'
 import { SparklineDashlet, type SparklineSource } from '@picodash/dashlist/charts'
 import {
   DashGroup as StandaloneDashGroup,
@@ -497,6 +498,7 @@ export function ContractLabSpecimen({
   const [quarantineResolved, setQuarantineResolved] = useState(false)
   const [capturedDocument, setCapturedDocument] = useState<PicodashDocument | null>(null)
   const [documentStatus, setDocumentStatus] = useState('No document captured.')
+  const [alertDialogChoice, setAlertDialogChoice] = useState('summary')
   const nexus = useMemo(
     () =>
       createPicodashNexus({
@@ -729,6 +731,15 @@ export function ContractLabSpecimen({
                           This is the shared UI confirmation primitive.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
+                      <Select
+                        aria-label="AlertDialog choice"
+                        value={alertDialogChoice}
+                        onChange={setAlertDialogChoice}
+                        options={[
+                          { value: 'summary', label: 'Summary' },
+                          { value: 'details', label: 'Details' },
+                        ]}
+                      />
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                       </AlertDialogFooter>
