@@ -71,6 +71,15 @@ export function removeMultiSelectValues<T extends ChoiceValue>(
   })
 }
 
+function validateMultiSelectValue(value: readonly ChoiceValue[]): void {
+  const seen = new Set<string>()
+  for (const item of value) {
+    const key = choiceKey(item)
+    if (seen.has(key)) throw new TypeError('MultiSelect value must contain unique values.')
+    seen.add(key)
+  }
+}
+
 export function validateChoiceOptions<T extends ChoiceValue>(
   options: readonly SelectOption<T>[],
 ): void {
@@ -303,6 +312,7 @@ export function MultiSelect<T extends ChoiceValue>({
   placeholder,
   ...props
 }: MultiSelectProps<T>) {
+  validateMultiSelectValue(value)
   validateChoiceOptions(options)
   const parts = options.map(optionParts)
   const selected = value.map(choiceKey)

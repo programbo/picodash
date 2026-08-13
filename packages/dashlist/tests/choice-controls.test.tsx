@@ -226,6 +226,57 @@ describe('choice controls', () => {
     }
   })
 
+  it('rejects duplicate controlled MultiSelect values under typed choice identity', () => {
+    const duplicateValues: readonly {
+      readonly name: string
+      readonly value: readonly (string | number)[]
+    }[] = [
+      { name: 'string', value: ['one', 'one'] },
+      { name: 'number', value: [1, 1] },
+    ]
+
+    for (const duplicate of duplicateValues)
+      expect(
+        () =>
+          render(
+            createElement(MultiSelect, {
+              'aria-label': 'Choices',
+              value: duplicate.value,
+              onChange: () => undefined,
+              options: ['one', 1],
+            }),
+          ),
+        `MultiSelect should reject duplicate ${duplicate.name} values`,
+      ).toThrowError(new TypeError('MultiSelect value must contain unique values.'))
+  })
+
+  it('preserves mixed and unavailable MultiSelect values in controlled order', () => {
+    const changes: (string | number)[][] = []
+    const view = render(
+      createElement(MultiSelect, {
+        'aria-label': 'Choices',
+        value: ['1', 1, 'unavailable'],
+        onChange: (next) => changes.push([...next]),
+        options: [
+          { value: '1', label: 'String one' },
+          { value: 1, label: 'Number one' },
+        ],
+      }),
+    )
+
+    expect(
+      [...view.root.element.querySelectorAll('[data-picodash-dashlist-tag-remove]')].map((button) =>
+        button.getAttribute('aria-label'),
+      ),
+    ).toEqual(['Remove String one', 'Remove Number one', 'Remove unavailable'])
+
+    act(() => {
+      void fireEvent.click(view.root.element.querySelector('[aria-label="Remove unavailable"]')!)
+    })
+    expect(changes).toEqual([['1', 1]])
+    act(() => view.unmount())
+  })
+
   it('hosts every detached choice popup in the Provider portal with resolved presentation', () => {
     const cases: readonly {
       readonly name: string
@@ -666,13 +717,13 @@ describe('choice controls', () => {
       createElement(
         DashList,
         { id: 'array-mismatch', nexus },
-        createElement(CheckboxGroupDashlet, {
+        createElement(MultiSelectDashlet, {
           id: 'duplicate',
           field: nexus.fields.duplicate,
           label: 'Duplicate',
           options: ['one', 'two'],
         }),
-        createElement(MultiSelectDashlet, {
+        createElement(CheckboxGroupDashlet, {
           id: 'reversed',
           field: nexus.fields.reversed,
           label: 'Reversed',
