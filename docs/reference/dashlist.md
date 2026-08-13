@@ -935,11 +935,11 @@ reflow and overflow requirements.
 
 The resolved row arrangement is captured at reorder pickup. A detached or fixed-position drag
 preview retains that geometry instead of losing its subgrid or crossing a responsive threshold.
-Ordinary responsive layout uses a root `ResizeObserver` only to project whether the List is below
-the `18rem` compact threshold; each observation resolves `rem` from the List's current owner
-document root font size, and CSS owns the resulting layout. The observation is transient and is
-never stored in Nexus or persistence. Drag-preview measurement separately preserves captured
-geometry during reorder.
+Ordinary responsive layout uses one `ResizeObserver` only to project whether the List is below the
+`18rem` compact threshold. It observes both the List root and a private, out-of-flow `1rem` probe in
+the owner document, so root-font-size changes update the threshold independently of List size; CSS
+owns the resulting layout. The observation is transient and is never stored in Nexus or
+persistence. Drag-preview measurement separately preserves captured geometry during reorder.
 
 The package avoids horizontal page overflow at 320 CSS pixels and under 200% zoom. Segmented choices
 may wrap, and coarse-pointer targets retain the accepted minimum size.

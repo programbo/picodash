@@ -34,6 +34,17 @@
   line-height: var(--picodash-line-height-normal);
 }
 
+[data-picodash-dashlist-rem-probe] {
+  position: fixed;
+  inset: 0 auto auto 0;
+  display: block;
+  contain: strict;
+  inline-size: 1rem;
+  block-size: 1rem;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .picodash-dashlist > [data-slot='dash-header'] {
   box-sizing: border-box;
   min-block-size: var(--picodash-control-height-lg);

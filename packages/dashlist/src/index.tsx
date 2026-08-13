@@ -1485,27 +1485,52 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   )
   useLayoutEffect(() => {
     const root = rootRef.current
-    if (!root || typeof ResizeObserver !== 'function') return
+    if (!root) return
     const ownerWindow = root.ownerDocument.defaultView
-    const sync = (inlineSize: number) => {
-      const threshold =
-        18 *
-        (Number.parseFloat(
-          ownerWindow?.getComputedStyle(root.ownerDocument.documentElement).fontSize ?? '',
-        ) || 16)
-      setCompact(inlineSize < threshold)
+    const ResizeObserverConstructor = ownerWindow?.ResizeObserver ?? globalThis.ResizeObserver
+    if (typeof ResizeObserverConstructor !== 'function') return
+    const remProbe = root.ownerDocument.createElement('span')
+    remProbe.setAttribute('aria-hidden', 'true')
+    remProbe.setAttribute('data-picodash-dashlist-rem-probe', '')
+    const probeHost = root.ownerDocument.body ?? root.ownerDocument.documentElement
+    probeHost.append(remProbe)
+    let inlineSize = root.getBoundingClientRect().width
+    let remSize =
+      remProbe.getBoundingClientRect().width ||
+      Number.parseFloat(
+        ownerWindow?.getComputedStyle(root.ownerDocument.documentElement).fontSize ?? '',
+      ) ||
+      16
+    const sync = () => {
+      setCompact(inlineSize < 18 * remSize)
     }
-    sync(root.getBoundingClientRect().width)
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries.find(({ target }) => target === root)
-      if (!entry) return
+    const readInlineSize = (entry: ResizeObserverEntry) => {
       const box = Array.isArray(entry.contentBoxSize)
         ? entry.contentBoxSize[0]
         : entry.contentBoxSize
-      sync(box?.inlineSize ?? entry.contentRect.width)
+      return box?.inlineSize ?? entry.contentRect.width
+    }
+    sync()
+    const observer = new ResizeObserverConstructor((entries) => {
+      let changed = false
+      for (const entry of entries) {
+        const observedInlineSize = readInlineSize(entry)
+        if (entry.target === root) {
+          inlineSize = observedInlineSize
+          changed = true
+        } else if (entry.target === remProbe && observedInlineSize > 0) {
+          remSize = observedInlineSize
+          changed = true
+        }
+      }
+      if (changed) sync()
     })
     observer.observe(root)
-    return () => observer.disconnect()
+    observer.observe(remProbe)
+    return () => {
+      observer.disconnect()
+      remProbe.remove()
+    }
   }, [])
   const listName =
     ariaLabelledBy ?? (ariaLabel === undefined && title !== undefined ? headingId : undefined)

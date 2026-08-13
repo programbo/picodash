@@ -12,6 +12,9 @@ describe('DashList stylesheet contract', () => {
     expect(css).toContain('--_picodash-dashlist-control-min-inline-size: 6rem')
     expect(css).toContain('--_picodash-dashlist-trailing-max-inline-size: 8rem')
     expect(css).toMatch(
+      /\[data-picodash-dashlist-rem-probe\]\s*\{[^}]*position:\s*fixed;[^}]*inline-size:\s*1rem;[^}]*block-size:\s*1rem;[^}]*visibility:\s*hidden;/s,
+    )
+    expect(css).toMatch(
       /\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\s*\{[^}]*display:\s*grid;[^}]*clamp\(6rem,\s*30%,\s*var\(--picodash-dashlet-label-width\)\)[^}]*minmax\(var\(--_picodash-dashlist-control-min-inline-size\),\s*1fr\)[^}]*fit-content\(var\(--_picodash-dashlist-trailing-max-inline-size\)\);/s,
     )
     expect(css).toMatch(

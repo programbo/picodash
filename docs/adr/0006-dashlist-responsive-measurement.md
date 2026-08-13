@@ -23,9 +23,9 @@ DashList resolves the conflict as follows:
 
 - The root remains free of inline-size containment so arbitrary content contributes to intrinsic
   host sizing.
-- One root `ResizeObserver` compares the observed content-box inline size with `18rem`. The rem is
-  derived on each observation from the root element's owner document and window, including
-  same-origin iframe hosts and runtime root-font-size changes.
+- One `ResizeObserver` per DashList compares the root content-box inline size with `18rem`. It also
+  observes a private, out-of-flow `1rem` probe in the root element's owner document, so same-origin
+  iframe hosts and runtime root-font-size changes update the comparison independently of List size.
 - The result is transient React presentation state. Nearest-List context projects it only onto the
   owning root and group ordering containers; nested Lists observe and project their own state.
 - CSS continues to own the layout. The marker selects the compact two-track and stacked-inline

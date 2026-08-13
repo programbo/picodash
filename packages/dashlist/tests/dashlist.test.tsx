@@ -446,6 +446,7 @@ describe('@picodash/dashlist alpha shell', () => {
     const originalRootFontSize = document.documentElement.style.fontSize
     document.documentElement.style.fontSize = '16px'
     let resize!: ResizeObserverCallback
+    const observed: Element[] = []
     const disconnect = vi.fn()
     Object.defineProperty(globalThis, 'ResizeObserver', {
       configurable: true,
@@ -453,7 +454,9 @@ describe('@picodash/dashlist alpha shell', () => {
         constructor(callback: ResizeObserverCallback) {
           resize = callback
         }
-        observe() {}
+        observe(target: Element) {
+          observed.push(target)
+        }
         disconnect() {
           disconnect()
         }
@@ -468,6 +471,9 @@ describe('@picodash/dashlist alpha shell', () => {
       ),
     )
     const root = renderer.root.findByProps({ 'data-picodash-dashlist': true }).element
+    const remProbe = observed.find((target) =>
+      target.hasAttribute('data-picodash-dashlist-rem-probe'),
+    )!
 
     act(() =>
       resize(
@@ -480,7 +486,12 @@ describe('@picodash/dashlist alpha shell', () => {
     document.documentElement.style.fontSize = '20px'
     act(() =>
       resize(
-        [{ target: root, contentBoxSize: [{ inlineSize: 320 }] } as unknown as ResizeObserverEntry],
+        [
+          {
+            target: remProbe,
+            contentBoxSize: [{ inlineSize: 20 }],
+          } as unknown as ResizeObserverEntry,
+        ],
         {} as ResizeObserver,
       ),
     )
@@ -488,6 +499,7 @@ describe('@picodash/dashlist alpha shell', () => {
 
     act(() => renderer.unmount())
     expect(disconnect).toHaveBeenCalledOnce()
+    expect(remProbe.isConnected).toBe(false)
     if (original) Object.defineProperty(globalThis, 'ResizeObserver', original)
     else Reflect.deleteProperty(globalThis, 'ResizeObserver')
     document.documentElement.style.fontSize = originalRootFontSize
@@ -498,18 +510,18 @@ describe('@picodash/dashlist alpha shell', () => {
     const original = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver')
     const observers: Array<{
       callback: ResizeObserverCallback
-      target?: Element
+      targets: Element[]
     }> = []
     Object.defineProperty(globalThis, 'ResizeObserver', {
       configurable: true,
       value: class {
         readonly record: (typeof observers)[number]
         constructor(callback: ResizeObserverCallback) {
-          this.record = { callback }
+          this.record = { callback, targets: [] }
           observers.push(this.record)
         }
         observe(target: Element) {
-          this.record.target = target
+          this.record.targets.push(target)
         }
         disconnect() {}
       },
@@ -539,7 +551,7 @@ describe('@picodash/dashlist alpha shell', () => {
     const outer = roots[0]!.element
     const inner = roots[1]!.element
     const notify = (target: Element, inlineSize: number) => {
-      const observer = observers.find((record) => record.target === target)!
+      const observer = observers.find((record) => record.targets.includes(target))!
       observer.callback(
         [
           {
