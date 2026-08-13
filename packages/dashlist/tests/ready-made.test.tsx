@@ -8,6 +8,7 @@ import {
   DashList,
   DisplayDashlet,
   NumberDashlet,
+  RangeDashlet,
   SegmentedDashlet,
   SelectDashlet,
   SliderDashlet,
@@ -87,6 +88,52 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
     act(() => view.unmount())
     nexus.destroy()
   }, 30_000)
+
+  it('shares one rejected range issue across both atomic range thumbs', async () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: {
+        range: {
+          defaultValue: { start: 2, end: 8 },
+          validate: (value) =>
+            (value as { end: number }).end === 9 ? [{ message: 'Range is not allowed.' }] : [],
+        },
+      },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'range-binding-aria', nexus },
+        createElement(RangeDashlet, {
+          id: 'range',
+          field: nexus.fields.range,
+          label: 'Range',
+          min: 0,
+          max: 10,
+        }),
+      ),
+    )
+    const inputs = view.root.element.querySelectorAll(
+      '[data-picodash-dashlet="range"] input[type="range"]',
+    )
+    expect(inputs).toHaveLength(2)
+    await act(() => fireEvent.change(inputs[1]!, { target: { value: '9' } }))
+    const errorIds = [...inputs].map((input) => input.getAttribute('aria-errormessage'))
+    expect(errorIds[0]).toBeTruthy()
+    expect(errorIds[1]).toBe(errorIds[0])
+    for (const input of inputs) expect(input.getAttribute('aria-invalid')).toBe('true')
+    expect(
+      view.root.element.querySelectorAll(
+        '[data-picodash-dashlet="range"] [data-picodash-dashlet-binding-issues]',
+      ),
+    ).toHaveLength(1)
+    expect(view.root.element.querySelector(`#${errorIds[0]}`)?.textContent).toContain(
+      'Range is not allowed.',
+    )
+    expect(nexus.getState().values.range).toEqual({ start: 2, end: 8 })
+    act(() => view.unmount())
+    nexus.destroy()
+  })
 
   it('renders the complete seven-control slice with semantic controls', () => {
     const nexus = createPicodashNexus({

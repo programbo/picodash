@@ -120,6 +120,7 @@ export function RadioGroup<T extends ChoiceValue>({
   orientation = 'vertical',
   ...props
 }: RadioGroupProps<T>) {
+  validateChoiceOptions(options)
   const parts = options.map(optionParts)
   return (
     <AriaRadioGroup
@@ -170,6 +171,7 @@ export function Combobox<T extends ChoiceValue>({
   placeholder,
   ...props
 }: ComboboxProps<T>) {
+  validateChoiceOptions(options)
   const parts = options.map(optionParts)
   return (
     <AriaComboBox
@@ -231,6 +233,7 @@ export function CheckboxGroup<T extends ChoiceValue>({
   options,
   ...props
 }: CheckboxGroupProps<T>) {
+  validateChoiceOptions(options)
   const parts = options.map(optionParts)
   const selected = value.map(choiceKey)
   return (
@@ -284,6 +287,7 @@ export function MultiSelect<T extends ChoiceValue>({
   placeholder,
   ...props
 }: MultiSelectProps<T>) {
+  validateChoiceOptions(options)
   const parts = options.map(optionParts)
   const selected = value.map(choiceKey)
   return (

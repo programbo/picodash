@@ -153,7 +153,13 @@ export function RangeSlider({
           isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
           aria-errormessage={props['aria-errormessage']}
         />
-        <SliderThumb index={1} data-picodash-dashlist-range-slider-thumb aria-label="End" />
+        <SliderThumb
+          index={1}
+          data-picodash-dashlist-range-slider-thumb
+          aria-label="End"
+          isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+          aria-errormessage={props['aria-errormessage']}
+        />
       </SliderTrack>
     </AriaSlider>
   )

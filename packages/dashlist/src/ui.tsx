@@ -20,6 +20,7 @@ import {
   TextField as AriaTextField,
 } from 'react-aria-components'
 import type { ReactNode } from 'react'
+import { validateChoiceOptions } from './ui-choices.js'
 
 export type DashlistControlProps = {
   readonly id?: string
@@ -258,6 +259,8 @@ export function Select<T extends string | number>({
   placeholder,
   ...props
 }: SelectProps<T>) {
+  validateChoiceOptions(options)
+  const parts = options.map(optionParts)
   return (
     <AriaSelect<OptionParts<T>>
       className={props.className ?? 'picodash-dashlist-select'}
@@ -268,7 +271,7 @@ export function Select<T extends string | number>({
           ? undefined
           : (key) => {
               if (key !== null) {
-                const match = options.map(optionParts).find((item) => choiceKey(item.value) === key)
+                const match = parts.find((item) => choiceKey(item.value) === key)
                 if (match) onChange(match.value)
               }
             }
@@ -290,10 +293,7 @@ export function Select<T extends string | number>({
         <SelectValue<OptionParts<T>> />
       </Button>
       <Popover className="picodash-dashlist-popover">
-        <ListBox<OptionParts<T>>
-          className="picodash-dashlist-listbox"
-          items={options.map((option) => optionParts(option))}
-        >
+        <ListBox<OptionParts<T>> className="picodash-dashlist-listbox" items={parts}>
           {(item) => (
             <ListBoxItem
               id={choiceKey(item.value)}
@@ -322,13 +322,15 @@ export function SegmentedControl<T extends string | number>({
   options,
   ...props
 }: SegmentedControlProps<T>) {
+  validateChoiceOptions(options)
+  const parts = options.map(optionParts)
   return (
     <RadioGroup
       id={props.id}
       className={props.className ?? 'picodash-dashlist-segmented'}
       value={value === undefined ? undefined : choiceKey(value)}
       onChange={(next) => {
-        const match = options.map(optionParts).find((item) => choiceKey(item.value) === next)
+        const match = parts.find((item) => choiceKey(item.value) === next)
         if (match) onChange(match.value)
       }}
       orientation="horizontal"
@@ -341,8 +343,7 @@ export function SegmentedControl<T extends string | number>({
       aria-invalid={props['aria-invalid']}
       aria-errormessage={props['aria-errormessage']}
     >
-      {options.map((option) => {
-        const item = optionParts(option)
+      {parts.map((item) => {
         return (
           <Radio
             key={`${typeof item.value}:${String(item.value)}`}

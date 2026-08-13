@@ -64,6 +64,44 @@ describe('value controls', () => {
     act(() => view.unmount())
   })
 
+  it('shares invalid and error-message state across both range thumbs', () => {
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement('p', { id: 'range-error' }, 'Range is not allowed.'),
+        createElement(RangeSlider, {
+          className: 'invalid-range',
+          value: { start: 2, end: 8 },
+          onChange: () => undefined,
+          'aria-label': 'Invalid range',
+          'aria-invalid': true,
+          'aria-errormessage': 'range-error',
+        }),
+        createElement(RangeSlider, {
+          className: 'valid-range',
+          value: { start: 2, end: 8 },
+          onChange: () => undefined,
+          'aria-label': 'Valid range',
+        }),
+      ),
+    )
+    const invalidThumbs = view.root.element.querySelectorAll('.invalid-range input[type="range"]')
+    expect(invalidThumbs).toHaveLength(2)
+    for (const thumb of invalidThumbs) {
+      expect(thumb.getAttribute('aria-invalid')).toBe('true')
+      expect(thumb.getAttribute('aria-errormessage')).toBe('range-error')
+    }
+    expect(view.root.element.querySelectorAll('#range-error')).toHaveLength(1)
+    const validThumbs = view.root.element.querySelectorAll('.valid-range input[type="range"]')
+    expect(validThumbs).toHaveLength(2)
+    for (const thumb of validThumbs) {
+      expect(thumb.hasAttribute('aria-invalid')).toBe(false)
+      expect(thumb.hasAttribute('aria-errormessage')).toBe(false)
+    }
+    act(() => view.unmount())
+  })
+
   it('forwards declared ids to value controls and class names to public roots', () => {
     const controls: ReactElement[] = [
       createElement(RangeSlider, {

@@ -20,8 +20,79 @@ import {
   MultiSelect,
   RadioGroup,
   SearchField,
+  Select,
   SegmentedControl,
+  type SelectOption,
 } from '../src/ui.tsx'
+
+type DirectChoiceOptions = readonly SelectOption<string | number>[]
+type DirectChoiceControl = {
+  readonly name: string
+  readonly render: (options: DirectChoiceOptions) => ReactElement
+}
+
+const directChoiceControls: readonly DirectChoiceControl[] = [
+  {
+    name: 'RadioGroup',
+    render: (options) =>
+      createElement(RadioGroup, {
+        'aria-label': 'Choices',
+        value: 'one',
+        onChange: () => undefined,
+        options,
+      }),
+  },
+  {
+    name: 'Combobox',
+    render: (options) =>
+      createElement(Combobox, {
+        'aria-label': 'Choices',
+        value: 'one',
+        onChange: () => undefined,
+        options,
+      }),
+  },
+  {
+    name: 'CheckboxGroup',
+    render: (options) =>
+      createElement(CheckboxGroup, {
+        'aria-label': 'Choices',
+        value: ['one'],
+        onChange: () => undefined,
+        options,
+      }),
+  },
+  {
+    name: 'MultiSelect',
+    render: (options) =>
+      createElement(MultiSelect, {
+        'aria-label': 'Choices',
+        value: ['one'],
+        onChange: () => undefined,
+        options,
+      }),
+  },
+  {
+    name: 'Select',
+    render: (options) =>
+      createElement(Select, {
+        'aria-label': 'Choices',
+        value: 'one',
+        onChange: () => undefined,
+        options,
+      }),
+  },
+  {
+    name: 'SegmentedControl',
+    render: (options) =>
+      createElement(SegmentedControl, {
+        'aria-label': 'Choices',
+        value: 'one',
+        onChange: () => undefined,
+        options,
+      }),
+  },
+]
 
 function render(element: ReactElement): DomTestRenderer {
   let renderer!: DomTestRenderer
@@ -32,6 +103,35 @@ function render(element: ReactElement): DomTestRenderer {
 }
 
 describe('choice controls', () => {
+  it('rejects invalid option declarations before every direct choice control renders', () => {
+    const invalidCases: readonly {
+      readonly name: string
+      readonly options: DirectChoiceOptions
+      readonly message: string
+    }[] = [
+      {
+        name: 'duplicate values',
+        options: [
+          { value: 'one', label: 'One' },
+          { value: 'one', label: 'Duplicate one' },
+        ],
+        message: 'options must contain unique values.',
+      },
+      {
+        name: 'non-text labels without textValue',
+        options: [{ value: 'one', label: createElement('span', null, 'One') }],
+        message: 'non-text option labels require textValue.',
+      },
+    ]
+
+    for (const invalidCase of invalidCases)
+      for (const control of directChoiceControls)
+        expect(
+          () => render(control.render(invalidCase.options)),
+          `${control.name} should reject ${invalidCase.name}`,
+        ).toThrowError(new TypeError(`${invalidCase.message}`))
+  })
+
   it('keeps React Aria choice roots stateful and names non-text options from textValue', () => {
     const icon = createElement('span', { 'aria-hidden': true }, '●')
     const view = render(
@@ -72,6 +172,33 @@ describe('choice controls', () => {
       'Icon segment',
     )
     act(() => view.unmount())
+  })
+
+  it('preserves valid non-text labels and strict primitive identity across direct controls', () => {
+    const icon = createElement('span', { 'aria-hidden': true }, '●')
+    const validNonTextOptions: DirectChoiceOptions = [
+      { value: 'icon', label: icon, textValue: 'Icon choice' },
+    ]
+    const primitiveOptions: DirectChoiceOptions = [
+      { value: '1', label: 'String one' },
+      { value: 1, label: 'Number one' },
+    ]
+
+    for (const control of directChoiceControls) {
+      const validView = render(control.render(validNonTextOptions))
+      expect(
+        validView.root.element.querySelector('[aria-label="Choices"]'),
+        `${control.name} should render valid non-text choices`,
+      ).not.toBeNull()
+      act(() => validView.unmount())
+
+      const primitiveView = render(control.render(primitiveOptions))
+      expect(
+        primitiveView.root.element.querySelector('[aria-label="Choices"]'),
+        `${control.name} should render mixed primitive choices`,
+      ).not.toBeNull()
+      act(() => primitiveView.unmount())
+    }
   })
 
   it('forwards declared ids to controls and class names to public roots', () => {
