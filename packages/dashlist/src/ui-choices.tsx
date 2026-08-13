@@ -80,6 +80,15 @@ function validateMultiSelectValue(value: readonly ChoiceValue[]): void {
   }
 }
 
+function validateCheckboxGroupValue(value: readonly ChoiceValue[]): void {
+  const seen = new Set<string>()
+  for (const item of value) {
+    const key = choiceKey(item)
+    if (seen.has(key)) throw new TypeError('CheckboxGroup value must contain unique values.')
+    seen.add(key)
+  }
+}
+
 export function validateChoiceOptions<T extends ChoiceValue>(
   options: readonly SelectOption<T>[],
 ): void {
@@ -258,6 +267,7 @@ export function CheckboxGroup<T extends ChoiceValue>({
   options,
   ...props
 }: CheckboxGroupProps<T>) {
+  validateCheckboxGroupValue(value)
   validateChoiceOptions(options)
   const parts = options.map(optionParts)
   const selected = value.map(choiceKey)

@@ -250,6 +250,54 @@ describe('choice controls', () => {
       ).toThrowError(new TypeError('MultiSelect value must contain unique values.'))
   })
 
+  it('rejects duplicate controlled CheckboxGroup values under typed choice identity', () => {
+    const duplicateValues: readonly {
+      readonly name: string
+      readonly value: readonly (string | number)[]
+    }[] = [
+      { name: 'string', value: ['one', 'one'] },
+      { name: 'number', value: [1, 1] },
+    ]
+
+    for (const duplicate of duplicateValues)
+      expect(
+        () =>
+          render(
+            createElement(CheckboxGroup, {
+              'aria-label': 'Choices',
+              value: duplicate.value,
+              onChange: () => undefined,
+              options: ['one', 1],
+            }),
+          ),
+        `CheckboxGroup should reject duplicate ${duplicate.name} values`,
+      ).toThrowError(new TypeError('CheckboxGroup value must contain unique values.'))
+  })
+
+  it('keeps mixed CheckboxGroup identities distinct and emits declared option order', () => {
+    const changes: (string | number)[][] = []
+    const view = render(
+      createElement(CheckboxGroup, {
+        'aria-label': 'Choices',
+        value: ['1', 1],
+        onChange: (next) => changes.push([...next]),
+        options: [1, '1', 'two'],
+      }),
+    )
+
+    const choices = [
+      ...view.root.element.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    ]
+    expect(choices.map((choice) => choice.checked)).toEqual([true, true, false])
+    expect(changes).toEqual([])
+
+    act(() => {
+      fireEvent.click(choices[2]!)
+    })
+    expect(changes).toEqual([[1, '1', 'two']])
+    act(() => view.unmount())
+  })
+
   it('preserves mixed and unavailable MultiSelect values in controlled order', () => {
     const changes: (string | number)[][] = []
     const view = render(
