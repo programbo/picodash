@@ -15,13 +15,16 @@ describe('DashList stylesheet contract', () => {
       /\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:[^}]*var\(--picodash-dashlet-label-width\)[^}]*minmax\(var\(--_picodash-dashlist-control-min-inline-size\),\s*1fr\)[^}]*fit-content\(var\(--_picodash-dashlist-trailing-max-inline-size\)\);/s,
     )
     expect(css).toMatch(
-      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content\][^{]*>\s*:not\(:only-child\):last-child\s*\{[^}]*max-inline-size:\s*var\(--_picodash-dashlist-trailing-max-inline-size\);[^}]*overflow-wrap:\s*anywhere;/s,
+      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\][^{]*>\s*:not\(:only-child\):last-child\s*\{[^}]*max-inline-size:\s*var\(--_picodash-dashlist-trailing-max-inline-size\);[^}]*overflow-wrap:\s*anywhere;/s,
     )
     expect(css).toMatch(
-      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s+\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*subgrid;/s,
+      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*subgrid;/s,
     )
     expect(css).toMatch(
-      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content\]:not\(:has\(>\s*\*\)\)\s*\{[^}]*display:\s*block;/s,
+      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\]:not\(:has\(>\s*\*\)\)\s*\{[^}]*display:\s*block;/s,
+    )
+    expect(css).toMatch(
+      /@container picodash-dashlist \(max-width: 18rem\)[\s\S]*\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\]/s,
     )
     expect(css).toMatch(
       /\.picodash-dashlist-item:not\(\.picodash-dashlist-group-item\)\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*subgrid;/s,

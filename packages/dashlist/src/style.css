@@ -130,22 +130,25 @@
   min-inline-size: 0;
 }
 
-[data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-content] {
+[data-picodash-dashlet-shell][data-layout='inline'] > [data-picodash-dashlet-content] {
   display: grid;
   grid-template-columns: subgrid;
 }
 
-[data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-content]:not(:has(> *)) {
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]:not(:has(> *)) {
   display: block;
 }
 
-[data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-content] > :only-child {
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > :only-child {
   grid-column: 1 / -1;
   min-inline-size: 0;
 }
 
 [data-picodash-dashlet-shell][data-layout='inline']
-  [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content]
   > :not(:only-child):last-child {
   min-inline-size: 0;
   max-inline-size: var(--_picodash-dashlist-trailing-max-inline-size);
@@ -195,15 +198,15 @@
   grid-template-rows: auto auto;
 }
 
-[data-picodash-dashlet-shell][data-layout='block'] [data-picodash-dashlet-content] {
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-content] {
   grid-column: 2 / -1;
   grid-row: 2;
 }
 
-[data-picodash-dashlet-shell][data-layout='block'] [data-picodash-dashlet-description],
-[data-picodash-dashlet-shell][data-layout='block'] [data-picodash-dashlet-binding-issues],
-[data-picodash-dashlet-shell][data-layout='block'] [data-picodash-dashlet-issues],
-[data-picodash-dashlet-shell][data-layout='block'] [data-picodash-dashlet-actions] {
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-description],
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-binding-issues],
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-issues],
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-actions] {
   grid-column: 2 / -1;
 }
 
@@ -211,15 +214,15 @@
   grid-template-rows: auto auto;
 }
 
-[data-picodash-dashlet-shell][data-layout='full'] [data-picodash-dashlet-content] {
+[data-picodash-dashlet-shell][data-layout='full'] > [data-picodash-dashlet-content] {
   grid-column: 1 / -1;
   grid-row: 2;
 }
 
-[data-picodash-dashlet-shell][data-layout='full'] [data-picodash-dashlet-description],
-[data-picodash-dashlet-shell][data-layout='full'] [data-picodash-dashlet-binding-issues],
-[data-picodash-dashlet-shell][data-layout='full'] [data-picodash-dashlet-issues],
-[data-picodash-dashlet-shell][data-layout='full'] [data-picodash-dashlet-actions] {
+[data-picodash-dashlet-shell][data-layout='full'] > [data-picodash-dashlet-description],
+[data-picodash-dashlet-shell][data-layout='full'] > [data-picodash-dashlet-binding-issues],
+[data-picodash-dashlet-shell][data-layout='full'] > [data-picodash-dashlet-issues],
+[data-picodash-dashlet-shell][data-layout='full'] > [data-picodash-dashlet-actions] {
   grid-column: 1 / -1;
 }
 
@@ -384,16 +387,16 @@
     grid-template-columns: var(--_picodash-dashlist-reorder-track) minmax(0, 1fr);
   }
 
-  [data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-content],
-  [data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-description],
-  [data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-binding-issues],
-  [data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-issues],
-  [data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-actions] {
+  [data-picodash-dashlet-shell][data-layout='inline'] > [data-picodash-dashlet-content],
+  [data-picodash-dashlet-shell][data-layout='inline'] > [data-picodash-dashlet-description],
+  [data-picodash-dashlet-shell][data-layout='inline'] > [data-picodash-dashlet-binding-issues],
+  [data-picodash-dashlet-shell][data-layout='inline'] > [data-picodash-dashlet-issues],
+  [data-picodash-dashlet-shell][data-layout='inline'] > [data-picodash-dashlet-actions] {
     grid-column: 2;
     grid-row: auto;
   }
 
-  [data-picodash-dashlet-shell][data-layout='inline'] [data-picodash-dashlet-content] {
+  [data-picodash-dashlet-shell][data-layout='inline'] > [data-picodash-dashlet-content] {
     display: block;
   }
 }
