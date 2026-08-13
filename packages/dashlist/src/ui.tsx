@@ -18,7 +18,7 @@ import {
   TextArea,
   TextField as AriaTextField,
 } from 'react-aria-components'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { validateChoiceOptions } from './ui-choices.js'
 import { composeControlClassName } from './ui-class-name.js'
 import { ChoicePopover } from './ui-popover.js'
@@ -138,6 +138,10 @@ export type SliderProps = DashlistControlProps & {
   readonly formatOptions?: Intl.NumberFormatOptions
 }
 
+function sliderMarkPosition(value: number, min: number, max: number) {
+  return max === min ? 0 : ((value - min) / (max - min)) * 100
+}
+
 export function Slider({
   value,
   onChange,
@@ -175,12 +179,24 @@ export function Slider({
           isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
           aria-errormessage={props['aria-errormessage']}
         />
+        {marks?.length ? (
+          <span aria-hidden="true" data-picodash-dashlist-slider-marks>
+            {marks.map((mark, index) => (
+              <span
+                key={index}
+                data-picodash-dashlist-slider-mark={mark.value}
+                style={
+                  {
+                    '--_picodash-dashlist-slider-mark-position': `${sliderMarkPosition(mark.value, min, max)}%`,
+                  } as CSSProperties
+                }
+              >
+                {mark.label ?? mark.value}
+              </span>
+            ))}
+          </span>
+        ) : null}
       </SliderTrack>
-      {marks?.map((mark) => (
-        <span key={mark.value} data-picodash-dashlist-slider-mark={mark.value}>
-          {mark.label ?? mark.value}
-        </span>
-      ))}
     </AriaSlider>
   )
 }

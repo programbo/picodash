@@ -58,6 +58,29 @@
   background: var(--picodash-color-control-border);
 }
 
+.picodash-dashlist-slider:has([data-picodash-dashlist-slider-marks]) {
+  padding-block-end: calc(var(--picodash-font-size-sm) + var(--picodash-space-1));
+}
+
+.picodash-dashlist-slider [data-picodash-dashlist-slider-marks] {
+  position: absolute;
+  inset-block-start: calc(100% + var(--picodash-space-1));
+  inset-inline: 0;
+  pointer-events: none;
+}
+
+.picodash-dashlist-slider [data-picodash-dashlist-slider-mark] {
+  position: absolute;
+  inset-inline-start: var(--_picodash-dashlist-slider-mark-position);
+  display: flex;
+  justify-content: center;
+  inline-size: 0;
+  color: var(--picodash-color-text-muted);
+  font-size: var(--picodash-font-size-sm);
+  line-height: var(--picodash-line-height-normal);
+  white-space: nowrap;
+}
+
 .picodash-dashlist-slider [data-picodash-dashlist-slider-thumb] {
   block-size: var(--picodash-control-height-md);
   inline-size: var(--picodash-control-height-md);

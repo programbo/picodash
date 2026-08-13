@@ -107,6 +107,21 @@ describe('DashList stylesheet contract', () => {
     expect(css).not.toMatch(/\.picodash-dashlist-segmented\s+\[aria-checked=/)
   })
 
+  it('aligns one pointer-inert Slider mark layer with logical track offsets', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    expect(css).toMatch(
+      /\.picodash-dashlist-slider\s+\[data-picodash-dashlist-slider-marks\]\s*\{[^}]*position:\s*absolute;[^}]*inset-block-start:[^;]+;[^}]*inset-inline:\s*0;[^}]*pointer-events:\s*none;/s,
+    )
+    const markRule = css.match(
+      /\.picodash-dashlist-slider\s+\[data-picodash-dashlist-slider-mark\]\s*\{[^}]+\}/s,
+    )?.[0]
+    expect(markRule).toMatch(
+      /position:\s*absolute;[^}]*inset-inline-start:\s*var\(--_picodash-dashlist-slider-mark-position\);[^}]*display:\s*flex;[^}]*justify-content:\s*center;[^}]*inline-size:\s*0;/s,
+    )
+    expect(markRule).not.toMatch(/(?:^|[;{]\s*)(?:left|right)\s*:/)
+    expect(markRule).not.toMatch(/transform:/)
+  })
+
   it('gives native List controls 44 pixel coarse-pointer tracks and hit targets', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
     expect(css).toMatch(

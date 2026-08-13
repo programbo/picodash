@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, createElement, type ReactElement } from 'react'
+import { fireEvent } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
 import { createDomTestRenderer, type DomTestRenderer } from '../../../test/dom-renderer.ts'
 import {
@@ -330,5 +331,75 @@ describe('/ui structural class composition', () => {
     )
     expect(rawRoot).not.toBeNull()
     act(() => rawView.unmount())
+  })
+})
+
+describe('Slider marks', () => {
+  it('keeps authored marks in one inert track layer at logical range offsets', () => {
+    const changes: number[] = []
+    const view = render(
+      createElement(Slider, {
+        value: 0,
+        onChange: (value) => changes.push(value),
+        min: -20,
+        max: 20,
+        step: 10,
+        marks: [
+          {
+            value: 20,
+            label: createElement('strong', { 'data-authored-slider-label': 'maximum' }, 'Maximum'),
+          },
+          { value: -20, label: 'Minimum' },
+          { value: 0 },
+        ],
+        'aria-label': 'Signed range',
+      }),
+    )
+
+    const root = view.root.element.querySelector('.picodash-dashlist-slider')
+    const track = root?.querySelector('.picodash-dashlist-slider-track')
+    const layers = root?.querySelectorAll('[data-picodash-dashlist-slider-marks]')
+    expect(layers).toHaveLength(1)
+    const layer = layers?.[0]
+    expect(layer?.parentElement).toBe(track)
+    expect(layer?.getAttribute('aria-hidden')).toBe('true')
+
+    const marks = [...(layer?.querySelectorAll('[data-picodash-dashlist-slider-mark]') ?? [])]
+    expect(marks.map((mark) => mark.getAttribute('data-picodash-dashlist-slider-mark'))).toEqual([
+      '20',
+      '-20',
+      '0',
+    ])
+    expect(marks.map((mark) => mark.textContent)).toEqual(['Maximum', 'Minimum', '0'])
+    expect(
+      marks.map((mark) =>
+        (mark as HTMLElement).style.getPropertyValue('--_picodash-dashlist-slider-mark-position'),
+      ),
+    ).toEqual(['100%', '0%', '50%'])
+    expect(layer?.querySelector('[data-authored-slider-label="maximum"]')?.tagName).toBe('STRONG')
+
+    const input = root?.querySelector('input[type="range"]')
+    expect(input).toBeInstanceOf(HTMLInputElement)
+    fireEvent.change(input as HTMLInputElement, { target: { value: '10' } })
+    expect(changes).toEqual([10])
+    act(() => view.unmount())
+  })
+
+  it('places a zero-span mark at logical start', () => {
+    const view = render(
+      createElement(Slider, {
+        value: 5,
+        onChange: () => undefined,
+        min: 5,
+        max: 5,
+        marks: [{ value: 5, label: 'Only value' }],
+        'aria-label': 'Fixed value',
+      }),
+    )
+    const mark = view.root.element.querySelector<HTMLElement>(
+      '[data-picodash-dashlist-slider-mark="5"]',
+    )
+    expect(mark?.style.getPropertyValue('--_picodash-dashlist-slider-mark-position')).toBe('0%')
+    act(() => view.unmount())
   })
 })

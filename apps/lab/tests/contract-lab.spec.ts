@@ -150,6 +150,54 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
       .locator('[data-picodash-dashlet="style-lab-range"]'),
   ).toBeVisible()
 
+  const sliderDashlet = basicsList.locator('[data-picodash-dashlet="style-lab-slider"]')
+  await sliderDashlet.scrollIntoViewIfNeeded()
+  const sliderTrack = sliderDashlet.locator('.picodash-dashlist-slider-track')
+  const sliderMarks = sliderTrack.locator('[data-picodash-dashlist-slider-marks]')
+  await expect(sliderMarks).toHaveAttribute('aria-hidden', 'true')
+  await expect(sliderMarks.locator('[data-picodash-dashlist-slider-mark]')).toHaveCount(3)
+
+  const readSliderMarkGeometry = async () =>
+    sliderTrack.evaluate((track) => {
+      const trackRect = track.getBoundingClientRect()
+      const layer = track.querySelector<HTMLElement>('[data-picodash-dashlist-slider-marks]')
+      if (!layer) throw new Error('Slider mark layer was not rendered')
+      const layerRect = layer.getBoundingClientRect()
+      return {
+        direction: getComputedStyle(track).direction,
+        pointerEvents: getComputedStyle(layer).pointerEvents,
+        track: { left: trackRect.left, right: trackRect.right, width: trackRect.width },
+        layer: { left: layerRect.left, right: layerRect.right },
+        marks: [...layer.querySelectorAll<HTMLElement>('[data-picodash-dashlist-slider-mark]')].map(
+          (mark) => {
+            const rect = mark.getBoundingClientRect()
+            return {
+              value: mark.getAttribute('data-picodash-dashlist-slider-mark'),
+              center: rect.left + rect.width / 2,
+            }
+          },
+        ),
+      }
+    })
+
+  const ltrMarks = await readSliderMarkGeometry()
+  expect(ltrMarks.direction).toBe('ltr')
+  expect(ltrMarks.pointerEvents).toBe('none')
+  expect(ltrMarks.layer.left).toBeCloseTo(ltrMarks.track.left, 0)
+  expect(ltrMarks.layer.right).toBeCloseTo(ltrMarks.track.right, 0)
+  expect(ltrMarks.marks.map((mark) => mark.value)).toEqual(['0', '50', '100'])
+  expect(ltrMarks.marks[0].center).toBeCloseTo(ltrMarks.track.left, 0)
+  expect(ltrMarks.marks[1].center).toBeCloseTo(ltrMarks.track.left + ltrMarks.track.width / 2, 0)
+  expect(ltrMarks.marks[2].center).toBeCloseTo(ltrMarks.track.right, 0)
+
+  await basicsPanel.evaluate((panel) => panel.setAttribute('dir', 'rtl'))
+  await expect.poll(async () => (await readSliderMarkGeometry()).direction).toBe('rtl')
+  const rtlMarks = await readSliderMarkGeometry()
+  expect(rtlMarks.marks[0].center).toBeCloseTo(rtlMarks.track.right, 0)
+  expect(rtlMarks.marks[1].center).toBeCloseTo(rtlMarks.track.left + rtlMarks.track.width / 2, 0)
+  expect(rtlMarks.marks[2].center).toBeCloseTo(rtlMarks.track.left, 0)
+  await basicsPanel.evaluate((panel) => panel.removeAttribute('dir'))
+
   const focusWithKeyboard = async (control: Locator) => {
     for (let index = 0; index < 80; index += 1) {
       if (await control.evaluate((element) => element === document.activeElement)) return
