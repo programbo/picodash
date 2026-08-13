@@ -305,6 +305,30 @@ describe('choice controls', () => {
     act(() => view.unmount())
   })
 
+  it('uses selected option text alternatives for MultiSelect tags and removal actions', () => {
+    const icon = createElement('span', { 'aria-hidden': true }, '●')
+    const view = render(
+      createElement(MultiSelect, {
+        value: ['internal-code'],
+        onChange: () => undefined,
+        options: [
+          {
+            value: 'internal-code',
+            label: icon,
+            textValue: 'Readable choice',
+          },
+        ],
+        'aria-label': 'Choices',
+      }),
+    )
+    const tag = view.root.element.querySelector('.picodash-dashlist-tag')
+    expect(tag).not.toBeNull()
+    expect(tag?.textContent).not.toContain('internal-code')
+    expect(view.root.element.querySelector('[aria-label="Remove Readable choice"]')).not.toBeNull()
+    expect(view.root.element.querySelector('[aria-label="Remove internal-code"]')).toBeNull()
+    act(() => view.unmount())
+  })
+
   it('renders six bound controls with accessible roles and forwards root refs', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',

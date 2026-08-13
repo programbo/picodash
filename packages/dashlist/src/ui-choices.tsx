@@ -342,21 +342,24 @@ export function MultiSelect<T extends ChoiceValue>({
           className="picodash-dashlist-tag-list"
           items={value.map((item) => ({ key: choiceKey(item), value: item }))}
         >
-          {(item) => (
-            <Tag className="picodash-dashlist-tag" id={item.key} textValue={String(item.value)}>
-              {parts.find((part) => choiceKey(part.value) === item.key)?.label ??
-                String(item.value)}
-              {props.disabled || props.readOnly ? null : (
-                <Button
-                  slot="remove"
-                  aria-label={`Remove ${String(item.value)}`}
-                  data-picodash-dashlist-tag-remove
-                >
-                  ×
-                </Button>
-              )}
-            </Tag>
-          )}
+          {(item) => {
+            const part = parts.find((candidate) => choiceKey(candidate.value) === item.key)
+            const textValue = part?.textValue ?? String(item.value)
+            return (
+              <Tag className="picodash-dashlist-tag" id={item.key} textValue={textValue}>
+                {part?.label ?? String(item.value)}
+                {props.disabled || props.readOnly ? null : (
+                  <Button
+                    slot="remove"
+                    aria-label={`Remove ${textValue}`}
+                    data-picodash-dashlist-tag-remove
+                  >
+                    ×
+                  </Button>
+                )}
+              </Tag>
+            )
+          }}
         </TagList>
       </TagGroup>
       <Popover className="picodash-dashlist-popover">
