@@ -893,18 +893,14 @@ slice does not emit `presentation_incompatible`.
 > Contract: Accepted
 > Implementation: Partial
 > Evidence: `packages/dashlist/src/style.css` and `packages/dashlist/tests/style.test.ts` cover the
-> shared four-track ordering-grid recipe, label-width token, bounded trailing-value track, `18rem`
-> inline fallback, and coarse pointer target declarations. Rendered responsive geometry and
-> drag-preview geometry remain planned.
+> shared four-track ordering-grid recipe, label-width token, bounded trailing-value track, and
+> coarse pointer target declarations. Container-specific stacking, rendered responsive geometry,
+> and drag-preview geometry remain planned.
 
 DashList responsiveness follows its own container width, never the viewport. Each ordering
 container owns one shared alignment grid across its start, automatic, and end pin bands. A
 DashGroup establishes a new alignment context for its children; descendant rows do not force their
 tracks to match the parent List.
-
-The root query container declares an initial `20rem` intrinsic inline-size fallback so an
-intrinsically sized host still receives a useful contribution while inline-size containment is
-active.
 
 The normal inline grid has four tracks: reorder handle, label, fluid control, and optional trailing
 value. Rows without a trailing value span the final two tracks. Slider outputs share the trailing
