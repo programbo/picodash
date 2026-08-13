@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement, type ReactElement } from 'react'
+import { act, createElement, createRef, type ReactElement, type Ref } from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
 import { renderToString } from 'react-dom/server'
 import { createDomTestRenderer, type DomTestRenderer } from '../../../test/dom-renderer.ts'
@@ -210,6 +210,109 @@ describe('experimental chart dashlets', () => {
     void act(() => document.dispatchEvent(new Event('visibilitychange')))
     expect(subscriptions).toBe(2)
     act(() => view.unmount())
+    setup.nexus.destroy()
+    vi.unstubAllGlobals()
+  })
+
+  it('shares the outer registered shell between the caller ref and visibility observer', () => {
+    let observed: Element | undefined
+    const disconnect = vi.fn()
+    class MockIntersectionObserver {
+      observe(target: Element) {
+        observed = target
+      }
+      disconnect = disconnect
+    }
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+    const callerRef = createRef<HTMLDivElement>()
+    const setup = withList(
+      createElement(SparklineDashlet, {
+        ref: callerRef,
+        id: 'spark-object-ref',
+        label: 'Requests',
+        source: () => undefined,
+      }),
+    )
+    const view = render(setup.element)
+    const shell = view.root.findByProps({ 'data-picodash-dashlet': 'spark-object-ref' }).element
+
+    expect(shell.getAttribute('role')).toBe('listitem')
+    expect(callerRef.current).toBe(shell)
+    expect(observed).toBe(shell)
+    expect(
+      view.root.element.querySelectorAll('[data-picodash-dashlet="spark-object-ref"]'),
+    ).toHaveLength(1)
+
+    act(() => view.unmount())
+    expect(callerRef.current).toBeNull()
+    expect(disconnect).toHaveBeenCalledOnce()
+    setup.nexus.destroy()
+    vi.unstubAllGlobals()
+  })
+
+  it('cleans up replaced callback refs without duplicating observers or source subscriptions', () => {
+    const observerCallbacks: Array<(entries: Array<{ isIntersecting: boolean }>) => void> = []
+    const disconnect = vi.fn()
+    class MockIntersectionObserver {
+      constructor(callback: (entries: Array<{ isIntersecting: boolean }>) => void) {
+        observerCallbacks.push(callback)
+      }
+      observe() {}
+      disconnect = disconnect
+    }
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+    const firstCleanup = vi.fn()
+    const secondCleanup = vi.fn()
+    const firstRef = vi.fn((element: HTMLDivElement | null) =>
+      element === null ? undefined : firstCleanup,
+    )
+    const secondRef = vi.fn((element: HTMLDivElement | null) =>
+      element === null ? undefined : secondCleanup,
+    )
+    const disposer = vi.fn()
+    const source = vi.fn(() => disposer)
+    const setup = withList(
+      createElement(SparklineDashlet, {
+        ref: firstRef,
+        id: 'spark-callback-ref',
+        label: 'Latency',
+        source,
+      }),
+    )
+    const renderSparkline = (ref: Ref<HTMLDivElement>) =>
+      createElement(
+        DashList,
+        { id: 'charts', nexus: setup.nexus },
+        createElement(SparklineDashlet, {
+          ref,
+          id: 'spark-callback-ref',
+          label: 'Latency',
+          source,
+        }),
+      )
+    const view = render(setup.element)
+    const shell = view.root.findByProps({ 'data-picodash-dashlet': 'spark-callback-ref' }).element
+    expect(firstRef).toHaveBeenCalledOnce()
+    expect(firstRef).toHaveBeenCalledWith(shell)
+    expect(observerCallbacks).toHaveLength(1)
+
+    act(() => observerCallbacks[0]!([{ isIntersecting: true }]))
+    expect(source).toHaveBeenCalledOnce()
+
+    act(() => view.update(renderSparkline(secondRef)))
+    expect(firstCleanup).toHaveBeenCalledOnce()
+    expect(firstRef).toHaveBeenCalledOnce()
+    expect(secondRef).toHaveBeenCalledOnce()
+    expect(secondRef).toHaveBeenCalledWith(shell)
+    expect(observerCallbacks).toHaveLength(1)
+    expect(source).toHaveBeenCalledOnce()
+    expect(disconnect).not.toHaveBeenCalled()
+
+    act(() => view.unmount())
+    expect(secondCleanup).toHaveBeenCalledOnce()
+    expect(secondRef).toHaveBeenCalledOnce()
+    expect(disposer).toHaveBeenCalledOnce()
+    expect(disconnect).toHaveBeenCalledOnce()
     setup.nexus.destroy()
     vi.unstubAllGlobals()
   })

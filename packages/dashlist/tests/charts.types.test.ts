@@ -1,4 +1,4 @@
-import { createElement } from 'react'
+import { createElement, createRef, type RefCallback } from 'react'
 import { describe, it } from 'vite-plus/test'
 import {
   ChartDashlet,
@@ -40,6 +40,12 @@ describe('@picodash/dashlist chart types', () => {
       maxSamples: 20,
     }
     void createElement(SparklineDashlet, sparklineProps)
+    void createElement(SparklineDashlet, {
+      ...sparklineProps,
+      ref: createRef<HTMLDivElement>(),
+    })
+    const callbackRef: RefCallback<HTMLDivElement> = () => () => undefined
+    void createElement(SparklineDashlet, { ...sparklineProps, ref: callbackRef })
     void createElement(SparklineDashlet, {
       ...sparklineProps,
       label: createElement('span', null, 'Sparkline'),

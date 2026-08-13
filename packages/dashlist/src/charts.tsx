@@ -6,6 +6,8 @@ import {
   useRef,
   useState,
   type ComponentPropsWithRef,
+  type Ref,
+  type RefCallback,
   type ReactNode,
 } from 'react'
 import { Chart, type ChartCommonProps, type ChartDefinition } from '@tanstack/charts/react'
@@ -91,6 +93,25 @@ type VisibilityState = {
   readonly intersecting: boolean
 }
 
+function composeRefs<T>(...refs: readonly (Ref<T> | undefined)[]): RefCallback<T> {
+  return (value) => {
+    const cleanups = refs.map((ref) => {
+      if (typeof ref === 'function') {
+        const cleanup = ref(value)
+        return typeof cleanup === 'function' ? cleanup : () => ref(null)
+      }
+      if (!ref) return undefined
+      ref.current = value
+      return () => {
+        if (ref.current === value) ref.current = null
+      }
+    })
+    return () => {
+      for (let index = cleanups.length - 1; index >= 0; index -= 1) cleanups[index]?.()
+    }
+  }
+}
+
 function useSparklineHistory(
   source: SparklineSource,
   maxSamples: number,
@@ -160,6 +181,7 @@ function useSparklineHistory(
 }
 
 export function SparklineDashlet({
+  ref,
   id,
   label,
   description,
@@ -169,6 +191,7 @@ export function SparklineDashlet({
   ...nativeProps
 }: SparklineDashletProps) {
   const shellRef = useRef<HTMLDivElement | null>(null)
+  const composedShellRef = useMemo(() => composeRefs(shellRef, ref), [ref])
   const boundedMaxSamples = Number.isFinite(maxSamples) ? Math.max(1, Math.floor(maxSamples)) : 120
   const history = useSparklineHistory(source, boundedMaxSamples, shellRef)
   const definition = useMemo<ChartDefinition>(() => {
@@ -191,7 +214,7 @@ export function SparklineDashlet({
   return (
     <ChartDashlet
       {...nativeProps}
-      ref={shellRef}
+      ref={composedShellRef}
       id={id}
       label={label}
       description={description}
