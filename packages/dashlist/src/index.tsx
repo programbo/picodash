@@ -915,12 +915,13 @@ function StaleInputConfirmation({
   )
 }
 
-function wrapInlineDashletCells(children: ReactNode): ReactNode {
+function wrapDashletContent(children: ReactNode): ReactNode {
   return Children.map(children, (child) => {
     if (isValidElement<{ readonly children?: ReactNode }>(child) && child.type === Fragment)
-      return wrapInlineDashletCells(child.props.children)
+      return wrapDashletContent(child.props.children)
     if (child == null || typeof child === 'boolean') return child
-    if (typeof child === 'string' && child.trim() === '') return null
+    if (typeof child === 'string' && child.trim() === '')
+      return <span data-picodash-dashlet-content-whitespace>{child}</span>
     return <div data-picodash-dashlet-content-cell>{child}</div>
   })
 }
@@ -992,7 +993,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     const renderedChildren =
       typeof children === 'function' ? children(renderContext as never) : children
     const layout = declaredLayout ?? (fields === undefined ? 'inline' : 'block')
-    const contentChildren = wrapInlineDashletCells(renderedChildren)
+    const contentChildren = wrapDashletContent(renderedChildren)
     const reorderHandle = useOrderingHandle(id, resolvedName)
     void pin
     const inputBindings = Object.values(bindingRuntime.bindings).filter(

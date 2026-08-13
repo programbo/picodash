@@ -915,7 +915,8 @@ threshold. `layout="block"` always places content below the label while preservi
 `layout="full"` places content on a new row spanning the complete Dashlet width. Label/actions,
 content, description, and issues retain their DOM and focus order under every visual arrangement.
 Content-cell wrappers establish subgrid cells only for inline layout; in block and full layouts they
-do not establish layout boxes, so application content retains its own internal layout.
+do not establish layout boxes, so application content retains its own internal layout and explicit
+whitespace. A lone inline control spans the fluid control and optional trailing-value tracks.
 
 The initial label-width token is
 `--picodash-dashlet-label-width: clamp(6rem, 30cqi, 10rem)`. Long labels wrap rather than truncate.

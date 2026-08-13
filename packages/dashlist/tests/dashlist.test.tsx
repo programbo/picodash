@@ -265,6 +265,9 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(cells).toHaveLength(2)
     expect(cells[0]!.findByType('input').props['aria-label']).toBe('Control')
     expect(cells[1]!.children).toEqual(['48%'])
+    expect(
+      renderer.root.findByProps({ 'data-picodash-dashlet-content-whitespace': true }).children,
+    ).toEqual([' '])
 
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()
@@ -320,6 +323,29 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(renderer.root.findByProps({ 'aria-label': 'Persistent control' }).element).toBe(
       initialControl,
     )
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('preserves explicit whitespace in block and full Dashlet content', () => {
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'content-whitespace', nexus },
+        createElement(
+          Dashlet,
+          { id: 'quality', label: 'Quality', layout: 'block' },
+          createElement('span', null, 'Low'),
+          ' ',
+          createElement('span', null, 'quality'),
+        ),
+      ),
+    )
+    expect(
+      renderer.root.findByProps({ 'data-picodash-dashlet-content-whitespace': true }).children,
+    ).toEqual([' '])
 
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()
