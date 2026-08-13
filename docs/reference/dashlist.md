@@ -793,6 +793,11 @@ Nexus field always has a concrete value.
 - `@picodash/dashlist/ui` exports the accepted unbound accessible controls listed under
   [Public package surfaces](#public-package-surfaces).
 - `@picodash/dashlist/catalog` exports descriptive package metadata.
+- `@picodash/dashlist/charts` exports the experimental, pre-alpha `ChartDashlet` and
+  `SparklineDashlet` prototypes behind the exact optional `@tanstack/charts` `0.12.0` peer. It is
+  isolated from the stable root inventory and component catalog.
+- `@picodash/dashlist/style.css` exports the required structural stylesheet.
+- `@picodash/dashlist/package.json` exports package metadata for tooling.
 - `@picodash/picodash` reexports the same stable components and types.
 - `@picodash/picodash/catalog` combines foundation catalogs without copying their entries.
 
@@ -1852,13 +1857,15 @@ the accepted reorder contract. Handles are named buttons and do not expose `aria
 
 ## Public package surfaces
 
-| Surface                        | Contract | Implementation | Notes                                 |
-| ------------------------------ | -------- | -------------- | ------------------------------------- |
-| `@picodash/dashlist`           | Accepted | Prototype      | List, groups, Dashlets, and actions.  |
-| `@picodash/dashlist/dashlet`   | Accepted | Prototype      | Core accepted; helper families Draft. |
-| `@picodash/dashlist/ui`        | Accepted | Prototype      | Exact unbound-control inventory.      |
-| `@picodash/dashlist/catalog`   | Accepted | Prototype      | Descriptive package metadata.         |
-| `@picodash/dashlist/style.css` | Accepted | Prototype      | Complete structural styles.           |
+| Surface                           | Contract | Implementation | Notes                                                                           |
+| --------------------------------- | -------- | -------------- | ------------------------------------------------------------------------------- |
+| `@picodash/dashlist`              | Accepted | Prototype      | List, groups, stable ready-made Dashlets, and actions.                          |
+| `@picodash/dashlist/dashlet`      | Accepted | Prototype      | Core accepted; helper families Draft.                                           |
+| `@picodash/dashlist/ui`           | Accepted | Prototype      | Exact controlled, unbound-control inventory.                                    |
+| `@picodash/dashlist/catalog`      | Accepted | Prototype      | Descriptive metadata for accepted public components.                            |
+| `@picodash/dashlist/charts`       | Accepted | Prototype      | Experimental pre-alpha charts; exact optional `@tanstack/charts` `0.12.0` peer. |
+| `@picodash/dashlist/style.css`    | Accepted | Prototype      | Required structural styles.                                                     |
+| `@picodash/dashlist/package.json` | Accepted | Prototype      | Package metadata for tooling.                                                   |
 
 The unbound `/ui` inventory is `TextField`, `NumberField`, `Slider`, `Switch`, `Select`,
 `SegmentedControl`, `Display`, `Checkbox`, `RadioGroup`, `Combobox`, `CheckboxGroup`, `MultiSelect`,
