@@ -7,6 +7,7 @@ import {
   forwardRef,
   isValidElement,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useId,
@@ -440,6 +441,7 @@ type OrderingRowBounds = Readonly<{
 const DashListOrderingContext = createContext<OrderingController | null>(null)
 const DashListOrderingCoordinatorContext = createContext<OrderingCoordinator | null>(null)
 const DashListReorderInstructionsContext = createContext<string | undefined>(undefined)
+const DashListCompactContext = createContext(false)
 
 function safeOrderingState(input: Parameters<typeof createOrderingState>[0]): OrderingState {
   try {
@@ -938,9 +940,12 @@ function syncDashletContentCells(container: HTMLDivElement): void {
   }
 }
 
-function assignForwardedRef<T>(ref: ForwardedRef<T>, value: T | null): void {
-  if (typeof ref === 'function') ref(value)
-  else if (ref) ref.current = value
+function assignForwardedRef<T>(ref: ForwardedRef<T>, value: T | null): void | (() => void) {
+  if (typeof ref === 'function') {
+    const cleanup = ref(value)
+    return typeof cleanup === 'function' ? cleanup : undefined
+  }
+  if (ref) ref.current = value
 }
 
 const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashletProps<any, any>>(
@@ -1150,6 +1155,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
 ) {
   requireAccessibleLabel(label, ariaLabel, 'DashGroup')
   const inheritedPolicy = useContext(DashListContentPolicyContext)
+  const compact = useContext(DashListCompactContext)
   const contentPolicy = useMemo(
     () => ({
       disabled: inheritedPolicy.disabled || disabled,
@@ -1315,6 +1321,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
             aria-label={isTextLabel(label) ? undefined : ariaLabel}
             aria-labelledby={isTextLabel(label) ? labelId : undefined}
             data-picodash-dashgroup-list
+            data-picodash-dashlist-compact={compact || undefined}
             data-collapsed={renderedCollapsed ? 'true' : 'false'}
             aria-hidden={renderedCollapsed || undefined}
             hidden={renderedCollapsed || undefined}
@@ -1452,17 +1459,30 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   const statusId = `picodash-dashlist-status-${useId()}`
   const reorderInstructionsId = `picodash-dashlist-reorder-instructions-${useId()}`
   const rootRef = useRef<HTMLDivElement>(null)
-  const setRootRef = (element: HTMLDivElement | null) => {
-    rootRef.current = element
-    assignForwardedRef(ref, element)
-  }
+  const [compact, setCompact] = useState(false)
+  const setRootRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      rootRef.current = element
+      if (element === null) {
+        assignForwardedRef(ref, null)
+        return
+      }
+      const cleanup = assignForwardedRef(ref, element)
+      return () => {
+        rootRef.current = null
+        if (cleanup) cleanup()
+        else assignForwardedRef(ref, null)
+      }
+    },
+    [ref],
+  )
   useLayoutEffect(() => {
     const root = rootRef.current
     if (!root || typeof ResizeObserver !== 'function') return
     const threshold =
       18 * (Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16)
     const sync = (inlineSize: number) => {
-      root.toggleAttribute('data-picodash-dashlist-compact', inlineSize < threshold)
+      setCompact(inlineSize < threshold)
     }
     sync(root.getBoundingClientRect().width)
     const observer = new ResizeObserver((entries) => {
@@ -1490,55 +1510,66 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
             <DashListReorderInstructionsContext.Provider value={reorderInstructionsId}>
               <DashListOrderingContext.Provider value={rootOrdering}>
                 <DashListActionRegistryContext.Provider value={actionRegistry}>
-                  <DashListNodeRegistryProvider registry={registry}>
-                    <DashListNodeValidation>
-                      <div
-                        {...props}
-                        ref={setRootRef}
-                        className={classNames('picodash-dashlist', className)}
-                        data-picodash-dashlist
-                      >
-                        {title !== undefined ? (
-                          <DashHeader
-                            slots={{
-                              title: createElement(`h${headingLevel}`, { id: headingId }, title),
-                            }}
-                          />
-                        ) : null}
+                  <DashListCompactContext.Provider value={compact}>
+                    <DashListNodeRegistryProvider registry={registry}>
+                      <DashListNodeValidation>
                         <div
-                          role="list"
-                          aria-label={ariaLabel}
-                          aria-labelledby={listName}
-                          data-picodash-dashlist-list
+                          {...props}
+                          ref={setRootRef}
+                          className={classNames('picodash-dashlist', className)}
+                          data-picodash-dashlist
+                          data-picodash-dashlist-compact={compact || undefined}
                         >
-                          {orderedDeclarations.map((declaration, index) =>
-                            createElement(
-                              Fragment,
-                              {
-                                key:
-                                  declaration.key ??
-                                  declarationIdentity(declaration, `${resolved.scopeId}-${index}`),
-                              },
-                              wrapDeclaration(declaration, 'list', `${resolved.scopeId}-${index}`),
-                            ),
-                          )}
+                          {title !== undefined ? (
+                            <DashHeader
+                              slots={{
+                                title: createElement(`h${headingLevel}`, { id: headingId }, title),
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            role="list"
+                            aria-label={ariaLabel}
+                            aria-labelledby={listName}
+                            data-picodash-dashlist-list
+                            data-picodash-dashlist-compact={compact || undefined}
+                          >
+                            {orderedDeclarations.map((declaration, index) =>
+                              createElement(
+                                Fragment,
+                                {
+                                  key:
+                                    declaration.key ??
+                                    declarationIdentity(
+                                      declaration,
+                                      `${resolved.scopeId}-${index}`,
+                                    ),
+                                },
+                                wrapDeclaration(
+                                  declaration,
+                                  'list',
+                                  `${resolved.scopeId}-${index}`,
+                                ),
+                              ),
+                            )}
+                          </div>
+                          <div
+                            key={actionSnapshot.announcementSequence}
+                            id={statusId}
+                            role="status"
+                            aria-live="polite"
+                            aria-atomic="true"
+                          >
+                            {actionSnapshot.announcement}
+                          </div>
+                          <span id={reorderInstructionsId} data-picodash-reorder-instructions>
+                            Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
+                            Press Space or Enter to commit, or Escape to cancel.
+                          </span>
                         </div>
-                        <div
-                          key={actionSnapshot.announcementSequence}
-                          id={statusId}
-                          role="status"
-                          aria-live="polite"
-                          aria-atomic="true"
-                        >
-                          {actionSnapshot.announcement}
-                        </div>
-                        <span id={reorderInstructionsId} data-picodash-reorder-instructions>
-                          Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
-                          Press Space or Enter to commit, or Escape to cancel.
-                        </span>
-                      </div>
-                    </DashListNodeValidation>
-                  </DashListNodeRegistryProvider>
+                      </DashListNodeValidation>
+                    </DashListNodeRegistryProvider>
+                  </DashListCompactContext.Provider>
                 </DashListActionRegistryContext.Provider>
               </DashListOrderingContext.Provider>
             </DashListReorderInstructionsContext.Provider>

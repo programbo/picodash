@@ -425,6 +425,116 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('scopes compact layout state to the nearest nested List', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver')
+    const observers: Array<{
+      callback: ResizeObserverCallback
+      target?: Element
+    }> = []
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+      configurable: true,
+      value: class {
+        readonly record: (typeof observers)[number]
+        constructor(callback: ResizeObserverCallback) {
+          this.record = { callback }
+          observers.push(this.record)
+        }
+        observe(target: Element) {
+          this.record.target = target
+        }
+        disconnect() {}
+      },
+    })
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'outer-list', nexus },
+        createElement(
+          DashGroup,
+          { id: 'group', label: 'Group' },
+          createElement(Dashlet, { id: 'group-control', label: 'Group control' }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'nested-host', label: 'Nested host', layout: 'block' },
+          createElement(
+            DashList,
+            { id: 'inner-list' },
+            createElement(Dashlet, { id: 'inner-control', label: 'Inner control' }),
+          ),
+        ),
+      ),
+    )
+    const roots = renderer.root.findAllByProps({ 'data-picodash-dashlist': true })
+    const outer = roots[0]!.element
+    const inner = roots[1]!.element
+    const notify = (target: Element, inlineSize: number) => {
+      const observer = observers.find((record) => record.target === target)!
+      observer.callback(
+        [
+          {
+            target,
+            contentBoxSize: [{ inlineSize }],
+          } as unknown as ResizeObserverEntry,
+        ],
+        {} as ResizeObserver,
+      )
+    }
+
+    act(() => {
+      notify(outer, 287)
+      notify(inner, 320)
+    })
+    expect(outer.hasAttribute('data-picodash-dashlist-compact')).toBe(true)
+    expect(
+      outer
+        .querySelector(':scope > [data-picodash-dashlist-list]')
+        ?.hasAttribute('data-picodash-dashlist-compact'),
+    ).toBe(true)
+    expect(
+      outer
+        .querySelector('[data-picodash-dashgroup-list]')
+        ?.hasAttribute('data-picodash-dashlist-compact'),
+    ).toBe(true)
+    expect(inner.hasAttribute('data-picodash-dashlist-compact')).toBe(false)
+    expect(
+      inner
+        .querySelector(':scope > [data-picodash-dashlist-list]')
+        ?.hasAttribute('data-picodash-dashlist-compact'),
+    ).toBe(false)
+
+    act(() => renderer.unmount())
+    if (original) Object.defineProperty(globalThis, 'ResizeObserver', original)
+    else Reflect.deleteProperty(globalThis, 'ResizeObserver')
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('keeps callback refs stable and forwards React cleanup', () => {
+    const nexus = makeNexus()
+    const cleanup = vi.fn()
+    const callbackRef = vi.fn((element: HTMLDivElement | null) =>
+      element === null ? undefined : cleanup,
+    )
+    const renderList = (title: string) =>
+      createElement(
+        DashList,
+        { id: 'forwarded-ref', nexus, ref: callbackRef, title, headingLevel: 2 },
+        createElement(Dashlet, { id: 'control', label: 'Control' }, createElement('input')),
+      )
+    const renderer = render(renderList('First'))
+    expect(callbackRef).toHaveBeenCalledTimes(1)
+
+    act(() => renderer.update(renderList('Second')))
+    expect(callbackRef).toHaveBeenCalledTimes(1)
+    expect(cleanup).not.toHaveBeenCalled()
+
+    act(() => renderer.unmount())
+    expect(cleanup).toHaveBeenCalledOnce()
+    expect(callbackRef).toHaveBeenCalledTimes(1)
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('keeps group reorder and disclosure controls in visual DOM order', () => {
     const nexus = makeNexus()
     const renderer = render(

@@ -62,10 +62,10 @@ describe('DashList stylesheet contract', () => {
     )
     expect(css).not.toContain('container-type: inline-size')
     expect(css).toMatch(
-      /\.picodash-dashlist\[data-picodash-dashlist-compact\][^{]*\[data-picodash-dashlist-list\],[\s\S]*grid-template-columns:\s*var\(--_picodash-dashlist-reorder-track\)\s+minmax\(0,\s*1fr\);/s,
+      /\[data-picodash-dashlist-list\]\[data-picodash-dashlist-compact\],[\s\S]*grid-template-columns:\s*var\(--_picodash-dashlist-reorder-track\)\s+minmax\(0,\s*1fr\);/s,
     )
     expect(css).toMatch(
-      /\.picodash-dashlist\[data-picodash-dashlist-compact\][^{]*\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*block;/s,
+      /:is\(\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\)\[data-picodash-dashlist-compact\][^{]*>\s*\.picodash-dashlist-item[^{]*\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*block;/s,
     )
   })
 
