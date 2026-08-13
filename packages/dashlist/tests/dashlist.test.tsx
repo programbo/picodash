@@ -257,7 +257,7 @@ describe('@picodash/dashlist alpha shell', () => {
         createElement(
           Dashlet,
           { id: 'readout', label: 'Readout' },
-          createElement(Fragment, null, createElement(Control), createElement(Readout)),
+          createElement(Fragment, null, createElement(Control), ' ', createElement(Readout)),
         ),
       ),
     )
@@ -265,6 +265,28 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(cells).toHaveLength(2)
     expect(cells[0]!.findByType('input').props['aria-label']).toBe('Control')
     expect(cells[1]!.children).toEqual(['48%'])
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('keeps group reorder and disclosure controls in visual DOM order', () => {
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'group-control-order', nexus },
+        createElement(DashGroup, { id: 'first', label: 'First' }),
+        createElement(DashGroup, { id: 'second', label: 'Second' }),
+      ),
+    )
+    const firstGroup = renderer.root.findByProps({ 'data-picodash-dashgroup': 'first' })
+    expect(
+      firstGroup
+        .findByProps({ 'data-slot': 'dash-header-leading' })
+        .findAllByType('button')
+        .map((button) => button.props['aria-label']),
+    ).toEqual(['Reorder First', 'Collapse group First'])
 
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()

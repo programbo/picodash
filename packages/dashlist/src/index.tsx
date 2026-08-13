@@ -920,6 +920,7 @@ function wrapInlineDashletCells(children: ReactNode): ReactNode {
     if (isValidElement<{ readonly children?: ReactNode }>(child) && child.type === Fragment)
       return wrapInlineDashletCells(child.props.children)
     if (child == null || typeof child === 'boolean') return child
+    if (typeof child === 'string' && child.trim() === '') return null
     return <div data-picodash-dashlet-content-cell>{child}</div>
   })
 }
@@ -1255,6 +1256,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
             slots={{
               leading: collapsible ? (
                 <>
+                  {groupReorderHandle}
                   <button
                     ref={disclosureRef}
                     aria-label={disclosureLabel}
@@ -1265,7 +1267,6 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
                   >
                     {renderedCollapsed ? '+' : '−'}
                   </button>
-                  {groupReorderHandle}
                 </>
               ) : (
                 groupReorderHandle

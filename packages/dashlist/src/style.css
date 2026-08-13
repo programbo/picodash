@@ -6,6 +6,7 @@
 
   --_picodash-dashlist-nested-inset: calc(-1 * var(--picodash-space-0-5));
   --_picodash-dashlist-control-min-inline-size: 6rem;
+  --_picodash-dashlist-containment-inline-size: 20rem;
   --_picodash-dashlist-reorder-track: var(--picodash-control-height-xs);
   --_picodash-dashlist-trailing-max-inline-size: 8rem;
   --_picodash-dashlist-row-hover: color-mix(
@@ -27,6 +28,7 @@
  */
 .picodash-dashlist {
   display: block;
+  contain-intrinsic-inline-size: var(--_picodash-dashlist-containment-inline-size);
   min-inline-size: 0;
   color: var(--picodash-color-text);
   container-name: picodash-dashlist;
@@ -314,14 +316,6 @@
   > [data-slot='dash-header']
   [data-slot='dash-header-leading'] {
   gap: 0;
-}
-
-.picodash-dashlist-group-item
-  > [data-picodash-dashgroup]
-  > [data-slot='dash-header']
-  [data-slot='dash-header-leading']
-  > [data-picodash-reorder-handle] {
-  order: -1;
 }
 
 .picodash-dashlist-group-item

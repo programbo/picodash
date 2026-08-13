@@ -902,6 +902,10 @@ container owns one shared alignment grid across its start, automatic, and end pi
 DashGroup establishes a new alignment context for its children; descendant rows do not force their
 tracks to match the parent List.
 
+The root query container declares an initial `20rem` intrinsic inline-size fallback so an
+intrinsically sized host still receives a useful contribution while inline-size containment is
+active.
+
 The normal inline grid has four tracks: reorder handle, label, fluid control, and optional trailing
 value. Rows without a trailing value span the final two tracks. Slider outputs share the trailing
 track so sibling Slider controls retain equal track widths.

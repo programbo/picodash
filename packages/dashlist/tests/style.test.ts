@@ -10,6 +10,7 @@ describe('DashList stylesheet contract', () => {
     expect(css).toContain('--picodash-dashlet-label-width: clamp(6rem, 30cqi, 10rem)')
     expect(css).toContain('--picodash-dashlet-field-min-height: 6rem')
     expect(css).toContain('--_picodash-dashlist-control-min-inline-size: 6rem')
+    expect(css).toContain('--_picodash-dashlist-containment-inline-size: 20rem')
     expect(css).toContain('--_picodash-dashlist-trailing-max-inline-size: 8rem')
     expect(css).toMatch(
       /\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:[^}]*var\(--picodash-dashlet-label-width\)[^}]*minmax\(var\(--_picodash-dashlist-control-min-inline-size\),\s*1fr\)[^}]*fit-content\(var\(--_picodash-dashlist-trailing-max-inline-size\)\);/s,
@@ -38,7 +39,7 @@ describe('DashList stylesheet contract', () => {
     )
     expect(css).toMatch(/\[data-picodash-dashlet-shell\]\s*\{[^}]*box-sizing:\s*border-box;/s)
     expect(css).toMatch(
-      /\[data-slot='dash-header-leading'\][^{]*>\s*\[data-picodash-reorder-handle\]\s*\{[^}]*order:\s*-1;/s,
+      /\.picodash-dashlist\s*\{[^}]*contain-intrinsic-inline-size:\s*var\(--_picodash-dashlist-containment-inline-size\);[^}]*container-type:\s*inline-size;/s,
     )
     expect(css).toMatch(
       /button:not\(\[data-picodash-reorder-handle\]\)::before\s*\{[^}]*border-right:[^}]*border-bottom:[^}]*transform:\s*rotate\(45deg\);/s,
