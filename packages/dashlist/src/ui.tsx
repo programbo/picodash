@@ -142,6 +142,21 @@ function sliderMarkPosition(value: number, min: number, max: number) {
   return max === min ? 0 : ((value - min) / (max - min)) * 100
 }
 
+function validateSliderConfiguration(
+  min: number,
+  max: number,
+  step: number,
+  marks: readonly SliderMark[] | undefined,
+): void {
+  if (!Number.isFinite(min)) throw new TypeError('min must be finite.')
+  if (!Number.isFinite(max)) throw new TypeError('max must be finite.')
+  if (min > max) throw new TypeError('min must be less than or equal to max.')
+  if (!Number.isFinite(step) || step <= 0)
+    throw new TypeError('step must be a positive finite number.')
+  if (marks?.some((mark) => !Number.isFinite(mark.value) || mark.value < min || mark.value > max))
+    throw new TypeError('marks values must be finite and within the slider bounds.')
+}
+
 export function Slider({
   value,
   onChange,
@@ -152,6 +167,8 @@ export function Slider({
   formatOptions,
   ...props
 }: SliderProps) {
+  validateSliderConfiguration(min, max, step, marks)
+
   return (
     <AriaSlider
       id={props.id}

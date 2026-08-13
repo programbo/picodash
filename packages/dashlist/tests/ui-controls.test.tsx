@@ -27,6 +27,7 @@ import {
   TextField,
   TimeField,
   type SelectOption,
+  type SliderProps,
 } from '../src/ui.js'
 
 type ControlCase = {
@@ -335,7 +336,61 @@ describe('/ui structural class composition', () => {
 })
 
 describe('Slider marks', () => {
-  it('keeps authored marks in one inert track layer at logical range offsets', () => {
+  it('rejects invalid direct Slider configuration synchronously', () => {
+    const invalidConfigurations: readonly {
+      readonly name: string
+      readonly props: Pick<SliderProps, 'min' | 'max' | 'step' | 'marks'>
+      readonly error: TypeError
+    }[] = [
+      ...[Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((min) => ({
+        name: `non-finite min ${String(min)}`,
+        props: { min },
+        error: new TypeError('min must be finite.'),
+      })),
+      ...[Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((max) => ({
+        name: `non-finite max ${String(max)}`,
+        props: { max },
+        error: new TypeError('max must be finite.'),
+      })),
+      {
+        name: 'descending bounds',
+        props: { min: 2, max: 1 },
+        error: new TypeError('min must be less than or equal to max.'),
+      },
+      ...[0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((step) => ({
+        name: `non-positive or non-finite step ${String(step)}`,
+        props: { step },
+        error: new TypeError('step must be a positive finite number.'),
+      })),
+      ...[
+        { name: 'mark below min', value: -1 },
+        { name: 'mark above max', value: 11 },
+        { name: 'NaN mark', value: Number.NaN },
+        { name: 'positive infinite mark', value: Number.POSITIVE_INFINITY },
+        { name: 'negative infinite mark', value: Number.NEGATIVE_INFINITY },
+      ].map(({ name, value }) => ({
+        name,
+        props: { min: 0, max: 10, marks: [{ value }] },
+        error: new TypeError('marks values must be finite and within the slider bounds.'),
+      })),
+    ]
+
+    for (const configuration of invalidConfigurations)
+      expect(
+        () =>
+          render(
+            createElement(Slider, {
+              value: 0,
+              onChange: () => undefined,
+              'aria-label': 'Invalid slider',
+              ...configuration.props,
+            }),
+          ),
+        configuration.name,
+      ).toThrowError(configuration.error)
+  })
+
+  it('keeps duplicate authored boundary marks in one inert track layer at signed offsets', () => {
     const changes: number[] = []
     const view = render(
       createElement(Slider, {
@@ -351,6 +406,7 @@ describe('Slider marks', () => {
           },
           { value: -20, label: 'Minimum' },
           { value: 0 },
+          { value: 20, label: 'Duplicate maximum' },
         ],
         'aria-label': 'Signed range',
       }),
@@ -369,13 +425,19 @@ describe('Slider marks', () => {
       '20',
       '-20',
       '0',
+      '20',
     ])
-    expect(marks.map((mark) => mark.textContent)).toEqual(['Maximum', 'Minimum', '0'])
+    expect(marks.map((mark) => mark.textContent)).toEqual([
+      'Maximum',
+      'Minimum',
+      '0',
+      'Duplicate maximum',
+    ])
     expect(
       marks.map((mark) =>
         (mark as HTMLElement).style.getPropertyValue('--_picodash-dashlist-slider-mark-position'),
       ),
-    ).toEqual(['100%', '0%', '50%'])
+    ).toEqual(['100%', '0%', '50%', '100%'])
     expect(layer?.querySelector('[data-authored-slider-label="maximum"]')?.tagName).toBe('STRONG')
 
     const input = root?.querySelector('input[type="range"]')
