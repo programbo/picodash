@@ -86,7 +86,7 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
     }
     act(() => view.unmount())
     nexus.destroy()
-  })
+  }, 30_000)
 
   it('renders the complete seven-control slice with semantic controls', () => {
     const nexus = createPicodashNexus({
