@@ -120,6 +120,8 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
 
   const basicsPanel = page.getByRole('complementary', { name: 'Basics & readout' })
   const choicesPanel = page.getByRole('complementary', { name: 'Choices & temporal' })
+  await expect(page.locator('[data-style-lab-panel]')).toHaveCount(2)
+  await expect(page.locator('[data-picodash-dashlet^="style-lab-"]')).toHaveCount(22)
   await expect(basicsPanel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
   await expect(choicesPanel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
 
@@ -143,6 +145,19 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
       .getByRole('group', { name: 'Basics' })
       .locator('[data-picodash-dashlet="style-lab-range"]'),
   ).toBeVisible()
+
+  const gallery = page.getByRole('list', { name: 'Dashlet gallery' })
+  for (const group of [
+    'Common inputs',
+    'Direct manipulation',
+    'Media and files',
+    'Charts',
+    'Readouts',
+    'Compound recipes',
+  ]) {
+    await expect(gallery.getByRole('group', { name: group, exact: true })).toBeVisible()
+  }
+  await expect(page.getByRole('img', { name: 'Request trend' })).toBeVisible()
 })
 
 test('opens, cancels, and restores focus for the landed shared AlertDialog', async ({ page }) => {

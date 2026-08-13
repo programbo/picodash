@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import {
   createPicodashNexus,
   type CoreTransactionResult,
@@ -60,6 +60,7 @@ import {
 import type { ContractLabPreset } from '@lab/lib/contract-lab'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
 import { useContractLabDiagnosticCount } from './nexus-diagnostics'
+import { DashletStyleLab } from './style-lab'
 
 export interface ContractLabSpecimenProps {
   readonly boundary: RefObject<HTMLElement | null>
@@ -492,6 +493,7 @@ export function ContractLabSpecimen({
   onDiagnosticCountChange,
   preset,
 }: ContractLabSpecimenProps) {
+  const styleLabBoundary = useRef<HTMLElement>(null)
   const [quarantineResolved, setQuarantineResolved] = useState(false)
   const [capturedDocument, setCapturedDocument] = useState<PicodashDocument | null>(null)
   const [documentStatus, setDocumentStatus] = useState('No document captured.')
@@ -738,6 +740,24 @@ export function ContractLabSpecimen({
           </DashList>
         </DashPanel>
       </PicodashProvider>
+      {preset.id === 'composition' ? (
+        <section
+          aria-label="Dashlet style lab"
+          className="relative min-h-[70rem] overflow-hidden border-t border-white/10 bg-[#071018]"
+          data-contract-lab-style-lab
+          ref={styleLabBoundary}
+        >
+          <div className="px-4 pt-4 sm:px-7">
+            <p className="font-mono text-[0.625rem] tracking-[0.16em] text-cyan-200/70 uppercase">
+              Neutral ready-made controls
+            </p>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
+              Twenty-two stable Dashlets are grouped across two movable hybrid Panels.
+            </p>
+          </div>
+          <DashletStyleLab boundary={styleLabBoundary} />
+        </section>
+      ) : null}
       <StandalonePhase2Evidence boundary={boundary} preset={preset} nexus={nexus} />
     </>
   )

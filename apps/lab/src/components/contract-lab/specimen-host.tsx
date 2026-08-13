@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react'
 import type { ContractLabPreset } from '@lab/lib/contract-lab'
 import { ContractLabSpecimen } from './specimen'
-import { DashletStyleLab } from './style-lab'
 
 export type ContractLabPrimaryPanelState = 'expanded' | 'collapsed' | 'unavailable'
 
@@ -50,18 +49,14 @@ export function ContractLabSpecimenHost({
       <p className="text-muted-foreground relative z-10 max-w-2xl p-5 text-sm leading-6 sm:p-7">
         {preset.description}
       </p>
-      {preset.id === 'composition' ? (
-        <DashletStyleLab boundary={boundaryRef} />
-      ) : (
-        <ContractLabSpecimen
-          boundary={boundaryRef}
-          onDiagnosticCountChange={onDiagnosticCountChange}
-          onCollapsedChange={(collapsed) =>
-            onPrimaryPanelStateChange(collapsed ? 'collapsed' : 'expanded')
-          }
-          preset={preset}
-        />
-      )}
+      <ContractLabSpecimen
+        boundary={boundaryRef}
+        onDiagnosticCountChange={onDiagnosticCountChange}
+        onCollapsedChange={(collapsed) =>
+          onPrimaryPanelStateChange(collapsed ? 'collapsed' : 'expanded')
+        }
+        preset={preset}
+      />
     </section>
   )
 }
