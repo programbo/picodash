@@ -156,6 +156,13 @@
   z-index: var(--picodash-layer-raised);
 }
 
+@media (pointer: coarse) {
+  .picodash-dashpanel > [data-slot='dash-header'] [data-slot='button'][data-icon-only] {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+}
+
 [data-picodash-panel-status],
 [data-picodash-panel-move-instructions] {
   position: absolute;

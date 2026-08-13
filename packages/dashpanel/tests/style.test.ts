@@ -36,6 +36,9 @@ describe('DashPanel stylesheet contract', () => {
     expect(css).toMatch(
       /\.picodash-dashpanel\[data-collapsed='true'\][^{]*\[data-slot='button'\]::before\s*\{[^}]*transform:\s*rotate\(-45deg\);/s,
     )
+    expect(css).toMatch(
+      /@media\s*\(pointer:\s*coarse\)[\s\S]*\[data-slot='button'\]\[data-icon-only\]\s*\{[^}]*min-inline-size:\s*44px;[^}]*min-block-size:\s*44px;/s,
+    )
   })
 
   it('keeps allocated Panel content constrained beneath a reachable header', async () => {
