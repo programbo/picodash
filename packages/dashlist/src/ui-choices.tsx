@@ -65,6 +65,8 @@ export function validateChoiceOptions<T extends ChoiceValue>(
   const seen = new Set<string>()
   for (const option of options) {
     const value = typeof option === 'object' && option !== null ? option.value : option
+    if (typeof value === 'number' && !Number.isFinite(value))
+      throw new TypeError('option values must be finite strings or numbers.')
     const key = choiceKey(value)
     if (seen.has(key)) throw new TypeError('options must contain unique values.')
     seen.add(key)

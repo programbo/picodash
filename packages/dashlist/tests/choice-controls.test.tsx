@@ -122,6 +122,11 @@ describe('choice controls', () => {
         options: [{ value: 'one', label: createElement('span', null, 'One') }],
         message: 'non-text option labels require textValue.',
       },
+      ...[Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((value) => ({
+        name: `non-finite value ${String(value)}`,
+        options: [value],
+        message: 'option values must be finite strings or numbers.',
+      })),
     ]
 
     for (const invalidCase of invalidCases)
