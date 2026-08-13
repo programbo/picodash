@@ -155,14 +155,14 @@
 [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content]
   > [data-picodash-dashlet-content-cell][data-picodash-dashlet-content-single-root]
-  > :only-child {
+  > :not([hidden]) {
   grid-column: 1 / -1;
   min-inline-size: 0;
 }
 
 [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content]
-  > [data-picodash-dashlet-content-cell]:not(:has(> *)):not(:empty):not(
+  > [data-picodash-dashlet-content-cell]:not(:has(> :not([hidden]))):not(:empty):not(
     [data-picodash-dashlet-content-empty]
   ) {
   display: block;

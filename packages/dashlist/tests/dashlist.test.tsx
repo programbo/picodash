@@ -362,6 +362,50 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('marks component-composed content as single-root when its siblings are hidden', async () => {
+    const nexus = makeNexus()
+    function VisibilityCells({ hidden }: { readonly hidden: boolean }) {
+      return createElement(
+        Fragment,
+        null,
+        createElement('output', { hidden }, '48%'),
+        createElement('input', { 'aria-label': 'Composed visible control' }),
+      )
+    }
+    const renderVisibility = (hidden: boolean) =>
+      createElement(
+        DashList,
+        { id: 'component-hidden-content', nexus },
+        createElement(
+          Dashlet,
+          { id: 'visibility', label: 'Visibility' },
+          createElement(VisibilityCells, { hidden }),
+        ),
+      )
+    const renderer = render(renderVisibility(false))
+    let cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cell.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(false)
+
+    await act(async () => {
+      renderer.update(renderVisibility(true))
+      await Promise.resolve()
+    })
+    cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cell.findByType('output').props.hidden).toBe(true)
+    expect(cell.findByType('input').props['aria-label']).toBe('Composed visible control')
+    expect(cell.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(true)
+
+    await act(async () => {
+      renderer.update(renderVisibility(false))
+      await Promise.resolve()
+    })
+    cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cell.element.hasAttribute('data-picodash-dashlet-content-single-root')).toBe(false)
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('preserves control DOM identity when the Dashlet layout changes', () => {
     const nexus = makeNexus()
     const renderLayout = (layout: 'inline' | 'block' | 'full') =>

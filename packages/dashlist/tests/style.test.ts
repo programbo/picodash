@@ -27,10 +27,10 @@ describe('DashList stylesheet contract', () => {
       /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content-cell\]\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*subgrid;[^}]*min-inline-size:\s*0;/s,
     )
     expect(css).toMatch(
-      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content-cell\]\[data-picodash-dashlet-content-single-root\][^{]*>\s*:only-child\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;/s,
+      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content-cell\]\[data-picodash-dashlet-content-single-root\][^{]*>\s*:not\(\[hidden\]\)\s*\{[^}]*grid-column:\s*1\s*\/\s*-1;/s,
     )
     expect(css).toMatch(
-      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content-cell\]:not\(:has\(>\s*\*\)\):not\(:empty\):not\([\s\S]*data-picodash-dashlet-content-empty[\s\S]*\{[^}]*display:\s*block;/s,
+      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content-cell\]:not\(:has\(>\s*:not\(\[hidden\]\)\)\):not\(:empty\):not\([\s\S]*data-picodash-dashlet-content-empty[\s\S]*\{[^}]*display:\s*block;/s,
     )
     expect(css).toMatch(
       /\[data-picodash-dashlet-shell\]:not\(\[data-layout='inline'\]\)[^{]*\[data-picodash-dashlet-content-cell\]\s*\{[^}]*display:\s*contents;/s,

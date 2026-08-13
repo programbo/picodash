@@ -921,7 +921,8 @@ do not establish layout boxes, so application content retains its own internal l
 whitespace. Whitespace-only output from a child component is layout-empty in inline mode. A lone
 inline control spans the fluid control and optional trailing-value tracks, while mixed element and
 text roots retain separate control and trailing tracks. Native `hidden` roots do not reserve inline
-cells, and toggling `hidden` updates the layout without remounting content.
+cells, including when component-composed siblings share one content cell, and toggling `hidden`
+updates the layout without remounting content.
 
 The initial label track uses `clamp(6rem, 30%, var(--picodash-dashlet-label-width))`, with
 `--picodash-dashlet-label-width: 10rem` as its public preferred cap. Long labels wrap rather than
