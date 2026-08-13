@@ -175,8 +175,12 @@
   display: contents;
 }
 
-[data-picodash-dashlet-content-cell]:empty,
-[data-picodash-dashlet-content-cell][data-picodash-dashlet-content-empty] {
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > :is(
+    [data-picodash-dashlet-content-cell]:empty,
+    [data-picodash-dashlet-content-cell][data-picodash-dashlet-content-empty]
+  ) {
   display: none;
 }
 

@@ -39,7 +39,7 @@ describe('DashList stylesheet contract', () => {
       /\[data-picodash-dashlet-shell\]:not\(\[data-layout='inline'\]\)[^{]*\[data-picodash-dashlet-content-whitespace\]\s*\{[^}]*display:\s*contents;/s,
     )
     expect(css).toMatch(
-      /\[data-picodash-dashlet-content-cell\]:empty,\s*\[data-picodash-dashlet-content-cell\]\[data-picodash-dashlet-content-empty\]\s*\{[^}]*display:\s*none;/s,
+      /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*:is\([\s\S]*\[data-picodash-dashlet-content-cell\]:empty,[\s\S]*\[data-picodash-dashlet-content-cell\]\[data-picodash-dashlet-content-empty\][\s\S]*\)\s*\{[^}]*display:\s*none;/s,
     )
     expect(css).toMatch(
       /\[data-picodash-dashlet-content-cell\]:nth-child\([\s\S]*data-picodash-dashlet-content-empty[\s\S]*grid-column:\s*1\s*\/\s*-1;/s,
