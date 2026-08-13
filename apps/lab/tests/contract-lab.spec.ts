@@ -347,11 +347,12 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     expect(removeTagBounds.width).toBeGreaterThanOrEqual(44)
     expect(removeTagBounds.height).toBeGreaterThanOrEqual(44)
 
-    const multiSelectInput = multiSelectDashlet.getByRole('combobox', {
-      name: 'MultiSelectDashlet',
+    const selectDashlet = coarsePage.locator('[data-picodash-dashlet="style-lab-select"]')
+    const selectTrigger = selectDashlet.getByRole('button', {
+      name: 'Option B SelectDashlet',
+      exact: true,
     })
-    await multiSelectInput.focus()
-    await multiSelectInput.press('ArrowDown')
+    await selectTrigger.press('Enter')
     const popupOption = coarsePage.locator(".picodash-dashlist-listbox [role='option']").first()
     await expect(popupOption).toBeVisible()
     const popupOptionBounds = await popupOption.evaluate((element) => {
@@ -360,7 +361,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     })
     expect(popupOptionBounds.width).toBeGreaterThanOrEqual(44)
     expect(popupOptionBounds.height).toBeGreaterThanOrEqual(44)
-    await multiSelectInput.press('Escape')
+    await selectTrigger.press('Escape')
     await expect(popupOption).toHaveCount(0)
 
     await coarsePage.getByRole('button', { name: /^Themes:/ }).press('Enter')
