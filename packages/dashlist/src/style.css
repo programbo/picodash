@@ -139,6 +139,7 @@
 
 [data-picodash-dashlet-content-cell] {
   display: grid;
+  grid-template-columns: subgrid;
   min-inline-size: 0;
 }
 

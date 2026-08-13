@@ -270,6 +270,31 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('keeps multiple roots returned by one component in one subgrid cell', () => {
+    const nexus = makeNexus()
+    function SliderCells() {
+      return createElement(
+        Fragment,
+        null,
+        createElement('input', { 'aria-label': 'Slider control' }),
+        createElement('output', null, '48%'),
+      )
+    }
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'component-cells', nexus },
+        createElement(Dashlet, { id: 'slider', label: 'Slider' }, createElement(SliderCells)),
+      ),
+    )
+    const cell = renderer.root.findByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cell.findByType('input').props['aria-label']).toBe('Slider control')
+    expect(cell.findByType('output').children).toEqual(['48%'])
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('keeps group reorder and disclosure controls in visual DOM order', () => {
     const nexus = makeNexus()
     const renderer = render(
