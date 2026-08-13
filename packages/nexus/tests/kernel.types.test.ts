@@ -270,6 +270,15 @@ test('exports exact immutable metadata record declarations', () => {
   expectTypeOf<PicodashField<{ readonly value: number }, 'value'>>().toHaveProperty('key')
 })
 
+test('retains field value types through the nominal type-only brand', () => {
+  type Fields = {
+    readonly text: string
+    readonly count: number
+  }
+  expectTypeOf<PicodashField<Fields, 'text'>>().toMatchTypeOf<{ readonly key: 'text' }>()
+  expectTypeOf<PicodashField<Fields, 'text'>>().not.toMatchTypeOf<PicodashField<Fields, 'count'>>()
+})
+
 test('preserves Fields and refined Result through root/scoped views and metadata commands', () => {
   type Fields = { readonly value: { readonly defaultValue: 1 } }
   type RefinedResult = CoreTransactionResult & { readonly tag: 'refined' }

@@ -234,40 +234,40 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
               field={nexus.fields.checkbox}
               label="CheckboxDashlet"
             />
-            <RadioGroupDashlet<Choice>
+            <RadioGroupDashlet
               id="style-lab-radio-group"
               field={nexus.fields.radioGroup}
               label="RadioGroupDashlet"
               options={['Option A', 'Option B', 'Option C']}
               orientation="horizontal"
             />
-            <ComboboxDashlet<Choice>
+            <ComboboxDashlet
               id="style-lab-combobox"
               field={nexus.fields.combobox}
               label="ComboboxDashlet"
               options={['Option A', 'Option B', 'Option C']}
               placeholder="Select an option"
             />
-            <SelectDashlet<Choice>
+            <SelectDashlet
               id="style-lab-select"
               field={nexus.fields.select}
               label="SelectDashlet"
               options={['Option A', 'Option B', 'Option C']}
             />
-            <SegmentedDashlet<Choice>
+            <SegmentedDashlet
               id="style-lab-segmented"
               field={nexus.fields.segmented}
               label="SegmentedDashlet"
               options={['Option A', 'Option B', 'Option C']}
               layout="block"
             />
-            <CheckboxGroupDashlet<Choice>
+            <CheckboxGroupDashlet
               id="style-lab-checkbox-group"
               field={nexus.fields.checkboxGroup}
               label="CheckboxGroupDashlet"
               options={['Option A', 'Option B', 'Option C']}
             />
-            <MultiSelectDashlet<Choice>
+            <MultiSelectDashlet
               id="style-lab-multi-select"
               field={nexus.fields.multiSelect}
               label="MultiSelectDashlet"

@@ -146,6 +146,7 @@ export function RadioGroup<T extends ChoiceValue>({
           key={choiceKey(item.value)}
           value={choiceKey(item.value)}
           isDisabled={item.disabled}
+          aria-label={typeof item.label === 'string' ? undefined : item.textValue}
         >
           {item.icon}
           {item.label}
@@ -259,6 +260,7 @@ export function CheckboxGroup<T extends ChoiceValue>({
           key={choiceKey(item.value)}
           value={choiceKey(item.value)}
           isDisabled={item.disabled}
+          aria-label={typeof item.label === 'string' ? undefined : item.textValue}
         >
           {item.icon}
           {item.label}

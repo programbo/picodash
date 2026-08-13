@@ -168,6 +168,7 @@ export function Slider({
       <SliderTrack className="picodash-dashlist-slider-track">
         <SliderThumb
           index={0}
+          data-picodash-dashlist-slider-thumb
           aria-label={props['aria-label']}
           isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
           aria-errormessage={props['aria-errormessage']}
@@ -347,6 +348,8 @@ export function SegmentedControl<T extends string | number>({
             key={`${typeof item.value}:${String(item.value)}`}
             value={choiceKey(item.value)}
             isDisabled={item.disabled}
+            data-picodash-dashlist-segment
+            aria-label={typeof item.label === 'string' ? undefined : item.textValue}
           >
             {item.icon}
             {item.label}

@@ -32,6 +32,48 @@ function render(element: ReactElement): DomTestRenderer {
 }
 
 describe('choice controls', () => {
+  it('keeps React Aria choice roots stateful and names non-text options from textValue', () => {
+    const icon = createElement('span', { 'aria-hidden': true }, '●')
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement(RadioGroup, {
+          'aria-label': 'Modes',
+          value: 'icon-radio',
+          onChange: () => undefined,
+          options: [{ value: 'icon-radio', label: icon, textValue: 'Icon radio' }],
+        }),
+        createElement(CheckboxGroup, {
+          'aria-label': 'Flags',
+          value: ['icon-checkbox'],
+          onChange: () => undefined,
+          options: [{ value: 'icon-checkbox', label: icon, textValue: 'Icon checkbox' }],
+        }),
+        createElement(SegmentedControl, {
+          'aria-label': 'Modes segmented',
+          value: 'icon-segment',
+          onChange: () => undefined,
+          options: [{ value: 'icon-segment', label: icon, textValue: 'Icon segment' }],
+        }),
+      ),
+    )
+
+    expect(view.root.element.querySelector('input[type="radio"]')?.getAttribute('aria-label')).toBe(
+      'Icon radio',
+    )
+    expect(
+      view.root.element.querySelector('input[type="checkbox"]')?.getAttribute('aria-label'),
+    ).toBe('Icon checkbox')
+    const segment = view.root.element.querySelector('[data-picodash-dashlist-segment]')
+    expect(segment).not.toBeNull()
+    expect(segment?.hasAttribute('data-selected')).toBe(true)
+    expect(segment?.querySelector('input[type="radio"]')?.getAttribute('aria-label')).toBe(
+      'Icon segment',
+    )
+    act(() => view.unmount())
+  })
+
   it('forwards declared ids to controls and class names to public roots', () => {
     const controls: ReactElement[] = [
       createElement(Checkbox, {

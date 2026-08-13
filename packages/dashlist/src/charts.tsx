@@ -87,6 +87,7 @@ export type SparklineDashletProps = DashletNativeProps & {
 
 type VisibilityState = {
   readonly documentVisible: boolean
+  readonly intersectionKnown: boolean
   readonly intersecting: boolean
 }
 
@@ -98,9 +99,11 @@ function useSparklineHistory(
   const [history, setHistory] = useState<readonly number[]>([])
   const [visibility, setVisibility] = useState<VisibilityState>(() => ({
     documentVisible: typeof document === 'undefined' || !document.hidden,
-    intersecting: true,
+    intersectionKnown: false,
+    intersecting: false,
   }))
-  const active = visibility.documentVisible && visibility.intersecting
+  const active =
+    visibility.documentVisible && visibility.intersectionKnown && visibility.intersecting
 
   useEffect(() => {
     setHistory((current) =>
@@ -120,10 +123,13 @@ function useSparklineHistory(
       observer = new IntersectionObserver(([entry]) => {
         setVisibility((current) => ({
           ...current,
+          intersectionKnown: true,
           intersecting: entry?.isIntersecting ?? true,
         }))
       })
       observer.observe(target)
+    } else {
+      setVisibility((current) => ({ ...current, intersectionKnown: true, intersecting: true }))
     }
     handleVisibility()
     return () => {

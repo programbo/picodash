@@ -41,9 +41,10 @@
 
 .picodash-dashlist-control:focus-visible,
 .picodash-dashlist-select > button:focus-visible,
-.picodash-dashlist-segmented [role='radio']:focus-visible,
+.picodash-dashlist-segmented [data-picodash-dashlist-segment][data-focus-visible],
 .picodash-dashlist-switch:focus-visible,
-.picodash-dashlist-slider [role='slider']:focus-visible {
+.picodash-dashlist-slider [data-picodash-dashlist-slider-thumb][data-focus-visible],
+.picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb][data-focus-visible] {
   outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
   outline-offset: 2px;
 }
@@ -55,7 +56,7 @@
   background: var(--picodash-color-control-border);
 }
 
-.picodash-dashlist-slider [role='slider'] {
+.picodash-dashlist-slider [data-picodash-dashlist-slider-thumb] {
   block-size: var(--picodash-control-height-md);
   inline-size: var(--picodash-control-height-md);
   border-radius: var(--picodash-radius-control);
@@ -68,14 +69,14 @@
   gap: var(--picodash-space-0-5);
 }
 
-.picodash-dashlist-segmented [role='radio'] {
+.picodash-dashlist-segmented [data-picodash-dashlist-segment] {
   min-block-size: var(--picodash-control-height-md);
   padding: var(--picodash-space-1) var(--picodash-space-1-5);
   border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
   border-radius: var(--picodash-radius-control);
 }
 
-.picodash-dashlist-segmented [aria-checked='true'] {
+.picodash-dashlist-segmented [data-picodash-dashlist-segment][data-selected] {
   background: color-mix(in oklab, var(--picodash-color-accent) 20%, transparent);
   border-color: var(--picodash-color-accent);
 }
@@ -233,7 +234,7 @@
   background: var(--picodash-color-control-border);
 }
 
-.picodash-dashlist-range-slider [role='slider'] {
+.picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb] {
   inline-size: var(--picodash-control-height-md);
   block-size: var(--picodash-control-height-md);
   border-radius: var(--picodash-radius-control);
@@ -347,15 +348,15 @@
 @media (pointer: coarse) {
   .picodash-dashlist-control,
   .picodash-dashlist-select > button,
-  .picodash-dashlist-segmented [role='radio'],
+  .picodash-dashlist-segmented [data-picodash-dashlist-segment],
   .picodash-dashlist-switch,
-  .picodash-dashlist-slider [role='slider'],
+  .picodash-dashlist-slider [data-picodash-dashlist-slider-thumb],
   .picodash-dashlist-choice,
   .picodash-dashlist-disclosure-button,
   .picodash-dashlist-clear-button,
   .picodash-dashlist-listbox [role='option'],
   [data-picodash-dashlist-tag-remove],
-  .picodash-dashlist-range-slider [role='slider'],
+  .picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb],
   .picodash-dashlist-date-field,
   .picodash-dashlist-time-field,
   .picodash-dashlist-date-time-field,
@@ -849,7 +850,7 @@
 
 :is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
   .picodash-dashlist-segmented
-  [role='radio'] {
+  [data-picodash-dashlist-segment] {
   flex: 1 1 auto;
 }
 

@@ -103,6 +103,39 @@ describe('@picodash/dashlist choice control types', () => {
       label: 'Search',
     })
 
+    // @ts-expect-error CheckboxDashlet rejects a string field at a direct JSX call site.
+    ;<CheckboxDashlet field={nexus.fields.choice} id="checkbox-mismatch" label="Mismatch" />
+    ;<RadioGroupDashlet
+      // @ts-expect-error incompatible field value.
+      field={nexus.fields.enabled}
+      id="radio-mismatch"
+      label="Mismatch"
+      options={['one', 'two']}
+    />
+    ;<ComboboxDashlet
+      // @ts-expect-error incompatible field value.
+      field={nexus.fields.enabled}
+      id="combobox-mismatch"
+      label="Mismatch"
+      options={['one', 'two']}
+    />
+    ;<CheckboxGroupDashlet
+      // @ts-expect-error incompatible field value.
+      field={nexus.fields.choice}
+      id="checkbox-group-mismatch"
+      label="Mismatch"
+      options={['one', 'two']}
+    />
+    ;<MultiSelectDashlet
+      // @ts-expect-error incompatible field value.
+      field={nexus.fields.choice}
+      id="multi-select-mismatch"
+      label="Mismatch"
+      options={['one', 'two']}
+    />
+    // @ts-expect-error SearchDashlet rejects a boolean field at a direct JSX call site.
+    ;<SearchDashlet field={nexus.fields.enabled} id="search-mismatch" label="Mismatch" />
+
     void createElement(Checkbox, { isSelected: false, onChange: () => undefined })
     void createElement(RadioGroup, {
       value: 'one',

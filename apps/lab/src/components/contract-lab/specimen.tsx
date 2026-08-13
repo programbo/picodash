@@ -75,14 +75,14 @@ type SpecimenValues = {
   galleryText: string
   galleryNumber: number
   galleryEnabled: boolean
-  galleryChoice: 'light' | 'dark' | 'system'
-  gallerySelected: readonly ('controls' | 'readouts' | 'media')[]
+  galleryChoice: string
+  gallerySelected: readonly string[]
   gallerySlider: number
   galleryRange: { start: number; end: number }
   galleryDate: string
   galleryColor: string
   galleryReadout: number
-  galleryStatus: 'ready' | 'running' | 'attention'
+  galleryStatus: string
 }
 
 type SpecimenFieldDefinitions = {
@@ -286,7 +286,7 @@ function DashletGallery({ nexus }: { readonly nexus: SpecimenNexus }) {
             field={nexus.fields.galleryEnabled}
             label="Enabled"
           />
-          <SelectDashlet<string>
+          <SelectDashlet
             id="gallery-choice"
             field={nexus.fields.galleryChoice}
             label="Choice"
@@ -294,7 +294,7 @@ function DashletGallery({ nexus }: { readonly nexus: SpecimenNexus }) {
           />
           <DateDashlet id="gallery-date" field={nexus.fields.galleryDate} label="Date" />
           <ColorDashlet id="gallery-color" field={nexus.fields.galleryColor} label="Color" />
-          <MultiSelectDashlet<string>
+          <MultiSelectDashlet
             id="gallery-selected"
             field={nexus.fields.gallerySelected}
             label="Selected features"
@@ -539,14 +539,20 @@ export function ContractLabSpecimen({
           galleryText: { defaultValue: 'Requests per minute' },
           galleryNumber: { defaultValue: 42 },
           galleryEnabled: { defaultValue: true },
-          galleryChoice: { defaultValue: 'system' },
-          gallerySelected: { defaultValue: ['controls', 'readouts'] },
+          galleryChoice: {
+            defaultValue: 'system' as SpecimenValues['galleryChoice'],
+          },
+          gallerySelected: {
+            defaultValue: ['controls', 'readouts'] as SpecimenValues['gallerySelected'],
+          },
           gallerySlider: { defaultValue: 64 },
           galleryRange: { defaultValue: { start: 20, end: 80 } },
           galleryDate: { defaultValue: '2026-08-13' },
           galleryColor: { defaultValue: '#2dd4bf' },
           galleryReadout: { defaultValue: 68 },
-          galleryStatus: { defaultValue: 'ready' },
+          galleryStatus: {
+            defaultValue: 'ready' as SpecimenValues['galleryStatus'],
+          },
         },
       }),
     [],

@@ -148,11 +148,12 @@ export function RangeSlider({
       <SliderTrack className="picodash-dashlist-range-slider-track">
         <SliderThumb
           index={0}
+          data-picodash-dashlist-range-slider-thumb
           aria-label="Start"
           isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
           aria-errormessage={props['aria-errormessage']}
         />
-        <SliderThumb index={1} aria-label="End" />
+        <SliderThumb index={1} data-picodash-dashlist-range-slider-thumb aria-label="End" />
       </SliderTrack>
     </AriaSlider>
   )

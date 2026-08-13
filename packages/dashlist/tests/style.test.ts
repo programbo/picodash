@@ -72,8 +72,30 @@ describe('DashList stylesheet contract', () => {
     )
     expect(css).not.toContain('@container picodash-dashlist')
     expect(css).toMatch(
-      /:is\(\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\)\[data-picodash-dashlist-compact\][\s\S]*\.picodash-dashlist-segmented\s*\[role='radio'\]\s*\{[^}]*flex:\s*1\s+1\s+auto;/s,
+      /:is\(\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\)\[data-picodash-dashlist-compact\][\s\S]*\.picodash-dashlist-segmented\s*\[data-picodash-dashlist-segment\]\s*\{[^}]*flex:\s*1\s+1\s+auto;/s,
     )
+  })
+
+  it('targets the rendered React Aria roots and state attributes', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    expect(css).toMatch(
+      /\.picodash-dashlist-slider\s+\[data-picodash-dashlist-slider-thumb\]\s*\{[^}]*block-size:\s*var\(--picodash-control-height-md\);[^}]*inline-size:\s*var\(--picodash-control-height-md\);/s,
+    )
+    expect(css).toMatch(
+      /\.picodash-dashlist-range-slider\s+\[data-picodash-dashlist-range-slider-thumb\]\s*\{/s,
+    )
+    expect(css).toMatch(
+      /\.picodash-dashlist-segmented\s+\[data-picodash-dashlist-segment\]\[data-selected\]\s*\{/s,
+    )
+    expect(css).toMatch(
+      /\.picodash-dashlist-segmented\s+\[data-picodash-dashlist-segment\]\[data-focus-visible\]/s,
+    )
+    expect(css).toMatch(
+      /@media\s*\(pointer:\s*coarse\)[\s\S]*\.picodash-dashlist-slider\s+\[data-picodash-dashlist-slider-thumb\],[\s\S]*min-inline-size:\s*44px;[\s\S]*min-block-size:\s*44px;/s,
+    )
+    expect(css).not.toMatch(/\.picodash-dashlist-slider\s+\[role='slider'\]/)
+    expect(css).not.toMatch(/\.picodash-dashlist-segmented\s+\[role='radio'\]/)
+    expect(css).not.toMatch(/\.picodash-dashlist-segmented\s+\[aria-checked=/)
   })
 
   it('gives native List controls 44 pixel coarse-pointer tracks and hit targets', async () => {

@@ -12,6 +12,7 @@ import {
   Meter,
   ProgressBar,
   RangeSlider,
+  Slider,
   Status,
   TimeField,
 } from '../src/ui.js'
@@ -36,6 +37,33 @@ function render(element: ReactElement): DomTestRenderer {
 }
 
 describe('value controls', () => {
+  it('marks range slider thumbs on the rendered React Aria roots', () => {
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement(Slider, {
+          value: 2,
+          onChange: () => undefined,
+          'aria-label': 'Single',
+        }),
+        createElement(RangeSlider, {
+          value: { start: 2, end: 8 },
+          onChange: () => undefined,
+          'aria-label': 'Range',
+        }),
+      ),
+    )
+    const sliderThumb = view.root.element.querySelector('[data-picodash-dashlist-slider-thumb]')
+    expect(sliderThumb).not.toBeNull()
+    expect(sliderThumb?.classList.contains('react-aria-SliderThumb')).toBe(true)
+    const thumbs = view.root.element.querySelectorAll('[data-picodash-dashlist-range-slider-thumb]')
+    expect(thumbs).toHaveLength(2)
+    for (const thumb of thumbs)
+      expect(thumb.classList.contains('react-aria-SliderThumb')).toBe(true)
+    act(() => view.unmount())
+  })
+
   it('forwards declared ids to value controls and class names to public roots', () => {
     const controls: ReactElement[] = [
       createElement(RangeSlider, {

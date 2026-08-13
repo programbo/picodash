@@ -335,6 +335,56 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     expect(coarseReorderBounds.width).toBeGreaterThanOrEqual(44)
     expect(coarseReorderBounds.height).toBeGreaterThanOrEqual(44)
 
+    for (const control of [
+      coarsePage
+        .locator('[data-picodash-dashlet="style-lab-slider"]')
+        .locator('[data-picodash-dashlist-slider-thumb]'),
+      coarsePage
+        .locator('[data-picodash-dashlet="style-lab-range"]')
+        .locator('[data-picodash-dashlist-range-slider-thumb]')
+        .first(),
+    ]) {
+      await control.scrollIntoViewIfNeeded()
+      const bounds = await control.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        return { width: rect.width, height: rect.height }
+      })
+      expect(bounds.width).toBeGreaterThanOrEqual(44)
+      expect(bounds.height).toBeGreaterThanOrEqual(44)
+    }
+
+    const segmentedDashlet = coarsePage.locator('[data-picodash-dashlet="style-lab-segmented"]')
+    const selectedSegment = segmentedDashlet.locator(
+      '[data-picodash-dashlist-segment][data-selected]',
+    )
+    const unselectedSegment = segmentedDashlet
+      .locator('[data-picodash-dashlist-segment]:not([data-selected])')
+      .first()
+    await selectedSegment.scrollIntoViewIfNeeded()
+    const segmentedPresentation = await selectedSegment.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const style = getComputedStyle(element)
+      return {
+        width: rect.width,
+        height: rect.height,
+        backgroundColor: style.backgroundColor,
+        borderColor: style.borderColor,
+      }
+    })
+    const unselectedSegmentPresentation = await unselectedSegment.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        backgroundColor: style.backgroundColor,
+        borderColor: style.borderColor,
+      }
+    })
+    expect(segmentedPresentation.width).toBeGreaterThanOrEqual(44)
+    expect(segmentedPresentation.height).toBeGreaterThanOrEqual(44)
+    expect(segmentedPresentation.backgroundColor).not.toBe(
+      unselectedSegmentPresentation.backgroundColor,
+    )
+    expect(segmentedPresentation.borderColor).not.toBe(unselectedSegmentPresentation.borderColor)
+
     const multiSelectDashlet = coarsePage.locator(
       '[data-picodash-dashlet="style-lab-multi-select"]',
     )

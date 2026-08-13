@@ -31,8 +31,10 @@ type FieldValue<F> =
       ? Values[Key]
       : never
     : never
-type FieldProps<F extends AnyField, Value> =
-  FieldValue<F> extends Value ? { readonly field: F } : { readonly field: never }
+type FieldProps<F extends AnyField, Value> = {
+  readonly field: F &
+    (FieldValue<F> extends Value ? unknown : Value extends FieldValue<F> ? unknown : never)
+}
 type Shell = Omit<
   DashletProps<any, any, 'input'>,
   'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef'
@@ -144,9 +146,9 @@ function validateChoices<T extends string | number>(options: readonly SelectOpti
 export type TextDashletProps<F extends AnyField = AnyField> = Shell &
   FieldProps<F, string> &
   Pick<TextFieldProps, 'multiline' | 'minRows' | 'placeholder'>
-export const TextDashlet = forwardRef<HTMLDivElement, TextDashletProps>(function TextDashlet(
-  { field, multiline, minRows, placeholder, ...props },
-  ref,
+function TextDashletInner<F extends AnyField = AnyField>(
+  { field, multiline, minRows, placeholder, ...props }: TextDashletProps<F>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
   if (minRows !== undefined && (!multiline || !Number.isInteger(minRows) || minRows <= 0))
     throw new TypeError('minRows must be a positive integer when multiline is true.')
@@ -173,14 +175,17 @@ export const TextDashlet = forwardRef<HTMLDivElement, TextDashletProps>(function
       }}
     </Dashlet>
   )
-})
+}
+export const TextDashlet = forwardRef(TextDashletInner) as <F extends AnyField>(
+  props: TextDashletProps<F> & RefAttributes<HTMLDivElement>,
+) => ReactElement | null
 
 export type NumberDashletProps<F extends AnyField = AnyField> = Shell &
   FieldProps<F, number> &
   Pick<NumberFieldProps, 'min' | 'max' | 'step' | 'placeholder' | 'formatOptions'>
-export const NumberDashlet = forwardRef<HTMLDivElement, NumberDashletProps>(function NumberDashlet(
-  { field, min, max, step, placeholder, formatOptions, ...props },
-  ref,
+function NumberDashletInner<F extends AnyField = AnyField>(
+  { field, min, max, step, placeholder, formatOptions, ...props }: NumberDashletProps<F>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateBounds(min, max)
   validateStep(step)
@@ -235,16 +240,28 @@ export const NumberDashlet = forwardRef<HTMLDivElement, NumberDashletProps>(func
       }}
     </Dashlet>
   )
-})
+}
+export const NumberDashlet = forwardRef(NumberDashletInner) as <F extends AnyField>(
+  props: NumberDashletProps<F> & RefAttributes<HTMLDivElement>,
+) => ReactElement | null
 
 export type SliderDashletProps<F extends AnyField = AnyField> = Shell &
   FieldProps<F, number> &
   Pick<SliderProps, 'min' | 'max' | 'step' | 'marks' | 'formatOptions'> & {
     readonly formatValue?: (canonical: number) => ReactNode
   }
-export const SliderDashlet = forwardRef<HTMLDivElement, SliderDashletProps>(function SliderDashlet(
-  { field, min = 0, max = 100, step = 1, marks, formatValue, formatOptions, ...props },
-  ref,
+function SliderDashletInner<F extends AnyField = AnyField>(
+  {
+    field,
+    min = 0,
+    max = 100,
+    step = 1,
+    marks,
+    formatValue,
+    formatOptions,
+    ...props
+  }: SliderDashletProps<F>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateBounds(min, max)
   validateStep(step)
@@ -302,12 +319,15 @@ export const SliderDashlet = forwardRef<HTMLDivElement, SliderDashletProps>(func
       }}
     </Dashlet>
   )
-})
+}
+export const SliderDashlet = forwardRef(SliderDashletInner) as <F extends AnyField>(
+  props: SliderDashletProps<F> & RefAttributes<HTMLDivElement>,
+) => ReactElement | null
 
 export type SwitchDashletProps<F extends AnyField = AnyField> = Shell & FieldProps<F, boolean>
-export const SwitchDashlet = forwardRef<HTMLDivElement, SwitchDashletProps>(function SwitchDashlet(
-  { field, ...props },
-  ref,
+function SwitchDashletInner<F extends AnyField = AnyField>(
+  { field, ...props }: SwitchDashletProps<F>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
   return (
     <Dashlet {...props} ref={ref} field={field}>
@@ -328,7 +348,10 @@ export const SwitchDashlet = forwardRef<HTMLDivElement, SwitchDashletProps>(func
       }}
     </Dashlet>
   )
-})
+}
+export const SwitchDashlet = forwardRef(SwitchDashletInner) as <F extends AnyField>(
+  props: SwitchDashletProps<F> & RefAttributes<HTMLDivElement>,
+) => ReactElement | null
 
 type ChoiceShell<T extends string | number> = Shell & {
   readonly options: readonly SelectOption<T>[]
@@ -382,7 +405,7 @@ function SelectDashletInner<T extends string | number, F extends AnyField = AnyF
 }
 export const SelectDashlet = forwardRef(SelectDashletInner) as <
   T extends string | number,
-  F extends AnyField = AnyField,
+  F extends AnyField,
 >(
   props: SelectDashletProps<T, F> & RefAttributes<HTMLDivElement>,
 ) => ReactElement | null
@@ -435,7 +458,7 @@ function SegmentedDashletInner<T extends string | number, F extends AnyField = A
 }
 export const SegmentedDashlet = forwardRef(SegmentedDashletInner) as <
   T extends string | number,
-  F extends AnyField = AnyField,
+  F extends AnyField,
 >(
   props: SegmentedDashletProps<T, F> & RefAttributes<HTMLDivElement>,
 ) => ReactElement | null
@@ -447,28 +470,32 @@ export type DisplayDashletProps<F extends AnyField = AnyField> = Omit<
   FieldProps<F, PicodashJsonValue> & {
     readonly formatValue?: (value: PicodashJsonValue) => ReactNode
   }
-export const DisplayDashlet = forwardRef<HTMLDivElement, DisplayDashletProps>(
-  function DisplayDashlet({ field, formatValue, ...props }, ref) {
-    return (
-      <Dashlet {...props} ref={ref} field={field} mode="display">
-        {(context: any) => {
-          const value = context.binding.value as PicodashJsonValue
-          return (
-            <Display
-              id={context.binding.controlId}
-              value={value}
-              renderedValue={formatValue ? formatValue(value) : undefined}
-              isFormatted={Boolean(formatValue)}
-              aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, false, context.binding)}
-              {...bindingAria(context.binding)}
-            />
-          )
-        }}
-      </Dashlet>
-    )
-  },
-)
+function DisplayDashletInner<F extends AnyField = AnyField>(
+  { field, formatValue, ...props }: DisplayDashletProps<F>,
+  ref: ForwardedRef<HTMLDivElement>,
+) {
+  return (
+    <Dashlet {...props} ref={ref} field={field} mode="display">
+      {(context: any) => {
+        const value = context.binding.value as PicodashJsonValue
+        return (
+          <Display
+            id={context.binding.controlId}
+            value={value}
+            renderedValue={formatValue ? formatValue(value) : undefined}
+            isFormatted={Boolean(formatValue)}
+            aria-labelledby={context.labelId}
+            aria-describedby={describedBy(context, false, context.binding)}
+            {...bindingAria(context.binding)}
+          />
+        )
+      }}
+    </Dashlet>
+  )
+}
+export const DisplayDashlet = forwardRef(DisplayDashletInner) as <F extends AnyField>(
+  props: DisplayDashletProps<F> & RefAttributes<HTMLDivElement>,
+) => ReactElement | null
 
 export {
   ColorDashlet,

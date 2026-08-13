@@ -363,7 +363,11 @@ declare const fieldBrand: unique symbol
 /** A root-owned nominal field handle. The brand is intentionally not exported. */
 export type PicodashField<Values extends object, Key extends keyof Values & string> = {
   readonly key: Key
-  readonly [fieldBrand]: 'PicodashField'
+  /** Type-only payload keeps field value and key inference without adding runtime properties. */
+  readonly [fieldBrand]: {
+    readonly values: Values
+    readonly key: Key
+  }
 }
 
 export type PicodashFields<Fields extends Record<string, FieldLike>> = {

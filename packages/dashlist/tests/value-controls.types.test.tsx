@@ -15,6 +15,7 @@ import {
   ProgressDashlet,
   RangeDashlet,
   StatusDashlet,
+  TimeDashlet,
   type DateDashletProps,
   type DateRangeDashletProps,
   type DateTimeDashletProps,
@@ -77,6 +78,35 @@ describe('@picodash/dashlist value control types', () => {
       label="Meter"
       formatValue={(value) => value}
     />
+
+    // @ts-expect-error RangeDashlet rejects a number field at a direct JSX call site.
+    ;<RangeDashlet field={nexus.fields.progress} id="range-mismatch" label="Mismatch" />
+    // @ts-expect-error MeterDashlet rejects a status field at a direct JSX call site.
+    ;<MeterDashlet field={nexus.fields.status} id="meter-mismatch" label="Mismatch" />
+    // @ts-expect-error ProgressDashlet rejects a date field at a direct JSX call site.
+    ;<ProgressDashlet field={nexus.fields.date} id="progress-mismatch" label="Mismatch" />
+    ;<StatusDashlet
+      // @ts-expect-error incompatible field value.
+      field={nexus.fields.progress}
+      id="status-mismatch"
+      label="Mismatch"
+      options={[{ value: 'ready', label: 'Ready', tone: 'success' }]}
+    />
+    // @ts-expect-error DateDashlet rejects a number field at a direct JSX call site.
+    ;<DateDashlet field={nexus.fields.progress} id="date-mismatch" label="Mismatch" />
+    // @ts-expect-error TimeDashlet rejects a number field at a direct JSX call site.
+    ;<TimeDashlet field={nexus.fields.progress} id="time-mismatch" label="Mismatch" />
+    ;<DateTimeDashlet
+      // @ts-expect-error incompatible field value.
+      field={nexus.fields.progress}
+      id="date-time-mismatch"
+      label="Mismatch"
+      timeZone="Australia/Perth"
+    />
+    // @ts-expect-error DateRangeDashlet rejects a date field at a direct JSX call site.
+    ;<DateRangeDashlet field={nexus.fields.date} id="date-range-mismatch" label="Mismatch" />
+    // @ts-expect-error ColorDashlet rejects a number field at a direct JSX call site.
+    ;<ColorDashlet field={nexus.fields.progress} id="color-mismatch" label="Mismatch" />
 
     const rangeProps: RangeDashletProps<typeof nexus.fields.range> = {
       field: nexus.fields.range,
