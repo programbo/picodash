@@ -7,8 +7,9 @@ does not register components or participate in application runtime.
 ## Status
 
 > Contract: Accepted
-> Implementation: Planned
-> Evidence: The schema, ownership, publication paths, exclusions, and artifact checks are accepted.
+> Implementation: Partial
+> Evidence: `@picodash/dashlist/catalog` ships with package-artifact and conformance checks;
+> DashPanel publication and Picodash aggregation remain planned.
 
 ## Audience and purpose
 
