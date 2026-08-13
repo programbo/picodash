@@ -98,15 +98,41 @@ function validateStep(step: number | undefined): void {
   if (step !== undefined && (!Number.isFinite(step) || step <= 0))
     throw new TypeError('step must be a positive finite number.')
 }
+
+function onStep(value: number, min: number, step: number): boolean {
+  const quotient = (value - min) / step
+  if (!Number.isFinite(quotient)) return false
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(quotient)) * 100
+  return Math.abs(quotient - Math.round(quotient)) <= tolerance
+}
+
+function numberCompatible(
+  value: number,
+  min: number | undefined,
+  max: number | undefined,
+  step: number | undefined,
+): boolean {
+  if (!Number.isFinite(value)) return false
+  if (min !== undefined && value < min) return false
+  if (max !== undefined && value > max) return false
+  // React Aria anchors an explicitly stepped NumberField to zero when no min is given.
+  return step === undefined || onStep(value, min ?? 0, step)
+}
 function validateChoices<T extends string | number>(options: readonly SelectOption<T>[]): void {
   const seen = new Set<string>()
   for (const option of options) {
-    const value = typeof option === 'object' ? option.value : option
+    const value = typeof option === 'object' && option !== null ? option.value : option
+    if (
+      (typeof value !== 'string' && typeof value !== 'number') ||
+      (typeof value === 'number' && !Number.isFinite(value))
+    )
+      throw new TypeError('choice values must be finite strings or numbers.')
     const key = `${typeof value}:${String(value)}`
     if (seen.has(key)) throw new TypeError('options must contain unique values.')
     seen.add(key)
     if (
       typeof option === 'object' &&
+      option !== null &&
       option.label !== undefined &&
       typeof option.label !== 'string' &&
       !option.textValue
@@ -164,8 +190,11 @@ export const NumberDashlet = forwardRef<HTMLDivElement, NumberDashletProps>(func
         const binding = context.binding
         const canonical = binding.value as number
         const value = (binding.draftValue ?? canonical) as number
-        const mismatch =
+        const rangeMismatch =
           (min !== undefined && canonical < min) || (max !== undefined && canonical > max)
+        const stepMismatch =
+          !rangeMismatch && step !== undefined && !numberCompatible(canonical, min, max, step)
+        const mismatch = rangeMismatch || stepMismatch
         return (
           <>
             {mismatch ? (
@@ -196,7 +225,9 @@ export const NumberDashlet = forwardRef<HTMLDivElement, NumberDashletProps>(func
             )}
             {mismatch ? (
               <PresentationWarning context={context}>
-                The current value ({String(canonical)}) is outside the configured range.
+                {rangeMismatch
+                  ? `The current value (${String(canonical)}) is outside the configured range.`
+                  : `The current value (${String(canonical)}) is not on the configured number step.`}
               </PresentationWarning>
             ) : null}
           </>
@@ -225,7 +256,9 @@ export const SliderDashlet = forwardRef<HTMLDivElement, SliderDashletProps>(func
         const binding = context.binding
         const canonical = binding.value as number
         const value = (binding.draftValue ?? canonical) as number
-        const mismatch = canonical < min || canonical > max
+        const rangeMismatch = canonical < min || canonical > max
+        const stepMismatch = !rangeMismatch && !numberCompatible(canonical, min, max, step)
+        const mismatch = rangeMismatch || stepMismatch
         return (
           <>
             {mismatch ? (
@@ -259,7 +292,9 @@ export const SliderDashlet = forwardRef<HTMLDivElement, SliderDashletProps>(func
             ) : null}
             {mismatch ? (
               <PresentationWarning context={context}>
-                The current value ({String(canonical)}) is outside the configured range.
+                {rangeMismatch
+                  ? `The current value (${String(canonical)}) is outside the configured range.`
+                  : `The current value (${String(canonical)}) is not on the configured slider step.`}
               </PresentationWarning>
             ) : null}
           </>
@@ -297,12 +332,14 @@ export const SwitchDashlet = forwardRef<HTMLDivElement, SwitchDashletProps>(func
 
 type ChoiceShell<T extends string | number> = Shell & {
   readonly options: readonly SelectOption<T>[]
+}
+type SelectChoiceShell<T extends string | number> = ChoiceShell<T> & {
   readonly placeholder?: string
 }
 export type SelectDashletProps<
   T extends string | number,
   F extends AnyField = AnyField,
-> = ChoiceShell<T> & FieldProps<F, T>
+> = SelectChoiceShell<T> & FieldProps<F, T>
 function SelectDashletInner<T extends string | number, F extends AnyField = AnyField>(
   props: SelectDashletProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
@@ -326,7 +363,7 @@ function SelectDashletInner<T extends string | number, F extends AnyField = AnyF
               onChange={binding.setInput}
               options={options}
               placeholder={placeholder}
-              disabled={context.disabled}
+              disabled={context.disabled || options.length === 0}
               readOnly={context.readOnly}
               aria-labelledby={context.labelId}
               aria-describedby={describedBy(context, !compatible, binding)}
@@ -359,7 +396,10 @@ function SegmentedDashletInner<T extends string | number, F extends AnyField = A
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateChoices(props.options)
-  const { field, options, ...shell } = props
+  const { field, options, ...rawShell } = props
+  const { placeholder: _placeholder, ...shell } = rawShell as typeof rawShell & {
+    readonly placeholder?: string
+  }
   return (
     <Dashlet {...shell} ref={ref} field={field}>
       {(context: any) => {

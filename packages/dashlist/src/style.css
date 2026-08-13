@@ -353,6 +353,8 @@
   .picodash-dashlist-choice,
   .picodash-dashlist-disclosure-button,
   .picodash-dashlist-clear-button,
+  .picodash-dashlist-listbox [role='option'],
+  [data-picodash-dashlist-tag-remove],
   .picodash-dashlist-range-slider [role='slider'],
   .picodash-dashlist-date-field,
   .picodash-dashlist-time-field,

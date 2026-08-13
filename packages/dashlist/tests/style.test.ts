@@ -89,5 +89,8 @@ describe('DashList stylesheet contract', () => {
     )
     expect(css).toContain('> button:not([data-picodash-reorder-handle]),')
     expect(css).toContain('[data-picodash-dashlet-actions] > button,')
+    expect(css).toMatch(
+      /@media\s*\(pointer:\s*coarse\)[\s\S]*\.picodash-dashlist-listbox\s+\[role='option'\],[\s\S]*\[data-picodash-dashlist-tag-remove\],[\s\S]*min-inline-size:\s*44px;[\s\S]*min-block-size:\s*44px;/s,
+    )
   })
 })

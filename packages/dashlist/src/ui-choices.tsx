@@ -339,7 +339,11 @@ export function MultiSelect<T extends ChoiceValue>({
               {parts.find((part) => choiceKey(part.value) === item.key)?.label ??
                 String(item.value)}
               {props.disabled || props.readOnly ? null : (
-                <Button slot="remove" aria-label={`Remove ${String(item.value)}`}>
+                <Button
+                  slot="remove"
+                  aria-label={`Remove ${String(item.value)}`}
+                  data-picodash-dashlist-tag-remove
+                >
                   ×
                 </Button>
               )}

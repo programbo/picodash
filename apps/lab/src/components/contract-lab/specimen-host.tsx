@@ -25,10 +25,6 @@ export function ContractLabSpecimenHost({
     onPrimaryPanelStateChange('expanded')
   }, [onPrimaryPanelStateChange, preset.id, revision])
 
-  useEffect(() => {
-    if (preset.id === 'composition') onDiagnosticCountChange(0)
-  }, [onDiagnosticCountChange, preset.id])
-
   return (
     <section
       ref={boundaryRef}

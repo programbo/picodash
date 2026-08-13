@@ -105,25 +105,118 @@ const catalog = await import(
   `${pathToFileURL(path.join(packageRoot, 'dist/catalog.mjs')).href}?dashlist-catalog-artifact`
 )
 assert.equal(catalog.catalog.schemaVersion, 1)
-assert.equal(catalog.catalog.entries.length, 25)
-assert.equal(Object.isFrozen(catalog.catalog), true)
-assert.equal(Object.isFrozen(catalog.catalog.entries), true)
-assert.equal(Object.isFrozen(catalog.catalog.entries[0]), true)
+const catalogEntries = catalog.catalog.entries
+const stableDashletNames = [
+  'TextDashlet',
+  'NumberDashlet',
+  'SliderDashlet',
+  'SwitchDashlet',
+  'SelectDashlet',
+  'SegmentedDashlet',
+  'DisplayDashlet',
+  'CheckboxDashlet',
+  'RadioGroupDashlet',
+  'ComboboxDashlet',
+  'CheckboxGroupDashlet',
+  'MultiSelectDashlet',
+  'SearchDashlet',
+  'RangeDashlet',
+  'MeterDashlet',
+  'ProgressDashlet',
+  'StatusDashlet',
+  'DateDashlet',
+  'TimeDashlet',
+  'DateTimeDashlet',
+  'DateRangeDashlet',
+  'ColorDashlet',
+]
+const actionNames = [
+  'DashListActionItems',
+  'DashListExpandAllItem',
+  'DashListCollapseAllItem',
+  'DashListResetSubmenu',
+  'DashListResetValuesItem',
+  'DashListResetListItem',
+]
+assert.equal(catalogEntries.length, 31)
+assert.deepEqual(
+  catalogEntries.map((entry) => entry.id),
+  [
+    'dashlist',
+    'dashgroup',
+    'dashlet',
+    ...stableDashletNames.map((name) => `dashlet.${name}`),
+    ...actionNames.map((name) => `action.${name}`),
+  ],
+)
+assert.deepEqual(
+  catalogEntries.map((entry) => entry.exportName),
+  ['DashList', 'DashGroup', 'Dashlet', ...stableDashletNames, ...actionNames],
+)
+assert.equal(new Set(catalogEntries.map((entry) => entry.id)).size, catalogEntries.length)
+for (const entry of catalogEntries) {
+  assert.equal(entry.owner, '@picodash/dashlist')
+  assert.equal(entry.entrypoint, '@picodash/dashlist')
+  assert.equal(entry.exportName in runtime, true, `missing root export: ${entry.exportName}`)
+  for (const parent of [
+    ...entry.composition.allowedParents,
+    ...entry.composition.recommendedParents,
+  ])
+    assert.equal(
+      catalogEntries.some((candidate) => candidate.id === parent),
+      true,
+    )
+}
+const actionEntries = catalogEntries.filter((entry) => entry.kind === 'action-composition')
+assert.deepEqual(
+  actionEntries.map((entry) => entry.exportName),
+  actionNames,
+)
+for (const entry of actionEntries) {
+  assert.deepEqual(entry.field, { cardinality: 'none', valueKinds: [] })
+  assert.deepEqual(entry.composition, { allowedParents: [], recommendedParents: [] })
+  assert.equal(entry.reference, 'docs/reference/dashlist.md#list-behavior-actions')
+}
+assert.equal(
+  catalogEntries.find((entry) => entry.exportName === 'DashListActionItems').accessibleName,
+  'none',
+)
+for (const exportName of [
+  'DashListExpandAllItem',
+  'DashListCollapseAllItem',
+  'DashListResetSubmenu',
+  'DashListResetValuesItem',
+  'DashListResetListItem',
+])
+  assert.equal(
+    catalogEntries.find((entry) => entry.exportName === exportName).accessibleName,
+    'visible-label',
+  )
+assert.equal(
+  catalogEntries.find((entry) => entry.exportName === 'Dashlet').accessibleName,
+  'required',
+)
+const assertDeepFrozen = (value) => {
+  assert.equal(Object.isFrozen(value), true)
+  if (value && typeof value === 'object')
+    for (const child of Object.values(value)) assertDeepFrozen(child)
+}
+assertDeepFrozen(catalog.catalog)
+assert.deepEqual(JSON.parse(JSON.stringify(catalog.catalog)), catalog.catalog)
 assert.deepEqual(catalog.catalog.reexports, [])
 for (const exportName of ['CheckboxGroupDashlet', 'MultiSelectDashlet']) {
-  const entry = catalog.catalog.entries.find((candidate) => candidate.exportName === exportName)
+  const entry = catalogEntries.find((candidate) => candidate.exportName === exportName)
   assert.ok(entry, `missing catalog entry: ${exportName}`)
   assert.equal(entry.field.cardinality, 'one')
   assert.deepEqual(entry.field.valueKinds, ['json'])
 }
-assert.equal(
-  catalog.catalog.entries.filter((entry) => entry.exportName === 'ChartDashlet').length,
-  0,
-)
-assert.equal(
-  catalog.catalog.entries.filter((entry) => entry.exportName === 'SparklineDashlet').length,
-  0,
-)
+assert.equal(catalogEntries.filter((entry) => entry.exportName === 'ChartDashlet').length, 0)
+assert.equal(catalogEntries.filter((entry) => entry.exportName === 'SparklineDashlet').length, 0)
+for (const deferred of ['DashListDocumentItems', 'DashListExportItem', 'DashListImportItem'])
+  assert.equal(
+    catalogEntries.some((entry) => entry.exportName === deferred),
+    false,
+  )
 assert.deepEqual(
   Object.keys(ui).sort(),
   [

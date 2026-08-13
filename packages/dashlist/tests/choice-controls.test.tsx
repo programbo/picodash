@@ -20,6 +20,7 @@ import {
   MultiSelect,
   RadioGroup,
   SearchField,
+  SegmentedControl,
 } from '../src/ui.tsx'
 
 function render(element: ReactElement): DomTestRenderer {
@@ -42,6 +43,12 @@ describe('choice controls', () => {
       createElement(RadioGroup, {
         id: 'choice-radio',
         className: 'choice-radio-hook',
+        value: 'one',
+        onChange: () => undefined,
+        options: ['one', 'two'],
+      }),
+      createElement(SegmentedControl, {
+        id: 'choice-segmented',
         value: 'one',
         onChange: () => undefined,
         options: ['one', 'two'],
@@ -78,6 +85,7 @@ describe('choice controls', () => {
     for (const id of [
       'choice-checkbox',
       'choice-radio',
+      'choice-segmented',
       'choice-combobox',
       'choice-checkbox-group',
       'choice-multi',

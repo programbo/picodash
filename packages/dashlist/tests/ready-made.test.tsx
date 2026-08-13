@@ -175,6 +175,9 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
     )
     expect(selectRef.current?.dataset.picodashDashlet).toBe('choice')
     expect(segmentedRef.current?.dataset.picodashDashlet).toBe('mode')
+    expect(segmentedRef.current?.querySelector('[role="radiogroup"]')?.id).toMatch(
+      /^picodash-dashlet-control-/,
+    )
     expect(view.root.element.querySelector('option[value="string:1"]')).not.toBeNull()
     expect(view.root.element.querySelector('option[value="number:1"]')).not.toBeNull()
     act(() => view.unmount())
@@ -267,6 +270,136 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
     expect(
       view.root.element.querySelector('[data-picodash-dashlist-slider-value]')?.textContent,
     ).toBe('3%')
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('falls back exactly for off-step numeric values without invoking a snapping control', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { number: { defaultValue: 1.3 }, slider: { defaultValue: 42.5 } },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'off-step', nexus },
+        createElement(NumberDashlet, {
+          id: 'number',
+          field: nexus.fields.number,
+          label: 'Number',
+          min: 0,
+          max: 10,
+          step: 0.5,
+        }),
+        createElement(SliderDashlet, {
+          id: 'slider',
+          field: nexus.fields.slider,
+          label: 'Slider',
+        }),
+      ),
+    )
+    expect(view.root.element.querySelector('[data-picodash-dashlet="number"] input')).toBeNull()
+    expect(view.root.element.querySelector('[data-picodash-dashlet="slider"] input')).toBeNull()
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="number"] output')?.textContent,
+    ).toBe('1.3')
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="slider"] output')?.textContent,
+    ).toBe('42.5')
+    expect(
+      view.root.element.querySelectorAll('[data-picodash-dashlet-presentation-warning]'),
+    ).toHaveLength(2)
+    expect(nexus.getState().values).toEqual({ number: 1.3, slider: 42.5 })
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('rejects non-finite numeric choice options for legacy choice Dashlets', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { select: { defaultValue: 1 }, segmented: { defaultValue: 1 } },
+    })
+    expect(() =>
+      render(
+        createElement(
+          DashList,
+          { id: 'invalid-select-choice', nexus },
+          createElement(SelectDashlet, {
+            id: 'select',
+            field: nexus.fields.select,
+            label: 'Select',
+            options: [Number.NaN],
+          }),
+        ),
+      ),
+    ).toThrow('choice values must be finite strings or numbers.')
+    expect(() =>
+      render(
+        createElement(
+          DashList,
+          { id: 'invalid-segmented-choice', nexus },
+          createElement(SegmentedDashlet, {
+            id: 'segmented',
+            field: nexus.fields.segmented,
+            label: 'Segmented',
+            options: [Number.POSITIVE_INFINITY],
+          }),
+        ),
+      ),
+    ).toThrow('choice values must be finite strings or numbers.')
+    expect(nexus.getState().values).toEqual({ select: 1, segmented: 1 })
+    nexus.destroy()
+  })
+
+  it('disables an empty SelectDashlet without writing its field', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { choice: { defaultValue: 'one' } },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'empty-select', nexus },
+        createElement(SelectDashlet, {
+          id: 'choice',
+          field: nexus.fields.choice,
+          label: 'Choice',
+          options: [],
+        }),
+      ),
+    )
+    const trigger = view.root.element.querySelector(
+      '[data-picodash-dashlet="choice"] .picodash-dashlist-control',
+    ) as HTMLButtonElement | null
+    expect(trigger).not.toBeNull()
+    expect(trigger?.disabled).toBe(true)
+    if (trigger) fireEvent.click(trigger)
+    expect(nexus.getState().values).toEqual({ choice: 'one' })
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('does not leak Select-only placeholder props through SegmentedDashlet', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { mode: { defaultValue: 'one' } },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'segmented-no-placeholder', nexus },
+        createElement(SegmentedDashlet, {
+          id: 'mode',
+          field: nexus.fields.mode,
+          label: 'Mode',
+          options: ['one', 'two'],
+          placeholder: 'Should not reach the DOM',
+        } as never),
+      ),
+    )
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="mode"] [placeholder]'),
+    ).toBeNull()
     act(() => view.unmount())
     nexus.destroy()
   })

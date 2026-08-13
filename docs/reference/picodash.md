@@ -215,20 +215,19 @@ workflow, but a declarative relationship alone never grants that broader target 
 ## Ready-made Dashlets and catalogs
 
 > Contract: Accepted ownership, initial inventory, and export paths
-> Implementation: Planned
+> Implementation: Partial
 
 DashList owns generic Nexus-bound ready-made Dashlets and their catalog metadata. Picodash may
 reexport stable DashList components and aggregate package-owned catalogs, but it does not maintain
-facade copies of their implementations or entries. DashPanel owns no Dashlets.
+facade copies of their implementations or entries. DashPanel owns no Dashlets. The 22 stable
+DashList-owned root reexports are implemented with identity-preserving facade exports; catalog
+aggregation remains planned.
 
 Picodash owns no ready-made Dashlet or additional component family at initial launch. A future
 component belongs to Picodash only when its behavior necessarily coordinates both DashPanel and
 DashList. Field binding and List presentation remain DashList concerns; product-neutral presentation
 remains UI-owned. A qualifying Picodash component is documented as an integrated composition rather
 than a foundational Dashlet.
-
-The prototype currently sources ready-made controls and catalog metadata from DashPanel. That
-ownership is non-conforming and must not constrain the target migration.
 
 Picodash reexports the exact stable DashList-owned inventory from its root: `TextDashlet`,
 `NumberDashlet`, `SliderDashlet`, `SwitchDashlet`, `SelectDashlet`, `SegmentedDashlet`,

@@ -42,6 +42,7 @@ const entrypoint = '@picodash/dashlist'
 const listParent = 'dashlist'
 const groupParent = 'dashgroup'
 const readyMadeReference = 'docs/reference/dashlist.md#stable-ready-made-inventory'
+const actionReference = 'docs/reference/dashlist.md#list-behavior-actions'
 
 const freeze = <T>(value: T): T => {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -166,7 +167,7 @@ const entries: PicodashCatalogEntry[] = [
       cardinality: 'many',
       valueKinds: ['boolean', 'number', 'string', 'string-or-number', 'json'],
     },
-    'inherited',
+    'required',
     [listParent, groupParent],
     'docs/reference/dashlist.md#dashlet-model',
   ),
@@ -181,6 +182,72 @@ const entries: PicodashCatalogEntry[] = [
       'visible-label',
       [listParent, groupParent],
     ),
+  ),
+  makeEntry(
+    'action.DashListActionItems',
+    'DashListActionItems',
+    'action-composition',
+    'Composes available DashList actions into an existing action menu.',
+    ['compose'],
+    { cardinality: 'none', valueKinds: [] },
+    'none',
+    [],
+    actionReference,
+  ),
+  makeEntry(
+    'action.DashListExpandAllItem',
+    'DashListExpandAllItem',
+    'action-composition',
+    'Adds the fixed “Expand all” action to an action menu.',
+    ['compose', 'collapse'],
+    { cardinality: 'none', valueKinds: [] },
+    'visible-label',
+    [],
+    actionReference,
+  ),
+  makeEntry(
+    'action.DashListCollapseAllItem',
+    'DashListCollapseAllItem',
+    'action-composition',
+    'Adds the fixed “Collapse all” action to an action menu.',
+    ['compose', 'collapse'],
+    { cardinality: 'none', valueKinds: [] },
+    'visible-label',
+    [],
+    actionReference,
+  ),
+  makeEntry(
+    'action.DashListResetSubmenu',
+    'DashListResetSubmenu',
+    'action-composition',
+    'Adds the fixed “Reset” submenu for DashList reset actions.',
+    ['compose', 'reset'],
+    { cardinality: 'none', valueKinds: [] },
+    'visible-label',
+    [],
+    actionReference,
+  ),
+  makeEntry(
+    'action.DashListResetValuesItem',
+    'DashListResetValuesItem',
+    'action-composition',
+    'Adds the fixed “Reset values…” action to an action menu.',
+    ['compose', 'reset'],
+    { cardinality: 'none', valueKinds: [] },
+    'visible-label',
+    [],
+    actionReference,
+  ),
+  makeEntry(
+    'action.DashListResetListItem',
+    'DashListResetListItem',
+    'action-composition',
+    'Adds the fixed “Reset list…” action to an action menu.',
+    ['compose', 'reset'],
+    { cardinality: 'none', valueKinds: [] },
+    'visible-label',
+    [],
+    actionReference,
   ),
 ]
 

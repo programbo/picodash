@@ -124,6 +124,9 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   await expect(page.locator('[data-picodash-dashlet^="style-lab-"]')).toHaveCount(22)
   await expect(basicsPanel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
   await expect(choicesPanel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
+  await expect(
+    page.locator('[data-contract-lab-status] dt', { hasText: 'Diagnostics' }).locator('..'),
+  ).toContainText('1')
 
   const basicsList = basicsPanel.getByRole('list', { name: 'Basics and readout Dashlets' })
   const choicesList = choicesPanel.getByRole('list', { name: 'Choices and temporal Dashlets' })
@@ -158,6 +161,22 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
     await expect(gallery.getByRole('group', { name: group, exact: true })).toBeVisible()
   }
   await expect(page.getByRole('img', { name: 'Request trend' })).toBeVisible()
+
+  const collapseBasics = basicsPanel.getByRole('button', {
+    name: 'Collapse panel Basics & readout',
+  })
+  await collapseBasics.focus()
+  await collapseBasics.press('Enter')
+  const expandBasics = basicsPanel.getByRole('button', {
+    name: 'Expand panel Basics & readout',
+  })
+  await expect(expandBasics).toBeFocused()
+  await expect(expandBasics).toHaveAttribute('aria-expanded', 'false')
+  await expect(basicsList).toBeHidden()
+  await expandBasics.press('Enter')
+  await expect(collapseBasics).toBeFocused()
+  await expect(collapseBasics).toHaveAttribute('aria-expanded', 'true')
+  await expect(basicsList).toBeVisible()
 })
 
 test('opens, cancels, and restores focus for the landed shared AlertDialog', async ({ page }) => {
@@ -315,6 +334,35 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     })
     expect(coarseReorderBounds.width).toBeGreaterThanOrEqual(44)
     expect(coarseReorderBounds.height).toBeGreaterThanOrEqual(44)
+
+    const multiSelectDashlet = coarsePage.locator(
+      '[data-picodash-dashlet="style-lab-multi-select"]',
+    )
+    const removeTag = multiSelectDashlet.locator('[data-picodash-dashlist-tag-remove]').first()
+    await removeTag.scrollIntoViewIfNeeded()
+    const removeTagBounds = await removeTag.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return { width: rect.width, height: rect.height }
+    })
+    expect(removeTagBounds.width).toBeGreaterThanOrEqual(44)
+    expect(removeTagBounds.height).toBeGreaterThanOrEqual(44)
+
+    const multiSelectInput = multiSelectDashlet.getByRole('combobox', {
+      name: 'MultiSelectDashlet',
+    })
+    await multiSelectInput.focus()
+    await multiSelectInput.press('ArrowDown')
+    const popupOption = coarsePage.locator(".picodash-dashlist-listbox [role='option']").first()
+    await expect(popupOption).toBeVisible()
+    const popupOptionBounds = await popupOption.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return { width: rect.width, height: rect.height }
+    })
+    expect(popupOptionBounds.width).toBeGreaterThanOrEqual(44)
+    expect(popupOptionBounds.height).toBeGreaterThanOrEqual(44)
+    await multiSelectInput.press('Escape')
+    await expect(popupOption).toHaveCount(0)
+
     await coarsePage.getByRole('button', { name: /^Themes:/ }).press('Enter')
     const coarseTrigger = coarsePage.getByRole('button', { name: 'Open shared AlertDialog' })
     const coarse = await coarseTrigger.evaluate((element) => {

@@ -19,6 +19,8 @@ import {
   DashList,
   DateDashlet,
   DateTimeDashlet,
+  MeterDashlet,
+  ProgressDashlet,
   RangeDashlet,
   StatusDashlet,
   TimeDashlet,
@@ -414,6 +416,105 @@ describe('value controls', () => {
       sameInstant: '2026-08-13T10:00:00+00:00',
       outOfBounds: '2026-08-13T10:00:01+00:00',
       invalidTime: '25:99:00',
+    })
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('uses exact structured and scalar fallbacks without calling formatters', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: {
+        range: { defaultValue: { start: -2, end: 4 } },
+        meter: { defaultValue: 120 },
+        progress: { defaultValue: -1 },
+      },
+    })
+    const throwingFormatter = () => {
+      throw new Error('formatter must not run for a mismatch')
+    }
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'exact-fallbacks', nexus },
+        createElement(RangeDashlet, {
+          id: 'range',
+          field: nexus.fields.range,
+          label: 'Range',
+          min: 0,
+          max: 10,
+          formatValue: throwingFormatter,
+        }),
+        createElement(MeterDashlet, {
+          id: 'meter',
+          field: nexus.fields.meter,
+          label: 'Meter',
+          max: 100,
+          formatValue: throwingFormatter,
+        }),
+        createElement(ProgressDashlet, {
+          id: 'progress',
+          field: nexus.fields.progress,
+          label: 'Progress',
+          max: 100,
+          formatValue: throwingFormatter,
+        }),
+      ),
+    )
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlist-range-value]')?.textContent,
+    ).toBe('{"start":-2,"end":4}')
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlist-meter-value]')?.textContent,
+    ).toBe('120')
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlist-progress-value]')?.textContent,
+    ).toBe('-1')
+    expect(nexus.getState().values).toEqual({
+      range: { start: -2, end: 4 },
+      meter: 120,
+      progress: -1,
+    })
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('treats omitted time granularity as minute precision', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: {
+        time: { defaultValue: '12:30:01' },
+        dateTime: { defaultValue: '2026-08-13T12:30:00.001+08:00' },
+      },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'implicit-minute', nexus },
+        createElement(TimeDashlet, {
+          id: 'time',
+          field: nexus.fields.time,
+          label: 'Time',
+        }),
+        createElement(DateTimeDashlet, {
+          id: 'date-time',
+          field: nexus.fields.dateTime,
+          label: 'Date time',
+          timeZone: 'Australia/Perth',
+        }),
+      ),
+    )
+    expect(view.root.element.querySelector('[data-picodash-dashlet="time"] input')).toBeNull()
+    expect(view.root.element.querySelector('[data-picodash-dashlet="date-time"] input')).toBeNull()
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="time"] output')?.textContent,
+    ).toBe('12:30:01')
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="date-time"] output')?.textContent,
+    ).toBe('2026-08-13T12:30:00.001+08:00')
+    expect(nexus.getState().values).toEqual({
+      time: '12:30:01',
+      dateTime: '2026-08-13T12:30:00.001+08:00',
     })
     act(() => view.unmount())
     nexus.destroy()

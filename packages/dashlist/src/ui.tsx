@@ -323,6 +323,7 @@ export function SegmentedControl<T extends string | number>({
 }: SegmentedControlProps<T>) {
   return (
     <RadioGroup
+      id={props.id}
       className={props.className ?? 'picodash-dashlist-segmented'}
       value={value === undefined ? undefined : choiceKey(value)}
       onChange={(next) => {

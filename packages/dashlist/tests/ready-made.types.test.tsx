@@ -4,6 +4,7 @@ import { createPicodashNexus } from '@picodash/nexus'
 import {
   DisplayDashlet,
   NumberDashlet,
+  SegmentedDashlet,
   SelectDashlet,
   SliderDashlet,
   TextDashlet,
@@ -28,6 +29,14 @@ describe('@picodash/dashlist ready-made control types', () => {
       field: nexus.fields.choice,
       label: 'Choice',
       options: ['a', 'b'],
+    })
+    void createElement(SegmentedDashlet, {
+      id: 'mode',
+      field: nexus.fields.choice,
+      label: 'Mode',
+      options: ['a', 'b'],
+      // @ts-expect-error SegmentedDashlet does not accept Select-only placeholder props.
+      placeholder: 'Choose',
     })
     void createElement(DisplayDashlet, {
       id: 'display',

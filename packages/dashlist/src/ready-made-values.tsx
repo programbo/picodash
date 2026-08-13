@@ -118,7 +118,9 @@ function validateStep(step: number | undefined): void {
 
 function onStep(value: number, min: number, step: number): boolean {
   const quotient = (value - min) / step
-  return Math.abs(quotient - Math.round(quotient)) <= Number.EPSILON * 100
+  if (!Number.isFinite(quotient)) return false
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(quotient)) * 100
+  return Math.abs(quotient - Math.round(quotient)) <= tolerance
 }
 
 function rangeCompatible(value: NumberRangeValue, min: number, max: number, step: number): boolean {
@@ -141,11 +143,11 @@ function temporalPrecisionCompatible(
   value: { readonly minute: number; readonly second: number; readonly millisecond: number },
   granularity: 'hour' | 'minute' | 'second' | undefined,
 ): boolean {
-  if (granularity === 'hour')
+  const effectiveGranularity = granularity ?? 'minute'
+  if (effectiveGranularity === 'hour')
     return value.minute === 0 && value.second === 0 && value.millisecond === 0
-  if (granularity === 'minute') return value.second === 0 && value.millisecond === 0
-  if (granularity === 'second') return value.millisecond === 0
-  return true
+  if (effectiveGranularity === 'minute') return value.second === 0 && value.millisecond === 0
+  return value.millisecond === 0
 }
 
 export type RangeDashletProps<F extends AnyField = AnyField> = Shell &
@@ -176,7 +178,7 @@ export const RangeDashlet = forwardRef<HTMLDivElement, RangeDashletProps>(functi
                 aria-labelledby={context.labelId}
                 aria-describedby={describedBy(context, true, binding)}
               >
-                {formatValue ? formatValue(canonical) : rangeText(canonical)}
+                {JSON.stringify(canonical)}
               </output>
             ) : (
               <RangeSlider
@@ -194,6 +196,9 @@ export const RangeDashlet = forwardRef<HTMLDivElement, RangeDashletProps>(functi
                 {...bindingAria(binding)}
               />
             )}
+            {formatValue && !mismatch ? (
+              <output data-picodash-dashlist-range-value>{formatValue(canonical)}</output>
+            ) : null}
             {mismatch ? (
               <PresentationWarning context={context}>
                 The current range ({rangeText(canonical)}) is outside the configured range.
@@ -235,7 +240,7 @@ export const MeterDashlet = forwardRef<HTMLDivElement, MeterDashletProps>(functi
                 aria-labelledby={context.labelId}
                 aria-describedby={describedBy(context, true, binding)}
               >
-                {formatValue ? formatValue(canonical) : String(canonical)}
+                {String(canonical)}
               </output>
             ) : (
               <Meter
@@ -292,7 +297,7 @@ export const ProgressDashlet = forwardRef<HTMLDivElement, ProgressDashletProps>(
                   aria-labelledby={context.labelId}
                   aria-describedby={describedBy(context, true, binding)}
                 >
-                  {formatValue ? formatValue(canonical) : String(canonical)}
+                  {String(canonical)}
                 </output>
               ) : (
                 <ProgressBar
