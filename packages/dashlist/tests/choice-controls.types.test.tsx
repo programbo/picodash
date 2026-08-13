@@ -1,6 +1,6 @@
 import { createElement } from 'react'
 import { describe, it } from 'vite-plus/test'
-import { createPicodashNexus } from '@picodash/nexus'
+import { createPicodashNexus, type PicodashField } from '@picodash/nexus'
 import {
   CheckboxDashlet,
   CheckboxGroupDashlet,
@@ -33,6 +33,17 @@ const nexus = createPicodashNexus({
     search: { defaultValue: '' },
   },
 })
+type CompatibilityValues = {
+  readonly booleanOrString: boolean | string
+  readonly choiceUnion: string | number
+  readonly mixedArray: readonly (string | number)[]
+}
+const booleanOrStringField = null as unknown as PicodashField<
+  CompatibilityValues,
+  'booleanOrString'
+>
+const choiceUnionField = null as unknown as PicodashField<CompatibilityValues, 'choiceUnion'>
+const mixedArrayField = null as unknown as PicodashField<CompatibilityValues, 'mixedArray'>
 
 describe('@picodash/dashlist choice control types', () => {
   it('accepts choice control props and rejects invalid bindings', () => {
@@ -105,6 +116,18 @@ describe('@picodash/dashlist choice control types', () => {
 
     // @ts-expect-error CheckboxDashlet rejects a string field at a direct JSX call site.
     ;<CheckboxDashlet field={nexus.fields.choice} id="checkbox-mismatch" label="Mismatch" />
+    ;<CheckboxDashlet
+      // @ts-expect-error CheckboxDashlet rejects a boolean|string field whose domain is wider than boolean.
+      field={booleanOrStringField}
+      id="checkbox-union-mismatch"
+      label="Union mismatch"
+    />
+    void createElement(RadioGroupDashlet, {
+      id: 'choice-narrow-options',
+      field: nexus.fields.choice,
+      label: 'Choice narrow options',
+      options: ['one', 'two'] as const,
+    })
     ;<RadioGroupDashlet
       // @ts-expect-error incompatible field value.
       field={nexus.fields.enabled}
@@ -112,12 +135,26 @@ describe('@picodash/dashlist choice control types', () => {
       label="Mismatch"
       options={['one', 'two']}
     />
+    ;<RadioGroupDashlet
+      // @ts-expect-error mixed scalar fields cannot bind to one primitive choice domain.
+      field={choiceUnionField}
+      id="radio-union-mismatch"
+      label="Union mismatch"
+      options={['one']}
+    />
     ;<ComboboxDashlet
       // @ts-expect-error incompatible field value.
       field={nexus.fields.enabled}
       id="combobox-mismatch"
       label="Mismatch"
       options={['one', 'two']}
+    />
+    ;<CheckboxGroupDashlet
+      // @ts-expect-error mixed string|number arrays cannot bind to a single choice element domain.
+      field={mixedArrayField}
+      id="checkbox-group-array-union-mismatch"
+      label="Array union mismatch"
+      options={['one']}
     />
     ;<CheckboxGroupDashlet
       // @ts-expect-error incompatible field value.
@@ -132,6 +169,13 @@ describe('@picodash/dashlist choice control types', () => {
       id="multi-select-mismatch"
       label="Mismatch"
       options={['one', 'two']}
+    />
+    ;<MultiSelectDashlet
+      // @ts-expect-error mixed string|number arrays cannot bind to a single choice element domain.
+      field={mixedArrayField}
+      id="multi-select-array-union-mismatch"
+      label="Array union mismatch"
+      options={['one']}
     />
     // @ts-expect-error SearchDashlet rejects a boolean field at a direct JSX call site.
     ;<SearchDashlet field={nexus.fields.enabled} id="search-mismatch" label="Mismatch" />

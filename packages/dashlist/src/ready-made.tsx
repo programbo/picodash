@@ -32,8 +32,20 @@ type FieldValue<F> =
       : never
     : never
 type FieldProps<F extends AnyField, Value> = {
+  readonly field: F & (FieldValue<F> extends Value ? unknown : never)
+}
+type ChoiceValue = string | number
+type ChoiceFieldProps<F extends AnyField, T extends ChoiceValue> = {
   readonly field: F &
-    (FieldValue<F> extends Value ? unknown : Value extends FieldValue<F> ? unknown : never)
+    ([FieldValue<F>] extends [string]
+      ? [T] extends [FieldValue<F>]
+        ? unknown
+        : never
+      : [FieldValue<F>] extends [number]
+        ? [T] extends [FieldValue<F>]
+          ? unknown
+          : never
+        : never)
 }
 type Shell = Omit<
   DashletProps<any, any, 'input'>,
@@ -362,7 +374,7 @@ type SelectChoiceShell<T extends string | number> = ChoiceShell<T> & {
 export type SelectDashletProps<
   T extends string | number,
   F extends AnyField = AnyField,
-> = SelectChoiceShell<T> & FieldProps<F, T>
+> = SelectChoiceShell<T> & ChoiceFieldProps<F, T>
 function SelectDashletInner<T extends string | number, F extends AnyField = AnyField>(
   props: SelectDashletProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
@@ -413,7 +425,7 @@ export const SelectDashlet = forwardRef(SelectDashletInner) as <
 export type SegmentedDashletProps<
   T extends string | number,
   F extends AnyField = AnyField,
-> = ChoiceShell<T> & FieldProps<F, T>
+> = ChoiceShell<T> & ChoiceFieldProps<F, T>
 function SegmentedDashletInner<T extends string | number, F extends AnyField = AnyField>(
   props: SegmentedDashletProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,

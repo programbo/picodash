@@ -26,7 +26,7 @@ import {
   type TimeDashletProps,
   type ColorDashletProps,
 } from '../src/index.tsx'
-import { createPicodashNexus } from '@picodash/nexus'
+import { createPicodashNexus, type PicodashField } from '@picodash/nexus'
 import { describe, it } from 'vite-plus/test'
 
 const nexus = createPicodashNexus({
@@ -42,6 +42,14 @@ const nexus = createPicodashNexus({
     progress: { defaultValue: 25 },
   },
 })
+type CompatibilityValues = {
+  readonly numberOrString: number | string
+  readonly rangeOrString: { readonly start: number; readonly end: number } | string
+  readonly statusUnion: string | number
+}
+const numberOrStringField = null as unknown as PicodashField<CompatibilityValues, 'numberOrString'>
+const rangeOrStringField = null as unknown as PicodashField<CompatibilityValues, 'rangeOrString'>
+const statusUnionField = null as unknown as PicodashField<CompatibilityValues, 'statusUnion'>
 
 describe('@picodash/dashlist value control types', () => {
   it('accepts value control props and rejects invalid overrides', () => {
@@ -83,14 +91,35 @@ describe('@picodash/dashlist value control types', () => {
     ;<RangeDashlet field={nexus.fields.progress} id="range-mismatch" label="Mismatch" />
     // @ts-expect-error MeterDashlet rejects a status field at a direct JSX call site.
     ;<MeterDashlet field={nexus.fields.status} id="meter-mismatch" label="Mismatch" />
+    // @ts-expect-error MeterDashlet rejects a number|string field whose domain is wider than number.
+    ;<MeterDashlet field={numberOrStringField} id="meter-union-mismatch" label="Union mismatch" />
     // @ts-expect-error ProgressDashlet rejects a date field at a direct JSX call site.
     ;<ProgressDashlet field={nexus.fields.date} id="progress-mismatch" label="Mismatch" />
+    ;<ProgressDashlet
+      // @ts-expect-error ProgressDashlet rejects a number|string field whose domain is wider than number.
+      field={numberOrStringField}
+      id="progress-union-mismatch"
+      label="Union mismatch"
+    />
     ;<StatusDashlet
       // @ts-expect-error incompatible field value.
       field={nexus.fields.progress}
       id="status-mismatch"
       label="Mismatch"
       options={[{ value: 'ready', label: 'Ready', tone: 'success' }]}
+    />
+    ;<StatusDashlet
+      // @ts-expect-error mixed scalar fields cannot bind to one primitive status domain.
+      field={statusUnionField}
+      id="status-union-mismatch"
+      label="Union mismatch"
+      options={[{ value: 'ready', label: 'Ready', tone: 'success' }]}
+    />
+    ;<RangeDashlet
+      // @ts-expect-error a range|string field cannot bind to a fixed numeric range control.
+      field={rangeOrStringField}
+      id="range-union-mismatch"
+      label="Union mismatch"
     />
     // @ts-expect-error DateDashlet rejects a number field at a direct JSX call site.
     ;<DateDashlet field={nexus.fields.progress} id="date-mismatch" label="Mismatch" />

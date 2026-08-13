@@ -1,9 +1,10 @@
 import { createElement, createRef } from 'react'
 import { describe, it } from 'vite-plus/test'
-import { createPicodashNexus } from '@picodash/nexus'
+import { createPicodashNexus, type PicodashField } from '@picodash/nexus'
 import {
   DisplayDashlet,
   NumberDashlet,
+  RangeDashlet,
   SegmentedDashlet,
   SelectDashlet,
   SliderDashlet,
@@ -20,6 +21,17 @@ const nexus = createPicodashNexus({
     choice: { defaultValue: 'a' },
   },
 })
+type CompatibilityValues = {
+  readonly booleanOrString: boolean | string
+  readonly numberOrString: number | string
+  readonly rangeOrString: { readonly start: number; readonly end: number } | string
+}
+const booleanOrStringField = null as unknown as PicodashField<
+  CompatibilityValues,
+  'booleanOrString'
+>
+const numberOrStringField = null as unknown as PicodashField<CompatibilityValues, 'numberOrString'>
+const rangeOrStringField = null as unknown as PicodashField<CompatibilityValues, 'rangeOrString'>
 describe('@picodash/dashlist ready-made control types', () => {
   it('accepts ready-made control props and rejects invalid overrides', () => {
     const ref = createRef<HTMLDivElement>()
@@ -53,6 +65,24 @@ describe('@picodash/dashlist ready-made control types', () => {
     ;<SliderDashlet field={nexus.fields.text} id="slider-mismatch" label="Slider mismatch" />
     // @ts-expect-error SwitchDashlet rejects a string field at a direct JSX call site.
     ;<SwitchDashlet field={nexus.fields.text} id="switch-mismatch" label="Switch mismatch" />
+    ;<SwitchDashlet
+      // @ts-expect-error SwitchDashlet rejects a boolean|string field whose domain is wider than boolean.
+      field={booleanOrStringField}
+      id="switch-union-mismatch"
+      label="Switch union mismatch"
+    />
+    ;<NumberDashlet
+      // @ts-expect-error NumberDashlet rejects a number|string field whose domain is wider than number.
+      field={numberOrStringField}
+      id="number-union-mismatch"
+      label="Number union mismatch"
+    />
+    ;<RangeDashlet
+      // @ts-expect-error RangeDashlet rejects a range|string field whose domain is wider than the range value.
+      field={rangeOrStringField}
+      id="range-union-mismatch"
+      label="Range union mismatch"
+    />
     ;<SelectDashlet
       // @ts-expect-error incompatible field value.
       field={nexus.fields.number}

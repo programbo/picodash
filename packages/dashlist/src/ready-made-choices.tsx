@@ -31,8 +31,7 @@ type FieldValue<F> =
       : never
     : never
 type FieldProps<F extends AnyField, Value> = {
-  readonly field: F &
-    (FieldValue<F> extends Value ? unknown : Value extends FieldValue<F> ? unknown : never)
+  readonly field: F & (FieldValue<F> extends Value ? unknown : never)
 }
 type Shell = Omit<
   DashletProps<any, any, 'input'>,
@@ -42,6 +41,30 @@ type Shell = Omit<
 }
 
 type ChoiceValue = string | number
+type ChoiceFieldProps<F extends AnyField, T extends ChoiceValue> = {
+  readonly field: F &
+    ([FieldValue<F>] extends [string]
+      ? [T] extends [FieldValue<F>]
+        ? unknown
+        : never
+      : [FieldValue<F>] extends [number]
+        ? [T] extends [FieldValue<F>]
+          ? unknown
+          : never
+        : never)
+}
+type ArrayChoiceFieldProps<F extends AnyField, T extends ChoiceValue> = {
+  readonly field: F &
+    ([FieldValue<F>] extends [readonly string[]]
+      ? [T] extends [FieldValue<F> extends readonly (infer Element)[] ? Element : never]
+        ? unknown
+        : never
+      : [FieldValue<F>] extends [readonly number[]]
+        ? [T] extends [FieldValue<F> extends readonly (infer Element)[] ? Element : never]
+          ? unknown
+          : never
+        : never)
+}
 type ChoiceShell<T extends ChoiceValue> = Shell & {
   readonly options: readonly SelectOption<T>[]
 }
@@ -151,7 +174,7 @@ export const CheckboxDashlet = forwardRef(CheckboxDashletInner) as <F extends An
 export type RadioGroupDashletProps<
   T extends ChoiceValue,
   F extends AnyField = AnyField,
-> = ChoiceShell<T> & FieldProps<F, T> & Pick<RadioGroupProps<T>, 'orientation'>
+> = ChoiceShell<T> & ChoiceFieldProps<F, T> & Pick<RadioGroupProps<T>, 'orientation'>
 function RadioGroupDashletInner<T extends ChoiceValue, F extends AnyField = AnyField>(
   props: RadioGroupDashletProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
@@ -200,7 +223,7 @@ export const RadioGroupDashlet = forwardRef(RadioGroupDashletInner) as <
 export type ComboboxDashletProps<
   T extends ChoiceValue,
   F extends AnyField = AnyField,
-> = ChoiceShell<T> & FieldProps<F, T> & Pick<ComboboxProps<T>, 'placeholder'>
+> = ChoiceShell<T> & ChoiceFieldProps<F, T> & Pick<ComboboxProps<T>, 'placeholder'>
 function ComboboxDashletInner<T extends ChoiceValue, F extends AnyField = AnyField>(
   props: ComboboxDashletProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
@@ -249,7 +272,7 @@ export const ComboboxDashlet = forwardRef(ComboboxDashletInner) as <
 export type CheckboxGroupDashletProps<
   T extends ChoiceValue,
   F extends AnyField = AnyField,
-> = ArrayChoiceShell<T> & FieldProps<F, readonly T[]>
+> = ArrayChoiceShell<T> & ArrayChoiceFieldProps<F, T>
 function CheckboxGroupDashletInner<T extends ChoiceValue, F extends AnyField = AnyField>(
   props: CheckboxGroupDashletProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
@@ -298,7 +321,7 @@ export const CheckboxGroupDashlet = forwardRef(CheckboxGroupDashletInner) as <
 export type MultiSelectDashletProps<
   T extends ChoiceValue,
   F extends AnyField = AnyField,
-> = ArrayChoiceShell<T> & FieldProps<F, readonly T[]> & Pick<MultiSelectProps<T>, 'placeholder'>
+> = ArrayChoiceShell<T> & ArrayChoiceFieldProps<F, T> & Pick<MultiSelectProps<T>, 'placeholder'>
 function MultiSelectDashletInner<T extends ChoiceValue, F extends AnyField = AnyField>(
   props: MultiSelectDashletProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,

@@ -41,8 +41,7 @@ type FieldValue<F> =
       : never
     : never
 type FieldProps<F extends AnyField, Value> = {
-  readonly field: F &
-    (FieldValue<F> extends Value ? unknown : Value extends FieldValue<F> ? unknown : never)
+  readonly field: F & (FieldValue<F> extends Value ? unknown : never)
 }
 type Shell = Omit<
   DashletProps<any, any, 'input'>,
@@ -343,9 +342,17 @@ export const ProgressDashlet = forwardRef(ProgressDashletInner) as <F extends An
 ) => ReactElement | null
 
 type StatusChoice<T extends string | number> = StatusOption<T>
-type StatusFieldProps<F extends AnyField, Value> = {
+type StatusFieldProps<F extends AnyField, T extends string | number> = {
   readonly field: F &
-    (Value extends FieldValue<F> ? unknown : FieldValue<F> extends Value ? unknown : never)
+    ([FieldValue<F>] extends [string]
+      ? [T] extends [FieldValue<F>]
+        ? unknown
+        : never
+      : [FieldValue<F>] extends [number]
+        ? [T] extends [FieldValue<F>]
+          ? unknown
+          : never
+        : never)
 }
 export type StatusDashletProps<T extends string | number, F extends AnyField = AnyField> = Omit<
   Shell,
