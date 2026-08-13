@@ -1,4 +1,5 @@
 import { createElement } from 'react'
+import { describe, it } from 'vite-plus/test'
 import { createPicodashNexus } from '@picodash/nexus'
 import {
   CheckboxDashlet,
@@ -33,131 +34,135 @@ const nexus = createPicodashNexus({
   },
 })
 
-void createElement(CheckboxDashlet, {
-  id: 'enabled',
-  field: nexus.fields.enabled,
-  label: 'Enabled',
-})
+describe('@picodash/dashlist choice control types', () => {
+  it('accepts choice control props and rejects invalid bindings', () => {
+    void createElement(CheckboxDashlet, {
+      id: 'enabled',
+      field: nexus.fields.enabled,
+      label: 'Enabled',
+    })
 
-const checkboxProps: CheckboxDashletProps<typeof nexus.fields.enabled> = {
-  id: 'checkbox-props',
-  field: nexus.fields.enabled,
-  label: 'Enabled',
-}
-const checkboxGroupProps: CheckboxGroupDashletProps<string, typeof nexus.fields.selected> = {
-  id: 'checkbox-group-props',
-  field: nexus.fields.selected,
-  label: 'Selected',
-  options: ['one', 'two'],
-}
-const comboboxProps: ComboboxDashletProps<string, typeof nexus.fields.choice> = {
-  id: 'combobox-props',
-  field: nexus.fields.choice,
-  label: 'Choice',
-  options: ['one', 'two'],
-  placeholder: 'Choose',
-}
-const searchProps: SearchDashletProps<typeof nexus.fields.search> = {
-  id: 'search-props',
-  field: nexus.fields.search,
-  label: 'Search',
-  placeholder: 'Find',
-}
-void checkboxProps
-void checkboxGroupProps
-void comboboxProps
-void searchProps
-void createElement(RadioGroupDashlet, {
-  id: 'choice',
-  field: nexus.fields.choice,
-  label: 'Choice',
-  options: ['one', 'two'],
-  orientation: 'horizontal',
-})
-void createElement(ComboboxDashlet, {
-  id: 'combo',
-  field: nexus.fields.choice,
-  label: 'Combo',
-  options: ['one', 'two'],
-  placeholder: 'Choose',
-})
-void createElement(CheckboxGroupDashlet, {
-  id: 'checked',
-  field: nexus.fields.selected,
-  label: 'Checked',
-  options: ['one', 'two'],
-})
-void createElement(MultiSelectDashlet, {
-  id: 'selected',
-  field: nexus.fields.selected,
-  label: 'Selected',
-  options: ['one', 'two'],
-  placeholder: 'Choose',
-})
-void createElement(SearchDashlet, {
-  id: 'search',
-  field: nexus.fields.search,
-  label: 'Search',
-})
+    const checkboxProps: CheckboxDashletProps<typeof nexus.fields.enabled> = {
+      id: 'checkbox-props',
+      field: nexus.fields.enabled,
+      label: 'Enabled',
+    }
+    const checkboxGroupProps: CheckboxGroupDashletProps<string, typeof nexus.fields.selected> = {
+      id: 'checkbox-group-props',
+      field: nexus.fields.selected,
+      label: 'Selected',
+      options: ['one', 'two'],
+    }
+    const comboboxProps: ComboboxDashletProps<string, typeof nexus.fields.choice> = {
+      id: 'combobox-props',
+      field: nexus.fields.choice,
+      label: 'Choice',
+      options: ['one', 'two'],
+      placeholder: 'Choose',
+    }
+    const searchProps: SearchDashletProps<typeof nexus.fields.search> = {
+      id: 'search-props',
+      field: nexus.fields.search,
+      label: 'Search',
+      placeholder: 'Find',
+    }
+    void checkboxProps
+    void checkboxGroupProps
+    void comboboxProps
+    void searchProps
+    void createElement(RadioGroupDashlet, {
+      id: 'choice',
+      field: nexus.fields.choice,
+      label: 'Choice',
+      options: ['one', 'two'],
+      orientation: 'horizontal',
+    })
+    void createElement(ComboboxDashlet, {
+      id: 'combo',
+      field: nexus.fields.choice,
+      label: 'Combo',
+      options: ['one', 'two'],
+      placeholder: 'Choose',
+    })
+    void createElement(CheckboxGroupDashlet, {
+      id: 'checked',
+      field: nexus.fields.selected,
+      label: 'Checked',
+      options: ['one', 'two'],
+    })
+    void createElement(MultiSelectDashlet, {
+      id: 'selected',
+      field: nexus.fields.selected,
+      label: 'Selected',
+      options: ['one', 'two'],
+      placeholder: 'Choose',
+    })
+    void createElement(SearchDashlet, {
+      id: 'search',
+      field: nexus.fields.search,
+      label: 'Search',
+    })
 
-void createElement(Checkbox, { isSelected: false, onChange: () => undefined })
-void createElement(RadioGroup, {
-  value: 'one',
-  onChange: () => undefined,
-  options: ['one', 'two'],
-})
-void createElement(Combobox, {
-  value: 'one',
-  onChange: () => undefined,
-  options: ['one', 'two'],
-})
-void createElement(CheckboxGroup, {
-  value: ['one'],
-  onChange: () => undefined,
-  options: ['one', 'two'],
-})
-void createElement(MultiSelect, {
-  value: ['one'],
-  onChange: () => undefined,
-  options: ['one', 'two'],
-})
-void createElement(SearchField, { value: '', onChange: () => undefined })
+    void createElement(Checkbox, { isSelected: false, onChange: () => undefined })
+    void createElement(RadioGroup, {
+      value: 'one',
+      onChange: () => undefined,
+      options: ['one', 'two'],
+    })
+    void createElement(Combobox, {
+      value: 'one',
+      onChange: () => undefined,
+      options: ['one', 'two'],
+    })
+    void createElement(CheckboxGroup, {
+      value: ['one'],
+      onChange: () => undefined,
+      options: ['one', 'two'],
+    })
+    void createElement(MultiSelect, {
+      value: ['one'],
+      onChange: () => undefined,
+      options: ['one', 'two'],
+    })
+    void createElement(SearchField, { value: '', onChange: () => undefined })
 
-const wrongRadio: RadioGroupDashletProps<'one', typeof nexus.fields.enabled> = {
-  id: 'wrong',
-  // @ts-expect-error boolean fields reject string choice Dashlets.
-  field: nexus.fields.enabled,
-  label: 'Wrong',
-  options: ['one'],
-}
-void wrongRadio
-const wrongMulti: MultiSelectDashletProps<'one', typeof nexus.fields.choice> = {
-  id: 'wrong-array',
-  // @ts-expect-error scalar fields reject array choice Dashlets.
-  field: nexus.fields.choice,
-  label: 'Wrong',
-  options: ['one'],
-}
-void wrongMulti
-void createElement(SearchDashlet, {
-  id: 'bad',
-  field: nexus.fields.search,
-  label: 'Bad',
-  // @ts-expect-error bound controls do not accept alternate value authorities.
-  value: '',
-})
-void createElement(CheckboxDashlet, {
-  id: 'bad-children',
-  field: nexus.fields.enabled,
-  label: 'Bad',
-  // @ts-expect-error bound controls do not accept children.
-  children: 'x',
-})
-void createElement(RadioGroupDashlet, {
-  id: 'bad-focus',
-  field: nexus.fields.choice,
-  label: 'Bad focus',
-  options: ['one'],
-  // @ts-expect-error built-in Dashlets do not expose primaryFocusRef overrides.
-  primaryFocusRef: { current: null },
+    const wrongRadio: RadioGroupDashletProps<'one', typeof nexus.fields.enabled> = {
+      id: 'wrong',
+      // @ts-expect-error boolean fields reject string choice Dashlets.
+      field: nexus.fields.enabled,
+      label: 'Wrong',
+      options: ['one'],
+    }
+    void wrongRadio
+    const wrongMulti: MultiSelectDashletProps<'one', typeof nexus.fields.choice> = {
+      id: 'wrong-array',
+      // @ts-expect-error scalar fields reject array choice Dashlets.
+      field: nexus.fields.choice,
+      label: 'Wrong',
+      options: ['one'],
+    }
+    void wrongMulti
+    void createElement(SearchDashlet, {
+      id: 'bad',
+      field: nexus.fields.search,
+      label: 'Bad',
+      // @ts-expect-error bound controls do not accept alternate value authorities.
+      value: '',
+    })
+    void createElement(CheckboxDashlet, {
+      id: 'bad-children',
+      field: nexus.fields.enabled,
+      label: 'Bad',
+      // @ts-expect-error bound controls do not accept children.
+      children: 'x',
+    })
+    void createElement(RadioGroupDashlet, {
+      id: 'bad-focus',
+      field: nexus.fields.choice,
+      label: 'Bad focus',
+      options: ['one'],
+      // @ts-expect-error built-in Dashlets do not expose primaryFocusRef overrides.
+      primaryFocusRef: { current: null },
+    })
+  })
 })
