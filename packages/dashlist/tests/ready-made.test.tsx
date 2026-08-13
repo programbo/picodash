@@ -292,6 +292,7 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
       valueOwner: 'nexus',
       fields: { output: { defaultValue: { count: 2 } }, slider: { defaultValue: 3 } },
     })
+    let formattedValue: unknown
     const view = render(
       createElement(
         DashList,
@@ -300,8 +301,10 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
           id: 'output',
           field: nexus.fields.output,
           label: 'Output',
-          formatValue: (value) =>
-            createElement('strong', null, `Count ${(value as { count: number }).count}`),
+          formatValue: (value) => {
+            formattedValue = value
+            return createElement('strong', null, `Count ${value.count}`)
+          },
         }),
         createElement(SliderDashlet, {
           id: 'slider',
@@ -314,6 +317,7 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
     expect(
       view.root.element.querySelector('[data-picodash-dashlist-display] strong')?.textContent,
     ).toBe('Count 2')
+    expect(formattedValue).toBe(nexus.getState().values.output)
     expect(
       view.root.element.querySelector('[data-picodash-dashlist-slider-value]')?.textContent,
     ).toBe('3%')

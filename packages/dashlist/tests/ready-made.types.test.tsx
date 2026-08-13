@@ -19,6 +19,8 @@ const nexus = createPicodashNexus({
     text: { defaultValue: '' },
     number: { defaultValue: 1 },
     choice: { defaultValue: 'a' },
+    object: { defaultValue: { count: 2, labels: ['ready', 'exact'] } },
+    array: { defaultValue: [{ id: 'first' }] },
   },
 })
 type CompatibilityValues = {
@@ -56,7 +58,33 @@ describe('@picodash/dashlist ready-made control types', () => {
       id: 'display',
       field: nexus.fields.number,
       label: 'Display',
+      formatValue: (value) => value.toFixed(1),
     })
+    void createElement(DisplayDashlet, {
+      id: 'display-object',
+      field: nexus.fields.object,
+      label: 'Display object',
+      formatValue: (value) => `${value.count}: ${value.labels.join(', ')}`,
+    })
+    ;<DisplayDashlet
+      id="display-array"
+      field={nexus.fields.array}
+      label="Display array"
+      formatValue={(value) => value.map((item) => item.id).join(', ')}
+    />
+    ;<DisplayDashlet
+      id="display-union"
+      field={numberOrStringField}
+      label="Display union"
+      formatValue={(value) => (typeof value === 'number' ? value.toFixed(1) : value.toUpperCase())}
+    />
+    ;<DisplayDashlet
+      id="display-invalid-assumption"
+      field={nexus.fields.number}
+      label="Display invalid assumption"
+      // @ts-expect-error DisplayDashlet formatters receive the bound field's number value.
+      formatValue={(value: string) => value.toUpperCase()}
+    />
     // @ts-expect-error TextDashlet rejects a number field at a direct JSX call site.
     ;<TextDashlet field={nexus.fields.number} id="text-mismatch" label="Text mismatch" />
     // @ts-expect-error NumberDashlet rejects a string field at a direct JSX call site.

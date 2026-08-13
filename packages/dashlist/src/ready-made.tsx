@@ -480,7 +480,7 @@ export type DisplayDashletProps<F extends AnyField = AnyField> = Omit<
   'readOnly' | 'disabled'
 > &
   FieldProps<F, PicodashJsonValue> & {
-    readonly formatValue?: (value: PicodashJsonValue) => ReactNode
+    readonly formatValue?: (value: FieldValue<F>) => ReactNode
   }
 function DisplayDashletInner<F extends AnyField = AnyField>(
   { field, formatValue, ...props }: DisplayDashletProps<F>,
@@ -494,7 +494,7 @@ function DisplayDashletInner<F extends AnyField = AnyField>(
           <Display
             id={context.binding.controlId}
             value={value}
-            renderedValue={formatValue ? formatValue(value) : undefined}
+            renderedValue={formatValue ? formatValue(value as FieldValue<F>) : undefined}
             isFormatted={Boolean(formatValue)}
             aria-labelledby={context.labelId}
             aria-describedby={describedBy(context, false, context.binding)}
