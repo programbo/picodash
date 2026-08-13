@@ -429,6 +429,36 @@
   white-space: nowrap;
 }
 
+.picodash-dashlist[data-picodash-dashlist-compact] [data-picodash-dashlist-list],
+.picodash-dashlist[data-picodash-dashlist-compact] [data-picodash-dashgroup-list] {
+  grid-template-columns: var(--_picodash-dashlist-reorder-track) minmax(0, 1fr);
+}
+
+.picodash-dashlist[data-picodash-dashlist-compact]
+  [data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content],
+.picodash-dashlist[data-picodash-dashlist-compact]
+  [data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-description],
+.picodash-dashlist[data-picodash-dashlist-compact]
+  [data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-binding-issues],
+.picodash-dashlist[data-picodash-dashlist-compact]
+  [data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-issues],
+.picodash-dashlist[data-picodash-dashlist-compact]
+  [data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-actions] {
+  grid-column: 2;
+  grid-row: auto;
+}
+
+.picodash-dashlist[data-picodash-dashlist-compact]
+  [data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content] {
+  display: block;
+}
+
 @media (pointer: coarse) {
   .picodash-dashlist {
     --_picodash-dashlist-reorder-track: 44px;

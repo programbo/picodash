@@ -61,6 +61,12 @@ describe('DashList stylesheet contract', () => {
       /--_picodash-dashlist-group-hover:\s*color-mix\([^;]*var\(--picodash-color-surface-muted\)\s+80%,\s*transparent/s,
     )
     expect(css).not.toContain('container-type: inline-size')
+    expect(css).toMatch(
+      /\.picodash-dashlist\[data-picodash-dashlist-compact\][^{]*\[data-picodash-dashlist-list\],[\s\S]*grid-template-columns:\s*var\(--_picodash-dashlist-reorder-track\)\s+minmax\(0,\s*1fr\);/s,
+    )
+    expect(css).toMatch(
+      /\.picodash-dashlist\[data-picodash-dashlist-compact\][^{]*\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*block;/s,
+    )
   })
 
   it('gives native List controls 44 pixel coarse-pointer tracks and hit targets', async () => {

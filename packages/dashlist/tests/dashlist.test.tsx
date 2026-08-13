@@ -377,6 +377,54 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('marks the List compact from its observed inline size', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver')
+    let resize!: ResizeObserverCallback
+    const disconnect = vi.fn()
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+      configurable: true,
+      value: class {
+        constructor(callback: ResizeObserverCallback) {
+          resize = callback
+        }
+        observe() {}
+        disconnect() {
+          disconnect()
+        }
+      },
+    })
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'responsive-list', nexus },
+        createElement(Dashlet, { id: 'control', label: 'Control' }, createElement('input')),
+      ),
+    )
+    const root = renderer.root.findByProps({ 'data-picodash-dashlist': true }).element
+
+    act(() =>
+      resize(
+        [{ target: root, contentBoxSize: [{ inlineSize: 287 }] } as unknown as ResizeObserverEntry],
+        {} as ResizeObserver,
+      ),
+    )
+    expect(root.hasAttribute('data-picodash-dashlist-compact')).toBe(true)
+    act(() =>
+      resize(
+        [{ target: root, contentBoxSize: [{ inlineSize: 288 }] } as unknown as ResizeObserverEntry],
+        {} as ResizeObserver,
+      ),
+    )
+    expect(root.hasAttribute('data-picodash-dashlist-compact')).toBe(false)
+
+    act(() => renderer.unmount())
+    expect(disconnect).toHaveBeenCalledOnce()
+    if (original) Object.defineProperty(globalThis, 'ResizeObserver', original)
+    else Reflect.deleteProperty(globalThis, 'ResizeObserver')
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('keeps group reorder and disclosure controls in visual DOM order', () => {
     const nexus = makeNexus()
     const renderer = render(

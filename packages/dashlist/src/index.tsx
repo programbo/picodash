@@ -16,6 +16,7 @@ import {
   useState,
   useSyncExternalStore,
   type ComponentPropsWithRef,
+  type ForwardedRef,
   type ReactElement,
   type MutableRefObject,
   type ReactNode,
@@ -937,6 +938,11 @@ function syncDashletContentCells(container: HTMLDivElement): void {
   }
 }
 
+function assignForwardedRef<T>(ref: ForwardedRef<T>, value: T | null): void {
+  if (typeof ref === 'function') ref(value)
+  else if (ref) ref.current = value
+}
+
 const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashletProps<any, any>>(
   function Dashlet(props: any, ref) {
     const {
@@ -1445,6 +1451,31 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   const headingId = title === undefined ? undefined : `picodash-dashlist-heading-${headingIdToken}`
   const statusId = `picodash-dashlist-status-${useId()}`
   const reorderInstructionsId = `picodash-dashlist-reorder-instructions-${useId()}`
+  const rootRef = useRef<HTMLDivElement>(null)
+  const setRootRef = (element: HTMLDivElement | null) => {
+    rootRef.current = element
+    assignForwardedRef(ref, element)
+  }
+  useLayoutEffect(() => {
+    const root = rootRef.current
+    if (!root || typeof ResizeObserver !== 'function') return
+    const threshold =
+      18 * (Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16)
+    const sync = (inlineSize: number) => {
+      root.toggleAttribute('data-picodash-dashlist-compact', inlineSize < threshold)
+    }
+    sync(root.getBoundingClientRect().width)
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries.find(({ target }) => target === root)
+      if (!entry) return
+      const box = Array.isArray(entry.contentBoxSize)
+        ? entry.contentBoxSize[0]
+        : entry.contentBoxSize
+      sync(box?.inlineSize ?? entry.contentRect.width)
+    })
+    observer.observe(root)
+    return () => observer.disconnect()
+  }, [])
   const listName =
     ariaLabelledBy ?? (ariaLabel === undefined && title !== undefined ? headingId : undefined)
   return (
@@ -1463,7 +1494,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
                     <DashListNodeValidation>
                       <div
                         {...props}
-                        ref={ref}
+                        ref={setRootRef}
                         className={classNames('picodash-dashlist', className)}
                         data-picodash-dashlist
                       >
