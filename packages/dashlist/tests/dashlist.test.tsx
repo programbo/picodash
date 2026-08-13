@@ -444,7 +444,7 @@ describe('@picodash/dashlist alpha shell', () => {
   it('marks the List compact from its observed inline size', () => {
     const original = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver')
     const originalRootFontSize = document.documentElement.style.fontSize
-    document.documentElement.style.fontSize = '20px'
+    document.documentElement.style.fontSize = '16px'
     let resize!: ResizeObserverCallback
     const disconnect = vi.fn()
     Object.defineProperty(globalThis, 'ResizeObserver', {
@@ -471,18 +471,20 @@ describe('@picodash/dashlist alpha shell', () => {
 
     act(() =>
       resize(
-        [{ target: root, contentBoxSize: [{ inlineSize: 359 }] } as unknown as ResizeObserverEntry],
-        {} as ResizeObserver,
-      ),
-    )
-    expect(root.hasAttribute('data-picodash-dashlist-compact')).toBe(true)
-    act(() =>
-      resize(
-        [{ target: root, contentBoxSize: [{ inlineSize: 360 }] } as unknown as ResizeObserverEntry],
+        [{ target: root, contentBoxSize: [{ inlineSize: 320 }] } as unknown as ResizeObserverEntry],
         {} as ResizeObserver,
       ),
     )
     expect(root.hasAttribute('data-picodash-dashlist-compact')).toBe(false)
+
+    document.documentElement.style.fontSize = '20px'
+    act(() =>
+      resize(
+        [{ target: root, contentBoxSize: [{ inlineSize: 320 }] } as unknown as ResizeObserverEntry],
+        {} as ResizeObserver,
+      ),
+    )
+    expect(root.hasAttribute('data-picodash-dashlist-compact')).toBe(true)
 
     act(() => renderer.unmount())
     expect(disconnect).toHaveBeenCalledOnce()

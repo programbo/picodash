@@ -1487,12 +1487,12 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     const root = rootRef.current
     if (!root || typeof ResizeObserver !== 'function') return
     const ownerWindow = root.ownerDocument.defaultView
-    const threshold =
-      18 *
-      (Number.parseFloat(
-        ownerWindow?.getComputedStyle(root.ownerDocument.documentElement).fontSize ?? '',
-      ) || 16)
     const sync = (inlineSize: number) => {
+      const threshold =
+        18 *
+        (Number.parseFloat(
+          ownerWindow?.getComputedStyle(root.ownerDocument.documentElement).fontSize ?? '',
+        ) || 16)
       setCompact(inlineSize < threshold)
     }
     sync(root.getBoundingClientRect().width)
