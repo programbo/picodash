@@ -88,6 +88,19 @@ export type NumberFieldProps = DashlistControlProps & {
   readonly formatOptions?: Intl.NumberFormatOptions
 }
 
+function validateNumberFieldConfiguration(
+  min: number | undefined,
+  max: number | undefined,
+  step: number | undefined,
+): void {
+  if (min !== undefined && !Number.isFinite(min)) throw new TypeError('min must be finite.')
+  if (max !== undefined && !Number.isFinite(max)) throw new TypeError('max must be finite.')
+  if (min !== undefined && max !== undefined && min > max)
+    throw new TypeError('min must be less than or equal to max.')
+  if (step !== undefined && (!Number.isFinite(step) || step <= 0))
+    throw new TypeError('step must be a positive finite number.')
+}
+
 export function NumberField({
   value,
   onChange,
@@ -98,6 +111,8 @@ export function NumberField({
   formatOptions,
   ...props
 }: NumberFieldProps) {
+  validateNumberFieldConfiguration(min, max, step)
+
   return (
     <AriaNumberField
       className={composeControlClassName('picodash-dashlist-field', props.className)}

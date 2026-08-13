@@ -26,6 +26,7 @@ import {
   Switch,
   TextField,
   TimeField,
+  type NumberFieldProps,
   type SelectOption,
   type SliderProps,
 } from '../src/ui.js'
@@ -332,6 +333,153 @@ describe('/ui structural class composition', () => {
     )
     expect(rawRoot).not.toBeNull()
     act(() => rawView.unmount())
+  })
+})
+
+describe('NumberField configuration and behavior', () => {
+  it('rejects invalid direct NumberField configuration synchronously', () => {
+    const invalidConfigurations: readonly {
+      readonly name: string
+      readonly props: Pick<NumberFieldProps, 'min' | 'max' | 'step'>
+      readonly error: TypeError
+    }[] = [
+      ...[Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((min) => ({
+        name: `non-finite min ${String(min)}`,
+        props: { min },
+        error: new TypeError('min must be finite.'),
+      })),
+      ...[Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((max) => ({
+        name: `non-finite max ${String(max)}`,
+        props: { max },
+        error: new TypeError('max must be finite.'),
+      })),
+      {
+        name: 'descending bounds',
+        props: { min: 2, max: 1 },
+        error: new TypeError('min must be less than or equal to max.'),
+      },
+      ...[0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((step) => ({
+        name: `non-positive or non-finite step ${String(step)}`,
+        props: { step },
+        error: new TypeError('step must be a positive finite number.'),
+      })),
+    ]
+
+    for (const configuration of invalidConfigurations)
+      expect(
+        () =>
+          render(
+            createElement(NumberField, {
+              value: 0,
+              onChange: () => undefined,
+              'aria-label': 'Invalid number',
+              ...configuration.props,
+            }),
+          ),
+        configuration.name,
+      ).toThrowError(configuration.error)
+  })
+
+  it('accepts omitted, one-sided, equal, signed, and non-zero bounds with an optional step', () => {
+    const validConfigurations: readonly {
+      readonly name: string
+      readonly value: number
+      readonly props: Pick<NumberFieldProps, 'min' | 'max' | 'step'>
+    }[] = [
+      { name: 'omitted bounds and step', value: 1, props: {} },
+      { name: 'minimum only', value: -2, props: { min: -5 } },
+      { name: 'maximum only', value: 2, props: { max: 5 } },
+      { name: 'equal bounds', value: 3, props: { min: 3, max: 3 } },
+      { name: 'signed range', value: -2.5, props: { min: -10, max: 10, step: 0.5 } },
+      { name: 'non-zero range', value: 4, props: { min: 2, max: 8, step: 2 } },
+    ]
+
+    for (const configuration of validConfigurations) {
+      const view = render(
+        createElement(NumberField, {
+          value: configuration.value,
+          onChange: () => undefined,
+          'aria-label': configuration.name,
+          ...configuration.props,
+        }),
+      )
+      expect(view.root.element.querySelector('input')).toBeInstanceOf(HTMLInputElement)
+      act(() => view.unmount())
+    }
+  })
+
+  it('preserves controlled edits, formatting, placeholder, classes, and ARIA relationships', () => {
+    const changes: Array<number | null> = []
+    const formatOptions: Intl.NumberFormatOptions = {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }
+    const view = render(
+      createElement(NumberField, {
+        id: 'amount-input',
+        className: 'caller-number-field',
+        value: 1234.5,
+        onChange: (value) => changes.push(value),
+        min: -2000,
+        max: 2000,
+        step: 0.25,
+        placeholder: 'Enter an amount',
+        formatOptions,
+        'aria-labelledby': 'amount-label',
+        'aria-describedby': 'amount-description',
+        'aria-invalid': true,
+        'aria-errormessage': 'amount-error',
+      }),
+    )
+
+    const root = view.root.element.querySelector('.picodash-dashlist-field.caller-number-field')
+    const input = root?.querySelector('input')
+    expect(input).toBeInstanceOf(HTMLInputElement)
+    expect((input as HTMLInputElement).value).toBe(
+      new Intl.NumberFormat(undefined, formatOptions).format(1234.5),
+    )
+    expect(input?.getAttribute('id')).toBe('amount-input')
+    expect(input?.getAttribute('placeholder')).toBe('Enter an amount')
+    expect(input?.getAttribute('aria-labelledby')).toBe('amount-label')
+    expect(input?.getAttribute('aria-describedby')).toBe('amount-description')
+    expect(input?.getAttribute('aria-invalid')).toBe('true')
+    expect(input?.getAttribute('aria-errormessage')).toBe('amount-error')
+
+    fireEvent.change(input as HTMLInputElement, { target: { value: '1500.75' } })
+    fireEvent.blur(input as HTMLInputElement)
+    expect(changes).toEqual([1500.75])
+    act(() => view.unmount())
+  })
+
+  it('preserves disabled and read-only input behavior', () => {
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement(NumberField, {
+          id: 'disabled-number',
+          value: 1,
+          onChange: () => undefined,
+          disabled: true,
+          'aria-label': 'Disabled number',
+        }),
+        createElement(NumberField, {
+          id: 'read-only-number',
+          value: 2,
+          onChange: () => undefined,
+          readOnly: true,
+          'aria-label': 'Read-only number',
+        }),
+      ),
+    )
+
+    expect(view.root.element.querySelector<HTMLInputElement>('#disabled-number')?.disabled).toBe(
+      true,
+    )
+    expect(view.root.element.querySelector<HTMLInputElement>('#read-only-number')?.readOnly).toBe(
+      true,
+    )
+    act(() => view.unmount())
   })
 })
 
