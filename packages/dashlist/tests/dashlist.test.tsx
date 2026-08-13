@@ -270,6 +270,32 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('retains an empty inline cell when a child component renders nothing', () => {
+    const nexus = makeNexus()
+    function MaybeReadout() {
+      return null
+    }
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'conditional-content', nexus },
+        createElement(
+          Dashlet,
+          { id: 'conditional', label: 'Conditional' },
+          createElement(MaybeReadout),
+          createElement('input', { 'aria-label': 'Only visible control' }),
+        ),
+      ),
+    )
+    const cells = renderer.root.findAllByProps({ 'data-picodash-dashlet-content-cell': true })
+    expect(cells).toHaveLength(2)
+    expect(cells[0]!.children).toEqual([])
+    expect(cells[1]!.findByType('input').props['aria-label']).toBe('Only visible control')
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('resolves durable group collapse metadata without unmounting descendants', () => {
     const nexus = makeNexus()
     const scoped = nexus.scope('collapse')

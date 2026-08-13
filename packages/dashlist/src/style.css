@@ -140,16 +140,24 @@
   min-inline-size: 0;
 }
 
+[data-picodash-dashlet-content-cell]:empty {
+  display: none;
+}
+
 [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content]
-  > :only-child {
+  > [data-picodash-dashlet-content-cell]:nth-child(
+    1 of [data-picodash-dashlet-content-cell]:not(:empty)
+  ):nth-last-child(1 of [data-picodash-dashlet-content-cell]:not(:empty)) {
   grid-column: 1 / -1;
   min-inline-size: 0;
 }
 
 [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content]
-  > :not(:only-child):last-child {
+  > [data-picodash-dashlet-content-cell]:nth-last-child(
+    1 of [data-picodash-dashlet-content-cell]:not(:empty)
+  ):not(:nth-child(1 of [data-picodash-dashlet-content-cell]:not(:empty))) {
   min-inline-size: 0;
   max-inline-size: var(--_picodash-dashlist-trailing-max-inline-size);
   overflow-wrap: anywhere;
