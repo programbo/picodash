@@ -9,7 +9,6 @@ import {
   Label,
   ListBox,
   ListBoxItem,
-  Popover,
   Radio,
   RadioGroup as AriaRadioGroup,
   SearchField as AriaSearchField,
@@ -19,6 +18,7 @@ import {
 } from 'react-aria-components'
 import type { SelectOption } from './ui.js'
 import { composeControlClassName } from './ui-class-name.js'
+import { ChoicePopover } from './ui-popover.js'
 
 export type ChoiceControlProps = {
   readonly id?: string
@@ -219,7 +219,7 @@ export function Combobox<T extends ChoiceValue>({
       <Button className="picodash-dashlist-disclosure-button" aria-label="Show choices">
         ▾
       </Button>
-      <Popover className="picodash-dashlist-popover">
+      <ChoicePopover>
         <ListBox<OptionParts<T>> className="picodash-dashlist-listbox">
           {(item) => (
             <ListBoxItem
@@ -232,7 +232,7 @@ export function Combobox<T extends ChoiceValue>({
             </ListBoxItem>
           )}
         </ListBox>
-      </Popover>
+      </ChoicePopover>
     </AriaComboBox>
   )
 }
@@ -384,7 +384,7 @@ export function MultiSelect<T extends ChoiceValue>({
           }}
         </TagList>
       </TagGroup>
-      <Popover className="picodash-dashlist-popover">
+      <ChoicePopover>
         <ListBox<OptionParts<T>> className="picodash-dashlist-listbox">
           {(item) => (
             <ListBoxItem
@@ -397,7 +397,7 @@ export function MultiSelect<T extends ChoiceValue>({
             </ListBoxItem>
           )}
         </ListBox>
-      </Popover>
+      </ChoicePopover>
     </AriaComboBox>
   )
 }

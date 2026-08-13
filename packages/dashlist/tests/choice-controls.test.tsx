@@ -3,6 +3,7 @@ import { act, createElement, type ReactElement } from 'react'
 import { describe, expect, it } from 'vite-plus/test'
 import { fireEvent } from '@testing-library/react'
 import { createPicodashNexus } from '@picodash/nexus'
+import { PicodashOverlayProvider, PicodashThemeProvider } from '@picodash/ui'
 import { createDomTestRenderer, type DomTestRenderer } from '../../../test/dom-renderer.ts'
 import {
   CheckboxDashlet,
@@ -222,6 +223,93 @@ describe('choice controls', () => {
         `${control.name} should render mixed primitive choices`,
       ).not.toBeNull()
       act(() => primitiveView.unmount())
+    }
+  })
+
+  it('hosts every detached choice popup in the Provider portal with resolved presentation', () => {
+    const cases: readonly {
+      readonly name: string
+      readonly rootClassName: string
+      readonly render: (onChange: (value: unknown) => void) => ReactElement
+      readonly expectedChange: unknown
+    }[] = [
+      {
+        name: 'Select',
+        rootClassName: 'picodash-dashlist-select',
+        render: (onChange) =>
+          createElement(Select, {
+            'aria-label': 'Select choice',
+            value: 'one',
+            onChange,
+            options: ['one', 'two'],
+          }),
+        expectedChange: 'two',
+      },
+      {
+        name: 'Combobox',
+        rootClassName: 'picodash-dashlist-combobox',
+        render: (onChange) =>
+          createElement(Combobox, {
+            'aria-label': 'Combobox choice',
+            value: 'one',
+            onChange,
+            options: ['one', 'two'],
+          }),
+        expectedChange: 'two',
+      },
+      {
+        name: 'MultiSelect',
+        rootClassName: 'picodash-dashlist-multi-select',
+        render: (onChange) =>
+          createElement(MultiSelect, {
+            'aria-label': 'MultiSelect choice',
+            value: ['one'],
+            onChange,
+            options: ['one', 'two'],
+          }),
+        expectedChange: ['one', 'two'],
+      },
+    ]
+
+    for (const choiceCase of cases) {
+      const changes: unknown[] = []
+      const portal = document.createElement('section')
+      document.body.append(portal)
+      const view = render(
+        <PicodashThemeProvider theme="light" density="compact">
+          <PicodashOverlayProvider portalContainer={portal} layerBase={321}>
+            {choiceCase.render((value) => changes.push(value))}
+          </PicodashOverlayProvider>
+        </PicodashThemeProvider>,
+      )
+      const control = view.root.element.querySelector(`.${choiceCase.rootClassName}`)
+      const trigger = control?.querySelector('button')
+      expect(trigger, `${choiceCase.name} should render a popup trigger`).not.toBeNull()
+
+      act(() => {
+        fireEvent.click(trigger!)
+      })
+
+      const popup = portal.querySelector('.picodash-dashlist-popover') as HTMLElement | null
+      expect(popup, `${choiceCase.name} should use the Provider portal`).not.toBeNull()
+      expect(control?.contains(popup)).toBe(false)
+      expect(popup?.dataset.picodashTheme).toBe('light')
+      expect(popup?.dataset.picodashDensity).toBe('compact')
+      expect(popup?.style.zIndex).toBe('max(var(--picodash-layer-popover), 321)')
+      expect(portal.hasAttribute('data-picodash-theme')).toBe(false)
+      expect(portal.hasAttribute('data-picodash-density')).toBe(false)
+
+      const option = [...portal.querySelectorAll('[role="option"]')].find(
+        (candidate) => candidate.textContent === 'two',
+      )
+      expect(option, `${choiceCase.name} should render the second option`).not.toBeUndefined()
+      act(() => {
+        fireEvent.click(option!)
+      })
+      expect(changes).toEqual([choiceCase.expectedChange])
+
+      act(() => view.unmount())
+      portal.remove()
     }
   })
 

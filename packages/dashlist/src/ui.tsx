@@ -6,7 +6,6 @@ import {
   ListBox,
   ListBoxItem,
   NumberField as AriaNumberField,
-  Popover,
   Radio,
   RadioGroup,
   Select as AriaSelect,
@@ -22,6 +21,7 @@ import {
 import type { ReactNode } from 'react'
 import { validateChoiceOptions } from './ui-choices.js'
 import { composeControlClassName } from './ui-class-name.js'
+import { ChoicePopover } from './ui-popover.js'
 
 export type DashlistControlProps = {
   readonly id?: string
@@ -293,7 +293,7 @@ export function Select<T extends string | number>({
       >
         <SelectValue<OptionParts<T>> />
       </Button>
-      <Popover className="picodash-dashlist-popover">
+      <ChoicePopover>
         <ListBox<OptionParts<T>> className="picodash-dashlist-listbox" items={parts}>
           {(item) => (
             <ListBoxItem
@@ -306,7 +306,7 @@ export function Select<T extends string | number>({
             </ListBoxItem>
           )}
         </ListBox>
-      </Popover>
+      </ChoicePopover>
     </AriaSelect>
   )
 }

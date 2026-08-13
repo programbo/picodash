@@ -185,6 +185,45 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
     .getByRole('radio', { name: 'Option B', exact: true })
   await expectKeyboardOutline(choiceControl, choiceControl.locator('xpath=ancestor::label[1]'))
 
+  const selectTrigger = choicesList.getByRole('button', {
+    name: 'Option B SelectDashlet',
+    exact: true,
+  })
+  const inheritedChoicePresentation = await selectTrigger.evaluate((element) => {
+    const carrier = element.closest('[data-picodash-theme][data-picodash-density]')
+    return {
+      theme: carrier?.getAttribute('data-picodash-theme'),
+      density: carrier?.getAttribute('data-picodash-density'),
+    }
+  })
+  await selectTrigger.press('Enter')
+  const choicePopup = page.locator('.picodash-dashlist-popover')
+  await expect(choicePopup).toBeVisible()
+  await expect(choicesList.locator('.picodash-dashlist-popover')).toHaveCount(0)
+  const popupPresentation = await choicePopup.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      theme: element.getAttribute('data-picodash-theme'),
+      density: element.getAttribute('data-picodash-density'),
+      backgroundColor: style.backgroundColor,
+      borderStyle: style.borderTopStyle,
+      borderWidth: style.borderTopWidth,
+      semanticLayer: Number.parseInt(style.getPropertyValue('--picodash-layer-popover'), 10),
+      resolvedLayer: Number.parseInt(style.zIndex, 10),
+    }
+  })
+  expect(popupPresentation.theme).toBe(inheritedChoicePresentation.theme)
+  expect(popupPresentation.density).toBe(inheritedChoicePresentation.density)
+  expect(popupPresentation.backgroundColor).not.toBe('rgba(0, 0, 0, 0)')
+  expect(popupPresentation.borderStyle).not.toBe('none')
+  expect(popupPresentation.borderWidth).not.toBe('0px')
+  expect(popupPresentation.resolvedLayer).toBeGreaterThanOrEqual(popupPresentation.semanticLayer)
+  await choicePopup.getByRole('option', { name: 'Option C', exact: true }).click()
+  await expect(choicePopup).toHaveCount(0)
+  await expect(
+    choicesList.getByRole('button', { name: 'Option C SelectDashlet', exact: true }),
+  ).toBeFocused()
+
   const gallery = page.getByRole('list', { name: 'Dashlet gallery' })
   for (const group of [
     'Common inputs',
