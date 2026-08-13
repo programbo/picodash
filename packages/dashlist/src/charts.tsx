@@ -36,12 +36,14 @@ type DashletNativeProps = Omit<
 export type ChartDashletProps = DashletNativeProps & {
   readonly id: string
   readonly label: ReactNode
+  readonly 'aria-label'?: string
   readonly description?: ReactNode
   readonly definition: ChartDefinition
   readonly chartProps?: Omit<ChartCommonProps, 'ariaLabel'>
 }
 
-function chartAriaLabel(label: ReactNode, id: string): string {
+function chartAriaLabel(label: ReactNode, ariaLabel: string | undefined, id: string): string {
+  if (typeof ariaLabel === 'string' && ariaLabel.trim()) return ariaLabel
   if (typeof label === 'string' && label.trim()) return label
   if (typeof label === 'number') return String(label)
   return id
@@ -50,14 +52,23 @@ function chartAriaLabel(label: ReactNode, id: string): string {
 export function ChartDashlet({
   id,
   label,
+  'aria-label': ariaLabel,
   description,
   definition,
   chartProps,
   ...nativeProps
 }: ChartDashletProps) {
+  const resolvedAriaLabel = chartAriaLabel(label, ariaLabel, id)
   return (
-    <Dashlet {...nativeProps} id={id} label={label} description={description} layout="full">
-      <Chart {...chartProps} ariaLabel={chartAriaLabel(label, id)} definition={definition} />
+    <Dashlet
+      {...nativeProps}
+      id={id}
+      label={label}
+      aria-label={ariaLabel}
+      description={description}
+      layout="full"
+    >
+      <Chart {...chartProps} ariaLabel={resolvedAriaLabel} definition={definition} />
     </Dashlet>
   )
 }
@@ -67,6 +78,7 @@ export type SparklineSource = (emit: (value: number) => void) => void | (() => v
 export type SparklineDashletProps = DashletNativeProps & {
   readonly id: string
   readonly label: ReactNode
+  readonly 'aria-label'?: string
   readonly description?: ReactNode
   readonly source: SparklineSource
   readonly maxSamples?: number
@@ -89,6 +101,12 @@ function useSparklineHistory(
     intersecting: true,
   }))
   const active = visibility.documentVisible && visibility.intersecting
+
+  useEffect(() => {
+    setHistory((current) =>
+      current.length > maxSamples ? current.slice(current.length - maxSamples) : current,
+    )
+  }, [maxSamples])
 
   useEffect(() => {
     if (typeof document === 'undefined') return

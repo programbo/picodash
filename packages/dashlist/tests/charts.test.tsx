@@ -63,6 +63,26 @@ describe('experimental chart dashlets', () => {
     setup.nexus.destroy()
   })
 
+  it('forwards explicit aria-labels for non-text ChartDashlet labels', () => {
+    const setup = withList(
+      createElement(ChartDashlet, {
+        id: 'icon-chart',
+        label: createElement('span', null, 'Revenue'),
+        'aria-label': 'Revenue chart',
+        definition: definition(),
+      }),
+    )
+    const view = render(setup.element)
+    expect(
+      view.root.element.querySelector('[role="img"][aria-label="Revenue chart"]'),
+    ).not.toBeNull()
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet-shell][aria-label="Revenue chart"]'),
+    ).not.toBeNull()
+    act(() => view.unmount())
+    setup.nexus.destroy()
+  })
+
   it('starts Sparkline empty, bounds samples, and disposes on unmount', () => {
     let emit!: (value: number) => void
     const disposer = vi.fn()
@@ -89,6 +109,65 @@ describe('experimental chart dashlets', () => {
     act(() => view.unmount())
     expect(disposer).toHaveBeenCalledTimes(1)
     act(() => emit(5))
+    setup.nexus.destroy()
+  })
+
+  it('trims retained history immediately when maxSamples decreases without a source emission', () => {
+    let emit!: (value: number) => void
+    const source = vi.fn((next: (value: number) => void) => {
+      emit = next
+      return () => undefined
+    })
+    const setup = withList(
+      createElement(SparklineDashlet, {
+        id: 'spark-resize',
+        label: 'CPU',
+        maxSamples: 4,
+        source,
+      }),
+    )
+    const view = render(setup.element)
+    act(() => {
+      emit(1)
+      emit(2)
+      emit(3)
+      emit(4)
+    })
+    expect(view.root.element.querySelector('[data-picodash-sparkline-samples="4"]')).not.toBeNull()
+
+    act(() =>
+      view.update(
+        createElement(
+          DashList,
+          { id: 'charts', nexus: setup.nexus },
+          createElement(SparklineDashlet, {
+            id: 'spark-resize',
+            label: 'CPU',
+            maxSamples: 2,
+            source,
+          }),
+        ),
+      ),
+    )
+    expect(view.root.element.querySelector('[data-picodash-sparkline-samples="2"]')).not.toBeNull()
+
+    act(() =>
+      view.update(
+        createElement(
+          DashList,
+          { id: 'charts', nexus: setup.nexus },
+          createElement(SparklineDashlet, {
+            id: 'spark-resize',
+            label: 'CPU',
+            maxSamples: 5,
+            source,
+          }),
+        ),
+      ),
+    )
+    expect(view.root.element.querySelector('[data-picodash-sparkline-samples="2"]')).not.toBeNull()
+    expect(source).toHaveBeenCalledTimes(3)
+    act(() => view.unmount())
     setup.nexus.destroy()
   })
 

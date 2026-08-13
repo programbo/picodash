@@ -154,20 +154,31 @@ export const NumberDashlet = forwardRef<HTMLDivElement, NumberDashletProps>(func
           (min !== undefined && canonical < min) || (max !== undefined && canonical > max)
         return (
           <>
-            <NumberField
-              id={binding.controlId}
-              value={value}
-              onChange={(next) => next !== null && binding.setInput(next)}
-              min={min}
-              max={max}
-              step={step}
-              formatOptions={formatOptions}
-              placeholder={placeholder}
-              disabled={context.disabled}
-              readOnly={context.readOnly}
-              aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, mismatch)}
-            />
+            {mismatch ? (
+              <output
+                id={binding.controlId}
+                data-picodash-dashlist-number-value
+                aria-labelledby={context.labelId}
+                aria-describedby={describedBy(context, true)}
+              >
+                {String(canonical)}
+              </output>
+            ) : (
+              <NumberField
+                id={binding.controlId}
+                value={value}
+                onChange={(next) => next !== null && binding.setInput(next)}
+                min={min}
+                max={max}
+                step={step}
+                formatOptions={formatOptions}
+                placeholder={placeholder}
+                disabled={context.disabled}
+                readOnly={context.readOnly}
+                aria-labelledby={context.labelId}
+                aria-describedby={describedBy(context, false)}
+              />
+            )}
             {mismatch ? (
               <PresentationWarning context={context}>
                 The current value ({String(canonical)}) is outside the configured range.
@@ -202,21 +213,32 @@ export const SliderDashlet = forwardRef<HTMLDivElement, SliderDashletProps>(func
         const mismatch = canonical < min || canonical > max
         return (
           <>
-            <Slider
-              id={binding.controlId}
-              value={value}
-              onChange={binding.setInput}
-              min={min}
-              max={max}
-              step={step}
-              marks={marks}
-              formatOptions={formatOptions}
-              disabled={context.disabled}
-              readOnly={context.readOnly}
-              aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, mismatch)}
-            />
-            {formatValue ? (
+            {mismatch ? (
+              <output
+                id={binding.controlId}
+                data-picodash-dashlist-slider-canonical
+                aria-labelledby={context.labelId}
+                aria-describedby={describedBy(context, true)}
+              >
+                {String(canonical)}
+              </output>
+            ) : (
+              <Slider
+                id={binding.controlId}
+                value={value}
+                onChange={binding.setInput}
+                min={min}
+                max={max}
+                step={step}
+                marks={marks}
+                formatOptions={formatOptions}
+                disabled={context.disabled}
+                readOnly={context.readOnly}
+                aria-labelledby={context.labelId}
+                aria-describedby={describedBy(context, false)}
+              />
+            )}
+            {formatValue && !mismatch ? (
               <output data-picodash-dashlist-slider-value>{formatValue(canonical)}</output>
             ) : null}
             {mismatch ? (

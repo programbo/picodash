@@ -70,6 +70,10 @@ describe('DashList stylesheet contract', () => {
     expect(css).toMatch(
       /:is\(\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\)\[data-picodash-dashlist-compact\][^{]*>\s*\.picodash-dashlist-item[^{]*\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*block;/s,
     )
+    expect(css).not.toContain('@container picodash-dashlist')
+    expect(css).toMatch(
+      /:is\(\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\)\[data-picodash-dashlist-compact\][\s\S]*\.picodash-dashlist-segmented\s*\[role='radio'\]\s*\{[^}]*flex:\s*1\s+1\s+auto;/s,
+    )
   })
 
   it('gives native List controls 44 pixel coarse-pointer tracks and hit targets', async () => {
@@ -79,6 +83,9 @@ describe('DashList stylesheet contract', () => {
     )
     expect(css).toMatch(
       /@media\s*\(pointer:\s*coarse\)[\s\S]*\[data-picodash-reorder-handle\]\s*\{[^}]*min-inline-size:\s*44px;[^}]*min-block-size:\s*44px;/s,
+    )
+    expect(css).toMatch(
+      /@media\s*\(pointer:\s*coarse\)\s*\{[^}]*\.picodash-dashlist-control,[\s\S]*min-inline-size:\s*44px;[^}]*min-block-size:\s*44px;/s,
     )
     expect(css).toContain('> button:not([data-picodash-reorder-handle]),')
     expect(css).toContain('[data-picodash-dashlet-actions] > button,')

@@ -7,7 +7,7 @@ import {
   type ReactNode,
   type RefAttributes,
 } from 'react'
-import { parseAbsolute, parseDate } from '@internationalized/date'
+import { parseAbsolute, parseDate, parseTime } from '@internationalized/date'
 import { parseColor } from 'react-aria-components'
 import type { PicodashField } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
@@ -356,9 +356,9 @@ export const DateDashlet = forwardRef<HTMLDivElement, DateDashletProps>(function
         const canonical = binding.value as string
         let compatible = true
         try {
-          if (min !== undefined && canonical < min) compatible = false
-          if (max !== undefined && canonical > max) compatible = false
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(canonical)) compatible = false
+          const parsed = parseDate(canonical)
+          if (min !== undefined && parsed.compare(parseDate(min)) < 0) compatible = false
+          if (max !== undefined && parsed.compare(parseDate(max)) > 0) compatible = false
         } catch {
           compatible = false
         }
@@ -419,10 +419,14 @@ export const TimeDashlet = forwardRef<HTMLDivElement, TimeDashletProps>(function
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as string
-        const compatible =
-          /^\d{2}:\d{2}(:\d{2}(?:\.\d{1,3})?)?$/.test(canonical) &&
-          (min === undefined || canonical >= min) &&
-          (max === undefined || canonical <= max)
+        let compatible = true
+        try {
+          const parsed = parseTime(canonical)
+          if (min !== undefined && parsed.compare(parseTime(min)) < 0) compatible = false
+          if (max !== undefined && parsed.compare(parseTime(max)) > 0) compatible = false
+        } catch {
+          compatible = false
+        }
         return (
           <>
             {compatible ? (
@@ -500,18 +504,11 @@ export const DateTimeDashlet = forwardRef<HTMLDivElement, DateTimeDashletProps>(
         {(context: any) => {
           const binding = context.binding
           const canonical = binding.value as string
-          let compatible =
-            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/.test(
-              canonical,
-            )
+          let compatible = true
           try {
-            if (compatible && min) compatible = canonical >= min
-            if (compatible && max) compatible = canonical <= max
-            if (compatible) {
-              parseAbsolute(canonical, timeZone)
-              if (min) parseAbsolute(min, timeZone)
-              if (max) parseAbsolute(max, timeZone)
-            }
+            const parsed = parseAbsolute(canonical, timeZone)
+            if (min && parsed.compare(parseAbsolute(min, timeZone)) < 0) compatible = false
+            if (max && parsed.compare(parseAbsolute(max, timeZone)) > 0) compatible = false
           } catch {
             compatible = false
           }
@@ -571,9 +568,9 @@ export const DateRangeDashlet = forwardRef<HTMLDivElement, DateRangeDashletProps
           const canonical = binding.value as { start: string; end: string }
           let compatible = true
           try {
-            parseDate(canonical.start)
-            parseDate(canonical.end)
-            compatible = canonical.start <= canonical.end
+            const start = parseDate(canonical.start)
+            const end = parseDate(canonical.end)
+            compatible = start.compare(end) <= 0
           } catch {
             compatible = false
           }

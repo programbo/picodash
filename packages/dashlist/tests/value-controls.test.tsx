@@ -15,7 +15,14 @@ import {
   Status,
   TimeField,
 } from '../src/ui.js'
-import { DashList, DateDashlet, RangeDashlet, StatusDashlet } from '../src/index.tsx'
+import {
+  DashList,
+  DateDashlet,
+  DateTimeDashlet,
+  RangeDashlet,
+  StatusDashlet,
+  TimeDashlet,
+} from '../src/index.tsx'
 
 function render(element: ReactElement): DomTestRenderer {
   let renderer!: DomTestRenderer
@@ -205,5 +212,64 @@ describe('value controls', () => {
         }),
       ),
     ).toThrow()
+  })
+
+  it('uses parsed temporal bounds and exact fallbacks for incompatible values', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: {
+        sameInstant: { defaultValue: '2026-08-13T10:00:00+00:00' },
+        outOfBounds: { defaultValue: '2026-08-13T10:00:01+00:00' },
+        invalidTime: { defaultValue: '25:99:00' },
+      },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'temporal-bounds', nexus },
+        createElement(DateTimeDashlet, {
+          id: 'same-instant',
+          field: nexus.fields.sameInstant,
+          label: 'Same instant',
+          timeZone: 'Australia/Perth',
+          min: '2026-08-13T18:00:00+08:00',
+          max: '2026-08-13T10:00:00Z',
+        }),
+        createElement(DateTimeDashlet, {
+          id: 'out-of-bounds',
+          field: nexus.fields.outOfBounds,
+          label: 'Out of bounds',
+          timeZone: 'Australia/Perth',
+          max: '2026-08-13T10:00:00+00:00',
+        }),
+        createElement(TimeDashlet, {
+          id: 'invalid-time',
+          field: nexus.fields.invalidTime,
+          label: 'Invalid time',
+        }),
+      ),
+    )
+    expect(
+      view.root.element.querySelector(
+        '[data-picodash-dashlet="same-instant"] .picodash-dashlist-date-time-field',
+      ),
+    ).not.toBeNull()
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="out-of-bounds"] output')
+        ?.textContent,
+    ).toBe('2026-08-13T10:00:01+00:00')
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="invalid-time"] output')?.textContent,
+    ).toBe('25:99:00')
+    expect(
+      view.root.element.querySelectorAll('[data-picodash-dashlet-presentation-warning]'),
+    ).toHaveLength(2)
+    expect(nexus.getState().values).toEqual({
+      sameInstant: '2026-08-13T10:00:00+00:00',
+      outOfBounds: '2026-08-13T10:00:01+00:00',
+      invalidTime: '25:99:00',
+    })
+    act(() => view.unmount())
+    nexus.destroy()
   })
 })

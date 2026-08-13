@@ -119,7 +119,11 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
   it('shows canonical presentation mismatches without writing them', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',
-      fields: { number: { defaultValue: 42 }, choice: { defaultValue: 'other' } },
+      fields: {
+        number: { defaultValue: 42 },
+        slider: { defaultValue: 42 },
+        choice: { defaultValue: 'other' },
+      },
     })
     const view = render(
       createElement(
@@ -129,6 +133,13 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
           id: 'number',
           field: nexus.fields.number,
           label: 'Number',
+          min: 0,
+          max: 10,
+        }),
+        createElement(SliderDashlet, {
+          id: 'slider',
+          field: nexus.fields.slider,
+          label: 'Slider',
           min: 0,
           max: 10,
         }),
@@ -143,13 +154,20 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
     const warnings = [
       ...view.root.element.querySelectorAll('[data-picodash-dashlet-presentation-warning]'),
     ]
-    expect(warnings).toHaveLength(2)
+    expect(warnings).toHaveLength(3)
     expect(warnings.map((node) => node.textContent)).toEqual([
+      'The current value (42) is outside the configured range.',
       'The current value (42) is outside the configured range.',
       'The current value (other) is not in the configured choices.',
     ])
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlist-number-value]')?.textContent,
+    ).toBe('42')
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlist-slider-canonical]')?.textContent,
+    ).toBe('42')
     expect(view.root.element.querySelector('[aria-invalid]')).toBeNull()
-    expect(nexus.getState().values).toEqual({ number: 42, choice: 'other' })
+    expect(nexus.getState().values).toEqual({ number: 42, slider: 42, choice: 'other' })
     act(() => view.unmount())
     nexus.destroy()
   })

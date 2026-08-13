@@ -344,12 +344,6 @@
   font-size: var(--picodash-font-size-sm);
 }
 
-@container picodash-dashlist (max-width: 28rem) {
-  .picodash-dashlist-segmented [role='radio'] {
-    flex: 1 1 auto;
-  }
-}
-
 @media (pointer: coarse) {
   .picodash-dashlist-control,
   .picodash-dashlist-select > button,
@@ -365,6 +359,7 @@
   .picodash-dashlist-date-time-field,
   .picodash-dashlist-date-range-field,
   .picodash-dashlist-color-field {
+    min-inline-size: 44px;
     min-block-size: 44px;
   }
 }
@@ -848,6 +843,12 @@
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content] {
   display: block;
+}
+
+:is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
+  .picodash-dashlist-segmented
+  [role='radio'] {
+  flex: 1 1 auto;
 }
 
 @media (pointer: coarse) {

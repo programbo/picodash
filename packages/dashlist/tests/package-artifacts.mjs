@@ -110,6 +110,12 @@ assert.equal(Object.isFrozen(catalog.catalog), true)
 assert.equal(Object.isFrozen(catalog.catalog.entries), true)
 assert.equal(Object.isFrozen(catalog.catalog.entries[0]), true)
 assert.deepEqual(catalog.catalog.reexports, [])
+for (const exportName of ['CheckboxGroupDashlet', 'MultiSelectDashlet']) {
+  const entry = catalog.catalog.entries.find((candidate) => candidate.exportName === exportName)
+  assert.ok(entry, `missing catalog entry: ${exportName}`)
+  assert.equal(entry.field.cardinality, 'one')
+  assert.deepEqual(entry.field.valueKinds, ['json'])
+}
 assert.equal(
   catalog.catalog.entries.filter((entry) => entry.exportName === 'ChartDashlet').length,
   0,
@@ -239,6 +245,7 @@ for (const name of [
   'SparklineSource',
 ])
   assert.match(chartDeclarations, new RegExp(`\\b${name}\\b`))
+assert.match(chartDeclarations, /'aria-label'\?: string/)
 
 const css = await readFile(path.join(packageRoot, 'dist/style.css'), 'utf8')
 assert.match(css, /@picodash\/ui\/style\.css|picodash-dashlist/)

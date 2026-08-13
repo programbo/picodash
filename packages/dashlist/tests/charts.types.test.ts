@@ -21,6 +21,11 @@ const chartProps: ChartDashletProps = {
   chartProps: { height: 120, className: 'chart' },
 }
 void createElement(ChartDashlet, chartProps)
+void createElement(ChartDashlet, {
+  ...chartProps,
+  label: createElement('span', null, 'Chart'),
+  'aria-label': 'Chart visualization',
+})
 
 const sparklineProps: SparklineDashletProps = {
   id: 'sparkline',
@@ -32,6 +37,11 @@ const sparklineProps: SparklineDashletProps = {
   maxSamples: 20,
 }
 void createElement(SparklineDashlet, sparklineProps)
+void createElement(SparklineDashlet, {
+  ...sparklineProps,
+  label: createElement('span', null, 'Sparkline'),
+  'aria-label': 'Sparkline visualization',
+})
 
 // @ts-expect-error charts are unbound shells and do not accept Nexus fields.
 void createElement(ChartDashlet, { ...chartProps, field: {} })
