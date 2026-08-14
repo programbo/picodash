@@ -190,7 +190,7 @@ export function RadioGroup<T extends ChoiceValue>({
     <AriaRadioGroup
       id={props.id}
       className={composeControlClassName('picodash-dashlist-radio-group', props.className)}
-      value={value === undefined ? undefined : choiceKey(value)}
+      value={value === undefined ? null : choiceKey(value)}
       onChange={(next) => {
         const match = parts.find((item) => choiceKey(item.value) === next)
         if (match) onChange(match.value)

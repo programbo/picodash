@@ -53,6 +53,17 @@ export type StatusOption<T extends string | number> = {
 
 export type ColorFormat = 'hex' | 'hexa' | 'rgb' | 'rgba' | 'hsl' | 'hsla' | 'hsb' | 'hsba'
 
+const supportedColorFormats = new Set(['hex', 'hexa', 'rgb', 'rgba', 'hsl', 'hsla', 'hsb', 'hsba'])
+
+export function validateSupportedColorFormat(format: unknown): asserts format is ColorFormat {
+  if (typeof format !== 'string' || !supportedColorFormats.has(format))
+    throw new TypeError('format must be a supported color format.')
+}
+
+export function serializeColor(color: Color, format: ColorFormat): string {
+  return color.toString(format)
+}
+
 function validateLocale(locale: string | undefined): void {
   if (locale === undefined) return
   try {
@@ -95,6 +106,33 @@ function timeValue(value: string | null): Time | null {
 
 function dateTimeValue(value: string | null, timeZone: string): ZonedDateTime | null {
   return value === null ? null : parseAbsolute(value, timeZone)
+}
+
+function dateBound(value: string | undefined): CalendarDate | undefined {
+  if (value === undefined) return undefined
+  try {
+    return parseDate(value)
+  } catch {
+    throw new TypeError('date bounds must be valid ISO dates.')
+  }
+}
+
+function timeBound(value: string | undefined): Time | undefined {
+  if (value === undefined) return undefined
+  try {
+    return parseTime(value)
+  } catch {
+    throw new TypeError('time bounds must be valid ISO local times.')
+  }
+}
+
+function dateTimeBound(value: string | undefined, timeZone: string): ZonedDateTime | undefined {
+  if (value === undefined) return undefined
+  try {
+    return parseAbsolute(value, timeZone)
+  } catch {
+    throw new TypeError('date-time bounds must be valid RFC 3339 date-times.')
+  }
 }
 
 type ComparableTemporal<T> = {
@@ -370,8 +408,8 @@ export function DateField({
   shouldForceLeadingZeros,
   ...props
 }: DateFieldProps) {
-  const parsedMin = min ? parseDate(min) : undefined
-  const parsedMax = max ? parseDate(max) : undefined
+  const parsedMin = dateBound(min)
+  const parsedMax = dateBound(max)
   validateTemporalBounds(parsedMin, parsedMax)
 
   return localize(
@@ -415,8 +453,8 @@ export function TimeField({
   shouldForceLeadingZeros,
   ...props
 }: TimeFieldProps) {
-  const parsedMin = min ? parseTime(min) : undefined
-  const parsedMax = max ? parseTime(max) : undefined
+  const parsedMin = timeBound(min)
+  const parsedMax = timeBound(max)
   validateTemporalBounds(parsedMin, parsedMax)
 
   return localize(
@@ -466,8 +504,8 @@ export function DateTimeField({
 }: DateTimeFieldProps) {
   // Validate the IANA zone eagerly so server and client fail deterministically.
   new Intl.DateTimeFormat('en-US', { timeZone })
-  const parsedMin = min ? parseAbsolute(min, timeZone) : undefined
-  const parsedMax = max ? parseAbsolute(max, timeZone) : undefined
+  const parsedMin = dateTimeBound(min, timeZone)
+  const parsedMax = dateTimeBound(max, timeZone)
   validateTemporalBounds(parsedMin, parsedMax)
 
   return localize(
@@ -532,6 +570,7 @@ export type ColorFieldProps = DashlistControlProps & {
 }
 
 export function ColorField({ value, onChange, format = 'hex', ...props }: ColorFieldProps) {
+  validateSupportedColorFormat(format)
   let parsed: Color | null = null
   if (value !== null) {
     try {
@@ -561,7 +600,7 @@ export function ColorField({ value, onChange, format = 'hex', ...props }: ColorF
     <AriaColorField
       className={composeControlClassName('picodash-dashlist-color-field', props.className)}
       value={parsed}
-      onChange={(next) => onChange(next ? next.toString(format) : null)}
+      onChange={(next) => onChange(next ? serializeColor(next, format) : null)}
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
       isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}

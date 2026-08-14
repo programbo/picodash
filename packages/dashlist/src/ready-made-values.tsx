@@ -22,6 +22,7 @@ import {
   RangeSlider,
   Status,
   TimeField,
+  serializeColor,
   type ColorFormat,
   type DateFieldProps,
   type DateRangeFieldProps,
@@ -32,6 +33,7 @@ import {
   type RangeSliderProps,
   type StatusOption,
   type TimeFieldProps,
+  validateSupportedColorFormat,
 } from './ui-values.js'
 
 type AnyField = PicodashField<any, any>
@@ -763,8 +765,7 @@ function ColorDashletInner<F extends AnyField = AnyField>(
   { field, format = 'hex', ...props }: ColorDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
-  if (!['hex', 'hexa', 'rgb', 'rgba', 'hsl', 'hsla', 'hsb', 'hsba'].includes(format))
-    throw new TypeError('format must be a supported color format.')
+  validateSupportedColorFormat(format)
   return (
     <Dashlet {...props} ref={ref} field={field}>
       {(context: any) => {
@@ -773,7 +774,7 @@ function ColorDashletInner<F extends AnyField = AnyField>(
         let compatible = true
         try {
           const parsed = parseColor(canonical)
-          parsed.toFormat(format)
+          serializeColor(parsed, format)
         } catch {
           compatible = false
         }

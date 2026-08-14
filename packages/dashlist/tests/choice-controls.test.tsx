@@ -34,6 +34,17 @@ type DirectChoiceControl = {
   readonly render: (options: DirectChoiceOptions) => ReactElement
 }
 
+type ScalarChoiceValue = string | number
+type DirectScalarChoiceControl = {
+  readonly name: string
+  readonly render: (props: {
+    readonly value: ScalarChoiceValue | undefined
+    readonly onChange: (value: ScalarChoiceValue) => void
+    readonly disabled?: boolean
+    readonly readOnly?: boolean
+  }) => ReactElement
+}
+
 const directChoiceControls: readonly DirectChoiceControl[] = [
   {
     name: 'RadioGroup',
@@ -93,6 +104,33 @@ const directChoiceControls: readonly DirectChoiceControl[] = [
         value: 'one',
         onChange: () => undefined,
         options,
+      }),
+  },
+]
+
+const directScalarChoiceControls: readonly DirectScalarChoiceControl[] = [
+  {
+    name: 'RadioGroup',
+    render: ({ value, onChange, disabled, readOnly }) =>
+      createElement(RadioGroup, {
+        'aria-label': 'Choices',
+        value,
+        onChange,
+        options: ['one', 1],
+        disabled,
+        readOnly,
+      }),
+  },
+  {
+    name: 'SegmentedControl',
+    render: ({ value, onChange, disabled, readOnly }) =>
+      createElement(SegmentedControl, {
+        'aria-label': 'Choices',
+        value,
+        onChange,
+        options: ['one', 1],
+        disabled,
+        readOnly,
       }),
   },
 ]
@@ -244,6 +282,77 @@ describe('choice controls', () => {
       'Icon segment',
     )
     act(() => view.unmount())
+  })
+
+  it('keeps empty scalar choices controlled until the requested typed value is supplied', () => {
+    const options: readonly ScalarChoiceValue[] = ['one', 1]
+
+    for (const control of directScalarChoiceControls)
+      for (const requested of options) {
+        const changes: ScalarChoiceValue[] = []
+        const view = render(
+          control.render({
+            value: undefined,
+            onChange: (next) => changes.push(next),
+          }),
+        )
+        const radios = () => [
+          ...view.root.element.querySelectorAll<HTMLInputElement>('input[type="radio"]'),
+        ]
+        const requestedIndex = options.findIndex((option) => option === requested)
+
+        expect(
+          radios().some((radio) => radio.checked),
+          `${control.name} should start empty`,
+        ).toBe(false)
+
+        act(() => {
+          fireEvent.click(radios()[requestedIndex]!)
+        })
+        expect(changes).toEqual([requested])
+        expect(
+          radios().some((radio) => radio.checked),
+          `${control.name} should remain empty when its value prop is unchanged`,
+        ).toBe(false)
+
+        act(() => {
+          view.update(
+            control.render({
+              value: requested,
+              onChange: (next) => changes.push(next),
+            }),
+          )
+        })
+        expect(radios().map((radio) => radio.checked)).toEqual(
+          options.map((option) => option === requested),
+        )
+        expect(changes).toEqual([requested])
+        act(() => view.unmount())
+      }
+  })
+
+  it('does not select or emit from empty scalar choices when disabled or read-only', () => {
+    for (const control of directScalarChoiceControls)
+      for (const policy of [{ disabled: true }, { readOnly: true }]) {
+        const changes: ScalarChoiceValue[] = []
+        const view = render(
+          control.render({
+            value: undefined,
+            onChange: (next) => changes.push(next),
+            ...policy,
+          }),
+        )
+        const radios = [
+          ...view.root.element.querySelectorAll<HTMLInputElement>('input[type="radio"]'),
+        ]
+
+        act(() => {
+          fireEvent.click(radios[1]!)
+        })
+        expect(changes, `${control.name} should not emit while policy is active`).toEqual([])
+        expect(radios.some((radio) => radio.checked)).toBe(false)
+        act(() => view.unmount())
+      }
   })
 
   it('preserves valid non-text labels and strict primitive identity across direct controls', () => {

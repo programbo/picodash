@@ -19,6 +19,7 @@ import {
 import type { RangeSliderProps } from '../src/ui.js'
 import type { MeterProps } from '../src/ui.js'
 import {
+  ColorDashlet,
   DashList,
   DateDashlet,
   DateTimeDashlet,
@@ -39,6 +40,135 @@ function render(element: ReactElement): DomTestRenderer {
 }
 
 describe('value controls', () => {
+  it('rejects unsupported color formats before parsing or writing', () => {
+    const changes: Array<string | null> = []
+    expect(() =>
+      render(
+        createElement(ColorField, {
+          value: 'not-a-color',
+          format: 'display-p3' as never,
+          onChange: (next) => changes.push(next),
+          'aria-label': 'Unsupported color format',
+        }),
+      ),
+    ).toThrowError(new TypeError('format must be a supported color format.'))
+    expect(changes).toEqual([])
+
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { color: { defaultValue: '#ff0000' } },
+    })
+    expect(() =>
+      render(
+        createElement(
+          DashList,
+          { id: 'unsupported-color-format', nexus },
+          createElement(ColorDashlet, {
+            id: 'color',
+            field: nexus.fields.color,
+            label: 'Color',
+            format: 'display-p3' as never,
+          }),
+        ),
+      ),
+    ).toThrowError(new TypeError('format must be a supported color format.'))
+    expect(nexus.getState().values).toEqual({ color: '#ff0000' })
+    nexus.destroy()
+  })
+
+  it('keeps HSL and HSB canonical colors editable through hex serialization', async () => {
+    const directChanges: Array<string | null> = []
+    const directView = render(
+      createElement(ColorField, {
+        value: 'hsl(120, 100%, 50%)',
+        format: 'hex',
+        onChange: (next) => directChanges.push(next),
+        'aria-label': 'Direct HSL color',
+      }),
+    )
+    const directInput = directView.root.element.querySelector<HTMLInputElement>('input')!
+    expect(directInput).not.toBeNull()
+    await act(() => fireEvent.input(directInput, { target: { value: '#0000ff' } }))
+    await act(() => fireEvent.blur(directInput))
+    expect(directChanges).toEqual(['#0000FF'])
+    act(() => directView.unmount())
+
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: {
+        hsl: { defaultValue: 'hsl(120, 100%, 50%)' },
+        hsb: { defaultValue: 'hsb(120, 100%, 100%)' },
+      },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'serializable-colors', nexus },
+        createElement(ColorDashlet, {
+          id: 'hsl',
+          field: nexus.fields.hsl,
+          label: 'HSL',
+          format: 'hex',
+        }),
+        createElement(ColorDashlet, {
+          id: 'hsb',
+          field: nexus.fields.hsb,
+          label: 'HSB',
+          format: 'hex',
+        }),
+      ),
+    )
+    expect(view.root.element.querySelectorAll('.picodash-dashlist-color-field')).toHaveLength(2)
+    expect(
+      view.root.element.querySelectorAll('[data-picodash-dashlet-presentation-warning]'),
+    ).toHaveLength(0)
+    expect(view.root.element.querySelectorAll('[data-picodash-dashlet] output')).toHaveLength(0)
+    expect(nexus.getState().values).toEqual({
+      hsl: 'hsl(120, 100%, 50%)',
+      hsb: 'hsb(120, 100%, 100%)',
+    })
+
+    const hslInput = view.root.element.querySelector<HTMLInputElement>(
+      '[data-picodash-dashlet="hsl"] input',
+    )!
+    await act(() => fireEvent.input(hslInput, { target: { value: '#0000ff' } }))
+    await act(() => fireEvent.blur(hslInput))
+    expect(nexus.getState().values.hsl).toBe('#0000FF')
+    expect(nexus.getState().values.hsb).toBe('hsb(120, 100%, 100%)')
+
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('keeps invalid canonical colors as exact warning fallbacks without writing', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { color: { defaultValue: 'not-a-color' } },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'invalid-color', nexus },
+        createElement(ColorDashlet, {
+          id: 'color',
+          field: nexus.fields.color,
+          label: 'Color',
+          format: 'hex',
+        }),
+      ),
+    )
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="color"] output')?.textContent,
+    ).toBe('not-a-color')
+    expect(
+      view.root.element.querySelectorAll('[data-picodash-dashlet-presentation-warning]'),
+    ).toHaveLength(1)
+    expect(view.root.element.querySelector('[data-picodash-dashlet="color"] input')).toBeNull()
+    expect(nexus.getState().values).toEqual({ color: 'not-a-color' })
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
   it('marks range slider thumbs on the rendered React Aria roots', () => {
     const view = render(
       createElement(
@@ -515,6 +645,78 @@ describe('value controls', () => {
       expect(() => render(element), name).toThrowError(
         new TypeError('min must be less than or equal to max.'),
       )
+  })
+
+  it('normalizes malformed direct temporal bounds synchronously', () => {
+    const changes: unknown[] = []
+    const invalidBounds = [
+      {
+        name: 'DateField malformed min',
+        element: createElement(DateField, {
+          value: '2026-08-13',
+          min: 'not-a-date',
+          onChange: (next) => changes.push(next),
+          'aria-label': 'Malformed date min',
+        }),
+        error: new TypeError('date bounds must be valid ISO dates.'),
+      },
+      {
+        name: 'DateField malformed max',
+        element: createElement(DateField, {
+          value: '2026-08-13',
+          max: 'not-a-date',
+          onChange: (next) => changes.push(next),
+          'aria-label': 'Malformed date max',
+        }),
+        error: new TypeError('date bounds must be valid ISO dates.'),
+      },
+      {
+        name: 'TimeField malformed min',
+        element: createElement(TimeField, {
+          value: '12:30:00',
+          min: 'not-a-time',
+          onChange: (next) => changes.push(next),
+          'aria-label': 'Malformed time min',
+        }),
+        error: new TypeError('time bounds must be valid ISO local times.'),
+      },
+      {
+        name: 'TimeField malformed max',
+        element: createElement(TimeField, {
+          value: '12:30:00',
+          max: 'not-a-time',
+          onChange: (next) => changes.push(next),
+          'aria-label': 'Malformed time max',
+        }),
+        error: new TypeError('time bounds must be valid ISO local times.'),
+      },
+      {
+        name: 'DateTimeField malformed min',
+        element: createElement(DateTimeField, {
+          value: '2026-08-13T12:30:00+08:00',
+          timeZone: 'Australia/Perth',
+          min: 'not-a-date-time',
+          onChange: (next) => changes.push(next),
+          'aria-label': 'Malformed date-time min',
+        }),
+        error: new TypeError('date-time bounds must be valid RFC 3339 date-times.'),
+      },
+      {
+        name: 'DateTimeField malformed max',
+        element: createElement(DateTimeField, {
+          value: '2026-08-13T12:30:00+08:00',
+          timeZone: 'Australia/Perth',
+          max: 'not-a-date-time',
+          onChange: (next) => changes.push(next),
+          'aria-label': 'Malformed date-time max',
+        }),
+        error: new TypeError('date-time bounds must be valid RFC 3339 date-times.'),
+      },
+    ]
+
+    for (const { name, element, error } of invalidBounds)
+      expect(() => render(element), name).toThrowError(error)
+    expect(changes).toEqual([])
   })
 
   it('preserves valid direct temporal bounds and presentation without render writes', () => {
