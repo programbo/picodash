@@ -495,6 +495,42 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
       expect(bounds.height).toBeGreaterThanOrEqual(44)
     }
 
+    const temporalSelectors = {
+      date: '[data-picodash-dashlet="style-lab-date"] .picodash-dashlist-date-field [role="spinbutton"]',
+      time: '[data-picodash-dashlet="style-lab-time"] .picodash-dashlist-time-field [role="spinbutton"]',
+      dateTime:
+        '[data-picodash-dashlet="style-lab-date-time"] .picodash-dashlist-date-time-field [role="spinbutton"]',
+      dateRange:
+        '[data-picodash-dashlet="style-lab-date-range"] .picodash-dashlist-date-range-field [role="spinbutton"]',
+    } as const
+    for (const selector of Object.values(temporalSelectors)) {
+      const targets = coarsePage.locator(selector)
+      await expect(targets).not.toHaveCount(0)
+      await targets.first().scrollIntoViewIfNeeded()
+      const bounds = await targets.evaluateAll((elements) =>
+        elements.map((element) => {
+          const rect = element.getBoundingClientRect()
+          return { width: rect.width, height: rect.height }
+        }),
+      )
+      for (const bound of bounds) {
+        expect(bound.width).toBeGreaterThanOrEqual(44)
+        expect(bound.height).toBeGreaterThanOrEqual(44)
+      }
+    }
+
+    const colorInput = coarsePage.locator(
+      '[data-picodash-dashlet="style-lab-color"] .picodash-dashlist-color-field input',
+    )
+    await expect(colorInput).toHaveCount(1)
+    await colorInput.scrollIntoViewIfNeeded()
+    const colorInputBounds = await colorInput.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return { width: rect.width, height: rect.height }
+    })
+    expect(colorInputBounds.width).toBeGreaterThanOrEqual(44)
+    expect(colorInputBounds.height).toBeGreaterThanOrEqual(44)
+
     const segmentedDashlet = coarsePage.locator('[data-picodash-dashlet="style-lab-segmented"]')
     const selectedSegment = segmentedDashlet.locator(
       '[data-picodash-dashlist-segment][data-selected]',
@@ -582,6 +618,13 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
       expect(bounds.width).toBeGreaterThanOrEqual(44)
       expect(bounds.height).toBeGreaterThanOrEqual(44)
     }
+    const pageOverflow = await coarsePage.evaluate(() => ({
+      documentWidth: document.documentElement.scrollWidth,
+      bodyWidth: document.body.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+    }))
+    expect(pageOverflow.documentWidth).toBeLessThanOrEqual(pageOverflow.viewportWidth)
+    expect(pageOverflow.bodyWidth).toBeLessThanOrEqual(pageOverflow.viewportWidth)
     expect(coarseErrors).toEqual([])
   } finally {
     await coarseContext.close()

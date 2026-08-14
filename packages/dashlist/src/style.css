@@ -396,6 +396,32 @@
     min-inline-size: 44px;
     min-block-size: 44px;
   }
+
+  .picodash-dashlist-date-field [role='spinbutton'],
+  .picodash-dashlist-time-field [role='spinbutton'],
+  .picodash-dashlist-date-time-field [role='spinbutton'],
+  .picodash-dashlist-date-range-field [role='spinbutton'] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+
+  .picodash-dashlist-color-field input {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+
+  .picodash-dashlist-date-field > [role='group'],
+  .picodash-dashlist-time-field > [role='group'],
+  .picodash-dashlist-date-time-field > [role='group'],
+  .picodash-dashlist-date-range-field > [role='group'] > [role='presentation'] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-inline-size: 0;
+  }
 }
 
 [dir='rtl'] .picodash-dashlist-slider-track,

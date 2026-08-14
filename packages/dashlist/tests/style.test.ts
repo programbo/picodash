@@ -138,5 +138,25 @@ describe('DashList stylesheet contract', () => {
     expect(css).toMatch(
       /@media\s*\(pointer:\s*coarse\)[\s\S]*\.picodash-dashlist-listbox\s+\[role='option'\],[\s\S]*\[data-picodash-dashlist-tag-remove\],[\s\S]*min-inline-size:\s*44px;[\s\S]*min-block-size:\s*44px;/s,
     )
+
+    for (const fieldClass of [
+      '.picodash-dashlist-date-field',
+      '.picodash-dashlist-time-field',
+      '.picodash-dashlist-date-time-field',
+      '.picodash-dashlist-date-range-field',
+    ]) {
+      expect(css).toMatch(
+        new RegExp(
+          `@media\\s*\\(pointer:\\s*coarse\\)[\\s\\S]*${fieldClass.replace('.', '\\.')}` +
+            ` \\[role='spinbutton'\\][\\s\\S]*min-inline-size:\\s*44px;[\\s\\S]*min-block-size:\\s*44px;`,
+        ),
+      )
+    }
+    expect(css).toMatch(
+      /@media\s*\(pointer:\s*coarse\)[\s\S]*\.picodash-dashlist-color-field input[\s\S]*min-inline-size:\s*44px;[\s\S]*min-block-size:\s*44px;/s,
+    )
+    expect(css).not.toMatch(
+      /@media\s*\(pointer:\s*coarse\)[\s\S]*\.picodash-dashlist-(?:date|time|date-time|date-range)-field\s+[^[]*\[data-(?:separator|type)\]/s,
+    )
   })
 })
