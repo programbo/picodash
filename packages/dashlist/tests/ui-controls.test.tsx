@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import { act, createElement, type ReactElement } from 'react'
 import { fireEvent } from '@testing-library/react'
+import { createPicodashNexus } from '@picodash/nexus'
 import { describe, expect, it } from 'vite-plus/test'
 import { createDomTestRenderer, type DomTestRenderer } from '../../../test/dom-renderer.ts'
+import { DashList, SwitchDashlet } from '../src/index.tsx'
 import {
   Checkbox,
   CheckboxGroup,
@@ -333,6 +335,78 @@ describe('/ui structural class composition', () => {
     )
     expect(rawRoot).not.toBeNull()
     act(() => rawView.unmount())
+  })
+})
+
+describe('Switch state presentation', () => {
+  it('renders an inert positional marker for both direct states', () => {
+    const changes: boolean[] = []
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement(Switch, {
+          isSelected: false,
+          onChange: (value) => changes.push(value),
+          'aria-label': 'Direct off',
+        }),
+        createElement(Switch, {
+          isSelected: true,
+          onChange: (value) => changes.push(value),
+          'aria-label': 'Direct on',
+        }),
+      ),
+    )
+
+    const switches = [...view.root.element.querySelectorAll('[role="switch"]')]
+    const roots = switches.map((control) => control.closest('.picodash-dashlist-switch'))
+    expect(switches).toHaveLength(2)
+    expect(switches.map((control) => (control as HTMLInputElement).checked)).toEqual([false, true])
+
+    for (const [index, root] of roots.entries()) {
+      const track = root?.querySelector('[data-picodash-dashlist-switch-track]')
+      const marker = track?.querySelector('[data-picodash-dashlist-switch-marker]')
+      expect(track?.getAttribute('aria-hidden'), `direct state ${index} track`).toBe('true')
+      expect(marker?.getAttribute('aria-hidden'), `direct state ${index} marker`).toBe('true')
+      expect(marker?.getAttribute('tabindex'), `direct state ${index} marker`).toBeNull()
+      expect(marker?.querySelector('button, input, a, [tabindex]')).toBeNull()
+    }
+
+    fireEvent.click(switches[0]!)
+    expect(changes).toEqual([true])
+    act(() => view.unmount())
+  })
+
+  it('keeps the marker when composed by SwitchDashlet', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { enabled: { defaultValue: true } },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'switch-marker', nexus },
+        createElement(SwitchDashlet, {
+          id: 'enabled',
+          field: nexus.fields.enabled,
+          label: 'Enabled',
+        }),
+      ),
+    )
+    const control = view.root.element.querySelector<HTMLInputElement>(
+      '[data-picodash-dashlet="enabled"] [role="switch"]',
+    )
+    expect(control?.checked).toBe(true)
+    expect(
+      control
+        ?.closest('.picodash-dashlist-switch')
+        ?.querySelector(
+          '[data-picodash-dashlist-switch-track] [data-picodash-dashlist-switch-marker]',
+        ),
+    ).not.toBeNull()
+    expect(control?.getAttribute('aria-labelledby')).toBeTruthy()
+    act(() => view.unmount())
+    nexus.destroy()
   })
 })
 

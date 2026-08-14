@@ -1058,6 +1058,76 @@ describe('choice controls', () => {
     act(() => view.unmount())
   })
 
+  it('propagates MultiSelect accessible names to selected tag groups', () => {
+    const directLabel = render(
+      createElement(MultiSelect, {
+        value: ['one'],
+        onChange: () => undefined,
+        options: ['one', 'two'],
+        'aria-label': 'Direct choices',
+      }),
+    )
+    const directLabelGroup = directLabel.root.element.querySelector('.picodash-dashlist-tag-list')
+    expect(directLabelGroup?.getAttribute('aria-label')).toBe('Direct choices values')
+    expect(directLabelGroup?.hasAttribute('aria-labelledby')).toBe(false)
+    act(() => directLabel.unmount())
+
+    const direct = render(
+      createElement(MultiSelect, {
+        value: ['one'],
+        onChange: () => undefined,
+        options: ['one', 'two'],
+        'aria-labelledby': 'direct-choice-label',
+        'aria-label': 'Ignored fallback',
+      }),
+    )
+    const directGroup = direct.root.element.querySelector('.picodash-dashlist-tag-list')
+    expect(directGroup?.getAttribute('aria-labelledby')).toBe('direct-choice-label')
+    expect(directGroup?.hasAttribute('aria-label')).toBe(false)
+    act(() => direct.unmount())
+
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: {
+        primary: { defaultValue: ['one'] },
+        secondary: { defaultValue: ['one'] },
+      },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'multi-labels', nexus },
+        createElement(MultiSelectDashlet, {
+          id: 'primary',
+          field: nexus.fields.primary,
+          label: 'Primary modes',
+          options: ['one', 'two'],
+        }),
+        createElement(MultiSelectDashlet, {
+          id: 'secondary',
+          field: nexus.fields.secondary,
+          label: 'Secondary modes',
+          options: ['one', 'two'],
+        }),
+      ),
+    )
+    const groups = [...view.root.element.querySelectorAll('.picodash-dashlist-tag-list')]
+    expect(groups).toHaveLength(2)
+    const groupNames = groups.map((group) => {
+      const labelId = group.getAttribute('aria-labelledby')
+      expect(labelId).toBeTruthy()
+      return document.getElementById(labelId!)?.textContent
+    })
+    expect(groupNames).toEqual(['Primary modes', 'Secondary modes'])
+    expect(new Set(groups.map((group) => group.getAttribute('aria-labelledby'))).size).toBe(2)
+    for (const group of groups) {
+      expect(group.hasAttribute('aria-label')).toBe(false)
+      expect(group.querySelector('[aria-label="Remove one"]')).not.toBeNull()
+    }
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
   it('renders six bound controls with accessible roles and forwards root refs', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',

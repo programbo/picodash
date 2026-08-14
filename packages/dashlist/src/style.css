@@ -114,14 +114,31 @@
 }
 
 [data-picodash-dashlist-switch-track] {
+  position: relative;
   inline-size: 2.5rem;
   block-size: 1.375rem;
   border-radius: var(--picodash-radius-control);
   background: var(--picodash-color-control-border);
 }
 
+[data-picodash-dashlist-switch-marker] {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: var(--picodash-space-1);
+  inline-size: var(--picodash-space-3);
+  block-size: var(--picodash-space-3);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: 50%;
+  background: var(--picodash-color-surface);
+  transform: translateY(-50%);
+}
+
 .picodash-dashlist-switch[data-selected] [data-picodash-dashlist-switch-track] {
   background: var(--picodash-color-accent);
+}
+
+.picodash-dashlist-switch[data-selected] [data-picodash-dashlist-switch-marker] {
+  inset-inline-start: calc(100% - var(--picodash-space-3) - var(--picodash-space-1));
 }
 
 .picodash-dashlist-display {

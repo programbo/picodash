@@ -87,6 +87,13 @@ describe('DashList stylesheet contract', () => {
     expect(css).toMatch(
       /\.picodash-dashlist-segmented\s+\[data-picodash-dashlist-segment\]\[data-selected\]\s*\{/s,
     )
+    expect(css).toMatch(/\[data-picodash-dashlist-switch-track\]\s*\{[^}]*position:\s*relative;/s)
+    expect(css).toMatch(
+      /\[data-picodash-dashlist-switch-marker\]\s*\{[^}]*position:\s*absolute;[^}]*inset-block-start:\s*50%;[^}]*inset-inline-start:\s*var\(--picodash-space-1\);[^}]*border-radius:\s*50%;/s,
+    )
+    expect(css).toMatch(
+      /\.picodash-dashlist-switch\[data-selected\]\s+\[data-picodash-dashlist-switch-marker\]\s*\{[^}]*inset-inline-start:\s*calc\(100%\s*-\s*var\(--picodash-space-3\)\s*-\s*var\(--picodash-space-1\)\);/s,
+    )
     expect(css).toMatch(
       /\.picodash-dashlist-segmented\s+\[data-picodash-dashlist-segment\]\[data-focus-visible\]/s,
     )

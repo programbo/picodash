@@ -253,7 +253,9 @@ export function Switch({ isSelected, onChange, ...props }: SwitchProps) {
       aria-invalid={props['aria-invalid']}
       aria-errormessage={props['aria-errormessage']}
     >
-      <span aria-hidden="true" data-picodash-dashlist-switch-track />
+      <span aria-hidden="true" data-picodash-dashlist-switch-track>
+        <span aria-hidden="true" data-picodash-dashlist-switch-marker />
+      </span>
       <span data-picodash-dashlist-switch-label>{props['aria-label']}</span>
     </AriaSwitch>
   )

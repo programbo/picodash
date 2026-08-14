@@ -400,7 +400,10 @@ export function MultiSelect<T extends ChoiceValue>({
         {({ state }) => (
           <TagGroup
             className="picodash-dashlist-tag-group"
-            aria-label={`${props['aria-label'] ?? 'Selected'} values`}
+            aria-label={
+              props['aria-labelledby'] ? undefined : `${props['aria-label'] ?? 'Selected'} values`
+            }
+            aria-labelledby={props['aria-labelledby']}
             onRemove={
               props.disabled || props.readOnly
                 ? undefined
