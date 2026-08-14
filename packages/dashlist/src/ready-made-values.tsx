@@ -775,6 +775,9 @@ function ColorDashletInner<F extends AnyField = AnyField>(
         try {
           const parsed = parseColor(canonical)
           serializeColor(parsed, format)
+          const formatPreservesAlpha =
+            format === 'hexa' || format === 'rgba' || format === 'hsla' || format === 'hsba'
+          compatible = formatPreservesAlpha || parsed.getChannelValue('alpha') === 1
         } catch {
           compatible = false
         }

@@ -140,6 +140,120 @@ describe('value controls', () => {
     nexus.destroy()
   })
 
+  it('keeps transparent canonical colors as exact presentation mismatches for lossy formats', () => {
+    const formats = ['hex', 'rgb', 'hsl', 'hsb'] as const
+    const colors = [
+      { name: 'fractional alpha', value: 'rgba(255, 0, 0, 0.5)' },
+      { name: 'zero alpha', value: 'rgba(0, 0, 255, 0)' },
+    ] as const
+
+    for (const { name, value } of colors) {
+      for (const format of formats) {
+        const nexus = createPicodashNexus({
+          valueOwner: 'nexus',
+          fields: { color: { defaultValue: value } },
+        })
+        const view = render(
+          createElement(
+            DashList,
+            { id: `alpha-mismatch-${name}-${format}`, nexus },
+            createElement(ColorDashlet, {
+              id: 'color',
+              field: nexus.fields.color,
+              label: 'Color',
+              format,
+            }),
+          ),
+        )
+        const dashlet = view.root.element.querySelector('[data-picodash-dashlet="color"]')!
+        expect(dashlet.querySelector('output')?.textContent).toBe(value)
+        expect(
+          dashlet.querySelector('[data-picodash-dashlet-presentation-warning]')?.textContent,
+        ).toBe(`The current color (${value}) cannot be edited in the configured color format.`)
+        expect(dashlet.querySelector('input')).toBeNull()
+        expect(nexus.getState().values).toEqual({ color: value })
+        act(() => view.unmount())
+        nexus.destroy()
+      }
+    }
+  })
+
+  it('preserves alpha-bearing colors through alpha-preserving formats and keeps opaque colors editable', () => {
+    const alphaCases = [
+      { format: 'hexa', initial: 'rgba(255, 0, 0, 0.5)' },
+      {
+        format: 'rgba',
+        initial: 'rgba(255, 0, 0, 0.5)',
+      },
+      {
+        format: 'hsla',
+        initial: 'rgba(255, 0, 0, 0.5)',
+      },
+      {
+        format: 'hsba',
+        initial: 'rgba(255, 0, 0, 0.5)',
+      },
+    ] as const
+
+    for (const { format, initial } of alphaCases) {
+      const nexus = createPicodashNexus({
+        valueOwner: 'nexus',
+        fields: { color: { defaultValue: initial } },
+      })
+      const view = render(
+        createElement(
+          DashList,
+          { id: `alpha-preserving-${format}`, nexus },
+          createElement(ColorDashlet, {
+            id: 'color',
+            field: nexus.fields.color,
+            label: 'Color',
+            format,
+          }),
+        ),
+      )
+      const input = view.root.element.querySelector<HTMLInputElement>(
+        '[data-picodash-dashlet="color"] input',
+      )!
+      expect(input).not.toBeNull()
+      expect(
+        view.root.element.querySelector('[data-picodash-dashlet-presentation-warning]'),
+      ).toBeNull()
+      expect(input.disabled).toBe(false)
+      expect(nexus.getState().values).toEqual({ color: initial })
+      act(() => view.unmount())
+      nexus.destroy()
+    }
+
+    for (const format of ['hex', 'rgb', 'hsl', 'hsb'] as const) {
+      const nexus = createPicodashNexus({
+        valueOwner: 'nexus',
+        fields: { color: { defaultValue: '#ff0000' } },
+      })
+      const view = render(
+        createElement(
+          DashList,
+          { id: `opaque-${format}`, nexus },
+          createElement(ColorDashlet, {
+            id: 'color',
+            field: nexus.fields.color,
+            label: 'Color',
+            format,
+          }),
+        ),
+      )
+      expect(
+        view.root.element.querySelector('[data-picodash-dashlet="color"] input'),
+      ).not.toBeNull()
+      expect(
+        view.root.element.querySelector('[data-picodash-dashlet-presentation-warning]'),
+      ).toBeNull()
+      expect(nexus.getState().values).toEqual({ color: '#ff0000' })
+      act(() => view.unmount())
+      nexus.destroy()
+    }
+  })
+
   it('keeps invalid canonical colors as exact warning fallbacks without writing', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',
