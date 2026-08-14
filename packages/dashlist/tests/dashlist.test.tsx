@@ -1,5 +1,15 @@
 // @vitest-environment jsdom
-import { act, createElement, Fragment, StrictMode, type ReactElement, type ReactNode } from 'react'
+import {
+  act,
+  createElement,
+  createRef,
+  Fragment,
+  StrictMode,
+  useRef,
+  type ReactElement,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from 'react'
 import { describe, expect, it, vi } from 'vite-plus/test'
 import {
   createDomTestRenderer as create,
@@ -27,6 +37,7 @@ import {
   acquireRegisteredDashListNodeLease,
   createNodeRegistry,
 } from '../src/node-registration.tsx'
+import { useDashletPrimaryFocusTarget } from '../src/primary-focus.tsx'
 
 const makeNexus = () =>
   createPicodashNexus({ valueOwner: 'nexus', fields: { value: { defaultValue: 0 } } })
@@ -436,6 +447,469 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('routes safe row and label clicks to a usable primary target or named shell', () => {
+    const nexus = makeNexus()
+    const primaryFocusRef = createRef<HTMLElement>()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'row-focus', nexus },
+        createElement(
+          Dashlet,
+          { id: 'targeted', label: 'Targeted', primaryFocusRef },
+          createElement('input', { ref: primaryFocusRef, 'aria-label': 'Target control' }),
+        ),
+        createElement(Dashlet, { id: 'fallback', label: 'Fallback' }, 'Readout'),
+      ),
+    )
+    const targetedRow = renderer.root.findByProps({ 'data-picodash-dashlet': 'targeted' })
+    const targetedLabel = renderer.root.findByProps({ 'data-picodash-dashlet-label': true })
+    const target = renderer.root.findByProps({ 'aria-label': 'Target control' }).element
+    targetedLabel.element.click()
+    expect(target.ownerDocument.activeElement).toBe(target)
+
+    const fallbackShell = renderer.root
+      .findByProps({ 'data-picodash-dashlet': 'fallback' })
+      .findByProps({ 'data-picodash-dashlet-shell': true }).element
+    targetedRow.element.click()
+    expect(target.ownerDocument.activeElement).toBe(target)
+    fallbackShell.parentElement?.click()
+    expect(fallbackShell.ownerDocument.activeElement).toBe(fallbackShell)
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('skips controls, help, reorder actions, text selection, and prevented row clicks', () => {
+    const nexus = makeNexus()
+    const primaryFocusRef = createRef<HTMLElement>()
+    const onClick = vi.fn((event: ReactMouseEvent) => event.preventDefault())
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'row-exclusions', nexus },
+        createElement(
+          Dashlet,
+          {
+            id: 'excluded',
+            label: 'Excluded',
+            help: 'Supplementary help',
+            primaryFocusRef,
+            onClick,
+          },
+          createElement('input', { ref: primaryFocusRef, 'aria-label': 'Excluded control' }),
+        ),
+        createElement(Dashlet, { id: 'other', label: 'Other' }, 'Other'),
+      ),
+    )
+    const row = renderer.root.findByProps({ 'data-picodash-dashlet': 'excluded' })
+    const shell = row.findByProps({ 'data-picodash-dashlet-shell': true }).element
+    const control = renderer.root.findByProps({ 'aria-label': 'Excluded control' }).element
+    act(() => {
+      control.focus()
+      control.click()
+    })
+    expect(document.activeElement).toBe(control)
+    const help = renderer.root.findByProps({ 'data-picodash-dashlet-help': true }).element
+    act(() => {
+      help.focus()
+      help.click()
+    })
+    expect(document.activeElement).toBe(help)
+    act(() => shell.click())
+    expect(onClick).toHaveBeenCalled()
+    expect(document.activeElement).toBe(help)
+
+    const selection = document.getSelection()
+    const text = row.element.querySelector('[data-picodash-dashlet-label]')?.firstChild
+    if (selection && text) {
+      const range = document.createRange()
+      range.selectNodeContents(text)
+      selection.removeAllRanges()
+      selection.addRange(range)
+      act(() => shell.click())
+      expect(document.activeElement).toBe(help)
+      selection.removeAllRanges()
+    }
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('does not redirect focus for clicks from portalled help content', () => {
+    const nexus = makeNexus()
+    const primaryFocusRef = createRef<HTMLElement>()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'portal-row-exclusion', nexus },
+        createElement(
+          Dashlet,
+          {
+            id: 'portal-help',
+            label: 'Portal help',
+            help: createElement('span', { 'data-portal-help-content': true }, 'Help text'),
+            primaryFocusRef,
+          },
+          createElement('input', { ref: primaryFocusRef, 'aria-label': 'Portal target' }),
+        ),
+      ),
+    )
+    const row = renderer.root.findByProps({ 'data-picodash-dashlet': 'portal-help' }).element
+    const help = renderer.root.findByProps({ 'aria-label': 'Help for Portal help' }).element
+    act(() => {
+      help.focus()
+      help.click()
+    })
+    const portalContent = document.querySelector<HTMLElement>('[data-portal-help-content]')
+    expect(portalContent).not.toBeNull()
+    expect(row.contains(portalContent)).toBe(false)
+    act(() => portalContent?.click())
+    expect(document.activeElement).toBe(help)
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('skips semantic widgets and focusable content in the composed click path', () => {
+    const cases = [
+      {
+        name: 'menuitemcheckbox',
+        render: () => createElement('div', { role: 'menuitemcheckbox' }, 'Interactive content'),
+      },
+      {
+        name: 'menuitemradio',
+        render: () => createElement('div', { role: 'menuitemradio' }, 'Interactive content'),
+      },
+      {
+        name: 'option',
+        render: () => createElement('div', { role: 'option' }, 'Interactive content'),
+      },
+      {
+        name: 'textbox',
+        render: () => createElement('div', { role: 'textbox' }, 'Interactive content'),
+      },
+      {
+        name: 'searchbox',
+        render: () => createElement('div', { role: 'searchbox' }, 'Interactive content'),
+      },
+      {
+        name: 'treeitem',
+        render: () => createElement('div', { role: 'treeitem' }, 'Interactive content'),
+      },
+      {
+        name: 'gridcell',
+        render: () => createElement('div', { role: 'gridcell' }, 'Interactive content'),
+      },
+      {
+        name: 'scrollbar',
+        render: () => createElement('div', { role: 'scrollbar' }, 'Interactive content'),
+      },
+      {
+        name: 'native link',
+        render: () => createElement('a', { href: '#target' }, 'Interactive content'),
+      },
+      {
+        name: 'tabIndex focusable',
+        render: () => createElement('div', { tabIndex: 0 }, 'Interactive content'),
+      },
+      {
+        name: 'managed tabIndex -1',
+        render: () =>
+          createElement(
+            'div',
+            {
+              onClick: (event: ReactMouseEvent<HTMLDivElement>) => event.currentTarget.focus(),
+              tabIndex: -1,
+            },
+            'Interactive content',
+          ),
+      },
+      {
+        name: 'contenteditable focusable',
+        render: () =>
+          createElement(
+            'div',
+            { contentEditable: true, suppressContentEditableWarning: true },
+            'Interactive content',
+          ),
+      },
+    ] as const
+
+    for (const testCase of cases) {
+      const { name } = testCase
+      const nexus = makeNexus()
+      const primaryFocusRef = createRef<HTMLElement>()
+      const target = document.createElement('button')
+      document.body.append(target)
+      primaryFocusRef.current = target
+      const widgetElement = testCase.render()
+      const renderer = render(
+        createElement(
+          DashList,
+          { id: `interactive-${name}`, nexus },
+          createElement(Dashlet, { id: 'item', label: name, primaryFocusRef }, widgetElement),
+        ),
+      )
+      const shell = renderer.root.findByProps({ 'data-picodash-dashlet-shell': true }).element
+      const widget = renderer.root.findByProps({ children: 'Interactive content' }).element
+      shell.focus()
+      act(() => widget.click())
+      if (name === 'managed tabIndex -1') expect(document.activeElement).toBe(widget)
+      else expect(document.activeElement, name).not.toBe(target)
+      act(() => renderer.unmount())
+      target.remove()
+      expect(() => nexus.destroy()).not.toThrow()
+    }
+  })
+
+  it('still redirects clicks from noninteractive content', () => {
+    const nexus = makeNexus()
+    const primaryFocusRef = createRef<HTMLElement>()
+    const target = document.createElement('button')
+    document.body.append(target)
+    primaryFocusRef.current = target
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'noninteractive-content', nexus },
+        createElement(
+          Dashlet,
+          { id: 'item', label: 'Item', primaryFocusRef },
+          createElement('output', null, 'Noninteractive content'),
+        ),
+      ),
+    )
+    const content = renderer.root.findByType('output').element
+    act(() => content.click())
+    expect(document.activeElement).toBe(target)
+    act(() => renderer.unmount())
+    target.remove()
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('does not let an outer row steal focus from a descendant managed shell', () => {
+    const nexus = makeNexus()
+    const primaryFocusRef = createRef<HTMLElement>()
+    const target = document.createElement('button')
+    document.body.append(target)
+    primaryFocusRef.current = target
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'nested-shell-focus', nexus },
+        createElement(
+          Dashlet,
+          { id: 'item', label: 'Item', primaryFocusRef },
+          createElement(
+            'div',
+            {
+              'data-picodash-dashlet-shell': true,
+              onClick: (event: ReactMouseEvent<HTMLDivElement>) => event.currentTarget.focus(),
+              role: 'group',
+              tabIndex: -1,
+            },
+            'Managed shell',
+          ),
+        ),
+      ),
+    )
+    const nestedShell = renderer.root.findByProps({ children: 'Managed shell' }).element
+    act(() => nestedShell.click())
+    expect(document.activeElement).toBe(nestedShell)
+    expect(document.activeElement).not.toBe(target)
+    act(() => renderer.unmount())
+    target.remove()
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('repairs detached registered focus to a replacement target before falling back to shell', () => {
+    const nexus = makeNexus()
+    function RegisteredTarget({ name }: { readonly name: string }) {
+      const ref = useRef<HTMLInputElement>(null)
+      useDashletPrimaryFocusTarget(ref)
+      return createElement('input', { ref, 'aria-label': name, key: name })
+    }
+    const renderTarget = (name: string | null) =>
+      createElement(
+        DashList,
+        { id: 'detach-focus', nexus },
+        createElement(
+          Dashlet,
+          { id: 'registered', label: 'Registered' },
+          name ? createElement(RegisteredTarget, { key: name, name }) : null,
+        ),
+      )
+    const renderer = render(renderTarget('First target'))
+    const first = renderer.root.findByProps({ 'aria-label': 'First target' }).element
+    first.focus()
+    act(() => renderer.update(renderTarget('Second target')))
+    const second = renderer.root.findByProps({ 'aria-label': 'Second target' }).element
+    expect(document.activeElement).toBe(second)
+    act(() => renderer.update(renderTarget(null)))
+    expect(document.activeElement).toBe(
+      renderer.root.findByProps({ 'data-picodash-dashlet-shell': true }).element,
+    )
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('repairs a focused registered target that becomes disabled in place', () => {
+    const nexus = makeNexus()
+    function RegisteredTarget({ disabled }: { readonly disabled: boolean }) {
+      const ref = useRef<HTMLInputElement>(null)
+      useDashletPrimaryFocusTarget(ref)
+      return createElement('input', { ref, disabled, 'aria-label': 'Registered target' })
+    }
+    const renderTarget = (disabled: boolean) =>
+      createElement(
+        DashList,
+        { id: 'disabled-focus', nexus },
+        createElement(
+          Dashlet,
+          { id: 'registered', label: 'Registered' },
+          createElement(RegisteredTarget, { disabled }),
+        ),
+      )
+    const renderer = render(renderTarget(false))
+    const target = renderer.root.findByProps({ 'aria-label': 'Registered target' }).element
+    act(() => target.focus())
+    expect(document.activeElement).toBe(target)
+
+    act(() => renderer.update(renderTarget(true)))
+    expect(document.activeElement).toBe(
+      renderer.root.findByProps({ 'data-picodash-dashlet-shell': true }).element,
+    )
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('keeps help available and operable when Dashlets are disabled or read-only', () => {
+    for (const policy of ['disabled', 'readOnly'] as const) {
+      const nexus = makeNexus()
+      const renderer = render(
+        createElement(
+          DashList,
+          { id: `help-${policy}`, nexus },
+          createElement(Dashlet, {
+            id: policy,
+            label: `${policy} Dashlet`,
+            help: 'Use the visible description for required instructions.',
+            [policy]: true,
+          }),
+        ),
+      )
+      const help = renderer.root.findByProps({
+        'aria-label': `Help for ${policy} Dashlet`,
+      }).element
+      expect(help.hasAttribute('disabled')).toBe(false)
+      act(() => help.focus())
+      act(() => help.click())
+      expect(
+        document.querySelector(`[role="dialog"][aria-label="Help for ${policy} Dashlet"]`),
+      ).toBeTruthy()
+      act(() => {
+        document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }))
+      })
+      expect(document.activeElement).toBe(help)
+      act(() => renderer.unmount())
+      expect(() => nexus.destroy()).not.toThrow()
+    }
+  })
+
+  it('falls back for unusable custom targets but focuses read-only targets', () => {
+    const nexus = makeNexus()
+    const primaryFocusRef = createRef<HTMLElement>()
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'target-usability', nexus },
+        createElement(Dashlet, {
+          id: 'target',
+          label: 'Target',
+          primaryFocusRef,
+          children: 'Readout',
+        }),
+      ),
+    )
+    const row = renderer.root.findByProps({ 'data-picodash-dashlet': 'target' }).element
+    const shell = renderer.root.findByProps({ 'data-picodash-dashlet-shell': true }).element
+    const fallback = () => {
+      act(() => row.click())
+      expect(document.activeElement).toBe(shell)
+    }
+
+    primaryFocusRef.current = null
+    fallback()
+
+    const disconnected = document.createElement('button')
+    primaryFocusRef.current = disconnected
+    fallback()
+
+    const nonFocusable = document.createElement('span')
+    document.body.append(nonFocusable)
+    primaryFocusRef.current = nonFocusable
+    fallback()
+    nonFocusable.remove()
+
+    const disabled = document.createElement('button')
+    disabled.disabled = true
+    document.body.append(disabled)
+    primaryFocusRef.current = disabled
+    fallback()
+    disabled.remove()
+
+    const inert = document.createElement('button')
+    inert.setAttribute('inert', '')
+    document.body.append(inert)
+    primaryFocusRef.current = inert
+    fallback()
+    inert.remove()
+
+    const otherDocument = document.implementation.createHTMLDocument('other-owner')
+    const crossDocument = otherDocument.createElement('button')
+    otherDocument.body.append(crossDocument)
+    primaryFocusRef.current = crossDocument
+    fallback()
+
+    const readOnly = document.createElement('input')
+    readOnly.readOnly = true
+    document.body.append(readOnly)
+    primaryFocusRef.current = readOnly
+    act(() => row.click())
+    expect(document.activeElement).toBe(readOnly)
+    readOnly.remove()
+
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('treats a primaryFocusRef object replacement as an ordinary update', () => {
+    const nexus = makeNexus()
+    const firstRef = createRef<HTMLElement>()
+    const secondRef = createRef<HTMLElement>()
+    const renderDashlet = (primaryFocusRef: typeof firstRef) =>
+      createElement(
+        DashList,
+        { id: 'ref-replacement', nexus },
+        createElement(
+          Dashlet,
+          { id: 'target', label: 'Target', primaryFocusRef },
+          createElement('input', { ref: primaryFocusRef, 'aria-label': 'Target control' }),
+        ),
+      )
+    const renderer = render(renderDashlet(firstRef))
+    const control = renderer.root.findByProps({ 'aria-label': 'Target control' }).element
+    firstRef.current = control
+    act(() => control.focus())
+    act(() => renderer.update(renderDashlet(secondRef)))
+    expect(document.activeElement).toBe(control)
+    act(() => renderer.root.findByProps({ 'data-picodash-dashlet': 'target' }).element.click())
+    expect(document.activeElement).toBe(control)
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('preserves explicit whitespace in block and full Dashlet content', () => {
     const nexus = makeNexus()
     const renderer = render(
@@ -654,6 +1128,35 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(callbackRef).toHaveBeenCalledTimes(1)
     expect(cleanup).not.toHaveBeenCalled()
 
+    act(() => renderer.unmount())
+    expect(cleanup).toHaveBeenCalledOnce()
+    expect(callbackRef).toHaveBeenCalledTimes(1)
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('preserves Dashlet callback ref cleanup across stable updates', () => {
+    const nexus = makeNexus()
+    const cleanup = vi.fn()
+    const callbackRef = vi.fn((element: HTMLDivElement | null) =>
+      element === null ? undefined : cleanup,
+    )
+    const renderDashlet = (label: string) =>
+      createElement(
+        DashList,
+        { id: 'dashlet-ref', nexus },
+        createElement(Dashlet, { id: 'item', label, ref: callbackRef }),
+      )
+    const renderer = render(
+      createElement(
+        DashList,
+        { id: 'dashlet-ref', nexus },
+        createElement(Dashlet, { id: 'item', label: 'First', ref: callbackRef }),
+      ),
+    )
+    expect(callbackRef).toHaveBeenCalledTimes(1)
+    act(() => renderer.update(renderDashlet('Second')))
+    expect(cleanup).not.toHaveBeenCalled()
+    expect(callbackRef).toHaveBeenCalledTimes(1)
     act(() => renderer.unmount())
     expect(cleanup).toHaveBeenCalledOnce()
     expect(callbackRef).toHaveBeenCalledTimes(1)
@@ -1393,11 +1896,17 @@ describe('@picodash/dashlist alpha shell', () => {
 
     const { renderToString } = await import('react-dom/server')
     const ssrNexus = makeNexus()
+    const ssrPrimaryFocusRef = createRef<HTMLElement>()
     renderToString(
       createElement(DashList, {
         id: 'ssr',
         nexus: ssrNexus,
-        children: createElement(Dashlet, { id: 'item', label: 'Item' }),
+        children: createElement(Dashlet, {
+          id: 'item',
+          label: 'Item',
+          help: 'SSR-safe help',
+          primaryFocusRef: ssrPrimaryFocusRef,
+        }),
       }),
     )
     let ssrActions!: ReturnType<typeof useDashListActions>

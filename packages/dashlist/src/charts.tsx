@@ -119,7 +119,7 @@ function useSparklineHistory(
 ): readonly number[] {
   const [history, setHistory] = useState<readonly number[]>([])
   const [visibility, setVisibility] = useState<VisibilityState>(() => ({
-    documentVisible: typeof document === 'undefined' || !document.hidden,
+    documentVisible: true,
     intersectionKnown: false,
     intersecting: false,
   }))
@@ -133,15 +133,19 @@ function useSparklineHistory(
   }, [maxSamples])
 
   useEffect(() => {
-    if (typeof document === 'undefined') return
+    const target = targetRef.current
+    if (!target) return
+
+    const ownerDocument = target.ownerDocument
+    const ownerWindow = ownerDocument.defaultView
     const handleVisibility = () =>
-      setVisibility((current) => ({ ...current, documentVisible: !document.hidden }))
-    document.addEventListener('visibilitychange', handleVisibility)
+      setVisibility((current) => ({ ...current, documentVisible: !ownerDocument.hidden }))
+    ownerDocument.addEventListener('visibilitychange', handleVisibility)
 
     let observer: IntersectionObserver | undefined
-    const target = targetRef.current
-    if (target && 'IntersectionObserver' in globalThis) {
-      observer = new IntersectionObserver(([entry]) => {
+    const IntersectionObserverConstructor = ownerWindow?.IntersectionObserver
+    if (IntersectionObserverConstructor) {
+      observer = new IntersectionObserverConstructor(([entry]) => {
         setVisibility((current) => ({
           ...current,
           intersectionKnown: true,
@@ -154,7 +158,7 @@ function useSparklineHistory(
     }
     handleVisibility()
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibility)
+      ownerDocument.removeEventListener('visibilitychange', handleVisibility)
       observer?.disconnect()
     }
   }, [targetRef])

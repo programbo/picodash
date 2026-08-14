@@ -21,8 +21,9 @@ dogfooding. Broader runtime inspection and later product-owned UX remain unfinis
 
 ## Target package surfaces
 
-- `@picodash/nexus`: root/scoped Nexuses, fields, transactions, persistence, documents, diagnostics,
-  and the manual external-value adapter contract.
+- `@picodash/nexus`: root/scoped Nexuses, nominal fields and their type-only value views,
+  transactions, persistence, documents, diagnostics, and the manual external-value adapter
+  contract.
 - `@picodash/nexus/react`: explicit Nexus selector subscriptions and `shallowEqual`.
 - `@picodash/nexus/integration`: supported advanced context and declarative lease protocol for
   DashPanel, DashList, and other declarative product integrations.

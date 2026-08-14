@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { act, createElement, type ReactElement } from 'react'
+import { act, createElement, StrictMode, type ReactElement } from 'react'
 import { fireEvent } from '@testing-library/react'
 import { createPicodashNexus } from '@picodash/nexus'
 import { describe, expect, it } from 'vite-plus/test'
 import { createDomTestRenderer, type DomTestRenderer } from '../../../test/dom-renderer.ts'
-import { DashList, SwitchDashlet } from '../src/index.tsx'
+import { Dashlet, DashList, SwitchDashlet } from '../src/index.tsx'
 import {
   Checkbox,
   CheckboxGroup,
@@ -308,7 +308,7 @@ describe('/ui structural class composition', () => {
     },
   )
 
-  it('composes the caller class on both ColorField root paths', () => {
+  it('composes the caller class for valid and invalid controlled ColorField values', () => {
     const validView = render(
       createElement(ColorField, {
         className: 'valid-color-hook',
@@ -331,10 +331,197 @@ describe('/ui structural class composition', () => {
       }),
     )
     const rawRoot = rawView.root.element.querySelector(
-      'input.picodash-dashlist-color-field.raw-color-hook',
+      '.picodash-dashlist-color-field.raw-color-hook input',
     )
     expect(rawRoot).not.toBeNull()
     act(() => rawView.unmount())
+  })
+})
+
+describe('/ui TextField configuration', () => {
+  it('renders a declared positive multiline row count', () => {
+    const view = render(
+      createElement(TextField, {
+        value: 'Notes',
+        onChange: () => undefined,
+        multiline: true,
+        minRows: 3,
+        'aria-label': 'Notes',
+      }),
+    )
+
+    expect(view.root.element.querySelector('textarea')?.getAttribute('rows')).toBe('3')
+    act(() => view.unmount())
+  })
+
+  it.each([
+    { multiline: false, minRows: 1 },
+    { multiline: true, minRows: 0 },
+    { multiline: true, minRows: -1 },
+    { multiline: true, minRows: 1.5 },
+    { multiline: true, minRows: Number.NaN },
+    { multiline: true, minRows: Number.POSITIVE_INFINITY },
+  ])('rejects invalid minRows configuration: $multiline/$minRows', ({ multiline, minRows }) => {
+    expect(() =>
+      render(
+        createElement(TextField, {
+          value: 'Notes',
+          onChange: () => undefined,
+          multiline,
+          minRows,
+          'aria-label': 'Notes',
+        }),
+      ),
+    ).toThrowError(new TypeError('minRows must be a positive integer when multiline is true.'))
+  })
+})
+
+describe('/ui primary focus registration', () => {
+  it('registers the exact basic-control focus nodes and uses the shell for a readout', () => {
+    const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'ui-focus-targets', nexus },
+        createElement(
+          Dashlet,
+          { id: 'text-focus', label: 'Text focus' },
+          createElement(TextField, {
+            value: 'Text',
+            onChange: () => undefined,
+            'aria-label': 'Text control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'number-focus', label: 'Number focus' },
+          createElement(NumberField, {
+            value: 2,
+            onChange: () => undefined,
+            'aria-label': 'Number control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'slider-focus', label: 'Slider focus' },
+          createElement(Slider, {
+            value: 2,
+            onChange: () => undefined,
+            'aria-label': 'Slider control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'switch-focus', label: 'Switch focus' },
+          createElement(Switch, {
+            isSelected: false,
+            onChange: () => undefined,
+            'aria-label': 'Switch control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'select-focus', label: 'Select focus' },
+          createElement(Select, {
+            value: 'one',
+            onChange: () => undefined,
+            options,
+            'aria-label': 'Select control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'segment-focus', label: 'Segment focus' },
+          createElement(SegmentedControl, {
+            value: 'two',
+            onChange: () => undefined,
+            options: [{ value: 'one', disabled: true }, 'two'],
+            'aria-label': 'Segment control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'display-focus', label: 'Display focus' },
+          createElement(Display, { value: 'Ready' }),
+        ),
+      ),
+    )
+
+    const cases: readonly { readonly id: string; readonly target: string }[] = [
+      { id: 'text-focus', target: 'input' },
+      { id: 'number-focus', target: 'input' },
+      { id: 'slider-focus', target: 'input[type="range"]' },
+      { id: 'switch-focus', target: 'input[type="checkbox"]' },
+      { id: 'select-focus', target: '.picodash-dashlist-select button' },
+      { id: 'segment-focus', target: 'input[type="radio"]:not(:disabled)' },
+    ]
+    for (const focusCase of cases) {
+      const row = view.root.element.querySelector<HTMLElement>(
+        `[data-picodash-dashlet="${focusCase.id}"]`,
+      )!
+      fireEvent.click(row.querySelector('[data-picodash-dashlet-label]')!)
+      expect(row.ownerDocument.activeElement, focusCase.id).toBe(
+        row.querySelector(focusCase.target),
+      )
+    }
+
+    const display = view.root.element.querySelector<HTMLElement>(
+      '[data-picodash-dashlet="display-focus"]',
+    )!
+    fireEvent.click(display.querySelector('[data-picodash-dashlet-label]')!)
+    expect(display.ownerDocument.activeElement).toBe(
+      display.querySelector('[data-picodash-dashlet-shell]'),
+    )
+
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('describes read-only Slider and Select on their actual focus targets', () => {
+    const sliderChanges: number[] = []
+    const selectChanges: Array<string | number> = []
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement(Slider, {
+          value: 4,
+          onChange: (next) => sliderChanges.push(next),
+          readOnly: true,
+          'aria-label': 'Read-only slider',
+          'aria-describedby': 'slider-context',
+        }),
+        createElement(Select, {
+          value: 'one',
+          onChange: (next) => selectChanges.push(next),
+          options,
+          readOnly: true,
+          'aria-label': 'Read-only select',
+          'aria-describedby': 'select-context',
+        }),
+      ),
+    )
+    const slider = view.root.element.querySelector<HTMLInputElement>('input[type="range"]')!
+    const select = view.root.element.querySelector<HTMLButtonElement>(
+      '.picodash-dashlist-select button',
+    )!
+    for (const [control, existing] of [
+      [slider, 'slider-context'],
+      [select, 'select-context'],
+    ] as const) {
+      const ids = control.getAttribute('aria-describedby')?.split(' ') ?? []
+      expect(ids).toContain(existing)
+      expect(
+        ids.some((id) => control.ownerDocument.getElementById(id)?.textContent === 'Read only.'),
+      ).toBe(true)
+      expect(control.hasAttribute('aria-readonly')).toBe(false)
+    }
+    expect(view.root.element.querySelector('[aria-readonly]')).toBeNull()
+    fireEvent.change(slider, { target: { value: '5' } })
+    fireEvent.click(select)
+    expect(sliderChanges).toEqual([])
+    expect(selectChanges).toEqual([])
+    act(() => view.unmount())
   })
 })
 
@@ -411,6 +598,89 @@ describe('Switch state presentation', () => {
 })
 
 describe('NumberField configuration and behavior', () => {
+  it('does not emit formatted replacements when untouched decimal, currency, percent, and unit values blur', () => {
+    const cases: readonly {
+      readonly name: string
+      readonly value: number
+      readonly formatOptions?: Intl.NumberFormatOptions
+    }[] = [
+      { name: 'decimal', value: 1.234567 },
+      { name: 'currency', value: 1.234567, formatOptions: { style: 'currency', currency: 'USD' } },
+      { name: 'percent', value: 0.123456, formatOptions: { style: 'percent' } },
+      { name: 'unit', value: 1.234567, formatOptions: { style: 'unit', unit: 'kilometer' } },
+    ]
+    for (const numberCase of cases) {
+      const changes: Array<number | null> = []
+      const view = render(
+        createElement(StrictMode, {
+          children: createElement(NumberField, {
+            value: numberCase.value,
+            formatOptions: numberCase.formatOptions,
+            onChange: (next) => changes.push(next),
+            'aria-label': `${numberCase.name} number`,
+          }),
+        }),
+      )
+      const input = view.root.element.querySelector<HTMLInputElement>('input')!
+      fireEvent.focus(input)
+      fireEvent.blur(input)
+      expect(changes, numberCase.name).toEqual([])
+      act(() => view.unmount())
+    }
+  })
+
+  it('forwards explicit text, clear, arrow, and wheel edits without stale intent', async () => {
+    const changes: Array<number | null> = []
+    const renderField = (value: number, formatOptions?: Intl.NumberFormatOptions) =>
+      createElement(NumberField, {
+        value,
+        formatOptions,
+        onChange: (next) => changes.push(next),
+        'aria-label': 'Editable number',
+      })
+    const view = render(renderField(10))
+    const input = () => view.root.element.querySelector<HTMLInputElement>('input')!
+
+    fireEvent.change(input(), { target: { value: '12.5' } })
+    fireEvent.blur(input())
+    expect(changes).toEqual([12.5])
+
+    act(() => view.update(renderField(12.5)))
+    fireEvent.change(input(), { target: { value: '' } })
+    fireEvent.blur(input())
+    expect(changes).toEqual([12.5, null])
+
+    act(() => view.update(renderField(4)))
+    fireEvent.keyDown(input(), { key: 'ArrowUp' })
+    expect(changes).toEqual([12.5, null, 5])
+
+    act(() => view.update(renderField(5)))
+    act(() => {
+      input().focus()
+      fireEvent.focusIn(input())
+    })
+    act(() => {
+      void fireEvent.wheel(input(), { deltaY: 10, deltaX: 0 })
+    })
+    await act(() => Promise.resolve())
+    expect(changes).toEqual([12.5, null, 5, 6])
+
+    act(() => view.update(renderField(6)))
+    fireEvent.keyDown(input(), { key: 'ArrowDown' })
+    expect(changes).toEqual([12.5, null, 5, 6, 5])
+
+    act(() => view.update(renderField(5)))
+    input().setSelectionRange(0, input().value.length)
+    fireEvent.paste(input(), { clipboardData: { getData: () => '8' } })
+    expect(changes).toEqual([12.5, null, 5, 6, 5, 8])
+
+    fireEvent.change(input(), { target: { value: '-' } })
+    act(() => view.update(renderField(7, { minimumFractionDigits: 2 })))
+    fireEvent.blur(input())
+    expect(changes).toEqual([12.5, null, 5, 6, 5, 8])
+    act(() => view.unmount())
+  })
+
   it('rejects invalid direct NumberField configuration synchronously', () => {
     const invalidConfigurations: readonly {
       readonly name: string

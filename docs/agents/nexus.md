@@ -39,3 +39,26 @@ not add consumer-specific backdoors or make Nexus depend on UI packages or Dev B
 Nexus pure, type, reducer, serialization, and model tests own its invariants. Use the focused
 package check and tests first. Add browser evidence only when the behavior genuinely depends on a
 browser seam.
+
+## Implementation FAQ
+
+### Why do exact field views use a private type fingerprint?
+
+TypeScript normally treats `{ start, end, unit }` as assignable to `{ start, end }`. Compound
+Dashlets such as Range need the stricter rule: the bound field must contain exactly the accepted
+JSON shape. Nexus therefore carries a private, type-only description of the selected field's value
+domain. `PicodashExactFieldOf<Value>` compares that description while `PicodashFieldOf<Value>` keeps
+ordinary assignable-value behavior.
+
+This mechanism must remain private. It does not add runtime properties, change persisted data,
+expose the ownership brand, or grant validation and mutation authority. Runtime field handles stay
+frozen key-only objects. Consumer documentation should explain the two public guarantees, not this
+TypeScript implementation technique.
+
+### Why can a field already typed as `any` bypass some Dashlet checks?
+
+`any` explicitly opts out of TypeScript's static compatibility checks and is assignable to every
+field view. The concrete overload that keeps React `ComponentProps` and unannotated
+`createElement` useful therefore cannot reject a value that a caller has already erased to `any`.
+Typed JSX, explicit prop aliases, and generic wrappers remain fail-closed. Agents must not use
+`any` to work around a field mismatch; preserve the concrete Nexus field type instead.

@@ -9,9 +9,22 @@ import {
 } from 'react'
 import { parseAbsolute, parseDate, parseTime } from '@internationalized/date'
 import { parseColor } from 'react-aria-components'
-import type { PicodashField } from '@picodash/nexus'
+import type { PicodashJsonValue } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
+import { isNumberCompatible } from './number-compatibility.js'
 import { PresentationWarning, presentationWarningId } from './presentation-warning.js'
+import { asDashletBindingField } from './ready-made-field-types.js'
+import type {
+  ChoiceField,
+  ChoiceFieldProps,
+  ChoiceOptionValue,
+  ChoiceValue,
+  ExactField,
+  ExactCompoundFieldProps,
+  FieldProps,
+  ScalarField,
+  WritableScalarFieldProps,
+} from './ready-made-field-types.js'
 import {
   ColorField,
   DateField,
@@ -36,44 +49,9 @@ import {
   validateSupportedColorFormat,
 } from './ui-values.js'
 
-type AnyField = PicodashField<any, any>
-type FieldValue<F> =
-  F extends PicodashField<infer Values, infer Key>
-    ? Key extends keyof Values
-      ? Values[Key]
-      : never
-    : never
-type FieldProps<F extends AnyField, Value> = {
-  readonly field: F & (FieldValue<F> extends Value ? unknown : never)
-}
-type IsAny<Value> = 0 extends 1 & Value ? true : false
-type ExactCompoundValueMember<Candidate, Emitted extends object> = Candidate extends object
-  ? Exclude<keyof Candidate, keyof Emitted> extends never
-    ? Exclude<keyof Emitted, keyof Candidate> extends never
-      ? Candidate extends Emitted
-        ? Emitted extends Candidate
-          ? true
-          : false
-        : false
-      : false
-    : false
-  : false
-type IsExactCompoundValue<Candidate, Emitted extends object> =
-  IsAny<Candidate> extends true
-    ? true
-    : [Candidate] extends [never]
-      ? false
-      : false extends (
-            Candidate extends unknown ? ExactCompoundValueMember<Candidate, Emitted> : never
-          )
-        ? false
-        : true
-type ExactCompoundFieldProps<F extends AnyField, Emitted extends object> = {
-  readonly field: F & (IsExactCompoundValue<FieldValue<F>, Emitted> extends true ? unknown : never)
-}
 type Shell = Omit<
-  DashletProps<any, any, 'input'>,
-  'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef'
+  DashletProps,
+  'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef' | 'defaultValue' | 'onChange'
 > & {
   readonly label: ReactNode
 }
@@ -122,13 +100,6 @@ function validateStep(step: number | undefined): void {
     throw new TypeError('step must be a positive finite number.')
 }
 
-function onStep(value: number, min: number, step: number): boolean {
-  const quotient = (value - min) / step
-  if (!Number.isFinite(quotient)) return false
-  const tolerance = Number.EPSILON * Math.max(1, Math.abs(quotient)) * 100
-  return Math.abs(quotient - Math.round(quotient)) <= tolerance
-}
-
 function rangeCompatible(value: NumberRangeValue, min: number, max: number, step: number): boolean {
   return (
     Number.isFinite(value.start) &&
@@ -136,8 +107,8 @@ function rangeCompatible(value: NumberRangeValue, min: number, max: number, step
     value.start <= value.end &&
     value.start >= min &&
     value.end <= max &&
-    onStep(value.start, min, step) &&
-    onStep(value.end, min, step)
+    isNumberCompatible(value.start, min, max, step) &&
+    isNumberCompatible(value.end, min, max, step)
   )
 }
 
@@ -156,13 +127,15 @@ function temporalPrecisionCompatible(
   return value.millisecond === 0
 }
 
-export type RangeDashletProps<F extends AnyField = AnyField> = Shell &
+export type RangeDashletProps<
+  F extends ScalarField<PicodashJsonValue> = ExactField<NumberRangeValue>,
+> = Shell &
   ExactCompoundFieldProps<F, NumberRangeValue> &
   Pick<RangeSliderProps, 'min' | 'max' | 'step' | 'formatOptions'> & {
     readonly formatValue?: (value: NumberRangeValue) => ReactNode
   }
 
-function RangeDashletInner<F extends AnyField = AnyField>(
+function RangeDashletInner<F extends ScalarField<PicodashJsonValue>>(
   {
     field,
     min = 0,
@@ -177,7 +150,12 @@ function RangeDashletInner<F extends AnyField = AnyField>(
   validateBounds(min, max)
   validateStep(step)
   return (
-    <Dashlet {...props} ref={ref} field={field} layout={props.layout ?? 'block'}>
+    <Dashlet
+      {...props}
+      ref={ref}
+      field={asDashletBindingField(field)}
+      layout={props.layout ?? 'block'}
+    >
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as NumberRangeValue
@@ -224,26 +202,29 @@ function RangeDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const RangeDashlet = forwardRef(RangeDashletInner) as <F extends AnyField>(
-  props: RangeDashletProps<F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const RangeDashlet = forwardRef(RangeDashletInner) as unknown as {
+  <F extends ScalarField<PicodashJsonValue>>(
+    props: RangeDashletProps<F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: RangeDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
-export type MeterDashletProps<F extends AnyField = AnyField> = Omit<
+export type MeterDashletProps<F extends ScalarField<number> = ScalarField<number>> = Omit<
   Shell,
   'readOnly' | 'disabled'
 > &
-  FieldProps<F, number> &
+  FieldProps<F> &
   Pick<MeterProps, 'min' | 'max' | 'formatOptions'> & {
     readonly formatValue?: (value: number) => ReactNode
   }
 
-function MeterDashletInner<F extends AnyField = AnyField>(
+function MeterDashletInner<F extends ScalarField<number>>(
   { field, min = 0, max = 100, formatOptions, formatValue, ...props }: MeterDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateBounds(min, max)
   return (
-    <Dashlet {...props} ref={ref} field={field} mode="display">
+    <Dashlet {...props} ref={ref} field={asDashletBindingField(field)} mode="display">
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as number
@@ -283,26 +264,26 @@ function MeterDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const MeterDashlet = forwardRef(MeterDashletInner) as <F extends AnyField>(
+export const MeterDashlet = forwardRef(MeterDashletInner) as <F extends ScalarField<number>>(
   props: MeterDashletProps<F> & RefAttributes<HTMLDivElement>,
 ) => ReactElement | null
 
-export type ProgressDashletProps<F extends AnyField = AnyField> = Omit<
+export type ProgressDashletProps<F extends ScalarField<number> = ScalarField<number>> = Omit<
   Shell,
   'readOnly' | 'disabled'
 > &
-  FieldProps<F, number> &
+  FieldProps<F> &
   Pick<ProgressBarProps, 'min' | 'max' | 'formatOptions'> & {
     readonly formatValue?: (value: number) => ReactNode
   }
 
-function ProgressDashletInner<F extends AnyField = AnyField>(
+function ProgressDashletInner<F extends ScalarField<number>>(
   { field, min = 0, max = 100, formatOptions, formatValue, ...props }: ProgressDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateBounds(min, max)
   return (
-    <Dashlet {...props} ref={ref} field={field} mode="display">
+    <Dashlet {...props} ref={ref} field={asDashletBindingField(field)} mode="display">
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as number
@@ -342,34 +323,29 @@ function ProgressDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const ProgressDashlet = forwardRef(ProgressDashletInner) as <F extends AnyField>(
+export const ProgressDashlet = forwardRef(ProgressDashletInner) as <F extends ScalarField<number>>(
   props: ProgressDashletProps<F> & RefAttributes<HTMLDivElement>,
 ) => ReactElement | null
 
-type StatusChoice<T extends string | number> = StatusOption<T>
-type StatusFieldProps<F extends AnyField, T extends string | number> = {
-  readonly field: F &
-    ([FieldValue<F>] extends [string]
-      ? [T] extends [FieldValue<F>]
-        ? unknown
-        : never
-      : [FieldValue<F>] extends [number]
-        ? [T] extends [FieldValue<F>]
-          ? unknown
-          : never
-        : never)
-}
-export type StatusDashletProps<T extends string | number, F extends AnyField = AnyField> = Omit<
+type StatusChoice<T extends ChoiceValue> = StatusOption<T>
+export type StatusDashletProps<
+  T extends ChoiceValue = ChoiceValue,
+  F extends ChoiceField = ChoiceField,
+> = F extends ChoiceField
+  ? Omit<Shell, 'readOnly' | 'disabled'> &
+      ChoiceFieldProps<F, T> & {
+        readonly options: readonly StatusChoice<ChoiceOptionValue<F, T>>[]
+      }
+  : never
+type StatusDashletInnerProps<T extends ChoiceValue, F extends ChoiceField> = Omit<
   Shell,
   'readOnly' | 'disabled'
 > &
-  StatusFieldProps<F, T> & {
+  ChoiceFieldProps<F, T> & {
     readonly options: readonly StatusChoice<T>[]
   }
 
-function validateStatusOptions<T extends string | number>(
-  options: readonly StatusChoice<T>[],
-): void {
+function validateStatusOptions<T extends ChoiceValue>(options: readonly StatusChoice<T>[]): void {
   const seen = new Set<string>()
   for (const option of options) {
     if (
@@ -387,14 +363,14 @@ function validateStatusOptions<T extends string | number>(
   }
 }
 
-function StatusDashletInner<T extends string | number, F extends AnyField = AnyField>(
-  props: StatusDashletProps<T, F>,
+function StatusDashletInner<T extends ChoiceValue, F extends ChoiceField>(
+  props: StatusDashletInnerProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateStatusOptions(props.options)
   const { field, options, ...shell } = props
   return (
-    <Dashlet {...shell} ref={ref} field={field} mode="display">
+    <Dashlet {...shell} ref={ref} field={asDashletBindingField(field)} mode="display">
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as string | number
@@ -420,19 +396,19 @@ function StatusDashletInner<T extends string | number, F extends AnyField = AnyF
     </Dashlet>
   )
 }
-export const StatusDashlet = forwardRef(StatusDashletInner) as <
-  T extends string | number,
-  F extends AnyField,
->(
-  props: StatusDashletProps<T, F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const StatusDashlet = forwardRef(StatusDashletInner) as {
+  <T extends ChoiceValue, F extends ChoiceField>(
+    props: StatusDashletProps<T, F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: StatusDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
 type TemporalCommon = Pick<DateFieldProps, 'min' | 'max' | 'locale' | 'shouldForceLeadingZeros'>
-export type DateDashletProps<F extends AnyField = AnyField> = Shell &
-  FieldProps<F, string> &
+export type DateDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell &
+  WritableScalarFieldProps<F, string> &
   TemporalCommon
 
-function DateDashletInner<F extends AnyField = AnyField>(
+function DateDashletInner<F extends ScalarField<string>>(
   { field, min, max, locale, shouldForceLeadingZeros, ...props }: DateDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
@@ -448,7 +424,7 @@ function DateDashletInner<F extends AnyField = AnyField>(
   if (parsedMin && parsedMax && parsedMin.compare(parsedMax) > 0)
     throw new TypeError('min must be less than or equal to max.')
   return (
-    <Dashlet {...props} ref={ref} field={field}>
+    <Dashlet {...props} ref={ref} field={asDashletBindingField(field)}>
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as string
@@ -497,18 +473,21 @@ function DateDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const DateDashlet = forwardRef(DateDashletInner) as <F extends AnyField>(
-  props: DateDashletProps<F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const DateDashlet = forwardRef(DateDashletInner) as {
+  <F extends ScalarField<string>>(
+    props: DateDashletProps<F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: DateDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
-export type TimeDashletProps<F extends AnyField = AnyField> = Shell &
-  FieldProps<F, string> &
+export type TimeDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell &
+  WritableScalarFieldProps<F, string> &
   Pick<
     TimeFieldProps,
     'min' | 'max' | 'locale' | 'granularity' | 'hourCycle' | 'shouldForceLeadingZeros'
   >
 
-function TimeDashletInner<F extends AnyField = AnyField>(
+function TimeDashletInner<F extends ScalarField<string>>(
   {
     field,
     min,
@@ -533,7 +512,7 @@ function TimeDashletInner<F extends AnyField = AnyField>(
   if (parsedMin && parsedMax && parsedMin.compare(parsedMax) > 0)
     throw new TypeError('min must be less than or equal to max.')
   return (
-    <Dashlet {...props} ref={ref} field={field}>
+    <Dashlet {...props} ref={ref} field={asDashletBindingField(field)}>
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as string
@@ -585,12 +564,15 @@ function TimeDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const TimeDashlet = forwardRef(TimeDashletInner) as <F extends AnyField>(
-  props: TimeDashletProps<F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const TimeDashlet = forwardRef(TimeDashletInner) as {
+  <F extends ScalarField<string>>(
+    props: TimeDashletProps<F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: TimeDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
-export type DateTimeDashletProps<F extends AnyField = AnyField> = Shell &
-  FieldProps<F, string> &
+export type DateTimeDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell &
+  WritableScalarFieldProps<F, string> &
   Pick<
     DateTimeFieldProps,
     | 'min'
@@ -604,7 +586,7 @@ export type DateTimeDashletProps<F extends AnyField = AnyField> = Shell &
     readonly timeZone: string
   }
 
-function DateTimeDashletInner<F extends AnyField = AnyField>(
+function DateTimeDashletInner<F extends ScalarField<string>>(
   {
     field,
     timeZone,
@@ -637,7 +619,7 @@ function DateTimeDashletInner<F extends AnyField = AnyField>(
   if (parsedMin && parsedMax && parsedMin.compare(parsedMax) > 0)
     throw new TypeError('min must be less than or equal to max.')
   return (
-    <Dashlet {...props} ref={ref} field={field}>
+    <Dashlet {...props} ref={ref} field={asDashletBindingField(field)}>
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as string
@@ -691,21 +673,33 @@ function DateTimeDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const DateTimeDashlet = forwardRef(DateTimeDashletInner) as <F extends AnyField>(
-  props: DateTimeDashletProps<F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const DateTimeDashlet = forwardRef(DateTimeDashletInner) as {
+  <F extends ScalarField<string>>(
+    props: DateTimeDashletProps<F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: DateTimeDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
-export type DateRangeDashletProps<F extends AnyField = AnyField> = Shell &
-  ExactCompoundFieldProps<F, { start: string; end: string }> &
+type DateRangeValue = { readonly start: string; readonly end: string }
+
+export type DateRangeDashletProps<
+  F extends ScalarField<PicodashJsonValue> = ExactField<DateRangeValue>,
+> = Shell &
+  ExactCompoundFieldProps<F, DateRangeValue> &
   Pick<DateRangeFieldProps, 'locale' | 'shouldForceLeadingZeros'>
 
-function DateRangeDashletInner<F extends AnyField = AnyField>(
+function DateRangeDashletInner<F extends ScalarField<PicodashJsonValue>>(
   { field, locale, shouldForceLeadingZeros, ...props }: DateRangeDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateLocale(locale)
   return (
-    <Dashlet {...props} ref={ref} field={field} layout={props.layout ?? 'block'}>
+    <Dashlet
+      {...props}
+      ref={ref}
+      field={asDashletBindingField(field)}
+      layout={props.layout ?? 'block'}
+    >
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as { start: string; end: string }
@@ -752,22 +746,25 @@ function DateRangeDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const DateRangeDashlet = forwardRef(DateRangeDashletInner) as <F extends AnyField>(
-  props: DateRangeDashletProps<F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const DateRangeDashlet = forwardRef(DateRangeDashletInner) as unknown as {
+  <F extends ScalarField<PicodashJsonValue>>(
+    props: DateRangeDashletProps<F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: DateRangeDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
-export type ColorDashletProps<F extends AnyField = AnyField> = Shell &
-  FieldProps<F, string> & {
+export type ColorDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell &
+  WritableScalarFieldProps<F, string> & {
     readonly format?: ColorFormat
   }
 
-function ColorDashletInner<F extends AnyField = AnyField>(
+function ColorDashletInner<F extends ScalarField<string>>(
   { field, format = 'hex', ...props }: ColorDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateSupportedColorFormat(format)
   return (
-    <Dashlet {...props} ref={ref} field={field}>
+    <Dashlet {...props} ref={ref} field={asDashletBindingField(field)}>
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as string
@@ -775,9 +772,6 @@ function ColorDashletInner<F extends AnyField = AnyField>(
         try {
           const parsed = parseColor(canonical)
           serializeColor(parsed, format)
-          const formatPreservesAlpha =
-            format === 'hexa' || format === 'rgba' || format === 'hsla' || format === 'hsba'
-          compatible = formatPreservesAlpha || parsed.getChannelValue('alpha') === 1
         } catch {
           compatible = false
         }
@@ -815,6 +809,9 @@ function ColorDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const ColorDashlet = forwardRef(ColorDashletInner) as <F extends AnyField>(
-  props: ColorDashletProps<F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const ColorDashlet = forwardRef(ColorDashletInner) as {
+  <F extends ScalarField<string>>(
+    props: ColorDashletProps<F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: ColorDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}

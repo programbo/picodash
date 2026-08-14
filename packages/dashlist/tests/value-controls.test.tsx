@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { act, createElement, type ReactElement } from 'react'
+import { act, createElement, StrictMode, useState, type ReactElement } from 'react'
+import { renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vite-plus/test'
 import { fireEvent } from '@testing-library/react'
 import { createPicodashNexus } from '@picodash/nexus'
@@ -16,10 +17,11 @@ import {
   Status,
   TimeField,
 } from '../src/ui.js'
-import type { RangeSliderProps } from '../src/ui.js'
+import type { ColorFormat, RangeSliderProps } from '../src/ui.js'
 import type { MeterProps } from '../src/ui.js'
 import {
   ColorDashlet,
+  Dashlet,
   DashList,
   DateDashlet,
   DateTimeDashlet,
@@ -39,7 +41,345 @@ function render(element: ReactElement): DomTestRenderer {
   return renderer
 }
 
+function ControlledColorFixture({
+  initialValue,
+  format,
+  changes,
+  externalValue,
+}: {
+  readonly initialValue: string | null
+  readonly format: ColorFormat
+  readonly changes: Array<string | null>
+  readonly externalValue?: string
+}) {
+  const [value, setValue] = useState(initialValue)
+  return createElement(
+    'div',
+    null,
+    createElement(ColorField, {
+      value,
+      format,
+      onChange: (next) => {
+        changes.push(next)
+        setValue(next)
+      },
+      'aria-label': `${format} controlled color`,
+    }),
+    externalValue === undefined
+      ? null
+      : createElement('button', {
+          type: 'button',
+          'data-external-color': true,
+          onPointerDown: () => setValue(externalValue),
+        }),
+  )
+}
+
 describe('value controls', () => {
+  it('serializes all supported color formats and preserves alpha in alpha-bearing formats', () => {
+    const formats = [
+      {
+        format: 'hex',
+        value: 'rgb(51, 102, 153)',
+        edit: 'rgb(255, 0, 0)',
+        initial: '#336699',
+        edited: '#FF0000',
+      },
+      {
+        format: 'hexa',
+        value: 'rgba(51, 102, 153, 0.5)',
+        edit: 'rgba(255, 0, 0, 0.5)',
+        initial: '#33669980',
+        edited: '#FF000080',
+      },
+      {
+        format: 'rgb',
+        value: 'rgb(51, 102, 153)',
+        edit: 'rgb(255, 0, 0)',
+        initial: 'rgb(51, 102, 153)',
+        edited: 'rgb(255, 0, 0)',
+      },
+      {
+        format: 'rgba',
+        value: 'rgba(51, 102, 153, 0.5)',
+        edit: 'rgba(255, 0, 0, 0.5)',
+        initial: 'rgba(51, 102, 153, 0.5)',
+        edited: 'rgba(255, 0, 0, 0.5)',
+      },
+      {
+        format: 'hsl',
+        value: 'rgb(51, 102, 153)',
+        edit: 'rgb(255, 0, 0)',
+        initial: 'hsl(210, 50%, 40%)',
+        edited: 'hsl(0, 100%, 50%)',
+      },
+      {
+        format: 'hsla',
+        value: 'rgba(51, 102, 153, 0.5)',
+        edit: 'rgba(255, 0, 0, 0.5)',
+        initial: 'hsla(210, 50%, 40%, 0.5)',
+        edited: 'hsla(0, 100%, 50%, 0.5)',
+      },
+      {
+        format: 'hsb',
+        value: 'rgb(51, 102, 153)',
+        edit: 'rgb(255, 0, 0)',
+        initial: 'hsb(210, 66.67%, 60%)',
+        edited: 'hsb(0, 100%, 100%)',
+      },
+      {
+        format: 'hsba',
+        value: 'rgba(51, 102, 153, 0.5)',
+        edit: 'rgba(255, 0, 0, 0.5)',
+        initial: 'hsba(210, 66.67%, 60%, 0.5)',
+        edited: 'hsba(0, 100%, 100%, 0.5)',
+      },
+    ] as const
+
+    for (const colorCase of formats) {
+      const changes: Array<string | null> = []
+      const view = render(
+        createElement(ColorField, {
+          value: colorCase.value,
+          format: colorCase.format,
+          onChange: (next) => changes.push(next),
+          'aria-label': `${colorCase.format} color`,
+        }),
+      )
+      const input = view.root.element.querySelector<HTMLInputElement>('input')!
+      expect(input.value, colorCase.format).toBe(colorCase.initial)
+      fireEvent.change(input, { target: { value: colorCase.edit } })
+      expect(changes, colorCase.format).toEqual([colorCase.edited])
+      act(() => view.unmount())
+    }
+
+    for (const format of ['hexa', 'rgba', 'hsla', 'hsba'] as const) {
+      for (const alpha of [0, 0.5, 1]) {
+        const changes: Array<string | null> = []
+        const view = render(
+          createElement(ColorField, {
+            value: '#ff0000',
+            format,
+            onChange: (next) => changes.push(next),
+            'aria-label': `${format} alpha ${alpha}`,
+          }),
+        )
+        const input = view.root.element.querySelector<HTMLInputElement>('input')!
+        fireEvent.change(input, {
+          target: { value: `rgba(51, 102, 153, ${alpha})` },
+        })
+        expect(changes).toEqual([
+          format === 'hexa'
+            ? `#336699${alpha === 0 ? '00' : alpha === 0.5 ? '80' : 'FF'}`
+            : format === 'rgba'
+              ? `rgba(51, 102, 153, ${alpha})`
+              : format === 'hsla'
+                ? `hsla(210, 50%, 40%, ${alpha})`
+                : `hsba(210, 66.67%, 60%, ${alpha})`,
+        ])
+        act(() => view.unmount())
+      }
+    }
+  })
+
+  it('rejects alpha loss in direct ColorField values and edits', () => {
+    for (const format of ['hex', 'rgb', 'hsl', 'hsb'] as const) {
+      for (const alpha of [0, 0.5]) {
+        expect(() =>
+          renderToString(
+            createElement(ColorField, {
+              value: `rgba(51, 102, 153, ${alpha})`,
+              format,
+              onChange: () => undefined,
+              'aria-label': `${format} alpha ${alpha}`,
+            }),
+          ),
+        ).toThrowError(new TypeError('format must preserve alpha for non-opaque colors.'))
+      }
+
+      const changes: Array<string | null> = []
+      const view = render(
+        createElement(ColorField, {
+          value: 'rgb(51, 102, 153)',
+          format,
+          onChange: (next) => changes.push(next),
+          'aria-label': `${format} opaque color`,
+        }),
+      )
+      const input = view.root.element.querySelector<HTMLInputElement>('input')!
+      fireEvent.change(input, { target: { value: 'rgba(255, 0, 0, 0.5)' } })
+      expect(changes, format).toEqual([])
+      act(() => view.unmount())
+    }
+  })
+
+  it('preserves character-by-character hex and hexa drafts through canonical echoes', () => {
+    const cases = [
+      {
+        format: 'hex',
+        text: '#123abc',
+        canonicalChanges: ['#112233', '#123ABC'],
+        blurred: '#123ABC',
+      },
+      {
+        format: 'hexa',
+        text: '#123abcde',
+        canonicalChanges: ['#112233FF', '#112233AA', '#123ABCFF', '#123ABCDE'],
+        blurred: '#123ABCDE',
+      },
+    ] as const
+
+    for (const colorCase of cases) {
+      const changes: Array<string | null> = []
+      const view = render(
+        createElement(StrictMode, {
+          children: createElement(ControlledColorFixture, {
+            initialValue: null,
+            format: colorCase.format,
+            changes,
+          }),
+        }),
+      )
+      const input = view.root.element.querySelector<HTMLInputElement>('input')!
+      act(() => input.focus())
+      for (let end = 1; end <= colorCase.text.length; end += 1) {
+        const prefix = colorCase.text.slice(0, end)
+        fireEvent.change(input, { target: { value: prefix } })
+        expect(input.value, `${colorCase.format} prefix ${prefix}`).toBe(prefix)
+      }
+      expect(changes).toEqual(colorCase.canonicalChanges)
+      fireEvent.blur(input)
+      expect(input.value).toBe(colorCase.blurred)
+      act(() => view.unmount())
+    }
+  })
+
+  it('preserves character-by-character fractional alpha drafts in every functional format', () => {
+    const cases = [
+      { format: 'rgba', text: 'rgba(51, 102, 153, 0.5)' },
+      { format: 'hsla', text: 'hsla(210, 50%, 40%, 0.5)' },
+      { format: 'hsba', text: 'hsba(210, 66.67%, 60%, 0.5)' },
+    ] as const
+
+    for (const colorCase of cases) {
+      const changes: Array<string | null> = []
+      const view = render(
+        createElement(ControlledColorFixture, {
+          initialValue: null,
+          format: colorCase.format,
+          changes,
+        }),
+      )
+      const input = view.root.element.querySelector<HTMLInputElement>('input')!
+      act(() => input.focus())
+      for (let end = 1; end <= colorCase.text.length; end += 1) {
+        const prefix = colorCase.text.slice(0, end)
+        fireEvent.change(input, { target: { value: prefix } })
+        expect(input.value, `${colorCase.format} prefix ${prefix}`).toBe(prefix)
+      }
+      expect(changes).toEqual([colorCase.text])
+      fireEvent.blur(input)
+      expect(input.value).toBe(colorCase.text)
+      act(() => view.unmount())
+    }
+  })
+
+  it('replaces a dirty focused color draft for a genuinely external controlled update', () => {
+    const changes: Array<string | null> = []
+    const view = render(
+      createElement(ControlledColorFixture, {
+        initialValue: null,
+        format: 'hexa',
+        changes,
+        externalValue: '#abcdef80',
+      }),
+    )
+    const input = view.root.element.querySelector<HTMLInputElement>('input')!
+    act(() => input.focus())
+    for (const prefix of ['#', '#1', '#12', '#123']) {
+      fireEvent.change(input, { target: { value: prefix } })
+      expect(input.value).toBe(prefix)
+    }
+    expect(changes).toEqual(['#112233FF'])
+    expect(input.ownerDocument.activeElement).toBe(input)
+
+    fireEvent.pointerDown(view.root.element.querySelector('[data-external-color]')!)
+    expect(input.ownerDocument.activeElement).toBe(input)
+    expect(input.value).toBe('#ABCDEF80')
+    expect(changes).toEqual(['#112233FF'])
+    act(() => view.unmount())
+  })
+
+  it('keeps disabled and read-only color fields canonical without writes', () => {
+    for (const state of ['disabled', 'readOnly'] as const) {
+      const changes: Array<string | null> = []
+      const renderField = (value: string) =>
+        createElement(ColorField, {
+          value,
+          format: 'hexa',
+          onChange: (next) => changes.push(next),
+          [state]: true,
+          'aria-label': `${state} color`,
+        })
+      const view = render(renderField('#ff000080'))
+      const input = view.root.element.querySelector<HTMLInputElement>('input')!
+      fireEvent.change(input, { target: { value: '#123' } })
+      expect(changes, state).toEqual([])
+      expect(input.value, state).toBe('#FF000080')
+
+      act(() => view.update(renderField('#abcdef80')))
+      expect(input.value, state).toBe('#ABCDEF80')
+      act(() => view.unmount())
+    }
+  })
+
+  it('keeps partial color text local, restores it on blur, clears explicitly, and follows controlled updates', () => {
+    const changes: Array<string | null> = []
+    const renderField = (value: string | null, format: 'hexa' | 'rgba' = 'hexa') =>
+      createElement(StrictMode, {
+        children: createElement(ColorField, {
+          value,
+          format,
+          onChange: (next) => changes.push(next),
+          'aria-label': 'Controlled color',
+        }),
+      })
+    const view = render(renderField('#ff0000'))
+    const input = () => view.root.element.querySelector<HTMLInputElement>('input')!
+    expect(input().value).toBe('#FF0000FF')
+
+    fireEvent.change(input(), { target: { value: 'rgba(' } })
+    expect(input().value).toBe('rgba(')
+    expect(changes).toEqual([])
+    fireEvent.blur(input())
+    expect(input().value).toBe('#FF0000FF')
+
+    fireEvent.change(input(), { target: { value: 'not-yet-valid' } })
+    act(() => view.update(renderField('rgba(0, 0, 255, 0.5)')))
+    expect(input().value).toBe('#0000FF80')
+    fireEvent.blur(input())
+    expect(changes).toEqual([])
+
+    act(() => view.update(renderField('rgba(0, 0, 255, 0.5)', 'rgba')))
+    expect(input().value).toBe('rgba(0, 0, 255, 0.5)')
+    fireEvent.change(input(), { target: { value: '' } })
+    expect(changes).toEqual([null])
+    act(() => view.unmount())
+  })
+
+  it('renders ColorField deterministically on the server', () => {
+    const html = renderToString(
+      createElement(ColorField, {
+        value: 'rgba(51, 102, 153, 0.5)',
+        format: 'hsba',
+        onChange: () => undefined,
+        'aria-label': 'Server color',
+      }),
+    )
+    expect(html).toContain('picodash-dashlist-color-field')
+    expect(html).toContain('hsba(210, 66.67%, 60%, 0.5)')
+  })
+
   it('rejects unsupported color formats before parsing or writing', () => {
     const changes: Array<string | null> = []
     expect(() =>
@@ -88,7 +428,7 @@ describe('value controls', () => {
     )
     const directInput = directView.root.element.querySelector<HTMLInputElement>('input')!
     expect(directInput).not.toBeNull()
-    await act(() => fireEvent.input(directInput, { target: { value: '#0000ff' } }))
+    await act(() => fireEvent.change(directInput, { target: { value: '#0000ff' } }))
     await act(() => fireEvent.blur(directInput))
     expect(directChanges).toEqual(['#0000FF'])
     act(() => directView.unmount())
@@ -131,7 +471,7 @@ describe('value controls', () => {
     const hslInput = view.root.element.querySelector<HTMLInputElement>(
       '[data-picodash-dashlet="hsl"] input',
     )!
-    await act(() => fireEvent.input(hslInput, { target: { value: '#0000ff' } }))
+    await act(() => fireEvent.change(hslInput, { target: { value: '#0000ff' } }))
     await act(() => fireEvent.blur(hslInput))
     expect(nexus.getState().values.hsl).toBe('#0000FF')
     expect(nexus.getState().values.hsb).toBe('hsb(120, 100%, 100%)')
@@ -308,6 +648,132 @@ describe('value controls', () => {
     for (const thumb of thumbs)
       expect(thumb.classList.contains('react-aria-SliderThumb')).toBe(true)
     act(() => view.unmount())
+  })
+
+  it('describes read-only range thumbs on the actual focus targets without unsupported ARIA', () => {
+    const changes: RangeSliderProps['value'][] = []
+    const view = render(
+      createElement(RangeSlider, {
+        value: { start: 2, end: 8 },
+        onChange: (next) => changes.push(next),
+        readOnly: true,
+        'aria-label': 'Read-only range',
+        'aria-describedby': 'range-context',
+      }),
+    )
+    const thumbs = view.root.element.querySelectorAll<HTMLInputElement>('input[type="range"]')
+    expect(thumbs).toHaveLength(2)
+    for (const thumb of thumbs) {
+      const ids = thumb.getAttribute('aria-describedby')?.split(' ') ?? []
+      expect(ids).toContain('range-context')
+      expect(
+        ids.some((id) => thumb.ownerDocument.getElementById(id)?.textContent === 'Read only.'),
+      ).toBe(true)
+      expect(thumb.hasAttribute('aria-readonly')).toBe(false)
+    }
+    expect(view.root.element.querySelector('[aria-readonly]')).toBeNull()
+    fireEvent.change(thumbs[1]!, { target: { value: '9' } })
+    expect(changes).toEqual([])
+    act(() => view.unmount())
+  })
+
+  it('registers exact range, temporal, and color focus nodes and leaves readouts on the shell', () => {
+    const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'value-focus-targets', nexus },
+        createElement(
+          Dashlet,
+          { id: 'range-focus', label: 'Range focus' },
+          createElement(RangeSlider, {
+            value: { start: 2, end: 8 },
+            onChange: () => undefined,
+            'aria-label': 'Range control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'date-focus', label: 'Date focus' },
+          createElement(DateField, {
+            value: '2026-08-13',
+            onChange: () => undefined,
+            'aria-label': 'Date control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'time-focus', label: 'Time focus' },
+          createElement(TimeField, {
+            value: '12:30:00',
+            onChange: () => undefined,
+            'aria-label': 'Time control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'date-time-focus', label: 'Date time focus' },
+          createElement(DateTimeField, {
+            value: '2026-08-13T12:30:00+08:00',
+            timeZone: 'Australia/Perth',
+            onChange: () => undefined,
+            'aria-label': 'Date time control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'date-range-focus', label: 'Date range focus' },
+          createElement(DateRangeField, {
+            value: { start: '2026-08-01', end: '2026-08-13' },
+            onChange: () => undefined,
+            'aria-label': 'Date range control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'color-focus', label: 'Color focus' },
+          createElement(ColorField, {
+            value: '#ff0000',
+            onChange: () => undefined,
+            'aria-label': 'Color control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'meter-focus', label: 'Meter focus' },
+          createElement(Meter, { value: 50, 'aria-label': 'Meter control' }),
+        ),
+      ),
+    )
+
+    const cases: readonly { readonly id: string; readonly target: string }[] = [
+      { id: 'range-focus', target: 'input[type="range"]' },
+      { id: 'date-focus', target: '[role="spinbutton"]' },
+      { id: 'time-focus', target: '[role="spinbutton"]' },
+      { id: 'date-time-focus', target: '[role="spinbutton"]' },
+      { id: 'date-range-focus', target: '[role="spinbutton"]' },
+      { id: 'color-focus', target: 'input' },
+    ]
+    for (const focusCase of cases) {
+      const row = view.root.element.querySelector<HTMLElement>(
+        `[data-picodash-dashlet="${focusCase.id}"]`,
+      )!
+      fireEvent.click(row.querySelector('[data-picodash-dashlet-label]')!)
+      expect(row.ownerDocument.activeElement, focusCase.id).toBe(
+        row.querySelector(focusCase.target),
+      )
+    }
+
+    const meter = view.root.element.querySelector<HTMLElement>(
+      '[data-picodash-dashlet="meter-focus"]',
+    )!
+    fireEvent.click(meter.querySelector('[data-picodash-dashlet-label]')!)
+    expect(meter.ownerDocument.activeElement).toBe(
+      meter.querySelector('[data-picodash-dashlet-shell]'),
+    )
+
+    act(() => view.unmount())
+    nexus.destroy()
   })
 
   it('shares invalid and error-message state across both range thumbs', () => {
@@ -600,30 +1066,36 @@ describe('value controls', () => {
   it('forwards declared ids to value controls and class names to public roots', () => {
     const controls: ReactElement[] = [
       createElement(RangeSlider, {
+        key: 'range',
         id: 'value-range',
+        'aria-label': 'Range',
         className: 'value-range-hook',
         value: { start: 2, end: 8 },
         onChange: () => undefined,
       }),
       createElement(Meter, {
+        key: 'meter',
         id: 'value-meter',
         className: 'value-meter-hook',
         value: 4,
         'aria-label': 'Meter',
       }),
       createElement(ProgressBar, {
+        key: 'progress',
         id: 'value-progress',
         className: 'value-progress-hook',
         value: 4,
         'aria-label': 'Progress',
       }),
       createElement(Status, {
+        key: 'status',
         id: 'value-status',
         className: 'value-status-hook',
         value: 'ready',
         options: [{ value: 'ready', label: 'Ready', tone: 'success' as const }],
       }),
       createElement(DateField, {
+        key: 'date',
         id: 'value-date',
         className: 'value-date-hook',
         value: '2026-08-13',
@@ -631,6 +1103,7 @@ describe('value controls', () => {
         'aria-label': 'Date',
       }),
       createElement(TimeField, {
+        key: 'time',
         id: 'value-time',
         className: 'value-time-hook',
         value: '12:30:00',
@@ -638,6 +1111,7 @@ describe('value controls', () => {
         'aria-label': 'Time',
       }),
       createElement(DateTimeField, {
+        key: 'date-time',
         id: 'value-date-time',
         className: 'value-date-time-hook',
         value: '2026-08-13T12:30:00+08:00',
@@ -646,6 +1120,7 @@ describe('value controls', () => {
         'aria-label': 'Date time',
       }),
       createElement(DateRangeField, {
+        key: 'date-range',
         id: 'value-date-range',
         className: 'value-date-range-hook',
         value: { start: '2026-08-01', end: '2026-08-13' },
@@ -653,6 +1128,7 @@ describe('value controls', () => {
         'aria-label': 'Date range',
       }),
       createElement(ColorField, {
+        key: 'color',
         id: 'value-color',
         className: 'value-color-hook',
         value: '#ff0000',
@@ -1214,7 +1690,11 @@ describe('value controls', () => {
           label: 'Status',
           options: [{ value: 'ready', label: 'Ready', tone: 'success' as const }],
         }),
-        createElement(DateDashlet, { id: 'date', field: nexus.fields.date, label: 'Date' }),
+        createElement(DateDashlet, {
+          id: 'date',
+          field: nexus.fields.date,
+          label: 'Date',
+        }),
       ),
     )
     expect(
@@ -1279,6 +1759,18 @@ describe('value controls', () => {
   })
 
   it('requires a valid time zone for date-time fields', () => {
+    for (const timeZone of [undefined, null, ''] as const)
+      expect(() =>
+        render(
+          createElement(DateTimeField, {
+            value: null,
+            timeZone: timeZone!,
+            onChange: () => undefined,
+            'aria-label': 'Missing zone',
+          }),
+        ),
+      ).toThrowError(new TypeError('timeZone is required.'))
+
     expect(() =>
       render(
         createElement(DateTimeField, {

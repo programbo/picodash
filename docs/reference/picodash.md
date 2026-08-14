@@ -239,6 +239,10 @@ Picodash reexports the exact stable DashList-owned inventory from its root: `Tex
 entries. DashList anatomy remains available only from its owning subpath; the facade does not add a
 `/dashlet` convenience surface.
 
+The facade preserves the exact DashList component and prop identities for all 22 reexports,
+including specialized aliases and safe unspecialized React `ComponentProps`. It does not wrap the
+components or widen their Nexus field constraints.
+
 An optional family with a meaningful third-party runtime dependency ships as a separate package,
 not as a required Picodash dependency or root reexport. Its package name, dependency policy, public
 API, and catalog are accepted with that family's focused contract. The core facade does not reserve

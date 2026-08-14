@@ -1,29 +1,95 @@
-import { createElement } from 'react'
-import { describe, expectTypeOf, it } from 'vite-plus/test'
+import { createElement, type ComponentProps } from 'react'
+import { describe, expect, expectTypeOf, it } from 'vite-plus/test'
 import { createPicodashNexus } from '@picodash/nexus'
 import {
   DashPanel as OwnerDashPanel,
   type DashPanelProps as OwnerDashPanelProps,
 } from '@picodash/dashpanel'
 import {
+  CheckboxDashlet as OwnerCheckboxDashlet,
+  CheckboxGroupDashlet as OwnerCheckboxGroupDashlet,
+  ColorDashlet as OwnerColorDashlet,
+  ComboboxDashlet as OwnerComboboxDashlet,
+  DateDashlet as OwnerDateDashlet,
+  DateRangeDashlet as OwnerDateRangeDashlet,
+  DateTimeDashlet as OwnerDateTimeDashlet,
   DashGroup as OwnerDashGroup,
   DashList as OwnerDashList,
   Dashlet as OwnerDashlet,
+  DisplayDashlet as OwnerDisplayDashlet,
+  MeterDashlet as OwnerMeterDashlet,
+  MultiSelectDashlet as OwnerMultiSelectDashlet,
+  NumberDashlet as OwnerNumberDashlet,
+  ProgressDashlet as OwnerProgressDashlet,
+  RadioGroupDashlet as OwnerRadioGroupDashlet,
+  RangeDashlet as OwnerRangeDashlet,
+  SearchDashlet as OwnerSearchDashlet,
+  SegmentedDashlet as OwnerSegmentedDashlet,
+  SelectDashlet as OwnerSelectDashlet,
+  SliderDashlet as OwnerSliderDashlet,
+  StatusDashlet as OwnerStatusDashlet,
+  SwitchDashlet as OwnerSwitchDashlet,
+  TextDashlet as OwnerTextDashlet,
+  TimeDashlet as OwnerTimeDashlet,
+  type CheckboxDashletProps as OwnerCheckboxDashletProps,
+  type CheckboxGroupDashletProps as OwnerCheckboxGroupDashletProps,
+  type ColorDashletProps as OwnerColorDashletProps,
+  type ComboboxDashletProps as OwnerComboboxDashletProps,
+  type DateDashletProps as OwnerDateDashletProps,
+  type DateRangeDashletProps as OwnerDateRangeDashletProps,
+  type DateTimeDashletProps as OwnerDateTimeDashletProps,
   type DashGroupProps as OwnerDashGroupProps,
   type DashListProps as OwnerDashListProps,
   type DashletProps as OwnerDashletProps,
+  type DisplayDashletProps as OwnerDisplayDashletProps,
+  type MeterDashletProps as OwnerMeterDashletProps,
+  type MultiSelectDashletProps as OwnerMultiSelectDashletProps,
+  type NumberDashletProps as OwnerNumberDashletProps,
+  type ProgressDashletProps as OwnerProgressDashletProps,
+  type RadioGroupDashletProps as OwnerRadioGroupDashletProps,
+  type RangeDashletProps as OwnerRangeDashletProps,
+  type SearchDashletProps as OwnerSearchDashletProps,
+  type SegmentedDashletProps as OwnerSegmentedDashletProps,
+  type SelectDashletProps as OwnerSelectDashletProps,
+  type SliderDashletProps as OwnerSliderDashletProps,
+  type StatusDashletProps as OwnerStatusDashletProps,
+  type SwitchDashletProps as OwnerSwitchDashletProps,
+  type TextDashletProps as OwnerTextDashletProps,
+  type TimeDashletProps as OwnerTimeDashletProps,
 } from '@picodash/dashlist'
 import {
   ActionMenu,
   ActionMenuItem,
   ActionMenuSeparator,
   ActionSubmenu,
+  CheckboxDashlet,
+  CheckboxGroupDashlet,
+  ColorDashlet,
+  ComboboxDashlet,
+  DateDashlet,
+  DateRangeDashlet,
+  DateTimeDashlet,
   DashGroup,
   DashHeader,
   DashList,
   DashPanel,
   Dashlet,
+  DisplayDashlet,
+  MeterDashlet,
+  MultiSelectDashlet,
+  NumberDashlet,
   PicodashProvider,
+  ProgressDashlet,
+  RadioGroupDashlet,
+  RangeDashlet,
+  SearchDashlet,
+  SegmentedDashlet,
+  SelectDashlet,
+  SliderDashlet,
+  StatusDashlet,
+  SwitchDashlet,
+  TextDashlet,
+  TimeDashlet,
   type ActionMenuConfirmation,
   type ActionMenuConfirmationGuard,
   type ActionMenuItemProps,
@@ -46,13 +112,46 @@ import {
   type DashPanelSnapPosition,
   type DashPanelStyle,
   type DashletProps,
+  type CheckboxDashletProps,
+  type CheckboxGroupDashletProps,
+  type ColorDashletProps,
+  type ComboboxDashletProps,
+  type DateDashletProps,
+  type DateRangeDashletProps,
+  type DateTimeDashletProps,
+  type DisplayDashletProps,
+  type MeterDashletProps,
+  type MultiSelectDashletProps,
+  type NumberDashletProps,
   type PicodashDockPosition,
   type PicodashProviderProps,
+  type ProgressDashletProps,
+  type RadioGroupDashletProps,
+  type RangeDashletProps,
+  type SearchDashletProps,
+  type SegmentedDashletProps,
+  type SelectDashletProps,
+  type SliderDashletProps,
+  type StatusDashletProps,
+  type SwitchDashletProps,
+  type TextDashletProps,
+  type TimeDashletProps,
 } from '../src/index.ts'
 import { Popover as OwnerPopover, type PopoverProps as OwnerPopoverProps } from '@picodash/ui'
 import { Popover as FacadePopover, type PopoverProps as FacadePopoverProps } from '../src/ui.ts'
 
 const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { value: { defaultValue: 0 } } })
+const readyMadeNexus = createPicodashNexus({
+  valueOwner: 'nexus',
+  fields: {
+    text: { defaultValue: '' },
+    number: { defaultValue: 1 },
+    flag: { defaultValue: false },
+    choices: { defaultValue: ['a'] },
+    range: { defaultValue: { start: 1, end: 2 } },
+    dateRange: { defaultValue: { start: '2026-08-18', end: '2026-08-24' } },
+  },
+})
 
 describe('@picodash/picodash facade public types', () => {
   it('reexports the exact shared Popover from the /ui facade', () => {
@@ -65,6 +164,159 @@ describe('@picodash/picodash facade public types', () => {
     void props
     expectTypeOf(FacadePopover).toEqualTypeOf(OwnerPopover)
     expectTypeOf<FacadePopoverProps>().toEqualTypeOf<OwnerPopoverProps>()
+  })
+
+  it('preserves all ready-made component and prop identities', () => {
+    const facadeComponents = {
+      CheckboxDashlet,
+      CheckboxGroupDashlet,
+      ColorDashlet,
+      ComboboxDashlet,
+      DateDashlet,
+      DateRangeDashlet,
+      DateTimeDashlet,
+      DisplayDashlet,
+      MeterDashlet,
+      MultiSelectDashlet,
+      NumberDashlet,
+      ProgressDashlet,
+      RadioGroupDashlet,
+      RangeDashlet,
+      SearchDashlet,
+      SegmentedDashlet,
+      SelectDashlet,
+      SliderDashlet,
+      StatusDashlet,
+      SwitchDashlet,
+      TextDashlet,
+      TimeDashlet,
+    }
+    const ownerComponents = {
+      CheckboxDashlet: OwnerCheckboxDashlet,
+      CheckboxGroupDashlet: OwnerCheckboxGroupDashlet,
+      ColorDashlet: OwnerColorDashlet,
+      ComboboxDashlet: OwnerComboboxDashlet,
+      DateDashlet: OwnerDateDashlet,
+      DateRangeDashlet: OwnerDateRangeDashlet,
+      DateTimeDashlet: OwnerDateTimeDashlet,
+      DisplayDashlet: OwnerDisplayDashlet,
+      MeterDashlet: OwnerMeterDashlet,
+      MultiSelectDashlet: OwnerMultiSelectDashlet,
+      NumberDashlet: OwnerNumberDashlet,
+      ProgressDashlet: OwnerProgressDashlet,
+      RadioGroupDashlet: OwnerRadioGroupDashlet,
+      RangeDashlet: OwnerRangeDashlet,
+      SearchDashlet: OwnerSearchDashlet,
+      SegmentedDashlet: OwnerSegmentedDashlet,
+      SelectDashlet: OwnerSelectDashlet,
+      SliderDashlet: OwnerSliderDashlet,
+      StatusDashlet: OwnerStatusDashlet,
+      SwitchDashlet: OwnerSwitchDashlet,
+      TextDashlet: OwnerTextDashlet,
+      TimeDashlet: OwnerTimeDashlet,
+    }
+    expect(facadeComponents).toEqual(ownerComponents)
+    expectTypeOf(facadeComponents).toEqualTypeOf(ownerComponents)
+
+    type FacadeReadyMadeProps = {
+      text: TextDashletProps<typeof readyMadeNexus.fields.text>
+      number: NumberDashletProps<typeof readyMadeNexus.fields.number>
+      slider: SliderDashletProps<typeof readyMadeNexus.fields.number>
+      switch: SwitchDashletProps<typeof readyMadeNexus.fields.flag>
+      select: SelectDashletProps<string, typeof readyMadeNexus.fields.text>
+      segmented: SegmentedDashletProps<string, typeof readyMadeNexus.fields.text>
+      display: DisplayDashletProps<typeof readyMadeNexus.fields.number>
+      checkbox: CheckboxDashletProps<typeof readyMadeNexus.fields.flag>
+      radioGroup: RadioGroupDashletProps<string, typeof readyMadeNexus.fields.text>
+      combobox: ComboboxDashletProps<string, typeof readyMadeNexus.fields.text>
+      checkboxGroup: CheckboxGroupDashletProps<string, typeof readyMadeNexus.fields.choices>
+      multiSelect: MultiSelectDashletProps<string, typeof readyMadeNexus.fields.choices>
+      search: SearchDashletProps<typeof readyMadeNexus.fields.text>
+      range: RangeDashletProps<typeof readyMadeNexus.fields.range>
+      meter: MeterDashletProps<typeof readyMadeNexus.fields.number>
+      progress: ProgressDashletProps<typeof readyMadeNexus.fields.number>
+      status: StatusDashletProps<string, typeof readyMadeNexus.fields.text>
+      date: DateDashletProps<typeof readyMadeNexus.fields.text>
+      time: TimeDashletProps<typeof readyMadeNexus.fields.text>
+      dateTime: DateTimeDashletProps<typeof readyMadeNexus.fields.text>
+      dateRange: DateRangeDashletProps<typeof readyMadeNexus.fields.dateRange>
+      color: ColorDashletProps<typeof readyMadeNexus.fields.text>
+    }
+    type OwnerReadyMadeProps = {
+      text: OwnerTextDashletProps<typeof readyMadeNexus.fields.text>
+      number: OwnerNumberDashletProps<typeof readyMadeNexus.fields.number>
+      slider: OwnerSliderDashletProps<typeof readyMadeNexus.fields.number>
+      switch: OwnerSwitchDashletProps<typeof readyMadeNexus.fields.flag>
+      select: OwnerSelectDashletProps<string, typeof readyMadeNexus.fields.text>
+      segmented: OwnerSegmentedDashletProps<string, typeof readyMadeNexus.fields.text>
+      display: OwnerDisplayDashletProps<typeof readyMadeNexus.fields.number>
+      checkbox: OwnerCheckboxDashletProps<typeof readyMadeNexus.fields.flag>
+      radioGroup: OwnerRadioGroupDashletProps<string, typeof readyMadeNexus.fields.text>
+      combobox: OwnerComboboxDashletProps<string, typeof readyMadeNexus.fields.text>
+      checkboxGroup: OwnerCheckboxGroupDashletProps<string, typeof readyMadeNexus.fields.choices>
+      multiSelect: OwnerMultiSelectDashletProps<string, typeof readyMadeNexus.fields.choices>
+      search: OwnerSearchDashletProps<typeof readyMadeNexus.fields.text>
+      range: OwnerRangeDashletProps<typeof readyMadeNexus.fields.range>
+      meter: OwnerMeterDashletProps<typeof readyMadeNexus.fields.number>
+      progress: OwnerProgressDashletProps<typeof readyMadeNexus.fields.number>
+      status: OwnerStatusDashletProps<string, typeof readyMadeNexus.fields.text>
+      date: OwnerDateDashletProps<typeof readyMadeNexus.fields.text>
+      time: OwnerTimeDashletProps<typeof readyMadeNexus.fields.text>
+      dateTime: OwnerDateTimeDashletProps<typeof readyMadeNexus.fields.text>
+      dateRange: OwnerDateRangeDashletProps<typeof readyMadeNexus.fields.dateRange>
+      color: OwnerColorDashletProps<typeof readyMadeNexus.fields.text>
+    }
+    expectTypeOf<FacadeReadyMadeProps>().toEqualTypeOf<OwnerReadyMadeProps>()
+
+    type ExtractedFacadeReadyMadeProps = {
+      checkbox: ComponentProps<typeof CheckboxDashlet>
+      checkboxGroup: ComponentProps<typeof CheckboxGroupDashlet>
+      color: ComponentProps<typeof ColorDashlet>
+      combobox: ComponentProps<typeof ComboboxDashlet>
+      date: ComponentProps<typeof DateDashlet>
+      dateRange: ComponentProps<typeof DateRangeDashlet>
+      dateTime: ComponentProps<typeof DateTimeDashlet>
+      display: ComponentProps<typeof DisplayDashlet>
+      meter: ComponentProps<typeof MeterDashlet>
+      multiSelect: ComponentProps<typeof MultiSelectDashlet>
+      number: ComponentProps<typeof NumberDashlet>
+      progress: ComponentProps<typeof ProgressDashlet>
+      radioGroup: ComponentProps<typeof RadioGroupDashlet>
+      range: ComponentProps<typeof RangeDashlet>
+      search: ComponentProps<typeof SearchDashlet>
+      segmented: ComponentProps<typeof SegmentedDashlet>
+      select: ComponentProps<typeof SelectDashlet>
+      slider: ComponentProps<typeof SliderDashlet>
+      status: ComponentProps<typeof StatusDashlet>
+      switch: ComponentProps<typeof SwitchDashlet>
+      text: ComponentProps<typeof TextDashlet>
+      time: ComponentProps<typeof TimeDashlet>
+    }
+    type ExtractedOwnerReadyMadeProps = {
+      checkbox: ComponentProps<typeof OwnerCheckboxDashlet>
+      checkboxGroup: ComponentProps<typeof OwnerCheckboxGroupDashlet>
+      color: ComponentProps<typeof OwnerColorDashlet>
+      combobox: ComponentProps<typeof OwnerComboboxDashlet>
+      date: ComponentProps<typeof OwnerDateDashlet>
+      dateRange: ComponentProps<typeof OwnerDateRangeDashlet>
+      dateTime: ComponentProps<typeof OwnerDateTimeDashlet>
+      display: ComponentProps<typeof OwnerDisplayDashlet>
+      meter: ComponentProps<typeof OwnerMeterDashlet>
+      multiSelect: ComponentProps<typeof OwnerMultiSelectDashlet>
+      number: ComponentProps<typeof OwnerNumberDashlet>
+      progress: ComponentProps<typeof OwnerProgressDashlet>
+      radioGroup: ComponentProps<typeof OwnerRadioGroupDashlet>
+      range: ComponentProps<typeof OwnerRangeDashlet>
+      search: ComponentProps<typeof OwnerSearchDashlet>
+      segmented: ComponentProps<typeof OwnerSegmentedDashlet>
+      select: ComponentProps<typeof OwnerSelectDashlet>
+      slider: ComponentProps<typeof OwnerSliderDashlet>
+      status: ComponentProps<typeof OwnerStatusDashlet>
+      switch: ComponentProps<typeof OwnerSwitchDashlet>
+      text: ComponentProps<typeof OwnerTextDashlet>
+      time: ComponentProps<typeof OwnerTimeDashlet>
+    }
+    expectTypeOf<ExtractedFacadeReadyMadeProps>().toEqualTypeOf<ExtractedOwnerReadyMadeProps>()
   })
 
   it('keeps owner identities and the narrowed Provider contract explicit', () => {

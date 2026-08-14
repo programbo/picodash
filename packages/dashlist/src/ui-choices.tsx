@@ -18,6 +18,8 @@ import {
   TagList,
 } from 'react-aria-components'
 import type { SelectOption } from './ui.js'
+import { ChoiceOptionContent } from './choice-option-content.js'
+import { usePrimaryControlRef } from './control-accessibility.js'
 import { composeControlClassName } from './ui-class-name.js'
 import { ChoicePopover } from './ui-popover.js'
 
@@ -156,8 +158,10 @@ export type CheckboxProps = ChoiceControlProps & {
 }
 
 export function Checkbox({ isSelected, onChange, ...props }: CheckboxProps) {
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
   return (
     <AriaCheckbox
+      inputRef={inputRef}
       id={props.id}
       className={composeControlClassName('picodash-dashlist-checkbox', props.className)}
       isSelected={isSelected}
@@ -171,9 +175,28 @@ export function Checkbox({ isSelected, onChange, ...props }: CheckboxProps) {
       aria-invalid={props['aria-invalid']}
       aria-errormessage={props['aria-errormessage']}
     >
-      <span aria-hidden="true" data-picodash-dashlist-checkbox-box />
+      <span aria-hidden="true" data-picodash-dashlist-checkbox-box>
+        <span aria-hidden="true" data-picodash-dashlist-checkbox-marker />
+      </span>
       {props['aria-label'] ? <span>{props['aria-label']}</span> : null}
     </AriaCheckbox>
+  )
+}
+
+function RadioChoice<T extends ChoiceValue>({ item }: { readonly item: OptionParts<T> }) {
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  return (
+    <Radio
+      inputRef={inputRef}
+      className="picodash-dashlist-choice"
+      value={choiceKey(item.value)}
+      isDisabled={item.disabled}
+      aria-label={typeof item.label === 'string' ? undefined : item.textValue}
+    >
+      <span aria-hidden="true" data-picodash-dashlist-radio-marker />
+      {item.icon}
+      {item.label}
+    </Radio>
   )
 }
 
@@ -213,16 +236,7 @@ export function RadioGroup<T extends ChoiceValue>({
       aria-errormessage={props['aria-errormessage']}
     >
       {parts.map((item) => (
-        <Radio
-          className="picodash-dashlist-choice"
-          key={choiceKey(item.value)}
-          value={choiceKey(item.value)}
-          isDisabled={item.disabled}
-          aria-label={typeof item.label === 'string' ? undefined : item.textValue}
-        >
-          {item.icon}
-          {item.label}
-        </Radio>
+        <RadioChoice key={choiceKey(item.value)} item={item} />
       ))}
     </AriaRadioGroup>
   )
@@ -244,6 +258,7 @@ export function Combobox<T extends ChoiceValue>({
 }: ComboboxProps<T>) {
   validateChoiceOptions(options)
   const parts = options.map(optionParts)
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
   return (
     <AriaComboBox
       className={composeControlClassName('picodash-dashlist-combobox', props.className)}
@@ -265,6 +280,7 @@ export function Combobox<T extends ChoiceValue>({
     >
       <Label>{props['aria-label']}</Label>
       <Input
+        ref={inputRef}
         id={props.id}
         placeholder={placeholder}
         className="picodash-dashlist-control"
@@ -282,13 +298,31 @@ export function Combobox<T extends ChoiceValue>({
               textValue={item.textValue}
               isDisabled={item.disabled}
             >
-              {item.icon}
-              {item.label}
+              <ChoiceOptionContent icon={item.icon} label={item.label} />
             </ListBoxItem>
           )}
         </ListBox>
       </ChoicePopover>
     </AriaComboBox>
+  )
+}
+
+function CheckboxGroupChoice<T extends ChoiceValue>({ item }: { readonly item: OptionParts<T> }) {
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  return (
+    <AriaCheckbox
+      inputRef={inputRef}
+      className="picodash-dashlist-choice"
+      value={choiceKey(item.value)}
+      isDisabled={item.disabled}
+      aria-label={typeof item.label === 'string' ? undefined : item.textValue}
+    >
+      <span aria-hidden="true" data-picodash-dashlist-checkbox-box>
+        <span aria-hidden="true" data-picodash-dashlist-checkbox-marker />
+      </span>
+      {item.icon}
+      {item.label}
+    </AriaCheckbox>
   )
 }
 
@@ -328,16 +362,7 @@ export function CheckboxGroup<T extends ChoiceValue>({
       aria-errormessage={props['aria-errormessage']}
     >
       {parts.map((item) => (
-        <AriaCheckbox
-          className="picodash-dashlist-choice"
-          key={choiceKey(item.value)}
-          value={choiceKey(item.value)}
-          isDisabled={item.disabled}
-          aria-label={typeof item.label === 'string' ? undefined : item.textValue}
-        >
-          {item.icon}
-          {item.label}
-        </AriaCheckbox>
+        <CheckboxGroupChoice key={choiceKey(item.value)} item={item} />
       ))}
     </AriaCheckboxGroup>
   )
@@ -364,6 +389,7 @@ export function MultiSelect<T extends ChoiceValue>({
   const disabledKeys = new Set(
     parts.filter((item) => item.disabled).map((item) => choiceKey(item.value)),
   )
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
   return (
     <AriaComboBox
       className={composeControlClassName('picodash-dashlist-multi-select', props.className)}
@@ -387,6 +413,7 @@ export function MultiSelect<T extends ChoiceValue>({
     >
       <Label>{props['aria-label']}</Label>
       <Input
+        ref={inputRef}
         id={props.id}
         placeholder={placeholder}
         className="picodash-dashlist-control"
@@ -453,8 +480,7 @@ export function MultiSelect<T extends ChoiceValue>({
               textValue={item.textValue}
               isDisabled={item.disabled}
             >
-              {item.icon}
-              {item.label}
+              <ChoiceOptionContent icon={item.icon} label={item.label} />
             </ListBoxItem>
           )}
         </ListBox>
@@ -470,6 +496,7 @@ export type SearchFieldProps = ChoiceControlProps & {
 }
 
 export function SearchField({ value, onChange, placeholder, ...props }: SearchFieldProps) {
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
   return (
     <AriaSearchField
       className={composeControlClassName('picodash-dashlist-search-field', props.className)}
@@ -485,6 +512,7 @@ export function SearchField({ value, onChange, placeholder, ...props }: SearchFi
       aria-errormessage={props['aria-errormessage']}
     >
       <Input
+        ref={inputRef}
         id={props.id}
         placeholder={placeholder}
         className="picodash-dashlist-control"

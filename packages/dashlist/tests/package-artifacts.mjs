@@ -319,6 +319,9 @@ for (const name of [
   'TimeDashletProps',
 ])
   assert.match(declarations, new RegExp(`\\b${name}\\b`))
+assert.match(declarations, /PicodashFieldOf/)
+assert.match(declarations, /PicodashExactFieldOf/)
+assert.doesNotMatch(declarations, /DashletProps<any/)
 for (const retired of [
   'ReactiveProp',
   'DashletStates',

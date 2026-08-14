@@ -1,3 +1,4 @@
+import { createElement, type ComponentProps } from 'react'
 import {
   ColorField,
   DateField,
@@ -26,20 +27,46 @@ import {
   type TimeDashletProps,
   type ColorDashletProps,
 } from '../src/index.tsx'
-import { createPicodashNexus, type PicodashField } from '@picodash/nexus'
-import { describe, it } from 'vite-plus/test'
+import {
+  createPicodashNexus,
+  type PicodashExactFieldOf,
+  type PicodashField,
+  type PicodashFieldOf,
+  type RootNexus,
+} from '@picodash/nexus'
+import { describe, expectTypeOf, it } from 'vite-plus/test'
+
+const narrowStringField = null as unknown as PicodashExactFieldOf<'fixed'>
 
 const nexus = createPicodashNexus({
   valueOwner: 'nexus',
   fields: {
     range: { defaultValue: { start: 1, end: 2 } },
     status: { defaultValue: 'ready' },
+    numericStatus: { defaultValue: 1 },
     date: { defaultValue: '2026-08-13' },
     time: { defaultValue: '12:30:00' },
     dateTime: { defaultValue: '2026-08-13T12:30:00+08:00' },
     dateRange: { defaultValue: { start: '2026-08-01', end: '2026-08-13' } },
     color: { defaultValue: '#ff0000' },
     progress: { defaultValue: 25 },
+  },
+})
+
+type AnnotatedCompoundDefinitions = {
+  readonly range: {
+    readonly defaultValue: { readonly start: number; readonly end: number }
+  }
+  readonly dateRange: {
+    readonly defaultValue: { readonly start: string; readonly end: string }
+  }
+}
+
+const annotatedNexus: RootNexus<AnnotatedCompoundDefinitions> = createPicodashNexus({
+  valueOwner: 'nexus',
+  fields: {
+    range: { defaultValue: { start: 1, end: 2 } },
+    dateRange: { defaultValue: { start: '2026-08-01', end: '2026-08-13' } },
   },
 })
 type CompatibilityValues = {
@@ -50,6 +77,7 @@ type CompatibilityValues = {
 const numberOrStringField = null as unknown as PicodashField<CompatibilityValues, 'numberOrString'>
 const rangeOrStringField = null as unknown as PicodashField<CompatibilityValues, 'rangeOrString'>
 const statusUnionField = null as unknown as PicodashField<CompatibilityValues, 'statusUnion'>
+const anyField = null as any
 
 type ExactCompoundCompatibilityValues = {
   mutableRange: { start: number; end: number }
@@ -70,9 +98,8 @@ type ExactCompoundCompatibilityValues = {
   unionDateRange: { start: string; end: string } | string
 }
 
-type ExactCompoundField<Key extends keyof ExactCompoundCompatibilityValues> = PicodashField<
-  ExactCompoundCompatibilityValues,
-  Key
+type ExactCompoundField<Key extends keyof ExactCompoundCompatibilityValues> = PicodashExactFieldOf<
+  ExactCompoundCompatibilityValues[Key]
 >
 
 function exactCompoundField<Key extends keyof ExactCompoundCompatibilityValues>(
@@ -102,6 +129,56 @@ const exactCompoundFields = {
 
 describe('@picodash/dashlist value control types', () => {
   it('accepts value control props and rejects invalid overrides', () => {
+    type ExtractedValueFields = {
+      readonly range: ComponentProps<typeof RangeDashlet>['field']
+      readonly meter: ComponentProps<typeof MeterDashlet>['field']
+      readonly progress: ComponentProps<typeof ProgressDashlet>['field']
+      readonly status: ComponentProps<typeof StatusDashlet>['field']
+      readonly date: ComponentProps<typeof DateDashlet>['field']
+      readonly time: ComponentProps<typeof TimeDashlet>['field']
+      readonly dateTime: ComponentProps<typeof DateTimeDashlet>['field']
+      readonly dateRange: ComponentProps<typeof DateRangeDashlet>['field']
+      readonly color: ComponentProps<typeof ColorDashlet>['field']
+    }
+    type AliasValueFields = {
+      readonly range: RangeDashletProps['field']
+      readonly meter: MeterDashletProps['field']
+      readonly progress: ProgressDashletProps['field']
+      readonly status: StatusDashletProps['field']
+      readonly date: DateDashletProps['field']
+      readonly time: TimeDashletProps['field']
+      readonly dateTime: DateTimeDashletProps['field']
+      readonly dateRange: DateRangeDashletProps['field']
+      readonly color: ColorDashletProps['field']
+    }
+    type ForbiddenShellProp<Props> = Props extends unknown
+      ? Extract<keyof Props, 'defaultValue' | 'onChange'>
+      : never
+    type ValueReadyMadeProps =
+      | RangeDashletProps
+      | MeterDashletProps
+      | ProgressDashletProps
+      | StatusDashletProps
+      | DateDashletProps
+      | TimeDashletProps
+      | DateTimeDashletProps
+      | DateRangeDashletProps
+      | ColorDashletProps
+    expectTypeOf<ForbiddenShellProp<ValueReadyMadeProps>>().toEqualTypeOf<never>()
+    const extractedValueFields: ExtractedValueFields = {
+      range: nexus.fields.range,
+      meter: nexus.fields.progress,
+      progress: nexus.fields.progress,
+      status: nexus.fields.status,
+      date: nexus.fields.date,
+      time: nexus.fields.time,
+      dateTime: nexus.fields.dateTime,
+      dateRange: nexus.fields.dateRange,
+      color: nexus.fields.color,
+    }
+    expectTypeOf<ExtractedValueFields>().toEqualTypeOf<AliasValueFields>()
+    void extractedValueFields
+
     ;<RangeSlider value={{ start: 1, end: 2 }} onChange={(value) => value.end} />
     ;<ProgressBar value={25} />
     ;<Status value="ready" options={[{ value: 'ready', label: 'Ready', tone: 'success' }]} />
@@ -113,6 +190,11 @@ describe('@picodash/dashlist value control types', () => {
     ;<ColorField value="#fff" onChange={() => undefined} format="hex" />
 
     ;<RangeDashlet field={nexus.fields.range} id="range" label="Range" />
+    ;<RangeDashlet
+      field={annotatedNexus.fields.range}
+      id="annotated-range"
+      label="Annotated range"
+    />
     ;<RangeDashlet
       field={exactCompoundFields.mutableRange}
       id="mutable-range"
@@ -139,6 +221,11 @@ describe('@picodash/dashlist value control types', () => {
     />
     ;<DateRangeDashlet field={nexus.fields.dateRange} id="date-range" label="Date range" />
     ;<DateRangeDashlet
+      field={annotatedNexus.fields.dateRange}
+      id="annotated-date-range"
+      label="Annotated date range"
+    />
+    ;<DateRangeDashlet
       field={exactCompoundFields.mutableDateRange}
       id="mutable-date-range"
       label="Mutable date range"
@@ -155,6 +242,24 @@ describe('@picodash/dashlist value control types', () => {
       label="Meter"
       formatValue={(value) => value}
     />
+    void createElement(RangeDashlet, {
+      field: nexus.fields.range,
+      id: 'range-element',
+      label: 'Range element',
+    })
+    void createElement(StatusDashlet, {
+      field: nexus.fields.status,
+      id: 'status-element',
+      label: 'Status element',
+      options: [{ value: 'ready', label: 'Ready', tone: 'success' }],
+    })
+    void createElement(ColorDashlet, {
+      field: nexus.fields.color,
+      id: 'color-element',
+      label: 'Color element',
+      // @ts-expect-error Ready-made Dashlets do not expose inherited HTML default values.
+      defaultValue: '#000000',
+    })
 
     // @ts-expect-error RangeDashlet rejects a number field at a direct JSX call site.
     ;<RangeDashlet field={nexus.fields.progress} id="range-mismatch" label="Mismatch" />
@@ -170,8 +275,8 @@ describe('@picodash/dashlist value control types', () => {
       id="progress-union-mismatch"
       label="Union mismatch"
     />
+    // @ts-expect-error StatusDashlet rejects string options paired with a number field.
     ;<StatusDashlet
-      // @ts-expect-error incompatible field value.
       field={nexus.fields.progress}
       id="status-mismatch"
       label="Mismatch"
@@ -228,13 +333,24 @@ describe('@picodash/dashlist value control types', () => {
     />
     // @ts-expect-error DateDashlet rejects a number field at a direct JSX call site.
     ;<DateDashlet field={nexus.fields.progress} id="date-mismatch" label="Mismatch" />
+    // @ts-expect-error DateDashlet can emit strings outside a literal field domain.
+    ;<DateDashlet field={narrowStringField} id="date-narrow" label="Narrow date" />
     // @ts-expect-error TimeDashlet rejects a number field at a direct JSX call site.
     ;<TimeDashlet field={nexus.fields.progress} id="time-mismatch" label="Mismatch" />
+    // @ts-expect-error TimeDashlet can emit strings outside a literal field domain.
+    ;<TimeDashlet field={narrowStringField} id="time-narrow" label="Narrow time" />
     ;<DateTimeDashlet
       // @ts-expect-error incompatible field value.
       field={nexus.fields.progress}
       id="date-time-mismatch"
       label="Mismatch"
+      timeZone="Australia/Perth"
+    />
+    ;<DateTimeDashlet
+      // @ts-expect-error DateTimeDashlet can emit strings outside a literal field domain.
+      field={narrowStringField}
+      id="date-time-narrow"
+      label="Narrow date time"
       timeZone="Australia/Perth"
     />
     // @ts-expect-error DateRangeDashlet rejects a date field at a direct JSX call site.
@@ -277,6 +393,10 @@ describe('@picodash/dashlist value control types', () => {
     />
     // @ts-expect-error ColorDashlet rejects a number field at a direct JSX call site.
     ;<ColorDashlet field={nexus.fields.progress} id="color-mismatch" label="Mismatch" />
+    // @ts-expect-error ColorDashlet can emit strings outside a literal field domain.
+    ;<ColorDashlet field={narrowStringField} id="color-narrow" label="Narrow color" />
+    // `any` deliberately escapes the concrete React fallback overload.
+    ;<ColorDashlet field={anyField} id="color-any" label="Color any" />
 
     const rangeProps: RangeDashletProps<typeof nexus.fields.range> = {
       field: nexus.fields.range,
@@ -287,6 +407,16 @@ describe('@picodash/dashlist value control types', () => {
       step: 1,
       formatOptions: { maximumFractionDigits: 1 },
       formatValue: (value) => `${value.start}-${value.end}`,
+    }
+    const annotatedRangeProps: RangeDashletProps<typeof annotatedNexus.fields.range> = {
+      field: annotatedNexus.fields.range,
+      id: 'annotated-range-props',
+      label: 'Annotated range props',
+    }
+    const annotatedDateRangeProps: DateRangeDashletProps<typeof annotatedNexus.fields.dateRange> = {
+      field: annotatedNexus.fields.dateRange,
+      id: 'annotated-date-range-props',
+      label: 'Annotated date range props',
     }
     const meterProps: MeterDashletProps<typeof nexus.fields.progress> = {
       field: nexus.fields.progress,
@@ -355,8 +485,12 @@ describe('@picodash/dashlist value control types', () => {
       id: 'color-props',
       label: 'Color',
       format: 'hsba',
+      // @ts-expect-error Explicit aliases do not expose inherited HTML default values.
+      defaultValue: '#000000',
     }
     void rangeProps
+    void annotatedRangeProps
+    void annotatedDateRangeProps
     void meterProps
     void progressProps
     void statusProps
@@ -366,6 +500,188 @@ describe('@picodash/dashlist value control types', () => {
     void dateTimeProps
     void dateRangeProps
     void colorProps
+
+    const rangeAliasProps: RangeDashletProps = {
+      id: 'range-alias',
+      field: nexus.fields.range,
+      label: 'Range alias',
+    }
+    const wrongRangeAliasProps: RangeDashletProps = {
+      id: 'wrong-range-alias',
+      // @ts-expect-error unspecialized compound aliases retain the exact range constraint.
+      field: exactCompoundFields.rangeWithRequiredExtra,
+      label: 'Wrong range alias',
+    }
+    const anyColorAliasProps: ColorDashletProps<any> = {
+      id: 'any-color-alias',
+      // @ts-expect-error explicitly specializing the field to any fails closed.
+      field: nexus.fields.color,
+      label: 'Any color alias',
+    }
+    const anyRangeAliasProps: RangeDashletProps<any> = {
+      id: 'any-range-alias',
+      // @ts-expect-error explicitly specializing an exact compound field to any fails closed.
+      field: nexus.fields.range,
+      label: 'Any range alias',
+    }
+    const anyStatusAliasProps: StatusDashletProps<string, any> = {
+      id: 'any-status-alias',
+      // @ts-expect-error explicitly specializing a status field to any fails closed.
+      field: nexus.fields.status,
+      label: 'Any status alias',
+      options: [{ value: 'ready', label: 'Ready', tone: 'success' }],
+    }
+    const neverRangeAliasProps: RangeDashletProps<never> = {
+      id: 'never-range-alias',
+      // @ts-expect-error explicitly specializing the field to never fails closed.
+      field: nexus.fields.range,
+      label: 'Never range alias',
+    }
+    const extractedRangeProps: ComponentProps<typeof RangeDashlet> = {
+      id: 'extracted-range',
+      field: nexus.fields.range,
+      label: 'Extracted range',
+    }
+    const wrongExtractedRangeProps: ComponentProps<typeof RangeDashlet> = {
+      id: 'wrong-extracted-range',
+      // @ts-expect-error ComponentProps retains the exact range constraint.
+      field: exactCompoundFields.rangeWithRequiredExtra,
+      label: 'Wrong extracted range',
+    }
+    const extractedProgressProps: ComponentProps<typeof ProgressDashlet> = {
+      id: 'extracted-progress',
+      field: nexus.fields.progress,
+      label: 'Extracted progress',
+    }
+    const wrongExtractedProgressProps: ComponentProps<typeof ProgressDashlet> = {
+      id: 'wrong-extracted-progress',
+      // @ts-expect-error ComponentProps retains the numeric field constraint.
+      field: nexus.fields.status,
+      label: 'Wrong extracted progress',
+    }
+    const extractedStatusProps: ComponentProps<typeof StatusDashlet> = {
+      id: 'extracted-status',
+      field: nexus.fields.status,
+      label: 'Extracted status',
+      options: [{ value: 'ready', label: 'Ready', tone: 'success' }],
+    }
+    // @ts-expect-error unspecialized Status props correlate number fields with number options.
+    const numericStatusWithStringOptions: ComponentProps<typeof StatusDashlet> = {
+      id: 'numeric-status-string-options',
+      field: nexus.fields.numericStatus,
+      label: 'Numeric status with string options',
+      options: [{ value: 'ready', label: 'Ready', tone: 'success' }],
+    }
+    // @ts-expect-error unspecialized Status props correlate string fields with string options.
+    const stringStatusWithNumberOptions: ComponentProps<typeof StatusDashlet> = {
+      id: 'string-status-number-options',
+      field: nexus.fields.status,
+      label: 'String status with number options',
+      options: [{ value: 1, label: 'One', tone: 'neutral' }],
+    }
+    const wrongExtractedStatusProps: ComponentProps<typeof StatusDashlet> = {
+      id: 'wrong-extracted-status',
+      // @ts-expect-error ComponentProps rejects fields outside the primitive status domain.
+      field: nexus.fields.range,
+      label: 'Wrong extracted status',
+      options: [{ value: 'ready', label: 'Ready', tone: 'success' }],
+    }
+    const extractedDateProps: ComponentProps<typeof DateDashlet> = {
+      id: 'extracted-date',
+      field: nexus.fields.date,
+      label: 'Extracted date',
+      // @ts-expect-error ComponentProps does not restore inherited HTML change handlers.
+      onChange: () => undefined,
+    }
+    const wrongExtractedDateProps: ComponentProps<typeof DateDashlet> = {
+      id: 'wrong-extracted-date',
+      // @ts-expect-error ComponentProps retains the temporal string field constraint.
+      field: nexus.fields.progress,
+      label: 'Wrong extracted date',
+    }
+    const extractedDateRangeProps: ComponentProps<typeof DateRangeDashlet> = {
+      id: 'extracted-date-range',
+      field: nexus.fields.dateRange,
+      label: 'Extracted date range',
+    }
+    const wrongExtractedDateRangeProps: ComponentProps<typeof DateRangeDashlet> = {
+      id: 'wrong-extracted-date-range',
+      // @ts-expect-error ComponentProps retains the exact date range constraint.
+      field: exactCompoundFields.dateRangeWithRequiredExtra,
+      label: 'Wrong extracted date range',
+    }
+    const extractedColorProps: ComponentProps<typeof ColorDashlet> = {
+      id: 'extracted-color',
+      field: nexus.fields.color,
+      label: 'Extracted color',
+    }
+    const wrongExtractedColorProps: ComponentProps<typeof ColorDashlet> = {
+      id: 'wrong-extracted-color',
+      // @ts-expect-error ComponentProps retains the color string field constraint.
+      field: nexus.fields.progress,
+      label: 'Wrong extracted color',
+    }
+    const narrowExtractedColorProps: ComponentProps<typeof ColorDashlet> = {
+      id: 'narrow-extracted-color',
+      // @ts-expect-error ComponentProps rejects narrowed writable string fields.
+      field: narrowStringField,
+      label: 'Narrow extracted color',
+    }
+    void rangeAliasProps
+    void wrongRangeAliasProps
+    void anyColorAliasProps
+    void anyRangeAliasProps
+    void anyStatusAliasProps
+    void neverRangeAliasProps
+    void extractedRangeProps
+    void wrongExtractedRangeProps
+    void extractedProgressProps
+    void wrongExtractedProgressProps
+    void extractedStatusProps
+    void numericStatusWithStringOptions
+    void stringStatusWithNumberOptions
+    void wrongExtractedStatusProps
+    void extractedDateProps
+    void wrongExtractedDateProps
+    void extractedDateRangeProps
+    void wrongExtractedDateRangeProps
+    void extractedColorProps
+    void wrongExtractedColorProps
+    void narrowExtractedColorProps
+
+    void createElement(DateTimeDashlet, {
+      id: 'narrow-date-time-element',
+      // @ts-expect-error unannotated createElement rejects narrowed writable string fields.
+      field: narrowStringField,
+      label: 'Narrow date time element',
+      timeZone: 'Australia/Perth',
+    })
+
+    function RangeWrapper<
+      F extends PicodashExactFieldOf<{ readonly start: number; readonly end: number }>,
+    >(props: RangeDashletProps<F>) {
+      return <RangeDashlet<F> {...props} />
+    }
+    ;<RangeWrapper id="wrapped-range" field={nexus.fields.range} label="Wrapped range" />
+    ;<RangeWrapper
+      id="wrapped-range-default"
+      field={nexus.fields.range}
+      label="Wrapped range default"
+      // @ts-expect-error Generic wrappers preserve the ready-made shell exclusions.
+      defaultValue="ignored"
+    />
+
+    function StatusWrapper<F extends PicodashFieldOf<string>>(
+      props: StatusDashletProps<string, F>,
+    ) {
+      return <StatusDashlet<string, F> {...props} />
+    }
+    ;<StatusWrapper
+      id="wrapped-status"
+      field={nexus.fields.status}
+      label="Wrapped status"
+      options={[{ value: 'ready', label: 'Ready', tone: 'success' }]}
+    />
 
     // @ts-expect-error RangeSlider requires an object value.
     ;<RangeSlider value={2} onChange={() => undefined} />
@@ -380,12 +696,19 @@ describe('@picodash/dashlist value control types', () => {
       // @ts-expect-error Ready-made Dashlets do not accept generic value props.
       value={{ start: 1, end: 2 }}
     />
-    ;<ColorDashlet field={nexus.fields.color} id="color" label="Color" onChange={() => undefined} />
+    ;<ColorDashlet
+      field={nexus.fields.color}
+      id="color"
+      label="Color"
+      // @ts-expect-error Ready-made Dashlets do not expose inherited HTML change handlers.
+      onChange={() => undefined}
+    />
     // @ts-expect-error DateDashlet does not expose hourCycle.
     ;<DateDashlet field={nexus.fields.date} id="date-hour-cycle" label="Date" hourCycle={24} />
     // @ts-expect-error Display-only Dashlets do not expose disabled.
     ;<MeterDashlet field={nexus.fields.progress} id="meter-disabled" label="Meter" disabled />
 
     nexus.destroy()
+    annotatedNexus.destroy()
   })
 })

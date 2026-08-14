@@ -46,7 +46,8 @@
 .picodash-dashlist-checkbox[data-focus-visible],
 .picodash-dashlist-choice[data-focus-visible],
 .picodash-dashlist-slider [data-picodash-dashlist-slider-thumb][data-focus-visible],
-.picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb][data-focus-visible] {
+.picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb][data-focus-visible],
+[data-picodash-dashlet-help][data-focus-visible] {
   outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
   outline-offset: 2px;
 }
@@ -106,6 +107,35 @@
   border-color: var(--picodash-color-accent);
 }
 
+[data-picodash-dashlist-segment-marker] {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  inline-size: var(--picodash-icon-sm);
+  block-size: var(--picodash-icon-sm);
+  color: inherit;
+  font-size: var(--picodash-icon-sm);
+  font-weight: var(--picodash-font-weight-semibold);
+  line-height: 1;
+}
+
+[data-picodash-dashlist-segment-marker]::before {
+  content: '✓';
+  visibility: hidden;
+}
+
+.picodash-dashlist-segmented
+  [data-picodash-dashlist-segment][data-selected]
+  [data-picodash-dashlist-segment-marker] {
+  color: var(--picodash-color-accent);
+}
+
+.picodash-dashlist-segmented
+  [data-picodash-dashlist-segment][data-selected]
+  [data-picodash-dashlist-segment-marker]::before {
+  visibility: visible;
+}
+
 .picodash-dashlist-switch {
   display: inline-flex;
   align-items: center;
@@ -156,18 +186,47 @@
 }
 
 [data-picodash-dashlist-checkbox-box] {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
   box-sizing: border-box;
-  inline-size: var(--picodash-space-2);
-  block-size: var(--picodash-space-2);
+  inline-size: var(--picodash-icon-sm);
+  block-size: var(--picodash-icon-sm);
   border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
   border-radius: var(--picodash-radius-control);
   background: var(--picodash-color-surface);
+}
+
+[data-picodash-dashlist-checkbox-marker] {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  color: inherit;
+  font-size: var(--picodash-icon-sm);
+  font-weight: var(--picodash-font-weight-semibold);
+  line-height: 1;
+}
+
+[data-picodash-dashlist-checkbox-marker]::before {
+  content: '✓';
+  visibility: hidden;
 }
 
 .picodash-dashlist-checkbox[data-selected] [data-picodash-dashlist-checkbox-box],
 .picodash-dashlist-choice[data-selected] {
   border-color: var(--picodash-color-accent);
   background: color-mix(in oklab, var(--picodash-color-accent) 18%, transparent);
+}
+
+.picodash-dashlist-checkbox[data-selected] [data-picodash-dashlist-checkbox-box],
+.picodash-dashlist-choice[data-selected] [data-picodash-dashlist-checkbox-box] {
+  color: var(--picodash-color-accent);
+}
+
+.picodash-dashlist-checkbox[data-selected] [data-picodash-dashlist-checkbox-marker]::before,
+.picodash-dashlist-choice[data-selected] [data-picodash-dashlist-checkbox-marker]::before {
+  visibility: visible;
 }
 
 .picodash-dashlist-radio-group,
@@ -186,6 +245,56 @@
   border: var(--picodash-border-width-thin) solid transparent;
   border-radius: var(--picodash-radius-control);
   padding-inline: var(--picodash-space-1);
+}
+
+[data-picodash-dashlist-radio-marker] {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: var(--picodash-icon-sm);
+  block-size: var(--picodash-icon-sm);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: 50%;
+  background: var(--picodash-color-surface);
+  color: inherit;
+}
+
+[data-picodash-dashlist-radio-marker]::after {
+  inline-size: var(--picodash-space-1);
+  block-size: var(--picodash-space-1);
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+  visibility: hidden;
+}
+
+.picodash-dashlist-choice[data-selected] [data-picodash-dashlist-radio-marker] {
+  border-color: var(--picodash-color-accent);
+  color: var(--picodash-color-accent);
+}
+
+.picodash-dashlist-choice[data-selected] [data-picodash-dashlist-radio-marker]::after {
+  visibility: visible;
+}
+
+.picodash-dashlist-checkbox[data-disabled],
+.picodash-dashlist-choice[data-disabled] {
+  color: var(--picodash-color-text-muted);
+}
+
+.picodash-dashlist-checkbox[data-selected][data-disabled] [data-picodash-dashlist-checkbox-box],
+.picodash-dashlist-choice[data-selected][data-disabled] [data-picodash-dashlist-checkbox-box],
+.picodash-dashlist-choice[data-selected][data-disabled] [data-picodash-dashlist-radio-marker] {
+  border-color: var(--picodash-color-text-muted);
+  color: var(--picodash-color-text-muted);
+}
+
+.picodash-dashlist-segmented
+  [data-picodash-dashlist-segment][data-selected][data-disabled]
+  [data-picodash-dashlist-segment-marker] {
+  color: var(--picodash-color-text-muted);
 }
 
 .picodash-dashlist-combobox,
@@ -234,9 +343,35 @@
 }
 
 .picodash-dashlist-listbox [role='option'] {
+  display: flex;
+  align-items: center;
+  gap: var(--picodash-space-1);
   min-block-size: var(--picodash-control-height-md);
   border-radius: var(--picodash-radius-control);
   padding: var(--picodash-space-1) var(--picodash-space-1-5);
+}
+
+[data-picodash-dashlist-option-marker] {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  inline-size: var(--picodash-icon-sm);
+  block-size: var(--picodash-icon-sm);
+  color: inherit;
+  font-size: var(--picodash-icon-sm);
+  font-weight: var(--picodash-font-weight-semibold);
+  line-height: 1;
+}
+
+[data-picodash-dashlist-option-marker]::before {
+  content: '✓';
+  visibility: hidden;
+}
+
+.picodash-dashlist-listbox
+  [role='option'][data-selected]
+  [data-picodash-dashlist-option-marker]::before {
+  visibility: visible;
 }
 
 .picodash-dashlist-listbox [role='option'][data-focused] {
@@ -393,11 +528,25 @@
   font-size: var(--picodash-font-size-sm);
 }
 
+.picodash-dashlet-help-popover {
+  box-sizing: border-box;
+  max-inline-size: min(22rem, calc(100vw - 2 * var(--picodash-space-3)));
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-radius: var(--picodash-radius-surface);
+  padding: var(--picodash-space-2) var(--picodash-space-2-5);
+  background: var(--picodash-color-surface-raised);
+  box-shadow: var(--picodash-shadow-elevated);
+  color: var(--picodash-color-text);
+  font-size: var(--picodash-font-size-sm);
+  line-height: var(--picodash-line-height-normal);
+}
+
 @media (pointer: coarse) {
   .picodash-dashlist-control,
   .picodash-dashlist-select > button,
   .picodash-dashlist-segmented [data-picodash-dashlist-segment],
   .picodash-dashlist-switch,
+  .picodash-dashlist-checkbox,
   .picodash-dashlist-slider [data-picodash-dashlist-slider-thumb],
   .picodash-dashlist-choice,
   .picodash-dashlist-disclosure-button,
@@ -562,6 +711,11 @@
   border-color: color-mix(in oklab, var(--picodash-color-focus) 60%, transparent);
 }
 
+[data-picodash-dashlet-shell]:focus-visible {
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+  outline-offset: calc(-2 * var(--picodash-border-width-thin));
+}
+
 [data-picodash-dashlet-label],
 [data-picodash-dashgroup-label] {
   display: block;
@@ -577,6 +731,28 @@
   font-size: var(--picodash-font-size-lg);
   font-weight: var(--picodash-font-weight-medium);
   line-height: var(--picodash-line-height-tight);
+}
+
+[data-picodash-dashlet-shell]:has(> [data-picodash-dashlet-help]) > [data-picodash-dashlet-label] {
+  padding-inline-end: calc(var(--picodash-control-height-sm) + var(--picodash-space-1));
+}
+
+[data-picodash-dashlet-help] {
+  z-index: 1;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  justify-self: end;
+  border-color: var(--picodash-color-control-border);
+  background: var(--picodash-color-surface-muted);
+  color: var(--picodash-color-text-muted);
+  font-weight: var(--picodash-font-weight-semibold);
+}
+
+[data-picodash-dashlet-help][data-hovered],
+[data-picodash-dashlet-help][data-pressed] {
+  border-color: var(--picodash-color-accent);
+  color: var(--picodash-color-text-strong);
 }
 
 [data-picodash-dashlet-content] {
@@ -933,6 +1109,7 @@
     --_picodash-dashlist-reorder-track: 44px;
   }
 
+  [data-picodash-dashlet-help],
   [data-picodash-dashlet-actions] > button,
   .picodash-dashlist-group-item
     > [data-picodash-dashgroup]
@@ -942,6 +1119,75 @@
   [data-picodash-reorder-handle] {
     min-inline-size: 44px;
     min-block-size: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-picodash-dashlet-shell]:focus-within {
+    border-color: Highlight;
+  }
+
+  [data-picodash-dashlet-shell]:focus-visible,
+  [data-picodash-dashlet-help][data-focus-visible] {
+    outline-color: Highlight;
+  }
+
+  [data-picodash-dashlet-help] {
+    border-color: ButtonText;
+    background: Canvas;
+    color: ButtonText;
+  }
+
+  [data-picodash-dashlet-help][data-hovered],
+  [data-picodash-dashlet-help][data-pressed] {
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  [data-picodash-dashlist-checkbox-box],
+  [data-picodash-dashlist-radio-marker] {
+    forced-color-adjust: none;
+    border-color: ButtonText;
+    background: Canvas;
+    color: ButtonText;
+  }
+
+  .picodash-dashlist-checkbox[data-selected] [data-picodash-dashlist-checkbox-box],
+  .picodash-dashlist-choice[data-selected] [data-picodash-dashlist-checkbox-box] {
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .picodash-dashlist-choice[data-selected] [data-picodash-dashlist-radio-marker],
+  .picodash-dashlist-segmented
+    [data-picodash-dashlist-segment][data-selected]
+    [data-picodash-dashlist-segment-marker] {
+    border-color: Highlight;
+    color: Highlight;
+  }
+
+  .picodash-dashlist-listbox [role='option'][data-selected] {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .picodash-dashlist-listbox [role='option'][data-selected][data-disabled] {
+    background: Canvas;
+    color: GrayText;
+  }
+
+  .picodash-dashlist-checkbox[data-selected][data-disabled] [data-picodash-dashlist-checkbox-box],
+  .picodash-dashlist-choice[data-selected][data-disabled] [data-picodash-dashlist-checkbox-box],
+  .picodash-dashlist-choice[data-selected][data-disabled] [data-picodash-dashlist-radio-marker],
+  .picodash-dashlist-segmented
+    [data-picodash-dashlist-segment][data-selected][data-disabled]
+    [data-picodash-dashlist-segment-marker] {
+    border-color: GrayText;
+    background: Canvas;
+    color: GrayText;
   }
 }
 

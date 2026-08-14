@@ -143,6 +143,23 @@ const nexus = createPicodashNexus({
 const exposure = nexus.fields.exposure
 ```
 
+Consumer components may constrain a field by its selected value without knowing the Nexus's full
+field record:
+
+```ts
+type NumericField = PicodashFieldOf<number>
+type NumericRangeField = PicodashExactFieldOf<{
+  readonly start: number
+  readonly end: number
+}>
+```
+
+`PicodashFieldOf<Value>` accepts a nominal Nexus field whose value is assignable to `Value`.
+`PicodashExactFieldOf<Value>` is for compound contracts that must not accept additional, missing, or
+narrower members. Both are type-only consumer views: they preserve Nexus ownership and add no
+runtime properties, validation, parsing, or mutation authority. Runtime field handles remain frozen
+objects containing only their enumerable `key`.
+
 ```ts
 type PicodashIssueInput = {
   message: string
@@ -167,15 +184,15 @@ type PicodashFieldValidator<Value, Values> = (
 Parser and validator result objects use Picodash's `ok` and structured-issue conventions. Standard
 Schema retains its own v1 result shape at the `schema` boundary.
 
-| Behavior                    | Contract | Implementation | Notes                                                            |
-| --------------------------- | -------- | -------------- | ---------------------------------------------------------------- |
-| Stable typed field handles  | Accepted | Implemented    | Handles are nominally root-owned and enumerable by key only.     |
-| Immutable field set         | Accepted | Implemented    | Runtime field registration is rejected.                          |
-| `parse` raw-input stage     | Accepted | Verified       | Binding input executes the typed parse/schema/validate pipeline. |
-| Standard Schema `schema`    | Accepted | Implemented    | Canonicalizes and drives inferred output type.                   |
-| Contextual `validate` stage | Accepted | Implemented    | Accepts or rejects; cannot transform.                            |
-| Synchronous pipeline        | Accepted | Implemented    | Promise-like results are rejected.                               |
-| Root ownership checks       | Accepted | Implemented    | Same-key handles from another root throw.                        |
+| Behavior                    | Contract | Implementation | Notes                                                             |
+| --------------------------- | -------- | -------------- | ----------------------------------------------------------------- |
+| Stable typed field handles  | Accepted | Implemented    | Nominal key-only handles include assignable and exact type views. |
+| Immutable field set         | Accepted | Implemented    | Runtime field registration is rejected.                           |
+| `parse` raw-input stage     | Accepted | Verified       | Binding input executes the typed parse/schema/validate pipeline.  |
+| Standard Schema `schema`    | Accepted | Implemented    | Canonicalizes and drives inferred output type.                    |
+| Contextual `validate` stage | Accepted | Implemented    | Accepts or rejects; cannot transform.                             |
+| Synchronous pipeline        | Accepted | Implemented    | Promise-like results are rejected.                                |
+| Root ownership checks       | Accepted | Implemented    | Same-key handles from another root throw.                         |
 
 Interactive binding input uses `parse → schema → validate`. Programmatic values, defaults,
 `initialValues`, adapter snapshots, persisted values, imports, and migration output use

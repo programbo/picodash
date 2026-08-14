@@ -2,6 +2,7 @@
 
 import {
   Button,
+  Group,
   Input,
   ListBox,
   ListBoxItem,
@@ -18,7 +19,9 @@ import {
   TextArea,
   TextField as AriaTextField,
 } from 'react-aria-components'
-import type { CSSProperties, ReactNode } from 'react'
+import { useRef, type CSSProperties, type ReactNode } from 'react'
+import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
+import { ChoiceOptionContent } from './choice-option-content.js'
 import { validateChoiceOptions } from './ui-choices.js'
 import { composeControlClassName } from './ui-class-name.js'
 import { ChoicePopover } from './ui-popover.js'
@@ -43,6 +46,11 @@ export type TextFieldProps = DashlistControlProps & {
   readonly placeholder?: string
 }
 
+function validateTextFieldConfiguration(multiline: boolean, minRows: number | undefined) {
+  if (minRows !== undefined && (!multiline || !Number.isInteger(minRows) || minRows <= 0))
+    throw new TypeError('minRows must be a positive integer when multiline is true.')
+}
+
 export function TextField({
   value,
   onChange,
@@ -51,6 +59,9 @@ export function TextField({
   placeholder,
   ...props
 }: TextFieldProps) {
+  validateTextFieldConfiguration(multiline, minRows)
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  const textAreaRef = usePrimaryControlRef<HTMLTextAreaElement>()
   const inputProps = {
     id: props.id,
     disabled: props.disabled,
@@ -73,7 +84,11 @@ export function TextField({
       aria-invalid={props['aria-invalid']}
       aria-errormessage={props['aria-errormessage']}
     >
-      {multiline ? <TextArea {...inputProps} rows={minRows} /> : <Input {...inputProps} />}
+      {multiline ? (
+        <TextArea ref={textAreaRef} {...inputProps} rows={minRows} />
+      ) : (
+        <Input ref={inputRef} {...inputProps} />
+      )}
     </AriaTextField>
   )
 }
@@ -101,6 +116,22 @@ function validateNumberFieldConfiguration(
     throw new TypeError('step must be a positive finite number.')
 }
 
+function equalNumberFormatOptions(
+  left: Intl.NumberFormatOptions | undefined,
+  right: Intl.NumberFormatOptions | undefined,
+): boolean {
+  if (left === right) return true
+  if (!left || !right) return false
+  const leftEntries = Object.entries(left)
+  const rightEntries = Object.entries(right)
+  if (leftEntries.length !== rightEntries.length) return false
+  return leftEntries.every(([key, value]) => Object.is(right[key as keyof typeof right], value))
+}
+
+function isImmediateNumberEditKey(key: string): boolean {
+  return ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(key)
+}
+
 export function NumberField({
   value,
   onChange,
@@ -112,12 +143,50 @@ export function NumberField({
   ...props
 }: NumberFieldProps) {
   validateNumberFieldConfiguration(min, max, step)
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  const pendingTextEdit = useRef(false)
+  const pendingImmediateEdit = useRef(false)
+  const immediateEditGeneration = useRef(0)
+  const previousConfiguration = useRef({ value, min, max, step, formatOptions })
+  const previous = previousConfiguration.current
+  if (
+    !Object.is(previous.value, value) ||
+    !Object.is(previous.min, min) ||
+    !Object.is(previous.max, max) ||
+    !Object.is(previous.step, step) ||
+    !equalNumberFormatOptions(previous.formatOptions, formatOptions)
+  ) {
+    pendingTextEdit.current = false
+    pendingImmediateEdit.current = false
+    immediateEditGeneration.current += 1
+    previousConfiguration.current = { value, min, max, step, formatOptions }
+  }
+
+  const canEdit = !props.disabled && !props.readOnly
+  const markTextEdit = () => {
+    if (canEdit) pendingTextEdit.current = true
+  }
+  const markImmediateEdit = () => {
+    if (!canEdit) return
+    pendingImmediateEdit.current = true
+    const generation = ++immediateEditGeneration.current
+    void Promise.resolve().then(() => {
+      if (immediateEditGeneration.current === generation) pendingImmediateEdit.current = false
+    })
+  }
+  const handleChange = (next: number) => {
+    if (!pendingTextEdit.current && !pendingImmediateEdit.current) return
+    pendingTextEdit.current = false
+    pendingImmediateEdit.current = false
+    immediateEditGeneration.current += 1
+    onChange(Number.isNaN(next) ? null : next)
+  }
 
   return (
     <AriaNumberField
       className={composeControlClassName('picodash-dashlist-field', props.className)}
       value={value}
-      onChange={onChange}
+      onChange={handleChange}
       minValue={min}
       maxValue={max}
       step={step}
@@ -131,13 +200,36 @@ export function NumberField({
       aria-invalid={props['aria-invalid']}
       aria-errormessage={props['aria-errormessage']}
     >
-      <Input
-        id={props.id}
-        placeholder={placeholder}
-        className="picodash-dashlist-control"
-        aria-invalid={props['aria-invalid']}
-        aria-errormessage={props['aria-errormessage']}
-      />
+      <Group>
+        <Input
+          ref={inputRef}
+          id={props.id}
+          placeholder={placeholder}
+          className="picodash-dashlist-control"
+          aria-invalid={props['aria-invalid']}
+          aria-errormessage={props['aria-errormessage']}
+          onChange={markTextEdit}
+          onBeforeInputCapture={markTextEdit}
+          onChangeCapture={markTextEdit}
+          onInputCapture={markTextEdit}
+          onPasteCapture={markTextEdit}
+          onCutCapture={markTextEdit}
+          onKeyDownCapture={(event) => {
+            if (isImmediateNumberEditKey(event.key)) markImmediateEdit()
+            else if (event.key.length === 1 || event.key === 'Backspace' || event.key === 'Delete')
+              markTextEdit()
+          }}
+          onWheelCapture={(event) => {
+            if (Math.abs(event.deltaY) > Math.abs(event.deltaX) && event.deltaY !== 0)
+              markImmediateEdit()
+          }}
+          onBlur={() => {
+            pendingTextEdit.current = false
+            pendingImmediateEdit.current = false
+            immediateEditGeneration.current += 1
+          }}
+        />
+      </Group>
     </AriaNumberField>
   )
 }
@@ -183,53 +275,59 @@ export function Slider({
   ...props
 }: SliderProps) {
   validateSliderConfiguration(min, max, step, marks)
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  const readOnlyDescription = useReadOnlyDescription(props.readOnly, props['aria-describedby'])
 
   return (
-    <AriaSlider
-      id={props.id}
-      className={composeControlClassName('picodash-dashlist-slider', props.className)}
-      value={value}
-      onChange={props.readOnly ? undefined : onChange}
-      minValue={min}
-      maxValue={max}
-      step={step}
-      formatOptions={formatOptions}
-      isDisabled={props.disabled}
-      aria-readonly={props.readOnly || undefined}
-      aria-label={props['aria-label']}
-      aria-labelledby={props['aria-labelledby']}
-      aria-describedby={props['aria-describedby']}
-      aria-invalid={props['aria-invalid']}
-      aria-errormessage={props['aria-errormessage']}
-    >
-      <SliderOutput>{({ state }) => state.getThumbValueLabel(0)}</SliderOutput>
-      <SliderTrack className="picodash-dashlist-slider-track">
-        <SliderThumb
-          index={0}
-          data-picodash-dashlist-slider-thumb
-          aria-label={props['aria-label']}
-          isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
-          aria-errormessage={props['aria-errormessage']}
-        />
-        {marks?.length ? (
-          <span aria-hidden="true" data-picodash-dashlist-slider-marks>
-            {marks.map((mark, index) => (
-              <span
-                key={index}
-                data-picodash-dashlist-slider-mark={mark.value}
-                style={
-                  {
-                    '--_picodash-dashlist-slider-mark-position': `${sliderMarkPosition(mark.value, min, max)}%`,
-                  } as CSSProperties
-                }
-              >
-                {mark.label ?? mark.value}
-              </span>
-            ))}
-          </span>
-        ) : null}
-      </SliderTrack>
-    </AriaSlider>
+    <>
+      <AriaSlider
+        id={props.id}
+        className={composeControlClassName('picodash-dashlist-slider', props.className)}
+        value={value}
+        onChange={props.readOnly ? undefined : onChange}
+        minValue={min}
+        maxValue={max}
+        step={step}
+        formatOptions={formatOptions}
+        isDisabled={props.disabled}
+        aria-label={props['aria-label']}
+        aria-labelledby={props['aria-labelledby']}
+        aria-describedby={props['aria-describedby']}
+        aria-invalid={props['aria-invalid']}
+        aria-errormessage={props['aria-errormessage']}
+      >
+        <SliderOutput>{({ state }) => state.getThumbValueLabel(0)}</SliderOutput>
+        <SliderTrack className="picodash-dashlist-slider-track">
+          <SliderThumb
+            index={0}
+            inputRef={inputRef}
+            data-picodash-dashlist-slider-thumb
+            aria-label={props['aria-label']}
+            aria-describedby={readOnlyDescription.describedBy}
+            isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+            aria-errormessage={props['aria-errormessage']}
+          />
+          {marks?.length ? (
+            <span aria-hidden="true" data-picodash-dashlist-slider-marks>
+              {marks.map((mark, index) => (
+                <span
+                  key={index}
+                  data-picodash-dashlist-slider-mark={mark.value}
+                  style={
+                    {
+                      '--_picodash-dashlist-slider-mark-position': `${sliderMarkPosition(mark.value, min, max)}%`,
+                    } as CSSProperties
+                  }
+                >
+                  {mark.label ?? mark.value}
+                </span>
+              ))}
+            </span>
+          ) : null}
+        </SliderTrack>
+      </AriaSlider>
+      {readOnlyDescription.description}
+    </>
   )
 }
 
@@ -239,8 +337,10 @@ export type SwitchProps = DashlistControlProps & {
 }
 
 export function Switch({ isSelected, onChange, ...props }: SwitchProps) {
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
   return (
     <AriaSwitch
+      inputRef={inputRef}
       id={props.id}
       className={composeControlClassName('picodash-dashlist-switch', props.className)}
       isSelected={isSelected}
@@ -312,52 +412,78 @@ export function Select<T extends string | number>({
 }: SelectProps<T>) {
   validateChoiceOptions(options)
   const parts = options.map(optionParts)
+  const triggerRef = usePrimaryControlRef<HTMLButtonElement>()
+  const readOnlyDescription = useReadOnlyDescription(props.readOnly, props['aria-describedby'])
   return (
-    <AriaSelect<OptionParts<T>>
-      className={composeControlClassName('picodash-dashlist-select', props.className)}
-      selectedKey={value === undefined ? null : choiceKey(value)}
-      placeholder={placeholder}
-      onSelectionChange={
-        props.readOnly
-          ? undefined
-          : (key) => {
-              if (key !== null) {
-                const match = parts.find((item) => choiceKey(item.value) === key)
-                if (match) onChange(match.value)
+    <>
+      <AriaSelect<OptionParts<T>>
+        className={composeControlClassName('picodash-dashlist-select', props.className)}
+        selectedKey={value === undefined ? null : choiceKey(value)}
+        placeholder={placeholder}
+        onSelectionChange={
+          props.readOnly
+            ? undefined
+            : (key) => {
+                if (key !== null) {
+                  const match = parts.find((item) => choiceKey(item.value) === key)
+                  if (match) onChange(match.value)
+                }
               }
-            }
-      }
-      isDisabled={props.disabled}
-      aria-readonly={props.readOnly || undefined}
-      aria-label={props['aria-label']}
-      aria-labelledby={props['aria-labelledby']}
-      aria-describedby={props['aria-describedby']}
-      aria-invalid={props['aria-invalid']}
-      aria-errormessage={props['aria-errormessage']}
-    >
-      <Button
-        id={props.id}
-        className="picodash-dashlist-control"
+        }
+        isDisabled={props.disabled}
+        aria-label={props['aria-label']}
+        aria-labelledby={props['aria-labelledby']}
+        aria-describedby={props['aria-describedby']}
         aria-invalid={props['aria-invalid']}
         aria-errormessage={props['aria-errormessage']}
       >
-        <SelectValue<OptionParts<T>> />
-      </Button>
-      <ChoicePopover>
-        <ListBox<OptionParts<T>> className="picodash-dashlist-listbox" items={parts}>
-          {(item) => (
-            <ListBoxItem
-              id={choiceKey(item.value)}
-              textValue={item.textValue}
-              isDisabled={item.disabled}
-            >
-              {item.icon}
-              {item.label}
-            </ListBoxItem>
-          )}
-        </ListBox>
-      </ChoicePopover>
-    </AriaSelect>
+        <Button
+          ref={triggerRef}
+          id={props.id}
+          className="picodash-dashlist-control"
+          aria-describedby={readOnlyDescription.describedBy}
+          aria-invalid={props['aria-invalid']}
+          aria-errormessage={props['aria-errormessage']}
+        >
+          <SelectValue<OptionParts<T>>>
+            {({ selectedItem, defaultChildren }) =>
+              selectedItem === null && value !== undefined ? String(value) : defaultChildren
+            }
+          </SelectValue>
+        </Button>
+        <ChoicePopover>
+          <ListBox<OptionParts<T>> className="picodash-dashlist-listbox" items={parts}>
+            {(item) => (
+              <ListBoxItem
+                id={choiceKey(item.value)}
+                textValue={item.textValue}
+                isDisabled={item.disabled}
+              >
+                <ChoiceOptionContent icon={item.icon} label={item.label} />
+              </ListBoxItem>
+            )}
+          </ListBox>
+        </ChoicePopover>
+      </AriaSelect>
+      {readOnlyDescription.description}
+    </>
+  )
+}
+
+function SegmentedChoice<T extends string | number>({ item }: { readonly item: OptionParts<T> }) {
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  return (
+    <Radio
+      inputRef={inputRef}
+      value={choiceKey(item.value)}
+      isDisabled={item.disabled}
+      data-picodash-dashlist-segment
+      aria-label={typeof item.label === 'string' ? undefined : item.textValue}
+    >
+      <span aria-hidden="true" data-picodash-dashlist-segment-marker />
+      {item.icon}
+      {item.label}
+    </Radio>
   )
 }
 
@@ -394,20 +520,9 @@ export function SegmentedControl<T extends string | number>({
       aria-invalid={props['aria-invalid']}
       aria-errormessage={props['aria-errormessage']}
     >
-      {parts.map((item) => {
-        return (
-          <Radio
-            key={`${typeof item.value}:${String(item.value)}`}
-            value={choiceKey(item.value)}
-            isDisabled={item.disabled}
-            data-picodash-dashlist-segment
-            aria-label={typeof item.label === 'string' ? undefined : item.textValue}
-          >
-            {item.icon}
-            {item.label}
-          </Radio>
-        )
-      })}
+      {parts.map((item) => (
+        <SegmentedChoice key={choiceKey(item.value)} item={item} />
+      ))}
     </RadioGroup>
   )
 }

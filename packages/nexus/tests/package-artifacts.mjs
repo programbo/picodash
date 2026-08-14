@@ -138,6 +138,8 @@ if (import.meta.main) {
   assert.match(rootTypes, /destroy\(options\?: DestroyRootOptions\): void/)
   assert.match(rootTypes, /readonly diagnostics: PicodashDiagnostics/)
   assert.match(rootTypes, /PicodashValueAdapter/)
+  assert.match(rootTypes, /type PicodashFieldOf</)
+  assert.match(rootTypes, /type PicodashExactFieldOf</)
   assert.match(rootTypes, /ExternalOwnedConfig/)
   assert.match(rootTypes, /ExternalOwnedPersistenceConfig/)
   assert.match(rootTypes, /PersistentTransactionResult/)

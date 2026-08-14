@@ -84,7 +84,7 @@ test('keeps the versioned driver, Console, and status available while the specim
   )
   await expect(page.getByRole('button', { name: 'Reopen primary specimen' })).toBeVisible()
   await page.getByRole('button', { name: 'Reopen primary specimen' }).click()
-  await expect(page.locator('[data-contract-lab-specimen]')).toBeVisible()
+  await expect(page.locator('[data-contract-lab-specimen]')).toBeVisible({ timeout: 10_000 })
 })
 
 test('loads all six accepted presets, persists the selection for the session, and resets to placement', async ({
@@ -125,6 +125,26 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   await expect(page.locator('[data-picodash-dashlet^="style-lab-"]')).toHaveCount(22)
   await expect(basicsPanel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
   await expect(choicesPanel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
+  const activeStylePanel = page.locator('[data-style-lab-panel][data-active="true"]')
+  const inactiveStylePanel = page.locator('[data-style-lab-panel]:not([data-active])')
+  await expect(activeStylePanel).toHaveCount(1)
+  await expect(inactiveStylePanel).toHaveCount(1)
+  const [activeLayer, inactiveLayer] = await Promise.all([
+    activeStylePanel.evaluate((element) => Number(getComputedStyle(element).zIndex)),
+    inactiveStylePanel.evaluate((element) => Number(getComputedStyle(element).zIndex)),
+  ])
+  expect(activeLayer).toBeGreaterThan(inactiveLayer)
+  const [basicsBox, choicesBox] = await Promise.all([
+    basicsPanel.boundingBox(),
+    choicesPanel.boundingBox(),
+  ])
+  if (!basicsBox || !choicesBox) throw new Error('Style Lab Panels did not expose geometry')
+  expect(
+    basicsBox.x + basicsBox.width <= choicesBox.x ||
+      choicesBox.x + choicesBox.width <= basicsBox.x ||
+      basicsBox.y + basicsBox.height <= choicesBox.y ||
+      choicesBox.y + choicesBox.height <= basicsBox.y,
+  ).toBe(true)
   await expect(
     page.locator('[data-contract-lab-status] dt', { hasText: 'Diagnostics' }).locator('..'),
   ).toContainText('1')
@@ -150,8 +170,45 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
       .locator('[data-picodash-dashlet="style-lab-range"]'),
   ).toBeVisible()
 
+  const numberDashlet = basicsList.locator('[data-picodash-dashlet="style-lab-number"]')
+  const numberControl = numberDashlet.getByRole('textbox', { name: 'NumberDashlet' })
+  await expect(numberControl).toHaveValue('1.235')
+  await numberDashlet.getByText('NumberDashlet', { exact: true }).click()
+  await expect(numberControl).toBeFocused()
+  const numberHelp = numberDashlet.getByRole('button', { name: 'Help for NumberDashlet' })
+  await numberHelp.focus()
+  await numberHelp.press('Enter')
+  const numberHelpDialog = page.getByRole('dialog', { name: 'Help for NumberDashlet' })
+  await expect(numberHelpDialog).toContainText(
+    'The displayed value is rounded without changing the canonical number.',
+  )
+  await page.keyboard.press('Escape')
+  await expect(numberHelp).toBeFocused()
+
   const sliderDashlet = basicsList.locator('[data-picodash-dashlet="style-lab-slider"]')
   await sliderDashlet.scrollIntoViewIfNeeded()
+  const sliderControl = sliderDashlet.getByRole('slider')
+  await expect(sliderControl).toHaveAccessibleDescription('Read only.')
+  await expect(sliderControl).not.toHaveAttribute('aria-readonly')
+  await expect(sliderControl).toBeEnabled()
+  const sliderValue = await sliderControl.inputValue()
+  await sliderControl.press('ArrowRight')
+  await expect(sliderControl).toHaveValue(sliderValue)
+
+  const rangeDashlet = basicsList.locator('[data-picodash-dashlet="style-lab-range"]')
+  const rangeThumbs = rangeDashlet.getByRole('slider')
+  await expect(rangeThumbs).toHaveCount(2)
+  const rangeStart = rangeThumbs.nth(0)
+  const rangeEnd = rangeThumbs.nth(1)
+  for (const thumb of [rangeStart, rangeEnd]) {
+    await expect(thumb).toHaveAccessibleDescription('Read only.')
+    await expect(thumb).not.toHaveAttribute('aria-readonly')
+    await expect(thumb).toBeEnabled()
+  }
+  const rangeStartValue = await rangeStart.inputValue()
+  await rangeStart.press('ArrowRight')
+  await expect(rangeStart).toHaveValue(rangeStartValue)
+
   const sliderTrack = sliderDashlet.locator('.picodash-dashlist-slider-track')
   const sliderMarks = sliderTrack.locator('[data-picodash-dashlist-slider-marks]')
   await expect(sliderMarks).toHaveAttribute('aria-hidden', 'true')
@@ -199,7 +256,7 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   await basicsPanel.evaluate((panel) => panel.removeAttribute('dir'))
 
   const focusWithKeyboard = async (control: Locator) => {
-    for (let index = 0; index < 80; index += 1) {
+    for (let index = 0; index < 240; index += 1) {
       if (await control.evaluate((element) => element === document.activeElement)) return
       await page.keyboard.press('Tab')
     }
@@ -226,12 +283,80 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   await expectKeyboardOutline(switchControl, switchControl.locator('xpath=ancestor::label[1]'))
 
   const colorControl = choicesList.getByRole('textbox', { name: 'ColorDashlet', exact: true })
+  await expect(colorControl).toHaveValue('rgba(125, 211, 252, 0.5)')
+  await colorControl.fill('rgba(10, 20, 30, 0.25)')
+  await colorControl.press('Tab')
+  await expect(colorControl).toHaveValue('rgba(10, 20, 30, 0.25)')
   await expectKeyboardOutline(colorControl)
 
   const choiceControl = choicesList
     .getByRole('radiogroup', { name: 'RadioGroupDashlet' })
     .getByRole('radio', { name: 'Option B', exact: true })
   await expectKeyboardOutline(choiceControl, choiceControl.locator('xpath=ancestor::label[1]'))
+
+  const radioDashlet = choicesList.locator('[data-picodash-dashlet="style-lab-radio-group"]')
+  const checkboxGroupDashlet = choicesList.locator(
+    '[data-picodash-dashlet="style-lab-checkbox-group"]',
+  )
+  const segmentedDashlet = choicesList.locator('[data-picodash-dashlet="style-lab-segmented"]')
+  await expect(radioDashlet.locator('[data-picodash-dashlist-radio-marker]')).toHaveCount(3)
+  await expect(
+    checkboxGroupDashlet.locator('[data-picodash-dashlist-checkbox-marker]'),
+  ).toHaveCount(3)
+  await expect(segmentedDashlet.locator('[data-picodash-dashlist-segment-marker]')).toHaveCount(3)
+
+  const selectedMarkers = [
+    {
+      marker: choiceControl
+        .locator('xpath=ancestor::label[1]')
+        .locator('[data-picodash-dashlist-radio-marker]'),
+      pseudo: '::after',
+    },
+    {
+      marker: checkboxGroupDashlet
+        .getByRole('checkbox', { name: 'Option A', exact: true })
+        .locator('xpath=ancestor::label[1]')
+        .locator('[data-picodash-dashlist-checkbox-marker]'),
+      pseudo: '::before',
+    },
+    {
+      marker: segmentedDashlet
+        .getByRole('radio', { name: 'Option B', exact: true })
+        .locator('xpath=ancestor::label[1]')
+        .locator('[data-picodash-dashlist-segment-marker]'),
+      pseudo: '::before',
+    },
+  ]
+  const readMarkerPresentation = (marker: Locator, pseudo: string) =>
+    marker.evaluate((element, pseudoElement) => {
+      const rect = element.getBoundingClientRect()
+      const owner = element.closest('label') ?? element.parentElement ?? element
+      const pseudoStyle = getComputedStyle(element, pseudoElement)
+      return {
+        direction: getComputedStyle(owner).direction,
+        width: rect.width,
+        height: rect.height,
+        visibility: pseudoStyle.visibility,
+        color: pseudoStyle.color,
+      }
+    }, pseudo)
+  const assertSelectedMarkers = async (direction: 'ltr' | 'rtl') => {
+    for (const { marker, pseudo } of selectedMarkers) {
+      const presentation = await readMarkerPresentation(marker, pseudo)
+      expect(presentation.direction).toBe(direction)
+      expect(presentation.width).toBeGreaterThan(0)
+      expect(presentation.height).toBeGreaterThan(0)
+      expect(presentation.visibility).toBe('visible')
+      expect(presentation.color).not.toBe('rgba(0, 0, 0, 0)')
+    }
+  }
+  await assertSelectedMarkers('ltr')
+  await choicesPanel.evaluate((panel) => panel.setAttribute('dir', 'rtl'))
+  await assertSelectedMarkers('rtl')
+  await page.emulateMedia({ forcedColors: 'active' })
+  await assertSelectedMarkers('rtl')
+  await page.emulateMedia({ forcedColors: 'none' })
+  await choicesPanel.evaluate((panel) => panel.removeAttribute('dir'))
 
   const selectTrigger = choicesList.getByRole('button', {
     name: 'Option B SelectDashlet',
@@ -478,6 +603,10 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     expect(coarseReorderBounds.height).toBeGreaterThanOrEqual(44)
 
     for (const control of [
+      coarsePage.getByRole('button', { name: 'Help for NumberDashlet' }),
+      coarsePage
+        .locator('[data-picodash-dashlet="style-lab-checkbox"]')
+        .locator('.picodash-dashlist-checkbox'),
       coarsePage
         .locator('[data-picodash-dashlet="style-lab-slider"]')
         .locator('[data-picodash-dashlist-slider-thumb]'),
@@ -913,12 +1042,45 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   await expect.poll(async () => styleMatches(await client.listSessions())).toBeTruthy()
   const styleInitial = styleMatches(await client.listSessions())!
   expect(styleInitial.label).toBe('Contract Lab Style Lab')
-  expect(styleInitial.disclosedValueFields).toEqual(['switchValue'])
+  expect(styleInitial.disclosedValueFields).toEqual(['switchValue', 'number'])
   expect(styleInitial.disclosedScopeIds).toEqual([])
   expect(styleInitial.diagnosticsDisclosed).toBe(false)
-  expect(styleInitial.writableFields).toEqual([])
+  expect(styleInitial.writableFields).toEqual(['number'])
   const styleInitialSnapshot = await client.inspect(styleInitial)
   expect(styleInitialSnapshot.snapshot.values?.switchValue).toBe(true)
+  expect(styleInitialSnapshot.snapshot.values?.number).toBe(1.234567)
+
+  const styleNumberDashlet = page.locator('[data-picodash-dashlet="style-lab-number"]')
+  const styleNumber = styleNumberDashlet.getByRole('textbox', { name: 'NumberDashlet' })
+  await expect(styleNumber).toHaveValue('1.235')
+  await styleNumber.focus()
+  await page.getByRole('switch', { name: 'SwitchDashlet' }).focus()
+  const afterUntouchedBlur = styleMatches(await client.listSessions())!
+  expect(afterUntouchedBlur.sequence).toBe(styleInitial.sequence)
+  expect((await client.inspect(afterUntouchedBlur)).snapshot.values?.number).toBe(1.234567)
+
+  await styleNumber.focus()
+  const incompatibleWrite = await client.setValues(afterUntouchedBlur, {
+    type: 'set_values',
+    requestId: 'lab-style-number-incompatible',
+    values: { number: 500 },
+  })
+  expect(incompatibleWrite.type).toBe('command_result')
+  await expect(styleNumber).toHaveCount(0)
+  const styleNumberShell = styleNumberDashlet.getByRole('group', {
+    name: 'NumberDashlet',
+    exact: true,
+  })
+  await expect(styleNumberShell).toBeFocused()
+  const numberWarning = 'The current value (500) is outside the configured range.'
+  await expect(styleNumberDashlet.getByRole('note')).toHaveText(numberWarning)
+  const styleBasicsStatus = page
+    .getByRole('complementary', { name: 'Basics & readout' })
+    .locator('[data-picodash-dashlist] [role="status"]')
+  await expect(styleBasicsStatus).toHaveCount(1)
+  await expect(styleBasicsStatus).toHaveText(numberWarning)
+  await expect(styleBasicsStatus).toHaveAttribute('aria-live', 'polite')
+  await expect(styleBasicsStatus).toHaveAttribute('aria-atomic', 'true')
 
   const styleSwitch = page.getByRole('switch', { name: 'SwitchDashlet' })
   await expect(styleSwitch).toBeChecked()
@@ -932,7 +1094,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
       type: 'value_equals',
       field: 'switchValue',
       value: false,
-      afterSequence: styleInitial.sequence,
+      afterSequence: afterUntouchedBlur.sequence,
     },
   })
   expect(styleWait.type).toBe('wait_result')

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, createElement, createRef, type ReactElement, type Ref } from 'react'
+import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vite-plus/test'
 import { renderToString } from 'react-dom/server'
 import { createDomTestRenderer, type DomTestRenderer } from '../../../test/dom-renderer.ts'
@@ -211,6 +212,127 @@ describe('experimental chart dashlets', () => {
     expect(subscriptions).toBe(2)
     act(() => view.unmount())
     setup.nexus.destroy()
+    vi.unstubAllGlobals()
+  })
+
+  it('uses the rendered shell owner document and window for visibility lifecycle', () => {
+    const iframe = document.createElement('iframe')
+    document.body.append(iframe)
+    const ownerDocument = iframe.contentDocument!
+    const ownerWindow = ownerDocument.defaultView!
+    const ownerObservers: Array<{
+      callback: (entries: Array<{ isIntersecting: boolean }>) => void
+      disconnect: ReturnType<typeof vi.fn>
+    }> = []
+    class OwnerIntersectionObserver {
+      readonly callback: (entries: Array<{ isIntersecting: boolean }>) => void
+      readonly disconnect = vi.fn()
+
+      constructor(callback: (entries: Array<{ isIntersecting: boolean }>) => void) {
+        this.callback = callback
+        ownerObservers.push(this)
+      }
+
+      observe = vi.fn()
+    }
+    class AmbientIntersectionObserver {
+      constructor() {
+        throw new Error('ambient IntersectionObserver must not be used')
+      }
+    }
+    Object.defineProperty(ownerWindow, 'IntersectionObserver', {
+      configurable: true,
+      value: OwnerIntersectionObserver,
+    })
+    vi.stubGlobal('IntersectionObserver', AmbientIntersectionObserver)
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+    Object.defineProperty(ownerDocument, 'hidden', { configurable: true, value: false })
+
+    let subscriptions = 0
+    const disposers: Array<ReturnType<typeof vi.fn>> = []
+    const source = () => {
+      subscriptions += 1
+      const disposer = vi.fn()
+      disposers.push(disposer)
+      return disposer
+    }
+    const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+    const root = createRoot(ownerDocument.body)
+    act(() => {
+      root.render(
+        createElement(
+          DashList,
+          { id: 'iframe-charts', nexus },
+          createElement(SparklineDashlet, { id: 'iframe-spark', label: 'CPU', source }),
+        ),
+      )
+    })
+    expect(subscriptions).toBe(0)
+    expect(ownerObservers).toHaveLength(1)
+
+    act(() => ownerObservers[0]!.callback([{ isIntersecting: true }]))
+    expect(subscriptions).toBe(1)
+
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+    void act(() => document.dispatchEvent(new Event('visibilitychange')))
+    expect(disposers[0]).not.toHaveBeenCalled()
+
+    Object.defineProperty(ownerDocument, 'hidden', { configurable: true, value: true })
+    void act(() => ownerDocument.dispatchEvent(new Event('visibilitychange')))
+    expect(disposers[0]).toHaveBeenCalledOnce()
+
+    Object.defineProperty(ownerDocument, 'hidden', { configurable: true, value: false })
+    void act(() => ownerDocument.dispatchEvent(new Event('visibilitychange')))
+    expect(subscriptions).toBe(2)
+
+    act(() => root.unmount())
+    expect(ownerObservers[0]!.disconnect).toHaveBeenCalledOnce()
+    expect(disposers[1]).toHaveBeenCalledOnce()
+    nexus.destroy()
+    iframe.remove()
+    vi.unstubAllGlobals()
+  })
+
+  it('uses the owner-window no-observer fallback without consulting ambient globals', () => {
+    const iframe = document.createElement('iframe')
+    document.body.append(iframe)
+    const ownerDocument = iframe.contentDocument!
+    const ownerWindow = ownerDocument.defaultView!
+    Object.defineProperty(ownerWindow, 'IntersectionObserver', {
+      configurable: true,
+      value: undefined,
+    })
+    class AmbientIntersectionObserver {
+      constructor() {
+        throw new Error('ambient IntersectionObserver must not be used')
+      }
+    }
+    vi.stubGlobal('IntersectionObserver', AmbientIntersectionObserver)
+    let subscriptions = 0
+    const disposer = vi.fn()
+    const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+    const root = createRoot(ownerDocument.body)
+    act(() => {
+      root.render(
+        createElement(
+          DashList,
+          { id: 'iframe-fallback', nexus },
+          createElement(SparklineDashlet, {
+            id: 'iframe-fallback-spark',
+            label: 'CPU',
+            source: () => {
+              subscriptions += 1
+              return disposer
+            },
+          }),
+        ),
+      )
+    })
+    expect(subscriptions).toBe(1)
+    act(() => root.unmount())
+    expect(disposer).toHaveBeenCalledOnce()
+    nexus.destroy()
+    iframe.remove()
     vi.unstubAllGlobals()
   })
 

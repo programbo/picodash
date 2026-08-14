@@ -403,7 +403,11 @@ these roles or structural tab-index rules through the native prop surface.
 ### Primary focus registration
 
 > Contract: Accepted
-> Implementation: Prototype migration required
+> Implementation: Verified
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx` and
+> `packages/dashlist/tests/dashlist.types.test.ts` cover the public ref contract, exact target
+> registration, unusable-target fallback, ref replacement, focus repair, cross-document target
+> fallback, StrictMode, SSR, and React 19 ref cleanup.
 
 `primaryFocusRef?: RefObject<HTMLElement | null>` is the sole public registration path for a custom
 Dashlet's primary focus target. The caller owns the ref and attaches it to the intended control.
@@ -542,7 +546,11 @@ not its children, owns the reorder rail and standard error region.
 #### Row focus
 
 > Contract: Accepted
-> Implementation: Partial
+> Implementation: Verified
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx` covers safe and excluded row clicks,
+> consumer cancellation, text selection, exact built-in targets, shell fallback, and detached-target
+> repair. `apps/lab/tests/contract-lab.spec.ts` covers safe-row click event routing and focused
+> built-in removal in the rendered Style Lab.
 
 The Dashlet row is an intentional pointer focus affordance. Clicking safe, otherwise inert space
 within the row focuses its registered primary focus target. Built-in single-control and action
@@ -569,6 +577,10 @@ it selects.
 
 > Contract: Accepted
 > Implementation: Partial
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx` covers accessible naming, descriptions,
+> supplementary help, disabled/read-only help operation, keyboard focus return, and issue regions.
+> `apps/lab/tests/contract-lab.spec.ts` covers the public help popover and focus return in a real
+> browser. The broader validation and compound-description matrix remains Partial.
 
 The visible Dashlet `label` is neutral shell text with a stable ID. It is not automatically an HTML
 `label` around or pointing to arbitrary content. Actual controls reference that ID through their own
@@ -726,7 +738,13 @@ are defined in the [component catalog reference](catalog.md). Draft anatomy help
 ### Stable ready-made inventory
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Partial
+> Evidence: `packages/dashlist/tests/ready-made*.test.tsx`,
+> `packages/dashlist/tests/*-controls*.test.tsx`, and
+> `packages/dashlist/tests/package-artifacts.mjs` cover all 22 root components, their public prop
+> types across JSX, aliases, generic wrappers, unannotated `createElement` field binding, and
+> unspecialized `ComponentProps`, plus the root/catalog boundary and required package artifacts.
+> Broader DashList stabilization remains Partial.
 
 The accepted stable `@picodash/dashlist` root exports are:
 
@@ -751,8 +769,9 @@ exports or catalog entries. They use `Chart` and the native `ChartDefinition` fr
 `@tanstack/charts/react`, and keep chart runtime
 state outside persisted Nexus. The boundary is pre-alpha and isolated behind the optional exact
 `@tanstack/charts` `0.12.0` peer; Recharts and shadcn `ChartContainer` are not supported. Before
-promotion, the package must verify bounded cleanup, SSR, accessibility, resize, theme, and
-reduced-motion behavior. See the [TanStack Charts overview](https://tanstack.com/charts/v0/docs/overview)
+promotion, the package must verify resize and broader theme and accessibility behavior. Focused
+tests already cover bounded streaming cleanup, owner-document visibility and observer lifecycles,
+SSR, accessible naming, and reduced-motion behavior. See the [TanStack Charts overview](https://tanstack.com/charts/v0/docs/overview)
 and [grammar of graphics](https://tanstack.com/charts/v0/docs/concepts/grammar-of-graphics).
 
 ### Typed composition grammar
@@ -808,7 +827,13 @@ prototype already exists.
 ### Shared ready-made contract
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Partial
+> Evidence: The ready-made and `/ui` component tests cover the implemented field bindings, strict
+> field-domain rejection, specialized prop inference, safe unspecialized aliases and
+> `ComponentProps`, unannotated `createElement` field binding, shell composition, focus targets,
+> read-only descriptions, lossless Number edit intent, alpha-preserving Color formats, and
+> presentation mismatch behavior across the stable inventory. Remaining DashList stabilization
+> rows are not promoted by this evidence.
 
 Every stable ready-made Dashlet requires an explicit `id`, a type-compatible Nexus `field` handle,
 and a visible `label`. A non-text label also requires an explicit accessible string under the
@@ -826,6 +851,13 @@ Ready-made configuration uses ordinary React prop values rather than prototype `
 callbacks. An application derives dynamic options, bounds, labels, or formatting with an explicit
 Nexus selector or its own state and passes the resolved value. React prop changes remain supported;
 they do not create an implicit second Nexus subscription inside every component.
+
+The public ready-made prop aliases and unspecialized React `ComponentProps` retain the accepted
+field domain instead of widening it to an arbitrary Nexus field. Direct JSX, explicit generic
+instantiation, and specialized prop aliases preserve the bound field's exact value type. An
+unannotated `createElement` call accepts a compatible field; when a generic callback such as
+`DisplayDashlet.formatValue` needs the concrete field value rather than the safe JSON-wide default,
+use an explicit component generic or specialized prop alias.
 
 Changing options, bounds, formatting, or other presentation configuration never silently replaces,
 clamps, or otherwise writes a canonical value that the new presentation cannot represent. The
@@ -1719,7 +1751,11 @@ values.
 > Contract: Accepted shared foundation and product-owned token inventory; implementation evidence
 > pending for exhaustive shared-token consumption and structural stylesheet inventory
 >
-> Implementation: Prototype
+> Implementation: Partial
+> Evidence: `packages/dashlist/tests/style.test.ts` and
+> `apps/lab/tests/contract-lab.spec.ts` cover current structure, shell/help focus, structural choice
+> markers in LTR, RTL, and forced colors, read-only presentation, and coarse-pointer targets. The
+> exhaustive shared-token consumption table remains pending.
 
 DashList consumes theme, density, shared semantic tokens, and product-neutral primitives from
 `@picodash/ui`. It owns List, Dashlet, row, group, rail, and binding structure in its own stylesheet.
@@ -1788,7 +1824,11 @@ application that wants a durable preference stores and supplies that preference 
 ## Accessibility contract
 
 > Contract: Accepted
-> Implementation: Prototype migration required
+> Implementation: Partial
+> Evidence: DashList component tests cover collection and group semantics, registered primary
+> targets, safe-row and collapse focus repair, descriptions, help, read-only controls, structural
+> choice markers, and announcements. Contract Lab covers the representative browser focus and
+> forced-colors seams. Rail behavior remains Planned.
 
 DashList targets WCAG 2.2 AA. The following rules define the initial collection, focus, naming,
 announcement, and rail behavior. Component-specific requirements for Dashlet labels and issues,

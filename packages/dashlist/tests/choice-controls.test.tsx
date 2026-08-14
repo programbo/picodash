@@ -284,6 +284,170 @@ describe('choice controls', () => {
     act(() => view.unmount())
   })
 
+  it('renders inert structural selection markers in selected and unselected choices', () => {
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement(Checkbox, {
+          isSelected: false,
+          onChange: () => undefined,
+          'aria-label': 'Unchecked',
+        }),
+        createElement(Checkbox, {
+          isSelected: true,
+          onChange: () => undefined,
+          'aria-label': 'Checked',
+        }),
+        createElement(RadioGroup, {
+          value: 'two',
+          onChange: () => undefined,
+          options: ['one', 'two'],
+          'aria-label': 'Radio markers',
+        }),
+        createElement(CheckboxGroup, {
+          value: ['one'],
+          onChange: () => undefined,
+          options: ['one', 'two'],
+          'aria-label': 'Checkbox markers',
+        }),
+        createElement(SegmentedControl, {
+          value: 'one',
+          onChange: () => undefined,
+          options: ['one', 'two'],
+          'aria-label': 'Segment markers',
+        }),
+      ),
+    )
+
+    const checkboxMarkers = view.root.element.querySelectorAll(
+      '[data-picodash-dashlist-checkbox-marker]',
+    )
+    const radioMarkers = view.root.element.querySelectorAll('[data-picodash-dashlist-radio-marker]')
+    const segmentMarkers = view.root.element.querySelectorAll(
+      '[data-picodash-dashlist-segment-marker]',
+    )
+    expect(checkboxMarkers).toHaveLength(4)
+    expect(radioMarkers).toHaveLength(2)
+    expect(segmentMarkers).toHaveLength(2)
+    for (const marker of [...checkboxMarkers, ...radioMarkers, ...segmentMarkers]) {
+      expect(marker.closest('[aria-hidden="true"]')).not.toBeNull()
+      expect(marker.querySelector('button, input, a, [tabindex]')).toBeNull()
+    }
+    expect([...checkboxMarkers].filter((marker) => marker.closest('[data-selected]'))).toHaveLength(
+      2,
+    )
+    expect([...radioMarkers].filter((marker) => marker.closest('[data-selected]'))).toHaveLength(1)
+    expect([...segmentMarkers].filter((marker) => marker.closest('[data-selected]'))).toHaveLength(
+      1,
+    )
+    expect(
+      view.root.element.querySelector<HTMLInputElement>('[aria-label="Checked"]')?.checked,
+    ).toBe(true)
+    expect(
+      view.root.element.querySelector<HTMLInputElement>('[aria-label="Radio markers"]'),
+    ).not.toBeNull()
+    act(() => view.unmount())
+  })
+
+  it('registers exact choice inputs and skips disabled leading group options', () => {
+    const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'choice-focus-targets', nexus },
+        createElement(
+          Dashlet,
+          { id: 'checkbox-focus', label: 'Checkbox focus' },
+          createElement(Checkbox, {
+            isSelected: false,
+            onChange: () => undefined,
+            'aria-label': 'Checkbox control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'radio-focus', label: 'Radio focus' },
+          createElement(RadioGroup, {
+            value: 'two',
+            onChange: () => undefined,
+            options: [{ value: 'one', disabled: true }, 'two', 'three'],
+            'aria-label': 'Radio control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'combobox-focus', label: 'Combobox focus' },
+          createElement(Combobox, {
+            value: 'one',
+            onChange: () => undefined,
+            options: ['one', 'two'],
+            'aria-label': 'Combobox control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'checkbox-group-focus', label: 'Checkbox group focus' },
+          createElement(CheckboxGroup, {
+            value: ['two'],
+            onChange: () => undefined,
+            options: [{ value: 'one', disabled: true }, 'two', 'three'],
+            'aria-label': 'Checkbox group control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'multi-focus', label: 'Multi focus' },
+          createElement(MultiSelect, {
+            value: ['one'],
+            onChange: () => undefined,
+            options: ['one', 'two'],
+            'aria-label': 'Multi control',
+          }),
+        ),
+        createElement(
+          Dashlet,
+          { id: 'search-focus', label: 'Search focus' },
+          createElement(SearchField, {
+            value: 'query',
+            onChange: () => undefined,
+            'aria-label': 'Search control',
+          }),
+        ),
+      ),
+    )
+
+    const cases: readonly { readonly id: string; readonly target: string }[] = [
+      { id: 'checkbox-focus', target: 'input[type="checkbox"]' },
+      { id: 'radio-focus', target: 'input[type="radio"]:not(:disabled)' },
+      { id: 'combobox-focus', target: 'input[role="combobox"]' },
+      { id: 'checkbox-group-focus', target: 'input[type="checkbox"]:not(:disabled)' },
+      { id: 'multi-focus', target: 'input[role="combobox"]' },
+      { id: 'search-focus', target: 'input[type="search"]' },
+    ]
+    for (const focusCase of cases) {
+      const row = view.root.element.querySelector<HTMLElement>(
+        `[data-picodash-dashlet="${focusCase.id}"]`,
+      )!
+      fireEvent.click(row.querySelector('[data-picodash-dashlet-label]')!)
+      expect(row.ownerDocument.activeElement, focusCase.id).toBe(
+        row.querySelector(focusCase.target),
+      )
+    }
+
+    const radioInputs = view.root.element.querySelectorAll<HTMLInputElement>(
+      '[data-picodash-dashlet="radio-focus"] input[type="radio"]',
+    )
+    const checkboxInputs = view.root.element.querySelectorAll<HTMLInputElement>(
+      '[data-picodash-dashlet="checkbox-group-focus"] input[type="checkbox"]',
+    )
+    expect(radioInputs[0]?.disabled).toBe(true)
+    expect(checkboxInputs[0]?.disabled).toBe(true)
+
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
   it('keeps empty scalar choices controlled until the requested typed value is supplied', () => {
     const options: readonly ScalarChoiceValue[] = ['one', 1]
 
@@ -825,12 +989,26 @@ describe('choice controls', () => {
       expect(portal.hasAttribute('data-picodash-theme')).toBe(false)
       expect(portal.hasAttribute('data-picodash-density')).toBe(false)
 
-      const option = [...portal.querySelectorAll('[role="option"]')].find(
+      const selectedOption = [...portal.querySelectorAll('[role="option"]')].find(
+        (candidate) => candidate.textContent === 'one',
+      )
+      const unselectedOption = [...portal.querySelectorAll('[role="option"]')].find(
         (candidate) => candidate.textContent === 'two',
       )
-      expect(option, `${choiceCase.name} should render the second option`).not.toBeUndefined()
+      for (const option of [selectedOption, unselectedOption]) {
+        const marker = option?.querySelector('[data-picodash-dashlist-option-marker]')
+        expect(
+          marker,
+          `${choiceCase.name} should reserve a structural option marker`,
+        ).not.toBeNull()
+        expect(marker?.getAttribute('aria-hidden')).toBe('true')
+        expect(marker?.querySelector('button, input, select, textarea, [tabindex]')).toBeNull()
+      }
+      expect(selectedOption?.hasAttribute('data-selected')).toBe(true)
+      expect(unselectedOption?.hasAttribute('data-selected')).toBe(false)
+
       act(() => {
-        fireEvent.click(option!)
+        fireEvent.click(unselectedOption!)
       })
       expect(changes).toEqual([choiceCase.expectedChange])
 
@@ -842,48 +1020,62 @@ describe('choice controls', () => {
   it('forwards declared ids to controls and class names to public roots', () => {
     const controls: ReactElement[] = [
       createElement(Checkbox, {
+        key: 'checkbox',
         id: 'choice-checkbox',
+        'aria-label': 'Checkbox',
         className: 'choice-checkbox-hook',
         isSelected: false,
         onChange: () => undefined,
       }),
       createElement(RadioGroup, {
+        key: 'radio',
         id: 'choice-radio',
+        'aria-label': 'Radio group',
         className: 'choice-radio-hook',
         value: 'one',
         onChange: () => undefined,
         options: ['one', 'two'],
       }),
       createElement(SegmentedControl, {
+        key: 'segmented',
         id: 'choice-segmented',
+        'aria-label': 'Segmented control',
         className: 'choice-segmented-hook',
         value: 'one',
         onChange: () => undefined,
         options: ['one', 'two'],
       }),
       createElement(Combobox, {
+        key: 'combobox',
         id: 'choice-combobox',
+        'aria-label': 'Combobox',
         className: 'choice-combobox-hook',
         value: 'one',
         onChange: () => undefined,
         options: ['one', 'two'],
       }),
       createElement(CheckboxGroup, {
+        key: 'checkbox-group',
         id: 'choice-checkbox-group',
+        'aria-label': 'Checkbox group',
         className: 'choice-checkbox-group-hook',
         value: ['one'],
         onChange: () => undefined,
         options: ['one', 'two'],
       }),
       createElement(MultiSelect, {
+        key: 'multi-select',
         id: 'choice-multi',
+        'aria-label': 'Multi-select',
         className: 'choice-multi-hook',
         value: ['one'],
         onChange: () => undefined,
         options: ['one', 'two'],
       }),
       createElement(SearchField, {
+        key: 'search',
         id: 'choice-search',
+        'aria-label': 'Search',
         className: 'choice-search-hook',
         value: '',
         onChange: () => undefined,

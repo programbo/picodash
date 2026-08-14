@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  ColorField as AriaColorField,
   DateField as AriaDateField,
   DateInput,
   DateRangePicker as AriaDateRangePicker,
@@ -15,6 +14,7 @@ import {
   SliderThumb,
   SliderTrack,
   TimeField as AriaTimeField,
+  TextField as AriaTextField,
   I18nProvider,
 } from 'react-aria-components'
 import { parseColor } from 'react-aria-components'
@@ -27,8 +27,9 @@ import {
   type Time,
   type ZonedDateTime,
 } from '@internationalized/date'
-import type { ReactNode } from 'react'
+import { useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import type { DashlistControlProps } from './ui.js'
+import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
 import { composeControlClassName } from './ui-class-name.js'
 
 export type NumberRangeValue = {
@@ -61,6 +62,10 @@ export function validateSupportedColorFormat(format: unknown): asserts format is
 }
 
 export function serializeColor(color: Color, format: ColorFormat): string {
+  const preservesAlpha =
+    format === 'hexa' || format === 'rgba' || format === 'hsla' || format === 'hsba'
+  if (!preservesAlpha && color.getChannelValue('alpha') !== 1)
+    throw new TypeError('format must preserve alpha for non-opaque colors.')
   return color.toString(format)
 }
 
@@ -147,7 +152,15 @@ function validateTemporalBounds<T extends ComparableTemporal<T>>(
     throw new TypeError('min must be less than or equal to max.')
 }
 
-function segmentInput(segment: any) {
+type TemporalSegment = ComponentProps<typeof DateSegment>['segment']
+
+function RegisteredDateSegment({ segment }: { readonly segment: TemporalSegment }) {
+  const ref = usePrimaryControlRef<HTMLSpanElement>()
+  return <DateSegment ref={ref} segment={segment} />
+}
+
+function segmentInput(segment: TemporalSegment) {
+  if (segment.isEditable) return <RegisteredDateSegment segment={segment} />
   return <DateSegment segment={segment} />
 }
 
@@ -182,51 +195,60 @@ export function RangeSlider({
   ...props
 }: RangeSliderProps) {
   validateRangeSliderConfiguration(min, max, step)
+  const startInputRef = usePrimaryControlRef<HTMLInputElement>()
+  const endInputRef = usePrimaryControlRef<HTMLInputElement>()
+  const readOnlyDescription = useReadOnlyDescription(props.readOnly, props['aria-describedby'])
 
   return (
-    <AriaSlider<number[]>
-      id={props.id}
-      className={composeControlClassName('picodash-dashlist-range-slider', props.className)}
-      value={[value.start, value.end]}
-      onChange={
-        props.readOnly
-          ? undefined
-          : (next) => {
-              if (Array.isArray(next) && next.length >= 2) {
-                onChange({ start: next[0]!, end: next[1]! })
+    <>
+      <AriaSlider<number[]>
+        id={props.id}
+        className={composeControlClassName('picodash-dashlist-range-slider', props.className)}
+        value={[value.start, value.end]}
+        onChange={
+          props.readOnly
+            ? undefined
+            : (next) => {
+                if (Array.isArray(next) && next.length >= 2) {
+                  onChange({ start: next[0]!, end: next[1]! })
+                }
               }
-            }
-      }
-      minValue={min}
-      maxValue={max}
-      step={step}
-      formatOptions={formatOptions}
-      isDisabled={props.disabled}
-      aria-readonly={props.readOnly || undefined}
-      aria-label={props['aria-label']}
-      aria-labelledby={props['aria-labelledby']}
-      aria-describedby={props['aria-describedby']}
-      aria-invalid={props['aria-invalid']}
-      aria-errormessage={props['aria-errormessage']}
-    >
-      <SliderOutput />
-      <SliderTrack className="picodash-dashlist-range-slider-track">
-        <SliderThumb
-          index={0}
-          data-picodash-dashlist-range-slider-thumb
-          aria-label="Start"
-          isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
-          aria-errormessage={props['aria-errormessage']}
-        />
-        <SliderThumb
-          index={1}
-          data-picodash-dashlist-range-slider-thumb
-          aria-label="End"
-          isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
-          aria-errormessage={props['aria-errormessage']}
-        />
-      </SliderTrack>
-    </AriaSlider>
+        }
+        minValue={min}
+        maxValue={max}
+        step={step}
+        formatOptions={formatOptions}
+        isDisabled={props.disabled}
+        aria-label={props['aria-label']}
+        aria-labelledby={props['aria-labelledby']}
+        aria-describedby={props['aria-describedby']}
+        aria-invalid={props['aria-invalid']}
+        aria-errormessage={props['aria-errormessage']}
+      >
+        <SliderOutput />
+        <SliderTrack className="picodash-dashlist-range-slider-track">
+          <SliderThumb
+            index={0}
+            inputRef={startInputRef}
+            data-picodash-dashlist-range-slider-thumb
+            aria-label="Start"
+            aria-describedby={readOnlyDescription.describedBy}
+            isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+            aria-errormessage={props['aria-errormessage']}
+          />
+          <SliderThumb
+            index={1}
+            inputRef={endInputRef}
+            data-picodash-dashlist-range-slider-thumb
+            aria-label="End"
+            aria-describedby={readOnlyDescription.describedBy}
+            isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+            aria-errormessage={props['aria-errormessage']}
+          />
+        </SliderTrack>
+      </AriaSlider>
+      {readOnlyDescription.description}
+    </>
   )
 }
 
@@ -502,6 +524,8 @@ export function DateTimeField({
   shouldForceLeadingZeros,
   ...props
 }: DateTimeFieldProps) {
+  if (typeof timeZone !== 'string' || timeZone.length === 0)
+    throw new TypeError('timeZone is required.')
   // Validate the IANA zone eagerly so server and client fail deterministically.
   new Intl.DateTimeFormat('en-US', { timeZone })
   const parsedMin = dateTimeBound(min, timeZone)
@@ -569,38 +593,71 @@ export type ColorFieldProps = DashlistControlProps & {
   readonly format?: ColorFormat
 }
 
+function controlledColorText(value: string | null, format: ColorFormat): string {
+  if (value === null) return ''
+  let color
+  try {
+    color = parseColor(value)
+  } catch {
+    return value
+  }
+  return serializeColor(color, format)
+}
+
+type ColorDraftState = {
+  readonly value: string | null
+  readonly format: ColorFormat
+  readonly text: string
+  readonly pendingEcho: { readonly value: string | null } | null
+}
+
+function controlledColorDraft(value: string | null, format: ColorFormat): ColorDraftState {
+  return { value, format, text: controlledColorText(value, format), pendingEcho: null }
+}
+
 export function ColorField({ value, onChange, format = 'hex', ...props }: ColorFieldProps) {
   validateSupportedColorFormat(format)
-  let parsed: Color | null = null
-  if (value !== null) {
-    try {
-      parsed = parseColor(value)
-    } catch {
-      parsed = null
-    }
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  const focused = useRef(false)
+  const [draftState, setDraftState] = useState(() => controlledColorDraft(value, format))
+  let resolvedDraft = draftState
+  if (!Object.is(draftState.value, value) || draftState.format !== format) {
+    const isCanonicalEcho =
+      focused.current &&
+      draftState.format === format &&
+      draftState.pendingEcho !== null &&
+      Object.is(draftState.pendingEcho.value, value)
+    resolvedDraft = isCanonicalEcho
+      ? { ...draftState, value, pendingEcho: null }
+      : controlledColorDraft(value, format)
+    setDraftState(resolvedDraft)
   }
-  if (value !== null && parsed === null) {
-    return (
-      <input
-        id={props.id}
-        className={composeControlClassName('picodash-dashlist-color-field', props.className)}
-        value={value}
-        onChange={(event) => onChange(event.currentTarget.value)}
-        disabled={props.disabled}
-        readOnly={props.readOnly}
-        aria-label={props['aria-label']}
-        aria-labelledby={props['aria-labelledby']}
-        aria-describedby={props['aria-describedby']}
-        aria-invalid={props['aria-invalid']}
-        aria-errormessage={props['aria-errormessage']}
-      />
-    )
-  }
+
   return (
-    <AriaColorField
+    <AriaTextField
       className={composeControlClassName('picodash-dashlist-color-field', props.className)}
-      value={parsed}
-      onChange={(next) => onChange(next ? serializeColor(next, format) : null)}
+      value={resolvedDraft.text}
+      onChange={(next) => {
+        if (props.disabled || props.readOnly) return
+        let pendingEcho: ColorDraftState['pendingEcho'] = null
+        if (next === '') pendingEcho = { value: null }
+        else {
+          try {
+            pendingEcho = { value: serializeColor(parseColor(next), format) }
+          } catch {
+            // Partial and invalid text remains local until it becomes a complete color.
+          }
+        }
+        setDraftState({ value, format, text: next, pendingEcho })
+        if (pendingEcho !== null) onChange(pendingEcho.value)
+      }}
+      onFocus={() => {
+        focused.current = true
+      }}
+      onBlur={() => {
+        focused.current = false
+        setDraftState(controlledColorDraft(value, format))
+      }}
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
       isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
@@ -611,10 +668,12 @@ export function ColorField({ value, onChange, format = 'hex', ...props }: ColorF
       aria-errormessage={props['aria-errormessage']}
     >
       <Input
+        ref={inputRef}
         id={props.id}
+        className="picodash-dashlist-control"
         aria-invalid={props['aria-invalid']}
         aria-errormessage={props['aria-errormessage']}
       />
-    </AriaColorField>
+    </AriaTextField>
   )
 }

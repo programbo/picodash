@@ -7,9 +7,24 @@ import {
   type ReactNode,
   type RefAttributes,
 } from 'react'
-import type { PicodashField, PicodashJsonValue } from '@picodash/nexus'
+import type { PicodashJsonValue } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
 import { PresentationWarning, presentationWarningId } from './presentation-warning.js'
+import { asDashletBindingField } from './ready-made-field-types.js'
+import type {
+  ArrayChoiceField,
+  ArrayChoiceFallbackField,
+  ArrayChoiceFieldProps,
+  ArrayChoiceOptionValue,
+  ChoiceField,
+  ChoiceFieldProps,
+  ChoiceOptionValue,
+  ChoiceValue,
+  ExactField,
+  ScalarField,
+  WritableRootField,
+  WritableScalarFieldProps,
+} from './ready-made-field-types.js'
 import {
   Checkbox,
   CheckboxGroup,
@@ -24,48 +39,13 @@ import {
   type SelectOption,
 } from './ui-choices.js'
 
-type AnyField = PicodashField<any, any>
-type FieldValue<F> =
-  F extends PicodashField<infer Values, infer Key>
-    ? Key extends keyof Values
-      ? Values[Key]
-      : never
-    : never
-type FieldProps<F extends AnyField, Value> = {
-  readonly field: F & (FieldValue<F> extends Value ? unknown : never)
-}
 type Shell = Omit<
-  DashletProps<any, any, 'input'>,
-  'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef'
+  DashletProps,
+  'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef' | 'defaultValue' | 'onChange'
 > & {
   readonly label: ReactNode
 }
 
-type ChoiceValue = string | number
-type ChoiceFieldProps<F extends AnyField, T extends ChoiceValue> = {
-  readonly field: F &
-    ([FieldValue<F>] extends [string]
-      ? [T] extends [FieldValue<F>]
-        ? unknown
-        : never
-      : [FieldValue<F>] extends [number]
-        ? [T] extends [FieldValue<F>]
-          ? unknown
-          : never
-        : never)
-}
-type ArrayChoiceFieldProps<F extends AnyField, T extends ChoiceValue> = {
-  readonly field: F &
-    ([FieldValue<F>] extends [readonly string[]]
-      ? [T] extends [FieldValue<F> extends readonly (infer Element)[] ? Element : never]
-        ? unknown
-        : never
-      : [FieldValue<F>] extends [readonly number[]]
-        ? [T] extends [FieldValue<F> extends readonly (infer Element)[] ? Element : never]
-          ? unknown
-          : never
-        : never)
-}
 type ChoiceShell<T extends ChoiceValue> = Shell & {
   readonly options: readonly SelectOption<T>[]
 }
@@ -120,13 +100,14 @@ function jsonText(value: unknown): string {
   return encoded === undefined ? String(value) : encoded
 }
 
-export type CheckboxDashletProps<F extends AnyField = AnyField> = Shell & FieldProps<F, boolean>
-function CheckboxDashletInner<F extends AnyField = AnyField>(
+export type CheckboxDashletProps<F extends ScalarField<boolean> = ExactField<boolean>> = Shell &
+  WritableScalarFieldProps<F, boolean>
+function CheckboxDashletInner<F extends ScalarField<boolean>>(
   { field, ...props }: CheckboxDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   return (
-    <Dashlet {...props} ref={ref} field={field}>
+    <Dashlet {...props} ref={ref} field={asDashletBindingField(field)}>
       {(context: any) => {
         const binding = context.binding
         return (
@@ -145,22 +126,36 @@ function CheckboxDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const CheckboxDashlet = forwardRef(CheckboxDashletInner) as <F extends AnyField>(
-  props: CheckboxDashletProps<F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const CheckboxDashlet = forwardRef(CheckboxDashletInner) as {
+  <const F extends ExactField<boolean>>(
+    props: CheckboxDashletProps<F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  <const Key extends string, const Values extends Record<Key, boolean>>(
+    props: CheckboxDashletProps<WritableRootField<Key, boolean, Values>> &
+      RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: CheckboxDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
 export type RadioGroupDashletProps<
-  T extends ChoiceValue,
-  F extends AnyField = AnyField,
-> = ChoiceShell<T> & ChoiceFieldProps<F, T> & Pick<RadioGroupProps<T>, 'orientation'>
-function RadioGroupDashletInner<T extends ChoiceValue, F extends AnyField = AnyField>(
-  props: RadioGroupDashletProps<T, F>,
+  T extends ChoiceValue = ChoiceValue,
+  F extends ChoiceField = ChoiceField,
+> = F extends ChoiceField
+  ? ChoiceShell<ChoiceOptionValue<F, T>> &
+      ChoiceFieldProps<F, T> &
+      Pick<RadioGroupProps<ChoiceOptionValue<F, T>>, 'orientation'>
+  : never
+type RadioGroupDashletInnerProps<T extends ChoiceValue, F extends ChoiceField> = ChoiceShell<T> &
+  ChoiceFieldProps<F, T> &
+  Pick<RadioGroupProps<T>, 'orientation'>
+function RadioGroupDashletInner<T extends ChoiceValue, F extends ChoiceField>(
+  props: RadioGroupDashletInnerProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const { field, options, orientation, layout, ...shell } = props
   validateChoices(options)
   return (
-    <Dashlet {...shell} layout={layout ?? 'block'} ref={ref} field={field}>
+    <Dashlet {...shell} layout={layout ?? 'block'} ref={ref} field={asDashletBindingField(field)}>
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as T
@@ -192,25 +187,32 @@ function RadioGroupDashletInner<T extends ChoiceValue, F extends AnyField = AnyF
     </Dashlet>
   )
 }
-export const RadioGroupDashlet = forwardRef(RadioGroupDashletInner) as <
-  T extends ChoiceValue,
-  F extends AnyField,
->(
-  props: RadioGroupDashletProps<T, F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const RadioGroupDashlet = forwardRef(RadioGroupDashletInner) as {
+  <T extends ChoiceValue, F extends ChoiceField>(
+    props: RadioGroupDashletProps<T, F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: RadioGroupDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
 export type ComboboxDashletProps<
-  T extends ChoiceValue,
-  F extends AnyField = AnyField,
-> = ChoiceShell<T> & ChoiceFieldProps<F, T> & Pick<ComboboxProps<T>, 'placeholder'>
-function ComboboxDashletInner<T extends ChoiceValue, F extends AnyField = AnyField>(
-  props: ComboboxDashletProps<T, F>,
+  T extends ChoiceValue = ChoiceValue,
+  F extends ChoiceField = ChoiceField,
+> = F extends ChoiceField
+  ? ChoiceShell<ChoiceOptionValue<F, T>> &
+      ChoiceFieldProps<F, T> &
+      Pick<ComboboxProps<ChoiceOptionValue<F, T>>, 'placeholder'>
+  : never
+type ComboboxDashletInnerProps<T extends ChoiceValue, F extends ChoiceField> = ChoiceShell<T> &
+  ChoiceFieldProps<F, T> &
+  Pick<ComboboxProps<T>, 'placeholder'>
+function ComboboxDashletInner<T extends ChoiceValue, F extends ChoiceField>(
+  props: ComboboxDashletInnerProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const { field, options, placeholder, layout, ...shell } = props
   validateChoices(options)
   return (
-    <Dashlet {...shell} layout={layout ?? 'block'} ref={ref} field={field}>
+    <Dashlet {...shell} layout={layout ?? 'block'} ref={ref} field={asDashletBindingField(field)}>
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as T
@@ -242,25 +244,31 @@ function ComboboxDashletInner<T extends ChoiceValue, F extends AnyField = AnyFie
     </Dashlet>
   )
 }
-export const ComboboxDashlet = forwardRef(ComboboxDashletInner) as <
-  T extends ChoiceValue,
-  F extends AnyField,
->(
-  props: ComboboxDashletProps<T, F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const ComboboxDashlet = forwardRef(ComboboxDashletInner) as {
+  <T extends ChoiceValue, F extends ChoiceField>(
+    props: ComboboxDashletProps<T, F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: ComboboxDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
 export type CheckboxGroupDashletProps<
+  T extends ChoiceValue = ChoiceValue,
+  F extends ArrayChoiceField = ArrayChoiceFallbackField,
+> = F extends ArrayChoiceField
+  ? ArrayChoiceShell<ArrayChoiceOptionValue<F, T>> & ArrayChoiceFieldProps<F, T>
+  : never
+type CheckboxGroupDashletInnerProps<
   T extends ChoiceValue,
-  F extends AnyField = AnyField,
+  F extends ArrayChoiceField,
 > = ArrayChoiceShell<T> & ArrayChoiceFieldProps<F, T>
-function CheckboxGroupDashletInner<T extends ChoiceValue, F extends AnyField = AnyField>(
-  props: CheckboxGroupDashletProps<T, F>,
+function CheckboxGroupDashletInner<T extends ChoiceValue, F extends ArrayChoiceField>(
+  props: CheckboxGroupDashletInnerProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const { field, options, layout, ...shell } = props
   validateChoices(options)
   return (
-    <Dashlet {...shell} layout={layout ?? 'block'} ref={ref} field={field}>
+    <Dashlet {...shell} layout={layout ?? 'block'} ref={ref} field={asDashletBindingField(field)}>
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as readonly T[]
@@ -290,25 +298,33 @@ function CheckboxGroupDashletInner<T extends ChoiceValue, F extends AnyField = A
     </Dashlet>
   )
 }
-export const CheckboxGroupDashlet = forwardRef(CheckboxGroupDashletInner) as <
-  T extends ChoiceValue,
-  F extends AnyField,
->(
-  props: CheckboxGroupDashletProps<T, F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const CheckboxGroupDashlet = forwardRef(CheckboxGroupDashletInner) as {
+  <T extends ChoiceValue, F extends ArrayChoiceField>(
+    props: CheckboxGroupDashletProps<T, F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: CheckboxGroupDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
 export type MultiSelectDashletProps<
+  T extends ChoiceValue = ChoiceValue,
+  F extends ArrayChoiceField = ArrayChoiceFallbackField,
+> = F extends ArrayChoiceField
+  ? ArrayChoiceShell<ArrayChoiceOptionValue<F, T>> &
+      ArrayChoiceFieldProps<F, T> &
+      Pick<MultiSelectProps<ArrayChoiceOptionValue<F, T>>, 'placeholder'>
+  : never
+type MultiSelectDashletInnerProps<
   T extends ChoiceValue,
-  F extends AnyField = AnyField,
+  F extends ArrayChoiceField,
 > = ArrayChoiceShell<T> & ArrayChoiceFieldProps<F, T> & Pick<MultiSelectProps<T>, 'placeholder'>
-function MultiSelectDashletInner<T extends ChoiceValue, F extends AnyField = AnyField>(
-  props: MultiSelectDashletProps<T, F>,
+function MultiSelectDashletInner<T extends ChoiceValue, F extends ArrayChoiceField>(
+  props: MultiSelectDashletInnerProps<T, F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   const { field, options, placeholder, layout, ...shell } = props
   validateChoices(options)
   return (
-    <Dashlet {...shell} layout={layout ?? 'block'} ref={ref} field={field}>
+    <Dashlet {...shell} layout={layout ?? 'block'} ref={ref} field={asDashletBindingField(field)}>
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as readonly T[]
@@ -339,22 +355,22 @@ function MultiSelectDashletInner<T extends ChoiceValue, F extends AnyField = Any
     </Dashlet>
   )
 }
-export const MultiSelectDashlet = forwardRef(MultiSelectDashletInner) as <
-  T extends ChoiceValue,
-  F extends AnyField,
->(
-  props: MultiSelectDashletProps<T, F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const MultiSelectDashlet = forwardRef(MultiSelectDashletInner) as {
+  <T extends ChoiceValue, F extends ArrayChoiceField>(
+    props: MultiSelectDashletProps<T, F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: MultiSelectDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
-export type SearchDashletProps<F extends AnyField = AnyField> = Shell &
-  FieldProps<F, string> &
+export type SearchDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell &
+  WritableScalarFieldProps<F, string> &
   Pick<SearchFieldProps, 'placeholder'>
-function SearchDashletInner<F extends AnyField = AnyField>(
+function SearchDashletInner<F extends ScalarField<string>>(
   { field, placeholder, ...props }: SearchDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   return (
-    <Dashlet {...props} ref={ref} field={field}>
+    <Dashlet {...props} ref={ref} field={asDashletBindingField(field)}>
       {(context: any) => {
         const binding = context.binding
         return (
@@ -374,9 +390,12 @@ function SearchDashletInner<F extends AnyField = AnyField>(
     </Dashlet>
   )
 }
-export const SearchDashlet = forwardRef(SearchDashletInner) as <F extends AnyField>(
-  props: SearchDashletProps<F> & RefAttributes<HTMLDivElement>,
-) => ReactElement | null
+export const SearchDashlet = forwardRef(SearchDashletInner) as {
+  <F extends ScalarField<string>>(
+    props: SearchDashletProps<F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: SearchDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
 
 function validateChoices<T extends ChoiceValue>(options: readonly SelectOption<T>[]): void {
   const seen = new Set<string>()

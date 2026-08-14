@@ -72,7 +72,7 @@ type StyleLabFields = {
 const styleLabFields: StyleLabFields = {
   search: { defaultValue: '' },
   text: { defaultValue: 'Text' },
-  number: { defaultValue: 24 },
+  number: { defaultValue: 1.234567 },
   switchValue: { defaultValue: true },
   slider: { defaultValue: 48 },
   range: { defaultValue: { start: 24, end: 76 } },
@@ -87,7 +87,7 @@ const styleLabFields: StyleLabFields = {
   segmented: { defaultValue: 'Option B' },
   checkboxGroup: { defaultValue: ['Option A', 'Option B'] },
   multiSelect: { defaultValue: ['Option A', 'Option B'] },
-  color: { defaultValue: '#7dd3fc' },
+  color: { defaultValue: 'rgba(125, 211, 252, 0.5)' },
   date: { defaultValue: '2026-08-20' },
   time: { defaultValue: '09:30' },
   dateTime: { defaultValue: '2026-08-20T09:30:00+08:00' },
@@ -95,11 +95,11 @@ const styleLabFields: StyleLabFields = {
 }
 
 const styleLabBridgeDisclosure: PicodashDevBridgeDisclosure = {
-  valueFields: ['switchValue'],
+  valueFields: ['switchValue', 'number'],
   scopeIds: [],
   diagnostics: false,
 }
-const styleLabBridgePermissions: PicodashDevBridgePermissions = { writableFields: [] }
+const styleLabBridgePermissions: PicodashDevBridgePermissions = { writableFields: ['number'] }
 
 export interface DashletStyleLabProps {
   readonly boundary: RefObject<HTMLElement | null>
@@ -123,6 +123,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
       providerId="dashlet-style-lab-provider"
       boundary={boundary}
       boundaryInset={16}
+      layerBase={100}
     >
       <ContractLabDevBridgeConnector
         nexus={nexus}
@@ -136,11 +137,11 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
         title="Basics & readout"
         collapsible
         showCloseButton={false}
-        width="min(31rem, calc(50dvw - 2.5rem))"
+        width="min(24rem, calc(50dvw - 2.5rem))"
         defaultLayout={{
           placement: {
             mode: 'hybrid',
-            disposition: { kind: 'docked', position: 'top-left' },
+            disposition: { kind: 'docked', position: 'bottom-right' },
           },
         }}
         data-style-lab-panel="basics-readout"
@@ -164,6 +165,8 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
               label="NumberDashlet"
               min={1}
               max={96}
+              formatOptions={{ maximumFractionDigits: 3 }}
+              help="The displayed value is rounded without changing the canonical number."
             />
             <SliderDashlet
               id="style-lab-slider"
@@ -171,6 +174,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
               label="SliderDashlet"
               min={0}
               max={100}
+              readOnly
               marks={[
                 { value: 0, label: '0%' },
                 { value: 50, label: '50%' },
@@ -189,6 +193,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
               label="RangeDashlet"
               min={0}
               max={100}
+              readOnly
               formatValue={({ start, end }) => `${start}–${end}`}
             />
           </DashGroup>
@@ -234,7 +239,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
         title="Choices & temporal"
         collapsible
         showCloseButton={false}
-        width="min(31rem, calc(50dvw - 2.5rem))"
+        width="min(24rem, calc(50dvw - 2.5rem))"
         defaultLayout={{
           placement: {
             mode: 'hybrid',
@@ -248,6 +253,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
             id="style-lab-color"
             field={nexus.fields.color}
             label="ColorDashlet"
+            format="rgba"
             layout="block"
             data-style-lab-lane="auto"
           />

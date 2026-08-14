@@ -359,6 +359,97 @@ export type ValuesOf<Fields extends Record<string, FieldLike>> = {
 }
 
 declare const fieldBrand: unique symbol
+declare const exactFieldBrand: unique symbol
+
+type IsAny<Value> = 0 extends 1 & Value ? true : false
+
+type ExactFieldRecursionDepth = readonly [unknown, unknown, unknown, unknown, unknown, unknown]
+
+type ExactFieldNextDepth<Depth extends readonly unknown[]> = Depth extends readonly [
+  unknown,
+  ...infer Rest,
+]
+  ? Rest
+  : readonly []
+
+type ExactFieldInvariant<Domain> = readonly ['domain', Domain, (domain: Domain) => Domain]
+
+type ExactFieldDomain<
+  Value,
+  Depth extends readonly unknown[] = ExactFieldRecursionDepth,
+> = ExactFieldInvariant<ExactFieldDomainShape<Value, Depth>>
+
+type ExactFieldNormalizedValue<
+  Value,
+  Depth extends readonly unknown[] = ExactFieldRecursionDepth,
+> = Depth extends readonly []
+  ? Value
+  : Value extends readonly unknown[]
+    ? number extends Value['length']
+      ? readonly ExactFieldNormalizedValue<Value[number], ExactFieldNextDepth<Depth>>[]
+      : {
+          readonly [Key in keyof Value]: ExactFieldNormalizedValue<
+            Value[Key],
+            ExactFieldNextDepth<Depth>
+          >
+        }
+    : Value extends object
+      ? {
+          readonly [Key in keyof Value]: ExactFieldNormalizedValue<
+            Value[Key],
+            ExactFieldNextDepth<Depth>
+          >
+        }
+      : Value
+
+type ExactFieldDomainShape<Value, Depth extends readonly unknown[]> =
+  IsAny<Value> extends true
+    ? readonly ['any']
+    : [Value] extends [never]
+      ? readonly ['never']
+      : Depth extends readonly []
+        ? readonly ['depth-limit', Value]
+        : Value extends string
+          ? string extends Value
+            ? readonly ['string']
+            : readonly ['string-literal', Value]
+          : Value extends number
+            ? number extends Value
+              ? readonly ['number']
+              : readonly ['number-literal', Value]
+            : [Value] extends [boolean]
+              ? boolean extends Value
+                ? readonly ['boolean']
+                : readonly ['boolean-literal', Value]
+              : Value extends null
+                ? readonly ['null']
+                : Value extends readonly unknown[]
+                  ? number extends Value['length']
+                    ? readonly [
+                        'array',
+                        ExactFieldDomain<Value[number], ExactFieldNextDepth<Depth>>,
+                      ]
+                    : readonly [
+                        'tuple',
+                        {
+                          readonly [Key in keyof Value]: ExactFieldDomain<
+                            Value[Key],
+                            ExactFieldNextDepth<Depth>
+                          >
+                        },
+                      ]
+                  : Value extends object
+                    ? readonly [
+                        'object',
+                        keyof Value,
+                        {
+                          readonly [Key in keyof Value]-?: ExactFieldDomain<
+                            Value[Key],
+                            ExactFieldNextDepth<Depth>
+                          >
+                        },
+                      ]
+                    : readonly ['other', Value]
 
 /** A root-owned nominal field handle. The brand is intentionally not exported. */
 export type PicodashField<Values extends object, Key extends keyof Values & string> = {
@@ -367,12 +458,56 @@ export type PicodashField<Values extends object, Key extends keyof Values & stri
   readonly [fieldBrand]: {
     readonly values: Values
     readonly key: Key
+    readonly value: Values[Key]
+  }
+}
+
+/**
+ * A nominal field view whose selected value is assignable to `Value`.
+ *
+ * This is a type-only consumer constraint. Runtime field handles still contain only their key.
+ */
+export type PicodashFieldOf<Value> = {
+  readonly key: string
+  readonly [fieldBrand]: {
+    readonly value: Value
+  }
+}
+
+/**
+ * A nominal field view whose selected value is exactly `Value`.
+ *
+ * The private type-only domain fingerprint makes supported JSON domains invariant without adding
+ * runtime properties or a callable operation to field handles.
+ */
+export type PicodashExactFieldOf<Value> = {
+  readonly key: string
+  readonly [fieldBrand]: {
+    readonly value: Value
+  }
+  /** Type-only recursive fingerprint preserves the complete value domain. */
+  readonly [exactFieldBrand]: {
+    readonly fingerprint: ExactFieldDomain<Value>
+    readonly invariant: (
+      value: ExactFieldNormalizedValue<Value>,
+    ) => ExactFieldNormalizedValue<Value>
   }
 }
 
 export type PicodashFields<Fields extends Record<string, FieldLike>> = {
   readonly [Key in keyof Fields]: PicodashField<ValuesOf<Fields>, Key & string>
 }
+
+type ProjectedPicodashField<
+  Values extends object,
+  Key extends keyof Values & string,
+> = PicodashField<Values, Key> & PicodashExactFieldOf<Values[Key]>
+
+type ProjectedPicodashFields<Fields extends Record<string, FieldLike>> = string extends keyof Fields
+  ? PicodashFields<Fields>
+  : {
+      readonly [Key in keyof Fields]: ProjectedPicodashField<ValuesOf<Fields>, Key & string>
+    }
 
 type DefinitionsFor<Fields extends Record<string, FieldLike>> = {
   readonly [Key in keyof Fields]: Fields[Key] & {
@@ -854,6 +989,27 @@ export type ScopedNexus<
   (Identified extends true
     ? { readonly documents: ScopedDocumentNamespace<Fields, Result, Identified, ExportEnabled> }
     : {})
+
+type CreatedRootNexus<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+  Identified extends boolean = false,
+  ExportEnabled extends boolean = false,
+> = Omit<RootNexus<Fields, Result, Identified, ExportEnabled>, 'fields' | 'scope'> & {
+  readonly fields: ProjectedPicodashFields<Fields>
+  scope(scopeId: string): CreatedScopedNexus<Fields, Result, Identified, ExportEnabled>
+}
+
+type CreatedScopedNexus<
+  Fields extends Record<string, FieldLike>,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+  Identified extends boolean = false,
+  ExportEnabled extends boolean = false,
+> = Omit<ScopedNexus<Fields, Result, Identified, ExportEnabled>, 'fields' | 'root' | 'scope'> & {
+  readonly root: CreatedRootNexus<Fields, Result, Identified, ExportEnabled>
+  readonly fields: ProjectedPicodashFields<Fields>
+  scope(scopeId: string): CreatedScopedNexus<Fields, Result, Identified, ExportEnabled>
+}
 
 type ContractErrorCode =
   | 'invalid-configuration'
@@ -1409,7 +1565,7 @@ export function createPicodashNexus<
     readonly export: PicodashExportConfig
     readonly persistence: NexusOwnedPersistenceConfig<Definitions>
   },
-): RootNexus<Definitions, PersistentTransactionResult, true, true>
+): CreatedRootNexus<Definitions, PersistentTransactionResult, true, true>
 export function createPicodashNexus<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
@@ -1421,7 +1577,7 @@ export function createPicodashNexus<
     readonly export: PicodashExportConfig
     readonly persistence?: never
   },
-): RootNexus<Definitions, CoreTransactionResult, true, true>
+): CreatedRootNexus<Definitions, CoreTransactionResult, true, true>
 export function createPicodashNexus<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
@@ -1430,7 +1586,7 @@ export function createPicodashNexus<
     readonly fields: Definitions & ExactInputFields<Values, Definitions>
     readonly persistence: NexusOwnedPersistenceConfig<Definitions>
   },
-): RootNexus<Definitions, PersistentTransactionResult, true, false>
+): CreatedRootNexus<Definitions, PersistentTransactionResult, true, false>
 export function createPicodashNexus<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
@@ -1443,7 +1599,7 @@ export function createPicodashNexus<
     readonly migrations?: SchemaMigrations
     readonly persistence?: never
   },
-): RootNexus<Definitions, CoreTransactionResult, true, false>
+): CreatedRootNexus<Definitions, CoreTransactionResult, true, false>
 export function createPicodashNexus<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
@@ -1455,7 +1611,7 @@ export function createPicodashNexus<
     readonly export: PicodashExportConfig
     readonly persistence: ExternalOwnedPersistenceConfig
   },
-): RootNexus<Definitions, PersistentTransactionResult, true, true>
+): CreatedRootNexus<Definitions, PersistentTransactionResult, true, true>
 export function createPicodashNexus<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
@@ -1467,7 +1623,7 @@ export function createPicodashNexus<
     readonly export?: never
     readonly persistence: ExternalOwnedPersistenceConfig
   },
-): RootNexus<Definitions, PersistentTransactionResult, true, false>
+): CreatedRootNexus<Definitions, PersistentTransactionResult, true, false>
 export function createPicodashNexus<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
@@ -1478,7 +1634,7 @@ export function createPicodashNexus<
     readonly schemaVersion: number
     readonly export: PicodashExportConfig
   },
-): RootNexus<Definitions, CoreTransactionResult, true, true>
+): CreatedRootNexus<Definitions, CoreTransactionResult, true, true>
 export function createPicodashNexus<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
@@ -1489,7 +1645,7 @@ export function createPicodashNexus<
     readonly schemaVersion: number
     readonly export?: never
   },
-): RootNexus<Definitions, CoreTransactionResult, true, false>
+): CreatedRootNexus<Definitions, CoreTransactionResult, true, false>
 export function createPicodashNexus<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,
@@ -1501,7 +1657,7 @@ export function createPicodashNexus<
     | (InferredExternalConfig<Values> & {
         readonly fields: Definitions & ExactInputFields<Values, Definitions>
       }),
-): RootNexus<Definitions, CoreTransactionResult>
+): CreatedRootNexus<Definitions, CoreTransactionResult>
 export function createPicodashNexus<
   Values extends Record<string, PicodashJsonValue>,
   const Definitions extends InputFields<Values>,

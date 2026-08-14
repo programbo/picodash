@@ -63,7 +63,15 @@ describe('@picodash/dashlist public types', () => {
     })
     // @ts-expect-error collapse is Nexus-controlled and cannot be supplied as a controlled prop.
     void createElement(DashGroup, { id: 'controlled', label: 'Controlled', collapsed: true })
-    void createElement(Dashlet, { id: 'item', label: 'Item', pin: 'end', children: 'Value' })
+    const primaryFocusRef: RefObject<HTMLElement | null> = { current: null }
+    void createElement(Dashlet, {
+      id: 'item',
+      label: 'Item',
+      pin: 'end',
+      help: 'Help text',
+      primaryFocusRef,
+      children: 'Value',
+    })
     void DashHeader
     void ActionMenu
     void DashListActionItems

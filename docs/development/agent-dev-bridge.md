@@ -123,13 +123,16 @@ contents or adding Bridge authority. No Bridge extension was needed: focus, visi
 activation remain Provider-owned browser behavior rather than agent protocol authority; raw
 quarantine payloads stay undisclosed.
 
-The Contract Lab composition preset also mounts an independent read-only registration for the
-Style Lab: `registrationId: "dashlet-style-lab"`, label `Contract Lab Style Lab`, disclosure of
-only `switchValue` with no scopes or diagnostics, and no writable fields. Its browser journey
-selects this session by registration ID and browser tab ID, toggles the public `SwitchDashlet`, and
-proves the canonical boolean through `wait` and `inspect` while the primary specimen session stays
-unchanged. This is a representative consumer disclosure; it does not add Bridge or Nexus
-authority.
+The Contract Lab composition preset also mounts an independent, narrowly writable Style Lab
+registration: `registrationId: "dashlet-style-lab"`, label `Contract Lab Style Lab`, disclosure of
+only `switchValue` and `number` with no scopes or diagnostics, and a write allowlist containing only
+`number`. Its browser journey selects this session by registration ID and browser tab ID. It first
+proves that an untouched formatted Number blur leaves the canonical `1.234567` unchanged. It then
+uses the one allowlisted Number write to make the focused Number presentation incompatible, proving
+editor removal, shell focus repair, and one warning announcement. The same journey toggles the
+public `SwitchDashlet` in the UI and proves the canonical boolean through `wait` and `inspect` while
+the primary specimen session stays unchanged. `switchValue` remains non-writable through Bridge;
+the registration discloses no other value, scope, or diagnostic authority.
 
 After proving that isolation, the same journey performs one public UI-to-Bridge metadata
 correlation on the primary `contract-lab-specimen` registration. It collapses `Standalone group`
