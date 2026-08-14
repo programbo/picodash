@@ -1153,6 +1153,118 @@ describe('choice controls', () => {
     nexus.destroy()
   })
 
+  it('keeps configured rejected scalar drafts visible while canonical mismatch warnings remain', () => {
+    for (const control of ['RadioGroup', 'Combobox'] as const) {
+      const nexus = createPicodashNexus({
+        valueOwner: 'nexus',
+        fields: {
+          choice: {
+            defaultValue: 'other',
+            validate: (value) =>
+              (value as string) === 'two' ? [{ message: 'Two is not allowed.' }] : [],
+          },
+        },
+      })
+      const portal = document.createElement('section')
+      document.body.append(portal)
+      const renderTree = (options: readonly string[]) =>
+        createElement(PicodashOverlayProvider, {
+          portalContainer: portal,
+          children: createElement(
+            DashList,
+            { id: `rejected-${control.toLowerCase()}`, nexus },
+            control === 'RadioGroup'
+              ? createElement(RadioGroupDashlet, {
+                  id: 'choice',
+                  field: nexus.fields.choice,
+                  label: 'Choice',
+                  options,
+                })
+              : createElement(ComboboxDashlet, {
+                  id: 'choice',
+                  field: nexus.fields.choice,
+                  label: 'Choice',
+                  options,
+                }),
+          ),
+        })
+      const view = render(renderTree(['one', 'two']))
+      const dashlet = () => view.root.element.querySelector('[data-picodash-dashlet="choice"]')!
+      const warningMessage = 'The current value (other) is not in the configured choices.'
+      const isSelected = () => {
+        const owner = dashlet()
+        if (control === 'RadioGroup')
+          return [...owner.querySelectorAll<HTMLInputElement>('input[type="radio"]')].some(
+            (input) => input.checked,
+          )
+        return owner.querySelector<HTMLInputElement>('input')?.value !== ''
+      }
+      const choose = (value: string) => {
+        const owner = dashlet()
+        if (control === 'RadioGroup') {
+          const index = value === 'one' ? 0 : 1
+          fireEvent.click(owner.querySelectorAll<HTMLInputElement>('input[type="radio"]')[index]!)
+          return
+        }
+        act(() => {
+          const input = owner.querySelector('input')!
+          fireEvent.focus(input)
+          fireEvent.keyDown(input, { key: 'ArrowDown' })
+          fireEvent.input(input, { target: { value } })
+          fireEvent.click(owner.querySelector('[aria-label="Show choices"]')!)
+        })
+        const option = [...portal.querySelectorAll('[role="option"]')].find(
+          (candidate) => candidate.textContent === value,
+        )
+        expect(option).not.toBeUndefined()
+        fireEvent.click(option!)
+      }
+
+      expect(isSelected()).toBe(false)
+      expect(view.root.element.textContent).toContain(warningMessage)
+      expect(nexus.getState().values.choice).toBe('other')
+
+      act(() => choose('two'))
+      expect(nexus.getState().values.choice).toBe('other')
+      expect(isSelected()).toBe(true)
+      const invalidControl = dashlet().querySelector('[aria-invalid="true"]')
+      expect(invalidControl).not.toBeNull()
+      const errorId = invalidControl?.getAttribute('aria-errormessage')
+      expect(errorId).toBeTruthy()
+      expect(document.getElementById(errorId!)?.textContent).toContain('Two is not allowed.')
+      expect(view.root.element.textContent).toContain(warningMessage)
+      const warning = dashlet().querySelector<HTMLElement>(
+        '[data-picodash-dashlet-presentation-warning]',
+      )
+      expect(warning).not.toBeNull()
+      expect(invalidControl?.getAttribute('aria-describedby')?.split(' ')).toContain(warning?.id)
+
+      act(() => view.update(renderTree(['one'])))
+      expect(isSelected()).toBe(false)
+      expect(nexus.getState().values.choice).toBe('other')
+      expect(view.root.element.textContent).toContain(warningMessage)
+
+      act(() => {
+        fireEvent.click(dashlet().querySelector('[data-picodash-dashlet-actions] button')!)
+      })
+      expect(isSelected()).toBe(false)
+      expect(nexus.getState().values.choice).toBe('other')
+      expect(view.root.element.textContent).toContain(warningMessage)
+      expect(dashlet().querySelector('[data-picodash-dashlet-binding-issues]')).toBeNull()
+      expect(dashlet().querySelector('[aria-invalid="true"]')).toBeNull()
+
+      act(() => view.update(renderTree(['one', 'two'])))
+      act(() => choose('one'))
+      expect(nexus.getState().values.choice).toBe('one')
+      expect(dashlet().querySelector('[data-picodash-dashlet-presentation-warning]')).toBeNull()
+      expect(dashlet().querySelector('[data-picodash-dashlet-actions]')).toBeNull()
+
+      act(() => view.unmount())
+      portal.remove()
+      nexus.destroy()
+    }
+  })
+
   it('announces a nested focused choice mismatch only through its nearest List', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',

@@ -164,25 +164,26 @@ function RadioGroupDashletInner<T extends ChoiceValue, F extends AnyField = AnyF
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as T
-        const value = (binding.draftValue ?? canonical) as T
-        const compatible = hasChoice(options, canonical)
+        const displayCandidate = (binding.draftValue ?? canonical) as T
+        const canonicalCompatible = hasChoice(options, canonical)
+        const displayCompatible = hasChoice(options, displayCandidate)
         return (
           <>
             <RadioGroup
               id={binding.controlId}
-              value={compatible ? value : undefined}
+              value={displayCompatible ? displayCandidate : undefined}
               onChange={binding.setInput}
               options={options}
               orientation={orientation}
               disabled={context.disabled}
               readOnly={context.readOnly}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, !compatible, binding)}
+              aria-describedby={describedBy(context, !canonicalCompatible, binding)}
               {...bindingAria(binding)}
             />
             <PresentationWarning
               context={context}
-              incompatible={!compatible}
+              incompatible={!canonicalCompatible}
               message={`The current value (${String(canonical)}) is not in the configured choices.`}
             />
           </>
@@ -213,25 +214,26 @@ function ComboboxDashletInner<T extends ChoiceValue, F extends AnyField = AnyFie
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as T
-        const value = (binding.draftValue ?? canonical) as T
-        const compatible = hasChoice(options, canonical)
+        const displayCandidate = (binding.draftValue ?? canonical) as T
+        const canonicalCompatible = hasChoice(options, canonical)
+        const displayCompatible = hasChoice(options, displayCandidate)
         return (
           <>
             <Combobox
               id={binding.controlId}
-              value={compatible ? value : undefined}
+              value={displayCompatible ? displayCandidate : undefined}
               onChange={binding.setInput}
               options={options}
               placeholder={placeholder}
               disabled={context.disabled}
               readOnly={context.readOnly}
               aria-labelledby={context.labelId}
-              aria-describedby={describedBy(context, !compatible, binding)}
+              aria-describedby={describedBy(context, !canonicalCompatible, binding)}
               {...bindingAria(binding)}
             />
             <PresentationWarning
               context={context}
-              incompatible={!compatible}
+              incompatible={!canonicalCompatible}
               message={`The current value (${String(canonical)}) is not in the configured choices.`}
             />
           </>
