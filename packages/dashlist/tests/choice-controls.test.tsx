@@ -9,6 +9,7 @@ import {
   CheckboxDashlet,
   CheckboxGroupDashlet,
   ComboboxDashlet,
+  Dashlet,
   DashList,
   MultiSelectDashlet,
   RadioGroupDashlet,
@@ -877,6 +878,61 @@ describe('choice controls', () => {
       selected: ['other', 'one'],
       checked: ['other', 'one'],
     })
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('announces a nested focused choice mismatch only through its nearest List', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { choice: { defaultValue: 'one' } },
+    })
+    const renderTree = (options: readonly string[]) =>
+      createElement(
+        DashList,
+        { id: 'outer-choices', nexus },
+        createElement(
+          Dashlet,
+          { id: 'host', label: 'Host' },
+          createElement(
+            DashList,
+            { id: 'inner-choices' },
+            createElement(ComboboxDashlet, {
+              id: 'choice',
+              field: nexus.fields.choice,
+              label: 'Choice',
+              options,
+            }),
+          ),
+        ),
+      )
+    const view = render(renderTree(['one', 'two']))
+    const listRoots = [
+      ...view.root.element.querySelectorAll<HTMLElement>('[data-picodash-dashlist]'),
+    ]
+    const directStatus = (root: HTMLElement) =>
+      [...root.children].find((child) => child.getAttribute('role') === 'status') as HTMLElement
+    const input = view.root.element.querySelector<HTMLInputElement>(
+      '[data-picodash-dashlet="choice"] input',
+    )!
+    act(() => input.focus())
+    act(() => view.update(renderTree(['two', 'three'])))
+
+    const warning = view.root.element.querySelector<HTMLElement>(
+      '[data-picodash-dashlet="choice"] [role="note"]',
+    )!
+    const nextInput = view.root.element.querySelector<HTMLInputElement>(
+      '[data-picodash-dashlet="choice"] input',
+    )!
+    expect(warning.textContent).toBe('The current value (one) is not in the configured choices.')
+    expect(nextInput.getAttribute('aria-describedby')?.split(' ')).toContain(warning.id)
+    expect(nextInput.hasAttribute('aria-invalid')).toBe(false)
+    expect(directStatus(listRoots[1]!).textContent).toBe(
+      'The current value (one) is not in the configured choices.',
+    )
+    expect(directStatus(listRoots[0]!).textContent).toBe('')
+    expect(nexus.getState().values.choice).toBe('one')
+
     act(() => view.unmount())
     nexus.destroy()
   })

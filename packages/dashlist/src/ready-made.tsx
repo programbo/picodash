@@ -9,6 +9,7 @@ import {
 } from 'react'
 import type { PicodashField, PicodashJsonValue } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
+import { PresentationWarning, presentationWarningId } from './presentation-warning.js'
 import {
   Display,
   NumberField,
@@ -57,15 +58,11 @@ type Shell = Omit<
 export type DashletChoiceOption<T extends string | number> = SelectOption<T>
 export type SliderDashletMark = SliderMark
 
-function warningId(controlId: string): string {
-  return `${controlId}-presentation-warning`
-}
-
 function describedBy(context: any, warning: boolean, binding?: any): string | undefined {
   const ids = [
     context.descriptionId,
     binding?.issuesId ?? context.issuesId,
-    warning ? warningId(context.binding.controlId) : undefined,
+    warning ? presentationWarningId(context.binding.controlId) : undefined,
   ].filter((id): id is string => Boolean(id))
   return ids.length ? ids.join(' ') : undefined
 }
@@ -78,25 +75,6 @@ function bindingAria(binding: any): {
     'aria-invalid': binding.invalid || undefined,
     'aria-errormessage': binding.invalid ? binding.issuesId : undefined,
   }
-}
-
-function PresentationWarning({
-  context,
-  children,
-}: {
-  readonly context: any
-  readonly children: ReactNode
-}) {
-  return (
-    <div
-      id={warningId(context.binding.controlId)}
-      data-picodash-dashlet-presentation-warning
-      data-code="presentation_incompatible"
-      role="note"
-    >
-      {children}
-    </div>
-  )
 }
 
 function validateFinite(name: string, value: number | undefined): void {
@@ -240,13 +218,15 @@ function NumberDashletInner<F extends AnyField = AnyField>(
                 {...bindingAria(binding)}
               />
             )}
-            {mismatch ? (
-              <PresentationWarning context={context}>
-                {rangeMismatch
+            <PresentationWarning
+              context={context}
+              incompatible={mismatch}
+              message={
+                rangeMismatch
                   ? `The current value (${String(canonical)}) is outside the configured range.`
-                  : `The current value (${String(canonical)}) is not on the configured number step.`}
-              </PresentationWarning>
-            ) : null}
+                  : `The current value (${String(canonical)}) is not on the configured number step.`
+              }
+            />
           </>
         )
       }}
@@ -319,13 +299,15 @@ function SliderDashletInner<F extends AnyField = AnyField>(
             {formatValue && !mismatch ? (
               <output data-picodash-dashlist-slider-value>{formatValue(canonical)}</output>
             ) : null}
-            {mismatch ? (
-              <PresentationWarning context={context}>
-                {rangeMismatch
+            <PresentationWarning
+              context={context}
+              incompatible={mismatch}
+              message={
+                rangeMismatch
                   ? `The current value (${String(canonical)}) is outside the configured range.`
-                  : `The current value (${String(canonical)}) is not on the configured slider step.`}
-              </PresentationWarning>
-            ) : null}
+                  : `The current value (${String(canonical)}) is not on the configured slider step.`
+              }
+            />
           </>
         )
       }}
@@ -404,11 +386,11 @@ function SelectDashletInner<T extends string | number, F extends AnyField = AnyF
               aria-describedby={describedBy(context, !compatible, binding)}
               {...bindingAria(binding)}
             />
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current value ({String(canonical)}) is not in the configured choices.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current value (${String(canonical)}) is not in the configured choices.`}
+            />
           </>
         )
       }}
@@ -457,11 +439,11 @@ function SegmentedDashletInner<T extends string | number, F extends AnyField = A
               aria-describedby={describedBy(context, !compatible, binding)}
               {...bindingAria(binding)}
             />
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current value ({String(canonical)}) is not in the configured choices.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current value (${String(canonical)}) is not in the configured choices.`}
+            />
           </>
         )
       }}

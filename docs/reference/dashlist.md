@@ -932,7 +932,13 @@ Dashlet shell.
 ### Presentation compatibility
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Verified
+> Evidence: `packages/dashlist/tests/ready-made.test.tsx`,
+> `packages/dashlist/tests/choice-controls.test.tsx`, and
+> `packages/dashlist/tests/value-controls.test.tsx` cover exact canonical fallbacks, inline warning
+> relationships, no repair writes, silent initial and unfocused mismatches, focused introductions,
+> persistent mismatch suppression, compatibility restoration, StrictMode replay, and nearest-List
+> announcement ownership across the scalar, choice, and value families.
 
 A **presentation mismatch** occurs when a canonical Nexus value is valid but the current ready-made
 control configuration cannot represent it faithfully. It is distinct from both invalid component
@@ -955,7 +961,10 @@ or prop change that restores compatibility clears the warning without a Nexus wr
 Presentation warnings relate to the affected control or named Dashlet composition through
 descriptive ARIA relationships. They do not use `aria-invalid`, because the canonical value remains
 valid. A warning present initially is not announced; one introduced while the affected Dashlet has
-focus receives one polite announcement.
+focus receives one polite announcement through the nearest DashList's persistent status region.
+A persistent mismatch stays silent even if its message changes. Returning to compatibility resets
+that transition, so a later focused mismatch is announced once again. Nested Lists never repeat one
+another's warning announcements.
 
 The mismatch is derived from current value and props. It is never persisted, exported, or recorded
 as a binding input issue. Runtime diagnostics may expose the stable code

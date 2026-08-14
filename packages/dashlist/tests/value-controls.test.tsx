@@ -664,6 +664,52 @@ describe('value controls', () => {
     nexus.destroy()
   })
 
+  it('announces an externally introduced focused value mismatch without repairing it', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { range: { defaultValue: { start: 2, end: 8 } } },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'value-transition', nexus },
+        createElement(RangeDashlet, {
+          id: 'range',
+          field: nexus.fields.range,
+          label: 'Range',
+          min: 0,
+          max: 10,
+        }),
+      ),
+    )
+    act(() =>
+      view.root.element
+        .querySelector<HTMLInputElement>('[data-picodash-dashlet="range"] input')!
+        .focus(),
+    )
+    act(() => void nexus.setValue(nexus.fields.range, { start: -2, end: 8 }))
+
+    const warning = view.root.element.querySelector<HTMLElement>(
+      '[data-picodash-dashlet="range"] [role="note"]',
+    )!
+    const fallback = view.root.element.querySelector<HTMLElement>(
+      '[data-picodash-dashlet="range"] [data-picodash-dashlist-range-value]',
+    )!
+    expect(warning.textContent).toBe(
+      'The current range ({ start: -2, end: 8 }) is outside the configured range.',
+    )
+    expect(fallback.textContent).toBe('{"start":-2,"end":8}')
+    expect(fallback.getAttribute('aria-describedby')?.split(' ')).toContain(warning.id)
+    expect(fallback.hasAttribute('aria-invalid')).toBe(false)
+    expect(view.root.element.querySelector('[role="status"]')?.textContent).toBe(
+      'The current range ({ start: -2, end: 8 }) is outside the configured range.',
+    )
+    expect(nexus.getState().values.range).toEqual({ start: -2, end: 8 })
+
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
   it('requires a valid time zone for date-time fields', () => {
     expect(() =>
       render(

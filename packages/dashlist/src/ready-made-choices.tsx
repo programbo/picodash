@@ -9,6 +9,7 @@ import {
 } from 'react'
 import type { PicodashField, PicodashJsonValue } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
+import { PresentationWarning, presentationWarningId } from './presentation-warning.js'
 import {
   Checkbox,
   CheckboxGroup,
@@ -70,15 +71,11 @@ type ChoiceShell<T extends ChoiceValue> = Shell & {
 }
 type ArrayChoiceShell<T extends ChoiceValue> = ChoiceShell<T>
 
-function warningId(controlId: string): string {
-  return `${controlId}-presentation-warning`
-}
-
 function describedBy(context: any, warning: boolean, binding?: any): string | undefined {
   const ids = [
     context.descriptionId,
     binding?.issuesId ?? context.issuesId,
-    warning ? warningId(context.binding.controlId) : undefined,
+    warning ? presentationWarningId(context.binding.controlId) : undefined,
   ].filter((id): id is string => Boolean(id))
   return ids.length ? ids.join(' ') : undefined
 }
@@ -91,25 +88,6 @@ function bindingAria(binding: any): {
     'aria-invalid': binding.invalid || undefined,
     'aria-errormessage': binding.invalid ? binding.issuesId : undefined,
   }
-}
-
-function PresentationWarning({
-  context,
-  children,
-}: {
-  readonly context: any
-  readonly children: ReactNode
-}) {
-  return (
-    <div
-      id={warningId(context.binding.controlId)}
-      data-picodash-dashlet-presentation-warning
-      data-code="presentation_incompatible"
-      role="note"
-    >
-      {children}
-    </div>
-  )
 }
 
 function optionValue<T extends ChoiceValue>(option: SelectOption<T>): T {
@@ -202,11 +180,11 @@ function RadioGroupDashletInner<T extends ChoiceValue, F extends AnyField = AnyF
               aria-describedby={describedBy(context, !compatible, binding)}
               {...bindingAria(binding)}
             />
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current value ({String(canonical)}) is not in the configured choices.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current value (${String(canonical)}) is not in the configured choices.`}
+            />
           </>
         )
       }}
@@ -251,11 +229,11 @@ function ComboboxDashletInner<T extends ChoiceValue, F extends AnyField = AnyFie
               aria-describedby={describedBy(context, !compatible, binding)}
               {...bindingAria(binding)}
             />
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current value ({String(canonical)}) is not in the configured choices.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current value (${String(canonical)}) is not in the configured choices.`}
+            />
           </>
         )
       }}
@@ -299,12 +277,11 @@ function CheckboxGroupDashletInner<T extends ChoiceValue, F extends AnyField = A
               aria-describedby={describedBy(context, !compatible, binding)}
               {...bindingAria(binding)}
             />
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current value ({jsonText(canonical)}) cannot be represented by the configured
-                choices. Values must be configured, unique, and in declared option order.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current value (${jsonText(canonical)}) cannot be represented by the configured choices. Values must be configured, unique, and in declared option order.`}
+            />
           </>
         )
       }}
@@ -349,12 +326,11 @@ function MultiSelectDashletInner<T extends ChoiceValue, F extends AnyField = Any
               aria-describedby={describedBy(context, !compatible, binding)}
               {...bindingAria(binding)}
             />
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current value ({jsonText(canonical)}) cannot be represented by the configured
-                choices. Values must be configured, unique, and in declared option order.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current value (${jsonText(canonical)}) cannot be represented by the configured choices. Values must be configured, unique, and in declared option order.`}
+            />
           </>
         )
       }}

@@ -11,6 +11,7 @@ import { parseAbsolute, parseDate, parseTime } from '@internationalized/date'
 import { parseColor } from 'react-aria-components'
 import type { PicodashField } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
+import { PresentationWarning, presentationWarningId } from './presentation-warning.js'
 import {
   ColorField,
   DateField,
@@ -75,15 +76,11 @@ type Shell = Omit<
   readonly label: ReactNode
 }
 
-function warningId(controlId: string): string {
-  return `${controlId}-presentation-warning`
-}
-
 function describedBy(context: any, warning: boolean, binding?: any): string | undefined {
   const ids = [
     context.descriptionId,
     binding?.issuesId ?? context.issuesId,
-    warning ? warningId(context.binding.controlId) : undefined,
+    warning ? presentationWarningId(context.binding.controlId) : undefined,
   ].filter((id): id is string => Boolean(id))
   return ids.length ? ids.join(' ') : undefined
 }
@@ -96,25 +93,6 @@ function bindingAria(binding: any): {
     'aria-invalid': binding.invalid || undefined,
     'aria-errormessage': binding.invalid ? binding.issuesId : undefined,
   }
-}
-
-function PresentationWarning({
-  context,
-  children,
-}: {
-  readonly context: any
-  readonly children: ReactNode
-}) {
-  return (
-    <div
-      id={warningId(context.binding.controlId)}
-      data-picodash-dashlet-presentation-warning
-      data-code="presentation_incompatible"
-      role="note"
-    >
-      {children}
-    </div>
-  )
 }
 
 function validateLocale(locale: string | undefined): void {
@@ -233,11 +211,11 @@ function RangeDashletInner<F extends AnyField = AnyField>(
             {formatValue && !mismatch ? (
               <output data-picodash-dashlist-range-value>{formatValue(canonical)}</output>
             ) : null}
-            {mismatch ? (
-              <PresentationWarning context={context}>
-                The current range ({rangeText(canonical)}) is outside the configured range.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={mismatch}
+              message={`The current range (${rangeText(canonical)}) is outside the configured range.`}
+            />
           </>
         )
       }}
@@ -292,11 +270,11 @@ function MeterDashletInner<F extends AnyField = AnyField>(
                 {...bindingAria(binding)}
               />
             )}
-            {mismatch ? (
-              <PresentationWarning context={context}>
-                The current value ({String(canonical)}) is outside the configured range.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={mismatch}
+              message={`The current value (${String(canonical)}) is outside the configured range.`}
+            />
           </>
         )
       }}
@@ -351,11 +329,11 @@ function ProgressDashletInner<F extends AnyField = AnyField>(
                 {...bindingAria(binding)}
               />
             )}
-            {mismatch ? (
-              <PresentationWarning context={context}>
-                The current value ({String(canonical)}) is outside the configured range.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={mismatch}
+              message={`The current value (${String(canonical)}) is outside the configured range.`}
+            />
           </>
         )
       }}
@@ -429,11 +407,11 @@ function StatusDashletInner<T extends string | number, F extends AnyField = AnyF
               aria-describedby={describedBy(context, !compatible, binding)}
               {...bindingAria(binding)}
             />
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current value ({String(canonical)}) is not in the configured status options.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current value (${String(canonical)}) is not in the configured status options.`}
+            />
           </>
         )
       }}
@@ -506,12 +484,11 @@ function DateDashletInner<F extends AnyField = AnyField>(
                 {canonical}
               </output>
             )}
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current value ({String(canonical)}) cannot be represented by the configured date
-                field.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current value (${String(canonical)}) cannot be represented by the configured date field.`}
+            />
           </>
         )
       }}
@@ -595,12 +572,11 @@ function TimeDashletInner<F extends AnyField = AnyField>(
                 {canonical}
               </output>
             )}
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current value ({String(canonical)}) cannot be represented by the configured time
-                field.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current value (${String(canonical)}) cannot be represented by the configured time field.`}
+            />
           </>
         )
       }}
@@ -702,12 +678,11 @@ function DateTimeDashletInner<F extends AnyField = AnyField>(
                 {canonical}
               </output>
             )}
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current value ({String(canonical)}) cannot be represented by the configured
-                date-time field.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current value (${String(canonical)}) cannot be represented by the configured date-time field.`}
+            />
           </>
         )
       }}
@@ -764,11 +739,11 @@ function DateRangeDashletInner<F extends AnyField = AnyField>(
                 {JSON.stringify(canonical)}
               </output>
             )}
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current date range cannot be represented by the configured date range field.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message="The current date range cannot be represented by the configured date range field."
+            />
           </>
         )
       }}
@@ -825,12 +800,11 @@ function ColorDashletInner<F extends AnyField = AnyField>(
                 {canonical}
               </output>
             )}
-            {!compatible ? (
-              <PresentationWarning context={context}>
-                The current color ({String(canonical)}) cannot be edited in the configured color
-                format.
-              </PresentationWarning>
-            ) : null}
+            <PresentationWarning
+              context={context}
+              incompatible={!compatible}
+              message={`The current color (${String(canonical)}) cannot be edited in the configured color format.`}
+            />
           </>
         )
       }}

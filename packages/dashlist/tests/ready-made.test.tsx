@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, createElement, type ReactElement } from 'react'
+import { act, createElement, StrictMode, type ReactElement } from 'react'
 import { describe, expect, it } from 'vite-plus/test'
 import { fireEvent } from '@testing-library/react'
 import { createPicodashNexus } from '@picodash/nexus'
@@ -282,7 +282,65 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
       view.root.element.querySelector('[data-picodash-dashlist-slider-canonical]')?.textContent,
     ).toBe('42')
     expect(view.root.element.querySelector('[aria-invalid]')).toBeNull()
+    expect(view.root.element.querySelector('[role="status"]')?.textContent).toBe('')
     expect(nexus.getState().values).toEqual({ number: 42, slider: 42, choice: 'other' })
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('announces focused numeric mismatch introductions once through StrictMode transitions', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { number: { defaultValue: 5 } },
+    })
+    const view = render(
+      createElement(
+        StrictMode,
+        null,
+        createElement(
+          DashList,
+          { id: 'numeric-transitions', nexus },
+          createElement(NumberDashlet, {
+            id: 'number',
+            field: nexus.fields.number,
+            label: 'Number',
+            min: 0,
+            max: 10,
+          }),
+        ),
+      ),
+    )
+    const status = () => view.root.element.querySelector<HTMLElement>('[role="status"]')!
+
+    const initialStatus = status()
+    act(() => void nexus.setValue(nexus.fields.number, 42))
+    expect(status()).toBe(initialStatus)
+    expect(status().textContent).toBe('')
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlist-number-value]')?.textContent,
+    ).toBe('42')
+
+    act(() => void nexus.setValue(nexus.fields.number, 5))
+    act(() => view.root.element.querySelector<HTMLInputElement>('input')!.focus())
+    act(() => void nexus.setValue(nexus.fields.number, 42))
+    const firstAnnouncement = status()
+    expect(firstAnnouncement).not.toBe(initialStatus)
+    expect(firstAnnouncement.textContent).toBe(
+      'The current value (42) is outside the configured range.',
+    )
+
+    act(() => void nexus.setValue(nexus.fields.number, 43))
+    expect(status()).toBe(firstAnnouncement)
+    expect(status().textContent).toBe('The current value (42) is outside the configured range.')
+
+    act(() => void nexus.setValue(nexus.fields.number, 5))
+    act(() => view.root.element.querySelector<HTMLInputElement>('input')!.focus())
+    act(() => void nexus.setValue(nexus.fields.number, 42))
+    expect(status()).not.toBe(firstAnnouncement)
+    expect(status().textContent).toBe('The current value (42) is outside the configured range.')
+    expect(view.root.element.querySelector('[aria-invalid]')).toBeNull()
+    expect(nexus.getState().values.number).toBe(42)
+
     act(() => view.unmount())
     nexus.destroy()
   })
