@@ -128,6 +128,29 @@ function ControlledMultiSelect({
   )
 }
 
+function ControlledCheckboxGroup({
+  initialValue,
+  onChange,
+  options,
+}: {
+  readonly initialValue: readonly (string | number)[]
+  readonly onChange: (value: readonly (string | number)[]) => void
+  readonly options: DirectChoiceOptions
+}) {
+  const [value, setValue] = useState(initialValue)
+  return (
+    <CheckboxGroup
+      aria-label="Choices"
+      value={value}
+      onChange={(next) => {
+        onChange(next)
+        setValue(next)
+      }}
+      options={options}
+    />
+  )
+}
+
 describe('choice controls', () => {
   it('rejects invalid option declarations before every direct choice control renders', () => {
     const invalidCases: readonly {
@@ -319,6 +342,145 @@ describe('choice controls', () => {
       fireEvent.click(choices[2]!)
     })
     expect(changes).toEqual([[1, '1', 'two']])
+    act(() => view.unmount())
+  })
+
+  it('preserves unavailable CheckboxGroup values in controlled order across selection changes', () => {
+    const changes: (string | number)[][] = []
+    const view = render(
+      createElement(ControlledCheckboxGroup, {
+        initialValue: ['missing', '1', 1, 404],
+        onChange: (next) => changes.push([...next]),
+        options: [
+          { value: 1, label: 'Number one' },
+          { value: '1', label: 'String one' },
+          { value: 'two', label: 'Two' },
+        ],
+      }),
+    )
+
+    const choices = [
+      ...view.root.element.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    ]
+    expect(choices.map((choice) => choice.checked)).toEqual([true, true, false])
+    expect(changes).toEqual([])
+
+    act(() => {
+      fireEvent.click(choices[2]!)
+    })
+    expect(changes).toEqual([[1, '1', 'two', 'missing', 404]])
+
+    act(() => {
+      fireEvent.click(choices[1]!)
+    })
+    expect(changes).toEqual([
+      [1, '1', 'two', 'missing', 404],
+      [1, 'two', 'missing', 404],
+    ])
+    act(() => view.unmount())
+  })
+
+  it('retains values that become unavailable until the controlling value removes them', () => {
+    const changes: (string | number)[][] = []
+    const view = render(
+      createElement(CheckboxGroup, {
+        'aria-label': 'Choices',
+        value: ['one', 'missing', 1],
+        onChange: (next) => changes.push([...next]),
+        options: ['one', 1],
+      }),
+    )
+
+    act(() => {
+      view.update(
+        createElement(CheckboxGroup, {
+          'aria-label': 'Choices',
+          value: ['one', 'missing', 1],
+          onChange: (next) => changes.push([...next]),
+          options: [1, 'two'],
+        }),
+      )
+    })
+    const two = [
+      ...view.root.element.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+    ][1]
+    act(() => {
+      fireEvent.click(two!)
+    })
+    expect(changes).toEqual([[1, 'two', 'one', 'missing']])
+
+    act(() => {
+      view.update(
+        createElement(CheckboxGroup, {
+          'aria-label': 'Choices',
+          value: [1, 'two'],
+          onChange: (next) => changes.push([...next]),
+          options: [1, 'two'],
+        }),
+      )
+    })
+    expect(changes).toEqual([[1, 'two', 'one', 'missing']])
+    act(() => view.unmount())
+  })
+
+  it('preserves disabled selections and performs no writes for empty, read-only, or disabled groups', () => {
+    const changes: (string | number)[][] = []
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement(CheckboxGroup, {
+          'aria-label': 'Enabled choices',
+          value: ['missing', 'locked'],
+          onChange: (next) => changes.push([...next]),
+          options: [
+            { value: 'locked', label: 'Locked', disabled: true },
+            { value: 'open', label: 'Open' },
+          ],
+        }),
+        createElement(CheckboxGroup, {
+          'aria-label': 'Empty choices',
+          value: ['missing'],
+          onChange: (next) => changes.push([...next]),
+          options: [],
+        }),
+        createElement(CheckboxGroup, {
+          'aria-label': 'Read-only choices',
+          value: ['open'],
+          onChange: (next) => changes.push([...next]),
+          options: ['open'],
+          readOnly: true,
+        }),
+        createElement(CheckboxGroup, {
+          'aria-label': 'Disabled choices',
+          value: ['open'],
+          onChange: (next) => changes.push([...next]),
+          options: ['open'],
+          disabled: true,
+        }),
+      ),
+    )
+
+    const enabledChoices = [
+      ...view.root.element.querySelectorAll<HTMLInputElement>(
+        '[aria-label="Enabled choices"] input[type="checkbox"]',
+      ),
+    ]
+    expect(enabledChoices[0]?.disabled).toBe(true)
+    act(() => {
+      fireEvent.click(enabledChoices[1]!)
+    })
+    expect(changes).toEqual([['locked', 'open', 'missing']])
+
+    act(() => {
+      fireEvent.click(
+        view.root.element.querySelector('[aria-label="Read-only choices"] input[type="checkbox"]')!,
+      )
+      fireEvent.click(
+        view.root.element.querySelector('[aria-label="Disabled choices"] input[type="checkbox"]')!,
+      )
+    })
+    expect(changes).toEqual([['locked', 'open', 'missing']])
     act(() => view.unmount())
   })
 

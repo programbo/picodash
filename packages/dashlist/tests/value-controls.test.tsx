@@ -17,6 +17,7 @@ import {
   TimeField,
 } from '../src/ui.js'
 import type { RangeSliderProps } from '../src/ui.js'
+import type { MeterProps } from '../src/ui.js'
 import {
   DashList,
   DateDashlet,
@@ -144,6 +145,132 @@ describe('value controls', () => {
           ),
         configuration.name,
       ).toThrowError(configuration.error)
+  })
+
+  it('rejects invalid direct Meter and ProgressBar bounds before rendering', () => {
+    const invalidBounds: readonly {
+      readonly name: string
+      readonly props: Pick<MeterProps, 'min' | 'max'>
+      readonly error: TypeError
+    }[] = [
+      ...[Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((min) => ({
+        name: `non-finite min ${String(min)}`,
+        props: { min },
+        error: new TypeError('min must be finite.'),
+      })),
+      ...[Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY].map((max) => ({
+        name: `non-finite max ${String(max)}`,
+        props: { max },
+        error: new TypeError('max must be finite.'),
+      })),
+      {
+        name: 'descending bounds',
+        props: { min: 2, max: 1 },
+        error: new TypeError('min must be less than or equal to max.'),
+      },
+    ]
+
+    for (const configuration of invalidBounds) {
+      expect(
+        () =>
+          render(
+            createElement(Meter, {
+              value: 1,
+              'aria-label': 'Invalid meter',
+              ...configuration.props,
+            }),
+          ),
+        `Meter: ${configuration.name}`,
+      ).toThrowError(configuration.error)
+      expect(
+        () =>
+          render(
+            createElement(ProgressBar, {
+              value: 1,
+              'aria-label': 'Invalid progress',
+              ...configuration.props,
+            }),
+          ),
+        `ProgressBar: ${configuration.name}`,
+      ).toThrowError(configuration.error)
+    }
+  })
+
+  it('preserves valid Meter and ProgressBar bounds, values, formatting, and indeterminate state', () => {
+    const view = render(
+      createElement(
+        'div',
+        null,
+        createElement(Meter, {
+          className: 'default-meter',
+          value: 25,
+          'aria-label': 'Default meter',
+        }),
+        createElement(Meter, {
+          className: 'equal-meter',
+          value: 5,
+          min: 5,
+          max: 5,
+          'aria-label': 'Equal meter',
+        }),
+        createElement(Meter, {
+          className: 'signed-meter',
+          value: 0,
+          min: -10,
+          max: 10,
+          formatValue: (value) => `signed ${value}`,
+          'aria-label': 'Signed meter',
+        }),
+        createElement(ProgressBar, {
+          className: 'nonzero-progress',
+          value: 15,
+          min: 10,
+          max: 20,
+          'aria-label': 'Non-zero progress',
+        }),
+        createElement(ProgressBar, {
+          className: 'equal-progress',
+          value: 5,
+          min: 5,
+          max: 5,
+          'aria-label': 'Equal progress',
+        }),
+        createElement(ProgressBar, {
+          className: 'indeterminate-progress',
+          min: -10,
+          max: 10,
+          'aria-label': 'Indeterminate progress',
+        }),
+      ),
+    )
+
+    expect(view.root.element.querySelector('.default-meter')?.getAttribute('aria-valuemin')).toBe(
+      '0',
+    )
+    expect(view.root.element.querySelector('.default-meter')?.getAttribute('aria-valuemax')).toBe(
+      '100',
+    )
+    expect(
+      view.root.element
+        .querySelector('.equal-meter .picodash-dashlist-progress-fill')
+        ?.getAttribute('style'),
+    ).toBe('inline-size: 0%;')
+    expect(view.root.element.querySelector('.signed-meter')?.textContent).toContain('signed 0')
+    expect(
+      view.root.element.querySelector('.nonzero-progress')?.getAttribute('aria-valuemin'),
+    ).toBe('10')
+    expect(
+      view.root.element.querySelector('.nonzero-progress')?.getAttribute('aria-valuemax'),
+    ).toBe('20')
+    expect(
+      view.root.element
+        .querySelector('.equal-progress .picodash-dashlist-progress-fill')
+        ?.getAttribute('style'),
+    ).toBe('inline-size: 0%;')
+    const indeterminate = view.root.element.querySelector('.indeterminate-progress')
+    expect(indeterminate).not.toBeNull()
+    expect(indeterminate?.querySelector('.picodash-dashlist-progress-fill')).not.toBeNull()
+    act(() => view.unmount())
   })
 
   it('preserves valid RangeSlider bounds, formatting, policies, and controlled values', async () => {
@@ -347,6 +474,131 @@ describe('value controls', () => {
     expect(segmentTypes(fields[0]!)).toEqual(['month', 'day', 'year'])
     expect(segmentTypes(fields[1]!)).toEqual(['day', 'month', 'year'])
     act(() => view.unmount())
+  })
+
+  it('rejects descending direct temporal bounds synchronously', () => {
+    const invalidBounds = [
+      {
+        name: 'DateField',
+        element: createElement(DateField, {
+          value: '2026-08-13',
+          min: '2026-08-14',
+          max: '2026-08-13',
+          onChange: () => undefined,
+          'aria-label': 'Invalid date',
+        }),
+      },
+      {
+        name: 'TimeField',
+        element: createElement(TimeField, {
+          value: '12:30:00',
+          min: '13:00:00',
+          max: '12:00:00',
+          onChange: () => undefined,
+          'aria-label': 'Invalid time',
+        }),
+      },
+      {
+        name: 'DateTimeField',
+        element: createElement(DateTimeField, {
+          value: '2026-08-13T12:30:00+08:00',
+          timeZone: 'Australia/Perth',
+          min: '2026-08-14T12:00:00+08:00',
+          max: '2026-08-13T12:00:00+08:00',
+          onChange: () => undefined,
+          'aria-label': 'Invalid date time',
+        }),
+      },
+    ]
+
+    for (const { name, element } of invalidBounds)
+      expect(() => render(element), name).toThrowError(
+        new TypeError('min must be less than or equal to max.'),
+      )
+  })
+
+  it('preserves valid direct temporal bounds and presentation without render writes', () => {
+    const changes: unknown[] = []
+    const validBounds = [
+      ...[
+        {},
+        { min: '2026-08-13' },
+        { min: '2026-08-13', max: '2026-08-13' },
+        { min: '2026-08-12', max: '2026-08-14' },
+      ].map((bounds, index) => ({
+        name: `DateField ${index}`,
+        className: `valid-date-${index}`,
+        element: createElement(DateField, {
+          ...bounds,
+          className: `valid-date-${index}`,
+          value: '2026-08-13',
+          onChange: (next) => changes.push(next),
+          disabled: true,
+          readOnly: true,
+          locale: 'en-AU',
+          'aria-label': `Valid date ${index}`,
+        }),
+      })),
+      ...[
+        {},
+        { min: '12:00:00' },
+        { min: '12:30:00', max: '12:30:00' },
+        { min: '12:00:00', max: '13:00:00' },
+      ].map((bounds, index) => ({
+        name: `TimeField ${index}`,
+        className: `valid-time-${index}`,
+        element: createElement(TimeField, {
+          ...bounds,
+          className: `valid-time-${index}`,
+          value: '12:30:00',
+          onChange: (next) => changes.push(next),
+          disabled: true,
+          readOnly: true,
+          granularity: 'second' as const,
+          hourCycle: 24 as const,
+          shouldForceLeadingZeros: true,
+          'aria-label': `Valid time ${index}`,
+        }),
+      })),
+      ...[
+        {},
+        { min: '2026-08-13T12:00:00+08:00' },
+        {
+          min: '2026-08-13T12:30:00+08:00',
+          max: '2026-08-13T12:30:00+08:00',
+        },
+        {
+          min: '2026-08-13T11:00:00+08:00',
+          max: '2026-08-13T13:00:00Z',
+        },
+      ].map((bounds, index) => ({
+        name: `DateTimeField ${index}`,
+        className: `valid-date-time-${index}`,
+        element: createElement(DateTimeField, {
+          ...bounds,
+          className: `valid-date-time-${index}`,
+          value: '2026-08-13T12:30:00+08:00',
+          timeZone: 'Australia/Perth',
+          onChange: (next) => changes.push(next),
+          disabled: true,
+          readOnly: true,
+          locale: 'en-AU',
+          granularity: 'second' as const,
+          hourCycle: 24 as const,
+          hideTimeZone: true,
+          shouldForceLeadingZeros: true,
+          'aria-label': `Valid date time ${index}`,
+        }),
+      })),
+    ]
+
+    for (const { name, className, element } of validBounds) {
+      const view = render(element)
+      const control = view.root.element.querySelector(`.${className}`)
+      expect(control, name).not.toBeNull()
+      act(() => view.unmount())
+    }
+    expect(changes).toEqual([])
   })
 
   it('rejects invalid locale configuration without touching Nexus', () => {

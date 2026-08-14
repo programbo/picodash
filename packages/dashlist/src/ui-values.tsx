@@ -97,6 +97,18 @@ function dateTimeValue(value: string | null, timeZone: string): ZonedDateTime | 
   return value === null ? null : parseAbsolute(value, timeZone)
 }
 
+type ComparableTemporal<T> = {
+  compare(other: T): number
+}
+
+function validateTemporalBounds<T extends ComparableTemporal<T>>(
+  min: T | undefined,
+  max: T | undefined,
+): void {
+  if (min && max && min.compare(max) > 0)
+    throw new TypeError('min must be less than or equal to max.')
+}
+
 function segmentInput(segment: any) {
   return <DateSegment segment={segment} />
 }
@@ -110,10 +122,14 @@ export type RangeSliderProps = DashlistControlProps & {
   readonly formatOptions?: Intl.NumberFormatOptions
 }
 
-function validateRangeSliderConfiguration(min: number, max: number, step: number): void {
+function validateNumericBounds(min: number, max: number): void {
   if (!Number.isFinite(min)) throw new TypeError('min must be finite.')
   if (!Number.isFinite(max)) throw new TypeError('max must be finite.')
   if (min > max) throw new TypeError('min must be less than or equal to max.')
+}
+
+function validateRangeSliderConfiguration(min: number, max: number, step: number): void {
+  validateNumericBounds(min, max)
   if (!Number.isFinite(step) || step <= 0)
     throw new TypeError('step must be a positive finite number.')
 }
@@ -192,6 +208,8 @@ export function Meter({
   formatValue,
   ...props
 }: MeterProps) {
+  validateNumericBounds(min, max)
+
   return (
     <AriaMeter
       id={props.id}
@@ -241,6 +259,8 @@ export function ProgressBar({
   formatValue,
   ...props
 }: ProgressBarProps) {
+  validateNumericBounds(min, max)
+
   return (
     <AriaProgressBar
       id={props.id}
@@ -350,14 +370,18 @@ export function DateField({
   shouldForceLeadingZeros,
   ...props
 }: DateFieldProps) {
+  const parsedMin = min ? parseDate(min) : undefined
+  const parsedMax = max ? parseDate(max) : undefined
+  validateTemporalBounds(parsedMin, parsedMax)
+
   return localize(
     locale,
     <AriaDateField<CalendarDate>
       className={composeControlClassName('picodash-dashlist-date-field', props.className)}
       value={dateValue(value)}
       onChange={(next) => onChange(next ? next.toString() : null)}
-      minValue={min ? parseDate(min) : undefined}
-      maxValue={max ? parseDate(max) : undefined}
+      minValue={parsedMin}
+      maxValue={parsedMax}
       granularity={granularity}
       hourCycle={hourCycle}
       shouldForceLeadingZeros={shouldForceLeadingZeros}
@@ -391,14 +415,18 @@ export function TimeField({
   shouldForceLeadingZeros,
   ...props
 }: TimeFieldProps) {
+  const parsedMin = min ? parseTime(min) : undefined
+  const parsedMax = max ? parseTime(max) : undefined
+  validateTemporalBounds(parsedMin, parsedMax)
+
   return localize(
     locale,
     <AriaTimeField<Time>
       className={composeControlClassName('picodash-dashlist-time-field', props.className)}
       value={timeValue(value)}
       onChange={(next) => onChange(next ? next.toString() : null)}
-      minValue={min ? parseTime(min) : undefined}
-      maxValue={max ? parseTime(max) : undefined}
+      minValue={parsedMin}
+      maxValue={parsedMax}
       granularity={granularity}
       hourCycle={hourCycle}
       shouldForceLeadingZeros={shouldForceLeadingZeros}
@@ -438,14 +466,18 @@ export function DateTimeField({
 }: DateTimeFieldProps) {
   // Validate the IANA zone eagerly so server and client fail deterministically.
   new Intl.DateTimeFormat('en-US', { timeZone })
+  const parsedMin = min ? parseAbsolute(min, timeZone) : undefined
+  const parsedMax = max ? parseAbsolute(max, timeZone) : undefined
+  validateTemporalBounds(parsedMin, parsedMax)
+
   return localize(
     locale,
     <AriaDateField<ZonedDateTime>
       className={composeControlClassName('picodash-dashlist-date-time-field', props.className)}
       value={dateTimeValue(value, timeZone)}
       onChange={(next) => onChange(next ? dateTimeString(next) : null)}
-      minValue={min ? parseAbsolute(min, timeZone) : undefined}
-      maxValue={max ? parseAbsolute(max, timeZone) : undefined}
+      minValue={parsedMin}
+      maxValue={parsedMax}
       granularity={granularity}
       hourCycle={hourCycle}
       hideTimeZone={hideTimeZone}

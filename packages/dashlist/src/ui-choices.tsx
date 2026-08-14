@@ -106,6 +106,19 @@ function validateCheckboxGroupValue(value: readonly ChoiceValue[]): void {
   }
 }
 
+function reconcileCheckboxGroupSelection<T extends ChoiceValue>(
+  value: readonly T[],
+  parts: readonly OptionParts<T>[],
+  selectedKeys: ReadonlySet<string | number>,
+): readonly T[] {
+  const configuredKeys = new Set(parts.map((item) => choiceKey(item.value)))
+  const configuredSelection = parts
+    .filter((item) => selectedKeys.has(choiceKey(item.value)))
+    .map((item) => item.value)
+  const unavailableSelection = value.filter((item) => !configuredKeys.has(choiceKey(item)))
+  return [...configuredSelection, ...unavailableSelection]
+}
+
 export function validateChoiceOptions<T extends ChoiceValue>(
   options: readonly SelectOption<T>[],
 ): void {
@@ -295,9 +308,7 @@ export function CheckboxGroup<T extends ChoiceValue>({
       value={selected}
       onChange={(keys) => {
         const selectedKeys = new Set(keys)
-        const next = parts
-          .filter((item) => selectedKeys.has(choiceKey(item.value)))
-          .map((item) => item.value)
+        const next = reconcileCheckboxGroupSelection(value, parts, selectedKeys)
         onChange(next)
       }}
       isDisabled={props.disabled}
