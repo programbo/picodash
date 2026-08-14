@@ -72,13 +72,25 @@ export function removeMultiSelectValues<T extends ChoiceValue>(
   })
 }
 
-function validateMultiSelectValue(value: readonly ChoiceValue[]): void {
+function validateChoiceValueArray(
+  value: readonly ChoiceValue[],
+  controlName: 'MultiSelect' | 'CheckboxGroup',
+): void {
   const seen = new Set<string>()
   for (const item of value) {
+    if (
+      (typeof item !== 'string' && typeof item !== 'number') ||
+      (typeof item === 'number' && !Number.isFinite(item))
+    )
+      throw new TypeError('choice values must be finite strings or numbers.')
     const key = choiceKey(item)
-    if (seen.has(key)) throw new TypeError('MultiSelect value must contain unique values.')
+    if (seen.has(key)) throw new TypeError(`${controlName} value must contain unique values.`)
     seen.add(key)
   }
+}
+
+function validateMultiSelectValue(value: readonly ChoiceValue[]): void {
+  validateChoiceValueArray(value, 'MultiSelect')
 }
 
 function reconcileMultiSelectSelection<T extends ChoiceValue>(
@@ -98,12 +110,7 @@ function reconcileMultiSelectSelection<T extends ChoiceValue>(
 }
 
 function validateCheckboxGroupValue(value: readonly ChoiceValue[]): void {
-  const seen = new Set<string>()
-  for (const item of value) {
-    const key = choiceKey(item)
-    if (seen.has(key)) throw new TypeError('CheckboxGroup value must contain unique values.')
-    seen.add(key)
-  }
+  validateChoiceValueArray(value, 'CheckboxGroup')
 }
 
 function reconcileCheckboxGroupSelection<T extends ChoiceValue>(

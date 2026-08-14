@@ -430,6 +430,38 @@ describe('choice controls', () => {
       ).toThrowError(new TypeError('CheckboxGroup value must contain unique values.'))
   })
 
+  it('rejects non-finite controlled values before MultiSelect and CheckboxGroup reconciliation', () => {
+    const nonFiniteValues = [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]
+
+    for (const value of nonFiniteValues) {
+      expect(
+        () =>
+          render(
+            createElement(MultiSelect, {
+              'aria-label': 'Choices',
+              value: [value],
+              onChange: () => undefined,
+              options: ['one'],
+            }),
+          ),
+        `MultiSelect should reject ${String(value)} controlled values`,
+      ).toThrowError(new TypeError('choice values must be finite strings or numbers.'))
+
+      expect(
+        () =>
+          render(
+            createElement(CheckboxGroup, {
+              'aria-label': 'Choices',
+              value: [value],
+              onChange: () => undefined,
+              options: ['one'],
+            }),
+          ),
+        `CheckboxGroup should reject ${String(value)} controlled values`,
+      ).toThrowError(new TypeError('choice values must be finite strings or numbers.'))
+    }
+  })
+
   it('keeps mixed CheckboxGroup identities distinct and emits declared option order', () => {
     const changes: (string | number)[][] = []
     const view = render(
