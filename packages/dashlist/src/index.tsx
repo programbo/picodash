@@ -20,6 +20,8 @@ import {
   type ForwardedRef,
   type ReactElement,
   type MutableRefObject,
+  type MouseEvent as ReactMouseEvent,
+  type RefObject,
   type ReactNode,
 } from 'react'
 import type {
@@ -37,6 +39,7 @@ import {
   ActionMenuItem,
   ActionMenuSeparator,
   ActionSubmenu,
+  Button,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -47,11 +50,18 @@ import {
   AlertDialogOverlay,
   AlertDialogTitle,
   AlertDialogTrigger,
+  Popover,
   DashHeader,
   PicodashThemeProvider,
   type PicodashDensity,
   type PicodashThemeOption,
 } from '@picodash/ui'
+import {
+  DashletPrimaryFocusContext,
+  shouldRedirectDashletRowClick,
+  useDashletPrimaryFocusCoordinator,
+} from './primary-focus.js'
+import { Dialog, DialogTrigger } from 'react-aria-components'
 import {
   createNodeRegistry,
   DashListNodeDeclarationBoundary,
@@ -95,6 +105,60 @@ import {
   type OrderingNode,
   type OrderingState,
 } from './ordering/index.ts'
+import {
+  CheckboxDashlet,
+  CheckboxGroupDashlet,
+  ComboboxDashlet,
+  DisplayDashlet,
+  MultiSelectDashlet,
+  NumberDashlet,
+  RadioGroupDashlet,
+  SearchDashlet,
+  SelectDashlet,
+  SegmentedDashlet,
+  SliderDashlet,
+  SwitchDashlet,
+  TextDashlet,
+} from './ready-made.js'
+import {
+  ColorDashlet,
+  DateDashlet,
+  DateRangeDashlet,
+  DateTimeDashlet,
+  MeterDashlet,
+  ProgressDashlet,
+  RangeDashlet,
+  StatusDashlet,
+  TimeDashlet,
+} from './ready-made-values.js'
+export type {
+  CheckboxDashletProps,
+  CheckboxGroupDashletProps,
+  ComboboxDashletProps,
+  DashletChoiceOption,
+  DisplayDashletProps,
+  MultiSelectDashletProps,
+  NumberDashletProps,
+  RadioGroupDashletProps,
+  SearchDashletProps,
+  SelectDashletProps,
+  SegmentedDashletProps,
+  SliderDashletMark,
+  SliderDashletProps,
+  SwitchDashletProps,
+  TextDashletProps,
+} from './ready-made.js'
+export type {
+  ColorDashletProps,
+  DateDashletProps,
+  DateRangeDashletProps,
+  DateTimeDashletProps,
+  MeterDashletProps,
+  ProgressDashletProps,
+  RangeDashletProps,
+  StatusDashletProps,
+  TimeDashletProps,
+} from './ready-made-values.js'
 
 export type {
   DashletBindingMode,
@@ -205,10 +269,12 @@ type DashletBaseProps = RegisteredNodeNativeProps & {
   readonly label?: ReactNode
   readonly 'aria-label'?: string
   readonly description?: ReactNode
+  readonly help?: ReactNode
   readonly layout?: 'inline' | 'block' | 'full'
   readonly disabled?: boolean
   readonly readOnly?: boolean
   readonly pin?: 'start' | 'end'
+  readonly primaryFocusRef?: RefObject<HTMLElement | null>
 }
 export type DashletProps<
   TValues extends object = Record<string, PicodashJsonValue>,
@@ -949,6 +1015,33 @@ function assignForwardedRef<T>(ref: ForwardedRef<T>, value: T | null): void | ((
   if (ref) ref.current = value
 }
 
+function DashletHelp({
+  accessibleName,
+  children,
+}: {
+  readonly accessibleName: string
+  readonly children: ReactNode
+}) {
+  const name = `Help for ${accessibleName}`
+  return (
+    <DialogTrigger>
+      <Button
+        aria-label={name}
+        data-picodash-dashlet-help
+        iconOnly
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        ?
+      </Button>
+      <Popover className="picodash-dashlet-help-popover" placement="bottom start">
+        <Dialog aria-label={name}>{children}</Dialog>
+      </Popover>
+    </DialogTrigger>
+  )
+}
+
 const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashletProps<any, any>>(
   function Dashlet(props: any, ref) {
     const {
@@ -956,14 +1049,17 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       label,
       'aria-label': ariaLabel,
       description,
+      help,
       layout: declaredLayout,
       disabled: declaredDisabled = false,
       readOnly: declaredReadOnly = false,
       pin,
+      primaryFocusRef,
       field,
       fields,
       mode,
       children,
+      onClick: consumerOnClick,
       className,
       ...nativeProps
     } = props
@@ -1018,6 +1114,8 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
     const layout = declaredLayout ?? (fields === undefined ? 'inline' : 'block')
     const contentChildren = wrapDashletContent(renderedChildren)
     const contentRef = useRef<HTMLDivElement>(null)
+    const shellRef = useRef<HTMLDivElement>(null)
+    const primaryFocus = useDashletPrimaryFocusCoordinator({ shellRef, primaryFocusRef })
     useLayoutEffect(() => {
       const content = contentRef.current
       if (!content) return
@@ -1060,83 +1158,99 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       () => actionRegistry?.registerBindings(id, resetBindings),
       [actionRegistry, id, resetBindings],
     )
+    const handleRowClick = (event: ReactMouseEvent<HTMLDivElement>): void => {
+      if (typeof consumerOnClick === 'function') consumerOnClick(event)
+      if (!shouldRedirectDashletRowClick(event.nativeEvent, event.currentTarget)) return
+      primaryFocus.focusPrimary()
+    }
     return (
       <DashListNodeLeafBoundary id={id} kind="dashlet">
         <div
           {...nativeProps}
+          onClick={handleRowClick}
           ref={ref}
           id={undefined}
           role="listitem"
           className={classNames('picodash-dashlist-item', className)}
           data-picodash-dashlet={id}
         >
-          <div
-            role="group"
-            tabIndex={-1}
-            aria-label={ariaLabel}
-            aria-labelledby={isTextLabel(label) ? labelId : undefined}
-            aria-describedby={descriptionId}
-            aria-invalid={bindingRuntime.issues.length ? true : undefined}
-            aria-errormessage={bindingRuntime.issues.length ? commonIssuesId : undefined}
-            data-layout={layout}
-            data-read-only={readOnly ? 'true' : 'false'}
-            data-picodash-dashlet-shell
-          >
-            {label !== undefined ? (
-              <span id={labelId} data-picodash-dashlet-label>
-                {label}
-              </span>
-            ) : null}
-            {reorderHandle}
-            <div ref={contentRef} data-picodash-dashlet-content>
-              {contentChildren}
-            </div>
-            {description !== undefined ? (
-              <div id={descriptionId} data-picodash-dashlet-description>
-                {description}
+          <DashletPrimaryFocusContext.Provider value={primaryFocus}>
+            <div
+              ref={shellRef}
+              role="group"
+              tabIndex={-1}
+              aria-label={ariaLabel}
+              aria-labelledby={isTextLabel(label) ? labelId : undefined}
+              aria-describedby={descriptionId}
+              aria-invalid={bindingRuntime.issues.length ? true : undefined}
+              aria-errormessage={bindingRuntime.issues.length ? commonIssuesId : undefined}
+              data-layout={layout}
+              data-read-only={readOnly ? 'true' : 'false'}
+              data-picodash-dashlet-shell
+            >
+              {label !== undefined ? (
+                <span id={labelId} data-picodash-dashlet-label>
+                  {label}
+                </span>
+              ) : null}
+              {reorderHandle}
+              {help !== undefined ? (
+                <DashletHelp accessibleName={resolvedName}>{help}</DashletHelp>
+              ) : null}
+              <div ref={contentRef} data-picodash-dashlet-content>
+                {contentChildren}
               </div>
-            ) : null}
-            {Object.values(bindingRuntime.bindings).map((binding) =>
-              binding.issuesId ? (
-                <div
-                  key={binding.alias}
-                  id={binding.issuesId}
-                  data-picodash-dashlet-binding-issues={binding.alias}
-                >
-                  {binding.issues.map((issue, issueIndex) => (
+              {description !== undefined ? (
+                <div id={descriptionId} data-picodash-dashlet-description>
+                  {description}
+                </div>
+              ) : null}
+              {Object.values(bindingRuntime.bindings).map((binding) =>
+                binding.issuesId ? (
+                  <div
+                    key={binding.alias}
+                    id={binding.issuesId}
+                    data-picodash-dashlet-binding-issues={binding.alias}
+                  >
+                    {binding.issues.map((issue, issueIndex) => (
+                      <div key={`${issue.code}-${issue.reason ?? ''}-${issueIndex}`}>
+                        {issue.message}
+                      </div>
+                    ))}
+                  </div>
+                ) : null,
+              )}
+              {inputBindings.map((binding) =>
+                binding.dirty ? (
+                  <div key={`${binding.alias}-actions`} data-picodash-dashlet-actions>
+                    <button
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => binding.discardInput()}
+                    >
+                      Discard changes
+                    </button>
+                    {binding.stale && bindingRuntime.staleOverwrite[binding.alias]?.eligible ? (
+                      <StaleInputConfirmation
+                        disabled={disabled}
+                        readOnly={readOnly}
+                        controller={bindingRuntime.staleOverwrite[binding.alias]!}
+                      />
+                    ) : null}
+                  </div>
+                ) : null,
+              )}
+              {bindingRuntime.issues.length ? (
+                <div id={commonIssuesId} data-picodash-dashlet-issues>
+                  {bindingRuntime.issues.map((issue, issueIndex) => (
                     <div key={`${issue.code}-${issue.reason ?? ''}-${issueIndex}`}>
                       {issue.message}
                     </div>
                   ))}
                 </div>
-              ) : null,
-            )}
-            {inputBindings.map((binding) =>
-              binding.dirty ? (
-                <div key={`${binding.alias}-actions`} data-picodash-dashlet-actions>
-                  <button type="button" disabled={disabled} onClick={() => binding.discardInput()}>
-                    Discard changes
-                  </button>
-                  {binding.stale && bindingRuntime.staleOverwrite[binding.alias]?.eligible ? (
-                    <StaleInputConfirmation
-                      disabled={disabled}
-                      readOnly={readOnly}
-                      controller={bindingRuntime.staleOverwrite[binding.alias]!}
-                    />
-                  ) : null}
-                </div>
-              ) : null,
-            )}
-            {bindingRuntime.issues.length ? (
-              <div id={commonIssuesId} data-picodash-dashlet-issues>
-                {bindingRuntime.issues.map((issue, issueIndex) => (
-                  <div key={`${issue.code}-${issue.reason ?? ''}-${issueIndex}`}>
-                    {issue.message}
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
+          </DashletPrimaryFocusContext.Provider>
         </div>
       </DashListNodeLeafBoundary>
     )
@@ -1635,5 +1749,58 @@ export const Dashlet = DashletImpl as unknown as <
 Object.assign(DashList, { [declarationMarker]: 'list', [listMarker]: true })
 Object.assign(DashGroup, { [declarationMarker]: 'group', [groupMarker]: true })
 Object.assign(Dashlet, { [declarationMarker]: 'dashlet', [dashletMarker]: true })
+for (const component of [
+  TextDashlet,
+  NumberDashlet,
+  SliderDashlet,
+  SwitchDashlet,
+  SelectDashlet,
+  SegmentedDashlet,
+  DisplayDashlet,
+  CheckboxDashlet,
+  CheckboxGroupDashlet,
+  ComboboxDashlet,
+  MultiSelectDashlet,
+  RadioGroupDashlet,
+  SearchDashlet,
+  RangeDashlet,
+  MeterDashlet,
+  ProgressDashlet,
+  StatusDashlet,
+  DateDashlet,
+  TimeDashlet,
+  DateTimeDashlet,
+  DateRangeDashlet,
+  ColorDashlet,
+])
+  Object.assign(component, { [declarationMarker]: 'dashlet', [dashletMarker]: true })
 
-export { ActionMenu, ActionMenuItem, ActionMenuSeparator, ActionSubmenu, DashHeader }
+export {
+  ActionMenu,
+  ActionMenuItem,
+  ActionMenuSeparator,
+  ActionSubmenu,
+  CheckboxDashlet,
+  CheckboxGroupDashlet,
+  ComboboxDashlet,
+  DashHeader,
+  DisplayDashlet,
+  MultiSelectDashlet,
+  NumberDashlet,
+  RadioGroupDashlet,
+  SearchDashlet,
+  RangeDashlet,
+  MeterDashlet,
+  ProgressDashlet,
+  StatusDashlet,
+  DateDashlet,
+  TimeDashlet,
+  DateTimeDashlet,
+  DateRangeDashlet,
+  ColorDashlet,
+  SelectDashlet,
+  SegmentedDashlet,
+  SliderDashlet,
+  SwitchDashlet,
+  TextDashlet,
+}

@@ -11,8 +11,11 @@ import {
   type DashPanelSnapPositionRecord,
   type DurableScopeMetadata,
   type PicodashField,
+  type PicodashFieldOf,
+  type PicodashExactFieldOf,
   type PicodashFieldDefinition,
   type PicodashFieldDefinitions,
+  type PicodashJsonValue,
   type PicodashIssueInput,
   type PicodashParseResult,
   type CoreTransactionResult,
@@ -268,6 +271,189 @@ test('exports exact immutable metadata record declarations', () => {
   expectTypeOf<DashPanelPlacementRecord>().toMatchTypeOf<object>()
   expectTypeOf<DashPanelLayoutRecord>().toMatchTypeOf<object>()
   expectTypeOf<PicodashField<{ readonly value: number }, 'value'>>().toHaveProperty('key')
+})
+
+test('retains field value types through the nominal type-only brand', () => {
+  type Fields = {
+    readonly text: string
+    readonly count: number
+  }
+  expectTypeOf<PicodashField<Fields, 'text'>>().toMatchTypeOf<{ readonly key: 'text' }>()
+  expectTypeOf<PicodashField<Fields, 'text'>>().not.toMatchTypeOf<PicodashField<Fields, 'count'>>()
+})
+
+test('projects nominal field value domains without changing field ownership or runtime shape', () => {
+  type Fields = {
+    readonly count: number
+    readonly label: string
+    readonly range: { readonly start: number; readonly end: number }
+    readonly extendedRange: {
+      readonly start: number
+      readonly end: number
+      readonly unit: string
+    }
+    readonly literalRange: { readonly start: 0; readonly end: 1 }
+  }
+  const count = null as unknown as PicodashField<Fields, 'count'>
+  const label = null as unknown as PicodashField<Fields, 'label'>
+  const projected = createPicodashNexus({
+    valueOwner: 'nexus',
+    fields: {
+      range: { defaultValue: { start: 0 as number, end: 1 as number } },
+      extendedRange: { defaultValue: { start: 0, end: 1, unit: 'px' } },
+      literalRange: {
+        defaultValue: { start: 0 as const, end: 1 as const },
+        schema: z.object({ start: z.literal(0), end: z.literal(1) }),
+      },
+      boolean: { defaultValue: false },
+      literalBoolean: { defaultValue: true as const, schema: z.literal(true) },
+      nestedRange: {
+        defaultValue: {
+          config: { bounds: { start: 0 as number, end: 1 as number } },
+        },
+      },
+      nestedExtendedRange: {
+        defaultValue: {
+          config: { bounds: { start: 0, end: 1, unit: 'px' } },
+        },
+      },
+      points: {
+        defaultValue: [{ x: 0 as number, y: 1 as number }],
+      },
+      extendedPoints: {
+        defaultValue: [{ x: 0, y: 1, label: 'origin' }],
+      },
+      tuple: {
+        defaultValue: [0, 1] as [number, number],
+        schema: z.tuple([z.number(), z.number()]),
+      },
+    },
+  })
+
+  const numericView: PicodashFieldOf<number> = count
+  const jsonView: PicodashFieldOf<PicodashJsonValue> = count
+  const exactRange: PicodashExactFieldOf<{
+    readonly start: number
+    readonly end: number
+  }> = projected.fields.range
+  const exactNestedRange: PicodashExactFieldOf<{
+    readonly config: {
+      readonly bounds: { readonly start: number; readonly end: number }
+    }
+  }> = projected.fields.nestedRange
+  const exactPoints: PicodashExactFieldOf<readonly { readonly x: number; readonly y: number }[]> =
+    projected.fields.points
+  const exactReadonlyTuple: PicodashExactFieldOf<readonly [number, number]> = projected.fields.tuple
+  const exactBoolean: PicodashExactFieldOf<boolean> = projected.fields.boolean
+  const exactNestedExtendedRange: PicodashExactFieldOf<{
+    readonly config: {
+      readonly bounds: {
+        readonly start: number
+        readonly end: number
+        readonly unit: string
+      }
+    }
+  }> = projected.fields.nestedExtendedRange
+  expectTypeOf(projected.getState().values.nestedExtendedRange).toEqualTypeOf<{
+    readonly config: {
+      readonly bounds: {
+        readonly start: number
+        readonly end: number
+        readonly unit: string
+      }
+    }
+  }>()
+  type ExactValueOf<Field> = Field extends PicodashExactFieldOf<infer Value> ? Value : never
+  expectTypeOf<ExactValueOf<typeof projected.fields.nestedExtendedRange>>().toEqualTypeOf<{
+    readonly config: {
+      readonly bounds: {
+        readonly start: number
+        readonly end: number
+        readonly unit: string
+      }
+    }
+  }>()
+  void numericView
+  void jsonView
+  void exactRange
+  void exactNestedRange
+  void exactPoints
+  void exactReadonlyTuple
+  void exactBoolean
+  void exactNestedExtendedRange
+
+  if (globalThis.process?.env.PICODASH_TYPE_TESTS === '1') {
+    // @ts-expect-error A string-valued field is not assignable to a numeric field view.
+    const wrongValue: PicodashFieldOf<number> = label
+    // @ts-expect-error Exact field views reject additional members.
+    const extraMember: PicodashExactFieldOf<{
+      readonly start: number
+      readonly end: number
+    }> = projected.fields.extendedRange
+    // @ts-expect-error Exact field views reject a value domain narrower than the emitted value.
+    const narrowedMember: PicodashExactFieldOf<{
+      readonly start: number
+      readonly end: number
+    }> = projected.fields.literalRange
+    // @ts-expect-error Exact field views recursively reject additional nested object members.
+    const nestedExtraMember: PicodashExactFieldOf<{
+      readonly config: {
+        readonly bounds: { readonly start: number; readonly end: number }
+      }
+    }> = projected.fields.nestedExtendedRange
+    const nestedExtraView = null as unknown as PicodashExactFieldOf<{
+      readonly config: {
+        readonly bounds: {
+          readonly start: number
+          readonly end: number
+          readonly unit: string
+        }
+      }
+    }>
+    // @ts-expect-error Public exact views recursively reject additional nested object members.
+    const nestedExtraViewAsBase: PicodashExactFieldOf<{
+      readonly config: {
+        readonly bounds: { readonly start: number; readonly end: number }
+      }
+    }> = nestedExtraView
+    // @ts-expect-error Exact field views recursively reject additional array element members.
+    const nestedArrayExtraMember: PicodashExactFieldOf<
+      readonly { readonly x: number; readonly y: number }[]
+    > = projected.fields.extendedPoints
+    // @ts-expect-error A tuple value domain is narrower than a general readonly array domain.
+    const tupleAsArray: PicodashExactFieldOf<readonly number[]> = projected.fields.tuple
+    // @ts-expect-error A true-only field is narrower than a general boolean field domain.
+    const literalBooleanAsBoolean: PicodashExactFieldOf<boolean> = projected.fields.literalBoolean
+
+    type DeepDomain<Value> = {
+      readonly one: {
+        readonly two: {
+          readonly three: {
+            readonly four: {
+              readonly five: {
+                readonly six: { readonly value: Value }
+              }
+            }
+          }
+        }
+      }
+    }
+    const deepLiteral = null as unknown as PicodashExactFieldOf<DeepDomain<1>>
+    // @ts-expect-error The bounded terminal fingerprint remains invariant beyond recursion depth.
+    const deepNarrowedMember: PicodashExactFieldOf<DeepDomain<number>> = deepLiteral
+    // @ts-expect-error Field views remain nominal and cannot be forged from a key-only record.
+    const structuralForgery: PicodashFieldOf<number> = { key: 'count' }
+    void wrongValue
+    void extraMember
+    void narrowedMember
+    void nestedExtraMember
+    void nestedExtraViewAsBase
+    void nestedArrayExtraMember
+    void tupleAsArray
+    void literalBooleanAsBoolean
+    void deepNarrowedMember
+    void structuralForgery
+  }
 })
 
 test('preserves Fields and refined Result through root/scoped views and metadata commands', () => {

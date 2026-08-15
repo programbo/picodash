@@ -123,6 +123,25 @@ contents or adding Bridge authority. No Bridge extension was needed: focus, visi
 activation remain Provider-owned browser behavior rather than agent protocol authority; raw
 quarantine payloads stay undisclosed.
 
+The Contract Lab composition preset also mounts an independent, narrowly writable Style Lab
+registration: `registrationId: "dashlet-style-lab"`, label `Contract Lab Style Lab`, disclosure of
+only `switchValue` and `number` with no scopes or diagnostics, and a write allowlist containing only
+`number`. Its browser journey selects this session by registration ID and browser tab ID. It first
+proves that an untouched formatted Number blur leaves the canonical `1.234567` unchanged. It then
+uses the one allowlisted Number write to make the focused Number presentation incompatible, proving
+editor removal, shell focus repair, and one warning announcement. The same journey toggles the
+public `SwitchDashlet` in the UI and proves the canonical boolean through `wait` and `inspect` while
+the primary specimen session stays unchanged. `switchValue` remains non-writable through Bridge;
+the registration discloses no other value, scope, or diagnostic authority.
+
+After proving that isolation, the same journey performs one public UI-to-Bridge metadata
+correlation on the primary `contract-lab-specimen` registration. It collapses `Standalone group`
+through its accessible disclosure control, waits for the primary session sequence to advance,
+rediscovers the current generation, and inspects the already disclosed
+`contract-lab-standalone-list` scope for the durable `standalone-group` collapse override. The
+journey does not write metadata through Bridge or expand disclosure. Deterministic collapse,
+reorder, and reset behavior remains owned by the focused DashList and Nexus tests.
+
 MCP stdio parity is a follow-on only if the CLI proves useful. Bridge persistence, reset, and other
 dangerous extensions remain deferred; they require preview, explicit confirmation, idempotency, and
 an audit trail before implementation. Nexus document import/export remains a browser-local

@@ -9,6 +9,9 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
+    "./catalog": "./dist/catalog.mjs",
+    "./ui": "./dist/ui.mjs",
+    "./charts": "./dist/charts.mjs",
     "./style.css": "./dist/style.css",
     "./package.json": "./package.json"
   },
@@ -23,10 +26,13 @@
     "release:check": "vp check && vp test && vp run build && bun run test:package && bun pm pack --dry-run"
   },
   "dependencies": {
+    "@internationalized/date": "catalog:",
     "@picodash/nexus": "workspace:*",
-    "@picodash/ui": "workspace:*"
+    "@picodash/ui": "workspace:*",
+    "react-aria-components": "catalog:"
   },
   "devDependencies": {
+    "@tanstack/charts": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
@@ -36,7 +42,13 @@
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
+    "@tanstack/charts": "0.12.0",
     "react": ">=19",
     "react-dom": ">=19"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/charts": {
+      "optional": true
+    }
   }
 }

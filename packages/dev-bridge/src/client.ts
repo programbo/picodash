@@ -10,7 +10,9 @@ import type {
   PicodashDevBridgeWaitResult,
 } from './types.js'
 export type PicodashDevBridgeClient = Readonly<{
-  listSessions(): Promise<readonly PicodashDevBridgeSessionDescriptor[]>
+  listSessions(
+    options?: Readonly<{ signal?: AbortSignal }>,
+  ): Promise<readonly PicodashDevBridgeSessionDescriptor[]>
   inspect(session: PicodashDevBridgeSessionRef): Promise<
     Readonly<{
       type: 'snapshot'
@@ -49,8 +51,8 @@ export function createPicodashDevBridgeClient(
   const pathFor = (session: PicodashDevBridgeSessionRef, suffix: string) =>
     `/v1/sessions/${encodeURIComponent(session.sessionId)}/generations/${session.generation}/${suffix}`
   return {
-    async listSessions() {
-      const r = await request('/v1/sessions')
+    async listSessions(options) {
+      const r = await request('/v1/sessions', { signal: options?.signal })
       if (!r.response.ok) throw bridgeError(r.body)
       return (
         r.body as { type: 'sessions'; sessions: readonly PicodashDevBridgeSessionDescriptor[] }

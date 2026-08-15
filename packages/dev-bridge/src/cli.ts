@@ -72,6 +72,7 @@ export async function runPicodashDevBridgeCli(argv = process.argv.slice(2)): Pro
   }
   let client: PicodashDevBridgeClient
   let activeRequestId: string | undefined
+  let waitAbortSignal: AbortSignal | undefined
   try {
     client = createPicodashDevBridgeClient(credentials)
   } catch {
@@ -110,14 +111,21 @@ export async function runPicodashDevBridgeCli(argv = process.argv.slice(2)): Pro
           ? 5
           : 0
     }
-    const input = await readInput('wait')
-    const requestId = `cli-${randomUUID().toLowerCase()}`
-    activeRequestId = requestId
-    const session = await resolveSession(client, parsed.sessionId, parsed.generation, requestId)
     const abort = new AbortController()
+    waitAbortSignal = abort.signal
     const onInterrupt = () => abort.abort()
     process.once('SIGINT', onInterrupt)
     try {
+      const input = await readInput('wait', abort.signal)
+      const requestId = `cli-${randomUUID().toLowerCase()}`
+      activeRequestId = requestId
+      const session = await resolveSession(
+        client,
+        parsed.sessionId,
+        parsed.generation,
+        requestId,
+        abort.signal,
+      )
       const result = await client.wait(
         session,
         {
@@ -135,6 +143,8 @@ export async function runPicodashDevBridgeCli(argv = process.argv.slice(2)): Pro
       process.off('SIGINT', onInterrupt)
     }
   } catch (error) {
+    if (waitAbortSignal?.aborted)
+      return reportLocal(new CliFailure('aborted', 130), activeRequestId)
     if (isBridgeError(error)) {
       if (error.error.code === 'internal_error' && error.error.message === 'Bridge request failed.')
         return reportLocal(new CliFailure('protocol_error', 3), activeRequestId)
@@ -209,8 +219,9 @@ async function resolveSession(
   sessionId: string,
   generation: number,
   requestId?: string,
+  signal?: AbortSignal,
 ) {
-  const sessions = await client.listSessions()
+  const sessions = await client.listSessions({ signal })
   if (!Array.isArray(sessions) || !sessions.every(isSessionDescriptor))
     throw new CliFailure('protocol_error', 3)
   const current = sessions.find((session) => session.sessionId === sessionId)
@@ -224,16 +235,29 @@ async function resolveSession(
   } satisfies PicodashDevBridgeSessionRef
 }
 
-function readInput(command: 'set-values'): Promise<{ values: Record<string, unknown> }>
+function readInput(
+  command: 'set-values',
+  signal?: AbortSignal,
+): Promise<{ values: Record<string, unknown> }>
 function readInput(command: 'wait'): Promise<{
   timeoutMs: number
   condition: Record<string, unknown>
 }>
+function readInput(
+  command: 'wait',
+  signal?: AbortSignal,
+): Promise<{ timeoutMs: number; condition: Record<string, unknown> }>
 async function readInput(
   command: 'set-values' | 'wait',
+  signal?: AbortSignal,
 ): Promise<
   { values: Record<string, unknown> } | { timeoutMs: number; condition: Record<string, unknown> }
 > {
+  const input = signal === undefined ? await readStdinWithoutAbort() : await readStdin(signal)
+  return parseInput(command, input)
+}
+
+async function readStdinWithoutAbort() {
   const chunks: Buffer[] = []
   let size = 0
   for await (const chunk of stdin) {
@@ -242,9 +266,77 @@ async function readInput(
     if (size > MAX_STDIN_BYTES) throw new CliFailure('input_error', 2)
     chunks.push(value)
   }
+  return Buffer.concat(chunks).toString('utf8')
+}
+
+function readStdin(signal: AbortSignal): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    let size = 0
+    let settled = false
+
+    const cleanup = () => {
+      stdin.off('data', onData)
+      stdin.off('end', onEnd)
+      stdin.off('close', onClose)
+      stdin.off('error', onError)
+      signal?.removeEventListener('abort', onAbort)
+    }
+    const release = () => {
+      stdin.pause()
+      if (!stdin.destroyed) stdin.destroy()
+    }
+    const finish = () => {
+      if (settled) return
+      settled = true
+      cleanup()
+      resolve(Buffer.concat(chunks).toString('utf8'))
+    }
+    const fail = (error: unknown) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      release()
+      reject(error)
+    }
+    const onData = (chunk: Buffer | string) => {
+      const value = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      size += value.byteLength
+      if (size > MAX_STDIN_BYTES) {
+        fail(new CliFailure('input_error', 2))
+        return
+      }
+      chunks.push(value)
+    }
+    const onEnd = () => finish()
+    const onClose = () => finish()
+    const onError = (error: Error) => fail(error)
+    const onAbort = () => fail(createAbortError())
+
+    stdin.on('data', onData)
+    stdin.once('end', onEnd)
+    stdin.once('close', onClose)
+    stdin.once('error', onError)
+    if (signal !== undefined) {
+      signal.addEventListener('abort', onAbort, { once: true })
+      if (signal.aborted) onAbort()
+    }
+  })
+}
+
+function createAbortError() {
+  const error = new Error('This operation was aborted.')
+  error.name = 'AbortError'
+  return error
+}
+
+function parseInput(
+  command: 'set-values' | 'wait',
+  input: string,
+): { values: Record<string, unknown> } | { timeoutMs: number; condition: Record<string, unknown> } {
   let parsed: unknown
   try {
-    parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+    parsed = JSON.parse(input)
   } catch {
     throw new CliFailure('input_error', 2)
   }

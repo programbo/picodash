@@ -17,6 +17,20 @@ Use Dev Bridge while developing canonical value, binding, metadata, action, and 
 When a safe missing observation or command slows the work, prioritize the Bridge improvement and
 prove it against the real DashList consumer before continuing with a workaround.
 
+## Public package paths
+
+| Path                              | Use                                                                 |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `@picodash/dashlist`              | DashList composition, stable ready-made Dashlets, and List actions. |
+| `@picodash/dashlist/ui`           | Controlled, unbound controls for composing custom Dashlets.         |
+| `@picodash/dashlist/catalog`      | Static metadata for accepted public DashList components.            |
+| `@picodash/dashlist/charts`       | Experimental `ChartDashlet` and `SparklineDashlet` prototypes.      |
+| `@picodash/dashlist/style.css`    | Required DashList and Dashlet structural styles.                    |
+| `@picodash/dashlist/package.json` | Package metadata for tooling.                                       |
+
+The `/charts` entrypoint is pre-alpha. It requires the exact optional `@tanstack/charts` `0.12.0`
+peer and is excluded from the stable root inventory and component catalog.
+
 ## Ownership constraints
 
 - Own List, group, Dashlet anatomy, binding composition, ready-made Dashlets, ordering, collapse,

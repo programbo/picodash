@@ -25,6 +25,7 @@ export {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
+  Popover,
 } from '@picodash/ui'
 
 export type {
@@ -63,4 +64,5 @@ export type {
   TooltipProps,
   TooltipTriggerProps,
   TooltipContentProps,
+  PopoverProps,
 } from '@picodash/ui'

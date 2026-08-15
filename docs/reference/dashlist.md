@@ -9,9 +9,9 @@ readouts, visualizations, previews, and actions. This page describes the aspirat
 > Contract: Accepted
 > Implementation: Partial
 > Evidence: `packages/dashlist/tests/dashlist.test.tsx`, `packages/dashlist/tests/dashlist.types.test.ts`, and `packages/dashlist/tests/package-artifacts.mjs` cover the alpha shell, semantic structure, Nexus resolution boundary, and package surface.
-> Notes: The initial launch contract is accepted. The remaining prototype behavior must be
+> Notes: The stable launch contract is accepted. The remaining prototype behavior must be
 > reconciled through the conformance matrix; ordering, collapse, and action resets are now implemented,
-> while rail behavior and catalog coverage remain deferred to later stabilization work. List node declaration
+> while rail behavior remains deferred to later stabilization work. List node declaration
 > agreement and the initial binding interaction surface are Verified.
 
 ## Package purpose
@@ -244,7 +244,7 @@ independently register nodes, bindings, ordering, or durable metadata.
 ### DashGroup and Dashlet prop surfaces
 
 > Contract: Accepted
-> Implementation: Prototype migration required
+> Implementation: Prototype
 
 The exact package-native component and prop-type names are `DashGroup`, `DashGroupProps`, `Dashlet`,
 and `DashletProps`. Compound bindings additionally export `CompoundDashletProps`. The prototype
@@ -403,7 +403,11 @@ these roles or structural tab-index rules through the native prop surface.
 ### Primary focus registration
 
 > Contract: Accepted
-> Implementation: Prototype migration required
+> Implementation: Verified
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx` and
+> `packages/dashlist/tests/dashlist.types.test.ts` cover the public ref contract, exact target
+> registration, unusable-target fallback, ref replacement, focus repair, cross-document target
+> fallback, StrictMode, SSR, and React 19 ref cleanup.
 
 `primaryFocusRef?: RefObject<HTMLElement | null>` is the sole public registration path for a custom
 Dashlet's primary focus target. The caller owns the ref and attaches it to the intended control.
@@ -542,7 +546,11 @@ not its children, owns the reorder rail and standard error region.
 #### Row focus
 
 > Contract: Accepted
-> Implementation: Partial
+> Implementation: Verified
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx` covers safe and excluded row clicks,
+> consumer cancellation, text selection, exact built-in targets, shell fallback, and detached-target
+> repair. `apps/lab/tests/contract-lab.spec.ts` covers safe-row click event routing and focused
+> built-in removal in the rendered Style Lab.
 
 The Dashlet row is an intentional pointer focus affordance. Clicking safe, otherwise inert space
 within the row focuses its registered primary focus target. Built-in single-control and action
@@ -569,6 +577,10 @@ it selects.
 
 > Contract: Accepted
 > Implementation: Partial
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx` covers accessible naming, descriptions,
+> supplementary help, disabled/read-only help operation, keyboard focus return, and issue regions.
+> `apps/lab/tests/contract-lab.spec.ts` covers the public help popover and focus return in a real
+> browser. The broader validation and compound-description matrix remains Partial.
 
 The visible Dashlet `label` is neutral shell text with a stable ID. It is not automatically an HTML
 `label` around or pointing to arbitrary content. Actual controls reference that ID through their own
@@ -698,7 +710,7 @@ field schema.
 ## Ready-made Dashlet and catalog ownership
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Prototype
 
 DashList owns every generic Nexus-bound ready-made Dashlet that can operate without a DashPanel. It
 owns the component implementation and the corresponding catalog metadata. Catalog entries live
@@ -723,43 +735,88 @@ Nexus access, or otherwise control runtime behavior.
 component it owns. Its exact JSON-compatible fields, exclusions, reexport rules, and artifact checks
 are defined in the [component catalog reference](catalog.md). Draft anatomy helpers are excluded.
 
-### Initial ready-made inventory
+### Stable ready-made inventory
 
 > Contract: Accepted
-> Implementation: Prototype migration required
+> Implementation: Partial
+> Evidence: `packages/dashlist/tests/ready-made*.test.tsx`,
+> `packages/dashlist/tests/*-controls*.test.tsx`, and
+> `packages/dashlist/tests/package-artifacts.mjs` cover all 22 root components, their public prop
+> types across JSX, aliases, generic wrappers, unannotated `createElement` field binding, and
+> unspecialized `ComponentProps`, plus the root/catalog boundary and required package artifacts.
+> Broader DashList stabilization remains Partial.
 
-The initial `@picodash/dashlist` root exports are:
+The accepted stable `@picodash/dashlist` root exports are:
 
-- `TextDashlet` for single-line and multiline string input;
-- `NumberDashlet` for direct numeric input;
-- `SliderDashlet` for bounded numeric adjustment;
-- `SwitchDashlet` for boolean input;
-- `SelectDashlet` for choice input in a popup;
-- `SegmentedDashlet` for a small visible choice set; and
-- `DisplayDashlet` for a read-only value presentation.
+- `TextDashlet`, `NumberDashlet`, `SliderDashlet`, `SwitchDashlet`, `SelectDashlet`,
+  `SegmentedDashlet`, `DisplayDashlet`;
+- `CheckboxDashlet`, `RadioGroupDashlet`, `ComboboxDashlet`, `CheckboxGroupDashlet`,
+  `MultiSelectDashlet`, `SearchDashlet`;
+- `RangeDashlet`, `MeterDashlet`, `ProgressDashlet`, `StatusDashlet`;
+- `DateDashlet`, `TimeDashlet`, `DateTimeDashlet`, `DateRangeDashlet`, and `ColorDashlet`.
 
-This set covers the common scalar, choice, and readout cases without making optional chart, media,
-or file dependencies part of the base product. Each ready-made component composes the same public
+This set covers scalar values, choices, compound values, temporal values, and readouts without
+making optional chart, media, or file dependencies part of the base product. Each ready-made component composes the same public
 Dashlet shell, anatomy, Nexus handles, and UI primitives available to application authors. It does
 not use a privileged registration or binding path.
 
-`RangeDashlet`, `Vector3Dashlet`, `XYPadDashlet`, `AlignmentDashlet`, `Matrix2DDashlet`,
-`GradientDashlet`, `DropzoneDashlet`, `MediaPreviewDashlet`, `SparklineDashlet`, and `ChartDashlet`
-remain prototype candidates. They are not launch promises until their value shapes, interaction,
-accessibility, dependency, and responsive behavior receive focused contracts. Async action
-Dashlets are likewise deferred until DashList accepts an action, loading, and error contract;
-applications may compose actions inside the public Dashlet shell meanwhile.
+Tables, trees, tabs, accordions, dialogs, menus, skeletons, alerts, toolbars, and similar pieces
+remain UI primitives, Dashlet anatomy, or recipes unless they gain a distinct Nexus contract.
+Specialist direct-manipulation, media, file, and action Dashlets remain deferred.
+
+`ChartDashlet` and `SparklineDashlet` are experimental subpath exports only; they are not root
+exports or catalog entries. They use `Chart` and the native `ChartDefinition` from
+`@tanstack/charts/react`, and keep chart runtime
+state outside persisted Nexus. The boundary is pre-alpha and isolated behind the optional exact
+`@tanstack/charts` `0.12.0` peer; Recharts and shadcn `ChartContainer` are not supported. Before
+promotion, the package must verify resize and broader theme and accessibility behavior. Focused
+tests already cover bounded streaming cleanup, owner-document visibility and observer lifecycles,
+SSR, accessible naming, and reduced-motion behavior. See the [TanStack Charts overview](https://tanstack.com/charts/v0/docs/overview)
+and [grammar of graphics](https://tanstack.com/charts/v0/docs/concepts/grammar-of-graphics).
+
+### Typed composition grammar
+
+Stable Dashlets use an explicit JSX grammar. Nexus fields and application-owned external values are
+the data; `field` and `fields` bindings are the channels; `/ui` controls are presentation marks;
+options, bounds, formatters, and chart scales determine representation; labels, descriptions, help,
+issues, axes, and legends are guides; anatomy and compound content provide layers; and `Dashlet`,
+`DashGroup`, and `DashList` provide composition and identity. These roles are additive and
+explicit—no component infers hidden fields or identity from its children.
+
+| Stable component       | Canonical field/value contract    | Semantic distinction                                                                     |
+| ---------------------- | --------------------------------- | ---------------------------------------------------------------------------------------- |
+| `RadioGroupDashlet`    | one scalar choice                 | Longer or vertical choice list; use `SegmentedDashlet` for compact visible choices.      |
+| `ComboboxDashlet`      | one scalar choice                 | Searchable single selection.                                                             |
+| `MultiSelectDashlet`   | array of choices                  | React Aria multi-ComboBox plus TagGroup.                                                 |
+| `CheckboxGroupDashlet` | array of choices                  | Small, visible multi-selection set.                                                      |
+| `RangeDashlet`         | one `{ start, end }` object field | Atomic two-value update; never two independent fields.                                   |
+| `DateRangeDashlet`     | one `{ start, end }` object field | Atomic temporal range update; strict JSON representation.                                |
+| `ProgressDashlet`      | one numeric field                 | Determinate, field-bound progress only.                                                  |
+| `StatusDashlet`        | one explicit status value         | Uses an option map for label, tone, and optional icon; never infers tone from the value. |
+| `ColorDashlet`         | one CSS color string              | Nexus schemas decide which CSS formats or color spaces are accepted.                     |
+
+Temporal Dashlets use strict JSON values and never persist `Date` instances. Calendar dates are ISO
+date strings, local times are ISO time strings, date-times are RFC 3339 strings with offsets, and
+ranges are `{ start, end }` objects. `DateDashlet`, `TimeDashlet`, and `DateTimeDashlet` each bind
+one field. `MeterDashlet` is a readout with explicit bounds/formatting, while `ProgressDashlet` is
+field-bound and determinate. Indeterminate activity remains an unbound `/ui` primitive because a
+Nexus field always has a concrete value.
 
 ### Export paths
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Prototype
 
-- `@picodash/dashlist` exports DashList, DashGroup, Dashlet, and the initial ready-made Dashlets.
+- `@picodash/dashlist` exports DashList, DashGroup, Dashlet, and the stable ready-made Dashlets.
 - `@picodash/dashlist/dashlet` exports non-registering anatomy.
 - `@picodash/dashlist/ui` exports the accepted unbound accessible controls listed under
   [Public package surfaces](#public-package-surfaces).
 - `@picodash/dashlist/catalog` exports descriptive package metadata.
+- `@picodash/dashlist/charts` exports the experimental, pre-alpha `ChartDashlet` and
+  `SparklineDashlet` prototypes behind the exact optional `@tanstack/charts` `0.12.0` peer. It is
+  isolated from the stable root inventory and component catalog.
+- `@picodash/dashlist/style.css` exports the required structural stylesheet.
+- `@picodash/dashlist/package.json` exports package metadata for tooling.
 - `@picodash/picodash` reexports the same stable components and types.
 - `@picodash/picodash/catalog` combines foundation catalogs without copying their entries.
 
@@ -770,9 +827,15 @@ prototype already exists.
 ### Shared ready-made contract
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
+> Evidence: The ready-made and `/ui` component tests cover the implemented field bindings, strict
+> field-domain rejection, specialized prop inference, safe unspecialized aliases and
+> `ComponentProps`, unannotated `createElement` field binding, shell composition, focus targets,
+> read-only descriptions, lossless Number edit intent, alpha-preserving Color formats, and
+> presentation mismatch behavior across the stable inventory. Remaining DashList stabilization
+> rows are not promoted by this evidence.
 
-Every initial ready-made Dashlet requires an explicit `id`, a type-compatible Nexus `field` handle,
+Every stable ready-made Dashlet requires an explicit `id`, a type-compatible Nexus `field` handle,
 and a visible `label`. A non-text label also requires an explicit accessible string under the
 accepted Dashlet-label contract. Ready-made Dashlets share applicable shell props such as
 `description`, `help`, `pin`, `disabled`, `readOnly`, and `layout` rather than defining parallel
@@ -788,6 +851,13 @@ Ready-made configuration uses ordinary React prop values rather than prototype `
 callbacks. An application derives dynamic options, bounds, labels, or formatting with an explicit
 Nexus selector or its own state and passes the resolved value. React prop changes remain supported;
 they do not create an implicit second Nexus subscription inside every component.
+
+The public ready-made prop aliases and unspecialized React `ComponentProps` retain the accepted
+field domain instead of widening it to an arbitrary Nexus field. Direct JSX, explicit generic
+instantiation, and specialized prop aliases preserve the bound field's exact value type. An
+unannotated `createElement` call accepts a compatible field; when a generic callback such as
+`DisplayDashlet.formatValue` needs the concrete field value rather than the safe JSON-wide default,
+use an explicit component generic or specialized prop alias.
 
 Changing options, bounds, formatting, or other presentation configuration never silently replaces,
 clamps, or otherwise writes a canonical value that the new presentation cannot represent. The
@@ -811,17 +881,58 @@ facade-specific state or behavior.
 ### Component-specific ready-made props
 
 > Contract: Accepted
-> Implementation: Prototype migration required
+> Implementation: Verified for the focused prop, mismatch, and locale slice; broader DashList
+> stabilization remains Partial.
 
-| Component             | Field type         | Component-specific props                                            |
-| --------------------- | ------------------ | ------------------------------------------------------------------- |
-| `TextDashlet`         | `string`           | `multiline?`, `minRows?`, `placeholder?`                            |
-| `NumberDashlet`       | `number`           | `min?`, `max?`, `step?`, `placeholder?`, `formatOptions?`           |
-| `SliderDashlet`       | `number`           | `min?`, `max?`, `step?`, `marks?`, `formatOptions?`, `formatValue?` |
-| `SwitchDashlet`       | `boolean`          | None at initial launch                                              |
-| `SelectDashlet<T>`    | `string \| number` | `options`, `placeholder?`                                           |
-| `SegmentedDashlet<T>` | `string \| number` | `options`                                                           |
-| `DisplayDashlet<T>`   | Any JSON value     | `formatValue?`                                                      |
+| Component                 | Field type                           | Component-specific props                                                                                                    |
+| ------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `TextDashlet`             | `string`                             | `multiline?`, `minRows?`, `placeholder?`                                                                                    |
+| `NumberDashlet`           | `number`                             | `min?`, `max?`, `step?`, `placeholder?`, `formatOptions?`                                                                   |
+| `SliderDashlet`           | `number`                             | `min?`, `max?`, `step?`, `marks?`, `formatOptions?`, `formatValue?`                                                         |
+| `SwitchDashlet`           | `boolean`                            | None                                                                                                                        |
+| `SelectDashlet<T>`        | `string \| number`                   | `options`, `placeholder?`                                                                                                   |
+| `SegmentedDashlet<T>`     | `string \| number`                   | `options`                                                                                                                   |
+| `DisplayDashlet<T>`       | Any JSON value                       | `formatValue?`                                                                                                              |
+| `CheckboxDashlet`         | `boolean`                            | None                                                                                                                        |
+| `RadioGroupDashlet<T>`    | `string \| number`                   | `options`, `orientation?: 'vertical' \| 'horizontal'` (default `vertical`)                                                  |
+| `ComboboxDashlet<T>`      | `string \| number`                   | `options`, `placeholder?`                                                                                                   |
+| `CheckboxGroupDashlet<T>` | `readonly T[]`                       | `options`                                                                                                                   |
+| `MultiSelectDashlet<T>`   | `readonly T[]`                       | `options`, `placeholder?`                                                                                                   |
+| `SearchDashlet`           | `string`                             | `placeholder?`                                                                                                              |
+| `RangeDashlet`            | `{ start: number; end: number }`     | `min?=0`, `max?=100`, `step?=1`, `formatOptions?`, `formatValue?`                                                           |
+| `MeterDashlet`            | `number`                             | `min?=0`, `max?=100`, `formatOptions?`, `formatValue?`                                                                      |
+| `ProgressDashlet`         | `number`                             | `min?=0`, `max?=100`, `formatOptions?`, `formatValue?`                                                                      |
+| `StatusDashlet<T>`        | `string \| number`                   | `options`                                                                                                                   |
+| `DateDashlet`             | ISO date string                      | `min?`, `max?`, `locale?`, `shouldForceLeadingZeros?`                                                                       |
+| `TimeDashlet`             | ISO local-time string                | `min?`, `max?`, `locale?`, `granularity?`, `hourCycle?`, `shouldForceLeadingZeros?`                                         |
+| `DateTimeDashlet`         | RFC 3339 offset date-time            | `timeZone` (required), `min?`, `max?`, `locale?`, `granularity?`, `hourCycle?`, `hideTimeZone?`, `shouldForceLeadingZeros?` |
+| `DateRangeDashlet`        | `{ start: ISO date; end: ISO date }` | `locale?`, `shouldForceLeadingZeros?`                                                                                       |
+| `ColorDashlet`            | CSS color string                     | `format?: 'hex' \| 'hexa' \| 'rgb' \| 'rgba' \| 'hsl' \| 'hsla' \| 'hsb' \| 'hsba'` (default `hex`)                         |
+
+Built-ins accept the shared Dashlet shell, except `children`, `mode`, `primaryFocusRef`, generic
+value authorities (`value`, `defaultValue`, `onChange`, `onValueChange`), parser/validator props,
+and arbitrary inner-control prop bags. `MeterDashlet`, `ProgressDashlet`, and `StatusDashlet` are
+display bindings and therefore omit `disabled` and `readOnly`.
+
+The four temporal Dashlets and their `/ui` controls keep `locale?: string` as a local presentation
+override. A supplied value must be a valid BCP 47 tag and wraps only that control in React Aria's
+nested `I18nProvider`; omission renders no local provider and inherits the nearest ambient locale.
+Locale changes segment order, direction, localized text, and number presentation. It is never stored
+in Nexus, persistence, or canonical JSON, and does not alter `timeZone`.
+
+Configuration failures are developer errors: structural and relational validation throws `TypeError`
+(duplicate or non-finite choice values, missing text alternatives for non-text labels, invalid
+bounds, non-positive steps, invalid temporal bounds, invalid locale or time zone, and unsupported
+color formats). Standard Intl option failures may retain their platform `RangeError`, and formatter
+or `formatValue` callback exceptions propagate unchanged. Configuration failure never writes Nexus.
+
+A valid canonical value that the current props cannot represent is an ephemeral presentation
+mismatch. The Dashlet renders the exact canonical JSON value and a descriptive warning, without
+clamping, normalization, inferred Status tone/icon, persistence, or writes. Scalar unavailable
+choices may remain operable for an explicit replacement; array, range, temporal, status, and color
+mismatches that cannot be edited honestly render an unavailable editor. Mismatch warnings use
+descriptive relationships, never `aria-invalid`; rejected Nexus input issues use the binding's own
+invalid and error-message relationships.
 
 `TextDashlet.minRows` is a positive integer valid only when `multiline` is true. Multiline content
 grows from that minimum. `SliderDashlet` defaults to `min={0}`, `max={100}`, and `step={1}`. Its
@@ -837,7 +948,7 @@ unavailable control state. Neither component silently selects the first option. 
 horizontal at initial launch; other orientations wait for a dedicated responsive and interaction
 contract.
 
-Every initial ready-made Dashlet also supplies a default rail icon representing its control or
+Every stable ready-made Dashlet also supplies a default rail icon representing its control or
 readout type: text, number, slider, switch, select, segmented control, or display. Applications may
 replace that icon through the shared rail configuration described below.
 
@@ -853,7 +964,13 @@ Dashlet shell.
 ### Presentation compatibility
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Verified
+> Evidence: `packages/dashlist/tests/ready-made.test.tsx`,
+> `packages/dashlist/tests/choice-controls.test.tsx`, and
+> `packages/dashlist/tests/value-controls.test.tsx` cover exact canonical fallbacks, inline warning
+> relationships, no repair writes, silent initial and unfocused mismatches, focused introductions,
+> persistent mismatch suppression, compatibility restoration, StrictMode replay, and nearest-List
+> announcement ownership across the scalar, choice, and value families.
 
 A **presentation mismatch** occurs when a canonical Nexus value is valid but the current ready-made
 control configuration cannot represent it faithfully. It is distinct from both invalid component
@@ -876,7 +993,10 @@ or prop change that restores compatibility clears the warning without a Nexus wr
 Presentation warnings relate to the affected control or named Dashlet composition through
 descriptive ARIA relationships. They do not use `aria-invalid`, because the canonical value remains
 valid. A warning present initially is not announced; one introduced while the affected Dashlet has
-focus receives one polite announcement.
+focus receives one polite announcement through the nearest DashList's persistent status region.
+A persistent mismatch stays silent even if its message changes. Returning to compatibility resets
+that transition, so a later focused mismatch is announced once again. Nested Lists never repeat one
+another's warning announcements.
 
 The mismatch is derived from current value and props. It is never persisted, exported, or recorded
 as a binding input issue. Runtime diagnostics may expose the stable code
@@ -1631,7 +1751,11 @@ values.
 > Contract: Accepted shared foundation and product-owned token inventory; implementation evidence
 > pending for exhaustive shared-token consumption and structural stylesheet inventory
 >
-> Implementation: Prototype
+> Implementation: Partial
+> Evidence: `packages/dashlist/tests/style.test.ts` and
+> `apps/lab/tests/contract-lab.spec.ts` cover current structure, shell/help focus, structural choice
+> markers in LTR, RTL, and forced colors, read-only presentation, and coarse-pointer targets. The
+> exhaustive shared-token consumption table remains pending.
 
 DashList consumes theme, density, shared semantic tokens, and product-neutral primitives from
 `@picodash/ui`. It owns List, Dashlet, row, group, rail, and binding structure in its own stylesheet.
@@ -1700,7 +1824,11 @@ application that wants a durable preference stores and supplies that preference 
 ## Accessibility contract
 
 > Contract: Accepted
-> Implementation: Prototype migration required
+> Implementation: Partial
+> Evidence: DashList component tests cover collection and group semantics, registered primary
+> targets, safe-row and collapse focus repair, descriptions, help, read-only controls, structural
+> choice markers, and announcements. Contract Lab covers the representative browser focus and
+> forced-colors seams. Rail behavior remains Planned.
 
 DashList targets WCAG 2.2 AA. The following rules define the initial collection, focus, naming,
 announcement, and rail behavior. Component-specific requirements for Dashlet labels and issues,
@@ -1743,6 +1871,11 @@ Menus, popovers, and confirmation dialogs inherit their keyboard, focus containm
 restoration behavior from the accepted `@picodash/ui` primitives. DashList adds behavior only where
 the List operation requires it.
 
+Select, Combobox, and MultiSelect use the public shared UI `Popover` composition for their detached
+listboxes. DashList retains only its structural choice-popup class and choice behavior; shared UI
+owns Provider portal defaults, repeated theme/density attributes, and ordering above an active
+parent overlay.
+
 ### Announcements
 
 Each mounted DashList owns exactly one persistent, initially empty, visually hidden
@@ -1778,19 +1911,35 @@ the accepted reorder contract. Handles are named buttons and do not expose `aria
 
 ## Public package surfaces
 
-| Surface                        | Contract | Implementation | Notes                                 |
-| ------------------------------ | -------- | -------------- | ------------------------------------- |
-| `@picodash/dashlist`           | Accepted | Prototype      | List, groups, Dashlets, and actions.  |
-| `@picodash/dashlist/dashlet`   | Accepted | Prototype      | Core accepted; helper families Draft. |
-| `@picodash/dashlist/ui`        | Accepted | Prototype      | Exact unbound-control inventory.      |
-| `@picodash/dashlist/catalog`   | Accepted | Planned        | Descriptive package metadata.         |
-| `@picodash/dashlist/style.css` | Accepted | Prototype      | Complete structural styles.           |
+| Surface                           | Contract | Implementation | Notes                                                                           |
+| --------------------------------- | -------- | -------------- | ------------------------------------------------------------------------------- |
+| `@picodash/dashlist`              | Accepted | Prototype      | List, groups, stable ready-made Dashlets, and actions.                          |
+| `@picodash/dashlist/dashlet`      | Accepted | Prototype      | Core accepted; helper families Draft.                                           |
+| `@picodash/dashlist/ui`           | Accepted | Prototype      | Exact controlled, unbound-control inventory.                                    |
+| `@picodash/dashlist/catalog`      | Accepted | Prototype      | Descriptive metadata for accepted public components.                            |
+| `@picodash/dashlist/charts`       | Accepted | Prototype      | Experimental pre-alpha charts; exact optional `@tanstack/charts` `0.12.0` peer. |
+| `@picodash/dashlist/style.css`    | Accepted | Prototype      | Required structural styles.                                                     |
+| `@picodash/dashlist/package.json` | Accepted | Prototype      | Package metadata for tooling.                                                   |
 
-The initial `/ui` inventory is exactly `TextField`, `NumberField`, `Slider`, `Switch`, `Select`,
-`SegmentedControl`, and `Display`, plus their owning public prop types. These are unbound controls
-used to compose custom Dashlets; they do not read Nexus context. Shared Button, Label, Tooltip,
-Toolbar, confirmation, ActionMenu, and Provider components remain canonically UI-owned and are not
-copied into this entrypoint.
+The unbound `/ui` inventory is `TextField`, `NumberField`, `Slider`, `Switch`, `Select`,
+`SegmentedControl`, `Display`, `Checkbox`, `RadioGroup`, `Combobox`, `CheckboxGroup`, `MultiSelect`,
+`SearchField`, `RangeSlider`, `Meter`, `ProgressBar`, `Status`, `DateField`, `TimeField`,
+`DateTimeField`, `DateRangeField`, and `ColorField`, plus their owning public prop types. These are
+controlled components used to compose custom Dashlets; they do not read Nexus context. Indeterminate
+progress exists only at this unbound layer. Shared Button, Label, Tooltip, Toolbar, confirmation,
+ActionMenu, Popover, and Provider components remain canonically UI-owned and are not copied into this
+entrypoint.
+
+> Contract: Accepted
+> Implementation: Verified for root class composition
+> Evidence: `packages/dashlist/tests/ui-controls.test.tsx`,
+> `packages/dashlist/tests/choice-controls.test.tsx`, and
+> `packages/dashlist/tests/value-controls.test.tsx`
+> Notes: Every public `/ui` control keeps its package structural root class when `className` is
+> omitted or empty. A non-empty string `className` is appended to that same root. `ColorField`
+> applies the same rule to both its React Aria root for valid colors and its native input fallback
+> for an invalid color string. This evidence covers class composition only; it does not promote the
+> broader `/ui` inventory beyond its existing implementation status.
 
 ## Deferred product questions
 

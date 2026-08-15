@@ -1,0 +1,529 @@
+'use client'
+
+import {
+  Button,
+  Checkbox as AriaCheckbox,
+  CheckboxGroup as AriaCheckboxGroup,
+  ComboBox as AriaComboBox,
+  ComboBoxValue,
+  Input,
+  Label,
+  ListBox,
+  ListBoxItem,
+  Radio,
+  RadioGroup as AriaRadioGroup,
+  SearchField as AriaSearchField,
+  Tag,
+  TagGroup,
+  TagList,
+} from 'react-aria-components'
+import type { SelectOption } from './ui.js'
+import { ChoiceOptionContent } from './choice-option-content.js'
+import { usePrimaryControlRef } from './control-accessibility.js'
+import { composeControlClassName } from './ui-class-name.js'
+import { ChoicePopover } from './ui-popover.js'
+
+export type ChoiceControlProps = {
+  readonly id?: string
+  readonly 'aria-label'?: string
+  readonly 'aria-labelledby'?: string
+  readonly 'aria-describedby'?: string
+  readonly 'aria-invalid'?: boolean | 'true' | 'false'
+  readonly 'aria-errormessage'?: string
+  readonly disabled?: boolean
+  readonly readOnly?: boolean
+  readonly className?: string
+}
+
+type ChoiceValue = string | number
+
+function optionParts<T extends ChoiceValue>(option: SelectOption<T>) {
+  if (typeof option === 'object' && option !== null) {
+    return {
+      value: option.value,
+      label: option.label ?? String(option.value),
+      textValue:
+        option.textValue ??
+        (typeof option.label === 'string' ? option.label : String(option.value)),
+      disabled: option.disabled,
+      icon: option.icon,
+    }
+  }
+  return {
+    value: option,
+    label: String(option),
+    textValue: String(option),
+    disabled: false,
+    icon: undefined,
+  }
+}
+type OptionParts<T extends ChoiceValue> = ReturnType<typeof optionParts<T>>
+
+export function choiceKey(value: ChoiceValue): string {
+  return `${typeof value}:${String(value)}`
+}
+
+export function removeMultiSelectValues<T extends ChoiceValue>(
+  value: readonly T[],
+  removedKeys: ReadonlySet<string | number>,
+  disabledKeys: ReadonlySet<string>,
+): readonly T[] {
+  return value.filter((item) => {
+    const key = choiceKey(item)
+    return disabledKeys.has(key) || !removedKeys.has(key)
+  })
+}
+
+function validateChoiceValueArray(
+  value: readonly ChoiceValue[],
+  controlName: 'MultiSelect' | 'CheckboxGroup',
+): void {
+  const seen = new Set<string>()
+  for (const item of value) {
+    if (
+      (typeof item !== 'string' && typeof item !== 'number') ||
+      (typeof item === 'number' && !Number.isFinite(item))
+    )
+      throw new TypeError('choice values must be finite strings or numbers.')
+    const key = choiceKey(item)
+    if (seen.has(key)) throw new TypeError(`${controlName} value must contain unique values.`)
+    seen.add(key)
+  }
+}
+
+function validateMultiSelectValue(value: readonly ChoiceValue[]): void {
+  validateChoiceValueArray(value, 'MultiSelect')
+}
+
+function reconcileMultiSelectSelection<T extends ChoiceValue>(
+  value: readonly T[],
+  parts: readonly OptionParts<T>[],
+  selectedKeys: ReadonlySet<string | number>,
+): readonly T[] {
+  const configuredKeys = new Set(parts.map((item) => choiceKey(item.value)))
+  const configuredSelection = parts
+    .filter((item) => selectedKeys.has(choiceKey(item.value)))
+    .map((item) => item.value)
+  const unavailableSelection = value.filter((item) => {
+    const key = choiceKey(item)
+    return !configuredKeys.has(key) && selectedKeys.has(key)
+  })
+  return [...configuredSelection, ...unavailableSelection]
+}
+
+function validateCheckboxGroupValue(value: readonly ChoiceValue[]): void {
+  validateChoiceValueArray(value, 'CheckboxGroup')
+}
+
+function reconcileCheckboxGroupSelection<T extends ChoiceValue>(
+  value: readonly T[],
+  parts: readonly OptionParts<T>[],
+  selectedKeys: ReadonlySet<string | number>,
+): readonly T[] {
+  const configuredKeys = new Set(parts.map((item) => choiceKey(item.value)))
+  const configuredSelection = parts
+    .filter((item) => selectedKeys.has(choiceKey(item.value)))
+    .map((item) => item.value)
+  const unavailableSelection = value.filter((item) => !configuredKeys.has(choiceKey(item)))
+  return [...configuredSelection, ...unavailableSelection]
+}
+
+export function validateChoiceOptions<T extends ChoiceValue>(
+  options: readonly SelectOption<T>[],
+): void {
+  const seen = new Set<string>()
+  for (const option of options) {
+    const value = typeof option === 'object' && option !== null ? option.value : option
+    if (typeof value !== 'string' && typeof value !== 'number')
+      throw new TypeError('option values must be finite strings or numbers.')
+    if (typeof value === 'number' && !Number.isFinite(value))
+      throw new TypeError('option values must be finite strings or numbers.')
+    const key = choiceKey(value)
+    if (seen.has(key)) throw new TypeError('options must contain unique values.')
+    seen.add(key)
+    if (
+      typeof option === 'object' &&
+      option !== null &&
+      option.label !== undefined &&
+      typeof option.label !== 'string' &&
+      !option.textValue
+    )
+      throw new TypeError('non-text option labels require textValue.')
+  }
+}
+
+export type CheckboxProps = ChoiceControlProps & {
+  readonly isSelected: boolean
+  readonly onChange: (isSelected: boolean) => void
+}
+
+export function Checkbox({ isSelected, onChange, ...props }: CheckboxProps) {
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  return (
+    <AriaCheckbox
+      inputRef={inputRef}
+      id={props.id}
+      className={composeControlClassName('picodash-dashlist-checkbox', props.className)}
+      isSelected={isSelected}
+      onChange={onChange}
+      isDisabled={props.disabled}
+      isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+      aria-label={props['aria-label']}
+      aria-labelledby={props['aria-labelledby']}
+      aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
+    >
+      <span aria-hidden="true" data-picodash-dashlist-checkbox-box>
+        <span aria-hidden="true" data-picodash-dashlist-checkbox-marker />
+      </span>
+      {props['aria-label'] ? <span>{props['aria-label']}</span> : null}
+    </AriaCheckbox>
+  )
+}
+
+function RadioChoice<T extends ChoiceValue>({ item }: { readonly item: OptionParts<T> }) {
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  return (
+    <Radio
+      inputRef={inputRef}
+      className="picodash-dashlist-choice"
+      value={choiceKey(item.value)}
+      isDisabled={item.disabled}
+      aria-label={typeof item.label === 'string' ? undefined : item.textValue}
+    >
+      <span aria-hidden="true" data-picodash-dashlist-radio-marker />
+      {item.icon}
+      {item.label}
+    </Radio>
+  )
+}
+
+export type RadioGroupProps<T extends ChoiceValue> = ChoiceControlProps & {
+  readonly value: T | undefined
+  readonly onChange: (value: T) => void
+  readonly options: readonly SelectOption<T>[]
+  readonly orientation?: 'vertical' | 'horizontal'
+}
+
+export function RadioGroup<T extends ChoiceValue>({
+  value,
+  onChange,
+  options,
+  orientation = 'vertical',
+  ...props
+}: RadioGroupProps<T>) {
+  validateChoiceOptions(options)
+  const parts = options.map(optionParts)
+  return (
+    <AriaRadioGroup
+      id={props.id}
+      className={composeControlClassName('picodash-dashlist-radio-group', props.className)}
+      value={value === undefined ? null : choiceKey(value)}
+      onChange={(next) => {
+        const match = parts.find((item) => choiceKey(item.value) === next)
+        if (match) onChange(match.value)
+      }}
+      orientation={orientation}
+      isDisabled={props.disabled}
+      isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+      aria-label={props['aria-label']}
+      aria-labelledby={props['aria-labelledby']}
+      aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
+    >
+      {parts.map((item) => (
+        <RadioChoice key={choiceKey(item.value)} item={item} />
+      ))}
+    </AriaRadioGroup>
+  )
+}
+
+export type ComboboxProps<T extends ChoiceValue> = ChoiceControlProps & {
+  readonly value: T | undefined
+  readonly onChange: (value: T) => void
+  readonly options: readonly SelectOption<T>[]
+  readonly placeholder?: string
+}
+
+export function Combobox<T extends ChoiceValue>({
+  value,
+  onChange,
+  options,
+  placeholder,
+  ...props
+}: ComboboxProps<T>) {
+  validateChoiceOptions(options)
+  const parts = options.map(optionParts)
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  return (
+    <AriaComboBox
+      className={composeControlClassName('picodash-dashlist-combobox', props.className)}
+      items={parts}
+      value={value === undefined ? null : choiceKey(value)}
+      onChange={(next) => {
+        if (typeof next !== 'string') return
+        const match = parts.find((item) => choiceKey(item.value) === next)
+        if (match) onChange(match.value)
+      }}
+      isDisabled={props.disabled}
+      isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+      aria-label={props['aria-label']}
+      aria-labelledby={props['aria-labelledby']}
+      aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
+    >
+      <Label>{props['aria-label']}</Label>
+      <Input
+        ref={inputRef}
+        id={props.id}
+        placeholder={placeholder}
+        className="picodash-dashlist-control"
+        aria-invalid={props['aria-invalid']}
+        aria-errormessage={props['aria-errormessage']}
+      />
+      <Button className="picodash-dashlist-disclosure-button" aria-label="Show choices">
+        ▾
+      </Button>
+      <ChoicePopover>
+        <ListBox<OptionParts<T>> className="picodash-dashlist-listbox">
+          {(item) => (
+            <ListBoxItem
+              id={choiceKey(item.value)}
+              textValue={item.textValue}
+              isDisabled={item.disabled}
+            >
+              <ChoiceOptionContent icon={item.icon} label={item.label} />
+            </ListBoxItem>
+          )}
+        </ListBox>
+      </ChoicePopover>
+    </AriaComboBox>
+  )
+}
+
+function CheckboxGroupChoice<T extends ChoiceValue>({ item }: { readonly item: OptionParts<T> }) {
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  return (
+    <AriaCheckbox
+      inputRef={inputRef}
+      className="picodash-dashlist-choice"
+      value={choiceKey(item.value)}
+      isDisabled={item.disabled}
+      aria-label={typeof item.label === 'string' ? undefined : item.textValue}
+    >
+      <span aria-hidden="true" data-picodash-dashlist-checkbox-box>
+        <span aria-hidden="true" data-picodash-dashlist-checkbox-marker />
+      </span>
+      {item.icon}
+      {item.label}
+    </AriaCheckbox>
+  )
+}
+
+export type CheckboxGroupProps<T extends ChoiceValue> = ChoiceControlProps & {
+  readonly value: readonly T[]
+  readonly onChange: (value: readonly T[]) => void
+  readonly options: readonly SelectOption<T>[]
+}
+
+export function CheckboxGroup<T extends ChoiceValue>({
+  value,
+  onChange,
+  options,
+  ...props
+}: CheckboxGroupProps<T>) {
+  validateCheckboxGroupValue(value)
+  validateChoiceOptions(options)
+  const parts = options.map(optionParts)
+  const selected = value.map(choiceKey)
+  return (
+    <AriaCheckboxGroup
+      id={props.id}
+      className={composeControlClassName('picodash-dashlist-checkbox-group', props.className)}
+      value={selected}
+      onChange={(keys) => {
+        const selectedKeys = new Set(keys)
+        const next = reconcileCheckboxGroupSelection(value, parts, selectedKeys)
+        onChange(next)
+      }}
+      isDisabled={props.disabled}
+      isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+      aria-label={props['aria-label']}
+      aria-labelledby={props['aria-labelledby']}
+      aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
+    >
+      {parts.map((item) => (
+        <CheckboxGroupChoice key={choiceKey(item.value)} item={item} />
+      ))}
+    </AriaCheckboxGroup>
+  )
+}
+
+export type MultiSelectProps<T extends ChoiceValue> = ChoiceControlProps & {
+  readonly value: readonly T[]
+  readonly onChange: (value: readonly T[]) => void
+  readonly options: readonly SelectOption<T>[]
+  readonly placeholder?: string
+}
+
+export function MultiSelect<T extends ChoiceValue>({
+  value,
+  onChange,
+  options,
+  placeholder,
+  ...props
+}: MultiSelectProps<T>) {
+  validateMultiSelectValue(value)
+  validateChoiceOptions(options)
+  const parts = options.map(optionParts)
+  const selected = value.map(choiceKey)
+  const disabledKeys = new Set(
+    parts.filter((item) => item.disabled).map((item) => choiceKey(item.value)),
+  )
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  return (
+    <AriaComboBox
+      className={composeControlClassName('picodash-dashlist-multi-select', props.className)}
+      selectionMode="multiple"
+      items={parts}
+      value={selected}
+      onChange={(keys) => {
+        if (!Array.isArray(keys)) return
+        const selectedKeys = new Set(keys)
+        const next = reconcileMultiSelectSelection(value, parts, selectedKeys)
+        onChange(next)
+      }}
+      isDisabled={props.disabled}
+      isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+      aria-label={props['aria-label']}
+      aria-labelledby={props['aria-labelledby']}
+      aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
+    >
+      <Label>{props['aria-label']}</Label>
+      <Input
+        ref={inputRef}
+        id={props.id}
+        placeholder={placeholder}
+        className="picodash-dashlist-control"
+        aria-invalid={props['aria-invalid']}
+        aria-errormessage={props['aria-errormessage']}
+      />
+      <Button className="picodash-dashlist-disclosure-button" aria-label="Show choices">
+        ▾
+      </Button>
+      <ComboBoxValue<OptionParts<T>>>
+        {({ state }) => (
+          <TagGroup
+            className="picodash-dashlist-tag-group"
+            aria-label={
+              props['aria-labelledby'] ? undefined : `${props['aria-label'] ?? 'Selected'} values`
+            }
+            aria-labelledby={props['aria-labelledby']}
+            onRemove={
+              props.disabled || props.readOnly
+                ? undefined
+                : (keys) => {
+                    const next = removeMultiSelectValues(value, keys, disabledKeys)
+                    if (next.length !== value.length) state.setValue(next.map(choiceKey))
+                  }
+            }
+          >
+            <TagList<{ key: string; value: T }>
+              className="picodash-dashlist-tag-list"
+              items={value.map((item) => ({ key: choiceKey(item), value: item }))}
+            >
+              {(item) => {
+                const part = parts.find((candidate) => choiceKey(candidate.value) === item.key)
+                const textValue = part?.textValue ?? String(item.value)
+                return (
+                  <Tag
+                    className="picodash-dashlist-tag"
+                    id={item.key}
+                    textValue={textValue}
+                    isDisabled={part?.disabled}
+                  >
+                    {part?.icon}
+                    {part?.label ?? String(item.value)}
+                    {props.disabled || props.readOnly || part?.disabled ? null : (
+                      <Button
+                        slot="remove"
+                        aria-label={`Remove ${textValue}`}
+                        data-picodash-dashlist-tag-remove
+                      >
+                        ×
+                      </Button>
+                    )}
+                  </Tag>
+                )
+              }}
+            </TagList>
+          </TagGroup>
+        )}
+      </ComboBoxValue>
+      <ChoicePopover>
+        <ListBox<OptionParts<T>> className="picodash-dashlist-listbox">
+          {(item) => (
+            <ListBoxItem
+              id={choiceKey(item.value)}
+              textValue={item.textValue}
+              isDisabled={item.disabled}
+            >
+              <ChoiceOptionContent icon={item.icon} label={item.label} />
+            </ListBoxItem>
+          )}
+        </ListBox>
+      </ChoicePopover>
+    </AriaComboBox>
+  )
+}
+
+export type SearchFieldProps = ChoiceControlProps & {
+  readonly value: string
+  readonly onChange: (value: string) => void
+  readonly placeholder?: string
+}
+
+export function SearchField({ value, onChange, placeholder, ...props }: SearchFieldProps) {
+  const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  return (
+    <AriaSearchField
+      className={composeControlClassName('picodash-dashlist-search-field', props.className)}
+      value={value}
+      onChange={onChange}
+      isDisabled={props.disabled}
+      isReadOnly={props.readOnly}
+      isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
+      aria-label={props['aria-label']}
+      aria-labelledby={props['aria-labelledby']}
+      aria-describedby={props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-errormessage={props['aria-errormessage']}
+    >
+      <Input
+        ref={inputRef}
+        id={props.id}
+        placeholder={placeholder}
+        className="picodash-dashlist-control"
+        aria-invalid={props['aria-invalid']}
+        aria-errormessage={props['aria-errormessage']}
+      />
+      <Button className="picodash-dashlist-clear-button" aria-label="Clear search">
+        ×
+      </Button>
+    </AriaSearchField>
+  )
+}
+
+export type { SelectOption }

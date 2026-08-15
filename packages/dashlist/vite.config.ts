@@ -6,6 +6,9 @@ export default defineConfig({
   pack: {
     entry: {
       index: 'src/index.tsx',
+      catalog: 'src/catalog.ts',
+      ui: 'src/ui.tsx',
+      charts: 'src/charts.tsx',
       style: 'src/style.css',
     },
     dts: { tsgo: true },

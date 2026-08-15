@@ -92,6 +92,8 @@ export type {
   PicodashFieldDefinition,
   PicodashFieldDefinitions,
   PicodashField,
+  PicodashFieldOf,
+  PicodashExactFieldOf,
   PicodashFields,
   ValuesOf,
   PicodashIssueInput,

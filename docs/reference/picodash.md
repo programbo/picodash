@@ -215,11 +215,13 @@ workflow, but a declarative relationship alone never grants that broader target 
 ## Ready-made Dashlets and catalogs
 
 > Contract: Accepted ownership, initial inventory, and export paths
-> Implementation: Planned
+> Implementation: Partial
 
 DashList owns generic Nexus-bound ready-made Dashlets and their catalog metadata. Picodash may
 reexport stable DashList components and aggregate package-owned catalogs, but it does not maintain
-facade copies of their implementations or entries. DashPanel owns no Dashlets.
+facade copies of their implementations or entries. DashPanel owns no Dashlets. The 22 stable
+DashList-owned root reexports are implemented with identity-preserving facade exports; catalog
+aggregation remains planned.
 
 Picodash owns no ready-made Dashlet or additional component family at initial launch. A future
 component belongs to Picodash only when its behavior necessarily coordinates both DashPanel and
@@ -227,13 +229,19 @@ DashList. Field binding and List presentation remain DashList concerns; product-
 remains UI-owned. A qualifying Picodash component is documented as an integrated composition rather
 than a foundational Dashlet.
 
-The prototype currently sources ready-made controls and catalog metadata from DashPanel. That
-ownership is non-conforming and must not constrain the target migration.
+Picodash reexports the exact stable DashList-owned inventory from its root: `TextDashlet`,
+`NumberDashlet`, `SliderDashlet`, `SwitchDashlet`, `SelectDashlet`, `SegmentedDashlet`,
+`DisplayDashlet`, `CheckboxDashlet`, `RadioGroupDashlet`, `ComboboxDashlet`,
+`CheckboxGroupDashlet`, `MultiSelectDashlet`, `SearchDashlet`, `RangeDashlet`, `MeterDashlet`,
+`ProgressDashlet`, `StatusDashlet`, `DateDashlet`, `TimeDashlet`, `DateTimeDashlet`,
+`DateRangeDashlet`, and `ColorDashlet`. It combines foundation metadata through
+`@picodash/picodash/catalog`. Experimental chart subpath exports are not root reexports or catalog
+entries. DashList anatomy remains available only from its owning subpath; the facade does not add a
+`/dashlet` convenience surface.
 
-Picodash reexports the exact DashList-owned `TextDashlet`, `NumberDashlet`, `SliderDashlet`,
-`SwitchDashlet`, `SelectDashlet`, `SegmentedDashlet`, and `DisplayDashlet` from its root. It combines
-foundation metadata through `@picodash/picodash/catalog`. DashList anatomy remains available only
-from its owning subpath; the facade does not add a `/dashlet` convenience surface.
+The facade preserves the exact DashList component and prop identities for all 22 reexports,
+including specialized aliases and safe unspecialized React `ComponentProps`. It does not wrap the
+components or widen their Nexus field constraints.
 
 An optional family with a meaningful third-party runtime dependency ships as a separate package,
 not as a required Picodash dependency or root reexport. Its package name, dependency policy, public
@@ -378,16 +386,18 @@ The reused primary-List workflow retains the accepted DashList requirements to:
 
 ## Package facade
 
-| Surface                        | Contract | Implementation | Notes                                       |
-| ------------------------------ | -------- | -------------- | ------------------------------------------- |
-| `@picodash/picodash`           | Accepted | Partial        | Alpha root exports and Provider delegation. |
-| `@picodash/picodash/ui`        | Accepted | Partial        | Explicit reexports of stable shared UI.     |
-| `@picodash/picodash/catalog`   | Accepted | Planned        | Aggregates package-owned catalogs.          |
-| `@picodash/picodash/style.css` | Accepted | Partial        | Public UI, DashPanel, and DashList imports. |
+| Surface                        | Contract | Implementation | Notes                                                     |
+| ------------------------------ | -------- | -------------- | --------------------------------------------------------- |
+| `@picodash/picodash`           | Accepted | Partial        | Alpha root exports and Provider delegation.               |
+| `@picodash/picodash/ui`        | Accepted | Partial        | Exact reexports of stable shared UI, including `Popover`. |
+| `@picodash/picodash/catalog`   | Accepted | Planned        | Aggregates package-owned catalogs.                        |
+| `@picodash/picodash/style.css` | Accepted | Partial        | Public UI, DashPanel, and DashList imports.               |
 
 The root uses named reexports and exposes no `Picodash*` aliases for foundation-owned components.
 The facade does not fork their types or behavior. Its `/ui` entrypoint explicitly mirrors the
 accepted `@picodash/ui` inventory, never the lower-level owner consumed by DashPanel or DashList.
+It reexports `Popover` and `PopoverProps` as the exact UI-owned identities without exposing private
+active-layer machinery.
 Product-specific DashList controls retain their owning package surfaces even when Picodash
 reexports them separately.
 

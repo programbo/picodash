@@ -733,6 +733,15 @@ Every field handle carries internal root ownership. All scopes of that root acce
 rejects it even if the field key and value type match. Serialized documents use keys and resolve
 them against the explicit target root.
 
+Nexus also exports two type-only consumer views. `PicodashFieldOf<Value>` accepts a nominal field
+whose selected value is assignable to `Value`; `PicodashExactFieldOf<Value>` accepts a nominal field
+whose selected compound JSON domain is exactly `Value`. These views let generic consumers describe
+their field requirements without inventing a whole-Nexus record or weakening the nominal handle.
+They add no runtime properties or operations, do not expose the private ownership brand, and confer
+no parsing, validation, repair, or mutation authority. Root and scoped field collections inferred
+directly from `createPicodashNexus()` retain the exact type information needed by the exact view;
+runtime handles remain frozen key-only objects.
+
 ### 6.3 Complete canonical record
 
 Every field has a concrete default and one present canonical value. `undefined` is not a canonical

@@ -16,6 +16,16 @@ const artifactContracts = {
   'llms.txt': ['@picodash/dashpanel', '@picodash/dashlist', '@picodash/picodash'],
   'PRODUCT.md': ['AI coding agent', 'WCAG 2.2 Level AA'],
   'CONTEXT.md': ['Compound Dashlet', 'Picodash Nexus', 'Root Nexus', 'Scoped Nexus'],
+  'docs/agents/dashlist.md': [
+    '@picodash/dashlist/ui',
+    '@picodash/dashlist/catalog',
+    '@picodash/dashlist/charts',
+  ],
+  'packages/dashlist/README.md': [
+    '@picodash/dashlist/ui',
+    '@picodash/dashlist/catalog',
+    '@picodash/dashlist/charts',
+  ],
 }
 
 const packageExportContracts = {
@@ -28,7 +38,14 @@ const packageExportContracts = {
   ],
   'packages/ui/package.json': ['.', './package.json', './style.css'],
   'packages/dashpanel/package.json': ['.', './integration', './package.json', './style.css'],
-  'packages/dashlist/package.json': ['.', './package.json', './style.css'],
+  'packages/dashlist/package.json': [
+    '.',
+    './catalog',
+    './charts',
+    './package.json',
+    './style.css',
+    './ui',
+  ],
   'packages/picodash/package.json': ['.', './package.json', './style.css', './ui'],
 }
 
