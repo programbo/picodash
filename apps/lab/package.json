@@ -22,7 +22,7 @@
     "@picodash/picodash": "workspace:*",
     "@picodash/ui": "workspace:*",
     "@tanstack/charts": "catalog:",
-    "next": "16.3.0",
+    "next": "16.3.1",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
