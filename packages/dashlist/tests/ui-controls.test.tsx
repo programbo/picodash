@@ -681,6 +681,25 @@ describe('NumberField configuration and behavior', () => {
     act(() => view.unmount())
   })
 
+  it('preserves tiny-step display and keyboard increments', () => {
+    const changes: Array<number | null> = []
+    const view = render(
+      createElement(NumberField, {
+        value: 1e-308,
+        step: 1e-308,
+        formatOptions: { notation: 'scientific', maximumFractionDigits: 3 },
+        onChange: (next) => changes.push(next),
+        'aria-label': 'Tiny number',
+      }),
+    )
+    const input = view.root.element.querySelector<HTMLInputElement>('input')!
+
+    expect(input.value).toBe('1E-308')
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(changes).toEqual([2e-308])
+    act(() => view.unmount())
+  })
+
   it('rejects invalid direct NumberField configuration synchronously', () => {
     const invalidConfigurations: readonly {
       readonly name: string

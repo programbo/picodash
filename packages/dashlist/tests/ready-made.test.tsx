@@ -445,6 +445,36 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
     nexus.destroy()
   })
 
+  it('keeps an exact tiny-step number value editable', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { tiny: { defaultValue: 1e-308 } },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'tiny-step', nexus },
+        createElement(NumberDashlet, {
+          id: 'tiny',
+          field: nexus.fields.tiny,
+          label: 'Tiny number',
+          step: 1e-308,
+          formatOptions: { notation: 'scientific', maximumFractionDigits: 3 },
+        }),
+      ),
+    )
+
+    expect(
+      view.root.element.querySelector<HTMLInputElement>('[data-picodash-dashlet="tiny"] input')
+        ?.value,
+    ).toBe('1E-308')
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet-presentation-warning]'),
+    ).toBeNull()
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
   it('falls back exactly for off-step numeric values without invoking a snapping control', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',

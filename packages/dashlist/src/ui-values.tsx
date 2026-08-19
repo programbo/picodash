@@ -31,6 +31,7 @@ import { useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import type { DashlistControlProps } from './ui.js'
 import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
 import { composeControlClassName } from './ui-class-name.js'
+import { choiceKey, sameChoiceValue } from './choice-identity.js'
 
 export type NumberRangeValue = {
   readonly start: number
@@ -370,7 +371,7 @@ function validateStatusOptions<T extends string | number>(options: readonly Stat
       (typeof option.value === 'number' && !Number.isFinite(option.value))
     )
       throw new TypeError('status values must be finite strings or numbers.')
-    const key = `${typeof option.value}:${String(option.value)}`
+    const key = choiceKey(option.value)
     if (seen.has(key)) throw new TypeError('options must contain unique values.')
     seen.add(key)
     if (typeof option.label !== 'string' && !option.textValue)
@@ -382,7 +383,7 @@ function validateStatusOptions<T extends string | number>(options: readonly Stat
 
 export function Status<T extends string | number>({ value, options, ...props }: StatusProps<T>) {
   validateStatusOptions(options)
-  const option = options.find((candidate) => Object.is(candidate.value, value))
+  const option = options.find((candidate) => sameChoiceValue(candidate.value, value))
   const label = option?.label ?? String(value)
   const accessible =
     'aria-label' in props

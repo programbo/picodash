@@ -12,6 +12,7 @@ import { parseColor } from 'react-aria-components'
 import type { PicodashJsonValue } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
 import { isNumberCompatible } from './number-compatibility.js'
+import { choiceKey, sameChoiceValue } from './choice-identity.js'
 import { PresentationWarning, presentationWarningId } from './presentation-warning.js'
 import { asDashletBindingField } from './ready-made-field-types.js'
 import type {
@@ -353,7 +354,7 @@ function validateStatusOptions<T extends ChoiceValue>(options: readonly StatusCh
       (typeof option.value === 'number' && !Number.isFinite(option.value))
     )
       throw new TypeError('status values must be finite strings or numbers.')
-    const key = `${typeof option.value}:${String(option.value)}`
+    const key = choiceKey(option.value)
     if (seen.has(key)) throw new TypeError('options must contain unique values.')
     seen.add(key)
     if (typeof option.label !== 'string' && !option.textValue)
@@ -374,7 +375,7 @@ function StatusDashletInner<T extends ChoiceValue, F extends ChoiceField>(
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as string | number
-        const compatible = options.some((option) => Object.is(option.value, canonical))
+        const compatible = options.some((option) => sameChoiceValue(option.value, canonical))
         return (
           <>
             <Status

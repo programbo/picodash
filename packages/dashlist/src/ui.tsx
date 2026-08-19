@@ -24,6 +24,7 @@ import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessib
 import { ChoiceOptionContent } from './choice-option-content.js'
 import { validateChoiceOptions } from './ui-choices.js'
 import { composeControlClassName } from './ui-class-name.js'
+import { isStepPrecisionScalable, snapNumberToStep } from './number-compatibility.js'
 import { ChoicePopover } from './ui-popover.js'
 
 export type DashlistControlProps = {
@@ -132,6 +133,18 @@ function isImmediateNumberEditKey(key: string): boolean {
   return ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(key)
 }
 
+function moveNumberByStep(
+  value: number,
+  direction: 'increment' | 'decrement',
+  min: number | undefined,
+  max: number | undefined,
+  step: number,
+): number {
+  const snapped = snapNumberToStep(value, min, max, step)
+  if (direction === 'increment' ? snapped > value : snapped < value) return snapped
+  return snapNumberToStep(direction === 'increment' ? value + step : value - step, min, max, step)
+}
+
 export function NumberField({
   value,
   onChange,
@@ -163,6 +176,7 @@ export function NumberField({
   }
 
   const canEdit = !props.disabled && !props.readOnly
+  const needsUnscaledStepHandling = step !== undefined && !isStepPrecisionScalable(step)
   const markTextEdit = () => {
     if (canEdit) pendingTextEdit.current = true
   }
@@ -187,6 +201,7 @@ export function NumberField({
       className={composeControlClassName('picodash-dashlist-field', props.className)}
       value={value}
       onChange={handleChange}
+      commitBehavior={needsUnscaledStepHandling ? 'validate' : undefined}
       minValue={min}
       maxValue={max}
       step={step}
@@ -215,6 +230,25 @@ export function NumberField({
           onPasteCapture={markTextEdit}
           onCutCapture={markTextEdit}
           onKeyDownCapture={(event) => {
+            if (canEdit && needsUnscaledStepHandling) {
+              let next: number | undefined
+              if (event.key === 'ArrowUp' || event.key === 'PageUp')
+                next = moveNumberByStep(value, 'increment', min, max, step)
+              else if (event.key === 'ArrowDown' || event.key === 'PageDown')
+                next = moveNumberByStep(value, 'decrement', min, max, step)
+              else if (event.key === 'Home' && min !== undefined) next = min
+              else if (event.key === 'End' && max !== undefined)
+                next = snapNumberToStep(max, min, max, step)
+
+              if (next !== undefined) {
+                event.preventDefault()
+                pendingTextEdit.current = false
+                pendingImmediateEdit.current = false
+                immediateEditGeneration.current += 1
+                onChange(Number.isNaN(next) ? null : next)
+                return
+              }
+            }
             if (isImmediateNumberEditKey(event.key)) markImmediateEdit()
             else if (event.key.length === 1 || event.key === 'Backspace' || event.key === 'Delete')
               markTextEdit()

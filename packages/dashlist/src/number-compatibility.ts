@@ -1,4 +1,4 @@
-function roundToStepPrecision(value: number, step: number): number {
+function stepPrecision(step: number): number {
   let precision = 0
   const stepString = step.toString()
   const exponentIndex = stepString.toLowerCase().indexOf('e-')
@@ -10,8 +10,19 @@ function roundToStepPrecision(value: number, step: number): number {
     if (pointIndex >= 0) precision = stepString.length - pointIndex
   }
 
+  return precision
+}
+
+export function isStepPrecisionScalable(step: number): boolean {
+  return Number.isFinite(Math.pow(10, stepPrecision(step)))
+}
+
+function roundToStepPrecision(value: number, step: number): number {
+  const precision = stepPrecision(step)
+
   if (precision === 0) return value
   const power = Math.pow(10, precision)
+  if (!Number.isFinite(power)) return value
   return Math.round(value * power) / power
 }
 
