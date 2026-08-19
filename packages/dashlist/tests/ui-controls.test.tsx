@@ -2,6 +2,7 @@
 import { act, createElement, StrictMode, type ReactElement } from 'react'
 import { fireEvent } from '@testing-library/react'
 import { createPicodashNexus } from '@picodash/nexus'
+import { I18nProvider } from 'react-aria-components'
 import { describe, expect, it } from 'vite-plus/test'
 import { createDomTestRenderer, type DomTestRenderer } from '../../../test/dom-renderer.ts'
 import { Dashlet, DashList, SwitchDashlet } from '../src/index.tsx'
@@ -681,22 +682,74 @@ describe('NumberField configuration and behavior', () => {
     act(() => view.unmount())
   })
 
-  it('preserves tiny-step display and keyboard increments', () => {
+  it('preserves tiny-step values across text, keyboard, paste, and wheel edits', async () => {
     const changes: Array<number | null> = []
-    const view = render(
+    const renderField = (value: number) =>
       createElement(NumberField, {
-        value: 1e-308,
+        value,
         step: 1e-308,
         formatOptions: { notation: 'scientific', maximumFractionDigits: 3 },
         onChange: (next) => changes.push(next),
         'aria-label': 'Tiny number',
+      })
+    const view = render(renderField(1e-308))
+    const input = () => view.root.element.querySelector<HTMLInputElement>('input')!
+
+    expect(input().value).toBe('1E-308')
+    fireEvent.change(input(), { target: { value: '2E-308' } })
+    fireEvent.blur(input())
+    expect(changes).toEqual([2e-308])
+
+    act(() => view.update(renderField(2e-308)))
+    fireEvent.change(input(), { target: { value: '3E-308' } })
+    fireEvent.keyDown(input(), { key: 'Enter' })
+    expect(changes).toEqual([2e-308, 3e-308])
+
+    act(() => view.update(renderField(3e-308)))
+    fireEvent.change(input(), { target: { value: '5E-308' } })
+    fireEvent.keyDown(input(), { key: 'ArrowUp' })
+    expect(changes).toEqual([2e-308, 3e-308, 6e-308])
+
+    act(() => view.update(renderField(6e-308)))
+    input().setSelectionRange(0, input().value.length)
+    fireEvent.paste(input(), { clipboardData: { getData: () => '7E-308' } })
+    expect(changes).toEqual([2e-308, 3e-308, 6e-308, 7e-308])
+
+    act(() => view.update(renderField(7e-308)))
+    act(() => {
+      input().focus()
+      fireEvent.focusIn(input())
+    })
+    act(() => {
+      void fireEvent.wheel(input(), { deltaY: 10, deltaX: 0 })
+    })
+    await act(() => Promise.resolve())
+    expect(changes).toEqual([2e-308, 3e-308, 6e-308, 7e-308, 8e-308])
+    act(() => view.unmount())
+  })
+
+  it('parses localized scientific tiny-step text without losing its exponent', () => {
+    const changes: number[] = []
+    const formatOptions = { notation: 'scientific' as const, maximumFractionDigits: 3 }
+    const view = render(
+      createElement(I18nProvider, {
+        locale: 'de-DE',
+        children: createElement(NumberField, {
+          value: 1e-308,
+          step: 1e-308,
+          formatOptions,
+          onChange: (next) => next !== null && changes.push(next),
+          'aria-label': 'Localized tiny number',
+        }),
       }),
     )
     const input = view.root.element.querySelector<HTMLInputElement>('input')!
 
-    expect(input.value).toBe('1E-308')
-    fireEvent.keyDown(input, { key: 'ArrowUp' })
-    expect(changes).toEqual([2e-308])
+    fireEvent.change(input, {
+      target: { value: new Intl.NumberFormat('de-DE', formatOptions).format(1.5e-308) },
+    })
+    fireEvent.blur(input)
+    expect(changes).toEqual([1.5e-308])
     act(() => view.unmount())
   })
 

@@ -32,12 +32,14 @@ function render(element: ReactElement): DomTestRenderer {
 }
 
 describe('@picodash/dashlist ready-made Dashlets', () => {
-  it('matches the installed React Stately step grammar exactly', () => {
+  it('matches scalable React Stately steps and preserves exact unscaled steps', () => {
     for (const { value, min, max, step } of [
       { value: 0.3, min: 0, max: 1, step: 0.1 },
       { value: -0.3, min: -0.5, max: 0.5, step: 0.2 },
       { value: 3e-7, min: 0, max: 1e-6, step: 1e-7 },
       { value: 2_251_799_813_685_200, min: 0, max: 3e15, step: 100 },
+      { value: 1e-308, min: 0, max: 1e-307, step: 1e-308 },
+      { value: 6e-308, min: 0, max: 1e-307, step: 1e-308 },
       { value: -0, min: undefined, max: undefined, step: 1 },
     ] as const)
       expect(isNumberCompatible(value, min, max, step)).toBe(true)
@@ -46,6 +48,7 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
       { value: 22_517_998_136_852.25, min: 0, max: 3e13, step: 1 },
       { value: -0.2, min: -0.5, max: 0.5, step: 0.2 },
       { value: 3.5e-7, min: 0, max: 1e-6, step: 1e-7 },
+      { value: 1.6e-308, min: 0, max: 1e-307, step: 1e-308 },
       { value: Number.MAX_VALUE, min: -Number.MAX_VALUE, max: Number.MAX_VALUE, step: 0.1 },
     ] as const)
       expect(isNumberCompatible(value, min, max, step)).toBe(false)
@@ -464,13 +467,77 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
       ),
     )
 
-    expect(
-      view.root.element.querySelector<HTMLInputElement>('[data-picodash-dashlet="tiny"] input')
-        ?.value,
-    ).toBe('1E-308')
+    const input = view.root.element.querySelector<HTMLInputElement>(
+      '[data-picodash-dashlet="tiny"] input',
+    )!
+    expect(input.value).toBe('1E-308')
     expect(
       view.root.element.querySelector('[data-picodash-dashlet-presentation-warning]'),
     ).toBeNull()
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(nexus.getState().values.tiny).toBe(2e-308)
+    expect(input.value).toBe('2E-308')
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('falls back before Slider and Range controls materialize unsafe tiny steps', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: {
+        slider: { defaultValue: 1e-308 },
+        range: { defaultValue: { start: 1e-308, end: 2e-308 } },
+      },
+    })
+    const view = render(
+      createElement(
+        DashList,
+        { id: 'tiny-step-fallbacks', nexus },
+        createElement(SliderDashlet, {
+          id: 'slider',
+          field: nexus.fields.slider,
+          label: 'Tiny slider',
+          min: 0,
+          max: 1e-307,
+          step: 1e-308,
+        }),
+        createElement(RangeDashlet, {
+          id: 'range',
+          field: nexus.fields.range,
+          label: 'Tiny range',
+          min: 0,
+          max: 1e-307,
+          step: 1e-308,
+        }),
+      ),
+    )
+
+    expect(view.root.element.querySelector('[data-picodash-dashlet="slider"] input')).toBeNull()
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="slider"] output')?.textContent,
+    ).toBe('1e-308')
+    expect(view.root.element.querySelector('[data-picodash-dashlet="range"] input')).toBeNull()
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="range"] output')?.textContent,
+    ).toBe('{"start":1e-308,"end":2e-308}')
+    expect(
+      view.root.element.querySelectorAll('[data-picodash-dashlet-presentation-warning]'),
+    ).toHaveLength(2)
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="slider"] [role="note"]')
+        ?.textContent,
+    ).toBe(
+      'The current value (1e-308) cannot be represented safely with the configured slider step (1e-308).',
+    )
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="range"] [role="note"]')?.textContent,
+    ).toBe(
+      'The current range ({ start: 1e-308, end: 2e-308 }) cannot be represented safely with the configured step (1e-308).',
+    )
+    expect(nexus.getState().values).toEqual({
+      slider: 1e-308,
+      range: { start: 1e-308, end: 2e-308 },
+    })
     act(() => view.unmount())
     nexus.destroy()
   })

@@ -33,6 +33,7 @@
       "recharts": "^3.10.0",
       "react-dropzone": "^17.0.0",
       "@internationalized/date": "^3.12.3",
+      "@internationalized/number": "^3.6.7",
       "react-aria": "^3.51.0",
       "tailwind-merge": "^3.6.0",
       "class-variance-authority": "^0.7.1",

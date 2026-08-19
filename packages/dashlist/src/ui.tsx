@@ -18,13 +18,19 @@ import {
   Switch as AriaSwitch,
   TextArea,
   TextField as AriaTextField,
+  useLocale,
 } from 'react-aria-components'
-import { useRef, type CSSProperties, type ReactNode } from 'react'
+import { useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
 import { ChoiceOptionContent } from './choice-option-content.js'
 import { validateChoiceOptions } from './ui-choices.js'
 import { composeControlClassName } from './ui-class-name.js'
-import { isStepPrecisionScalable, snapNumberToStep } from './number-compatibility.js'
+import {
+  addUnscaledStep,
+  isStepPrecisionScalable,
+  snapNumberToStep,
+} from './number-compatibility.js'
+import { createNumberFieldValueAdapter } from './number-field-value.js'
 import { ChoicePopover } from './ui-popover.js'
 
 export type DashlistControlProps = {
@@ -142,7 +148,7 @@ function moveNumberByStep(
 ): number {
   const snapped = snapNumberToStep(value, min, max, step)
   if (direction === 'increment' ? snapped > value : snapped < value) return snapped
-  return snapNumberToStep(direction === 'increment' ? value + step : value - step, min, max, step)
+  return snapNumberToStep(addUnscaledStep(value, step, direction), min, max, step)
 }
 
 export function NumberField({
@@ -157,6 +163,11 @@ export function NumberField({
 }: NumberFieldProps) {
   validateNumberFieldConfiguration(min, max, step)
   const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  const { locale } = useLocale()
+  const valueAdapter = useMemo(
+    () => createNumberFieldValueAdapter(locale, formatOptions),
+    [locale, formatOptions],
+  )
   const pendingTextEdit = useRef(false)
   const pendingImmediateEdit = useRef(false)
   const immediateEditGeneration = useRef(0)
@@ -195,6 +206,28 @@ export function NumberField({
     immediateEditGeneration.current += 1
     onChange(Number.isNaN(next) ? null : next)
   }
+  const finishImmediateEdit = (next: number | null) => {
+    pendingTextEdit.current = false
+    pendingImmediateEdit.current = false
+    immediateEditGeneration.current += 1
+    if (next === null || !Object.is(next, value)) onChange(next)
+  }
+  const pendingOrControlledValue = (direction: 'increment' | 'decrement'): number => {
+    if (!pendingTextEdit.current && Number.isFinite(value)) return value
+    const parsed = valueAdapter.parse(inputRef.current?.value ?? '')
+    if (pendingTextEdit.current && Number.isFinite(parsed)) return parsed
+    return direction === 'increment' ? (min ?? 0) : (max ?? 0)
+  }
+  const commitUnscaledText = (input: string): boolean => {
+    if (!input) {
+      finishImmediateEdit(null)
+      return true
+    }
+    const next = valueAdapter.normalize(input)
+    if (!Number.isFinite(next)) return false
+    finishImmediateEdit(next)
+    return true
+  }
 
   return (
     <AriaNumberField
@@ -204,7 +237,8 @@ export function NumberField({
       commitBehavior={needsUnscaledStepHandling ? 'validate' : undefined}
       minValue={min}
       maxValue={max}
-      step={step}
+      step={needsUnscaledStepHandling ? undefined : step}
+      isWheelDisabled={needsUnscaledStepHandling || undefined}
       formatOptions={formatOptions}
       isDisabled={props.disabled}
       isReadOnly={props.readOnly}
@@ -227,25 +261,55 @@ export function NumberField({
           onBeforeInputCapture={markTextEdit}
           onChangeCapture={markTextEdit}
           onInputCapture={markTextEdit}
-          onPasteCapture={markTextEdit}
+          onPasteCapture={(event) => {
+            if (
+              canEdit &&
+              needsUnscaledStepHandling &&
+              inputRef.current?.selectionStart === 0 &&
+              inputRef.current.selectionEnd === inputRef.current.value.length
+            ) {
+              const pasted = event.clipboardData.getData('text/plain').trim()
+              if (commitUnscaledText(pasted)) {
+                event.preventDefault()
+                event.stopPropagation()
+                return
+              }
+            }
+            markTextEdit()
+          }}
           onCutCapture={markTextEdit}
           onKeyDownCapture={(event) => {
             if (canEdit && needsUnscaledStepHandling) {
               let next: number | undefined
               if (event.key === 'ArrowUp' || event.key === 'PageUp')
-                next = moveNumberByStep(value, 'increment', min, max, step)
+                next = moveNumberByStep(
+                  pendingOrControlledValue('increment'),
+                  'increment',
+                  min,
+                  max,
+                  step,
+                )
               else if (event.key === 'ArrowDown' || event.key === 'PageDown')
-                next = moveNumberByStep(value, 'decrement', min, max, step)
+                next = moveNumberByStep(
+                  pendingOrControlledValue('decrement'),
+                  'decrement',
+                  min,
+                  max,
+                  step,
+                )
               else if (event.key === 'Home' && min !== undefined) next = min
               else if (event.key === 'End' && max !== undefined)
                 next = snapNumberToStep(max, min, max, step)
 
               if (next !== undefined) {
                 event.preventDefault()
-                pendingTextEdit.current = false
-                pendingImmediateEdit.current = false
-                immediateEditGeneration.current += 1
-                onChange(Number.isNaN(next) ? null : next)
+                event.stopPropagation()
+                finishImmediateEdit(Number.isNaN(next) ? null : next)
+                return
+              }
+              if (event.key === 'Enter' && commitUnscaledText(inputRef.current?.value ?? '')) {
+                event.preventDefault()
+                event.stopPropagation()
                 return
               }
             }
@@ -254,8 +318,26 @@ export function NumberField({
               markTextEdit()
           }}
           onWheelCapture={(event) => {
-            if (Math.abs(event.deltaY) > Math.abs(event.deltaX) && event.deltaY !== 0)
-              markImmediateEdit()
+            if (Math.abs(event.deltaY) <= Math.abs(event.deltaX) || event.deltaY === 0) return
+            if (canEdit && needsUnscaledStepHandling) {
+              event.preventDefault()
+              event.stopPropagation()
+              finishImmediateEdit(
+                moveNumberByStep(
+                  pendingOrControlledValue(event.deltaY > 0 ? 'increment' : 'decrement'),
+                  event.deltaY > 0 ? 'increment' : 'decrement',
+                  min,
+                  max,
+                  step,
+                ),
+              )
+              return
+            }
+            markImmediateEdit()
+          }}
+          onBlurCapture={() => {
+            if (canEdit && needsUnscaledStepHandling && pendingTextEdit.current)
+              commitUnscaledText(inputRef.current?.value ?? '')
           }}
           onBlur={() => {
             pendingTextEdit.current = false
