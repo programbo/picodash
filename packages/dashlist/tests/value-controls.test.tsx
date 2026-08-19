@@ -1537,6 +1537,21 @@ describe('value controls', () => {
     ).toThrowError(new TypeError('non-text status labels require textValue.'))
   })
 
+  it('uses the configured Status presentation for signed zero', () => {
+    const view = render(
+      createElement(Status, {
+        value: -0,
+        options: [{ value: 0, label: 'Zero', tone: 'success' as const }],
+      }),
+    )
+
+    const status = view.root.element.querySelector('[data-picodash-dashlist-status]')
+    expect(status?.textContent).toBe('Zero')
+    expect(status?.getAttribute('aria-label')).toBe('Zero')
+    expect(status?.getAttribute('data-tone')).toBe('success')
+    act(() => view.unmount())
+  })
+
   it('renders range, meter, progress, and explicit status semantics', () => {
     const view = render(
       createElement(

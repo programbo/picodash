@@ -11,7 +11,8 @@ import { parseAbsolute, parseDate, parseTime } from '@internationalized/date'
 import { parseColor } from 'react-aria-components'
 import type { PicodashJsonValue } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
-import { isNumberCompatible } from './number-compatibility.js'
+import { isNumberCompatible, isStepPrecisionScalable } from './number-compatibility.js'
+import { choiceKey, sameChoiceValue } from './choice-identity.js'
 import { PresentationWarning, presentationWarningId } from './presentation-warning.js'
 import { asDashletBindingField } from './ready-made-field-types.js'
 import type {
@@ -100,16 +101,27 @@ function validateStep(step: number | undefined): void {
     throw new TypeError('step must be a positive finite number.')
 }
 
-function rangeCompatible(value: NumberRangeValue, min: number, max: number, step: number): boolean {
-  return (
-    Number.isFinite(value.start) &&
-    Number.isFinite(value.end) &&
-    value.start <= value.end &&
-    value.start >= min &&
-    value.end <= max &&
-    isNumberCompatible(value.start, min, max, step) &&
-    isNumberCompatible(value.end, min, max, step)
+function rangeCompatibility(
+  value: NumberRangeValue,
+  min: number,
+  max: number,
+  step: number,
+): 'compatible' | 'range' | 'step' | 'unsupported-step' {
+  if (
+    !Number.isFinite(value.start) ||
+    !Number.isFinite(value.end) ||
+    value.start > value.end ||
+    value.start < min ||
+    value.end > max
   )
+    return 'range'
+  if (!isStepPrecisionScalable(step)) return 'unsupported-step'
+  if (
+    !isNumberCompatible(value.start, min, max, step) ||
+    !isNumberCompatible(value.end, min, max, step)
+  )
+    return 'step'
+  return 'compatible'
 }
 
 function rangeText(value: NumberRangeValue): string {
@@ -160,7 +172,8 @@ function RangeDashletInner<F extends ScalarField<PicodashJsonValue>>(
         const binding = context.binding
         const canonical = binding.value as NumberRangeValue
         const value = (binding.draftValue ?? canonical) as NumberRangeValue
-        const mismatch = !rangeCompatible(canonical, min, max, step)
+        const compatibility = rangeCompatibility(canonical, min, max, step)
+        const mismatch = compatibility !== 'compatible'
         return (
           <>
             {mismatch ? (
@@ -194,7 +207,13 @@ function RangeDashletInner<F extends ScalarField<PicodashJsonValue>>(
             <PresentationWarning
               context={context}
               incompatible={mismatch}
-              message={`The current range (${rangeText(canonical)}) is outside the configured range.`}
+              message={
+                compatibility === 'range'
+                  ? `The current range (${rangeText(canonical)}) is outside the configured range.`
+                  : compatibility === 'unsupported-step'
+                    ? `The current range (${rangeText(canonical)}) cannot be represented safely with the configured step (${String(step)}).`
+                    : `The current range (${rangeText(canonical)}) is not on the configured step.`
+              }
             />
           </>
         )
@@ -353,7 +372,7 @@ function validateStatusOptions<T extends ChoiceValue>(options: readonly StatusCh
       (typeof option.value === 'number' && !Number.isFinite(option.value))
     )
       throw new TypeError('status values must be finite strings or numbers.')
-    const key = `${typeof option.value}:${String(option.value)}`
+    const key = choiceKey(option.value)
     if (seen.has(key)) throw new TypeError('options must contain unique values.')
     seen.add(key)
     if (typeof option.label !== 'string' && !option.textValue)
@@ -374,7 +393,7 @@ function StatusDashletInner<T extends ChoiceValue, F extends ChoiceField>(
       {(context: any) => {
         const binding = context.binding
         const canonical = binding.value as string | number
-        const compatible = options.some((option) => Object.is(option.value, canonical))
+        const compatible = options.some((option) => sameChoiceValue(option.value, canonical))
         return (
           <>
             <Status

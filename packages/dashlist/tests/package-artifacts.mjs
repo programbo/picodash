@@ -22,6 +22,7 @@ assert.deepEqual(manifest.exports, {
 })
 assert.deepEqual(manifest.dependencies, {
   '@internationalized/date': 'catalog:',
+  '@internationalized/number': 'catalog:',
   '@picodash/nexus': 'workspace:*',
   '@picodash/ui': 'workspace:*',
   'react-aria-components': 'catalog:',
