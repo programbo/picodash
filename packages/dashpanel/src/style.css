@@ -33,6 +33,7 @@
 }
 
 .picodash-dashpanel > [data-slot='dash-header'] {
+  position: relative;
   display: flex;
   flex: none;
   align-items: center;
@@ -41,7 +42,14 @@
   gap: var(--picodash-space-1);
   border-block-end: var(--picodash-border-width-thin) solid var(--picodash-color-border);
   padding: var(--picodash-space-2) var(--picodash-space-3);
+  cursor: grab;
+  touch-action: none;
   user-select: none;
+}
+
+.picodash-dashpanel > [data-slot='dash-header'][data-disabled='true'] {
+  cursor: default;
+  touch-action: auto;
 }
 
 .picodash-dashpanel > [data-slot='dash-header']:has([data-slot='dash-header-leading'] > *) {
@@ -56,13 +64,24 @@
 }
 
 .picodash-dashpanel > [data-slot='dash-header'] [data-slot='dash-header-title'] {
+  align-self: stretch;
   min-inline-size: 0;
 }
 
 .picodash-dashpanel > [data-slot='dash-header'] [data-slot='button'][data-icon-only] {
-  inline-size: var(--picodash-icon-lg);
-  block-size: var(--picodash-icon-lg);
-  font-size: var(--picodash-icon-sm);
+  inline-size: var(--picodash-control-height-sm);
+  block-size: var(--picodash-control-height-sm);
+}
+
+.picodash-dashpanel > [data-slot='dash-header'] [data-slot='button'] {
+  touch-action: manipulation;
+}
+
+.picodash-dashpanel > [data-slot='dash-header'] [data-slot='button'][data-icon-only] > svg {
+  display: block;
+  inline-size: var(--picodash-icon-sm);
+  block-size: var(--picodash-icon-sm);
+  flex: none;
 }
 
 .picodash-dashpanel
@@ -70,29 +89,50 @@
   [data-slot='dash-header-leading']
   > [data-slot='button'] {
   color: var(--picodash-color-text-muted);
-  font-size: 0;
+}
+
+.picodash-dashpanel [data-picodash-panel-title-drag-surface] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: 100%;
+}
+
+.picodash-dashpanel [data-picodash-panel-title-drag-surface] > h2 {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.picodash-dashpanel [data-picodash-panel-move-handle] {
+  position: absolute;
+  inset: 0;
+  inline-size: auto;
+  block-size: auto;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+  cursor: grab;
+  transform: none;
+}
+
+.picodash-dashpanel [data-picodash-panel-move-handle]:hover,
+.picodash-dashpanel [data-picodash-panel-move-handle][data-hovered],
+.picodash-dashpanel [data-picodash-panel-move-handle][data-pressed],
+.picodash-dashpanel [data-picodash-panel-move-handle][aria-pressed='true'] {
+  background: transparent;
+  transform: none;
 }
 
 .picodash-dashpanel
-  > [data-slot='dash-header']
-  [data-slot='dash-header-leading']
-  > [data-slot='button']::before {
-  display: inline-block;
-  box-sizing: border-box;
-  inline-size: calc(var(--picodash-icon-sm) / 2);
-  block-size: calc(var(--picodash-icon-sm) / 2);
-  border-right: var(--picodash-border-width-thin) solid currentColor;
-  border-bottom: var(--picodash-border-width-thin) solid currentColor;
-  content: '';
-  transform: rotate(45deg);
-  transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
-}
-
-.picodash-dashpanel[data-collapsed='true']
-  > [data-slot='dash-header']
-  [data-slot='dash-header-leading']
-  > [data-slot='button']::before {
-  transform: rotate(-45deg);
+  > [data-slot='dash-header']:has([data-picodash-panel-move-handle][data-focus-visible]) {
+  outline: 2px solid var(--picodash-color-focus);
+  outline-offset: -2px;
 }
 
 .picodash-dashpanel > [data-slot='dash-header'] h2 {
@@ -121,21 +161,16 @@
   overscroll-behavior: contain;
 }
 
-[data-picodash-panel-move-handle] {
-  touch-action: none;
-}
-
-.picodash-dashpanel [data-picodash-panel-move-handle] {
-  color: var(--picodash-color-text-muted);
-  cursor: grab;
-}
-
 .picodash-dashpanel [data-picodash-panel-move-handle]:active {
   cursor: grabbing;
 }
 
 .picodash-dashpanel [data-picodash-panel-move-handle][data-disabled] {
   cursor: default;
+}
+
+.picodash-dashpanel[data-picodash-placement$='free-preview'] > [data-slot='dash-header'] {
+  cursor: grabbing;
 }
 
 .picodash-dashpanel[data-picodash-placement$='free-preview'] {
@@ -162,13 +197,4 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .picodash-dashpanel
-    > [data-slot='dash-header']
-    [data-slot='dash-header-leading']
-    > [data-slot='button']::before {
-    transition: none;
-  }
 }

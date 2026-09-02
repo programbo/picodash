@@ -26,14 +26,12 @@ describe('DashPanel stylesheet contract', () => {
       /\.picodash-dashpanel\s*>\s*\[data-slot='dash-header'\]\s+h2\s*\{[^}]*font-size:\s*var\(--picodash-font-size-xl\);[^}]*font-weight:\s*var\(--picodash-font-weight-semibold\);/s,
     )
     expect(css).toMatch(
-      /\[data-slot='dash-header'\]\s+\[data-slot='button'\]\[data-icon-only\]\s*\{[^}]*inline-size:\s*var\(--picodash-icon-lg\);[^}]*block-size:\s*var\(--picodash-icon-lg\);/s,
+      /\[data-slot='dash-header'\]\s+\[data-slot='button'\]\[data-icon-only\]\s*\{[^}]*inline-size:\s*var\(--picodash-control-height-sm\);[^}]*block-size:\s*var\(--picodash-control-height-sm\);/s,
     )
     expect(css).toMatch(
-      /\[data-slot='dash-header-leading'\][^{]*>\s*\[data-slot='button'\]::before\s*\{[^}]*border-right:[^}]*border-bottom:[^}]*content:\s*'';[^}]*transform:\s*rotate\(45deg\);/s,
+      /\[data-slot='button'\]\[data-icon-only\]\s*>\s*svg\s*\{[^}]*display:\s*block;[^}]*inline-size:\s*var\(--picodash-icon-sm\);[^}]*block-size:\s*var\(--picodash-icon-sm\);/s,
     )
-    expect(css).toMatch(
-      /\.picodash-dashpanel\[data-collapsed='true'\][^{]*\[data-slot='button'\]::before\s*\{[^}]*transform:\s*rotate\(-45deg\);/s,
-    )
+    expect(css).not.toContain("[data-slot='button']::before")
     expect(css).toMatch(
       /@media\s*\(pointer:\s*coarse\)[\s\S]*\[data-slot='button'\]\[data-icon-only\]\s*\{[^}]*min-inline-size:\s*44px;[^}]*min-block-size:\s*44px;/s,
     )
@@ -49,8 +47,16 @@ describe('DashPanel stylesheet contract', () => {
     )
   })
 
-  it('reserves touch gestures for the Panel move handle', async () => {
+  it('makes the non-interactive header a drag surface while preserving button gestures', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
-    expect(css).toMatch(/\[data-picodash-panel-move-handle\]\s*\{[^}]*touch-action:\s*none;/s)
+    expect(css).toMatch(
+      />\s*\[data-slot='dash-header'\]\s*\{[^}]*cursor:\s*grab;[^}]*touch-action:\s*none;/s,
+    )
+    expect(css).toMatch(
+      /\[data-slot='dash-header'\]\s+\[data-slot='button'\]\s*\{[^}]*touch-action:\s*manipulation;/s,
+    )
+    expect(css).toMatch(
+      /\[data-picodash-panel-move-handle\]\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;[^}]*background:\s*transparent;/s,
+    )
   })
 })

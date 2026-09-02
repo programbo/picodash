@@ -80,6 +80,7 @@ describe('@picodash/ui ActionMenu composition', () => {
     await render(tree(<ActionMenuItem label="Run" onAction={onAction} />))
     const defaultTrigger = container.querySelector('[data-slot="button"]') as HTMLButtonElement
     expect(defaultTrigger.getAttribute('aria-label')).toBe('Settings actions')
+    expect(defaultTrigger.querySelector('svg')?.getAttribute('fill')).toBe('currentColor')
     await openMenu()
     const item = document.querySelector('[data-slot="action-menu-item"]') as HTMLElement
     expect(item.getAttribute('textvalue')).toBeNull()

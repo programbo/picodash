@@ -546,7 +546,11 @@ There is no automatic mode switch at a product-defined breakpoint.
 ### Adaptive drawer and sheet presentation
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
+> Evidence: `packages/dashpanel/tests/dashpanel.test.tsx`,
+> `packages/dashpanel/tests/style.test.ts`, and `apps/lab/tests/contract-lab.spec.ts` cover the
+> slotted header, title-wide pointer and keyboard move surface, interactive-control exclusion,
+> centered collapse/action/close controls, and browser drag behavior.
 
 DashPanel supplies three explicit presentations:
 

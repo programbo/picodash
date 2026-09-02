@@ -21,7 +21,7 @@ export const DEFAULT_CONTRACT_LAB_PRESET_ID = 'placement' satisfies ContractLabP
 export const CONTRACT_LAB_PRESETS = [
   {
     description:
-      'A standalone Panel demonstrates bounded pointer and keyboard movement, reset, collapse, close/reopen, retained child state, and theme selection.',
+      'A standalone Panel demonstrates floating, fixed, and hybrid placement inside a visible boundary, with full-header pointer dragging, keyboard movement, reset, collapse, close/reopen, retained child state, and theme selection.',
     id: 'placement',
     implementation: 'Partial',
     label: 'Placement',

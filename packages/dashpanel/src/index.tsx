@@ -278,6 +278,35 @@ function textTitle(value: ReactNode): string {
   return ''
 }
 
+function CollapseIcon({ collapsed }: { readonly collapsed: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path
+        d={collapsed ? 'm6 3 5 5-5 5' : 'm3 6 5 5 5-5'}
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  )
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path
+        d="m4 4 8 8m0-8-8 8"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  )
+}
+
 function isCornerDockPosition(position: DashPanelDockPosition | undefined): boolean {
   return (
     position === 'top-left' ||
@@ -1101,10 +1130,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
     revalidateLayoutObservationRef.current()
     const preferred = durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition
-    const requested =
-      (effectivePlacement.disposition.kind === 'free'
-        ? (currentPosition() ?? preferred)
-        : (preferred ?? currentPosition())) ?? ({ x: 0, y: 0 } as const)
+    const requested = currentPosition() ?? preferred ?? ({ x: 0, y: 0 } as const)
     const initialGeometry = measureGeometry() ?? geometryRef.current
     const projected = initialGeometry
       ? projectDashPanelPosition(
@@ -1209,6 +1235,17 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     event.preventDefault()
     event.currentTarget.setPointerCapture?.(event.pointerId)
     beginMove('pointer', event)
+  }
+
+  const onHeaderPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    const ownerWindow = event.currentTarget.ownerDocument.defaultView
+    if (
+      ownerWindow &&
+      event.target instanceof ownerWindow.Element &&
+      event.target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"]')
+    )
+      return
+    onMovePointerDown(event)
   }
 
   const onMovePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
@@ -1578,6 +1615,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 data-collapsed={collapsed ? 'true' : 'false'}
               >
                 <DashHeader
+                  data-picodash-panel-drag-surface
+                  data-disabled={requestedPlacementMode === 'fixed' ? 'true' : undefined}
+                  onPointerDown={onHeaderPointerDown}
                   slots={{
                     leading: currentCollapsible ? (
                       <Button
@@ -1591,17 +1631,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                           runtime.toggleCollapsed(id)
                         }}
                       >
-                        {collapsed ? '+' : '−'}
+                        <CollapseIcon collapsed={collapsed} />
                       </Button>
                     ) : undefined,
-                    title: <h2 id={headingId}>{title}</h2>,
-                    actions: renderActionMenu ? (
-                      <ActionMenu label={`Actions for ${panelName}`}>
-                        {actionMenuChildren}
-                      </ActionMenu>
-                    ) : undefined,
-                    trailing: (
-                      <div data-picodash-panel-actions>
+                    title: (
+                      <div data-picodash-panel-title-drag-surface>
+                        <h2 id={headingId}>{title}</h2>
                         <Button
                           ref={registerMoveHandle}
                           data-picodash-panel-move-handle
@@ -1609,9 +1644,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                           aria-pressed={moveMode !== null}
                           aria-describedby={moveInstructionsId}
                           isDisabled={requestedPlacementMode === 'fixed'}
-                          iconOnly
                           variant="ghost"
-                          size="sm"
                           onPointerDown={onMovePointerDown}
                           onPointerMoveCapture={onMovePointerMove}
                           onPointerUpCapture={onMovePointerUp}
@@ -1620,36 +1653,41 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                           onBlur={() => {
                             if (moveSession.current?.mode === 'keyboard') cancelMove()
                           }}
-                        >
-                          ↕
-                        </Button>
-                        {showCloseButton ? (
-                          <Button
-                            aria-label={`Close panel ${panelName}`}
-                            iconOnly
-                            variant="ghost"
-                            size="sm"
-                            onPress={() => {
-                              const wasVisible = runtime.getSnapshot().panels[id]?.visible ?? false
-                              try {
-                                runtime.hide(id)
-                              } finally {
-                                const isVisible = runtime.getSnapshot().panels[id]?.visible ?? false
-                                if (wasVisible && !isVisible)
-                                  restorePanelFocus(
-                                    runtime,
-                                    id,
-                                    providerPolicy.boundary,
-                                    overlayDefaults.portalContainer,
-                                  )
-                              }
-                            }}
-                          >
-                            ×
-                          </Button>
-                        ) : undefined}
+                        />
                       </div>
                     ),
+                    actions: renderActionMenu ? (
+                      <ActionMenu label={`Actions for ${panelName}`}>
+                        {actionMenuChildren}
+                      </ActionMenu>
+                    ) : undefined,
+                    trailing: showCloseButton ? (
+                      <div data-picodash-panel-actions>
+                        <Button
+                          aria-label={`Close panel ${panelName}`}
+                          iconOnly
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => {
+                            const wasVisible = runtime.getSnapshot().panels[id]?.visible ?? false
+                            try {
+                              runtime.hide(id)
+                            } finally {
+                              const isVisible = runtime.getSnapshot().panels[id]?.visible ?? false
+                              if (wasVisible && !isVisible)
+                                restorePanelFocus(
+                                  runtime,
+                                  id,
+                                  providerPolicy.boundary,
+                                  overlayDefaults.portalContainer,
+                                )
+                            }
+                          }}
+                        >
+                          <CloseIcon />
+                        </Button>
+                      </div>
+                    ) : undefined,
                   }}
                 />
                 <div

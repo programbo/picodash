@@ -103,7 +103,7 @@ function Icon({ children }: { children: ReactNode }) {
 
 function EllipsisIcon() {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="currentColor">
       <circle cx="3" cy="8" r="1.25" />
       <circle cx="8" cy="8" r="1.25" />
       <circle cx="13" cy="8" r="1.25" />

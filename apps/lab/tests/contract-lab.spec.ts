@@ -475,30 +475,79 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   await expect(focusedPanel).toBeVisible()
   await expect(page.getByRole('complementary')).toHaveCount(2)
   await expect(portalTarget.locator('[data-contract-lab-focused-placement-panel]')).toHaveCount(1)
-  const specimenBoundary = page.locator('[data-contract-lab-specimen]')
-  const placementControls = page.locator('[data-contract-lab-focused-controls]')
-  const boundaryBox = (await specimenBoundary.boundingBox())!
+  const placementBoundary = page.locator('[data-contract-lab-focused-boundary]')
+  const placementState = page.getByRole('status', { name: 'Current panel placement' })
+  const boundaryBox = (await placementBoundary.boundingBox())!
   const assertPlacementGeometry = async () => {
     const panelBox = (await focusedPanel.boundingBox())!
-    const controlsBox = (await placementControls.boundingBox())!
     expect(panelBox.x).toBeGreaterThanOrEqual(boundaryBox.x)
     expect(panelBox.y).toBeGreaterThanOrEqual(boundaryBox.y)
     expect(panelBox.x + panelBox.width).toBeLessThanOrEqual(boundaryBox.x + boundaryBox.width)
     expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(boundaryBox.y + boundaryBox.height)
-    expect(
-      panelBox.y >= controlsBox.y + controlsBox.height ||
-        controlsBox.y >= panelBox.y + panelBox.height,
-    ).toBe(true)
   }
   await assertPlacementGeometry()
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'floating-free')
+  await expect(placementState).toHaveText('Floating: free')
+
+  const header = focusedPanel.locator(':scope > [data-slot="dash-header"]')
+  await expect(header).toHaveAttribute('data-picodash-panel-drag-surface', 'true')
   const moveControl = focusedPanel.getByRole('button', {
     name: 'Move panel Placement Panel',
   })
-  const beforePointer = (await focusedPanel.boundingBox())!
+  await expect(moveControl).not.toHaveAttribute('data-icon-only')
+  const titleDragSurface = focusedPanel.locator('[data-picodash-panel-title-drag-surface]')
+  const actionMenu = focusedPanel.getByRole('button', { name: 'Actions for Placement Panel' })
+  await expect(actionMenu.locator('svg')).toHaveAttribute('fill', 'currentColor')
+  const headerBox = (await header.boundingBox())!
+  for (const button of await header.locator('[data-slot="button"][data-icon-only]').all()) {
+    const buttonBox = (await button.boundingBox())!
+    expect(
+      Math.abs(buttonBox.y + buttonBox.height / 2 - (headerBox.y + headerBox.height / 2)),
+    ).toBeLessThanOrEqual(1)
+  }
+
+  await page.getByRole('button', { name: 'Fixed', exact: true }).click()
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'fixed-docked')
+  await expect(placementState).toHaveText('Fixed: docked full-right')
+  await expect(moveControl).toBeDisabled()
+  await assertPlacementGeometry()
+
+  await page.getByRole('button', { name: 'Hybrid', exact: true }).click()
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
+  await expect(placementState).toHaveText('Hybrid: docked full-left')
+  await expect(moveControl).toBeEnabled()
+  const beforePickup = (await focusedPanel.boundingBox())!
   const moveBox = (await moveControl.boundingBox())!
   await page.mouse.move(moveBox.x + moveBox.width / 2, moveBox.y + moveBox.height / 2)
   await page.mouse.down()
-  await page.mouse.move(moveBox.x + moveBox.width / 2 + 48, moveBox.y + moveBox.height / 2 + 32)
+  await page.mouse.up()
+  const afterPickup = (await focusedPanel.boundingBox())!
+  expect(afterPickup.x).toBeCloseTo(beforePickup.x, 0)
+  expect(afterPickup.y).toBeCloseTo(beforePickup.y, 0)
+
+  const titleBox = (await titleDragSurface.boundingBox())!
+  await page.mouse.move(titleBox.x + titleBox.width / 2, titleBox.y + titleBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(titleBox.x + titleBox.width / 2 + 64, titleBox.y + titleBox.height / 2 + 40)
+  await page.mouse.up()
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'hybrid-free')
+  await expect(placementState).toHaveText('Hybrid: free')
+  await assertPlacementGeometry()
+
+  await page.getByRole('button', { name: 'Floating', exact: true }).click()
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'floating-free')
+  await expect(placementState).toHaveText('Floating: free')
+  const beforePointer = (await focusedPanel.boundingBox())!
+  const floatingTitleBox = (await titleDragSurface.boundingBox())!
+  await page.mouse.move(
+    floatingTitleBox.x + floatingTitleBox.width / 2,
+    floatingTitleBox.y + floatingTitleBox.height / 2,
+  )
+  await page.mouse.down()
+  await page.mouse.move(
+    floatingTitleBox.x + floatingTitleBox.width / 2 + 48,
+    floatingTitleBox.y + floatingTitleBox.height / 2 + 32,
+  )
   await page.mouse.up()
   const afterPointer = (await focusedPanel.boundingBox())!
   expect(afterPointer.x).toBeGreaterThan(beforePointer.x)
@@ -520,7 +569,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
       ),
   )
   const beforeBoundaryTranslation = (await focusedPanel.boundingBox())!
-  await specimenBoundary.evaluate((boundary) => {
+  await placementBoundary.evaluate((boundary) => {
     boundary.style.transform = 'translate(20px, 12px)'
   })
   await expect
@@ -529,11 +578,11 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   await expect
     .poll(async () => (await focusedPanel.boundingBox())?.y)
     .toBeCloseTo(beforeBoundaryTranslation.y + 12, 0)
-  await specimenBoundary.evaluate((boundary) => {
+  await placementBoundary.evaluate((boundary) => {
     boundary.style.transform = ''
   })
   await portalTarget.evaluate((target) => {
-    document.querySelector('[data-contract-lab-specimen]')?.append(target)
+    document.querySelector('[data-contract-lab-focused-boundary]')?.append(target)
   })
   await page.evaluate(
     () =>
@@ -582,7 +631,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   await expect(localCount).toHaveText('1')
   await focusedPanel.getByRole('button', { name: 'Close panel Placement Panel' }).press('Enter')
   await expect(focusedPanel).toBeHidden()
-  const reopen = page.getByRole('button', { name: 'Placement Panel' })
+  const reopen = page.getByRole('button', { name: 'Show panel' })
   await reopen.press('Enter')
   await expect(focusedPanel).toBeVisible()
   await expect(localCount).toHaveText('1')
@@ -644,12 +693,10 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     await openLab(coarsePage)
     await coarsePage.getByRole('button', { name: /^Placement:/ }).click()
     const coarsePanel = coarsePage.getByRole('complementary', { name: 'Placement Panel' })
-    const coarseBoundary = coarsePage.locator('[data-contract-lab-specimen]')
-    const coarseControls = coarsePage.locator('[data-contract-lab-focused-controls]')
+    const coarseBoundary = coarsePage.locator('[data-contract-lab-focused-boundary]')
     await expect(coarsePanel).toBeVisible()
     const coarsePanelBox = (await coarsePanel.boundingBox())!
     const coarseBoundaryBox = (await coarseBoundary.boundingBox())!
-    const coarseControlsBox = (await coarseControls.boundingBox())!
     expect(coarsePanelBox.x).toBeGreaterThanOrEqual(coarseBoundaryBox.x)
     expect(coarsePanelBox.x + coarsePanelBox.width).toBeLessThanOrEqual(
       coarseBoundaryBox.x + coarseBoundaryBox.width,
@@ -657,10 +704,6 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     expect(coarsePanelBox.y + coarsePanelBox.height).toBeLessThanOrEqual(
       coarseBoundaryBox.y + coarseBoundaryBox.height,
     )
-    expect(
-      coarsePanelBox.y >= coarseControlsBox.y + coarseControlsBox.height ||
-        coarseControlsBox.y >= coarsePanelBox.y + coarsePanelBox.height,
-    ).toBe(true)
     await coarsePage.addStyleTag({ content: ':root { font-size: 12px; }' })
     await expect
       .poll(() => coarsePage.evaluate(() => getComputedStyle(document.documentElement).fontSize))
@@ -900,7 +943,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   ).toContainText('1')
   await expect(page.locator('[data-contract-lab-migration]')).toContainText('legacyMetric')
   await expect(page.locator('[data-contract-lab-quarantine-default]')).toContainText(
-    'current defaults',
+    'Layout changes are rejected and return to this position',
   )
   await page.getByRole('button', { name: 'Replace quarantined metadata' }).press('Enter')
   await expect(page.locator('[data-contract-lab-quarantine-state]')).toHaveText(

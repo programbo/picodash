@@ -308,7 +308,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('preserves Hybrid mode when keyboard movement commits a free placement', () => {
+  it('preserves Hybrid mode and begins keyboard movement from rendered dock geometry', () => {
     const nexus = makeNexus()
     const renderer = renderWithHostNodes(
       createElement(DashPanelProvider, {
@@ -347,7 +347,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     })
     expect(nexus.getState().scopes.get('panel')?.dashPanel).toEqual({
       placement: { mode: 'hybrid', disposition: { kind: 'free' } },
-      preferredPosition: { x: 5, y: 6 },
+      preferredPosition: { x: 1, y: 0 },
     })
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()
@@ -969,9 +969,13 @@ describe('@picodash/dashpanel alpha shell', () => {
     const nexus = makeNexus()
     const renderer = render(panel(nexus))
     const aside = renderer.root.findByType('aside')
+    const header = renderer.root.findByProps({ 'data-picodash-panel-drag-surface': true })
     const button = renderer.root.findByProps({ 'aria-label': 'Collapse panel Inspector' })
+    const move = renderer.root.findByProps({ 'aria-label': 'Move panel Inspector' })
     const body = renderer.root.findByProps({ 'data-picodash-panel-body': true })
     expect(aside.props['data-collapsed']).toBe('false')
+    expect(header.props.onPointerDown).toBeTypeOf('function')
+    expect(move.props['data-icon-only']).toBeUndefined()
     expect(button.props).toMatchObject({
       'aria-label': 'Collapse panel Inspector',
       'aria-expanded': true,
