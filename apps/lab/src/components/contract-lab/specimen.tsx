@@ -57,6 +57,7 @@ import {
   AlertDialogOverlay,
   AlertDialogTitle,
   AlertDialogTrigger,
+  Button,
 } from '@picodash/picodash/ui'
 import type { ContractLabPreset } from '@lab/lib/contract-lab'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
@@ -92,8 +93,8 @@ type SpecimenFieldDefinitions = {
 
 type SpecimenNexus = RootNexus<SpecimenFieldDefinitions, CoreTransactionResult, true, true>
 
-const standalonePanelScopeId = 'contract-lab-standalone-panel'
 const standaloneListScopeId = 'contract-lab-standalone-list'
+const focusedPlacementPanelScopeId = 'contract-lab-focused-placement-panel'
 
 const contractLabPersistenceStorageKey = 'picodash-contract-lab-web-storage-probe-v1'
 const contractLabPersistenceScopeId = 'contract-lab-persistence-probe'
@@ -203,31 +204,108 @@ function ContractLabPersistenceProbe() {
   )
 }
 
-function StandalonePanelActions() {
+function FocusedPlacementContent() {
   const panel = useDashPanel()
-  const moveToFree = () => {
-    panel.setPlacement({ mode: 'floating', disposition: { kind: 'free' } })
-  }
-  const resetLayout = () => {
-    panel.resetLayout()
-  }
+  const [count, setCount] = useState(0)
+
   return (
-    <div className="grid gap-2 p-4" data-contract-lab-standalone-panel-content>
-      <p>Standalone Panel content is arbitrary React UI, independent of DashList.</p>
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={moveToFree} data-contract-lab-standalone-panel-move>
-          Move panel
-        </button>
-        <button type="button" onClick={resetLayout} data-contract-lab-standalone-panel-reset>
-          Reset panel layout
-        </button>
+    <div className="grid gap-3 p-4 text-sm" data-contract-lab-focused-placement-content>
+      <p className="text-muted-foreground leading-5">
+        Arbitrary React content stays mounted while this Panel is collapsed or hidden.
+      </p>
+      <div className="border-border/70 flex items-center justify-between gap-3 border-y py-3">
+        <span>Local child state</span>
+        <output aria-label="Local child count" data-contract-lab-focused-placement-count>
+          {count}
+        </output>
       </div>
-      <output data-contract-lab-standalone-panel-placement>
-        {panel.availability === 'available'
-          ? `${panel.placement.mode}-${panel.placement.disposition.kind}`
-          : 'unavailable'}
-      </output>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="primary" onPress={() => setCount((value) => value + 1)}>
+          Increment local count
+        </Button>
+        <Button size="sm" variant="outline" onPress={() => panel.resetLayout()}>
+          Reset panel layout
+        </Button>
+      </div>
     </div>
+  )
+}
+
+function FocusedPlacementSpecimen({
+  boundary,
+  onCollapsedChange,
+}: Pick<ContractLabSpecimenProps, 'boundary' | 'onCollapsedChange'>) {
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
+  const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null)
+  const nexus = useMemo(
+    () =>
+      createPicodashNexus({
+        valueOwner: 'nexus',
+        nexusId: 'contract-lab-focused-placement',
+        schemaVersion: 1,
+        fields: {},
+      }),
+    [],
+  )
+
+  return (
+    <>
+      <div
+        ref={setPortalTarget}
+        data-contract-lab-focused-portal-target
+        className="pointer-events-none absolute inset-0 z-10"
+      />
+      <DashPanelProvider
+        nexus={nexus}
+        providerId="contract-lab-focused-placement-provider"
+        boundary={boundary}
+        portalContainer={portalTarget}
+        theme={theme}
+      >
+        <div
+          className="mx-5 flex flex-wrap items-center gap-2 border border-(--picodash-color-border) bg-(--picodash-color-surface) p-2 text-(--picodash-color-text)"
+          data-contract-lab-focused-controls
+        >
+          <div className="flex items-center gap-1" role="group" aria-label="Placement Panel theme">
+            <span className="text-muted-foreground mr-1 text-xs">Theme</span>
+            {(['light', 'dark', 'system'] as const).map((option) => (
+              <Button
+                key={option}
+                size="sm"
+                variant={theme === option ? 'secondary' : 'primary'}
+                aria-pressed={theme === option}
+                aria-label={`Use ${option} theme`}
+                onPress={() => setTheme(option)}
+              >
+                {option}
+              </Button>
+            ))}
+          </div>
+          <DashPanelTrigger panelId={focusedPlacementPanelScopeId} size="sm">
+            Placement Panel
+          </DashPanelTrigger>
+        </div>
+        <DashPanel
+          id={focusedPlacementPanelScopeId}
+          title="Placement Panel"
+          collapsible
+          showCloseButton
+          width="min(24rem, calc(100% - 2rem))"
+          className="pointer-events-auto"
+          onCollapsedChange={onCollapsedChange}
+          defaultLayout={{
+            placement: {
+              mode: 'floating',
+              disposition: { kind: 'free' },
+            },
+            preferredPosition: { x: 16, y: 320 },
+          }}
+          data-contract-lab-focused-placement-panel
+        >
+          <FocusedPlacementContent />
+        </DashPanel>
+      </DashPanelProvider>
+    </>
   )
 }
 
@@ -409,49 +487,12 @@ function DashletGallery({ nexus }: { readonly nexus: SpecimenNexus }) {
 }
 
 function StandalonePhase2Evidence({
-  boundary,
   preset,
   nexus,
 }: {
-  readonly boundary: RefObject<HTMLElement | null>
   readonly preset: ContractLabPreset
   readonly nexus: RootNexus<PicodashFieldDefinitions>
 }) {
-  const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null)
-  if (preset.id === 'placement')
-    return (
-      <>
-        <div
-          ref={setPortalTarget}
-          data-contract-lab-standalone-portal-target
-          className="pointer-events-none absolute inset-0 z-10"
-        />
-        <DashPanelProvider
-          nexus={nexus}
-          providerId="contract-lab-standalone-panel-provider"
-          boundary={boundary}
-          portalContainer={portalTarget}
-          theme="dark"
-        >
-          <DashPanel
-            id={standalonePanelScopeId}
-            title="Standalone Panel"
-            className="pointer-events-auto"
-            defaultLayout={{
-              placement: {
-                mode: 'floating',
-                disposition: { kind: 'snapped', position: 'top-left' },
-              },
-              preferredPosition: { x: 24, y: 24 },
-            }}
-            data-contract-lab-standalone-panel
-          >
-            <StandalonePanelActions />
-          </DashPanel>
-        </DashPanelProvider>
-      </>
-    )
-
   if (preset.id === 'composition')
     return (
       <section
@@ -488,7 +529,7 @@ function StandalonePhase2Evidence({
   return null
 }
 
-export function ContractLabSpecimen({
+function ComplexContractLabSpecimen({
   boundary,
   onCollapsedChange,
   onDiagnosticCountChange,
@@ -775,7 +816,19 @@ export function ContractLabSpecimen({
           <DashletStyleLab boundary={styleLabBoundary} />
         </section>
       ) : null}
-      <StandalonePhase2Evidence boundary={boundary} preset={preset} nexus={nexus} />
+      <StandalonePhase2Evidence preset={preset} nexus={nexus} />
     </>
   )
+}
+
+export function ContractLabSpecimen(props: ContractLabSpecimenProps) {
+  if (props.preset.id === 'placement') {
+    return (
+      <FocusedPlacementSpecimen
+        boundary={props.boundary}
+        onCollapsedChange={props.onCollapsedChange}
+      />
+    )
+  }
+  return <ComplexContractLabSpecimen {...props} />
 }

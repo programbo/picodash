@@ -21,9 +21,9 @@ export const DEFAULT_CONTRACT_LAB_PRESET_ID = 'placement' satisfies ContractLabP
 export const CONTRACT_LAB_PRESETS = [
   {
     description:
-      'Standalone Panel movement, placement reset, and persisted layout are available; broader docking and modal presentation remain planned.',
+      'A standalone Panel demonstrates bounded pointer and keyboard movement, reset, collapse, close/reopen, retained child state, and theme selection.',
     id: 'placement',
-    implementation: 'Planned',
+    implementation: 'Partial',
     label: 'Placement',
   },
   {

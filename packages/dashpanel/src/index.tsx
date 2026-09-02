@@ -810,12 +810,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       }
     }
     const cancelForLayoutMotion = (event: Event) => {
-      const target = event.target
-      if (target === null || typeof target !== 'object') return
+      const origin = event.composedPath()[0] ?? event.target
       if (
-        relevantLayoutAncestors.has(target as Node) ||
-        containsTarget(panel, target) ||
-        containsTarget(observedBoundary, target)
+        origin !== null &&
+        typeof origin === 'object' &&
+        relevantLayoutAncestors.has(origin as Node)
       )
         cancelObservedMoveRef.current()
     }

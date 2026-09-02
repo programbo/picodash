@@ -51,6 +51,7 @@ test('keeps the versioned driver, Console, and status available while the specim
     })
   })
   await openLab(page)
+  await page.getByRole('button', { name: /^Documents:/ }).click()
 
   await expect(page.locator('[data-product-route="contract-lab"]')).toHaveCount(1)
   await expect(page.locator('[data-contract-lab-persistence-status]')).toHaveText(
@@ -465,25 +466,43 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   browser,
 }) => {
   await openLab(page)
-  const standalonePanel = page.getByRole('complementary', { name: 'Standalone Panel' })
-  const portalTarget = page.locator('[data-contract-lab-standalone-portal-target]')
-  await expect(standalonePanel).toBeVisible()
-  await expect(portalTarget.locator('[data-contract-lab-standalone-panel]')).toHaveCount(1)
+  expect(
+    await page.evaluate(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches),
+  ).toBe(false)
+  await page.getByRole('button', { name: /^Placement:/ }).click()
+  const focusedPanel = page.getByRole('complementary', { name: 'Placement Panel' })
+  const portalTarget = page.locator('[data-contract-lab-focused-portal-target]')
+  await expect(focusedPanel).toBeVisible()
+  await expect(page.getByRole('complementary')).toHaveCount(2)
+  await expect(portalTarget.locator('[data-contract-lab-focused-placement-panel]')).toHaveCount(1)
   const specimenBoundary = page.locator('[data-contract-lab-specimen]')
+  const placementControls = page.locator('[data-contract-lab-focused-controls]')
   const boundaryBox = (await specimenBoundary.boundingBox())!
-  const moveControl = standalonePanel.getByRole('button', {
-    name: 'Move panel Standalone Panel',
+  const assertPlacementGeometry = async () => {
+    const panelBox = (await focusedPanel.boundingBox())!
+    const controlsBox = (await placementControls.boundingBox())!
+    expect(panelBox.x).toBeGreaterThanOrEqual(boundaryBox.x)
+    expect(panelBox.y).toBeGreaterThanOrEqual(boundaryBox.y)
+    expect(panelBox.x + panelBox.width).toBeLessThanOrEqual(boundaryBox.x + boundaryBox.width)
+    expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(boundaryBox.y + boundaryBox.height)
+    expect(
+      panelBox.y >= controlsBox.y + controlsBox.height ||
+        controlsBox.y >= panelBox.y + panelBox.height,
+    ).toBe(true)
+  }
+  await assertPlacementGeometry()
+  const moveControl = focusedPanel.getByRole('button', {
+    name: 'Move panel Placement Panel',
   })
-  await page.getByRole('button', { name: 'Close panel Primary Panel' }).press('Enter')
-  const beforePointer = (await standalonePanel.boundingBox())!
+  const beforePointer = (await focusedPanel.boundingBox())!
   const moveBox = (await moveControl.boundingBox())!
   await page.mouse.move(moveBox.x + moveBox.width / 2, moveBox.y + moveBox.height / 2)
   await page.mouse.down()
   await page.mouse.move(moveBox.x + moveBox.width / 2 + 48, moveBox.y + moveBox.height / 2 + 32)
   await page.mouse.up()
-  const afterPointer = (await standalonePanel.boundingBox())!
-  expect(afterPointer.x).not.toBe(beforePointer.x)
-  expect(afterPointer.y).not.toBe(beforePointer.y)
+  const afterPointer = (await focusedPanel.boundingBox())!
+  expect(afterPointer.x).toBeGreaterThan(beforePointer.x)
+  expect(afterPointer.y).toBeGreaterThan(beforePointer.y)
   expect(afterPointer.x).toBeGreaterThanOrEqual(boundaryBox.x)
   expect(afterPointer.y).toBeGreaterThanOrEqual(boundaryBox.y)
   expect(afterPointer.x + afterPointer.width).toBeLessThanOrEqual(boundaryBox.x + boundaryBox.width)
@@ -500,15 +519,15 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
         ),
       ),
   )
-  const beforeBoundaryTranslation = (await standalonePanel.boundingBox())!
+  const beforeBoundaryTranslation = (await focusedPanel.boundingBox())!
   await specimenBoundary.evaluate((boundary) => {
     boundary.style.transform = 'translate(20px, 12px)'
   })
   await expect
-    .poll(async () => (await standalonePanel.boundingBox())?.x)
+    .poll(async () => (await focusedPanel.boundingBox())?.x)
     .toBeCloseTo(beforeBoundaryTranslation.x + 20, 0)
   await expect
-    .poll(async () => (await standalonePanel.boundingBox())?.y)
+    .poll(async () => (await focusedPanel.boundingBox())?.y)
     .toBeCloseTo(beforeBoundaryTranslation.y + 12, 0)
   await specimenBoundary.evaluate((boundary) => {
     boundary.style.transform = ''
@@ -526,20 +545,55 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   )
 
   await moveControl.focus()
-  const beforeKeyboard = (await standalonePanel.boundingBox())!
+  const beforeKeyboard = (await focusedPanel.boundingBox())!
   await moveControl.press('Enter')
   await moveControl.press('Shift+ArrowRight')
   await moveControl.press('Enter')
-  const afterKeyboard = (await standalonePanel.boundingBox())!
-  expect(afterKeyboard.x).not.toBe(beforeKeyboard.x)
+  const afterKeyboard = (await focusedPanel.boundingBox())!
+  expect(afterKeyboard.x).toBeCloseTo(beforeKeyboard.x + 10, 0)
+  expect(afterKeyboard.y).toBeCloseTo(beforeKeyboard.y, 0)
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'floating-free')
   await expect(moveControl).toBeFocused()
+
+  const beforeKeyboardCancel = (await focusedPanel.boundingBox())!
+  await moveControl.press('Enter')
+  await moveControl.press('Shift+ArrowRight')
+  const duringKeyboardCancel = (await focusedPanel.boundingBox())!
+  expect(duringKeyboardCancel.x).toBeCloseTo(beforeKeyboardCancel.x + 10, 0)
+  expect(duringKeyboardCancel.y).toBeCloseTo(beforeKeyboardCancel.y, 0)
+  await moveControl.press('Escape')
+  const afterKeyboardCancel = (await focusedPanel.boundingBox())!
+  expect(afterKeyboardCancel.x).toBeCloseTo(beforeKeyboardCancel.x, 0)
+  expect(afterKeyboardCancel.y).toBeCloseTo(beforeKeyboardCancel.y, 0)
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'floating-free')
+  await expect(moveControl).toBeFocused()
+  await expect(focusedPanel.getByRole('button', { name: 'Reset panel layout' })).toBeVisible()
+  await focusedPanel.getByRole('button', { name: 'Reset panel layout' }).click()
+  await expect(focusedPanel).toBeVisible()
+  await assertPlacementGeometry()
+  const localCount = page.getByRole('status', { name: 'Local child count' })
+  await focusedPanel.getByRole('button', { name: 'Increment local count' }).click()
+  await expect(localCount).toHaveText('1')
+  await focusedPanel.getByRole('button', { name: 'Collapse panel Placement Panel' }).press('Enter')
   await expect(
-    standalonePanel.locator('[data-contract-lab-standalone-panel-placement]'),
-  ).toHaveText('floating-free')
-  await standalonePanel.getByRole('button', { name: 'Reset panel layout' }).click()
-  await expect(
-    standalonePanel.locator('[data-contract-lab-standalone-panel-placement]'),
-  ).toHaveText('floating-snapped')
+    focusedPanel.getByRole('button', { name: 'Expand panel Placement Panel' }),
+  ).toBeFocused()
+  await focusedPanel.getByRole('button', { name: 'Expand panel Placement Panel' }).press('Enter')
+  await expect(localCount).toHaveText('1')
+  await focusedPanel.getByRole('button', { name: 'Close panel Placement Panel' }).press('Enter')
+  await expect(focusedPanel).toBeHidden()
+  const reopen = page.getByRole('button', { name: 'Placement Panel' })
+  await reopen.press('Enter')
+  await expect(focusedPanel).toBeVisible()
+  await expect(localCount).toHaveText('1')
+  await expect(page.getByRole('button', { name: 'Collapse panel Placement Panel' })).toBeFocused()
+  for (const option of ['light', 'dark', 'system']) {
+    await page.getByRole('button', { name: `Use ${option} theme` }).click()
+    await expect(page.getByRole('button', { name: `Use ${option} theme` })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  }
   await page.getByRole('button', { name: /^Overlays:/ }).click()
   const regularTrigger = page.getByRole('button', { name: 'Open shared AlertDialog' })
   const regular = await regularTrigger.evaluate((element) => {
@@ -588,11 +642,30 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     })
     coarsePage.on('pageerror', (error) => coarseErrors.push(error.message))
     await openLab(coarsePage)
+    await coarsePage.getByRole('button', { name: /^Placement:/ }).click()
+    const coarsePanel = coarsePage.getByRole('complementary', { name: 'Placement Panel' })
+    const coarseBoundary = coarsePage.locator('[data-contract-lab-specimen]')
+    const coarseControls = coarsePage.locator('[data-contract-lab-focused-controls]')
+    await expect(coarsePanel).toBeVisible()
+    const coarsePanelBox = (await coarsePanel.boundingBox())!
+    const coarseBoundaryBox = (await coarseBoundary.boundingBox())!
+    const coarseControlsBox = (await coarseControls.boundingBox())!
+    expect(coarsePanelBox.x).toBeGreaterThanOrEqual(coarseBoundaryBox.x)
+    expect(coarsePanelBox.x + coarsePanelBox.width).toBeLessThanOrEqual(
+      coarseBoundaryBox.x + coarseBoundaryBox.width,
+    )
+    expect(coarsePanelBox.y + coarsePanelBox.height).toBeLessThanOrEqual(
+      coarseBoundaryBox.y + coarseBoundaryBox.height,
+    )
+    expect(
+      coarsePanelBox.y >= coarseControlsBox.y + coarseControlsBox.height ||
+        coarseControlsBox.y >= coarsePanelBox.y + coarsePanelBox.height,
+    ).toBe(true)
     await coarsePage.addStyleTag({ content: ':root { font-size: 12px; }' })
     await expect
       .poll(() => coarsePage.evaluate(() => getComputedStyle(document.documentElement).fontSize))
       .toBe('12px')
-    await coarsePage.getByRole('button', { name: 'Close panel Primary Panel' }).press('Enter')
+    await coarsePage.getByRole('button', { name: /^Style lab:/ }).click()
     await coarsePage.getByRole('button', { name: /^Style lab:/ }).press('Enter')
     const coarseReorder = coarsePage.getByRole('button', { name: 'Reorder Basics' })
     const coarseReorderBounds = await coarseReorder.evaluate((element) => {
@@ -764,6 +837,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   page,
 }) => {
   await openLab(page)
+  await page.getByRole('button', { name: /^Documents:/ }).click()
   await page.evaluate((key) => localStorage.removeItem(key), persistenceProbeStorageKey)
   await page.reload()
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
@@ -773,6 +847,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     'data-ready',
     'true',
   )
+  await persistencePage.getByRole('button', { name: /^Documents:/ }).click()
   const persistenceStatus = page.locator('[data-contract-lab-persistence-status]')
   const persistenceStatusPeer = persistencePage.locator('[data-contract-lab-persistence-status]')
   await expect(persistenceStatus).toHaveText('Persistence status: clean')

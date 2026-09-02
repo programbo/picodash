@@ -29,7 +29,11 @@ export function ContractLabSpecimenHost({
     <section
       ref={boundaryRef}
       aria-labelledby="contract-lab-specimen-title"
-      className="border-border/80 bg-card/90 text-card-foreground relative min-h-[32rem] overflow-hidden rounded-xl border shadow-2xl shadow-black/20 data-[preset=composition]:min-h-[70rem] data-[preset=composition]:bg-[#071018]"
+      className={
+        preset.id === 'placement'
+          ? 'border-border/80 bg-card/90 text-card-foreground relative min-h-[40rem] overflow-hidden rounded-xl border shadow-2xl shadow-black/20'
+          : 'border-border/80 bg-card/90 text-card-foreground relative min-h-[32rem] overflow-hidden rounded-xl border shadow-2xl shadow-black/20 data-[preset=composition]:min-h-[70rem] data-[preset=composition]:bg-[#071018]'
+      }
       data-contract-lab-specimen
       data-preset={preset.id}
       data-revision={revision}
@@ -39,7 +43,11 @@ export function ContractLabSpecimenHost({
           {preset.id === 'composition' ? 'Style lab' : 'Specimen'}
         </p>
         <h1 id="contract-lab-specimen-title" className="mt-1 text-sm font-semibold">
-          {preset.id === 'composition' ? 'Ready-made Dashlets' : 'Primary Panel and List'}
+          {preset.id === 'composition'
+            ? 'Ready-made Dashlets'
+            : preset.id === 'placement'
+              ? 'Focused Placement Panel'
+              : 'Primary Panel and List'}
         </h1>
       </header>
       <p className="text-muted-foreground relative z-10 max-w-2xl p-5 text-sm leading-6 sm:p-7">
