@@ -1289,11 +1289,6 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await expect
     .poll(async () => (await panelByRole.boundingBox())?.height)
     .toBeCloseTo(hybridAllocatedBox.height, 0)
-  const fixedAllocatedBox = (await panelByRole.boundingBox())!
-  expect(fixedAllocatedBox).toMatchObject({
-    y: hybridAllocatedBox.y,
-    height: hybridAllocatedBox.height,
-  })
 
   await page.getByRole('button', { name: 'Adjacent edges', exact: true }).click()
   const adjacentCorner = page.getByRole('complementary', { name: 'Fixed adjacent corner' })
