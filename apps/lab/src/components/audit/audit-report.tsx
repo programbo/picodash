@@ -91,7 +91,7 @@ export function AuditReport({ report }: Readonly<{ report: AuditReportData }>) {
           <div className="mt-5 grid gap-px overflow-hidden rounded-xl border sm:grid-cols-2 xl:grid-cols-4">
             {report.coverage.map((item) => (
               <a
-                className="bg-card hover:bg-accent group min-h-36 p-5 transition-colors"
+                className="bg-card hover:bg-accent group min-h-36 p-5 transition-colors motion-reduce:transition-none"
                 href={item.evidenceSrc}
                 key={item.label}
               >

@@ -271,13 +271,29 @@ The first public contract is Provider-owned uncontrolled visibility and collapse
 - a controlled `visible` prop is deferred until a concrete consumer requires it.
 
 A hidden Panel remains mounted, retains child React state and all leases, is absent visually and
-from the accessibility tree, and is inert. A collapsed floating or snapped Panel reduces to its
-header. A collapsed docked Panel retreats to the boundary while leaving a reachable reveal control.
-Collapse and visibility are transient and never persisted.
+from the accessibility tree, and is inert. The package stylesheet makes the native `hidden`
+attribute authoritative over every placement rule: hidden Floating, Fixed, and Hybrid Panels have
+`display: none` and no layout box even though their settled placement remains registered. A
+collapsed floating or snapped Panel reduces to its header.
 
-Provider activation order marks only the current top Panel with the private `data-active` hook. The
-package stylesheet projects that Panel at the shared raised layer; this is an internal stacking
-mechanism and does not add a public z-index prop or token.
+A collapsible Fixed Panel, or a Hybrid Panel with a settled docked disposition, instead exposes an
+in-header Minimize control whose arrow points toward its docked edge. `bottom-left` and
+`bottom-right` use diagonal arrows toward their corners; full or centered top/bottom docks use
+vertical arrows. Minimizing animates the complete retained Panel beyond that boundary using only
+transform and opacity. Its body stays mounted at its expanded dimensions so the shell retracts as
+one object, while the retracted Panel becomes inert and leaves the accessibility tree.
+
+A detached Reveal control remains on the vacated edge or bottom corner. Its arrow points in the
+opposite direction, back into the container. A control-initiated minimize transfers focus to
+Reveal, and Reveal transfers focus back to Minimize after expansion. Reduced motion makes both
+changes immediate. Programmatic controller commands retain their existing no-focus-movement rule.
+Collapse/minimize and visibility are transient, retain dock occupancy and child state, and are
+never persisted.
+
+Pointer interaction, focus entry, and explicit show/focus commands activate a Panel. Provider
+activation order marks only the most recently activated visible Panel with the private
+`data-active` hook. The package stylesheet projects that Panel at the shared raised layer; this is
+an internal stacking mechanism and does not add a public z-index prop or token.
 
 ## Placement model
 
@@ -303,8 +319,42 @@ result.
 | `hybrid`   | Free, snapped to top/bottom, or docked to any currently enabled position. |
 
 Free Panels are contained within the effective boundary. Snaps are offset and floating-like. Docks
-are flush and fixed-like. Hybrid docking intent animates an independent proxy and commits only on
-release. Detaching a docked Hybrid Panel preserves Hybrid mode.
+are flush and fixed-like. Pointer dragging resolves an explicit transient intent without mutating
+the durable placement:
+
+- a Floating Panel entering `snapProximity` of a permitted offset snap target moves to that exact
+  target before pointer release;
+- snap acquisition and final detachment add short theme-defined transform motion while the base
+  position continues to follow live pointer geometry;
+- an acquired or initially settled snap remains magnetically attached until the raw contained
+  pointer projection reaches `max(snapProximity, detachDistance)` from the target;
+- between `snapProximity` and that release distance, smooth geometric resistance makes the Panel
+  lag behind the pointer and catch up continuously at release;
+- a Hybrid Panel applies the same attraction and resistance to its permitted top/bottom snaps;
+- a docked Hybrid Panel remains at its dock until `detachDistance`, then continues as a free Hybrid
+  Panel without changing mode; and
+- pointer cancellation discards every transient intent and writes nothing.
+
+Movement is sticky for the complete gesture: returning the Panel's free rectangle to its pickup
+coordinates does not erase an intervening snap release or a changed dock-zone intent. Pointer
+release commits the latest displayed intent.
+
+Hybrid side docking uses an independent target-area proxy. The four corner zones map to
+`top-left`, `top-right`, `bottom-left`, and `bottom-right`; the middle side zones map to
+`full-left/right`, or to `center-left/right` when the matching full-side target is disabled. The
+remaining canonical docks stay directly available through the placement menu, where their intent
+is unambiguous. A policy-disabled or occupied target produces no proxy.
+
+The proxy begins at the moving Panel. Motion animates its transform and opacity to the current dock
+target, continues between target rectangles as the pointer crosses zones, and returns it to the
+Panel while fading it out when the pointer leaves every valid zone. It uses the shared
+`--picodash-duration-fast` and `--picodash-easing-out` theme tokens. Reduced motion makes those
+visual transitions immediate. The proxy never supplies input geometry, claims occupancy, changes
+Nexus state, or commits a dock before pointer release.
+
+A docked Panel and its proxy retain the theme's radius on free corners and remove it only from
+corners that touch the effective boundary. Full-side targets therefore lose both radii on that
+side; corner targets lose only the contacting corner.
 
 ### Canonical positions
 
@@ -453,9 +503,9 @@ non-rail allocation.
 > wiring and Panel inheritance/narrowing/live-ref behavior are covered by
 > `packages/dashpanel/tests/dashpanel.test.tsx`; the public Provider/Panel prop surface is covered
 > by `packages/dashpanel/tests/dashpanel.types.test.ts`.
-> Notes: This slice implements pure reference, inset, and rectangle algebra plus synchronous
-> Provider and Panel policy publication. Measurement, observers, projection, and runtime/browser
-> geometry remain unimplemented.
+> Notes: Reference, inset, rectangle algebra, synchronous policy publication, live boundary
+> measurement, observer refresh, and pointer/keyboard projection are implemented. Adaptive
+> drawer/sheet presentation remains outside this slice.
 
 Boundary resolution follows Panel override, Provider default, then viewport. Explicit `null`
 selects the viewport; an unresolved ref falls through to the next boundary. Provider and Panel
@@ -536,21 +586,30 @@ Responsive behavior is geometry-derived rather than breakpoint-driven:
 - the visual viewport is the viewport boundary;
 - free geometry is projected into the current effective boundary without changing its durable
   preferred position;
-- intrinsic content is capped to available space and the body scrolls;
+- a free Panel keeps its intrinsic height while it fits; dragging its header downward may reduce
+  the resolved height to the remaining boundary space instead of forcing the header upward;
+- the Panel never reduces below its measured shell minimum; a root DashList contributes its
+  `start` and `end` bands to that minimum while its automatic band owns overflow scrolling;
 - changing boundary, inset, zoom, or viewport during an active movement cancels the interaction and
   writes no stale result;
 - current policy may temporarily make a durable target unavailable without deleting it.
 
 There is no automatic mode switch at a product-defined breakpoint.
 
+Settled intrinsic height changes use Motion with `--picodash-duration-fast` and
+`--picodash-easing-out`, so a custom theme can tune their duration and curve without adding a
+motion prop. DashPanel captures the rendered shell height before a disclosure change, resolves the
+new boundary-constrained height, and animates between those concrete values. This covers Panel and
+nested DashGroup toggles without relying on an intrinsic `auto` transition. Active movement and
+`prefers-reduced-motion: reduce` disable the transition. Theme entry and exit keyframes remain
+deferred until DashPanel owns a reviewed visibility-transition lifecycle that keeps `hidden`,
+inertness, focus restoration, and reduced-motion semantics aligned.
+
 ### Adaptive drawer and sheet presentation
 
 > Contract: Accepted
-> Implementation: Partial
-> Evidence: `packages/dashpanel/tests/dashpanel.test.tsx`,
-> `packages/dashpanel/tests/style.test.ts`, and `apps/lab/tests/contract-lab.spec.ts` cover the
-> slotted header, title-wide pointer and keyboard move surface, interactive-control exclusion,
-> centered collapse/action/close controls, and browser drag behavior.
+> Implementation: Planned
+> Evidence: None
 
 DashPanel supplies three explicit presentations:
 
@@ -600,11 +659,20 @@ accessibility, and conflict contract.
 > Implementation: Partial
 
 Pointer and keyboard operations must reach the same canonical placements and reject the same
-occupied targets. Pointer movement uses capture, contained unsnapped Panel geometry, and current
-pointer position. A Hybrid proxy is visual intent only and never becomes the input to geometry.
-On commit, the projected proxy settles to the nearest permitted snap target when its top-left is
-within `snapProximity` CSS pixels of that target's top-left. Floating Panels use all eight targets;
-Hybrid Panels use only top and bottom.
+occupied targets. Pointer movement uses capture, a raw contained projection, and a separate
+displayed intent. Floating Panels acquire any of the eight offset snap targets within
+`snapProximity`; Hybrid Panels acquire only top and bottom. The displayed Panel reaches an acquired
+target during the drag, applies the documented resistance until `detachDistance`, and commits the
+retained snap on release. A released Panel resumes the raw contained projection. Hybrid dock
+targeting reads that raw Panel rectangle and the current pointer, while its animated proxy remains
+visual intent only and never becomes geometry input.
+
+Snap acquisition and final detachment animate an independent Motion translation with the owning
+theme's DashPanel motion tokens. Motion also owns measured-height interpolation and the Hybrid dock
+target proxy because both are geometry-derived, replaceable sequences. Because the base transform
+continues to track each pointer or keyboard step, animation does not delay movement or alter the
+geometry supplied to snap, dock, or Nexus logic. A new snap, detach, or target transition may
+replace its in-flight predecessor.
 
 Keyboard movement uses the Panel's move control:
 
@@ -621,6 +689,11 @@ Mounting a visible Panel or applying a passive visibility change does not steal 
 restores focus first to the most recent connected trigger, then to the connected element focused
 before Panel interaction, then to a Provider fallback. Closing a menu restores its trigger.
 Reduced-motion preference removes non-essential movement while preserving state feedback.
+
+For docked collapse, the visible in-header action is named `Minimize panel {title}` and the detached
+edge action is named `Reveal panel {title}`. A press on either action transfers focus to its
+replacement control. The retracted Panel remains mounted but is inert and `aria-hidden`; Reveal is
+the only sequentially focusable part of that minimized presentation.
 
 For the implemented Panel presentation, trigger and launcher activation choose the first connected,
 rendered, enabled sequential focus target in DOM order. If none exists, the Panel `aside` receives
@@ -707,7 +780,11 @@ extension system.
 ## Header composition
 
 > Contract: Accepted
-> Implementation: Planned
+> Implementation: Partial
+> Evidence: `packages/dashpanel/tests/dashpanel.test.tsx`,
+> `packages/dashpanel/tests/style.test.ts`, and `apps/lab/tests/contract-lab.spec.ts` cover the
+> slotted header, title-wide pointer and keyboard move surface, interactive-control exclusion,
+> centered collapse/action/close controls, and browser drag behavior.
 
 DashPanel uses the presentational `DashHeader` owned by `@picodash/ui` and explicitly reexports its
 stable component and types. DashPanel supplies the grab surface, collapse control, title, action
@@ -747,17 +824,31 @@ application may persist its own preference in Nexus and pass it back as an ordin
 Custom themes override public `--picodash-*` tokens under their named theme selector. Consumers must
 not rely on `--_picodash-*` variables, which are package-private derived values.
 
-DashPanel owns exactly one public product token:
+DashPanel owns these public product tokens:
 
-| Variable                 | Purpose                          | Syntax                | Regular default                   |
-| ------------------------ | -------------------------------- | --------------------- | --------------------------------- |
-| `--picodash-panel-width` | Preferred intrinsic Panel width. | `<length-percentage>` | `min(20rem, calc(100dvw - 2rem))` |
+| Variable                           | Purpose                                      | Syntax                | Regular default                   |
+| ---------------------------------- | -------------------------------------------- | --------------------- | --------------------------------- |
+| `--picodash-panel-width`           | Preferred intrinsic Panel width.             | `<length-percentage>` | `min(20rem, calc(100dvw - 2rem))` |
+| `--picodash-panel-snap-duration`   | Magnetic snap-settle duration.               | `<time>`              | `160ms`                           |
+| `--picodash-panel-snap-easing`     | Magnetic snap-settle timing function.        | `<easing-function>`   | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
+| `--picodash-panel-snap-bounce`     | Snap overshoot as a fraction of snap travel. | `<number>`            | `0.06`                            |
+| `--picodash-panel-detach-duration` | Magnetic detach-settle duration.             | `<time>`              | `140ms`                           |
+| `--picodash-panel-detach-easing`   | Magnetic detach-settle timing function.      | `<easing-function>`   | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
+| `--picodash-panel-detach-bounce`   | Detach overshoot as a fraction of travel.    | `<number>`            | `0.04`                            |
 
 The token and prop are two access paths to one preferred-width input:
 
 1. `--picodash-panel-width` supplies the inherited host, Provider-container, or selector default;
 2. `width` supplies a local inline token value for one Panel and takes precedence; and
 3. the token's regular recipe supplies the fallback above when neither application path sets it.
+
+Magnetic motion is independent of the live transform rather than a transition on Panel position.
+Duration accepts a non-negative CSS time. Bounce accepts a unitless value from `0` through `0.25`;
+the runtime clamps larger finite values and treats invalid values as zero. A zero duration disables
+that transition. Easing accepts the CSS `linear`, `ease`, `ease-in`, `ease-out`, and `ease-in-out`
+keywords or a valid `cubic-bezier()` function; unsupported values fall back to Motion's `easeOut`.
+The default snap and detach recipes are intentionally short with a small
+overshoot. `prefers-reduced-motion: reduce` disables them regardless of theme values.
 
 The preferred width is presentation state, not durable layout. Boundary containment, dock
 allocation, and the current presentation may cap or temporarily replace it; the resolved pixel

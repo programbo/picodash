@@ -137,7 +137,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
         title="Basics & readout"
         collapsible
         showCloseButton={false}
-        width="min(24rem, calc(50dvw - 2.5rem))"
+        width="min(24rem, calc(100dvw - 2rem))"
         defaultLayout={{
           placement: {
             mode: 'hybrid',
@@ -198,7 +198,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
             />
           </DashGroup>
 
-          <DashGroup id="style-lab-readout" label="Readout">
+          <DashGroup id="style-lab-readout" label="Readout" pin="end" data-style-lab-lane="end">
             <DisplayDashlet
               id="style-lab-display"
               field={nexus.fields.display}
@@ -239,7 +239,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
         title="Choices & temporal"
         collapsible
         showCloseButton={false}
-        width="min(24rem, calc(50dvw - 2.5rem))"
+        width="min(24rem, calc(100dvw - 2rem))"
         defaultLayout={{
           placement: {
             mode: 'hybrid',

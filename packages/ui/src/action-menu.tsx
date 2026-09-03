@@ -357,7 +357,8 @@ export function ActionSubmenu({ label, icon, isDisabled = false, children }: Act
             aria-label={label}
             selectionMode="none"
             shouldCloseOnSelect
-            className="picodash-action-submenu-menu"
+            data-slot="action-menu"
+            className="picodash-action-menu picodash-action-submenu-menu"
           >
             {children}
           </Menu>

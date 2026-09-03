@@ -47,6 +47,19 @@ describe('DashPanel stylesheet contract', () => {
     )
   })
 
+  it('matches action padding and removes radii from boundary-contacting corners', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    expect(css).toMatch(
+      /dash-header-actions[^}]*dash-header-trailing[^}]*padding-inline-end:\s*var\(--picodash-space-1\);/s,
+    )
+    expect(css).toMatch(
+      /data-picodash-dock-position\^='top-'[^}]*border-start-start-radius:\s*0;[^}]*border-start-end-radius:\s*0;/s,
+    )
+    expect(css).toMatch(
+      /data-picodash-panel-dock-preview[^}]*data-picodash-dock-position\$='-right'[^}]*border-start-end-radius:\s*0;[^}]*border-end-end-radius:\s*0;/s,
+    )
+  })
+
   it('makes the non-interactive header a drag surface while preserving button gestures', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
     expect(css).toMatch(
@@ -56,7 +69,45 @@ describe('DashPanel stylesheet contract', () => {
       /\[data-slot='dash-header'\]\s+\[data-slot='button'\]\s*\{[^}]*touch-action:\s*manipulation;/s,
     )
     expect(css).toMatch(
-      /\[data-picodash-panel-move-handle\]\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;[^}]*background:\s*transparent;/s,
+      /\[data-picodash-panel-move-handle\]\s*\{[^}]*position:\s*absolute;[^}]*inline-size:\s*1px;[^}]*clip-path:\s*inset\(50%\);/s,
+    )
+  })
+
+  it('retracts docked Panels with compositor-only motion and disables it for reduced motion', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    expect(css).toMatch(/--picodash-panel-snap-duration:\s*160ms;/)
+    expect(css).toMatch(/--picodash-panel-snap-easing:\s*cubic-bezier\(/)
+    expect(css).toMatch(/--picodash-panel-snap-bounce:\s*0\.06;/)
+    expect(css).toMatch(/--picodash-panel-detach-duration:\s*140ms;/)
+    expect(css).toMatch(/--picodash-panel-detach-easing:\s*cubic-bezier\(/)
+    expect(css).toMatch(/--picodash-panel-detach-bounce:\s*0\.04;/)
+    expect(css).toMatch(
+      /\.picodash-dashpanel\[data-picodash-dock-position\]\s*\{[^}]*transition:[^}]*transform[^}]*opacity/s,
+    )
+    expect(css).not.toMatch(/transition:[^;}]*block-size/)
+    expect(css).toMatch(
+      /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*\.picodash-dashpanel\[data-picodash-dock-position\]\s*\{[^}]*transition:\s*none;/s,
+    )
+    expect(css).not.toMatch(
+      /\.picodash-dashpanel\[data-picodash-dock-position\]\s*\{[^}]*(?:inset|left|top|right|bottom|width|height)\s*:/s,
+    )
+    expect(css).toMatch(
+      /\[data-picodash-panel-dock-preview\]\s*\{[^}]*will-change:\s*transform, opacity;/s,
+    )
+    expect(css).not.toMatch(/\[data-picodash-panel-dock-preview\]\s*\{[^}]*transition:/s)
+    expect(css).toMatch(/data-picodash-dragging='true'\]\s*\{[^}]*transition:\s*none;/s)
+  })
+
+  it('rotates collapse and dock arrows with the shared theme motion', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    expect(css).toMatch(
+      /data-picodash-collapse-chevron[^}]*data-picodash-arrow-direction[^}]*transition:\s*transform var\(--picodash-duration-fast\) var\(--picodash-easing-out\);/s,
+    )
+    expect(css).toMatch(
+      /data-picodash-collapse-chevron\]\[data-expanded='true'\]\s*\{[^}]*transform:\s*rotate\(90deg\);/s,
+    )
+    expect(css).toMatch(
+      /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*data-picodash-collapse-chevron[^}]*transition:\s*none;/s,
     )
   })
 })

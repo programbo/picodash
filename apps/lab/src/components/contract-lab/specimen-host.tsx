@@ -29,7 +29,7 @@ export function ContractLabSpecimenHost({
     <section
       ref={boundaryRef}
       aria-labelledby="contract-lab-specimen-title"
-      className="border-border/80 bg-card/90 text-card-foreground relative min-h-[32rem] overflow-hidden rounded-xl border shadow-2xl shadow-black/20 data-[preset=composition]:min-h-[70rem] data-[preset=composition]:bg-[#071018]"
+      className="border-border/80 bg-card/90 text-card-foreground relative min-h-[calc(100svh-4rem)] overflow-hidden rounded-xl border shadow-2xl shadow-black/20 data-[preset=composition]:min-h-[70rem] data-[preset=composition]:bg-[#071018]"
       data-contract-lab-specimen
       data-preset={preset.id}
       data-revision={revision}

@@ -621,7 +621,10 @@
  * here without reviving the old monolithic component or its private classes.
  */
 .picodash-dashlist {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
   min-inline-size: 0;
   color: var(--picodash-color-text);
   font-family: var(--picodash-font-family);
@@ -668,6 +671,32 @@
   margin: 0;
   padding: 0 0 0.1875rem;
   list-style: none;
+}
+
+[data-picodash-dashlist-list] {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  row-gap: 0;
+}
+
+[data-picodash-dashlist-band] {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  min-block-size: 0;
+  row-gap: var(--picodash-space-1);
+}
+
+[data-picodash-dashlist-band='automatic'] {
+  align-content: start;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+[data-picodash-dashlist-band='automatic']
+  > :is(.picodash-dashlist-group-item, .picodash-dashlist-item) {
+  align-self: start;
 }
 
 .picodash-dashlist-group-item,
@@ -1068,23 +1097,23 @@
 }
 
 :is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  > .picodash-dashlist-item
+  .picodash-dashlist-item
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content],
 :is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  > .picodash-dashlist-item
+  .picodash-dashlist-item
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-description],
 :is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  > .picodash-dashlist-item
+  .picodash-dashlist-item
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-binding-issues],
 :is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  > .picodash-dashlist-item
+  .picodash-dashlist-item
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-issues],
 :is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  > .picodash-dashlist-item
+  .picodash-dashlist-item
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-actions] {
   grid-column: 2;
@@ -1092,7 +1121,7 @@
 }
 
 :is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  > .picodash-dashlist-item
+  .picodash-dashlist-item
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content] {
   display: block;
@@ -1192,6 +1221,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-picodash-dashlet-shell],
+  .picodash-dashlist-group-item > [data-picodash-dashgroup],
+  .picodash-dashlist-group-item > [data-picodash-dashgroup] > [data-slot='dash-header'],
   .picodash-dashlist-group-item
     > [data-picodash-dashgroup]
     > [data-slot='dash-header']

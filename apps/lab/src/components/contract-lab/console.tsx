@@ -38,7 +38,7 @@ export function ContractLabConsole({
   return (
     <div
       ref={boundaryRef}
-      className="border-border/70 bg-card/25 relative min-h-[32rem] overflow-hidden rounded-xl border border-dashed"
+      className="border-border/70 bg-card/25 relative min-h-[calc(100svh-4rem)] overflow-hidden rounded-xl border border-dashed"
       data-contract-lab-console
     >
       <DashPanelProvider nexus={consoleNexus} boundary={boundaryRef} theme="dark">

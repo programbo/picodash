@@ -18,6 +18,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { animate } from 'motion/mini'
 import type { PicodashFieldDefinitions, RootNexus } from '@picodash/nexus'
 import {
   PicodashNexusEntityBoundary,
@@ -102,12 +103,21 @@ import {
   projectDashPanelRect,
   rectFromDashPanelPosition,
   snapDashPanelRect,
-  snapDashPanelTargets,
   type DashPanelDockTargetOptions,
   type DashPanelPoint,
   type DashPanelSize,
 } from './geometry/placement-geometry.ts'
 import { insetDashPanelRect, type DashPanelRect } from './geometry/inset.ts'
+import {
+  resolveDashPanelHybridDockIntent,
+  resolveDashPanelSnapDragIntent,
+  type DashPanelHybridDockIntent,
+  type DashPanelSnapDragIntent,
+} from './placement/drag-intent.ts'
+import {
+  resolveDashPanelDockedMinimizePresentation,
+  type DashPanelDockArrowDirection,
+} from './placement/docked-minimize.ts'
 
 export type {
   DashPanelDefaultLayout,
@@ -280,9 +290,47 @@ function textTitle(value: ReactNode): string {
 
 function CollapseIcon({ collapsed }: { readonly collapsed: boolean }) {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      focusable="false"
+      data-picodash-collapse-chevron
+      data-expanded={collapsed ? undefined : 'true'}
+    >
       <path
-        d={collapsed ? 'm6 3 5 5-5 5' : 'm3 6 5 5 5-5'}
+        d="m6 3 5 5-5 5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  )
+}
+
+const dockArrowRotations = {
+  up: -90,
+  'up-right': -45,
+  right: 0,
+  'down-right': 45,
+  down: 90,
+  'down-left': 135,
+  left: 180,
+  'up-left': -135,
+} satisfies Readonly<Record<DashPanelDockArrowDirection, number>>
+
+function DockArrowIcon({ direction }: { readonly direction: DashPanelDockArrowDirection }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      focusable="false"
+      data-picodash-arrow-direction={direction}
+      style={{ transform: `rotate(${dockArrowRotations[direction]}deg)` }}
+    >
+      <path
+        d="M3 8h9m-3.5-3.5L12 8l-3.5 3.5"
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
@@ -351,8 +399,127 @@ function panelStyle(
 
 interface PanelGeometryState {
   readonly boundary: DashPanelRect
+  readonly minimumHeight: number
   readonly size: DashPanelSize
   readonly rect: DashPanelRect
+}
+
+type PanelHeightTransitionState =
+  | { readonly kind: 'idle'; readonly settledHeight?: number }
+  | { readonly kind: 'pending'; readonly fromHeight: number }
+  | {
+      readonly kind: 'animating'
+      readonly animation: ReturnType<typeof animate>
+      readonly targetHeight: number
+      readonly blockSize: string
+      readonly blockSizePriority: string
+      readonly maxBlockSize: string
+      readonly maxBlockSizePriority: string
+    }
+
+type PanelMotionEasing = NonNullable<NonNullable<Parameters<typeof animate>[2]>['ease']>
+
+interface PanelTimedMotion {
+  readonly duration: number
+  readonly easing: PanelMotionEasing
+}
+
+function cssTimeToMilliseconds(value: string): number | undefined {
+  const trimmed = value.trim()
+  const multiplier = trimmed.endsWith('ms') ? 1 : trimmed.endsWith('s') ? 1000 : undefined
+  if (multiplier === undefined) return undefined
+  const amount = Number(trimmed.slice(0, trimmed.endsWith('ms') ? -2 : -1))
+  return Number.isFinite(amount) && amount >= 0 ? amount * multiplier : undefined
+}
+
+type PanelMagneticMotionKind = 'snap' | 'detach'
+
+interface PanelMagneticMotion extends PanelTimedMotion {
+  readonly bounce: number
+}
+
+interface PendingPanelMagneticMotion {
+  readonly kind: PanelMagneticMotionKind
+  readonly from: Readonly<{ left: number; top: number }>
+}
+
+interface PanelDockPreviewMotionTarget {
+  readonly opacity: number
+  readonly transform: string
+}
+
+function cssEasingToMotion(value: string): PanelMotionEasing {
+  const easing = value.trim()
+  if (easing === 'linear') return 'linear'
+  if (easing === 'ease-in') return 'easeIn'
+  if (easing === 'ease-in-out' || easing === 'ease') return 'easeInOut'
+  if (easing === 'ease-out') return 'easeOut'
+  const cubicBezier = /^cubic-bezier\(\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+)\s*\)$/.exec(
+    easing,
+  )
+  if (cubicBezier) {
+    const values = cubicBezier.slice(1).map(Number)
+    if (
+      values.length === 4 &&
+      values.every(Number.isFinite) &&
+      values[0]! >= 0 &&
+      values[0]! <= 1 &&
+      values[2]! >= 0 &&
+      values[2]! <= 1
+    )
+      return [values[0]!, values[1]!, values[2]!, values[3]!]
+  }
+  return 'easeOut'
+}
+
+function resolvePanelTimedMotion(
+  element: HTMLElement,
+  durationToken: string,
+  easingToken: string,
+): PanelTimedMotion | undefined {
+  const ownerWindow = element.ownerDocument.defaultView
+  if (!ownerWindow || ownerWindow.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+    return undefined
+  const style = ownerWindow.getComputedStyle(element)
+  const duration = cssTimeToMilliseconds(style.getPropertyValue(durationToken))
+  if (duration === undefined || duration === 0) return undefined
+  return {
+    duration,
+    easing: cssEasingToMotion(style.getPropertyValue(easingToken)),
+  }
+}
+
+function resolveSharedPanelMotion(element: HTMLElement): PanelTimedMotion | undefined {
+  return resolvePanelTimedMotion(element, '--picodash-duration-fast', '--picodash-easing-out')
+}
+
+function resolvePanelMagneticMotion(
+  element: HTMLElement,
+  kind: PanelMagneticMotionKind,
+): PanelMagneticMotion | undefined {
+  const timed = resolvePanelTimedMotion(
+    element,
+    `--picodash-panel-${kind}-duration`,
+    `--picodash-panel-${kind}-easing`,
+  )
+  if (!timed) return undefined
+  const style = element.ownerDocument.defaultView!.getComputedStyle(element)
+  const bounceValue = Number(style.getPropertyValue(`--picodash-panel-${kind}-bounce`).trim())
+  const bounce = Number.isFinite(bounceValue) ? Math.min(0.25, Math.max(0, bounceValue)) : 0
+  return { ...timed, bounce }
+}
+
+function magneticMotionTransition(
+  previous: DashPanelSnapDragIntent | null,
+  next: DashPanelSnapDragIntent,
+): PanelMagneticMotionKind | undefined {
+  if (!previous) return undefined
+  const previousAttached = previous.kind !== 'free'
+  const nextAttached = next.kind !== 'free'
+  if (!previousAttached && nextAttached) return 'snap'
+  if (previousAttached && !nextAttached) return 'detach'
+  if (previousAttached && nextAttached && previous.target !== next.target) return 'snap'
+  return undefined
 }
 
 const geometryOwnedSizeProperties = [
@@ -393,16 +560,43 @@ function measurePreferredPanelRect(element: HTMLElement): DOMRect {
   }
 }
 
+function measureMinimumPanelHeight(element: HTMLElement, preferredHeight: number): number {
+  const blockSize = element.style.getPropertyValue('block-size')
+  const blockSizePriority = element.style.getPropertyPriority('block-size')
+  const maxBlockSize = element.style.getPropertyValue('max-block-size')
+  const maxBlockSizePriority = element.style.getPropertyPriority('max-block-size')
+  element.style.setProperty('block-size', 'min-content')
+  element.style.removeProperty('max-block-size')
+  try {
+    const measured = element.getBoundingClientRect().height
+    const header = element.querySelector<HTMLElement>(":scope > [data-slot='dash-header']")
+    const headerHeight = Math.max(0, header?.getBoundingClientRect().height ?? 0)
+    if (Number.isFinite(measured) && measured > headerHeight && measured < preferredHeight)
+      return measured
+    return Math.min(preferredHeight, headerHeight)
+  } finally {
+    if (blockSize) element.style.setProperty('block-size', blockSize, blockSizePriority)
+    else element.style.removeProperty('block-size')
+    if (maxBlockSize)
+      element.style.setProperty('max-block-size', maxBlockSize, maxBlockSizePriority)
+    else element.style.removeProperty('max-block-size')
+  }
+}
+
 function sameMeasuredRect(left: DOMRect | undefined, right: DOMRect | undefined): boolean {
   if (!left || !right) return left === right
   return (
-    left.top === right.top &&
-    left.right === right.right &&
-    left.bottom === right.bottom &&
-    left.left === right.left &&
-    left.width === right.width &&
-    left.height === right.height
+    sameMeasuredLength(left.top, right.top) &&
+    sameMeasuredLength(left.right, right.right) &&
+    sameMeasuredLength(left.bottom, right.bottom) &&
+    sameMeasuredLength(left.left, right.left) &&
+    sameMeasuredLength(left.width, right.width) &&
+    sameMeasuredLength(left.height, right.height)
   )
+}
+
+function sameMeasuredLength(left: number, right: number): boolean {
+  return Math.abs(left - right) < 0.5
 }
 
 function viewportRect(ownerDocument?: Document): DashPanelRect {
@@ -445,6 +639,7 @@ function placementRect(
   placement: DashPanelPlacement,
   boundary: DashPanelRect,
   size: DashPanelSize,
+  minimumHeight: number,
   preferredPosition: DashPanelPoint,
   snapOffset: number,
   dockTarget?: DashPanelDockTargetOptions,
@@ -458,6 +653,7 @@ function placementRect(
         size,
       ),
       boundary,
+      minimumHeight,
     )
   }
   if (placement.disposition.kind === 'docked')
@@ -470,46 +666,8 @@ function placementRect(
       size,
     ),
     boundary,
+    minimumHeight,
   )
-}
-
-const floatingSnapPositions: readonly DashPanelSnapPosition[] = [
-  'top-left',
-  'top',
-  'top-right',
-  'right',
-  'bottom-right',
-  'bottom',
-  'bottom-left',
-  'left',
-]
-
-function snapPlacementForMove(
-  mode: 'floating' | 'hybrid',
-  position: DashPanelPoint,
-  geometry: PanelGeometryState | null,
-  options: Readonly<{ snapOffset: number; snapProximity: number }>,
-): DashPanelPlacement | undefined {
-  if (!geometry) return undefined
-  const targets = snapDashPanelTargets(geometry.boundary, geometry.size, options.snapOffset)
-  const positions = mode === 'hybrid' ? (['top', 'bottom'] as const) : floatingSnapPositions
-  const absolute = {
-    x: geometry.boundary.left + position.x,
-    y: geometry.boundary.top + position.y,
-  }
-  let nearest: DashPanelSnapPosition | undefined
-  let nearestDistance = Number.POSITIVE_INFINITY
-  for (const candidate of positions) {
-    const target = targets[candidate]
-    const distance = Math.hypot(target.left - absolute.x, target.top - absolute.y)
-    if (distance <= options.snapProximity && distance < nearestDistance) {
-      nearest = candidate
-      nearestDistance = distance
-    }
-  }
-  return nearest === undefined
-    ? undefined
-    : ({ mode, disposition: { kind: 'snapped', position: nearest } } as DashPanelPlacement)
 }
 
 function policySafeDefaultLayout(
@@ -632,9 +790,21 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const asideRef = useRef<HTMLElement | null>(null)
   const registration = useRef<PanelRuntimeRegistration | null>(null)
   const previewPositionRef = useRef<DashPanelPoint | null>(null)
+  const snapIntentRef = useRef<DashPanelSnapDragIntent | null>(null)
+  const dockIntentRef = useRef<DashPanelHybridDockIntent | null>(null)
   const geometryRef = useRef<PanelGeometryState | null>(null)
+  const panelHeightTransitionRef = useRef<PanelHeightTransitionState>({ kind: 'idle' })
+  const panelMagneticAnimationRef = useRef<ReturnType<typeof animate> | null>(null)
+  const pendingPanelMagneticMotionRef = useRef<PendingPanelMagneticMotion | null>(null)
+  const dockPreviewElementRef = useRef<HTMLDivElement | null>(null)
+  const dockPreviewAnimationRef = useRef<ReturnType<typeof animate> | null>(null)
+  const dockPreviewMotionTargetRef = useRef<PanelDockPreviewMotionTarget | null>(null)
+  const renderedMappedRef = useRef<Readonly<{ left: number; top: number }> | null>(null)
   const [geometry, setGeometry] = useState<PanelGeometryState | null>(null)
+  const [panelHeightTransitionRevision, setPanelHeightTransitionRevision] = useState(0)
   const [previewPosition, setPreviewPosition] = useState<DashPanelPoint | null>(null)
+  const [snapIntent, setSnapIntent] = useState<DashPanelSnapDragIntent | null>(null)
+  const [dockIntent, setDockIntent] = useState<DashPanelHybridDockIntent | null>(null)
   const [moveMode, setMoveMode] = useState<'pointer' | 'keyboard' | null>(null)
   const announcementSequence = useRef(0)
   const [actionAnnouncement, setActionAnnouncement] = useState({ sequence: 0, message: '' })
@@ -655,13 +825,45 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     readonly pointerId?: number
     readonly startClient?: DashPanelPoint
     readonly startPosition: DashPanelPoint
+    readonly rawPosition: DashPanelPoint
     readonly initialGeometry: PanelGeometryState | null
     readonly captureTarget?: HTMLElement
     readonly startedDocked: boolean
+    readonly dockDetached: boolean
+    readonly activeSnapTarget?: DashPanelSnapPosition | undefined
     readonly moved: boolean
   } | null>(null)
   const cancelObservedMoveRef = useRef<() => void>(() => undefined)
   const revalidateLayoutObservationRef = useRef<() => boolean>(() => true)
+  const cancelPanelHeightTransition = useCallback((settledHeight?: number) => {
+    const state = panelHeightTransitionRef.current
+    panelHeightTransitionRef.current = { kind: 'idle', settledHeight }
+    if (state.kind !== 'animating') return
+    state.animation.cancel()
+    const panel = asideRef.current
+    panel?.removeAttribute('data-picodash-height-motion')
+    if (state.blockSize)
+      panel?.style.setProperty('block-size', state.blockSize, state.blockSizePriority)
+    else panel?.style.removeProperty('block-size')
+    if (state.maxBlockSize)
+      panel?.style.setProperty('max-block-size', state.maxBlockSize, state.maxBlockSizePriority)
+    else panel?.style.removeProperty('max-block-size')
+  }, [])
+  const cancelPanelMagneticMotion = useCallback(() => {
+    pendingPanelMagneticMotionRef.current = null
+    const animation = panelMagneticAnimationRef.current
+    panelMagneticAnimationRef.current = null
+    animation?.stop()
+    const panel = asideRef.current
+    panel?.style.removeProperty('translate')
+    panel?.removeAttribute('data-picodash-magnetic-motion')
+  }, [])
+  const queuePanelMagneticMotion = (next: DashPanelSnapDragIntent) => {
+    const kind = magneticMotionTransition(snapIntentRef.current, next)
+    const from = renderedMappedRef.current
+    if (!kind || !from) return
+    pendingPanelMagneticMotionRef.current = { kind, from }
+  }
   const settledPreferredPosition =
     durableLayout?.preferredPosition ?? resolvedPolicyDefaultLayout.preferredPosition
   const settledLayoutFingerprint = JSON.stringify([
@@ -705,11 +907,13 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       const element = asideRef.current
       if (!element || typeof element.getBoundingClientRect !== 'function') return null
       const panelRect = measurePreferredPanelRect(element)
+      const minimumHeight = measureMinimumPanelHeight(element, panelRect.height)
       const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
       const boundaryRect = target?.getBoundingClientRect?.() ?? viewportRect(element.ownerDocument)
       const insetBoundary = insetDashPanelRect(boundaryRect, resolvedBoundaryInset)
       const next = {
         boundary: insetBoundary,
+        minimumHeight,
         size: { width: Math.max(0, panelRect.width), height: Math.max(0, panelRect.height) },
         rect: panelRect,
       }
@@ -734,26 +938,28 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       if (
         moveSession.current &&
         previous &&
-        (previous.boundary.left !== next.boundary.left ||
-          previous.boundary.top !== next.boundary.top ||
-          previous.boundary.right !== next.boundary.right ||
-          previous.boundary.bottom !== next.boundary.bottom ||
-          previous.size.width !== next.size.width ||
-          previous.size.height !== next.size.height)
+        (!sameMeasuredLength(previous.boundary.left, next.boundary.left) ||
+          !sameMeasuredLength(previous.boundary.top, next.boundary.top) ||
+          !sameMeasuredLength(previous.boundary.right, next.boundary.right) ||
+          !sameMeasuredLength(previous.boundary.bottom, next.boundary.bottom) ||
+          !sameMeasuredLength(previous.size.width, next.size.width) ||
+          !sameMeasuredLength(previous.size.height, next.size.height) ||
+          !sameMeasuredLength(previous.minimumHeight, next.minimumHeight))
       )
         cancelObservedMoveRef.current()
       setGeometry((current) =>
         current &&
-        current.boundary.left === next.boundary.left &&
-        current.boundary.top === next.boundary.top &&
-        current.boundary.right === next.boundary.right &&
-        current.boundary.bottom === next.boundary.bottom &&
-        current.size.width === next.size.width &&
-        current.size.height === next.size.height &&
-        current.rect.left === next.rect.left &&
-        current.rect.top === next.rect.top &&
-        current.rect.right === next.rect.right &&
-        current.rect.bottom === next.rect.bottom
+        sameMeasuredLength(current.boundary.left, next.boundary.left) &&
+        sameMeasuredLength(current.boundary.top, next.boundary.top) &&
+        sameMeasuredLength(current.boundary.right, next.boundary.right) &&
+        sameMeasuredLength(current.boundary.bottom, next.boundary.bottom) &&
+        sameMeasuredLength(current.size.width, next.size.width) &&
+        sameMeasuredLength(current.size.height, next.size.height) &&
+        sameMeasuredLength(current.minimumHeight, next.minimumHeight) &&
+        sameMeasuredLength(current.rect.left, next.rect.left) &&
+        sameMeasuredLength(current.rect.top, next.rect.top) &&
+        sameMeasuredLength(current.rect.right, next.rect.right) &&
+        sameMeasuredLength(current.rect.bottom, next.rect.bottom)
           ? current
           : next,
       )
@@ -776,12 +982,56 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const observer =
       typeof ResizeObserver === 'function'
         ? new ResizeObserver((entries) => {
-            refreshGeometry()
-            if (entries.some((entry) => entry.target === panel)) runtime.notifyElementResize(id)
+            const panelChanged = entries.some((entry) => entry.target === panel)
+            const boundaryChanged =
+              entries.length === 0 || entries.some((entry) => entry.target !== panel)
+            if (boundaryChanged) {
+              cancelPanelHeightTransition(panel.getBoundingClientRect().height)
+              refreshGeometry()
+            } else if (panelChanged && panelHeightTransitionRef.current.kind === 'idle') {
+              panelHeightTransitionRef.current = {
+                kind: 'idle',
+                settledHeight: panel.getBoundingClientRect().height,
+              }
+              refreshGeometry()
+            }
+            if (panelChanged && panelHeightTransitionRef.current.kind === 'idle')
+              runtime.notifyElementResize(id)
           })
         : undefined
     observer?.observe(panel)
     if (observedBoundary) observer?.observe(observedBoundary)
+    const panelBody = panel.querySelector<HTMLElement>(':scope > [data-picodash-panel-body]')
+    const contentObserver =
+      panelBody && typeof MutationObserver === 'function'
+        ? new MutationObserver(() => {
+            const state = panelHeightTransitionRef.current
+            const renderedHeight = panel.getBoundingClientRect().height
+            const fromHeight =
+              state.kind === 'animating'
+                ? renderedHeight
+                : state.kind === 'pending'
+                  ? state.fromHeight
+                  : (state.settledHeight ?? renderedHeight)
+            cancelPanelHeightTransition()
+            if (panel.hidden || panel.hasAttribute('data-picodash-dragging')) {
+              panelHeightTransitionRef.current = { kind: 'idle', settledHeight: renderedHeight }
+              refreshGeometry()
+              return
+            }
+            panelHeightTransitionRef.current = { kind: 'pending', fromHeight }
+            refreshGeometry()
+            setPanelHeightTransitionRevision((revision) => revision + 1)
+          })
+        : undefined
+    if (panelBody && contentObserver) {
+      contentObserver.observe(panelBody, {
+        attributeFilter: ['data-collapsed', 'hidden'],
+        attributes: true,
+        childList: true,
+        subtree: true,
+      })
+    }
     const ownerDocument = panel.ownerDocument
     const ownerWindow = ownerDocument.defaultView
     const mutationRoot = ownerDocument.documentElement
@@ -840,6 +1090,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
     const cancelForLayoutMotion = (event: Event) => {
       const origin = event.composedPath()[0] ?? event.target
+      if (origin instanceof Node && panel.contains(origin)) return
       if (
         origin !== null &&
         typeof origin === 'object' &&
@@ -1080,7 +1331,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       if (
         trackedBoundary !== nextBoundary ||
         !sameMeasuredRect(trackedBoundaryRect, nextBoundaryRect) ||
-        !sameMeasuredRect(trackedPanelRect, nextPanelRect)
+        (panelHeightTransitionRef.current.kind === 'idle' &&
+          !sameMeasuredRect(trackedPanelRect, nextPanelRect))
       )
         refreshGeometry()
       if (boundaryIdentityChanged) {
@@ -1104,7 +1356,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       if (revalidateLayoutObservationRef.current === revalidateLayoutObservation)
         revalidateLayoutObservationRef.current = () => true
       observer?.disconnect()
+      contentObserver?.disconnect()
       mutationObserver?.disconnect()
+      cancelPanelHeightTransition()
       removeLayoutEventListeners()
       if (ownerWindow && typeof ownerWindow.removeEventListener === 'function') {
         ownerWindow.removeEventListener('resize', refreshGeometry)
@@ -1117,6 +1371,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
   }, [
     boundary,
+    cancelPanelHeightTransition,
     id,
     observedBoundary,
     panelPortal,
@@ -1129,6 +1384,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
 
   const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
     revalidateLayoutObservationRef.current()
+    asideRef.current?.setAttribute('data-picodash-dragging', 'true')
     const preferred = durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition
     const requested = currentPosition() ?? preferred ?? ({ x: 0, y: 0 } as const)
     const initialGeometry = measureGeometry() ?? geometryRef.current
@@ -1140,6 +1396,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           },
           initialGeometry.size,
           initialGeometry.boundary,
+          initialGeometry.minimumHeight,
         )
       : undefined
     const current =
@@ -1159,21 +1416,44 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           }
         : {}),
       startPosition: current,
+      rawPosition: current,
       initialGeometry,
       startedDocked:
         effectivePlacement.mode === 'hybrid' && effectivePlacement.disposition.kind === 'docked',
+      dockDetached: false,
+      ...(effectivePlacement.disposition.kind === 'snapped'
+        ? { activeSnapTarget: effectivePlacement.disposition.position }
+        : {}),
       moved: false,
     } as const
     moveSession.current = session
     previewPositionRef.current = current
+    const initialSnapIntent: DashPanelSnapDragIntent =
+      effectivePlacement.disposition.kind === 'snapped'
+        ? {
+            kind: 'snapped',
+            position: current,
+            target: effectivePlacement.disposition.position,
+          }
+        : { kind: 'free', position: current }
+    snapIntentRef.current = initialSnapIntent
+    dockIntentRef.current = null
     setPreviewPosition(current)
+    setSnapIntent(initialSnapIntent)
+    setDockIntent(null)
     setMoveMode(mode)
   }
 
   const cancelMove = () => {
+    cancelPanelMagneticMotion()
+    asideRef.current?.removeAttribute('data-picodash-dragging')
     moveSession.current = null
     previewPositionRef.current = null
+    snapIntentRef.current = null
+    dockIntentRef.current = null
     setPreviewPosition(null)
+    setSnapIntent(null)
+    setDockIntent(null)
     setMoveMode(null)
   }
   cancelObservedMoveRef.current = () => {
@@ -1196,12 +1476,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       cancelMove()
       return { status: 'not_executed' as const, reason: 'unavailable' as const }
     }
-    const preview = previewPositionRef.current ?? session.startPosition
-    if (
-      session.startedDocked &&
-      Math.hypot(preview.x - session.startPosition.x, preview.y - session.startPosition.y) <
-        resolvedPlacementOptions.detachDistance
-    ) {
+    if (session.startedDocked && !session.dockDetached) {
       cancelMove()
       return { status: 'executed' as const }
     }
@@ -1210,20 +1485,45 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (
       initialGeometry &&
       (!latestGeometry ||
-        initialGeometry.boundary.left !== latestGeometry.boundary.left ||
-        initialGeometry.boundary.top !== latestGeometry.boundary.top ||
-        initialGeometry.boundary.right !== latestGeometry.boundary.right ||
-        initialGeometry.boundary.bottom !== latestGeometry.boundary.bottom ||
-        initialGeometry.size.width !== latestGeometry.size.width ||
-        initialGeometry.size.height !== latestGeometry.size.height)
+        !sameMeasuredLength(initialGeometry.boundary.left, latestGeometry.boundary.left) ||
+        !sameMeasuredLength(initialGeometry.boundary.top, latestGeometry.boundary.top) ||
+        !sameMeasuredLength(initialGeometry.boundary.right, latestGeometry.boundary.right) ||
+        !sameMeasuredLength(initialGeometry.boundary.bottom, latestGeometry.boundary.bottom) ||
+        !sameMeasuredLength(initialGeometry.size.width, latestGeometry.size.width) ||
+        !sameMeasuredLength(initialGeometry.size.height, latestGeometry.size.height) ||
+        !sameMeasuredLength(initialGeometry.minimumHeight, latestGeometry.minimumHeight))
     ) {
       cancelMove()
       return { status: 'not_executed' as const, reason: 'unavailable' as const }
     }
     const movableMode = requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating'
-    const placement =
-      snapPlacementForMove(movableMode, preview, latestGeometry, resolvedPlacementOptions) ??
-      ({ mode: movableMode, disposition: { kind: 'free' } } as const)
+    const currentDockIntent = dockIntentRef.current
+    const currentSnapIntent = snapIntentRef.current
+    let placement: DashPanelPlacement
+    if (movableMode === 'hybrid') {
+      if (currentDockIntent) {
+        placement = {
+          mode: 'hybrid',
+          disposition: { kind: 'docked', position: currentDockIntent.position },
+        }
+      } else if (
+        (currentSnapIntent?.kind === 'snapped' || currentSnapIntent?.kind === 'resisted') &&
+        (currentSnapIntent.target === 'top' || currentSnapIntent.target === 'bottom')
+      ) {
+        placement = {
+          mode: 'hybrid',
+          disposition: { kind: 'snapped', position: currentSnapIntent.target },
+        }
+      } else placement = { mode: 'hybrid', disposition: { kind: 'free' } }
+    } else {
+      placement =
+        currentSnapIntent?.kind === 'snapped' || currentSnapIntent?.kind === 'resisted'
+          ? {
+              mode: 'floating',
+              disposition: { kind: 'snapped', position: currentSnapIntent.target },
+            }
+          : { mode: 'floating', disposition: { kind: 'free' } }
+    }
     const result = runtime.setPlacement(id, placement)
     announceDashPanelLayoutFailure('Panel movement', result, announceAction)
     cancelMove()
@@ -1245,6 +1545,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       event.target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"]')
     )
       return
+    runtime.activate(id)
     onMovePointerDown(event)
   }
 
@@ -1261,17 +1562,78 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       },
       currentGeometry.size,
       currentGeometry.boundary,
+      currentGeometry.minimumHeight,
     )
     const next = {
       x: projected.x - currentGeometry.boundary.left,
       y: projected.y - currentGeometry.boundary.top,
     }
+    const moved =
+      session.moved || next.x !== session.startPosition.x || next.y !== session.startPosition.y
+    if (
+      session.startedDocked &&
+      !session.dockDetached &&
+      Math.hypot(next.x - session.startPosition.x, next.y - session.startPosition.y) <
+        resolvedPlacementOptions.detachDistance
+    ) {
+      const heldIntent = { kind: 'free', position: session.startPosition } as const
+      moveSession.current = { ...session, rawPosition: next, moved }
+      previewPositionRef.current = session.startPosition
+      snapIntentRef.current = heldIntent
+      dockIntentRef.current = null
+      setPreviewPosition(session.startPosition)
+      setSnapIntent(heldIntent)
+      setDockIntent(null)
+      return
+    }
+    const movableMode = requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating'
+    const nextSnapIntent = resolveDashPanelSnapDragIntent({
+      activeTarget: session.activeSnapTarget,
+      boundary: currentGeometry.boundary,
+      detachDistance: resolvedPlacementOptions.detachDistance,
+      mode: movableMode,
+      position: next,
+      size: currentGeometry.size,
+      snapOffset: resolvedPlacementOptions.snapOffset,
+      snapProximity: resolvedPlacementOptions.snapProximity,
+    })
+    const nextDockIntent =
+      movableMode === 'hybrid'
+        ? resolveDashPanelHybridDockIntent({
+            boundary: currentGeometry.boundary,
+            isOccupied: (position) => runtime.isDockPositionOccupied(id, position),
+            panel: rectFromDashPanelPosition(
+              {
+                x: currentGeometry.boundary.left + next.x,
+                y: currentGeometry.boundary.top + next.y,
+              },
+              currentGeometry.size,
+            ),
+            pointer: { x: event.clientX, y: event.clientY },
+            positions: resolvedDockPositions,
+            proximity: Math.max(
+              resolvedPlacementOptions.snapOffset,
+              resolvedPlacementOptions.snapProximity,
+            ),
+            size: currentGeometry.size,
+          })
+        : undefined
+    queuePanelMagneticMotion(nextSnapIntent)
     moveSession.current = {
       ...session,
-      moved: next.x !== session.startPosition.x || next.y !== session.startPosition.y,
+      rawPosition: next,
+      dockDetached: session.dockDetached || session.startedDocked,
+      ...(nextSnapIntent.kind === 'free'
+        ? { activeSnapTarget: undefined }
+        : { activeSnapTarget: nextSnapIntent.target }),
+      moved,
     }
-    previewPositionRef.current = next
-    setPreviewPosition(next)
+    previewPositionRef.current = nextSnapIntent.position
+    snapIntentRef.current = nextSnapIntent
+    dockIntentRef.current = nextDockIntent ?? null
+    setPreviewPosition(nextSnapIntent.position)
+    setSnapIntent(nextSnapIntent)
+    setDockIntent(nextDockIntent ?? null)
   }
 
   const onMovePointerUp = (event: ReactPointerEvent<HTMLElement>) => {
@@ -1365,7 +1727,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (event.key === 'ArrowDown') dy = distance
     if (dx === 0 && dy === 0) return
     event.preventDefault()
-    const current = previewPositionRef.current ?? session.startPosition
+    const current = session.rawPosition
     const currentGeometry = geometryRef.current
     if (!currentGeometry) return
     const projected = projectDashPanelPosition(
@@ -1375,17 +1737,52 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       },
       currentGeometry.size,
       currentGeometry.boundary,
+      currentGeometry.minimumHeight,
     )
     const next = {
       x: projected.x - currentGeometry.boundary.left,
       y: projected.y - currentGeometry.boundary.top,
     }
+    const moved = next.x !== session.startPosition.x || next.y !== session.startPosition.y
+    if (
+      session.startedDocked &&
+      !session.dockDetached &&
+      Math.hypot(next.x - session.startPosition.x, next.y - session.startPosition.y) <
+        resolvedPlacementOptions.detachDistance
+    ) {
+      const heldIntent = { kind: 'free', position: session.startPosition } as const
+      moveSession.current = { ...session, rawPosition: next, moved }
+      previewPositionRef.current = session.startPosition
+      snapIntentRef.current = heldIntent
+      setPreviewPosition(session.startPosition)
+      setSnapIntent(heldIntent)
+      return
+    }
+    const movableMode = requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating'
+    const nextSnapIntent = resolveDashPanelSnapDragIntent({
+      activeTarget: session.activeSnapTarget,
+      boundary: currentGeometry.boundary,
+      detachDistance: resolvedPlacementOptions.detachDistance,
+      mode: movableMode,
+      position: next,
+      size: currentGeometry.size,
+      snapOffset: resolvedPlacementOptions.snapOffset,
+      snapProximity: resolvedPlacementOptions.snapProximity,
+    })
+    queuePanelMagneticMotion(nextSnapIntent)
     moveSession.current = {
       ...session,
-      moved: next.x !== session.startPosition.x || next.y !== session.startPosition.y,
+      rawPosition: next,
+      dockDetached: session.dockDetached || session.startedDocked,
+      ...(nextSnapIntent.kind === 'free'
+        ? { activeSnapTarget: undefined }
+        : { activeSnapTarget: nextSnapIntent.target }),
+      moved,
     }
-    previewPositionRef.current = next
-    setPreviewPosition(next)
+    previewPositionRef.current = nextSnapIntent.position
+    snapIntentRef.current = nextSnapIntent
+    setPreviewPosition(nextSnapIntent.position)
+    setSnapIntent(nextSnapIntent)
   }
   const textualTitle = isTextTitle(title)
   const titleText = textualTitle ? textTitle(title) : ''
@@ -1492,7 +1889,6 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     .reverse()
     .find((scopeId) => runtimeSnapshot.panels[scopeId]?.visible)
   const panelName = titleText.trim() === '' ? ariaLabel! : titleText
-  const collapseLabel = `${collapsed ? 'Expand' : 'Collapse'} panel ${panelName}`
   const renderActionMenu =
     actionMenu !== false && (actionMenu === undefined || actionMenu.length > 0)
   const DefaultActionItems = defaultActionItems
@@ -1526,6 +1922,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       : renderedPlacement.mode === 'hybrid' && renderedPlacement.disposition.kind === 'docked'
         ? renderedPlacement.disposition.position
         : undefined
+  const dockedMinimizePresentation = renderedDockPosition
+    ? resolveDashPanelDockedMinimizePresentation(renderedDockPosition)
+    : undefined
+  const dockedMinimized = collapsed && dockedMinimizePresentation !== undefined
+  const collapseLabel = `${dockedMinimizePresentation ? 'Minimize' : collapsed ? 'Expand' : 'Collapse'} panel ${panelName}`
   const dockTarget =
     geometry && renderedDockPosition ? runtime.getDockTarget(id, geometry.boundary) : undefined
   const renderedRect = geometry
@@ -1533,30 +1934,275 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         renderedPlacement,
         geometry.boundary,
         geometry.size,
+        geometry.minimumHeight,
         preferredPosition,
         resolvedPlacementOptions.snapOffset,
         dockTarget,
       )
     : null
-  const geometryStyle: CSSProperties | undefined = renderedRect
+  const renderedMapped = renderedRect
+    ? mapRectToContainingBlock(asideRef.current, renderedRect)
+    : null
+  useLayoutEffect(() => {
+    const pending = pendingPanelMagneticMotionRef.current
+    renderedMappedRef.current = renderedMapped
+      ? { left: renderedMapped.left, top: renderedMapped.top }
+      : null
+    if (!pending) return
+    pendingPanelMagneticMotionRef.current = null
+    const panel = asideRef.current
+    if (!panel || !renderedMapped || moveMode === null) return
+    const motion = resolvePanelMagneticMotion(panel, pending.kind)
+    if (!motion) return
+    const offsetX = pending.from.left - renderedMapped.left
+    const offsetY = pending.from.top - renderedMapped.top
+    if (Math.hypot(offsetX, offsetY) < 0.5) return
+
+    const previousAnimation = panelMagneticAnimationRef.current
+    panelMagneticAnimationRef.current = null
+    previousAnimation?.stop()
+    panel.style.removeProperty('translate')
+    panel.setAttribute('data-picodash-magnetic-motion', pending.kind)
+    let animation: ReturnType<typeof animate> | undefined
+    animation = animate(
+      panel,
+      {
+        translate: [
+          `${offsetX}px ${offsetY}px`,
+          `${-offsetX * motion.bounce}px ${-offsetY * motion.bounce}px`,
+          '0px 0px',
+        ],
+      },
+      {
+        duration: motion.duration / 1_000,
+        ease: motion.easing,
+        times: [0, 0.74, 1],
+        onComplete: () => {
+          if (panelMagneticAnimationRef.current !== animation) return
+          panelMagneticAnimationRef.current = null
+          panel.style.removeProperty('translate')
+          panel.removeAttribute('data-picodash-magnetic-motion')
+        },
+      },
+    )
+    panelMagneticAnimationRef.current = animation
+  }, [moveMode, renderedMapped?.left, renderedMapped?.top])
+  useEffect(() => cancelPanelMagneticMotion, [cancelPanelMagneticMotion])
+  const moveOriginRect =
+    geometry && moveMode && moveSession.current
+      ? projectDashPanelRect(
+          rectFromDashPanelPosition(
+            {
+              x: geometry.boundary.left + moveSession.current.startPosition.x,
+              y: geometry.boundary.top + moveSession.current.startPosition.y,
+            },
+            geometry.size,
+          ),
+          geometry.boundary,
+          geometry.minimumHeight,
+        )
+      : null
+  const moveOriginMapped = moveOriginRect
+    ? mapRectToContainingBlock(asideRef.current, moveOriginRect)
+    : null
+  const geometryStyle: CSSProperties | undefined =
+    renderedRect && renderedMapped
+      ? {
+          position: 'absolute',
+          left: `${moveOriginMapped?.left ?? renderedMapped.left}px`,
+          top: `${moveOriginMapped?.top ?? renderedMapped.top}px`,
+          ...(moveOriginMapped && renderedMapped
+            ? {
+                transform: `translate3d(${renderedMapped.left - moveOriginMapped.left}px, ${renderedMapped.top - moveOriginMapped.top}px, 0)`,
+              }
+            : {}),
+          ...(renderedDockPosition === 'full-top' || renderedDockPosition === 'full-bottom'
+            ? { inlineSize: `${renderedRect.width}px` }
+            : renderedRect.width > 0
+              ? { maxInlineSize: `${renderedRect.width}px` }
+              : {}),
+          ...(renderedDockPosition === 'full-left' || renderedDockPosition === 'full-right'
+            ? { blockSize: `${renderedRect.height}px` }
+            : renderedRect.height > 0
+              ? { maxBlockSize: `${renderedRect.height}px` }
+              : {}),
+        }
+      : undefined
+  const dockedMinimizedStyle: CSSProperties | undefined = dockedMinimized
     ? {
-        position: 'absolute',
-        left: `${mapRectToContainingBlock(asideRef.current, renderedRect).left}px`,
-        top: `${mapRectToContainingBlock(asideRef.current, renderedRect).top}px`,
-        ...(renderedDockPosition === 'full-top' || renderedDockPosition === 'full-bottom'
-          ? { inlineSize: `${renderedRect.width}px` }
-          : renderedRect.width > 0
-            ? { maxInlineSize: `${renderedRect.width}px` }
-            : {}),
-        ...(renderedDockPosition === 'full-left' || renderedDockPosition === 'full-right'
-          ? { blockSize: `${renderedRect.height}px` }
-          : renderedRect.height > 0
-            ? { maxBlockSize: `${renderedRect.height}px` }
-            : {}),
+        opacity: 0,
+        transform: dockedMinimizePresentation.exitTransform,
       }
     : undefined
   const combinedStyle =
-    resolvedStyle || geometryStyle ? { ...resolvedStyle, ...geometryStyle } : undefined
+    resolvedStyle || geometryStyle || dockedMinimizedStyle
+      ? { ...resolvedStyle, ...geometryStyle, ...dockedMinimizedStyle }
+      : undefined
+  useLayoutEffect(() => {
+    const state = panelHeightTransitionRef.current
+    const panel = asideRef.current
+    if (state.kind !== 'pending' || !panel) return
+    const targetHeight = panel.getBoundingClientRect().height
+    const motion = resolveSharedPanelMotion(panel)
+    if (
+      motion === undefined ||
+      panel.hidden ||
+      panel.hasAttribute('data-picodash-dragging') ||
+      Math.abs(state.fromHeight - targetHeight) < 0.5
+    ) {
+      panelHeightTransitionRef.current = { kind: 'idle', settledHeight: targetHeight }
+      return
+    }
+
+    const blockSize = panel.style.getPropertyValue('block-size')
+    const blockSizePriority = panel.style.getPropertyPriority('block-size')
+    const maxBlockSize = panel.style.getPropertyValue('max-block-size')
+    const maxBlockSizePriority = panel.style.getPropertyPriority('max-block-size')
+    panel.style.setProperty('max-block-size', `${Math.max(state.fromHeight, targetHeight)}px`)
+    let animation: ReturnType<typeof animate> | undefined
+    const settle = () => {
+      const current = panelHeightTransitionRef.current
+      if (current.kind !== 'animating' || current.animation !== animation) return
+      panel.removeAttribute('data-picodash-height-motion')
+      if (current.blockSize)
+        panel.style.setProperty('block-size', current.blockSize, current.blockSizePriority)
+      else panel.style.removeProperty('block-size')
+      if (current.maxBlockSize)
+        panel.style.setProperty(
+          'max-block-size',
+          current.maxBlockSize,
+          current.maxBlockSizePriority,
+        )
+      else panel.style.removeProperty('max-block-size')
+      panelHeightTransitionRef.current = {
+        kind: 'idle',
+        settledHeight: current.targetHeight,
+      }
+      runtime.notifyElementResize(id)
+    }
+    panel.setAttribute('data-picodash-height-motion', 'true')
+    animation = animate(
+      panel,
+      { blockSize: [`${state.fromHeight}px`, `${targetHeight}px`] },
+      {
+        duration: motion.duration / 1_000,
+        ease: motion.easing,
+        onComplete: settle,
+      },
+    )
+    panelHeightTransitionRef.current = {
+      kind: 'animating',
+      animation,
+      targetHeight,
+      blockSize,
+      blockSizePriority,
+      maxBlockSize,
+      maxBlockSizePriority,
+    }
+  }, [geometry, id, panelHeightTransitionRevision, runtime])
+  const revealStyle: CSSProperties | undefined =
+    dockedMinimizePresentation && renderedMapped && renderedRect
+      ? {
+          left: `${renderedMapped.left + renderedRect.width * dockedMinimizePresentation.revealAnchor.inline}px`,
+          top: `${renderedMapped.top + renderedRect.height * dockedMinimizePresentation.revealAnchor.block}px`,
+          transform: `translate3d(${-100 * dockedMinimizePresentation.revealAnchor.inline}%, ${-100 * dockedMinimizePresentation.revealAnchor.block}%, 0)`,
+        }
+      : undefined
+  const dockPreviewRect =
+    moveMode === 'pointer' && requestedPlacementMode === 'hybrid'
+      ? (dockIntent?.rect ?? renderedRect)
+      : null
+  const dockPreviewMapped = dockPreviewRect
+    ? mapRectToContainingBlock(asideRef.current, dockPreviewRect)
+    : null
+  const dockPreviewMotionTarget: PanelDockPreviewMotionTarget | null =
+    dockPreviewRect &&
+    dockPreviewMapped &&
+    geometry &&
+    geometry.size.width > 0 &&
+    geometry.size.height > 0
+      ? {
+          opacity: dockIntent ? 1 : 0,
+          transform: `translate3d(${dockPreviewMapped.left}px, ${dockPreviewMapped.top}px, 0) scale(${dockPreviewRect.width / geometry.size.width}, ${dockPreviewRect.height / geometry.size.height})`,
+        }
+      : null
+  const dockPreviewStyle: CSSProperties | undefined =
+    dockPreviewMotionTarget && geometry
+      ? {
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          inlineSize: `${geometry.size.width}px`,
+          blockSize: `${geometry.size.height}px`,
+          opacity: dockPreviewMotionTarget.opacity,
+          transform: dockPreviewMotionTarget.transform,
+        }
+      : undefined
+  useLayoutEffect(() => {
+    const preview = dockPreviewElementRef.current
+    if (!preview || !dockPreviewMotionTarget) {
+      dockPreviewAnimationRef.current?.cancel()
+      dockPreviewAnimationRef.current = null
+      dockPreviewMotionTargetRef.current = null
+      return
+    }
+
+    const previousTarget = dockPreviewMotionTargetRef.current
+    dockPreviewMotionTargetRef.current = dockPreviewMotionTarget
+    if (!previousTarget) return
+
+    let from = previousTarget
+    const previousAnimation = dockPreviewAnimationRef.current
+    if (previousAnimation) {
+      const computed = preview.ownerDocument.defaultView?.getComputedStyle(preview)
+      if (computed) {
+        from = {
+          opacity: Number(computed.opacity),
+          transform: computed.transform,
+        }
+      }
+      previousAnimation.cancel()
+      dockPreviewAnimationRef.current = null
+    }
+
+    const motion = resolveSharedPanelMotion(preview)
+    if (
+      !motion ||
+      (from.opacity === dockPreviewMotionTarget.opacity &&
+        from.transform === dockPreviewMotionTarget.transform)
+    ) {
+      preview.removeAttribute('data-picodash-dock-preview-motion')
+      return
+    }
+
+    preview.setAttribute('data-picodash-dock-preview-motion', 'true')
+    let animation: ReturnType<typeof animate> | undefined
+    animation = animate(
+      preview,
+      {
+        opacity: [from.opacity, dockPreviewMotionTarget.opacity],
+        transform: [from.transform, dockPreviewMotionTarget.transform],
+      },
+      {
+        duration: motion.duration / 1_000,
+        ease: motion.easing,
+        onComplete: () => {
+          if (dockPreviewAnimationRef.current !== animation) return
+          dockPreviewAnimationRef.current = null
+          preview.removeAttribute('data-picodash-dock-preview-motion')
+        },
+      },
+    )
+    dockPreviewAnimationRef.current = animation
+  }, [dockPreviewMotionTarget?.opacity, dockPreviewMotionTarget?.transform])
+  useEffect(
+    () => () => {
+      dockPreviewAnimationRef.current?.cancel()
+      dockPreviewAnimationRef.current = null
+      dockPreviewMotionTargetRef.current = null
+    },
+    [],
+  )
   const labelledProps = textualTitle
     ? {
         ...(ariaLabel === undefined && ariaLabelledBy === undefined
@@ -1566,6 +2212,20 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         ...(ariaLabelledBy === undefined ? {} : { 'aria-labelledby': ariaLabelledBy }),
       }
     : { 'aria-label': ariaLabel }
+  const collapseButtonRef = useRef<HTMLButtonElement | null>(null)
+  const revealButtonRef = useRef<HTMLButtonElement | null>(null)
+  const pendingCollapseFocus = useRef<'minimize' | 'reveal' | null>(null)
+  useLayoutEffect(() => {
+    if (pendingCollapseFocus.current === 'reveal' && dockedMinimized) {
+      revealButtonRef.current?.focus()
+      pendingCollapseFocus.current = null
+      return
+    }
+    if (pendingCollapseFocus.current === 'minimize' && !collapsed) {
+      collapseButtonRef.current?.focus()
+      pendingCollapseFocus.current = null
+    }
+  }, [collapsed, dockedMinimized])
 
   const panelRoot = (
     <DashPanelPolicyProvider
@@ -1581,6 +2241,47 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         >
           <PicodashNexusEntityBoundary nexus={scoped} kind="dashPanel">
             <PicodashThemeProvider<string> theme={theme} density={density}>
+              {dockPreviewStyle ? (
+                <div
+                  ref={dockPreviewElementRef}
+                  aria-hidden="true"
+                  data-picodash-panel-dock-preview
+                  data-picodash-dock-position={dockIntent?.position}
+                  style={dockPreviewStyle}
+                />
+              ) : null}
+              {dockedMinimizePresentation && revealStyle ? (
+                <div
+                  data-picodash-panel-reveal
+                  data-visible={dockedMinimized ? 'true' : 'false'}
+                  style={revealStyle}
+                  inert={!dockedMinimized || undefined}
+                  aria-hidden={!dockedMinimized || undefined}
+                >
+                  <Button
+                    ref={revealButtonRef}
+                    aria-label={`Reveal panel ${panelName}`}
+                    aria-expanded={false}
+                    aria-controls={bodyId}
+                    isDisabled={!dockedMinimized}
+                    iconOnly
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => {
+                      pendingCollapseFocus.current = 'minimize'
+                      runtime.expand(id)
+                    }}
+                  >
+                    <DockArrowIcon
+                      direction={
+                        dockedMinimized
+                          ? dockedMinimizePresentation.revealDirection
+                          : dockedMinimizePresentation.minimizeDirection
+                      }
+                    />
+                  </Button>
+                </div>
+              ) : null}
               <aside
                 {...asideProps}
                 {...labelledProps}
@@ -1595,11 +2296,21 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 }
                 data-visible={visible ? 'true' : 'false'}
                 data-active={activeVisiblePanelId === id ? 'true' : undefined}
+                data-picodash-magnetic={
+                  moveMode === 'pointer' && snapIntent?.kind !== 'free'
+                    ? snapIntent?.kind
+                    : undefined
+                }
+                data-picodash-dragging={moveMode ? 'true' : undefined}
+                data-picodash-dock-intent={dockIntent?.position}
+                data-picodash-dock-position={renderedDockPosition}
+                data-picodash-docked-minimized={dockedMinimized ? 'true' : undefined}
                 hidden={!visible}
-                inert={!visible || undefined}
-                aria-hidden={!visible || undefined}
+                inert={!visible || dockedMinimized || undefined}
+                aria-hidden={!visible || dockedMinimized || undefined}
                 onFocusCapture={(event) => {
                   asideProps.onFocusCapture?.(event)
+                  runtime.activate(id)
                   const related = event.relatedTarget
                   if (
                     typeof Node !== 'undefined' &&
@@ -1610,7 +2321,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                   recordPanelInteraction(runtime, id, related)
                 }}
                 onPointerMove={onMovePointerMove}
-                onPointerUp={onMovePointerUp}
+                onPointerUp={(event) => {
+                  asideProps.onPointerUp?.(event)
+                  onMovePointerUp(event)
+                  runtime.activate(id)
+                }}
                 onPointerCancel={onMovePointerCancel}
                 data-collapsed={collapsed ? 'true' : 'false'}
               >
@@ -1621,6 +2336,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                   slots={{
                     leading: currentCollapsible ? (
                       <Button
+                        ref={collapseButtonRef}
                         aria-label={collapseLabel}
                         aria-expanded={!collapsed}
                         aria-controls={bodyId}
@@ -1628,10 +2344,21 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                         variant="ghost"
                         size="sm"
                         onPress={() => {
+                          if (dockedMinimizePresentation) pendingCollapseFocus.current = 'reveal'
                           runtime.toggleCollapsed(id)
                         }}
                       >
-                        <CollapseIcon collapsed={collapsed} />
+                        {dockedMinimizePresentation ? (
+                          <DockArrowIcon
+                            direction={
+                              dockedMinimized
+                                ? dockedMinimizePresentation.revealDirection
+                                : dockedMinimizePresentation.minimizeDirection
+                            }
+                          />
+                        ) : (
+                          <CollapseIcon collapsed={collapsed} />
+                        )}
                       </Button>
                     ) : undefined,
                     title: (
@@ -1693,7 +2420,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 <div
                   id={bodyId}
                   data-picodash-panel-body
-                  hidden={collapsed}
+                  hidden={collapsed && !dockedMinimized}
                   inert={collapsed || undefined}
                   aria-hidden={collapsed || undefined}
                 >

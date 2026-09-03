@@ -8,6 +8,9 @@ readouts, visualizations, previews, and actions. This page describes the aspirat
 
 > Contract: Accepted
 > Implementation: Partial
+> Evidence: `packages/dashlist/tests/dashlist.test.tsx` and
+> `packages/dashlist/tests/style.test.ts` cover explicit root band wrappers, committed DOM order,
+> the automatic-band scrollport, and fixed start/end rows.
 > Evidence: `packages/dashlist/tests/dashlist.test.tsx`, `packages/dashlist/tests/dashlist.types.test.ts`, and `packages/dashlist/tests/package-artifacts.mjs` cover the alpha shell, semantic structure, Nexus resolution boundary, and package surface.
 > Notes: The stable launch contract is accepted. The remaining prototype behavior must be
 > reconciled through the conformance matrix; ordering, collapse, and action resets are now implemented,
@@ -1365,6 +1368,10 @@ that band.
 
 At the DashList root, start and end bands remain outside the automatic band's scrollport. Inside a
 DashGroup, bands determine order but do not create nested fixed scroll regions.
+
+The root's minimum block size includes the rendered start and end bands, but not the automatic
+band's full contents. When a containing DashPanel is height-constrained, the automatic band alone
+scrolls while both pinned bands remain visible.
 
 Changing `pin` moves a node immediately to the declared band. Existing relative order is preserved
 where meaningful; otherwise the node follows already-customized destination nodes in declaration

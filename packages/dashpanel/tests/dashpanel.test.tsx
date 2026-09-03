@@ -981,6 +981,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       'aria-expanded': true,
       'aria-controls': body.props.id,
     })
+    expect(button.element.querySelector('svg')?.getAttribute('data-expanded')).toBe('true')
     expect(body.props.hidden).toBe(false)
     expect(body.props.inert).toBeUndefined()
     act(() => renderer.unmount())
@@ -1018,6 +1019,86 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(renderer.root.findByType('aside').props['data-collapsed']).toBe('false')
     expect(renderer.root.findByProps({ 'data-picodash-panel-body': true }).props.hidden).toBe(false)
     expect(renderer.root.findByProps({ 'data-child': true }).children[0]).toBe(childToken)
+    act(() => renderer.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('retracts a docked Panel behind a detached, direction-aware Reveal control', () => {
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        nexus,
+        children: createElement(DashPanel, {
+          id: 'docked-collapse',
+          title: 'Inspector',
+          defaultLayout: {
+            placement: {
+              mode: 'fixed',
+              disposition: { kind: 'docked', position: 'bottom-left' },
+            },
+          },
+          children: createElement('div', { 'data-child': true }, 'Retained content'),
+        }),
+      }),
+    )
+
+    const aside = renderer.root.findByType('aside')
+    const minimize = renderer.root.findByProps({ 'aria-label': 'Minimize panel Inspector' })
+    const revealCarrier = renderer.root.findByProps({ 'data-picodash-panel-reveal': true })
+    const reveal = renderer.root.findByProps({ 'aria-label': 'Reveal panel Inspector' })
+    expect(
+      minimize.element.querySelector('svg')?.getAttribute('data-picodash-arrow-direction'),
+    ).toBe('down-left')
+    expect(revealCarrier.props).toMatchObject({
+      'aria-hidden': true,
+      'data-visible': 'false',
+      inert: true,
+    })
+    expect(reveal.props.isDisabled).toBe(true)
+    expect(reveal.element.querySelector('svg')?.getAttribute('data-picodash-arrow-direction')).toBe(
+      'down-left',
+    )
+    pressButton(minimize)
+
+    expect(aside.props).toMatchObject({
+      'aria-hidden': true,
+      'data-picodash-docked-minimized': 'true',
+      inert: true,
+    })
+    expect(aside.props.style).toMatchObject({
+      opacity: 0,
+      transform: 'translate3d(-100%, 100%, 0)',
+    })
+    const body = renderer.root.findByProps({ 'data-picodash-panel-body': true })
+    expect(body.props.hidden).toBe(false)
+    expect(body.props.inert).toBe(true)
+    expect(renderer.root.findByProps({ 'data-child': true })).toBeDefined()
+
+    expect(revealCarrier.props).toMatchObject({
+      'aria-hidden': undefined,
+      'data-visible': 'true',
+      inert: undefined,
+    })
+    expect(reveal.props.isDisabled).not.toBe(true)
+    expect(reveal.element.querySelector('svg')?.getAttribute('data-picodash-arrow-direction')).toBe(
+      'up-right',
+    )
+    pressButton(reveal)
+    expect(renderer.root.findByType('aside').props).toMatchObject({
+      'data-collapsed': 'false',
+      'data-picodash-docked-minimized': undefined,
+      inert: undefined,
+    })
+    expect(revealCarrier.props).toMatchObject({
+      'aria-hidden': true,
+      'data-visible': 'false',
+      inert: true,
+    })
+    expect(reveal.props.isDisabled).toBe(true)
+    expect(reveal.element.querySelector('svg')?.getAttribute('data-picodash-arrow-direction')).toBe(
+      'down-left',
+    )
+
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()
   })
@@ -1231,6 +1312,31 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(asides[1]?.props['data-active']).toBeUndefined()
     expect(asides[1]?.props.hidden).toBe(true)
     act(() => renderer.unmount())
+    nexus.destroy()
+  })
+
+  it('raises the most recently focused or pressed Panel', async () => {
+    const nexus = makeNexus()
+    const renderer = render(
+      createElement(DashPanelProvider, {
+        nexus,
+        children: [
+          createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
+          createElement(DashPanel, { key: 'second', id: 'second', title: 'Second' }),
+        ],
+      }),
+    )
+    let asides = renderer.root.findAllByType('aside')
+    await act(async () => asides[0]?.props.onPointerUp({}))
+    asides = renderer.root.findAllByType('aside')
+    expect(asides[0]?.props['data-active']).toBe('true')
+    expect(asides[1]?.props['data-active']).toBeUndefined()
+
+    await act(async () => asides[1]?.props.onFocusCapture({ relatedTarget: null }))
+    asides = renderer.root.findAllByType('aside')
+    expect(asides[0]?.props['data-active']).toBeUndefined()
+    expect(asides[1]?.props['data-active']).toBe('true')
+    await act(async () => renderer.unmount())
     nexus.destroy()
   })
 

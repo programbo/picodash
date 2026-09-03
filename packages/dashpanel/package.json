@@ -25,7 +25,8 @@
   },
   "dependencies": {
     "@picodash/nexus": "workspace:*",
-    "@picodash/ui": "workspace:*"
+    "@picodash/ui": "workspace:*",
+    "motion": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

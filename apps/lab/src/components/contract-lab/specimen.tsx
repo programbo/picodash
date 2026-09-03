@@ -59,6 +59,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
   Button,
+  type PicodashTheme,
 } from '@picodash/picodash/ui'
 import type { ContractLabPreset } from '@lab/lib/contract-lab'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
@@ -96,6 +97,7 @@ type SpecimenNexus = RootNexus<SpecimenFieldDefinitions, CoreTransactionResult, 
 
 const standaloneListScopeId = 'contract-lab-standalone-list'
 const focusedPlacementPanelScopeId = 'contract-lab-focused-placement-panel'
+type FocusedPlacementTheme = PicodashTheme | 'ocean'
 
 const focusedPlacementModes = [
   {
@@ -265,8 +267,8 @@ function FocusedPlacementControls({
   theme,
   onThemeChange,
 }: {
-  readonly theme: 'light' | 'dark' | 'system'
-  readonly onThemeChange: (theme: 'light' | 'dark' | 'system') => void
+  readonly theme: FocusedPlacementTheme
+  readonly onThemeChange: (theme: FocusedPlacementTheme) => void
 }) {
   const panel = useDashPanel(focusedPlacementPanelScopeId)
   const currentPlacement = panel.availability === 'available' ? panel.placement : undefined
@@ -296,7 +298,7 @@ function FocusedPlacementControls({
       <div className="grid gap-1" role="group" aria-label="Placement Panel theme">
         <span className="text-xs text-(--picodash-color-text-muted)">Theme</span>
         <div className="flex flex-wrap gap-1">
-          {(['light', 'dark', 'system'] as const).map((option) => (
+          {(['light', 'dark', 'system', 'ocean'] as const).map((option) => (
             <Button
               key={option}
               size="sm"
@@ -328,7 +330,7 @@ function FocusedPlacementSpecimen({
   onCollapsedChange,
 }: Pick<ContractLabSpecimenProps, 'onCollapsedChange'>) {
   const placementBoundary = useRef<HTMLDivElement>(null)
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
+  const [theme, setTheme] = useState<FocusedPlacementTheme>('system')
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null)
   const nexus = useMemo(
     () =>
@@ -354,7 +356,7 @@ function FocusedPlacementSpecimen({
         ref={placementBoundary}
         role="region"
         aria-label="DashPanel placement boundary"
-        className="relative mx-5 mt-3 mb-5 min-h-[34rem] overflow-hidden border border-(--picodash-color-border) bg-(--picodash-color-canvas)"
+        className="relative mx-5 mt-3 mb-5 min-h-[48rem] overflow-hidden border border-(--picodash-color-border) bg-(--picodash-color-canvas)"
         data-contract-lab-focused-boundary
       >
         <div
