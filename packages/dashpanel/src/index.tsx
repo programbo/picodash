@@ -1552,7 +1552,6 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       event.target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"]')
     )
       return
-    runtime.activate(id)
     onMovePointerDown(event)
   }
 
@@ -2356,11 +2355,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                     return
                   recordPanelInteraction(runtime, id, related)
                 }}
+                onPointerDownCapture={(event) => {
+                  asideProps.onPointerDownCapture?.(event)
+                  runtime.activate(id)
+                }}
                 onPointerMove={onMovePointerMove}
                 onPointerUp={(event) => {
                   asideProps.onPointerUp?.(event)
                   onMovePointerUp(event)
-                  runtime.activate(id)
                 }}
                 onPointerCancel={onMovePointerCancel}
                 data-collapsed={collapsed ? 'true' : 'false'}

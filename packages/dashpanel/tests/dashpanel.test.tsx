@@ -1345,20 +1345,27 @@ describe('@picodash/dashpanel alpha shell', () => {
     nexus.destroy()
   })
 
-  it('raises the most recently focused or pressed Panel', async () => {
+  it('raises the most recently focused Panel or the Panel where pointer interaction starts', async () => {
     const nexus = makeNexus()
+    const onPointerDownCapture = vi.fn()
     const renderer = render(
       createElement(DashPanelProvider, {
         nexus,
         children: [
-          createElement(DashPanel, { key: 'first', id: 'first', title: 'First' }),
+          createElement(DashPanel, {
+            key: 'first',
+            id: 'first',
+            title: 'First',
+            onPointerDownCapture,
+          }),
           createElement(DashPanel, { key: 'second', id: 'second', title: 'Second' }),
         ],
       }),
     )
     let asides = renderer.root.findAllByType('aside')
-    await act(async () => asides[0]?.props.onPointerUp({}))
+    await act(async () => asides[0]?.props.onPointerDownCapture({}))
     asides = renderer.root.findAllByType('aside')
+    expect(onPointerDownCapture).toHaveBeenCalledOnce()
     expect(asides[0]?.props['data-active']).toBe('true')
     expect(asides[1]?.props['data-active']).toBeUndefined()
 

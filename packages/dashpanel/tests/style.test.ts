@@ -53,11 +53,12 @@ describe('DashPanel stylesheet contract', () => {
       /dash-header-actions[^}]*dash-header-trailing[^}]*padding-inline-end:\s*var\(--picodash-space-1\);/s,
     )
     expect(css).toMatch(
-      /data-picodash-dock-position\^='top-'[^}]*border-start-start-radius:\s*0;[^}]*border-start-end-radius:\s*0;/s,
+      /data-picodash-dock-position\^='top-'[^}]*border-top-left-radius:\s*0;[^}]*border-top-right-radius:\s*0;/s,
     )
     expect(css).toMatch(
-      /data-picodash-panel-dock-preview[^}]*data-picodash-dock-position\$='-right'[^}]*border-start-end-radius:\s*0;[^}]*border-end-end-radius:\s*0;/s,
+      /data-picodash-panel-dock-preview[^}]*data-picodash-dock-position\$='-right'[^}]*border-top-right-radius:\s*0;[^}]*border-bottom-right-radius:\s*0;/s,
     )
+    expect(css).not.toMatch(/border-(?:start|end)-(?:start|end)-radius/)
     expect(css).toMatch(
       /\.picodash-dashpanel\[data-picodash-dock-position='full-left'\],[\s\S]*?\.picodash-dashpanel\[data-picodash-dock-position='full-bottom'\]\s*\{\s*border-radius:\s*0;\s*\}/,
     )

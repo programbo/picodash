@@ -266,24 +266,24 @@
 
 .picodash-dashpanel[data-picodash-dock-position^='top-'],
 .picodash-dashpanel[data-picodash-dock-position='center-top'] {
-  border-start-start-radius: 0;
-  border-start-end-radius: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .picodash-dashpanel[data-picodash-dock-position^='bottom-'],
 .picodash-dashpanel[data-picodash-dock-position='center-bottom'] {
-  border-end-start-radius: 0;
-  border-end-end-radius: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .picodash-dashpanel[data-picodash-dock-position$='-left'] {
-  border-start-start-radius: 0;
-  border-end-start-radius: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 .picodash-dashpanel[data-picodash-dock-position$='-right'] {
-  border-start-end-radius: 0;
-  border-end-end-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .picodash-dashpanel[data-picodash-dock-position='full-left'],
@@ -295,24 +295,24 @@
 
 [data-picodash-panel-dock-preview][data-picodash-dock-position^='top-'],
 [data-picodash-panel-dock-preview][data-picodash-dock-position='center-top'] {
-  border-start-start-radius: 0;
-  border-start-end-radius: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 [data-picodash-panel-dock-preview][data-picodash-dock-position^='bottom-'],
 [data-picodash-panel-dock-preview][data-picodash-dock-position='center-bottom'] {
-  border-end-start-radius: 0;
-  border-end-end-radius: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 [data-picodash-panel-dock-preview][data-picodash-dock-position$='-left'] {
-  border-start-start-radius: 0;
-  border-end-start-radius: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 [data-picodash-panel-dock-preview][data-picodash-dock-position$='-right'] {
-  border-start-end-radius: 0;
-  border-end-end-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 [data-picodash-panel-dock-preview][data-picodash-dock-position='full-left'],
