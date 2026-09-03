@@ -29,6 +29,22 @@ describe('DashPanel placement geometry', () => {
     })
   })
 
+  it('keeps the minimum visible height contained while reducing available height near the bottom', () => {
+    expect(
+      projectDashPanelRect({ top: 130, left: 40, right: 100, bottom: 230 }, boundary, 20),
+    ).toEqual({
+      top: 130,
+      left: 40,
+      right: 100,
+      bottom: 160,
+      width: 60,
+      height: 30,
+    })
+    expect(
+      projectDashPanelPosition({ x: 40, y: 200 }, { width: 60, height: 100 }, boundary, 20),
+    ).toEqual({ x: 40, y: 140 })
+  })
+
   it('handles zero-area boundaries and freezes detached results', () => {
     const result = projectDashPanelRect(
       { top: 4, left: 5, right: 20, bottom: 30 },

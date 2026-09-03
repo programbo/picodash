@@ -134,6 +134,13 @@ all six presets, all four tested recipes, desktop and mobile boundaries, pointer
 parity, close/reopen and focus restoration, compound input/display/reset/repair/import/export, and
 the absence of unexpected console errors or Picodash diagnostics.
 
+`apps/lab/tests/phone-artifacts.spec.ts` is part of this same admitted Contract Lab suite. It runs
+the phone-sized motion, boundary, and theme journeys during the normal suite and attaches PNG,
+WebM, and JSON evidence. The theme journey covers light, dark, both system resolutions, and one
+app-owned custom recipe. `bun run artifacts:phone` selects those same tests with one worker and
+writes stable copies under `output/playwright/phone/`; it does not use a second Playwright
+configuration, route, or product-state back door.
+
 Website tests never load Lab presets or access the Lab driver. Lab tests never assert website copy,
 navigation, or redirects.
 

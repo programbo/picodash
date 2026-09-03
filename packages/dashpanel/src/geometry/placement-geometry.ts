@@ -86,13 +86,21 @@ function clamp(value: number, minimum: number, maximum: number): number {
 export function projectDashPanelRect(
   panel: DashPanelRectEdges,
   boundary: DashPanelRectEdges,
+  minimumVisibleHeight?: number,
 ): DashPanelRect {
   const source = edgeRect(panel, 'DashPanel panel rectangle')
   const target = edgeRect(boundary, 'DashPanel boundary rectangle')
   const width = Math.min(source.width, target.width)
-  const height = Math.min(source.height, target.height)
+  const minimumHeight = Math.min(
+    minimumVisibleHeight === undefined
+      ? source.height
+      : nonNegative(minimumVisibleHeight, 'DashPanel minimum visible height'),
+    source.height,
+    target.height,
+  )
   const left = clamp(source.left, target.left, target.right - width)
-  const top = clamp(source.top, target.top, target.bottom - height)
+  const top = clamp(source.top, target.top, target.bottom - minimumHeight)
+  const height = Math.min(source.height, target.bottom - top)
   return Object.freeze({ top, right: left + width, bottom: top + height, left, width, height })
 }
 
@@ -101,12 +109,19 @@ export function projectDashPanelPosition(
   position: DashPanelPoint,
   size: DashPanelSize,
   boundary: DashPanelRectEdges,
+  minimumVisibleHeight?: number,
 ): DashPanelPoint {
   const point = normalizeDashPanelPoint(position)
   const panelSize = normalizeDashPanelSize(size)
   const target = edgeRect(boundary, 'DashPanel boundary rectangle')
   const width = Math.min(panelSize.width, target.width)
-  const height = Math.min(panelSize.height, target.height)
+  const height = Math.min(
+    minimumVisibleHeight === undefined
+      ? panelSize.height
+      : nonNegative(minimumVisibleHeight, 'DashPanel minimum visible height'),
+    panelSize.height,
+    target.height,
+  )
   return Object.freeze({
     x: clamp(point.x, target.left, target.right - width),
     y: clamp(point.y, target.top, target.bottom - height),

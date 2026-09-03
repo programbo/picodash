@@ -1575,6 +1575,15 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
         .map((nodeId) => declarationById.get(nodeId))
         .filter((declaration): declaration is ReactElement => declaration !== undefined)
     : declarations
+  const declarationsByBand: Record<'start' | 'automatic' | 'end', ReactElement[]> = {
+    start: [],
+    automatic: [],
+    end: [],
+  }
+  for (const declaration of orderedDeclarations) {
+    const pin = (declaration.props as { readonly pin?: 'start' | 'end' }).pin
+    declarationsByBand[pin ?? 'automatic'].push(declaration)
+  }
   const headingIdToken = useId()
   const headingId = title === undefined ? undefined : `picodash-dashlist-heading-${headingIdToken}`
   const statusId = `picodash-dashlist-status-${useId()}`
@@ -1684,24 +1693,32 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
                             data-picodash-dashlist-list
                             data-picodash-dashlist-compact={compact || undefined}
                           >
-                            {orderedDeclarations.map((declaration, index) =>
-                              createElement(
-                                Fragment,
-                                {
-                                  key:
-                                    declaration.key ??
-                                    declarationIdentity(
+                            {(['start', 'automatic', 'end'] as const).map((band) => (
+                              <div
+                                key={band}
+                                role="presentation"
+                                data-picodash-dashlist-band={band}
+                              >
+                                {declarationsByBand[band].map((declaration, index) =>
+                                  createElement(
+                                    Fragment,
+                                    {
+                                      key:
+                                        declaration.key ??
+                                        declarationIdentity(
+                                          declaration,
+                                          `${resolved.scopeId}-${band}-${index}`,
+                                        ),
+                                    },
+                                    wrapDeclaration(
                                       declaration,
-                                      `${resolved.scopeId}-${index}`,
+                                      'list',
+                                      `${resolved.scopeId}-${band}-${index}`,
                                     ),
-                                },
-                                wrapDeclaration(
-                                  declaration,
-                                  'list',
-                                  `${resolved.scopeId}-${index}`,
-                                ),
-                              ),
-                            )}
+                                  ),
+                                )}
+                              </div>
+                            ))}
                           </div>
                           <div
                             key={actionSnapshot.announcementSequence}

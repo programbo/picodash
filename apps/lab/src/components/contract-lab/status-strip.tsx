@@ -37,7 +37,7 @@ export function ContractLabStatusStrip({
           state={specimenAvailable}
         />
         <StatusDatum
-          label="Primary Panel"
+          label="Active Panel"
           value={primaryPanelState}
           state={primaryPanelState !== 'unavailable'}
         />

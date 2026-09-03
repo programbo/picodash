@@ -68,11 +68,18 @@ describe('DashList stylesheet contract', () => {
       /\[data-picodash-dashlist-list\]\[data-picodash-dashlist-compact\],[\s\S]*grid-template-columns:\s*var\(--_picodash-dashlist-reorder-track\)\s+minmax\(0,\s*1fr\);/s,
     )
     expect(css).toMatch(
-      /:is\(\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\)\[data-picodash-dashlist-compact\][^{]*>\s*\.picodash-dashlist-item[^{]*\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*block;/s,
+      /:is\(\s*\[data-picodash-dashlist-list\]\[data-picodash-dashlist-compact\]\s*>\s*\[data-picodash-dashlist-band\]\s*>\s*\.picodash-dashlist-item,\s*\[data-picodash-dashgroup-list\]\[data-picodash-dashlist-compact\]\s*>\s*\.picodash-dashlist-item\s*\)\s*>\s*\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*block;/s,
+    )
+    expect(css).not.toMatch(/\[data-picodash-dashlist-compact\]\s+\.picodash-dashlist-item/)
+    expect(css).toMatch(
+      /\[data-picodash-dashlist-list\]\s*\{[^}]*min-block-size:\s*0;[^}]*grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto;/s,
+    )
+    expect(css).toMatch(
+      /\[data-picodash-dashlist-band='automatic'\]\s*\{[^}]*align-content:\s*start;[^}]*overflow:\s*auto;[^}]*overscroll-behavior:\s*contain;/s,
     )
     expect(css).not.toContain('@container picodash-dashlist')
     expect(css).toMatch(
-      /:is\(\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\)\[data-picodash-dashlist-compact\][\s\S]*\.picodash-dashlist-segmented\s*\[data-picodash-dashlist-segment\]\s*\{[^}]*flex:\s*1\s+1\s+auto;/s,
+      /:is\(\s*\[data-picodash-dashlist-list\]\[data-picodash-dashlist-compact\]\s*>\s*\[data-picodash-dashlist-band\]\s*>\s*\.picodash-dashlist-item,\s*\[data-picodash-dashgroup-list\]\[data-picodash-dashlist-compact\]\s*>\s*\.picodash-dashlist-item\s*\)\s*>\s*\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\]\s*>\s*\[data-picodash-dashlet-content-cell\]\s*>\s*\.picodash-dashlist-segmented\s*>\s*\[data-picodash-dashlist-segment\]\s*\{[^}]*flex:\s*1\s+1\s+auto;/s,
     )
   })
 
@@ -112,6 +119,17 @@ describe('DashList stylesheet contract', () => {
     expect(css).not.toMatch(/\.picodash-dashlist-slider\s+\[role='slider'\]/)
     expect(css).not.toMatch(/\.picodash-dashlist-segmented\s+\[role='radio'\]/)
     expect(css).not.toMatch(/\.picodash-dashlist-segmented\s+\[aria-checked=/)
+  })
+
+  it('disables every DashList transition when reduced motion is requested', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    const reducedMotion = css.match(
+      /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*)\}\s*$/u,
+    )?.[1]
+    expect(reducedMotion).toContain('[data-picodash-dashlet-shell]')
+    expect(reducedMotion).toContain('.picodash-dashlist-group-item > [data-picodash-dashgroup]')
+    expect(reducedMotion).toContain("[data-slot='dash-header']")
+    expect(reducedMotion).toContain('transition: none;')
   })
 
   it('keeps selection structural across choice states and forced colors', async () => {

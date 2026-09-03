@@ -367,6 +367,46 @@ describe('private DashPanel runtime model', () => {
     expect(runtime.getSnapshot().panels.second?.placement).toEqual(placement)
   })
 
+  it('retains Fixed and Hybrid dock leases through hide and collapse until release', () => {
+    const runtime = createPanelRuntime()
+    const occupant = runtime.acquire(
+      config('hybrid-occupant', {
+        placement: {
+          mode: 'hybrid',
+          disposition: { kind: 'docked', position: 'center-left' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('fixed-challenger', {
+        preferredPosition: { x: 20, y: 20 },
+        dockPositions: ['full-left'],
+        nexus: {
+          setDashPanelLayout: vi.fn(() => ({ ok: true }) as never),
+          resetDashPanelLayout: vi.fn(() => ({ ok: true }) as never),
+        },
+      }),
+    )
+    const fixedPlacement = {
+      mode: 'fixed' as const,
+      disposition: { kind: 'docked' as const, position: 'full-left' as const },
+    }
+
+    expect(runtime.setPlacement('fixed-challenger', fixedPlacement)).toEqual({
+      status: 'not_executed',
+      reason: 'dock_occupied',
+    })
+    runtime.hide('hybrid-occupant')
+    runtime.collapse('hybrid-occupant')
+    expect(runtime.setPlacement('fixed-challenger', fixedPlacement)).toEqual({
+      status: 'not_executed',
+      reason: 'dock_occupied',
+    })
+
+    occupant.release()
+    expect(runtime.setPlacement('fixed-challenger', fixedPlacement).status).toBe('executed')
+  })
+
   it('rematerializes an occupied dock request when its declared fallback changes', () => {
     const runtime = createPanelRuntime()
     const occupied = {
@@ -498,14 +538,137 @@ describe('private DashPanel runtime model', () => {
         },
       }),
     )
-    expect(runtime.getDockTarget('corner', { width: 300, height: 300 })).toEqual({
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'corner',
+        available: { width: 300, height: 300 },
+      }),
+    ).toEqual({
       allocation: 100,
       offset: 0,
     })
-    expect(runtime.getDockTarget('main', { width: 300, height: 300 })).toEqual({
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'main',
+        available: { width: 300, height: 300 },
+      }),
+    ).toEqual({
       allocation: 200,
       offset: 100,
     })
+  })
+
+  it('resolves the same prospective allocation for a Hybrid target and its committed dock', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('fixed-corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-right' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('hybrid', {
+        placement: {
+          mode: 'hybrid',
+          disposition: { kind: 'docked', position: 'full-left' },
+        },
+        preferredPosition: { x: 24, y: 24 },
+        dockPositions: ['full-left', 'full-right'],
+        nexus: {
+          setDashPanelLayout: vi.fn(() => ({ ok: true }) as never),
+          resetDashPanelLayout: vi.fn(() => ({ ok: true }) as never),
+        },
+      }),
+    )
+
+    const request = {
+      kind: 'prospective' as const,
+      scopeId: 'hybrid',
+      position: 'full-right' as const,
+      available: { width: 480, height: 300 },
+    }
+    expect(runtime.resolveDockTarget(request)).toEqual({ allocation: 200, offset: 100 })
+
+    expect(
+      runtime.setPlacement('hybrid', {
+        mode: 'hybrid',
+        disposition: { kind: 'docked', position: 'full-right' },
+      }).status,
+    ).toBe('executed')
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'hybrid',
+        available: request.available,
+      }),
+    ).toEqual({ allocation: 200, offset: 100 })
+  })
+
+  it('uses Fixed and Hybrid dock occupants equally for occupancy and allocation', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('hybrid-corner', {
+        placement: {
+          mode: 'hybrid',
+          disposition: { kind: 'docked', position: 'bottom-left' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('fixed-main', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'full-left' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('fixed-corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-right' },
+        },
+      }),
+    )
+    runtime.registerElement('fixed-corner', {
+      getBoundingClientRect: () => ({ width: 90 }),
+    } as never)
+    runtime.acquire(
+      config('hybrid-edge', {
+        placement: {
+          mode: 'hybrid',
+          disposition: { kind: 'docked', position: 'full-top' },
+        },
+      }),
+    )
+
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'hybrid-corner',
+        available: { width: 480, height: 300 },
+      }),
+    ).toEqual({ allocation: 100, offset: 200 })
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'fixed-main',
+        available: { width: 480, height: 300 },
+      }),
+    ).toEqual({ allocation: 200, offset: 0 })
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'hybrid-edge',
+        available: { width: 480, height: 300 },
+      }),
+    ).toEqual({ inlineAllocation: 390, inlineOffset: 0 })
+    expect(runtime.isDockPositionOccupied('hybrid-corner', 'center-left')).toBe(true)
+    expect(runtime.isDockPositionOccupied('fixed-main', 'bottom-left')).toBe(true)
   })
 
   it('shortens full horizontal edges to the measured inner edges of occupied corners', () => {
@@ -529,7 +692,13 @@ describe('private DashPanel runtime model', () => {
     runtime.registerElement('corner', {
       getBoundingClientRect: () => ({ width: 80 }),
     } as never)
-    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'edge',
+        available: { width: 300, height: 200 },
+      }),
+    ).toEqual({
       inlineAllocation: 220,
       inlineOffset: 80,
     })
@@ -557,14 +726,26 @@ describe('private DashPanel runtime model', () => {
     runtime.registerElement('corner', {
       getBoundingClientRect: () => ({ width: renderedWidth }),
     } as never)
-    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'edge',
+        available: { width: 300, height: 200 },
+      }),
+    ).toEqual({
       inlineAllocation: 220,
       inlineOffset: 80,
     })
 
     runtime.hide('corner')
     renderedWidth = 0
-    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'edge',
+        available: { width: 300, height: 200 },
+      }),
+    ).toEqual({
       inlineAllocation: 220,
       inlineOffset: 80,
     })
@@ -592,14 +773,26 @@ describe('private DashPanel runtime model', () => {
     runtime.registerElement('corner', {
       getBoundingClientRect: () => ({ width: renderedWidth }),
     } as never)
-    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'edge',
+        available: { width: 300, height: 200 },
+      }),
+    ).toEqual({
       inlineAllocation: 220,
       inlineOffset: 80,
     })
 
     renderedWidth = 0
     runtime.notifyElementResize('corner', 0)
-    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toBeUndefined()
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'edge',
+        available: { width: 300, height: 200 },
+      }),
+    ).toBeUndefined()
   })
 
   it('caches a corner width before a later edge requests its allocation', () => {
@@ -634,7 +827,13 @@ describe('private DashPanel runtime model', () => {
       }),
     )
 
-    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'edge',
+        available: { width: 300, height: 200 },
+      }),
+    ).toEqual({
       inlineAllocation: 220,
       inlineOffset: 80,
     })
@@ -674,7 +873,13 @@ describe('private DashPanel runtime model', () => {
     )
 
     expect(element.hidden).toBe(true)
-    expect(runtime.getDockTarget('edge', { width: 300, height: 200 })).toEqual({
+    expect(
+      runtime.resolveDockTarget({
+        kind: 'settled',
+        scopeId: 'edge',
+        available: { width: 300, height: 200 },
+      }),
+    ).toEqual({
       inlineAllocation: 220,
       inlineOffset: 80,
     })

@@ -239,7 +239,70 @@ describe('DashPanel portal ownership', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('cancels an active move as soon as observed geometry changes', async () => {
+  it('keeps an active move through descendant transitions and commits the preview', async () => {
+    const nexus = makeNexus()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const left = Number.parseFloat(this.style.left) || 0
+          const top = Number.parseFloat(this.style.top) || 0
+          return {
+            top,
+            right: left + 80,
+            bottom: top + 40,
+            left,
+            width: 80,
+            height: 40,
+          } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="inspector"
+          title="Inspector"
+          defaultLayout={{
+            placement: { mode: 'floating', disposition: { kind: 'free' } },
+            preferredPosition: { x: 30, y: 30 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
+    const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    await act(async () => {
+      move.dispatchEvent(new Event('transitionrun', { bubbles: true }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({
+      placement: { mode: 'floating', disposition: { kind: 'free' } },
+      preferredPosition: { x: 31, y: 30 },
+    })
+
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('cancels an active move on geometry changes and observes intrinsic text changes', async () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const firstShadowHost = document.createElement('div')
@@ -251,10 +314,24 @@ describe('DashPanel portal ownership', () => {
     boundaryShadowRoot.append(firstBoundaryWrapper)
     firstBoundaryWrapper.append(boundary)
     let boundaryWidth = 300
+    vi.spyOn(HTMLElement.prototype, 'querySelector').mockImplementation(function (
+      this: HTMLElement,
+      selectors: string,
+    ) {
+      if (selectors === ':scope > [data-picodash-panel-body]') {
+        return (
+          Array.from(this.children).find((child) =>
+            child.hasAttribute('data-picodash-panel-body'),
+          ) ?? null
+        )
+      }
+      return Element.prototype.querySelector.call(this, selectors)
+    })
     let resize!: ResizeObserverCallback
     const resizeTargets: Node[] = []
     const mutationObservers: Array<{
       callback: MutationCallback
+      options?: MutationObserverInit
       targets: Node[]
     }> = []
     vi.stubGlobal(
@@ -275,7 +352,10 @@ describe('DashPanel portal ownership', () => {
           this.record = { callback, targets: [] }
           mutationObservers.push(this.record)
         }
-        observe = (target: Node) => this.record.targets.push(target)
+        observe = (target: Node, options?: MutationObserverInit) => {
+          this.record.targets.push(target)
+          this.record.options = options
+        }
         disconnect = vi.fn()
         takeRecords = vi.fn(() => [])
       },
@@ -315,11 +395,24 @@ describe('DashPanel portal ownership', () => {
             placement: { mode: 'floating', disposition: { kind: 'free' } },
             preferredPosition: { x: 30, y: 30 },
           }}
-        />
+        >
+          <span>Status</span>
+        </DashPanel>
       </DashPanelProvider>,
     )
     const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
     const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    const contentMutationObserver = mutationObservers.find((observer) =>
+      observer.targets.some(
+        (target) => target instanceof Element && target.hasAttribute('data-picodash-panel-body'),
+      ),
+    )!
+    expect(contentMutationObserver.options).toMatchObject({
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    })
     const panelMutationObserver = mutationObservers.find(
       (observer) =>
         observer.targets.includes(panel) && observer.targets.includes(firstShadowHost.shadowRoot!),
@@ -1186,12 +1279,96 @@ describe('DashPanel portal ownership', () => {
         move.dispatchEvent(
           new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight', shiftKey: true }),
         )
+      for (let index = 0; index < 4; index += 1)
+        move.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft', shiftKey: true }),
+        )
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({
+      placement: { mode: 'hybrid', disposition: { kind: 'free' } },
+      preferredPosition: { x: 0, y: 0 },
+    })
+    await act(async () => {
+      nexus.scope('inspector').resetDashPanelLayout()
+    })
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      for (let index = 0; index < 4; index += 1)
+        move.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight', shiftKey: true }),
+        )
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
     expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({
       placement: { mode: 'hybrid', disposition: { kind: 'free' } },
       preferredPosition: { x: 40, y: 0 },
     })
+
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('preserves settled Hybrid placement when pointer release targets an occupied dock', async () => {
+    const nexus = makeNexus()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const left = Number.parseFloat(this.style.left) || 0
+          const top = Number.parseFloat(this.style.top) || 0
+          return {
+            top,
+            right: left + 80,
+            bottom: top + 40,
+            left,
+            width: 80,
+            height: 40,
+          } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="occupied"
+          title="Occupied"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'top-left' } },
+          }}
+        />
+        <DashPanel
+          id="moving"
+          title="Moving"
+          defaultLayout={{
+            placement: { mode: 'hybrid', disposition: { kind: 'docked', position: 'top-right' } },
+            preferredPosition: { x: 220, y: 0 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const moving = [...portal.querySelectorAll<HTMLElement>('[data-picodash-panel]')].find(
+      (panel) => panel.textContent?.includes('Moving'),
+    )!
+    const move = portal.querySelector('[aria-label="Move panel Moving"]') as HTMLElement
+    const pointer = (type: string, x: number, y: number) => {
+      const event = new MouseEvent(type, { bubbles: true, button: 0, clientX: x, clientY: y })
+      Object.defineProperty(event, 'pointerId', { value: 9 })
+      return event
+    }
+    await act(async () => move.dispatchEvent(pointer('pointerdown', 260, 20)))
+    await act(async () => window.dispatchEvent(pointer('pointermove', 10, 20)))
+    expect(moving.getAttribute('data-picodash-dock-intent')).toBeNull()
+    await act(async () => window.dispatchEvent(pointer('pointerup', 10, 20)))
+
+    expect(nexus.getState().scopes.get('moving')?.dashPanel).toBeUndefined()
+    expect(moving.getAttribute('data-picodash-placement')).toBe('hybrid-docked')
 
     await act(async () => root.unmount())
     vi.restoreAllMocks()
@@ -1280,7 +1457,7 @@ describe('DashPanel portal ownership', () => {
     nexus.destroy()
   })
 
-  it('applies side allocation segments to compatible dock occupants', async () => {
+  it('applies side and adjacent-edge allocation to mixed Fixed and Hybrid occupants', async () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
@@ -1299,7 +1476,7 @@ describe('DashPanel portal ownership', () => {
           id="corner"
           title="Corner"
           defaultLayout={{
-            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'top-left' } },
+            placement: { mode: 'hybrid', disposition: { kind: 'docked', position: 'top-left' } },
           }}
         />
         <DashPanel
@@ -1313,7 +1490,7 @@ describe('DashPanel portal ownership', () => {
           id="edge"
           title="Edge"
           defaultLayout={{
-            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-top' } },
+            placement: { mode: 'hybrid', disposition: { kind: 'docked', position: 'full-top' } },
           }}
         />
       </DashPanelProvider>,

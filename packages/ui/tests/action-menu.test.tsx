@@ -80,6 +80,7 @@ describe('@picodash/ui ActionMenu composition', () => {
     await render(tree(<ActionMenuItem label="Run" onAction={onAction} />))
     const defaultTrigger = container.querySelector('[data-slot="button"]') as HTMLButtonElement
     expect(defaultTrigger.getAttribute('aria-label')).toBe('Settings actions')
+    expect(defaultTrigger.querySelector('svg')?.getAttribute('fill')).toBe('currentColor')
     await openMenu()
     const item = document.querySelector('[data-slot="action-menu-item"]') as HTMLElement
     expect(item.getAttribute('textvalue')).toBeNull()
@@ -136,6 +137,9 @@ describe('@picodash/ui ActionMenu composition', () => {
       (element) => element.textContent === 'JSON',
     ) as HTMLElement
     expect(nested).toBeTruthy()
+    const nestedMenu = nested.closest('[data-slot="action-menu"]')
+    expect(nestedMenu?.classList.contains('picodash-action-menu')).toBe(true)
+    expect(nestedMenu?.classList.contains('picodash-action-submenu-menu')).toBe(true)
     await clickElement(nested)
     expect(subAction).toHaveBeenCalledTimes(1)
     expect(document.querySelector('[data-slot="action-menu"]')).toBeNull()

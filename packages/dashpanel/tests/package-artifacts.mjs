@@ -24,6 +24,7 @@ async function main() {
   assert.deepEqual(manifest.dependencies, {
     '@picodash/nexus': 'workspace:*',
     '@picodash/ui': 'workspace:*',
+    motion: 'catalog:',
   })
   assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })
   for (const file of [

@@ -39,6 +39,107 @@ async function openLab(page: Page) {
   )
 }
 
+async function samplePanelHeightTransition(page: Page, panel: Locator, action: Locator) {
+  const before = await panel.evaluate((element) => element.getBoundingClientRect().height)
+  await action.evaluate((element) => {
+    if (!(element instanceof HTMLElement)) throw new TypeError('Panel action must be an element.')
+    element.click()
+  })
+  const midpoint = await panel.evaluate(
+    (element) =>
+      new Promise<number>((resolve, reject) => {
+        const deadline = performance.now() + 1_000
+        const inspect = () => {
+          const animation = element.getAnimations().find((candidate) => {
+            const effect = candidate.effect
+            return (
+              effect instanceof KeyframeEffect &&
+              effect.getKeyframes().some((keyframe) => 'blockSize' in keyframe)
+            )
+          })
+          if (!animation) {
+            if (performance.now() >= deadline) {
+              reject(new TypeError('Expected an active block-size animation.'))
+              return
+            }
+            requestAnimationFrame(inspect)
+            return
+          }
+          const duration = animation.effect?.getTiming().duration
+          if (typeof duration !== 'number') {
+            reject(new TypeError('Expected a numeric block-size animation duration.'))
+            return
+          }
+          animation.pause()
+          animation.currentTime = duration / 2
+          requestAnimationFrame(() => {
+            const midpoint = element.getBoundingClientRect().height
+            animation.play()
+            void animation.finished.then(() => resolve(midpoint), reject)
+          })
+        }
+        inspect()
+      }),
+  )
+  await expect(panel).not.toHaveAttribute('data-picodash-height-motion')
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)))
+  const after = await panel.evaluate((element) => element.getBoundingClientRect().height)
+  return { before, samples: [midpoint], after }
+}
+
+async function pausePanelTranslateAnimationAfter(
+  panel: Locator,
+  minimumElapsed: number,
+  seekToStart = false,
+) {
+  return panel.evaluate(
+    (element, { elapsedThreshold, resetToStart }) =>
+      new Promise<{ x: number; y: number }>((resolve, reject) => {
+        const deadline = performance.now() + 1_000
+        const inspect = () => {
+          const animation = element.getAnimations().find((candidate) => {
+            const effect = candidate.effect
+            return (
+              effect instanceof KeyframeEffect &&
+              effect.getKeyframes().some((keyframe) => typeof keyframe.translate === 'string')
+            )
+          })
+          if (!animation) {
+            if (performance.now() >= deadline) {
+              reject(new TypeError('Expected an active Panel translate animation.'))
+              return
+            }
+            requestAnimationFrame(inspect)
+            return
+          }
+          const duration = animation.effect?.getTiming().duration
+          if (typeof duration !== 'number') {
+            reject(new TypeError('Expected a numeric Panel translate animation duration.'))
+            return
+          }
+          const currentTime = animation.currentTime
+          if (typeof currentTime !== 'number' || currentTime < elapsedThreshold) {
+            if (performance.now() >= deadline) {
+              reject(new TypeError('Panel translate animation did not reach the expected time.'))
+              return
+            }
+            requestAnimationFrame(inspect)
+            return
+          }
+          animation.pause()
+          if (resetToStart) animation.currentTime = 0
+          requestAnimationFrame(() => {
+            const rect = element.getBoundingClientRect()
+            animation.play()
+            resolve({ x: rect.x, y: rect.y })
+          })
+        }
+        inspect()
+      }),
+    { elapsedThreshold: minimumElapsed, resetToStart: seekToStart },
+  )
+}
+
 test('keeps the versioned driver, Console, and status available while the specimen is offline', async ({
   page,
 }) => {
@@ -51,6 +152,7 @@ test('keeps the versioned driver, Console, and status available while the specim
     })
   })
   await openLab(page)
+  await page.getByRole('button', { name: /^Documents:/ }).click()
 
   await expect(page.locator('[data-product-route="contract-lab"]')).toHaveCount(1)
   await expect(page.locator('[data-contract-lab-persistence-status]')).toHaveText(
@@ -164,6 +266,10 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
     'data-picodash-dashlet',
     'style-lab-color',
   )
+  await expect(basicsList.locator('[data-style-lab-lane="end"]')).toHaveAttribute(
+    'data-picodash-dashgroup',
+    'style-lab-readout',
+  )
   await expect(
     basicsList
       .getByRole('group', { name: 'Basics' })
@@ -173,6 +279,7 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   const numberDashlet = basicsList.locator('[data-picodash-dashlet="style-lab-number"]')
   const numberControl = numberDashlet.getByRole('textbox', { name: 'NumberDashlet' })
   await expect(numberControl).toHaveValue('1.235')
+  await numberDashlet.scrollIntoViewIfNeeded()
   await numberDashlet.getByText('NumberDashlet', { exact: true }).click()
   await expect(numberControl).toBeFocused()
   const numberHelp = numberDashlet.getByRole('button', { name: 'Help for NumberDashlet' })
@@ -410,21 +517,58 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   }
   await expect(page.getByRole('img', { name: 'Request trend' })).toBeVisible()
 
-  const collapseBasics = basicsPanel.getByRole('button', {
-    name: 'Collapse panel Basics & readout',
+  const minimizeBasics = basicsPanel.getByRole('button', {
+    name: 'Minimize panel Basics & readout',
   })
-  await collapseBasics.focus()
-  await collapseBasics.press('Enter')
-  const expandBasics = basicsPanel.getByRole('button', {
-    name: 'Expand panel Basics & readout',
+  await minimizeBasics.focus()
+  await minimizeBasics.press('Enter')
+  const revealBasics = page.getByRole('button', {
+    name: 'Reveal panel Basics & readout',
   })
-  await expect(expandBasics).toBeFocused()
-  await expect(expandBasics).toHaveAttribute('aria-expanded', 'false')
-  await expect(basicsList).toBeHidden()
-  await expandBasics.press('Enter')
-  await expect(collapseBasics).toBeFocused()
-  await expect(collapseBasics).toHaveAttribute('aria-expanded', 'true')
+  await expect(revealBasics).toBeFocused()
+  await expect(revealBasics).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.locator('[data-style-lab-panel="basics-readout"]')).toHaveAttribute(
+    'aria-hidden',
+    'true',
+  )
+  await revealBasics.press('Enter')
+  await expect(minimizeBasics).toBeFocused()
+  await expect(minimizeBasics).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.locator('[data-style-lab-panel="basics-readout"]')).not.toHaveAttribute(
+    'aria-hidden',
+  )
   await expect(basicsList).toBeVisible()
+
+  const styleBoundary = page.locator('[data-contract-lab-style-lab]')
+  await styleBoundary.evaluate((element) => {
+    element.style.blockSize = '30rem'
+    element.style.minBlockSize = '30rem'
+  })
+  await styleBoundary.scrollIntoViewIfNeeded()
+  const automaticBand = basicsList.locator('[data-picodash-dashlist-band="automatic"]')
+  await expect
+    .poll(() => automaticBand.evaluate((element) => getComputedStyle(element).overflowY))
+    .toBe('auto')
+  await expect
+    .poll(() => automaticBand.evaluate((element) => element.scrollHeight > element.clientHeight))
+    .toBe(true)
+  const pinnedGeometry = await basicsList.evaluate((list) => {
+    const listRect = list.getBoundingClientRect()
+    const start = list.querySelector<HTMLElement>('[data-picodash-dashlist-band="start"]')!
+    const automatic = list.querySelector<HTMLElement>('[data-picodash-dashlist-band="automatic"]')!
+    const end = list.querySelector<HTMLElement>('[data-picodash-dashlist-band="end"]')!
+    return {
+      automaticBottom: automatic.getBoundingClientRect().bottom,
+      endBottom: end.getBoundingClientRect().bottom,
+      endTop: end.getBoundingClientRect().top,
+      listBottom: listRect.bottom,
+      listTop: listRect.top,
+      startTop: start.getBoundingClientRect().top,
+    }
+  })
+  expect(pinnedGeometry.startTop).toBeGreaterThanOrEqual(pinnedGeometry.listTop - 1)
+  expect(pinnedGeometry.endTop).toBeGreaterThanOrEqual(pinnedGeometry.automaticBottom - 1)
+  expect(pinnedGeometry.endBottom).toBeLessThanOrEqual(pinnedGeometry.listBottom + 1)
 })
 
 test('opens, cancels, and restores focus for the landed shared AlertDialog', async ({ page }) => {
@@ -465,25 +609,110 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   browser,
 }) => {
   await openLab(page)
-  const standalonePanel = page.getByRole('complementary', { name: 'Standalone Panel' })
-  const portalTarget = page.locator('[data-contract-lab-standalone-portal-target]')
-  await expect(standalonePanel).toBeVisible()
-  await expect(portalTarget.locator('[data-contract-lab-standalone-panel]')).toHaveCount(1)
-  const specimenBoundary = page.locator('[data-contract-lab-specimen]')
-  const boundaryBox = (await specimenBoundary.boundingBox())!
-  const moveControl = standalonePanel.getByRole('button', {
-    name: 'Move panel Standalone Panel',
+  expect(
+    await page.evaluate(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches),
+  ).toBe(false)
+  await page.getByRole('button', { name: /^Placement:/ }).click()
+  const focusedPanel = page.getByRole('complementary', { name: 'Placement Panel' })
+  const portalTarget = page.locator('[data-contract-lab-focused-portal-target]')
+  await expect(focusedPanel).toBeVisible()
+  await expect(page.getByRole('complementary')).toHaveCount(2)
+  await expect(portalTarget.locator('[data-contract-lab-focused-placement-panel]')).toHaveCount(1)
+  const placementBoundary = page.locator('[data-contract-lab-focused-boundary]')
+  const placementState = page.getByRole('status', { name: 'Current panel placement' })
+  const boundaryBox = (await placementBoundary.boundingBox())!
+  const assertPlacementGeometry = async () => {
+    const panelBox = (await focusedPanel.boundingBox())!
+    expect(panelBox.x).toBeGreaterThanOrEqual(boundaryBox.x)
+    expect(panelBox.y).toBeGreaterThanOrEqual(boundaryBox.y)
+    expect(panelBox.x + panelBox.width).toBeLessThanOrEqual(boundaryBox.x + boundaryBox.width)
+    expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(boundaryBox.y + boundaryBox.height)
+  }
+  await assertPlacementGeometry()
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'floating-free')
+  await expect(placementState).toHaveText('Floating: free')
+
+  const header = focusedPanel.locator(':scope > [data-slot="dash-header"]')
+  await expect(header).toHaveAttribute('data-picodash-panel-drag-surface', 'true')
+  const moveControl = focusedPanel.getByRole('button', {
+    name: 'Move panel Placement Panel',
   })
-  await page.getByRole('button', { name: 'Close panel Primary Panel' }).press('Enter')
-  const beforePointer = (await standalonePanel.boundingBox())!
+  await expect(moveControl).not.toHaveAttribute('data-icon-only')
+  const titleDragSurface = focusedPanel.locator('[data-picodash-panel-title-drag-surface]')
+  const actionMenu = focusedPanel.getByRole('button', { name: 'Actions for Placement Panel' })
+  await expect(actionMenu.locator('svg')).toHaveAttribute('fill', 'currentColor')
+  await actionMenu.click()
+  const placementSubmenuTrigger = page.getByRole('menuitem', { name: 'Placement', exact: true })
+  await placementSubmenuTrigger.press('ArrowRight')
+  const placementSubmenu = page.locator('[data-slot="action-menu"].picodash-action-submenu-menu')
+  await expect(placementSubmenu).toBeVisible()
+  const submenuPresentation = await placementSubmenu.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      backgroundColor: style.backgroundColor,
+      borderStyle: style.borderTopStyle,
+      borderWidth: style.borderTopWidth,
+    }
+  })
+  expect(submenuPresentation.backgroundColor).not.toBe('rgba(0, 0, 0, 0)')
+  expect(submenuPresentation.borderStyle).not.toBe('none')
+  expect(submenuPresentation.borderWidth).not.toBe('0px')
+  await placementSubmenu.press('Escape')
+  await placementSubmenuTrigger.press('Escape')
+  const headerBox = (await header.boundingBox())!
+  for (const button of await header.locator('[data-slot="button"][data-icon-only]').all()) {
+    const buttonBox = (await button.boundingBox())!
+    expect(
+      Math.abs(buttonBox.y + buttonBox.height / 2 - (headerBox.y + headerBox.height / 2)),
+    ).toBeLessThanOrEqual(1)
+  }
+
+  await page.getByRole('button', { name: 'Fixed', exact: true }).click()
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'fixed-docked')
+  await expect(placementState).toHaveText('Fixed: docked full-right')
+  await expect(moveControl).toBeDisabled()
+  await assertPlacementGeometry()
+
+  await page.getByRole('button', { name: 'Hybrid', exact: true }).click()
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
+  await expect(placementState).toHaveText('Hybrid: docked full-left')
+  await expect(moveControl).toBeEnabled()
+  const beforePickup = (await focusedPanel.boundingBox())!
   const moveBox = (await moveControl.boundingBox())!
   await page.mouse.move(moveBox.x + moveBox.width / 2, moveBox.y + moveBox.height / 2)
   await page.mouse.down()
-  await page.mouse.move(moveBox.x + moveBox.width / 2 + 48, moveBox.y + moveBox.height / 2 + 32)
   await page.mouse.up()
-  const afterPointer = (await standalonePanel.boundingBox())!
-  expect(afterPointer.x).not.toBe(beforePointer.x)
-  expect(afterPointer.y).not.toBe(beforePointer.y)
+  const afterPickup = (await focusedPanel.boundingBox())!
+  expect(afterPickup.x).toBeCloseTo(beforePickup.x, 0)
+  expect(afterPickup.y).toBeCloseTo(beforePickup.y, 0)
+
+  const titleBox = (await titleDragSurface.boundingBox())!
+  await page.mouse.move(titleBox.x + titleBox.width / 2, titleBox.y + titleBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(titleBox.x + titleBox.width / 2 + 64, titleBox.y + titleBox.height / 2 + 40)
+  await page.mouse.up()
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'hybrid-free')
+  await expect(placementState).toHaveText('Hybrid: free')
+  await assertPlacementGeometry()
+
+  await page.getByRole('button', { name: 'Floating', exact: true }).click()
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'floating-free')
+  await expect(placementState).toHaveText('Floating: free')
+  const beforePointer = (await focusedPanel.boundingBox())!
+  const floatingTitleBox = (await titleDragSurface.boundingBox())!
+  await page.mouse.move(
+    floatingTitleBox.x + floatingTitleBox.width / 2,
+    floatingTitleBox.y + floatingTitleBox.height / 2,
+  )
+  await page.mouse.down()
+  await page.mouse.move(
+    floatingTitleBox.x + floatingTitleBox.width / 2 + 48,
+    floatingTitleBox.y + floatingTitleBox.height / 2 + 32,
+  )
+  await page.mouse.up()
+  const afterPointer = (await focusedPanel.boundingBox())!
+  expect(afterPointer.x).toBeGreaterThan(beforePointer.x)
+  expect(afterPointer.y).toBeGreaterThan(beforePointer.y)
   expect(afterPointer.x).toBeGreaterThanOrEqual(boundaryBox.x)
   expect(afterPointer.y).toBeGreaterThanOrEqual(boundaryBox.y)
   expect(afterPointer.x + afterPointer.width).toBeLessThanOrEqual(boundaryBox.x + boundaryBox.width)
@@ -500,21 +729,21 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
         ),
       ),
   )
-  const beforeBoundaryTranslation = (await standalonePanel.boundingBox())!
-  await specimenBoundary.evaluate((boundary) => {
+  const beforeBoundaryTranslation = (await focusedPanel.boundingBox())!
+  await placementBoundary.evaluate((boundary) => {
     boundary.style.transform = 'translate(20px, 12px)'
   })
   await expect
-    .poll(async () => (await standalonePanel.boundingBox())?.x)
+    .poll(async () => (await focusedPanel.boundingBox())?.x)
     .toBeCloseTo(beforeBoundaryTranslation.x + 20, 0)
   await expect
-    .poll(async () => (await standalonePanel.boundingBox())?.y)
+    .poll(async () => (await focusedPanel.boundingBox())?.y)
     .toBeCloseTo(beforeBoundaryTranslation.y + 12, 0)
-  await specimenBoundary.evaluate((boundary) => {
+  await placementBoundary.evaluate((boundary) => {
     boundary.style.transform = ''
   })
   await portalTarget.evaluate((target) => {
-    document.querySelector('[data-contract-lab-specimen]')?.append(target)
+    document.querySelector('[data-contract-lab-focused-boundary]')?.append(target)
   })
   await page.evaluate(
     () =>
@@ -526,20 +755,77 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   )
 
   await moveControl.focus()
-  const beforeKeyboard = (await standalonePanel.boundingBox())!
+  const beforeKeyboard = (await focusedPanel.boundingBox())!
   await moveControl.press('Enter')
   await moveControl.press('Shift+ArrowRight')
   await moveControl.press('Enter')
-  const afterKeyboard = (await standalonePanel.boundingBox())!
-  expect(afterKeyboard.x).not.toBe(beforeKeyboard.x)
+  const afterKeyboard = (await focusedPanel.boundingBox())!
+  expect(afterKeyboard.x).toBeCloseTo(beforeKeyboard.x + 10, 0)
+  expect(afterKeyboard.y).toBeCloseTo(beforeKeyboard.y, 0)
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'floating-free')
   await expect(moveControl).toBeFocused()
+
+  const beforeKeyboardCancel = (await focusedPanel.boundingBox())!
+  await moveControl.press('Enter')
+  await moveControl.press('Shift+ArrowRight')
+  const duringKeyboardCancel = (await focusedPanel.boundingBox())!
+  expect(duringKeyboardCancel.x).toBeCloseTo(beforeKeyboardCancel.x + 10, 0)
+  expect(duringKeyboardCancel.y).toBeCloseTo(beforeKeyboardCancel.y, 0)
+  await moveControl.press('Escape')
+  const afterKeyboardCancel = (await focusedPanel.boundingBox())!
+  expect(afterKeyboardCancel.x).toBeCloseTo(beforeKeyboardCancel.x, 0)
+  expect(afterKeyboardCancel.y).toBeCloseTo(beforeKeyboardCancel.y, 0)
+  await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'floating-free')
+  await expect(moveControl).toBeFocused()
+  await expect(focusedPanel.getByRole('button', { name: 'Reset panel layout' })).toBeVisible()
+  await focusedPanel.getByRole('button', { name: 'Reset panel layout' }).click()
+  await expect(focusedPanel).toBeVisible()
+  await assertPlacementGeometry()
+  const localCount = page.getByRole('status', { name: 'Local child count' })
+  await focusedPanel.getByRole('button', { name: 'Increment local count' }).click()
+  await expect(localCount).toHaveText('1')
+  const collapsedMotion = await samplePanelHeightTransition(
+    page,
+    focusedPanel,
+    focusedPanel.getByRole('button', { name: 'Collapse panel Placement Panel' }),
+  )
+  expect(collapsedMotion.after).toBeLessThan(collapsedMotion.before)
+  expect(
+    collapsedMotion.samples.some(
+      (height) => height < collapsedMotion.before - 1 && height > collapsedMotion.after + 1,
+    ),
+  ).toBe(true)
+  const expandedMotion = await samplePanelHeightTransition(
+    page,
+    focusedPanel,
+    focusedPanel.getByRole('button', { name: 'Expand panel Placement Panel' }),
+  )
+  expect(expandedMotion.after).toBeGreaterThan(expandedMotion.before)
+  expect(
+    expandedMotion.samples.some(
+      (height) => height > expandedMotion.before + 1 && height < expandedMotion.after - 1,
+    ),
+  ).toBe(true)
+  await focusedPanel.getByRole('button', { name: 'Collapse panel Placement Panel' }).press('Enter')
   await expect(
-    standalonePanel.locator('[data-contract-lab-standalone-panel-placement]'),
-  ).toHaveText('floating-free')
-  await standalonePanel.getByRole('button', { name: 'Reset panel layout' }).click()
-  await expect(
-    standalonePanel.locator('[data-contract-lab-standalone-panel-placement]'),
-  ).toHaveText('floating-snapped')
+    focusedPanel.getByRole('button', { name: 'Expand panel Placement Panel' }),
+  ).toBeFocused()
+  await focusedPanel.getByRole('button', { name: 'Expand panel Placement Panel' }).press('Enter')
+  await expect(localCount).toHaveText('1')
+  await focusedPanel.getByRole('button', { name: 'Close panel Placement Panel' }).press('Enter')
+  await expect(focusedPanel).toBeHidden()
+  const reopen = page.getByRole('button', { name: 'Show panel' })
+  await reopen.press('Enter')
+  await expect(focusedPanel).toBeVisible()
+  await expect(localCount).toHaveText('1')
+  await expect(page.getByRole('button', { name: 'Collapse panel Placement Panel' })).toBeFocused()
+  for (const option of ['light', 'dark', 'system']) {
+    await page.getByRole('button', { name: `Use ${option} theme` }).click()
+    await expect(page.getByRole('button', { name: `Use ${option} theme` })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  }
   await page.getByRole('button', { name: /^Overlays:/ }).click()
   const regularTrigger = page.getByRole('button', { name: 'Open shared AlertDialog' })
   const regular = await regularTrigger.evaluate((element) => {
@@ -588,13 +874,26 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     })
     coarsePage.on('pageerror', (error) => coarseErrors.push(error.message))
     await openLab(coarsePage)
+    await coarsePage.getByRole('button', { name: /^Placement:/ }).click()
+    const coarsePanel = coarsePage.getByRole('complementary', { name: 'Placement Panel' })
+    const coarseBoundary = coarsePage.locator('[data-contract-lab-focused-boundary]')
+    await expect(coarsePanel).toBeVisible()
+    const coarsePanelBox = (await coarsePanel.boundingBox())!
+    const coarseBoundaryBox = (await coarseBoundary.boundingBox())!
+    expect(coarsePanelBox.x).toBeGreaterThanOrEqual(coarseBoundaryBox.x)
+    expect(coarsePanelBox.x + coarsePanelBox.width).toBeLessThanOrEqual(
+      coarseBoundaryBox.x + coarseBoundaryBox.width,
+    )
+    expect(coarsePanelBox.y + coarsePanelBox.height).toBeLessThanOrEqual(
+      coarseBoundaryBox.y + coarseBoundaryBox.height,
+    )
     await coarsePage.addStyleTag({ content: ':root { font-size: 12px; }' })
     await expect
       .poll(() => coarsePage.evaluate(() => getComputedStyle(document.documentElement).fontSize))
       .toBe('12px')
-    await coarsePage.getByRole('button', { name: 'Close panel Primary Panel' }).press('Enter')
+    await coarsePage.getByRole('button', { name: /^Style lab:/ }).click()
     await coarsePage.getByRole('button', { name: /^Style lab:/ }).press('Enter')
-    const coarseReorder = coarsePage.getByRole('button', { name: 'Reorder Basics' })
+    const coarseReorder = coarsePage.getByRole('button', { name: 'Reorder NumberDashlet' })
     const coarseReorderBounds = await coarseReorder.evaluate((element) => {
       const rect = element.getBoundingClientRect()
       return { width: rect.width, height: rect.height }
@@ -760,10 +1059,338 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   }
 })
 
+test('proves live magnetic placement, Hybrid dock intent, and docked visibility', async ({
+  page,
+}) => {
+  await openLab(page)
+  await page.getByRole('button', { name: /^Placement:/ }).click()
+  const panel = page.locator('[data-contract-lab-focused-placement-panel]')
+  const panelByRole = page.getByRole('complementary', { name: 'Placement Panel' })
+  const dragSurface = panelByRole.locator('[data-picodash-panel-drag-surface]')
+  const boundary = page.locator('[data-contract-lab-focused-boundary]')
+  const showPanel = page.getByRole('button', { name: 'Show panel' })
+  await expect.poll(async () => (await boundary.boundingBox())?.height).toBeGreaterThanOrEqual(768)
+  const assertFullRightMinimize = async () => {
+    const minimize = page.getByRole('button', { name: 'Minimize panel Placement Panel' })
+    await expect(minimize.locator('svg')).toHaveAttribute('data-picodash-arrow-direction', 'right')
+    await minimize.click()
+
+    const reveal = page.getByRole('button', { name: 'Reveal panel Placement Panel' })
+    await expect(reveal).toBeVisible()
+    await expect(reveal).toBeFocused()
+    await expect(reveal.locator('svg')).toHaveAttribute('data-picodash-arrow-direction', 'left')
+    await expect(panel).toHaveAttribute('data-picodash-docked-minimized', 'true')
+    await expect(panel).toHaveAttribute('aria-hidden', 'true')
+    await expect(panel.locator('[data-picodash-panel-body]')).not.toHaveAttribute('hidden')
+    await expect
+      .poll(() => panel.evaluate((element) => getComputedStyle(element).opacity))
+      .toBe('0')
+    const minimizedBoundaryBox = (await boundary.boundingBox())!
+    await expect
+      .poll(async () => (await panel.boundingBox())?.x)
+      .toBeGreaterThanOrEqual(minimizedBoundaryBox.x + minimizedBoundaryBox.width - 1)
+    const revealBox = (await reveal.boundingBox())!
+    expect(revealBox.x + revealBox.width).toBeCloseTo(
+      minimizedBoundaryBox.x + minimizedBoundaryBox.width,
+      0,
+    )
+
+    await reveal.click()
+    await expect(minimize).toBeFocused()
+    await expect(panel).not.toHaveAttribute('data-picodash-docked-minimized')
+    await expect
+      .poll(() => panel.evaluate((element) => getComputedStyle(element).opacity))
+      .toBe('1')
+  }
+
+  await page.getByRole('button', { name: 'Fixed', exact: true }).click()
+  await assertFullRightMinimize()
+
+  for (const mode of ['Fixed', 'Hybrid'] as const) {
+    await page.getByRole('button', { name: mode, exact: true }).click()
+    await panel.locator('[aria-label="Close panel Placement Panel"]').click()
+    await expect(panel).toHaveAttribute('hidden', '')
+    expect(await panel.evaluate((element) => getComputedStyle(element).display)).toBe('none')
+    expect(await panel.boundingBox()).toBeNull()
+    await showPanel.click()
+  }
+
+  await page.getByRole('button', { name: 'Floating', exact: true }).click()
+  await panel.evaluate((element) => {
+    element.style.setProperty('--picodash-panel-snap-duration', '320ms')
+    element.style.setProperty('--picodash-panel-detach-duration', '280ms')
+  })
+  const boundaryBox = (await boundary.boundingBox())!
+  let panelBox = (await panelByRole.boundingBox())!
+  let moveBox = (await dragSurface.boundingBox())!
+  let pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'floating-free-preview')
+  await page.mouse.move(
+    pointer.x + boundaryBox.x + 8 - panelBox.x,
+    pointer.y + boundaryBox.y + 8 - panelBox.y,
+  )
+  await expect
+    .poll(() =>
+      panel.evaluate((element) => ({
+        magnetic: element.getAttribute('data-picodash-magnetic'),
+        motion: element.getAttribute('data-picodash-magnetic-motion'),
+        hasExpectedAnimation: element.getAnimations().some((animation) => {
+          const effect = animation.effect
+          return (
+            effect instanceof KeyframeEffect &&
+            effect.getTiming().duration === 320 &&
+            effect.getKeyframes().length === 3 &&
+            effect.getKeyframes().every((keyframe) => typeof keyframe.translate === 'string')
+          )
+        }),
+      })),
+    )
+    .toEqual({ magnetic: 'snapped', motion: 'snap', hasExpectedAnimation: true })
+  await expect.poll(async () => (await panel.boundingBox())?.x).toBeCloseTo(boundaryBox.x + 8, 0)
+  await expect.poll(async () => (await panel.boundingBox())?.y).toBeCloseTo(boundaryBox.y + 8, 0)
+  await page.mouse.up()
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'floating-snapped')
+
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x + 24, pointer.y)
+  await expect(panel).toHaveAttribute('data-picodash-magnetic', 'resisted')
+  const resistedX = (await panel.boundingBox())!.x
+  expect(resistedX).toBeGreaterThan(boundaryBox.x + 8)
+  expect(resistedX).toBeLessThan(boundaryBox.x + 8 + 24)
+  await page.mouse.move(pointer.x + 44, pointer.y)
+  await expect
+    .poll(() =>
+      panel.evaluate((element) => ({
+        magnetic: element.getAttribute('data-picodash-magnetic'),
+        motion: element.getAttribute('data-picodash-magnetic-motion'),
+        hasExpectedAnimation: element.getAnimations().some((animation) => {
+          const effect = animation.effect
+          return (
+            effect instanceof KeyframeEffect &&
+            effect.getTiming().duration === 280 &&
+            effect.getKeyframes().length === 3 &&
+            effect.getKeyframes().every((keyframe) => typeof keyframe.translate === 'string')
+          )
+        }),
+      })),
+    )
+    .toEqual({ magnetic: null, motion: 'detach', hasExpectedAnimation: true })
+  await page.mouse.up()
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'floating-free')
+
+  const freeStart = (await panel.boundingBox())!
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(
+    pointer.x + boundaryBox.x + 8 - freeStart.x,
+    pointer.y + boundaryBox.y + 8 - freeStart.y,
+  )
+  await expect(panel).toHaveAttribute('data-picodash-magnetic', 'snapped')
+  await page.mouse.move(pointer.x + boundaryBox.x + 96 - freeStart.x, pointer.y + 80)
+  await expect(panel).not.toHaveAttribute('data-picodash-magnetic')
+  await expect(panel).toHaveAttribute('data-picodash-magnetic-motion', 'detach')
+  await expect.poll(async () => (await panel.boundingBox())?.x).toBeGreaterThan(boundaryBox.x + 48)
+  await expect(panel).not.toHaveAttribute('data-picodash-magnetic-motion')
+  const releasedFreePreview = (await panel.boundingBox())!
+  await page.mouse.up()
+  await expect
+    .poll(async () => (await panel.boundingBox())?.x)
+    .toBeCloseTo(releasedFreePreview.x, 0)
+
+  await panel.evaluate((element) => {
+    element.style.setProperty('--picodash-panel-snap-duration', '1000ms')
+    element.style.setProperty('--picodash-panel-detach-duration', '1000ms')
+    element.style.setProperty('--picodash-panel-snap-bounce', '0')
+    element.style.setProperty('--picodash-panel-detach-bounce', '0')
+  })
+  const continuityStart = (await panel.boundingBox())!
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(
+    pointer.x + boundaryBox.x + 8 - continuityStart.x,
+    pointer.y + boundaryBox.y + 8 - continuityStart.y,
+  )
+  await expect(panel).toHaveAttribute('data-picodash-magnetic-motion', 'snap')
+  const interruptedPosition = await pausePanelTranslateAnimationAfter(panel, 200)
+  await page.mouse.move(
+    pointer.x + boundaryBox.x + 96 - continuityStart.x,
+    pointer.y + boundaryBox.y + 80 - continuityStart.y,
+  )
+  await expect(panel).toHaveAttribute('data-picodash-magnetic-motion', 'detach')
+  const replacementStart = await pausePanelTranslateAnimationAfter(panel, 0, true)
+  expect(replacementStart.x).toBeCloseTo(interruptedPosition.x, 0)
+  expect(replacementStart.y).toBeCloseTo(interruptedPosition.y, 0)
+  await page.mouse.up()
+
+  const panelBody = panel.locator('[data-picodash-panel-body]')
+  await panelBody.evaluate((body) => {
+    const spacer = body.ownerDocument.createElement('div')
+    spacer.dataset.contractLabTallPanelProbe = 'true'
+    spacer.style.blockSize = '60rem'
+    spacer.style.flex = '0 0 60rem'
+    body.append(spacer)
+  })
+  await expect.poll(async () => (await panel.boundingBox())?.height).toBeGreaterThan(600)
+  await expect.poll(() => panel.evaluate((element) => element.getAnimations().length)).toBe(0)
+  panelBox = (await panelByRole.boundingBox())!
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  const contractedTop = boundaryBox.y + boundaryBox.height - 220
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x, pointer.y + contractedTop - panelBox.y)
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'floating-free-preview')
+  await expect.poll(async () => (await panel.boundingBox())?.height).toBeLessThanOrEqual(221)
+  await expect
+    .poll(() => panelBody.evaluate((body) => body.scrollHeight > body.clientHeight))
+    .toBe(true)
+  const contractedPanelBox = (await panel.boundingBox())!
+  expect(contractedPanelBox.y + contractedPanelBox.height).toBeLessThanOrEqual(
+    boundaryBox.y + boundaryBox.height + 1,
+  )
+  await page.mouse.up()
+  await panelBody
+    .locator('[data-contract-lab-tall-panel-probe]')
+    .evaluate((probe) => probe.remove())
+
+  await page.getByRole('button', { name: 'Hybrid', exact: true }).click()
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x + 96, pointer.y, { steps: 4 })
+  await page.mouse.up()
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-free')
+
+  panelBox = (await panelByRole.boundingBox())!
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  const rightEdgePointerX =
+    pointer.x + boundaryBox.x + boundaryBox.width - panelBox.width - panelBox.x
+  const dockPreview = page.locator(
+    '[data-contract-lab-focused-portal-target] [data-picodash-panel-dock-preview]',
+  )
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(rightEdgePointerX, boundaryBox.y + 20, { steps: 4 })
+  await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'top-right')
+  await expect.poll(async () => (await dockPreview.boundingBox())?.y).toBeCloseTo(boundaryBox.y, 0)
+
+  await page.mouse.move(rightEdgePointerX, boundaryBox.y + boundaryBox.height / 2)
+  await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'full-right')
+  await expect
+    .poll(async () => (await dockPreview.boundingBox())?.height)
+    .toBeCloseTo(boundaryBox.height, 0)
+
+  await page.mouse.move(rightEdgePointerX - 200, boundaryBox.y + boundaryBox.height / 2)
+  await expect(dockPreview).not.toHaveAttribute('data-picodash-dock-position')
+  await expect
+    .poll(() => dockPreview.evaluate((element) => getComputedStyle(element).opacity))
+    .toBe('0')
+
+  await page.mouse.move(rightEdgePointerX, boundaryBox.y + boundaryBox.height / 2)
+  await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'full-right')
+  await page.mouse.up()
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
+  await expect(page.getByRole('status', { name: 'Current panel placement' })).toHaveText(
+    'Hybrid: docked full-right',
+  )
+  await assertFullRightMinimize()
+
+  panelBox = (await panelByRole.boundingBox())!
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  const topRightPointerX =
+    pointer.x + boundaryBox.x + boundaryBox.width - panelBox.width - panelBox.x
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x - 50, pointer.y + 50)
+  await page.mouse.move(topRightPointerX, boundaryBox.y + 20)
+  await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'top-right')
+  await page.mouse.up()
+  await expect(page.getByRole('status', { name: 'Current panel placement' })).toHaveText(
+    'Hybrid: docked top-right',
+  )
+
+  await page.getByRole('button', { name: 'Floating', exact: true }).click()
+  await page.getByRole('button', { name: 'Same edge', exact: true }).click()
+  const fixedCorner = page.getByRole('complementary', { name: 'Fixed allocation corner' })
+  await expect(fixedCorner).toBeVisible()
+
+  await page.getByRole('button', { name: 'Hybrid', exact: true }).click()
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x + 80, pointer.y + 80)
+  await page.mouse.up()
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-free')
+
+  panelBox = (await panelByRole.boundingBox())!
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  const allocatedRightPointerX =
+    pointer.x + boundaryBox.x + boundaryBox.width - panelBox.width - panelBox.x
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(allocatedRightPointerX, boundaryBox.y + boundaryBox.height / 2)
+  await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'full-right')
+  await expect
+    .poll(async () => (await dockPreview.boundingBox())?.y)
+    .toBeCloseTo(boundaryBox.y + boundaryBox.height / 3, 0)
+  await expect
+    .poll(async () => (await dockPreview.boundingBox())?.height)
+    .toBeCloseTo((boundaryBox.height * 2) / 3, 0)
+  const allocatedPreviewBox = (await dockPreview.boundingBox())!
+  await page.mouse.up()
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
+  await expect
+    .poll(async () => (await panelByRole.boundingBox())?.y)
+    .toBeCloseTo(allocatedPreviewBox.y, 0)
+  await expect
+    .poll(async () => (await panelByRole.boundingBox())?.height)
+    .toBeCloseTo(allocatedPreviewBox.height, 0)
+  const hybridAllocatedBox = (await panelByRole.boundingBox())!
+  expect((await fixedCorner.boundingBox())?.height).toBeCloseTo(boundaryBox.height / 3, 0)
+
+  await page.getByRole('button', { name: 'Fixed', exact: true }).click()
+  await expect
+    .poll(async () => (await panelByRole.boundingBox())?.y)
+    .toBeCloseTo(hybridAllocatedBox.y, 0)
+  await expect
+    .poll(async () => (await panelByRole.boundingBox())?.height)
+    .toBeCloseTo(hybridAllocatedBox.height, 0)
+
+  await page.getByRole('button', { name: 'Adjacent edges', exact: true }).click()
+  const adjacentCorner = page.getByRole('complementary', { name: 'Fixed adjacent corner' })
+  const adjacentEdge = page.getByRole('complementary', { name: 'Hybrid adjacent edge' })
+  await expect(adjacentCorner).toBeVisible()
+  await expect(adjacentEdge).toBeVisible()
+  const adjacentCornerBox = (await adjacentCorner.boundingBox())!
+  const adjacentEdgeBox = (await adjacentEdge.boundingBox())!
+  const orthogonalSideBox = (await panelByRole.boundingBox())!
+  expect(adjacentEdgeBox.x).toBeCloseTo(adjacentCornerBox.x + adjacentCornerBox.width, 0)
+  expect(adjacentEdgeBox.x + adjacentEdgeBox.width).toBeCloseTo(
+    boundaryBox.x + boundaryBox.width,
+    0,
+  )
+  expect(adjacentEdgeBox.x + adjacentEdgeBox.width).toBeGreaterThan(orthogonalSideBox.x)
+})
+
 test('connects the real browser specimen through the dev bridge and rejects the retired generation', async ({
   page,
 }) => {
   await openLab(page)
+  await page.getByRole('button', { name: /^Documents:/ }).click()
   await page.evaluate((key) => localStorage.removeItem(key), persistenceProbeStorageKey)
   await page.reload()
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
@@ -773,6 +1400,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     'data-ready',
     'true',
   )
+  await persistencePage.getByRole('button', { name: /^Documents:/ }).click()
   const persistenceStatus = page.locator('[data-contract-lab-persistence-status]')
   const persistenceStatusPeer = persistencePage.locator('[data-contract-lab-persistence-status]')
   await expect(persistenceStatus).toHaveText('Persistence status: clean')
@@ -825,7 +1453,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   ).toContainText('1')
   await expect(page.locator('[data-contract-lab-migration]')).toContainText('legacyMetric')
   await expect(page.locator('[data-contract-lab-quarantine-default]')).toContainText(
-    'current defaults',
+    'Layout changes are rejected and return to this position',
   )
   await page.getByRole('button', { name: 'Replace quarantined metadata' }).press('Enter')
   await expect(page.locator('[data-contract-lab-quarantine-state]')).toHaveText(

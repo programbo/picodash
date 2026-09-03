@@ -2429,6 +2429,21 @@ describe('@picodash/dashlist alpha shell', () => {
       renderer.root
         .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
         .map((item) => item.props['data-picodash-dashlet'])
+    const bands = renderer.root.findAll(
+      (item) => typeof item.props['data-picodash-dashlist-band'] === 'string',
+    )
+    expect(
+      bands.map((band) => [
+        band.props['data-picodash-dashlist-band'],
+        band
+          .findAll((item) => typeof item.props['data-picodash-dashlet'] === 'string')
+          .map((item) => item.props['data-picodash-dashlet']),
+      ]),
+    ).toEqual([
+      ['start', ['start']],
+      ['automatic', ['auto-a', 'auto-b', 'auto-c', 'auto-d']],
+      ['end', ['end']],
+    ])
     const handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'auto-a' })
     const row = (id: string, top: number) => ({
       getAttribute(name: string) {

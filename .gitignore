@@ -37,3 +37,6 @@ dist-ssr
 
 # AI agent screenshots
 .screenshots-*
+
+# Generated browser evidence
+/output/

@@ -57,6 +57,17 @@
   --picodash-duration-fast: 150ms;
   --picodash-easing-out: cubic-bezier(0, 0, 0.2, 1);
 
+  /* Private recipes keep interaction depth derived from the caller's palette. */
+  --_picodash-control-hover: color-mix(in oklab, var(--picodash-color-text) 7%, transparent);
+  --_picodash-control-pressed: color-mix(in oklab, var(--picodash-color-text) 12%, transparent);
+  --_picodash-control-focus-ring: color-mix(in oklab, var(--picodash-color-focus) 35%, transparent);
+  --_picodash-surface-translucent: color-mix(
+    in oklab,
+    var(--picodash-color-surface-raised) 88%,
+    transparent
+  );
+  --_picodash-danger-subtle: color-mix(in oklab, var(--picodash-color-danger) 12%, transparent);
+
   --picodash-layer-raised: 10;
   --picodash-layer-drag: 20;
   --picodash-layer-tooltip: 50;
@@ -196,8 +207,65 @@
     background-color var(--picodash-duration-fast) var(--picodash-easing-out),
     border-color var(--picodash-duration-fast) var(--picodash-easing-out),
     color var(--picodash-duration-fast) var(--picodash-easing-out),
-    opacity var(--picodash-duration-fast) var(--picodash-easing-out);
+    opacity var(--picodash-duration-fast) var(--picodash-easing-out),
+    box-shadow var(--picodash-duration-fast) var(--picodash-easing-out),
+    transform var(--picodash-duration-fast) var(--picodash-easing-out);
   user-select: none;
+}
+
+:where(
+  [data-slot='button']:not([data-disabled]):not([aria-disabled='true']):not([data-pending])
+):hover,
+:where([data-slot='button'][data-hovered]) {
+  background-color: var(--_picodash-control-hover);
+}
+
+:where([data-slot='button'][data-variant='primary']):hover,
+:where([data-slot='button'][data-variant='primary'][data-hovered]) {
+  background-color: color-mix(
+    in oklab,
+    var(--picodash-color-accent) 86%,
+    var(--picodash-color-text)
+  );
+  border-color: color-mix(in oklab, var(--picodash-color-accent) 86%, var(--picodash-color-text));
+}
+
+:where([data-slot='button'][data-variant='destructive']):hover,
+:where([data-slot='button'][data-variant='destructive'][data-hovered]) {
+  background-color: color-mix(
+    in oklab,
+    var(--picodash-color-danger) 86%,
+    var(--picodash-color-text)
+  );
+  border-color: color-mix(in oklab, var(--picodash-color-danger) 86%, var(--picodash-color-text));
+}
+
+:where([data-slot='button'][data-variant='outline']):hover,
+:where([data-slot='button'][data-variant='ghost']):hover,
+:where([data-slot='button'][aria-expanded='true']) {
+  background-color: var(--_picodash-control-hover);
+}
+
+:where([data-slot='button'][data-pressed]):not([aria-haspopup='true']),
+:where([data-slot='button'][aria-pressed='true']) {
+  background-color: var(--_picodash-control-pressed);
+  transform: translateY(1px);
+}
+
+:where([data-slot='button'][data-variant='primary'][data-pressed]) {
+  background-color: color-mix(
+    in oklab,
+    var(--picodash-color-accent) 75%,
+    var(--picodash-color-text)
+  );
+}
+
+:where([data-slot='button'][data-variant='destructive'][data-pressed]) {
+  background-color: color-mix(
+    in oklab,
+    var(--picodash-color-danger) 75%,
+    var(--picodash-color-text)
+  );
 }
 
 :where([data-slot='button'][data-size='xs']) {
@@ -276,8 +344,9 @@
 }
 
 :where([data-slot='button'][data-focus-visible]) {
-  outline: var(--picodash-border-width-thin) solid var(--picodash-color-focus);
-  outline-offset: var(--picodash-border-width-thin);
+  outline: 2px solid var(--picodash-color-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--_picodash-control-focus-ring);
 }
 
 :where([data-slot='button'][data-disabled]),
@@ -289,6 +358,7 @@
 
 :where([data-slot='button'][data-pending]) {
   cursor: wait;
+  pointer-events: none;
 }
 
 /* Product-neutral DashHeader structure. */
@@ -322,6 +392,9 @@
   padding: var(--picodash-space-4);
   pointer-events: auto;
   position: fixed;
+  transition: opacity var(--picodash-duration-fast) var(--picodash-easing-out);
+  -webkit-backdrop-filter: blur(var(--picodash-blur-overlay));
+  backdrop-filter: blur(var(--picodash-blur-overlay));
 }
 
 :where([data-slot='alert-dialog-modal']) {
@@ -339,6 +412,10 @@
   display: grid;
   gap: var(--picodash-space-4);
   padding: var(--picodash-space-5);
+  outline: none;
+  transition:
+    opacity var(--picodash-duration-fast) var(--picodash-easing-out),
+    transform var(--picodash-duration-fast) var(--picodash-easing-out);
 }
 
 :where([data-slot='alert-dialog-content'][data-size='sm']) {
@@ -385,13 +462,16 @@
 
 /* Product-neutral ActionMenu structure and recipes. */
 :where([data-slot='action-menu']) {
-  background: var(--picodash-color-surface-raised);
+  background: var(--_picodash-surface-translucent);
   border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
   box-shadow: var(--picodash-shadow-md);
   color: var(--picodash-color-text);
   display: grid;
   min-inline-size: 12rem;
   padding: var(--picodash-space-1);
+  -webkit-backdrop-filter: blur(var(--picodash-blur-surface));
+  backdrop-filter: blur(var(--picodash-blur-surface));
+  transition: opacity var(--picodash-duration-fast) var(--picodash-easing-out);
 }
 
 :where([data-slot='action-menu-item']),
@@ -410,11 +490,27 @@
 }
 
 :where([data-slot='action-menu-item'][data-focused]),
-:where([data-slot='action-submenu'][data-focused]) {
-  background: var(--picodash-color-surface-muted);
+:where([data-slot='action-submenu'][data-focused]),
+:where([data-slot='action-menu-item'][data-hovered]),
+:where([data-slot='action-submenu'][data-hovered]),
+:where([data-slot='action-submenu'][data-open]),
+:where([data-slot='action-submenu'][aria-expanded='true']) {
+  background: var(--_picodash-control-hover);
+  color: var(--picodash-color-text-strong);
+}
+
+:where([data-slot='action-menu-item'][data-pressed]),
+:where([data-slot='action-submenu'][data-pressed]) {
+  background: var(--_picodash-control-pressed);
 }
 
 :where([data-slot='action-menu-item'][data-variant='destructive']) {
+  color: var(--picodash-color-danger);
+}
+
+:where([data-slot='action-menu-item'][data-variant='destructive'][data-focused]),
+:where([data-slot='action-menu-item'][data-variant='destructive'][data-hovered]) {
+  background: var(--_picodash-danger-subtle);
   color: var(--picodash-color-danger);
 }
 
@@ -460,7 +556,7 @@
 
 /* Product-neutral Tooltip structure and decorative arrow. */
 :where([data-slot='tooltip']) {
-  background: var(--picodash-color-surface-raised);
+  background: var(--_picodash-surface-translucent);
   border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
   border-radius: var(--picodash-radius-control);
   box-shadow: var(--picodash-shadow-sm);
@@ -469,6 +565,9 @@
   line-height: var(--picodash-line-height-normal);
   max-inline-size: min(22rem, calc(100vw - 2 * var(--picodash-space-3)));
   padding: var(--picodash-space-2) var(--picodash-space-2-5);
+  -webkit-backdrop-filter: blur(var(--picodash-blur-surface));
+  backdrop-filter: blur(var(--picodash-blur-surface));
+  transition: opacity var(--picodash-duration-fast) var(--picodash-easing-out);
 }
 
 :where([data-slot='tooltip'] .picodash-tooltip-arrow) {
@@ -498,5 +597,20 @@
   :where([data-slot='action-submenu']) {
     min-block-size: 44px;
     min-inline-size: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where([data-slot='button']),
+  :where([data-slot='alert-dialog-overlay']),
+  :where([data-slot='alert-dialog-content']),
+  :where([data-slot='action-menu']),
+  :where([data-slot='tooltip']) {
+    transition-duration: 0ms;
+  }
+
+  :where([data-slot='button'][data-pressed]),
+  :where([data-slot='button'][aria-pressed='true']) {
+    transform: none;
   }
 }

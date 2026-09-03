@@ -52,7 +52,8 @@
     "ready": "bun run audit:high && bun run release:check && bun run artifacts:check && bun run evaluations:check && vp check && vp run -r test && vp run -r build && bun run evaluations:build && bun run test:e2e:lab:cap && bun run test:e2e:lab && bun run test:e2e:web",
     "audit:high": "bun audit --audit-level=high",
     "release:check": "bun run --filter @picodash/nexus release:check && bun run --filter @picodash/dev-bridge release:check && bun run --filter @picodash/ui release:check && bun run --filter @picodash/dashlist release:check && bun run --filter @picodash/dashpanel release:check && bun run --filter @picodash/picodash release:check",
-    "artifacts:check": "node scripts/check-agent-artifacts.mjs",
+    "artifacts:check": "node scripts/check-agent-artifacts.mjs && bun run motion:check",
+    "motion:check": "node scripts/check-motion-policy.mjs",
     "evaluations:check": "node scripts/check-evaluations.mjs",
     "evaluations:build": "node scripts/build-evaluation-seeds.mjs",
     "dev": "bun run --filter @picodash/web dev",
@@ -65,6 +66,7 @@
     "test:e2e:web": "bun run --filter @picodash/web test:e2e",
     "test:e2e:lab": "bun run --filter @picodash/lab test:e2e",
     "test:e2e:lab:cap": "bun run --filter @picodash/lab test:e2e:cap",
+    "artifacts:phone": "bun run --filter @picodash/lab artifacts:phone",
     "port:reserve": "node scripts/worktree-ports.mjs reserve",
     "port:release": "node scripts/worktree-ports.mjs release",
     "prepare": "vp config"

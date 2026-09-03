@@ -58,6 +58,19 @@ export interface PanelRuntimeDockTarget {
   readonly inlineOffset?: number
 }
 
+type PanelRuntimeDockTargetRequest =
+  | {
+      readonly kind: 'settled'
+      readonly scopeId: string
+      readonly available: Readonly<{ width: number; height: number }>
+    }
+  | {
+      readonly kind: 'prospective'
+      readonly scopeId: string
+      readonly position: DashPanelDockPosition
+      readonly available: Readonly<{ width: number; height: number }>
+    }
+
 export interface PanelRuntimeConfig {
   readonly scopeId: string
   readonly defaultVisible?: boolean
@@ -130,10 +143,7 @@ export interface PanelRuntime {
   resetLayout(scopeId: string): DashPanelLayoutCommandResult
   getPanelConfig(scopeId: string): PanelRuntimePanelConfig | undefined
   isDockPositionOccupied(scopeId: string, position: DashPanelDockPosition): boolean
-  getDockTarget(
-    scopeId: string,
-    available: Readonly<{ width: number; height: number }>,
-  ): PanelRuntimeDockTarget | undefined
+  resolveDockTarget(request: PanelRuntimeDockTargetRequest): PanelRuntimeDockTarget | undefined
   registerElement(scopeId: string, element: HTMLElement | null): void
   notifyElementResize(scopeId: string, inlineSize?: number): void
   getElement(scopeId: string): HTMLElement | null
@@ -275,6 +285,16 @@ export function createPanelRuntime(): PanelRuntime {
         otherPosition !== undefined &&
         resolveDashPanelDockSlot(otherPosition) === resolveDashPanelDockSlot(position)
       )
+    })
+
+  const dockOccupants = (panel: MutablePanel, prospectivePosition?: DashPanelDockPosition) =>
+    [...panels.values()].flatMap((other) => {
+      if (!sameDockArena(dockArenaFor(panel), dockArenaFor(other))) return []
+      const position =
+        other.scopeId === panel.scopeId
+          ? (prospectivePosition ?? dockedPosition(other.placement))
+          : dockedPosition(other.placement)
+      return position ? [{ id: other.scopeId, position, panel: other }] : []
     })
 
   const materializePlacement = (
@@ -659,8 +679,9 @@ export function createPanelRuntime(): PanelRuntime {
       const panel = panelFor(scopeId)
       return panel ? dockOccupant(panel, position) !== undefined : false
     },
-    getDockTarget(scopeId, available) {
-      const panel = panelFor(scopeId)
+    resolveDockTarget(request) {
+      const panel = panelFor(request.scopeId)
+      const { available } = request
       if (
         !panel ||
         !Number.isFinite(available.width) ||
@@ -669,14 +690,14 @@ export function createPanelRuntime(): PanelRuntime {
         available.height < 0
       )
         return undefined
-      const position = dockedPosition(panel.placement)
+      const position =
+        request.kind === 'prospective' ? request.position : dockedPosition(panel.placement)
       if (!position) return undefined
-      const arena = dockArenaFor(panel)
-      const occupants = [...panels.values()].flatMap((other) => {
-        if (!sameDockArena(arena, dockArenaFor(other))) return []
-        const otherPosition = dockedPosition(other.placement)
-        return otherPosition ? [{ id: other.scopeId, position: otherPosition, panel: other }] : []
-      })
+      if (request.kind === 'prospective' && dockOccupant(panel, position)) return undefined
+      const occupants = dockOccupants(
+        panel,
+        request.kind === 'prospective' ? request.position : undefined,
+      )
       if (position.endsWith('-left') || position.endsWith('-right')) {
         const side = position.endsWith('-left') ? 'left' : 'right'
         const allocation = resolveDashPanelDockSideAllocation(

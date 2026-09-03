@@ -12,6 +12,7 @@
     "picodash:build": "bun run --filter @picodash/nexus build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashlist build && bun run --filter @picodash/picodash build && bun run --filter @picodash/dev-bridge build",
     "test:e2e": "playwright test",
     "test:e2e:cap": "playwright test --list",
+    "artifacts:phone": "playwright test tests/phone-artifacts.spec.ts --workers=1",
     "test:dev-host": "node --test scripts/dev-host.test.mjs"
   },
   "dependencies": {

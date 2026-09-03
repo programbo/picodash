@@ -31,6 +31,40 @@ body {
     sans-serif;
 }
 
+/* App-owned third-party theme fixture. It deliberately uses only the public semantic contract. */
+:where([data-picodash-theme='ocean']) {
+  color-scheme: dark;
+  --picodash-color-canvas: rgb(2 18 28);
+  --picodash-color-surface: rgb(7 38 52);
+  --picodash-color-surface-raised: rgb(11 55 72);
+  --picodash-color-surface-muted: rgb(17 78 96);
+  --picodash-color-text: rgb(220 248 255);
+  --picodash-color-text-strong: rgb(255 255 255);
+  --picodash-color-text-muted: rgb(139 195 207);
+  --picodash-color-border: rgb(75 138 151);
+  --picodash-color-control-border: rgb(91 158 171);
+  --picodash-color-well: rgb(4 28 40);
+  --picodash-color-focus: rgb(89 214 239);
+  --picodash-color-accent: rgb(61 214 230);
+  --picodash-color-accent-text: rgb(2 18 28);
+  --picodash-color-success: rgb(75 255 185);
+  --picodash-color-info: rgb(112 200 255);
+  --picodash-color-warning: rgb(255 214 102);
+  --picodash-color-alert: rgb(255 183 77);
+  --picodash-color-danger: rgb(255 112 112);
+  --picodash-color-overlay: rgb(0 36 60 / 85%);
+  --picodash-color-data-1: rgb(61 214 230);
+  --picodash-color-data-2: rgb(75 255 185);
+  --picodash-color-data-3: rgb(255 214 102);
+  --picodash-color-data-4: rgb(181 135 255);
+  --picodash-color-data-5: rgb(255 112 112);
+  --picodash-radius-surface: 8px;
+  --picodash-radius-control: 6px;
+  --picodash-shadow-elevated: 0 25px 50px -12px rgb(0 0 0 / 45%);
+  --picodash-shadow-viewer: 0 25px 50px -12px rgb(0 0 0 / 70%);
+  --picodash-shadow-inner: inset 0 2px 4px rgb(0 0 0 / 30%);
+}
+
 button,
 input,
 textarea,

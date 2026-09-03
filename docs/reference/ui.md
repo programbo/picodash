@@ -136,9 +136,10 @@ portal behavior Picodash fixes.
 > Implementation: Partial — accepted token names and current recipes are verified; detached-root
 > browser behavior and exhaustive selector audits remain partial.
 >
-> Evidence: [Theme provider component tests](../../packages/ui/tests/theme-provider.test.tsx) and
-> [theme provider type tests](../../packages/ui/tests/theme-provider.types.test.ts). Overlay
-> providers remain Planned.
+> Evidence: [Theme provider component tests](../../packages/ui/tests/theme-provider.test.tsx),
+> [theme provider type tests](../../packages/ui/tests/theme-provider.types.test.ts), and the
+> [phone theme journey](../../apps/lab/tests/phone-artifacts.spec.ts). Overlay providers remain
+> Planned.
 
 `PicodashThemeProvider` owns resolved color theme and density. It establishes the DOM carrier for
 `data-picodash-theme` and `data-picodash-density`; it does not own portal placement or layer policy.
@@ -179,6 +180,14 @@ usePicodashTheme(): string
 usePicodashDensity(): PicodashDensity
 usePicodashOverlayDefaults(): Readonly<PicodashOverlayDefaults>
 ```
+
+The verified prototype checkpoint `6a9c56e8` had three built-in preferences: `light`, `dark`, and
+`system`. Those are retained. Ocean, Plum, Tron, and Contrast were application-owned example themes,
+not package recipes. The Contract Lab retains Ocean as the single third-party smoke fixture; it
+defines the complete public color contract plus deliberate radius and shadow overrides without
+using package classes or private tokens. The other three showcase recipes are deferred because
+duplicating examples does not strengthen the theme contract required by the first DashPanel slice.
+The phone artifact journey captures light, dark, both system media-query resolutions, and Ocean.
 
 - An omitted `theme` or `density` inherits the nearest theme context value.
 - Without an ancestor, `theme` defaults to `system` and `density` defaults to `regular`.
@@ -567,6 +576,8 @@ type ActionMenuSeparatorProps = Omit<ReactAriaSeparatorProps, 'orientation'>
   after activation; an item requiring confirmation closes the menu before opening AlertDialog.
 - Portal and layer defaults come from `PicodashOverlayProvider`. Explicit root portal/layer props
   override that context; nested submenus inherit the root overlay and do not portal independently.
+- Root menus and nested submenu menus use the same themed menu surface, including background,
+  border, shadow, blur, and density treatment.
 - `ActionMenuItem` accepts a string `label`, decorative `icon?: ReactNode`, `onAction`,
   `isDisabled`, `variant`, and optional `confirmation`. String labels preserve reliable typeahead.
 - Confirmation and destructive appearance are independent. A non-destructive operation may require
@@ -923,6 +934,25 @@ Under `@media (pointer: coarse)`, UI-owned `Button`, `ActionMenuItem`, and `Acti
 targets have minimum block and inline sizes of `44px` in both densities. The Contract Lab Themes
 journey measures a regular UI-owned trigger, its compact counterpart, and an actual coarse-pointer
 compact target, including under a 12px host root.
+
+### Animation implementation policy
+
+Motion is the default implementation for imperative animation: geometry-derived movement,
+measured-size interpolation, interruptible or replaceable sequences, and any choreography that
+would otherwise call the Web Animation API directly. Product code imports Motion through its
+public package and declares it as a runtime dependency. Direct `Element.animate()` calls are not
+permitted because they bypass Motion's browser normalization and interruption handling.
+
+CSS transitions remain appropriate for declarative state styling whose start and end values are
+already expressed by selectors: hover and pressed feedback, a single opacity or transform state,
+and icon or pseudo-element rotation. These transitions use theme duration and easing tokens,
+explicit properties, and a same-stylesheet reduced-motion rule. CSS must not transition layout
+properties or use unreviewed hard-coded timings. CSS keyframes require a reviewed exception when
+Motion would be detrimental or clearly disproportionate.
+
+The repository motion-policy check enforces these implementation boundaries. Contract Lab browser
+journeys still own rendered timing, interruption, reduced-motion, and geometry evidence; the
+static check does not prove that an animation looks or feels correct.
 
 ### CSS verification
 
