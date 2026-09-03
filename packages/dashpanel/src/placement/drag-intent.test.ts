@@ -83,7 +83,7 @@ describe('DashPanel pointer drag intent', () => {
     ).toBe('bottom-left')
   })
 
-  it('does not offer occupied or policy-disabled dock targets', () => {
+  it('distinguishes occupied targets from policy-disabled targets', () => {
     const panel = { top: 2, right: 82, bottom: 42, left: 2, width: 80, height: 40 }
     expect(
       resolveDashPanelHybridDockIntent({
@@ -92,6 +92,17 @@ describe('DashPanel pointer drag intent', () => {
         panel,
         pointer: { x: 10, y: 10 },
         positions: ['top-left'],
+        proximity: 16,
+        size,
+      }),
+    ).toEqual({ kind: 'blocked', position: 'top-left' })
+    expect(
+      resolveDashPanelHybridDockIntent({
+        boundary,
+        isOccupied: () => false,
+        panel,
+        pointer: { x: 10, y: 10 },
+        positions: [],
         proximity: 16,
         size,
       }),

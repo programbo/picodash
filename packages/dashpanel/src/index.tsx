@@ -860,7 +860,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   }, [])
   const queuePanelMagneticMotion = (next: DashPanelSnapDragIntent) => {
     const kind = magneticMotionTransition(snapIntentRef.current, next)
-    const from = renderedMappedRef.current
+    const panel = asideRef.current
+    const from = panel
+      ? mapRectToContainingBlock(panel, panel.getBoundingClientRect())
+      : renderedMappedRef.current
     if (!kind || !from) return
     pendingPanelMagneticMotionRef.current = { kind, from }
   }
@@ -1499,9 +1502,13 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const movableMode = requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating'
     const currentDockIntent = dockIntentRef.current
     const currentSnapIntent = snapIntentRef.current
+    if (currentDockIntent?.kind === 'blocked') {
+      cancelMove()
+      return { status: 'executed' as const }
+    }
     let placement: DashPanelPlacement
     if (movableMode === 'hybrid') {
-      if (currentDockIntent) {
+      if (currentDockIntent?.kind === 'available') {
         placement = {
           mode: 'hybrid',
           disposition: { kind: 'docked', position: currentDockIntent.position },
@@ -1618,22 +1625,24 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             size: currentGeometry.size,
           })
         : undefined
-    const nextDockIntent = unresolvedDockIntent
-      ? {
-          position: unresolvedDockIntent.position,
-          rect: dockDashPanelRect(
-            unresolvedDockIntent.position,
-            currentGeometry.boundary,
-            currentGeometry.size,
-            runtime.resolveDockTarget({
-              kind: 'prospective',
-              scopeId: id,
-              position: unresolvedDockIntent.position,
-              available: currentGeometry.boundary,
-            }),
-          ),
-        }
-      : undefined
+    const nextDockIntent =
+      unresolvedDockIntent?.kind === 'available'
+        ? {
+            kind: 'available' as const,
+            position: unresolvedDockIntent.position,
+            rect: dockDashPanelRect(
+              unresolvedDockIntent.position,
+              currentGeometry.boundary,
+              currentGeometry.size,
+              runtime.resolveDockTarget({
+                kind: 'prospective',
+                scopeId: id,
+                position: unresolvedDockIntent.position,
+                available: currentGeometry.boundary,
+              }),
+            ),
+          }
+        : unresolvedDockIntent
     queuePanelMagneticMotion(nextSnapIntent)
     moveSession.current = {
       ...session,
@@ -2133,7 +2142,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       : undefined
   const dockPreviewRect =
     moveMode === 'pointer' && requestedPlacementMode === 'hybrid'
-      ? (dockIntent?.rect ?? renderedRect)
+      ? dockIntent?.kind === 'available'
+        ? dockIntent.rect
+        : renderedRect
       : null
   const dockPreviewMapped = dockPreviewRect
     ? mapRectToContainingBlock(asideRef.current, dockPreviewRect)
@@ -2145,7 +2156,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     geometry.size.width > 0 &&
     geometry.size.height > 0
       ? {
-          opacity: dockIntent ? 1 : 0,
+          opacity: dockIntent?.kind === 'available' ? 1 : 0,
           transform: `translate3d(${dockPreviewMapped.left}px, ${dockPreviewMapped.top}px, 0) scale(${dockPreviewRect.width / geometry.size.width}, ${dockPreviewRect.height / geometry.size.height})`,
         }
       : null
@@ -2325,7 +2336,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                     : undefined
                 }
                 data-picodash-dragging={moveMode ? 'true' : undefined}
-                data-picodash-dock-intent={dockIntent?.position}
+                data-picodash-dock-intent={
+                  dockIntent?.kind === 'available' ? dockIntent.position : undefined
+                }
                 data-picodash-dock-position={renderedDockPosition}
                 data-picodash-docked-minimized={dockedMinimized ? 'true' : undefined}
                 hidden={!visible}

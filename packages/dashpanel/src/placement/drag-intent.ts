@@ -18,10 +18,16 @@ export type DashPanelSnapDragIntent =
       readonly target: DashPanelSnapPosition
     }
 
-export interface DashPanelHybridDockIntent {
-  readonly position: DashPanelDockPosition
-  readonly rect: DashPanelRect
-}
+export type DashPanelHybridDockIntent =
+  | {
+      readonly kind: 'available'
+      readonly position: DashPanelDockPosition
+      readonly rect: DashPanelRect
+    }
+  | {
+      readonly kind: 'blocked'
+      readonly position: DashPanelDockPosition
+    }
 
 const floatingSnapPositions: readonly DashPanelSnapPosition[] = [
   'top-left',
@@ -181,6 +187,11 @@ export function resolveDashPanelHybridDockIntent({
             ? 'center-left'
             : 'center-right'
 
-  if (!positions.includes(candidate) || isOccupied(candidate)) return undefined
-  return { position: candidate, rect: dockDashPanelRect(candidate, boundary, size) }
+  if (!positions.includes(candidate)) return undefined
+  if (isOccupied(candidate)) return { kind: 'blocked', position: candidate }
+  return {
+    kind: 'available',
+    position: candidate,
+    rect: dockDashPanelRect(candidate, boundary, size),
+  }
 }

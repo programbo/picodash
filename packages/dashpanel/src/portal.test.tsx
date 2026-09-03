@@ -1281,6 +1281,70 @@ describe('DashPanel portal ownership', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('preserves settled Hybrid placement when pointer release targets an occupied dock', async () => {
+    const nexus = makeNexus()
+    const portal = document.createElement('div')
+    const boundary = document.createElement('div')
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: HTMLElement) {
+        if (this === boundary)
+          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+        if (this.hasAttribute('data-picodash-panel')) {
+          const left = Number.parseFloat(this.style.left) || 0
+          const top = Number.parseFloat(this.style.top) || 0
+          return {
+            top,
+            right: left + 80,
+            bottom: top + 40,
+            left,
+            width: 80,
+            height: 40,
+          } as DOMRect
+        }
+        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+      },
+    )
+    await render(
+      <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
+        <DashPanel
+          id="occupied"
+          title="Occupied"
+          defaultLayout={{
+            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'top-left' } },
+          }}
+        />
+        <DashPanel
+          id="moving"
+          title="Moving"
+          defaultLayout={{
+            placement: { mode: 'hybrid', disposition: { kind: 'docked', position: 'top-right' } },
+            preferredPosition: { x: 220, y: 0 },
+          }}
+        />
+      </DashPanelProvider>,
+    )
+    const moving = [...portal.querySelectorAll<HTMLElement>('[data-picodash-panel]')].find(
+      (panel) => panel.textContent?.includes('Moving'),
+    )!
+    const move = portal.querySelector('[aria-label="Move panel Moving"]') as HTMLElement
+    const pointer = (type: string, x: number, y: number) => {
+      const event = new MouseEvent(type, { bubbles: true, button: 0, clientX: x, clientY: y })
+      Object.defineProperty(event, 'pointerId', { value: 9 })
+      return event
+    }
+    await act(async () => move.dispatchEvent(pointer('pointerdown', 260, 20)))
+    await act(async () => window.dispatchEvent(pointer('pointermove', 10, 20)))
+    expect(moving.getAttribute('data-picodash-dock-intent')).toBeNull()
+    await act(async () => window.dispatchEvent(pointer('pointerup', 10, 20)))
+
+    expect(nexus.getState().scopes.get('moving')?.dashPanel).toBeUndefined()
+    expect(moving.getAttribute('data-picodash-placement')).toBe('hybrid-docked')
+
+    await act(async () => root.unmount())
+    vi.restoreAllMocks()
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('settles pointer and keyboard movement onto targets within snapProximity', async () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')

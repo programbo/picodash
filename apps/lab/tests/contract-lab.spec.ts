@@ -87,6 +87,59 @@ async function samplePanelHeightTransition(page: Page, panel: Locator, action: L
   return { before, samples: [midpoint], after }
 }
 
+async function pausePanelTranslateAnimationAfter(
+  panel: Locator,
+  minimumElapsed: number,
+  seekToStart = false,
+) {
+  return panel.evaluate(
+    (element, { elapsedThreshold, resetToStart }) =>
+      new Promise<{ x: number; y: number }>((resolve, reject) => {
+        const deadline = performance.now() + 1_000
+        const inspect = () => {
+          const animation = element.getAnimations().find((candidate) => {
+            const effect = candidate.effect
+            return (
+              effect instanceof KeyframeEffect &&
+              effect.getKeyframes().some((keyframe) => typeof keyframe.translate === 'string')
+            )
+          })
+          if (!animation) {
+            if (performance.now() >= deadline) {
+              reject(new TypeError('Expected an active Panel translate animation.'))
+              return
+            }
+            requestAnimationFrame(inspect)
+            return
+          }
+          const duration = animation.effect?.getTiming().duration
+          if (typeof duration !== 'number') {
+            reject(new TypeError('Expected a numeric Panel translate animation duration.'))
+            return
+          }
+          const currentTime = animation.currentTime
+          if (typeof currentTime !== 'number' || currentTime < elapsedThreshold) {
+            if (performance.now() >= deadline) {
+              reject(new TypeError('Panel translate animation did not reach the expected time.'))
+              return
+            }
+            requestAnimationFrame(inspect)
+            return
+          }
+          animation.pause()
+          if (resetToStart) animation.currentTime = 0
+          requestAnimationFrame(() => {
+            const rect = element.getBoundingClientRect()
+            animation.play()
+            resolve({ x: rect.x, y: rect.y })
+          })
+        }
+        inspect()
+      }),
+    { elapsedThreshold: minimumElapsed, resetToStart: seekToStart },
+  )
+}
+
 test('keeps the versioned driver, Console, and status available while the specimen is offline', async ({
   page,
 }) => {
@@ -1150,6 +1203,33 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await expect
     .poll(async () => (await panel.boundingBox())?.x)
     .toBeCloseTo(releasedFreePreview.x, 0)
+
+  await panel.evaluate((element) => {
+    element.style.setProperty('--picodash-panel-snap-duration', '1000ms')
+    element.style.setProperty('--picodash-panel-detach-duration', '1000ms')
+    element.style.setProperty('--picodash-panel-snap-bounce', '0')
+    element.style.setProperty('--picodash-panel-detach-bounce', '0')
+  })
+  const continuityStart = (await panel.boundingBox())!
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(
+    pointer.x + boundaryBox.x + 8 - continuityStart.x,
+    pointer.y + boundaryBox.y + 8 - continuityStart.y,
+  )
+  await expect(panel).toHaveAttribute('data-picodash-magnetic-motion', 'snap')
+  const interruptedPosition = await pausePanelTranslateAnimationAfter(panel, 200)
+  await page.mouse.move(
+    pointer.x + boundaryBox.x + 96 - continuityStart.x,
+    pointer.y + boundaryBox.y + 80 - continuityStart.y,
+  )
+  await expect(panel).toHaveAttribute('data-picodash-magnetic-motion', 'detach')
+  const replacementStart = await pausePanelTranslateAnimationAfter(panel, 0, true)
+  expect(replacementStart.x).toBeCloseTo(interruptedPosition.x, 0)
+  expect(replacementStart.y).toBeCloseTo(interruptedPosition.y, 0)
+  await page.mouse.up()
 
   const panelBody = panel.locator('[data-picodash-panel-body]')
   await panelBody.evaluate((body) => {
