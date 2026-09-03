@@ -58,6 +58,12 @@ describe('DashPanel stylesheet contract', () => {
     expect(css).toMatch(
       /data-picodash-panel-dock-preview[^}]*data-picodash-dock-position\$='-right'[^}]*border-start-end-radius:\s*0;[^}]*border-end-end-radius:\s*0;/s,
     )
+    expect(css).toMatch(
+      /\.picodash-dashpanel\[data-picodash-dock-position='full-left'\],[\s\S]*?\.picodash-dashpanel\[data-picodash-dock-position='full-bottom'\]\s*\{\s*border-radius:\s*0;\s*\}/,
+    )
+    expect(css).toMatch(
+      /\[data-picodash-panel-dock-preview\]\[data-picodash-dock-position='full-left'\],[\s\S]*?\[data-picodash-panel-dock-preview\]\[data-picodash-dock-position='full-bottom'\]\s*\{\s*border-radius:\s*0;\s*\}/,
+    )
   })
 
   it('makes the non-interactive header a drag surface while preserving button gestures', async () => {

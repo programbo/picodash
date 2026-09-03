@@ -353,8 +353,9 @@ visual transitions immediate. The proxy never supplies input geometry, claims oc
 Nexus state, or commits a dock before pointer release.
 
 A docked Panel and its proxy retain the theme's radius on free corners and remove it only from
-corners that touch the effective boundary. Full-side targets therefore lose both radii on that
-side; corner targets lose only the contacting corner.
+corners that touch the effective boundary. Corner targets lose only the contacting corner.
+Full-side targets span the orthogonal axis and contact three boundary sides, so all four of their
+corners lose their radius.
 
 ### Canonical positions
 
