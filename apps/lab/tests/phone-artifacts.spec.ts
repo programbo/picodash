@@ -44,15 +44,15 @@ test('captures phone-sized placement motion and reduced-motion evidence', async 
     await capture(page, testInfo, 'placement-expanded.png')
 
     const collapse = panel.getByRole('button', { name: 'Collapse panel Placement Panel' })
-    await collapse.click()
-    const heightMotion = await activeMotion(panel, 'blockSize')
+    const heightMotion = await triggeredMotion(panel, 'blockSize', () => collapse.click())
     expect(heightMotion).toMatchObject({ duration: 150, keyframeCount: 2 })
     await expect(panel).not.toHaveAttribute('data-picodash-height-motion')
     const collapsedHeight = (await requiredBox(panel)).height
     expect(collapsedHeight).toBeLessThan(expandedHeight)
     await capture(page, testInfo, 'placement-collapsed.png')
-    await panel.getByRole('button', { name: 'Expand panel Placement Panel' }).click()
-    const expandMotion = await activeMotion(panel, 'blockSize')
+    const expandMotion = await triggeredMotion(panel, 'blockSize', () =>
+      panel.getByRole('button', { name: 'Expand panel Placement Panel' }).click(),
+    )
     expect(expandMotion).toMatchObject({ duration: 150, keyframeCount: 2 })
     await expect(panel).not.toHaveAttribute('data-picodash-height-motion')
     expect((await requiredBox(panel)).height).toBeGreaterThan(collapsedHeight)
@@ -63,12 +63,13 @@ test('captures phone-sized placement motion and reduced-motion evidence', async 
     let pointer = center(dragBox)
     await page.mouse.move(pointer.x, pointer.y)
     await page.mouse.down()
-    await page.mouse.move(
-      pointer.x + boundaryBox.x + 8 - panelBox.x,
-      pointer.y + boundaryBox.y + 8 - panelBox.y,
+    const snapMotion = await triggeredMotion(panel, 'translate', () =>
+      page.mouse.move(
+        pointer.x + boundaryBox.x + 8 - panelBox.x,
+        pointer.y + boundaryBox.y + 8 - panelBox.y,
+      ),
     )
     await expect(panel).toHaveAttribute('data-picodash-magnetic', 'snapped')
-    const snapMotion = await activeMotion(panel, 'translate')
     expect(snapMotion).toMatchObject({ duration: 160, keyframeCount: 3 })
     await page.mouse.up()
     await expect(panel).toHaveAttribute('data-picodash-placement', 'floating-snapped')
@@ -81,9 +82,10 @@ test('captures phone-sized placement motion and reduced-motion evidence', async 
     await page.mouse.down()
     await page.mouse.move(pointer.x, pointer.y + 24)
     await expect(panel).toHaveAttribute('data-picodash-magnetic', 'resisted')
-    await page.mouse.move(pointer.x, pointer.y + 64)
+    const detachMotion = await triggeredMotion(panel, 'translate', () =>
+      page.mouse.move(pointer.x, pointer.y + 64),
+    )
     await expect(panel).not.toHaveAttribute('data-picodash-magnetic')
-    const detachMotion = await activeMotion(panel, 'translate')
     expect(detachMotion).toMatchObject({ duration: 140, keyframeCount: 3 })
     await page.mouse.up()
 
@@ -109,14 +111,17 @@ test('captures phone-sized placement motion and reduced-motion evidence', async 
     const dockPreview = page.locator('[data-picodash-panel-dock-preview]')
     await page.mouse.move(pointer.x, pointer.y)
     await page.mouse.down()
-    await page.mouse.move(rightEdgePointerX, boundaryBox.y + 20)
+    const dockPreviewMotion = await triggeredMotion(dockPreview, 'transform', () =>
+      page.mouse.move(rightEdgePointerX, boundaryBox.y + 20),
+    )
     await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'top-right')
-    const dockPreviewMotion = await activeMotion(dockPreview, 'transform')
     expect(dockPreviewMotion).toMatchObject({ duration: 150, keyframeCount: 2 })
     await capture(page, testInfo, 'placement-hybrid-target.png')
-    await page.mouse.move(rightEdgePointerX, boundaryBox.y + boundaryBox.height / 2)
+    const fullRightMotion = await triggeredMotion(dockPreview, 'transform', () =>
+      page.mouse.move(rightEdgePointerX, boundaryBox.y + boundaryBox.height / 2),
+    )
     await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'full-right')
-    expect(await activeMotion(dockPreview, 'transform')).toMatchObject({
+    expect(fullRightMotion).toMatchObject({
       duration: 150,
       keyframeCount: 2,
     })
@@ -356,9 +361,13 @@ async function writeEvidence(testInfo: TestInfo, name: string, value: unknown): 
   await testInfo.attach(name, { path: evidencePath, contentType: 'application/json' })
 }
 
-async function activeMotion(locator: Locator, property: string) {
+async function triggeredMotion(
+  locator: Locator,
+  property: string,
+  trigger: () => Promise<unknown>,
+) {
   await expect(locator).toBeVisible()
-  const result = await locator.evaluate(
+  const observation = locator.evaluate(
     (element, expectedProperty) =>
       new Promise<{ readonly duration: number; readonly keyframeCount: number } | null>(
         (resolve) => {
@@ -385,6 +394,8 @@ async function activeMotion(locator: Locator, property: string) {
       ),
     property,
   )
+  await trigger()
+  const result = await observation
   if (!result) throw new TypeError(`Expected active ${property} motion.`)
   return result
 }

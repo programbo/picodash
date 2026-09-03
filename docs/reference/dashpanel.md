@@ -420,6 +420,15 @@ not select fallbacks or materialize Nexus state.
 
 ## Dock occupancy and allocation
 
+> Contract: Accepted
+> Implementation: Verified
+> Evidence: `packages/dashpanel/src/placement/dock-arena.test.ts` covers the complete left/right
+> allocation and offset matrix. `packages/dashpanel/src/runtime/panel-runtime.test.ts` covers
+> Fixed/Hybrid occupancy, retained leases, prospective targets, and adjacent-corner width
+> allocation. `packages/dashpanel/src/portal.test.tsx` covers mixed-mode rendering, and the
+> placement journey in `apps/lab/tests/contract-lab.spec.ts` proves that the animated Hybrid proxy,
+> committed Hybrid Panel, and equivalent Fixed Panel resolve to the same browser geometry.
+
 Docking coordinates multiple Fixed and Hybrid Panels within a Provider. These terms are canonical:
 
 - **Dock position:** one named placement target such as `top-left` or `full-right`.
@@ -1049,7 +1058,7 @@ accepted `DashHeader` and ActionMenu family needed for unchanged Panel compositi
 No unresolved DashPanel contract question blocks implementation. Conformance still must produce:
 
 1. the exhaustive shared-token consumption table after shared components are implemented;
-2. cohesive regular, compact, intrinsic-width, dock-allocation, drawer, and sheet visual evidence;
+2. cohesive regular, compact, intrinsic-width, drawer, and sheet visual evidence;
 3. package and type evidence for every accepted public surface; and
 4. proof that private geometry selectors and formulas have not become customization promises.
 

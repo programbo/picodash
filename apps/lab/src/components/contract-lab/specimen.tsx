@@ -98,6 +98,7 @@ type SpecimenNexus = RootNexus<SpecimenFieldDefinitions, CoreTransactionResult, 
 const standaloneListScopeId = 'contract-lab-standalone-list'
 const focusedPlacementPanelScopeId = 'contract-lab-focused-placement-panel'
 type FocusedPlacementTheme = PicodashTheme | 'ocean'
+type FocusedAllocationSetup = 'none' | 'same-edge' | 'adjacent-edges'
 
 const focusedPlacementModes = [
   {
@@ -264,9 +265,13 @@ function describePlacement(placement: DashPanelPlacement | undefined): string {
 }
 
 function FocusedPlacementControls({
+  allocationSetup,
+  onAllocationSetupChange,
   theme,
   onThemeChange,
 }: {
+  readonly allocationSetup: FocusedAllocationSetup
+  readonly onAllocationSetupChange: (setup: FocusedAllocationSetup) => void
   readonly theme: FocusedPlacementTheme
   readonly onThemeChange: (theme: FocusedPlacementTheme) => void
 }) {
@@ -275,7 +280,7 @@ function FocusedPlacementControls({
 
   return (
     <div
-      className="mx-5 grid gap-3 border border-(--picodash-color-border) bg-(--picodash-color-surface) p-3 text-(--picodash-color-text) lg:grid-cols-[auto_auto_1fr_auto] lg:items-end"
+      className="mx-5 grid gap-3 border border-(--picodash-color-border) bg-(--picodash-color-surface) p-3 text-(--picodash-color-text) xl:grid-cols-[auto_auto_auto_1fr_auto] xl:items-end"
       data-contract-lab-focused-controls
     >
       <div className="grid gap-1" role="group" aria-label="Placement mode">
@@ -312,6 +317,28 @@ function FocusedPlacementControls({
           ))}
         </div>
       </div>
+      <div className="grid gap-1" role="group" aria-label="Dock allocation setup">
+        <span className="text-xs text-(--picodash-color-text-muted)">Dock peers</span>
+        <div className="flex flex-wrap gap-1">
+          {(
+            [
+              ['none', 'None'],
+              ['same-edge', 'Same edge'],
+              ['adjacent-edges', 'Adjacent edges'],
+            ] as const
+          ).map(([setup, label]) => (
+            <Button
+              key={setup}
+              size="sm"
+              variant={allocationSetup === setup ? 'secondary' : 'outline'}
+              aria-pressed={allocationSetup === setup}
+              onPress={() => onAllocationSetupChange(setup)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      </div>
       <output
         className="text-xs text-(--picodash-color-text-muted) lg:pb-2"
         aria-label="Current panel placement"
@@ -330,6 +357,7 @@ function FocusedPlacementSpecimen({
   onCollapsedChange,
 }: Pick<ContractLabSpecimenProps, 'onCollapsedChange'>) {
   const placementBoundary = useRef<HTMLDivElement>(null)
+  const [allocationSetup, setAllocationSetup] = useState<FocusedAllocationSetup>('none')
   const [theme, setTheme] = useState<FocusedPlacementTheme>('system')
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null)
   const nexus = useMemo(
@@ -351,7 +379,12 @@ function FocusedPlacementSpecimen({
       portalContainer={portalTarget}
       theme={theme}
     >
-      <FocusedPlacementControls theme={theme} onThemeChange={setTheme} />
+      <FocusedPlacementControls
+        allocationSetup={allocationSetup}
+        onAllocationSetupChange={setAllocationSetup}
+        theme={theme}
+        onThemeChange={setTheme}
+      />
       <div
         ref={placementBoundary}
         role="region"
@@ -384,6 +417,69 @@ function FocusedPlacementSpecimen({
       >
         <FocusedPlacementContent />
       </DashPanel>
+      {allocationSetup === 'same-edge' ? (
+        <DashPanel
+          id="contract-lab-fixed-allocation-corner"
+          title="Fixed allocation corner"
+          actionMenu={false}
+          collapsible={false}
+          showCloseButton={false}
+          width="12rem"
+          className="pointer-events-auto"
+          defaultLayout={{
+            placement: {
+              mode: 'fixed',
+              disposition: { kind: 'docked', position: 'top-right' },
+            },
+          }}
+          data-contract-lab-allocation-panel="fixed-corner"
+        >
+          <div className="min-h-96 p-4 text-sm">
+            Fixed corner content exceeds its one-third allocation and scrolls inside the Panel.
+          </div>
+        </DashPanel>
+      ) : null}
+      {allocationSetup === 'adjacent-edges' ? (
+        <>
+          <DashPanel
+            id="contract-lab-fixed-adjacent-corner"
+            title="Fixed adjacent corner"
+            actionMenu={false}
+            collapsible={false}
+            showCloseButton={false}
+            width="12rem"
+            className="pointer-events-auto"
+            defaultLayout={{
+              placement: {
+                mode: 'fixed',
+                disposition: { kind: 'docked', position: 'top-left' },
+              },
+            }}
+            data-contract-lab-allocation-panel="fixed-adjacent-corner"
+          >
+            <div className="p-4 text-sm">This corner reserves its measured width.</div>
+          </DashPanel>
+          <DashPanel
+            id="contract-lab-hybrid-adjacent-edge"
+            title="Hybrid adjacent edge"
+            actionMenu={false}
+            collapsible={false}
+            showCloseButton={false}
+            className="pointer-events-auto"
+            defaultLayout={{
+              placement: {
+                mode: 'hybrid',
+                disposition: { kind: 'docked', position: 'full-top' },
+              },
+            }}
+            data-contract-lab-allocation-panel="hybrid-adjacent-edge"
+          >
+            <div className="p-4 text-sm">
+              The Hybrid full-top Panel begins at the corner's inner edge.
+            </div>
+          </DashPanel>
+        </>
+      ) : null}
     </DashPanelProvider>
   )
 }

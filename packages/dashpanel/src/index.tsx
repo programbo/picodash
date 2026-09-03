@@ -1597,7 +1597,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       snapOffset: resolvedPlacementOptions.snapOffset,
       snapProximity: resolvedPlacementOptions.snapProximity,
     })
-    const nextDockIntent =
+    const unresolvedDockIntent =
       movableMode === 'hybrid'
         ? resolveDashPanelHybridDockIntent({
             boundary: currentGeometry.boundary,
@@ -1618,6 +1618,22 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             size: currentGeometry.size,
           })
         : undefined
+    const nextDockIntent = unresolvedDockIntent
+      ? {
+          position: unresolvedDockIntent.position,
+          rect: dockDashPanelRect(
+            unresolvedDockIntent.position,
+            currentGeometry.boundary,
+            currentGeometry.size,
+            runtime.resolveDockTarget({
+              kind: 'prospective',
+              scopeId: id,
+              position: unresolvedDockIntent.position,
+              available: currentGeometry.boundary,
+            }),
+          ),
+        }
+      : undefined
     queuePanelMagneticMotion(nextSnapIntent)
     moveSession.current = {
       ...session,
@@ -1928,7 +1944,13 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const dockedMinimized = collapsed && dockedMinimizePresentation !== undefined
   const collapseLabel = `${dockedMinimizePresentation ? 'Minimize' : collapsed ? 'Expand' : 'Collapse'} panel ${panelName}`
   const dockTarget =
-    geometry && renderedDockPosition ? runtime.getDockTarget(id, geometry.boundary) : undefined
+    geometry && renderedDockPosition
+      ? runtime.resolveDockTarget({
+          kind: 'settled',
+          scopeId: id,
+          available: geometry.boundary,
+        })
+      : undefined
   const renderedRect = geometry
     ? placementRect(
         renderedPlacement,

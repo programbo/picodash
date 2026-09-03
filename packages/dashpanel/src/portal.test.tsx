@@ -1343,7 +1343,7 @@ describe('DashPanel portal ownership', () => {
     nexus.destroy()
   })
 
-  it('applies side allocation segments to compatible dock occupants', async () => {
+  it('applies side and adjacent-edge allocation to mixed Fixed and Hybrid occupants', async () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
@@ -1362,7 +1362,7 @@ describe('DashPanel portal ownership', () => {
           id="corner"
           title="Corner"
           defaultLayout={{
-            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'top-left' } },
+            placement: { mode: 'hybrid', disposition: { kind: 'docked', position: 'top-left' } },
           }}
         />
         <DashPanel
@@ -1376,7 +1376,7 @@ describe('DashPanel portal ownership', () => {
           id="edge"
           title="Edge"
           defaultLayout={{
-            placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-top' } },
+            placement: { mode: 'hybrid', disposition: { kind: 'docked', position: 'full-top' } },
           }}
         />
       </DashPanelProvider>,
