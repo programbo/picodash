@@ -1096,40 +1096,72 @@
   grid-template-columns: var(--_picodash-dashlist-reorder-track) minmax(0, 1fr);
 }
 
-:is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  .picodash-dashlist-item
+:is(
+    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
+      > [data-picodash-dashlist-band]
+      > .picodash-dashlist-item,
+    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
+  )
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content],
-:is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  .picodash-dashlist-item
+:is(
+    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
+      > [data-picodash-dashlist-band]
+      > .picodash-dashlist-item,
+    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
+  )
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-description],
-:is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  .picodash-dashlist-item
+:is(
+    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
+      > [data-picodash-dashlist-band]
+      > .picodash-dashlist-item,
+    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
+  )
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-binding-issues],
-:is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  .picodash-dashlist-item
+:is(
+    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
+      > [data-picodash-dashlist-band]
+      > .picodash-dashlist-item,
+    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
+  )
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-issues],
-:is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  .picodash-dashlist-item
+:is(
+    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
+      > [data-picodash-dashlist-band]
+      > .picodash-dashlist-item,
+    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
+  )
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-actions] {
   grid-column: 2;
   grid-row: auto;
 }
 
-:is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  .picodash-dashlist-item
+:is(
+    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
+      > [data-picodash-dashlist-band]
+      > .picodash-dashlist-item,
+    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
+  )
   > [data-picodash-dashlet-shell][data-layout='inline']
   > [data-picodash-dashlet-content] {
   display: block;
 }
 
-:is([data-picodash-dashlist-list], [data-picodash-dashgroup-list])[data-picodash-dashlist-compact]
-  .picodash-dashlist-segmented
-  [data-picodash-dashlist-segment] {
+:is(
+    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
+      > [data-picodash-dashlist-band]
+      > .picodash-dashlist-item,
+    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
+  )
+  > [data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-cell]
+  > .picodash-dashlist-segmented
+  > [data-picodash-dashlist-segment] {
   flex: 1 1 auto;
 }
 

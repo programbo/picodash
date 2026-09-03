@@ -282,6 +282,7 @@ test('captures every retained theme preference and the public custom-theme fixtu
     return {
       backgroundColor: style.backgroundColor,
       borderRadius: style.borderTopLeftRadius,
+      elevatedShadow: style.getPropertyValue('--picodash-shadow-elevated').trim(),
       focus: style.getPropertyValue('--picodash-color-focus').trim(),
       surface: style.getPropertyValue('--picodash-color-surface').trim(),
       theme: element.closest('[data-picodash-theme]')?.getAttribute('data-picodash-theme'),
@@ -289,6 +290,7 @@ test('captures every retained theme preference and the public custom-theme fixtu
   })
   expect(customPresentation).toMatchObject({
     borderRadius: '8px',
+    elevatedShadow: '0 25px 50px -12px #00000073',
     theme: 'ocean',
   })
   expect(customPresentation.backgroundColor).not.toBe('rgba(0, 0, 0, 0)')

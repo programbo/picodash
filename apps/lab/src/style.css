@@ -60,7 +60,7 @@ body {
   --picodash-color-data-5: rgb(255 112 112);
   --picodash-radius-surface: 8px;
   --picodash-radius-control: 6px;
-  --picodash-shadow-panel: 0 25px 50px -12px rgb(0 0 0 / 45%);
+  --picodash-shadow-elevated: 0 25px 50px -12px rgb(0 0 0 / 45%);
   --picodash-shadow-viewer: 0 25px 50px -12px rgb(0 0 0 / 70%);
   --picodash-shadow-inner: inset 0 2px 4px rgb(0 0 0 / 30%);
 }
