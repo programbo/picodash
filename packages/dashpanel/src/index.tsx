@@ -1031,6 +1031,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       contentObserver.observe(panelBody, {
         attributeFilter: ['data-collapsed', 'hidden'],
         attributes: true,
+        characterData: true,
         childList: true,
         subtree: true,
       })

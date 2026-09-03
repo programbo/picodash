@@ -302,7 +302,7 @@ describe('DashPanel portal ownership', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('cancels an active move as soon as observed geometry changes', async () => {
+  it('cancels an active move on geometry changes and observes intrinsic text changes', async () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const firstShadowHost = document.createElement('div')
@@ -314,10 +314,24 @@ describe('DashPanel portal ownership', () => {
     boundaryShadowRoot.append(firstBoundaryWrapper)
     firstBoundaryWrapper.append(boundary)
     let boundaryWidth = 300
+    vi.spyOn(HTMLElement.prototype, 'querySelector').mockImplementation(function (
+      this: HTMLElement,
+      selectors: string,
+    ) {
+      if (selectors === ':scope > [data-picodash-panel-body]') {
+        return (
+          Array.from(this.children).find((child) =>
+            child.hasAttribute('data-picodash-panel-body'),
+          ) ?? null
+        )
+      }
+      return Element.prototype.querySelector.call(this, selectors)
+    })
     let resize!: ResizeObserverCallback
     const resizeTargets: Node[] = []
     const mutationObservers: Array<{
       callback: MutationCallback
+      options?: MutationObserverInit
       targets: Node[]
     }> = []
     vi.stubGlobal(
@@ -338,7 +352,10 @@ describe('DashPanel portal ownership', () => {
           this.record = { callback, targets: [] }
           mutationObservers.push(this.record)
         }
-        observe = (target: Node) => this.record.targets.push(target)
+        observe = (target: Node, options?: MutationObserverInit) => {
+          this.record.targets.push(target)
+          this.record.options = options
+        }
         disconnect = vi.fn()
         takeRecords = vi.fn(() => [])
       },
@@ -378,11 +395,24 @@ describe('DashPanel portal ownership', () => {
             placement: { mode: 'floating', disposition: { kind: 'free' } },
             preferredPosition: { x: 30, y: 30 },
           }}
-        />
+        >
+          <span>Status</span>
+        </DashPanel>
       </DashPanelProvider>,
     )
     const panel = portal.querySelector('[data-picodash-panel]') as HTMLElement
     const move = portal.querySelector('[aria-label="Move panel Inspector"]') as HTMLElement
+    const contentMutationObserver = mutationObservers.find((observer) =>
+      observer.targets.some(
+        (target) => target instanceof Element && target.hasAttribute('data-picodash-panel-body'),
+      ),
+    )!
+    expect(contentMutationObserver.options).toMatchObject({
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    })
     const panelMutationObserver = mutationObservers.find(
       (observer) =>
         observer.targets.includes(panel) && observer.targets.includes(firstShadowHost.shadowRoot!),
