@@ -1249,6 +1249,26 @@ describe('DashPanel portal ownership', () => {
         move.dispatchEvent(
           new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight', shiftKey: true }),
         )
+      for (let index = 0; index < 4; index += 1)
+        move.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowLeft', shiftKey: true }),
+        )
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+    })
+    expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({
+      placement: { mode: 'hybrid', disposition: { kind: 'free' } },
+      preferredPosition: { x: 0, y: 0 },
+    })
+    await act(async () => {
+      nexus.scope('inspector').resetDashPanelLayout()
+    })
+
+    await act(async () => {
+      move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
+      for (let index = 0; index < 4; index += 1)
+        move.dispatchEvent(
+          new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight', shiftKey: true }),
+        )
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
     expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({

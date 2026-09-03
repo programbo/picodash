@@ -24,6 +24,7 @@ import {
   type DashPanelStyle,
 } from '../src/index.tsx'
 import { useDashPanelPolicy, type DashPanelPolicy } from '../src/runtime/panel-policy-context.tsx'
+import { useDashPanelRuntime } from '../src/runtime/panel-runtime-context.tsx'
 import {
   useDashPanelProviderPolicy,
   type DashPanelProviderPolicy,
@@ -1025,6 +1026,11 @@ describe('@picodash/dashpanel alpha shell', () => {
 
   it('retracts a docked Panel behind a detached, direction-aware Reveal control', () => {
     const nexus = makeNexus()
+    let runtime!: ReturnType<typeof useDashPanelRuntime>
+    function Probe() {
+      runtime = useDashPanelRuntime()
+      return null
+    }
     const renderer = render(
       createElement(DashPanelProvider, {
         nexus,
@@ -1037,7 +1043,12 @@ describe('@picodash/dashpanel alpha shell', () => {
               disposition: { kind: 'docked', position: 'bottom-left' },
             },
           },
-          children: createElement('div', { 'data-child': true }, 'Retained content'),
+          children: createElement(
+            'div',
+            { 'data-child': true },
+            createElement(Probe),
+            'Retained content',
+          ),
         }),
       }),
     )
@@ -1083,6 +1094,25 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(reveal.element.querySelector('svg')?.getAttribute('data-picodash-arrow-direction')).toBe(
       'up-right',
     )
+    act(() => {
+      expect(runtime.hide('docked-collapse').status).toBe('executed')
+    })
+    expect(aside.props.hidden).toBe(true)
+    expect(revealCarrier.props).toMatchObject({
+      'aria-hidden': true,
+      'data-visible': 'false',
+      inert: true,
+    })
+    expect(reveal.props.isDisabled).toBe(true)
+    act(() => {
+      expect(runtime.show('docked-collapse').status).toBe('executed')
+    })
+    expect(revealCarrier.props).toMatchObject({
+      'aria-hidden': undefined,
+      'data-visible': 'true',
+      inert: undefined,
+    })
+    expect(reveal.props.isDisabled).not.toBe(true)
     pressButton(reveal)
     expect(renderer.root.findByType('aside').props).toMatchObject({
       'data-collapsed': 'false',

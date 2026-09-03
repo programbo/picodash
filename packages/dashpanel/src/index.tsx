@@ -1759,7 +1759,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       x: projected.x - currentGeometry.boundary.left,
       y: projected.y - currentGeometry.boundary.top,
     }
-    const moved = next.x !== session.startPosition.x || next.y !== session.startPosition.y
+    const moved =
+      session.moved || next.x !== session.startPosition.x || next.y !== session.startPosition.y
     if (
       session.startedDocked &&
       !session.dockDetached &&
@@ -1941,7 +1942,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const dockedMinimizePresentation = renderedDockPosition
     ? resolveDashPanelDockedMinimizePresentation(renderedDockPosition)
     : undefined
-  const dockedMinimized = collapsed && dockedMinimizePresentation !== undefined
+  const dockedMinimized = visible && collapsed && dockedMinimizePresentation !== undefined
   const collapseLabel = `${dockedMinimizePresentation ? 'Minimize' : collapsed ? 'Expand' : 'Collapse'} panel ${panelName}`
   const dockTarget =
     geometry && renderedDockPosition
