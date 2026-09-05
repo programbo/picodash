@@ -52,18 +52,24 @@ describe('DashPanel stylesheet contract', () => {
     expect(css).toMatch(
       /dash-header-actions[^}]*dash-header-trailing[^}]*padding-inline-end:\s*var\(--picodash-space-1\);/s,
     )
+    expect(css).toMatch(/data-picodash-dock-position='top-left'[^}]*border-top-left-radius:\s*0;/s)
     expect(css).toMatch(
-      /data-picodash-dock-position\^='top-'[^}]*border-top-left-radius:\s*0;[^}]*border-top-right-radius:\s*0;/s,
+      /data-picodash-panel-dock-preview[^}]*data-picodash-dock-position='top-right'[^}]*border-top-right-radius:\s*0;/s,
     )
-    expect(css).toMatch(
-      /data-picodash-panel-dock-preview[^}]*data-picodash-dock-position\$='-right'[^}]*border-top-right-radius:\s*0;[^}]*border-bottom-right-radius:\s*0;/s,
-    )
+    expect(css).not.toContain("data-picodash-dock-position^='top-'")
+    expect(css).not.toContain("data-picodash-dock-position$='-right'")
     expect(css).not.toMatch(/border-(?:start|end)-(?:start|end)-radius/)
     expect(css).toMatch(
       /\.picodash-dashpanel\[data-picodash-dock-position='full-left'\],[\s\S]*?\.picodash-dashpanel\[data-picodash-dock-position='full-bottom'\]\s*\{\s*border-radius:\s*0;\s*\}/,
     )
     expect(css).toMatch(
       /\[data-picodash-panel-dock-preview\]\[data-picodash-dock-position='full-left'\],[\s\S]*?\[data-picodash-panel-dock-preview\]\[data-picodash-dock-position='full-bottom'\]\s*\{\s*border-radius:\s*0;\s*\}/,
+    )
+    expect(css).toMatch(
+      /data-picodash-panel-reveal\]\[data-picodash-boundary-contact='top-left'\][^}]*data-slot='button'[^}]*border-top-left-radius:\s*0;/s,
+    )
+    expect(css).toMatch(
+      /data-picodash-panel-reveal\]\[data-picodash-boundary-contact='bottom'\][^}]*data-slot='button'[^}]*border-bottom-left-radius:\s*0;[^}]*border-bottom-right-radius:\s*0;/s,
     )
   })
 
@@ -100,6 +106,9 @@ describe('DashPanel stylesheet contract', () => {
     )
     expect(css).toMatch(
       /\[data-picodash-panel-dock-preview\]\s*\{[^}]*will-change:\s*transform, opacity;/s,
+    )
+    expect(css).toMatch(
+      /data-picodash-dock-allocation-motion='true'\]\s*\{[^}]*transform-origin:\s*top left;[^}]*transition:\s*none;[^}]*will-change:\s*transform;/s,
     )
     expect(css).not.toMatch(/\[data-picodash-panel-dock-preview\]\s*\{[^}]*transition:/s)
     expect(css).toMatch(/data-picodash-dragging='true'\]\s*\{[^}]*transition:\s*none;/s)

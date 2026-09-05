@@ -1073,15 +1073,32 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   const boundary = page.locator('[data-contract-lab-focused-boundary]')
   const showPanel = page.getByRole('button', { name: 'Show panel' })
   await expect.poll(async () => (await boundary.boundingBox())?.height).toBeGreaterThanOrEqual(768)
+  await page.getByRole('button', { name: 'Use ocean theme' }).click()
   const assertFullRightMinimize = async () => {
+    await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
     const minimize = page.getByRole('button', { name: 'Minimize panel Placement Panel' })
     await expect(minimize.locator('svg')).toHaveAttribute('data-picodash-arrow-direction', 'right')
-    await minimize.click()
+    await minimize.press('Enter')
 
     const reveal = page.getByRole('button', { name: 'Reveal panel Placement Panel' })
     await expect(reveal).toBeVisible()
     await expect(reveal).toBeFocused()
     await expect(reveal.locator('svg')).toHaveAttribute('data-picodash-arrow-direction', 'left')
+    const revealCarrier = reveal.locator('..')
+    await expect(revealCarrier).toHaveAttribute('data-picodash-boundary-contact', 'top-right')
+    const revealRadii = await reveal.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        topLeft: style.borderTopLeftRadius,
+        topRight: style.borderTopRightRadius,
+        bottomRight: style.borderBottomRightRadius,
+        bottomLeft: style.borderBottomLeftRadius,
+      }
+    })
+    expect(revealRadii.topRight).toBe('0px')
+    expect(revealRadii.topLeft).not.toBe('0px')
+    expect(revealRadii.bottomRight).not.toBe('0px')
+    expect(revealRadii.bottomLeft).not.toBe('0px')
     await expect(panel).toHaveAttribute('data-picodash-docked-minimized', 'true')
     await expect(panel).toHaveAttribute('aria-hidden', 'true')
     await expect(panel.locator('[data-picodash-panel-body]')).not.toHaveAttribute('hidden')
@@ -1098,7 +1115,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
       0,
     )
 
-    await reveal.click()
+    await reveal.press('Enter')
     await expect(minimize).toBeFocused()
     await expect(panel).not.toHaveAttribute('data-picodash-docked-minimized')
     await expect
@@ -1111,6 +1128,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
 
   for (const mode of ['Fixed', 'Hybrid'] as const) {
     await page.getByRole('button', { name: mode, exact: true }).click()
+    await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
     await panel.locator('[aria-label="Close panel Placement Panel"]').click()
     await expect(panel).toHaveAttribute('hidden', '')
     expect(await panel.evaluate((element) => getComputedStyle(element).display)).toBe('none')
@@ -1120,8 +1138,8 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
 
   await page.getByRole('button', { name: 'Floating', exact: true }).click()
   await panel.evaluate((element) => {
-    element.style.setProperty('--picodash-panel-snap-duration', '320ms')
-    element.style.setProperty('--picodash-panel-detach-duration', '280ms')
+    element.style.setProperty('--picodash-panel-snap-duration', '1000ms')
+    element.style.setProperty('--picodash-panel-detach-duration', '1000ms')
   })
   const boundaryBox = (await boundary.boundingBox())!
   let panelBox = (await panelByRole.boundingBox())!
@@ -1143,7 +1161,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
           const effect = animation.effect
           return (
             effect instanceof KeyframeEffect &&
-            effect.getTiming().duration === 320 &&
+            effect.getTiming().duration === 1000 &&
             effect.getKeyframes().length === 3 &&
             effect.getKeyframes().every((keyframe) => typeof keyframe.translate === 'string')
           )
@@ -1175,7 +1193,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
           const effect = animation.effect
           return (
             effect instanceof KeyframeEffect &&
-            effect.getTiming().duration === 280 &&
+            effect.getTiming().duration === 1000 &&
             effect.getKeyframes().length === 3 &&
             effect.getKeyframes().every((keyframe) => typeof keyframe.translate === 'string')
           )
@@ -1323,12 +1341,25 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await expect(page.getByRole('status', { name: 'Current panel placement' })).toHaveText(
     'Hybrid: docked top-right',
   )
+  expect(
+    await panel.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        topLeft: style.borderTopLeftRadius,
+        topRight: style.borderTopRightRadius,
+        bottomRight: style.borderBottomRightRadius,
+        bottomLeft: style.borderBottomLeftRadius,
+      }
+    }),
+  ).toEqual({ topLeft: '8px', topRight: '0px', bottomRight: '8px', bottomLeft: '8px' })
 
   await page.getByRole('button', { name: 'Floating', exact: true }).click()
   await page.getByRole('button', { name: 'Same edge', exact: true }).click()
   const fixedCorner = page.getByRole('complementary', { name: 'Fixed allocation corner' })
   await expect(fixedCorner).toBeVisible()
-
+  await fixedCorner.evaluate((element) =>
+    element.style.setProperty('--picodash-duration-fast', '300ms'),
+  )
   await page.getByRole('button', { name: 'Hybrid', exact: true }).click()
   moveBox = (await dragSurface.boundingBox())!
   pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
@@ -1348,6 +1379,21 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await page.mouse.move(allocatedRightPointerX, boundaryBox.y + boundaryBox.height / 2)
   await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'full-right')
   await expect
+    .poll(() =>
+      fixedCorner.evaluate((element) => ({
+        motion: element.getAttribute('data-picodash-dock-allocation-motion'),
+        hasTransformAnimation: element.getAnimations().some((animation) => {
+          const effect = animation.effect
+          return (
+            effect instanceof KeyframeEffect &&
+            effect.getTiming().duration === 300 &&
+            effect.getKeyframes().every((keyframe) => typeof keyframe.transform === 'string')
+          )
+        }),
+      })),
+    )
+    .toEqual({ motion: 'true', hasTransformAnimation: true })
+  await expect
     .poll(async () => (await dockPreview.boundingBox())?.y)
     .toBeCloseTo(boundaryBox.y + boundaryBox.height / 3, 0)
   await expect
@@ -1363,7 +1409,24 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
     .poll(async () => (await panelByRole.boundingBox())?.height)
     .toBeCloseTo(allocatedPreviewBox.height, 0)
   const hybridAllocatedBox = (await panelByRole.boundingBox())!
-  expect((await fixedCorner.boundingBox())?.height).toBeCloseTo(boundaryBox.height / 3, 0)
+  await expect
+    .poll(async () => (await fixedCorner.boundingBox())?.height)
+    .toBeCloseTo(boundaryBox.height / 3, 0)
+  const allocatedFixedCornerHeight = (await fixedCorner.boundingBox())!.height
+
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x - 96, pointer.y + 96)
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-free-preview')
+  await expect(dockPreview).not.toHaveAttribute('data-picodash-dock-position')
+  await expect(fixedCorner).toHaveAttribute('data-picodash-dock-allocation-motion', 'true')
+  await expect
+    .poll(async () => (await fixedCorner.boundingBox())?.height)
+    .toBeGreaterThan(allocatedFixedCornerHeight + 64)
+  await page.mouse.up()
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-free')
 
   await page.getByRole('button', { name: 'Fixed', exact: true }).click()
   await expect
@@ -1378,6 +1441,8 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   const adjacentEdge = page.getByRole('complementary', { name: 'Hybrid adjacent edge' })
   await expect(adjacentCorner).toBeVisible()
   await expect(adjacentEdge).toBeVisible()
+  await expect(adjacentCorner).not.toHaveAttribute('data-picodash-dock-allocation-motion')
+  await expect(adjacentEdge).not.toHaveAttribute('data-picodash-dock-allocation-motion')
   const adjacentCornerBox = (await adjacentCorner.boundingBox())!
   const adjacentEdgeBox = (await adjacentEdge.boundingBox())!
   const orthogonalSideBox = (await panelByRole.boundingBox())!

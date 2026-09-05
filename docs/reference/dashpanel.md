@@ -352,10 +352,17 @@ Panel while fading it out when the pointer leaves every valid zone. It uses the 
 visual transitions immediate. The proxy never supplies input geometry, claims occupancy, changes
 Nexus state, or commits a dock before pointer release.
 
+An available target does contribute a transient allocation preview for settled peers on the same
+side. Those peers immediately animate toward their prospective size and offset. Crossing to another
+zone replaces the preview; leaving every valid zone, cancelling the gesture, or detaching a docked
+Hybrid Panel removes it and animates peers toward the allocation derived from settled occupants.
+The preview remains runtime-only and never reserves the target slot.
+
 A docked Panel and its proxy retain the theme's radius on free corners and remove it only from
 corners that touch the effective boundary. Corner targets lose only the contacting corner.
 Full-side targets span the orthogonal axis and contact three boundary sides, so all four of their
-corners lose their radius.
+corners lose their radius. The detached Reveal control applies the same rule to its own contact
+point, independently of the hidden Panel's other boundary contacts.
 
 ### Canonical positions
 
@@ -455,6 +462,12 @@ Occupancy and allocation are host runtime, not Nexus metadata.
 During pointer or keyboard movement, an occupied target is not offered as a valid intent proxy.
 Releasing over it preserves the Panel's previous settled placement. A programmatic placement
 command fails atomically with structured reason `dock_occupied`.
+
+During pointer movement, an available Hybrid target temporarily participates in allocation without
+participating in occupancy. Existing same-side occupants animate toward the prospective allocation
+as soon as the proxy enters the zone. Leaving the zone, cancelling, or detaching removes that
+participant and animates peers toward their settled allocation. Pointer release remains the only
+operation that acquires the slot or changes durable placement.
 
 During persisted-layout materialization, the first committed lease wins. A later conflicting Panel
 uses a contained, non-durable fallback and reports the conflict. It does not silently overwrite the
@@ -683,10 +696,12 @@ visual intent only and never becomes geometry input.
 
 Snap acquisition and final detachment animate an independent Motion translation with the owning
 theme's DashPanel motion tokens. Motion also owns measured-height interpolation and the Hybrid dock
-target proxy because both are geometry-derived, replaceable sequences. Because the base transform
-continues to track each pointer or keyboard step, animation does not delay movement or alter the
-geometry supplied to snap, dock, or Nexus logic. A new snap, detach, or target transition may
-replace its in-flight predecessor.
+target proxy. Same-side allocation changes use a Motion FLIP transition from each affected Panel's
+current on-screen rectangle to its newly resolved layout rectangle. These are geometry-derived,
+replaceable sequences. Because the base transform continues to track each pointer or keyboard step,
+animation does not delay movement or alter the geometry supplied to snap, dock, allocation, or
+Nexus logic. A new snap, detach, target, or allocation transition may replace its in-flight
+predecessor.
 
 Keyboard movement uses the Panel's move control:
 

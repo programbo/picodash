@@ -82,6 +82,32 @@
   box-shadow: var(--picodash-shadow-md);
 }
 
+[data-picodash-panel-reveal][data-picodash-boundary-contact='top-left'] > [data-slot='button'] {
+  border-top-left-radius: 0;
+}
+
+[data-picodash-panel-reveal][data-picodash-boundary-contact='top-right'] > [data-slot='button'] {
+  border-top-right-radius: 0;
+}
+
+[data-picodash-panel-reveal][data-picodash-boundary-contact='bottom-right'] > [data-slot='button'] {
+  border-bottom-right-radius: 0;
+}
+
+[data-picodash-panel-reveal][data-picodash-boundary-contact='bottom-left'] > [data-slot='button'] {
+  border-bottom-left-radius: 0;
+}
+
+[data-picodash-panel-reveal][data-picodash-boundary-contact='top'] > [data-slot='button'] {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+[data-picodash-panel-reveal][data-picodash-boundary-contact='bottom'] > [data-slot='button'] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 [data-picodash-panel-dock-preview] {
   pointer-events: none;
   z-index: 0;
@@ -260,28 +286,48 @@
   outline-offset: 2px;
 }
 
+.picodash-dashpanel[data-picodash-dock-allocation-motion='true'] {
+  transform-origin: top left;
+  transition: none;
+  will-change: transform;
+}
+
 .picodash-dashpanel[data-active='true'] {
   z-index: var(--picodash-layer-raised);
 }
 
-.picodash-dashpanel[data-picodash-dock-position^='top-'],
+.picodash-dashpanel[data-picodash-dock-position='top-left'] {
+  border-top-left-radius: 0;
+}
+
+.picodash-dashpanel[data-picodash-dock-position='top-right'] {
+  border-top-right-radius: 0;
+}
+
+.picodash-dashpanel[data-picodash-dock-position='bottom-right'] {
+  border-bottom-right-radius: 0;
+}
+
+.picodash-dashpanel[data-picodash-dock-position='bottom-left'] {
+  border-bottom-left-radius: 0;
+}
+
 .picodash-dashpanel[data-picodash-dock-position='center-top'] {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
 
-.picodash-dashpanel[data-picodash-dock-position^='bottom-'],
 .picodash-dashpanel[data-picodash-dock-position='center-bottom'] {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-.picodash-dashpanel[data-picodash-dock-position$='-left'] {
+.picodash-dashpanel[data-picodash-dock-position='center-left'] {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
 
-.picodash-dashpanel[data-picodash-dock-position$='-right'] {
+.picodash-dashpanel[data-picodash-dock-position='center-right'] {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -293,24 +339,38 @@
   border-radius: 0;
 }
 
-[data-picodash-panel-dock-preview][data-picodash-dock-position^='top-'],
+[data-picodash-panel-dock-preview][data-picodash-dock-position='top-left'] {
+  border-top-left-radius: 0;
+}
+
+[data-picodash-panel-dock-preview][data-picodash-dock-position='top-right'] {
+  border-top-right-radius: 0;
+}
+
+[data-picodash-panel-dock-preview][data-picodash-dock-position='bottom-right'] {
+  border-bottom-right-radius: 0;
+}
+
+[data-picodash-panel-dock-preview][data-picodash-dock-position='bottom-left'] {
+  border-bottom-left-radius: 0;
+}
+
 [data-picodash-panel-dock-preview][data-picodash-dock-position='center-top'] {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
 
-[data-picodash-panel-dock-preview][data-picodash-dock-position^='bottom-'],
 [data-picodash-panel-dock-preview][data-picodash-dock-position='center-bottom'] {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-[data-picodash-panel-dock-preview][data-picodash-dock-position$='-left'] {
+[data-picodash-panel-dock-preview][data-picodash-dock-position='center-left'] {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
 
-[data-picodash-panel-dock-preview][data-picodash-dock-position$='-right'] {
+[data-picodash-panel-dock-preview][data-picodash-dock-position='center-right'] {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
