@@ -288,7 +288,8 @@ opposite direction, back into the container. A control-initiated minimize transf
 Reveal, and Reveal transfers focus back to Minimize after expansion. Reduced motion makes both
 changes immediate. Programmatic controller commands retain their existing no-focus-movement rule.
 Collapse/minimize and visibility are transient, retain dock occupancy and child state, and are
-never persisted.
+never persisted. Reveal carriers render above every ordinary Panel layer so an overlapping active
+Panel cannot make the replacement control unreachable.
 
 Pointer interaction, focus entry, and explicit show/focus commands activate a Panel. Provider
 activation order marks only the most recently activated visible Panel with the private
@@ -352,10 +353,20 @@ Panel while fading it out when the pointer leaves every valid zone. It uses the 
 visual transitions immediate. The proxy never supplies input geometry, claims occupancy, changes
 Nexus state, or commits a dock before pointer release.
 
-A docked Panel and its proxy retain the theme's radius on free corners and remove it only from
-corners that touch the effective boundary. Corner targets lose only the contacting corner.
-Full-side targets span the orthogonal axis and contact three boundary sides, so all four of their
-corners lose their radius.
+An available target does contribute a transient allocation preview for settled peers on the same
+side. Those peers immediately animate toward their prospective size and offset. Crossing to another
+zone replaces the preview; leaving every valid zone, cancelling the gesture, or detaching a docked
+Hybrid Panel removes it and animates peers toward the allocation derived from settled occupants.
+The preview remains runtime-only and never reserves the target slot.
+
+A docked Panel and its proxy retain the theme's radius on free corners and remove it from every
+corner that lies on a contacted effective-boundary edge. A corner target contacts two boundary
+edges, so only its opposite inner corner remains rounded. A full-side target that contacts three
+boundary edges loses all four radii. Allocation can offset a full-top or full-bottom target from a
+corner occupant; its displaced corner is then free and regains its radius. Contact is therefore
+derived from the resolved rectangle rather than inferred from the dock-position name. The detached
+Reveal control applies the same rule to its own boundary contact, independently of the hidden
+Panel's other contacts.
 
 ### Canonical positions
 
@@ -455,6 +466,12 @@ Occupancy and allocation are host runtime, not Nexus metadata.
 During pointer or keyboard movement, an occupied target is not offered as a valid intent proxy.
 Releasing over it preserves the Panel's previous settled placement. A programmatic placement
 command fails atomically with structured reason `dock_occupied`.
+
+During pointer movement, an available Hybrid target temporarily participates in allocation without
+participating in occupancy. Existing same-side occupants animate toward the prospective allocation
+as soon as the proxy enters the zone. Leaving the zone, cancelling, or detaching removes that
+participant and animates peers toward their settled allocation. Pointer release remains the only
+operation that acquires the slot or changes durable placement.
 
 During persisted-layout materialization, the first committed lease wins. A later conflicting Panel
 uses a contained, non-durable fallback and reports the conflict. It does not silently overwrite the
@@ -561,7 +578,11 @@ placement coordinates; changing a boundary must not implicitly move ownership of
 ## Durable layout
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Verified
+> Evidence: `packages/dashpanel/src/runtime/panel-runtime.test.ts`,
+> `packages/dashpanel/tests/dashpanel.test.tsx`, and the Contract Lab durable-layout journey in
+> `apps/lab/tests/contract-lab.spec.ts` cover settled writes, browser persistence and restoration,
+> reset-to-default behavior, and invalid-record recovery through the disclosed Nexus scope.
 
 Nexus persists one settled layout override per Panel scope:
 
@@ -679,10 +700,12 @@ visual intent only and never becomes geometry input.
 
 Snap acquisition and final detachment animate an independent Motion translation with the owning
 theme's DashPanel motion tokens. Motion also owns measured-height interpolation and the Hybrid dock
-target proxy because both are geometry-derived, replaceable sequences. Because the base transform
-continues to track each pointer or keyboard step, animation does not delay movement or alter the
-geometry supplied to snap, dock, or Nexus logic. A new snap, detach, or target transition may
-replace its in-flight predecessor.
+target proxy. Same-side allocation changes use a Motion FLIP transition from each affected Panel's
+current on-screen rectangle to its newly resolved layout rectangle. These are geometry-derived,
+replaceable sequences. Because the base transform continues to track each pointer or keyboard step,
+animation does not delay movement or alter the geometry supplied to snap, dock, allocation, or
+Nexus logic. A new snap, detach, target, or allocation transition may replace its in-flight
+predecessor.
 
 Keyboard movement uses the Panel's move control:
 
