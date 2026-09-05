@@ -97,8 +97,16 @@ type SpecimenNexus = RootNexus<SpecimenFieldDefinitions, CoreTransactionResult, 
 
 const standaloneListScopeId = 'contract-lab-standalone-list'
 const focusedPlacementPanelScopeId = 'contract-lab-focused-placement-panel'
+const focusedPlacementPersistenceStorageKey = 'picodash-contract-lab-focused-placement-v1'
 type FocusedPlacementTheme = PicodashTheme | 'ocean'
 type FocusedAllocationSetup = 'none' | 'same-edge' | 'adjacent-edges'
+
+const focusedPlacementDisclosure = {
+  valueFields: [],
+  scopeIds: [focusedPlacementPanelScopeId],
+  diagnostics: true,
+} as const
+const focusedPlacementPermissions = { writableFields: [] } as const
 
 const focusedPlacementModes = [
   {
@@ -161,6 +169,26 @@ function createContractLabPersistenceProbeNexus() {
     fields: { probeValue: { defaultValue: 0 } },
   })
 }
+
+function createFocusedPlacementNexus() {
+  return createPicodashNexus({
+    valueOwner: 'nexus',
+    nexusId: 'contract-lab-focused-placement',
+    schemaVersion: 1,
+    persistence: {
+      storageKey: focusedPlacementPersistenceStorageKey,
+      driver: createWebStoragePersistenceDriver('local'),
+      values: { defaultFieldPolicy: 'omit' },
+    },
+    fields: {},
+  })
+}
+
+type FocusedPlacementNexus = ReturnType<typeof createFocusedPlacementNexus>
+type FocusedPlacementNexusState =
+  | { readonly status: 'loading' }
+  | { readonly status: 'ready'; readonly nexus: FocusedPlacementNexus }
+  | { readonly status: 'unavailable' }
 
 type ContractLabPersistenceProbeNexus = ReturnType<typeof createContractLabPersistenceProbeNexus>
 
@@ -355,21 +383,65 @@ function FocusedPlacementControls({
 
 function FocusedPlacementSpecimen({
   onCollapsedChange,
-}: Pick<ContractLabSpecimenProps, 'onCollapsedChange'>) {
+  onDiagnosticCountChange,
+}: Pick<ContractLabSpecimenProps, 'onCollapsedChange' | 'onDiagnosticCountChange'>) {
   const placementBoundary = useRef<HTMLDivElement>(null)
   const [allocationSetup, setAllocationSetup] = useState<FocusedAllocationSetup>('none')
   const [theme, setTheme] = useState<FocusedPlacementTheme>('system')
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null)
-  const nexus = useMemo(
-    () =>
-      createPicodashNexus({
-        valueOwner: 'nexus',
-        nexusId: 'contract-lab-focused-placement',
-        schemaVersion: 1,
-        fields: {},
-      }),
-    [],
-  )
+  const [nexusState, setNexusState] = useState<FocusedPlacementNexusState>({ status: 'loading' })
+  const nexus = nexusState.status === 'ready' ? nexusState.nexus : null
+  const diagnosticNexuss = useMemo(() => (nexus === null ? [] : [nexus]), [nexus])
+  const diagnosticCount = useContractLabDiagnosticCount(diagnosticNexuss)
+
+  useEffect(() => {
+    let active = true
+    let nextNexus: FocusedPlacementNexus | undefined
+    queueMicrotask(() => {
+      if (!active) return
+      try {
+        nextNexus = createFocusedPlacementNexus()
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.name === 'PicodashInitializationError' &&
+          'code' in error &&
+          error.code === 'persistence-driver-unavailable'
+        ) {
+          setNexusState({ status: 'unavailable' })
+          return
+        }
+        throw error
+      }
+      setNexusState({ status: 'ready', nexus: nextNexus })
+    })
+    return () => {
+      active = false
+      const nexusToDestroy = nextNexus
+      if (nexusToDestroy) queueMicrotask(() => nexusToDestroy.destroy({ discardUnpersisted: true }))
+    }
+  }, [])
+
+  useEffect(() => {
+    onDiagnosticCountChange(diagnosticCount)
+    return () => onDiagnosticCountChange(0)
+  }, [diagnosticCount, onDiagnosticCountChange])
+
+  if (nexus === null) {
+    return (
+      <section
+        aria-label="DashPanel placement persistence"
+        className="mx-5 border border-(--picodash-color-border) p-4 text-sm"
+        data-contract-lab-focused-persistence-unavailable={
+          nexusState.status === 'unavailable' ? 'true' : undefined
+        }
+      >
+        {nexusState.status === 'unavailable'
+          ? 'DashPanel placement is unavailable because Web Storage is unavailable.'
+          : 'Loading DashPanel placement…'}
+      </section>
+    )
+  }
 
   return (
     <DashPanelProvider
@@ -379,6 +451,13 @@ function FocusedPlacementSpecimen({
       portalContainer={portalTarget}
       theme={theme}
     >
+      <ContractLabDevBridgeConnector
+        nexus={nexus}
+        registrationId="contract-lab-focused-placement"
+        label="Contract Lab DashPanel placement"
+        disclosure={focusedPlacementDisclosure}
+        permissions={focusedPlacementPermissions}
+      />
       <FocusedPlacementControls
         allocationSetup={allocationSetup}
         onAllocationSetupChange={setAllocationSetup}
@@ -999,7 +1078,12 @@ function ComplexContractLabSpecimen({
 
 export function ContractLabSpecimen(props: ContractLabSpecimenProps) {
   if (props.preset.id === 'placement') {
-    return <FocusedPlacementSpecimen onCollapsedChange={props.onCollapsedChange} />
+    return (
+      <FocusedPlacementSpecimen
+        onCollapsedChange={props.onCollapsedChange}
+        onDiagnosticCountChange={props.onDiagnosticCountChange}
+      />
+    )
   }
   return <ComplexContractLabSpecimen {...props} />
 }

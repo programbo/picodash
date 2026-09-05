@@ -5,6 +5,8 @@ import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
 
 const consoleErrors = new WeakMap<Page, string[]>()
 const persistenceProbeStorageKey = 'picodash-contract-lab-web-storage-probe-v1'
+const focusedPlacementPersistenceStorageKey = 'picodash-contract-lab-focused-placement-v1'
+const focusedPlacementPanelScopeId = 'contract-lab-focused-placement-panel'
 const standaloneListScopeId = 'contract-lab-standalone-list'
 
 test.beforeEach(async ({ page }) => {
@@ -91,9 +93,10 @@ async function pausePanelTranslateAnimationAfter(
   panel: Locator,
   minimumElapsed: number,
   seekToStart = false,
+  keepPaused = false,
 ) {
   return panel.evaluate(
-    (element, { elapsedThreshold, resetToStart }) =>
+    (element, { elapsedThreshold, resetToStart, retainPause }) =>
       new Promise<{ x: number; y: number }>((resolve, reject) => {
         const deadline = performance.now() + 1_000
         const inspect = () => {
@@ -130,13 +133,13 @@ async function pausePanelTranslateAnimationAfter(
           if (resetToStart) animation.currentTime = 0
           requestAnimationFrame(() => {
             const rect = element.getBoundingClientRect()
-            animation.play()
+            if (!retainPause) animation.play()
             resolve({ x: rect.x, y: rect.y })
           })
         }
         inspect()
       }),
-    { elapsedThreshold: minimumElapsed, resetToStart: seekToStart },
+    { elapsedThreshold: minimumElapsed, resetToStart: seekToStart, retainPause: keepPaused },
   )
 }
 
@@ -1220,7 +1223,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
     pointer.y + boundaryBox.y + 8 - continuityStart.y,
   )
   await expect(panel).toHaveAttribute('data-picodash-magnetic-motion', 'snap')
-  const interruptedPosition = await pausePanelTranslateAnimationAfter(panel, 200)
+  const interruptedPosition = await pausePanelTranslateAnimationAfter(panel, 200, false, true)
   await page.mouse.move(
     pointer.x + boundaryBox.x + 96 - continuityStart.x,
     pointer.y + boundaryBox.y + 80 - continuityStart.y,
@@ -1384,6 +1387,154 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
     0,
   )
   expect(adjacentEdgeBox.x + adjacentEdgeBox.width).toBeGreaterThan(orthogonalSideBox.x)
+})
+
+test('persists, restores, resets, and safely recovers settled DashPanel layout', async ({
+  page,
+}) => {
+  await openLab(page)
+
+  const panel = page.getByRole('complementary', { name: 'Placement Panel' })
+  const boundary = page.locator('[data-contract-lab-focused-boundary]')
+  const moveControl = panel.getByRole('button', { name: 'Move panel Placement Panel' })
+  const readPreferredOffset = async () => {
+    const [panelBox, boundaryBox] = await Promise.all([panel.boundingBox(), boundary.boundingBox()])
+    if (!panelBox || !boundaryBox) throw new Error('Placement geometry was unavailable.')
+    return { x: panelBox.x - boundaryBox.x, y: panelBox.y - boundaryBox.y }
+  }
+
+  await expect(panel).toBeVisible()
+  await moveControl.focus()
+  await moveControl.press('Enter')
+  await moveControl.press('Shift+ArrowRight')
+  await moveControl.press('Shift+ArrowDown')
+  await moveControl.press('Enter')
+  await expect.poll(readPreferredOffset).toEqual({ x: 34, y: 34 })
+
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem('picodash-dev-bridge-tab')))
+    .toEqual(expect.any(String))
+  const browserTabId = await page.evaluate(() =>
+    window.sessionStorage.getItem('picodash-dev-bridge-tab'),
+  )
+  const credential = JSON.parse(
+    await readFile(resolve(process.cwd(), '../../.picodash/dev-bridge.json'), 'utf8'),
+  ) as { url: string; token: string }
+  const client = createPicodashDevBridgeClient({ baseUrl: credential.url, token: credential.token })
+  const placementSession = async () =>
+    (await client.listSessions()).find(
+      (item) =>
+        item.registrationId === 'contract-lab-focused-placement' &&
+        item.browserTabId === browserTabId,
+    )
+  await expect.poll(placementSession).toBeTruthy()
+  const settledSession = (await placementSession())!
+  const settledSnapshot = await client.inspect(settledSession)
+  expect(
+    settledSnapshot.snapshot.scopes?.find((scope) => scope.id === focusedPlacementPanelScopeId)
+      ?.metadata,
+  ).toEqual({
+    dashPanel: {
+      placement: { mode: 'floating', disposition: { kind: 'free' } },
+      preferredPosition: { x: 34, y: 34 },
+    },
+  })
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (storageKey) => localStorage.getItem(storageKey),
+        focusedPlacementPersistenceStorageKey,
+      ),
+    )
+    .toContain('"preferredPosition":{"x":34,"y":34}')
+
+  await page.reload()
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  await expect(panel).toBeVisible()
+  await expect
+    .poll(async () => {
+      const current = await placementSession()
+      return current && current.generation > settledSession.generation
+    })
+    .toBeTruthy()
+  const restoredSession = (await placementSession())!
+  const restoredSnapshot = await client.inspect(restoredSession)
+  expect(
+    restoredSnapshot.snapshot.scopes?.find((scope) => scope.id === focusedPlacementPanelScopeId)
+      ?.metadata,
+  ).toEqual({
+    dashPanel: {
+      placement: { mode: 'floating', disposition: { kind: 'free' } },
+      preferredPosition: { x: 34, y: 34 },
+    },
+  })
+  await expect.poll(readPreferredOffset).toEqual({ x: 34, y: 34 })
+
+  await panel.getByRole('button', { name: 'Reset panel layout' }).click()
+  await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
+  await expect
+    .poll(async () => {
+      const current = await placementSession()
+      if (!current) return 'session unavailable'
+      const snapshot = await client.inspect(current)
+      return snapshot.snapshot.scopes?.find((scope) => scope.id === focusedPlacementPanelScopeId)
+        ?.metadata
+    })
+    .toBeUndefined()
+
+  await page.reload()
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  await expect(panel).toBeVisible()
+  await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
+
+  await page.evaluate(
+    ({ storageKey, scopeId }) => {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          kind: 'picodash-nexus-envelope',
+          formatVersion: 1,
+          nexusId: 'contract-lab-focused-placement',
+          schemaVersion: 1,
+          revision: 42,
+          writerId: 'm3-invalid-layout-fixture',
+          valueOwner: 'nexus',
+          values: {},
+          scopes: [[scopeId, { dashPanel: { invalid: true } }]],
+        }),
+      )
+    },
+    {
+      storageKey: focusedPlacementPersistenceStorageKey,
+      scopeId: focusedPlacementPanelScopeId,
+    },
+  )
+  await page.reload()
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  await expect(panel).toBeVisible()
+  await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
+  await expect
+    .poll(async () => {
+      const current = await placementSession()
+      if (!current) return undefined
+      const snapshot = await client.inspect(current)
+      return snapshot.snapshot.diagnostics?.find(
+        (diagnostic) =>
+          diagnostic.code === 'metadata_quarantined' &&
+          diagnostic.identity.kind === 'scope-metadata' &&
+          diagnostic.identity.scopeId === focusedPlacementPanelScopeId,
+      )
+    })
+    .toMatchObject({
+      code: 'metadata_quarantined',
+      identity: { kind: 'scope-metadata', scopeId: focusedPlacementPanelScopeId },
+    })
+  const recoveredSession = (await placementSession())!
+  const recoveredSnapshot = await client.inspect(recoveredSession)
+  expect(
+    recoveredSnapshot.snapshot.scopes?.find((scope) => scope.id === focusedPlacementPanelScopeId)
+      ?.metadata,
+  ).toBeUndefined()
 })
 
 test('connects the real browser specimen through the dev bridge and rejects the retired generation', async ({

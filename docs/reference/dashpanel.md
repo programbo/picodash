@@ -561,7 +561,11 @@ placement coordinates; changing a boundary must not implicitly move ownership of
 ## Durable layout
 
 > Contract: Accepted
-> Implementation: Prototype
+> Implementation: Verified
+> Evidence: `packages/dashpanel/src/runtime/panel-runtime.test.ts`,
+> `packages/dashpanel/tests/dashpanel.test.tsx`, and the Contract Lab durable-layout journey in
+> `apps/lab/tests/contract-lab.spec.ts` cover settled writes, browser persistence and restoration,
+> reset-to-default behavior, and invalid-record recovery through the disclosed Nexus scope.
 
 Nexus persists one settled layout override per Panel scope:
 
