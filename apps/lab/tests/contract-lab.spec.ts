@@ -1085,7 +1085,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
     await expect(reveal).toBeFocused()
     await expect(reveal.locator('svg')).toHaveAttribute('data-picodash-arrow-direction', 'left')
     const revealCarrier = reveal.locator('..')
-    await expect(revealCarrier).toHaveAttribute('data-picodash-boundary-contact', 'top-right')
+    await expect(revealCarrier).toHaveAttribute('data-picodash-boundary-contact', 'top right')
     const revealRadii = await reveal.evaluate((element) => {
       const style = getComputedStyle(element)
       return {
@@ -1095,9 +1095,9 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
         bottomLeft: style.borderBottomLeftRadius,
       }
     })
+    expect(revealRadii.topLeft).toBe('0px')
     expect(revealRadii.topRight).toBe('0px')
-    expect(revealRadii.topLeft).not.toBe('0px')
-    expect(revealRadii.bottomRight).not.toBe('0px')
+    expect(revealRadii.bottomRight).toBe('0px')
     expect(revealRadii.bottomLeft).not.toBe('0px')
     await expect(panel).toHaveAttribute('data-picodash-docked-minimized', 'true')
     await expect(panel).toHaveAttribute('aria-hidden', 'true')
@@ -1304,6 +1304,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await page.mouse.down()
   await page.mouse.move(rightEdgePointerX, boundaryBox.y + 20, { steps: 4 })
   await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'top-right')
+  await expect(dockPreview).toHaveAttribute('data-picodash-boundary-contact', 'top right')
   await expect.poll(async () => (await dockPreview.boundingBox())?.y).toBeCloseTo(boundaryBox.y, 0)
 
   await page.mouse.move(rightEdgePointerX, boundaryBox.y + boundaryBox.height / 2)
@@ -1351,7 +1352,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
         bottomLeft: style.borderBottomLeftRadius,
       }
     }),
-  ).toEqual({ topLeft: '8px', topRight: '0px', bottomRight: '8px', bottomLeft: '8px' })
+  ).toEqual({ topLeft: '0px', topRight: '0px', bottomRight: '0px', bottomLeft: '8px' })
 
   await page.getByRole('button', { name: 'Floating', exact: true }).click()
   await page.getByRole('button', { name: 'Same edge', exact: true }).click()
@@ -1408,6 +1409,29 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await expect
     .poll(async () => (await panelByRole.boundingBox())?.height)
     .toBeCloseTo(allocatedPreviewBox.height, 0)
+  await expect(panel).toHaveAttribute('data-picodash-boundary-contact', 'right bottom')
+  await page.getByRole('button', { name: 'Minimize panel Placement Panel' }).press('Enter')
+  const allocatedReveal = page.getByRole('button', { name: 'Reveal panel Placement Panel' })
+  await expect(allocatedReveal.locator('..')).toHaveAttribute(
+    'data-picodash-boundary-contact',
+    'right',
+  )
+  const allocatedRevealRadii = await allocatedReveal.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      topLeft: style.borderTopLeftRadius,
+      topRight: style.borderTopRightRadius,
+      bottomRight: style.borderBottomRightRadius,
+      bottomLeft: style.borderBottomLeftRadius,
+    }
+  })
+  expect(allocatedRevealRadii.topLeft).not.toBe('0px')
+  expect(allocatedRevealRadii.topRight).toBe('0px')
+  expect(allocatedRevealRadii.bottomRight).toBe('0px')
+  expect(allocatedRevealRadii.bottomLeft).not.toBe('0px')
+  await allocatedReveal.press('Enter')
+  await expect(panel).not.toHaveAttribute('data-picodash-docked-minimized')
+  await expect.poll(() => panel.evaluate((element) => getComputedStyle(element).opacity)).toBe('1')
   const hybridAllocatedBox = (await panelByRole.boundingBox())!
   await expect
     .poll(async () => (await fixedCorner.boundingBox())?.height)
@@ -1443,6 +1467,8 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await expect(adjacentEdge).toBeVisible()
   await expect(adjacentCorner).not.toHaveAttribute('data-picodash-dock-allocation-motion')
   await expect(adjacentEdge).not.toHaveAttribute('data-picodash-dock-allocation-motion')
+  await expect(adjacentCorner).toHaveAttribute('data-picodash-boundary-contact', 'top left')
+  await expect(adjacentEdge).toHaveAttribute('data-picodash-boundary-contact', 'top right')
   const adjacentCornerBox = (await adjacentCorner.boundingBox())!
   const adjacentEdgeBox = (await adjacentEdge.boundingBox())!
   const orthogonalSideBox = (await panelByRole.boundingBox())!
@@ -1452,6 +1478,57 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
     0,
   )
   expect(adjacentEdgeBox.x + adjacentEdgeBox.width).toBeGreaterThan(orthogonalSideBox.x)
+
+  const adjacentRadii = await Promise.all(
+    [adjacentCorner, adjacentEdge].map((locator) =>
+      locator.evaluate((element) => {
+        const style = getComputedStyle(element)
+        return {
+          topLeft: style.borderTopLeftRadius,
+          topRight: style.borderTopRightRadius,
+          bottomRight: style.borderBottomRightRadius,
+          bottomLeft: style.borderBottomLeftRadius,
+        }
+      }),
+    ),
+  )
+  expect(adjacentRadii[0]).toEqual({
+    topLeft: '0px',
+    topRight: '0px',
+    bottomRight: '8px',
+    bottomLeft: '0px',
+  })
+  expect(adjacentRadii[1]).toEqual({
+    topLeft: '0px',
+    topRight: '0px',
+    bottomRight: '0px',
+    bottomLeft: '8px',
+  })
+
+  await page.getByRole('button', { name: 'Minimize panel Placement Panel' }).press('Enter')
+  const reveal = page.getByRole('button', { name: 'Reveal panel Placement Panel' })
+  await expect(reveal).toBeVisible()
+  await adjacentEdge
+    .getByText("The Hybrid full-top Panel begins at the corner's inner edge.")
+    .click()
+  await expect(adjacentEdge).toHaveAttribute('data-active', 'true')
+  const revealBox = (await reveal.boundingBox())!
+  const stacking = await reveal.evaluate(
+    (button, point) => {
+      const carrier = button.parentElement
+      const activePanel = document.querySelector('.picodash-dashpanel[data-active="true"]')
+      return {
+        hit: button.contains(document.elementFromPoint(point.x, point.y)),
+        reveal: Number(getComputedStyle(carrier!).zIndex),
+        panel: Number(getComputedStyle(activePanel!).zIndex),
+      }
+    },
+    { x: revealBox.x + revealBox.width / 2, y: revealBox.y + revealBox.height / 2 },
+  )
+  expect(stacking.reveal).toBeGreaterThan(stacking.panel)
+  expect(stacking.hit).toBe(true)
+  await page.mouse.click(revealBox.x + revealBox.width / 2, revealBox.y + revealBox.height / 2)
+  await expect(panel).not.toHaveAttribute('data-picodash-docked-minimized')
 })
 
 test('persists, restores, resets, and safely recovers settled DashPanel layout', async ({

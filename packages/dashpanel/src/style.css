@@ -58,7 +58,7 @@
 
 [data-picodash-panel-reveal] {
   position: absolute;
-  z-index: var(--picodash-layer-raised);
+  z-index: calc(var(--picodash-layer-raised) + 1);
   pointer-events: none;
   visibility: hidden;
   opacity: 0;
@@ -82,30 +82,24 @@
   box-shadow: var(--picodash-shadow-md);
 }
 
-[data-picodash-panel-reveal][data-picodash-boundary-contact='top-left'] > [data-slot='button'] {
-  border-top-left-radius: 0;
-}
-
-[data-picodash-panel-reveal][data-picodash-boundary-contact='top-right'] > [data-slot='button'] {
-  border-top-right-radius: 0;
-}
-
-[data-picodash-panel-reveal][data-picodash-boundary-contact='bottom-right'] > [data-slot='button'] {
-  border-bottom-right-radius: 0;
-}
-
-[data-picodash-panel-reveal][data-picodash-boundary-contact='bottom-left'] > [data-slot='button'] {
-  border-bottom-left-radius: 0;
-}
-
-[data-picodash-panel-reveal][data-picodash-boundary-contact='top'] > [data-slot='button'] {
+[data-picodash-panel-reveal][data-picodash-boundary-contact~='top'] > [data-slot='button'] {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
 
-[data-picodash-panel-reveal][data-picodash-boundary-contact='bottom'] > [data-slot='button'] {
+[data-picodash-panel-reveal][data-picodash-boundary-contact~='right'] > [data-slot='button'] {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+[data-picodash-panel-reveal][data-picodash-boundary-contact~='bottom'] > [data-slot='button'] {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
+}
+
+[data-picodash-panel-reveal][data-picodash-boundary-contact~='left'] > [data-slot='button'] {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 [data-picodash-panel-dock-preview] {
@@ -296,90 +290,28 @@
   z-index: var(--picodash-layer-raised);
 }
 
-.picodash-dashpanel[data-picodash-dock-position='top-left'] {
-  border-top-left-radius: 0;
-}
-
-.picodash-dashpanel[data-picodash-dock-position='top-right'] {
-  border-top-right-radius: 0;
-}
-
-.picodash-dashpanel[data-picodash-dock-position='bottom-right'] {
-  border-bottom-right-radius: 0;
-}
-
-.picodash-dashpanel[data-picodash-dock-position='bottom-left'] {
-  border-bottom-left-radius: 0;
-}
-
-.picodash-dashpanel[data-picodash-dock-position='center-top'] {
+.picodash-dashpanel[data-picodash-boundary-contact~='top'],
+[data-picodash-panel-dock-preview][data-picodash-boundary-contact~='top'] {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
 
-.picodash-dashpanel[data-picodash-dock-position='center-bottom'] {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.picodash-dashpanel[data-picodash-dock-position='center-left'] {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
-
-.picodash-dashpanel[data-picodash-dock-position='center-right'] {
+.picodash-dashpanel[data-picodash-boundary-contact~='right'],
+[data-picodash-panel-dock-preview][data-picodash-boundary-contact~='right'] {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-.picodash-dashpanel[data-picodash-dock-position='full-left'],
-.picodash-dashpanel[data-picodash-dock-position='full-right'],
-.picodash-dashpanel[data-picodash-dock-position='full-top'],
-.picodash-dashpanel[data-picodash-dock-position='full-bottom'] {
-  border-radius: 0;
-}
-
-[data-picodash-panel-dock-preview][data-picodash-dock-position='top-left'] {
-  border-top-left-radius: 0;
-}
-
-[data-picodash-panel-dock-preview][data-picodash-dock-position='top-right'] {
-  border-top-right-radius: 0;
-}
-
-[data-picodash-panel-dock-preview][data-picodash-dock-position='bottom-right'] {
-  border-bottom-right-radius: 0;
-}
-
-[data-picodash-panel-dock-preview][data-picodash-dock-position='bottom-left'] {
-  border-bottom-left-radius: 0;
-}
-
-[data-picodash-panel-dock-preview][data-picodash-dock-position='center-top'] {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-}
-
-[data-picodash-panel-dock-preview][data-picodash-dock-position='center-bottom'] {
+.picodash-dashpanel[data-picodash-boundary-contact~='bottom'],
+[data-picodash-panel-dock-preview][data-picodash-boundary-contact~='bottom'] {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-[data-picodash-panel-dock-preview][data-picodash-dock-position='center-left'] {
+.picodash-dashpanel[data-picodash-boundary-contact~='left'],
+[data-picodash-panel-dock-preview][data-picodash-boundary-contact~='left'] {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
-}
-
-[data-picodash-panel-dock-preview][data-picodash-dock-position='center-right'] {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-[data-picodash-panel-dock-preview][data-picodash-dock-position='full-left'],
-[data-picodash-panel-dock-preview][data-picodash-dock-position='full-right'],
-[data-picodash-panel-dock-preview][data-picodash-dock-position='full-top'],
-[data-picodash-panel-dock-preview][data-picodash-dock-position='full-bottom'] {
-  border-radius: 0;
 }
 
 @media (pointer: coarse) {

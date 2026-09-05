@@ -1,4 +1,5 @@
 import type { DashPanelDockPosition } from './placement.ts'
+import type { DashPanelBoundaryEdge } from '../geometry/placement-geometry.ts'
 
 export type DashPanelDockArrowDirection =
   | 'up'
@@ -18,13 +19,7 @@ export interface DashPanelDockedMinimizePresentation {
     readonly inline: 0 | 0.5 | 1
     readonly block: 0 | 1
   }
-  readonly revealBoundaryContact:
-    | 'top-left'
-    | 'top'
-    | 'top-right'
-    | 'bottom-right'
-    | 'bottom'
-    | 'bottom-left'
+  readonly revealBoundaryContact: readonly DashPanelBoundaryEdge[]
 }
 
 interface DockedMinimizeDefinition {
@@ -107,9 +102,9 @@ function oppositeDirection(direction: DashPanelDockArrowDirection): DashPanelDoc
 function revealBoundaryContact(
   anchor: DashPanelDockedMinimizePresentation['revealAnchor'],
 ): DashPanelDockedMinimizePresentation['revealBoundaryContact'] {
-  if (anchor.inline === 0.5) return anchor.block === 0 ? 'top' : 'bottom'
-  if (anchor.inline === 0) return anchor.block === 0 ? 'top-left' : 'bottom-left'
-  return anchor.block === 0 ? 'top-right' : 'bottom-right'
+  const blockEdge = anchor.block === 0 ? 'top' : 'bottom'
+  if (anchor.inline === 0.5) return Object.freeze([blockEdge])
+  return Object.freeze([blockEdge, anchor.inline === 0 ? 'left' : 'right'])
 }
 
 export function resolveDashPanelDockedMinimizePresentation(

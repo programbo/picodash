@@ -116,11 +116,14 @@ those two concrete sizes; it does not depend on the browser inferring an intrins
 
 ### 2.6 Edge contact and activation (PANEL-PLACEMENT-PRESENTATION-1)
 
-A docked Panel and its Hybrid target proxy remove radius only from corners that contact the
-effective boundary. Free corners retain the theme radius. A detached Reveal control applies the
-same rule from its own boundary contact rather than inheriting every contact of the hidden Panel.
-Pointer interaction or focus within a Panel activates it, and the Provider renders the most
-recently activated visible Panel above its peers without persisting z-order.
+A docked Panel and its Hybrid target proxy remove radius from every corner that lies on a contacted
+effective-boundary edge. A corner dock contacts two edges and therefore retains only its opposite
+inner corner radius. Allocation can shorten or offset an edge Panel, so contact is derived from its
+resolved rectangle rather than its named dock position. A detached Reveal control applies the same
+rule from its own boundary contact rather than inheriting every contact of the hidden Panel, and its
+carrier remains above every ordinary Panel layer so an overlapping Panel cannot block it. Pointer
+interaction or focus within a Panel activates it, and the Provider renders the most recently
+activated visible Panel above its peers without persisting z-order.
 
 Theme-defined Panel entry and exit keyframes remain deferred. Exit motion needs one explicit
 visibility lifecycle that preserves `hidden`, inertness, focus restoration, and reduced-motion

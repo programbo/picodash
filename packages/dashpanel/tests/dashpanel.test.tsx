@@ -1062,7 +1062,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     ).toBe('down-left')
     expect(revealCarrier.props).toMatchObject({
       'aria-hidden': true,
-      'data-picodash-boundary-contact': 'bottom-left',
+      'data-picodash-boundary-contact': 'bottom left',
       'data-visible': 'false',
       inert: true,
     })

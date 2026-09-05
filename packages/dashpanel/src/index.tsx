@@ -102,6 +102,7 @@ import {
   projectDashPanelPosition,
   projectDashPanelRect,
   rectFromDashPanelPosition,
+  resolveDashPanelBoundaryContact,
   snapDashPanelRect,
   type DashPanelDockTargetOptions,
   type DashPanelPoint,
@@ -1989,6 +1990,16 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         dockTarget,
       )
     : null
+  const renderedBoundaryContactEdges =
+    renderedDockPosition && renderedRect && geometry
+      ? resolveDashPanelBoundaryContact(renderedRect, geometry.boundary)
+      : undefined
+  const renderedBoundaryContact = renderedBoundaryContactEdges?.join(' ')
+  const revealBoundaryContact = dockedMinimizePresentation
+    ? (renderedBoundaryContactEdges ?? dockedMinimizePresentation.revealBoundaryContact)
+        .filter((edge) => dockedMinimizePresentation.revealBoundaryContact.includes(edge))
+        .join(' ')
+    : undefined
   const renderedMapped = renderedRect
     ? mapRectToContainingBlock(asideRef.current, renderedRect)
     : null
@@ -2327,6 +2338,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const dockPreviewMapped = dockPreviewRect
     ? mapRectToContainingBlock(asideRef.current, dockPreviewRect)
     : null
+  const dockPreviewBoundaryContact =
+    dockIntent?.kind === 'available' && geometry
+      ? resolveDashPanelBoundaryContact(dockIntent.rect, geometry.boundary).join(' ')
+      : undefined
   const dockPreviewMotionTarget: PanelDockPreviewMotionTarget | null =
     dockPreviewRect &&
     dockPreviewMapped &&
@@ -2459,13 +2474,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                   aria-hidden="true"
                   data-picodash-panel-dock-preview
                   data-picodash-dock-position={dockIntent?.position}
+                  data-picodash-boundary-contact={dockPreviewBoundaryContact || undefined}
                   style={dockPreviewStyle}
                 />
               ) : null}
               {dockedMinimizePresentation && revealStyle ? (
                 <div
                   data-picodash-panel-reveal
-                  data-picodash-boundary-contact={dockedMinimizePresentation.revealBoundaryContact}
+                  data-picodash-boundary-contact={revealBoundaryContact || undefined}
                   data-visible={dockedMinimized ? 'true' : 'false'}
                   style={revealStyle}
                   inert={!dockedMinimized || undefined}
@@ -2519,6 +2535,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                   dockIntent?.kind === 'available' ? dockIntent.position : undefined
                 }
                 data-picodash-dock-position={renderedDockPosition}
+                data-picodash-boundary-contact={renderedBoundaryContact || undefined}
                 data-picodash-docked-minimized={dockedMinimized ? 'true' : undefined}
                 hidden={!visible}
                 inert={!visible || dockedMinimized || undefined}

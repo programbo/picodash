@@ -288,7 +288,8 @@ opposite direction, back into the container. A control-initiated minimize transf
 Reveal, and Reveal transfers focus back to Minimize after expansion. Reduced motion makes both
 changes immediate. Programmatic controller commands retain their existing no-focus-movement rule.
 Collapse/minimize and visibility are transient, retain dock occupancy and child state, and are
-never persisted.
+never persisted. Reveal carriers render above every ordinary Panel layer so an overlapping active
+Panel cannot make the replacement control unreachable.
 
 Pointer interaction, focus entry, and explicit show/focus commands activate a Panel. Provider
 activation order marks only the most recently activated visible Panel with the private
@@ -358,11 +359,14 @@ zone replaces the preview; leaving every valid zone, cancelling the gesture, or 
 Hybrid Panel removes it and animates peers toward the allocation derived from settled occupants.
 The preview remains runtime-only and never reserves the target slot.
 
-A docked Panel and its proxy retain the theme's radius on free corners and remove it only from
-corners that touch the effective boundary. Corner targets lose only the contacting corner.
-Full-side targets span the orthogonal axis and contact three boundary sides, so all four of their
-corners lose their radius. The detached Reveal control applies the same rule to its own contact
-point, independently of the hidden Panel's other boundary contacts.
+A docked Panel and its proxy retain the theme's radius on free corners and remove it from every
+corner that lies on a contacted effective-boundary edge. A corner target contacts two boundary
+edges, so only its opposite inner corner remains rounded. A full-side target that contacts three
+boundary edges loses all four radii. Allocation can offset a full-top or full-bottom target from a
+corner occupant; its displaced corner is then free and regains its radius. Contact is therefore
+derived from the resolved rectangle rather than inferred from the dock-position name. The detached
+Reveal control applies the same rule to its own boundary contact, independently of the hidden
+Panel's other contacts.
 
 ### Canonical positions
 
