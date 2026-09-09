@@ -88,7 +88,7 @@ unmount, move, or restyle the Console. Closing, hiding, deregistering, or breaki
 not remove the host reopen control or status strip. The active preset may survive reload for the
 browser session; no preset is encoded in a route or durable user preference.
 
-The `interaction` preset is labelled **Value binding** for recovery milestone M4. It mounts two
+The `interaction` preset is labelled **Value binding** for recovery milestones M4/M5. It mounts two
 standalone Lists over three shared fields, without a Panel or Picodash Provider. The existing
 placement and Bridge/document journeys retain Panel lifecycle evidence. The M4 journey compares
 ready-made and composed controls through real focus, input, disclosed Bridge state, invalid and
@@ -167,3 +167,7 @@ Build `@picodash/nexus` and `@picodash/picodash` before browser discovery when t
 are required. Use allocated Picodash ports and the suite-specific environment variables. A single
 unrelated browser failure may be rerun once to establish whether it is reproducible, but it may not
 be hidden, quarantined, or used to justify unrelated product changes.
+
+M5 extends the same binding journey with atomic rejection, invalid-draft refresh, confirmed reset
+from both Lists, saved defaults after reload, and targeted Lab reset. See
+[the M5 record](docs/internal/m5-dashlist-data.md).

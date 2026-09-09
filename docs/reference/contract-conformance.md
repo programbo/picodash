@@ -297,3 +297,12 @@ failed foundation contract.
 | DashList       | Accepted           | Active dogfooding        | Partial and Planned UX rows remain before stability      |
 | Picodash       | Accepted           | Integration prototype    | Depends on stable foundational products                  |
 | Dev Bridge     | Accepted baseline  | Verified for dogfooding  | Private development adapter over public Nexus            |
+
+## Recovery M5: DashList data closure
+
+The existing standalone binding browser journey now covers persisted values, rejected atomic
+batches leaving live and saved values unchanged, invalid drafts discarded on refresh, reset
+cancellation, and confirmed reset from either List surviving reload. DashList binding/action tests
+and Nexus validation/persistence tests retain ownership of their deterministic contracts.
+The bounded slice is browser-verified locally and owner-approved on 2026-09-09.
+See [M5 evidence](../internal/m5-dashlist-data.md).

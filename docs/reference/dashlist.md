@@ -26,7 +26,8 @@ layout. It does not require DashPanel or `PicodashProvider`.
 
 The Contract Lab's **Value binding** preset (`interaction`) provides the bounded M4 example:
 ready-made Text, Number, Switch, and Display Dashlets alongside equivalent public Dashlet/`/ui`
-compositions. Both Lists share one ephemeral Nexus with three fields and no Panel Provider.
+compositions. Both Lists share one Nexus with three fields and no Panel Provider. M5 adds Web Storage
+persistence and confirmed value reset; see the [M5 evidence record](../internal/m5-dashlist-data.md).
 The [M4 evidence record](../internal/m4-value-binding.md) separates this verified browser slice
 from broader DashList stabilization and records owner hands-on acceptance on 2026-09-09.
 

@@ -1,14 +1,16 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import {
   DashList,
+  Dashlet,
+  DashListResetValuesItem,
   DisplayDashlet,
   NumberDashlet,
   SwitchDashlet,
   TextDashlet,
 } from '@picodash/dashlist'
-import { Button, PicodashThemeProvider, type PicodashThemeOption } from '@picodash/ui'
+import { ActionMenu, Button, PicodashThemeProvider, type PicodashThemeOption } from '@picodash/ui'
 import type {
   PicodashDevBridgeDisclosure,
   PicodashDevBridgePermissions,
@@ -34,15 +36,44 @@ interface ValueBindingLabProps {
 }
 
 export function ValueBindingLab(props: ValueBindingLabProps) {
-  const [nexus, setNexus] = useState<ValueBindingNexus | null>(null)
+  const [state, setState] = useState<
+    | { status: 'loading' }
+    | { status: 'ready'; nexus: ValueBindingNexus }
+    | { status: 'unavailable' }
+  >({ status: 'loading' })
   useEffect(() => {
-    const root = createValueBindingNexus()
-    setNexus(root)
-    // Descendant List and binding leases release before the application-owned root.
-    return () => queueMicrotask(() => root.destroy())
+    let active = true
+    let root: ValueBindingNexus | undefined
+    queueMicrotask(() => {
+      if (!active) return
+      try {
+        root = createValueBindingNexus()
+        setState({ status: 'ready', nexus: root })
+      } catch (error) {
+        if (error instanceof Error && error.name === 'PicodashInitializationError') {
+          setState({ status: 'unavailable' })
+          return
+        }
+        throw error
+      }
+    })
+    return () => {
+      active = false
+      const ownedRoot = root
+      if (ownedRoot) queueMicrotask(() => ownedRoot.destroy({ discardUnpersisted: true }))
+    }
   }, [])
-
-  return nexus ? <ValueBindingContent {...props} nexus={nexus} /> : null
+  useEffect(() => {
+    if (state.status === 'unavailable') props.onReady()
+  }, [state.status, props.onReady])
+  if (state.status === 'unavailable')
+    return (
+      <p role="alert">
+        Saved values could not be opened. Check browser storage or use Reset lab to clear this
+        example.
+      </p>
+    )
+  return state.status === 'ready' ? <ValueBindingContent {...props} nexus={state.nexus} /> : null
 }
 
 function ValueBindingContent({
@@ -55,6 +86,18 @@ function ValueBindingContent({
   const [theme, setTheme] = useState<PicodashThemeOption<'ocean'>>('system')
   const [disabled, setDisabled] = useState(false)
   const [writeStatus, setWriteStatus] = useState('')
+  const subscribe = useCallback(
+    (listener: () => void) => nexus.persistence.subscribe(listener),
+    [nexus],
+  )
+  const getPersistence = useCallback(() => nexus.persistence.getState(), [nexus])
+  const persistence = useSyncExternalStore(subscribe, getPersistence, getPersistence)
+  const saveMessage = {
+    clean: 'Saved in this browser.',
+    pending: 'Changes are not yet saved.',
+    error: 'Changes could not be saved.',
+    conflict: 'Saved values changed elsewhere. Changes are not saved.',
+  }[persistence.status]
   const sources = useMemo(() => [nexus], [nexus])
   const diagnosticCount = useContractLabDiagnosticCount(sources)
 
@@ -114,10 +157,13 @@ function ValueBindingContent({
             {writeStatus}
           </output>
         </div>
+        <p role="status" aria-label="Save status">
+          {saveMessage}
+        </p>
         <p className="mb-5 text-sm text-(--picodash-color-text-muted)">
           Both Lists share three fields. Edit either List or apply the example values to see them
           stay in sync. Clearing a name or entering an interval outside 1–60 keeps the last valid
-          value.
+          value. Valid values survive refresh; invalid drafts do not.
         </p>
         <div className="grid min-w-0 gap-6 xl:grid-cols-2">
           <DashList
@@ -152,6 +198,11 @@ function ValueBindingContent({
               field={nexus.fields.interval}
               formatValue={(value) => `${value} seconds`}
             />
+            <Dashlet id="actions" label="List actions">
+              <ActionMenu label="List actions">
+                <DashListResetValuesItem />
+              </ActionMenu>
+            </Dashlet>
           </DashList>
           <DashList
             nexus={nexus}
@@ -161,6 +212,11 @@ function ValueBindingContent({
             reorderable={false}
           >
             {renderComposedValueBindings({ nexus, disabled })}
+            <Dashlet id="actions" label="List actions">
+              <ActionMenu label="List actions">
+                <DashListResetValuesItem />
+              </ActionMenu>
+            </Dashlet>
           </DashList>
         </div>
       </section>

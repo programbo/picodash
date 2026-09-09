@@ -1,5 +1,7 @@
 'use client'
 
+import { clearValueBindingPersistence } from './value-binding-model'
+
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import {
   CONTRACT_LAB_PRESETS,
@@ -47,7 +49,7 @@ export function ContractLab() {
   useEffect(
     () =>
       installContractLabDriver((action) => {
-        if (action.type === 'lab/reset') clearFocusedPlacementPersistence()
+        if (action.type === 'lab/reset') clearLabPersistence()
         dispatch(action)
         setSpecimenAvailable(true)
       }),
@@ -66,7 +68,7 @@ export function ContractLab() {
   }
 
   function resetLab() {
-    clearFocusedPlacementPersistence()
+    clearLabPersistence()
     dispatch(contractLabActions.reset())
     setSpecimenAvailable(true)
   }
@@ -139,4 +141,13 @@ export function ContractLab() {
       </div>
     </main>
   )
+}
+
+function clearLabPersistence() {
+  clearFocusedPlacementPersistence()
+  try {
+    clearValueBindingPersistence()
+  } catch {
+    /* Storage remains unavailable; the specimen reports it. */
+  }
 }
