@@ -5,7 +5,7 @@ export default defineConfig({
   test: reactTestConfig,
   pack: {
     entry: { index: 'src/index.tsx', integration: 'src/integration.tsx', style: 'src/style.css' },
-    dts: { tsgo: true },
+    dts: { generator: 'tsgo' },
     exports: false,
     sourcemap: true,
   },

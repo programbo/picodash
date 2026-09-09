@@ -12,6 +12,8 @@ export interface DashPanelSize {
   readonly height: number
 }
 
+export type DashPanelBoundaryEdge = 'top' | 'right' | 'bottom' | 'left'
+
 export interface DashPanelDockTargetOptions {
   /** Maximum height for a left or right side occupant. */
   readonly allocation?: number
@@ -76,6 +78,23 @@ export function normalizeDashPanelPoint(value: unknown, label = 'DashPanel point
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), maximum)
+}
+
+const boundaryContactTolerance = 0.01
+
+/** Returns the physical boundary edges touched by a resolved rectangle. */
+export function resolveDashPanelBoundaryContact(
+  rect: DashPanelRectEdges,
+  boundary: DashPanelRectEdges,
+): readonly DashPanelBoundaryEdge[] {
+  const source = edgeRect(rect, 'DashPanel contact rectangle')
+  const target = edgeRect(boundary, 'DashPanel contact boundary')
+  const contact: DashPanelBoundaryEdge[] = []
+  if (Math.abs(source.top - target.top) <= boundaryContactTolerance) contact.push('top')
+  if (Math.abs(source.right - target.right) <= boundaryContactTolerance) contact.push('right')
+  if (Math.abs(source.bottom - target.bottom) <= boundaryContactTolerance) contact.push('bottom')
+  if (Math.abs(source.left - target.left) <= boundaryContactTolerance) contact.push('left')
+  return Object.freeze(contact)
 }
 
 /**

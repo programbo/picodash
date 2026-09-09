@@ -50,6 +50,13 @@ if (errors.length > 0) {
 }
 
 function checkStylesheet(relativePath, contents) {
+  // Reviewed CSS-only scroll-position feedback, not time-based choreography.
+  const scrollFade = relativePath === 'packages/ui/scroll-fade.css'
+  if (/@keyframes\b|\banimation\s*:/u.test(contents) && !scrollFade) {
+    errors.push(
+      `${relativePath}: CSS keyframes require a reviewed policy exception; use Motion for orchestrated animation`,
+    )
+  }
   const transitionDeclarations = [
     ...contents.matchAll(/\btransition(?:-duration)?\s*:\s*([^;]+);/gu),
   ]
@@ -79,12 +86,6 @@ function checkStylesheet(relativePath, contents) {
     ) {
       errors.push(`${relativePath}: CSS transition animates a layout property`)
     }
-  }
-
-  if (/@keyframes\b|\banimation\s*:/u.test(contents)) {
-    errors.push(
-      `${relativePath}: CSS keyframes require a reviewed policy exception; use Motion for orchestrated animation`,
-    )
   }
 }
 

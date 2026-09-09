@@ -68,9 +68,23 @@ when the pointer leaves every valid zone. The shared theme duration and easing t
 interruptible transform-and-opacity sequence. Policy-disabled and occupied targets are not
 offered. Reduced motion removes the transition without changing target selection.
 
+While the proxy returns to a moving Panel, destination updates preserve the original return/fade
+timeline. Continued pointer movement must not stall the proxy or postpone its disappearance.
+
 The proxy never drives Panel containment, claims a dock slot, or commits placement. Pointer release
 is the only dock commit. Top/bottom magnetic snaps remain distinct from side/corner dock intent;
 less spatially obvious canonical docks remain available through the direct placement menu.
+
+On a successful dock release, Motion animates the Panel from its actual on-screen release
+rectangle to the allocated dock rectangle. Changing from drag coordinates to dock coordinates must
+not carry over the drag translation or introduce a jump beyond the boundary. The shared theme
+duration and easing apply; reduced motion settles immediately.
+
+An available proxy target does contribute a transient allocation preview. Existing Panels on the
+same side immediately animate toward the size and offset they would receive if the drag were
+released. Moving to another target replaces that preview; leaving every dock zone or detaching a
+docked Hybrid Panel animates affected peers back toward the allocation derived from settled
+occupants. This preview remains runtime-only and does not claim occupancy or write Nexus state.
 
 ### 2.3 Hidden placement invariance (PANEL-PLACEMENT-VISIBILITY-1)
 
@@ -102,6 +116,15 @@ the boundary bottom, the Panel's resolved height reduces to the remaining space 
 the header back up. It never shrinks below the shell's measured minimum. For a root DashList, that
 minimum includes the `start` and `end` pin bands; only the automatic band becomes a scrollport.
 
+Contraction is a temporary boundary constraint, not a new preferred height. Releasing a Hybrid
+Panel into a bottom corner restores its intrinsic height, capped by the corner's available
+allocation, and aligns its bottom with the target. A short Panel does not stretch to fill the
+allocation. Intrinsic and minimum measurements exclude the Panel's visual dock-animation scale.
+
+The scrolling content uses shared UI's vertical `scroll-fade` recipe. The Panel body owns it for
+ordinary content; a root DashList applies it only to its automatic band. Headers and pinned start
+and end content remain unfaded. See [shared scroll feedback](ui.md#scroll-overflow-feedback).
+
 Settled intrinsic height changes, including Panel and DashGroup disclosure, use Motion with the
 shared theme motion tokens. Active dragging and reduced-motion preference make the transition
 immediate so animation cannot change pointer geometry. DashPanel captures the rendered shell height
@@ -110,10 +133,14 @@ those two concrete sizes; it does not depend on the browser inferring an intrins
 
 ### 2.6 Edge contact and activation (PANEL-PLACEMENT-PRESENTATION-1)
 
-A docked Panel and its Hybrid target proxy remove radius only from corners that contact the
-effective boundary. Free corners retain the theme radius. Pointer interaction or focus within a
-Panel activates it, and the Provider renders the most recently activated visible Panel above its
-peers without persisting z-order.
+A docked Panel and its Hybrid target proxy remove radius from every corner that lies on a contacted
+effective-boundary edge. A corner dock contacts two edges and therefore retains only its opposite
+inner corner radius. Allocation can shorten or offset an edge Panel, so contact is derived from its
+resolved rectangle rather than its named dock position. A detached Reveal control applies the same
+rule from its own boundary contact rather than inheriting every contact of the hidden Panel, and its
+carrier remains above every ordinary Panel layer so an overlapping Panel cannot block it. Pointer
+interaction or focus within a Panel activates it, and the Provider renders the most recently
+activated visible Panel above its peers without persisting z-order.
 
 Theme-defined Panel entry and exit keyframes remain deferred. Exit motion needs one explicit
 visibility lifecycle that preserves `hidden`, inertness, focus restoration, and reduced-motion

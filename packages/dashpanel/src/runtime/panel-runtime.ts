@@ -71,6 +71,10 @@ type PanelRuntimeDockTargetRequest =
       readonly available: Readonly<{ width: number; height: number }>
     }
 
+export type PanelRuntimeDockAllocationPreview =
+  | { readonly kind: 'free' }
+  | { readonly kind: 'docked'; readonly position: DashPanelDockPosition }
+
 export interface PanelRuntimeConfig {
   readonly scopeId: string
   readonly defaultVisible?: boolean
@@ -143,6 +147,7 @@ export interface PanelRuntime {
   resetLayout(scopeId: string): DashPanelLayoutCommandResult
   getPanelConfig(scopeId: string): PanelRuntimePanelConfig | undefined
   isDockPositionOccupied(scopeId: string, position: DashPanelDockPosition): boolean
+  setDockAllocationPreview(scopeId: string, preview: PanelRuntimeDockAllocationPreview | null): void
   resolveDockTarget(request: PanelRuntimeDockTargetRequest): PanelRuntimeDockTarget | undefined
   registerElement(scopeId: string, element: HTMLElement | null): void
   notifyElementResize(scopeId: string, inlineSize?: number): void
@@ -172,6 +177,7 @@ interface MutablePanel {
   readonly generation: symbol
   element: HTMLElement | null
   lastCornerInlineSize?: number
+  dockAllocationPreview?: PanelRuntimeDockAllocationPreview
 }
 
 const executed = (): PanelRuntimeCommandResult => ({ status: 'executed' })
@@ -290,10 +296,16 @@ export function createPanelRuntime(): PanelRuntime {
   const dockOccupants = (panel: MutablePanel, prospectivePosition?: DashPanelDockPosition) =>
     [...panels.values()].flatMap((other) => {
       if (!sameDockArena(dockArenaFor(panel), dockArenaFor(other))) return []
+      const previewPosition =
+        other.dockAllocationPreview?.kind === 'docked'
+          ? other.dockAllocationPreview.position
+          : other.dockAllocationPreview?.kind === 'free'
+            ? undefined
+            : dockedPosition(other.placement)
       const position =
-        other.scopeId === panel.scopeId
-          ? (prospectivePosition ?? dockedPosition(other.placement))
-          : dockedPosition(other.placement)
+        other.scopeId === panel.scopeId && prospectivePosition !== undefined
+          ? prospectivePosition
+          : previewPosition
       return position ? [{ id: other.scopeId, position, panel: other }] : []
     })
 
@@ -678,6 +690,21 @@ export function createPanelRuntime(): PanelRuntime {
     isDockPositionOccupied(scopeId, position) {
       const panel = panelFor(scopeId)
       return panel ? dockOccupant(panel, position) !== undefined : false
+    },
+    setDockAllocationPreview(scopeId, preview) {
+      const panel = panelFor(scopeId)
+      if (!panel) return
+      const current = panel.dockAllocationPreview
+      if (
+        (preview === null && current === undefined) ||
+        (preview?.kind === 'free' && current?.kind === 'free') ||
+        (preview?.kind === 'docked' &&
+          current?.kind === 'docked' &&
+          preview.position === current.position)
+      )
+        return
+      panel.dockAllocationPreview = preview ?? undefined
+      publish()
     },
     resolveDockTarget(request) {
       const panel = panelFor(request.scopeId)

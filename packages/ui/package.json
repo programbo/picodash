@@ -4,7 +4,8 @@
   "description": "Shared theme and density foundation for Picodash React packages.",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "type": "module",
   "sideEffects": [

@@ -608,6 +608,47 @@ describe('private DashPanel runtime model', () => {
     ).toEqual({ allocation: 200, offset: 100 })
   })
 
+  it('previews adjacent allocation without claiming occupancy or changing settled placement', () => {
+    const runtime = createPanelRuntime()
+    runtime.acquire(
+      config('corner', {
+        placement: {
+          mode: 'fixed',
+          disposition: { kind: 'docked', position: 'top-left' },
+        },
+      }),
+    )
+    runtime.acquire(
+      config('hybrid', {
+        placement: {
+          mode: 'hybrid',
+          disposition: { kind: 'docked', position: 'full-left' },
+        },
+      }),
+    )
+    const available = { width: 480, height: 300 }
+    const cornerAllocation = () =>
+      runtime.resolveDockTarget({ kind: 'settled', scopeId: 'corner', available })
+
+    expect(cornerAllocation()).toEqual({ allocation: 100, offset: 0 })
+    runtime.setDockAllocationPreview('hybrid', { kind: 'free' })
+    expect(cornerAllocation()).toEqual({ allocation: 200, offset: 0 })
+
+    runtime.setDockAllocationPreview('hybrid', {
+      kind: 'docked',
+      position: 'full-right',
+    })
+    expect(cornerAllocation()).toEqual({ allocation: 200, offset: 0 })
+    expect(runtime.isDockPositionOccupied('corner', 'full-right')).toBe(false)
+    expect(runtime.getSnapshot().panels.hybrid?.placement).toEqual({
+      mode: 'hybrid',
+      disposition: { kind: 'docked', position: 'full-left' },
+    })
+
+    runtime.setDockAllocationPreview('hybrid', null)
+    expect(cornerAllocation()).toEqual({ allocation: 100, offset: 0 })
+  })
+
   it('uses Fixed and Hybrid dock occupants equally for occupancy and allocation', () => {
     const runtime = createPanelRuntime()
     runtime.acquire(

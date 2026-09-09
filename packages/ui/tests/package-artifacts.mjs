@@ -20,7 +20,7 @@ async function exists(filePath) {
 async function main() {
   const manifest = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8'))
   assert.deepEqual(manifest.exports, expectedExports)
-  assert.deepEqual(manifest.files, ['dist'])
+  assert.deepEqual(manifest.files, ['dist', 'THIRD_PARTY_NOTICES.md'])
   assert.deepEqual(manifest.sideEffects, ['**/*.css'])
   assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })
   assert.deepEqual(manifest.dependencies, {
@@ -28,9 +28,18 @@ async function main() {
     'react-aria-components': 'catalog:',
   })
 
-  for (const file of ['dist/index.mjs', 'dist/index.d.mts', 'dist/style.css']) {
+  for (const file of [
+    'dist/index.mjs',
+    'dist/index.d.mts',
+    'dist/style.css',
+    'THIRD_PARTY_NOTICES.md',
+  ]) {
     assert.equal(await exists(path.join(packageRoot, file)), true, `missing ${file}`)
   }
+
+  const css = await readFile(path.join(packageRoot, 'dist/style.css'), 'utf8')
+  assert.ok(css.includes('data-picodash-scroll-fade'), 'shared CSS must bundle scroll-fade')
+  assert.ok(css.includes('scroll(self y)'), 'shared CSS must retain the native scroll timeline')
 
   const runtime = await import(
     `${pathToFileURL(path.join(packageRoot, 'dist/index.mjs')).href}?artifact-check`

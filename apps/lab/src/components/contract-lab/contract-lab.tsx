@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import {
   CONTRACT_LAB_PRESETS,
   contractLabActions,
@@ -13,12 +13,17 @@ import {
 import { ContractLabConsole } from './console'
 import { ContractLabSpecimenHost, type ContractLabPrimaryPanelState } from './specimen-host'
 import { ContractLabStatusStrip } from './status-strip'
+import { clearFocusedPlacementPersistence } from './specimen'
 
 const sessionPresetKey = 'picodash:contract-lab:preset'
 
 export function ContractLab() {
   const [state, dispatch] = useReducer(contractLabReducer, undefined, createInitialContractLabState)
   const [hydrated, setHydrated] = useState(false)
+  const [readyRevision, setReadyRevision] = useState<number | null>(null)
+  const onSpecimenReady = useCallback(() => {
+    setReadyRevision(state.specimenRevision)
+  }, [state.specimenRevision])
   const [specimenAvailable, setSpecimenAvailable] = useState(true)
   const [consoleDiagnosticCount, setConsoleDiagnosticCount] = useState(0)
   const [specimenDiagnosticCount, setSpecimenDiagnosticCount] = useState(0)
@@ -42,6 +47,7 @@ export function ContractLab() {
   useEffect(
     () =>
       installContractLabDriver((action) => {
+        if (action.type === 'lab/reset') clearFocusedPlacementPersistence()
         dispatch(action)
         setSpecimenAvailable(true)
       }),
@@ -60,6 +66,7 @@ export function ContractLab() {
   }
 
   function resetLab() {
+    clearFocusedPlacementPersistence()
     dispatch(contractLabActions.reset())
     setSpecimenAvailable(true)
   }
@@ -75,7 +82,7 @@ export function ContractLab() {
         implementation={preset.implementation}
         lastOperation={state.lastOperation}
         presetLabel={preset.label}
-        ready={hydrated}
+        ready={hydrated && (!specimenAvailable || readyRevision === state.specimenRevision)}
         primaryPanelState={specimenAvailable ? primaryPanelState : 'unavailable'}
         specimenAvailable={specimenAvailable}
       />
@@ -91,7 +98,10 @@ export function ContractLab() {
             onDiagnosticCountChange={setConsoleDiagnosticCount}
             onLoadPreset={loadPreset}
             onReset={resetLab}
-            onToggleSpecimen={() => setSpecimenAvailable((available) => !available)}
+            onToggleSpecimen={() => {
+              setReadyRevision(null)
+              setSpecimenAvailable((available) => !available)
+            }}
             presets={CONTRACT_LAB_PRESETS}
             specimenAvailable={specimenAvailable}
           />
@@ -101,6 +111,7 @@ export function ContractLab() {
               key={`${preset.id}:${state.specimenRevision}`}
               onDiagnosticCountChange={setSpecimenDiagnosticCount}
               onPrimaryPanelStateChange={setPrimaryPanelState}
+              onReady={onSpecimenReady}
               preset={preset}
               revision={state.specimenRevision}
             />

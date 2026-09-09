@@ -4,6 +4,7 @@ import {
   normalizeDashPanelRect,
   projectDashPanelPosition,
   projectDashPanelRect,
+  resolveDashPanelBoundaryContact,
   snapDashPanelRect,
   snapDashPanelTargets,
 } from './placement-geometry.ts'
@@ -56,6 +57,24 @@ describe('DashPanel placement geometry', () => {
     const normalized = normalizeDashPanelRect(source)
     source.left = 99
     expect(normalized.left).toBe(2)
+  })
+
+  it('derives physical boundary contact from the resolved rectangle', () => {
+    expect(
+      resolveDashPanelBoundaryContact(dockDashPanelRect('top-left', boundary, size), boundary),
+    ).toEqual(['top', 'left'])
+    expect(
+      resolveDashPanelBoundaryContact(
+        dockDashPanelRect('full-top', boundary, size, {
+          inlineOffset: 60,
+          inlineAllocation: 140,
+        }),
+        boundary,
+      ),
+    ).toEqual(['top', 'right'])
+    expect(
+      resolveDashPanelBoundaryContact(dockDashPanelRect('full-right', boundary, size), boundary),
+    ).toEqual(['top', 'right', 'bottom'])
   })
 
   it('places all snap targets with the separate inward offset', () => {

@@ -11,7 +11,7 @@ export default defineConfig({
       charts: 'src/charts.tsx',
       style: 'src/style.css',
     },
-    dts: { tsgo: true },
+    dts: { generator: 'tsgo' },
     exports: false,
     sourcemap: true,
   },

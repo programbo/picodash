@@ -5,6 +5,8 @@ import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
 
 const consoleErrors = new WeakMap<Page, string[]>()
 const persistenceProbeStorageKey = 'picodash-contract-lab-web-storage-probe-v1'
+const focusedPlacementPersistenceStorageKey = 'picodash-contract-lab-focused-placement-v1'
+const focusedPlacementPanelScopeId = 'contract-lab-focused-placement-panel'
 const standaloneListScopeId = 'contract-lab-standalone-list'
 
 test.beforeEach(async ({ page }) => {
@@ -47,53 +49,61 @@ async function samplePanelHeightTransition(page: Page, panel: Locator, action: L
   })
   const midpoint = await panel.evaluate(
     (element) =>
-      new Promise<number>((resolve, reject) => {
-        const deadline = performance.now() + 1_000
-        const inspect = () => {
-          const animation = element.getAnimations().find((candidate) => {
-            const effect = candidate.effect
-            return (
-              effect instanceof KeyframeEffect &&
-              effect.getKeyframes().some((keyframe) => 'blockSize' in keyframe)
-            )
-          })
-          if (!animation) {
-            if (performance.now() >= deadline) {
-              reject(new TypeError('Expected an active block-size animation.'))
+      new Promise<{ height: number; max: string; frames: ComputedKeyframe[] }>(
+        (resolve, reject) => {
+          const deadline = performance.now() + 1_000
+          const inspect = () => {
+            const animation = element.getAnimations().find((candidate) => {
+              const effect = candidate.effect
+              return (
+                effect instanceof KeyframeEffect &&
+                effect.getKeyframes().some((keyframe) => 'blockSize' in keyframe)
+              )
+            })
+            if (!animation) {
+              if (performance.now() >= deadline) {
+                reject(new TypeError('Expected an active block-size animation.'))
+                return
+              }
+              requestAnimationFrame(inspect)
               return
             }
-            requestAnimationFrame(inspect)
-            return
+            const duration = animation.effect?.getTiming().duration
+            if (typeof duration !== 'number') {
+              reject(new TypeError('Expected a numeric block-size animation duration.'))
+              return
+            }
+            animation.pause()
+            animation.currentTime = duration / 2
+            requestAnimationFrame(() => {
+              const midpoint = {
+                height: element.getBoundingClientRect().height,
+                max: getComputedStyle(element).maxBlockSize,
+                frames:
+                  animation.effect instanceof KeyframeEffect ? animation.effect.getKeyframes() : [],
+              }
+              animation.play()
+              void animation.finished.then(() => resolve(midpoint), reject)
+            })
           }
-          const duration = animation.effect?.getTiming().duration
-          if (typeof duration !== 'number') {
-            reject(new TypeError('Expected a numeric block-size animation duration.'))
-            return
-          }
-          animation.pause()
-          animation.currentTime = duration / 2
-          requestAnimationFrame(() => {
-            const midpoint = element.getBoundingClientRect().height
-            animation.play()
-            void animation.finished.then(() => resolve(midpoint), reject)
-          })
-        }
-        inspect()
-      }),
+          inspect()
+        },
+      ),
   )
   await expect(panel).not.toHaveAttribute('data-picodash-height-motion')
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)))
   const after = await panel.evaluate((element) => element.getBoundingClientRect().height)
-  return { before, samples: [midpoint], after }
+  return { before, samples: [midpoint.height], after, debug: midpoint }
 }
 
 async function pausePanelTranslateAnimationAfter(
   panel: Locator,
   minimumElapsed: number,
   seekToStart = false,
+  keepPaused = false,
 ) {
   return panel.evaluate(
-    (element, { elapsedThreshold, resetToStart }) =>
+    (element, { elapsedThreshold, resetToStart, retainPause }) =>
       new Promise<{ x: number; y: number }>((resolve, reject) => {
         const deadline = performance.now() + 1_000
         const inspect = () => {
@@ -130,13 +140,13 @@ async function pausePanelTranslateAnimationAfter(
           if (resetToStart) animation.currentTime = 0
           requestAnimationFrame(() => {
             const rect = element.getBoundingClientRect()
-            animation.play()
+            if (!retainPause) animation.play()
             resolve({ x: rect.x, y: rect.y })
           })
         }
         inspect()
       }),
-    { elapsedThreshold: minimumElapsed, resetToStart: seekToStart },
+    { elapsedThreshold: minimumElapsed, resetToStart: seekToStart, retainPause: keepPaused },
   )
 }
 
@@ -236,17 +246,21 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
     inactiveStylePanel.evaluate((element) => Number(getComputedStyle(element).zIndex)),
   ])
   expect(activeLayer).toBeGreaterThan(inactiveLayer)
-  const [basicsBox, choicesBox] = await Promise.all([
-    basicsPanel.boundingBox(),
-    choicesPanel.boundingBox(),
-  ])
-  if (!basicsBox || !choicesBox) throw new Error('Style Lab Panels did not expose geometry')
-  expect(
-    basicsBox.x + basicsBox.width <= choicesBox.x ||
-      choicesBox.x + choicesBox.width <= basicsBox.x ||
-      basicsBox.y + basicsBox.height <= choicesBox.y ||
-      choicesBox.y + choicesBox.height <= basicsBox.y,
-  ).toBe(true)
+  await expect
+    .poll(async () => {
+      const [basicsBox, choicesBox] = await Promise.all([
+        basicsPanel.boundingBox(),
+        choicesPanel.boundingBox(),
+      ])
+      if (!basicsBox || !choicesBox) return false
+      return (
+        basicsBox.x + basicsBox.width <= choicesBox.x ||
+        choicesBox.x + choicesBox.width <= basicsBox.x ||
+        basicsBox.y + basicsBox.height <= choicesBox.y ||
+        choicesBox.y + choicesBox.height <= basicsBox.y
+      )
+    })
+    .toBe(true)
   await expect(
     page.locator('[data-contract-lab-status] dt', { hasText: 'Diagnostics' }).locator('..'),
   ).toContainText('1')
@@ -805,6 +819,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     expandedMotion.samples.some(
       (height) => height > expandedMotion.before + 1 && height < expandedMotion.after - 1,
     ),
+    JSON.stringify(expandedMotion),
   ).toBe(true)
   await focusedPanel.getByRole('button', { name: 'Collapse panel Placement Panel' }).press('Enter')
   await expect(
@@ -1070,15 +1085,32 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   const boundary = page.locator('[data-contract-lab-focused-boundary]')
   const showPanel = page.getByRole('button', { name: 'Show panel' })
   await expect.poll(async () => (await boundary.boundingBox())?.height).toBeGreaterThanOrEqual(768)
+  await page.getByRole('button', { name: 'Use ocean theme' }).click()
   const assertFullRightMinimize = async () => {
+    await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
     const minimize = page.getByRole('button', { name: 'Minimize panel Placement Panel' })
     await expect(minimize.locator('svg')).toHaveAttribute('data-picodash-arrow-direction', 'right')
-    await minimize.click()
+    await minimize.press('Enter')
 
     const reveal = page.getByRole('button', { name: 'Reveal panel Placement Panel' })
     await expect(reveal).toBeVisible()
     await expect(reveal).toBeFocused()
     await expect(reveal.locator('svg')).toHaveAttribute('data-picodash-arrow-direction', 'left')
+    const revealCarrier = page.locator('[data-picodash-panel-reveal]').filter({ has: reveal })
+    await expect(revealCarrier).toHaveAttribute('data-picodash-boundary-contact', 'top right')
+    const revealRadii = await reveal.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        topLeft: style.borderTopLeftRadius,
+        topRight: style.borderTopRightRadius,
+        bottomRight: style.borderBottomRightRadius,
+        bottomLeft: style.borderBottomLeftRadius,
+      }
+    })
+    expect(revealRadii.topLeft).toBe('0px')
+    expect(revealRadii.topRight).toBe('0px')
+    expect(revealRadii.bottomRight).toBe('0px')
+    expect(revealRadii.bottomLeft).not.toBe('0px')
     await expect(panel).toHaveAttribute('data-picodash-docked-minimized', 'true')
     await expect(panel).toHaveAttribute('aria-hidden', 'true')
     await expect(panel.locator('[data-picodash-panel-body]')).not.toHaveAttribute('hidden')
@@ -1095,7 +1127,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
       0,
     )
 
-    await reveal.click()
+    await reveal.press('Enter')
     await expect(minimize).toBeFocused()
     await expect(panel).not.toHaveAttribute('data-picodash-docked-minimized')
     await expect
@@ -1108,6 +1140,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
 
   for (const mode of ['Fixed', 'Hybrid'] as const) {
     await page.getByRole('button', { name: mode, exact: true }).click()
+    await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
     await panel.locator('[aria-label="Close panel Placement Panel"]').click()
     await expect(panel).toHaveAttribute('hidden', '')
     expect(await panel.evaluate((element) => getComputedStyle(element).display)).toBe('none')
@@ -1117,10 +1150,10 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
 
   await page.getByRole('button', { name: 'Floating', exact: true }).click()
   await panel.evaluate((element) => {
-    element.style.setProperty('--picodash-panel-snap-duration', '320ms')
-    element.style.setProperty('--picodash-panel-detach-duration', '280ms')
+    element.style.setProperty('--picodash-panel-snap-duration', '1000ms')
+    element.style.setProperty('--picodash-panel-detach-duration', '1000ms')
   })
-  const boundaryBox = (await boundary.boundingBox())!
+  let boundaryBox = (await boundary.boundingBox())!
   let panelBox = (await panelByRole.boundingBox())!
   let moveBox = (await dragSurface.boundingBox())!
   let pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
@@ -1140,7 +1173,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
           const effect = animation.effect
           return (
             effect instanceof KeyframeEffect &&
-            effect.getTiming().duration === 320 &&
+            effect.getTiming().duration === 1000 &&
             effect.getKeyframes().length === 3 &&
             effect.getKeyframes().every((keyframe) => typeof keyframe.translate === 'string')
           )
@@ -1172,7 +1205,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
           const effect = animation.effect
           return (
             effect instanceof KeyframeEffect &&
-            effect.getTiming().duration === 280 &&
+            effect.getTiming().duration === 1000 &&
             effect.getKeyframes().length === 3 &&
             effect.getKeyframes().every((keyframe) => typeof keyframe.translate === 'string')
           )
@@ -1220,7 +1253,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
     pointer.y + boundaryBox.y + 8 - continuityStart.y,
   )
   await expect(panel).toHaveAttribute('data-picodash-magnetic-motion', 'snap')
-  const interruptedPosition = await pausePanelTranslateAnimationAfter(panel, 200)
+  const interruptedPosition = await pausePanelTranslateAnimationAfter(panel, 200, false, true)
   await page.mouse.move(
     pointer.x + boundaryBox.x + 96 - continuityStart.x,
     pointer.y + boundaryBox.y + 80 - continuityStart.y,
@@ -1283,6 +1316,7 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await page.mouse.down()
   await page.mouse.move(rightEdgePointerX, boundaryBox.y + 20, { steps: 4 })
   await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'top-right')
+  await expect(dockPreview).toHaveAttribute('data-picodash-boundary-contact', 'top right')
   await expect.poll(async () => (await dockPreview.boundingBox())?.y).toBeCloseTo(boundaryBox.y, 0)
 
   await page.mouse.move(rightEdgePointerX, boundaryBox.y + boundaryBox.height / 2)
@@ -1291,7 +1325,43 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
     .poll(async () => (await dockPreview.boundingBox())?.height)
     .toBeCloseTo(boundaryBox.height, 0)
 
-  await page.mouse.move(rightEdgePointerX - 200, boundaryBox.y + boundaryBox.height / 2)
+  await dockPreview.evaluate((element) => {
+    const started = performance.now()
+    const frames: { elapsed: number; x: number; opacity: number }[] = []
+    const sample = () => {
+      const elapsed = performance.now() - started
+      frames.push({
+        elapsed,
+        x: element.getBoundingClientRect().x,
+        opacity: Number(getComputedStyle(element).opacity),
+      })
+      if (elapsed < 550) requestAnimationFrame(sample)
+      else element.dataset.contractLabReturnFrames = JSON.stringify(frames)
+    }
+    requestAnimationFrame(sample)
+  })
+  await page.mouse.move(rightEdgePointerX - 40, boundaryBox.y + boundaryBox.height / 2)
+  await page.mouse.move(rightEdgePointerX - 200, boundaryBox.y + boundaryBox.height / 2, {
+    steps: 36,
+  })
+  await expect(dockPreview).toHaveAttribute('data-contract-lab-return-frames')
+  const returnFrames = await dockPreview.evaluate((element) => {
+    const frames = JSON.parse(element.dataset.contractLabReturnFrames!) as {
+      elapsed: number
+      x: number
+      opacity: number
+    }[]
+    delete element.dataset.contractLabReturnFrames
+    return frames
+  })
+  const lateReturnFrames = returnFrames.filter((frame) => frame.elapsed > 300)
+  expect(lateReturnFrames.length).toBeGreaterThan(3)
+  expect(Math.max(...lateReturnFrames.map((frame) => frame.opacity))).toBeLessThan(0.01)
+  const movingReturnFrames = returnFrames.filter((frame) => frame.elapsed < 150)
+  expect(
+    Math.max(...movingReturnFrames.map((frame) => frame.x)) -
+      Math.min(...movingReturnFrames.map((frame) => frame.x)),
+  ).toBeGreaterThan(10)
   await expect(dockPreview).not.toHaveAttribute('data-picodash-dock-position')
   await expect
     .poll(() => dockPreview.evaluate((element) => getComputedStyle(element).opacity))
@@ -1299,7 +1369,55 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
 
   await page.mouse.move(rightEdgePointerX, boundaryBox.y + boundaryBox.height / 2)
   await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'full-right')
+  await expect
+    .poll(async () => (await dockPreview.boundingBox())?.height)
+    .toBeCloseTo(boundaryBox.height, 0)
+  const releasedDockPreview = (await panel.boundingBox())!
+  const dockDestination = (await dockPreview.boundingBox())!
+  await panel.evaluate((element) => {
+    element.style.setProperty('--picodash-duration-fast', '1000ms')
+    element.addEventListener(
+      'pointerup',
+      () => {
+        const frames: { x: number; y: number; width: number; height: number }[] = []
+        const started = performance.now()
+        const sample = () => {
+          const rect = element.getBoundingClientRect()
+          frames.push({ x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+          if (performance.now() - started < 1100) requestAnimationFrame(sample)
+          else element.dataset.contractLabReleaseFrames = JSON.stringify(frames)
+        }
+        requestAnimationFrame(sample)
+      },
+      { once: true },
+    )
+  })
   await page.mouse.up()
+  await expect(panel).toHaveAttribute('data-contract-lab-release-frames')
+  const releaseFrames = await panel.evaluate((element) => {
+    const frames = JSON.parse(element.dataset.contractLabReleaseFrames!) as {
+      x: number
+      y: number
+      width: number
+      height: number
+    }[]
+    delete element.dataset.contractLabReleaseFrames
+    element.style.removeProperty('--picodash-duration-fast')
+    return frames
+  })
+  expect(releaseFrames.length).toBeGreaterThan(10)
+  expect(Math.abs(releaseFrames[0]!.x - releasedDockPreview.x)).toBeLessThan(20)
+  expect(Math.abs(releaseFrames[0]!.y - releasedDockPreview.y)).toBeLessThan(20)
+  for (const frame of releaseFrames) {
+    for (const axis of ['x', 'y', 'width', 'height'] as const) {
+      expect(frame[axis]).toBeGreaterThanOrEqual(
+        Math.min(releasedDockPreview[axis], dockDestination[axis]) - 1,
+      )
+      expect(frame[axis]).toBeLessThanOrEqual(
+        Math.max(releasedDockPreview[axis], dockDestination[axis]) + 1,
+      )
+    }
+  }
   await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
   await expect(page.getByRole('status', { name: 'Current panel placement' })).toHaveText(
     'Hybrid: docked full-right',
@@ -1320,13 +1438,64 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await expect(page.getByRole('status', { name: 'Current panel placement' })).toHaveText(
     'Hybrid: docked top-right',
   )
+  expect(
+    await panel.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        topLeft: style.borderTopLeftRadius,
+        topRight: style.borderTopRightRadius,
+        bottomRight: style.borderBottomRightRadius,
+        bottomLeft: style.borderBottomLeftRadius,
+      }
+    }),
+  ).toEqual({ topLeft: '0px', topRight: '0px', bottomRight: '0px', bottomLeft: '8px' })
+
+  for (const corner of ['bottom-left', 'bottom-right'] as const) {
+    await dragSurface.scrollIntoViewIfNeeded()
+    boundaryBox = (await boundary.boundingBox())!
+    const intrinsicHeight = (await panel.boundingBox())!.height
+    moveBox = (await dragSurface.boundingBox())!
+    pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+    panelBox = (await panel.boundingBox())!
+    const targetX =
+      corner === 'bottom-left' ? boundaryBox.x : boundaryBox.x + boundaryBox.width - panelBox.width
+    await page.mouse.move(pointer.x, pointer.y)
+    await page.mouse.down()
+    await page.mouse.move(
+      pointer.x + (corner === 'bottom-left' ? -60 : 60),
+      pointer.y + (corner === 'bottom-left' ? 60 : -60),
+    )
+    await page.mouse.move(
+      pointer.x + targetX - panelBox.x,
+      boundaryBox.y + boundaryBox.height - 8,
+      { steps: 8 },
+    )
+    await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', corner)
+    await expect
+      .poll(async () => (await panel.boundingBox())!.height)
+      .toBeLessThan(intrinsicHeight - 20)
+    await expect
+      .poll(async () => (await dockPreview.boundingBox())!.height)
+      .toBeCloseTo(intrinsicHeight, 0)
+    await page.mouse.up()
+    await expect(panel).toHaveAttribute('data-picodash-dock-position', corner)
+    await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
+    await expect
+      .poll(async () => (await panel.boundingBox())!.height)
+      .toBeCloseTo(intrinsicHeight, 0)
+    const dockedBox = (await panel.boundingBox())!
+    expect(dockedBox.y + dockedBox.height).toBeCloseTo(boundaryBox.y + boundaryBox.height, 0)
+  }
 
   await page.getByRole('button', { name: 'Floating', exact: true }).click()
   await page.getByRole('button', { name: 'Same edge', exact: true }).click()
   const fixedCorner = page.getByRole('complementary', { name: 'Fixed allocation corner' })
   await expect(fixedCorner).toBeVisible()
-
+  await fixedCorner.evaluate((element) =>
+    element.style.setProperty('--picodash-duration-fast', '300ms'),
+  )
   await page.getByRole('button', { name: 'Hybrid', exact: true }).click()
+  boundaryBox = (await boundary.boundingBox())!
   moveBox = (await dragSurface.boundingBox())!
   pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
   await page.mouse.move(pointer.x, pointer.y)
@@ -1345,6 +1514,21 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await page.mouse.move(allocatedRightPointerX, boundaryBox.y + boundaryBox.height / 2)
   await expect(dockPreview).toHaveAttribute('data-picodash-dock-position', 'full-right')
   await expect
+    .poll(() =>
+      fixedCorner.evaluate((element) => ({
+        motion: element.getAttribute('data-picodash-dock-allocation-motion'),
+        hasTransformAnimation: element.getAnimations().some((animation) => {
+          const effect = animation.effect
+          return (
+            effect instanceof KeyframeEffect &&
+            effect.getTiming().duration === 300 &&
+            effect.getKeyframes().every((keyframe) => typeof keyframe.transform === 'string')
+          )
+        }),
+      })),
+    )
+    .toEqual({ motion: 'true', hasTransformAnimation: true })
+  await expect
     .poll(async () => (await dockPreview.boundingBox())?.y)
     .toBeCloseTo(boundaryBox.y + boundaryBox.height / 3, 0)
   await expect
@@ -1359,8 +1543,47 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await expect
     .poll(async () => (await panelByRole.boundingBox())?.height)
     .toBeCloseTo(allocatedPreviewBox.height, 0)
+  await expect(panel).toHaveAttribute('data-picodash-boundary-contact', 'right bottom')
+  await page.getByRole('button', { name: 'Minimize panel Placement Panel' }).press('Enter')
+  const allocatedReveal = page.getByRole('button', { name: 'Reveal panel Placement Panel' })
+  await expect(
+    page.locator('[data-picodash-panel-reveal]').filter({ has: allocatedReveal }),
+  ).toHaveAttribute('data-picodash-boundary-contact', 'right')
+  const allocatedRevealRadii = await allocatedReveal.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      topLeft: style.borderTopLeftRadius,
+      topRight: style.borderTopRightRadius,
+      bottomRight: style.borderBottomRightRadius,
+      bottomLeft: style.borderBottomLeftRadius,
+    }
+  })
+  expect(allocatedRevealRadii.topLeft).not.toBe('0px')
+  expect(allocatedRevealRadii.topRight).toBe('0px')
+  expect(allocatedRevealRadii.bottomRight).toBe('0px')
+  expect(allocatedRevealRadii.bottomLeft).not.toBe('0px')
+  await allocatedReveal.press('Enter')
+  await expect(panel).not.toHaveAttribute('data-picodash-docked-minimized')
+  await expect.poll(() => panel.evaluate((element) => getComputedStyle(element).opacity)).toBe('1')
   const hybridAllocatedBox = (await panelByRole.boundingBox())!
-  expect((await fixedCorner.boundingBox())?.height).toBeCloseTo(boundaryBox.height / 3, 0)
+  await expect
+    .poll(async () => (await fixedCorner.boundingBox())?.height)
+    .toBeCloseTo(boundaryBox.height / 3, 0)
+  const allocatedFixedCornerHeight = (await fixedCorner.boundingBox())!.height
+
+  moveBox = (await dragSurface.boundingBox())!
+  pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
+  await page.mouse.move(pointer.x, pointer.y)
+  await page.mouse.down()
+  await page.mouse.move(pointer.x - 96, pointer.y + 96)
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-free-preview')
+  await expect(dockPreview).not.toHaveAttribute('data-picodash-dock-position')
+  await expect(fixedCorner).toHaveAttribute('data-picodash-dock-allocation-motion', 'true')
+  await expect
+    .poll(async () => (await fixedCorner.boundingBox())?.height)
+    .toBeGreaterThan(allocatedFixedCornerHeight + 64)
+  await page.mouse.up()
+  await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-free')
 
   await page.getByRole('button', { name: 'Fixed', exact: true }).click()
   await expect
@@ -1375,6 +1598,10 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   const adjacentEdge = page.getByRole('complementary', { name: 'Hybrid adjacent edge' })
   await expect(adjacentCorner).toBeVisible()
   await expect(adjacentEdge).toBeVisible()
+  await expect(adjacentCorner).not.toHaveAttribute('data-picodash-dock-allocation-motion')
+  await expect(adjacentEdge).not.toHaveAttribute('data-picodash-dock-allocation-motion')
+  await expect(adjacentCorner).toHaveAttribute('data-picodash-boundary-contact', 'top left')
+  await expect(adjacentEdge).toHaveAttribute('data-picodash-boundary-contact', 'top right')
   const adjacentCornerBox = (await adjacentCorner.boundingBox())!
   const adjacentEdgeBox = (await adjacentEdge.boundingBox())!
   const orthogonalSideBox = (await panelByRole.boundingBox())!
@@ -1384,6 +1611,283 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
     0,
   )
   expect(adjacentEdgeBox.x + adjacentEdgeBox.width).toBeGreaterThan(orthogonalSideBox.x)
+
+  const adjacentRadii = await Promise.all(
+    [adjacentCorner, adjacentEdge].map((locator) =>
+      locator.evaluate((element) => {
+        const style = getComputedStyle(element)
+        return {
+          topLeft: style.borderTopLeftRadius,
+          topRight: style.borderTopRightRadius,
+          bottomRight: style.borderBottomRightRadius,
+          bottomLeft: style.borderBottomLeftRadius,
+        }
+      }),
+    ),
+  )
+  expect(adjacentRadii[0]).toEqual({
+    topLeft: '0px',
+    topRight: '0px',
+    bottomRight: '8px',
+    bottomLeft: '0px',
+  })
+  expect(adjacentRadii[1]).toEqual({
+    topLeft: '0px',
+    topRight: '0px',
+    bottomRight: '0px',
+    bottomLeft: '8px',
+  })
+
+  await page.getByRole('button', { name: 'Minimize panel Placement Panel' }).press('Enter')
+  const reveal = page.getByRole('button', { name: 'Reveal panel Placement Panel' })
+  await expect(reveal).toBeVisible()
+  await adjacentEdge
+    .getByText("The Hybrid full-top Panel begins at the corner's inner edge.")
+    .click()
+  await expect(adjacentEdge).toHaveAttribute('data-active', 'true')
+  const revealBox = (await reveal.boundingBox())!
+  const stacking = await reveal.evaluate(
+    (button, point) => {
+      const carrier = button.parentElement
+      const activePanel = document.querySelector('.picodash-dashpanel[data-active="true"]')
+      return {
+        hit: button.contains(document.elementFromPoint(point.x, point.y)),
+        reveal: Number(getComputedStyle(carrier!).zIndex),
+        panel: Number(getComputedStyle(activePanel!).zIndex),
+      }
+    },
+    { x: revealBox.x + revealBox.width / 2, y: revealBox.y + revealBox.height / 2 },
+  )
+  expect(stacking.reveal).toBeGreaterThan(stacking.panel)
+  expect(stacking.hit).toBe(true)
+  await page.mouse.click(revealBox.x + revealBox.width / 2, revealBox.y + revealBox.height / 2)
+  await expect(panel).not.toHaveAttribute('data-picodash-docked-minimized')
+
+  // Cancel a live allocation animation without erasing the minimize transform.
+  await panel.evaluate((element) => element.style.setProperty('--picodash-duration-fast', '2s'))
+  await page.getByRole('button', { name: 'Same edge', exact: true }).click()
+  await expect(panel).toHaveAttribute('data-picodash-dock-allocation-motion', 'true')
+  await page.getByRole('button', { name: 'Minimize panel Placement Panel' }).press('Enter')
+  await expect(panel).toHaveAttribute('data-picodash-docked-minimized', 'true')
+  expect(await panel.evaluate((element) => element.style.transform)).not.toBe('')
+  await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
+  await reveal.press('Enter')
+
+  // Hidden geometry must not become the source of the next visible FLIP.
+  await page.getByRole('button', { name: 'Close panel Placement Panel' }).press('Enter')
+  await page.getByRole('button', { name: 'None', exact: true }).click()
+  await showPanel.click()
+  await expect(panelByRole).toBeVisible()
+  await page.getByRole('button', { name: 'Same edge', exact: true }).click()
+  await expect(panel).toHaveAttribute('data-picodash-dock-allocation-motion', 'true')
+  const scale = await panel.evaluate((element) => {
+    const frames = element
+      .getAnimations()
+      .flatMap((animation) =>
+        animation.effect instanceof KeyframeEffect ? animation.effect.getKeyframes() : [],
+      )
+    const frame = frames.find(
+      (frame) => typeof frame.transform === 'string' && frame.transform.includes('scale'),
+    )
+    if (!frame || typeof frame.transform !== 'string') throw new Error('Expected allocation FLIP')
+    const matrix = new DOMMatrix(frame.transform)
+    return { x: matrix.a, y: matrix.d }
+  })
+  expect(scale.x).toBeGreaterThan(0)
+  expect(scale.y).toBeGreaterThan(0)
+  await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
+  expect(await panel.evaluate((element) => element.style.transform)).toBe('translateZ(0px)')
+  await panel.evaluate((element) => element.style.removeProperty('--picodash-duration-fast'))
+})
+
+test('persists, restores, resets, and safely recovers settled DashPanel layout', async ({
+  page,
+}) => {
+  await openLab(page)
+
+  const panel = page.getByRole('complementary', { name: 'Placement Panel' })
+  const boundary = page.locator('[data-contract-lab-focused-boundary]')
+  const moveControl = panel.getByRole('button', { name: 'Move panel Placement Panel' })
+  const readPreferredOffset = async () => {
+    const [panelBox, boundaryBox] = await Promise.all([panel.boundingBox(), boundary.boundingBox()])
+    if (!panelBox || !boundaryBox) throw new Error('Placement geometry was unavailable.')
+    return { x: panelBox.x - boundaryBox.x, y: panelBox.y - boundaryBox.y }
+  }
+
+  await expect(panel).toBeVisible()
+  await moveControl.focus()
+  await moveControl.press('Enter')
+  await moveControl.press('Shift+ArrowRight')
+  await moveControl.press('Shift+ArrowDown')
+  await moveControl.press('Enter')
+  await expect.poll(readPreferredOffset).toEqual({ x: 34, y: 34 })
+
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem('picodash-dev-bridge-tab')))
+    .toEqual(expect.any(String))
+  const browserTabId = await page.evaluate(() =>
+    window.sessionStorage.getItem('picodash-dev-bridge-tab'),
+  )
+  const credential = JSON.parse(
+    await readFile(resolve(process.cwd(), '../../.picodash/dev-bridge.json'), 'utf8'),
+  ) as { url: string; token: string }
+  const client = createPicodashDevBridgeClient({ baseUrl: credential.url, token: credential.token })
+  const placementSession = async () =>
+    (await client.listSessions()).find(
+      (item) =>
+        item.registrationId === 'contract-lab-focused-placement' &&
+        item.browserTabId === browserTabId,
+    )
+  await expect.poll(placementSession).toBeTruthy()
+  const settledSession = (await placementSession())!
+  const settledSnapshot = await client.inspect(settledSession)
+  expect(
+    settledSnapshot.snapshot.scopes?.find((scope) => scope.id === focusedPlacementPanelScopeId)
+      ?.metadata,
+  ).toEqual({
+    dashPanel: {
+      placement: { mode: 'floating', disposition: { kind: 'free' } },
+      preferredPosition: { x: 34, y: 34 },
+    },
+  })
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (storageKey) => localStorage.getItem(storageKey),
+        focusedPlacementPersistenceStorageKey,
+      ),
+    )
+    .toContain('"preferredPosition":{"x":34,"y":34}')
+
+  await page.reload()
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  await expect(panel).toBeVisible()
+  await expect
+    .poll(async () => {
+      const current = await placementSession()
+      return current && current.generation > settledSession.generation
+    })
+    .toBeTruthy()
+  const restoredSession = (await placementSession())!
+  const restoredSnapshot = await client.inspect(restoredSession)
+  expect(
+    restoredSnapshot.snapshot.scopes?.find((scope) => scope.id === focusedPlacementPanelScopeId)
+      ?.metadata,
+  ).toEqual({
+    dashPanel: {
+      placement: { mode: 'floating', disposition: { kind: 'free' } },
+      preferredPosition: { x: 34, y: 34 },
+    },
+  })
+  await expect.poll(readPreferredOffset).toEqual({ x: 34, y: 34 })
+
+  await panel.getByRole('button', { name: 'Reset panel layout' }).click()
+  await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
+  await expect
+    .poll(async () => {
+      const current = await placementSession()
+      if (!current) return 'session unavailable'
+      const snapshot = await client.inspect(current)
+      return snapshot.snapshot.scopes?.find((scope) => scope.id === focusedPlacementPanelScopeId)
+        ?.metadata
+    })
+    .toBeUndefined()
+
+  await page.reload()
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  await expect(panel).toBeVisible()
+  await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
+
+  for (const reset of ['console', 'driver'] as const) {
+    await moveControl.focus()
+    await moveControl.press('Enter')
+    await moveControl.press('Shift+ArrowRight')
+    await moveControl.press('Enter')
+    await expect.poll(readPreferredOffset).toEqual({ x: 34, y: 24 })
+    if (reset === 'console')
+      await page.getByRole('button', { name: 'Reset lab', exact: true }).click()
+    else await page.evaluate(() => window.__PICODASH_LAB__?.reset())
+    await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+    expect(await panel.count()).toBe(1)
+    await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
+    await page.reload()
+    await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+    await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
+  }
+
+  for (const payload of [
+    '{invalid json',
+    JSON.stringify({ formatVersion: 999 }),
+    JSON.stringify({
+      kind: 'picodash-nexus-envelope',
+      formatVersion: 1,
+      nexusId: 'contract-lab-focused-placement',
+      schemaVersion: 2,
+      revision: 1,
+      writerId: 'm3-obsolete-envelope',
+      valueOwner: 'nexus',
+      values: {},
+      scopes: [],
+    }),
+  ]) {
+    await page.evaluate(({ key, payload }) => localStorage.setItem(key, payload), {
+      key: focusedPlacementPersistenceStorageKey,
+      payload,
+    })
+    await page.reload()
+    await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+    expect(await panel.count()).toBe(1)
+    await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
+  }
+
+  await page.evaluate(
+    ({ storageKey, scopeId }) => {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          kind: 'picodash-nexus-envelope',
+          formatVersion: 1,
+          nexusId: 'contract-lab-focused-placement',
+          schemaVersion: 1,
+          revision: 42,
+          writerId: 'm3-invalid-layout-fixture',
+          valueOwner: 'nexus',
+          values: {},
+          scopes: [[scopeId, { dashPanel: { invalid: true } }]],
+        }),
+      )
+    },
+    {
+      storageKey: focusedPlacementPersistenceStorageKey,
+      scopeId: focusedPlacementPanelScopeId,
+    },
+  )
+  await page.reload()
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  await expect(panel).toBeVisible()
+  await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
+  await expect
+    .poll(async () => {
+      const current = await placementSession()
+      if (!current) return undefined
+      const snapshot = await client.inspect(current)
+      return snapshot.snapshot.diagnostics?.find(
+        (diagnostic) =>
+          diagnostic.code === 'metadata_quarantined' &&
+          diagnostic.identity.kind === 'scope-metadata' &&
+          diagnostic.identity.scopeId === focusedPlacementPanelScopeId,
+      )
+    })
+    .toMatchObject({
+      code: 'metadata_quarantined',
+      identity: { kind: 'scope-metadata', scopeId: focusedPlacementPanelScopeId },
+    })
+  const recoveredSession = (await placementSession())!
+  const recoveredSnapshot = await client.inspect(recoveredSession)
+  expect(
+    recoveredSnapshot.snapshot.scopes?.find((scope) => scope.id === focusedPlacementPanelScopeId)
+      ?.metadata,
+  ).toBeUndefined()
 })
 
 test('connects the real browser specimen through the dev bridge and rejects the retired generation', async ({

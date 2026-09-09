@@ -41,6 +41,14 @@ test('captures phone-sized placement motion and reduced-motion evidence', async 
     await boundary.evaluate((element) => element.scrollIntoView({ block: 'start' }))
     await expect(panel).toBeVisible()
     const expandedHeight = (await requiredBox(panel)).height
+    const body = panel.locator('[data-picodash-panel-body]')
+    expect(
+      await body.evaluate((element) => ({
+        overflow: element.scrollHeight > element.clientHeight,
+        top: getComputedStyle(element).getPropertyValue('--_picodash-scroll-fade-top').trim(),
+        bottom: getComputedStyle(element).getPropertyValue('--_picodash-scroll-fade-bottom').trim(),
+      })),
+    ).toEqual({ overflow: false, top: '0px', bottom: '0px' })
     await capture(page, testInfo, 'placement-expanded.png')
 
     const collapse = panel.getByRole('button', { name: 'Collapse panel Placement Panel' })
@@ -125,7 +133,9 @@ test('captures phone-sized placement motion and reduced-motion evidence', async 
       duration: 150,
       keyframeCount: 2,
     })
-    await page.mouse.up()
+    const dockReleaseMotion = await triggeredMotion(panel, 'transform', () => page.mouse.up())
+    expect(dockReleaseMotion).toMatchObject({ duration: 150, keyframeCount: 2 })
+    await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
     await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
 
     const minimize = panel.getByRole('button', { name: 'Minimize panel Placement Panel' })
@@ -145,6 +155,49 @@ test('captures phone-sized placement motion and reduced-motion evidence', async 
     await panel.getByRole('button', { name: 'Expand panel Placement Panel' }).press('Enter')
     expect(await motionCount(panel)).toBe(0)
 
+    // Ordinary arbitrary content must fade too, not only a DashList's automatic band.
+    await boundary.evaluate((element) => element.scrollIntoView({ block: 'end' }))
+    boundaryBox = await requiredBox(boundary)
+    panelBox = await requiredBox(panel)
+    dragBox = await requiredBox(dragSurface)
+    pointer = center(dragBox)
+    await page.mouse.move(pointer.x, pointer.y)
+    await page.mouse.down()
+    await page.mouse.move(
+      pointer.x,
+      pointer.y + boundaryBox.y + boundaryBox.height - 160 - panelBox.y,
+      { steps: 8 },
+    )
+    await page.mouse.up()
+    await expect.poll(async () => (await requiredBox(panel)).height).toBeLessThan(161)
+    const overflow = await body.evaluate((element) => ({
+      client: element.clientHeight,
+      scroll: element.scrollHeight,
+      mask: getComputedStyle(element).maskImage,
+    }))
+    expect(overflow.client).toBeGreaterThan(40)
+    expect(overflow.scroll).toBeGreaterThan(overflow.client)
+    expect(overflow.mask).toContain('linear-gradient')
+    await capture(page, testInfo, 'placement-overflow-start.png')
+    await body.evaluate((element) => {
+      element.scrollTop = (element.scrollHeight - element.clientHeight) / 2
+    })
+    await capture(page, testInfo, 'placement-overflow-middle.png')
+    await capture(panel, testInfo, 'placement-overflow-detail.png')
+    expect(await body.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+    await body.evaluate((element) => {
+      element.scrollTop = element.scrollHeight
+    })
+    await capture(page, testInfo, 'placement-overflow-end.png')
+    expect(
+      await body.evaluate(
+        (element) => element.scrollHeight - element.clientHeight - element.scrollTop,
+      ),
+    ).toBeLessThanOrEqual(1)
+    const lastButton = await requiredBox(panel.getByRole('button', { name: 'Reset panel layout' }))
+    const scroller = await requiredBox(body)
+    expect(lastButton.y + lastButton.height).toBeLessThanOrEqual(scroller.y + scroller.height)
+
     const evidence = {
       viewport: phoneViewport,
       implementation: 'motion/mini',
@@ -155,6 +208,8 @@ test('captures phone-sized placement motion and reduced-motion evidence', async 
       snapMotion,
       detachMotion,
       dockPreviewMotion,
+      dockReleaseMotion,
+      overflow,
       reducedMotionAnimationCount: await motionCount(panel),
     }
     await writeEvidence(testInfo, 'placement-motion.json', evidence)
@@ -201,7 +256,8 @@ test('captures phone-sized boundary contraction with start and end lanes', async
     let panelBox = await requiredBox(panel)
     let dragBox = await requiredBox(dragSurface)
     const pointer = center(dragBox)
-    const contractedHeight = 300
+    // Leave room for the entire pinned Readout group as well as a usable auto scrollport.
+    const contractedHeight = 600
     const contractedTop = boundaryBox.y + boundaryBox.height - contractedHeight
     await page.mouse.move(pointer.x, pointer.y)
     await page.mouse.down()
@@ -233,8 +289,56 @@ test('captures phone-sized boundary contraction with start and end lanes', async
       endVisible: true,
       startVisible: true,
     })
+    expect(lanes.automaticClientHeight).toBeGreaterThan(0)
     expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(boundaryBox.y + boundaryBox.height + 1)
+    const automatic = list.locator('[data-picodash-dashlist-band="automatic"]')
+    const fade = () =>
+      automatic.evaluate((element) => {
+        const style = getComputedStyle(element)
+        const progress = (name: string) =>
+          element
+            .getAnimations()
+            .find(
+              (animation) => animation instanceof CSSAnimation && animation.animationName === name,
+            )
+            ?.effect?.getComputedTiming().progress
+        return {
+          start: progress('picodash-scroll-fade-start'),
+          end: progress('picodash-scroll-fade-end'),
+          mask: style.maskImage,
+        }
+      })
+    await expect.poll(async () => (await fade()).start).toBe(0)
+    await expect.poll(async () => (await fade()).end).toBe(0)
+    expect((await fade()).mask).toContain('linear-gradient')
+    for (const band of ['start', 'end']) {
+      expect(
+        await list
+          .locator(`[data-picodash-dashlist-band="${band}"]`)
+          .evaluate((element) => getComputedStyle(element).maskImage),
+      ).toBe('none')
+    }
     await capture(page, testInfo, 'boundary-contraction.png')
+    await automatic.evaluate((element) => {
+      element.scrollTop = (element.scrollHeight - element.clientHeight) / 2
+    })
+    await expect.poll(async () => (await fade()).start).toBeGreaterThan(0)
+    await expect.poll(async () => (await fade()).end).toBeLessThan(1)
+    await capture(page, testInfo, 'boundary-scroll-middle.png')
+    expect(await automatic.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+    await automatic.evaluate((element) => {
+      element.scrollTop = element.scrollHeight
+    })
+    await expect.poll(async () => (await fade()).end).toBe(1)
+    await capture(page, testInfo, 'boundary-scroll-end.png')
+    expect(
+      await automatic.evaluate(
+        (element) => element.scrollHeight - element.clientHeight - element.scrollTop,
+      ),
+    ).toBeLessThanOrEqual(1)
+    await page.emulateMedia({ forcedColors: 'active' })
+    await expect.poll(async () => (await fade()).mask).toBe('none')
+    await page.emulateMedia({ forcedColors: 'none' })
     await writeEvidence(testInfo, 'boundary-contraction.json', {
       viewport: phoneViewport,
       panel: panelBox,
@@ -351,9 +455,9 @@ async function openLab(page: Page): Promise<void> {
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
 }
 
-async function capture(page: Page, testInfo: TestInfo, name: string): Promise<void> {
+async function capture(subject: Page | Locator, testInfo: TestInfo, name: string): Promise<void> {
   const screenshotPath = path.join(artifactDirectory, name)
-  await page.screenshot({ path: screenshotPath, animations: 'allow' })
+  await subject.screenshot({ path: screenshotPath, animations: 'allow' })
   await testInfo.attach(name, { path: screenshotPath, contentType: 'image/png' })
 }
 
@@ -403,7 +507,14 @@ async function triggeredMotion(
 }
 
 async function motionCount(locator: Locator): Promise<number> {
-  return locator.evaluate((element) => element.getAnimations({ subtree: true }).length)
+  // Scroll-driven masks respond directly to scrolling, including with reduced motion.
+  // This assertion prohibits timed motion, not the reviewed scroll-fade exception.
+  return locator.evaluate(
+    (element) =>
+      element
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.timeline instanceof DocumentTimeline).length,
+  )
 }
 
 async function selectTheme(page: Page, panel: Locator, theme: string): Promise<void> {
