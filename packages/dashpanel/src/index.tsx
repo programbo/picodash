@@ -2069,12 +2069,16 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const previousAnimation = dockAllocationAnimationRef.current
     const releaseRect = pendingDockReleaseRectRef.current
     pendingDockReleaseRectRef.current = null
+    const restoreTransform = () => {
+      panel.style.transform = dockedMinimized
+        ? dockedMinimizePresentation.exitTransform
+        : (resolvedStyle?.transform ?? '')
+    }
     if (!visible || dockedMinimized) {
       previousAnimation?.cancel()
       dockAllocationAnimationRef.current = null
       dockAllocationGeometryRef.current = null
-      if (dockedMinimized) panel.style.transform = dockedMinimizePresentation.exitTransform
-      else panel.style.removeProperty('transform')
+      restoreTransform()
       panel.removeAttribute('data-picodash-dock-allocation-motion')
       return
     }
@@ -2083,15 +2087,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       previousGeometry.position === dockAllocationPosition &&
       previousGeometry.allocationKey !== dockAllocationKey
     if (!allocationChanged && !releaseRect) {
-      if (
-        previousAnimation &&
-        (previousGeometry?.position !== dockAllocationPosition ||
-          moveMode !== null ||
-          dockedMinimized)
-      ) {
+      if (previousAnimation) {
         previousAnimation.cancel()
         dockAllocationAnimationRef.current = null
-        panel.style.removeProperty('transform')
+        restoreTransform()
         panel.removeAttribute('data-picodash-dock-allocation-motion')
       }
       if (!dockAllocationAnimationRef.current) {
@@ -2129,7 +2128,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       }
       previousAnimation.cancel()
       dockAllocationAnimationRef.current = null
-      panel.style.removeProperty('transform')
+      restoreTransform()
     }
     // Suppress the CSS minimize transition while measuring the new, untransformed dock.
     panel.setAttribute('data-picodash-dock-allocation-motion', 'true')
@@ -2197,13 +2196,20 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           if (dockAllocationAnimationRef.current !== animation) return
           dockAllocationAnimationRef.current = null
           animation.cancel()
-          panel.style.removeProperty('transform')
+          restoreTransform()
           panel.removeAttribute('data-picodash-dock-allocation-motion')
         },
       },
     )
     dockAllocationAnimationRef.current = animation
-  }, [dockAllocationPosition, dockAllocationKey, dockedMinimized, moveMode, visible])
+  }, [
+    dockAllocationPosition,
+    dockAllocationKey,
+    dockedMinimized,
+    moveMode,
+    visible,
+    resolvedStyle?.transform,
+  ])
   useLayoutEffect(() => {
     const panel = asideRef.current
     if (!panel || !visible || dockedMinimized || dockAllocationAnimationRef.current) return
@@ -2347,7 +2353,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const blockSizePriority = panel.style.getPropertyPriority('block-size')
     const maxBlockSize = panel.style.getPropertyValue('max-block-size')
     const maxBlockSizePriority = panel.style.getPropertyPriority('max-block-size')
-    panel.style.setProperty('max-block-size', `${Math.max(state.fromHeight, targetHeight)}px`)
+    const transitionHeightLimit = `${Math.max(state.fromHeight, targetHeight)}px`
+    panel.style.setProperty('max-block-size', transitionHeightLimit)
     let animation: ReturnType<typeof animate> | undefined
     const settle = () => {
       const current = panelHeightTransitionRef.current
@@ -2372,7 +2379,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     panel.setAttribute('data-picodash-height-motion', 'true')
     animation = animate(
       panel,
-      { blockSize: [`${state.fromHeight}px`, `${targetHeight}px`] },
+      {
+        blockSize: [`${state.fromHeight}px`, `${targetHeight}px`],
+        // A geometry render during expansion must not reinstate the collapsed height cap.
+        maxBlockSize: [transitionHeightLimit, transitionHeightLimit],
+      },
       {
         duration: motion.duration / 1_000,
         ease: motion.easing,

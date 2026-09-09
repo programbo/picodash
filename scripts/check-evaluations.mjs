@@ -42,9 +42,7 @@ const errors = []
 const expectedIds = scenarios.map(({ id }) => id)
 const actualIds = (
   await Promise.all(
-    (
-      await readdir(evaluationsRoot, { withFileTypes: true })
-    )
+    (await readdir(evaluationsRoot, { withFileTypes: true }))
       .filter((entry) => entry.isDirectory())
       .map(async (entry) => ({
         entry,

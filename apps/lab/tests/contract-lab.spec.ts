@@ -49,44 +49,51 @@ async function samplePanelHeightTransition(page: Page, panel: Locator, action: L
   })
   const midpoint = await panel.evaluate(
     (element) =>
-      new Promise<number>((resolve, reject) => {
-        const deadline = performance.now() + 1_000
-        const inspect = () => {
-          const animation = element.getAnimations().find((candidate) => {
-            const effect = candidate.effect
-            return (
-              effect instanceof KeyframeEffect &&
-              effect.getKeyframes().some((keyframe) => 'blockSize' in keyframe)
-            )
-          })
-          if (!animation) {
-            if (performance.now() >= deadline) {
-              reject(new TypeError('Expected an active block-size animation.'))
+      new Promise<{ height: number; max: string; frames: ComputedKeyframe[] }>(
+        (resolve, reject) => {
+          const deadline = performance.now() + 1_000
+          const inspect = () => {
+            const animation = element.getAnimations().find((candidate) => {
+              const effect = candidate.effect
+              return (
+                effect instanceof KeyframeEffect &&
+                effect.getKeyframes().some((keyframe) => 'blockSize' in keyframe)
+              )
+            })
+            if (!animation) {
+              if (performance.now() >= deadline) {
+                reject(new TypeError('Expected an active block-size animation.'))
+                return
+              }
+              requestAnimationFrame(inspect)
               return
             }
-            requestAnimationFrame(inspect)
-            return
+            const duration = animation.effect?.getTiming().duration
+            if (typeof duration !== 'number') {
+              reject(new TypeError('Expected a numeric block-size animation duration.'))
+              return
+            }
+            animation.pause()
+            animation.currentTime = duration / 2
+            requestAnimationFrame(() => {
+              const midpoint = {
+                height: element.getBoundingClientRect().height,
+                max: getComputedStyle(element).maxBlockSize,
+                frames:
+                  animation.effect instanceof KeyframeEffect ? animation.effect.getKeyframes() : [],
+              }
+              animation.play()
+              void animation.finished.then(() => resolve(midpoint), reject)
+            })
           }
-          const duration = animation.effect?.getTiming().duration
-          if (typeof duration !== 'number') {
-            reject(new TypeError('Expected a numeric block-size animation duration.'))
-            return
-          }
-          animation.pause()
-          animation.currentTime = duration / 2
-          requestAnimationFrame(() => {
-            const midpoint = element.getBoundingClientRect().height
-            animation.play()
-            void animation.finished.then(() => resolve(midpoint), reject)
-          })
-        }
-        inspect()
-      }),
+          inspect()
+        },
+      ),
   )
   await expect(panel).not.toHaveAttribute('data-picodash-height-motion')
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)))
   const after = await panel.evaluate((element) => element.getBoundingClientRect().height)
-  return { before, samples: [midpoint], after }
+  return { before, samples: [midpoint.height], after, debug: midpoint }
 }
 
 async function pausePanelTranslateAnimationAfter(
@@ -812,6 +819,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     expandedMotion.samples.some(
       (height) => height > expandedMotion.before + 1 && height < expandedMotion.after - 1,
     ),
+    JSON.stringify(expandedMotion),
   ).toBe(true)
   await focusedPanel.getByRole('button', { name: 'Collapse panel Placement Panel' }).press('Enter')
   await expect(
@@ -1687,6 +1695,8 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   })
   expect(scale.x).toBeGreaterThan(0)
   expect(scale.y).toBeGreaterThan(0)
+  await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
+  expect(await panel.evaluate((element) => element.style.transform)).toBe('translateZ(0px)')
   await panel.evaluate((element) => element.style.removeProperty('--picodash-duration-fast'))
 })
 
@@ -1805,7 +1815,21 @@ test('persists, restores, resets, and safely recovers settled DashPanel layout',
     await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
   }
 
-  for (const payload of ['{invalid json', JSON.stringify({ formatVersion: 999 })]) {
+  for (const payload of [
+    '{invalid json',
+    JSON.stringify({ formatVersion: 999 }),
+    JSON.stringify({
+      kind: 'picodash-nexus-envelope',
+      formatVersion: 1,
+      nexusId: 'contract-lab-focused-placement',
+      schemaVersion: 2,
+      revision: 1,
+      writerId: 'm3-obsolete-envelope',
+      valueOwner: 'nexus',
+      values: {},
+      scopes: [],
+    }),
+  ]) {
     await page.evaluate(({ key, payload }) => localStorage.setItem(key, payload), {
       key: focusedPlacementPersistenceStorageKey,
       payload,

@@ -200,7 +200,7 @@ function createFocusedPlacementNexus() {
       error instanceof Error &&
       error.name === 'PicodashInitializationError' &&
       'code' in error &&
-      error.code === 'invalid-persistence-envelope' &&
+      (error.code === 'invalid-persistence-envelope' || error.code === 'schema-migration-failed') &&
       clearFocusedPlacementPersistence()
     )
       return create()
@@ -509,6 +509,7 @@ function FocusedPlacementSpecimen({
       <DashPanel
         id={focusedPlacementPanelScopeId}
         title="Placement Panel"
+        style={{ transform: 'translateZ(0)' }}
         collapsible
         showCloseButton
         width="min(24rem, calc(100% - 2rem))"

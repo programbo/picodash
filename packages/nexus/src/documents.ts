@@ -833,7 +833,7 @@ export function normalizePicodashImportPlanReview(
 /** Remove redacted entries before import mapping or schema migration. */
 export function stripRedactedPicodashDocumentFields(document: PicodashDocument): PicodashDocument {
   const decoded = decodePicodashDocument(document)
-  const fields = decoded.fields.filter(([_, entry]) => entry.status === 'included')
+  const fields = decoded.fields.filter(([, entry]) => entry.status === 'included')
   return encodePicodashDocument({ ...decoded, fields } as PicodashDocument)
 }
 

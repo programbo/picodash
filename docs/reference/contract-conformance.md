@@ -125,6 +125,12 @@ defaults, and readiness after the asynchronous specimen mounts. The placement jo
 that canceling allocation motion preserves docked minimization and that hidden geometry cannot
 seed a zero-scale allocation animation after reopening.
 
+The dependency-refresh gate uses Next.js 16.3.4, Motion 13.2, and the matching Vite+ 0.3.1
+toolchain. The placement journey also verifies preservation of caller-owned transforms after
+allocation; obsolete schema envelopes recover to declared Lab defaults. The expand/collapse
+journey protects the animated maximum-height limit from intermediate geometry renders. The
+experimental Charts 0.12 contract pin remains unchanged; Vitest stays aligned with Vite+.
+
 Known height gap: contracting the Style Lab's Basics & readout Panel below its combined pinned
 content height can reduce the automatic lane to zero and clip the pinned Readout group. The
 600px phone fixture proves usable overflow, not the minimum-height limit; that limit still needs

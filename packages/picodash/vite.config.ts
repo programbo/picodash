@@ -5,7 +5,7 @@ export default defineConfig({
   test: reactTestConfig,
   pack: {
     entry: ['src/index.ts', 'src/ui.ts'],
-    dts: { tsgo: true },
+    dts: { generator: 'tsgo' },
     external: ['react', 'react-dom', /^@picodash\//],
     exports: false,
     sourcemap: true,

@@ -9,7 +9,7 @@ export default defineConfig({
       style: 'style.css',
     },
     dts: {
-      tsgo: true,
+      generator: 'tsgo',
     },
     exports: false,
     sourcemap: true,
