@@ -43,12 +43,9 @@ async function openLab(page: Page) {
 
 async function samplePanelHeightTransition(page: Page, panel: Locator, action: Locator) {
   const before = await panel.evaluate((element) => element.getBoundingClientRect().height)
-  await action.evaluate((element) => {
-    if (!(element instanceof HTMLElement)) throw new TypeError('Panel action must be an element.')
-    element.click()
-  })
+  const actionElement = await action.elementHandle()
   const midpoint = await panel.evaluate(
-    (element) =>
+    (element, trigger) =>
       new Promise<{ height: number; max: string; frames: ComputedKeyframe[] }>(
         (resolve, reject) => {
           const deadline = performance.now() + 1_000
@@ -86,9 +83,16 @@ async function samplePanelHeightTransition(page: Page, panel: Locator, action: L
               void animation.finished.then(() => resolve(midpoint), reject)
             })
           }
+          if (!(trigger instanceof HTMLElement)) {
+            reject(new TypeError('Panel action must be an element.'))
+            return
+          }
+          // Observe in the same browser call so a slow round trip cannot miss the animation.
+          trigger.click()
           inspect()
         },
       ),
+    actionElement,
   )
   await expect(panel).not.toHaveAttribute('data-picodash-height-motion')
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)))
