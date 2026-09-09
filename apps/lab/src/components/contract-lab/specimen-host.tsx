@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import type { ContractLabPreset } from '@lab/lib/contract-lab'
 import { ContractLabSpecimen } from './specimen'
+import { ValueBindingLab } from './value-binding-lab'
 
 export type ContractLabPrimaryPanelState = 'expanded' | 'collapsed' | 'unavailable'
 
@@ -24,11 +25,11 @@ export function ContractLabSpecimenHost({
   const boundaryRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    onPrimaryPanelStateChange('expanded')
+    onPrimaryPanelStateChange(preset.id === 'interaction' ? 'unavailable' : 'expanded')
   }, [onPrimaryPanelStateChange, preset.id, revision])
 
   useEffect(() => {
-    if (preset.id !== 'placement') onReady()
+    if (preset.id !== 'placement' && preset.id !== 'interaction') onReady()
   }, [onReady, preset.id])
 
   return (
@@ -47,23 +48,29 @@ export function ContractLabSpecimenHost({
         <h1 id="contract-lab-specimen-title" className="mt-1 text-sm font-semibold">
           {preset.id === 'composition'
             ? 'Ready-made Dashlets'
-            : preset.id === 'placement'
-              ? 'DashPanel placement'
-              : 'Primary Panel and List'}
+            : preset.id === 'interaction'
+              ? 'Standalone DashList binding'
+              : preset.id === 'placement'
+                ? 'DashPanel placement'
+                : 'Primary Panel and List'}
         </h1>
       </header>
       <p className="text-muted-foreground relative z-10 max-w-2xl p-5 text-sm leading-6 sm:p-7">
         {preset.description}
       </p>
-      <ContractLabSpecimen
-        onReady={onReady}
-        boundary={boundaryRef}
-        onDiagnosticCountChange={onDiagnosticCountChange}
-        onCollapsedChange={(collapsed) =>
-          onPrimaryPanelStateChange(collapsed ? 'collapsed' : 'expanded')
-        }
-        preset={preset}
-      />
+      {preset.id === 'interaction' ? (
+        <ValueBindingLab onReady={onReady} onDiagnosticCountChange={onDiagnosticCountChange} />
+      ) : (
+        <ContractLabSpecimen
+          onReady={onReady}
+          boundary={boundaryRef}
+          onDiagnosticCountChange={onDiagnosticCountChange}
+          onCollapsedChange={(collapsed) =>
+            onPrimaryPanelStateChange(collapsed ? 'collapsed' : 'expanded')
+          }
+          preset={preset}
+        />
+      )}
     </section>
   )
 }

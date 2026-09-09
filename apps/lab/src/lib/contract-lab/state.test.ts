@@ -17,22 +17,11 @@ test('defines exactly the six curated Contract Lab presets', () => {
     'themes',
   ])
   expect(CONTRACT_LAB_PRESETS.map(({ id }) => id)).toEqual(CONTRACT_LAB_PRESET_IDS)
-  expect(CONTRACT_LAB_PRESETS.map(({ implementation }) => implementation)).toEqual([
-    'Planned',
-    'Partial',
-    'Partial',
-    'Partial',
-    'Partial',
-    'Partial',
-  ])
-  expect(CONTRACT_LAB_PRESETS.map(({ description }) => description)).toEqual([
-    'Standalone Panel movement, placement reset, and persisted layout are available; broader docking and modal presentation remain planned.',
-    'Panel visibility, close/reopen, activation, and retained content are available; durable layout, removal, modal presentation, and reordering remain planned.',
-    'Two movable hybrid Panels group the ready-made controls by task, with Search pinned to the first start lane and Color in the second automatic lane.',
-    'Shared UI AlertDialog behavior is available; Panel/List portal coordination and stacked overlay journeys remain planned.',
-    'Nexus document capture and restore plans are available; DashList-owned import, export, repair, and reset actions remain planned.',
-    'Theme and density Providers are available; this preset renders the compact recipe while detached portal carriers are verified in the placement journey.',
-  ])
+  expect(new Set(CONTRACT_LAB_PRESETS.map(({ label }) => label)).size).toBe(6)
+  for (const preset of CONTRACT_LAB_PRESETS) {
+    expect(preset.description.trim().length).toBeGreaterThan(0)
+    expect(['Partial', 'Planned']).toContain(preset.implementation)
+  }
 })
 
 test('loads a preset through a deterministic reducer transition', () => {

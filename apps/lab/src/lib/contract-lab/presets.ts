@@ -28,10 +28,10 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Panel visibility, close/reopen, activation, and retained content are available; durable layout, removal, modal presentation, and reordering remain planned.',
+      'Standalone ready-made and composed Dashlets share text, number, and boolean fields. Edit either List, apply example values, and compare focus, disabled, and invalid states across themes.',
     id: 'interaction',
     implementation: 'Partial',
-    label: 'Interaction',
+    label: 'Value binding',
   },
   {
     description:

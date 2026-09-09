@@ -29,6 +29,17 @@ are evidenced by the linked owning tests and Contract Lab journey. These represe
 slices complete Phase 2. Rows remain `Partial` where Phase 3 owns exhaustive stabilization,
 adaptive presentations, rails, catalog entries, document workflows, or visual-token matrices.
 
+## Recovery M4: standalone value binding
+
+The `proves standalone value binding parity through UI, Bridge, themes, and remount` journey in
+`apps/lab/tests/contract-lab.spec.ts` verifies the bounded browser composition of Text, Number,
+Switch, and Display, including edits from either List, independent Bridge inspection and writes,
+invalid canonical-value preservation, focus traversal, disabled controls, retained themes, narrow
+layout, and teardown/remount. Application imports remain on public Nexus, UI, and DashList paths.
+This does not verify persistence, groups, reordering, documents, or List-level disabled cascading.
+Owner hands-on acceptance was recorded on 2026-09-09.
+See the [M4 evidence record](../internal/m4-value-binding.md).
+
 ## Nexus
 
 | ID              | Contract area                                      | Primary evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Status   | Evidence                                                                                                                                                                                                                                                                                                                                           |
