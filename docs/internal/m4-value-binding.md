@@ -1,6 +1,7 @@
 # M4: standalone DashList value binding
 
 The owner approved M4 after hands-on use on 2026-09-09, reporting that it works nicely.
+M5 subsequently extends this baseline with persistence and reset; see [its evidence record](m5-dashlist-data.md).
 This is the recovery project's M4, not Phase 4 Picodash integration.
 
 ## Scope decision

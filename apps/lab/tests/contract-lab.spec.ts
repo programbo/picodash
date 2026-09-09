@@ -229,7 +229,7 @@ test('loads all six accepted presets, persists the selection for the session, an
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('Placement')
 })
 
-test('proves standalone value binding parity through UI, Bridge, themes, and remount', async ({
+test('proves standalone value binding parity through UI, Bridge, themes, reset, and persistence', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
@@ -323,7 +323,7 @@ test('proves standalone value binding parity through UI, Bridge, themes, and rem
   })
   expect(result).toMatchObject({
     type: 'command_result',
-    outcome: { type: 'transaction_result', result: { ok: true } },
+    outcome: { type: 'transaction_result', result: { ok: true, persistence: 'saved' } },
   })
   expect(
     await client.wait(await currentSession(), {
@@ -447,7 +447,77 @@ test('proves standalone value binding parity through UI, Bridge, themes, and rem
   await page.getByRole('button', { name: 'Reopen primary specimen' }).click()
   await expect(region).toBeVisible()
   await expect.poll(findSession).toBeTruthy()
+  const savedValues = { name: 'Bridge update', interval: 25, enabled: true }
+  await expect.poll(values).toEqual(savedValues)
+  const savedPayload = () =>
+    page.evaluate(() => localStorage.getItem('picodash-contract-lab-value-binding-v1'))
+  const beforeRejected = await savedPayload()
+  const rejected = await client.setValues(await currentSession(), {
+    type: 'set_values',
+    requestId: 'm5-invalid-batch',
+    values: { name: 'Must not commit', interval: 0, enabled: false },
+  })
+  expect(rejected).toMatchObject({ outcome: { type: 'transaction_result', result: { ok: false } } })
+  await expect.poll(values).toEqual(savedValues)
+  expect(await savedPayload()).toBe(beforeRejected)
+  await ready.getByRole('textbox', { name: 'Workspace name', exact: true }).fill('')
+  await expect(ready.getByRole('textbox', { name: 'Workspace name', exact: true })).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  )
+  await page.reload()
+  await expect(region).toBeVisible()
+  await expect.poll(findSession).toBeTruthy()
+  await expect.poll(values).toEqual(savedValues)
+  for (const list of lists) {
+    await expect(list.getByRole('textbox', { name: 'Workspace name', exact: true })).toHaveValue(
+      'Bridge update',
+    )
+    await expect(list.getByRole('textbox', { name: 'Refresh interval', exact: true })).toHaveValue(
+      '25',
+    )
+    await expect(list.getByRole('status', { name: 'Current interval' })).toHaveText('25 seconds')
+  }
+  for (const list of lists) {
+    await region.getByRole('button', { name: 'Apply example values' }).click()
+    await expect.poll(values).toEqual({ name: 'Evening', interval: 15, enabled: false })
+    await list.getByRole('textbox', { name: 'Workspace name', exact: true }).fill('')
+    await list.getByRole('button', { name: 'List actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Reset values…', exact: true }).click()
+    const dialog = page.getByRole('alertdialog', { name: 'Reset values and drafts?' })
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect.poll(values).toEqual({ name: 'Evening', interval: 15, enabled: false })
+    await expect(list.getByRole('textbox', { name: 'Workspace name', exact: true })).toHaveValue('')
+    await list.getByRole('button', { name: 'List actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Reset values…', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Reset values', exact: true }).click()
+    await expect.poll(values).toEqual({ name: 'Studio', interval: 30, enabled: true })
+    await expect(list.getByRole('textbox', { name: 'Workspace name', exact: true })).toHaveValue(
+      'Studio',
+    )
+    await expect(region.getByRole('status', { name: 'Save status' })).toHaveText(
+      'Saved in this browser.',
+    )
+    await page.reload()
+    await expect(region).toBeVisible()
+    await expect.poll(findSession).toBeTruthy()
+    await expect.poll(values).toEqual({ name: 'Studio', interval: 30, enabled: true })
+    for (const peer of lists) {
+      await expect(peer.getByRole('textbox', { name: 'Workspace name', exact: true })).toHaveValue(
+        'Studio',
+      )
+      await expect(peer.getByRole('status', { name: 'Current interval' })).toHaveText('30 seconds')
+      await expect(peer.getByRole('switch', { name: 'Live updates' })).toBeChecked()
+    }
+  }
+
+  await region.getByRole('button', { name: 'Apply example values' }).click()
+  await page.getByRole('button', { name: 'Reset lab', exact: true }).click()
+  await page.getByRole('button', { name: /^Value binding:/ }).click()
+  await expect(region).toBeVisible()
+  await expect.poll(findSession).toBeTruthy()
   await expect.poll(values).toEqual({ name: 'Studio', interval: 30, enabled: true })
+  await capture('m5-reset-defaults')
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
 })
 
