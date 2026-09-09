@@ -67,5 +67,10 @@ are checked separately after package builds finish so declaration-output cleanup
 
 ## Owner review
 
+Hosted checks exposed a pending Bridge registration callback reading a destroyed Lab Nexus.
+The connector now accepts the host's abort signal, cancels pending registration on unmount,
+and ignores late frames. A deterministic Bridge test delays registration until after abort and
+root destruction. This changes connection cleanup only, with no new Bridge command authority.
+
 Check both Lists with pointer and keyboard, including an empty workspace name and an interval of 61. Check the theme buttons and disabled state, then **Apply example values** with clean inputs.
 Owner acceptance is recorded above; these steps remain the bounded review checklist for changes.

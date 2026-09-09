@@ -148,6 +148,7 @@ export type PicodashDevBridgeConnectOptions<
   disclosure?: Partial<PicodashDevBridgeDisclosure>
   permissions?: Partial<PicodashDevBridgePermissions>
   browserTabId?: string
+  signal?: AbortSignal
 }>
 export type PicodashDevBridgeBrowserConnection = Readonly<{
   session: PicodashDevBridgeSessionDescriptor

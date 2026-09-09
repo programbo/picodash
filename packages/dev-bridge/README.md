@@ -11,6 +11,8 @@ or production transport.
 - `@picodash/dev-bridge` exports the loopback relay, typed client, and protocol types. The package
   also provides the separate `picodash-dev-bridge` CLI binary.
 - `@picodash/dev-bridge/browser` exports the browser connector used by the Contract Lab.
+  Its optional abort signal cancels registration and closes the connection during host teardown;
+  see the operational guide for ownership and cleanup.
 - The relay serves an authenticated HTTP client API and an origin-bound, single-use browser
   credential over the `picodash.dev-bridge.v2` WebSocket subprotocol. Version 2 names Nexus in
   redacted operation failures; the subprotocol cutover prevents version-1 peers from silently

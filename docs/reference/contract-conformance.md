@@ -87,6 +87,10 @@ and persistence records instead of adding separate hand-written tests for every 
 The verified baseline is private development tooling. Persistence, import, reset, and broader
 agent protocols remain deferred and are not implied by these rows.
 
+Browser connector tests cover aborting pending registration before Nexus destruction and ignoring
+late socket frames. The Lab host passes its effect cleanup signal to the connector; the retained
+theme browser journey exercises teardown without use-after-destroy errors.
+
 The standalone collapse correlation is a higher-layer Bridge consumer seam, not a DashList behavior
 matrix. `packages/dashlist/tests/dashlist.test.tsx` remains the primary owner for deterministic
 collapse and reorder behavior; Nexus and DashList focused tests remain the owners for metadata and

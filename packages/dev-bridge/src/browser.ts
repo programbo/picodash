@@ -13,6 +13,7 @@ import { makeSnapshot, snapshotsEqual, validateDisclosure } from './serializatio
 export async function connectPicodashDevBridge(
   options: PicodashDevBridgeConnectOptions,
 ): Promise<PicodashDevBridgeBrowserConnection> {
+  options.signal?.throwIfAborted()
   const origin =
     typeof globalThis.location?.origin === 'string' ? globalThis.location.origin : undefined
   if (origin !== undefined && options.credential.origin !== origin)
@@ -28,6 +29,7 @@ export async function connectPicodashDevBridge(
   let sequence = 0
   let closed = false
   let settled = false
+  const unsubs: Array<() => void> = []
   let resolveRegistration!: (value: PicodashDevBridgeBrowserConnection['session']) => void
   let rejectRegistration!: (reason: Error) => void
   const registration = new Promise<PicodashDevBridgeBrowserConnection['session']>(
@@ -68,7 +70,8 @@ export async function connectPicodashDevBridge(
     sequence += 1
     sendSnapshot('snapshot', sequence, nextSnapshot)
   }
-  socket.addEventListener('open', () =>
+  socket.addEventListener('open', () => {
+    if (closed) return
     socket.send(
       JSON.stringify({
         type: 'register',
@@ -87,9 +90,10 @@ export async function connectPicodashDevBridge(
           permissions: { writableFields: writable },
         },
       }),
-    ),
-  )
+    )
+  })
   socket.addEventListener('message', (event) => {
+    if (closed) return
     const frame = parse(event.data)
     if (!frame) return
     if (frame.type === 'registered') {
@@ -127,14 +131,27 @@ export async function connectPicodashDevBridge(
       rejectRegistration(new Error('connection closed'))
     }
   })
-  const session = await registration
-  const unsubs = [
+  const abort = () => {
+    if (!settled) {
+      settled = true
+      clearTimeout(timer)
+      rejectRegistration(new DOMException('Connection aborted.', 'AbortError'))
+    }
+    void close()
+  }
+  options.signal?.addEventListener('abort', abort, { once: true })
+  const session = await registration.catch((error: unknown) => {
+    void close()
+    throw error
+  })
+  if (closed) throw new DOMException('Connection aborted.', 'AbortError')
+  unsubs.push(
     options.nexus.subscribe(() => {
       if (!closed && socket.readyState === WebSocket.OPEN) {
         publishSnapshotChange()
       }
     }),
-  ]
+  )
   if (disclosure.diagnostics)
     unsubs.push(
       options.nexus.diagnostics.subscribe(() => {
@@ -199,6 +216,7 @@ export async function connectPicodashDevBridge(
   async function close() {
     if (closed) return
     closed = true
+    options.signal?.removeEventListener('abort', abort)
     unsubs.forEach((unsub) => unsub())
     if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)
       await new Promise<void>((resolve) => {
