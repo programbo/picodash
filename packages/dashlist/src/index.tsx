@@ -1698,6 +1698,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
                                 key={band}
                                 role="presentation"
                                 data-picodash-dashlist-band={band}
+                                data-picodash-scroll-fade={band === 'automatic' || undefined}
                               >
                                 {declarationsByBand[band].map((declaration, index) =>
                                   createElement(

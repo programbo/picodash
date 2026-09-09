@@ -102,6 +102,34 @@ their owned behavior composes those primitives; they do not repeat the primitive
 
 ## DashPanel
 
+Hybrid release continuity is verified by the placement journey in
+`apps/lab/tests/contract-lab.spec.ts`: sampled frames stay between the released and allocated dock
+rectangles, without a coordinate-handoff jump. `apps/lab/tests/phone-artifacts.spec.ts` verifies
+the release uses the shared 150ms Motion transition and records phone-sized playback evidence.
+The placement journey also samples a continuously moving return target: the proxy advances during
+movement and finishes fading without waiting for the pointer to stop.
+
+The same placement journey contracts a Hybrid Panel near each bottom corner and checks that release
+restores its intrinsic height with its bottom aligned to the boundary. The phone boundary journey
+checks automatic-band overflow, unfaded start/end lanes, and scroll-fade at the top, middle, and
+bottom, retains the scrolled position after mask events, and records screenshots and playback
+evidence. The Panel portal test distinguishes internal content scroll from viewport scroll.
+The phone placement journey also contracts ordinary non-DashList content, captures its fade at
+the start/middle/end, retains its scroll offset, and checks that the final action is reachable.
+Shared UI's CSS contract test and motion-policy
+check cover the bundled scroll-timeline exception; unsupported browsers retain unfaded scrolling.
+
+M3 owner hands-on approval was recorded on 2026-09-09. The persistence journey also covers Console
+and driver reset of settled overrides, malformed JSON and incompatible-envelope fallback to current
+defaults, and readiness after the asynchronous specimen mounts. The placement journey verifies
+that canceling allocation motion preserves docked minimization and that hidden geometry cannot
+seed a zero-scale allocation animation after reopening.
+
+Known height gap: contracting the Style Lab's Basics & readout Panel below its combined pinned
+content height can reduce the automatic lane to zero and clip the pinned Readout group. The
+600px phone fixture proves usable overflow, not the minimum-height limit; that limit still needs
+correction against `PANEL-PLACEMENT-HEIGHT-1`.
+
 | ID             | Contract area                                | Primary evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Status   | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | -------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | PANEL-COMPOSE  | Provider/Panel composition and scope context | `packages/dashpanel/tests/dashpanel.test.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                               | Verified | Root/scoped context, nested relationships, Provider reset, Panel policy scoping/reset, policy defaults/dynamic updates/nested reset, invalid-policy rejection, and teardown are covered.                                                                                                                                                                                                                                                                                                                                                                                                                  |

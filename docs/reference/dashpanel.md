@@ -353,6 +353,16 @@ Panel while fading it out when the pointer leaves every valid zone. It uses the 
 visual transitions immediate. The proxy never supplies input geometry, claims occupancy, changes
 Nexus state, or commits a dock before pointer release.
 
+The return-to-Panel transition keeps its original progress as the pointer moves. Its destination
+tracks the Panel without restarting the fade on every pointer event; once invisible, the proxy
+follows without further animation until another dock target is offered.
+
+A successful release animates the Panel from its actual released rectangle to the allocated dock
+rectangle using Motion and the same shared theme tokens. The coordinate handoff does not add the
+old drag translation to the dock position. Reduced motion settles immediately. The Contract Lab
+placement journey samples the release animation to verify continuity and containment throughout,
+not only the final dock geometry.
+
 An available target does contribute a transient allocation preview for settled peers on the same
 side. Those peers immediately animate toward their prospective size and offset. Crossing to another
 zone replaces the preview; leaving every valid zone, cancelling the gesture, or detaching a docked
@@ -626,6 +636,19 @@ Responsive behavior is geometry-derived rather than breakpoint-driven:
 - current policy may temporarily make a durable target unavailable without deleting it.
 
 There is no automatic mode switch at a product-defined breakpoint.
+
+Boundary contraction does not replace the preferred intrinsic height. On release into a bottom
+corner, a Hybrid Panel restores that height up to its allocated maximum and aligns with the bottom
+edge. It does not stretch short content to fill the allocation. Intrinsic and minimum measurements
+exclude the visual scale used by the dock transition, so animation cannot feed a contracted height
+back into the settled layout.
+
+Overflowing ordinary content scrolls within the Panel body, with the shared vertical
+[`scroll-fade` recipe](ui.md#scroll-overflow-feedback) indicating content above or below. A root
+DashList owns its automatic-band scrollport instead; the Panel header and pinned bands remain
+unfaded. Content that fits is not faded.
+Scrolling inside the Panel or completing a scroll-mask animation does not trigger intrinsic shell
+measurement; ancestor or viewport scrolling still updates placement geometry.
 
 Settled intrinsic height changes use Motion with `--picodash-duration-fast` and
 `--picodash-easing-out`, so a custom theme can tune their duration and curve without adding a

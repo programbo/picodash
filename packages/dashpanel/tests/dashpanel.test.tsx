@@ -985,6 +985,7 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(button.element.querySelector('svg')?.getAttribute('data-expanded')).toBe('true')
     expect(body.props.hidden).toBe(false)
     expect(body.props.inert).toBeUndefined()
+    expect(body.props['data-picodash-scroll-fade']).toBe(true)
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()
   })

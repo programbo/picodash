@@ -9,6 +9,7 @@ export type ContractLabPrimaryPanelState = 'expanded' | 'collapsed' | 'unavailab
 export interface ContractLabSpecimenHostProps {
   readonly onDiagnosticCountChange: (count: number) => void
   readonly onPrimaryPanelStateChange: (state: ContractLabPrimaryPanelState) => void
+  readonly onReady: () => void
   readonly preset: ContractLabPreset
   readonly revision: number
 }
@@ -16,6 +17,7 @@ export interface ContractLabSpecimenHostProps {
 export function ContractLabSpecimenHost({
   onDiagnosticCountChange,
   onPrimaryPanelStateChange,
+  onReady,
   preset,
   revision,
 }: ContractLabSpecimenHostProps) {
@@ -24,6 +26,10 @@ export function ContractLabSpecimenHost({
   useEffect(() => {
     onPrimaryPanelStateChange('expanded')
   }, [onPrimaryPanelStateChange, preset.id, revision])
+
+  useEffect(() => {
+    if (preset.id !== 'placement') onReady()
+  }, [onReady, preset.id])
 
   return (
     <section
@@ -50,6 +56,7 @@ export function ContractLabSpecimenHost({
         {preset.description}
       </p>
       <ContractLabSpecimen
+        onReady={onReady}
         boundary={boundaryRef}
         onDiagnosticCountChange={onDiagnosticCountChange}
         onCollapsedChange={(collapsed) =>

@@ -806,8 +806,13 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const dockPreviewElementRef = useRef<HTMLDivElement | null>(null)
   const dockPreviewAnimationRef = useRef<ReturnType<typeof animate> | null>(null)
   const dockPreviewMotionTargetRef = useRef<PanelDockPreviewMotionTarget | null>(null)
+  const dockPreviewReturnRef = useRef<{
+    readonly from: PanelDockPreviewMotionTarget
+    readonly startedAt: number
+  } | null>(null)
   const dockAllocationAnimationRef = useRef<ReturnType<typeof animate> | null>(null)
   const dockAllocationGeometryRef = useRef<PanelDockAllocationGeometry | null>(null)
+  const pendingDockReleaseRectRef = useRef<DashPanelRect | null>(null)
   const renderedMappedRef = useRef<Readonly<{ left: number; top: number }> | null>(null)
   const [geometry, setGeometry] = useState<PanelGeometryState | null>(null)
   const [panelHeightTransitionRevision, setPanelHeightTransitionRevision] = useState(0)
@@ -918,8 +923,23 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     () => (): PanelGeometryState | null => {
       const element = asideRef.current
       if (!element || typeof element.getBoundingClientRect !== 'function') return null
-      const panelRect = measurePreferredPanelRect(element)
-      const minimumHeight = measureMinimumPanelHeight(element, panelRect.height)
+      // A dock FLIP scales the painted box, not the content's intrinsic size.
+      // Exclude that owned transform from both measurements before feeding layout again.
+      const transform = element.style.getPropertyValue('transform')
+      const transformPriority = element.style.getPropertyPriority('transform')
+      const layoutMotion = element.hasAttribute('data-picodash-dock-allocation-motion')
+      let panelRect: DOMRect
+      let minimumHeight: number
+      try {
+        if (layoutMotion) element.style.setProperty('transform', 'none', 'important')
+        panelRect = measurePreferredPanelRect(element)
+        minimumHeight = measureMinimumPanelHeight(element, panelRect.height)
+      } finally {
+        if (layoutMotion) {
+          if (transform) element.style.setProperty('transform', transform, transformPriority)
+          else element.style.removeProperty('transform')
+        }
+      }
       const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
       const boundaryRect = target?.getBoundingClientRect?.() ?? viewportRect(element.ownerDocument)
       const insetBoundary = insetDashPanelRect(boundaryRect, resolvedBoundaryInset)
@@ -1111,6 +1131,24 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       )
         cancelObservedMoveRef.current()
     }
+    const refreshForSettledLayout = (event: Event) => {
+      // UI's scroll-driven mask cannot change layout. Measuring intrinsic size here would
+      // temporarily remove overflow and reset the scroll position that just drove the mask.
+      if (
+        'animationName' in event &&
+        (event.animationName === 'picodash-scroll-fade-start' ||
+          event.animationName === 'picodash-scroll-fade-end')
+      )
+        return
+      refreshGeometry()
+    }
+    const refreshForScroll = (event: Event) => {
+      const origin = event.composedPath()[0] ?? event.target
+      // Scrolling Panel content does not move its shell or boundary. Intrinsic measurement
+      // removes the height cap temporarily, which would reset the content's scroll offset.
+      if (origin instanceof Node && panel.contains(origin)) return
+      refreshGeometry()
+    }
     const addLayoutEventTarget = (target: unknown) => {
       if (
         target !== null &&
@@ -1146,7 +1184,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const removeLayoutEventListeners = () => {
       for (const target of layoutEventTargets) {
         for (const eventName of settledLayoutEvents)
-          target.removeEventListener(eventName, refreshGeometry, true)
+          target.removeEventListener(eventName, refreshForSettledLayout, true)
         for (const eventName of movingLayoutEvents)
           target.removeEventListener(eventName, cancelForLayoutMotion, true)
       }
@@ -1176,7 +1214,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       }
       for (const target of layoutEventTargets) {
         for (const eventName of settledLayoutEvents)
-          target.addEventListener(eventName, refreshGeometry, true)
+          target.addEventListener(eventName, refreshForSettledLayout, true)
         for (const eventName of movingLayoutEvents)
           target.addEventListener(eventName, cancelForLayoutMotion, true)
       }
@@ -1360,7 +1398,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
     if (ownerWindow && typeof ownerWindow.addEventListener === 'function') {
       ownerWindow.addEventListener('resize', refreshGeometry)
-      ownerWindow.addEventListener('scroll', refreshGeometry, { capture: true, passive: true })
+      ownerWindow.addEventListener('scroll', refreshForScroll, { capture: true, passive: true })
       ownerWindow.visualViewport?.addEventListener('resize', refreshGeometry)
       ownerWindow.visualViewport?.addEventListener('scroll', refreshGeometry)
       if (tracksBoundaryReference && typeof ownerWindow.requestAnimationFrame === 'function')
@@ -1376,7 +1414,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       removeLayoutEventListeners()
       if (ownerWindow && typeof ownerWindow.removeEventListener === 'function') {
         ownerWindow.removeEventListener('resize', refreshGeometry)
-        ownerWindow.removeEventListener('scroll', refreshGeometry, true)
+        ownerWindow.removeEventListener('scroll', refreshForScroll, true)
         ownerWindow.visualViewport?.removeEventListener('resize', refreshGeometry)
         ownerWindow.visualViewport?.removeEventListener('scroll', refreshGeometry)
         if (animationFrame !== undefined && typeof ownerWindow.cancelAnimationFrame === 'function')
@@ -1543,7 +1581,17 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             }
           : { mode: 'floating', disposition: { kind: 'free' } }
     }
+    const panel = asideRef.current
+    if (panel && placement.disposition.kind === 'docked') {
+      // Capture the visual release position before replacing the drag's base coordinates.
+      pendingDockReleaseRectRef.current = panel.getBoundingClientRect()
+      panel.setAttribute('data-picodash-dock-allocation-motion', 'true')
+    }
     const result = runtime.setPlacement(id, placement)
+    if (result.status !== 'executed') {
+      pendingDockReleaseRectRef.current = null
+      panel?.removeAttribute('data-picodash-dock-allocation-motion')
+    }
     announceDashPanelLayoutFailure('Panel movement', result, announceAction)
     cancelMove()
     return result
@@ -2019,11 +2067,22 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
 
     const previousGeometry = dockAllocationGeometryRef.current
     const previousAnimation = dockAllocationAnimationRef.current
+    const releaseRect = pendingDockReleaseRectRef.current
+    pendingDockReleaseRectRef.current = null
+    if (!visible || dockedMinimized) {
+      previousAnimation?.cancel()
+      dockAllocationAnimationRef.current = null
+      dockAllocationGeometryRef.current = null
+      if (dockedMinimized) panel.style.transform = dockedMinimizePresentation.exitTransform
+      else panel.style.removeProperty('transform')
+      panel.removeAttribute('data-picodash-dock-allocation-motion')
+      return
+    }
     const allocationChanged =
       previousGeometry !== null &&
       previousGeometry.position === dockAllocationPosition &&
       previousGeometry.allocationKey !== dockAllocationKey
-    if (!allocationChanged) {
+    if (!allocationChanged && !releaseRect) {
       if (
         previousAnimation &&
         (previousGeometry?.position !== dockAllocationPosition ||
@@ -2055,22 +2114,25 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       }
       return
     }
-    let fromRect = previousGeometry?.rect
+    let fromRect = releaseRect ?? previousGeometry?.rect
     if (previousAnimation) {
-      const visualRect = panel.getBoundingClientRect()
-      fromRect = {
-        top: visualRect.top,
-        right: visualRect.right,
-        bottom: visualRect.bottom,
-        left: visualRect.left,
-        width: visualRect.width,
-        height: visualRect.height,
+      if (!releaseRect) {
+        const visualRect = panel.getBoundingClientRect()
+        fromRect = {
+          top: visualRect.top,
+          right: visualRect.right,
+          bottom: visualRect.bottom,
+          left: visualRect.left,
+          width: visualRect.width,
+          height: visualRect.height,
+        }
       }
       previousAnimation.cancel()
       dockAllocationAnimationRef.current = null
       panel.style.removeProperty('transform')
     }
-    panel.removeAttribute('data-picodash-dock-allocation-motion')
+    // Suppress the CSS minimize transition while measuring the new, untransformed dock.
+    panel.setAttribute('data-picodash-dock-allocation-motion', 'true')
     const targetRect = panel.getBoundingClientRect()
     const nextGeometry: PanelDockAllocationGeometry | null =
       dockAllocationPosition && dockAllocationKey
@@ -2092,27 +2154,33 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (
       !fromRect ||
       !nextGeometry ||
-      previousGeometry?.position !== nextGeometry.position ||
+      (!releaseRect && previousGeometry?.position !== nextGeometry.position) ||
       moveMode !== null ||
       dockedMinimized
-    )
+    ) {
+      panel.removeAttribute('data-picodash-dock-allocation-motion')
       return
+    }
 
     if (
       sameMeasuredLength(fromRect.left, targetRect.left) &&
       sameMeasuredLength(fromRect.top, targetRect.top) &&
       sameMeasuredLength(fromRect.width, targetRect.width) &&
       sameMeasuredLength(fromRect.height, targetRect.height)
-    )
+    ) {
+      panel.removeAttribute('data-picodash-dock-allocation-motion')
       return
+    }
     const motion = resolveSharedPanelMotion(panel)
-    if (!motion || targetRect.width <= 0 || targetRect.height <= 0) return
+    if (!motion || targetRect.width <= 0 || targetRect.height <= 0) {
+      panel.removeAttribute('data-picodash-dock-allocation-motion')
+      return
+    }
 
     const translateX = fromRect.left - targetRect.left
     const translateY = fromRect.top - targetRect.top
     const scaleX = fromRect.width / targetRect.width
     const scaleY = fromRect.height / targetRect.height
-    panel.setAttribute('data-picodash-dock-allocation-motion', 'true')
     let animation: ReturnType<typeof animate> | undefined
     animation = animate(
       panel,
@@ -2135,10 +2203,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       },
     )
     dockAllocationAnimationRef.current = animation
-  }, [dockAllocationPosition, dockAllocationKey, dockedMinimized, moveMode])
+  }, [dockAllocationPosition, dockAllocationKey, dockedMinimized, moveMode, visible])
   useLayoutEffect(() => {
     const panel = asideRef.current
-    if (!panel || dockAllocationAnimationRef.current) return
+    if (!panel || !visible || dockedMinimized || dockAllocationAnimationRef.current) return
     const rect = panel.getBoundingClientRect()
     dockAllocationGeometryRef.current =
       dockAllocationPosition && dockAllocationKey
@@ -2371,6 +2439,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       dockPreviewAnimationRef.current?.cancel()
       dockPreviewAnimationRef.current = null
       dockPreviewMotionTargetRef.current = null
+      dockPreviewReturnRef.current = null
       return
     }
 
@@ -2393,15 +2462,26 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
 
     const motion = resolveSharedPanelMotion(preview)
+    const returning = dockPreviewMotionTarget.opacity === 0
+    if (!returning) dockPreviewReturnRef.current = null
     if (
       !motion ||
+      (returning && previousTarget.opacity === 0 && !previousAnimation) ||
       (from.opacity === dockPreviewMotionTarget.opacity &&
         from.transform === dockPreviewMotionTarget.transform)
     ) {
+      dockPreviewReturnRef.current = null
       preview.removeAttribute('data-picodash-dock-preview-motion')
       return
     }
 
+    // Retarget a moving destination without resetting the return/fade timeline each frame.
+    const now = preview.ownerDocument.defaultView!.performance.now()
+    if (returning) {
+      dockPreviewReturnRef.current ??= { from, startedAt: now }
+      from = dockPreviewReturnRef.current.from
+    }
+    const elapsed = returning ? now - dockPreviewReturnRef.current!.startedAt : 0
     preview.setAttribute('data-picodash-dock-preview-motion', 'true')
     let animation: ReturnType<typeof animate> | undefined
     animation = animate(
@@ -2416,17 +2496,20 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         onComplete: () => {
           if (dockPreviewAnimationRef.current !== animation) return
           dockPreviewAnimationRef.current = null
+          dockPreviewReturnRef.current = null
           preview.removeAttribute('data-picodash-dock-preview-motion')
         },
       },
     )
     dockPreviewAnimationRef.current = animation
+    if (returning) animation.time = Math.min(elapsed, motion.duration) / 1_000
   }, [dockPreviewMotionTarget?.opacity, dockPreviewMotionTarget?.transform])
   useEffect(
     () => () => {
       dockPreviewAnimationRef.current?.cancel()
       dockPreviewAnimationRef.current = null
       dockPreviewMotionTargetRef.current = null
+      dockPreviewReturnRef.current = null
     },
     [],
   )
@@ -2655,6 +2738,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 <div
                   id={bodyId}
                   data-picodash-panel-body
+                  data-picodash-scroll-fade
                   hidden={collapsed && !dockedMinimized}
                   inert={collapsed || undefined}
                   aria-hidden={collapsed || undefined}

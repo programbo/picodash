@@ -1373,6 +1373,10 @@ The root's minimum block size includes the rendered start and end bands, but not
 band's full contents. When a containing DashPanel is height-constrained, the automatic band alone
 scrolls while both pinned bands remain visible.
 
+The root automatic scrollport uses UI's vertical
+[`scroll-fade` recipe](ui.md#scroll-overflow-feedback) to indicate offscreen content. Start and end
+bands remain unfaded; nested group bands do not add masks or nested scrollports.
+
 Changing `pin` moves a node immediately to the declared band. Existing relative order is preserved
 where meaningful; otherwise the node follows already-customized destination nodes in declaration
 order. Reset removes the complete container override across all bands. Pin values themselves are

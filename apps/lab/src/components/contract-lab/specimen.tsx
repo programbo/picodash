@@ -70,6 +70,7 @@ export interface ContractLabSpecimenProps {
   readonly boundary: RefObject<HTMLElement | null>
   readonly onCollapsedChange: (collapsed: boolean) => void
   readonly onDiagnosticCountChange: (count: number) => void
+  readonly onReady: () => void
   readonly preset: ContractLabPreset
 }
 
@@ -170,18 +171,41 @@ function createContractLabPersistenceProbeNexus() {
   })
 }
 
+export function clearFocusedPlacementPersistence(): boolean {
+  try {
+    window.localStorage.removeItem(focusedPlacementPersistenceStorageKey)
+    return true
+  } catch {
+    return false
+  }
+}
+
 function createFocusedPlacementNexus() {
-  return createPicodashNexus({
-    valueOwner: 'nexus',
-    nexusId: 'contract-lab-focused-placement',
-    schemaVersion: 1,
-    persistence: {
-      storageKey: focusedPlacementPersistenceStorageKey,
-      driver: createWebStoragePersistenceDriver('local'),
-      values: { defaultFieldPolicy: 'omit' },
-    },
-    fields: {},
-  })
+  const create = () =>
+    createPicodashNexus({
+      valueOwner: 'nexus',
+      nexusId: 'contract-lab-focused-placement',
+      schemaVersion: 1,
+      persistence: {
+        storageKey: focusedPlacementPersistenceStorageKey,
+        driver: createWebStoragePersistenceDriver('local'),
+        values: { defaultFieldPolicy: 'omit' },
+      },
+      fields: {},
+    })
+  try {
+    return create()
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.name === 'PicodashInitializationError' &&
+      'code' in error &&
+      error.code === 'invalid-persistence-envelope' &&
+      clearFocusedPlacementPersistence()
+    )
+      return create()
+    throw error
+  }
 }
 
 type FocusedPlacementNexus = ReturnType<typeof createFocusedPlacementNexus>
@@ -384,7 +408,8 @@ function FocusedPlacementControls({
 function FocusedPlacementSpecimen({
   onCollapsedChange,
   onDiagnosticCountChange,
-}: Pick<ContractLabSpecimenProps, 'onCollapsedChange' | 'onDiagnosticCountChange'>) {
+  onReady,
+}: Pick<ContractLabSpecimenProps, 'onCollapsedChange' | 'onDiagnosticCountChange' | 'onReady'>) {
   const placementBoundary = useRef<HTMLDivElement>(null)
   const [allocationSetup, setAllocationSetup] = useState<FocusedAllocationSetup>('none')
   const [theme, setTheme] = useState<FocusedPlacementTheme>('system')
@@ -393,6 +418,10 @@ function FocusedPlacementSpecimen({
   const nexus = nexusState.status === 'ready' ? nexusState.nexus : null
   const diagnosticNexuss = useMemo(() => (nexus === null ? [] : [nexus]), [nexus])
   const diagnosticCount = useContractLabDiagnosticCount(diagnosticNexuss)
+
+  useEffect(() => {
+    if (nexusState.status !== 'loading') onReady()
+  }, [nexusState.status, onReady])
 
   useEffect(() => {
     let active = true
@@ -1080,6 +1109,7 @@ export function ContractLabSpecimen(props: ContractLabSpecimenProps) {
   if (props.preset.id === 'placement') {
     return (
       <FocusedPlacementSpecimen
+        onReady={props.onReady}
         onCollapsedChange={props.onCollapsedChange}
         onDiagnosticCountChange={props.onDiagnosticCountChange}
       />

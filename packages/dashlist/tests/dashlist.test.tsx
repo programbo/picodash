@@ -2444,6 +2444,11 @@ describe('@picodash/dashlist alpha shell', () => {
       ['automatic', ['auto-a', 'auto-b', 'auto-c', 'auto-d']],
       ['end', ['end']],
     ])
+    expect(bands.map((band) => band.props['data-picodash-scroll-fade'])).toEqual([
+      undefined,
+      true,
+      undefined,
+    ])
     const handle = renderer.root.findByProps({ 'data-picodash-reorder-handle': 'auto-a' })
     const row = (id: string, top: number) => ({
       getAttribute(name: string) {

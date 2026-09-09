@@ -1,0 +1,61 @@
+/* Vertical scroll-fade recipe adapted from shadcn/ui (MIT),
+ * https://github.com/shadcn-ui/ui/blob/main/packages/shadcn/src/tailwind.css.
+ * Copyright (c) 2023 shadcn. See THIRD_PARTY_NOTICES.md.
+ * Scroll-driven masks are a reviewed CSS animation exception; no timed motion or JS observers.
+ */
+@property --_picodash-scroll-fade-top {
+  syntax: '<length-percentage>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --_picodash-scroll-fade-bottom {
+  syntax: '<length-percentage>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes picodash-scroll-fade-start {
+  from {
+    --_picodash-scroll-fade-top: 0px;
+  }
+  to {
+    --_picodash-scroll-fade-top: min(25%, 40px);
+  }
+}
+
+@keyframes picodash-scroll-fade-end {
+  from {
+    --_picodash-scroll-fade-bottom: min(25%, 40px);
+  }
+  to {
+    --_picodash-scroll-fade-bottom: 0px;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  [data-picodash-scroll-fade] {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 var(--_picodash-scroll-fade-top),
+      #000 calc(100% - var(--_picodash-scroll-fade-bottom)),
+      transparent 100%
+    );
+    mask-repeat: no-repeat;
+    animation:
+      picodash-scroll-fade-start 1ms ease-in-out,
+      picodash-scroll-fade-end 1ms ease-in-out;
+    animation-timeline: scroll(self y), scroll(self y);
+    animation-range:
+      0 96px,
+      calc(100% - 96px) 100%;
+    animation-fill-mode: both;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-picodash-scroll-fade] {
+    mask-image: none;
+  }
+}

@@ -816,6 +816,32 @@ describe('DashPanel portal ownership', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
+  it('ignores content scroll and scroll-fade events while still measuring window scroll', async () => {
+    const nexus = makeNexus()
+    await render(
+      <DashPanelProvider nexus={nexus} portalContainer={null}>
+        <DashPanel id="inspector" title="Inspector">
+          <div>Content</div>
+        </DashPanel>
+      </DashPanelProvider>,
+    )
+    const panel = document.body.querySelector<HTMLElement>('[data-picodash-panel]')!
+    const body = panel.querySelector<HTMLElement>('[data-picodash-panel-body]')!
+    const measure = vi.spyOn(panel, 'getBoundingClientRect')
+    await act(async () => body.dispatchEvent(new Event('scroll', { bubbles: true })))
+    for (const name of ['picodash-scroll-fade-start', 'picodash-scroll-fade-end']) {
+      const event = new Event('animationend', { bubbles: true })
+      Object.defineProperty(event, 'animationName', { value: name })
+      await act(async () => body.dispatchEvent(event))
+    }
+    expect(measure).not.toHaveBeenCalled()
+    await act(async () => window.dispatchEvent(new Event('scroll')))
+    expect(measure).toHaveBeenCalled()
+    measure.mockRestore()
+    await act(async () => root.unmount())
+    expect(() => nexus.destroy()).not.toThrow()
+  })
+
   it('uses and tracks the visual viewport when no element boundary is declared', async () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')

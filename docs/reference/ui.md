@@ -954,6 +954,26 @@ The repository motion-policy check enforces these implementation boundaries. Con
 journeys still own rendered timing, interruption, reduced-motion, and geometry evidence; the
 static check does not prove that an animation looks or feels correct.
 
+### Scroll overflow feedback
+
+UI supplies a shared vertical mask adapted from shadcn's
+[`scroll-fade`](https://ui.shadcn.com/docs/utils/scroll-fade), bundled in `@picodash/ui/style.css`.
+Product packages attach the internal structural marker to the actual scrolling element, not its
+shell: the DashPanel body or the root DashList automatic band. No extra consumer stylesheet,
+dependency, or scroll listener is required.
+
+At the scroll start, only the bottom fades. Between the ends, both fade; at the scroll end, only
+the top fades. Content that fits remains fully visible. The fade reaches at most 25% of the
+scrollport height or 40px, whichever is smaller, over 96px of scroll travel. Headers and pinned
+content outside the scrollport are unaffected. The quarter-height cap keeps the cue visible beyond
+ordinary content padding in short scrollports without letting the two fades cover the whole body.
+
+This is a reviewed CSS-keyframe exception to the Motion default: CSS scroll timelines drive a mask
+directly from scroll position, with no elapsed-time choreography. It remains enabled with reduced
+motion for that reason. Forced-colors mode removes the mask. Browsers without CSS scroll timelines
+retain ordinary scrolling with no fade, rather than permanently obscuring content at either end.
+The private mask variables are implementation details, not additional public theme tokens.
+
 ### CSS verification
 
 One static artifact suite verifies that:

@@ -73,6 +73,22 @@ function declarations(body: string) {
 }
 
 describe('@picodash/ui stylesheet contract', () => {
+  it('bundles the scroll-driven fade without new public tokens or a permanently faded fallback', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    const fade = await readFile(new URL('../scroll-fade.css', import.meta.url), 'utf8')
+    expect(css).toContain("@import './scroll-fade.css'")
+    expect(fade).toContain('@supports (animation-timeline: scroll())')
+    expect(fade).toContain('animation-timeline: scroll(self y), scroll(self y)')
+    expect(fade).toContain('@property --_picodash-scroll-fade-top')
+    expect(fade).toContain('@property --_picodash-scroll-fade-bottom')
+    expect(fade.match(/initial-value: 0px/g)).toHaveLength(2)
+    expect(fade.match(/min\(25%, 40px\)/g)).toHaveLength(2)
+    expect(fade).not.toMatch(/--picodash-[a-z0-9-]+/)
+    expect(fade.indexOf('mask-image:')).toBeGreaterThan(fade.indexOf('@supports'))
+    expect(fade).toContain('@media (forced-colors: active)')
+    expect(fade).toContain('mask-image: none')
+  })
+
   it('owns exactly the accepted 79 public token names', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
     const names = new Set(css.match(/--picodash-[a-z0-9-]+/g) ?? [])
