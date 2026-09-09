@@ -1135,8 +1135,9 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
       const rect = element.getBoundingClientRect()
       return { width: rect.width, height: rect.height }
     })
-    expect(coarseReorderBounds.width).toBeGreaterThanOrEqual(44)
-    expect(coarseReorderBounds.height).toBeGreaterThanOrEqual(44)
+    // DOM rectangles can round a 44px target down by a few millionths of a pixel.
+    expect(coarseReorderBounds.width).toBeGreaterThanOrEqual(44 - 0.00001)
+    expect(coarseReorderBounds.height).toBeGreaterThanOrEqual(44 - 0.00001)
 
     for (const control of [
       coarsePage.getByRole('button', { name: 'Help for NumberDashlet' }),
