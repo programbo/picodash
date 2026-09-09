@@ -39,6 +39,12 @@
   padding: var(--picodash-space-1) var(--picodash-space-1-5);
 }
 
+.picodash-dashlist-field[data-disabled],
+.picodash-dashlist-switch[data-disabled] {
+  cursor: not-allowed;
+  opacity: var(--picodash-opacity-disabled);
+}
+
 .picodash-dashlist-control:focus-visible,
 .picodash-dashlist-select > button:focus-visible,
 .picodash-dashlist-segmented [data-picodash-dashlist-segment][data-focus-visible],

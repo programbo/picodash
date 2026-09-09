@@ -1,5 +1,5 @@
 import { devices, expect, test, type Locator, type Page } from '@playwright/test'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
 
@@ -26,7 +26,7 @@ test.afterEach(async ({ page }) => {
 
 const presets = [
   ['placement', 'Placement'],
-  ['interaction', 'Interaction'],
+  ['interaction', 'Value binding'],
   ['composition', 'Style lab'],
   ['overlays', 'Overlays'],
   ['documents', 'Documents'],
@@ -43,12 +43,9 @@ async function openLab(page: Page) {
 
 async function samplePanelHeightTransition(page: Page, panel: Locator, action: Locator) {
   const before = await panel.evaluate((element) => element.getBoundingClientRect().height)
-  await action.evaluate((element) => {
-    if (!(element instanceof HTMLElement)) throw new TypeError('Panel action must be an element.')
-    element.click()
-  })
+  const actionElement = await action.elementHandle()
   const midpoint = await panel.evaluate(
-    (element) =>
+    (element, trigger) =>
       new Promise<{ height: number; max: string; frames: ComputedKeyframe[] }>(
         (resolve, reject) => {
           const deadline = performance.now() + 1_000
@@ -86,9 +83,16 @@ async function samplePanelHeightTransition(page: Page, panel: Locator, action: L
               void animation.finished.then(() => resolve(midpoint), reject)
             })
           }
+          if (!(trigger instanceof HTMLElement)) {
+            reject(new TypeError('Panel action must be an element.'))
+            return
+          }
+          // Observe in the same browser call so a slow round trip cannot miss the animation.
+          trigger.click()
           inspect()
         },
       ),
+    actionElement,
   )
   await expect(panel).not.toHaveAttribute('data-picodash-height-motion')
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)))
@@ -223,6 +227,228 @@ test('loads all six accepted presets, persists the selection for the session, an
     'placement',
   )
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText('Placement')
+})
+
+test('proves standalone value binding parity through UI, Bridge, themes, and remount', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await openLab(page)
+  await page.getByRole('button', { name: 'Reset lab', exact: true }).click()
+  await page.getByRole('button', { name: /^Value binding:/ }).click()
+  const region = page.getByRole('region', { name: 'Standalone value binding' })
+  const ready = region.getByRole('list', { name: 'Ready-made Dashlets', exact: true })
+  const composed = region.getByRole('list', { name: 'Composed controls', exact: true })
+  const lists = [ready, composed]
+  const artifactDirectory = resolve(process.cwd(), '../../output/playwright/m4')
+  await mkdir(artifactDirectory, { recursive: true })
+  const capture = async (name: string, fullPage = false) => {
+    const path = resolve(artifactDirectory, `${name}.png`)
+    if (fullPage) {
+      await page.evaluate(() => window.scrollTo(0, 0))
+      await page.screenshot({ path, fullPage: true })
+    } else {
+      await region.screenshot({ path })
+    }
+    await testInfo.attach(name, { path, contentType: 'image/png' })
+  }
+  await expect(region).toBeVisible()
+  await expect(page.getByRole('complementary')).toHaveCount(1) // Only the independent Lab Console.
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+
+  const credential: unknown = JSON.parse(
+    await readFile(resolve(process.cwd(), '../../.picodash/dev-bridge.json'), 'utf8'),
+  )
+  if (
+    !credential ||
+    typeof credential !== 'object' ||
+    !('url' in credential) ||
+    typeof credential.url !== 'string' ||
+    !('token' in credential) ||
+    typeof credential.token !== 'string'
+  ) {
+    throw new Error('Expected private Lab Bridge credentials.')
+  }
+  const client = createPicodashDevBridgeClient({ baseUrl: credential.url, token: credential.token })
+  await expect
+    .poll(() => page.evaluate(() => sessionStorage.getItem('picodash-dev-bridge-tab')))
+    .toEqual(expect.any(String))
+  const browserTabId = await page.evaluate(() => sessionStorage.getItem('picodash-dev-bridge-tab'))
+  const findSession = async () =>
+    (await client.listSessions()).find(
+      (session) =>
+        session.registrationId === 'contract-lab-value-binding' &&
+        session.browserTabId === browserTabId,
+    )
+  await expect.poll(findSession).toBeTruthy()
+  const currentSession = async () => {
+    const session = await findSession()
+    if (!session) throw new Error('Standalone binding session unavailable.')
+    return session
+  }
+  const values = async () => (await client.inspect(await currentSession())).snapshot.values
+
+  for (const [index, list] of lists.entries()) {
+    const name = `Workspace ${index + 1}`
+    const interval = 40 + index
+    await list.getByRole('textbox', { name: 'Workspace name', exact: true }).fill(name)
+    await list.getByRole('textbox', { name: 'Workspace name', exact: true }).press('Tab')
+    const numberInput = list.getByRole('textbox', { name: 'Refresh interval', exact: true })
+    await expect(numberInput).toBeFocused()
+    await numberInput.fill(String(interval))
+    await numberInput.press('Tab')
+    await expect(list.getByRole('switch', { name: 'Live updates' })).toBeFocused()
+    await list.getByRole('switch', { name: 'Live updates' }).press('Space')
+    await expect.poll(values).toEqual({ name, interval, enabled: index === 1 })
+    for (const peer of lists) {
+      await expect(peer.getByRole('textbox', { name: 'Workspace name', exact: true })).toHaveValue(
+        name,
+      )
+      await expect(
+        peer.getByRole('textbox', { name: 'Refresh interval', exact: true }),
+      ).toHaveValue(String(interval))
+      await expect(peer.getByRole('status', { name: 'Current interval' })).toHaveText(
+        `${interval} seconds`,
+      )
+    }
+  }
+
+  await region.getByRole('button', { name: 'Apply example values' }).click()
+  await expect.poll(values).toEqual({ name: 'Evening', interval: 15, enabled: false })
+  const session = await currentSession()
+  const result = await client.setValues(session, {
+    type: 'set_values',
+    requestId: 'm4-programmatic-values',
+    values: { name: 'Bridge update', interval: 25, enabled: true },
+  })
+  expect(result).toMatchObject({
+    type: 'command_result',
+    outcome: { type: 'transaction_result', result: { ok: true } },
+  })
+  expect(
+    await client.wait(await currentSession(), {
+      type: 'wait',
+      requestId: 'm4-observe-programmatic-write',
+      timeoutMs: 1000,
+      condition: {
+        type: 'value_equals',
+        field: 'interval',
+        value: 25,
+        afterSequence: session.sequence,
+      },
+    }),
+  ).toMatchObject({ type: 'wait_result', outcome: 'satisfied' })
+  for (const list of lists) {
+    await expect(list.getByRole('textbox', { name: 'Workspace name', exact: true })).toHaveValue(
+      'Bridge update',
+    )
+    await expect(list.getByRole('textbox', { name: 'Refresh interval', exact: true })).toHaveValue(
+      '25',
+    )
+    await expect(list.getByRole('switch', { name: 'Live updates' })).toBeChecked()
+    await expect(list.getByRole('status', { name: 'Current interval' })).toHaveText('25 seconds')
+  }
+
+  // A small visual matrix belongs here: actual focus rings, invalid feedback, and disabled
+  // controls must remain legible in each retained recipe, including system resolution.
+  for (const recipe of [
+    { label: 'Light', scheme: 'light', resolved: 'light' },
+    { label: 'Dark', scheme: 'dark', resolved: 'dark' },
+    { label: 'System', scheme: 'light', resolved: 'light' },
+    { label: 'System', scheme: 'dark', resolved: 'dark' },
+    { label: 'Ocean', scheme: 'dark', resolved: 'ocean' },
+  ] as const) {
+    await page.emulateMedia({ colorScheme: recipe.scheme })
+    await region
+      .getByRole('group', { name: 'Binding theme' })
+      .getByRole('button', { name: recipe.label, exact: true })
+      .click()
+    await expect
+      .poll(() =>
+        region.evaluate((element) =>
+          element.closest('[data-picodash-theme]')?.getAttribute('data-picodash-theme'),
+        ),
+      )
+      .toBe(recipe.resolved)
+    await ready.getByRole('textbox', { name: 'Workspace name', exact: true }).focus()
+    await page.keyboard.press('Tab')
+    await expect(
+      ready.getByRole('textbox', { name: 'Refresh interval', exact: true }),
+    ).toBeFocused()
+    const prefix = `m4-${recipe.label.toLowerCase()}-${recipe.scheme}`
+    await capture(`${prefix}-focus`)
+    for (const list of lists) {
+      await list.getByRole('textbox', { name: 'Workspace name', exact: true }).fill('')
+      await expect(
+        list.getByRole('textbox', { name: 'Workspace name', exact: true }),
+      ).toHaveAttribute('aria-invalid', 'true')
+      await list.getByRole('textbox', { name: 'Refresh interval', exact: true }).fill('61')
+      await list.getByRole('textbox', { name: 'Refresh interval', exact: true }).press('Tab')
+      await expect(
+        list.getByRole('textbox', { name: 'Refresh interval', exact: true }),
+      ).toHaveAttribute('aria-invalid', 'true')
+      await expect(list.getByRole('status', { name: 'Current interval' })).toHaveText('25 seconds')
+    }
+    await expect.poll(values).toEqual({ name: 'Bridge update', interval: 25, enabled: true })
+    await capture(`${prefix}-invalid`)
+    await region.getByRole('button', { name: 'Disable controls' }).click()
+    for (const list of lists) {
+      await expect(
+        list.getByRole('textbox', { name: 'Workspace name', exact: true }),
+      ).toBeDisabled()
+      await expect(
+        list.getByRole('textbox', { name: 'Refresh interval', exact: true }),
+      ).toBeDisabled()
+      await expect(list.getByRole('switch', { name: 'Live updates' })).toBeDisabled()
+      for (const control of [
+        list.getByRole('textbox', { name: 'Workspace name', exact: true }),
+        list.getByRole('textbox', { name: 'Refresh interval', exact: true }),
+        list.getByRole('switch', { name: 'Live updates' }),
+      ]) {
+        await expect
+          .poll(() =>
+            control.evaluate((element) => {
+              let opacity = 1
+              for (let node: Element | null = element; node; node = node.parentElement) {
+                opacity *= Number(getComputedStyle(node).opacity)
+              }
+              return opacity
+            }),
+          )
+          .toBeLessThan(1)
+      }
+    }
+    await capture(`${prefix}-disabled`)
+    await region.getByRole('button', { name: 'Disable controls' }).click()
+    // Return to the unchanged canonical values without creating a stale draft in the peer.
+    for (const list of lists) {
+      await list.getByRole('textbox', { name: 'Workspace name', exact: true }).fill('Bridge update')
+      await list.getByRole('textbox', { name: 'Refresh interval', exact: true }).fill('25')
+      await list.getByRole('textbox', { name: 'Refresh interval', exact: true }).press('Tab')
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  for (const list of lists) {
+    await expect
+      .poll(() => list.evaluate((element) => element.scrollWidth <= element.clientWidth))
+      .toBe(true)
+    await list
+      .getByRole('textbox', { name: 'Workspace name', exact: true })
+      .scrollIntoViewIfNeeded()
+    await expect(
+      list.getByRole('textbox', { name: 'Workspace name', exact: true }),
+    ).toBeInViewport()
+  }
+  await capture('m4-phone', true)
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.getByRole('button', { name: 'Take specimen offline' }).click()
+  await expect.poll(findSession).toBeUndefined()
+  await page.getByRole('button', { name: 'Reopen primary specimen' }).click()
+  await expect(region).toBeVisible()
+  await expect.poll(findSession).toBeTruthy()
+  await expect.poll(values).toEqual({ name: 'Studio', interval: 30, enabled: true })
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
 })
 
 test('renders the two-panel Dashlet style lab with the accepted groups and lanes', async ({
@@ -913,8 +1139,9 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
       const rect = element.getBoundingClientRect()
       return { width: rect.width, height: rect.height }
     })
-    expect(coarseReorderBounds.width).toBeGreaterThanOrEqual(44)
-    expect(coarseReorderBounds.height).toBeGreaterThanOrEqual(44)
+    // DOM rectangles can round a 44px target down by a few millionths of a pixel.
+    expect(coarseReorderBounds.width).toBeGreaterThanOrEqual(44 - 0.00001)
+    expect(coarseReorderBounds.height).toBeGreaterThanOrEqual(44 - 0.00001)
 
     for (const control of [
       coarsePage.getByRole('button', { name: 'Help for NumberDashlet' }),

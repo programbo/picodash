@@ -53,6 +53,46 @@ afterEach(async () => {
 })
 
 describe('browser connector', () => {
+  test('cancels pending registration before root destruction and ignores late frames', async () => {
+    let release: (() => void) | undefined
+    class DelayedRegistrationSocket extends BrowserWebSocket {
+      override dispatchEvent(event: Event) {
+        if (event instanceof MessageEvent) {
+          release = () => super.dispatchEvent(event)
+          return true
+        }
+        return super.dispatchEvent(event)
+      }
+    }
+    ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = DelayedRegistrationSocket
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { count: { defaultValue: 1 } },
+    })
+    const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
+    relays.push(relay)
+    const abort = new AbortController()
+    const pending = connectPicodashDevBridge({
+      nexus,
+      credential: relay.issueBrowserCredential('http://localhost'),
+      registrationId: 'cancelled',
+      disclosure: { valueFields: ['count'] },
+      signal: abort.signal,
+    })
+    const rejected = expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+    await expect.poll(() => release !== undefined).toBe(true)
+    abort.abort()
+    nexus.destroy()
+    release!()
+    await rejected
+    await expect
+      .poll(
+        async () =>
+          (await createPicodashDevBridgeClient(relay.agentCredential).listSessions()).length,
+      )
+      .toBe(0)
+  })
+
   test('uses a real public Nexus, reports structured rejection, and advances snapshots', async () => {
     ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
     const nexus = createPicodashNexus({

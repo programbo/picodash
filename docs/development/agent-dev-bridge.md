@@ -7,6 +7,11 @@ change. It does not expose an arbitrary Nexus debugger and must never run in pro
 
 ## Quickstart with Contract Lab
 
+Browser hosts pass an `AbortSignal` to `connectPicodashDevBridge` and abort it before destroying
+their Nexus. Aborting cancels pending registration or closes an established connection; late
+socket frames are ignored. Pending registration rejects with `AbortError`. A resolved connection
+also exposes `close()` for explicit teardown. The Contract Lab ties this signal to effect cleanup.
+
 From the repository root:
 
 ```bash

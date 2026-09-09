@@ -79,7 +79,7 @@ The only Lab route is `/lab`. Presets are application state, never path segments
 parameters, hashes, or hidden fixture variants. The canvas contains:
 
 - a stable Lab Console Panel in its own provider;
-- a specimen provider with a primary Specimen Panel and an optional Peer Panel; and
+- product examples, using standalone Lists for value binding or a specimen provider with Panels; and
 - host-owned reopen controls and an independent, labelled status strip.
 
 Exactly six presets are supported: `placement`, `interaction`, `composition`, `overlays`,
@@ -87,6 +87,14 @@ Exactly six presets are supported: `placement`, `interaction`, `composition`, `o
 unmount, move, or restyle the Console. Closing, hiding, deregistering, or breaking a specimen must
 not remove the host reopen control or status strip. The active preset may survive reload for the
 browser session; no preset is encoded in a route or durable user preference.
+
+The `interaction` preset is labelled **Value binding** for recovery milestone M4. It mounts two
+standalone Lists over three shared fields, without a Panel or Picodash Provider. The existing
+placement and Bridge/document journeys retain Panel lifecycle evidence. The M4 journey compares
+ready-made and composed controls through real focus, input, disclosed Bridge state, invalid and
+disabled presentation, light/dark/system/Ocean recipes, narrow layout, and teardown/remount.
+It writes review screenshots to `output/playwright/m4/`. The active-Panel status is unavailable
+for this preset because only the independent Console is a Panel.
 
 Superseded Lab routes and fixtures are deleted during cutover. They are not redirected or retained
 as compatibility aliases.

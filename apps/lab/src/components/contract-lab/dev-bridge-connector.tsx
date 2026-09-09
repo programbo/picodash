@@ -74,6 +74,7 @@ export function ContractLabDevBridgeConnector<Fields extends PicodashFieldDefini
         const bridge = await import('@picodash/dev-bridge/browser')
         if (!active) return
         const connected = await bridge.connectPicodashDevBridge({
+          signal: abort.signal,
           nexus,
           credential,
           registrationId,
