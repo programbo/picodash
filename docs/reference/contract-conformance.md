@@ -324,3 +324,13 @@ Owner-reported M6 drag corrections add browser evidence for the exact halfway tr
 rendered displacement positions, and an enabled/disabled backdrop comparison. CSS duration parsing
 preserves seconds and milliseconds after build optimization; translucent background paint avoids
 fading the whole dragged subtree. See the M6 drag review corrections for the local checks.
+
+## Recovery M7: Dashlet curation started
+
+Workspace tuning begins the candidate inventory with Text, Number, Slider, Switch, and Display.
+It reuses M5 values and persistence, discloses its List through the existing Bridge session, and
+adds slider-to-number/readout closure and read-only/disabled theme review to the standalone binding
+journey. This is a partial candidate slice; see the [working disposition ledger](../internal/m7-dashlet-curation.md).
+The broader published inventory is not newly approved by these five candidates.
+The first candidate run found and corrected missing Slider thumb label propagation. The owning
+ready-made control test checks the visible-label reference; the browser checks the accessible name.

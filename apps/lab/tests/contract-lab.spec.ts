@@ -357,6 +357,20 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     await expect(list.getByRole('status', { name: 'Current interval' })).toHaveText('25 seconds')
   }
 
+  const candidates = region.getByRole('region', { name: 'Dashlet candidates' })
+  const quick = candidates
+    .getByRole('group', { name: 'Quick adjustment', exact: true })
+    .getByRole('slider')
+  await expect(quick).toHaveAccessibleName(/Quick adjustment/)
+  await quick.focus()
+  await quick.press('ArrowRight')
+  await expect.poll(values).toEqual({ name: 'Bridge update', interval: 26, enabled: true })
+  await expect(
+    candidates.getByRole('textbox', { name: 'Exact interval', exact: true }),
+  ).toHaveValue('26')
+  await quick.press('ArrowLeft')
+  await expect.poll(values).toEqual({ name: 'Bridge update', interval: 25, enabled: true })
+
   // A small visual matrix belongs here: actual focus rings, invalid feedback, and disabled
   // controls must remain legible in each retained recipe, including system resolution.
   for (const recipe of [
@@ -386,6 +400,21 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     ).toBeFocused()
     const prefix = `m4-${recipe.label.toLowerCase()}-${recipe.scheme}`
     await capture(`${prefix}-focus`)
+    await candidates.getByRole('button', { name: 'Read-only controls' }).click()
+    await expect(
+      candidates.getByRole('textbox', { name: 'Exact interval', exact: true }),
+    ).not.toBeEditable()
+    await quick.focus()
+    await quick.press('ArrowRight')
+    await expect.poll(values).toEqual({ name: 'Bridge update', interval: 25, enabled: true })
+    const candidatePath = resolve(
+      artifactDirectory,
+      `m7-${recipe.label.toLowerCase()}-${recipe.scheme}-readonly.png`,
+    )
+    await candidates.screenshot({ path: candidatePath })
+    await testInfo.attach('m7-readonly', { path: candidatePath, contentType: 'image/png' })
+    await candidates.getByRole('button', { name: 'Read-only controls' }).click()
+
     for (const list of lists) {
       await list.getByRole('textbox', { name: 'Workspace name', exact: true }).fill('')
       await expect(
@@ -401,6 +430,12 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     await expect.poll(values).toEqual({ name: 'Bridge update', interval: 25, enabled: true })
     await capture(`${prefix}-invalid`)
     await region.getByRole('button', { name: 'Disable controls' }).click()
+    await expect(quick).toBeDisabled()
+    await expect(
+      candidates.getByRole('textbox', { name: 'Workspace name', exact: true }),
+    ).toBeDisabled()
+    await expect(candidates.getByRole('switch', { name: 'Live updates' })).toBeDisabled()
+
     for (const list of lists) {
       await expect(
         list.getByRole('textbox', { name: 'Workspace name', exact: true }),
@@ -585,8 +620,8 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
   const stored = await page.evaluate(
     () => JSON.parse(localStorage.getItem('picodash-contract-lab-value-binding-v1')!).scopes,
   )
-  for (const scope of (snapshot.snapshot.scopes ?? []).filter(
-    (scope) => scope.id !== 'binding-reordering',
+  for (const scope of (snapshot.snapshot.scopes ?? []).filter((scope) =>
+    ['binding-ready-made', 'binding-composed'].includes(scope.id),
   )) {
     expect(scope.metadata).toMatchObject({
       dashList: {
@@ -610,6 +645,7 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
   }
   expect(snapshot.snapshot.scopes?.map((scope) => scope.id).sort()).toEqual([
     'binding-composed',
+    'binding-curated',
     'binding-ready-made',
     'binding-reordering',
   ])

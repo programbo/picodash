@@ -17,6 +17,7 @@ import type {
   PicodashDevBridgeDisclosure,
   PicodashDevBridgePermissions,
 } from '@picodash/dev-bridge'
+import { CuratedDashlets } from './curated-dashlets'
 import { ReorderLab } from './reorder-lab'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
 import { renderComposedValueBindings } from './composed-value-bindings'
@@ -25,7 +26,7 @@ import { useContractLabDiagnosticCount } from './nexus-diagnostics'
 
 const disclosure: PicodashDevBridgeDisclosure = {
   valueFields: ['name', 'interval', 'enabled'],
-  scopeIds: ['binding-ready-made', 'binding-composed', 'binding-reordering'],
+  scopeIds: ['binding-ready-made', 'binding-composed', 'binding-reordering', 'binding-curated'],
   diagnostics: false,
 }
 const permissions: PicodashDevBridgePermissions = {
@@ -228,6 +229,7 @@ function ValueBindingContent({
             </Dashlet>
           </DashList>
         </div>
+        <CuratedDashlets nexus={nexus} disabled={disabled} />
         <ReorderLab nexus={nexus} />
       </section>
     </PicodashThemeProvider>

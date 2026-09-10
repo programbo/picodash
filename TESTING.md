@@ -177,3 +177,7 @@ reorder parity, cancellation, saved collapse/order, and scoped organization rese
 
 The long Reordering playground journey in `apps/lab/tests/reordering.spec.ts` captures drag paint
 and verifies motion, pinned lanes, edge scrolling, persistence, and cancellation.
+
+The same standalone binding journey includes M7's initial Workspace tuning candidates. It verifies
+slider-to-Nexus/Number closure through Dev Bridge, the slider thumb's computed accessible name,
+and read-only/disabled behavior across the retained themes. It does not approve the final M7 inventory.
