@@ -306,3 +306,21 @@ cancellation, and confirmed reset from either List surviving reload. DashList bi
 and Nexus validation/persistence tests retain ownership of their deterministic contracts.
 The bounded slice is browser-verified locally and owner-approved on 2026-09-09.
 See [M5 evidence](../internal/m5-dashlist-data.md).
+
+## Recovery M6: DashList organization
+
+The standalone binding journey exercises group and child ordering, pointer/keyboard child outcome
+parity, cancellation and preview without persistence, independent collapse, saved organization
+through reload, and confirmed reset of one List. Read-only Bridge scopes expose the saved child
+order. See [M6 evidence](../internal/m6-dashlist-organization.md); owner approval was received on 2026-09-10, including reported Safari use.
+
+The expanded M6 long-list journey in `apps/lab/tests/reordering.spec.ts` verifies translucent
+blurred drag paint, shadow, animated displacement, fixed pin lanes, edge scrolling, retained node
+identity, and cancelled child-drag draft retention. Motion is a DashList runtime dependency;
+visual session state stays outside Nexus. The owning keyboard reorder test also checks that child
+content mounts only once across candidate moves and commit.
+
+Owner-reported M6 drag corrections add browser evidence for the exact halfway trigger, multiple
+rendered displacement positions, and an enabled/disabled backdrop comparison. CSS duration parsing
+preserves seconds and milliseconds after build optimization; translucent background paint avoids
+fading the whole dragged subtree. See the M6 drag review corrections for the local checks.

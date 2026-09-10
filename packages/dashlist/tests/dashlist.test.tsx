@@ -6,6 +6,7 @@ import {
   Fragment,
   StrictMode,
   useRef,
+  useEffect,
   type ReactElement,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
@@ -2112,13 +2113,20 @@ describe('@picodash/dashlist alpha shell', () => {
   })
 
   it('reorders root siblings with keyboard parity and announces the commit', () => {
+    let mounts = 0
+    function MountProbe() {
+      useEffect(() => {
+        mounts += 1
+      }, [])
+      return createElement('span', null, 'Retained content')
+    }
     const nexus = makeNexus()
     const scoped = nexus.scope('order-root')
     const renderer = render(
       createElement(
         DashList,
         { id: 'order-root', nexus },
-        createElement(Dashlet, { id: 'first', label: 'First' }),
+        createElement(Dashlet, { id: 'first', label: 'First' }, createElement(MountProbe)),
         createElement(Dashlet, { id: 'second', label: 'Second' }),
       ),
     )
@@ -2172,6 +2180,7 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(
       JSON.stringify(renderer.root.findByProps({ role: 'status' }).children[0] ?? ''),
     ).toContain('Reorder complete: First, position 2 of 2')
+    expect(mounts).toBe(1)
     act(() => renderer.unmount())
     nexus.destroy()
   })
@@ -2485,7 +2494,11 @@ describe('@picodash/dashlist alpha shell', () => {
     })
     expect(order()).toEqual(['start', 'auto-a', 'auto-b', 'auto-c', 'auto-d', 'end'])
     act(() => {
-      void handle.props.onPointerMove({ pointerId: 1, clientY: 40 })
+      void handle.props.onPointerMove({ pointerId: 1, clientY: 28 })
+    })
+    expect(order()).toEqual(['start', 'auto-a', 'auto-b', 'auto-c', 'auto-d', 'end'])
+    act(() => {
+      void handle.props.onPointerMove({ pointerId: 1, clientY: 29 })
     })
     expect(order()).toEqual(['start', 'auto-b', 'auto-a', 'auto-c', 'auto-d', 'end'])
     const crossedHandle = renderer.root.findByProps({

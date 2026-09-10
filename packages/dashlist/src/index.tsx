@@ -61,6 +61,7 @@ import {
   shouldRedirectDashletRowClick,
   useDashletPrimaryFocusCoordinator,
 } from './primary-focus.js'
+import { createReorderPresentation, reorderLayoutRect } from './reorder-presentation.js'
 import { Dialog, DialogTrigger } from 'react-aria-components'
 import {
   createNodeRegistry,
@@ -365,7 +366,11 @@ function wrapDeclaration(
   const kind = declarationKind(declaration)
   if (kind === null) throw new TypeError('DashList declaration cannot be a nested DashList.')
   const id = (declaration.props as { readonly id?: unknown }).id
-  return createElement(DashListNodeDeclarationBoundary, { key, id, kind, owner }, declaration)
+  return createElement(
+    DashListNodeDeclarationBoundary,
+    { key: declarationIdentity(declaration, key), id, kind, owner },
+    declaration,
+  )
 }
 
 function isTextLabel(value: ReactNode): boolean {
@@ -472,7 +477,7 @@ type OrderingController = {
   readonly session: OrderingState['session']
   readonly canHandle: (id: string) => boolean
   readonly canMoveWithKeyboard: (id: string) => boolean
-  readonly start: (id: string) => void
+  readonly start: (id: string, handle?: HTMLElement) => void
   readonly move: (direction: 'up' | 'down' | 'home' | 'end') => void
   readonly commit: () => void
   readonly cancel: () => void
@@ -484,6 +489,7 @@ type OrderingController = {
 }
 
 type PointerLike = {
+  readonly handle?: HTMLElement
   readonly pointerId?: number
   readonly clientY?: number
   readonly setPointerCapture?: (pointerId: number) => void
@@ -546,12 +552,15 @@ function useOrderingController({
   if (coordinatorRef.current === null)
     coordinatorRef.current = inheritedCoordinator ?? { active: { current: false } }
   const coordinator = coordinatorRef.current
+  const presentation = useRef<ReturnType<typeof createReorderPresentation>>(undefined)
   const pointerRef = useRef<{
     readonly id: string
     readonly pointerId?: number
     readonly clientY?: number
     readonly grabOffset?: number
+    readonly direction?: 'up' | 'down'
     readonly releasePointerCapture?: (pointerId: number) => void
+    readonly setPointerCapture?: (pointerId: number) => void
     readonly rowBounds?: () => readonly OrderingRowBounds[]
   } | null>(null)
   const releasePointerCapture = (): void => {
@@ -581,6 +590,18 @@ function useOrderingController({
     }
   }, [state, input])
   const effectiveState = reconciled.state
+  useLayoutEffect(() => {
+    if (effectiveState.session) {
+      presentation.current?.layout()
+      // Moving a captured node in the DOM can release browser pointer capture.
+      const pointer = pointerRef.current
+      if (pointer?.pointerId !== undefined) pointer.setPointerCapture?.(pointer.pointerId)
+    } else {
+      presentation.current?.finish()
+      presentation.current = undefined
+    }
+  })
+  useEffect(() => () => presentation.current?.finish(), [])
   useEffect(() => {
     if (reconciled.effect.kind === 'stale-cancel') {
       releasePointerCapture()
@@ -678,9 +699,15 @@ function useOrderingController({
       }
     }
   }
-  const start = (id: string) => {
+  const start = (id: string, handle?: HTMLElement) => {
     if (coordinator.active.current && !stateRef.current.session) return
     dispatch({ type: 'start', nodeId: id })
+    const session = stateRef.current.session
+    if (session && handle)
+      presentation.current = createReorderPresentation(
+        handle,
+        stateRef.current.ordering.visibleBands[session.band],
+      )
   }
   const pointerDown = (id: string, event: PointerLike) => {
     if (pointerRef.current && pointerRef.current.pointerId !== event.pointerId) return false
@@ -694,6 +721,15 @@ function useOrderingController({
     const startedSession = stateRef.current.session
     if (startedSession?.nodeId === id) {
       if (event.pointerId !== undefined) event.setPointerCapture?.(event.pointerId)
+      if (event.handle) {
+        presentation.current?.finish()
+        presentation.current = createReorderPresentation(
+          event.handle,
+          stateRef.current.ordering.visibleBands[startedSession.band],
+          event.clientY,
+          () => pointerMove({ pointerId: event.pointerId, clientY: pointerRef.current?.clientY }),
+        )
+      }
       pointerRef.current = {
         id,
         pointerId: event.pointerId,
@@ -704,6 +740,7 @@ function useOrderingController({
           return source ? event.clientY - (source.top + source.bottom) / 2 : undefined
         })(),
         releasePointerCapture: event.releasePointerCapture,
+        setPointerCapture: event.setPointerCapture,
         rowBounds: event.rowBounds,
       }
       return true
@@ -719,8 +756,10 @@ function useOrderingController({
     )
       return
     if (pointer.clientY === undefined || event.clientY === undefined) return
+    presentation.current?.move(event.clientY)
     const delta = event.clientY - pointer.clientY
-    pointerRef.current = { ...pointer, clientY: event.clientY }
+    const travel = delta === 0 ? pointer.direction : delta > 0 ? 'down' : 'up'
+    pointerRef.current = { ...pointer, clientY: event.clientY, direction: travel }
     const rows = pointer.rowBounds?.()
     const session = stateRef.current.session
     if (rows?.length && session) {
@@ -740,13 +779,29 @@ function useOrderingController({
         )
         .sort((left, right) => left.top - right.top)
       const draggedCenter = event.clientY! - (pointer.grabOffset ?? 0)
-      const desiredIndex = bandRows.filter(
-        (row) => row.id !== session.nodeId && (row.top + row.bottom) / 2 < draggedCenter,
-      ).length
+      const source = bandRows.find((row) => row.id === session.nodeId)
+      const halfHeight = source ? (source.bottom - source.top) / 2 : 0
       let visibleOrder = candidateOrder(stateRef.current).filter((id) => bandIds.has(id))
       let currentIndex = visibleOrder.indexOf(session.nodeId)
-      if (currentIndex < 0) return
-      const direction = currentIndex < desiredIndex ? 'down' : 'up'
+      if (currentIndex < 0 || !travel) return
+      const direction = travel
+      let desiredIndex = currentIndex
+      const step = direction === 'down' ? 1 : -1
+      for (
+        let index = currentIndex + step;
+        index >= 0 && index < visibleOrder.length;
+        index += step
+      ) {
+        const row = bandRows.find((candidate) => candidate.id === visibleOrder[index])
+        if (!row) break
+        const midpoint = (row.top + row.bottom) / 2
+        const covered =
+          direction === 'down'
+            ? draggedCenter + halfHeight >= midpoint
+            : draggedCenter - halfHeight <= midpoint
+        if (!covered) break
+        desiredIndex = index
+      }
       while (currentIndex !== desiredIndex) {
         dispatch({ type: 'move', direction })
         visibleOrder = candidateOrder(stateRef.current).filter((id) => bandIds.has(id))
@@ -839,7 +894,12 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
       'aria-describedby': instructionsId,
       'aria-keyshortcuts': 'Enter Space ArrowUp ArrowDown Home End Escape',
       'data-picodash-reorder-handle': id,
-      onKeyDown: (event: { key: string; repeat?: boolean; preventDefault?: () => void }) => {
+      onKeyDown: (event: {
+        currentTarget?: HTMLElement
+        key: string
+        repeat?: boolean
+        preventDefault?: () => void
+      }) => {
         const ownsKeyboardSession = controller.canMoveWithKeyboard(id)
         if (event.key === 'Escape' && ownsKeyboardSession) {
           event.preventDefault?.()
@@ -861,7 +921,7 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
           if (controller.session && !ownsKeyboardSession) return
           event.preventDefault?.()
           if (ownsKeyboardSession) controller.commit()
-          else controller.start(id)
+          else controller.start(id, event.currentTarget)
         }
       },
       onBlur: () => controller.blur(id),
@@ -892,12 +952,13 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
                   node.getAttribute('data-picodash-dashlet') ??
                   node.getAttribute('data-picodash-dashgroup')
                 if (!rowId || !controller.canHandle(rowId)) return []
-                const rect = node.getBoundingClientRect()
+                const rect = reorderLayoutRect(node)
                 return [{ id: rowId, top: rect.top, bottom: rect.bottom }]
               })
             }
           : undefined
         const attached = controller.pointerDown(id, {
+          handle: pointerTarget,
           pointerId: event.pointerId,
           clientY: event.clientY,
           setPointerCapture:

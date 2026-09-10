@@ -71,6 +71,7 @@
         "@internationalized/date": "catalog:",
         "@picodash/nexus": "workspace:*",
         "@picodash/ui": "workspace:*",
+        "motion": "catalog:",
         "react-aria-components": "catalog:",
       },
       "devDependencies": {

@@ -28,6 +28,8 @@ The Contract Lab's **Value binding** preset (`interaction`) provides the bounded
 ready-made Text, Number, Switch, and Display Dashlets alongside equivalent public Dashlet/`/ui`
 compositions. Both Lists share one Nexus with three fields and no Panel Provider. M5 adds Web Storage
 persistence and confirmed value reset; see the [M5 evidence record](../internal/m5-dashlist-data.md).
+M6 adds a collapsible Workspace settings group, independent saved ordering, and confirmed List
+organization reset; see [M6 evidence](../internal/m6-dashlist-organization.md).
 The [M4 evidence record](../internal/m4-value-binding.md) separates this verified browser slice
 from broader DashList stabilization and records owner hands-on acceptance on 2026-09-09.
 
@@ -1421,6 +1423,8 @@ durable override.
 #### Pointer interaction
 
 - Dragging is vertical and constrained to the active container and pin band.
+- The leading edge triggers sibling displacement when it reaches the sibling midpoint (50%
+  coverage), including equality, in the direction of travel.
 - The automatic lane scrolls when the pointer approaches its edges.
 - A group-child drag scrolls the nearest containing DashList scrollport rather than creating a
   nested scroll region.
@@ -1443,6 +1447,10 @@ Moving focus away from the active handle cancels the session. Commit or cancella
 on that handle when its node still exists.
 
 #### Session and persistence rules
+
+Dragged nodes use shared surface blur, elevated shadow, and drag-layer tokens. Motion animates
+sibling displacement; pointer-following transforms and edge scrolling remain transient. Stable
+node identities preserve content and drafts through candidate moves.
 
 Only one reorder session may be active in a DashList. Pointer and keyboard candidate orders are
 ephemeral interaction state outside persisted Nexus snapshots. A changed order commits atomically

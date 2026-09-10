@@ -1270,3 +1270,19 @@
     transition: none;
   }
 }
+
+.picodash-dashlist-item[data-picodash-reorder-active] {
+  position: relative;
+  z-index: var(--picodash-layer-drag);
+  background: color-mix(in srgb, var(--picodash-color-surface) 72%, transparent);
+  -webkit-backdrop-filter: blur(var(--picodash-blur-surface));
+  backdrop-filter: blur(var(--picodash-blur-surface));
+  box-shadow: var(--picodash-shadow-elevated);
+  border-radius: var(--picodash-radius-surface);
+  outline: 1px solid var(--picodash-color-border);
+  will-change: transform;
+}
+
+.picodash-dashlist-group-item[data-picodash-reorder-active] > [data-picodash-dashgroup] {
+  background: transparent;
+}

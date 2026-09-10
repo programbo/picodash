@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import {
   DashList,
+  DashGroup,
   Dashlet,
   DashListResetValuesItem,
+  DashListResetListItem,
   DisplayDashlet,
   NumberDashlet,
   SwitchDashlet,
@@ -15,6 +17,7 @@ import type {
   PicodashDevBridgeDisclosure,
   PicodashDevBridgePermissions,
 } from '@picodash/dev-bridge'
+import { ReorderLab } from './reorder-lab'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
 import { renderComposedValueBindings } from './composed-value-bindings'
 import { createValueBindingNexus, type ValueBindingNexus } from './value-binding-model'
@@ -22,7 +25,7 @@ import { useContractLabDiagnosticCount } from './nexus-diagnostics'
 
 const disclosure: PicodashDevBridgeDisclosure = {
   valueFields: ['name', 'interval', 'enabled'],
-  scopeIds: [],
+  scopeIds: ['binding-ready-made', 'binding-composed', 'binding-reordering'],
   diagnostics: false,
 }
 const permissions: PicodashDevBridgePermissions = {
@@ -163,7 +166,9 @@ function ValueBindingContent({
         <p className="mb-5 text-sm text-(--picodash-color-text-muted)">
           Both Lists share three fields. Edit either List or apply the example values to see them
           stay in sync. Clearing a name or entering an interval outside 1–60 keeps the last valid
-          value. Valid values survive refresh; invalid drafts do not.
+          value. Valid values survive refresh; invalid drafts do not. Collapse Workspace settings to
+          focus on the readout, or use a row’s reorder handle to put frequently used controls first.
+          Each List saves its own arrangement.
         </p>
         <div className="grid min-w-0 gap-6 xl:grid-cols-2">
           <DashList
@@ -171,36 +176,39 @@ function ValueBindingContent({
             id="binding-ready-made"
             title="Ready-made Dashlets"
             headingLevel={2}
-            reorderable={false}
+            reorderable
           >
-            <TextDashlet
-              id="name"
-              label="Workspace name"
-              field={nexus.fields.name}
-              disabled={disabled}
-            />
-            <NumberDashlet
-              id="interval"
-              label="Refresh interval"
-              description="1–60 seconds"
-              field={nexus.fields.interval}
-              disabled={disabled}
-            />
-            <SwitchDashlet
-              id="enabled"
-              label="Live updates"
-              field={nexus.fields.enabled}
-              disabled={disabled}
-            />
+            <DashGroup id="settings" label="Workspace settings" collapsible>
+              <TextDashlet
+                id="name"
+                label="Workspace name"
+                field={nexus.fields.name}
+                disabled={disabled}
+              />
+              <NumberDashlet
+                id="interval"
+                label="Refresh interval"
+                description="1–60 seconds"
+                field={nexus.fields.interval}
+                disabled={disabled}
+              />
+              <SwitchDashlet
+                id="enabled"
+                label="Live updates"
+                field={nexus.fields.enabled}
+                disabled={disabled}
+              />
+            </DashGroup>
             <DisplayDashlet
               id="readout"
               label="Current interval"
               field={nexus.fields.interval}
               formatValue={(value) => `${value} seconds`}
             />
-            <Dashlet id="actions" label="List actions">
+            <Dashlet id="actions" label="List actions" pin="end">
               <ActionMenu label="List actions">
                 <DashListResetValuesItem />
+                <DashListResetListItem />
               </ActionMenu>
             </Dashlet>
           </DashList>
@@ -209,16 +217,18 @@ function ValueBindingContent({
             id="binding-composed"
             title="Composed controls"
             headingLevel={2}
-            reorderable={false}
+            reorderable
           >
             {renderComposedValueBindings({ nexus, disabled })}
-            <Dashlet id="actions" label="List actions">
+            <Dashlet id="actions" label="List actions" pin="end">
               <ActionMenu label="List actions">
                 <DashListResetValuesItem />
+                <DashListResetListItem />
               </ActionMenu>
             </Dashlet>
           </DashList>
         </div>
+        <ReorderLab nexus={nexus} />
       </section>
     </PicodashThemeProvider>
   )

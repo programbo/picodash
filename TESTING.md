@@ -171,3 +171,9 @@ be hidden, quarantined, or used to justify unrelated product changes.
 M5 extends the same binding journey with atomic rejection, invalid-draft refresh, confirmed reset
 from both Lists, saved defaults after reload, and targeted Lab reset. See
 [the M5 record](docs/internal/m5-dashlist-data.md).
+
+M6 extends the standalone binding journey with group and child organization, pointer/keyboard
+reorder parity, cancellation, saved collapse/order, and scoped organization reset.
+
+The long Reordering playground journey in `apps/lab/tests/reordering.spec.ts` captures drag paint
+and verifies motion, pinned lanes, edge scrolling, persistence, and cancellation.
