@@ -293,10 +293,18 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     const interval = 40 + index
     await list.getByRole('textbox', { name: 'Workspace name', exact: true }).fill(name)
     await list.getByRole('textbox', { name: 'Workspace name', exact: true }).press('Tab')
+    await expect(
+      list.getByRole('button', { name: 'Reorder Refresh interval', exact: true }),
+    ).toBeFocused()
+    await page.keyboard.press('Tab')
     const numberInput = list.getByRole('textbox', { name: 'Refresh interval', exact: true })
     await expect(numberInput).toBeFocused()
     await numberInput.fill(String(interval))
     await numberInput.press('Tab')
+    await expect(
+      list.getByRole('button', { name: 'Reorder Live updates', exact: true }),
+    ).toBeFocused()
+    await page.keyboard.press('Tab')
     await expect(list.getByRole('switch', { name: 'Live updates' })).toBeFocused()
     await list.getByRole('switch', { name: 'Live updates' }).press('Space')
     await expect.poll(values).toEqual({ name, interval, enabled: index === 1 })
@@ -371,6 +379,7 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
       )
       .toBe(recipe.resolved)
     await ready.getByRole('textbox', { name: 'Workspace name', exact: true }).focus()
+    await page.keyboard.press('Tab')
     await page.keyboard.press('Tab')
     await expect(
       ready.getByRole('textbox', { name: 'Refresh interval', exact: true }),
@@ -518,6 +527,111 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
   await expect.poll(findSession).toBeTruthy()
   await expect.poll(values).toEqual({ name: 'Studio', interval: 30, enabled: true })
   await capture('m5-reset-defaults')
+  const payload = () =>
+    page.evaluate(() => localStorage.getItem('picodash-contract-lab-value-binding-v1'))
+  const labels = (list: Locator) =>
+    list
+      .getByRole('button', { name: /^Reorder / })
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label')))
+  const initial = await labels(ready)
+  const baselinePayload = await payload()
+  const nameHandle = ready.getByRole('button', { name: 'Reorder Workspace name', exact: true })
+  await nameHandle.press('Enter')
+  await nameHandle.press('ArrowDown')
+  expect(await payload()).toBe(baselinePayload)
+  await nameHandle.press('Escape')
+  expect(await payload()).toBe(baselinePayload)
+  expect(await labels(ready)).toEqual(initial)
+  await nameHandle.press('Enter')
+  await nameHandle.press('ArrowDown')
+  await nameHandle.press('Enter')
+  await expect
+    .poll(() => labels(ready))
+    .toEqual([
+      'Reorder Workspace settings',
+      'Reorder Refresh interval',
+      'Reorder Workspace name',
+      'Reorder Live updates',
+      'Reorder Current interval',
+    ])
+  const pointerHandle = composed.getByRole('button', {
+    name: 'Reorder Workspace name',
+    exact: true,
+  })
+  const target = composed.getByRole('button', { name: 'Reorder Refresh interval', exact: true })
+  const beforePointer = await payload()
+  const from = (await pointerHandle.boundingBox())!
+  const to = (await target.boundingBox())!
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height, { steps: 10 })
+  const pointerPreview = await payload()
+  expect(pointerPreview).toBe(beforePointer)
+  await page.mouse.up()
+  await expect.poll(async () => (await payload()) !== pointerPreview).toBe(true)
+  await expect.poll(() => labels(composed)).toEqual(await labels(ready))
+  const groupHandle = ready.getByRole('button', { name: 'Reorder Workspace settings', exact: true })
+  await groupHandle.press('Enter')
+  await groupHandle.press('ArrowDown')
+  await groupHandle.press('Enter')
+  const organizedReady = await labels(ready)
+  expect(organizedReady[0]).toBe('Reorder Current interval')
+  await ready
+    .getByRole('button', { name: 'Collapse group Workspace settings', exact: true })
+    .click()
+  await expect(ready.getByRole('textbox', { name: 'Workspace name', exact: true })).toBeHidden()
+  await expect(composed.getByRole('textbox', { name: 'Workspace name', exact: true })).toBeVisible()
+  const snapshot = await client.inspect(await currentSession())
+  const stored = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('picodash-contract-lab-value-binding-v1')!).scopes,
+  )
+  for (const scope of (snapshot.snapshot.scopes ?? []).filter(
+    (scope) => scope.id !== 'binding-reordering',
+  )) {
+    expect(scope.metadata).toMatchObject({
+      dashList: {
+        groupOrders: [
+          [
+            'settings',
+            [
+              [0, 'interval'],
+              [1, 'name'],
+              [2, 'enabled'],
+            ],
+          ],
+        ],
+      },
+    })
+    expect(stored.find((entry: [string, unknown]) => entry[0] === scope.id)?.[1]).toMatchObject({
+      dashList: {
+        groupOrders: [['settings', ['interval', 'name', 'enabled']]],
+      },
+    })
+  }
+  expect(snapshot.snapshot.scopes?.map((scope) => scope.id).sort()).toEqual([
+    'binding-composed',
+    'binding-ready-made',
+    'binding-reordering',
+  ])
+  await page.reload()
+  await expect(region).toBeVisible()
+  await expect(ready.getByRole('textbox', { name: 'Workspace name', exact: true })).toBeHidden()
+  await expect(composed.getByRole('textbox', { name: 'Workspace name', exact: true })).toBeVisible()
+  await ready.getByRole('button', { name: 'Expand group Workspace settings', exact: true }).click()
+  await expect.poll(() => labels(ready)).toEqual(organizedReady)
+  await ready.getByRole('button', { name: 'List actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Reset list…', exact: true }).click()
+  await page
+    .getByRole('alertdialog', { name: 'Reset this List?' })
+    .getByRole('button', { name: 'Reset list', exact: true })
+    .click()
+  await expect.poll(() => labels(ready)).toEqual(initial)
+  await page.reload()
+  await expect(region).toBeVisible()
+  await expect.poll(() => labels(ready)).toEqual(initial)
+  await expect.poll(() => labels(composed)).not.toEqual(initial)
+  await capture('m6-organization')
+
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
 })
 

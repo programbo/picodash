@@ -24,6 +24,7 @@ assert.deepEqual(manifest.dependencies, {
   '@internationalized/date': 'catalog:',
   '@picodash/nexus': 'workspace:*',
   '@picodash/ui': 'workspace:*',
+  motion: 'catalog:',
   'react-aria-components': 'catalog:',
 })
 assert.deepEqual(manifest.devDependencies['@tanstack/charts'], 'catalog:')
