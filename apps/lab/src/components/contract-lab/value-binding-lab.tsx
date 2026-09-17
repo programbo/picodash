@@ -25,12 +25,12 @@ import { createValueBindingNexus, type ValueBindingNexus } from './value-binding
 import { useContractLabDiagnosticCount } from './nexus-diagnostics'
 
 const disclosure: PicodashDevBridgeDisclosure = {
-  valueFields: ['name', 'interval', 'enabled'],
+  valueFields: ['name', 'interval', 'enabled', 'activitySource', 'detail'],
   scopeIds: ['binding-ready-made', 'binding-composed', 'binding-reordering', 'binding-curated'],
   diagnostics: false,
 }
 const permissions: PicodashDevBridgePermissions = {
-  writableFields: ['name', 'interval', 'enabled'],
+  writableFields: ['name', 'interval', 'enabled', 'activitySource', 'detail'],
 }
 const themes = ['light', 'dark', 'system', 'ocean'] as const
 

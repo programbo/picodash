@@ -115,21 +115,6 @@ const stableDashletNames = [
   'SelectDashlet',
   'SegmentedDashlet',
   'DisplayDashlet',
-  'CheckboxDashlet',
-  'RadioGroupDashlet',
-  'ComboboxDashlet',
-  'CheckboxGroupDashlet',
-  'MultiSelectDashlet',
-  'SearchDashlet',
-  'RangeDashlet',
-  'MeterDashlet',
-  'ProgressDashlet',
-  'StatusDashlet',
-  'DateDashlet',
-  'TimeDashlet',
-  'DateTimeDashlet',
-  'DateRangeDashlet',
-  'ColorDashlet',
 ]
 const actionNames = [
   'DashListActionItems',
@@ -139,7 +124,7 @@ const actionNames = [
   'DashListResetValuesItem',
   'DashListResetListItem',
 ]
-assert.equal(catalogEntries.length, 31)
+assert.equal(catalogEntries.length, 16)
 assert.deepEqual(
   catalogEntries.map((entry) => entry.id),
   [
@@ -205,11 +190,28 @@ const assertDeepFrozen = (value) => {
 assertDeepFrozen(catalog.catalog)
 assert.deepEqual(JSON.parse(JSON.stringify(catalog.catalog)), catalog.catalog)
 assert.deepEqual(catalog.catalog.reexports, [])
-for (const exportName of ['CheckboxGroupDashlet', 'MultiSelectDashlet']) {
-  const entry = catalogEntries.find((candidate) => candidate.exportName === exportName)
-  assert.ok(entry, `missing catalog entry: ${exportName}`)
-  assert.equal(entry.field.cardinality, 'one')
-  assert.deepEqual(entry.field.valueKinds, ['json'])
+for (const exportName of [
+  'CheckboxDashlet',
+  'RadioGroupDashlet',
+  'ComboboxDashlet',
+  'CheckboxGroupDashlet',
+  'MultiSelectDashlet',
+  'SearchDashlet',
+  'RangeDashlet',
+  'MeterDashlet',
+  'ProgressDashlet',
+  'StatusDashlet',
+  'DateDashlet',
+  'TimeDashlet',
+  'DateTimeDashlet',
+  'DateRangeDashlet',
+  'ColorDashlet',
+]) {
+  assert.equal(exportName in runtime, true, `missing evaluation export: ${exportName}`)
+  assert.equal(
+    catalogEntries.some((entry) => entry.exportName === exportName),
+    false,
+  )
 }
 assert.equal(catalogEntries.filter((entry) => entry.exportName === 'ChartDashlet').length, 0)
 assert.equal(catalogEntries.filter((entry) => entry.exportName === 'SparklineDashlet').length, 0)

@@ -61,6 +61,7 @@
 .picodash-dashlist-slider-track {
   position: relative;
   block-size: var(--picodash-space-1);
+  margin-block: calc((var(--picodash-control-height-md) - var(--picodash-space-1)) / 2);
   border-radius: var(--picodash-radius-control);
   background: var(--picodash-color-control-border);
 }

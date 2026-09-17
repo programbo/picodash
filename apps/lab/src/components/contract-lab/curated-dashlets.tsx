@@ -5,11 +5,16 @@ import {
   DashList,
   DisplayDashlet,
   NumberDashlet,
+  SelectDashlet,
+  SegmentedDashlet,
+  Dashlet,
+  DashListResetValuesItem,
   SliderDashlet,
   SwitchDashlet,
   TextDashlet,
 } from '@picodash/dashlist'
-import { Button } from '@picodash/ui'
+import { ActivityPreview } from './activity-preview'
+import { ActionMenu, Button } from '@picodash/ui'
 import type { ValueBindingNexus } from './value-binding-model'
 
 export function CuratedDashlets({
@@ -37,9 +42,9 @@ export function CuratedDashlets({
         </Button>
       </div>
       <p className="mb-4 text-sm text-(--picodash-color-text-muted)">
-        Tune the refresh interval with the slider or enter an exact value. These five Dashlets share
-        the workspace values above. Compare the themes, disabled state, and read-only state before
-        we expand the set.
+        Tune the refresh interval, choose an activity source, and switch between summary and
+        details. The preview uses sample records; your controls and choices are saved in this
+        browser. Compare editable, read-only, and disabled states using the controls above.
       </p>
       <DashList
         nexus={nexus}
@@ -73,7 +78,7 @@ export function CuratedDashlets({
           min={1}
           max={60}
           step={1}
-          formatValue={(value) => `${value} seconds`}
+          formatOptions={{ style: 'unit', unit: 'second', unitDisplay: 'short' }}
         />
         <SwitchDashlet
           disabled={disabled}
@@ -82,13 +87,35 @@ export function CuratedDashlets({
           label="Live updates"
           field={nexus.fields.enabled}
         />
+        <SelectDashlet
+          id="source"
+          label="Activity source"
+          field={nexus.fields.activitySource}
+          options={['Builds', 'Deployments', 'Checks']}
+          disabled={disabled}
+          readOnly={readOnly}
+        />
+        <SegmentedDashlet
+          id="detail"
+          label="Detail level"
+          field={nexus.fields.detail}
+          options={['Summary', 'Details']}
+          disabled={disabled}
+          readOnly={readOnly}
+        />
         <DisplayDashlet
           id="current"
           label="Current interval"
           field={nexus.fields.interval}
           formatValue={(value) => `${value} seconds`}
         />
+        <Dashlet id="actions" label="Workspace actions">
+          <ActionMenu label="Workspace actions">
+            <DashListResetValuesItem />
+          </ActionMenu>
+        </Dashlet>
       </DashList>
+      <ActivityPreview nexus={nexus} />
     </section>
   )
 }
