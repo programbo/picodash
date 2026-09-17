@@ -173,4 +173,4 @@ The DashList catalog advertises the seven retained ready-made candidates selecte
 [M7 ledger](../internal/m7-dashlet-curation.md). The fifteen deferred prototype controls remain
 available for evaluation in the package but are omitted from the stable catalog. The schema does
 not change: removing premature stable entries changes admission, not metadata structure.
-Owner review of the retained recovery set is pending.
+The owner approved the retained recovery set on 2026-09-17.

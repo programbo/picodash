@@ -1,6 +1,10 @@
 # M7: curated ready-made Dashlets
 
-Status: **Ready for owner review; approval pending**.
+Status: **Owner-approved on 2026-09-17**.
+
+The owner confirmed: “LGTM. Lots of UI fixes to come but no blockers.” The seven-control
+curation milestone is accepted. Remaining UI fixes carry forward to M8 integrated prototype
+parity and polish.
 Baseline: M6 merged in PR #126 at `afbc5ed3d63aab936ead2c90e220f71de1911d67`.
 
 ## Retained workflow
@@ -22,7 +26,7 @@ The historical built-in example at `6a9c56e8` used Text, Number, Slider, Switch,
 Segmented, Range, and specialized creative controls. M7 retains controls that earn a distinct job in
 the recovered workflow. The prior 22-control stable claim was broader than the product evidence.
 The reference and catalog now distinguish retained candidates from deferred implementations.
-Owner approval of this proposed release scope remains the final gate.
+The owner approved this retained scope on 2026-09-17.
 
 | Dashlets                                                             | Disposition       | Reason                                                                                                                                                                                                             |
 | -------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -66,5 +70,5 @@ and detail level, tune the interval, try read-only and disabled controls, then r
 actions → Reset values restores the declared defaults after confirmation. The same example is
 served as a production build over the existing tailnet URL for owner review.
 
-M8 integration remains blocked on owner approval of M7. This milestone does not claim completion
+M7 owner approval unblocks the M8 integration milestone. This milestone does not claim completion
 of broader integrated layout polish, the deferred control families, or their release gates.

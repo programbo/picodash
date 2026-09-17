@@ -78,7 +78,7 @@ Phase 2 is therefore complete. Phase 3 owns visual-token completion, adaptive dr
 presentation, rail presentation, the stable Dashlet inventory and catalog, DashList document
 workflows, and the exhaustive behavioral and integration matrices required for package stabilization.
 M7 recovery curates the retained inventory to Text, Number, Slider, Switch, Select, Segmented,
-and Display, with owner review pending. The other implemented controls are deferred from stable
+and Display, owner-approved on 2026-09-17. The other implemented controls are deferred from stable
 promotion; the [disposition ledger](internal/m7-dashlet-curation.md) records why. Experimental TanStack Charts remain an isolated pre-alpha
 boundary: native `ChartDefinition`, optional `@tanstack/charts@0.12.0` peer, no root/catalog
 publication, and explicit SSR, accessibility, resize, theme, reduced-motion, and cleanup evidence

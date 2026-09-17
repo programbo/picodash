@@ -183,4 +183,4 @@ slider-to-Nexus/Number closure through Dev Bridge, the slider thumb's accessible
 description clearance, source/detail selection and preview changes, keyboard navigation, rejected
 choices, read-only/disabled behavior across the retained themes, persistence, and confirmed reset.
 Package artifact checks admit the seven retained catalog entries and exclude the fifteen deferred
-root implementations while preserving their exports. Owner approval remains the final M7 gate.
+root implementations while preserving their exports. Owner approval of M7 was recorded on 2026-09-17; remaining UI fixes are nonblocking.

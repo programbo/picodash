@@ -242,7 +242,7 @@ entries. DashList anatomy remains available only from its owning subpath; the fa
 M7 narrows stable promotion to Text, Number, Slider, Switch, Select, Segmented, and Display.
 The other fifteen reexports remain evaluation prototypes, following the owning
 [DashList disposition](dashlist.md#stable-ready-made-inventory); their existence is not a stable
-release claim. Final owner review of the retained set remains pending.
+release claim. The owner approved the retained set on 2026-09-17; integrated UI polish continues in M8.
 
 The facade preserves the exact DashList component and prop identities for all 22 reexports,
 including specialized aliases and safe unspecialized React `ComponentProps`. It does not wrap the

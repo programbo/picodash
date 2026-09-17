@@ -749,7 +749,7 @@ are defined in the [component catalog reference](catalog.md). Draft anatomy help
 
 ### Stable ready-made inventory
 
-> Contract: Revised (M7 recovery scope; owner review pending)
+> Contract: Revised (M7 recovery scope; owner-approved 2026-09-17)
 > Implementation: Partial
 > Evidence: The standalone Value binding browser journey exercises the seven retained candidates
 > across themes, validation, disabled/read-only states, choice previews, reset, and persistence.
@@ -765,7 +765,7 @@ Date, Time, DateTime, DateRange, and Color are deferred from stable promotion. T
 exports remain prototype implementation for evaluation, but are excluded from the stable catalog.
 They require a demonstrated consumer workflow and owner approval before promotion. This revises
 the earlier blanket stable claim for all 22 implementations; it does not delete working code merely
-to reduce a count. M7's final acceptance remains pending owner review.
+to reduce a count. M7 received owner approval on 2026-09-17; remaining UI fixes continue in M8.
 
 Each ready-made component composes public Dashlet anatomy, Nexus handles, and UI primitives without
 a privileged registration or binding path.

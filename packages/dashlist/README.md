@@ -46,5 +46,5 @@ bun run --filter @picodash/dashlist release:check
 
 The retained ready-made candidates are Text, Number, Slider, Switch, Select, Segmented, and Display.
 Other existing root Dashlet exports remain evaluation prototypes and are excluded from the stable
-catalog. See the [M7 disposition ledger](../../docs/internal/m7-dashlet-curation.md); final owner
-review is pending.
+catalog. See the [M7 disposition ledger](../../docs/internal/m7-dashlet-curation.md); owner approval was
+recorded on 2026-09-17.
