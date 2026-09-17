@@ -452,6 +452,7 @@ async function finishPhoneRecording(
 
 async function openLab(page: Page): Promise<void> {
   await page.goto('/lab')
+  await page.getByRole('button', { name: 'Contract tools', exact: true }).click()
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
 }
 

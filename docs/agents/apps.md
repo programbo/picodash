@@ -7,7 +7,8 @@ read the testing instructions and every product reference exercised by the journ
 ## Application ownership
 
 - `apps/web` is the production Next.js evaluation website. `/` is its only public route.
-- `apps/lab` is the local Contract Lab at `/lab` and renders checked-in audit reports.
+- `apps/lab` opens `/lab` to the mobile Dashlet refinement gallery. **Contract tools** opens the
+  six-preset Contract Lab on the same route. The app also renders checked-in audit reports.
 - Applications own routing, transport, authentication, authorization, exposure policy, and which
   Panels and Dashlets are mounted.
 

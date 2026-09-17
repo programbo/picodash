@@ -344,3 +344,24 @@ and owner review gate. This supersedes earlier blanket stable claims for all 22 
 
 The owner approved M7 on 2026-09-17 with no blockers. Remaining UI fixes carry forward to M8
 integrated prototype parity and polish; this approval does not promote the deferred controls.
+
+## Dashlet refinement gallery
+
+The `/lab` default view is a single document-scrolling gallery for all 22 implemented ready-made
+Dashlets plus the experimental Chart and Sparkline. It compares inline, block, full-width,
+read-only, and disabled presentation where supported, with multiline, validation, color-format,
+choice, temporal, and structured-readout examples. The existing six contract presets remain
+available through **Contract tools**; this view choice survives session reloads.
+
+The gallery phone journey in `apps/lab/tests/contract-lab.spec.ts` owns computed mobile input
+font size, document scrolling without nested scrollports, responsive overflow, popup interaction,
+theme/density switching, and navigation back to the contract harness. The Lab applies a 16px
+minimum to text-entry controls on narrow or coarse-pointer devices, including detached overlays,
+without restricting viewport scaling. Actual iOS keyboard-focus zoom remains a physical-device
+check; Chromium mobile emulation proves the CSS precondition only. This gallery does not change
+M7 catalog admission or promote deferred Dashlets.
+
+Local verification passed for the gallery journey at 320px, 390px, and 844px, including a disclosed
+Bridge Number write reflected in the read-only example. The existing Console/driver, six-preset
+reload, two-panel Style Lab, and regular/compact coarse-pointer journeys also passed. Lab type
+checking and focused source lint passed. No package release gate is claimed.

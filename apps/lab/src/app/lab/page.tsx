@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
-import { ContractLab } from '@lab/components/contract-lab/contract-lab'
+import { DashletLab } from '@lab/components/contract-lab/dashlet-gallery'
 
 export const metadata: Metadata = {
-  title: 'Contract Lab',
+  title: 'Dashlet Lab',
 }
 
-export default function ContractLabPage() {
-  return <ContractLab />
+export default function DashletLabPage() {
+  return <DashletLab />
 }

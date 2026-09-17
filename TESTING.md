@@ -75,7 +75,12 @@ Lab-only status outputs must have stable accessible labels.
 
 ## The single Contract Lab
 
-The only Lab route is `/lab`. Presets are application state, never path segments, search
+The only Lab route is `/lab`. It opens to the Dashlet refinement gallery, a single scrolling
+page of implemented controls and their presentation variants. **Contract tools** opens the
+existing test harness; **Back to Dashlets** returns to the gallery. This host view choice survives
+session reloads and does not add a seventh preset.
+
+Within Contract tools, presets are application state, never path segments, search
 parameters, hashes, or hidden fixture variants. The canvas contains:
 
 - a stable Lab Console Panel in its own provider;
@@ -114,7 +119,8 @@ window.__PICODASH_LAB__ = {
 The driver is "hybrid" because visible Console controls and programmatic setup dispatch through the
 same Lab application state. It is not a back door into product state.
 
-Each Lab test starts at `/lab`, waits for the labelled status strip to report readiness, calls
+Each contract-preset test starts at `/lab`, opens **Contract tools**, waits for the labelled status
+strip to report readiness, calls
 `reset()` and `loadPreset()` only to establish a deterministic preset, and waits for the same public
 readiness signal again. The test then interacts through roles and labels and asserts the public DOM,
 status strip, downloads, clipboard, focus, geometry, or browser state.

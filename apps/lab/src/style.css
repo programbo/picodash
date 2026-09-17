@@ -71,3 +71,14 @@ textarea,
 select {
   font: inherit;
 }
+
+/* Keep text entry legible without focus-triggered zoom. Include detached popovers
+   and temporal contenteditable segments; leave browser pinch zoom unrestricted. */
+@media (any-pointer: coarse), (max-width: 40rem) {
+  input,
+  textarea,
+  select,
+  [contenteditable='true'] {
+    font-size: max(16px, 1rem) !important;
+  }
+}

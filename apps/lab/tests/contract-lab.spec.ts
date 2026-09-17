@@ -35,11 +35,148 @@ const presets = [
 
 async function openLab(page: Page) {
   await page.goto('/lab')
+  await page.getByRole('button', { name: 'Contract tools', exact: true }).click()
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
   await expect(page.getByRole('region', { name: 'Contract Lab status' })).toContainText(
     'Diagnostics',
   )
 }
+
+test('keeps the Dashlet gallery scrollable and text entry legible on phones', async ({
+  page,
+  browser,
+}, testInfo) => {
+  const context = await browser.newContext({
+    ...devices['iPhone 13'],
+    baseURL: testInfo.project.use.baseURL,
+  })
+  const phone = await context.newPage()
+  const errors: string[] = []
+  phone.on('pageerror', (error) => errors.push(error.message))
+  try {
+    await phone.goto('/lab')
+    await expect(phone.getByRole('heading', { name: 'Dashlet Lab', exact: true })).toBeVisible()
+    const text = phone.getByRole('region', { name: 'TextDashlet', exact: true })
+    const entry = text.getByRole('textbox', { name: 'Inline', exact: true })
+    await entry.fill('Phone workspace')
+    await entry.press('Tab')
+    await expect(text.getByRole('textbox', { name: 'Read-only', exact: true })).toHaveValue(
+      'Phone workspace',
+    )
+    const validation = text.getByRole('textbox', { name: 'Validation', exact: true })
+    await validation.fill('')
+    await validation.press('Tab')
+    await expect(
+      text
+        .getByRole('list', { name: 'TextDashlet variations', exact: true })
+        .getByText('Enter a workspace name.', { exact: true }),
+    ).toBeVisible()
+
+    const credential: unknown = JSON.parse(
+      await readFile(resolve(process.cwd(), '../../.picodash/dev-bridge.json'), 'utf8'),
+    )
+    if (
+      !credential ||
+      typeof credential !== 'object' ||
+      !('url' in credential) ||
+      typeof credential.url !== 'string' ||
+      !('token' in credential) ||
+      typeof credential.token !== 'string'
+    ) {
+      throw new Error('Expected private Lab Bridge credentials.')
+    }
+    const client = createPicodashDevBridgeClient({
+      baseUrl: credential.url,
+      token: credential.token,
+    })
+    await expect
+      .poll(() => phone.evaluate(() => sessionStorage.getItem('picodash-dev-bridge-tab')))
+      .toEqual(expect.any(String))
+    const browserTabId = await phone.evaluate(() =>
+      sessionStorage.getItem('picodash-dev-bridge-tab'),
+    )
+    const findSession = async () =>
+      (await client.listSessions()).find(
+        (session) =>
+          session.registrationId === 'dashlet-gallery' && session.browserTabId === browserTabId,
+      )
+    await expect.poll(findSession).toBeTruthy()
+    const session = await findSession()
+    if (!session) throw new Error('Gallery Bridge session unavailable.')
+    const result = await client.setValues(session, {
+      type: 'set_values',
+      requestId: 'gallery-number',
+      values: { number: 42 },
+    })
+    expect(result).toMatchObject({ outcome: { type: 'transaction_result', result: { ok: true } } })
+    const numbers = phone.getByRole('region', { name: 'NumberDashlet', exact: true })
+    await expect(numbers.getByRole('textbox', { name: 'Read-only', exact: true })).toHaveValue('42')
+
+    for (const width of [320, 390, 844]) {
+      await phone.setViewportSize({ width, height: width === 844 ? 390 : 844 })
+      await expect
+        .poll(() => phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+        .toBe(true)
+      const inputs = phone.locator('input, textarea, [contenteditable="true"]')
+      const fontSizes = await inputs.evaluateAll((elements) =>
+        elements
+          .filter((element) => element.getBoundingClientRect().width > 1)
+          .map((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+      )
+      expect(fontSizes.length).toBeGreaterThan(0)
+      expect(Math.min(...fontSizes)).toBeGreaterThanOrEqual(16)
+    }
+    await phone.setViewportSize({ width: 390, height: 844 })
+    await phone.getByRole('button', { name: 'Compact', exact: true }).click()
+    await expect(entry).toHaveCSS('font-size', '16px')
+    await phone.getByRole('button', { name: 'Light theme', exact: true }).click()
+    await entry.focus()
+    expect(await phone.evaluate(() => visualViewport?.scale)).toBe(1)
+    const viewport = await phone.locator('meta[name="viewport"]').getAttribute('content')
+    expect(viewport).not.toMatch(/user-scalable=no|maximum-scale=1/)
+
+    const choices = phone.getByRole('region', { name: 'SelectDashlet', exact: true })
+    await choices.getByRole('button', { name: 'Option B Inline', exact: true }).click()
+    await phone.getByRole('option', { name: 'Option C', exact: true }).click()
+    const charts = phone.getByRole('region', { name: 'Experimental charts', exact: true })
+    await charts.scrollIntoViewIfNeeded()
+    await expect(charts.getByRole('img', { name: 'SparklineDashlet', exact: true })).toBeVisible()
+    expect(await phone.evaluate(() => scrollY)).toBeGreaterThan(1000)
+    expect(
+      await phone.locator('main').evaluate((main) =>
+        [...main.querySelectorAll('*')]
+          .filter((element) => {
+            const style = getComputedStyle(element)
+            return (
+              element.clientHeight > 0 &&
+              element.scrollHeight > element.clientHeight + 1 &&
+              ['auto', 'scroll'].includes(style.overflowY)
+            )
+          })
+          .map((element) => ({
+            tag: element.tagName,
+            section: element.closest('section')?.getAttribute('aria-label'),
+            height: element.clientHeight,
+            scrollHeight: element.scrollHeight,
+            label: element.getAttribute('aria-label'),
+            className: element.className,
+          })),
+      ),
+    ).toEqual([])
+    await phone.getByRole('heading', { name: 'Dashlet Lab', exact: true }).scrollIntoViewIfNeeded()
+    await testInfo.attach('gallery-phone', {
+      body: await phone.screenshot(),
+      contentType: 'image/png',
+    })
+    expect(errors).toEqual([])
+  } finally {
+    await context.close()
+  }
+  await openLab(page)
+  await expect(page.getByRole('complementary', { name: 'Lab Console', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Back to Dashlets', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Dashlet Lab', exact: true })).toBeVisible()
+})
 
 async function samplePanelHeightTransition(page: Page, panel: Locator, action: Locator) {
   const before = await panel.evaluate((element) => element.getBoundingClientRect().height)

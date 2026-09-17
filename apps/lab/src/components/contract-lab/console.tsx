@@ -13,6 +13,7 @@ export interface ContractLabConsoleProps {
   readonly activePreset: ContractLabPresetId
   readonly onDiagnosticCountChange: (count: number) => void
   readonly onLoadPreset: (preset: ContractLabPresetId) => void
+  readonly onOpenGallery: () => void
   readonly onReset: () => void
   readonly onToggleSpecimen: () => void
   readonly presets: readonly ContractLabPreset[]
@@ -24,6 +25,7 @@ export function ContractLabConsole({
   onDiagnosticCountChange,
   onLoadPreset,
   onReset,
+  onOpenGallery,
   onToggleSpecimen,
   presets,
   specimenAvailable,
@@ -72,6 +74,13 @@ export function ContractLabConsole({
                   })}
                 </div>
                 <div className="border-border/70 grid gap-2 border-t pt-4">
+                  <button
+                    className="border-border bg-background hover:bg-accent focus-visible:ring-ring min-h-10 rounded-md border px-3 text-left text-sm font-medium outline-none focus-visible:ring-2"
+                    type="button"
+                    onClick={onOpenGallery}
+                  >
+                    Back to Dashlets
+                  </button>
                   <button
                     className="border-border bg-background hover:bg-accent focus-visible:ring-ring min-h-10 rounded-md border px-3 text-left text-sm font-medium outline-none focus-visible:ring-2"
                     type="button"

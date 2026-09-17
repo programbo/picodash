@@ -9,6 +9,7 @@ test('reorders the long control desk with glass drag surfaces and fixed pin lane
   page.on('pageerror', (error) => errors.push(error.message))
   await page.setViewportSize({ width: 1200, height: 1100 })
   await page.goto('/lab')
+  await page.getByRole('button', { name: 'Contract tools', exact: true }).click()
   await page.getByRole('button', { name: 'Reset lab', exact: true }).click()
   await page.getByRole('button', { name: /^Value binding:/ }).click()
   const desk = page.getByRole('list', { name: 'Workspace control desk', exact: true })

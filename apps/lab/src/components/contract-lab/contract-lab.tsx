@@ -19,7 +19,7 @@ import { clearFocusedPlacementPersistence } from './specimen'
 
 const sessionPresetKey = 'picodash:contract-lab:preset'
 
-export function ContractLab() {
+export function ContractLab({ onOpenGallery }: { readonly onOpenGallery: () => void }) {
   const [state, dispatch] = useReducer(contractLabReducer, undefined, createInitialContractLabState)
   const [hydrated, setHydrated] = useState(false)
   const [readyRevision, setReadyRevision] = useState<number | null>(null)
@@ -99,6 +99,7 @@ export function ContractLab() {
             activePreset={state.activePreset}
             onDiagnosticCountChange={setConsoleDiagnosticCount}
             onLoadPreset={loadPreset}
+            onOpenGallery={onOpenGallery}
             onReset={resetLab}
             onToggleSpecimen={() => {
               setReadyRevision(null)
