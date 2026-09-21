@@ -18,7 +18,7 @@
     "@picodash/dashpanel": "workspace:*",
     "@picodash/nexus": "workspace:*",
     "@picodash/ui": "workspace:*",
-    "next": "16.3.4",
+    "next": "16.3.5",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
