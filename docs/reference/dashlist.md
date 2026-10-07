@@ -283,6 +283,7 @@ type RegisteredNodeNativeProps = Omit<
 type DashGroupProps = RegisteredNodeNativeProps & {
   id: string
   label: ReactNode
+  labelColor?: CSSProperties['color']
   'aria-label'?: string
   children?: ReactNode
   collapsible?: boolean
@@ -299,6 +300,20 @@ defaults to `true`; `defaultCollapsed` defaults to `false`; and an omitted `reor
 the containing DashList policy. The Group exposes no controlled `collapsed`, `visible`, generic
 `states`, generic `status`, actions, or Nexus prop. Conditional JSX owns presence, while the accepted
 collapse override owns user visibility of mounted children.
+
+Group presentation decision, 2026-10-07: the whole collapsible header is a disclosure target except
+its independent reorder grip. It remains one keyboard-accessible button with expanded state and
+focus repair; non-collapsible groups do not gain a toggle target. Titles retain the normal size,
+use semibold weight, and default to the theme's strongest text color. Optional `labelColor` accepts
+a CSS color (including a theme variable) and colors the title and chevron. CSS derives the header
+and child first-column hover tint from that same color at 10% opacity. Grips and child control
+colors stay independent. This is presentation configuration, not persisted Nexus state.
+
+```tsx
+<DashGroup id="timing" label="Timing" labelColor="var(--brand-accent)">
+  {/* Dashlets */}
+</DashGroup>
+```
 
 The Dashlet base surface is:
 

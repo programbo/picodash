@@ -54,6 +54,7 @@ describe('@picodash/dashlist public types', () => {
     void createElement(DashGroup, {
       id: 'group',
       label: 'Group',
+      labelColor: 'var(--brand-accent)',
       collapsible: true,
       defaultCollapsed: false,
       reorderable: false,

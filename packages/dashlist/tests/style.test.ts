@@ -61,7 +61,7 @@ describe('DashList stylesheet contract', () => {
       /--_picodash-dashlist-row-hover:\s*color-mix\([^;]*var\(--picodash-color-surface-muted\)\s+65%,\s*transparent/s,
     )
     expect(css).toMatch(
-      /--_picodash-dashlist-group-hover:\s*color-mix\([^;]*var\(--picodash-color-surface-muted\)\s+80%,\s*transparent/s,
+      /--_picodash-dashlist-group-hover:\s*color-mix\([^;]*var\(--_picodash-group-label-color\)\s+10%,\s*transparent/s,
     )
     expect(css).not.toContain('container-type: inline-size')
     expect(css).not.toMatch(/\[data-picodash-dashlist-compact\]\s+\.picodash-dashlist-item/)

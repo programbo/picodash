@@ -17,6 +17,7 @@ import {
   useState,
   useSyncExternalStore,
   type ComponentPropsWithRef,
+  type CSSProperties,
   type ForwardedRef,
   type ReactElement,
   type MutableRefObject,
@@ -255,6 +256,7 @@ type RegisteredNodeNativeProps = Omit<
 export type DashGroupProps = RegisteredNodeNativeProps & {
   readonly id: string
   readonly label: ReactNode
+  readonly labelColor?: CSSProperties['color']
   readonly 'aria-label'?: string
   readonly children?: ReactNode
   readonly collapsible?: boolean
@@ -1326,6 +1328,8 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   {
     id,
     label,
+    labelColor,
+    style,
     'aria-label': ariaLabel,
     children,
     className,
@@ -1339,6 +1343,10 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   },
   ref,
 ) {
+  const groupStyle: CSSProperties & { '--picodash-group-label-color'?: CSSProperties['color'] } = {
+    ...style,
+    '--picodash-group-label-color': labelColor,
+  }
   requireAccessibleLabel(label, ariaLabel, 'DashGroup')
   const inheritedPolicy = useContext(DashListContentPolicyContext)
   const compact = useContext(DashListCompactContext)
@@ -1462,6 +1470,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     <DashListNodeLeafBoundary id={id} kind="group">
       <div
         {...props}
+        style={groupStyle}
         ref={ref}
         role="listitem"
         className={classNames('picodash-dashlist-item picodash-dashlist-group-item', className)}
@@ -1481,6 +1490,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
                   {groupReorderHandle}
                   <button
                     ref={disclosureRef}
+                    data-picodash-group-disclosure
                     aria-label={disclosureLabel}
                     aria-expanded={!renderedCollapsed}
                     aria-controls={contentId}

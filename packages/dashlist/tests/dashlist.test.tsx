@@ -224,6 +224,8 @@ describe('@picodash/dashlist alpha shell', () => {
             createElement(DashGroup, {
               id: 'group',
               label: 'General',
+              labelColor: '#e9b95b',
+              style: { marginTop: 4 },
               children: createElement(Dashlet, {
                 id: 'item',
                 label: 'Value',
@@ -241,6 +243,12 @@ describe('@picodash/dashlist alpha shell', () => {
       'aria-label': 'Explicit settings controls',
       'aria-labelledby': undefined,
     })
+    const groupElement = renderer.root.findByProps({ 'data-picodash-dashgroup': 'group' })
+    expect(groupElement.props.style).toEqual({
+      marginTop: 4,
+      '--picodash-group-label-color': '#e9b95b',
+    })
+    expect(groupElement.props.labelColor).toBeUndefined()
     const groupLabel = renderer.root.findByProps({ 'data-picodash-dashgroup-label': true })
     expect(renderer.root.findByProps({ 'data-picodash-dashgroup-list': true }).props).toMatchObject(
       {

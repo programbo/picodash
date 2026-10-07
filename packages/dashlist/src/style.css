@@ -656,11 +656,6 @@
     var(--picodash-color-surface-muted) 65%,
     transparent
   );
-  --_picodash-dashlist-group-hover: color-mix(
-    in oklab,
-    var(--picodash-color-surface-muted) 80%,
-    transparent
-  );
 }
 
 /*
@@ -1042,6 +1037,15 @@
 }
 
 .picodash-dashlist-group-item > [data-picodash-dashgroup] {
+  --_picodash-group-label-color: var(
+    --picodash-group-label-color,
+    var(--picodash-color-text-strong)
+  );
+  --_picodash-dashlist-group-hover: color-mix(
+    in oklab,
+    var(--_picodash-group-label-color) 10%,
+    transparent
+  );
   overflow: hidden;
   box-sizing: border-box;
   border: var(--picodash-border-width-thin) solid
@@ -1093,7 +1097,7 @@
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--picodash-color-text-muted);
+  color: var(--_picodash-group-label-color);
   font-size: 0;
 }
 
@@ -1122,9 +1126,9 @@
 }
 
 [data-picodash-dashgroup-label] {
-  color: var(--picodash-color-text-muted);
+  color: var(--_picodash-group-label-color);
   font-size: var(--picodash-font-size-lg);
-  font-weight: var(--picodash-font-weight-medium);
+  font-weight: var(--picodash-font-weight-semibold);
   line-height: var(--picodash-line-height-normal);
 }
 
@@ -1810,4 +1814,30 @@
     var(--_picodash-dashlist-group-hover) var(--_picodash-dashlist-reorder-track),
     transparent var(--_picodash-dashlist-reorder-track)
   );
+}
+
+/* Extend the real disclosure button over the header, keeping the grip independent. */
+.picodash-dashlist-group-item > [data-picodash-dashgroup] > [data-slot='dash-header'] {
+  position: relative;
+  isolation: isolate;
+}
+[data-picodash-group-disclosure] {
+  position: static;
+  cursor: pointer;
+}
+[data-picodash-group-disclosure]::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+[data-picodash-group-disclosure]:focus-visible {
+  outline: none;
+}
+[data-picodash-group-disclosure]:focus-visible::after {
+  outline: 2px solid var(--picodash-color-focus);
+  outline-offset: -2px;
+}
+[data-slot='dash-header'] [data-picodash-reorder-handle] {
+  position: relative;
+  z-index: 1;
 }

@@ -472,3 +472,19 @@ input modality. Keyboard focus retains its distinct outline.
 All 258 DashList tests, package checks, and the Lab build passed. Live browser screenshots now
 cover all three segment positions with pointer selection and all three with keyboard navigation,
 including the previously missing right edges of the first and middle pointer-selected segments.
+
+### Group colour hierarchy and header disclosure, 2026-10-07
+
+Group titles keep their existing size with semibold, strong theme text by default. The optional
+`labelColor` prop colors title and chevron; CSS derives the header and first-column hover tint
+at 10% from the same color. The Lab compares a warm-gold Date & time group with neutral More
+examples, using appropriate gold shades in light and dark modes. Child fields and grips remain
+neutral. The existing disclosure button's hit area fills the header except the reorder grip,
+with a full-header keyboard focus outline and no extra tab stop or duplicate toggle handler.
+
+All 258 DashList tests, package checks, and the Lab build passed. The public type fixture covers
+theme-variable colors; the component fixture checks native style preservation and prevents prop
+leakage to DOM. Browser checks verified title and empty-header clicks, grip click isolation,
+Space disclosure, group reorder/cancel without collapse, light/dark presentation, retained neutral
+field colors, and no horizontal overflow at a 320px viewport. Physical touch and custom-theme
+qualification remain untested in this pass.

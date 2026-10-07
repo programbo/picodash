@@ -546,7 +546,13 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
                     disabled,
                   }),
                 )}
-              <DashGroup id="date-time" label="Date & time" readOnly={readOnly} disabled={disabled}>
+              <DashGroup
+                id="date-time"
+                label="Date & time"
+                labelColor={theme === 'dark' ? '#e9b95b' : '#886000'}
+                readOnly={readOnly}
+                disabled={disabled}
+              >
                 {samples
                   .filter((sample) => temporalSamples.has(sample.name))
                   .map((sample) =>
