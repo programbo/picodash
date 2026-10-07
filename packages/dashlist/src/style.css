@@ -64,7 +64,7 @@
   block-size: var(--picodash-space-1);
   margin-block: calc((var(--picodash-control-height-md) - var(--picodash-space-1)) / 2);
   border-radius: var(--picodash-radius-control);
-  background: var(--picodash-color-control-border);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
 }
 
 .picodash-dashlist-slider:has([data-picodash-dashlist-slider-marks]) {
@@ -98,6 +98,7 @@
 }
 
 .picodash-dashlist-segmented {
+  isolation: isolate;
   display: flex;
   flex-wrap: nowrap;
   gap: 0;
@@ -105,6 +106,7 @@
 }
 
 .picodash-dashlist-segmented [data-picodash-dashlist-segment] {
+  position: relative;
   flex: 1 1 0;
   min-inline-size: 0;
   display: flex;
@@ -116,6 +118,11 @@
   padding: var(--picodash-space-1);
   border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
   border-radius: 0;
+}
+
+/* Keep keyboard focus above the borders and fills of adjoining segments. */
+.picodash-dashlist-segmented [data-picodash-dashlist-segment][data-focus-visible] {
+  z-index: 1;
 }
 
 .picodash-dashlist-segmented [data-picodash-dashlist-segment]:first-child {
@@ -445,7 +452,7 @@
   position: relative;
   block-size: var(--picodash-space-1);
   border-radius: var(--picodash-radius-control);
-  background: var(--picodash-color-control-border);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
 }
 
 .picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb] {
@@ -472,7 +479,7 @@
   block-size: var(--picodash-space-1);
   overflow: hidden;
   border-radius: var(--picodash-radius-control);
-  background: var(--picodash-color-control-border);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
   forced-color-adjust: none;
 }
 
@@ -1620,9 +1627,8 @@
 .picodash-dashlist-group-item
   > [data-picodash-dashgroup]
   > [data-slot='dash-header']:has([data-picodash-reorder-handle]) {
-  grid-template-columns: var(--_picodash-dashlist-reorder-track) var(
-      --_picodash-dashlist-first-row-height
-    ) minmax(0, 1fr);
+  grid-template-columns: repeat(2, var(--_picodash-dashlist-reorder-track)) minmax(0, 1fr);
+  column-gap: 0;
 }
 .picodash-dashlist-group-item
   > [data-picodash-dashgroup]
@@ -1665,6 +1671,7 @@
   > [data-slot='dash-header']:has([data-picodash-reorder-handle])
   [data-slot='dash-header-title'] {
   grid-column: 3;
+  padding-inline-start: var(--picodash-space-1);
 }
 
 [data-picodash-date-picker-input] {
@@ -1760,6 +1767,7 @@
 
 .picodash-dashlist-select > button {
   display: grid;
+  align-items: center;
   grid-template-columns: minmax(0, 1fr) var(--picodash-control-height-md);
   gap: 0;
   padding-inline-end: 0;

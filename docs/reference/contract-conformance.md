@@ -448,3 +448,16 @@ All 258 DashList tests, package checks, and the Lab production build passed. Bro
 measured matching 9px grip/value insets, 0.45 resting/1 hovered grip opacity, 0.3 decoration opacity,
 centered header targets, a connected group hover rail, and working Select changes. The 320px
 viewport had no horizontal document overflow. Physical touch and custom themes were not checked.
+
+### Disclosure rhythm and visible tracks, 2026-10-07
+
+Draggable group headers use the same chevron-to-label spacing as non-draggable headers.
+Select centers its value within the trigger. Segments form a local stacking context and raise
+keyboard focus above adjoining segments. Slider, range, meter, and progress tracks use translucent
+text color so the track stays distinct from the row hover surface in both light and dark modes.
+
+All 258 DashList tests, package checks, and the Lab build passed. Browser measurements confirmed
+zero Select value/trigger center offset and identical 16px chevron-center-to-label distances for
+Date & time and More examples. Keyboard navigation raised only the focused segment; screenshots
+showed its complete outline above both neighbours. Hovered Range tracks remained visible in light
+and dark modes. Physical touch and custom-theme qualification were not checked in this pass.
