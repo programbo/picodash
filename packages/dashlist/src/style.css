@@ -120,9 +120,13 @@
   border-radius: 0;
 }
 
-/* Keep keyboard focus above the borders and fills of adjoining segments. */
-.picodash-dashlist-segmented [data-picodash-dashlist-segment][data-focus-visible] {
+/* Pointer selection also needs its complete border above neighbouring segments. */
+.picodash-dashlist-segmented [data-picodash-dashlist-segment][data-selected] {
   z-index: 1;
+}
+
+.picodash-dashlist-segmented [data-picodash-dashlist-segment][data-focused] {
+  z-index: 2;
 }
 
 .picodash-dashlist-segmented [data-picodash-dashlist-segment]:first-child {

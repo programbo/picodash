@@ -461,3 +461,14 @@ zero Select value/trigger center offset and identical 16px chevron-center-to-lab
 Date & time and More examples. Keyboard navigation raised only the focused segment; screenshots
 showed its complete outline above both neighbours. Hovered Range tracks remained visible in light
 and dark modes. Physical touch and custom-theme qualification were not checked in this pass.
+
+### Segment pointer-border correction, 2026-10-07
+
+The preceding keyboard-only stacking fix missed pointer selection: without `data-focus-visible`,
+the next segment still painted over the selected segment's right border. Selected segments now
+sit above unselected neighbours, and focused segments sit above selected segments regardless of
+input modality. Keyboard focus retains its distinct outline.
+
+All 258 DashList tests, package checks, and the Lab build passed. Live browser screenshots now
+cover all three segment positions with pointer selection and all three with keyboard navigation,
+including the previously missing right edges of the first and middle pointer-selected segments.
