@@ -1321,6 +1321,8 @@ are not included in persisted or exported documents.
 
 ## Groups and containment
 
+Prototype presentation and verification notes: [Dashlet feedback experiments](../development/dashlet-motion.md).
+
 ```tsx
 <DashGroup id="rendering" label="Rendering">
   <SliderDashlet id="exposure" field={nexus.fields.exposure} />
