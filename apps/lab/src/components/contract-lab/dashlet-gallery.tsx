@@ -528,7 +528,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
               </Button>
             </div>
           </header>
-          <div className="rounded-xl bg-(--picodash-color-surface) px-1 py-2">
+          <div className="rounded-xl bg-(--picodash-color-surface) py-2">
             <DashList
               nexus={nexus}
               id="gallery-controls"

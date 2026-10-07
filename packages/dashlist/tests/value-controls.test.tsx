@@ -408,6 +408,77 @@ describe('value controls', () => {
     }
   })
 
+  it('selects dates from calendars without losing datetime precision and locks read-only triggers', () => {
+    for (const kind of ['date', 'datetime', 'range'] as const) {
+      const changes: unknown[] = []
+      const onChange = (next: unknown) => changes.push(next)
+      const field =
+        kind === 'date' ? (
+          <DateField value="2026-08-13" onChange={onChange} locale="en-US" aria-label="Date" />
+        ) : kind === 'datetime' ? (
+          <DateTimeField
+            value="2026-08-13T12:30:00+08:00"
+            timeZone="Australia/Perth"
+            onChange={onChange}
+            locale="en-US"
+            aria-label="Date time"
+          />
+        ) : (
+          <DateRangeField
+            value={{ start: '2026-08-01', end: '2026-08-13' }}
+            onChange={onChange}
+            locale="en-US"
+            aria-label="Date range"
+          />
+        )
+      const view = render(field)
+      fireEvent.click(getByRole(view.root.element, 'button', { name: /Choose date/ }))
+      fireEvent.click(getByRole(document.body, 'button', { name: /Friday, August 14, 2026/ }))
+      if (kind === 'range') {
+        expect(changes).toEqual([])
+        fireEvent.click(getByRole(document.body, 'button', { name: /Sunday, August 16, 2026/ }))
+        expect(changes).toEqual([{ start: '2026-08-14', end: '2026-08-16' }])
+      } else {
+        expect(changes).toEqual([kind === 'date' ? '2026-08-14' : '2026-08-14T12:30:00+08:00'])
+      }
+      act(() => view.unmount())
+    }
+    for (const policy of ['disabled', 'readOnly'] as const) {
+      const view = render(
+        <DateField
+          value="2026-08-13"
+          onChange={() => {
+            throw new Error('Locked edit')
+          }}
+          aria-label="Locked date"
+          {...{ [policy]: true }}
+        />,
+      )
+      expect(
+        getByRole(view.root.element, 'button', { name: /Choose date/ }).hasAttribute('disabled'),
+      ).toBe(true)
+      act(() => view.unmount())
+    }
+  })
+
+  it('uses the declared timezone when a calendar initializes an empty datetime', () => {
+    const changes: Array<string | null> = []
+    const view = render(
+      <DateTimeField
+        value={null}
+        timeZone="Australia/Perth"
+        locale="en-US"
+        onChange={(next) => changes.push(next)}
+        aria-label="Empty datetime"
+      />,
+    )
+    fireEvent.click(getByRole(view.root.element, 'button', { name: /Choose date/ }))
+    fireEvent.click(getByRole(document.body, 'button', { name: /15, \d{4}/ }))
+    expect(changes).toHaveLength(1)
+    expect(changes[0]).toMatch(/T00:00:00\+08:00$/)
+    act(() => view.unmount())
+  })
+
   it('renders ColorField deterministically on the server', () => {
     const html = renderToString(
       createElement(ColorField, {

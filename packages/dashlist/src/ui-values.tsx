@@ -8,7 +8,12 @@ import {
   Dialog,
   DialogTrigger,
   Label,
-  DateField as AriaDateField,
+  DatePicker as AriaDatePicker,
+  Calendar,
+  RangeCalendar,
+  CalendarGrid,
+  CalendarCell,
+  Heading,
   DateInput,
   DateRangePicker as AriaDateRangePicker,
   DateSegment,
@@ -29,6 +34,8 @@ import { parseColor } from 'react-aria-components'
 import type { Color } from 'react-aria-components'
 import {
   parseAbsolute,
+  today,
+  toZoned,
   parseDate,
   parseTime,
   type CalendarDate,
@@ -416,6 +423,72 @@ export function Status<T extends string | number>({ value, options, ...props }: 
   )
 }
 
+function CalendarButton({
+  disabled,
+  range = false,
+}: {
+  readonly disabled?: boolean
+  readonly range?: boolean
+}) {
+  return (
+    <Button
+      className="picodash-dashlist-calendar-button"
+      aria-label={range ? 'Choose date range' : 'Choose date'}
+      isDisabled={disabled}
+      variant="ghost"
+      size="sm"
+      iconOnly
+    >
+      <svg
+        aria-hidden="true"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2" />
+      </svg>
+    </Button>
+  )
+}
+
+function CalendarPopover({ range = false }: { readonly range?: boolean }) {
+  const content = (
+    <>
+      <header>
+        <Button slot="previous" variant="ghost" size="sm" iconOnly>
+          ‹
+        </Button>
+        <Heading />
+        <Button slot="next" variant="ghost" size="sm" iconOnly>
+          ›
+        </Button>
+      </header>
+      <CalendarGrid>{(date) => <CalendarCell date={date} />}</CalendarGrid>
+    </>
+  )
+  return (
+    <Popover className="picodash-dashlist-calendar-popover" placement="bottom end">
+      <Dialog aria-label={range ? 'Choose date range' : 'Choose date'}>
+        {range ? (
+          <RangeCalendar className="picodash-dashlist-calendar" autoFocus>
+            {content}
+          </RangeCalendar>
+        ) : (
+          <Calendar className="picodash-dashlist-calendar" autoFocus>
+            {content}
+          </Calendar>
+        )}
+      </Dialog>
+    </Popover>
+  )
+}
+
 export type DateFieldProps = DashlistControlProps & {
   readonly value: string | null
   readonly onChange: (value: string | null) => void
@@ -444,7 +517,7 @@ export function DateField({
 
   return localize(
     locale,
-    <AriaDateField<CalendarDate>
+    <AriaDatePicker<CalendarDate>
       className={composeControlClassName('picodash-dashlist-date-field', props.className)}
       value={dateValue(value)}
       onChange={(next) => onChange(next ? next.toString() : null)}
@@ -456,8 +529,12 @@ export function DateField({
       isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       {...commonAriaProps(props)}
     >
-      <DateInput data-picodash-date-input>{segmentInput}</DateInput>
-    </AriaDateField>,
+      <Group data-picodash-date-picker-input>
+        <DateInput data-picodash-date-input>{segmentInput}</DateInput>
+        <CalendarButton disabled={props.disabled || props.readOnly} />
+      </Group>
+      <CalendarPopover />
+    </AriaDatePicker>,
   )
 }
 
@@ -542,9 +619,10 @@ export function DateTimeField({
 
   return localize(
     locale,
-    <AriaDateField<ZonedDateTime>
+    <AriaDatePicker<ZonedDateTime>
       className={composeControlClassName('picodash-dashlist-date-time-field', props.className)}
       value={dateTimeValue(value, timeZone)}
+      placeholderValue={toZoned(today(timeZone), timeZone)}
       onChange={(next) => onChange(next ? dateTimeString(next) : null)}
       minValue={parsedMin}
       maxValue={parsedMax}
@@ -555,8 +633,12 @@ export function DateTimeField({
       isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       {...commonAriaProps(props)}
     >
-      <DateInput data-picodash-date-input>{segmentInput}</DateInput>
-    </AriaDateField>,
+      <Group data-picodash-date-picker-input>
+        <DateInput data-picodash-date-input>{segmentInput}</DateInput>
+        <CalendarButton disabled={props.disabled || props.readOnly} />
+      </Group>
+      <CalendarPopover />
+    </AriaDatePicker>,
   )
 }
 
@@ -604,7 +686,9 @@ export function DateRangeField({
             {segmentInput}
           </DateInput>
         </div>
+        <CalendarButton disabled={props.disabled || props.readOnly} range />
       </Group>
+      <CalendarPopover range />
     </AriaDateRangePicker>,
   )
 }

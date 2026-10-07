@@ -420,3 +420,18 @@ swatch focus, and read-only mode prevents opening. The added component test owns
 editing and disabled/read-only protection. Physical touch, all custom themes and the full Lab E2E
 suite remain untested in this pass. Calendar popovers and the TanStack Charts 1.0 migration were
 researched, not implemented.
+
+### Calm selection and calendar convenience, 2026-10-07
+
+Dashlet surfaces now reach the Lab Stack edges. Group headers give grip, disclosure, and label
+separate centered tracks; the grip aligns with child grips. Selected choices retain non-color
+indicators with a subdued fill. Open popups suppress the parent row focus surface, while keyboard
+option focus remains visible. Date, DateTime, and DateRange add optional React Aria calendars.
+
+All 258 DashList tests passed, including calendar serialization, complete range commits,
+DateTime time/zone preservation, empty DateTime initialization, and locked date triggers. Package
+format/lint/type checks and the Lab production build passed. Live desktop-browser checks verified
+320px Stack/row widths, matching group/child grip positions and centered header targets, direct
+segment editing, calendar selection, Escape focus restoration, read-only triggers, and keyboard
+MultiSelect focus. The calendar fits a 320px viewport without horizontal document overflow.
+Physical touch, custom-theme qualification, and the full Lab E2E suite were not run in this pass.

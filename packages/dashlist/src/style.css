@@ -248,8 +248,8 @@
 
 .picodash-dashlist-checkbox[data-selected] [data-picodash-dashlist-checkbox-box],
 .picodash-dashlist-choice[data-selected] {
-  border-color: var(--picodash-color-accent);
-  background: color-mix(in oklab, var(--picodash-color-accent) 18%, transparent);
+  border-color: transparent;
+  background: color-mix(in oklab, var(--picodash-color-surface-muted) 35%, transparent);
 }
 
 .picodash-dashlist-checkbox[data-selected] [data-picodash-dashlist-checkbox-box],
@@ -407,13 +407,17 @@
   visibility: visible;
 }
 
-.picodash-dashlist-listbox [role='option'][data-focused] {
+.picodash-dashlist-listbox [role='option'][data-focus-visible] {
   outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
   outline-offset: calc(-1 * var(--picodash-border-width-thin));
 }
 
 .picodash-dashlist-listbox [role='option'][data-selected] {
-  background: color-mix(in oklab, var(--picodash-color-accent) 18%, transparent);
+  background: transparent;
+}
+
+.picodash-dashlist-listbox [role='option'][data-focused] {
+  background: var(--picodash-color-surface-muted);
 }
 
 .picodash-dashlist-tag-group {
@@ -1109,8 +1113,8 @@
 }
 
 .picodash-dashlist-group-item > [data-picodash-dashgroup] > [data-picodash-dashgroup-list] {
-  margin-inline-start: var(--_picodash-dashlist-nested-inset);
-  padding: 0 var(--picodash-space-0-5) var(--picodash-space-0-5);
+  margin-inline-start: 0;
+  padding: 0 0 var(--picodash-space-0-5);
 }
 
 [data-picodash-dashgroup-list][data-collapsed='true'] {
@@ -1591,4 +1595,160 @@
 }
 .picodash-dashlist-color-slider .picodash-dashlist-color-thumb {
   top: 50%;
+}
+
+/* The active popup owns focus; its parent row need not advertise a second active surface. */
+[data-picodash-dashlet-shell]:has([aria-expanded='true']) {
+  outline: none;
+  background: transparent;
+}
+[data-picodash-dashlet-shell] {
+  border-radius: 0;
+}
+
+/* Group controls occupy separate tracks; the grip shares the child rows' first track. */
+.picodash-dashlist-group-item > [data-picodash-dashgroup] > [data-slot='dash-header'] {
+  grid-template-columns: var(--_picodash-dashlist-reorder-track) minmax(0, 1fr);
+  column-gap: var(--picodash-space-1);
+  align-items: center;
+}
+.picodash-dashlist-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']:has([data-picodash-reorder-handle]) {
+  grid-template-columns: var(--_picodash-dashlist-reorder-track) var(
+      --_picodash-dashlist-first-row-height
+    ) minmax(0, 1fr);
+}
+.picodash-dashlist-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading'] {
+  display: contents;
+}
+.picodash-dashlist-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-picodash-reorder-handle] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  grid-column: 1;
+  grid-row: 1;
+}
+.picodash-dashlist-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading']
+  > button:not([data-picodash-reorder-handle]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  block-size: var(--_picodash-dashlist-first-row-height);
+  grid-column: 1;
+  grid-row: 1;
+}
+.picodash-dashlist-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']:has([data-picodash-reorder-handle])
+  [data-slot='dash-header-leading']
+  > button:not([data-picodash-reorder-handle]) {
+  grid-column: 2;
+}
+.picodash-dashlist-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']:has([data-picodash-reorder-handle])
+  [data-slot='dash-header-title'] {
+  grid-column: 3;
+}
+
+[data-picodash-date-picker-input] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.picodash-dashlist-date-field,
+.picodash-dashlist-date-time-field {
+  padding-block: 0;
+  padding-inline-end: 0;
+}
+.picodash-dashlist-calendar-button {
+  padding: var(--picodash-space-1);
+  min-inline-size: var(--picodash-control-height-md);
+  min-block-size: var(--picodash-control-height-md);
+  border: 0;
+  background: transparent;
+  color: var(--picodash-color-text-muted);
+}
+.picodash-dashlist-date-range-field > [role='group'] {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+[data-picodash-date-range-endpoint] {
+  grid-column: 1;
+}
+.picodash-dashlist-date-range-field .picodash-dashlist-calendar-button {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  block-size: auto;
+  align-self: stretch;
+  background: var(--picodash-color-surface-muted);
+}
+.picodash-dashlist-calendar-popover {
+  padding: var(--picodash-space-2);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-radius: var(--picodash-radius-surface);
+  background: var(--picodash-color-surface-raised);
+  color: var(--picodash-color-text);
+  box-shadow: var(--picodash-shadow-elevated);
+}
+.picodash-dashlist-calendar header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--picodash-space-2);
+  margin-block-end: var(--picodash-space-2);
+}
+.picodash-dashlist-calendar .react-aria-Heading {
+  margin: 0;
+  font-size: var(--picodash-font-size-md);
+}
+.picodash-dashlist-calendar table {
+  border-spacing: 0;
+}
+.picodash-dashlist-calendar th {
+  font-size: var(--picodash-font-size-sm);
+  color: var(--picodash-color-text-muted);
+  font-weight: normal;
+}
+.picodash-dashlist-calendar td {
+  padding: 0;
+}
+.picodash-dashlist-calendar .react-aria-CalendarCell {
+  display: grid;
+  place-items: center;
+  inline-size: clamp(32px, calc((100vw - 48px) / 7), 40px);
+  block-size: 36px;
+  border-radius: var(--picodash-radius-control);
+  font-size: var(--picodash-font-size-md);
+  cursor: pointer;
+}
+.picodash-dashlist-calendar .react-aria-CalendarCell[data-selected] {
+  background: color-mix(in oklab, var(--picodash-color-accent) 20%, transparent);
+}
+.picodash-dashlist-calendar .react-aria-CalendarCell[data-selection-start],
+.picodash-dashlist-calendar .react-aria-CalendarCell[data-selection-end] {
+  background: var(--picodash-color-accent);
+  color: var(--picodash-color-accent-contrast, white);
+}
+.picodash-dashlist-calendar .react-aria-CalendarCell[data-focus-visible] {
+  outline: 2px solid var(--picodash-color-focus);
+  outline-offset: -2px;
+}
+.picodash-dashlist-calendar .react-aria-CalendarCell[data-outside-month] {
+  visibility: hidden;
+}
+.picodash-dashlist-calendar .react-aria-CalendarCell:is([data-disabled], [data-unavailable]) {
+  color: var(--picodash-color-text-muted);
+  opacity: var(--picodash-opacity-disabled);
+  cursor: default;
 }

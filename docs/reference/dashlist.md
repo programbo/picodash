@@ -934,6 +934,12 @@ nested `I18nProvider`; omission renders no local provider and inherits the neare
 Locale changes segment order, direction, localized text, and number presentation. It is never stored
 in Nexus, persistence, or canonical JSON, and does not alter `timeZone`.
 
+Date, DateTime, and DateRange include calendar icon buttons beside their editable segments.
+Opening a calendar is optional; direct keyboard input remains available. DateTime calendar edits
+preserve the existing time and zone; an empty value starts at midnight in the declared zone.
+DateRange commits only a complete pair of endpoints. Disabled and read-only fields disable the
+calendar trigger. React Aria owns calendar selection, dismissal, and focus restoration.
+
 Configuration failures are developer errors: structural and relational validation throws `TypeError`
 (duplicate or non-finite choice values, missing text alternatives for non-text labels, invalid
 bounds, non-positive steps, invalid temporal bounds, invalid locale or time zone, and unsupported
