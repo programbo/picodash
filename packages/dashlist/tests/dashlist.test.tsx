@@ -803,6 +803,11 @@ describe('@picodash/dashlist alpha shell', () => {
       const help = renderer.root.findByProps({
         'aria-label': `Help for ${policy} Dashlet`,
       }).element
+      expect(help.textContent).toBe(`${policy} Dashlet`)
+      expect(help.closest('[data-picodash-dashlet-label]')).toBeTruthy()
+      const label = help.querySelector('span[id]')
+      expect(label?.textContent).toBe(`${policy} Dashlet`)
+      expect(label?.hasAttribute('aria-label')).toBe(false)
       expect(help.hasAttribute('disabled')).toBe(false)
       act(() => help.focus())
       act(() => help.click())

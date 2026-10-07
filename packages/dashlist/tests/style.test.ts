@@ -184,13 +184,9 @@ describe('DashList stylesheet contract', () => {
     expect(css).toMatch(
       /\[data-picodash-dashlet-shell\]:focus-visible\s*\{[^}]*outline:\s*calc\(2 \* var\(--picodash-border-width-thin\)\) solid var\(--picodash-color-focus\);[^}]*outline-offset:\s*calc\(-2 \* var\(--picodash-border-width-thin\)\);/s,
     )
-    expect(css).toMatch(
-      /\[data-picodash-dashlet-shell\]:has\(> \[data-picodash-dashlet-help\]\)[^{]*> \[data-picodash-dashlet-label\]\s*\{[^}]*padding-inline-end:\s*calc\(var\(--picodash-control-height-sm\) \+ var\(--picodash-space-1\)\);/s,
-    )
     const helpRule = css.match(/\[data-picodash-dashlet-help\]\s*\{[^}]+\}/s)?.[0]
-    expect(helpRule).toMatch(
-      /grid-column:\s*2;[^}]*grid-row:\s*1;[^}]*align-self:\s*center;[^}]*justify-self:\s*end;/s,
-    )
+    expect(helpRule).toMatch(/padding:\s*0;/)
+    expect(helpRule).toMatch(/text-decoration:\s*underline dotted;/)
     expect(helpRule).not.toMatch(
       /(?:^|[;{]\s*)(?:left|right|margin-left|margin-right|padding-left|padding-right)\s*:/,
     )

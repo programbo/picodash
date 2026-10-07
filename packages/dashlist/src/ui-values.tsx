@@ -448,7 +448,7 @@ export function DateField({
       isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       {...commonAriaProps(props)}
     >
-      <DateInput>{segmentInput}</DateInput>
+      <DateInput data-picodash-date-input>{segmentInput}</DateInput>
     </AriaDateField>,
   )
 }
@@ -493,7 +493,7 @@ export function TimeField({
       isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       {...commonAriaProps(props)}
     >
-      <DateInput>{segmentInput}</DateInput>
+      <DateInput data-picodash-date-input>{segmentInput}</DateInput>
     </AriaTimeField>,
   )
 }
@@ -547,7 +547,7 @@ export function DateTimeField({
       isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
       {...commonAriaProps(props)}
     >
-      <DateInput>{segmentInput}</DateInput>
+      <DateInput data-picodash-date-input>{segmentInput}</DateInput>
     </AriaDateField>,
   )
 }
@@ -580,8 +580,22 @@ export function DateRangeField({
       {...commonAriaProps(props)}
     >
       <Group>
-        <DateInput slot="start">{segmentInput}</DateInput>
-        <DateInput slot="end">{segmentInput}</DateInput>
+        <div data-picodash-date-range-endpoint>
+          <span aria-hidden="true" data-picodash-date-range-caption>
+            From
+          </span>
+          <DateInput slot="start" data-picodash-date-input>
+            {segmentInput}
+          </DateInput>
+        </div>
+        <div data-picodash-date-range-endpoint>
+          <span aria-hidden="true" data-picodash-date-range-caption>
+            To
+          </span>
+          <DateInput slot="end" data-picodash-date-input>
+            {segmentInput}
+          </DateInput>
+        </div>
       </Group>
     </AriaDateRangePicker>,
   )

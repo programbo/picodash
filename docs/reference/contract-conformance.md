@@ -385,3 +385,20 @@ Panel composition and the DashStack rename remain later work.
 The follow-up Lab width trial caps the gallery content at 320px, shrinking further for narrow
 viewports. The production build passed; a live desktop measurement confirmed the 320px content
 width without horizontal page overflow.
+
+### Dashlet control cleanup, 2026-10-07
+
+The next owner-directed pass replaces the separate help icon with an underlined label trigger,
+removes excess slider-output and row padding, aligns grips and labels with the first control row,
+stretches radio options, joins segmented choices horizontally, and gives temporal fields consistent
+widths. DateRange now presents separate From and To rows. Focus within a Dashlet outlines the full
+row; the Color input no longer adds a narrower duplicate ring. Hidden React Aria form companions
+and collection templates no longer reserve a visible control column.
+
+Verification: all 254 DashList tests and the Lab production build passed. Live browser inspection
+confirmed the 320px content cap, no document overflow at 320px and 390px viewports, matching Date
+and Time widths, first-row MultiSelect alignment, full-row Color focus, help dismissal/focus return,
+and keyboard DateRange editing. The Number control retains its own accessible name independently
+of the help trigger. Date/time literal spacing survives wrapping. This is desktop-browser evidence;
+physical-phone behavior, custom-theme qualification, and the full Lab E2E suite were not checked in
+this pass.

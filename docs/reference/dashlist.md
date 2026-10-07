@@ -597,8 +597,9 @@ it selects.
 > `apps/lab/tests/contract-lab.spec.ts` covers the public help popover and focus return in a real
 > browser. The broader validation and compound-description matrix remains Partial.
 
-The visible Dashlet `label` is neutral shell text with a stable ID. It is not automatically an HTML
-`label` around or pointing to arbitrary content. Actual controls reference that ID through their own
+The visible Dashlet `label` lives in a neutral shell span with a stable ID. When `help` is supplied,
+its text becomes a dotted-underlined help button. It is not automatically an HTML `label` around
+or pointing to arbitrary content. Actual controls reference that ID through their own
 accessible-name relationship. Compound Dashlets give every input its own accessible label; the
 Dashlet label names the composition rather than pretending to label each field.
 

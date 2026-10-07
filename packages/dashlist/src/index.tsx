@@ -1078,23 +1078,20 @@ function assignForwardedRef<T>(ref: ForwardedRef<T>, value: T | null): void | ((
 
 function DashletHelp({
   accessibleName,
+  label,
+  labelId,
   children,
 }: {
   readonly accessibleName: string
+  readonly label: ReactNode
+  readonly labelId: string
   readonly children: ReactNode
 }) {
   const name = `Help for ${accessibleName}`
   return (
     <DialogTrigger>
-      <Button
-        aria-label={name}
-        data-picodash-dashlet-help
-        iconOnly
-        size="sm"
-        type="button"
-        variant="ghost"
-      >
-        ?
+      <Button aria-label={name} data-picodash-dashlet-help size="sm" type="button" variant="ghost">
+        <span id={labelId}>{label}</span>
       </Button>
       <Popover className="picodash-dashlet-help-popover" placement="bottom start">
         <Dialog aria-label={name}>{children}</Dialog>
@@ -1249,15 +1246,22 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
               data-read-only={readOnly ? 'true' : 'false'}
               data-picodash-dashlet-shell
             >
-              {label !== undefined ? (
-                <span id={labelId} data-picodash-dashlet-label>
-                  {label}
+              {label !== undefined || help !== undefined ? (
+                <span id={help === undefined ? labelId : undefined} data-picodash-dashlet-label>
+                  {help !== undefined ? (
+                    <DashletHelp
+                      accessibleName={resolvedName}
+                      label={label ?? resolvedName}
+                      labelId={labelId}
+                    >
+                      {help}
+                    </DashletHelp>
+                  ) : (
+                    label
+                  )}
                 </span>
               ) : null}
               {reorderHandle ?? <span aria-hidden="true" data-picodash-dashlet-decoration />}
-              {help !== undefined ? (
-                <DashletHelp accessibleName={resolvedName}>{help}</DashletHelp>
-              ) : null}
               <div ref={contentRef} data-picodash-dashlet-content>
                 {contentChildren}
               </div>

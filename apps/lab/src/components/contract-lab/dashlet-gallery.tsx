@@ -310,7 +310,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
           {...props}
           field={nexus.fields.radioGroup}
           options={['Option A', 'Option B', 'Option C']}
-          orientation="horizontal"
+          orientation="vertical"
         />
       ),
     },
@@ -514,7 +514,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
               </Button>
             </div>
           </header>
-          <div className="rounded-xl bg-(--picodash-color-surface) p-2 sm:p-3">
+          <div className="rounded-xl bg-(--picodash-color-surface) px-1 py-2">
             <DashList
               nexus={nexus}
               id="gallery-controls"
