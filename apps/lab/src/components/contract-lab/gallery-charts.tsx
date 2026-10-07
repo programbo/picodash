@@ -23,7 +23,7 @@ export function GalleryCharts<Fields extends PicodashFieldDefinitions>({
   readonly nexus: RootNexus<Fields>
 }) {
   return (
-    <section aria-label="Experimental charts" className="min-w-0 px-3 py-5 sm:px-5">
+    <section aria-label="Experimental charts" className="min-w-0 py-5">
       <h2 className="mb-3 font-mono text-sm font-medium">Charts</h2>
       <p className="mb-3 text-sm text-(--picodash-color-text-muted)">Experimental · sample data</p>
       <DashList nexus={nexus} id="gallery-charts" aria-label="Chart variations" reorderable={false}>

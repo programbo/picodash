@@ -1,6 +1,13 @@
 'use client'
 
 import {
+  ColorArea,
+  ColorSlider,
+  ColorSwatch,
+  ColorThumb,
+  Dialog,
+  DialogTrigger,
+  Label,
   DateField as AriaDateField,
   DateInput,
   DateRangePicker as AriaDateRangePicker,
@@ -17,6 +24,7 @@ import {
   TextField as AriaTextField,
   I18nProvider,
 } from 'react-aria-components'
+import { Button, Popover } from '@picodash/ui'
 import { parseColor } from 'react-aria-components'
 import type { Color } from 'react-aria-components'
 import {
@@ -629,6 +637,77 @@ function controlledColorDraft(value: string | null, format: ColorFormat): ColorD
   return { value, format, text: controlledColorText(value, format), pendingEcho: null }
 }
 
+function ColorPickerButton({
+  value,
+  onChange,
+  format = 'hex',
+  disabled,
+  readOnly,
+}: ColorFieldProps) {
+  let color: Color | undefined
+  try {
+    color = parseColor(value ?? '#000000').toFormat('hsba')
+  } catch {
+    // Preserve invalid external values in the text field rather than inventing a replacement.
+  }
+  const editable = !disabled && !readOnly && color !== undefined
+  const channels = ['hexa', 'rgba', 'hsla', 'hsba'].includes(format)
+    ? (['hue', 'alpha'] as const)
+    : (['hue'] as const)
+  function changeColor(next: Color) {
+    if (editable) onChange(serializeColor(next, format))
+  }
+  return (
+    <DialogTrigger>
+      <Button
+        aria-label="Choose color"
+        className="picodash-dashlist-color-swatch-button"
+        isDisabled={!editable}
+        size="sm"
+        variant="ghost"
+      >
+        <ColorSwatch
+          color={value === null ? '#00000000' : color}
+          className="picodash-dashlist-color-swatch"
+        />
+      </Button>
+      <Popover className="picodash-dashlist-color-popover" placement="bottom start">
+        <Dialog aria-label="Choose color" className="picodash-dashlist-color-picker">
+          <ColorArea
+            aria-label="Saturation and brightness"
+            className="picodash-dashlist-color-area"
+            value={color}
+            colorSpace="hsb"
+            xChannel="saturation"
+            yChannel="brightness"
+            onChange={changeColor}
+            isDisabled={!editable}
+          >
+            <ColorThumb className="picodash-dashlist-color-thumb" />
+          </ColorArea>
+          {channels.map((channel) => (
+            <ColorSlider
+              key={channel}
+              channel={channel}
+              colorSpace="hsb"
+              value={color}
+              onChange={changeColor}
+              isDisabled={!editable}
+              className="picodash-dashlist-color-slider"
+            >
+              <Label>{channel === 'alpha' ? 'Opacity' : 'Hue'}</Label>
+              <SliderOutput />
+              <SliderTrack>
+                <ColorThumb className="picodash-dashlist-color-thumb" />
+              </SliderTrack>
+            </ColorSlider>
+          ))}
+        </Dialog>
+      </Popover>
+    </DialogTrigger>
+  )
+}
+
 export function ColorField({ value, onChange, format = 'hex', ...props }: ColorFieldProps) {
   validateSupportedColorFormat(format)
   const inputRef = usePrimaryControlRef<HTMLInputElement>()
@@ -681,6 +760,13 @@ export function ColorField({ value, onChange, format = 'hex', ...props }: ColorF
       aria-invalid={props['aria-invalid']}
       aria-errormessage={props['aria-errormessage']}
     >
+      <ColorPickerButton
+        value={value}
+        onChange={onChange}
+        format={format}
+        disabled={props.disabled}
+        readOnly={props.readOnly}
+      />
       <Input
         ref={inputRef}
         id={props.id}

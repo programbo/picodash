@@ -402,3 +402,21 @@ and keyboard DateRange editing. The Number control retains its own accessible na
 of the help trigger. Date/time literal spacing survives wrapping. This is desktop-browser evidence;
 physical-phone behavior, custom-theme qualification, and the full Lab E2E suite were not checked in
 this pass.
+
+### Visual controls and grouped dates, 2026-10-07
+
+The Lab now groups its four date/time examples in a reorderable Date & time group, demonstrates
+Number unit formatting as Distance, and omits the standalone Checkbox example. Checkbox remains
+available in the public component inventory. Search and choice disclosure actions share the
+filled input surface; tag removal targets are 24px with 44px coarse-pointer targets. Block labels
+span the three content columns and chart defaults are 144px/48px for chart/sparkline.
+
+All 256 DashList tests and the Lab production build passed. Browser evidence verified the grip
+centre against the midpoint between the Stack edge and label, identical Display/label line heights
+and vertical centres, date-group keyboard reorder/cancel, 24px tag removal and re-selection, unit
+formatting, chart geometry, and no horizontal overflow at a 320px viewport. The colour popover fits
+that viewport; hue editing preserves alpha, opacity editing updates the field, Escape restores
+swatch focus, and read-only mode prevents opening. The added component test owns visual colour
+editing and disabled/read-only protection. Physical touch, all custom themes and the full Lab E2E
+suite remain untested in this pass. Calendar popovers and the TanStack Charts 1.0 migration were
+researched, not implemented.

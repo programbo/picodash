@@ -1998,3 +1998,15 @@ still produce:
 - [Nexus decisions](nexus-contract-decisions.md)
 - [Component catalog target reference](catalog.md)
 - [Roadmap](../ROADMAP.md)
+
+### Compact control refinements, 2026-10-07
+
+The Color control now retains its editable text alongside a swatch trigger. Its React Aria popover
+provides saturation/brightness, hue, and opacity for formats that preserve alpha. Read-only and
+disabled fields disable visual editing as well as text changes. Opening a picker for an empty value
+does not write a default color; only an explicit edit changes the bound value.
+
+Default Block labels span columns two through four. Experimental ChartDashlet uses a 144px default
+height and SparklineDashlet 48px; explicit `chartProps.height` or `chartProps.aspectRatio` remains
+application-owned. The pinned chart dependency is still 0.12.0; the upstream 1.0 release does not
+itself upgrade or qualify Picodash's experimental integration.

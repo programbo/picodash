@@ -2,7 +2,7 @@
 import { act, createElement, StrictMode, useState, type ReactElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { describe, expect, it } from 'vite-plus/test'
-import { fireEvent } from '@testing-library/react'
+import { fireEvent, getByRole } from '@testing-library/react'
 import { createPicodashNexus } from '@picodash/nexus'
 import { createDomTestRenderer, type DomTestRenderer } from '../../../test/dom-renderer.ts'
 import {
@@ -31,7 +31,7 @@ import {
   StatusDashlet,
   TimeDashlet,
 } from '../src/index.tsx'
-import { I18nProvider } from 'react-aria-components'
+import { I18nProvider, parseColor } from 'react-aria-components'
 
 function render(element: ReactElement): DomTestRenderer {
   let renderer!: DomTestRenderer
@@ -365,6 +365,47 @@ describe('value controls', () => {
     fireEvent.change(input(), { target: { value: '' } })
     expect(changes).toEqual([null])
     act(() => view.unmount())
+  })
+
+  it('edits color visually without losing alpha and locks the picker for read-only or disabled fields', () => {
+    const changes: Array<string | null> = []
+    const view = render(
+      createElement(ControlledColorFixture, {
+        initialValue: 'rgba(125, 211, 252, 0.5)',
+        format: 'rgba',
+        changes,
+      }),
+    )
+    const trigger = getByRole(view.root.element, 'button', { name: 'Choose color' })
+    fireEvent.click(trigger)
+    const hue = getByRole(document.body, 'slider', { name: 'Hue' })
+    fireEvent.keyDown(hue, { key: 'ArrowRight' })
+    fireEvent.keyUp(hue, { key: 'ArrowRight' })
+    expect(changes.length).toBeGreaterThan(0)
+    const next = changes.at(-1)
+    expect(typeof next).toBe('string')
+    if (typeof next !== 'string') throw new Error('Expected a color edit')
+    expect(parseColor(next).getChannelValue('alpha')).toBe(0.5)
+    expect(next).not.toBe('rgba(125, 211, 252, 0.5)')
+    act(() => view.unmount())
+
+    for (const policy of ['disabled', 'readOnly'] as const) {
+      const locked = render(
+        createElement(ColorField, {
+          value: '#336699',
+          format: 'hex',
+          onChange: () => {
+            throw new Error('Locked edit')
+          },
+          'aria-label': 'Locked color',
+          [policy]: true,
+        }),
+      )
+      expect(
+        getByRole(locked.root.element, 'button', { name: 'Choose color' }).hasAttribute('disabled'),
+      ).toBe(true)
+      act(() => locked.unmount())
+    }
   })
 
   it('renders ColorField deterministically on the server', () => {

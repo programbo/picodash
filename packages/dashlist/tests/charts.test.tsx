@@ -7,9 +7,16 @@ import { createDomTestRenderer, type DomTestRenderer } from '../../../test/dom-r
 import { createPicodashNexus } from '@picodash/nexus'
 
 vi.mock('@tanstack/charts/react', () => ({
-  Chart: (props: { ariaLabel: string; definition: unknown }) =>
+  Chart: (props: {
+    ariaLabel: string
+    definition: unknown
+    height?: number
+    aspectRatio?: number
+  }) =>
     createElement('svg', {
       role: 'img',
+      'data-height': props.height,
+      'data-aspect-ratio': props.aspectRatio,
       'aria-label': props.ariaLabel,
       'data-chart-definition': props.definition ? 'present' : 'empty',
     }),
@@ -62,6 +69,29 @@ describe('experimental chart dashlets', () => {
     expect(view.root.findByProps({ 'data-picodash-dashlet': 'chart' })).toBeDefined()
     act(() => view.unmount())
     setup.nexus.destroy()
+  })
+
+  it('uses compact chart sizing while preserving caller height and aspect ratio', () => {
+    for (const [chartProps, expectedHeight] of [
+      [undefined, '144'],
+      [{ height: 96 }, '96'],
+      [{ aspectRatio: 2 }, null],
+    ] as const) {
+      const setup = withList(
+        createElement(ChartDashlet, {
+          id: 'sized',
+          label: 'Sized',
+          definition: definition(),
+          chartProps,
+        }),
+      )
+      const view = render(setup.element)
+      expect(view.root.element.querySelector('[role="img"]')?.getAttribute('data-height')).toBe(
+        expectedHeight,
+      )
+      act(() => view.unmount())
+      setup.nexus.destroy()
+    }
   })
 
   it('forwards explicit aria-labels for non-text ChartDashlet labels', () => {

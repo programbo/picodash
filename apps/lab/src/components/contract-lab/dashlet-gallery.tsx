@@ -22,7 +22,6 @@ import {
   ProgressDashlet,
   StatusDashlet,
   ColorDashlet,
-  CheckboxDashlet,
   RadioGroupDashlet,
   ComboboxDashlet,
   SelectDashlet,
@@ -42,6 +41,13 @@ import {
   styleLabBridgeDisclosure,
   styleLabBridgePermissions,
 } from './style-lab-model'
+
+const temporalSamples = new Set([
+  'DateDashlet',
+  'TimeDashlet',
+  'DateTimeDashlet',
+  'DateRangeDashlet',
+])
 
 type SampleProps = {
   readonly id: string
@@ -143,6 +149,21 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
     },
     {
       name: 'NumberDashlet',
+      additional: (
+        <NumberDashlet
+          id="number-unit"
+          label="Distance"
+          field={nexus.fields.number}
+          readOnly={readOnly}
+          disabled={disabled}
+          formatOptions={{
+            style: 'unit',
+            unit: 'meter',
+            unitDisplay: 'short',
+            maximumFractionDigits: 2,
+          }}
+        />
+      ),
       readout: false,
       render: (props: SampleProps) => (
         <NumberDashlet
@@ -281,13 +302,6 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
       readout: false,
       render: (props: SampleProps) => (
         <ColorDashlet key={props.id} {...props} field={nexus.fields.color} format="rgba" />
-      ),
-    },
-    {
-      name: 'CheckboxDashlet',
-      readout: false,
-      render: (props: SampleProps) => (
-        <CheckboxDashlet key={props.id} {...props} field={nexus.fields.checkbox} />
       ),
     },
     {
@@ -521,15 +535,30 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
               aria-label="Dashlet gallery"
               reorderable={reorderable}
             >
-              {samples.map((sample) =>
-                sample.render({
-                  id: sample.name,
-                  label: sample.name.replace('Dashlet', ''),
-                  layout: 'inline',
-                  readOnly,
-                  disabled,
-                }),
-              )}
+              {samples
+                .filter((sample) => !temporalSamples.has(sample.name))
+                .map((sample) =>
+                  sample.render({
+                    id: sample.name,
+                    label: sample.name.replace('Dashlet', ''),
+                    layout: 'inline',
+                    readOnly,
+                    disabled,
+                  }),
+                )}
+              <DashGroup id="date-time" label="Date & time" readOnly={readOnly} disabled={disabled}>
+                {samples
+                  .filter((sample) => temporalSamples.has(sample.name))
+                  .map((sample) =>
+                    sample.render({
+                      id: sample.name,
+                      label: sample.name.replace('Dashlet', ''),
+                      layout: 'inline',
+                      readOnly,
+                      disabled,
+                    }),
+                  )}
+              </DashGroup>
               <DashGroup
                 id="additional"
                 label="More examples"

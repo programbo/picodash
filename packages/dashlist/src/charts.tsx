@@ -70,7 +70,12 @@ export function ChartDashlet({
       description={description}
       layout="block"
     >
-      <Chart {...chartProps} ariaLabel={resolvedAriaLabel} definition={definition} />
+      <Chart
+        height={chartProps?.aspectRatio === undefined ? 144 : undefined}
+        {...chartProps}
+        ariaLabel={resolvedAriaLabel}
+        definition={definition}
+      />
     </Dashlet>
   )
 }
@@ -223,7 +228,7 @@ export function SparklineDashlet({
       label={label}
       description={description}
       definition={definition}
-      chartProps={chartProps}
+      chartProps={{ height: chartProps?.aspectRatio === undefined ? 48 : undefined, ...chartProps }}
       data-picodash-sparkline-samples={history.length}
     />
   )
