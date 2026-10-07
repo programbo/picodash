@@ -330,6 +330,12 @@ describe('choice controls', () => {
     expect(checkboxMarkers).toHaveLength(4)
     expect(radioMarkers).toHaveLength(2)
     expect(segmentMarkers).toHaveLength(2)
+    const selectionPaint = view.root.element.querySelectorAll(
+      '[data-picodash-dashlist-segment-indicator]',
+    )
+    expect(selectionPaint).toHaveLength(1)
+    expect(selectionPaint[0]?.closest('[data-selected]')).not.toBeNull()
+    expect(selectionPaint[0]?.getAttribute('aria-hidden')).toBe('true')
     for (const marker of [...checkboxMarkers, ...radioMarkers, ...segmentMarkers]) {
       expect(marker.closest('[aria-hidden="true"]')).not.toBeNull()
       expect(marker.querySelector('button, input, a, [tabindex]')).toBeNull()

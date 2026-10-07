@@ -144,10 +144,32 @@
 }
 
 .picodash-dashlist-segmented [data-picodash-dashlist-segment][data-selected] {
-  background: color-mix(in oklab, var(--picodash-color-accent) 20%, transparent);
+  background: transparent;
   border-color: var(--picodash-color-accent);
   text-decoration: underline;
   text-underline-offset: 0.2em;
+}
+
+/* React Aria carries the selection paint between options; focus stays on the radio. */
+[data-picodash-dashlist-segment-indicator] {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: color-mix(in oklab, var(--picodash-color-accent) 20%, transparent);
+  translate: 0 0;
+  transition: translate var(--picodash-duration-fast) cubic-bezier(0.455, 0.03, 0.515, 0.955);
+}
+
+.picodash-dashlist-segmented:has([data-focus-visible]) [data-picodash-dashlist-segment-indicator] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-dashlist-segment-indicator] {
+    transition: none;
+  }
 }
 
 [data-picodash-dashlist-segment-marker] {

@@ -11,6 +11,7 @@ import {
   RadioGroup,
   Select as AriaSelect,
   SelectValue,
+  SelectionIndicator,
   Slider as AriaSlider,
   SliderOutput,
   SliderThumb,
@@ -484,9 +485,18 @@ function SegmentedChoice<T extends string | number>({ item }: { readonly item: O
       data-picodash-dashlist-segment
       aria-label={typeof item.label === 'string' ? undefined : item.textValue}
     >
-      <span aria-hidden="true" data-picodash-dashlist-segment-marker />
-      {item.icon}
-      {item.label}
+      {({ isSelected }) => (
+        <>
+          <SelectionIndicator
+            isSelected={isSelected}
+            aria-hidden="true"
+            data-picodash-dashlist-segment-indicator
+          />
+          <span aria-hidden="true" data-picodash-dashlist-segment-marker />
+          {item.icon}
+          {item.label}
+        </>
+      )}
     </Radio>
   )
 }

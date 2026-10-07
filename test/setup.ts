@@ -3,6 +3,14 @@
 ).IS_REACT_ACT_ENVIRONMENT = true
 
 if (typeof window !== 'undefined') {
+  // jsdom has no animation timeline. Rendered motion is verified in the Contract Lab.
+  if (typeof Element.prototype.getAnimations !== 'function') {
+    Object.defineProperty(Element.prototype, 'getAnimations', {
+      configurable: true,
+      value: () => [],
+    })
+  }
+
   if (typeof window.matchMedia !== 'function') {
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
