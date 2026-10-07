@@ -55,7 +55,7 @@ describe('DashList stylesheet contract', () => {
     )
     expect(css).toMatch(/\[data-picodash-dashlet-shell\]\s*\{[^}]*box-sizing:\s*border-box;/s)
     expect(css).toMatch(
-      /button:not\(\[data-picodash-reorder-handle\]\)::before\s*\{[^}]*border-right:[^}]*border-bottom:[^}]*transform:\s*rotate\(45deg\);/s,
+      /button:not\(\[data-picodash-reorder-handle\]\)::before\s*\{[^}]*mask:[^}]*transform:\s*rotate\(0deg\);/s,
     )
     expect(css).toMatch(
       /--_picodash-dashlist-row-hover:\s*color-mix\([^;]*var\(--picodash-color-surface-muted\)\s+65%,\s*transparent/s,

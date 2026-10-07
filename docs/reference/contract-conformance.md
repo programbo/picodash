@@ -435,3 +435,16 @@ format/lint/type checks and the Lab production build passed. Live desktop-browse
 segment editing, calendar selection, Escape focus restoration, read-only triggers, and keyboard
 MultiSelect focus. The calendar fits a 320px viewport without horizontal document overflow.
 Physical touch, custom-theme qualification, and the full Lab E2E suite were not run in this pass.
+
+### Group hover and balanced row insets, 2026-10-07
+
+Dashlet end padding follows the visible grip inset while row surfaces remain edge-to-edge.
+Grips dim at rest and brighten on hover, keyboard focus, or press; inert squares stay subdued.
+Group disclosure uses a centered rotating glyph. Hovering a group header extends its highlight
+through the children's first column. Select now aligns its value at the start and includes the
+same disclosure cue as Combobox and MultiSelect, without copying the listbox's selection marker.
+
+All 258 DashList tests, package checks, and the Lab production build passed. Browser inspection
+measured matching 9px grip/value insets, 0.45 resting/1 hovered grip opacity, 0.3 decoration opacity,
+centered header targets, a connected group hover rail, and working Select changes. The 320px
+viewport had no horizontal document overflow. Physical touch and custom themes were not checked.

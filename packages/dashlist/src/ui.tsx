@@ -451,6 +451,9 @@ export function Select<T extends string | number>({
               selectedItem === null && value !== undefined ? String(value) : defaultChildren
             }
           </SelectValue>
+          <span aria-hidden="true" data-picodash-select-disclosure>
+            ▾
+          </span>
         </Button>
         <ChoicePopover>
           <ListBox<OptionParts<T>> className="picodash-dashlist-listbox" items={parts}>

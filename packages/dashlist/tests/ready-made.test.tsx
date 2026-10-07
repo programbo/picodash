@@ -346,7 +346,7 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
     const unavailableChoice = view.root.element.querySelector<HTMLButtonElement>(
       '[data-picodash-dashlet="choice"] .picodash-dashlist-control',
     )
-    expect(unavailableChoice?.textContent).toBe('other')
+    expect(unavailableChoice?.querySelector('.react-aria-SelectValue')?.textContent).toBe('other')
     expect(unavailableChoice?.disabled).toBe(false)
     expect(view.root.element.querySelector('[aria-invalid]')).toBeNull()
     expect(view.root.element.querySelector('[role="status"]')?.textContent).toBe('')

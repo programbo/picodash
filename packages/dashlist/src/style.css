@@ -761,6 +761,11 @@
   border-inline-start-width: calc(2 * var(--picodash-border-width-thin));
   border-radius: var(--picodash-radius-control);
   padding: var(--picodash-space-1) var(--picodash-space-0-5);
+  /* Match the visible grip's inset, including the shell's end border. */
+  padding-inline-end: calc(
+    (var(--_picodash-dashlist-reorder-track) - 10px) / 2 + var(--picodash-space-0-5) -
+      var(--picodash-border-width-thin)
+  );
   outline: none;
   transition:
     background-color var(--picodash-duration-fast) var(--picodash-easing-out),
@@ -985,7 +990,7 @@
   color: transparent;
   cursor: grab;
   font-size: 0;
-  opacity: var(--picodash-opacity-muted);
+  opacity: 0.45;
   touch-action: none;
 }
 
@@ -1008,10 +1013,10 @@
   inline-size: 5px;
   block-size: 5px;
   background: var(--picodash-color-text-muted);
-  opacity: var(--picodash-opacity-muted);
+  opacity: 0.3;
 }
 
-[data-picodash-reorder-handle]:hover {
+[data-picodash-reorder-handle]:is(:hover, :focus-visible, :active) {
   background: var(--picodash-color-surface-muted);
   opacity: 1;
 }
@@ -1086,14 +1091,14 @@
   > [data-slot='dash-header']
   [data-slot='dash-header-leading']
   > button:not([data-picodash-reorder-handle])::before {
-  display: inline-block;
-  box-sizing: border-box;
-  inline-size: calc(var(--picodash-icon-sm) / 2);
-  block-size: calc(var(--picodash-icon-sm) / 2);
-  border-right: var(--picodash-border-width-thin) solid currentColor;
-  border-bottom: var(--picodash-border-width-thin) solid currentColor;
+  display: block;
+  inline-size: var(--picodash-icon-sm);
+  block-size: var(--picodash-icon-sm);
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
   content: '';
-  transform: rotate(45deg);
+  transform: rotate(0deg);
   transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
 }
 
@@ -1102,7 +1107,7 @@
   > [data-slot='dash-header']
   [data-slot='dash-header-leading']
   > button:not([data-picodash-reorder-handle])::before {
-  transform: rotate(-45deg);
+  transform: rotate(-90deg);
 }
 
 [data-picodash-dashgroup-label] {
@@ -1751,4 +1756,46 @@
   color: var(--picodash-color-text-muted);
   opacity: var(--picodash-opacity-disabled);
   cursor: default;
+}
+
+.picodash-dashlist-select > button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--picodash-control-height-md);
+  gap: 0;
+  padding-inline-end: 0;
+  text-align: start;
+}
+.picodash-dashlist-select .react-aria-SelectValue {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.picodash-dashlist-select .react-aria-SelectValue [data-picodash-dashlist-option-marker] {
+  display: none;
+}
+[data-picodash-select-disclosure] {
+  text-align: center;
+  color: var(--picodash-color-text-muted);
+}
+
+/* A header hover shows the extent of its group without lighting up every control. */
+.picodash-dashlist-group-item
+  > [data-picodash-dashgroup]:has(> [data-slot='dash-header']:hover)
+  > [data-picodash-dashgroup-list] {
+  background-image: linear-gradient(
+    to right,
+    var(--_picodash-dashlist-group-hover) var(--_picodash-dashlist-reorder-track),
+    transparent var(--_picodash-dashlist-reorder-track)
+  );
+}
+[dir='rtl']
+  .picodash-dashlist-group-item
+  > [data-picodash-dashgroup]:has(> [data-slot='dash-header']:hover)
+  > [data-picodash-dashgroup-list] {
+  background-image: linear-gradient(
+    to left,
+    var(--_picodash-dashlist-group-hover) var(--_picodash-dashlist-reorder-track),
+    transparent var(--_picodash-dashlist-reorder-track)
+  );
 }
