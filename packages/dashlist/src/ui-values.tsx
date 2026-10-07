@@ -244,6 +244,10 @@ export function RangeSlider({
         <SliderTrack className="picodash-dashlist-range-slider-track">
           <SliderThumb
             index={0}
+            // At the upper limit only Start can move inward; keep it reachable when thumbs coincide.
+            data-picodash-range-upper-overlap={
+              (value.start === value.end && value.end === max) || undefined
+            }
             inputRef={startInputRef}
             data-picodash-dashlist-range-slider-thumb
             aria-label="Start"

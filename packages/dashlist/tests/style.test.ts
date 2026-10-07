@@ -15,7 +15,7 @@ describe('DashList stylesheet contract', () => {
       /\[data-picodash-dashlist-rem-probe\]\s*\{[^}]*position:\s*fixed;[^}]*inline-size:\s*1rem;[^}]*block-size:\s*1rem;[^}]*visibility:\s*hidden;/s,
     )
     expect(css).toMatch(
-      /\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\s*\{[^}]*display:\s*grid;[^}]*min\(30%,\s*var\(--picodash-dashlet-label-width\)\)[^}]*minmax\(0,\s*1fr\)[^}]*minmax\(0,\s*min\(18%,\s*var\(--_picodash-dashlist-trailing-max-inline-size\)\)\);/s,
+      /\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\s*\{[^}]*display:\s*grid;[^}]*min\(30%,\s*var\(--picodash-dashlet-label-width\)\)[^}]*minmax\(0,\s*1fr\)[^}]*minmax\(min-content,\s*min\(18%,\s*var\(--_picodash-dashlist-trailing-max-inline-size\)\)\);/s,
     )
     expect(css).toMatch(
       /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content-cell\]:nth-last-child\([\s\S]*data-picodash-dashlet-content-empty[\s\S]*max-inline-size:\s*var\(--_picodash-dashlist-trailing-max-inline-size\);[^}]*overflow-wrap:\s*anywhere;/s,
@@ -87,10 +87,10 @@ describe('DashList stylesheet contract', () => {
     )
     expect(css).toMatch(/\[data-picodash-dashlist-switch-track\]\s*\{[^}]*position:\s*relative;/s)
     expect(css).toMatch(
-      /\[data-picodash-dashlist-switch-marker\]\s*\{[^}]*position:\s*absolute;[^}]*inset-block-start:\s*50%;[^}]*inset-inline-start:\s*var\(--picodash-space-1\);[^}]*border-radius:\s*50%;/s,
+      /\[data-picodash-dashlist-switch-marker\]\s*\{[^}]*position:\s*absolute;[^}]*inset-block-start:\s*50%;[^}]*inset-inline-start:\s*var\(--picodash-space-1\);[^}]*border-radius:\s*var\(--picodash-radius-control\);/s,
     )
     expect(css).toMatch(
-      /\.picodash-dashlist-switch\[data-selected\]\s+\[data-picodash-dashlist-switch-marker\]\s*\{[^}]*inset-inline-start:\s*calc\(100%\s*-\s*var\(--picodash-space-3\)\s*-\s*var\(--picodash-space-1\)\);/s,
+      /\.picodash-dashlist-switch\[data-selected\]\s+\[data-picodash-dashlist-switch-marker\]\s*\{[^}]*--_picodash-switch-offset:\s*calc\(/s,
     )
     expect(css).toMatch(
       /\.picodash-dashlist-segmented\s+\[data-picodash-dashlist-segment\]\[data-focus-visible\]/s,

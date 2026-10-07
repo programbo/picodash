@@ -513,3 +513,21 @@ All 258 DashList tests, package checks, and the Lab build passed. Live browser i
 clearance. Screenshots covered the regular slider/range shapes and Compact marks. Pointer dragging
 and keyboard adjustment changed the slider value; keyboard focus retained a 2px outline with no
 clip on the thumb itself. Coarse-pointer appearance is unchanged and physical touch was not tested.
+
+### Range endpoint recovery and switch motion, 2026-10-08
+
+The trailing grid column respects its content minimum and numeric badges do not wrap. When both
+range thumbs coincide at the configured maximum, Start paints above End so the lower bound can
+be dragged inward. End remains on top at the minimum. The priority derives from the controlled
+value without additional interaction state.
+
+The switch marker is a rounded rectangle. Its 150ms transform transition uses ease-in-out
+movement and a small pressed stretch, with direction-aware travel. Keyboard focus and the
+reduced-motion media query remove the transition.
+
+All 258 DashList tests, package checks, and the Lab build passed. Existing CSS expectations were
+updated for the new grid sizing and switch geometry. Live pointer checks collapsed and recovered
+both 100–100 and 0–0 in regular and Compact modes. The 100–100 badge remained one line without
+overflow at a 320px viewport. Pointer and Space toggles worked on the switch; computed keyboard
+focus duration was 0s. Reduced-motion handling was checked in source; RTL and physical touch
+were not exercised in this pass.

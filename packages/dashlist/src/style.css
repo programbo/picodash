@@ -199,11 +199,13 @@
   inset-block-start: 50%;
   inset-inline-start: var(--picodash-space-1);
   inline-size: var(--picodash-space-3);
-  block-size: var(--picodash-space-3);
+  block-size: calc(1.375rem - 2 * var(--picodash-space-1));
   border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
-  border-radius: 50%;
+  border-radius: var(--picodash-radius-control);
   background: var(--picodash-color-surface);
-  transform: translateY(-50%);
+  transform: translate(var(--_picodash-switch-offset, 0px), -50%)
+    scaleX(var(--_picodash-switch-press, 1));
+  transition: transform var(--picodash-duration-fast) cubic-bezier(0.455, 0.03, 0.515, 0.955);
 }
 
 .picodash-dashlist-switch[data-selected] [data-picodash-dashlist-switch-track] {
@@ -211,7 +213,28 @@
 }
 
 .picodash-dashlist-switch[data-selected] [data-picodash-dashlist-switch-marker] {
-  inset-inline-start: calc(100% - var(--picodash-space-3) - var(--picodash-space-1));
+  --_picodash-switch-offset: calc(
+    (2.5rem - var(--picodash-space-3) - 2 * var(--picodash-space-1)) *
+      var(--_picodash-switch-direction, 1)
+  );
+}
+
+.picodash-dashlist-switch:dir(rtl) {
+  --_picodash-switch-direction: -1;
+}
+
+.picodash-dashlist-switch[data-pressed]:not([data-disabled]) {
+  --_picodash-switch-press: 1.12;
+}
+
+.picodash-dashlist-switch[data-focus-visible] [data-picodash-dashlist-switch-marker] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-dashlist-switch-marker] {
+    transition: none;
+  }
 }
 
 .picodash-dashlist-display {
@@ -708,7 +731,7 @@
     var(--_picodash-dashlist-reorder-track)
     minmax(0, min(30%, var(--picodash-dashlet-label-width)))
     minmax(0, 1fr)
-    minmax(0, min(18%, var(--_picodash-dashlist-trailing-max-inline-size)));
+    minmax(min-content, min(18%, var(--_picodash-dashlist-trailing-max-inline-size)));
   column-gap: var(--picodash-space-1);
   row-gap: var(--picodash-space-1);
   margin: 0;
@@ -1333,6 +1356,12 @@
   background: var(--picodash-color-surface-muted);
   text-align: end;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* End is naturally on top at the lower limit; Start must be on top at the upper limit. */
+.picodash-dashlist-range-slider [data-picodash-range-upper-overlap] {
+  z-index: 1;
 }
 
 @media (pointer: fine) {
