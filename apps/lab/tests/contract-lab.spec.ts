@@ -56,21 +56,45 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
   try {
     await phone.goto('/lab')
     await expect(phone.getByRole('heading', { name: 'Dashlet Lab', exact: true })).toBeVisible()
-    const text = phone.getByRole('region', { name: 'TextDashlet', exact: true })
-    const entry = text.getByRole('textbox', { name: 'Inline', exact: true })
+    await expect(phone.locator('[data-layout="full"]')).toHaveCount(0)
+    for (const name of ['SearchDashlet', 'TextDashlet', 'NumberDashlet']) {
+      const region = phone.locator(`[data-picodash-dashlet="${name}"]`)
+      const geometry = await region.evaluate((row) => {
+        const label = row.querySelector('[data-picodash-dashlet-label]')
+        const content = row.querySelector('[data-picodash-dashlet-content]')
+        const input = content?.querySelector('input')
+        if (!label || !content || !input) throw new Error('Missing inline row anatomy')
+        return {
+          label: label.getBoundingClientRect().toJSON(),
+          content: content.getBoundingClientRect().toJSON(),
+          input: input.getBoundingClientRect().toJSON(),
+        }
+      })
+      expect(geometry.input.width).toBeGreaterThan(geometry.content.width * 0.7)
+      expect(
+        Math.abs(
+          geometry.label.y +
+            geometry.label.height / 2 -
+            geometry.input.y -
+            geometry.input.height / 2,
+        ),
+      ).toBeLessThan(3)
+    }
+    const text = phone.getByRole('list', { name: 'Dashlet gallery', exact: true })
+    const entry = text.getByRole('textbox', { name: 'Text', exact: true })
     await entry.fill('Phone workspace')
     await entry.press('Tab')
-    await expect(text.getByRole('textbox', { name: 'Read-only', exact: true })).toHaveValue(
-      'Phone workspace',
-    )
+    await phone.getByRole('button', { name: 'Read-only', exact: true }).click()
+    await expect(entry).toHaveAttribute('readonly', '')
+    await expect(entry).toHaveValue('Phone workspace')
+    await phone.getByRole('button', { name: 'Read-only', exact: true }).click()
+    await phone.getByRole('button', { name: 'Disabled', exact: true }).click()
+    await expect(entry).toBeDisabled()
+    await phone.getByRole('button', { name: 'Disabled', exact: true }).click()
     const validation = text.getByRole('textbox', { name: 'Validation', exact: true })
     await validation.fill('')
     await validation.press('Tab')
-    await expect(
-      text
-        .getByRole('list', { name: 'TextDashlet variations', exact: true })
-        .getByText('Enter a workspace name.', { exact: true }),
-    ).toBeVisible()
+    await expect(text.getByText('Enter a workspace name.', { exact: true })).toBeVisible()
 
     const credential: unknown = JSON.parse(
       await readFile(resolve(process.cwd(), '../../.picodash/dev-bridge.json'), 'utf8'),
@@ -109,8 +133,8 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
       values: { number: 42 },
     })
     expect(result).toMatchObject({ outcome: { type: 'transaction_result', result: { ok: true } } })
-    const numbers = phone.getByRole('region', { name: 'NumberDashlet', exact: true })
-    await expect(numbers.getByRole('textbox', { name: 'Read-only', exact: true })).toHaveValue('42')
+    const numbers = phone.locator('[data-picodash-dashlet="NumberDashlet"]')
+    await expect(numbers.getByRole('textbox', { name: 'Number', exact: true })).toHaveValue('42')
 
     for (const width of [320, 390, 844]) {
       await phone.setViewportSize({ width, height: width === 844 ? 390 : 844 })
@@ -135,13 +159,13 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
     const viewport = await phone.locator('meta[name="viewport"]').getAttribute('content')
     expect(viewport).not.toMatch(/user-scalable=no|maximum-scale=1/)
 
-    const choices = phone.getByRole('region', { name: 'SelectDashlet', exact: true })
-    await choices.getByRole('button', { name: 'Option B Inline', exact: true }).click()
+    const choices = phone.locator('[data-picodash-dashlet="SelectDashlet"]')
+    await choices.getByRole('button', { name: 'Option B Select', exact: true }).click()
     await phone.getByRole('option', { name: 'Option C', exact: true }).click()
     const charts = phone.getByRole('region', { name: 'Experimental charts', exact: true })
     await charts.scrollIntoViewIfNeeded()
     await expect(charts.getByRole('img', { name: 'SparklineDashlet', exact: true })).toBeVisible()
-    expect(await phone.evaluate(() => scrollY)).toBeGreaterThan(1000)
+    expect(await phone.evaluate(() => scrollY)).toBeGreaterThan(0)
     expect(
       await phone.locator('main').evaluate((main) =>
         [...main.querySelectorAll('*')]

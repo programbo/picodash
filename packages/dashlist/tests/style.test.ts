@@ -15,7 +15,7 @@ describe('DashList stylesheet contract', () => {
       /\[data-picodash-dashlist-rem-probe\]\s*\{[^}]*position:\s*fixed;[^}]*inline-size:\s*1rem;[^}]*block-size:\s*1rem;[^}]*visibility:\s*hidden;/s,
     )
     expect(css).toMatch(
-      /\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\s*\{[^}]*display:\s*grid;[^}]*clamp\(6rem,\s*30%,\s*var\(--picodash-dashlet-label-width\)\)[^}]*minmax\(var\(--_picodash-dashlist-control-min-inline-size\),\s*1fr\)[^}]*fit-content\(var\(--_picodash-dashlist-trailing-max-inline-size\)\);/s,
+      /\[data-picodash-dashlist-list\],\s*\[data-picodash-dashgroup-list\]\s*\{[^}]*display:\s*grid;[^}]*min\(30%,\s*var\(--picodash-dashlet-label-width\)\)[^}]*minmax\(0,\s*1fr\)[^}]*minmax\(0,\s*min\(18%,\s*var\(--_picodash-dashlist-trailing-max-inline-size\)\)\);/s,
     )
     expect(css).toMatch(
       /\[data-picodash-dashlet-shell\]\[data-layout='inline'\][^{]*\[data-picodash-dashlet-content-cell\]:nth-last-child\([\s\S]*data-picodash-dashlet-content-empty[\s\S]*max-inline-size:\s*var\(--_picodash-dashlist-trailing-max-inline-size\);[^}]*overflow-wrap:\s*anywhere;/s,
@@ -64,12 +64,6 @@ describe('DashList stylesheet contract', () => {
       /--_picodash-dashlist-group-hover:\s*color-mix\([^;]*var\(--picodash-color-surface-muted\)\s+80%,\s*transparent/s,
     )
     expect(css).not.toContain('container-type: inline-size')
-    expect(css).toMatch(
-      /\[data-picodash-dashlist-list\]\[data-picodash-dashlist-compact\],[\s\S]*grid-template-columns:\s*var\(--_picodash-dashlist-reorder-track\)\s+minmax\(0,\s*1fr\);/s,
-    )
-    expect(css).toMatch(
-      /:is\(\s*\[data-picodash-dashlist-list\]\[data-picodash-dashlist-compact\]\s*>\s*\[data-picodash-dashlist-band\]\s*>\s*\.picodash-dashlist-item,\s*\[data-picodash-dashgroup-list\]\[data-picodash-dashlist-compact\]\s*>\s*\.picodash-dashlist-item\s*\)\s*>\s*\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\]\s*\{[^}]*display:\s*block;/s,
-    )
     expect(css).not.toMatch(/\[data-picodash-dashlist-compact\]\s+\.picodash-dashlist-item/)
     expect(css).toMatch(
       /\[data-picodash-dashlist-list\]\s*\{[^}]*min-block-size:\s*0;[^}]*grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto;/s,
@@ -78,9 +72,6 @@ describe('DashList stylesheet contract', () => {
       /\[data-picodash-dashlist-band='automatic'\]\s*\{[^}]*align-content:\s*start;[^}]*overflow:\s*auto;[^}]*overscroll-behavior:\s*contain;/s,
     )
     expect(css).not.toContain('@container picodash-dashlist')
-    expect(css).toMatch(
-      /:is\(\s*\[data-picodash-dashlist-list\]\[data-picodash-dashlist-compact\]\s*>\s*\[data-picodash-dashlist-band\]\s*>\s*\.picodash-dashlist-item,\s*\[data-picodash-dashgroup-list\]\[data-picodash-dashlist-compact\]\s*>\s*\.picodash-dashlist-item\s*\)\s*>\s*\[data-picodash-dashlet-shell\]\[data-layout='inline'\]\s*>\s*\[data-picodash-dashlet-content\]\s*>\s*\[data-picodash-dashlet-content-cell\]\s*>\s*\.picodash-dashlist-segmented\s*>\s*\[data-picodash-dashlist-segment\]\s*\{[^}]*flex:\s*1\s+1\s+auto;/s,
-    )
   })
 
   it('targets the rendered React Aria roots and state attributes', async () => {

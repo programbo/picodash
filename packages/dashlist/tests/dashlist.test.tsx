@@ -420,7 +420,7 @@ describe('@picodash/dashlist alpha shell', () => {
 
   it('preserves control DOM identity when the Dashlet layout changes', () => {
     const nexus = makeNexus()
-    const renderLayout = (layout: 'inline' | 'block' | 'full') =>
+    const renderLayout = (layout: 'inline' | 'block') =>
       createElement(
         DashList,
         { id: 'layout-identity', nexus },
@@ -439,7 +439,7 @@ describe('@picodash/dashlist alpha shell', () => {
     expect(blockControl).toBe(initialControl)
     expect(blockControl.ownerDocument.activeElement).toBe(blockControl)
 
-    act(() => renderer.update(renderLayout('full')))
+    act(() => renderer.update(renderLayout('inline')))
     expect(renderer.root.findByProps({ 'aria-label': 'Persistent control' }).element).toBe(
       initialControl,
     )

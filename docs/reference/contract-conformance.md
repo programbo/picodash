@@ -348,8 +348,8 @@ integrated prototype parity and polish; this approval does not promote the defer
 ## Dashlet refinement gallery
 
 The `/lab` default view is a single document-scrolling gallery for all 22 implemented ready-made
-Dashlets plus the experimental Chart and Sparkline. It compares inline, block, full-width,
-read-only, and disabled presentation where supported, with multiline, validation, color-format,
+Dashlets plus the experimental Chart and Sparkline. Following the owner correction on 2026-10-07, it presents inline controls with independent
+read-only, disabled, and reorder toggles. Block is used for multiline and rich content, with validation, color-format,
 choice, temporal, and structured-readout examples. The existing six contract presets remain
 available through **Contract tools**; this view choice survives session reloads.
 
@@ -365,3 +365,19 @@ Local verification passed for the gallery journey at 320px, 390px, and 844px, in
 Bridge Number write reflected in the read-only example. The existing Console/driver, six-preset
 reload, two-panel Style Lab, and regular/compact coarse-pointer journeys also passed. Lab type
 checking and focused source lint passed. No package release gate is claimed.
+
+### Default-theme recovery, 2026-10-07
+
+Owner-directed first pass restores a Leva-inspired built-in palette and filled controls, explicit
+row placement, full-track field widths, inert affordance markers, and single slider readouts.
+The public layout union is now inline/block; historical full-width evidence above is superseded.
+The public consumer-theme interface is unchanged; custom recipes have not been visually requalified.
+
+Verification for this pass: DashList's 254 tests, shared UI's 81 tests, DashList format/lint/type
+checks, focused gallery lint, and the Lab production build passed. The live Lab was inspected at
+320px, 390px and 960px. Four grid tracks remain at each width with no horizontal page overflow;
+at 320px the standard slider retains a 101px track. Light/dark rendering, read-only value
+preservation, disabled controls, inert affordances, group disclosure, keyboard reorder commit and
+cancellation were exercised. This uses the desktop browser, not a physical phone. The updated phone
+journey is committed but the full Lab E2E suite was not run. Drag animation quality, custom themes,
+Panel composition and the DashStack rename remain later work.

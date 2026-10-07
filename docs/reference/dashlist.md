@@ -304,7 +304,7 @@ The Dashlet base surface is:
 
 ```ts
 type DashletPin = 'start' | 'end'
-type DashletLayout = 'inline' | 'block' | 'full'
+type DashletLayout = 'inline' | 'block'
 type DashletBindingMode = 'input' | 'display'
 
 type DashletRailOptions = {
@@ -536,6 +536,9 @@ structured issues, binding state, accessible IDs, and operations each have one p
 
 ### Registered shell
 
+> Owner correction, 2026-10-07: inline is the normal presentation; block is an exception for
+> space-demanding content. The invented full-width variant is removed before release.
+
 Every Dashlet uses the same public registered shell. The shell owns:
 
 - explicit node identity and registration;
@@ -544,7 +547,7 @@ Every Dashlet uses the same public registered shell. The shell owns:
 - binding drafts, validation state, and disabled/read-only state;
 - focus, hover, issue, and operation-status relationships;
 - one accessible name used by controls, reorder announcements, and diagnostics; and
-- one content region using `layout="inline"`, `layout="block"`, or `layout="full"`.
+- one content region using `layout="inline"` or `layout="block"`.
 
 A string `label` supplies the accessible name and visible row label. When `label` is absent or is a
 non-text React node, the Dashlet requires an explicit `aria-label`. This requirement applies even
@@ -552,7 +555,7 @@ when reordering is disabled because diagnostics and state reporting still need a
 identity.
 
 `inline` places the label and content in one row. `block` places content below the label while
-retaining the shared row inset. `full` lets rich content span the available Dashlet width. The shell,
+retaining the shared affordance inset. Block is reserved for content that needs the extra space. The shell,
 not its children, owns the reorder rail and standard error region.
 
 #### Row focus
@@ -1024,7 +1027,7 @@ slice does not emit `presentation_incompatible`.
 > Implementation: Partial
 > Evidence: `packages/dashlist/src/style.css`, `packages/dashlist/tests/style.test.ts`, and
 > `packages/dashlist/tests/dashlist.test.tsx` cover the shared four-track ordering-grid recipe,
-> label-width token, bounded trailing-value track, List-width compact marker, inline stacking, and
+> label-width token, bounded trailing-value track, List-width compact marker, and
 > coarse pointer target declarations. Rendered responsive geometry and drag-preview geometry remain
 > planned.
 > Notes: The original `cqi` label default required inline-size containment on the intrinsically
@@ -1034,19 +1037,18 @@ slice does not emit `presentation_incompatible`.
 > size queries require the same incompatible containment.
 
 DashList responsiveness follows its own container width, never the viewport. Each ordering
-container owns one shared alignment grid across its start, automatic, and end pin bands. A
-DashGroup establishes a new alignment context for its children; descendant rows do not force their
-tracks to match the parent List.
+container owns one shared alignment grid across its start, automatic, and end pin bands. DashGroup wrappers and their child rows inherit that alignment with subgrid; a separately
+mounted DashList establishes its own grid.
 
-The normal inline grid has four tracks: reorder handle, label, fluid control, and optional trailing
-value. Rows without a trailing value span the final two tracks. Slider outputs share the trailing
+The normal inline grid has four tracks: affordance, label, fluid control, and optional trailing
+value. The first track contains a drag thumb, group disclosure, or inert square for a non-draggable
+Dashlet. Read-only and disabled are independent attributes of every Dashlet, never layout variants. Rows without a trailing value span the final two tracks. Slider outputs share the trailing
 track so sibling Slider controls retain equal track widths.
 
-`layout="inline"` is the default and uses the stacked arrangement below an initial `18rem` container
-threshold. `layout="block"` always places content below the label while preserving the handle inset.
-`layout="full"` places content on a new row spanning the complete Dashlet width. Label/actions,
+`layout="inline"` is the default and retains the four shared tracks at narrow widths. `layout="block"` always places content below the label while preserving the handle inset.
+There is no full-width layout variant. Label/actions,
 content, description, and issues retain their DOM and focus order under every visual arrangement.
-Content-cell wrappers establish subgrid cells only for inline layout; in block and full layouts they
+Content-cell wrappers establish subgrid cells only for inline layout; in block layout they
 do not establish layout boxes, so application content retains its own internal layout and explicit
 whitespace. Whitespace-only output from a child component is layout-empty in inline mode. A lone
 inline control spans the fluid control and optional trailing-value tracks, while mixed element and
@@ -1054,10 +1056,10 @@ text roots retain separate control and trailing tracks. Native `hidden` roots do
 cells, including when component-composed siblings share one content cell, and toggling `hidden`
 updates the layout without remounting content.
 
-The initial label track uses `clamp(6rem, 30%, var(--picodash-dashlet-label-width))`, with
+The label track uses `min(30%, var(--picodash-dashlet-label-width))`, with
 `--picodash-dashlet-label-width: 10rem` as its public preferred cap. Long labels wrap rather than
-truncate. Trailing values are never ellipsized: their track has an initial `8rem` maximum, wraps
-when necessary, and cannot consume the control's initial `6rem` minimum usable width.
+truncate. Trailing values are never ellipsized: their track uses 18% of the available width, capped at `8rem`, and wraps
+when necessary. Label and control tracks can shrink to fit narrow hosts without changing row anatomy.
 
 Compound Dashlets default to block layout. Their controls use a separate responsive internal grid
 and cannot alter sibling Dashlets' shared outer tracks. At compact widths, compound content reduces
@@ -1068,8 +1070,7 @@ The resolved row arrangement is captured at reorder pickup. A detached or fixed-
 preview retains that geometry instead of losing its subgrid or crossing a responsive threshold.
 Ordinary responsive layout uses one `ResizeObserver` only to project whether the List is below the
 `18rem` compact threshold. It observes both the List root and a private, out-of-flow `1rem` probe in
-the owner document, so root-font-size changes update the threshold independently of List size; CSS
-owns the resulting layout. The observation is transient and is never stored in Nexus or
+the owner document, so root-font-size changes update the threshold independently of List size. The marker remains available to consumers; the default recipe keeps four columns at every width. The observation is transient and is never stored in Nexus or
 persistence. Drag-preview measurement separately preserves captured geometry during reorder.
 
 The package avoids horizontal page overflow at 320 CSS pixels and under 200% zoom. Segmented choices

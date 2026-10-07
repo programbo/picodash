@@ -908,7 +908,9 @@ to the accepted `control-border`, `font-weight-*`, `line-height-*`, `letter-spac
 `border-width-thin`, `easing-out`, and `layer-popover` names. No compatibility aliases are required
 before the first stable release.
 
-The regular recipe initially retains the prototype's exercised values under the accepted names.
+The built-in light/dark recipes use a Leva-inspired inspector treatment as directed by the owner
+on 2026-10-07: filled controls, blue accents, small radii, and monospace text. Named custom recipes
+retain their own palette and typography. The regular geometry retains the prototype values.
 Those values remain documented defaults rather than immutable API constants. Compact numeric values
 are implementation evidence established by the first cohesive visual pass because the prototype is
 already dense and arbitrary reductions would risk legibility. Changing those values does not change

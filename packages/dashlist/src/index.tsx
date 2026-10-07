@@ -271,7 +271,7 @@ type DashletBaseProps = RegisteredNodeNativeProps & {
   readonly 'aria-label'?: string
   readonly description?: ReactNode
   readonly help?: ReactNode
-  readonly layout?: 'inline' | 'block' | 'full'
+  readonly layout?: 'inline' | 'block'
   readonly disabled?: boolean
   readonly readOnly?: boolean
   readonly pin?: 'start' | 'end'
@@ -1254,7 +1254,7 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
                   {label}
                 </span>
               ) : null}
-              {reorderHandle}
+              {reorderHandle ?? <span aria-hidden="true" data-picodash-dashlet-decoration />}
               {help !== undefined ? (
                 <DashletHelp accessibleName={resolvedName}>{help}</DashletHelp>
               ) : null}

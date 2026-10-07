@@ -1000,7 +1000,7 @@ function ComplexContractLabSpecimen({
             <Dashlet
               id="specimen-summary"
               label="Specimen summary"
-              layout="full"
+              layout="block"
               field={nexus.fields.specimenMetric}
               mode="display"
             >

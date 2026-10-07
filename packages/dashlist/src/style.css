@@ -30,10 +30,11 @@
 .picodash-dashlist-select > button {
   box-sizing: border-box;
   min-block-size: var(--picodash-control-height-md);
+  inline-size: 100%;
   max-inline-size: 100%;
   border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
   border-radius: var(--picodash-radius-control);
-  background: var(--picodash-color-surface);
+  background: var(--picodash-color-surface-muted);
   color: inherit;
   font: inherit;
   padding: var(--picodash-space-1) var(--picodash-space-1-5);
@@ -670,9 +671,9 @@
   display: grid;
   grid-template-columns:
     var(--_picodash-dashlist-reorder-track)
-    minmax(4.5rem, clamp(6rem, 30%, var(--picodash-dashlet-label-width)))
-    minmax(var(--_picodash-dashlist-control-min-inline-size), 1fr)
-    fit-content(var(--_picodash-dashlist-trailing-max-inline-size));
+    minmax(0, min(30%, var(--picodash-dashlet-label-width)))
+    minmax(0, 1fr)
+    minmax(0, min(18%, var(--_picodash-dashlist-trailing-max-inline-size)));
   column-gap: var(--picodash-space-1);
   row-gap: var(--picodash-space-1);
   margin: 0;
@@ -762,6 +763,7 @@
 
 [data-picodash-dashlet-label] {
   grid-column: 2;
+  grid-row: 1;
   align-self: center;
   color: var(--picodash-color-text-muted);
   font-size: var(--picodash-font-size-lg);
@@ -793,6 +795,7 @@
 
 [data-picodash-dashlet-content] {
   grid-column: 3 / -1;
+  grid-row: 1;
   align-self: center;
   min-inline-size: 0;
 }
@@ -935,22 +938,6 @@
   grid-column: 2 / -1;
 }
 
-[data-picodash-dashlet-shell][data-layout='full'] {
-  grid-template-rows: auto auto;
-}
-
-[data-picodash-dashlet-shell][data-layout='full'] > [data-picodash-dashlet-content] {
-  grid-column: 1 / -1;
-  grid-row: 2;
-}
-
-[data-picodash-dashlet-shell][data-layout='full'] > [data-picodash-dashlet-description],
-[data-picodash-dashlet-shell][data-layout='full'] > [data-picodash-dashlet-binding-issues],
-[data-picodash-dashlet-shell][data-layout='full'] > [data-picodash-dashlet-issues],
-[data-picodash-dashlet-shell][data-layout='full'] > [data-picodash-dashlet-actions] {
-  grid-column: 1 / -1;
-}
-
 [data-picodash-reorder-handle] {
   grid-column: 1;
   grid-row: 1;
@@ -971,10 +958,25 @@
 }
 
 [data-picodash-reorder-handle]::before {
+  display: block;
+  inline-size: 10px;
+  block-size: 14px;
+  margin: auto;
+  background: currentColor;
   color: var(--picodash-color-text-muted);
-  content: '⠿';
-  font-size: var(--picodash-icon-sm);
-  line-height: 1;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cg fill='black'%3E%3Ccircle cx='2' cy='2' r='1.5'/%3E%3Ccircle cx='8' cy='2' r='1.5'/%3E%3Ccircle cx='2' cy='7' r='1.5'/%3E%3Ccircle cx='8' cy='7' r='1.5'/%3E%3Ccircle cx='2' cy='12' r='1.5'/%3E%3Ccircle cx='8' cy='12' r='1.5'/%3E%3C/g%3E%3C/svg%3E")
+    center / contain no-repeat;
+  content: '';
+}
+
+[data-picodash-dashlet-decoration] {
+  grid-column: 1;
+  grid-row: 1;
+  place-self: center;
+  inline-size: 5px;
+  block-size: 5px;
+  background: var(--picodash-color-text-muted);
+  opacity: var(--picodash-opacity-muted);
 }
 
 [data-picodash-reorder-handle]:hover {
@@ -1098,80 +1100,6 @@
   white-space: nowrap;
 }
 
-[data-picodash-dashlist-list][data-picodash-dashlist-compact],
-[data-picodash-dashgroup-list][data-picodash-dashlist-compact] {
-  grid-template-columns: var(--_picodash-dashlist-reorder-track) minmax(0, 1fr);
-}
-
-:is(
-    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
-      > [data-picodash-dashlist-band]
-      > .picodash-dashlist-item,
-    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
-  )
-  > [data-picodash-dashlet-shell][data-layout='inline']
-  > [data-picodash-dashlet-content],
-:is(
-    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
-      > [data-picodash-dashlist-band]
-      > .picodash-dashlist-item,
-    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
-  )
-  > [data-picodash-dashlet-shell][data-layout='inline']
-  > [data-picodash-dashlet-description],
-:is(
-    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
-      > [data-picodash-dashlist-band]
-      > .picodash-dashlist-item,
-    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
-  )
-  > [data-picodash-dashlet-shell][data-layout='inline']
-  > [data-picodash-dashlet-binding-issues],
-:is(
-    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
-      > [data-picodash-dashlist-band]
-      > .picodash-dashlist-item,
-    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
-  )
-  > [data-picodash-dashlet-shell][data-layout='inline']
-  > [data-picodash-dashlet-issues],
-:is(
-    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
-      > [data-picodash-dashlist-band]
-      > .picodash-dashlist-item,
-    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
-  )
-  > [data-picodash-dashlet-shell][data-layout='inline']
-  > [data-picodash-dashlet-actions] {
-  grid-column: 2;
-  grid-row: auto;
-}
-
-:is(
-    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
-      > [data-picodash-dashlist-band]
-      > .picodash-dashlist-item,
-    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
-  )
-  > [data-picodash-dashlet-shell][data-layout='inline']
-  > [data-picodash-dashlet-content] {
-  display: block;
-}
-
-:is(
-    [data-picodash-dashlist-list][data-picodash-dashlist-compact]
-      > [data-picodash-dashlist-band]
-      > .picodash-dashlist-item,
-    [data-picodash-dashgroup-list][data-picodash-dashlist-compact] > .picodash-dashlist-item
-  )
-  > [data-picodash-dashlet-shell][data-layout='inline']
-  > [data-picodash-dashlet-content]
-  > [data-picodash-dashlet-content-cell]
-  > .picodash-dashlist-segmented
-  > [data-picodash-dashlist-segment] {
-  flex: 1 1 auto;
-}
-
 @media (pointer: coarse) {
   .picodash-dashlist {
     --_picodash-dashlist-reorder-track: 44px;
@@ -1286,4 +1214,123 @@
 
 .picodash-dashlist-group-item[data-picodash-reorder-active] > [data-picodash-dashgroup] {
   background: transparent;
+}
+
+/* A field wrapper fills its assigned tracks; the native input never chooses the row width. */
+.picodash-dashlist-field,
+.picodash-dashlist-number,
+.picodash-dashlist-color-field {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.picodash-dashlist-control::placeholder {
+  color: var(--picodash-color-text-muted);
+  opacity: 1;
+}
+
+.picodash-dashlist-field input[inputmode='numeric'],
+.picodash-dashlist-number input {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.picodash-dashlist-slider,
+.picodash-dashlist-range-slider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--picodash-space-2);
+}
+
+.picodash-dashlist-slider > output,
+.picodash-dashlist-range-slider > output {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.picodash-dashlist-slider-track,
+.picodash-dashlist-range-slider-track {
+  grid-column: 1;
+  grid-row: 1;
+  margin-inline: var(--picodash-space-1);
+}
+
+[data-picodash-dashlet-content]:has([data-picodash-dashlist-slider-value])
+  .picodash-dashlist-slider,
+[data-picodash-dashlet-content]:has([data-picodash-dashlist-range-value])
+  .picodash-dashlist-range-slider {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-picodash-dashlet-content]:has([data-picodash-dashlist-slider-value])
+  .picodash-dashlist-slider
+  > output,
+[data-picodash-dashlet-content]:has([data-picodash-dashlist-range-value])
+  .picodash-dashlist-range-slider
+  > output {
+  display: none;
+}
+
+[data-picodash-dashlist-slider-value],
+[data-picodash-dashlist-range-value] {
+  align-self: center;
+  min-inline-size: 3ch;
+  padding: var(--picodash-space-1) var(--picodash-space-1-5);
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-surface-muted);
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (pointer: fine) {
+  .picodash-dashlist-slider [data-picodash-dashlist-slider-thumb],
+  .picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb] {
+    inline-size: var(--picodash-space-2);
+    block-size: var(--picodash-control-height-xs);
+  }
+}
+
+.picodash-dashlist-group-item,
+.picodash-dashlist-group-item > [data-picodash-dashgroup],
+[data-picodash-dashgroup-list] {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+}
+
+.picodash-dashlist-group-item > [data-picodash-dashgroup] {
+  border-inline: 0;
+  border-block-end: 0;
+  border-radius: 0;
+}
+
+.picodash-dashlist-group-item > [data-picodash-dashgroup] > [data-slot='dash-header'] {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+}
+
+.picodash-dashlist-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading'] {
+  grid-column: 1;
+}
+
+.picodash-dashlist-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-title'] {
+  grid-column: 2 / -1;
+}
+
+/* Unformatted slider outputs inherit the same third/fourth tracks as formatted values. */
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]:not(
+    :has([data-picodash-dashlist-slider-value], [data-picodash-dashlist-range-value])
+  )
+  > [data-picodash-dashlet-content-cell]
+  > :is(.picodash-dashlist-slider, .picodash-dashlist-range-slider) {
+  grid-template-columns: subgrid;
 }

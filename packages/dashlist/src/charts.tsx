@@ -68,7 +68,7 @@ export function ChartDashlet({
       label={label}
       aria-label={ariaLabel}
       description={description}
-      layout="full"
+      layout="block"
     >
       <Chart {...chartProps} ariaLabel={resolvedAriaLabel} definition={definition} />
     </Dashlet>

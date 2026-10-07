@@ -10,6 +10,7 @@ import {
 } from '@picodash/ui'
 import {
   DashList,
+  DashGroup,
   SearchDashlet,
   TextDashlet,
   NumberDashlet,
@@ -45,24 +46,11 @@ import {
 type SampleProps = {
   readonly id: string
   readonly label: string
-  readonly layout: 'inline' | 'block' | 'full'
+  readonly layout: 'inline' | 'block'
   readonly disabled?: boolean
   readonly readOnly?: boolean
   readonly description?: string
 }
-const editableVariants: readonly Omit<SampleProps, 'id'>[] = [
-  { label: 'Inline', layout: 'inline' },
-  { label: 'Read-only', layout: 'inline', readOnly: true },
-  { label: 'Disabled', layout: 'inline', disabled: true },
-  { label: 'Block', layout: 'block', description: 'A supporting description below the label.' },
-  { label: 'Full width', layout: 'full' },
-]
-const readoutVariants: readonly Omit<SampleProps, 'id'>[] = [
-  { label: 'Inline', layout: 'inline' },
-  { label: 'Block', layout: 'block' },
-  { label: 'Full width', layout: 'full' },
-]
-
 export function DashletLab() {
   const [view, setView] = useState<'loading' | 'gallery' | 'contracts'>('loading')
   useEffect(() => {
@@ -89,6 +77,9 @@ export function DashletLab() {
 function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => void }) {
   const [theme, setTheme] = useState<PicodashTheme>('dark')
   const [density, setDensity] = useState<PicodashDensity>('regular')
+  const [readOnly, setReadOnly] = useState(false)
+  const [disabled, setDisabled] = useState(false)
+  const [reorderable, setReorderable] = useState(true)
   const nexus = useMemo(
     () =>
       createPicodashNexus({
@@ -126,19 +117,22 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
       additional: (
         <>
           <TextDashlet
+            readOnly={readOnly}
+            disabled={disabled}
             id="multiline"
             label="Multiline"
             field={nexus.fields.notes}
             multiline
-            minRows={3}
             layout="block"
+            minRows={3}
           />
           <TextDashlet
+            readOnly={readOnly}
+            disabled={disabled}
             id="validation"
             label="Validation"
             field={nexus.fields.requiredText}
             description="Clear this field to inspect its error state."
-            layout="block"
           />
         </>
       ),
@@ -166,10 +160,16 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
       name: 'SliderDashlet',
       additional: (
         <SliderDashlet
+          readOnly={readOnly}
+          disabled={disabled}
           id="unmarked"
-          layout="block"
-          label="Without marks"
-          description="Drag or use the arrow keys."
+          label="With marks"
+          marks={[
+            { value: 0, label: '0%' },
+            { value: 50, label: '50%' },
+            { value: 100, label: '100%' },
+          ]}
+          formatValue={(value) => `${value}%`}
           field={nexus.fields.slider}
           min={0}
           max={100}
@@ -183,11 +183,6 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
           field={nexus.fields.slider}
           min={0}
           max={100}
-          marks={[
-            { value: 0, label: '0%' },
-            { value: 50, label: '50%' },
-            { value: 100, label: '100%' },
-          ]}
           formatValue={(value) => `${value}%`}
         />
       ),
@@ -281,7 +276,6 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
           label={format.toUpperCase()}
           field={nexus.fields.color}
           format={format}
-          layout="block"
         />
       )),
       readout: false,
@@ -300,12 +294,13 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
       name: 'RadioGroupDashlet',
       additional: (
         <RadioGroupDashlet
+          readOnly={readOnly}
+          disabled={disabled}
           id="vertical"
           label="Vertical"
           field={nexus.fields.radioGroup}
           options={['Option A', 'Option B', 'Option C']}
           orientation="vertical"
-          layout="block"
         />
       ),
       readout: false,
@@ -336,6 +331,8 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
       name: 'SelectDashlet',
       additional: (
         <SelectDashlet
+          readOnly={readOnly}
+          disabled={disabled}
           id="disabled-option"
           label="Disabled option"
           field={nexus.fields.select}
@@ -400,13 +397,14 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
       name: 'TimeDashlet',
       additional: (
         <TimeDashlet
+          readOnly={readOnly}
+          disabled={disabled}
           id="seconds"
           label="12-hour / seconds"
           field={nexus.fields.time}
           locale="en-AU"
           hourCycle={12}
           granularity="second"
-          layout="block"
         />
       ),
       readout: false,
@@ -424,13 +422,14 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
       name: 'DateTimeDashlet',
       additional: (
         <DateTimeDashlet
+          readOnly={readOnly}
+          disabled={disabled}
           id="hidden-zone"
           label="Without time zone"
           field={nexus.fields.dateTime}
           timeZone="Australia/Perth"
           locale="en-AU"
           hideTimeZone
-          layout="block"
         />
       ),
       readout: false,
@@ -467,7 +466,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
         data-dashlet-gallery
         className="min-h-svh bg-(--picodash-color-canvas) px-3 py-5 text-(--picodash-color-text) sm:px-6 sm:py-8"
       >
-        <div className="mx-auto max-w-2xl">
+        <div className="mx-auto max-w-xl">
           <header className="mb-5">
             <div className="flex items-center justify-between gap-3">
               <h1 className="text-xl font-semibold tracking-tight">Dashlet Lab</h1>
@@ -476,7 +475,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
               </Button>
             </div>
             <p className="mt-1 text-sm text-(--picodash-color-text-muted)">
-              Every Dashlet, with its variations together.
+              Shared rows. Real controls.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
@@ -492,29 +491,56 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
               >
                 Compact
               </Button>
+              <Button
+                variant="outline"
+                aria-pressed={readOnly}
+                onPress={() => setReadOnly(!readOnly)}
+              >
+                Read-only
+              </Button>
+              <Button
+                variant="outline"
+                aria-pressed={disabled}
+                onPress={() => setDisabled(!disabled)}
+              >
+                Disabled
+              </Button>
+              <Button
+                variant="outline"
+                aria-pressed={reorderable}
+                onPress={() => setReorderable(!reorderable)}
+              >
+                Reorder
+              </Button>
             </div>
           </header>
-          <div className="divide-y divide-(--picodash-color-border) rounded-xl border border-(--picodash-color-border) bg-(--picodash-color-surface)">
-            {samples.map((sample) => (
-              <section
-                key={sample.name}
-                aria-label={sample.name}
-                className="min-w-0 px-3 py-5 sm:px-5"
+          <div className="rounded-xl bg-(--picodash-color-surface) p-2 sm:p-3">
+            <DashList
+              nexus={nexus}
+              id="gallery-controls"
+              aria-label="Dashlet gallery"
+              reorderable={reorderable}
+            >
+              {samples.map((sample) =>
+                sample.render({
+                  id: sample.name,
+                  label: sample.name.replace('Dashlet', ''),
+                  layout: 'inline',
+                  readOnly,
+                  disabled,
+                }),
+              )}
+              <DashGroup
+                id="additional"
+                label="More examples"
+                reorderable={false}
+                pin="end"
+                readOnly={readOnly}
+                disabled={disabled}
               >
-                <h2 className="mb-3 font-mono text-sm font-medium">{sample.name}</h2>
-                <DashList
-                  nexus={nexus}
-                  id={`gallery-${sample.name}`}
-                  aria-label={`${sample.name} variations`}
-                  reorderable={false}
-                >
-                  {(sample.readout ? readoutVariants : editableVariants).map((variant) =>
-                    sample.render({ ...variant, id: variant.label }),
-                  )}
-                  {sample.additional}
-                </DashList>
-              </section>
-            ))}
+                {samples.map((sample) => sample.additional)}
+              </DashGroup>
+            </DashList>
             <GalleryCharts nexus={nexus} />
           </div>
         </div>

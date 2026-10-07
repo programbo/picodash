@@ -46,7 +46,7 @@ export function ContractLabConsole({
       <DashPanelProvider nexus={consoleNexus} boundary={boundaryRef} theme="dark">
         <DashPanel id="contract-lab-console-panel" title="Lab Console" collapsible={false}>
           <DashList aria-label="Contract Lab Console">
-            <Dashlet id="contract-lab-controls" label="Contract Lab controls" layout="full">
+            <Dashlet id="contract-lab-controls" label="Contract Lab controls" layout="block">
               <div className="grid gap-4 p-4">
                 <p className="text-muted-foreground text-sm leading-6">
                   The Console owns its Nexus and Provider. Preset changes replace only the specimen.

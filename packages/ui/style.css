@@ -106,19 +106,19 @@
 
 :where([data-picodash-theme='dark']) {
   color-scheme: dark;
-  --picodash-color-canvas: oklch(0.148 0.004 228.8);
-  --picodash-color-surface: oklch(0.218 0.008 223.9);
-  --picodash-color-surface-raised: oklch(0.218 0.008 223.9);
-  --picodash-color-surface-muted: oklch(0.275 0.011 216.9);
-  --picodash-color-text: oklch(0.987 0.002 197.1);
-  --picodash-color-text-strong: oklch(1 0 0);
-  --picodash-color-text-muted: oklch(0.723 0.014 214.4);
-  --picodash-color-border: oklch(1 0 0 / 10%);
-  --picodash-color-control-border: oklch(1 0 0 / 15%);
-  --picodash-color-well: color-mix(in oklab, var(--picodash-color-surface-muted) 30%, transparent);
-  --picodash-color-focus: oklch(0.56 0.021 213.5);
-  --picodash-color-accent: oklch(0.925 0.005 214.3);
-  --picodash-color-accent-text: oklch(0.218 0.008 223.9);
+  --picodash-color-canvas: #101216;
+  --picodash-color-surface: #181c20;
+  --picodash-color-surface-raised: #282e39;
+  --picodash-color-surface-muted: #373d4d;
+  --picodash-color-text: #c6ccdc;
+  --picodash-color-text-strong: #f5f7ff;
+  --picodash-color-text-muted: #a4adc2;
+  --picodash-color-border: #2c3340;
+  --picodash-color-control-border: #2c3340;
+  --picodash-color-well: #181c20;
+  --picodash-color-focus: #459cff;
+  --picodash-color-accent: #0085ff;
+  --picodash-color-accent-text: #ffffff;
   --picodash-color-success: oklch(0.765 0.177 163.223);
   --picodash-color-info: oklch(0.746 0.16 232.661);
   --picodash-color-warning: oklch(0.828 0.189 84.429);
@@ -130,23 +130,26 @@
   --picodash-color-data-3: oklch(0.82 0.17 88);
   --picodash-color-data-4: oklch(0.74 0.17 325);
   --picodash-color-data-5: oklch(0.76 0.17 42);
+  --picodash-font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --picodash-radius-control: 0.25rem;
+  --picodash-radius-surface: 0.625rem;
 }
 
 :where([data-picodash-theme='light']) {
   color-scheme: light;
-  --picodash-color-canvas: oklch(0.963 0.002 197.1);
-  --picodash-color-surface: oklch(1 0 0);
-  --picodash-color-surface-raised: oklch(0.987 0.002 197.1);
-  --picodash-color-surface-muted: oklch(0.925 0.005 214.3);
-  --picodash-color-text: oklch(0.218 0.008 223.9);
-  --picodash-color-text-strong: oklch(0.148 0.004 228.8);
-  --picodash-color-text-muted: oklch(0.473 0.014 214.4);
-  --picodash-color-border: oklch(0.148 0.004 228.8 / 14%);
-  --picodash-color-control-border: oklch(0.148 0.004 228.8 / 20%);
-  --picodash-color-well: color-mix(in oklab, var(--picodash-color-surface-muted) 30%, transparent);
-  --picodash-color-focus: oklch(0.56 0.021 213.5);
-  --picodash-color-accent: oklch(0.218 0.008 223.9);
-  --picodash-color-accent-text: oklch(0.987 0.002 197.1);
+  --picodash-color-canvas: #edf0f5;
+  --picodash-color-surface: #ffffff;
+  --picodash-color-surface-raised: #e8ecf4;
+  --picodash-color-surface-muted: #e2e7f0;
+  --picodash-color-text: #343d50;
+  --picodash-color-text-strong: #172139;
+  --picodash-color-text-muted: #505d74;
+  --picodash-color-border: #d1d8e5;
+  --picodash-color-control-border: #c5cfdf;
+  --picodash-color-well: #f2f5fa;
+  --picodash-color-focus: #0868ce;
+  --picodash-color-accent: #0868ce;
+  --picodash-color-accent-text: #ffffff;
   --picodash-color-success: oklch(0.49 0.14 163.223);
   --picodash-color-info: oklch(0.5 0.15 232.661);
   --picodash-color-warning: oklch(0.58 0.16 84.429);
@@ -158,6 +161,9 @@
   --picodash-color-data-3: oklch(0.62 0.16 88);
   --picodash-color-data-4: oklch(0.59 0.17 325);
   --picodash-color-data-5: oklch(0.59 0.17 42);
+  --picodash-font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --picodash-radius-control: 0.25rem;
+  --picodash-radius-surface: 0.625rem;
 }
 
 /* Density changes geometry tokens only; color, elevation, radius, motion, and layer roles stay shared. */
