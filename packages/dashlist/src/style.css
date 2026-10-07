@@ -1215,6 +1215,14 @@
   transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
 }
 
+.picodash-dashlist-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading']
+  > button:not([data-picodash-reorder-handle]):focus-visible::before {
+  transition: none;
+}
+
 .picodash-dashlist-group-item[data-collapsed='true']
   > [data-picodash-dashgroup]
   > [data-slot='dash-header']
@@ -1237,6 +1245,14 @@
 
 [data-picodash-dashgroup-list][data-collapsed='true'] {
   display: none;
+}
+
+/* Hidden/inert takes effect immediately; this temporary paint can finish independently. */
+[data-picodash-dashgroup-list][data-picodash-disclosure-motion] {
+  display: grid;
+  box-sizing: border-box;
+  align-content: start;
+  overflow: clip;
 }
 
 [data-picodash-reorder-instructions],

@@ -63,6 +63,7 @@ import {
   useDashletPrimaryFocusCoordinator,
 } from './primary-focus.js'
 import { createReorderPresentation, reorderLayoutRect } from './reorder-presentation.js'
+import { createDisclosureFeedback } from './feedback-motion.js'
 import { Dialog, DialogTrigger } from 'react-aria-components'
 import {
   createNodeRegistry,
@@ -1369,6 +1370,19 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   )
   const collapsed = collapsible ? (collapseOverride ?? defaultCollapsed) : false
   const [renderedCollapsed, setRenderedCollapsed] = useState(collapsed)
+  const disclosureMotion = useRef<ReturnType<typeof createDisclosureFeedback> | null>(null)
+  useLayoutEffect(() => {
+    if (!contentRef.current) return
+    const presentation = createDisclosureFeedback(contentRef.current)
+    disclosureMotion.current = presentation
+    return () => {
+      presentation.dispose()
+      disclosureMotion.current = null
+    }
+  }, [])
+  useLayoutEffect(() => {
+    disclosureMotion.current?.play(renderedCollapsed)
+  }, [renderedCollapsed])
   useLayoutEffect(() => {
     if (renderedCollapsed === collapsed) return
     const content = contentRef.current
@@ -1386,6 +1400,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
       content.contains(activeElement)
     )
       disclosureRef.current?.focus()
+    disclosureMotion.current?.prepare()
     setRenderedCollapsed(collapsed)
   }, [collapsed, renderedCollapsed])
   const labelText = accessibleName(label, ariaLabel, id)
