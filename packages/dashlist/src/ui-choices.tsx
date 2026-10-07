@@ -1,5 +1,8 @@
 'use client'
 
+import { useCallback, useRef } from 'react'
+import { createChipFeedback } from './feedback-motion.js'
+
 import {
   Button,
   Checkbox as AriaCheckbox,
@@ -390,6 +393,16 @@ export function MultiSelect<T extends ChoiceValue>({
     parts.filter((item) => item.disabled).map((item) => choiceKey(item.value)),
   )
   const inputRef = usePrimaryControlRef<HTMLInputElement>()
+  const chipMotion = useRef<ReturnType<typeof createChipFeedback> | null>(null)
+  const tagListRef = useCallback((list: HTMLDivElement | null) => {
+    if (!list) return
+    const presentation = createChipFeedback(list)
+    chipMotion.current = presentation
+    return () => {
+      presentation.dispose()
+      chipMotion.current = null
+    }
+  }, [])
   return (
     <AriaComboBox
       className={composeControlClassName('picodash-dashlist-multi-select', props.className)}
@@ -436,11 +449,15 @@ export function MultiSelect<T extends ChoiceValue>({
                 ? undefined
                 : (keys) => {
                     const next = removeMultiSelectValues(value, keys, disabledKeys)
-                    if (next.length !== value.length) state.setValue(next.map(choiceKey))
+                    if (next.length !== value.length) {
+                      chipMotion.current?.prepare()
+                      state.setValue(next.map(choiceKey))
+                    }
                   }
             }
           >
             <TagList<{ key: string; value: T }>
+              ref={tagListRef}
               className="picodash-dashlist-tag-list"
               items={value.map((item) => ({ key: choiceKey(item), value: item }))}
             >
