@@ -466,7 +466,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
         data-dashlet-gallery
         className="min-h-svh bg-(--picodash-color-canvas) px-3 py-5 text-(--picodash-color-text) sm:px-6 sm:py-8"
       >
-        <div className="mx-auto max-w-xl">
+        <div className="mx-auto max-w-80">
           <header className="mb-5">
             <div className="flex items-center justify-between gap-3">
               <h1 className="text-xl font-semibold tracking-tight">Dashlet Lab</h1>

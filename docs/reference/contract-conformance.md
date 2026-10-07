@@ -381,3 +381,7 @@ preservation, disabled controls, inert affordances, group disclosure, keyboard r
 cancellation were exercised. This uses the desktop browser, not a physical phone. The updated phone
 journey is committed but the full Lab E2E suite was not run. Drag animation quality, custom themes,
 Panel composition and the DashStack rename remain later work.
+
+The follow-up Lab width trial caps the gallery content at 320px, shrinking further for narrow
+viewports. The production build passed; a live desktop measurement confirmed the 320px content
+width without horizontal page overflow.
