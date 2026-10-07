@@ -1338,7 +1338,8 @@
 @media (pointer: fine) {
   .picodash-dashlist-slider [data-picodash-dashlist-slider-thumb],
   .picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb] {
-    inline-size: var(--picodash-space-2);
+    inline-size: var(--picodash-space-3);
+    background: transparent;
     block-size: calc(
       var(--picodash-control-height-xs) / 2 + var(--picodash-space-1) + var(--picodash-space-0-5)
     );
@@ -1346,6 +1347,24 @@
     margin-block-start: calc(
       (var(--picodash-space-1) + var(--picodash-space-0-5) - var(--picodash-control-height-xs) / 2) /
         2
+    );
+  }
+
+  /* Shape only the paint, preserving the thumb's hit area and unclipped focus ring. */
+  .picodash-dashlist-slider [data-picodash-dashlist-slider-thumb]::before,
+  .picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: var(--picodash-radius-control) var(--picodash-radius-control) 0 0;
+    background: var(--picodash-color-accent);
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - var(--picodash-space-1)),
+      50% 100%,
+      0 calc(100% - var(--picodash-space-1))
     );
   }
 }

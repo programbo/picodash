@@ -501,3 +501,15 @@ Compact thumbs changed from 20px to 15px with their top still 10px above the tra
 slider now has 2px regular and 1px Compact clearance before its mark boxes, replacing 4px overlap
 in both densities. Screenshots verified the chips and marks; keyboard adjustment and pointer
 dragging of a range thumb both updated values. Physical touch was not tested.
+
+### Pointed slider thumbs, 2026-10-08
+
+Fine-pointer slider and range thumbs now have wider bodies, rounded upper corners, and a short
+pointed bottom. The shape is painted on a pseudo-element so clipping does not cut off the native
+thumb's focus outline or hit area. Existing height and top alignment are preserved.
+
+All 258 DashList tests, package checks, and the Lab build passed. Live browser inspection confirmed
+12px regular and 10px Compact widths, unchanged 18px/15px heights, and retained 2px/1px mark
+clearance. Screenshots covered the regular slider/range shapes and Compact marks. Pointer dragging
+and keyboard adjustment changed the slider value; keyboard focus retained a 2px outline with no
+clip on the thumb itself. Coarse-pointer appearance is unchanged and physical touch was not tested.
