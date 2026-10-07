@@ -531,3 +531,9 @@ both 100–100 and 0–0 in regular and Compact modes. The 100–100 badge remai
 overflow at a 320px viewport. Pointer and Space toggles worked on the switch; computed keyboard
 focus duration was 0s. Reduced-motion handling was checked in source; RTL and physical touch
 were not exercised in this pass.
+
+### Off switch track contrast, 2026-10-08
+
+The Off switch uses the same 22% translucent theme text color as slider tracks. Live browser
+checks confirmed identical computed colors and a visible Off track over the hovered row in
+both light and dark modes. All 258 DashList tests, package checks, and the Lab build passed.
