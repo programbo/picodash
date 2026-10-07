@@ -447,7 +447,7 @@
   gap: var(--picodash-space-0-5);
   min-block-size: var(--picodash-control-height-sm);
   border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
-  border-radius: var(--picodash-radius-control);
+  border-radius: var(--picodash-radius-surface);
   padding-inline: var(--picodash-space-1);
   background: var(--picodash-color-surface-muted);
 }
@@ -1339,7 +1339,14 @@
   .picodash-dashlist-slider [data-picodash-dashlist-slider-thumb],
   .picodash-dashlist-range-slider [data-picodash-dashlist-range-slider-thumb] {
     inline-size: var(--picodash-space-2);
-    block-size: var(--picodash-control-height-xs);
+    block-size: calc(
+      var(--picodash-control-height-xs) / 2 + var(--picodash-space-1) + var(--picodash-space-0-5)
+    );
+    /* Compensate for React Aria's centered transform to retain the original top edge. */
+    margin-block-start: calc(
+      (var(--picodash-space-1) + var(--picodash-space-0-5) - var(--picodash-control-height-xs) / 2) /
+        2
+    );
   }
 }
 
@@ -1541,7 +1548,7 @@
   min-inline-size: 24px;
   min-block-size: 24px;
   padding: var(--picodash-space-1);
-  border-radius: var(--picodash-radius-control);
+  border-radius: var(--picodash-radius-surface);
 }
 [data-picodash-dashlist-tag-remove]:hover {
   background: var(--picodash-color-control-border);

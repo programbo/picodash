@@ -488,3 +488,16 @@ leakage to DOM. Browser checks verified title and empty-header clicks, grip clic
 Space disclosure, group reorder/cancel without collapse, light/dark presentation, retained neutral
 field colors, and no horizontal overflow at a 320px viewport. Physical touch and custom-theme
 qualification remain untested in this pass.
+
+### Rounded chips and shorter slider thumbs, 2026-10-07
+
+MultiSelect chips and their remove buttons now use the theme surface radius (10px in the
+default theme). Fine-pointer slider and range thumbs shorten from the bottom while compensating
+for React Aria's centered transform to keep the original top edge. Coarse-pointer sizing is unchanged.
+
+All 258 DashList tests, package checks, and the Lab build passed. Live browser measurements
+confirmed regular thumbs changed from 24px to 18px with their top still 12px above the track;
+Compact thumbs changed from 20px to 15px with their top still 10px above the track. The marked
+slider now has 2px regular and 1px Compact clearance before its mark boxes, replacing 4px overlap
+in both densities. Screenshots verified the chips and marks; keyboard adjustment and pointer
+dragging of a range thumb both updated values. Physical touch was not tested.
