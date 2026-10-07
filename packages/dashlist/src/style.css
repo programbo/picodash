@@ -279,11 +279,15 @@
   flex: 0 0 auto;
   place-items: center;
   box-sizing: border-box;
-  inline-size: var(--picodash-icon-sm);
-  block-size: var(--picodash-icon-sm);
+  inline-size: var(--picodash-icon-md);
+  block-size: calc(var(--picodash-icon-md) + var(--picodash-space-0-5));
   border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
   border-radius: var(--picodash-radius-control);
-  background: var(--picodash-color-surface);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
+  transition:
+    transform var(--picodash-duration-fast) var(--picodash-easing-out),
+    background-color var(--picodash-duration-fast) ease,
+    border-color var(--picodash-duration-fast) ease;
 }
 
 [data-picodash-dashlist-checkbox-marker] {
@@ -300,9 +304,13 @@
 [data-picodash-dashlist-checkbox-marker]::before {
   content: '✓';
   visibility: hidden;
+  opacity: 0;
+  transform: scale(0.65);
+  transition:
+    transform var(--picodash-duration-fast) var(--picodash-easing-out),
+    opacity var(--picodash-duration-fast) ease;
 }
 
-.picodash-dashlist-checkbox[data-selected] [data-picodash-dashlist-checkbox-box],
 .picodash-dashlist-choice[data-selected] {
   border-color: transparent;
   background: color-mix(in oklab, var(--picodash-color-surface-muted) 35%, transparent);
@@ -310,12 +318,16 @@
 
 .picodash-dashlist-checkbox[data-selected] [data-picodash-dashlist-checkbox-box],
 .picodash-dashlist-choice[data-selected] [data-picodash-dashlist-checkbox-box] {
-  color: var(--picodash-color-accent);
+  border-color: transparent;
+  background: var(--picodash-color-accent);
+  color: var(--picodash-color-accent-text);
 }
 
 .picodash-dashlist-checkbox[data-selected] [data-picodash-dashlist-checkbox-marker]::before,
 .picodash-dashlist-choice[data-selected] [data-picodash-dashlist-checkbox-marker]::before {
   visibility: visible;
+  opacity: 1;
+  transform: scale(1);
 }
 
 .picodash-dashlist-radio-group,
@@ -342,30 +354,71 @@
   flex: 0 0 auto;
   place-items: center;
   box-sizing: border-box;
-  inline-size: var(--picodash-icon-sm);
-  block-size: var(--picodash-icon-sm);
+  inline-size: var(--picodash-icon-md);
+  block-size: calc(var(--picodash-icon-md) + var(--picodash-space-0-5));
   border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
-  border-radius: 50%;
-  background: var(--picodash-color-surface);
+  border-radius: var(--picodash-radius-control);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
+  transition:
+    transform var(--picodash-duration-fast) var(--picodash-easing-out),
+    background-color var(--picodash-duration-fast) ease,
+    border-color var(--picodash-duration-fast) ease;
   color: inherit;
 }
 
 [data-picodash-dashlist-radio-marker]::after {
-  inline-size: var(--picodash-space-1);
-  block-size: var(--picodash-space-1);
-  border-radius: 50%;
+  inline-size: var(--picodash-space-1-5);
+  block-size: var(--picodash-space-2);
+  border-radius: var(--picodash-space-0-5);
   background: currentColor;
   content: '';
   visibility: hidden;
+  opacity: 0;
+  transform: scale(0.65);
+  transition:
+    transform var(--picodash-duration-fast) var(--picodash-easing-out),
+    opacity var(--picodash-duration-fast) ease;
 }
 
 .picodash-dashlist-choice[data-selected] [data-picodash-dashlist-radio-marker] {
-  border-color: var(--picodash-color-accent);
-  color: var(--picodash-color-accent);
+  border-color: transparent;
+  background: var(--picodash-color-accent);
+  color: var(--picodash-color-accent-text);
 }
 
 .picodash-dashlist-choice[data-selected] [data-picodash-dashlist-radio-marker]::after {
   visibility: visible;
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Press the marker, not the label or its focus outline. */
+:is(.picodash-dashlist-checkbox, .picodash-dashlist-choice)[data-pressed]:not([data-readonly]):not(
+    [data-disabled]
+  )
+  :is([data-picodash-dashlist-checkbox-box], [data-picodash-dashlist-radio-marker]) {
+  transform: scale(0.9);
+}
+
+:is(.picodash-dashlist-checkbox, .picodash-dashlist-choice)[data-focus-visible]
+  :is([data-picodash-dashlist-checkbox-box], [data-picodash-dashlist-radio-marker]),
+:is(.picodash-dashlist-checkbox-group, .picodash-dashlist-radio-group):has([data-focus-visible])
+  :is([data-picodash-dashlist-checkbox-box], [data-picodash-dashlist-radio-marker]),
+.picodash-dashlist-checkbox[data-focus-visible] [data-picodash-dashlist-checkbox-marker]::before,
+.picodash-dashlist-checkbox-group:has([data-focus-visible])
+  [data-picodash-dashlist-checkbox-marker]::before,
+.picodash-dashlist-radio-group:has([data-focus-visible])
+  [data-picodash-dashlist-radio-marker]::after {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-dashlist-checkbox-box],
+  [data-picodash-dashlist-radio-marker],
+  [data-picodash-dashlist-checkbox-marker]::before,
+  [data-picodash-dashlist-radio-marker]::after {
+    transition: none;
+  }
 }
 
 .picodash-dashlist-checkbox[data-disabled],
