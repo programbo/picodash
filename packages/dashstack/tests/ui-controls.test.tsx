@@ -967,6 +967,7 @@ describe('Slider scale, constraints, and origin fill', () => {
         min: 0,
         max: 100,
         allowedRange: { min: 24, max: 76 },
+        fillOrigin: 0,
         marks: [{ value: 0 }, { value: 50 }, { value: 100 }],
         onChange: (value) => changes.push(value),
         'aria-label': 'Constrained',
@@ -982,11 +983,17 @@ describe('Slider scale, constraints, and origin fill', () => {
     expect(changes).toEqual([24, 76, 50])
     const interval = view.root.element.querySelector<HTMLElement>('[data-picodash-slider-allowed]')!
     expect([interval.style.insetInlineStart, interval.style.inlineSize]).toEqual(['24%', '52%'])
+    const fill = view.root.element.querySelector<HTMLElement>('[data-picodash-slider-fill]')!
+    const available = fill.querySelector<HTMLElement>('[data-picodash-slider-fill-available]')!
+    expect(fill.hasAttribute('data-constrained')).toBe(true)
+    expect([fill.style.insetInlineStart, fill.style.inlineSize]).toEqual(['0%', '48%'])
+    expect([available.style.insetInlineStart, available.style.inlineSize]).toEqual(['50%', '50%'])
     act(() =>
       view.update(
         createElement(Slider, {
           value: 50,
           allowedRange: { min: 50, max: 50 },
+          fillOrigin: 0,
           onChange: (value) => changes.push(value),
           'aria-label': 'Constrained',
         }),
@@ -995,6 +1002,7 @@ describe('Slider scale, constraints, and origin fill', () => {
     fireEvent.change(input, { target: { value: '0' } })
     expect(changes.at(-1)).toBe(50)
     expect(input.value).toBe('50')
+    expect(view.root.element.querySelector('[data-picodash-slider-fill-available]')).toBeNull()
     act(() => view.unmount())
   })
 

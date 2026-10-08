@@ -665,3 +665,22 @@ keyboard End/arrow input, range-driven clamping and collapsed-range recovery, an
 fills. Compact light mode at 390px had no horizontal page overflow; regular dark mode also passed
 visual inspection. No browser errors were recorded. Production Dev Bridge remained disabled;
 physical touch and screen-reader speech were not exercised.
+
+### Constrained fill and Range thumb separation, 2026-10-08
+
+The linked Slider now fills from zero. Its fill stays visible at 35% colour strength outside the
+allowed interval and full strength inside; the underlying full scale and constraint ticks remain.
+Component coverage checks both portions and a collapsed interval without an available fill segment.
+
+Fine-pointer Range thumbs keep their hit rectangles while their resting paint is slightly shorter.
+Tight theme-surface shadows separate overlapping shapes. Hover enlarges paint to 115%; keyboard
+focus and dragging use 125%, with dragging on top. Keyboard feedback is immediate and reduced
+motion disables transitions. At collapsed endpoints, the handle that can move inward remains above
+its neighbour, including when the other handle has keyboard focus.
+
+All 277 DashStack tests passed; the expanded owning control tests and final stylesheet tests also
+passed. Package checks, Motion policy, package build, and Lab production build passed. Live browser
+checks verified both exposed edges of a 50–54 overlap could be dragged apart, constrained fill
+colours and lengths, keyboard enlargement, and Compact/light rendering. Pointer drags also
+reopened both 0–0 and 100–100 while the opposite handle had keyboard focus. Physical touch and a
+live reduced-motion preference change were not exercised; the latter is covered by the CSS policy.

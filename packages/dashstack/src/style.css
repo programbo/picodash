@@ -73,7 +73,8 @@
 }
 
 [data-picodash-slider-allowed],
-[data-picodash-slider-fill] {
+[data-picodash-slider-fill],
+[data-picodash-slider-fill-available] {
   position: absolute;
   inset-block: 0;
   border-radius: inherit;
@@ -100,10 +101,17 @@
   inset-inline-end: 0;
 }
 [data-picodash-slider-fill='positive'] {
-  background: var(--picodash-color-accent);
+  --_picodash-slider-fill-color: var(--picodash-color-accent);
 }
 [data-picodash-slider-fill='negative'] {
-  background: var(--picodash-color-danger);
+  --_picodash-slider-fill-color: var(--picodash-color-danger);
+}
+[data-picodash-slider-fill],
+[data-picodash-slider-fill-available] {
+  background: var(--_picodash-slider-fill-color);
+}
+[data-picodash-slider-fill][data-constrained] {
+  background: color-mix(in oklab, var(--_picodash-slider-fill-color) 35%, transparent);
 }
 
 .picodash-dashstack-slider:has([data-picodash-dashstack-slider-marks]) {
@@ -1497,9 +1505,22 @@
   white-space: nowrap;
 }
 
-/* End is naturally on top at the lower limit; Start must be on top at the upper limit. */
-.picodash-dashstack-range-slider [data-picodash-range-upper-overlap] {
-  z-index: 1;
+/* Show the active thumb above its neighbour without changing pointer geometry. */
+.picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb][data-hovered] {
+  z-index: 2;
+}
+.picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb][data-focus-visible] {
+  z-index: 3;
+}
+/* At a collapsed endpoint keep the only handle that can move inward reachable. */
+.picodash-dashstack-range-slider
+  [data-picodash-dashstack-range-slider-thumb][data-picodash-range-upper-overlap],
+.picodash-dashstack-range-slider
+  [data-picodash-dashstack-range-slider-thumb][data-picodash-range-lower-overlap] {
+  z-index: 4;
+}
+.picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb][data-dragging] {
+  z-index: 5;
 }
 
 @media (pointer: fine) {
@@ -1533,6 +1554,42 @@
       50% 100%,
       0 calc(100% - var(--picodash-space-1))
     );
+  }
+}
+
+@media (pointer: fine) {
+  .picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb] {
+    filter: drop-shadow(1px 0 0 var(--picodash-color-surface))
+      drop-shadow(-1px 0 0 var(--picodash-color-surface))
+      drop-shadow(0 1px 1px var(--picodash-color-surface));
+  }
+  .picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb]::before {
+    inset-block-start: var(--picodash-space-0-5);
+    transform-origin: 50% 100%;
+    transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
+  }
+  .picodash-dashstack-range-slider:not([data-disabled], [data-readonly])
+    [data-picodash-dashstack-range-slider-thumb]:is([data-focus-visible], [data-dragging])::before {
+    transform: scale(1.25);
+  }
+  .picodash-dashstack-range-slider
+    [data-picodash-dashstack-range-slider-thumb][data-focus-visible]::before {
+    transition: none;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .picodash-dashstack-range-slider:not([data-disabled], [data-readonly])
+    [data-picodash-dashstack-range-slider-thumb][data-hovered]::before {
+    transform: scale(1.15);
+  }
+  .picodash-dashstack-range-slider:not([data-disabled], [data-readonly])
+    [data-picodash-dashstack-range-slider-thumb]:is([data-focus-visible], [data-dragging])::before {
+    transform: scale(1.25);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb]::before {
+    transition: none;
   }
 }
 

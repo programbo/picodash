@@ -234,6 +234,7 @@ export function RangeSlider({
         step={step}
         formatOptions={formatOptions}
         isDisabled={props.disabled}
+        data-readonly={props.readOnly || undefined}
         aria-label={props['aria-label']}
         aria-labelledby={props['aria-labelledby']}
         aria-describedby={props['aria-describedby']}
@@ -257,6 +258,9 @@ export function RangeSlider({
           />
           <SliderThumb
             index={1}
+            data-picodash-range-lower-overlap={
+              (value.start === value.end && value.start === min) || undefined
+            }
             inputRef={endInputRef}
             data-picodash-dashstack-range-slider-thumb
             aria-label="End"

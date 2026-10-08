@@ -284,6 +284,11 @@ export function Slider({
   const constraintId = useId()
   const lower = allowedRange?.min ?? min
   const upper = allowedRange?.max ?? max
+  const fillStart = Math.min(value, fillOrigin ?? value)
+  const fillEnd = Math.max(value, fillOrigin ?? value)
+  const fillSpan = fillEnd - fillStart
+  const availableStart = Math.max(fillStart, lower)
+  const availableEnd = Math.min(fillEnd, upper)
   const inputRef = usePrimaryControlRef<HTMLInputElement>()
   const readOnlyDescription = useReadOnlyDescription(props.readOnly, props['aria-describedby'])
 
@@ -326,11 +331,22 @@ export function Slider({
             <span
               aria-hidden="true"
               data-picodash-slider-fill={value < fillOrigin ? 'negative' : 'positive'}
+              data-constrained={allowedRange ? true : undefined}
               style={{
                 insetInlineStart: `${sliderMarkPosition(Math.min(value, fillOrigin), min, max)}%`,
                 inlineSize: `${Math.abs(sliderMarkPosition(value, min, max) - sliderMarkPosition(fillOrigin, min, max))}%`,
               }}
-            />
+            >
+              {allowedRange && fillSpan > 0 && availableEnd > availableStart && (
+                <span
+                  data-picodash-slider-fill-available
+                  style={{
+                    insetInlineStart: `${((availableStart - fillStart) / fillSpan) * 100}%`,
+                    inlineSize: `${((availableEnd - availableStart) / fillSpan) * 100}%`,
+                  }}
+                />
+              )}
+            </span>
           )}
           <SliderThumb
             index={0}

@@ -70,6 +70,7 @@ export function LinkedSlider({ nexus, marks, ...props }: Sample & { readonly mar
               value={slider}
               min={0}
               max={100}
+              fillOrigin={0}
               allowedRange={{ min: range.start, max: range.end }}
               marks={
                 marks ? [0, 50, 100].map((value) => ({ value, label: `${value}%` })) : undefined

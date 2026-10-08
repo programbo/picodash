@@ -992,7 +992,8 @@ its thumb at the sole allowed value. These props never rewrite a canonical value
 constraints and values, as the Lab's linked Range/Slider example demonstrates.
 
 `fillOrigin={0}` adds a fill from zero to the current value, using the theme accent above zero and
-the danger colour below zero. Any finite origin inside the full scale is valid. Omitting it leaves
+the danger colour below zero. When combined with `allowedRange`, the fill remains visible at 35%
+colour strength outside the allowed interval and full strength inside it. Any finite origin inside the full scale is valid. Omitting it leaves
 the existing unfilled track. The Lab's independent Bipolar variation starts at zero on a −100–100
 scale with marks at −100%, 0%, and 100%; its signed readout and fill direction supplement colour.
 

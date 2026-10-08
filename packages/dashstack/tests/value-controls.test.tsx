@@ -761,6 +761,25 @@ describe('value controls', () => {
     expect(thumbs).toHaveLength(2)
     for (const thumb of thumbs)
       expect(thumb.classList.contains('react-aria-SliderThumb')).toBe(true)
+    for (const [value, hook, index] of [
+      [0, 'data-picodash-range-lower-overlap', 1],
+      [100, 'data-picodash-range-upper-overlap', 0],
+    ] as const) {
+      act(() =>
+        view.update(
+          createElement(RangeSlider, {
+            value: { start: value, end: value },
+            onChange: () => undefined,
+            'aria-label': 'Range',
+          }),
+        ),
+      )
+      const endpoints = view.root.element.querySelectorAll(
+        '[data-picodash-dashstack-range-slider-thumb]',
+      )
+      expect(endpoints[index]?.hasAttribute(hook)).toBe(true)
+      expect(endpoints[1 - index]?.hasAttribute(hook)).toBe(false)
+    }
     act(() => view.unmount())
   })
 
