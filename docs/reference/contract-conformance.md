@@ -684,3 +684,11 @@ checks verified both exposed edges of a 50–54 overlap could be dragged apart, 
 colours and lengths, keyboard enlargement, and Compact/light rendering. Pointer drags also
 reopened both 0–0 and 100–100 while the opposite handle had keyboard focus. Physical touch and a
 live reduced-motion preference change were not exercised; the latter is covered by the CSS policy.
+
+### Slider thumb separation from fill, 2026-10-08
+
+Fine-pointer Slider thumbs now share the Range thumb's tight theme-surface shadow, keeping the
+ticket shape distinct from a same-colour fill. Positive bipolar fill remains blue and negative
+fill remains red. Hit geometry and motion are unchanged. All seven stylesheet tests and the
+package and Lab production builds passed. Live browser checks covered positive and negative
+values, dark rendering, and the light theme's white shadow; no browser errors were recorded.

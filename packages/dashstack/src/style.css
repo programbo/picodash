@@ -1558,6 +1558,7 @@
 }
 
 @media (pointer: fine) {
+  .picodash-dashstack-slider [data-picodash-dashstack-slider-thumb],
   .picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb] {
     filter: drop-shadow(1px 0 0 var(--picodash-color-surface))
       drop-shadow(-1px 0 0 var(--picodash-color-surface))
