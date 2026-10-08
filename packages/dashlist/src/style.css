@@ -1671,6 +1671,10 @@
   font-size: var(--picodash-font-size-sm);
 }
 
+[data-picodash-date-range-endpoint] + [data-picodash-date-range-endpoint] {
+  border-block-start: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+}
+
 @media (pointer: coarse) {
   .picodash-dashlist {
     --_picodash-dashlist-first-row-height: 44px;

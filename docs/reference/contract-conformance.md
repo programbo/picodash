@@ -587,3 +587,8 @@ HEX, RGB, HSL, and HSB examples were removed because the gallery's translucent v
 edited through them. The main RGBA control remains. Browser inspection confirmed the three retained
 labels and no uneditable-format warnings. Package checks, seven stylesheet tests, and the Lab
 production build passed; no browser errors were recorded.
+
+The final date-range adjustment adds a one-pixel horizontal control-border divider between From
+and To, stopping at the calendar column. Browser checks confirmed unchanged 32px regular / 28px
+Compact row heights and no horizontal gap beside the calendar button. The Lab build and seven
+stylesheet tests passed.
