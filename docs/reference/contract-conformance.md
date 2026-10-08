@@ -749,3 +749,8 @@ checks in regular and compact density put both inner edges within 0.01 CSS px of
 focus used the opposing edge origins at 1.25 scale, and hover used 1.15 scale. Pointer dragging and
 both keyboard endpoints remained functional. Seven stylesheet tests and package/Lab builds passed;
 no browser errors were recorded.
+
+The fine-pointer Range track now reserves the full 1.25-scale endpoint width plus spacing on both
+sides. At 0–100, browser geometry confirmed both enlarged thumbs and focus outlines remain inside
+the input column in regular and compact density. Endpoint keyboard operation still reaches 0 and 100. Seven stylesheet tests, scoped formatting, and package/Lab builds passed; no browser errors
+were recorded.

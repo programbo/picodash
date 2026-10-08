@@ -1559,6 +1559,10 @@
 
 /* Anchor the flat inner edge at the value; move paint, hit area, and focus ring together. */
 @media (pointer: fine) {
+  /* Reserve the enlarged endpoint thumb plus breathing room inside the input column. */
+  .picodash-dashstack-range-slider-track {
+    margin-inline: calc(var(--picodash-space-3) * 1.25 + var(--picodash-space-1));
+  }
   .picodash-dashstack-range-slider:dir(ltr)
     [data-picodash-dashstack-range-slider-thumb]:first-child,
   .picodash-dashstack-range-slider:dir(rtl)
