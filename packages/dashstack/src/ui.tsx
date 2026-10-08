@@ -20,12 +20,13 @@ import {
   TextArea,
   TextField as AriaTextField,
 } from 'react-aria-components'
-import { useRef, type CSSProperties, type ReactNode } from 'react'
+import { useId, useRef, type CSSProperties, type ReactNode } from 'react'
 import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
 import { ChoiceOptionContent } from './choice-option-content.js'
 import { validateChoiceOptions } from './ui-choices.js'
 import { composeControlClassName } from './ui-class-name.js'
 import { ChoicePopover } from './ui-popover.js'
+import { validateSliderOptions, type SliderOptions } from './slider-options.js'
 
 export type DashStackControlProps = {
   readonly id?: string
@@ -236,15 +237,16 @@ export function NumberField({
 }
 
 export type SliderMark = { readonly value: number; readonly label?: ReactNode }
-export type SliderProps = DashStackControlProps & {
-  readonly value: number
-  readonly onChange: (value: number) => void
-  readonly min?: number
-  readonly max?: number
-  readonly step?: number
-  readonly marks?: readonly SliderMark[]
-  readonly formatOptions?: Intl.NumberFormatOptions
-}
+export type SliderProps = DashStackControlProps &
+  SliderOptions & {
+    readonly value: number
+    readonly onChange: (value: number) => void
+    readonly min?: number
+    readonly max?: number
+    readonly step?: number
+    readonly marks?: readonly SliderMark[]
+    readonly formatOptions?: Intl.NumberFormatOptions
+  }
 
 function sliderMarkPosition(value: number, min: number, max: number) {
   return max === min ? 0 : ((value - min) / (max - min)) * 100
@@ -273,9 +275,15 @@ export function Slider({
   step = 1,
   marks,
   formatOptions,
+  allowedRange,
+  fillOrigin,
   ...props
 }: SliderProps) {
   validateSliderConfiguration(min, max, step, marks)
+  validateSliderOptions(min, max, step, { allowedRange, fillOrigin })
+  const constraintId = useId()
+  const lower = allowedRange?.min ?? min
+  const upper = allowedRange?.max ?? max
   const inputRef = usePrimaryControlRef<HTMLInputElement>()
   const readOnlyDescription = useReadOnlyDescription(props.readOnly, props['aria-describedby'])
 
@@ -285,7 +293,9 @@ export function Slider({
         id={props.id}
         className={composeControlClassName('picodash-dashstack-slider', props.className)}
         value={value}
-        onChange={props.readOnly ? undefined : onChange}
+        onChange={
+          props.readOnly ? undefined : (next) => onChange(Math.max(lower, Math.min(upper, next)))
+        }
         minValue={min}
         maxValue={max}
         step={step}
@@ -298,14 +308,41 @@ export function Slider({
         aria-errormessage={props['aria-errormessage']}
       >
         <SliderOutput>{({ state }) => state.getThumbValueLabel(0)}</SliderOutput>
-        <SliderTrack className="picodash-dashstack-slider-track">
+        <SliderTrack
+          className="picodash-dashstack-slider-track"
+          data-constrained={allowedRange ? true : undefined}
+        >
+          {allowedRange && (
+            <span
+              aria-hidden="true"
+              data-picodash-slider-allowed
+              style={{
+                insetInlineStart: `${sliderMarkPosition(lower, min, max)}%`,
+                inlineSize: `${sliderMarkPosition(upper, min, max) - sliderMarkPosition(lower, min, max)}%`,
+              }}
+            />
+          )}
+          {fillOrigin !== undefined && (
+            <span
+              aria-hidden="true"
+              data-picodash-slider-fill={value < fillOrigin ? 'negative' : 'positive'}
+              style={{
+                insetInlineStart: `${sliderMarkPosition(Math.min(value, fillOrigin), min, max)}%`,
+                inlineSize: `${Math.abs(sliderMarkPosition(value, min, max) - sliderMarkPosition(fillOrigin, min, max))}%`,
+              }}
+            />
+          )}
           <SliderThumb
             index={0}
             inputRef={inputRef}
             data-picodash-dashstack-slider-thumb
             aria-label={props['aria-label']}
             aria-labelledby={props['aria-labelledby']}
-            aria-describedby={readOnlyDescription.describedBy}
+            aria-describedby={
+              [readOnlyDescription.describedBy, allowedRange ? constraintId : undefined]
+                .filter(Boolean)
+                .join(' ') || undefined
+            }
             isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
             aria-errormessage={props['aria-errormessage']}
           />
@@ -328,6 +365,11 @@ export function Slider({
           ) : null}
         </SliderTrack>
       </AriaSlider>
+      {allowedRange && (
+        <span id={constraintId} hidden>
+          Allowed range: {lower} to {upper}.
+        </span>
+      )}
       {readOnlyDescription.description}
     </>
   )

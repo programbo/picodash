@@ -643,3 +643,25 @@ date/time projection and date-window clamping, calendar bounds, Compact renderin
 date rejection, and disabled controls. No browser errors were recorded. Dev Bridge remains
 disabled in this production Lab; canonical transactions are verified through the public Nexus
 API in the model tests. This pass does not claim physical touch or the full browser suite.
+
+### Fixed-scale constrained and bipolar sliders, 2026-10-08
+
+`Slider` and `SliderDashlet` separate the full min/max scale from optional `allowedRange`
+interaction bounds. The Lab retains its 0–100 track and fixed marks while Range edits clamp the
+shared value atomically. Brighter allowed-track segments and endpoint ticks explain the stops;
+dimmed segments remain clickable and clamp to the nearest endpoint. The input has an accessible
+allowed-range description. Unlike the earlier linked-gallery collapsed presentation, a collapsed
+range now retains the Slider thumb at its single allowed position.
+
+Optional `fillOrigin` paints from the origin to the value, using accent above and danger below.
+The independent Bipolar example starts at zero, with −100%, 0%, and 100% marks and a signed readout.
+
+All 277 DashStack tests and nine gallery model tests pass, with scoped types/lint/format checks,
+package build, and Lab production build. Direct control tests exercise clamped changes, collapsed
+bounds, read-only/disabled guards, invalid configuration, and signed fill geometry. A ready-made
+binding test proves that incompatible constraints display a warning without rewriting Nexus.
+Live browser checks covered clicks in unavailable track regions, dragging to a boundary and back,
+keyboard End/arrow input, range-driven clamping and collapsed-range recovery, and red/blue bipolar
+fills. Compact light mode at 390px had no horizontal page overflow; regular dark mode also passed
+visual inspection. No browser errors were recorded. Production Dev Bridge remained disabled;
+physical touch and screen-reader speech were not exercised.

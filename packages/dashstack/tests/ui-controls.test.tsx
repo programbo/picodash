@@ -957,3 +957,110 @@ describe('Slider marks', () => {
     act(() => view.unmount())
   })
 })
+
+describe('Slider scale, constraints, and origin fill', () => {
+  it('clamps input to the allowed interval while retaining the full scale and fixed marks', () => {
+    const changes: number[] = []
+    const view = render(
+      createElement(Slider, {
+        value: 48,
+        min: 0,
+        max: 100,
+        allowedRange: { min: 24, max: 76 },
+        marks: [{ value: 0 }, { value: 50 }, { value: 100 }],
+        onChange: (value) => changes.push(value),
+        'aria-label': 'Constrained',
+      }),
+    )
+    const input = view.root.element.querySelector<HTMLInputElement>('input[type="range"]')!
+    expect([input.min, input.max, input.value]).toEqual(['0', '100', '48'])
+    const description = document.getElementById(input.getAttribute('aria-describedby')!)
+    expect(description?.textContent).toBe('Allowed range: 24 to 76.')
+    fireEvent.change(input, { target: { value: '0' } })
+    fireEvent.change(input, { target: { value: '100' } })
+    fireEvent.change(input, { target: { value: '50' } })
+    expect(changes).toEqual([24, 76, 50])
+    const interval = view.root.element.querySelector<HTMLElement>('[data-picodash-slider-allowed]')!
+    expect([interval.style.insetInlineStart, interval.style.inlineSize]).toEqual(['24%', '52%'])
+    act(() =>
+      view.update(
+        createElement(Slider, {
+          value: 50,
+          allowedRange: { min: 50, max: 50 },
+          onChange: (value) => changes.push(value),
+          'aria-label': 'Constrained',
+        }),
+      ),
+    )
+    fireEvent.change(input, { target: { value: '0' } })
+    expect(changes.at(-1)).toBe(50)
+    expect(input.value).toBe('50')
+    act(() => view.unmount())
+  })
+
+  it.each([false, true])(
+    'prevents constrained writes when readOnly=%s and disabled=%s',
+    (readOnly) => {
+      const changes: number[] = []
+      const view = render(
+        createElement(Slider, {
+          value: 50,
+          allowedRange: { min: 24, max: 76 },
+          readOnly,
+          disabled: !readOnly,
+          onChange: (value) => changes.push(value),
+          'aria-label': 'Unavailable',
+        }),
+      )
+      fireEvent.change(view.root.element.querySelector('input')!, { target: { value: '70' } })
+      expect(changes).toEqual([])
+      act(() => view.unmount())
+    },
+  )
+
+  it.each([
+    [-100, 'negative', '0%', '50%'],
+    [0, 'positive', '50%', '0%'],
+    [60, 'positive', '50%', '30%'],
+  ] as const)(
+    'fills from zero to %s without moving the scale',
+    (value, direction, start, width) => {
+      const view = render(
+        createElement(Slider, {
+          value,
+          min: -100,
+          max: 100,
+          fillOrigin: 0,
+          onChange: () => undefined,
+          'aria-label': 'Bipolar',
+        }),
+      )
+      const fill = view.root.element.querySelector<HTMLElement>('[data-picodash-slider-fill]')!
+      expect(fill.dataset.picodashSliderFill).toBe(direction)
+      expect([fill.style.insetInlineStart, fill.style.inlineSize]).toEqual([start, width])
+      expect(fill.getAttribute('aria-hidden')).toBe('true')
+      act(() => view.unmount())
+    },
+  )
+
+  it.each([
+    { allowedRange: { min: -1, max: 50 } },
+    { allowedRange: { min: 50, max: 49 } },
+    { allowedRange: { min: 0, max: 101 } },
+    { allowedRange: { min: 0.5, max: 50 } },
+    { allowedRange: { min: 0, max: Number.NaN } },
+    { fillOrigin: 101 },
+    { fillOrigin: Number.NaN },
+  ])('rejects invalid extra slider configuration %j', (props) => {
+    expect(() =>
+      render(
+        createElement(Slider, {
+          ...props,
+          value: 50,
+          onChange: () => undefined,
+          'aria-label': 'Invalid',
+        }),
+      ),
+    ).toThrow(TypeError)
+  })
+})

@@ -13,6 +13,7 @@ import {
 describe('linked gallery values', () => {
   it('stores shared choices and source values without mirrored or computed fields', () => {
     const nexus = createGalleryNexus()
+    expect(nexus.getState().values.bipolar).toBe(0)
     expect(nexus.setValues({ choice: 'Option C', selections: ['Option C'] }).ok).toBe(true)
     expect(nexus.getState().values.choice).toBe('Option C')
     expect(nexus.getState().values.selections).toEqual(['Option C'])

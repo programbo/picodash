@@ -917,7 +917,7 @@ facade-specific state or behavior.
 | ------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `TextDashlet`             | `string`                             | `multiline?`, `minRows?`, `placeholder?`                                                                                    |
 | `NumberDashlet`           | `number`                             | `min?`, `max?`, `step?`, `placeholder?`, `formatOptions?`                                                                   |
-| `SliderDashlet`           | `number`                             | `min?`, `max?`, `step?`, `marks?`, `formatOptions?`, `formatValue?`                                                         |
+| `SliderDashlet`           | `number`                             | `min?`, `max?`, `step?`, `marks?`, `allowedRange?`, `fillOrigin?`, `formatOptions?`, `formatValue?`                         |
 | `SwitchDashlet`           | `boolean`                            | None                                                                                                                        |
 | `SelectDashlet<T>`        | `string \| number`                   | `options`, `placeholder?`                                                                                                   |
 | `SegmentedDashlet<T>`     | `string \| number`                   | `options`                                                                                                                   |
@@ -975,6 +975,26 @@ grows from that minimum. `SliderDashlet` defaults to `min={0}`, `max={100}`, and
 interval shorthand. Number formatting uses `Intl.NumberFormatOptions`. A `formatValue` callback
 receives only the canonical field value; applications select and close over any additional state
 explicitly.
+
+### Fixed-scale Slider constraints and origin fill
+
+> Contract: Accepted
+> Implementation: Implemented
+> Evidence: `packages/dashstack/tests/ui-controls.test.tsx` and `packages/dashstack/tests/ready-made.test.tsx`.
+
+`Slider` and `SliderDashlet` accept optional `allowedRange={{ min, max }}` inside the full
+`min`/`max` scale. Its finite ordered endpoints must lie on the configured step grid. Pointer and
+keyboard edits clamp to that interval; the track and authored marks retain their original scale.
+The available interval has a brighter track and boundary ticks, while inaccessible track segments
+remain dimly visible. The focused input describes the allowed range. A collapsed interval retains
+its thumb at the sole allowed value. These props never rewrite a canonical value: an incompatible
+`SliderDashlet` shows the existing presentation warning. Applications own coordinated changes to
+constraints and values, as the Lab's linked Range/Slider example demonstrates.
+
+`fillOrigin={0}` adds a fill from zero to the current value, using the theme accent above zero and
+the danger colour below zero. Any finite origin inside the full scale is valid. Omitting it leaves
+the existing unfilled track. The Lab's independent Bipolar variation starts at zero on a −100–100
+scale with marks at −100%, 0%, and 100%; its signed readout and fill direction supplement colour.
 
 Select and Segmented share a generic `DashletChoiceOption<T>` representation. An option is either a
 primitive choice value or `{ value, label?, textValue?, icon?, disabled? }`. Choice values are

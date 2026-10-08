@@ -822,3 +822,32 @@ describe('@picodash/dashstack ready-made Dashlets', () => {
     nexus.destroy()
   })
 })
+
+it('keeps constrained SliderDashlet presentation changes from rewriting Nexus', () => {
+  const nexus = createPicodashNexus({
+    nexusId: 'slider-constraint',
+    schemaVersion: 1,
+    valueOwner: 'nexus',
+    fields: { amount: { defaultValue: 48 } },
+  })
+  const before = nexus.getState().values
+  const view = render(
+    createElement(
+      DashStack,
+      { id: 'constraints', nexus },
+      createElement(SliderDashlet, {
+        id: 'slider',
+        label: 'Slider',
+        field: nexus.fields.amount,
+        allowedRange: { min: 60, max: 80 },
+        fillOrigin: 0,
+      }),
+    ),
+  )
+  expect(view.root.element.querySelector('input[type="range"]')).toBeNull()
+  expect(view.root.element.textContent).toContain(
+    'The current value (48) is outside the configured range.',
+  )
+  expect(nexus.getState().values).toBe(before)
+  act(() => view.unmount())
+})

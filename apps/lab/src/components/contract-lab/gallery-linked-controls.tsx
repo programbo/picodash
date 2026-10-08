@@ -12,7 +12,6 @@ import {
   RangeSlider,
   Meter,
   ProgressBar,
-  Display,
 } from '@picodash/dashstack/ui'
 import {
   changeDate,
@@ -66,31 +65,18 @@ export function LinkedSlider({ nexus, marks, ...props }: Sample & { readonly mar
         const { slider, range } = context.binding.value
         return (
           <>
-            {range.start === range.end ? (
-              <Display {...controlProps(context)} value={`${slider}%`} />
-            ) : (
-              <Slider
-                {...controlProps(context)}
-                value={slider}
-                min={range.start}
-                max={range.end}
-                marks={
-                  marks
-                    ? [
-                        ...new Set([
-                          range.start,
-                          Math.round((range.start + range.end) / 2),
-                          range.end,
-                        ]),
-                      ].map((value) => ({ value, label: `${value}%` }))
-                    : undefined
-                }
-                onChange={(slider) => context.binding.setInput({ range, slider })}
-              />
-            )}
-            {range.start !== range.end && (
-              <output data-picodash-dashstack-slider-value>{slider}%</output>
-            )}
+            <Slider
+              {...controlProps(context)}
+              value={slider}
+              min={0}
+              max={100}
+              allowedRange={{ min: range.start, max: range.end }}
+              marks={
+                marks ? [0, 50, 100].map((value) => ({ value, label: `${value}%` })) : undefined
+              }
+              onChange={(slider) => context.binding.setInput({ range, slider })}
+            />
+            <output data-picodash-dashstack-slider-value>{slider}%</output>
           </>
         )
       }}

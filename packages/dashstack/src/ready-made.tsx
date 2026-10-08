@@ -1,5 +1,7 @@
 'use client'
 
+import { validateSliderOptions } from './slider-options.js'
+
 import {
   forwardRef,
   type ForwardedRef,
@@ -215,7 +217,10 @@ export const NumberDashlet = forwardRef(NumberDashletInner) as {
 
 export type SliderDashletProps<F extends ScalarField<number> = ExactField<number>> = Shell &
   WritableScalarFieldProps<F, number> &
-  Pick<SliderProps, 'min' | 'max' | 'step' | 'marks' | 'formatOptions'> & {
+  Pick<
+    SliderProps,
+    'min' | 'max' | 'step' | 'marks' | 'formatOptions' | 'allowedRange' | 'fillOrigin'
+  > & {
     readonly formatValue?: (canonical: number) => ReactNode
   }
 function SliderDashletInner<F extends ScalarField<number>>(
@@ -225,6 +230,8 @@ function SliderDashletInner<F extends ScalarField<number>>(
     max = 100,
     step = 1,
     marks,
+    allowedRange,
+    fillOrigin,
     formatValue,
     formatOptions,
     ...props
@@ -233,6 +240,7 @@ function SliderDashletInner<F extends ScalarField<number>>(
 ) {
   validateBounds(min, max)
   validateStep(step)
+  validateSliderOptions(min, max, step, { allowedRange, fillOrigin })
   if (marks?.some((mark) => !Number.isFinite(mark.value) || mark.value < min || mark.value > max))
     throw new TypeError('marks values must be finite and within the slider bounds.')
   return (
@@ -241,7 +249,8 @@ function SliderDashletInner<F extends ScalarField<number>>(
         const binding = context.binding
         const canonical = binding.value as number
         const value = (binding.draftValue ?? canonical) as number
-        const rangeMismatch = canonical < min || canonical > max
+        const rangeMismatch =
+          canonical < (allowedRange?.min ?? min) || canonical > (allowedRange?.max ?? max)
         const stepMismatch = !rangeMismatch && !isNumberCompatible(canonical, min, max, step)
         const mismatch = rangeMismatch || stepMismatch
         return (
@@ -264,6 +273,8 @@ function SliderDashletInner<F extends ScalarField<number>>(
                 max={max}
                 step={step}
                 marks={marks}
+                allowedRange={allowedRange}
+                fillOrigin={fillOrigin}
                 formatOptions={formatOptions}
                 disabled={context.disabled}
                 readOnly={context.readOnly}

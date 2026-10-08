@@ -175,6 +175,13 @@ export function createGalleryNexus() {
       color: styleLabFields.color,
       choice: styleLabFields.select,
       selections: styleLabFields.multiSelect,
+      bipolar: {
+        defaultValue: 0,
+        validate: (value: number) =>
+          Number.isFinite(value) && value >= -100 && value <= 100
+            ? []
+            : [{ message: 'Choose a value from -100 to 100.' }],
+      },
       numeric: {
         defaultValue: { slider: 48, range: { start: 24, end: 76 } } as NumericState,
         validate: (value: NumericState) =>

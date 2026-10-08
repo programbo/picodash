@@ -67,6 +67,45 @@
   background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
 }
 
+/* Restrictions change the available interval, never the track scale. */
+.picodash-dashstack-slider-track[data-constrained] {
+  background: color-mix(in oklab, var(--picodash-color-text) 9%, transparent);
+}
+
+[data-picodash-slider-allowed],
+[data-picodash-slider-fill] {
+  position: absolute;
+  inset-block: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+[data-picodash-slider-allowed] {
+  background: color-mix(in oklab, var(--picodash-color-text) 38%, transparent);
+}
+
+[data-picodash-slider-allowed]::before,
+[data-picodash-slider-allowed]::after {
+  content: '';
+  position: absolute;
+  inset-block: calc(-1 * var(--picodash-space-0-5));
+  inline-size: var(--picodash-border-width-thin);
+  background: var(--picodash-color-text-muted);
+}
+
+[data-picodash-slider-allowed]::before {
+  inset-inline-start: 0;
+}
+[data-picodash-slider-allowed]::after {
+  inset-inline-end: 0;
+}
+[data-picodash-slider-fill='positive'] {
+  background: var(--picodash-color-accent);
+}
+[data-picodash-slider-fill='negative'] {
+  background: var(--picodash-color-danger);
+}
+
 .picodash-dashstack-slider:has([data-picodash-dashstack-slider-marks]) {
   padding-block-end: calc(var(--picodash-font-size-sm) + var(--picodash-space-1));
 }

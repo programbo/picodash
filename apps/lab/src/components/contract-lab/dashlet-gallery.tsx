@@ -14,6 +14,7 @@ import {
   TextDashlet,
   NumberDashlet,
   SwitchDashlet,
+  SliderDashlet,
   DisplayDashlet,
   StatusDashlet,
   ColorDashlet,
@@ -152,15 +153,29 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
       readout: false,
       render: (props) => <LinkedSlider key={props.id} {...props} nexus={nexus} />,
       additional: (
-        <LinkedSlider
-          id="unmarked"
-          label="With marks"
-          layout="inline"
-          nexus={nexus}
-          marks
-          readOnly={readOnly}
-          disabled={disabled}
-        />
+        <>
+          <LinkedSlider
+            id="unmarked"
+            label="With marks"
+            layout="inline"
+            nexus={nexus}
+            marks
+            readOnly={readOnly}
+            disabled={disabled}
+          />
+          <SliderDashlet
+            id="bipolar"
+            label="Bipolar"
+            field={nexus.fields.bipolar}
+            min={-100}
+            max={100}
+            fillOrigin={0}
+            marks={[-100, 0, 100].map((value) => ({ value, label: `${value}%` }))}
+            formatValue={(value) => `${value > 0 ? '+' : ''}${value}%`}
+            readOnly={readOnly}
+            disabled={disabled}
+          />
+        </>
       ),
     },
     {
