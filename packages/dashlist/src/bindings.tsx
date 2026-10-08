@@ -1,12 +1,5 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { usePicodashNexusSelector } from '@picodash/nexus/react'
 import type {
   BindingInteractionState,
   PicodashField,
@@ -272,6 +265,8 @@ function issueFromOverwriteError(
   })
 }
 
+const noCommandIssues: readonly TransactionIssue[] = []
+
 export function useDashletBindings(
   nexus: ScopedNexus<PicodashFieldDefinitions>,
   itemId: string,
@@ -286,11 +281,6 @@ export function useDashletBindings(
   readonly issues: readonly TransactionIssue[]
   readonly staleOverwrite: Record<string, StaleOverwriteController>
 } {
-  const storeSnapshot = useSyncExternalStore(
-    (listener) => nexus.subscribe(listener),
-    () => nexus.getState(),
-    () => nexus.getState(),
-  )
   const runtimes = useRef<Runtime[]>([])
   const initialDescriptors = useRef<readonly BindingDescriptor[] | null>(null)
   if (initialDescriptors.current === null) initialDescriptors.current = descriptors
@@ -300,12 +290,30 @@ export function useDashletBindings(
     )
   const stableDescriptors = initialDescriptors.current
   assertBindingDescriptorsOwned(nexus, stableDescriptors)
-  const [commandIssues, setCommandIssues] = useState<readonly TransactionIssue[]>([])
-  const previousValues = useRef(storeSnapshot.values)
-  useEffect(() => {
-    if (previousValues.current !== storeSnapshot.values) setCommandIssues([])
-    previousValues.current = storeSnapshot.values
-  }, [storeSnapshot.values])
+  const [commandResult, setCommandResult] = useState<{
+    readonly issues: readonly TransactionIssue[]
+    readonly values: ReturnType<typeof nexus.getState>['values']
+  } | null>(null)
+  const setCommandIssues = useCallback(
+    (issues: readonly TransactionIssue[]) => {
+      setCommandResult(issues.length ? { issues, values: nexus.getState().values } : null)
+    },
+    [nexus],
+  )
+  const storeSnapshot = usePicodashNexusSelector(
+    nexus,
+    (state) => ({
+      values: stableDescriptors.map((descriptor) => state.values[descriptor.field.key]),
+      interaction: state.interaction.bindings.get(itemId),
+      // Command failures expire on any canonical write, including an unrelated field.
+      commandIssues:
+        commandResult?.values === state.values ? commandResult.issues : noCommandIssues,
+    }),
+    (left, right) =>
+      left.interaction === right.interaction &&
+      left.commandIssues === right.commandIssues &&
+      left.values.every((value, index) => Object.is(value, right.values[index])),
+  )
   const policy = useRef({ disabled, readOnly })
   policy.current = { disabled, readOnly }
   const publishAnnouncement = useContext(DashListAnnouncementContext)
@@ -334,7 +342,7 @@ export function useDashletBindings(
 
   const result = useMemo(() => {
     const state = storeSnapshot
-    const interaction = state.interaction.bindings.get(itemId)
+    const interaction = state.interaction
     const bindings: Record<string, DashletBindingContext<PicodashJsonValue>> = Object.create(null)
     const discardInputs: Record<string, () => void> = Object.create(null)
     const staleOverwrite: Record<string, StaleOverwriteController> = Object.create(null)
@@ -342,7 +350,7 @@ export function useDashletBindings(
       dedupeIssues(
         stableDescriptors
           .flatMap((descriptor) => interaction?.get(descriptor.alias)?.inputIssues ?? [])
-          .concat(commandIssues),
+          .concat(state.commandIssues),
       ),
       nexus.scopeId,
       itemId,
@@ -366,7 +374,7 @@ export function useDashletBindings(
       const key = descriptor.alias
       const bindingState = interaction?.get(key) as BindingInteractionState | undefined
       const ownIssues = allIssues.filter((issue) => owners.get(issueKey(issue)) === key)
-      const value = (state.values as Record<string, PicodashJsonValue>)[descriptor.field.key]
+      const value = state.values[descriptorIndex]
       const base: DashletBindingContext<PicodashJsonValue> = {
         alias: key,
         field: descriptor.field,
@@ -475,7 +483,7 @@ export function useDashletBindings(
     const issues = dedupeIssues(common)
     return { bindings, discardInputs, issues, staleOverwrite }
   }, [
-    commandIssues,
+    setCommandIssues,
     controlId,
     issuesId,
     itemId,

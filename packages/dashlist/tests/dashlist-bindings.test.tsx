@@ -5,9 +5,79 @@ import { createDomTestRenderer as create } from '../../../test/dom-renderer.ts'
 import { createPicodashNexus } from '@picodash/nexus'
 import { acquireBindingLease } from '@picodash/nexus/integration'
 import { DashGroup, DashList, Dashlet } from '../src/index.tsx'
-import { issuesForDashlet, normalizeBindingDescriptors } from '../src/bindings.tsx'
+import {
+  issuesForDashlet,
+  normalizeBindingDescriptors,
+  type SingleFieldDashletRenderContext,
+} from '../src/bindings.tsx'
+import { Slider } from '../src/ui.tsx'
 
 describe('DashList bindings', () => {
+  it('keeps repeated slider updates local while updating same-field displays immediately', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { count: { defaultValue: 1 }, other: { defaultValue: 10 } },
+    })
+    const renders = { slider: 0, display: 0, other: 0, unbound: 0 }
+    let setInput: ((value: number) => void) | undefined
+    let view!: ReturnType<typeof create>
+    act(() => {
+      view = create(
+        <DashList id="list" nexus={nexus}>
+          <Dashlet id="slider" label="Slider" field={nexus.fields.count}>
+            {({ binding }: SingleFieldDashletRenderContext<number, 'input'>) => {
+              renders.slider += 1
+              setInput = (value) => binding.setInput(value)
+              return (
+                <Slider
+                  aria-label="Slider"
+                  value={binding.value}
+                  onChange={(value) => binding.setInput(value)}
+                />
+              )
+            }}
+          </Dashlet>
+          <Dashlet id="display" label="Display" field={nexus.fields.count} mode="display">
+            {({ binding }: SingleFieldDashletRenderContext<number, 'display'>) => {
+              renders.display += 1
+              return <output data-value={binding.value} />
+            }}
+          </Dashlet>
+          <Dashlet id="other" label="Other" field={nexus.fields.other}>
+            {() => {
+              renders.other += 1
+              return null
+            }}
+          </Dashlet>
+          <Dashlet id="unbound" label="Unbound">
+            {() => {
+              renders.unbound += 1
+              return null
+            }}
+          </Dashlet>
+        </DashList>,
+      )
+    })
+    const before = { ...renders }
+    try {
+      for (let value = 2; value <= 21; value += 1) {
+        act(() => setInput?.(value))
+        expect(nexus.getState().values.count).toBe(value)
+        expect(view.root.findByProps({ 'data-value': value })).toBeDefined()
+        expect(view.root.findByProps({ type: 'range' }).props.value).toBe(value)
+      }
+      expect({
+        slider: renders.slider - before.slider,
+        display: renders.display - before.display,
+        other: renders.other - before.other,
+        unbound: renders.unbound - before.unbound,
+      }).toEqual({ slider: 20, display: 20, other: 0, unbound: 0 })
+    } finally {
+      act(() => view.unmount())
+      nexus.destroy()
+    }
+  })
+
   it('cascades additive group content policies without changing group controls', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',
@@ -267,6 +337,9 @@ describe('DashList bindings', () => {
         .children.filter((child): child is string => typeof child === 'string')
         .join(''),
     ).toContain('Count must be a number.')
+    act(() => void context.binding.setInput(2))
+    expect(context.binding).toMatchObject({ value: 2, dirty: false, invalid: false })
+    expect(view.root.findByProps({ role: 'status' }).children).toEqual([])
     act(() => view.unmount())
   })
 
@@ -320,6 +393,13 @@ describe('DashList bindings', () => {
         .children.filter((child): child is string => typeof child === 'string')
         .join(''),
     ).toContain('Count exceeds the limit.')
+    // A write outside this Dashlet still expires a command rejection.
+    act(() => void nexus.setValue(nexus.fields.limit, 4))
+    expect(context.issues).toHaveLength(0)
+    // A later rejection must use the current values record, even after a skipped render.
+    act(() => void nexus.setValue(nexus.fields.limit, 2))
+    act(() => void context.binding.resetValue())
+    expect(context.issues).toHaveLength(1)
     act(() => view.unmount())
   })
 

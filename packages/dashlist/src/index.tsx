@@ -95,6 +95,7 @@ import {
   DashListResetValuesItem,
   useDashListActions,
   type DashListActionProps,
+  type DashListActionRegistry,
   type DashListActions,
   type DashListActionAvailability,
   type DashListActionController,
@@ -1558,6 +1559,17 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   )
 })
 
+// Announcements subscribe separately so value writes never rerender the list tree.
+function DashListAnnouncement({ registry, id }: { registry: DashListActionRegistry; id: string }) {
+  const getSequence = useCallback(() => registry.getSnapshot().announcementSequence, [registry])
+  const sequence = useSyncExternalStore(registry.subscribe, getSequence, getSequence)
+  return (
+    <div key={sequence} id={id} role="status" aria-live="polite" aria-atomic="true">
+      {registry.getSnapshot().announcement}
+    </div>
+  )
+}
+
 const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList(
   {
     id,
@@ -1611,11 +1623,6 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   if (actionRegistryRef.current === undefined)
     actionRegistryRef.current = createDashListActionRegistry(resolved.nexus, resolved.scopeId)
   const actionRegistry = actionRegistryRef.current
-  const actionSnapshot = useSyncExternalStore(
-    actionRegistry.subscribe,
-    actionRegistry.getSnapshot,
-    actionRegistry.getSnapshot,
-  )
   useEffect(() => {
     actionRegistry.activate()
     return () => actionRegistry.dispose()
@@ -1624,23 +1631,27 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     resolved.nexus,
     (state) => state.scope?.dashList?.rootOrder,
   )
-  const rootCollapseFence = useMemo(
-    () =>
-      JSON.stringify(
-        actionSnapshot.groups
-          .map(
-            (group) =>
-              [
-                group.id,
-                group.collapsible
-                  ? (actionSnapshot.scope?.dashList?.collapseOverrides.get(group.id) ??
-                    group.defaultCollapsed)
-                  : false,
-              ] as const,
-          )
-          .sort(([left], [right]) => left.localeCompare(right)),
-      ),
-    [actionSnapshot],
+  const getCollapseFence = useCallback(() => {
+    const snapshot = actionRegistry.getSnapshot()
+    return JSON.stringify(
+      snapshot.groups
+        .map(
+          (group) =>
+            [
+              group.id,
+              group.collapsible
+                ? (snapshot.scope?.dashList?.collapseOverrides.get(group.id) ??
+                  group.defaultCollapsed)
+                : false,
+            ] as const,
+        )
+        .sort(([left], [right]) => left.localeCompare(right)),
+    )
+  }, [actionRegistry])
+  const rootCollapseFence = useSyncExternalStore(
+    actionRegistry.subscribe,
+    getCollapseFence,
+    getCollapseFence,
   )
   const rootOrdering = useOrderingController({
     nexus: resolved.nexus,
@@ -1811,15 +1822,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
                               </div>
                             ))}
                           </div>
-                          <div
-                            key={actionSnapshot.announcementSequence}
-                            id={statusId}
-                            role="status"
-                            aria-live="polite"
-                            aria-atomic="true"
-                          >
-                            {actionSnapshot.announcement}
-                          </div>
+                          <DashListAnnouncement registry={actionRegistry} id={statusId} />
                           <span id={reorderInstructionsId} data-picodash-reorder-instructions>
                             Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
                             Press Space or Enter to commit, or Escape to cancel.

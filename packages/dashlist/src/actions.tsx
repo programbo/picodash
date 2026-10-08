@@ -142,6 +142,7 @@ function createRegistry(
     scopeId,
     nexus,
     announce(message) {
+      if (message === '' && announcement === '') return
       announcement = message
       announcementSequence += 1
       notify()

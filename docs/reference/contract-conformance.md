@@ -537,3 +537,24 @@ were not exercised in this pass.
 The Off switch uses the same 22% translucent theme text color as slider tracks. Live browser
 checks confirmed identical computed colors and a visible Off track over the hovered row in
 both light and dark modes. All 258 DashList tests, package checks, and the Lab build passed.
+
+### Slider update isolation, 2026-10-08
+
+Dashlet bindings select their own fields and interaction state. List ordering subscribes to the
+collapse fence independently of the live announcement region. Successful inputs no longer publish
+redundant empty announcements, and command errors expire directly against their canonical values
+record without a follow-up clearing render. Nexus writes, validation, thumb positions, and linked
+readouts remain synchronous; no easing, debounce, or deferred value was introduced.
+
+The repeated-slider fixture in `packages/dashlist/tests/dashlist-bindings.test.tsx` measures 20
+successive inputs. Before this change, each of its four Dashlets rendered 60 times. Afterward,
+the slider and same-field display each render 20 times; the unrelated bound and unbound Dashlets
+do not render. The fixture checks the canonical value, native range value, and linked display
+after every input. Existing rejection tests now also check announcement clearing and command-error
+expiry after unrelated canonical writes, including a subsequent rejection.
+
+All 263 DashList tests, package checks, and the Lab build passed. Live browser checks covered
+regular and Compact slider/range dragging, keyboard adjustment, read-only rejection, and disabled
+inputs. During a drag, the main and marked sliders showed the same intermediate values and thumb
+positions in every sampled observation. No browser errors were recorded. This establishes reduced
+render work and functional live behavior, not a calibrated pointer-to-paint latency measurement.
