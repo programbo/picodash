@@ -738,3 +738,7 @@ Seven stylesheet tests, scoped formatting, the DashStack package build, and the 
 build passed. Live browser checks confirmed opposite chamfers, unchanged Slider paint, and keyboard
 changes for both Range endpoints. Regular dark and 390px compact light rendering were inspected,
 with no horizontal overflow or browser errors. RTL and physical touch were not exercised live.
+
+The follow-up extends each outer chamfer across the full thumb width, removing the bottom shelf
+and restoring a point at the flat inner edge. Regular and compact dark rendering were checked in
+the live Lab; seven stylesheet tests and both package/Lab builds passed without browser errors.
