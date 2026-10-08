@@ -529,6 +529,10 @@
   background: var(--picodash-color-surface-muted);
 }
 
+.picodash-dashlist-listbox [role='option'][data-disabled] {
+  opacity: var(--picodash-opacity-disabled);
+}
+
 .picodash-dashlist-tag-group {
   grid-column: 1 / -1;
 }
@@ -546,8 +550,9 @@
   min-block-size: var(--picodash-control-height-sm);
   border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
   border-radius: var(--picodash-radius-surface);
-  padding-inline: var(--picodash-space-1);
-  background: var(--picodash-color-surface-muted);
+  padding-inline: var(--picodash-space-2);
+  background: color-mix(in oklab, var(--picodash-color-accent) 16%, var(--picodash-color-surface));
+  border-color: color-mix(in oklab, var(--picodash-color-accent) 28%, transparent);
 }
 
 .picodash-dashlist-range-slider-track {
@@ -1574,10 +1579,22 @@
   min-block-size: var(--_picodash-dashlist-first-row-height);
 }
 
-/* React Aria's hidden form inputs and collection templates are not extra grid columns. */
+/* Hidden form inputs, descriptions, and collection templates are not extra grid columns. */
 [data-picodash-dashlet-content-cell]
-  > :nth-child(1 of :not([hidden], template, [data-react-aria-prevent-focus])):nth-last-child(
-    1 of :not([hidden], template, [data-react-aria-prevent-focus])
+  > :nth-child(
+    1 of :not(
+      [hidden],
+      template,
+      [data-react-aria-prevent-focus],
+      [data-picodash-control-description]
+    )
+  ):nth-last-child(
+    1 of :not(
+      [hidden],
+      template,
+      [data-react-aria-prevent-focus],
+      [data-picodash-control-description]
+    )
   ) {
   grid-column: 1 / -1;
 }
@@ -1635,7 +1652,8 @@
 
 .picodash-dashlist-date-range-field > [role='group'] {
   display: grid;
-  gap: var(--picodash-space-0-5);
+  column-gap: var(--picodash-space-0-5);
+  row-gap: 0;
 }
 
 [data-picodash-date-range-endpoint] {
@@ -1643,10 +1661,19 @@
   grid-template-columns: 4ch minmax(0, 1fr);
   align-items: center;
   gap: var(--picodash-space-1);
-  min-block-size: var(--_picodash-dashlist-first-row-height, var(--picodash-control-height-md));
+  min-block-size: calc(var(--picodash-control-height-sm) - var(--picodash-space-1));
   padding-inline: var(--picodash-space-1);
-  border-radius: var(--picodash-radius-control);
   background: var(--picodash-color-surface-muted);
+}
+
+[data-picodash-date-range-endpoint]:first-child {
+  border-start-start-radius: var(--picodash-radius-control);
+  border-start-end-radius: var(--picodash-radius-control);
+}
+
+[data-picodash-date-range-endpoint]:nth-child(2) {
+  border-end-start-radius: var(--picodash-radius-control);
+  border-end-end-radius: var(--picodash-radius-control);
 }
 
 [data-picodash-date-range-caption] {
@@ -1679,6 +1706,8 @@
 }
 .picodash-dashlist-tag {
   gap: var(--picodash-space-1);
+}
+.picodash-dashlist-tag:has([data-picodash-dashlist-tag-remove]) {
   padding-inline-end: 0;
 }
 [data-picodash-dashlist-tag-remove] {
@@ -1844,7 +1873,11 @@
   min-block-size: var(--picodash-control-height-md);
   border: 0;
   background: transparent;
+  color: var(--picodash-color-accent);
+}
+.picodash-dashlist-calendar-button:disabled {
   color: var(--picodash-color-text-muted);
+  opacity: var(--picodash-opacity-disabled);
 }
 .picodash-dashlist-date-range-field > [role='group'] {
   grid-template-columns: minmax(0, 1fr) auto;

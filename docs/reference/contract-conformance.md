@@ -558,3 +558,19 @@ regular and Compact slider/range dragging, keyboard adjustment, read-only reject
 inputs. During a drag, the main and marked sliders showed the same intermediate values and thumb
 positions in every sampled observation. No browser errors were recorded. This establishes reduced
 render work and functional live behavior, not a calibrated pointer-to-paint latency measurement.
+
+### Choice and date state polish, 2026-10-08
+
+MultiSelect chips use a subtle theme-accent tint and balanced inline padding when removal is
+unavailable. Disabled listbox options use the disabled-opacity token. Visually hidden read-only
+descriptions are excluded from content-column counting, so Select retains the full field width
+without losing its accessible description. Date range endpoints form two tighter joined rows;
+calendar actions use the theme accent when enabled and muted grey at disabled opacity otherwise.
+
+All 263 DashList tests, package checks, and the Lab build passed. Live regular-dark and Compact-light
+checks confirmed read-only Select occupied its full available width (183px and 191px), symmetric
+chip padding (8px and 6px), and date-range heights of 48px and 42px. Disabled Option C retained its
+disabled semantics with 0.5 opacity. Calendar icons settled to grey at 0.5 opacity in read-only and
+disabled modes; enabled icons were blue. Direct range-date adjustment and calendar opening both
+worked. Screenshots covered chips, joined dates, and read-only presentation; no browser errors
+were recorded. Physical touch and forced-colors rendering were not exercised in this pass.

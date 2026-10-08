@@ -25,6 +25,10 @@ export function useReadOnlyDescription(
   const id = useId()
   return {
     describedBy: readOnly ? joinDescriptionIds(describedBy, id) : describedBy,
-    description: readOnly ? <VisuallyHidden id={id}>Read only.</VisuallyHidden> : null,
+    description: readOnly ? (
+      <VisuallyHidden id={id} data-picodash-control-description>
+        Read only.
+      </VisuallyHidden>
+    ) : null,
   }
 }
