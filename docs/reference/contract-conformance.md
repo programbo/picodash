@@ -728,3 +728,13 @@ At 390 CSS pixels, dark regular and light compact layouts had no horizontal over
 preserved the inferred result. No browser errors were recorded. Physical touch was not exercised.
 Production Dev Bridge remained disabled; the development connector discloses only the design field
 and planetary scope, with design writes allowlisted.
+
+### Mirrored Range thumb chamfers, 2026-10-08
+
+Fine-pointer Range thumbs now chamfer only the outer bottom corner, leaving the inner edge flat.
+The endpoint shapes swap in RTL. The single Slider retains its symmetric tip; hit areas, focus
+rings, overlap priority, and hover/drag scale are unchanged. This is a paint-only CSS refinement.
+Seven stylesheet tests, scoped formatting, the DashStack package build, and the Lab production
+build passed. Live browser checks confirmed opposite chamfers, unchanged Slider paint, and keyboard
+changes for both Range endpoints. Regular dark and 390px compact light rendering were inspected,
+with no horizontal overflow or browser errors. RTL and physical touch were not exercised live.

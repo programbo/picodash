@@ -1557,6 +1557,22 @@
   }
 }
 
+/* Range endpoints keep the chamfer outside and a straight edge toward the interval. */
+@media (pointer: fine) {
+  .picodash-dashstack-range-slider:dir(ltr)
+    [data-picodash-dashstack-range-slider-thumb]:first-child::before,
+  .picodash-dashstack-range-slider:dir(rtl)
+    [data-picodash-dashstack-range-slider-thumb]:last-child::before {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 100%, 0 calc(100% - var(--picodash-space-1)));
+  }
+  .picodash-dashstack-range-slider:dir(ltr)
+    [data-picodash-dashstack-range-slider-thumb]:last-child::before,
+  .picodash-dashstack-range-slider:dir(rtl)
+    [data-picodash-dashstack-range-slider-thumb]:first-child::before {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--picodash-space-1)), 50% 100%, 0 100%);
+  }
+}
+
 @media (pointer: fine) {
   .picodash-dashstack-slider [data-picodash-dashstack-slider-thumb],
   .picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb] {
