@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   PicodashThemeProvider,
@@ -406,6 +407,12 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
       >
         <div className="mx-auto max-w-80">
           <header className="mb-5">
+            <Link
+              href="/lab/planetary"
+              className="mb-3 inline-block text-sm underline underline-offset-4"
+            >
+              Planetary Lab
+            </Link>
             <div className="flex items-center justify-between gap-3">
               <h1 className="text-xl font-semibold tracking-tight">Dashlet Lab</h1>
               <Button variant="ghost" onPress={onOpenContracts}>

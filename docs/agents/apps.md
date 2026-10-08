@@ -9,8 +9,14 @@ read the testing instructions and every product reference exercised by the journ
 - `apps/web` is the production Next.js evaluation website. `/` is its only public route.
 - `apps/lab` opens `/lab` to the mobile Dashlet refinement gallery. **Contract tools** opens the
   six-preset Contract Lab on the same route. The app also renders checked-in audit reports.
+- `/lab/planetary` is the controls-only planetary example: reorderable reduction/module targets,
+  hard physical constraints, and inferred gear geometry. Solver provenance and limits live in
+  [`../../apps/lab/src/components/contract-lab/planetary/README.md`](../../apps/lab/src/components/contract-lab/planetary/README.md).
 - Applications own routing, transport, authentication, authorization, exposure policy, and which
   Panels and Dashlets are mounted.
+
+The root `bunfig.toml` keeps dependency storage local to the checkout so Turbopack can resolve
+packages within its configured filesystem root, even when a user enables Bun global storage.
 
 ## Ports and lifecycle
 

@@ -711,3 +711,20 @@ Slider to 100, confirmed a lower Range could not exclude it, then shrank the hig
 confirmed Slider clamping and endpoint limits. The marked Slider followed the same values.
 No browser errors were recorded. Production Dev Bridge remained disabled; this run observed the
 rendered controls and used public Nexus APIs in model/component tests.
+
+### Planetary application lab, 2026-10-08
+
+`/lab/planetary` demonstrates an application-owned solver through DashStack and Nexus. The Lab
+adapts the existing planetary calculator's pure geometry and contact checks, with provenance and
+scope documented beside the solver. Two reorderable targets rank reduction and tooth-size errors
+lexicographically. Physical limits remain hard constraints; the resulting gear set is computed
+from accepted values and committed order. No solution or priority copy is stored in Nexus.
+
+Seven model tests cover source-default parity, priority differences, representative geometry
+invariants under both priorities, and rejected-write closure. Scoped formatting, type/lint checks,
+and the Lab production build passed. Desktop browser checks verified preview versus commit,
+order-driven inference, infeasible input retention, discard recovery, feasible resizing, and reset.
+At 390 CSS pixels, dark regular and light compact layouts had no horizontal overflow; group collapse
+preserved the inferred result. No browser errors were recorded. Physical touch was not exercised.
+Production Dev Bridge remained disabled; the development connector discloses only the design field
+and planetary scope, with design writes allowlisted.

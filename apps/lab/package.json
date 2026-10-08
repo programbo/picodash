@@ -26,7 +26,8 @@
     "@tanstack/charts": "catalog:",
     "next": "16.3.4",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@playwright/test": "catalog:",
