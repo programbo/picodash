@@ -29,3 +29,12 @@ private imports, copied components, or a monolithic Dashboard abstraction.
 Integration tests prove composition and lease ordering without repeating Nexus, DashPanel, or
 DashStack matrices. Add Contract Lab coverage only for a cohesive browser seam that cannot be owned
 more cheaply below the facade.
+
+## External consumer packaging
+
+Read [the dogfooding guide](../development/dogfooding.md) before changing snapshot delivery.
+`bun run dogfood:test` owns manifest and installer regression checks. `bun run dogfood:pack
+<version>` runs release checks and creates an immutable five-package bundle.
+`bun run dogfood:check <bundle-directory>` verifies consumption outside the monorepo.
+Keep Dev Bridge private, preserve source manifests, and do not publish snapshots to a registry
+without explicit authorization.

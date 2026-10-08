@@ -754,3 +754,23 @@ The fine-pointer Range track now reserves the full 1.25-scale endpoint width plu
 sides. At 0–100, browser geometry confirmed both enlarged thumbs and focus outlines remain inside
 the input column in regular and compact density. Endpoint keyboard operation still reaches 0 and 100. Seven stylesheet tests, scoped formatting, and package/Lab builds passed; no browser errors
 were recorded.
+
+### Local dogfood package delivery, 2026-10-09
+
+Versioned snapshots contain Nexus, UI, DashPanel, DashStack, and the Picodash facade, with exact
+internal versions, resolved catalog dependencies, licenses, an installer, and source/hash metadata.
+Source package manifests retain their workspace versions. Dev Bridge is excluded.
+See [the installation and feedback guide](../development/dogfooding.md).
+
+`bun run dogfood:test` owns manifest normalization, unrelated-consumer configuration preservation,
+update/rollback mapping, and corrupt/unsafe archive rejection. `bun run dogfood:check <bundle>
+[alternate-bundle]` exercises actual tarballs in a temporary standalone consumer outside the
+monorepo: installation, repeat installation, optional version switching and vendored rollback,
+frozen reinstall, package version/path checks, public TypeScript consumption, a packed Switch
+updating an application selector, and Vite/Next.js production builds with packaged CSS.
+The executable component is owned by `packages/picodash/tests/dogfood`.
+
+Package release checks and these consumer checks passed with Bun 1.4.0, React 19.3.0, Vite+ 0.3.1,
+and Next.js 16.3.4. Interaction evidence is a DOM component test; these packaging checks do not
+claim new rendered-browser evidence or stable support for every package API. Registry publication
+and workspace consumer installation remain outside this delivery path.

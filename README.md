@@ -31,6 +31,12 @@ Nexus, DashPanel, and DashStack are planned as loosely independent products. UI 
 presentation foundation, not a fourth product. Nexus and UI are dogfooded by the two UI products;
 Picodash integration follows after all three products are stable.
 
+## Try it in an application
+
+Use a versioned local bundle to install and update the public packages together. The
+[dogfooding guide](docs/development/dogfooding.md) covers installation, a first control,
+updates, rollback, and returning findings to Picodash. No registry publication is required.
+
 ## Start with the contract
 
 - [Product value propositions](docs/product/value-propositions.md)

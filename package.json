@@ -69,7 +69,10 @@
     "artifacts:phone": "bun run --filter @picodash/lab artifacts:phone",
     "port:reserve": "node scripts/worktree-ports.mjs reserve",
     "port:release": "node scripts/worktree-ports.mjs release",
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "dogfood:pack": "bun run release:check && node scripts/dogfood/pack.mjs",
+    "dogfood:test": "node --test scripts/dogfood/dogfood.test.mjs",
+    "dogfood:check": "node scripts/dogfood/smoke.mjs"
   },
   "devDependencies": {
     "@testing-library/react": "catalog:",
