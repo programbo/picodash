@@ -592,3 +592,7 @@ The final date-range adjustment adds a one-pixel horizontal control-border divid
 and To, stopping at the calendar column. Browser checks confirmed unchanged 32px regular / 28px
 Compact row heights and no horizontal gap beside the calendar button. The Lab build and seven
 stylesheet tests passed.
+
+The divider now mixes 30% theme text into the field background for stronger dark-mode contrast.
+Live dark/light screenshots confirmed the one-pixel line and unchanged geometry; the Lab build,
+format check, and seven stylesheet tests passed.

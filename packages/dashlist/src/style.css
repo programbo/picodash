@@ -1672,7 +1672,8 @@
 }
 
 [data-picodash-date-range-endpoint] + [data-picodash-date-range-endpoint] {
-  border-block-start: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-block-start: var(--picodash-border-width-thin) solid
+    color-mix(in oklab, var(--picodash-color-text) 30%, var(--picodash-color-surface-muted));
 }
 
 @media (pointer: coarse) {
