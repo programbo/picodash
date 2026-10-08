@@ -290,7 +290,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
     },
     {
       name: 'ColorDashlet',
-      additional: (['hex', 'hexa', 'rgb', 'hsl', 'hsla', 'hsb', 'hsba'] as const).map((format) => (
+      additional: (['hexa', 'hsla', 'hsba'] as const).map((format) => (
         <ColorDashlet
           key={format}
           id={format}

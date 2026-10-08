@@ -574,3 +574,16 @@ disabled semantics with 0.5 opacity. Calendar icons settled to grey at 0.5 opaci
 disabled modes; enabled icons were blue. Direct range-date adjustment and calendar opening both
 worked. Screenshots covered chips, joined dates, and read-only presentation; no browser errors
 were recorded. Physical touch and forced-colors rendering were not exercised in this pass.
+
+### Date-range seam correction and colour gallery cleanup, 2026-10-08
+
+The spacing request above referred to the horizontal gap beside the calendar button. Endpoint
+rows therefore return to their original 32px regular / 28px Compact height, with a shared filled
+background and no gap or rounded seam against the calendar action. Live browser geometry confirmed
+a zero-pixel horizontal gap in both densities, and the calendar still opened correctly.
+
+The gallery now includes only the additional alpha-capable colour formats HEXA, HSLA, and HSBA.
+HEX, RGB, HSL, and HSB examples were removed because the gallery's translucent value cannot be
+edited through them. The main RGBA control remains. Browser inspection confirmed the three retained
+labels and no uneditable-format warnings. Package checks, seven stylesheet tests, and the Lab
+production build passed; no browser errors were recorded.

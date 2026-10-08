@@ -1652,8 +1652,9 @@
 
 .picodash-dashlist-date-range-field > [role='group'] {
   display: grid;
-  column-gap: var(--picodash-space-0-5);
-  row-gap: 0;
+  gap: 0;
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-surface-muted);
 }
 
 [data-picodash-date-range-endpoint] {
@@ -1661,19 +1662,8 @@
   grid-template-columns: 4ch minmax(0, 1fr);
   align-items: center;
   gap: var(--picodash-space-1);
-  min-block-size: calc(var(--picodash-control-height-sm) - var(--picodash-space-1));
+  min-block-size: var(--_picodash-dashlist-first-row-height, var(--picodash-control-height-md));
   padding-inline: var(--picodash-space-1);
-  background: var(--picodash-color-surface-muted);
-}
-
-[data-picodash-date-range-endpoint]:first-child {
-  border-start-start-radius: var(--picodash-radius-control);
-  border-start-end-radius: var(--picodash-radius-control);
-}
-
-[data-picodash-date-range-endpoint]:nth-child(2) {
-  border-end-start-radius: var(--picodash-radius-control);
-  border-end-end-radius: var(--picodash-radius-control);
 }
 
 [data-picodash-date-range-caption] {
@@ -1890,7 +1880,8 @@
   grid-row: 1 / 3;
   block-size: auto;
   align-self: stretch;
-  background: var(--picodash-color-surface-muted);
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
 }
 .picodash-dashlist-calendar-popover {
   padding: var(--picodash-space-2);
