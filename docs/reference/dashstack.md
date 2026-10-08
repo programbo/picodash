@@ -1119,6 +1119,35 @@ persistence. Drag-preview measurement separately preserves captured geometry dur
 The package avoids horizontal page overflow at 320 CSS pixels and under 200% zoom. Segmented choices
 may wrap, and coarse-pointer targets retain the accepted minimum size.
 
+## Reading effective order
+
+`useDashStackOrder(container?: 'nearest' | 'root'): readonly string[]` is exported from
+`@picodash/dashstack`. Call it inside content rendered beneath a DashStack. The default returns
+siblings in the nearest ordering container (the Stack or a DashGroup); `'root'` returns the
+containing Stack's root siblings even from inside a group. Calling it outside a Stack throws.
+
+The immutable snapshot uses the same reconciliation as rendering: declaration defaults, saved
+order, and pin bands are resolved; dormant IDs are excluded and hidden declared nodes remain.
+It reports committed order, never an in-progress drag candidate. Committing a reorder, changing
+declarations, or resetting saved order updates the result. Cancellation leaves it unchanged.
+Root IDs include groups as single nodes; the hook does not flatten descendants or assign priority.
+Raw saved overrides remain available through Nexus `state.scope?.dashStack` metadata.
+
+Applications give that order meaning. For example, the Lab derives numeric priority without
+storing a second copy of it:
+
+```tsx
+const order = useDashStackOrder('root')
+const priority = numericPriority(order)
+// App-owned transitions update Slider and Range together in one Nexus value.
+const next = changeNumericSlider(current, proposedSlider, priority)
+```
+
+In the gallery, Slider above Range expands the range to include Slider while preserving its other
+endpoint. Range edits cannot exclude the higher-priority Slider. Slider below Range is constrained
+by the range; changing Range clamps Slider when necessary. Reordering changes the policy without
+changing already-valid values. The marked Slider shares this same root-level policy.
+
 ## Rail presentation
 
 > Contract: Accepted

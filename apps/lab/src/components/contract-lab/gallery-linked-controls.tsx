@@ -1,5 +1,6 @@
 import {
   Dashlet,
+  useDashStackOrder,
   type DashletRenderContext,
   type SingleFieldDashletRenderContext,
 } from '@picodash/dashstack'
@@ -17,6 +18,8 @@ import {
   changeDate,
   changeDateRange,
   changeNumericRange,
+  changeNumericSlider,
+  numericPriority,
   changeTime,
   dateTimeBounds,
   galleryTimeZone,
@@ -59,6 +62,7 @@ function controlProps(context: AccessibleContext) {
 }
 
 export function LinkedSlider({ nexus, marks, ...props }: Sample & { readonly marks?: boolean }) {
+  const priority = numericPriority(useDashStackOrder('root'))
   return (
     <Dashlet {...props} field={nexus.fields.numeric}>
       {(context: SingleFieldDashletRenderContext<NumericState>) => {
@@ -71,11 +75,15 @@ export function LinkedSlider({ nexus, marks, ...props }: Sample & { readonly mar
               min={0}
               max={100}
               fillOrigin={0}
-              allowedRange={{ min: range.start, max: range.end }}
+              allowedRange={priority === 'range' ? { min: range.start, max: range.end } : undefined}
               marks={
                 marks ? [0, 50, 100].map((value) => ({ value, label: `${value}%` })) : undefined
               }
-              onChange={(slider) => context.binding.setInput({ range, slider })}
+              onChange={(slider) =>
+                context.binding.setInput(
+                  changeNumericSlider(context.binding.value, slider, priority),
+                )
+              }
             />
             <output data-picodash-dashstack-slider-value>{slider}%</output>
           </>
@@ -86,6 +94,7 @@ export function LinkedSlider({ nexus, marks, ...props }: Sample & { readonly mar
 }
 
 export function LinkedRange({ nexus, ...props }: Sample) {
+  const priority = numericPriority(useDashStackOrder('root'))
   return (
     <Dashlet {...props} field={nexus.fields.numeric}>
       {(context: SingleFieldDashletRenderContext<NumericState>) => (
@@ -96,7 +105,7 @@ export function LinkedRange({ nexus, ...props }: Sample) {
             min={0}
             max={100}
             onChange={(range) =>
-              context.binding.setInput(changeNumericRange(context.binding.value, range))
+              context.binding.setInput(changeNumericRange(context.binding.value, range, priority))
             }
           />
           <output data-picodash-dashstack-range-value>

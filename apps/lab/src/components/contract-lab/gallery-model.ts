@@ -25,10 +25,36 @@ export function numericReadouts({ slider, range: { start, end } }: NumericState)
   }
 }
 
+export type NumericPriority = 'slider' | 'range'
+
+export function numericPriority(order: readonly string[]): NumericPriority {
+  const slider = order.indexOf('SliderDashlet')
+  const range = order.indexOf('RangeDashlet')
+  return slider >= 0 && range >= 0 && slider < range ? 'slider' : 'range'
+}
+
+export function changeNumericSlider(
+  value: NumericState,
+  slider: number,
+  priority: NumericPriority,
+): NumericState {
+  return priority === 'slider'
+    ? {
+        slider,
+        range: {
+          start: Math.min(value.range.start, slider),
+          end: Math.max(value.range.end, slider),
+        },
+      }
+    : { ...value, slider: Math.min(value.range.end, Math.max(value.range.start, slider)) }
+}
+
 export function changeNumericRange(
   value: NumericState,
   range: NumericState['range'],
+  priority: NumericPriority = 'range',
 ): NumericState {
+  if (priority === 'slider') return changeNumericSlider({ ...value, range }, value.slider, priority)
   return { range, slider: Math.min(range.end, Math.max(range.start, value.slider)) }
 }
 

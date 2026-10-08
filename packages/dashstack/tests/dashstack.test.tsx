@@ -27,6 +27,7 @@ import {
   DashStack,
   Dashlet,
   useDashStackActions,
+  useDashStackOrder,
   type SingleFieldDashletRenderContext,
 } from '../src/index.tsx'
 import {
@@ -2125,6 +2126,68 @@ describe('@picodash/dashstack alpha shell', () => {
         ),
       ).toThrow(new RegExp(`DashStack node registration failed: ${failure.name}`))
     }
+  })
+
+  it('exposes reconciled committed order independently of previews and group order', () => {
+    function Probe() {
+      const root = useDashStackOrder('root')
+      const nearest = useDashStackOrder()
+      return createElement(
+        'output',
+        { 'data-order-probe': true },
+        JSON.stringify({ root, nearest }),
+      )
+    }
+    const nexus = makeNexus()
+    const scoped = nexus.scope('order-metadata')
+    scoped.setDashStackRootOrder(['second', 'dormant', 'first', 'pinned'])
+    const renderer = render(
+      createElement(
+        DashStack,
+        { id: 'order-metadata', nexus },
+        createElement(Dashlet, { id: 'first', label: 'First' }),
+        createElement(Dashlet, { id: 'second', label: 'Second' }),
+        createElement(Dashlet, { id: 'pinned', label: 'Pinned', pin: 'start' }),
+        createElement(
+          DashGroup,
+          { id: 'group', label: 'Group' },
+          createElement(Dashlet, { id: 'child', label: 'Child' }, createElement(Probe)),
+        ),
+      ),
+    )
+    const read = () =>
+      JSON.parse(
+        renderer.root
+          .findByProps({ 'data-order-probe': true })
+          .children.filter((value) => typeof value === 'string')
+          .join(''),
+      )
+    const key = (key: string) =>
+      act(() => {
+        renderer.root
+          .findByProps({ 'data-picodash-reorder-handle': 'second' })
+          .props.onKeyDown({ key, preventDefault() {} })
+      })
+    expect(read()).toEqual({ root: ['pinned', 'second', 'first', 'group'], nearest: ['child'] })
+    key(' ')
+    key('ArrowDown')
+    expect(read().root).toEqual(['pinned', 'second', 'first', 'group'])
+    key('Escape')
+    expect(read().root).toEqual(['pinned', 'second', 'first', 'group'])
+    key(' ')
+    key('ArrowDown')
+    key(' ')
+    expect(read().root).toEqual(['pinned', 'first', 'second', 'group'])
+    act(() => {
+      scoped.setDashStackRootOrder(['group', 'second', 'first'])
+    })
+    expect(read().root).toEqual(['pinned', 'group', 'second', 'first'])
+    act(() => {
+      scoped.removeDashStackRootOrder()
+    })
+    expect(read().root).toEqual(['pinned', 'first', 'second', 'group'])
+    act(() => renderer.unmount())
+    nexus.destroy()
   })
 
   it('reorders root siblings with keyboard parity and announces the commit', () => {

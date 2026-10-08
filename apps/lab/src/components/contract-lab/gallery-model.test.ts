@@ -3,6 +3,8 @@ import {
   changeDate,
   changeDateRange,
   changeNumericRange,
+  changeNumericSlider,
+  numericPriority,
   changeTime,
   createGalleryNexus,
   dateTimeBounds,
@@ -31,6 +33,37 @@ describe('linked gallery values', () => {
     ]) {
       expect(Object.hasOwn(nexus.fields, key)).toBe(false)
     }
+  })
+
+  it('lets the higher control govern both edits without duplicating priority state', () => {
+    const initial = { slider: 48, range: { start: 24, end: 76 } }
+    const sliderFirst = numericPriority(['SliderDashlet', 'RangeDashlet'])
+    const rangeFirst = numericPriority(['RangeDashlet', 'SliderDashlet'])
+    expect(sliderFirst).toBe('slider')
+    expect(rangeFirst).toBe('range')
+    for (const slider of [0, 100]) {
+      const next = changeNumericSlider(initial, slider, sliderFirst)
+      expect(next.slider).toBe(slider)
+      expect(next.range).toEqual({ start: Math.min(24, slider), end: Math.max(76, slider) })
+      expect(changeNumericSlider(initial, slider, rangeFirst).slider).toBe(slider === 0 ? 24 : 76)
+    }
+    expect(changeNumericRange(initial, { start: 60, end: 80 }, sliderFirst)).toEqual({
+      slider: 48,
+      range: { start: 48, end: 80 },
+    })
+    expect(changeNumericRange(initial, { start: 0, end: 20 }, sliderFirst)).toEqual({
+      slider: 48,
+      range: { start: 0, end: 48 },
+    })
+    const nexus = createGalleryNexus()
+    const observed: unknown[] = []
+    const unsubscribe = nexus.subscribe(() => observed.push(nexus.getState().values.numeric))
+    const expanded = changeNumericSlider(initial, 90, sliderFirst)
+    expect(nexus.setValues({ numeric: expanded }).ok).toBe(true)
+    const clamped = changeNumericRange(expanded, { start: 20, end: 60 }, rangeFirst)
+    expect(nexus.setValues({ numeric: clamped }).ok).toBe(true)
+    expect(observed).toEqual([expanded, { slider: 60, range: { start: 20, end: 60 } }])
+    unsubscribe()
   })
 
   it('clamps a shrinking range and its slider in one observable transaction', () => {

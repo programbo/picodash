@@ -515,6 +515,17 @@ type OrderingRowBounds = Readonly<{
 }>
 
 const DashStackOrderingContext = createContext<OrderingController | null>(null)
+const DashStackRootOrderContext = createContext<readonly string[] | null>(null)
+
+/** Committed, reconciled order; drag previews never change this snapshot. */
+export function useDashStackOrder(container: 'nearest' | 'root' = 'nearest'): readonly string[] {
+  const nearest = useContext(DashStackOrderingContext)
+  const root = useContext(DashStackRootOrderContext)
+  const order = container === 'root' ? root : nearest?.ordering.order
+  if (!order) throw new TypeError('useDashStackOrder requires a DashStack ancestor.')
+  return order
+}
+
 const DashStackOrderingCoordinatorContext = createContext<OrderingCoordinator | null>(null)
 const DashStackReorderInstructionsContext = createContext<string | undefined>(undefined)
 const DashStackCompactContext = createContext(false)
@@ -1774,71 +1785,77 @@ const DashStackImpl = forwardRef<HTMLDivElement, DashStackProps>(function DashSt
         <DashStackAnnouncementContext.Provider value={actionRegistry.announce}>
           <DashStackOrderingCoordinatorContext.Provider value={rootOrdering.coordinator}>
             <DashStackReorderInstructionsContext.Provider value={reorderInstructionsId}>
-              <DashStackOrderingContext.Provider value={rootOrdering}>
-                <DashStackActionRegistryContext.Provider value={actionRegistry}>
-                  <DashStackCompactContext.Provider value={compact}>
-                    <DashStackNodeRegistryProvider registry={registry}>
-                      <DashStackNodeValidation>
-                        <div
-                          {...props}
-                          ref={setRootRef}
-                          className={classNames('picodash-dashstack', className)}
-                          data-picodash-dashstack
-                          data-picodash-dashstack-compact={compact || undefined}
-                        >
-                          {title !== undefined ? (
-                            <DashHeader
-                              slots={{
-                                title: createElement(`h${headingLevel}`, { id: headingId }, title),
-                              }}
-                            />
-                          ) : null}
+              <DashStackRootOrderContext.Provider value={rootOrdering.ordering.order}>
+                <DashStackOrderingContext.Provider value={rootOrdering}>
+                  <DashStackActionRegistryContext.Provider value={actionRegistry}>
+                    <DashStackCompactContext.Provider value={compact}>
+                      <DashStackNodeRegistryProvider registry={registry}>
+                        <DashStackNodeValidation>
                           <div
-                            role="list"
-                            aria-label={ariaLabel}
-                            aria-labelledby={listName}
-                            data-picodash-dashstack-list
+                            {...props}
+                            ref={setRootRef}
+                            className={classNames('picodash-dashstack', className)}
+                            data-picodash-dashstack
                             data-picodash-dashstack-compact={compact || undefined}
                           >
-                            {(['start', 'automatic', 'end'] as const).map((band) => (
-                              <div
-                                key={band}
-                                role="presentation"
-                                data-picodash-dashstack-band={band}
-                                data-picodash-scroll-fade={band === 'automatic' || undefined}
-                              >
-                                {declarationsByBand[band].map((declaration, index) =>
-                                  createElement(
-                                    Fragment,
-                                    {
-                                      key:
-                                        declaration.key ??
-                                        declarationIdentity(
-                                          declaration,
-                                          `${resolved.scopeId}-${band}-${index}`,
-                                        ),
-                                    },
-                                    wrapDeclaration(
-                                      declaration,
-                                      'list',
-                                      `${resolved.scopeId}-${band}-${index}`,
-                                    ),
+                            {title !== undefined ? (
+                              <DashHeader
+                                slots={{
+                                  title: createElement(
+                                    `h${headingLevel}`,
+                                    { id: headingId },
+                                    title,
                                   ),
-                                )}
-                              </div>
-                            ))}
+                                }}
+                              />
+                            ) : null}
+                            <div
+                              role="list"
+                              aria-label={ariaLabel}
+                              aria-labelledby={listName}
+                              data-picodash-dashstack-list
+                              data-picodash-dashstack-compact={compact || undefined}
+                            >
+                              {(['start', 'automatic', 'end'] as const).map((band) => (
+                                <div
+                                  key={band}
+                                  role="presentation"
+                                  data-picodash-dashstack-band={band}
+                                  data-picodash-scroll-fade={band === 'automatic' || undefined}
+                                >
+                                  {declarationsByBand[band].map((declaration, index) =>
+                                    createElement(
+                                      Fragment,
+                                      {
+                                        key:
+                                          declaration.key ??
+                                          declarationIdentity(
+                                            declaration,
+                                            `${resolved.scopeId}-${band}-${index}`,
+                                          ),
+                                      },
+                                      wrapDeclaration(
+                                        declaration,
+                                        'list',
+                                        `${resolved.scopeId}-${band}-${index}`,
+                                      ),
+                                    ),
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            <DashStackAnnouncement registry={actionRegistry} id={statusId} />
+                            <span id={reorderInstructionsId} data-picodash-reorder-instructions>
+                              Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
+                              Press Space or Enter to commit, or Escape to cancel.
+                            </span>
                           </div>
-                          <DashStackAnnouncement registry={actionRegistry} id={statusId} />
-                          <span id={reorderInstructionsId} data-picodash-reorder-instructions>
-                            Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
-                            Press Space or Enter to commit, or Escape to cancel.
-                          </span>
-                        </div>
-                      </DashStackNodeValidation>
-                    </DashStackNodeRegistryProvider>
-                  </DashStackCompactContext.Provider>
-                </DashStackActionRegistryContext.Provider>
-              </DashStackOrderingContext.Provider>
+                        </DashStackNodeValidation>
+                      </DashStackNodeRegistryProvider>
+                    </DashStackCompactContext.Provider>
+                  </DashStackActionRegistryContext.Provider>
+                </DashStackOrderingContext.Provider>
+              </DashStackRootOrderContext.Provider>
             </DashStackReorderInstructionsContext.Provider>
           </DashStackOrderingCoordinatorContext.Provider>
         </DashStackAnnouncementContext.Provider>

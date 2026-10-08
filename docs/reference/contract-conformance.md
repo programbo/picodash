@@ -692,3 +692,22 @@ ticket shape distinct from a same-colour fill. Positive bipolar fill remains blu
 fill remains red. Hit geometry and motion are unchanged. All seven stylesheet tests and the
 package and Lab production builds passed. Live browser checks covered positive and negative
 values, dark rendering, and the light theme's white shadow; no browser errors were recorded.
+
+### Application-owned order priority, 2026-10-08
+
+DashStack exposes `useDashStackOrder()` for nearest-container committed order and
+`useDashStackOrder('root')` for the containing Stack's root order. Both use the render path's
+reconciliation and leave interpretation to the application. Component coverage exercises saved
+order, pinned bands, dormant IDs, nested groups, preview/cancel, commit, external writes, and reset.
+The package artifact test checks the public export.
+
+The Lab derives Slider/Range priority from that snapshot. Slider above Range expands either
+endpoint to accommodate its value; Range edits retain the higher Slider. Slider below Range is
+constrained, and Range edits clamp it atomically. The marked Slider uses the same root priority.
+Pure model coverage checks both directions and single-observation numeric transactions.
+
+Live browser verification moved Slider across Range in both directions, expanded Range by setting
+Slider to 100, confirmed a lower Range could not exclude it, then shrank the higher Range and
+confirmed Slider clamping and endpoint limits. The marked Slider followed the same values.
+No browser errors were recorded. Production Dev Bridge remained disabled; this run observed the
+rendered controls and used public Nexus APIs in model/component tests.

@@ -99,6 +99,7 @@ assert.deepEqual(
     'TextDashlet',
     'TimeDashlet',
     'useDashStackActions',
+    'useDashStackOrder',
   ].sort(),
 )
 const ui = await import(
