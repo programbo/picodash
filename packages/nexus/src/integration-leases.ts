@@ -14,7 +14,7 @@ import {
   runtimeScopedViewFor,
   runtimeControllerFor,
   runtimeControllerForHandle,
-  type DashListNodeRecord,
+  type DashStackNodeRecord,
   type EntityRecord,
   type BindingRecord,
   type BindingMode,
@@ -25,7 +25,7 @@ import {
 } from './runtime-controller.js'
 import { PicodashContractError } from './kernel/index.js'
 
-export type NexusEntityKind = 'dashPanel' | 'dashList'
+export type NexusEntityKind = 'dashPanel' | 'dashStack'
 
 export type InvalidEntityOptionsReason =
   | 'not-object'
@@ -36,13 +36,13 @@ export type InvalidEntityOptionsReason =
 
 export type EntityLeaseOptions =
   | { readonly kind: 'dashPanel'; readonly host: ProviderLease | EntityLease }
-  | { readonly kind: 'dashList'; readonly host?: ProviderLease | EntityLease }
+  | { readonly kind: 'dashStack'; readonly host?: ProviderLease | EntityLease }
 
 declare const providerLeaseBrand: unique symbol
 declare const entityLeaseBrand: unique symbol
 declare const relationshipLeaseBrand: unique symbol
 declare const bindingHandleBrand: unique symbol
-declare const dashListNodeLeaseBrand: unique symbol
+declare const dashStackNodeLeaseBrand: unique symbol
 
 export type NexusBindingMode = 'input' | 'display'
 
@@ -73,18 +73,18 @@ export type RelationshipLease = Readonly<{
   release(): void
 }>
 
-export type InvalidDashListNodeOptionsReason =
+export type InvalidDashStackNodeOptionsReason =
   | 'not-object'
   | 'unknown-key'
   | 'accessor-property'
   | 'invalid-node-id'
 
-export type AcquireDashListNodeOptions = {
+export type AcquireDashStackNodeOptions = {
   readonly nodeId: string
 }
 
-export type DashListNodeLease = Readonly<{
-  readonly [dashListNodeLeaseBrand]: 'DashListNodeLease'
+export type DashStackNodeLease = Readonly<{
+  readonly [dashStackNodeLeaseBrand]: 'DashStackNodeLease'
   release(): void
 }>
 
@@ -157,27 +157,29 @@ function bindingOptions(options: unknown): {
   }
 }
 
-function dashListNodeOptions(options: unknown): { readonly nodeId: string } {
+function dashStackNodeOptions(options: unknown): { readonly nodeId: string } {
   if (!options || typeof options !== 'object' || Array.isArray(options))
-    throw new PicodashContractError('invalid-dash-list-node-options', { reason: 'not-object' })
+    throw new PicodashContractError('invalid-dash-stack-node-options', { reason: 'not-object' })
   let descriptors: Record<PropertyKey, PropertyDescriptor>
   try {
     descriptors = Object.getOwnPropertyDescriptors(options)
     for (const key of Reflect.ownKeys(descriptors))
       if (key !== 'nodeId')
-        throw new PicodashContractError('invalid-dash-list-node-options', { reason: 'unknown-key' })
+        throw new PicodashContractError('invalid-dash-stack-node-options', {
+          reason: 'unknown-key',
+        })
     const descriptor = descriptors.nodeId
     if (descriptor && !('value' in descriptor))
-      throw new PicodashContractError('invalid-dash-list-node-options', {
+      throw new PicodashContractError('invalid-dash-stack-node-options', {
         reason: 'accessor-property',
       })
   } catch (error) {
     if (error instanceof PicodashContractError) throw error
-    throw new PicodashContractError('invalid-dash-list-node-options', { reason: 'not-object' })
+    throw new PicodashContractError('invalid-dash-stack-node-options', { reason: 'not-object' })
   }
   const nodeId = descriptors.nodeId?.value
   if (classifyIdentity(nodeId))
-    throw new PicodashContractError('invalid-dash-list-node-options', {
+    throw new PicodashContractError('invalid-dash-stack-node-options', {
       reason: 'invalid-node-id',
     })
   return { nodeId: nodeId as string }
@@ -334,7 +336,7 @@ function entityOptions(options: unknown): {
     throw new PicodashContractError('invalid-entity-options', { reason: 'not-object' })
   }
   const kind = descriptors.kind?.value
-  if (kind !== 'dashPanel' && kind !== 'dashList')
+  if (kind !== 'dashPanel' && kind !== 'dashStack')
     throw new PicodashContractError('invalid-entity-options', { reason: 'invalid-kind' })
   const hostPresent = descriptors.host !== undefined
   if (kind === 'dashPanel' && !hostPresent)
@@ -484,26 +486,26 @@ export function acquireEntityLease<
   })
 }
 
-export function acquireDashListNodeLease<
+export function acquireDashStackNodeLease<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
 >(
   scopedNexus: ScopedNexus<Fields, Result>,
-  options: AcquireDashListNodeOptions,
-): DashListNodeLease {
+  options: AcquireDashStackNodeOptions,
+): DashStackNodeLease {
   const scopedRecord = runtimeScopedViewFor(scopedNexus as object)
   if (!scopedRecord) throw new PicodashContractError('foreign-handle')
   const controller = scopedRecord.controller
   if (controller.lifecycle !== 'active') throw new PicodashContractError('use-after-destroy')
   return controller.withLeaseMutation(() => {
-    const { nodeId } = dashListNodeOptions(options)
-    if (controller.activeDashListNode(scopedRecord.scopeId, nodeId))
-      throw new PicodashContractError('duplicate-dash-list-node', {
+    const { nodeId } = dashStackNodeOptions(options)
+    if (controller.activeDashStackNode(scopedRecord.scopeId, nodeId))
+      throw new PicodashContractError('duplicate-dash-stack-node', {
         scopeId: scopedRecord.scopeId,
         nodeId,
       })
-    const record: DashListNodeRecord = {
-      kind: 'dashList-node',
+    const record: DashStackNodeRecord = {
+      kind: 'dashStack-node',
       root: controller.root,
       scopeId: scopedRecord.scopeId,
       nodeId,
@@ -515,12 +517,12 @@ export function acquireDashListNodeLease<
         if (!record.active) return
         controller.guardLeaseMutation()
         record.active = false
-        controller.releaseDashListNode(record)
+        controller.releaseDashStackNode(record)
       },
-    }) as DashListNodeLease
+    }) as DashStackNodeLease
     record.lease = lease
-    controller.registerDashListNode(record)
-    controller.dashListNodeHandles.set(lease as object, record)
+    controller.registerDashStackNode(record)
+    controller.dashStackNodeHandles.set(lease as object, record)
     registerRuntimeHandle(lease as object, controller)
     return lease
   })

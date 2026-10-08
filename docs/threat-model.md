@@ -13,7 +13,7 @@ This model covers the current implementation in `packages/*`, the public evaluat
 The following assumptions were confirmed for this review:
 
 - `apps/web` is public-facing. `apps/lab` and `@picodash/dev-bridge` are local-development-only.
-- Host applications own authentication, authorization, transport security, exposure policy, and decisions about which Panels, Lists, Dashlets, and fields are mounted or disclosed (`docs/reference/picodash.md`, “Status” and “Boundary”).
+- Host applications own authentication, authorization, transport security, exposure policy, and decisions about which Panels, Stacks, Dashlets, and fields are mounted or disclosed (`docs/reference/picodash.md`, “Status” and “Boundary”).
 - Nexus values may contain sensitive host-application data, but Picodash itself is not a multi-tenant service.
 - A malicious local process or user is in scope. A process already running as the developer's operating-system account is assumed able to read files owned by that account, including a `0600` credential file; file modes principally exclude other accounts.
 - The public website currently has no account, form-processing, or application-data API. Its only public application route is `/` (`apps/web/src/middleware.ts`, `middleware`).
@@ -30,7 +30,7 @@ Open questions that would change the ranking:
 
 ### Primary components
 
-- **Host application and React UI packages.** `@picodash/ui`, DashPanel, DashList, and the Picodash facade render inside an application and inherit that application's JavaScript authority. DashPanel owns placement, DashList owns control composition, and Picodash composes public package contracts (`AGENTS.md`, “Package and ownership boundaries”).
+- **Host application and React UI packages.** `@picodash/ui`, DashPanel, DashStack, and the Picodash facade render inside an application and inherit that application's JavaScript authority. DashPanel owns placement, DashStack owns control composition, and Picodash composes public package contracts (`AGENTS.md`, “Package and ownership boundaries”).
 - **Nexus.** `@picodash/nexus` is the synchronous authority for JSON-compatible values, validation, atomic transactions, scoped metadata, diagnostics, adapters, and optional persistence. Scopes are attribution and organization boundaries, not access-control boundaries (`docs/agents/nexus.md`; `packages/nexus/src/kernel/index.ts`, `setValues`).
 - **Persistence driver.** A host-supplied synchronous driver reads and writes serialized envelopes. The Nexus validates envelope shape, identity, schema, authority, values, and metadata and retains pending state on failures or conflicts (`packages/nexus/src/persistence.ts`, `PicodashPersistenceDriver` and `decodePersistenceEnvelope`). The driver and storage confidentiality remain host responsibilities.
 - **Public evaluation website.** `apps/web` is a Next.js site with one public application route, no repository-defined account system, and response security headers including CSP, frame denial, MIME sniffing prevention, a referrer policy, and a permissions policy (`apps/web/src/middleware.ts`; `apps/web/next.config.ts`, `headers`).
@@ -144,7 +144,7 @@ flowchart LR
 
 ## Top abuse paths
 
-1. **Exercise a privileged control through an authorization misconception.** A host treats a Nexus scope or DashList binding as a user boundary → exposes the control to a lower-privileged user → the user calls an allowed UI action → Nexus correctly accepts the value → the host applies an unauthorized operational change.
+1. **Exercise a privileged control through an authorization misconception.** A host treats a Nexus scope or DashStack binding as a user boundary → exposes the control to a lower-privileged user → the user calls an allowed UI action → Nexus correctly accepts the value → the host applies an unauthorized operational change.
 2. **Steal a local agent credential.** Malicious code runs as the developer's OS account → reads `.picodash/dev-bridge.json` → calls `sessions` and inspects disclosed snapshots → writes every field on a session's writable list → sensitive local state is exposed or changed.
 3. **Run development tooling in the wrong environment.** An operator starts Dev Bridge where `NODE_ENV` is not exactly `production` in a shared or production-like environment → a co-resident process obtains or is given the bearer credential → it uses the Bridge as a control channel over live application state.
 4. **Exhaust the local relay after authentication.** An attacker obtains the bearer token or executes same-origin Lab code → creates many sessions or distinct pending waits/commands → consumes relay memory, timers, sockets, or browser work → disrupts Contract Lab and agent verification.

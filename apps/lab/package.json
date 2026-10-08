@@ -9,15 +9,15 @@
     "dev": "node scripts/dev.mjs",
     "build": "bun run picodash:build && next build",
     "check": "bun run picodash:build && tsc --noEmit",
-    "picodash:build": "bun run --filter @picodash/nexus build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashlist build && bun run --filter @picodash/picodash build && bun run --filter @picodash/dev-bridge build",
+    "picodash:build": "bun run --filter @picodash/nexus build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashstack build && bun run --filter @picodash/picodash build && bun run --filter @picodash/dev-bridge build",
     "test:e2e": "playwright test",
     "test:e2e:cap": "playwright test --list",
     "artifacts:phone": "playwright test tests/phone-artifacts.spec.ts --workers=1",
     "test:dev-host": "node --test scripts/dev-host.test.mjs"
   },
   "dependencies": {
-    "@picodash/dashlist": "workspace:*",
     "@picodash/dashpanel": "workspace:*",
+    "@picodash/dashstack": "workspace:*",
     "@picodash/dev-bridge": "workspace:*",
     "@picodash/nexus": "workspace:*",
     "@picodash/picodash": "workspace:*",

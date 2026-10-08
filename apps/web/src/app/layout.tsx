@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import '@picodash/ui/style.css'
 import '@picodash/dashpanel/style.css'
-import '@picodash/dashlist/style.css'
+import '@picodash/dashstack/style.css'
 import '../style.css'
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: '%s · Picodash',
   },
   description:
-    'Picodash provides a typed Nexus plus standalone DashPanel and DashList packages for React applications.',
+    'Picodash provides a typed Nexus plus standalone DashPanel and DashStack packages for React applications.',
   icons: {
     icon: '/favicon.svg',
   },

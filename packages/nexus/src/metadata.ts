@@ -1,5 +1,5 @@
 import type {
-  DashListMetadataRecord,
+  DashStackMetadataRecord,
   DashPanelDockPositionRecord,
   DashPanelLayoutRecord,
   DashPanelPlacementRecord,
@@ -37,8 +37,8 @@ type SerializedStringMap = readonly (readonly [string, readonly string[]])[]
 type SerializedBooleanMap = readonly (readonly [string, boolean])[]
 const immutableMaps = new WeakSet<object>()
 
-/** The JSON projection used by Nexus persistence for DashList metadata. */
-export type SerializedDashListMetadataRecord = {
+/** The JSON projection used by Nexus persistence for DashStack metadata. */
+export type SerializedDashStackMetadataRecord = {
   readonly rootOrder?: readonly string[]
   readonly groupOrders: SerializedStringMap
   readonly collapseOverrides: SerializedBooleanMap
@@ -49,16 +49,16 @@ export type SerializedDashPanelLayoutRecord = DashPanelLayoutRecord
 
 /** The JSON projection used by Nexus persistence for a durable scope. */
 export type SerializedDurableScopeMetadata = {
-  readonly dashList?: SerializedDashListMetadataRecord
+  readonly dashStack?: SerializedDashStackMetadataRecord
   readonly dashPanel?: SerializedDashPanelLayoutRecord
 }
 
 /**
- * Normalizes a complete in-memory DashList record into detached, immutable Nexus data.
- * The helper is intentionally internal; DashList translates its public model at the integration
+ * Normalizes a complete in-memory DashStack record into detached, immutable Nexus data.
+ * The helper is intentionally internal; DashStack translates its public model at the integration
  * boundary rather than importing this package's implementation types.
  */
-export function normalizeDashListMetadataRecord(input: unknown): DashListMetadataRecord {
+export function normalizeDashStackMetadataRecord(input: unknown): DashStackMetadataRecord {
   if (!isRecord(input) || !hasExactKeys(input, ['rootOrder', 'groupOrders', 'collapseOverrides']))
     throw invalidMetadata()
 
@@ -99,56 +99,56 @@ export function normalizeDashPanelLayoutRecord(input: unknown): DashPanelLayoutR
 
 /** Normalizes both product domains atomically; empty domains are omitted. */
 export function normalizeDurableScopeMetadata(input: unknown): DurableScopeMetadata | undefined {
-  if (!isRecord(input) || !hasExactKeys(input, ['dashList', 'dashPanel'])) throw invalidMetadata()
+  if (!isRecord(input) || !hasExactKeys(input, ['dashStack', 'dashPanel'])) throw invalidMetadata()
 
   // Validate both products before constructing the result. This keeps malformed complete records
   // from partially entering a scope snapshot or persistence transaction.
-  const dashListCandidate =
-    !Object.hasOwn(input, 'dashList') || ownValue(input, 'dashList') === undefined
+  const dashStackCandidate =
+    !Object.hasOwn(input, 'dashStack') || ownValue(input, 'dashStack') === undefined
       ? undefined
-      : normalizeDashListMetadataRecord(ownValue(input, 'dashList'))
+      : normalizeDashStackMetadataRecord(ownValue(input, 'dashStack'))
   const dashPanel =
     !Object.hasOwn(input, 'dashPanel') || ownValue(input, 'dashPanel') === undefined
       ? undefined
       : normalizeDashPanelLayoutRecord(ownValue(input, 'dashPanel'))
-  const dashList =
-    dashListCandidate !== undefined && isEmptyDashList(dashListCandidate)
+  const dashStack =
+    dashStackCandidate !== undefined && isEmptyDashStack(dashStackCandidate)
       ? undefined
-      : dashListCandidate
-  if (dashList === undefined && dashPanel === undefined) return undefined
+      : dashStackCandidate
+  if (dashStack === undefined && dashPanel === undefined) return undefined
 
   return freezeRecord({
-    ...(dashList === undefined ? {} : { dashList }),
+    ...(dashStack === undefined ? {} : { dashStack }),
     ...(dashPanel === undefined ? {} : { dashPanel }),
   })
 }
 
 /** Decodes a JSON metadata projection, rejecting duplicate serialized map keys. */
 export function decodeDurableScopeMetadata(input: unknown): DurableScopeMetadata | undefined {
-  if (!isRecord(input) || !hasExactKeys(input, ['dashList', 'dashPanel'])) throw invalidMetadata()
+  if (!isRecord(input) || !hasExactKeys(input, ['dashStack', 'dashPanel'])) throw invalidMetadata()
   if (
-    (Object.hasOwn(input, 'dashList') && ownValue(input, 'dashList') === undefined) ||
+    (Object.hasOwn(input, 'dashStack') && ownValue(input, 'dashStack') === undefined) ||
     (Object.hasOwn(input, 'dashPanel') && ownValue(input, 'dashPanel') === undefined)
   )
     throw invalidMetadata()
-  const dashListCandidate = !Object.hasOwn(input, 'dashList')
+  const dashStackCandidate = !Object.hasOwn(input, 'dashStack')
     ? undefined
-    : decodeDashListMetadataRecord(ownValue(input, 'dashList'))
+    : decodeDashStackMetadataRecord(ownValue(input, 'dashStack'))
   const dashPanel = !Object.hasOwn(input, 'dashPanel')
     ? undefined
     : normalizeDashPanelLayoutRecord(ownValue(input, 'dashPanel'))
-  const dashList =
-    dashListCandidate !== undefined && isEmptyDashList(dashListCandidate)
+  const dashStack =
+    dashStackCandidate !== undefined && isEmptyDashStack(dashStackCandidate)
       ? undefined
-      : dashListCandidate
-  if (dashList === undefined && dashPanel === undefined) return undefined
+      : dashStackCandidate
+  if (dashStack === undefined && dashPanel === undefined) return undefined
   return freezeRecord({
-    ...(dashList === undefined ? {} : { dashList }),
+    ...(dashStack === undefined ? {} : { dashStack }),
     ...(dashPanel === undefined ? {} : { dashPanel }),
   })
 }
 
-export function decodeDashListMetadataRecord(input: unknown): DashListMetadataRecord {
+export function decodeDashStackMetadataRecord(input: unknown): DashStackMetadataRecord {
   if (!isRecord(input) || !hasExactKeys(input, ['rootOrder', 'groupOrders', 'collapseOverrides']))
     throw invalidMetadata()
   if (Object.hasOwn(input, 'rootOrder') && ownValue(input, 'rootOrder') === undefined)
@@ -172,17 +172,17 @@ export function encodeDurableScopeMetadata(
   const normalized = normalizeDurableScopeMetadata(input)
   if (normalized === undefined) return undefined
   return freezeRecord({
-    ...(normalized.dashList === undefined
+    ...(normalized.dashStack === undefined
       ? {}
-      : { dashList: encodeDashListMetadataRecord(normalized.dashList) }),
+      : { dashStack: encodeDashStackMetadataRecord(normalized.dashStack) }),
     ...(normalized.dashPanel === undefined ? {} : { dashPanel: normalized.dashPanel }),
   })
 }
 
-export function encodeDashListMetadataRecord(
-  input: DashListMetadataRecord,
-): SerializedDashListMetadataRecord {
-  const normalized = normalizeDashListMetadataRecord(input)
+export function encodeDashStackMetadataRecord(
+  input: DashStackMetadataRecord,
+): SerializedDashStackMetadataRecord {
+  const normalized = normalizeDashStackMetadataRecord(input)
   return freezeRecord({
     ...(normalized.rootOrder === undefined ? {} : { rootOrder: normalized.rootOrder }),
     groupOrders: encodeStringMap(normalized.groupOrders),
@@ -410,7 +410,10 @@ function hasExactKeys(value: Record<string, unknown>, optional: readonly string[
   for (const key of Object.keys(value)) if (!allowed.has(key)) return false
   return optional.every(
     (key) =>
-      key === 'rootOrder' || key === 'dashList' || key === 'dashPanel' || Object.hasOwn(value, key),
+      key === 'rootOrder' ||
+      key === 'dashStack' ||
+      key === 'dashPanel' ||
+      Object.hasOwn(value, key),
   )
 }
 
@@ -516,7 +519,7 @@ function isAcceptedMap(value: unknown): value is ReadonlyMap<unknown, unknown> {
   }
 }
 
-function isEmptyDashList(record: DashListMetadataRecord): boolean {
+function isEmptyDashStack(record: DashStackMetadataRecord): boolean {
   return (
     (record.rootOrder === undefined || record.rootOrder.length === 0) &&
     record.groupOrders.size === 0 &&

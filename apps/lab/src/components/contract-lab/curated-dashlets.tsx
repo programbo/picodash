@@ -2,17 +2,17 @@
 
 import { useState } from 'react'
 import {
-  DashList,
+  DashStack,
   DisplayDashlet,
   NumberDashlet,
   SelectDashlet,
   SegmentedDashlet,
   Dashlet,
-  DashListResetValuesItem,
+  DashStackResetValuesItem,
   SliderDashlet,
   SwitchDashlet,
   TextDashlet,
-} from '@picodash/dashlist'
+} from '@picodash/dashstack'
 import { ActivityPreview } from './activity-preview'
 import { ActionMenu, Button } from '@picodash/ui'
 import type { ValueBindingNexus } from './value-binding-model'
@@ -46,7 +46,7 @@ export function CuratedDashlets({
         details. The preview uses sample records; your controls and choices are saved in this
         browser. Compare editable, read-only, and disabled states using the controls above.
       </p>
-      <DashList
+      <DashStack
         nexus={nexus}
         id="binding-curated"
         title="Workspace tuning controls"
@@ -111,10 +111,10 @@ export function CuratedDashlets({
         />
         <Dashlet id="actions" label="Workspace actions">
           <ActionMenu label="Workspace actions">
-            <DashListResetValuesItem />
+            <DashStackResetValuesItem />
           </ActionMenu>
         </Dashlet>
-      </DashList>
+      </DashStack>
       <ActivityPreview nexus={nexus} />
     </section>
   )

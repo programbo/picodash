@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     '@picodash/nexus',
     '@picodash/ui',
     '@picodash/dashpanel',
-    '@picodash/dashlist',
+    '@picodash/dashstack',
   ],
   async headers() {
     return [

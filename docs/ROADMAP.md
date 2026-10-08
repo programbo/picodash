@@ -1,6 +1,6 @@
 # Picodash contract-led roadmap
 
-This roadmap sequences Nexus, DashPanel, and DashList as three loosely independent products,
+This roadmap sequences Nexus, DashPanel, and DashStack as three loosely independent products,
 supported by one shared UI foundation, followed by the integrated Picodash product. It guides
 contract work and release maturity; it is not a calendar or delivery estimate.
 
@@ -26,7 +26,7 @@ during implementation rather than used to keep the launch contracts in Draft.
 Before treating prototype behavior as a public contract:
 
 1. Record the accepted Nexus decisions and architecture.
-2. Establish distinct value propositions for Nexus, DashPanel, DashList, and Picodash.
+2. Establish distinct value propositions for Nexus, DashPanel, DashStack, and Picodash.
 3. Pressure-test weak product propositions before accepting their detailed contracts.
 4. Complete aspirational reference pages with explicit implementation status.
 5. Build the conformance matrix that will track implementation evidence.
@@ -59,23 +59,23 @@ lease entry are usable without private imports. Documents and advanced recovery 
 beta, but alpha cannot contain a partial-mutation path, silent conflict overwrite, or incomplete
 pending envelope. It is not expected to have proven every ergonomic choice.
 
-## Phase 2: Shared UI, DashPanel, and DashList dogfooding
+## Phase 2: Shared UI, DashPanel, and DashStack dogfooding
 
 Implement the minimum accepted `@picodash/ui` foundation required for independent UI-product work:
 theme and density contracts, independent portal/layer context, semantic tokens, structural CSS, and
-product-neutral primitives used by both products. DashPanel and DashList consume only public Nexus
+product-neutral primitives used by both products. DashPanel and DashStack consume only public Nexus
 and UI APIs. They do not depend on each other and may advance independently.
 
 ### Phase 2 status: Complete
 
 The minimum `@picodash/ui` foundation is implemented: it is the sole shared presentation authority
 after the `@picodash/theme` retirement, and its current density recipe and coarse-pointer hit
-targets have focused UI and Contract Lab evidence. DashPanel and DashList have implemented
+targets have focused UI and Contract Lab evidence. DashPanel and DashStack have implemented
 representative slices, including Bridge-backed Nexus-visible behavior, durable layout, collapse and
 order overrides, and action-controller coverage for confirmed removal, placement, and reset.
 
 Phase 2 is therefore complete. Phase 3 owns visual-token completion, adaptive drawer and sheet
-presentation, rail presentation, the stable Dashlet inventory and catalog, DashList document
+presentation, rail presentation, the stable Dashlet inventory and catalog, DashStack document
 workflows, and the exhaustive behavioral and integration matrices required for package stabilization.
 M7 recovery curates the retained inventory to Text, Number, Slider, Switch, Select, Segmented,
 and Display, owner-approved on 2026-09-17. The other implemented controls are deferred from stable
@@ -90,7 +90,7 @@ interaction behavior without product state or commands.
 
 ### Continuous Dev Bridge dogfooding
 
-DashPanel and DashList development uses the verified Dev Bridge baseline as a separate consumer of
+DashPanel and DashStack development uses the verified Dev Bridge baseline as a separate consumer of
 public Nexus APIs. Every vertical slice whose outcome can be observed through explicitly disclosed
 Nexus state, transaction results, diagnostics, or a correlated browser-visible effect must use the
 Bridge in Contract Lab. Browser evidence still owns focus, pointer, geometry, portal, and
@@ -107,7 +107,7 @@ For each applicable slice:
    evaluate and prioritize the smallest safe Bridge improvement before adding a product workaround.
 4. Exercise every new Bridge capability against a real public Nexus consumer before relying on it.
 5. Feed a generally useful Nexus gap back into Nexus with Nexus-owned tests and documentation;
-   retain Panel, List, Dashlet, focus, placement, and ordering behavior in their owning packages.
+   retain Panel, Stack, Dashlet, focus, placement, and ordering behavior in their owning packages.
 
 A slice is incomplete when it bypasses an applicable existing Bridge capability without recording
 why the behavior is browser-only or otherwise outside the Bridge's explicit disclosure and command
@@ -126,25 +126,25 @@ Bridge dogfooding covers disclosed Nexus-backed layout, lifecycle, transaction, 
 outcomes. Contract Lab browser evidence remains authoritative for geometry, movement, focus,
 portals, and adaptive presentation.
 
-### DashList
+### DashStack
 
-DashList exercises standalone scope resolution, field bindings, drafts, groups, stable node
+DashStack exercises standalone scope resolution, field bindings, drafts, groups, stable node
 identity, ordering, collapse overrides, resets, documents, and accessible reordering. Deficiencies
-found through DashList follow the same Nexus feedback loop.
+found through DashStack follow the same Nexus feedback loop.
 
 Bridge dogfooding covers disclosed canonical values, bindings, metadata, action results, document
 effects, and diagnostics. Drafts, plans, or document contents are not disclosed merely to make a
 test convenient.
 
-DashList also exercises shared theme, density, header, and generic chrome contracts. Deficiencies
-in those contracts feed back into UI; Dashlet and List behavior stays in DashList.
+DashStack also exercises shared theme, density, header, and generic chrome contracts. Deficiencies
+in those contracts feed back into UI; Dashlet and Stack behavior stays in DashStack.
 
 Nexus reaches beta only after real consumer work, including applicable Bridge-backed Contract Lab
 evidence, has exercised the contracts most likely to change.
 
 ## Phase 3: Foundational product stability
 
-Nexus, DashPanel, and DashList each earn their own maturity based on their own release gates:
+Nexus, DashPanel, and DashStack each earn their own maturity based on their own release gates:
 
 - public API and type checks;
 - owned deterministic and component tests;
@@ -164,15 +164,15 @@ dangerous operations that no accepted consumer contract needs.
 
 ## Phase 4: Picodash integration
 
-`@picodash/picodash` integrates stable Nexus, DashPanel, and DashList contracts. Its work focuses on
+`@picodash/picodash` integrates stable Nexus, DashPanel, and DashStack contracts. Its work focuses on
 combined behavior rather than concealing gaps in the foundations.
 
 Expected slices include:
 
-- a DashPanel and DashList sharing one root Nexus;
-- same-scope primary Lists and explicit child scopes;
+- a DashPanel and DashStack sharing one root Nexus;
+- same-scope primary Stacks and explicit child scopes;
 - Provider ancestry and declarative relationship registration;
-- primary List action contribution without implicit additional-List aggregation;
+- primary Stack action contribution without implicit additional-Stack aggregation;
 - shared UI, portals, documents, and ready-made Dashlets;
 - facade packaging and integrated examples.
 
@@ -184,7 +184,7 @@ explicit capability before adding a facade-only inspection path.
 
 Integration findings feed back into the product that owns the deficient behavior. New Bridge
 capabilities remain owner-neutral until real evidence justifies a separately owned DashPanel or
-DashList development extension.
+DashStack development extension.
 
 ## QA strategy
 

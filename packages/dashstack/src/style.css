@@ -1,0 +1,2029 @@
+@import '@picodash/ui/style.css';
+
+.picodash-dashstack-field,
+.picodash-dashstack-number,
+.picodash-dashstack-select,
+.picodash-dashstack-slider,
+.picodash-dashstack-segmented,
+.picodash-dashstack-switch,
+.picodash-dashstack-display,
+.picodash-dashstack-checkbox,
+.picodash-dashstack-radio-group,
+.picodash-dashstack-checkbox-group,
+.picodash-dashstack-combobox,
+.picodash-dashstack-multi-select,
+.picodash-dashstack-search-field,
+.picodash-dashstack-range-slider,
+.picodash-dashstack-meter,
+.picodash-dashstack-progress,
+.picodash-dashstack-status,
+.picodash-dashstack-date-field,
+.picodash-dashstack-time-field,
+.picodash-dashstack-date-time-field,
+.picodash-dashstack-date-range-field,
+.picodash-dashstack-color-field {
+  min-inline-size: 0;
+  color: var(--picodash-color-text);
+}
+
+.picodash-dashstack-control,
+.picodash-dashstack-select > button {
+  box-sizing: border-box;
+  min-block-size: var(--picodash-control-height-md);
+  inline-size: 100%;
+  max-inline-size: 100%;
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-surface-muted);
+  color: inherit;
+  font: inherit;
+  padding: var(--picodash-space-1) var(--picodash-space-1-5);
+}
+
+.picodash-dashstack-field[data-disabled],
+.picodash-dashstack-switch[data-disabled] {
+  cursor: not-allowed;
+  opacity: var(--picodash-opacity-disabled);
+}
+
+.picodash-dashstack-control:focus-visible,
+.picodash-dashstack-select > button:focus-visible,
+.picodash-dashstack-segmented [data-picodash-dashstack-segment][data-focus-visible],
+.picodash-dashstack-switch[data-focus-visible],
+.picodash-dashstack-checkbox[data-focus-visible],
+.picodash-dashstack-choice[data-focus-visible],
+.picodash-dashstack-slider [data-picodash-dashstack-slider-thumb][data-focus-visible],
+.picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb][data-focus-visible],
+[data-picodash-dashlet-help][data-focus-visible] {
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+  outline-offset: 2px;
+}
+
+.picodash-dashstack-slider-track {
+  position: relative;
+  block-size: var(--picodash-space-1);
+  margin-block: calc((var(--picodash-control-height-md) - var(--picodash-space-1)) / 2);
+  border-radius: var(--picodash-radius-control);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
+}
+
+.picodash-dashstack-slider:has([data-picodash-dashstack-slider-marks]) {
+  padding-block-end: calc(var(--picodash-font-size-sm) + var(--picodash-space-1));
+}
+
+.picodash-dashstack-slider [data-picodash-dashstack-slider-marks] {
+  position: absolute;
+  inset-block-start: calc(100% + var(--picodash-space-1));
+  inset-inline: 0;
+  pointer-events: none;
+}
+
+.picodash-dashstack-slider [data-picodash-dashstack-slider-mark] {
+  position: absolute;
+  inset-inline-start: var(--_picodash-dashstack-slider-mark-position);
+  display: flex;
+  justify-content: center;
+  inline-size: 0;
+  color: var(--picodash-color-text-muted);
+  font-size: var(--picodash-font-size-sm);
+  line-height: var(--picodash-line-height-normal);
+  white-space: nowrap;
+}
+
+.picodash-dashstack-slider [data-picodash-dashstack-slider-thumb] {
+  block-size: var(--picodash-control-height-md);
+  inline-size: var(--picodash-control-height-md);
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-accent);
+}
+
+.picodash-dashstack-segmented {
+  isolation: isolate;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  inline-size: 100%;
+}
+
+.picodash-dashstack-segmented [data-picodash-dashstack-segment] {
+  position: relative;
+  flex: 1 1 0;
+  min-inline-size: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow-wrap: anywhere;
+  min-block-size: var(--picodash-control-height-md);
+  padding: var(--picodash-space-1);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: 0;
+}
+
+/* Pointer selection also needs its complete border above neighbouring segments. */
+.picodash-dashstack-segmented [data-picodash-dashstack-segment][data-selected] {
+  z-index: 1;
+}
+
+.picodash-dashstack-segmented [data-picodash-dashstack-segment][data-focused] {
+  z-index: 2;
+}
+
+.picodash-dashstack-segmented [data-picodash-dashstack-segment]:first-child {
+  border-start-start-radius: var(--picodash-radius-control);
+  border-end-start-radius: var(--picodash-radius-control);
+}
+
+.picodash-dashstack-segmented [data-picodash-dashstack-segment]:last-child {
+  border-start-end-radius: var(--picodash-radius-control);
+  border-end-end-radius: var(--picodash-radius-control);
+}
+
+.picodash-dashstack-segmented
+  [data-picodash-dashstack-segment]
+  + [data-picodash-dashstack-segment] {
+  margin-inline-start: calc(-1 * var(--picodash-border-width-thin));
+}
+
+.picodash-dashstack-segmented [data-picodash-dashstack-segment][data-selected] {
+  background: transparent;
+  border-color: var(--picodash-color-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* React Aria carries the selection paint between options; focus stays on the radio. */
+[data-picodash-dashstack-segment-indicator] {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: color-mix(in oklab, var(--picodash-color-accent) 20%, transparent);
+  translate: 0 0;
+  transition: translate var(--picodash-duration-fast) cubic-bezier(0.455, 0.03, 0.515, 0.955);
+}
+
+.picodash-dashstack-segmented:has([data-focus-visible])
+  [data-picodash-dashstack-segment-indicator] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-dashstack-segment-indicator] {
+    transition: none;
+  }
+}
+
+[data-picodash-dashstack-segment-marker] {
+  display: none;
+  flex: 0 0 auto;
+  place-items: center;
+  inline-size: var(--picodash-icon-sm);
+  block-size: var(--picodash-icon-sm);
+  color: inherit;
+  font-size: var(--picodash-icon-sm);
+  font-weight: var(--picodash-font-weight-semibold);
+  line-height: 1;
+}
+
+[data-picodash-dashstack-segment-marker]::before {
+  content: '✓';
+  visibility: hidden;
+}
+
+.picodash-dashstack-segmented
+  [data-picodash-dashstack-segment][data-selected]
+  [data-picodash-dashstack-segment-marker] {
+  color: var(--picodash-color-accent);
+}
+
+.picodash-dashstack-segmented
+  [data-picodash-dashstack-segment][data-selected]
+  [data-picodash-dashstack-segment-marker]::before {
+  visibility: visible;
+}
+
+.picodash-dashstack-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--picodash-space-1);
+  min-block-size: var(--picodash-control-height-md);
+}
+
+[data-picodash-dashstack-switch-track] {
+  position: relative;
+  inline-size: 2.5rem;
+  block-size: 1.375rem;
+  border-radius: var(--picodash-radius-control);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
+}
+
+[data-picodash-dashstack-switch-marker] {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: var(--picodash-space-1);
+  inline-size: var(--picodash-space-3);
+  block-size: calc(1.375rem - 2 * var(--picodash-space-1));
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-surface);
+  transform: translate(var(--_picodash-switch-offset, 0px), -50%)
+    scaleX(var(--_picodash-switch-press, 1));
+  transition: transform var(--picodash-duration-fast) cubic-bezier(0.455, 0.03, 0.515, 0.955);
+}
+
+.picodash-dashstack-switch[data-selected] [data-picodash-dashstack-switch-track] {
+  background: var(--picodash-color-accent);
+}
+
+.picodash-dashstack-switch[data-selected] [data-picodash-dashstack-switch-marker] {
+  --_picodash-switch-offset: calc(
+    (2.5rem - var(--picodash-space-3) - 2 * var(--picodash-space-1)) *
+      var(--_picodash-switch-direction, 1)
+  );
+}
+
+.picodash-dashstack-switch:dir(rtl) {
+  --_picodash-switch-direction: -1;
+}
+
+.picodash-dashstack-switch[data-pressed]:not([data-disabled]) {
+  --_picodash-switch-press: 1.12;
+}
+
+.picodash-dashstack-switch[data-focus-visible] [data-picodash-dashstack-switch-marker] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-dashstack-switch-marker] {
+    transition: none;
+  }
+}
+
+.picodash-dashstack-display {
+  display: block;
+  line-height: var(--picodash-line-height-tight);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.picodash-dashstack-checkbox,
+.picodash-dashstack-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--picodash-space-1);
+  min-block-size: var(--picodash-control-height-md);
+}
+
+[data-picodash-dashstack-checkbox-box] {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: var(--picodash-icon-md);
+  block-size: calc(var(--picodash-icon-md) + var(--picodash-space-0-5));
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: var(--picodash-radius-control);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
+  transition:
+    transform var(--picodash-duration-fast) var(--picodash-easing-out),
+    background-color var(--picodash-duration-fast) ease,
+    border-color var(--picodash-duration-fast) ease;
+}
+
+[data-picodash-dashstack-checkbox-marker] {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  color: inherit;
+  font-size: var(--picodash-icon-sm);
+  font-weight: var(--picodash-font-weight-semibold);
+  line-height: 1;
+}
+
+[data-picodash-dashstack-checkbox-marker]::before {
+  content: '✓';
+  visibility: hidden;
+  opacity: 0;
+  transform: scale(0.65);
+  transition:
+    transform var(--picodash-duration-fast) var(--picodash-easing-out),
+    opacity var(--picodash-duration-fast) ease;
+}
+
+.picodash-dashstack-choice[data-selected] {
+  border-color: transparent;
+  background: color-mix(in oklab, var(--picodash-color-surface-muted) 35%, transparent);
+}
+
+.picodash-dashstack-checkbox[data-selected] [data-picodash-dashstack-checkbox-box],
+.picodash-dashstack-choice[data-selected] [data-picodash-dashstack-checkbox-box] {
+  border-color: transparent;
+  background: var(--picodash-color-accent);
+  color: var(--picodash-color-accent-text);
+}
+
+.picodash-dashstack-checkbox[data-selected] [data-picodash-dashstack-checkbox-marker]::before,
+.picodash-dashstack-choice[data-selected] [data-picodash-dashstack-checkbox-marker]::before {
+  visibility: visible;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.picodash-dashstack-radio-group,
+.picodash-dashstack-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--picodash-space-0-5);
+}
+
+.picodash-dashstack-radio-group[data-orientation='horizontal'] {
+  flex-flow: row wrap;
+}
+
+.picodash-dashstack-choice {
+  box-sizing: border-box;
+  border: var(--picodash-border-width-thin) solid transparent;
+  border-radius: var(--picodash-radius-control);
+  padding-inline: var(--picodash-space-1);
+}
+
+[data-picodash-dashstack-radio-marker] {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: var(--picodash-icon-md);
+  block-size: calc(var(--picodash-icon-md) + var(--picodash-space-0-5));
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: var(--picodash-radius-control);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
+  transition:
+    transform var(--picodash-duration-fast) var(--picodash-easing-out),
+    background-color var(--picodash-duration-fast) ease,
+    border-color var(--picodash-duration-fast) ease;
+  color: inherit;
+}
+
+[data-picodash-dashstack-radio-marker]::after {
+  inline-size: var(--picodash-space-1-5);
+  block-size: var(--picodash-space-2);
+  border-radius: var(--picodash-space-0-5);
+  background: currentColor;
+  content: '';
+  visibility: hidden;
+  opacity: 0;
+  transform: scale(0.65);
+  transition:
+    transform var(--picodash-duration-fast) var(--picodash-easing-out),
+    opacity var(--picodash-duration-fast) ease;
+}
+
+.picodash-dashstack-choice[data-selected] [data-picodash-dashstack-radio-marker] {
+  border-color: transparent;
+  background: var(--picodash-color-accent);
+  color: var(--picodash-color-accent-text);
+}
+
+.picodash-dashstack-choice[data-selected] [data-picodash-dashstack-radio-marker]::after {
+  visibility: visible;
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Press the marker, not the label or its focus outline. */
+:is(.picodash-dashstack-checkbox, .picodash-dashstack-choice)[data-pressed]:not(
+    [data-readonly]
+  ):not([data-disabled])
+  :is([data-picodash-dashstack-checkbox-box], [data-picodash-dashstack-radio-marker]) {
+  transform: scale(0.9);
+}
+
+:is(.picodash-dashstack-checkbox, .picodash-dashstack-choice)[data-focus-visible]
+  :is([data-picodash-dashstack-checkbox-box], [data-picodash-dashstack-radio-marker]),
+:is(.picodash-dashstack-checkbox-group, .picodash-dashstack-radio-group):has([data-focus-visible])
+  :is([data-picodash-dashstack-checkbox-box], [data-picodash-dashstack-radio-marker]),
+.picodash-dashstack-checkbox[data-focus-visible] [data-picodash-dashstack-checkbox-marker]::before,
+.picodash-dashstack-checkbox-group:has([data-focus-visible])
+  [data-picodash-dashstack-checkbox-marker]::before,
+.picodash-dashstack-radio-group:has([data-focus-visible])
+  [data-picodash-dashstack-radio-marker]::after {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-dashstack-checkbox-box],
+  [data-picodash-dashstack-radio-marker],
+  [data-picodash-dashstack-checkbox-marker]::before,
+  [data-picodash-dashstack-radio-marker]::after {
+    transition: none;
+  }
+}
+
+.picodash-dashstack-checkbox[data-disabled],
+.picodash-dashstack-choice[data-disabled] {
+  color: var(--picodash-color-text-muted);
+}
+
+.picodash-dashstack-checkbox[data-selected][data-disabled] [data-picodash-dashstack-checkbox-box],
+.picodash-dashstack-choice[data-selected][data-disabled] [data-picodash-dashstack-checkbox-box],
+.picodash-dashstack-choice[data-selected][data-disabled] [data-picodash-dashstack-radio-marker] {
+  border-color: var(--picodash-color-text-muted);
+  color: var(--picodash-color-text-muted);
+}
+
+.picodash-dashstack-segmented
+  [data-picodash-dashstack-segment][data-selected][data-disabled]
+  [data-picodash-dashstack-segment-marker] {
+  color: var(--picodash-color-text-muted);
+}
+
+.picodash-dashstack-combobox,
+.picodash-dashstack-multi-select,
+.picodash-dashstack-search-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--picodash-space-0-5);
+}
+
+.picodash-dashstack-combobox > label,
+.picodash-dashstack-multi-select > label {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.picodash-dashstack-disclosure-button,
+.picodash-dashstack-clear-button {
+  box-sizing: border-box;
+  min-inline-size: var(--picodash-control-height-md);
+  min-block-size: var(--picodash-control-height-md);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-surface);
+  color: var(--picodash-color-text);
+}
+
+.picodash-dashstack-popover {
+  overflow: auto;
+  max-block-size: min(20rem, 50vh);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-radius: var(--picodash-radius-surface);
+  background: var(--picodash-color-surface-raised);
+  box-shadow: var(--picodash-shadow-elevated);
+}
+
+.picodash-dashstack-listbox {
+  display: grid;
+  gap: var(--picodash-space-0-5);
+  min-inline-size: 10rem;
+  padding: var(--picodash-space-1);
+  outline: none;
+}
+
+.picodash-dashstack-listbox [role='option'] {
+  display: flex;
+  align-items: center;
+  gap: var(--picodash-space-1);
+  min-block-size: var(--picodash-control-height-md);
+  border-radius: var(--picodash-radius-control);
+  padding: var(--picodash-space-1) var(--picodash-space-1-5);
+}
+
+[data-picodash-dashstack-option-marker] {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  inline-size: var(--picodash-icon-sm);
+  block-size: var(--picodash-icon-sm);
+  color: inherit;
+  font-size: var(--picodash-icon-sm);
+  font-weight: var(--picodash-font-weight-semibold);
+  line-height: 1;
+}
+
+[data-picodash-dashstack-option-marker]::before {
+  content: '✓';
+  visibility: hidden;
+}
+
+.picodash-dashstack-listbox
+  [role='option'][data-selected]
+  [data-picodash-dashstack-option-marker]::before {
+  visibility: visible;
+}
+
+.picodash-dashstack-listbox [role='option'][data-focus-visible] {
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+  outline-offset: calc(-1 * var(--picodash-border-width-thin));
+}
+
+.picodash-dashstack-listbox [role='option'][data-selected] {
+  background: transparent;
+}
+
+.picodash-dashstack-listbox [role='option'][data-focused] {
+  background: var(--picodash-color-surface-muted);
+}
+
+.picodash-dashstack-listbox [role='option'][data-disabled] {
+  opacity: var(--picodash-opacity-disabled);
+}
+
+.picodash-dashstack-tag-group {
+  grid-column: 1 / -1;
+}
+
+.picodash-dashstack-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--picodash-space-0-5);
+}
+
+.picodash-dashstack-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--picodash-space-0-5);
+  min-block-size: var(--picodash-control-height-sm);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: var(--picodash-radius-surface);
+  padding-inline: var(--picodash-space-2);
+  background: color-mix(in oklab, var(--picodash-color-accent) 16%, var(--picodash-color-surface));
+  border-color: color-mix(in oklab, var(--picodash-color-accent) 28%, transparent);
+}
+
+.picodash-dashstack-range-slider-track {
+  position: relative;
+  block-size: var(--picodash-space-1);
+  border-radius: var(--picodash-radius-control);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
+}
+
+.picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb] {
+  inline-size: var(--picodash-control-height-md);
+  block-size: var(--picodash-control-height-md);
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-accent);
+}
+
+.picodash-dashstack-meter,
+.picodash-dashstack-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--picodash-space-0-5) var(--picodash-space-1);
+}
+
+.picodash-dashstack-readout-value {
+  grid-column: 2;
+  font-variant-numeric: tabular-nums;
+}
+
+.picodash-dashstack-progress-track {
+  grid-column: 1 / -1;
+  block-size: var(--picodash-space-1);
+  overflow: hidden;
+  border-radius: var(--picodash-radius-control);
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
+  forced-color-adjust: none;
+}
+
+.picodash-dashstack-progress-fill {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: var(--picodash-color-accent);
+}
+
+.picodash-dashstack-progress-fill[data-indeterminate] {
+  margin-inline-start: 30%;
+}
+
+.picodash-dashstack-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--picodash-space-0-5);
+  border-radius: var(--picodash-radius-control);
+  padding: var(--picodash-space-0-5) var(--picodash-space-1);
+  background: var(--picodash-color-surface-muted);
+}
+
+.picodash-dashstack-status[data-tone='info'] {
+  color: var(--picodash-color-info);
+}
+
+.picodash-dashstack-status[data-tone='success'] {
+  color: var(--picodash-color-success);
+}
+
+.picodash-dashstack-status[data-tone='warning'] {
+  color: var(--picodash-color-warning);
+}
+
+.picodash-dashstack-status[data-tone='danger'] {
+  color: var(--picodash-color-danger);
+}
+
+.picodash-dashstack-date-field,
+.picodash-dashstack-time-field,
+.picodash-dashstack-date-time-field,
+.picodash-dashstack-date-range-field,
+.picodash-dashstack-color-field {
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: var(--picodash-radius-control);
+  padding: var(--picodash-space-1) var(--picodash-space-1-5);
+  background: var(--picodash-color-surface);
+}
+
+.picodash-dashstack-date-range-field > [role='group'] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--picodash-space-1);
+}
+
+.picodash-dashstack-date-field [data-placeholder],
+.picodash-dashstack-time-field [data-placeholder],
+.picodash-dashstack-date-time-field [data-placeholder],
+.picodash-dashstack-date-range-field [data-placeholder] {
+  color: var(--picodash-color-text-muted);
+}
+
+.picodash-dashstack-date-field [data-focused],
+.picodash-dashstack-time-field [data-focused],
+.picodash-dashstack-date-time-field [data-focused],
+.picodash-dashstack-date-range-field [data-focused] {
+  border-radius: var(--picodash-radius-control);
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+}
+
+.picodash-dashstack-color-field input {
+  min-inline-size: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.picodash-dashstack-color-field [data-focus-visible] {
+  border-radius: var(--picodash-radius-control);
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+  outline-offset: 2px;
+}
+
+[data-picodash-dashlet-presentation-warning] {
+  margin-block-start: var(--picodash-space-1);
+  color: var(--picodash-color-warning);
+  font-size: var(--picodash-font-size-sm);
+}
+
+.picodash-dashlet-help-popover {
+  box-sizing: border-box;
+  max-inline-size: min(22rem, calc(100vw - 2 * var(--picodash-space-3)));
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-radius: var(--picodash-radius-surface);
+  padding: var(--picodash-space-2) var(--picodash-space-2-5);
+  background: var(--picodash-color-surface-raised);
+  box-shadow: var(--picodash-shadow-elevated);
+  color: var(--picodash-color-text);
+  font-size: var(--picodash-font-size-sm);
+  line-height: var(--picodash-line-height-normal);
+}
+
+@media (pointer: coarse) {
+  .picodash-dashstack-control,
+  .picodash-dashstack-select > button,
+  .picodash-dashstack-segmented [data-picodash-dashstack-segment],
+  .picodash-dashstack-switch,
+  .picodash-dashstack-checkbox,
+  .picodash-dashstack-slider [data-picodash-dashstack-slider-thumb],
+  .picodash-dashstack-choice,
+  .picodash-dashstack-disclosure-button,
+  .picodash-dashstack-clear-button,
+  .picodash-dashstack-listbox [role='option'],
+  [data-picodash-dashstack-tag-remove],
+  .picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb],
+  .picodash-dashstack-date-field,
+  .picodash-dashstack-time-field,
+  .picodash-dashstack-date-time-field,
+  .picodash-dashstack-date-range-field,
+  .picodash-dashstack-color-field {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+
+  .picodash-dashstack-date-field [role='spinbutton'],
+  .picodash-dashstack-time-field [role='spinbutton'],
+  .picodash-dashstack-date-time-field [role='spinbutton'],
+  .picodash-dashstack-date-range-field [role='spinbutton'] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+
+  .picodash-dashstack-color-field input {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+
+  .picodash-dashstack-date-field > [role='group'],
+  .picodash-dashstack-time-field > [role='group'],
+  .picodash-dashstack-date-time-field > [role='group'],
+  .picodash-dashstack-date-range-field > [role='group'] > [role='presentation'] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-inline-size: 0;
+  }
+}
+
+[dir='rtl'] .picodash-dashstack-slider-track,
+[dir='rtl'] .picodash-dashstack-range-slider-track {
+  direction: rtl;
+}
+
+:where([data-picodash-theme]) {
+  --picodash-dashlet-label-width: 10rem;
+  --picodash-dashlet-field-min-height: 6rem;
+
+  --_picodash-dashstack-nested-inset: calc(-1 * var(--picodash-space-0-5));
+  --_picodash-dashstack-control-min-inline-size: 6rem;
+  --_picodash-dashstack-reorder-track: var(--picodash-control-height-xs);
+  --_picodash-dashstack-trailing-max-inline-size: 8rem;
+  --_picodash-dashstack-row-hover: color-mix(
+    in oklab,
+    var(--picodash-color-surface-muted) 65%,
+    transparent
+  );
+}
+
+/*
+ * The original Panel rendered Stack rows as a dense four-track inspector. The
+ * current components expose stable data attributes, so that treatment can live
+ * here without reviving the old monolithic component or its private classes.
+ */
+.picodash-dashstack {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  min-inline-size: 0;
+  color: var(--picodash-color-text);
+  font-family: var(--picodash-font-family);
+  font-size: var(--picodash-font-size-lg);
+  line-height: var(--picodash-line-height-normal);
+}
+
+[data-picodash-dashstack-rem-probe] {
+  position: fixed;
+  inset: 0 auto auto 0;
+  display: block;
+  contain: strict;
+  inline-size: 1rem;
+  block-size: 1rem;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.picodash-dashstack > [data-slot='dash-header'] {
+  box-sizing: border-box;
+  min-block-size: var(--picodash-control-height-lg);
+  border-block-end: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  padding: var(--picodash-space-2) var(--picodash-space-3);
+}
+
+.picodash-dashstack > [data-slot='dash-header'] :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+  color: var(--picodash-color-text-strong);
+  font-size: var(--picodash-font-size-xl);
+  font-weight: var(--picodash-font-weight-semibold);
+  line-height: var(--picodash-line-height-tight);
+}
+
+[data-picodash-dashstack-list],
+[data-picodash-dashgroup-list] {
+  display: grid;
+  grid-template-columns:
+    var(--_picodash-dashstack-reorder-track)
+    minmax(0, min(30%, var(--picodash-dashlet-label-width)))
+    minmax(0, 1fr)
+    minmax(min-content, min(18%, var(--_picodash-dashstack-trailing-max-inline-size)));
+  column-gap: var(--picodash-space-1);
+  row-gap: var(--picodash-space-1);
+  margin: 0;
+  padding: 0 0 0.1875rem;
+  list-style: none;
+}
+
+[data-picodash-dashstack-list] {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  row-gap: 0;
+}
+
+[data-picodash-dashstack-band] {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  min-block-size: 0;
+  row-gap: var(--picodash-space-1);
+}
+
+[data-picodash-dashstack-band='automatic'] {
+  align-content: start;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+[data-picodash-dashstack-band='automatic']
+  > :is(.picodash-dashstack-group-item, .picodash-dashstack-item) {
+  align-self: start;
+}
+
+.picodash-dashstack-group-item,
+.picodash-dashstack-item {
+  grid-column: 1 / -1;
+  min-inline-size: 0;
+}
+
+.picodash-dashstack-item:not(.picodash-dashstack-group-item) {
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+[data-picodash-dashlet-shell] {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: start;
+  box-sizing: border-box;
+  min-block-size: calc(var(--picodash-control-height-md) + 2 * var(--picodash-space-1));
+  min-inline-size: 0;
+  column-gap: var(--picodash-space-1);
+  row-gap: var(--picodash-space-0-5);
+  border: var(--picodash-border-width-thin) solid transparent;
+  border-inline-start-width: calc(2 * var(--picodash-border-width-thin));
+  border-radius: var(--picodash-radius-control);
+  padding: var(--picodash-space-1) var(--picodash-space-0-5);
+  /* Match the visible grip's inset, including the shell's end border. */
+  padding-inline-end: calc(
+    (var(--_picodash-dashstack-reorder-track) - 10px) / 2 + var(--picodash-space-0-5) -
+      var(--picodash-border-width-thin)
+  );
+  outline: none;
+  transition:
+    background-color var(--picodash-duration-fast) var(--picodash-easing-out),
+    border-color var(--picodash-duration-fast) var(--picodash-easing-out),
+    box-shadow var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+
+[data-picodash-dashlet-shell]:hover {
+  background: var(--_picodash-dashstack-row-hover);
+}
+
+[data-picodash-dashlet-shell]:focus-within {
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+  outline-offset: calc(-2 * var(--picodash-border-width-thin));
+}
+
+[data-picodash-dashlet-shell]:focus-visible {
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+  outline-offset: calc(-2 * var(--picodash-border-width-thin));
+}
+
+[data-picodash-dashlet-label],
+[data-picodash-dashgroup-label] {
+  display: block;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+}
+
+[data-picodash-dashlet-label] {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  color: var(--picodash-color-text-muted);
+  font-size: var(--picodash-font-size-lg);
+  font-weight: var(--picodash-font-weight-medium);
+  line-height: var(--picodash-line-height-tight);
+}
+
+[data-picodash-dashlet-help] {
+  display: inline;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.25em;
+  cursor: help;
+}
+
+[data-picodash-dashlet-help][data-hovered] {
+  background: transparent;
+  color: var(--picodash-color-text-strong);
+}
+
+[data-picodash-dashlet-content] {
+  grid-column: 3 / -1;
+  grid-row: 1;
+  align-self: center;
+  min-inline-size: 0;
+}
+
+[data-picodash-dashlet-shell][data-layout='inline'] > [data-picodash-dashlet-content] {
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-cell] {
+  display: grid;
+  grid-template-columns: subgrid;
+  min-inline-size: 0;
+}
+
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-cell][data-picodash-dashlet-content-single-root]
+  > :not([hidden]) {
+  grid-column: 1 / -1;
+  min-inline-size: 0;
+}
+
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-cell]:not(:has(> :not([hidden]))):not(:empty):not(
+    [data-picodash-dashlet-content-empty]
+  ) {
+  display: block;
+}
+
+[data-picodash-dashlet-shell]:not([data-layout='inline'])
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-cell] {
+  display: contents;
+}
+
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-whitespace] {
+  display: none;
+}
+
+[data-picodash-dashlet-shell]:not([data-layout='inline'])
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-whitespace] {
+  display: contents;
+}
+
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > :is(
+    [data-picodash-dashlet-content-cell]:empty,
+    [data-picodash-dashlet-content-cell][data-picodash-dashlet-content-empty]
+  ) {
+  display: none;
+}
+
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-cell]:nth-child(
+    1 of [data-picodash-dashlet-content-cell]:not(:empty):not([data-picodash-dashlet-content-empty])
+  ):nth-last-child(
+    1 of [data-picodash-dashlet-content-cell]:not(:empty):not([data-picodash-dashlet-content-empty])
+  ) {
+  grid-column: 1 / -1;
+  min-inline-size: 0;
+}
+
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content-cell]:nth-last-child(
+    1 of [data-picodash-dashlet-content-cell]:not(:empty):not([data-picodash-dashlet-content-empty])
+  ):not(
+    :nth-child(
+      1 of [data-picodash-dashlet-content-cell]:not(:empty):not(
+          [data-picodash-dashlet-content-empty]
+        )
+    )
+  ) {
+  min-inline-size: 0;
+  max-inline-size: var(--_picodash-dashstack-trailing-max-inline-size);
+  overflow-wrap: anywhere;
+}
+
+[data-picodash-dashlet-description],
+[data-picodash-dashlet-binding-issues],
+[data-picodash-dashlet-issues],
+[data-picodash-dashlet-actions] {
+  grid-column: 3 / -1;
+  min-inline-size: 0;
+}
+
+[data-picodash-dashlet-description] {
+  color: color-mix(in oklab, var(--picodash-color-text-muted) 70%, var(--picodash-color-text));
+  font-size: var(--picodash-font-size-sm);
+  font-weight: var(--picodash-font-weight-light);
+  line-height: var(--picodash-line-height-tight);
+}
+
+[data-picodash-dashlet-binding-issues],
+[data-picodash-dashlet-issues] {
+  color: var(--picodash-color-danger);
+  font-size: var(--picodash-font-size-md);
+  line-height: var(--picodash-line-height-tight);
+}
+
+[data-picodash-dashlet-actions] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--picodash-space-1);
+}
+
+[data-picodash-dashlet-actions] > button {
+  box-sizing: border-box;
+  min-block-size: var(--picodash-control-height-xs);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: var(--picodash-radius-control);
+  background: transparent;
+  color: var(--picodash-color-text);
+  font: inherit;
+  font-size: var(--picodash-font-size-sm);
+}
+
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-label] {
+  grid-column: 2 / -1;
+}
+
+[data-picodash-dashlet-shell][data-layout='block'] {
+  grid-template-rows: auto auto;
+}
+
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-content] {
+  grid-column: 2 / -1;
+  grid-row: 2;
+}
+
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-description],
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-binding-issues],
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-issues],
+[data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-actions] {
+  grid-column: 2 / -1;
+}
+
+[data-picodash-reorder-handle] {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  inline-size: var(--_picodash-dashstack-reorder-track);
+  block-size: var(--_picodash-dashstack-reorder-track);
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: var(--picodash-radius-control);
+  padding: 0;
+  background: transparent;
+  color: transparent;
+  cursor: grab;
+  font-size: 0;
+  opacity: 0.45;
+  touch-action: none;
+}
+
+[data-picodash-reorder-handle]::before {
+  display: block;
+  inline-size: 10px;
+  block-size: 14px;
+  margin: auto;
+  background: currentColor;
+  color: var(--picodash-color-text-muted);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cg fill='black'%3E%3Ccircle cx='2' cy='2' r='1.5'/%3E%3Ccircle cx='8' cy='2' r='1.5'/%3E%3Ccircle cx='2' cy='7' r='1.5'/%3E%3Ccircle cx='8' cy='7' r='1.5'/%3E%3Ccircle cx='2' cy='12' r='1.5'/%3E%3Ccircle cx='8' cy='12' r='1.5'/%3E%3C/g%3E%3C/svg%3E")
+    center / contain no-repeat;
+  content: '';
+}
+
+[data-picodash-dashlet-decoration] {
+  grid-column: 1;
+  grid-row: 1;
+  place-self: center;
+  inline-size: 5px;
+  block-size: 5px;
+  background: var(--picodash-color-text-muted);
+  opacity: 0.3;
+}
+
+[data-picodash-reorder-handle]:is(:hover, :focus-visible, :active) {
+  background: var(--picodash-color-surface-muted);
+  opacity: 1;
+}
+
+[data-picodash-reorder-handle]:focus-visible {
+  outline: var(--picodash-border-width-thin) solid var(--picodash-color-focus);
+  outline-offset: var(--picodash-border-width-thin);
+}
+
+[data-picodash-reorder-handle]:active {
+  cursor: grabbing;
+}
+
+.picodash-dashstack-group-item > [data-picodash-dashgroup] {
+  --_picodash-group-label-color: var(
+    --picodash-group-label-color,
+    var(--picodash-color-text-strong)
+  );
+  --_picodash-dashstack-group-hover: color-mix(
+    in oklab,
+    var(--_picodash-group-label-color) 10%,
+    transparent
+  );
+  overflow: hidden;
+  box-sizing: border-box;
+  border: var(--picodash-border-width-thin) solid
+    color-mix(in oklab, var(--picodash-color-border) 80%, transparent);
+  border-inline-start-width: calc(2 * var(--picodash-border-width-thin));
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-well);
+  transition:
+    background-color var(--picodash-duration-fast) var(--picodash-easing-out),
+    border-color var(--picodash-duration-fast) var(--picodash-easing-out),
+    box-shadow var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+
+.picodash-dashstack-group-item > [data-picodash-dashgroup]:focus-within {
+  border-color: color-mix(in oklab, var(--picodash-color-focus) 60%, transparent);
+}
+
+.picodash-dashstack-group-item > [data-picodash-dashgroup] > [data-slot='dash-header'] {
+  box-sizing: border-box;
+  min-block-size: var(--picodash-control-height-md);
+  gap: 0;
+  padding: var(--picodash-space-1) var(--picodash-space-0-5);
+  transition: background-color var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+
+.picodash-dashstack-group-item > [data-picodash-dashgroup] > [data-slot='dash-header']:hover {
+  background: var(--_picodash-dashstack-group-hover);
+}
+
+.picodash-dashstack-group-item > [data-picodash-dashgroup]:has(> [data-slot='dash-header']:hover) {
+  border-inline-start-color: var(--_picodash-dashstack-group-hover);
+}
+
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading'] {
+  gap: 0;
+}
+
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading']
+  > button:not([data-picodash-reorder-handle]) {
+  box-sizing: border-box;
+  inline-size: var(--picodash-control-height-xs);
+  block-size: var(--picodash-control-height-xs);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--_picodash-group-label-color);
+  font-size: 0;
+}
+
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading']
+  > button:not([data-picodash-reorder-handle])::before {
+  display: block;
+  inline-size: var(--picodash-icon-sm);
+  block-size: var(--picodash-icon-sm);
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  content: '';
+  transform: rotate(0deg);
+  transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading']
+  > button:not([data-picodash-reorder-handle]):focus-visible::before {
+  transition: none;
+}
+
+.picodash-dashstack-group-item[data-collapsed='true']
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading']
+  > button:not([data-picodash-reorder-handle])::before {
+  transform: rotate(-90deg);
+}
+
+[data-picodash-dashgroup-label] {
+  color: var(--_picodash-group-label-color);
+  font-size: var(--picodash-font-size-lg);
+  font-weight: var(--picodash-font-weight-semibold);
+  line-height: var(--picodash-line-height-normal);
+}
+
+.picodash-dashstack-group-item > [data-picodash-dashgroup] > [data-picodash-dashgroup-list] {
+  margin-inline-start: 0;
+  padding: 0 0 var(--picodash-space-0-5);
+}
+
+[data-picodash-dashgroup-list][data-collapsed='true'] {
+  display: none;
+}
+
+/* Hidden/inert takes effect immediately; this temporary paint can finish independently. */
+[data-picodash-dashgroup-list][data-picodash-disclosure-motion] {
+  display: grid;
+  box-sizing: border-box;
+  align-content: start;
+  overflow: clip;
+}
+
+[data-picodash-reorder-instructions],
+[data-picodash-dashstack] > [role='status'] {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+  .picodash-dashstack {
+    --_picodash-dashstack-reorder-track: 44px;
+  }
+
+  [data-picodash-dashlet-help],
+  [data-picodash-dashlet-actions] > button,
+  .picodash-dashstack-group-item
+    > [data-picodash-dashgroup]
+    > [data-slot='dash-header']
+    [data-slot='dash-header-leading']
+    > button:not([data-picodash-reorder-handle]),
+  [data-picodash-reorder-handle] {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-picodash-dashlet-shell]:focus-within {
+    border-color: Highlight;
+  }
+
+  [data-picodash-dashlet-shell]:focus-visible,
+  [data-picodash-dashlet-help][data-focus-visible] {
+    outline-color: Highlight;
+  }
+
+  [data-picodash-dashlet-help] {
+    border-color: ButtonText;
+    background: Canvas;
+    color: ButtonText;
+  }
+
+  [data-picodash-dashlet-help][data-hovered],
+  [data-picodash-dashlet-help][data-pressed] {
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  [data-picodash-dashstack-checkbox-box],
+  [data-picodash-dashstack-radio-marker] {
+    forced-color-adjust: none;
+    border-color: ButtonText;
+    background: Canvas;
+    color: ButtonText;
+  }
+
+  .picodash-dashstack-checkbox[data-selected] [data-picodash-dashstack-checkbox-box],
+  .picodash-dashstack-choice[data-selected] [data-picodash-dashstack-checkbox-box] {
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .picodash-dashstack-choice[data-selected] [data-picodash-dashstack-radio-marker],
+  .picodash-dashstack-segmented
+    [data-picodash-dashstack-segment][data-selected]
+    [data-picodash-dashstack-segment-marker] {
+    border-color: Highlight;
+    color: Highlight;
+  }
+
+  .picodash-dashstack-listbox [role='option'][data-selected] {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .picodash-dashstack-listbox [role='option'][data-selected][data-disabled] {
+    background: Canvas;
+    color: GrayText;
+  }
+
+  .picodash-dashstack-checkbox[data-selected][data-disabled] [data-picodash-dashstack-checkbox-box],
+  .picodash-dashstack-choice[data-selected][data-disabled] [data-picodash-dashstack-checkbox-box],
+  .picodash-dashstack-choice[data-selected][data-disabled] [data-picodash-dashstack-radio-marker],
+  .picodash-dashstack-segmented
+    [data-picodash-dashstack-segment][data-selected][data-disabled]
+    [data-picodash-dashstack-segment-marker] {
+    border-color: GrayText;
+    background: Canvas;
+    color: GrayText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-dashlet-shell],
+  .picodash-dashstack-group-item > [data-picodash-dashgroup],
+  .picodash-dashstack-group-item > [data-picodash-dashgroup] > [data-slot='dash-header'],
+  .picodash-dashstack-group-item
+    > [data-picodash-dashgroup]
+    > [data-slot='dash-header']
+    [data-slot='dash-header-leading']
+    > button:not([data-picodash-reorder-handle])::before {
+    transition: none;
+  }
+}
+
+.picodash-dashstack-item[data-picodash-reorder-active] {
+  position: relative;
+  z-index: var(--picodash-layer-drag);
+  background: color-mix(in srgb, var(--picodash-color-surface) 72%, transparent);
+  -webkit-backdrop-filter: blur(var(--picodash-blur-surface));
+  backdrop-filter: blur(var(--picodash-blur-surface));
+  box-shadow: var(--picodash-shadow-elevated);
+  border-radius: var(--picodash-radius-surface);
+  outline: 1px solid var(--picodash-color-border);
+  will-change: transform;
+}
+
+.picodash-dashstack-group-item[data-picodash-reorder-active] > [data-picodash-dashgroup] {
+  background: transparent;
+}
+
+/* A field wrapper fills its assigned tracks; the native input never chooses the row width. */
+.picodash-dashstack-field,
+.picodash-dashstack-number,
+.picodash-dashstack-color-field {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.picodash-dashstack-control::placeholder {
+  color: var(--picodash-color-text-muted);
+  opacity: 1;
+}
+
+.picodash-dashstack-field input[inputmode='numeric'],
+.picodash-dashstack-number input {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.picodash-dashstack-slider,
+.picodash-dashstack-range-slider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--picodash-space-2);
+}
+
+.picodash-dashstack-slider > output,
+.picodash-dashstack-range-slider > output {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.picodash-dashstack-slider-track,
+.picodash-dashstack-range-slider-track {
+  grid-column: 1;
+  grid-row: 1;
+  margin-inline: var(--picodash-space-1);
+}
+
+[data-picodash-dashlet-content]:has([data-picodash-dashstack-slider-value])
+  .picodash-dashstack-slider,
+[data-picodash-dashlet-content]:has([data-picodash-dashstack-range-value])
+  .picodash-dashstack-range-slider {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-picodash-dashlet-content]:has([data-picodash-dashstack-slider-value])
+  .picodash-dashstack-slider
+  > output,
+[data-picodash-dashlet-content]:has([data-picodash-dashstack-range-value])
+  .picodash-dashstack-range-slider
+  > output {
+  display: none;
+}
+
+[data-picodash-dashstack-slider-value],
+[data-picodash-dashstack-range-value] {
+  align-self: center;
+  justify-self: end;
+  min-inline-size: 0;
+  padding: var(--picodash-space-0-5) var(--picodash-space-1);
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-surface-muted);
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* End is naturally on top at the lower limit; Start must be on top at the upper limit. */
+.picodash-dashstack-range-slider [data-picodash-range-upper-overlap] {
+  z-index: 1;
+}
+
+@media (pointer: fine) {
+  .picodash-dashstack-slider [data-picodash-dashstack-slider-thumb],
+  .picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb] {
+    inline-size: var(--picodash-space-3);
+    background: transparent;
+    block-size: calc(
+      var(--picodash-control-height-xs) / 2 + var(--picodash-space-1) + var(--picodash-space-0-5)
+    );
+    /* Compensate for React Aria's centered transform to retain the original top edge. */
+    margin-block-start: calc(
+      (var(--picodash-space-1) + var(--picodash-space-0-5) - var(--picodash-control-height-xs) / 2) /
+        2
+    );
+  }
+
+  /* Shape only the paint, preserving the thumb's hit area and unclipped focus ring. */
+  .picodash-dashstack-slider [data-picodash-dashstack-slider-thumb]::before,
+  .picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: var(--picodash-radius-control) var(--picodash-radius-control) 0 0;
+    background: var(--picodash-color-accent);
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - var(--picodash-space-1)),
+      50% 100%,
+      0 calc(100% - var(--picodash-space-1))
+    );
+  }
+}
+
+.picodash-dashstack-group-item,
+.picodash-dashstack-group-item > [data-picodash-dashgroup],
+[data-picodash-dashgroup-list] {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+}
+
+.picodash-dashstack-group-item > [data-picodash-dashgroup] {
+  border-inline: 0;
+  border-block-end: 0;
+  border-radius: 0;
+}
+
+.picodash-dashstack-group-item > [data-picodash-dashgroup] > [data-slot='dash-header'] {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+}
+
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading'] {
+  grid-column: 1;
+}
+
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-title'] {
+  grid-column: 2 / -1;
+}
+
+/* Unformatted slider outputs inherit the same third/fourth tracks as formatted values. */
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]:not(
+    :has([data-picodash-dashstack-slider-value], [data-picodash-dashstack-range-value])
+  )
+  > [data-picodash-dashlet-content-cell]
+  > :is(.picodash-dashstack-slider, .picodash-dashstack-range-slider) {
+  grid-template-columns: subgrid;
+}
+
+/* Align labels and grips with the first control line, never the centre of a tall field. */
+.picodash-dashstack {
+  --_picodash-dashstack-first-row-height: var(--picodash-control-height-md);
+}
+
+[data-picodash-dashlet-label] {
+  display: flex;
+  align-items: center;
+  align-self: start;
+  min-block-size: var(--_picodash-dashstack-first-row-height);
+}
+
+[data-picodash-dashlet-shell] > [data-picodash-reorder-handle] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  inset-inline-start: calc(-1 * var(--picodash-space-0-5));
+  align-self: start;
+  margin-block-start: calc(
+    (var(--_picodash-dashstack-first-row-height) - var(--_picodash-dashstack-reorder-track)) / 2
+  );
+}
+
+[data-picodash-dashlet-decoration] {
+  align-self: start;
+  margin-block-start: calc((var(--_picodash-dashstack-first-row-height) - 5px) / 2);
+}
+
+[data-picodash-dashlet-content] {
+  align-self: start;
+  min-block-size: var(--_picodash-dashstack-first-row-height);
+}
+
+.picodash-dashstack-display,
+.picodash-dashstack-status {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--_picodash-dashstack-first-row-height);
+}
+
+/* Hidden form inputs, descriptions, and collection templates are not extra grid columns. */
+[data-picodash-dashlet-content-cell]
+  > :nth-child(
+    1 of :not(
+      [hidden],
+      template,
+      [data-react-aria-prevent-focus],
+      [data-picodash-control-description]
+    )
+  ):nth-last-child(
+    1 of :not(
+      [hidden],
+      template,
+      [data-react-aria-prevent-focus],
+      [data-picodash-control-description]
+    )
+  ) {
+  grid-column: 1 / -1;
+}
+
+.picodash-dashstack-radio-group .picodash-dashstack-choice {
+  align-self: stretch;
+  flex: 1 1 auto;
+}
+
+.picodash-dashstack-date-field,
+.picodash-dashstack-time-field,
+.picodash-dashstack-date-time-field,
+.picodash-dashstack-date-range-field,
+.picodash-dashstack-color-field {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: var(--_picodash-dashstack-first-row-height, var(--picodash-control-height-md));
+  background: var(--picodash-color-surface-muted);
+}
+
+[data-picodash-date-input] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-inline-size: 0;
+  min-block-size: calc(
+    var(--picodash-control-height-md) - 2 * var(--picodash-space-1) - 2 *
+      var(--picodash-border-width-thin)
+  );
+}
+
+[data-picodash-date-input] [data-type='literal'] {
+  white-space: pre;
+}
+
+.picodash-dashstack-color-field {
+  padding: 0;
+}
+
+.picodash-dashstack-color-field input {
+  inline-size: 100%;
+}
+
+[data-picodash-dashlet-shell] .picodash-dashstack-control:focus-visible,
+[data-picodash-dashlet-shell] .picodash-dashstack-color-field [data-focus-visible] {
+  outline: none;
+}
+
+.picodash-dashstack-date-range-field {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.picodash-dashstack-date-range-field > [role='group'] {
+  display: grid;
+  gap: 0;
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-surface-muted);
+}
+
+[data-picodash-date-range-endpoint] {
+  display: grid;
+  grid-template-columns: 4ch minmax(0, 1fr);
+  align-items: center;
+  gap: var(--picodash-space-1);
+  min-block-size: var(--_picodash-dashstack-first-row-height, var(--picodash-control-height-md));
+  padding-inline: var(--picodash-space-1);
+}
+
+[data-picodash-date-range-caption] {
+  color: var(--picodash-color-text-muted);
+  font-size: var(--picodash-font-size-sm);
+}
+
+[data-picodash-date-range-endpoint] + [data-picodash-date-range-endpoint] {
+  border-block-start: var(--picodash-border-width-thin) solid
+    color-mix(in oklab, var(--picodash-color-text) 30%, var(--picodash-color-surface-muted));
+}
+
+@media (pointer: coarse) {
+  .picodash-dashstack {
+    --_picodash-dashstack-first-row-height: 44px;
+  }
+}
+
+/* Joined input actions occupy the same filled field, including multi-select disclosure. */
+:is(
+  .picodash-dashstack-combobox,
+  .picodash-dashstack-multi-select,
+  .picodash-dashstack-search-field
+) {
+  column-gap: 0;
+}
+:is(
+    .picodash-dashstack-combobox,
+    .picodash-dashstack-multi-select,
+    .picodash-dashstack-search-field
+  )
+  > input {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+  border-inline-end: 0;
+}
+.picodash-dashstack-disclosure-button,
+.picodash-dashstack-clear-button {
+  border: 0;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  background: var(--picodash-color-surface-muted);
+}
+.picodash-dashstack-tag {
+  gap: var(--picodash-space-1);
+}
+.picodash-dashstack-tag:has([data-picodash-dashstack-tag-remove]) {
+  padding-inline-end: 0;
+}
+[data-picodash-dashstack-tag-remove] {
+  display: grid;
+  place-items: center;
+  min-inline-size: 24px;
+  min-block-size: 24px;
+  padding: var(--picodash-space-1);
+  border-radius: var(--picodash-radius-surface);
+}
+[data-picodash-dashstack-tag-remove]:hover {
+  background: var(--picodash-color-control-border);
+}
+@media (pointer: coarse) {
+  [data-picodash-dashstack-tag-remove] {
+    min-inline-size: 44px;
+    min-block-size: 44px;
+  }
+}
+
+.picodash-dashstack-color-field {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+.picodash-dashstack-color-swatch-button {
+  min-inline-size: var(--picodash-control-height-md);
+  min-block-size: var(--picodash-control-height-md);
+  padding: var(--picodash-space-1);
+  border: 0;
+  background: transparent;
+}
+.picodash-dashstack-color-swatch {
+  inline-size: 22px;
+  block-size: 22px;
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: var(--picodash-radius-control);
+}
+.picodash-dashstack-color-popover {
+  max-inline-size: calc(100vw - 24px);
+  padding: var(--picodash-space-3);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-radius: var(--picodash-radius-surface);
+  background: var(--picodash-color-surface-raised);
+  color: var(--picodash-color-text);
+  box-shadow: var(--picodash-shadow-elevated);
+}
+.picodash-dashstack-color-picker {
+  display: grid;
+  gap: var(--picodash-space-3);
+  inline-size: min(224px, calc(100vw - 50px));
+  outline: none;
+}
+.picodash-dashstack-color-area {
+  inline-size: 100%;
+  block-size: 160px;
+  border-radius: var(--picodash-radius-control);
+}
+.picodash-dashstack-color-thumb {
+  box-sizing: border-box;
+  inline-size: 16px;
+  block-size: 16px;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px black;
+}
+.picodash-dashstack-color-thumb[data-focus-visible] {
+  outline: 2px solid var(--picodash-color-focus);
+  outline-offset: 3px;
+}
+.picodash-dashstack-color-slider {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--picodash-space-2);
+  font: inherit;
+}
+.picodash-dashstack-color-slider > .react-aria-SliderTrack {
+  grid-column: 1 / -1;
+  block-size: 20px;
+  border-radius: var(--picodash-radius-control);
+}
+.picodash-dashstack-color-slider .picodash-dashstack-color-thumb {
+  top: 50%;
+}
+
+/* The active popup owns focus; its parent row need not advertise a second active surface. */
+[data-picodash-dashlet-shell]:has([aria-expanded='true']) {
+  outline: none;
+  background: transparent;
+}
+[data-picodash-dashlet-shell] {
+  border-radius: 0;
+}
+
+/* Group controls occupy separate tracks; the grip shares the child rows' first track. */
+.picodash-dashstack-group-item > [data-picodash-dashgroup] > [data-slot='dash-header'] {
+  grid-template-columns: var(--_picodash-dashstack-reorder-track) minmax(0, 1fr);
+  column-gap: var(--picodash-space-1);
+  align-items: center;
+}
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']:has([data-picodash-reorder-handle]) {
+  grid-template-columns: repeat(2, var(--_picodash-dashstack-reorder-track)) minmax(0, 1fr);
+  column-gap: 0;
+}
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading'] {
+  display: contents;
+}
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-picodash-reorder-handle] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  grid-column: 1;
+  grid-row: 1;
+}
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading']
+  > button:not([data-picodash-reorder-handle]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  block-size: var(--_picodash-dashstack-first-row-height);
+  grid-column: 1;
+  grid-row: 1;
+}
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']:has([data-picodash-reorder-handle])
+  [data-slot='dash-header-leading']
+  > button:not([data-picodash-reorder-handle]) {
+  grid-column: 2;
+}
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']:has([data-picodash-reorder-handle])
+  [data-slot='dash-header-title'] {
+  grid-column: 3;
+  padding-inline-start: var(--picodash-space-1);
+}
+
+[data-picodash-date-picker-input] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.picodash-dashstack-date-field,
+.picodash-dashstack-date-time-field {
+  padding-block: 0;
+  padding-inline-end: 0;
+}
+.picodash-dashstack-calendar-button {
+  padding: var(--picodash-space-1);
+  min-inline-size: var(--picodash-control-height-md);
+  min-block-size: var(--picodash-control-height-md);
+  border: 0;
+  background: transparent;
+  color: var(--picodash-color-accent);
+}
+.picodash-dashstack-calendar-button:disabled {
+  color: var(--picodash-color-text-muted);
+  opacity: var(--picodash-opacity-disabled);
+}
+.picodash-dashstack-date-range-field > [role='group'] {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+[data-picodash-date-range-endpoint] {
+  grid-column: 1;
+}
+.picodash-dashstack-date-range-field .picodash-dashstack-calendar-button {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  block-size: auto;
+  align-self: stretch;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+.picodash-dashstack-calendar-popover {
+  padding: var(--picodash-space-2);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
+  border-radius: var(--picodash-radius-surface);
+  background: var(--picodash-color-surface-raised);
+  color: var(--picodash-color-text);
+  box-shadow: var(--picodash-shadow-elevated);
+}
+.picodash-dashstack-calendar header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--picodash-space-2);
+  margin-block-end: var(--picodash-space-2);
+}
+.picodash-dashstack-calendar .react-aria-Heading {
+  margin: 0;
+  font-size: var(--picodash-font-size-md);
+}
+.picodash-dashstack-calendar table {
+  border-spacing: 0;
+}
+.picodash-dashstack-calendar th {
+  font-size: var(--picodash-font-size-sm);
+  color: var(--picodash-color-text-muted);
+  font-weight: normal;
+}
+.picodash-dashstack-calendar td {
+  padding: 0;
+}
+.picodash-dashstack-calendar .react-aria-CalendarCell {
+  display: grid;
+  place-items: center;
+  inline-size: clamp(32px, calc((100vw - 48px) / 7), 40px);
+  block-size: 36px;
+  border-radius: var(--picodash-radius-control);
+  font-size: var(--picodash-font-size-md);
+  cursor: pointer;
+}
+.picodash-dashstack-calendar .react-aria-CalendarCell[data-selected] {
+  background: color-mix(in oklab, var(--picodash-color-accent) 20%, transparent);
+}
+.picodash-dashstack-calendar .react-aria-CalendarCell[data-selection-start],
+.picodash-dashstack-calendar .react-aria-CalendarCell[data-selection-end] {
+  background: var(--picodash-color-accent);
+  color: var(--picodash-color-accent-contrast, white);
+}
+.picodash-dashstack-calendar .react-aria-CalendarCell[data-focus-visible] {
+  outline: 2px solid var(--picodash-color-focus);
+  outline-offset: -2px;
+}
+.picodash-dashstack-calendar .react-aria-CalendarCell[data-outside-month] {
+  visibility: hidden;
+}
+.picodash-dashstack-calendar .react-aria-CalendarCell:is([data-disabled], [data-unavailable]) {
+  color: var(--picodash-color-text-muted);
+  opacity: var(--picodash-opacity-disabled);
+  cursor: default;
+}
+
+.picodash-dashstack-select > button {
+  display: grid;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) var(--picodash-control-height-md);
+  gap: 0;
+  padding-inline-end: 0;
+  text-align: start;
+}
+.picodash-dashstack-select .react-aria-SelectValue {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.picodash-dashstack-select .react-aria-SelectValue [data-picodash-dashstack-option-marker] {
+  display: none;
+}
+[data-picodash-select-disclosure] {
+  text-align: center;
+  color: var(--picodash-color-text-muted);
+}
+
+/* A header hover shows the extent of its group without lighting up every control. */
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]:has(> [data-slot='dash-header']:hover)
+  > [data-picodash-dashgroup-list] {
+  background-image: linear-gradient(
+    to right,
+    var(--_picodash-dashstack-group-hover) var(--_picodash-dashstack-reorder-track),
+    transparent var(--_picodash-dashstack-reorder-track)
+  );
+}
+[dir='rtl']
+  .picodash-dashstack-group-item
+  > [data-picodash-dashgroup]:has(> [data-slot='dash-header']:hover)
+  > [data-picodash-dashgroup-list] {
+  background-image: linear-gradient(
+    to left,
+    var(--_picodash-dashstack-group-hover) var(--_picodash-dashstack-reorder-track),
+    transparent var(--_picodash-dashstack-reorder-track)
+  );
+}
+
+/* Extend the real disclosure button over the header, keeping the grip independent. */
+.picodash-dashstack-group-item > [data-picodash-dashgroup] > [data-slot='dash-header'] {
+  position: relative;
+  isolation: isolate;
+}
+[data-picodash-group-disclosure] {
+  position: static;
+  cursor: pointer;
+}
+[data-picodash-group-disclosure]::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+[data-picodash-group-disclosure]:focus-visible {
+  outline: none;
+}
+[data-picodash-group-disclosure]:focus-visible::after {
+  outline: 2px solid var(--picodash-color-focus);
+  outline-offset: -2px;
+}
+[data-slot='dash-header'] [data-picodash-reorder-handle] {
+  position: relative;
+  z-index: 1;
+}

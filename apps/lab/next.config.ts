@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   agentRules: false,
   outputFileTracingRoot: path.join(import.meta.dirname, '../..'),
   transpilePackages: [
-    '@picodash/dashlist',
+    '@picodash/dashstack',
     '@picodash/dashpanel',
     '@picodash/picodash',
     '@picodash/nexus',

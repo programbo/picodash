@@ -3,8 +3,8 @@ import { z } from 'zod'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import {
   createPicodashNexus,
-  type DashListCollapseOverrideUpdate,
-  type DashListMetadataRecord,
+  type DashStackCollapseOverrideUpdate,
+  type DashStackMetadataRecord,
   type DashPanelDockPositionRecord,
   type DashPanelLayoutRecord,
   type DashPanelPlacementRecord,
@@ -255,11 +255,11 @@ test('exports exact immutable metadata record declarations', () => {
     readonly values: Readonly<{ readonly value: number }>
     readonly scopes: ReadonlyMap<string, DurableScopeMetadata>
   }>()
-  expectTypeOf<DashListMetadataRecord>().toMatchTypeOf<{
+  expectTypeOf<DashStackMetadataRecord>().toMatchTypeOf<{
     readonly groupOrders: ReadonlyMap<string, readonly string[]>
     readonly collapseOverrides: ReadonlyMap<string, boolean>
   }>()
-  expectTypeOf<DashListCollapseOverrideUpdate>().toEqualTypeOf<readonly [string, boolean | null]>()
+  expectTypeOf<DashStackCollapseOverrideUpdate>().toEqualTypeOf<readonly [string, boolean | null]>()
   expectTypeOf<RegisteredValueResetInspection>().toEqualTypeOf<{
     readonly registeredFields: readonly string[]
     readonly changedFields: readonly string[]
@@ -521,26 +521,28 @@ test('preserves Fields and refined Result through root/scoped views and metadata
   >()
   expectTypeOf<ReturnType<Root['setDashPanelLayout']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Root['resetDashPanelLayout']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Root['setDashListRootOrder']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Root['removeDashListRootOrder']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Root['setDashListGroupOrder']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Root['removeDashListGroupOrder']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Root['setDashListCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Root['removeDashListCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Root['updateDashListCollapseOverrides']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Root['resetDashListMetadata']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['setDashStackRootOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['removeDashStackRootOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['setDashStackGroupOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['removeDashStackGroupOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['setDashStackCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['removeDashStackCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<
+    ReturnType<Root['updateDashStackCollapseOverrides']>
+  >().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Root['resetDashStackMetadata']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Scoped['setDashPanelLayout']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<ReturnType<Scoped['resetDashPanelLayout']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Scoped['setDashListRootOrder']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Scoped['removeDashListRootOrder']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Scoped['setDashListGroupOrder']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Scoped['removeDashListGroupOrder']>>().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Scoped['setDashListCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['setDashStackRootOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['removeDashStackRootOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['setDashStackGroupOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['removeDashStackGroupOrder']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['setDashStackCollapseOverride']>>().toEqualTypeOf<RefinedResult>()
   expectTypeOf<
-    ReturnType<Scoped['removeDashListCollapseOverride']>
+    ReturnType<Scoped['removeDashStackCollapseOverride']>
   >().toEqualTypeOf<RefinedResult>()
   expectTypeOf<
-    ReturnType<Scoped['updateDashListCollapseOverrides']>
+    ReturnType<Scoped['updateDashStackCollapseOverrides']>
   >().toEqualTypeOf<RefinedResult>()
-  expectTypeOf<ReturnType<Scoped['resetDashListMetadata']>>().toEqualTypeOf<RefinedResult>()
+  expectTypeOf<ReturnType<Scoped['resetDashStackMetadata']>>().toEqualTypeOf<RefinedResult>()
 })

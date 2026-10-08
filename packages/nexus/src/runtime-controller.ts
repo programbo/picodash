@@ -11,7 +11,7 @@ export function classifyIdentity(value: unknown): IdentityReason | undefined {
   return undefined
 }
 
-export type EntityKind = 'dashPanel' | 'dashList'
+export type EntityKind = 'dashPanel' | 'dashStack'
 export type BindingMode = 'input' | 'display'
 
 export type RuntimeLifecycle = 'active' | 'destroying' | 'destroyed'
@@ -74,8 +74,8 @@ export type BindingRecord = {
   active: boolean
 }
 
-export type DashListNodeRecord = {
-  readonly kind: 'dashList-node'
+export type DashStackNodeRecord = {
+  readonly kind: 'dashStack-node'
   readonly root: object
   readonly scopeId: string
   readonly nodeId: string
@@ -97,8 +97,8 @@ export class RuntimeController {
   readonly bindings = new Map<string, Map<string, Map<string, BindingRecord>>>()
   readonly handles = new WeakMap<object, ProviderRecord | EntityRecord>()
   readonly bindingHandles = new WeakMap<object, BindingRecord>()
-  readonly dashListNodes = new Map<string, Map<string, DashListNodeRecord>>()
-  readonly dashListNodeHandles = new WeakMap<object, DashListNodeRecord>()
+  readonly dashStackNodes = new Map<string, Map<string, DashStackNodeRecord>>()
+  readonly dashStackNodeHandles = new WeakMap<object, DashStackNodeRecord>()
   readonly relationshipHandles = new WeakMap<object, RelationshipRecord>()
   readonly scopedViews = new WeakMap<object, ScopedViewRecord>()
   readonly parentByChildScope = new Map<string, string>()
@@ -137,7 +137,7 @@ export class RuntimeController {
     for (const provider of this.providers.values()) if (provider.active) return true
     for (const entity of this.entities) if (entity.active) return true
     for (const relationship of this.relationships) if (relationship.active) return true
-    for (const byNode of this.dashListNodes.values())
+    for (const byNode of this.dashStackNodes.values())
       for (const node of byNode.values()) if (node.active) return true
     for (const byItem of this.bindings.values())
       for (const byAlias of byItem.values())
@@ -145,27 +145,27 @@ export class RuntimeController {
     return false
   }
 
-  activeDashListNode(scopeId: string, nodeId: string): DashListNodeRecord | undefined {
-    const record = this.dashListNodes.get(scopeId)?.get(nodeId)
+  activeDashStackNode(scopeId: string, nodeId: string): DashStackNodeRecord | undefined {
+    const record = this.dashStackNodes.get(scopeId)?.get(nodeId)
     return record?.active ? record : undefined
   }
 
-  registerDashListNode(record: DashListNodeRecord): void {
-    const byNode = this.dashListNodes.get(record.scopeId) ?? new Map<string, DashListNodeRecord>()
+  registerDashStackNode(record: DashStackNodeRecord): void {
+    const byNode = this.dashStackNodes.get(record.scopeId) ?? new Map<string, DashStackNodeRecord>()
     byNode.set(record.nodeId, record)
-    this.dashListNodes.set(record.scopeId, byNode)
+    this.dashStackNodes.set(record.scopeId, byNode)
   }
 
-  releaseDashListNode(record: DashListNodeRecord): void {
-    const byNode = this.dashListNodes.get(record.scopeId)
+  releaseDashStackNode(record: DashStackNodeRecord): void {
+    const byNode = this.dashStackNodes.get(record.scopeId)
     if (byNode?.get(record.nodeId) === record) {
       byNode.delete(record.nodeId)
-      if (byNode.size === 0) this.dashListNodes.delete(record.scopeId)
+      if (byNode.size === 0) this.dashStackNodes.delete(record.scopeId)
     }
   }
 
-  activeDashListNodeIds(scopeId: string): readonly string[] {
-    return [...(this.dashListNodes.get(scopeId)?.keys() ?? [])].sort()
+  activeDashStackNodeIds(scopeId: string): readonly string[] {
+    return [...(this.dashStackNodes.get(scopeId)?.keys() ?? [])].sort()
   }
 
   setBindingInteractionCleanup(
@@ -211,7 +211,7 @@ export class RuntimeController {
   }
 
   hasActiveScope(scopeId: string): boolean {
-    if (this.bindings.has(scopeId) || this.dashListNodes.has(scopeId)) return true
+    if (this.bindings.has(scopeId) || this.dashStackNodes.has(scopeId)) return true
     for (const entity of this.entities) if (entity.active && entity.scopeId === scopeId) return true
     for (const relationship of this.relationships)
       if (
@@ -265,7 +265,7 @@ export class RuntimeController {
       this.providers.clear()
       this.entities.clear()
       this.relationships.clear()
-      this.dashListNodes.clear()
+      this.dashStackNodes.clear()
       this.bindings.clear()
       this.parentByChildScope.clear()
       this.childrenByParentScope.clear()

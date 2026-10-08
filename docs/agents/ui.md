@@ -6,12 +6,12 @@ Read this file before changing shared presentation or replacing `packages/theme`
 
 ## Decision lens
 
-`@picodash/ui` lets DashPanel and DashList share identical product-neutral theme, density,
+`@picodash/ui` lets DashPanel and DashStack share identical product-neutral theme, density,
 structural, overlay, and accessibility behavior. Admit a primitive only when both products can use
 the same semantics and interactions without product state or commands.
 
 UI is supporting infrastructure, not another state or behavior owner. It must not know about
-Nexuses, Panels, Lists, Dashlets, placement, ordering, or persistence.
+Nexuses, Panels, Stacks, Dashlets, placement, ordering, or persistence.
 
 ## Implementation constraints
 
@@ -22,7 +22,7 @@ Nexuses, Panels, Lists, Dashlets, placement, ordering, or persistence.
 - Use semantic `--picodash-*` tokens and named Picodash-owned public prop types.
 - Extend React Aria interfaces deliberately and omit reserved semantic or structural props.
 - Do not publish internal variant-helper types or `ComponentProps<typeof InternalComponent>`.
-- Keep generic Button, AlertDialog, Popover, Tooltip, and Provider imports UI-owned. DashPanel and DashList
+- Keep generic Button, AlertDialog, Popover, Tooltip, and Provider imports UI-owned. DashPanel and DashStack
   explicitly reexport only the shared contracts accepted by their references.
 - Replace the theme prototype cleanly; do not retain a second theme authority or compatibility
   alias without an accepted decision.

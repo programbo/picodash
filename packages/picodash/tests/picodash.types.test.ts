@@ -14,7 +14,7 @@ import {
   DateRangeDashlet as OwnerDateRangeDashlet,
   DateTimeDashlet as OwnerDateTimeDashlet,
   DashGroup as OwnerDashGroup,
-  DashList as OwnerDashList,
+  DashStack as OwnerDashStack,
   Dashlet as OwnerDashlet,
   DisplayDashlet as OwnerDisplayDashlet,
   MeterDashlet as OwnerMeterDashlet,
@@ -39,7 +39,7 @@ import {
   type DateRangeDashletProps as OwnerDateRangeDashletProps,
   type DateTimeDashletProps as OwnerDateTimeDashletProps,
   type DashGroupProps as OwnerDashGroupProps,
-  type DashListProps as OwnerDashListProps,
+  type DashStackProps as OwnerDashStackProps,
   type DashletProps as OwnerDashletProps,
   type DisplayDashletProps as OwnerDisplayDashletProps,
   type MeterDashletProps as OwnerMeterDashletProps,
@@ -56,7 +56,7 @@ import {
   type SwitchDashletProps as OwnerSwitchDashletProps,
   type TextDashletProps as OwnerTextDashletProps,
   type TimeDashletProps as OwnerTimeDashletProps,
-} from '@picodash/dashlist'
+} from '@picodash/dashstack'
 import {
   ActionMenu,
   ActionMenuItem,
@@ -71,7 +71,7 @@ import {
   DateTimeDashlet,
   DashGroup,
   DashHeader,
-  DashList,
+  DashStack,
   DashPanel,
   Dashlet,
   DisplayDashlet,
@@ -100,7 +100,7 @@ import {
   type DashGroupProps,
   type DashHeaderProps,
   type DashHeaderSlots,
-  type DashListProps,
+  type DashStackProps,
   type DashPanelBoundary,
   type DashPanelBoundaryInset,
   type DashPanelDefaultLayout,
@@ -330,7 +330,7 @@ describe('@picodash/picodash facade public types', () => {
     const dock: PicodashDockPosition = 'full-left'
     const panelDock: DashPanelDockPosition = 'center-bottom'
     const panelProps: DashPanelProps = { id: 'panel', title: 'Panel' }
-    const listProps: DashListProps = { id: 'list', nexus, children: null }
+    const listProps: DashStackProps = { id: 'list', nexus, children: null }
     const groupProps: DashGroupProps = { id: 'group', label: 'Group' }
     const dashletProps: DashletProps = { id: 'item', label: 'Item' }
     const style: DashPanelStyle = { color: 'red' }
@@ -383,7 +383,7 @@ describe('@picodash/picodash facade public types', () => {
 
     void createElement(PicodashProvider, provider)
     void createElement(DashPanel, panelProps)
-    void createElement(DashList, listProps)
+    void createElement(DashStack, listProps)
     void createElement(DashGroup, groupProps)
     void createElement(Dashlet, dashletProps)
     void ActionMenu
@@ -393,11 +393,11 @@ describe('@picodash/picodash facade public types', () => {
     void DashHeader
 
     expectTypeOf(DashPanel).toEqualTypeOf(OwnerDashPanel)
-    expectTypeOf(DashList).toEqualTypeOf(OwnerDashList)
+    expectTypeOf(DashStack).toEqualTypeOf(OwnerDashStack)
     expectTypeOf(DashGroup).toEqualTypeOf(OwnerDashGroup)
     expectTypeOf(Dashlet).toEqualTypeOf(OwnerDashlet)
     expectTypeOf<DashPanelProps>().toEqualTypeOf<OwnerDashPanelProps>()
-    expectTypeOf<DashListProps>().toEqualTypeOf<OwnerDashListProps>()
+    expectTypeOf<DashStackProps>().toEqualTypeOf<OwnerDashStackProps>()
     expectTypeOf<DashGroupProps>().toEqualTypeOf<OwnerDashGroupProps>()
     expectTypeOf<DashletProps>().toEqualTypeOf<OwnerDashletProps>()
 
@@ -448,7 +448,7 @@ describe('@picodash/picodash facade public types', () => {
       'DashletGroup',
       'DashPanelProvider',
       'useDashPanel',
-      'useDashListActions',
+      'useDashStackActions',
       'catalog',
     ]) {
       if (retired in runtime) throw new Error(`retired export remains: ${retired}`)

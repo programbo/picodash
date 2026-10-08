@@ -165,7 +165,7 @@ describe('browser connector', () => {
 
     expect((await client.inspect(browser.session)).session.sequence).toBe(0)
     nexus.setValue(nexus.fields.secret, 'still-hidden')
-    nexus.setDashListRootOrder('hidden-scope', ['item'])
+    nexus.setDashStackRootOrder('hidden-scope', ['item'])
     expect((await client.inspect(browser.session)).session.sequence).toBe(0)
     await expect(
       client.wait(browser.session, {
@@ -176,7 +176,7 @@ describe('browser connector', () => {
       }),
     ).resolves.toMatchObject({ type: 'wait_result', outcome: 'timed_out' })
 
-    nexus.setDashListRootOrder('visible-scope', ['item'])
+    nexus.setDashStackRootOrder('visible-scope', ['item'])
     expect((await client.inspect(browser.session)).session.sequence).toBe(1)
     await expect(
       client.wait(browser.session, {
@@ -194,7 +194,7 @@ describe('browser connector', () => {
           {
             id: 'visible-scope',
             metadata: {
-              dashList: {
+              dashStack: {
                 rootOrder: [[0, 'item']],
                 groupOrders: [],
                 collapseOverrides: [],
@@ -212,7 +212,7 @@ describe('browser connector', () => {
           {
             id: 'visible-scope',
             metadata: {
-              dashList: {
+              dashStack: {
                 rootOrder: [[0, 'item']],
                 groupOrders: [],
                 collapseOverrides: [],

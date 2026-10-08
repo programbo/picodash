@@ -21,7 +21,7 @@ fields, diagnostics, and public prose are replaced with Nexus terminology in one
 cutover.
 
 Lowercase “store” remains valid only for an application's external Redux, Zustand, or equivalent
-state store. The rename does not move behavior or ownership between Nexus, DashPanel, DashList,
+state store. The rename does not move behavior or ownership between Nexus, DashPanel, DashStack,
 Picodash, or Dev Bridge.
 
 ## Consequences

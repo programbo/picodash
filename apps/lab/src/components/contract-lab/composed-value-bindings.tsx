@@ -1,5 +1,5 @@
-import { DashGroup, Dashlet, type SingleFieldDashletRenderContext } from '@picodash/dashlist'
-import { Display, NumberField, Switch, TextField } from '@picodash/dashlist/ui'
+import { DashGroup, Dashlet, type SingleFieldDashletRenderContext } from '@picodash/dashstack'
+import { Display, NumberField, Switch, TextField } from '@picodash/dashstack/ui'
 import type { ValueBindingNexus } from './value-binding-model'
 
 export function renderComposedValueBindings({

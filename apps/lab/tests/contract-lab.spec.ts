@@ -708,7 +708,7 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     .poll(() => candidates.evaluate((node) => node.scrollWidth <= node.clientWidth))
     .toBe(true)
   const cadence = candidates.locator('[data-picodash-dashlet="cadence"]')
-  const thumbBounds = await cadence.locator('[data-picodash-dashlist-slider-thumb]').boundingBox()
+  const thumbBounds = await cadence.locator('[data-picodash-dashstack-slider-thumb]').boundingBox()
   const descriptionBounds = await cadence.getByText('One-second steps').boundingBox()
   expect(thumbBounds).not.toBeNull()
   expect(descriptionBounds).not.toBeNull()
@@ -762,13 +762,13 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     await region.getByRole('button', { name: 'Apply example values' }).click()
     await expect.poll(values).toEqual({ name: 'Evening', interval: 15, enabled: false })
     await list.getByRole('textbox', { name: 'Workspace name', exact: true }).fill('')
-    await list.getByRole('button', { name: 'List actions', exact: true }).click()
+    await list.getByRole('button', { name: 'Stack actions', exact: true }).click()
     await page.getByRole('menuitem', { name: 'Reset values…', exact: true }).click()
     const dialog = page.getByRole('alertdialog', { name: 'Reset values and drafts?' })
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
     await expect.poll(values).toEqual({ name: 'Evening', interval: 15, enabled: false })
     await expect(list.getByRole('textbox', { name: 'Workspace name', exact: true })).toHaveValue('')
-    await list.getByRole('button', { name: 'List actions', exact: true }).click()
+    await list.getByRole('button', { name: 'Stack actions', exact: true }).click()
     await page.getByRole('menuitem', { name: 'Reset values…', exact: true }).click()
     await dialog.getByRole('button', { name: 'Reset values', exact: true }).click()
     await expect.poll(values).toEqual({ name: 'Studio', interval: 30, enabled: true })
@@ -860,7 +860,7 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     ['binding-ready-made', 'binding-composed'].includes(scope.id),
   )) {
     expect(scope.metadata).toMatchObject({
-      dashList: {
+      dashStack: {
         groupOrders: [
           [
             'settings',
@@ -874,7 +874,7 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
       },
     })
     expect(stored.find((entry: [string, unknown]) => entry[0] === scope.id)?.[1]).toMatchObject({
-      dashList: {
+      dashStack: {
         groupOrders: [['settings', ['interval', 'name', 'enabled']]],
       },
     })
@@ -891,11 +891,11 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
   await expect(composed.getByRole('textbox', { name: 'Workspace name', exact: true })).toBeVisible()
   await ready.getByRole('button', { name: 'Expand group Workspace settings', exact: true }).click()
   await expect.poll(() => labels(ready)).toEqual(organizedReady)
-  await ready.getByRole('button', { name: 'List actions', exact: true }).click()
-  await page.getByRole('menuitem', { name: 'Reset list…', exact: true }).click()
+  await ready.getByRole('button', { name: 'Stack actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Reset stack…', exact: true }).click()
   await page
-    .getByRole('alertdialog', { name: 'Reset this List?' })
-    .getByRole('button', { name: 'Reset list', exact: true })
+    .getByRole('alertdialog', { name: 'Reset this Stack?' })
+    .getByRole('button', { name: 'Reset stack', exact: true })
     .click()
   await expect.poll(() => labels(ready)).toEqual(initial)
   await page.reload()
@@ -1026,15 +1026,15 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   await rangeStart.press('ArrowRight')
   await expect(rangeStart).toHaveValue(rangeStartValue)
 
-  const sliderTrack = sliderDashlet.locator('.picodash-dashlist-slider-track')
-  const sliderMarks = sliderTrack.locator('[data-picodash-dashlist-slider-marks]')
+  const sliderTrack = sliderDashlet.locator('.picodash-dashstack-slider-track')
+  const sliderMarks = sliderTrack.locator('[data-picodash-dashstack-slider-marks]')
   await expect(sliderMarks).toHaveAttribute('aria-hidden', 'true')
-  await expect(sliderMarks.locator('[data-picodash-dashlist-slider-mark]')).toHaveCount(3)
+  await expect(sliderMarks.locator('[data-picodash-dashstack-slider-mark]')).toHaveCount(3)
 
   const readSliderMarkGeometry = async () =>
     sliderTrack.evaluate((track) => {
       const trackRect = track.getBoundingClientRect()
-      const layer = track.querySelector<HTMLElement>('[data-picodash-dashlist-slider-marks]')
+      const layer = track.querySelector<HTMLElement>('[data-picodash-dashstack-slider-marks]')
       if (!layer) throw new Error('Slider mark layer was not rendered')
       const layerRect = layer.getBoundingClientRect()
       return {
@@ -1042,15 +1042,15 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
         pointerEvents: getComputedStyle(layer).pointerEvents,
         track: { left: trackRect.left, right: trackRect.right, width: trackRect.width },
         layer: { left: layerRect.left, right: layerRect.right },
-        marks: [...layer.querySelectorAll<HTMLElement>('[data-picodash-dashlist-slider-mark]')].map(
-          (mark) => {
-            const rect = mark.getBoundingClientRect()
-            return {
-              value: mark.getAttribute('data-picodash-dashlist-slider-mark'),
-              center: rect.left + rect.width / 2,
-            }
-          },
-        ),
+        marks: [
+          ...layer.querySelectorAll<HTMLElement>('[data-picodash-dashstack-slider-mark]'),
+        ].map((mark) => {
+          const rect = mark.getBoundingClientRect()
+          return {
+            value: mark.getAttribute('data-picodash-dashstack-slider-mark'),
+            center: rect.left + rect.width / 2,
+          }
+        }),
       }
     })
 
@@ -1116,31 +1116,31 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
     '[data-picodash-dashlet="style-lab-checkbox-group"]',
   )
   const segmentedDashlet = choicesList.locator('[data-picodash-dashlet="style-lab-segmented"]')
-  await expect(radioDashlet.locator('[data-picodash-dashlist-radio-marker]')).toHaveCount(3)
+  await expect(radioDashlet.locator('[data-picodash-dashstack-radio-marker]')).toHaveCount(3)
   await expect(
-    checkboxGroupDashlet.locator('[data-picodash-dashlist-checkbox-marker]'),
+    checkboxGroupDashlet.locator('[data-picodash-dashstack-checkbox-marker]'),
   ).toHaveCount(3)
-  await expect(segmentedDashlet.locator('[data-picodash-dashlist-segment-marker]')).toHaveCount(3)
+  await expect(segmentedDashlet.locator('[data-picodash-dashstack-segment-marker]')).toHaveCount(3)
 
   const selectedMarkers = [
     {
       marker: choiceControl
         .locator('xpath=ancestor::label[1]')
-        .locator('[data-picodash-dashlist-radio-marker]'),
+        .locator('[data-picodash-dashstack-radio-marker]'),
       pseudo: '::after',
     },
     {
       marker: checkboxGroupDashlet
         .getByRole('checkbox', { name: 'Option A', exact: true })
         .locator('xpath=ancestor::label[1]')
-        .locator('[data-picodash-dashlist-checkbox-marker]'),
+        .locator('[data-picodash-dashstack-checkbox-marker]'),
       pseudo: '::before',
     },
     {
       marker: segmentedDashlet
         .getByRole('radio', { name: 'Option B', exact: true })
         .locator('xpath=ancestor::label[1]')
-        .locator('[data-picodash-dashlist-segment-marker]'),
+        .locator('[data-picodash-dashstack-segment-marker]'),
       pseudo: '::before',
     },
   ]
@@ -1187,9 +1187,9 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
     }
   })
   await selectTrigger.press('Enter')
-  const choicePopup = page.locator('.picodash-dashlist-popover')
+  const choicePopup = page.locator('.picodash-dashstack-popover')
   await expect(choicePopup).toBeVisible()
-  await expect(choicesList.locator('.picodash-dashlist-popover')).toHaveCount(0)
+  await expect(choicesList.locator('.picodash-dashstack-popover')).toHaveCount(0)
   const popupPresentation = await choicePopup.evaluate((element) => {
     const style = getComputedStyle(element)
     return {
@@ -1255,7 +1255,7 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
     element.style.minBlockSize = '30rem'
   })
   await styleBoundary.scrollIntoViewIfNeeded()
-  const automaticBand = basicsList.locator('[data-picodash-dashlist-band="automatic"]')
+  const automaticBand = basicsList.locator('[data-picodash-dashstack-band="automatic"]')
   await expect
     .poll(() => automaticBand.evaluate((element) => getComputedStyle(element).overflowY))
     .toBe('auto')
@@ -1264,9 +1264,9 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
     .toBe(true)
   const pinnedGeometry = await basicsList.evaluate((list) => {
     const listRect = list.getBoundingClientRect()
-    const start = list.querySelector<HTMLElement>('[data-picodash-dashlist-band="start"]')!
-    const automatic = list.querySelector<HTMLElement>('[data-picodash-dashlist-band="automatic"]')!
-    const end = list.querySelector<HTMLElement>('[data-picodash-dashlist-band="end"]')!
+    const start = list.querySelector<HTMLElement>('[data-picodash-dashstack-band="start"]')!
+    const automatic = list.querySelector<HTMLElement>('[data-picodash-dashstack-band="automatic"]')!
+    const end = list.querySelector<HTMLElement>('[data-picodash-dashstack-band="end"]')!
     return {
       automaticBottom: automatic.getBoundingClientRect().bottom,
       endBottom: end.getBoundingClientRect().bottom,
@@ -1617,13 +1617,13 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
       coarsePage.getByRole('button', { name: 'Help for NumberDashlet' }),
       coarsePage
         .locator('[data-picodash-dashlet="style-lab-checkbox"]')
-        .locator('.picodash-dashlist-checkbox'),
+        .locator('.picodash-dashstack-checkbox'),
       coarsePage
         .locator('[data-picodash-dashlet="style-lab-slider"]')
-        .locator('[data-picodash-dashlist-slider-thumb]'),
+        .locator('[data-picodash-dashstack-slider-thumb]'),
       coarsePage
         .locator('[data-picodash-dashlet="style-lab-range"]')
-        .locator('[data-picodash-dashlist-range-slider-thumb]')
+        .locator('[data-picodash-dashstack-range-slider-thumb]')
         .first(),
     ]) {
       await control.scrollIntoViewIfNeeded()
@@ -1636,12 +1636,12 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     }
 
     const temporalSelectors = {
-      date: '[data-picodash-dashlet="style-lab-date"] .picodash-dashlist-date-field [role="spinbutton"]',
-      time: '[data-picodash-dashlet="style-lab-time"] .picodash-dashlist-time-field [role="spinbutton"]',
+      date: '[data-picodash-dashlet="style-lab-date"] .picodash-dashstack-date-field [role="spinbutton"]',
+      time: '[data-picodash-dashlet="style-lab-time"] .picodash-dashstack-time-field [role="spinbutton"]',
       dateTime:
-        '[data-picodash-dashlet="style-lab-date-time"] .picodash-dashlist-date-time-field [role="spinbutton"]',
+        '[data-picodash-dashlet="style-lab-date-time"] .picodash-dashstack-date-time-field [role="spinbutton"]',
       dateRange:
-        '[data-picodash-dashlet="style-lab-date-range"] .picodash-dashlist-date-range-field [role="spinbutton"]',
+        '[data-picodash-dashlet="style-lab-date-range"] .picodash-dashstack-date-range-field [role="spinbutton"]',
     } as const
     for (const selector of Object.values(temporalSelectors)) {
       const targets = coarsePage.locator(selector)
@@ -1660,7 +1660,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     }
 
     const colorInput = coarsePage.locator(
-      '[data-picodash-dashlet="style-lab-color"] .picodash-dashlist-color-field input',
+      '[data-picodash-dashlet="style-lab-color"] .picodash-dashstack-color-field input',
     )
     await expect(colorInput).toHaveCount(1)
     await colorInput.scrollIntoViewIfNeeded()
@@ -1673,10 +1673,10 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
 
     const segmentedDashlet = coarsePage.locator('[data-picodash-dashlet="style-lab-segmented"]')
     const selectedSegment = segmentedDashlet.locator(
-      '[data-picodash-dashlist-segment][data-selected]',
+      '[data-picodash-dashstack-segment][data-selected]',
     )
     const unselectedSegment = segmentedDashlet
-      .locator('[data-picodash-dashlist-segment]:not([data-selected])')
+      .locator('[data-picodash-dashstack-segment]:not([data-selected])')
       .first()
     await selectedSegment.scrollIntoViewIfNeeded()
     const segmentedPresentation = await selectedSegment.evaluate((element) => {
@@ -1706,7 +1706,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     const multiSelectDashlet = coarsePage.locator(
       '[data-picodash-dashlet="style-lab-multi-select"]',
     )
-    const removeTag = multiSelectDashlet.locator('[data-picodash-dashlist-tag-remove]').first()
+    const removeTag = multiSelectDashlet.locator('[data-picodash-dashstack-tag-remove]').first()
     await removeTag.scrollIntoViewIfNeeded()
     const removeTagBounds = await removeTag.evaluate((element) => {
       const rect = element.getBoundingClientRect()
@@ -1721,7 +1721,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
       exact: true,
     })
     await selectTrigger.press('Enter')
-    const popupOption = coarsePage.locator(".picodash-dashlist-listbox [role='option']").first()
+    const popupOption = coarsePage.locator(".picodash-dashstack-listbox [role='option']").first()
     await expect(popupOption).toBeVisible()
     const popupOptionBounds = await popupOption.evaluate((element) => {
       const rect = element.getBoundingClientRect()
@@ -2797,7 +2797,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   await expect(boundInput).toHaveValue('37')
   await expect(boundInput).toHaveAttribute('data-stale', 'true')
   await expect(
-    page.locator('[data-picodash-dashlist] div[role="status"]').filter({
+    page.locator('[data-picodash-dashstack] div[role="status"]').filter({
       hasText: 'Stale overwrite plan is stale.',
     }),
   ).toContainText('Stale overwrite plan is stale.')
@@ -2905,7 +2905,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   await expect(styleNumberDashlet.getByRole('note')).toHaveText(numberWarning)
   const styleBasicsStatus = page
     .getByRole('complementary', { name: 'Basics & readout' })
-    .locator('[data-picodash-dashlist] [role="status"]')
+    .locator('[data-picodash-dashstack] [role="status"]')
   await expect(styleBasicsStatus).toHaveCount(1)
   await expect(styleBasicsStatus).toHaveText(numberWarning)
   await expect(styleBasicsStatus).toHaveAttribute('aria-live', 'polite')
@@ -2940,7 +2940,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     primaryBeforeStyleSnapshot.snapshot,
   )
 
-  const standaloneList = page.getByRole('region', { name: 'Standalone List evidence' })
+  const standaloneList = page.getByRole('region', { name: 'Standalone Stack evidence' })
   const collapseStandaloneGroup = standaloneList.getByRole('button', {
     name: 'Collapse group Standalone group',
   })
@@ -2980,7 +2980,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   ).toMatchObject({
     id: standaloneListScopeId,
     metadata: {
-      dashList: {
+      dashStack: {
         collapseOverrides: [['standalone-group', true]],
       },
     },

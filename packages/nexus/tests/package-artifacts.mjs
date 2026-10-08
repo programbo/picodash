@@ -110,7 +110,7 @@ if (import.meta.main) {
     'PicodashNexusEntityBoundary',
     'PicodashNexusProviderBoundary',
     'acquireBindingLease',
-    'acquireDashListNodeLease',
+    'acquireDashStackNodeLease',
     'acquireEntityLease',
     'acquireProviderLease',
     'acquireRelationshipLease',
@@ -264,7 +264,7 @@ if (import.meta.main) {
   const builtStandaloneMarkup = renderToStaticMarkup(
     createElement(integrationModule.PicodashNexusEntityBoundary, {
       nexus: builtStandaloneNexus.scope('artifact-standalone'),
-      kind: 'dashList',
+      kind: 'dashStack',
       allowStandalone: true,
       children: createElement(BuiltStandaloneProbe),
     }),
@@ -372,7 +372,7 @@ if (import.meta.main) {
   })
   assert.equal(externalPersistentNexus.setValues({ value: 2 }).persistence, 'unchanged')
   assert.equal(
-    externalPersistentNexus.setDashListRootOrder('artifact', ['item']).persistence,
+    externalPersistentNexus.setDashStackRootOrder('artifact', ['item']).persistence,
     'saved',
   )
   const externalPersistentEnvelope = JSON.parse(persistentValues.get('external-state'))

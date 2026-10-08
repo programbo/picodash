@@ -49,7 +49,7 @@ export type PicodashNexusEntityBoundaryProps<
 }> &
   (
     | Readonly<{ readonly kind: 'dashPanel'; readonly allowStandalone?: never }>
-    | Readonly<{ readonly kind: 'dashList'; readonly allowStandalone?: boolean }>
+    | Readonly<{ readonly kind: 'dashStack'; readonly allowStandalone?: boolean }>
   )
 
 export function PicodashNexusProviderBoundary<
@@ -91,7 +91,7 @@ export function PicodashNexusEntityBoundary<
   allowStandalone,
 }: PicodashNexusEntityBoundaryProps<Fields, Result>): ReactElement {
   const parentContext = useContext(PicodashNexusContext)
-  const standaloneOptIn = !parentContext && kind === 'dashList' && allowStandalone === true
+  const standaloneOptIn = !parentContext && kind === 'dashStack' && allowStandalone === true
   if (!parentContext && !standaloneOptIn) return missingNexusContext('root-or-scoped')
   const tokenRef = useRef<DeclarativeEntityToken | null>(null)
   if (tokenRef.current === null) tokenRef.current = createDeclarativeEntityToken()
@@ -112,7 +112,7 @@ export function PicodashNexusEntityBoundary<
       standaloneHost.mountRoot({
         token,
         nexus: nexus as unknown as ContextScopedNexus,
-        kind: 'dashList',
+        kind: 'dashStack',
       })
       return () => standaloneHost.unmountRoot(token)
     }

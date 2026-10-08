@@ -11,7 +11,7 @@ presentation.
 
 DashPanel determines where arbitrary application UI lives. Optimize for reliable hosting,
 placement, dismissal, recovery, and accessible operation without assuming the content is a
-DashList. A Panel may contain tools, previews, controls, readouts, or any other React content.
+DashStack. A Panel may contain tools, previews, controls, readouts, or any other React content.
 
 Use Dev Bridge while developing Nexus-backed layout behavior whenever disclosed state,
 transactions, diagnostics, or browser effects can verify the outcome. If the Bridge cannot express
@@ -32,7 +32,7 @@ the needed safe observation, improve it before building a DashPanel-specific ins
 - Close hides. Permanent removal remains an application-owned unmount request after confirmation.
 - Keep the public high-level runtime API narrow. Do not add a launcher registry, mutable Provider
   Nexus, generic selector, private controller channel, or Motion-specific public API.
-- DashPanel owns no Dashlets, List ordering, field binding, or application-value model.
+- DashPanel owns no Dashlets, Stack ordering, field binding, or application-value model.
 
 Pure product tests own geometry and allocation. Component tests own React wiring, DOM, ARIA, and
 deterministic events. Contract Lab owns real pointer capture, layout, focus, portals, viewport,

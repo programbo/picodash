@@ -13,7 +13,7 @@ The package family is organized around three foundational products and one integ
 
 - `@picodash/nexus` provides typed values, scopes, metadata, persistence, and adapters.
 - `@picodash/dashpanel` provides the standalone panel shell, placement, visibility, and lifecycle.
-- `@picodash/dashlist` provides standalone lists, groups, and Dashlet composition.
+- `@picodash/dashstack` provides standalone lists, groups, and Dashlet composition.
 - `@picodash/picodash` combines both products for an integrated control surface.
 
 `@picodash/ui` is the supporting theme, density, token, and generic accessible UI foundation.

@@ -113,7 +113,7 @@ describe('Nexus root destruction', () => {
     const entityNexus = makeNexus()
     const entityProvider = acquireProviderLease(entityNexus)
     const entity = acquireEntityLease(entityNexus.scope('entity'), {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: entityProvider,
     })
     expect(failure(() => entityNexus.destroy()).code).toBe('root-has-active-leases')
@@ -123,11 +123,11 @@ describe('Nexus root destruction', () => {
     const relationshipNexus = makeNexus()
     const relationshipProvider = acquireProviderLease(relationshipNexus)
     const parent = acquireEntityLease(relationshipNexus.scope('parent'), {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: relationshipProvider,
     })
     const child = acquireEntityLease(relationshipNexus.scope('child'), {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: relationshipProvider,
     })
     const relationship = acquireRelationshipLease(parent, child)
@@ -275,7 +275,7 @@ describe('Nexus root destruction', () => {
     const fields = nexus.fields
     const releasedProvider = acquireProviderLease(nexus)
     const releasedEntity = acquireEntityLease(scoped, {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: releasedProvider,
     })
     const releaseProvider = releasedProvider.release.bind(releasedProvider)
@@ -298,14 +298,14 @@ describe('Nexus root destruction', () => {
       nexus.destroyScope,
       nexus.setDashPanelLayout,
       nexus.resetDashPanelLayout,
-      nexus.setDashListRootOrder,
-      nexus.removeDashListRootOrder,
-      nexus.setDashListGroupOrder,
-      nexus.removeDashListGroupOrder,
-      nexus.setDashListCollapseOverride,
-      nexus.removeDashListCollapseOverride,
-      nexus.updateDashListCollapseOverrides,
-      nexus.resetDashListMetadata,
+      nexus.setDashStackRootOrder,
+      nexus.removeDashStackRootOrder,
+      nexus.setDashStackGroupOrder,
+      nexus.removeDashStackGroupOrder,
+      nexus.setDashStackCollapseOverride,
+      nexus.removeDashStackCollapseOverride,
+      nexus.updateDashStackCollapseOverrides,
+      nexus.resetDashStackMetadata,
       nexus.destroy,
     ]
     const scopedMethods = [
@@ -320,14 +320,14 @@ describe('Nexus root destruction', () => {
       scoped.destroyScope,
       scoped.setDashPanelLayout,
       scoped.resetDashPanelLayout,
-      scoped.setDashListRootOrder,
-      scoped.removeDashListRootOrder,
-      scoped.setDashListGroupOrder,
-      scoped.removeDashListGroupOrder,
-      scoped.setDashListCollapseOverride,
-      scoped.removeDashListCollapseOverride,
-      scoped.updateDashListCollapseOverrides,
-      scoped.resetDashListMetadata,
+      scoped.setDashStackRootOrder,
+      scoped.removeDashStackRootOrder,
+      scoped.setDashStackGroupOrder,
+      scoped.removeDashStackGroupOrder,
+      scoped.setDashStackCollapseOverride,
+      scoped.removeDashStackCollapseOverride,
+      scoped.updateDashStackCollapseOverrides,
+      scoped.resetDashStackMetadata,
     ]
     /* eslint-enable @typescript-eslint/unbound-method */
     nexus.destroy()
@@ -385,7 +385,7 @@ describe('Nexus root destruction', () => {
     expectUseAfterDestroy(rootDescriptorMethod)
     expectUseAfterDestroy(scopedDescriptorMethod)
     expectUseAfterDestroy(() => acquireProviderLease(nexus))
-    expectUseAfterDestroy(() => acquireEntityLease(scoped, { kind: 'dashList' }))
+    expectUseAfterDestroy(() => acquireEntityLease(scoped, { kind: 'dashStack' }))
     expectUseAfterDestroy(() => acquireEntityLease(scoped, null as never))
   })
 })

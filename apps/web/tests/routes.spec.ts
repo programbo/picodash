@@ -24,7 +24,7 @@ test('renders the current alpha shell on desktop without browser errors', async 
   )
   await expect(page.locator('[data-alpha-product="dashpanel"] [data-picodash-panel]')).toBeVisible()
   await expect(
-    page.locator('[data-alpha-product="dashlist"] [data-picodash-dashlist]'),
+    page.locator('[data-alpha-product="dashstack"] [data-picodash-dashstack]'),
   ).toBeVisible()
   expect(errors).toEqual([])
 })
@@ -47,7 +47,7 @@ test('keeps the alpha shell usable at 390px without horizontal overflow', async 
   await expect(page.getByRole('link', { name: 'Read the contracts' })).toBeVisible()
   await expect(page.locator('[data-alpha-product="dashpanel"] [data-picodash-panel]')).toBeVisible()
   await expect(
-    page.locator('[data-alpha-product="dashlist"] [data-picodash-dashlist]'),
+    page.locator('[data-alpha-product="dashstack"] [data-picodash-dashstack]'),
   ).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   expect(errors).toEqual([])

@@ -11,7 +11,7 @@ import {
   type RootNexus,
 } from '@picodash/nexus'
 import { createWebStoragePersistenceDriver } from '@picodash/nexus/web-storage'
-import { DashGroup, DashList, DashPanel, Dashlet, PicodashProvider } from '@picodash/picodash'
+import { DashGroup, DashStack, DashPanel, Dashlet, PicodashProvider } from '@picodash/picodash'
 import {
   DashPanelProvider,
   DashPanelLauncher,
@@ -22,15 +22,15 @@ import {
 import type {
   CompoundDashletRenderContext,
   SingleFieldDashletRenderContext,
-} from '@picodash/dashlist'
-import { Select } from '@picodash/dashlist/ui'
-import { SparklineDashlet, type SparklineSource } from '@picodash/dashlist/charts'
+} from '@picodash/dashstack'
+import { Select } from '@picodash/dashstack/ui'
+import { SparklineDashlet, type SparklineSource } from '@picodash/dashstack/charts'
 import {
   DashGroup as StandaloneDashGroup,
-  DashList as StandaloneDashList,
+  DashStack as StandaloneDashStack,
   Dashlet as StandaloneDashlet,
-  useDashListActions,
-} from '@picodash/dashlist'
+  useDashStackActions,
+} from '@picodash/dashstack'
 import {
   CheckboxDashlet,
   ColorDashlet,
@@ -44,7 +44,7 @@ import {
   SliderDashlet,
   StatusDashlet,
   TextDashlet,
-} from '@picodash/dashlist'
+} from '@picodash/dashstack'
 import {
   ActionMenu,
   ActionMenuItem,
@@ -594,15 +594,15 @@ function FocusedPlacementSpecimen({
 }
 
 function StandaloneListActions() {
-  const actions = useDashListActions(standaloneListScopeId)
+  const actions = useDashStackActions(standaloneListScopeId)
   return (
     <button
       type="button"
-      disabled={actions.resetList.availability !== 'enabled'}
-      onClick={() => void actions.resetList.execute()}
+      disabled={actions.resetStack.availability !== 'enabled'}
+      onClick={() => void actions.resetStack.execute()}
       data-contract-lab-standalone-list-reset
     >
-      Reset list
+      Reset stack
     </button>
   )
 }
@@ -626,7 +626,7 @@ function DashletGallery({ nexus }: { readonly nexus: SpecimenNexus }) {
           accepted package contract exists yet.
         </p>
       </div>
-      <DashList
+      <DashStack
         id="contract-lab-gallery-list"
         aria-label="Dashlet gallery"
         data-contract-lab-dashlet-gallery-list
@@ -765,7 +765,7 @@ function DashletGallery({ nexus }: { readonly nexus: SpecimenNexus }) {
             )}
           </Dashlet>
         </DashGroup>
-      </DashList>
+      </DashStack>
     </>
   )
 }
@@ -780,14 +780,14 @@ function StandalonePhase2Evidence({
   if (preset.id === 'composition')
     return (
       <section
-        aria-label="Standalone List evidence"
+        aria-label="Standalone Stack evidence"
         data-contract-lab-standalone-list-region
         className="border-border/70 bg-card/60 mt-4 rounded-xl border"
       >
-        <StandaloneDashList
+        <StandaloneDashStack
           id={standaloneListScopeId}
           nexus={nexus}
-          aria-label="Standalone List"
+          aria-label="Standalone Stack"
           reorderable
         >
           <StandaloneDashGroup
@@ -803,10 +803,10 @@ function StandalonePhase2Evidence({
               <span>Second item</span>
             </StandaloneDashlet>
           </StandaloneDashGroup>
-          <StandaloneDashlet id="standalone-actions" label="Standalone List actions">
+          <StandaloneDashlet id="standalone-actions" label="Standalone Stack actions">
             <StandaloneListActions />
           </StandaloneDashlet>
-        </StandaloneDashList>
+        </StandaloneDashStack>
       </section>
     )
 
@@ -996,7 +996,7 @@ function ComplexContractLabSpecimen({
             <output data-contract-lab-document-status>{documentStatus}</output>
           </div>
           {preset.id === 'composition' ? <DashletGallery nexus={nexus} /> : null}
-          <DashList aria-label="Primary Panel List">
+          <DashStack aria-label="Primary Panel Stack">
             <Dashlet
               id="specimen-summary"
               label="Specimen summary"
@@ -1080,7 +1080,7 @@ function ComplexContractLabSpecimen({
                 </ActionMenu>
               </Dashlet>
             </DashGroup>
-          </DashList>
+          </DashStack>
         </DashPanel>
       </PicodashProvider>
       {preset.id === 'composition' ? (

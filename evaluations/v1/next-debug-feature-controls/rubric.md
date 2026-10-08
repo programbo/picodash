@@ -18,7 +18,7 @@
   10
 - Adapter remains synchronous, whole-record, validation-aware, and appropriate for Strict Mode: 8
 - Actions are explicit domain operations rather than writable fields: 6
-- Compound composition uses the public Dashlet shell, DashList anatomy, and accessible primitives:
+- Compound composition uses the public Dashlet shell, DashStack anatomy, and accessible primitives:
   5
 - Labels, action feedback, focus, contrast, target sizes, and reduced motion meet WCAG 2.2 AA
   intent: 6

@@ -155,7 +155,7 @@ test('captures phone-sized placement motion and reduced-motion evidence', async 
     await panel.getByRole('button', { name: 'Expand panel Placement Panel' }).press('Enter')
     expect(await motionCount(panel)).toBe(0)
 
-    // Ordinary arbitrary content must fade too, not only a DashList's automatic band.
+    // Ordinary arbitrary content must fade too, not only a DashStack's automatic band.
     await boundary.evaluate((element) => element.scrollIntoView({ block: 'end' }))
     boundaryBox = await requiredBox(boundary)
     panelBox = await requiredBox(panel)
@@ -270,12 +270,12 @@ test('captures phone-sized boundary contraction with start and end lanes', async
     boundaryBox = await requiredBox(boundary)
     panelBox = await requiredBox(panel)
     const lanes = await list.evaluate((element) => {
-      const start = element.querySelector<HTMLElement>('[data-picodash-dashlist-band="start"]')
+      const start = element.querySelector<HTMLElement>('[data-picodash-dashstack-band="start"]')
       const automatic = element.querySelector<HTMLElement>(
-        '[data-picodash-dashlist-band="automatic"]',
+        '[data-picodash-dashstack-band="automatic"]',
       )
-      const end = element.querySelector<HTMLElement>('[data-picodash-dashlist-band="end"]')
-      if (!start || !automatic || !end) throw new TypeError('Expected all three DashList lanes.')
+      const end = element.querySelector<HTMLElement>('[data-picodash-dashstack-band="end"]')
+      if (!start || !automatic || !end) throw new TypeError('Expected all three DashStack lanes.')
       return {
         automaticClientHeight: automatic.clientHeight,
         automaticScrollHeight: automatic.scrollHeight,
@@ -291,7 +291,7 @@ test('captures phone-sized boundary contraction with start and end lanes', async
     })
     expect(lanes.automaticClientHeight).toBeGreaterThan(0)
     expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(boundaryBox.y + boundaryBox.height + 1)
-    const automatic = list.locator('[data-picodash-dashlist-band="automatic"]')
+    const automatic = list.locator('[data-picodash-dashstack-band="automatic"]')
     const fade = () =>
       automatic.evaluate((element) => {
         const style = getComputedStyle(element)
@@ -314,7 +314,7 @@ test('captures phone-sized boundary contraction with start and end lanes', async
     for (const band of ['start', 'end']) {
       expect(
         await list
-          .locator(`[data-picodash-dashlist-band="${band}"]`)
+          .locator(`[data-picodash-dashstack-band="${band}"]`)
           .evaluate((element) => getComputedStyle(element).maskImage),
       ).toBe('none')
     }

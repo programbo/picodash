@@ -9,7 +9,7 @@ import {
   RuntimeController,
 } from '../runtime-controller.js'
 import {
-  normalizeDashListMetadataRecord,
+  normalizeDashStackMetadataRecord,
   normalizeDashPanelLayoutRecord,
   normalizeDurableScopeMetadata,
   decodeDurableScopeMetadata,
@@ -52,9 +52,9 @@ import type {
 } from '../persistence.js'
 import {
   bindingPlanRecord,
-  dashListPrunePlanRecord,
+  dashStackPrunePlanRecord,
   registerBindingPlan,
-  registerDashListPrunePlan,
+  registerDashStackPrunePlan,
   registerPersistencePlan,
   persistencePlanRecord,
   registerDocumentPlan,
@@ -541,14 +541,14 @@ export type NexusOwnedConfig<Fields extends Record<string, FieldLike>> =
       readonly export?: PicodashExportConfig
     })
 
-export type DashListMetadataRecord = {
+export type DashStackMetadataRecord = {
   readonly rootOrder?: readonly string[]
   readonly groupOrders: ReadonlyMap<string, readonly string[]>
   readonly collapseOverrides: ReadonlyMap<string, boolean>
 }
 
-/** One atomic DashList collapse override update: null removes the override. */
-export type DashListCollapseOverrideUpdate = readonly [string, boolean | null]
+/** One atomic DashStack collapse override update: null removes the override. */
+export type DashStackCollapseOverrideUpdate = readonly [string, boolean | null]
 
 export type DashPanelSnapPositionRecord =
   | 'top-left'
@@ -602,28 +602,28 @@ export type DashPanelLayoutRecord = {
 }
 
 export type DurableScopeMetadata = {
-  readonly dashList?: DashListMetadataRecord
+  readonly dashStack?: DashStackMetadataRecord
   readonly dashPanel?: DashPanelLayoutRecord
 }
 
-export type DashListPruneEffect =
+export type DashStackPruneEffect =
   | 'root-order-entry'
   | 'group-order-owner'
   | 'group-order-entry'
   | 'collapse-override'
 
-export type DashListPruneCandidate = Readonly<{
+export type DashStackPruneCandidate = Readonly<{
   readonly nodeId: string
-  readonly effects: readonly DashListPruneEffect[]
+  readonly effects: readonly DashStackPruneEffect[]
 }>
 
-export type DashListPruneReview = Readonly<{
-  readonly kind: 'dash-list-prune-review'
+export type DashStackPruneReview = Readonly<{
+  readonly kind: 'dash-stack-prune-review'
   readonly scopeId: string
-  readonly candidates: readonly DashListPruneCandidate[]
+  readonly candidates: readonly DashStackPruneCandidate[]
 }>
 
-export type DashListPruneSelection =
+export type DashStackPruneSelection =
   | { readonly mode: 'review' }
   | {
       readonly mode: 'explicit'
@@ -632,7 +632,7 @@ export type DashListPruneSelection =
     }
   | { readonly mode: 'inventory'; readonly knownNodeIds: readonly string[] }
 
-export type RootDashListPruneOptions = DashListPruneSelection & { readonly scopeId: string }
+export type RootDashStackPruneOptions = DashStackPruneSelection & { readonly scopeId: string }
 
 export type InvalidPruneOptionsReason =
   | 'not-object'
@@ -646,13 +646,13 @@ export type InvalidPruneOptionsReason =
   | 'incomplete-candidate-partition'
   | 'missing-active-node'
 
-declare const dashListPrunePlanBrand: unique symbol
-export type PicodashDashListPrunePlan = Readonly<{
-  readonly [dashListPrunePlanBrand]: 'PicodashDashListPrunePlan'
-  readonly kind: 'dash-list-prune-plan'
+declare const dashStackPrunePlanBrand: unique symbol
+export type PicodashDashStackPrunePlan = Readonly<{
+  readonly [dashStackPrunePlanBrand]: 'PicodashDashStackPrunePlan'
+  readonly kind: 'dash-stack-prune-plan'
   readonly mode: 'explicit' | 'inventory'
   readonly scopeId: string
-  readonly candidates: readonly DashListPruneCandidate[]
+  readonly candidates: readonly DashStackPruneCandidate[]
   readonly removeNodeIds: readonly string[]
   readonly keepNodeIds: readonly string[]
 }>
@@ -841,24 +841,24 @@ export interface RootMetadataCommands<
 > {
   setDashPanelLayout(scopeId: string, layout: DashPanelLayoutRecord): Result
   resetDashPanelLayout(scopeId: string): Result
-  setDashListRootOrder(scopeId: string, order: readonly string[]): Result
-  removeDashListRootOrder(scopeId: string): Result
-  setDashListGroupOrder(scopeId: string, groupId: string, order: readonly string[]): Result
-  removeDashListGroupOrder(scopeId: string, groupId: string): Result
-  setDashListCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result
-  removeDashListCollapseOverride(scopeId: string, nodeId: string): Result
-  updateDashListCollapseOverrides(
+  setDashStackRootOrder(scopeId: string, order: readonly string[]): Result
+  removeDashStackRootOrder(scopeId: string): Result
+  setDashStackGroupOrder(scopeId: string, groupId: string, order: readonly string[]): Result
+  removeDashStackGroupOrder(scopeId: string, groupId: string): Result
+  setDashStackCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result
+  removeDashStackCollapseOverride(scopeId: string, nodeId: string): Result
+  updateDashStackCollapseOverrides(
     scopeId: string,
-    updates: readonly DashListCollapseOverrideUpdate[],
+    updates: readonly DashStackCollapseOverrideUpdate[],
   ): Result
-  resetDashListMetadata(scopeId: string): Result
+  resetDashStackMetadata(scopeId: string): Result
   createPrunePlan(
-    options: RootDashListPruneOptions & { readonly mode: 'review' },
-  ): DashListPruneReview
+    options: RootDashStackPruneOptions & { readonly mode: 'review' },
+  ): DashStackPruneReview
   createPrunePlan(
-    options: RootDashListPruneOptions & { readonly mode: 'explicit' | 'inventory' },
-  ): PicodashDashListPrunePlan
-  executePrunePlan(plan: PicodashDashListPrunePlan): Result
+    options: RootDashStackPruneOptions & { readonly mode: 'explicit' | 'inventory' },
+  ): PicodashDashStackPrunePlan
+  executePrunePlan(plan: PicodashDashStackPrunePlan): Result
 }
 
 export interface ScopedMetadataCommands<
@@ -866,19 +866,19 @@ export interface ScopedMetadataCommands<
 > {
   setDashPanelLayout(layout: DashPanelLayoutRecord): Result
   resetDashPanelLayout(): Result
-  setDashListRootOrder(order: readonly string[]): Result
-  removeDashListRootOrder(): Result
-  setDashListGroupOrder(groupId: string, order: readonly string[]): Result
-  removeDashListGroupOrder(groupId: string): Result
-  setDashListCollapseOverride(nodeId: string, collapsed: boolean): Result
-  removeDashListCollapseOverride(nodeId: string): Result
-  updateDashListCollapseOverrides(updates: readonly DashListCollapseOverrideUpdate[]): Result
-  resetDashListMetadata(): Result
-  createPrunePlan(options: { readonly mode: 'review' }): DashListPruneReview
+  setDashStackRootOrder(order: readonly string[]): Result
+  removeDashStackRootOrder(): Result
+  setDashStackGroupOrder(groupId: string, order: readonly string[]): Result
+  removeDashStackGroupOrder(groupId: string): Result
+  setDashStackCollapseOverride(nodeId: string, collapsed: boolean): Result
+  removeDashStackCollapseOverride(nodeId: string): Result
+  updateDashStackCollapseOverrides(updates: readonly DashStackCollapseOverrideUpdate[]): Result
+  resetDashStackMetadata(): Result
+  createPrunePlan(options: { readonly mode: 'review' }): DashStackPruneReview
   createPrunePlan(
-    options: Extract<DashListPruneSelection, { readonly mode: 'explicit' | 'inventory' }>,
-  ): PicodashDashListPrunePlan
-  executePrunePlan(plan: PicodashDashListPrunePlan): Result
+    options: Extract<DashStackPruneSelection, { readonly mode: 'explicit' | 'inventory' }>,
+  ): PicodashDashStackPrunePlan
+  executePrunePlan(plan: PicodashDashStackPrunePlan): Result
 }
 
 interface RootNexusBase<
@@ -1041,8 +1041,8 @@ type ContractErrorCode =
   | 'relationship-cycle'
   | 'lease-has-active-dependents'
   | 'missing-nexus-context'
-  | 'invalid-dash-list-node-options'
-  | 'duplicate-dash-list-node'
+  | 'invalid-dash-stack-node-options'
+  | 'duplicate-dash-stack-node'
   | 'invalid-prune-options'
   | 'invalid-prune-plan'
   | 'invalid-quarantine-replacement'
@@ -2632,7 +2632,7 @@ export function createPicodashNexus<
     const controller = runtimeControllerFor(nexus as object)
     const ids = new Set<string>([...scopes.keys(), ...quarantinedScopes.keys()])
     for (const [scopeId] of controller?.bindings ?? []) ids.add(scopeId)
-    for (const [scopeId] of controller?.dashListNodes ?? []) ids.add(scopeId)
+    for (const [scopeId] of controller?.dashStackNodes ?? []) ids.add(scopeId)
     for (const entity of controller?.entities ?? []) if (entity.active) ids.add(entity.scopeId)
     for (const relationship of controller?.relationships ?? []) {
       if (relationship.active) {
@@ -3223,24 +3223,24 @@ export function createPicodashNexus<
     resetDashPanelLayout: (scopeId) =>
       metadataCommand(scopeId, (previous) => {
         if (!previous?.dashPanel) return previous
-        return previous.dashList ? { dashList: previous.dashList } : undefined
+        return previous.dashStack ? { dashStack: previous.dashStack } : undefined
       }),
-    setDashListRootOrder: (scopeId, order) =>
+    setDashStackRootOrder: (scopeId, order) =>
       metadataCommand(scopeId, (previous) => {
         if (!validOrderArray(order)) throw new TypeError('Invalid Nexus metadata record.')
-        const list = previous?.dashList
-        const normalized = normalizeDashListMetadataRecord({
+        const list = previous?.dashStack
+        const normalized = normalizeDashStackMetadataRecord({
           ...(order.length ? { rootOrder: order } : {}),
           groupOrders: list?.groupOrders ?? new Map(),
           collapseOverrides: list?.collapseOverrides ?? new Map(),
         })
-        return { ...previous, dashList: normalized }
+        return { ...previous, dashStack: normalized }
       }),
-    removeDashListRootOrder: (scopeId) =>
+    removeDashStackRootOrder: (scopeId) =>
       metadataCommand(scopeId, (previous) => {
-        const list = previous?.dashList
+        const list = previous?.dashStack
         if (!list?.rootOrder) return previous
-        const normalized = normalizeDashListMetadataRecord({
+        const normalized = normalizeDashStackMetadataRecord({
           groupOrders: list.groupOrders,
           collapseOverrides: list.collapseOverrides,
         })
@@ -3250,70 +3250,70 @@ export function createPicodashNexus<
           ? previous?.dashPanel
             ? { dashPanel: previous.dashPanel }
             : undefined
-          : { ...previous, dashList: normalized }
+          : { ...previous, dashStack: normalized }
       }),
-    setDashListGroupOrder: (scopeId, groupId, order) =>
+    setDashStackGroupOrder: (scopeId, groupId, order) =>
       metadataCommand(scopeId, (previous) => {
         if (!validIdentity(groupId)) throw new TypeError('Invalid Nexus metadata record.')
         if (!validOrderArray(order)) throw new TypeError('Invalid Nexus metadata record.')
-        const list = previous?.dashList
+        const list = previous?.dashStack
         const groups = new Map(list?.groupOrders ?? [])
         if (order.length) groups.set(groupId, order)
         else groups.delete(groupId)
-        const normalized = normalizeDashListMetadataRecord({
+        const normalized = normalizeDashStackMetadataRecord({
           ...(list?.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
           groupOrders: groups,
           collapseOverrides: list?.collapseOverrides ?? new Map(),
         })
-        return { ...previous, dashList: normalized }
+        return { ...previous, dashStack: normalized }
       }),
-    removeDashListGroupOrder: (scopeId, groupId) =>
+    removeDashStackGroupOrder: (scopeId, groupId) =>
       metadataCommand(scopeId, (previous) => {
         if (!validIdentity(groupId)) throw new TypeError('Invalid Nexus metadata record.')
-        const list = previous?.dashList
+        const list = previous?.dashStack
         if (!list?.groupOrders.has(groupId)) return previous
         const groups = new Map(list.groupOrders)
         groups.delete(groupId)
-        const normalized = normalizeDashListMetadataRecord({
+        const normalized = normalizeDashStackMetadataRecord({
           ...(list.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
           groupOrders: groups,
           collapseOverrides: list.collapseOverrides,
         })
-        return { ...previous, dashList: normalized }
+        return { ...previous, dashStack: normalized }
       }),
-    setDashListCollapseOverride: (scopeId, nodeId, collapsed) =>
+    setDashStackCollapseOverride: (scopeId, nodeId, collapsed) =>
       metadataCommand(scopeId, (previous) => {
         if (!validIdentity(nodeId) || typeof collapsed !== 'boolean')
           throw new TypeError('Invalid Nexus metadata record.')
-        const list = previous?.dashList
+        const list = previous?.dashStack
         const overrides = new Map(list?.collapseOverrides ?? [])
         overrides.set(nodeId, collapsed)
-        const normalized = normalizeDashListMetadataRecord({
+        const normalized = normalizeDashStackMetadataRecord({
           ...(list?.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
           groupOrders: list?.groupOrders ?? new Map(),
           collapseOverrides: overrides,
         })
-        return { ...previous, dashList: normalized }
+        return { ...previous, dashStack: normalized }
       }),
-    removeDashListCollapseOverride: (scopeId, nodeId) =>
+    removeDashStackCollapseOverride: (scopeId, nodeId) =>
       metadataCommand(scopeId, (previous) => {
         if (!validIdentity(nodeId)) throw new TypeError('Invalid Nexus metadata record.')
-        const list = previous?.dashList
+        const list = previous?.dashStack
         if (!list?.collapseOverrides.has(nodeId)) return previous
         const overrides = new Map(list.collapseOverrides)
         overrides.delete(nodeId)
-        const normalized = normalizeDashListMetadataRecord({
+        const normalized = normalizeDashStackMetadataRecord({
           ...(list.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
           groupOrders: list.groupOrders,
           collapseOverrides: overrides,
         })
-        return { ...previous, dashList: normalized }
+        return { ...previous, dashStack: normalized }
       }),
-    updateDashListCollapseOverrides: (scopeId, updates) =>
+    updateDashStackCollapseOverrides: (scopeId, updates) =>
       metadataCommand(scopeId, (previous) => {
         if (!Array.isArray(updates)) throw new TypeError('Invalid Nexus metadata record.')
         const seen = new Set<string>()
-        const validatedUpdates: DashListCollapseOverrideUpdate[] = []
+        const validatedUpdates: DashStackCollapseOverrideUpdate[] = []
         const updateCount = updates.length
         for (let index = 0; index < updateCount; index += 1) {
           const update = updates[index]
@@ -3330,24 +3330,24 @@ export function createPicodashNexus<
           seen.add(nodeId)
           validatedUpdates.push(Object.freeze([nodeId, collapsed]))
         }
-        const list = previous?.dashList
+        const list = previous?.dashStack
         const collapseOverrides = new Map(list?.collapseOverrides ?? [])
         for (const [nodeId, collapsed] of validatedUpdates) {
           if (collapsed === null) collapseOverrides.delete(nodeId)
           else collapseOverrides.set(nodeId, collapsed)
         }
-        const normalized = normalizeDashListMetadataRecord({
+        const normalized = normalizeDashStackMetadataRecord({
           ...(list?.rootOrder === undefined ? {} : { rootOrder: list.rootOrder }),
           groupOrders: list?.groupOrders ?? new Map(),
           collapseOverrides,
         })
-        return { ...previous, dashList: normalized }
+        return { ...previous, dashStack: normalized }
       }),
-    resetDashListMetadata: (scopeId) =>
+    resetDashStackMetadata: (scopeId) =>
       metadataCommand(scopeId, (previous) =>
         previous?.dashPanel ? { dashPanel: previous.dashPanel } : undefined,
       ),
-    createPrunePlan: ((options: RootDashListPruneOptions) =>
+    createPrunePlan: ((options: RootDashStackPruneOptions) =>
       createRootPrunePlanInternal(options)) as RootMetadataCommands<NexusResult>['createPrunePlan'],
     executePrunePlan: (plan) => executePrunePlanInternal(plan as object),
   }
@@ -4909,19 +4909,19 @@ export function createPicodashNexus<
       destroyScope: (options) => destroyScopeInternal(scopeId, options),
       setDashPanelLayout: (layout) => nexus.setDashPanelLayout(scopeId, layout),
       resetDashPanelLayout: () => nexus.resetDashPanelLayout(scopeId),
-      setDashListRootOrder: (order) => nexus.setDashListRootOrder(scopeId, order),
-      removeDashListRootOrder: () => nexus.removeDashListRootOrder(scopeId),
-      setDashListGroupOrder: (groupId, order) =>
-        nexus.setDashListGroupOrder(scopeId, groupId, order),
-      removeDashListGroupOrder: (groupId) => nexus.removeDashListGroupOrder(scopeId, groupId),
-      setDashListCollapseOverride: (nodeId, collapsed) =>
-        nexus.setDashListCollapseOverride(scopeId, nodeId, collapsed),
-      removeDashListCollapseOverride: (nodeId) =>
-        nexus.removeDashListCollapseOverride(scopeId, nodeId),
-      updateDashListCollapseOverrides: (updates) =>
-        nexus.updateDashListCollapseOverrides(scopeId, updates),
-      resetDashListMetadata: () => nexus.resetDashListMetadata(scopeId),
-      createPrunePlan: ((options: DashListPruneSelection) =>
+      setDashStackRootOrder: (order) => nexus.setDashStackRootOrder(scopeId, order),
+      removeDashStackRootOrder: () => nexus.removeDashStackRootOrder(scopeId),
+      setDashStackGroupOrder: (groupId, order) =>
+        nexus.setDashStackGroupOrder(scopeId, groupId, order),
+      removeDashStackGroupOrder: (groupId) => nexus.removeDashStackGroupOrder(scopeId, groupId),
+      setDashStackCollapseOverride: (nodeId, collapsed) =>
+        nexus.setDashStackCollapseOverride(scopeId, nodeId, collapsed),
+      removeDashStackCollapseOverride: (nodeId) =>
+        nexus.removeDashStackCollapseOverride(scopeId, nodeId),
+      updateDashStackCollapseOverrides: (updates) =>
+        nexus.updateDashStackCollapseOverrides(scopeId, updates),
+      resetDashStackMetadata: () => nexus.resetDashStackMetadata(scopeId),
+      createPrunePlan: ((options: DashStackPruneSelection) =>
         createScopedPrunePlanInternal(
           scopeId,
           options,
@@ -5088,11 +5088,11 @@ export function createPicodashNexus<
     }
   }
 
-  function pruneCandidates(scopeId: string): readonly DashListPruneCandidate[] {
-    const list = scopes.get(scopeId)?.dashList
-    const effects = new Map<string, Set<DashListPruneEffect>>()
-    const add = (nodeId: string, effect: DashListPruneEffect) => {
-      const current = effects.get(nodeId) ?? new Set<DashListPruneEffect>()
+  function pruneCandidates(scopeId: string): readonly DashStackPruneCandidate[] {
+    const list = scopes.get(scopeId)?.dashStack
+    const effects = new Map<string, Set<DashStackPruneEffect>>()
+    const add = (nodeId: string, effect: DashStackPruneEffect) => {
+      const current = effects.get(nodeId) ?? new Set<DashStackPruneEffect>()
       current.add(effect)
       effects.set(nodeId, current)
     }
@@ -5105,8 +5105,8 @@ export function createPicodashNexus<
       for (const nodeId of list.collapseOverrides.keys()) add(nodeId, 'collapse-override')
     }
     const controller = runtimeControllerFor(nexus as object)
-    const active = new Set(controller?.activeDashListNodeIds(scopeId) ?? [])
-    const order: readonly DashListPruneEffect[] = [
+    const active = new Set(controller?.activeDashStackNodeIds(scopeId) ?? [])
+    const order: readonly DashStackPruneEffect[] = [
       'root-order-entry',
       'group-order-owner',
       'group-order-entry',
@@ -5126,19 +5126,19 @@ export function createPicodashNexus<
   }
 
   function pruneFingerprint(scopeId: string): string {
-    const list = scopes.get(scopeId)?.dashList
+    const list = scopes.get(scopeId)?.dashStack
     const controller = runtimeControllerFor(nexus as object)
     return JSON.stringify({
       rootOrder: list?.rootOrder ?? null,
       groupOrders: list ? [...list.groupOrders].map(([key, order]) => [key, order]) : [],
       collapseOverrides: list ? [...list.collapseOverrides] : [],
-      activeNodeIds: controller?.activeDashListNodeIds(scopeId) ?? [],
+      activeNodeIds: controller?.activeDashStackNodeIds(scopeId) ?? [],
     })
   }
 
   function classifyPruneSelection(
     selection: ParsedPruneSelection,
-    candidates: readonly DashListPruneCandidate[],
+    candidates: readonly DashStackPruneCandidate[],
     scopeId: string,
   ):
     | { readonly mode: 'review' }
@@ -5161,7 +5161,7 @@ export function createPicodashNexus<
         return invalidPruneOptions('incomplete-candidate-partition')
       return selection
     }
-    const active = runtimeControllerFor(nexus as object)?.activeDashListNodeIds(scopeId) ?? []
+    const active = runtimeControllerFor(nexus as object)?.activeDashStackNodeIds(scopeId) ?? []
     const known = new Set(selection.knownNodeIds)
     if (active.some((nodeId) => !known.has(nodeId)))
       return invalidPruneOptions('missing-active-node')
@@ -5182,7 +5182,7 @@ export function createPicodashNexus<
     options: unknown,
     requireScope: boolean,
     scopedScopeId?: string,
-  ): DashListPruneReview | PicodashDashListPrunePlan {
+  ): DashStackPruneReview | PicodashDashStackPrunePlan {
     return withWriteLock(() => {
       const parsed = parsePruneOptions(options, requireScope)
       const scopeId = requireScope ? parsed.scopeId : scopedScopeId
@@ -5192,19 +5192,19 @@ export function createPicodashNexus<
       const classified = classifyPruneSelection(parsed.selection, candidates, scopeId as string)
       if (classified.mode === 'review')
         return Object.freeze({
-          kind: 'dash-list-prune-review' as const,
+          kind: 'dash-stack-prune-review' as const,
           scopeId: scopeId as string,
           candidates,
         })
       const plan = Object.freeze({
-        kind: 'dash-list-prune-plan' as const,
+        kind: 'dash-stack-prune-plan' as const,
         mode: classified.mode,
         scopeId: scopeId as string,
         candidates,
         removeNodeIds: Object.freeze([...classified.removeNodeIds]),
         keepNodeIds: Object.freeze([...classified.keepNodeIds]),
-      }) as PicodashDashListPrunePlan
-      registerDashListPrunePlan(plan as object, {
+      }) as PicodashDashStackPrunePlan
+      registerDashStackPrunePlan(plan as object, {
         root: nexus as object,
         scopeId: scopeId as string,
         fingerprint: pruneFingerprint(scopeId as string),
@@ -5216,23 +5216,23 @@ export function createPicodashNexus<
   }
 
   function createRootPrunePlanInternal(
-    options: RootDashListPruneOptions,
-  ): DashListPruneReview | PicodashDashListPrunePlan {
+    options: RootDashStackPruneOptions,
+  ): DashStackPruneReview | PicodashDashStackPrunePlan {
     return createPrunePlan(options, true)
   }
 
   function createScopedPrunePlanInternal(
     scopeId: string,
-    options: DashListPruneSelection,
-  ): DashListPruneReview | PicodashDashListPrunePlan {
+    options: DashStackPruneSelection,
+  ): DashStackPruneReview | PicodashDashStackPrunePlan {
     return createPrunePlan(options, false, scopeId)
   }
 
   function executePrunePlanInternal(plan: object, expectedScopeId?: string): CoreTransactionResult {
     if (writing) throw new PicodashContractError('reentrant-write')
-    let registry: ReturnType<typeof dashListPrunePlanRecord>
+    let registry: ReturnType<typeof dashStackPrunePlanRecord>
     try {
-      registry = dashListPrunePlanRecord(plan)
+      registry = dashStackPrunePlanRecord(plan)
     } catch {
       throw new PicodashContractError('invalid-prune-plan', { reason: 'wrong-kind' })
     }
@@ -5256,7 +5256,7 @@ export function createPicodashNexus<
     const remove = new Set(registry.removeNodeIds)
     if (remove.size === 0) return resultWithPersistence(successfulResult())
     return metadataCommand(registry.scopeId, (previous) => {
-      const list = previous?.dashList
+      const list = previous?.dashStack
       if (!list) return previous
       const rootOrder = list.rootOrder?.filter((nodeId) => !remove.has(nodeId))
       const groupOrders = new Map<string, readonly string[]>()
@@ -5268,7 +5268,7 @@ export function createPicodashNexus<
       const collapseOverrides = new Map<string, boolean>()
       for (const [nodeId, collapsed] of list.collapseOverrides)
         if (!remove.has(nodeId)) collapseOverrides.set(nodeId, collapsed)
-      const normalized = normalizeDashListMetadataRecord({
+      const normalized = normalizeDashStackMetadataRecord({
         ...(rootOrder && rootOrder.length ? { rootOrder } : {}),
         groupOrders,
         collapseOverrides,
@@ -5281,7 +5281,7 @@ export function createPicodashNexus<
           : undefined
         : {
             ...(previous?.dashPanel ? { dashPanel: previous.dashPanel } : {}),
-            dashList: normalized,
+            dashStack: normalized,
           }
     })
   }
@@ -5307,7 +5307,7 @@ export function createPicodashNexus<
       try {
         const transformed = transform(scopes.get(scopeId))
         candidate = normalizeDurableScopeMetadata({
-          dashList: transformed?.dashList,
+          dashStack: transformed?.dashStack,
           dashPanel: transformed?.dashPanel,
         })
       } catch (error) {
@@ -5401,7 +5401,7 @@ export function createPicodashNexus<
       !left ||
       !right ||
       !!left.dashPanel !== !!right.dashPanel ||
-      !!left.dashList !== !!right.dashList
+      !!left.dashStack !== !!right.dashStack
     )
       return false
     if (
@@ -5410,24 +5410,24 @@ export function createPicodashNexus<
       !picodashJsonEqual(left.dashPanel as never, right.dashPanel as never)
     )
       return false
-    if (left.dashList && right.dashList) {
+    if (left.dashStack && right.dashStack) {
       if (
         !picodashJsonEqual(
-          (left.dashList.rootOrder ?? null) as never,
-          (right.dashList.rootOrder ?? null) as never,
+          (left.dashStack.rootOrder ?? null) as never,
+          (right.dashStack.rootOrder ?? null) as never,
         )
       )
         return false
       if (
-        left.dashList.groupOrders.size !== right.dashList.groupOrders.size ||
-        left.dashList.collapseOverrides.size !== right.dashList.collapseOverrides.size
+        left.dashStack.groupOrders.size !== right.dashStack.groupOrders.size ||
+        left.dashStack.collapseOverrides.size !== right.dashStack.collapseOverrides.size
       )
         return false
-      for (const [key, value] of left.dashList.groupOrders)
-        if (!picodashJsonEqual(value as never, right.dashList.groupOrders.get(key) as never))
+      for (const [key, value] of left.dashStack.groupOrders)
+        if (!picodashJsonEqual(value as never, right.dashStack.groupOrders.get(key) as never))
           return false
-      for (const [key, value] of left.dashList.collapseOverrides)
-        if (right.dashList.collapseOverrides.get(key) !== value) return false
+      for (const [key, value] of left.dashStack.collapseOverrides)
+        if (right.dashStack.collapseOverrides.get(key) !== value) return false
     }
     return true
   }

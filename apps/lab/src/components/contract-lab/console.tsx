@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { DashList, Dashlet } from '@picodash/dashlist'
+import { DashStack, Dashlet } from '@picodash/dashstack'
 import { DashPanel, DashPanelProvider } from '@picodash/dashpanel'
 import { createPicodashNexus } from '@picodash/nexus'
 import type { ContractLabPreset, ContractLabPresetId } from '@lab/lib/contract-lab'
@@ -45,7 +45,7 @@ export function ContractLabConsole({
     >
       <DashPanelProvider nexus={consoleNexus} boundary={boundaryRef} theme="dark">
         <DashPanel id="contract-lab-console-panel" title="Lab Console" collapsible={false}>
-          <DashList aria-label="Contract Lab Console">
+          <DashStack aria-label="Contract Lab Console">
             <Dashlet id="contract-lab-controls" label="Contract Lab controls" layout="block">
               <div className="grid gap-4 p-4">
                 <p className="text-muted-foreground text-sm leading-6">
@@ -98,7 +98,7 @@ export function ContractLabConsole({
                 </div>
               </div>
             </Dashlet>
-          </DashList>
+          </DashStack>
         </DashPanel>
       </DashPanelProvider>
     </div>

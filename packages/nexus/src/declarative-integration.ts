@@ -46,7 +46,7 @@ export interface DeclarativeIntegrationHost<
   unmountEntity(token: DeclarativeEntityToken): void
 }
 
-/** Internal host used by an opted-in standalone DashList boundary. */
+/** Internal host used by an opted-in standalone DashStack boundary. */
 export interface DeclarativeStandaloneIntegrationHost<
   Fields extends Record<string, FieldLike> = Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
@@ -154,16 +154,20 @@ function createDeclarativeHost<
         })
       lease = acquireEntityLease(
         declaration.nexus as ScopedNexus<Record<string, FieldLike>, CoreTransactionResult>,
-        { kind: 'dashList' },
+        { kind: 'dashStack' },
       )
     } else if (host) {
-      if (standalone && parent?.declaration.kind === 'dashList' && declaration.kind === 'dashPanel')
+      if (
+        standalone &&
+        parent?.declaration.kind === 'dashStack' &&
+        declaration.kind === 'dashPanel'
+      )
         throw new PicodashContractError('invalid-integration-handle', {
           role: 'host',
           reason: 'wrong-kind',
         })
       const options: EntityLeaseOptions =
-        declaration.kind === 'dashPanel' ? { kind: 'dashPanel', host } : { kind: 'dashList', host }
+        declaration.kind === 'dashPanel' ? { kind: 'dashPanel', host } : { kind: 'dashStack', host }
       lease = acquireEntityLease(
         declaration.nexus as ScopedNexus<Record<string, FieldLike>, CoreTransactionResult>,
         options,
@@ -281,8 +285,8 @@ function createDeclarativeHost<
   standaloneHost.mountRoot = (input) => {
     if (!isObjectToken(input.token))
       throw new TypeError('Declarative entity tokens must be objects.')
-    if (input.kind !== 'dashList' || input.parent !== undefined)
-      throw new TypeError('Standalone roots must be parentless DashLists.')
+    if (input.kind !== 'dashStack' || input.parent !== undefined)
+      throw new TypeError('Standalone roots must be parentless DashStacks.')
     if (standaloneRoot !== undefined && standaloneRoot !== input.token)
       throw new Error('Declarative standalone root is already mounted.')
     standaloneRoot = input.token

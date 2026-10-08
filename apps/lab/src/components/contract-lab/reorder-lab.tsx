@@ -1,13 +1,13 @@
 import {
-  DashList,
+  DashStack,
   DashGroup,
   Dashlet,
   TextDashlet,
   NumberDashlet,
   SwitchDashlet,
   DisplayDashlet,
-  DashListResetListItem,
-} from '@picodash/dashlist'
+  DashStackResetStackItem,
+} from '@picodash/dashstack'
 import { ActionMenu } from '@picodash/ui'
 import type { ValueBindingNexus } from './value-binding-model'
 
@@ -24,7 +24,7 @@ export function ReorderLab({ nexus }: { readonly nexus: ValueBindingNexus }) {
         it, and Escape cancels.
       </p>
       <div className="h-[42rem]">
-        <DashList
+        <DashStack
           nexus={nexus}
           id="binding-reordering"
           title="Workspace control desk"
@@ -117,10 +117,10 @@ export function ReorderLab({ nexus }: { readonly nexus: ValueBindingNexus }) {
           />
           <Dashlet id="end-actions" label="Pinned · Actions" pin="end">
             <ActionMenu label="Reordering actions">
-              <DashListResetListItem />
+              <DashStackResetStackItem />
             </ActionMenu>
           </Dashlet>
-        </DashList>
+        </DashStack>
       </div>
     </section>
   )

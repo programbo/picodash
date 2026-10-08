@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import '@picodash/ui/style.css'
 import '@picodash/dashpanel/style.css'
-import '@picodash/dashlist/style.css'
+import '@picodash/dashstack/style.css'
 import '../style.css'
 
 export const metadata: Metadata = {

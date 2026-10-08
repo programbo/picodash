@@ -8,23 +8,23 @@ const legacyPackageName = ['@picodash', 'panel'].join('/')
 const artifactContracts = {
   'README.md': [
     '@picodash/dashpanel',
-    '@picodash/dashlist',
+    '@picodash/dashstack',
     '@picodash/picodash',
     '@picodash/nexus',
   ],
-  'SKILL.md': ['@picodash/dashpanel', '@picodash/dashlist', '@picodash/picodash'],
-  'llms.txt': ['@picodash/dashpanel', '@picodash/dashlist', '@picodash/picodash'],
+  'SKILL.md': ['@picodash/dashpanel', '@picodash/dashstack', '@picodash/picodash'],
+  'llms.txt': ['@picodash/dashpanel', '@picodash/dashstack', '@picodash/picodash'],
   'PRODUCT.md': ['AI coding agent', 'WCAG 2.2 Level AA'],
   'CONTEXT.md': ['Compound Dashlet', 'Picodash Nexus', 'Root Nexus', 'Scoped Nexus'],
-  'docs/agents/dashlist.md': [
-    '@picodash/dashlist/ui',
-    '@picodash/dashlist/catalog',
-    '@picodash/dashlist/charts',
+  'docs/agents/dashstack.md': [
+    '@picodash/dashstack/ui',
+    '@picodash/dashstack/catalog',
+    '@picodash/dashstack/charts',
   ],
-  'packages/dashlist/README.md': [
-    '@picodash/dashlist/ui',
-    '@picodash/dashlist/catalog',
-    '@picodash/dashlist/charts',
+  'packages/dashstack/README.md': [
+    '@picodash/dashstack/ui',
+    '@picodash/dashstack/catalog',
+    '@picodash/dashstack/charts',
   ],
 }
 
@@ -38,7 +38,7 @@ const packageExportContracts = {
   ],
   'packages/ui/package.json': ['.', './package.json', './style.css'],
   'packages/dashpanel/package.json': ['.', './integration', './package.json', './style.css'],
-  'packages/dashlist/package.json': [
+  'packages/dashstack/package.json': [
     '.',
     './catalog',
     './charts',
@@ -58,7 +58,7 @@ const activePaths = [
   'packages/nexus',
   'packages/ui',
   'packages/dashpanel',
-  'packages/dashlist',
+  'packages/dashstack',
   'packages/picodash',
   'scripts',
 ]

@@ -14,7 +14,7 @@ import { createMemoryPersistence } from './support/memory-persistence.js'
 
 const baselineValues = Object.freeze({ value: 7 })
 const metadata: DurableScopeMetadata = {
-  dashList: { rootOrder: ['one'], groupOrders: new Map(), collapseOverrides: new Map() },
+  dashStack: { rootOrder: ['one'], groupOrders: new Map(), collapseOverrides: new Map() },
 }
 
 const diagnostic = (reason: string): PicodashPersistenceDiagnostic =>
@@ -163,7 +163,7 @@ describe('external-owned persistence controller', () => {
     const foreign = JSON.parse(driver.inspect('external-state') as string)
     foreign.revision += 1
     foreign.writerId = 'foreign'
-    foreign.scopes[0][1].dashList.rootOrder = ['two']
+    foreign.scopes[0][1].dashStack.rootOrder = ['two']
     driver.foreignWrite('external-state', JSON.stringify(foreign))
     expect(controller.capability.getState()).toMatchObject({ status: 'conflict' })
     const snapshot = controller.createConflictResolutionSnapshot({ mode: 'overwrite' })

@@ -1,7 +1,7 @@
 # Picodash target reference
 
 Picodash is the integrated React control and monitoring product built from Nexus, DashPanel, and
-DashList. This page describes the aspirational `@picodash/picodash` facade and integration contract.
+DashStack. This page describes the aspirational `@picodash/picodash` facade and integration contract.
 
 ## Status
 
@@ -39,7 +39,7 @@ function ApplicationControls() {
   return (
     <PicodashProvider nexus={nexus}>
       <DashPanel id="settings" title="Settings">
-        <DashList>
+        <DashStack>
           <SelectDashlet
             id="theme"
             field={nexus.fields.theme}
@@ -47,27 +47,27 @@ function ApplicationControls() {
             options={['light', 'dark', 'system']}
           />
           <SliderDashlet id="density" field={nexus.fields.density} label="Density" />
-        </DashList>
+        </DashStack>
       </DashPanel>
     </PicodashProvider>
   )
 }
 ```
 
-The id-less primary List inherits `settings`; Panel and List share one scope and may contribute one
+The id-less primary Stack inherits `settings`; Panel and Stack share one scope and may contribute one
 entity of each kind.
 
-## Additional child-scoped Lists
+## Additional child-scoped Stacks
 
-The canonical Picodash composition has zero or one same-scope primary DashList in a Panel.
-Additional DashLists remain available for advanced compositions such as pairing a canvas tool rail
-with a normal property-inspector List. Each additional List requires an explicit ID, occupies its
+The canonical Picodash composition has zero or one same-scope primary DashStack in a Panel.
+Additional DashStacks remain available for advanced compositions such as pairing a canvas tool rail
+with a normal property-inspector Stack. Each additional Stack requires an explicit ID, occupies its
 own root-global scope, and registers an active declarative relationship from the Panel scope. Scope
 IDs do not encode ancestry.
 
-Additional Lists do not contribute automatically to Panel chrome, change the primary List's action
-target, or become an inferred aggregate. Applications that need their actions place List chrome or
-explicitly compose `DashListActionItems` with the additional List's `scopeId`.
+Additional Stacks do not contribute automatically to Panel chrome, change the primary Stack's action
+target, or become an inferred aggregate. Applications that need their actions place Stack chrome or
+explicitly compose `DashStackActionItems` with the additional Stack's `scopeId`.
 
 > Contract: Accepted through Nexus
 > Implementation: Planned
@@ -81,7 +81,7 @@ explicitly compose `DashListActionItems` with the additional List's `scopeId`.
 foundation retain one canonical public name everywhere:
 
 - `DashPanel`, `DashPanelTrigger`, `DashPanelLauncher`, and `useDashPanel` remain DashPanel-owned;
-- `DashList`, `DashGroup`, `Dashlet`, their hooks, and ready-made Dashlets remain DashList-owned; and
+- `DashStack`, `DashGroup`, `Dashlet`, their hooks, and ready-made Dashlets remain DashStack-owned; and
 - Nexus and shared UI exports retain their owning package names and exact type identities.
 
 `@picodash/picodash` explicitly reexports those components and types without wrapping, cloning, or
@@ -91,16 +91,16 @@ API.
 
 The alpha `PicodashProvider` delegates the public `DashPanelProvider` with the same Nexus, theme,
 overlay, boundary, and density behavior. It does not create a second canonical Nexus, Panel runtime,
-List registry, theme resolver, persistence channel, or transient integration coordinator.
+Stack registry, theme resolver, persistence channel, or transient integration coordinator.
 
 Automatic integrated behavior uses narrow integration contracts owned by the affected foundation.
-For example, Picodash contributes DashList actions to default Panel menus through a DashPanel-owned
+For example, Picodash contributes DashStack actions to default Panel menus through a DashPanel-owned
 integration channel rather than a `PicodashPanel` wrapper. If a required seam cannot be expressed
 through accepted foundation contracts, the owning foundation contract is revised before Picodash
 implements a workaround.
 
 Apart from `PicodashProvider`, initial composition remains explicit JSX. No schema-generated
-Dashboard, automatic Panel/List creation, component registry, or facade-only component factory is
+Dashboard, automatic Panel/Stack creation, component registry, or facade-only component factory is
 accepted.
 
 ## Provider contract
@@ -137,8 +137,8 @@ type PicodashProviderProps<TValues extends object, CustomTheme extends string = 
   integration-adapter prop. Nexus owns persistence; the other behaviors are built-in Picodash
   coordination rather than application extension points.
 
-The Provider supplies the unscoped root Nexus context. A `DashList` rendered directly within it
-therefore requires an explicit `id`; an id-less primary List resolves the scoped context supplied by
+The Provider supplies the unscoped root Nexus context. A `DashStack` rendered directly within it
+therefore requires an explicit `id`; an id-less primary Stack resolves the scoped context supplied by
 its nearest `DashPanel`. `providerId` is host identity and never becomes a Nexus scope ID.
 
 The alpha implementation validates the eight permitted corner and left/right dock positions and
@@ -161,7 +161,7 @@ transient coordinator state is persisted, exported, or retained after teardown.
 | Canonical fields, values, transactions          | Nexus                              |
 | Durable scope metadata and relationships        | Nexus                              |
 | Panel hosting, placement, portals, visibility   | DashPanel                          |
-| Items, groups, bindings, order, collapse        | DashList                           |
+| Items, groups, bindings, order, collapse        | DashStack                          |
 | Theme, density, tokens, and shared primitives   | UI foundation plus host boundaries |
 | Integrated compositions and catalog aggregation | Picodash                           |
 | Routing, data transport, authorization          | Application                        |
@@ -174,41 +174,41 @@ Picodash must not solve foundation defects with facade-only state or compatibili
 > Implementation: Planned
 
 `PicodashProvider` installs a package-private `DashPanelDefaultActionItems` component through
-`@picodash/dashpanel/integration`. For a Panel with an active primary same-scope DashList, that
-component renders the exact DashList-owned `DashListActionItems`, followed by a separator, before
+`@picodash/dashpanel/integration`. For a Panel with an active primary same-scope DashStack, that
+component renders the exact DashStack-owned `DashStackActionItems`, followed by a separator, before
 the Panel-owned placement and layout actions. The resulting default order is:
 
-1. DashList disclosure, document, and reset actions;
+1. DashStack disclosure, document, and reset actions;
 2. a separator; and
 3. DashPanel placement and layout-reset actions.
 
-Only the primary DashList whose scope equals the Panel's resolved `scopeId` contributes
-automatically. Additional child-scoped Lists are never inferred into these same-scope actions.
+Only the primary DashStack whose scope equals the Panel's resolved `scopeId` contributes
+automatically. Additional child-scoped Stacks are never inferred into these same-scope actions.
 
 | Panel `actionMenu` value        | Integrated result                                        |
 | ------------------------------- | -------------------------------------------------------- |
-| `undefined`                     | Same-scope DashList contribution, then Panel defaults.   |
+| `undefined`                     | Same-scope DashStack contribution, then Panel defaults.  |
 | `false`                         | No action menu or contributed actions.                   |
 | `readonly ReactElement[]`       | Caller items replace every contributed and default item. |
 | Empty `readonly ReactElement[]` | No trigger.                                              |
 
-A custom array may explicitly compose `DashListActionItems` or its individual public action items.
+A custom array may explicitly compose `DashStackActionItems` or its individual public action items.
 The contribution receives only the resolved Panel `scopeId`; it does not receive a private
-controller or runtime object. If the contributing DashList disappears while focus is within the
+controller or runtime object. If the contributing DashStack disappears while focus is within the
 open menu, the menu closes and restores focus to its connected trigger rather than leaving a
 focused action with no owner.
 
-## Additional List actions
+## Additional Stack actions
 
 > Contract: Accepted
 > Implementation: Planned
 
 Picodash performs no implicit descendant action aggregation. Mounting, unmounting, or reordering an
-additional List never changes the primary List targeted by the default Panel menu. Additional Lists
-retain the ordinary DashList action surface and may expose their own header menu or be targeted by
+additional Stack never changes the primary Stack targeted by the default Panel menu. Additional Stacks
+retain the ordinary DashStack action surface and may expose their own header menu or be targeted by
 an application-supplied Panel menu.
 
-There is no default “all Lists in this Panel” submenu, combined reset, or descendant export. Nexus's
+There is no default “all Stacks in this Panel” submenu, combined reset, or descendant export. Nexus's
 explicit descendant-capable operations remain available to applications building a reviewed custom
 workflow, but a declarative relationship alone never grants that broader target to Picodash chrome.
 
@@ -217,34 +217,34 @@ workflow, but a declarative relationship alone never grants that broader target 
 > Contract: Accepted ownership, initial inventory, and export paths
 > Implementation: Partial
 
-DashList owns generic Nexus-bound ready-made Dashlets and their catalog metadata. Picodash may
-reexport stable DashList components and aggregate package-owned catalogs, but it does not maintain
+DashStack owns generic Nexus-bound ready-made Dashlets and their catalog metadata. Picodash may
+reexport stable DashStack components and aggregate package-owned catalogs, but it does not maintain
 facade copies of their implementations or entries. DashPanel owns no Dashlets. The 22 implemented
-DashList-owned root reexports are implemented with identity-preserving facade exports; catalog
+DashStack-owned root reexports are implemented with identity-preserving facade exports; catalog
 aggregation remains planned.
 
 Picodash owns no ready-made Dashlet or additional component family at initial launch. A future
 component belongs to Picodash only when its behavior necessarily coordinates both DashPanel and
-DashList. Field binding and List presentation remain DashList concerns; product-neutral presentation
+DashStack. Field binding and Stack presentation remain DashStack concerns; product-neutral presentation
 remains UI-owned. A qualifying Picodash component is documented as an integrated composition rather
 than a foundational Dashlet.
 
-Picodash currently reexports the full implemented DashList-owned inventory from its root: `TextDashlet`,
+Picodash currently reexports the full implemented DashStack-owned inventory from its root: `TextDashlet`,
 `NumberDashlet`, `SliderDashlet`, `SwitchDashlet`, `SelectDashlet`, `SegmentedDashlet`,
 `DisplayDashlet`, `CheckboxDashlet`, `RadioGroupDashlet`, `ComboboxDashlet`,
 `CheckboxGroupDashlet`, `MultiSelectDashlet`, `SearchDashlet`, `RangeDashlet`, `MeterDashlet`,
 `ProgressDashlet`, `StatusDashlet`, `DateDashlet`, `TimeDashlet`, `DateTimeDashlet`,
 `DateRangeDashlet`, and `ColorDashlet`. It combines foundation metadata through
 `@picodash/picodash/catalog`. Experimental chart subpath exports are not root reexports or catalog
-entries. DashList anatomy remains available only from its owning subpath; the facade does not add a
+entries. DashStack anatomy remains available only from its owning subpath; the facade does not add a
 `/dashlet` convenience surface.
 
 M7 narrows stable promotion to Text, Number, Slider, Switch, Select, Segmented, and Display.
 The other fifteen reexports remain evaluation prototypes, following the owning
-[DashList disposition](dashlist.md#stable-ready-made-inventory); their existence is not a stable
+[DashStack disposition](dashstack.md#stable-ready-made-inventory); their existence is not a stable
 release claim. The owner approved the retained set on 2026-09-17; integrated UI polish continues in M8.
 
-The facade preserves the exact DashList component and prop identities for all 22 reexports,
+The facade preserves the exact DashStack component and prop identities for all 22 reexports,
 including specialized aliases and safe unspecialized React `ComponentProps`. It does not wrap the
 components or widen their Nexus field constraints.
 
@@ -255,7 +255,7 @@ placeholder exports or a runtime registry for hypothetical families.
 
 Catalogs remain descriptive discovery metadata and never become runtime registration or authority.
 Picodash publishes one owned entry for `PicodashProvider`, combines the exact deeply frozen
-DashPanel and DashList entry objects, and records facade import paths as reexports rather than copied
+DashPanel and DashStack entry objects, and records facade import paths as reexports rather than copied
 entries. The exact versioned schema, entry requirements, exclusions, and artifact checks are
 accepted in the [component catalog reference](catalog.md). There is no catalog registry, query API,
 component loader, prop-schema copy, or initial UI-foundation catalog.
@@ -277,7 +277,7 @@ recipes. `system` reacts to the platform color preference and resolves only to `
 custom theme names do not acquire implicit system variants.
 
 The alpha `@picodash/picodash/style.css` is a three-import facade stylesheet that references the
-public UI, DashPanel, and DashList styles once each. The final expanded-CSS and exact-once artifact
+public UI, DashPanel, and DashStack styles once each. The final expanded-CSS and exact-once artifact
 claim remains pending the owning foundation release gates. Picodash introduces no additional
 semantic token, theme resolver, or density recipe.
 
@@ -289,37 +289,37 @@ restyle may instead override an existing built-in selector. There is no JavaScri
 palette object, merge API, or `themes` Provider prop.
 
 The website's `ocean`, `plum`, `tron`, and `contrast` themes remain application examples and are not
-exported by any package. Provider, Panel, List, and detached-root inheritance retains the accepted
+exported by any package. Provider, Panel, Stack, and detached-root inheritance retains the accepted
 UI contract. Theme and density are controlled presentation inputs and Picodash does not persist
 either automatically.
 
-## DashList rail integration
+## DashStack rail integration
 
 > Contract: Accepted
 > Implementation: Planned
 
-Picodash may present a DashList as an icon rail inside a DashPanel. The Panel's current dock position
+Picodash may present a DashStack as an icon rail inside a DashPanel. The Panel's current dock position
 supplies an active Nexus orientation override for unambiguous main-edge positions:
 `full/center-left` and `full/center-right` force vertical, while `full/center-top` and
 `full/center-bottom` force horizontal. Corner, free, and snapped positions supply no Picodash
-override. A corner rail therefore retains the effective Nexus or DashList-prop orientation without
+override. A corner rail therefore retains the effective Nexus or DashStack-prop orientation without
 persisting dock-derived presentation as a second layout preference.
 
 Rail groups preserve their ordinary disclosure and collapse behavior. Long press may enter the
-List's transient reorder mode, but Dashlet activation alone reveals content or directly operates a
+Stack's transient reorder mode, but Dashlet activation alone reveals content or directly operates a
 toggle Dashlet; it never changes Panel placement.
 
-Picodash composes DashList-owned List behavior actions such as `Expand all`, `Collapse all`, and the
+Picodash composes DashStack-owned Stack behavior actions such as `Expand all`, `Collapse all`, and the
 accepted reset actions into integrated Panel menus. It reuses those exports and their Nexus
 semantics rather than implementing facade copies. Generic menu composition comes from UI;
 DashPanel owns only Panel-specific actions and their integration into Panel chrome.
 
-The reusable DashList surface is `useDashListActions(scopeId?)`, `DashListActionItems`, the two
-named expand/collapse items, and the named Reset submenu/items. A primary List can be targeted with
-the Panel's current scope even when the Panel action menu is outside the List's React ancestry.
-An additional List is targeted only by its explicit scope ID.
+The reusable DashStack surface is `useDashStackActions(scopeId?)`, `DashStackActionItems`, the two
+named expand/collapse items, and the named Reset submenu/items. A primary Stack can be targeted with
+the Panel's current scope even when the Panel action menu is outside the Stack's React ancestry.
+An additional Stack is targeted only by its explicit scope ID.
 
-The DashList-owned reset actions are `Reset values…` and `Reset list…`. Picodash adds no combined,
+The DashStack-owned reset actions are `Reset values…` and `Reset stack…`. Picodash adds no combined,
 descendant, or Panel-wide reset action at initial launch.
 
 ### Effective rail edges
@@ -338,7 +338,7 @@ calculations together. Rail reorder mode itself may remain active.
 > Contract: Accepted
 > Implementation: Planned
 
-Picodash coordinates rail allocation at the dock-arena level; neither DashPanel nor DashList imports
+Picodash coordinates rail allocation at the dock-arena level; neither DashPanel nor DashStack imports
 the other product or calculates peer geometry independently. Allocation is transient, derived from
 committed occupancy, effective rail edges, and resolved intrinsic cross-axis thickness. It is never
 persisted or exported.
@@ -366,21 +366,21 @@ arena allocation rather than preserving a previous larger cap.
 
 ## Documents
 
-> Contract: Accepted through Nexus and DashList
+> Contract: Accepted through Nexus and DashStack
 > Implementation: Prototype migration required
 
 Nexus owns document schema, policy, validation, mapping, and atomic commit. Picodash composes
-document actions into Panel/List UI and may provide user-facing preview and confirmation dialogs.
+document actions into Panel/Stack UI and may provide user-facing preview and confirmation dialogs.
 
-DashList already owns the standalone current-scope JSON workflow through
-`useDashListDocumentActions(scopeId?)`, `DashListDocumentItems`, `DashListExportItem`, and
-`DashListImportItem`. Picodash reuses those exports for the primary List and does not add implicit
-descendant, multi-List, or root-document UI at initial launch. An application may build an explicit
+DashStack already owns the standalone current-scope JSON workflow through
+`useDashStackDocumentActions(scopeId?)`, `DashStackDocumentItems`, `DashStackExportItem`, and
+`DashStackImportItem`. Picodash reuses those exports for the primary Stack and does not add implicit
+descendant, multi-Stack, or root-document UI at initial launch. An application may build an explicit
 advanced workflow from Nexus document plans. Any future integrated workflow for interactive
 mappings, missing-scope creation, or several explicit targets remains Picodash-owned and requires a
 separate contract.
 
-The reused primary-List workflow retains the accepted DashList requirements to:
+The reused primary-Stack workflow retains the accepted DashStack requirements to:
 
 - show target scopes and shared-field effects;
 - mask values according to target disclosure policy;
@@ -396,18 +396,18 @@ The reused primary-List workflow retains the accepted DashList requirements to:
 | `@picodash/picodash`           | Accepted | Partial        | Alpha root exports and Provider delegation.               |
 | `@picodash/picodash/ui`        | Accepted | Partial        | Exact reexports of stable shared UI, including `Popover`. |
 | `@picodash/picodash/catalog`   | Accepted | Planned        | Aggregates package-owned catalogs.                        |
-| `@picodash/picodash/style.css` | Accepted | Partial        | Public UI, DashPanel, and DashList imports.               |
+| `@picodash/picodash/style.css` | Accepted | Partial        | Public UI, DashPanel, and DashStack imports.              |
 
 The root uses named reexports and exposes no `Picodash*` aliases for foundation-owned components.
 The facade does not fork their types or behavior. Its `/ui` entrypoint explicitly mirrors the
-accepted `@picodash/ui` inventory, never the lower-level owner consumed by DashPanel or DashList.
+accepted `@picodash/ui` inventory, never the lower-level owner consumed by DashPanel or DashStack.
 It reexports `Popover` and `PopoverProps` as the exact UI-owned identities without exposing private
 active-layer machinery.
-Product-specific DashList controls retain their owning package surfaces even when Picodash
+Product-specific DashStack controls retain their owning package surfaces even when Picodash
 reexports them separately.
 
 There is no initial `@picodash/picodash/advanced` or `@picodash/picodash/dashlet` entrypoint.
-Advanced Nexus inspection remains Nexus-owned, DashList anatomy remains DashList-owned, and
+Advanced Nexus inspection remains Nexus-owned, DashStack anatomy remains DashStack-owned, and
 Picodash does not publish convenience aliases that obscure either owner.
 
 ## Public examples and host recipes
@@ -421,10 +421,10 @@ The documentation publishes four canonical executable examples in this order:
    with a selector, and reloads Nexus-owned values plus Picodash metadata.
 2. **Standalone DashPanel inspector** — hosts arbitrary inspector content in a movable Panel,
    demonstrates reopening, and persists only settled layout metadata.
-3. **Standalone DashList settings** — binds typed ready-made Dashlets, includes one collapsible
+3. **Standalone DashStack settings** — binds typed ready-made Dashlets, includes one collapsible
    DashGroup, and demonstrates durable order/collapse overrides without DashPanel.
 4. **Integrated Picodash settings** — renders one DashPanel with its id-less same-scope primary
-   DashList and shows the default combined action menu.
+   DashStack and shows the default combined action menu.
 
 These are maintained fixtures, not illustrative pseudocode. They import only accepted public
 entrypoints, include the owning stylesheet path, typecheck with the packages, and avoid prototype
@@ -436,8 +436,8 @@ Four focused recipes cover supported host decisions without creating more canoni
    leaving application values with the host while Picodash Nexus persists only Picodash metadata.
 2. **Define a named theme** — supplies all shared color tokens and `color-scheme`, then demonstrates
    the same custom theme at both regular and compact density.
-3. **Build a canvas editor palette** — uses one same-scope primary property List and one explicitly
-   identified child tool rail without aggregating the secondary List into Panel actions.
+3. **Build a canvas editor palette** — uses one same-scope primary property Stack and one explicitly
+   identified child tool rail without aggregating the secondary Stack into Panel actions.
 4. **Choose a drawer or sheet in the host** — selects DashPanel's transient modal presentation from
    application viewport policy and restores the same desktop layout when returning to `panel`.
 
@@ -459,18 +459,18 @@ browser journey.
 Picodash tests prove cross-product seams rather than repeating foundation matrices. Priority
 integration evidence includes:
 
-- Provider root context reaching Panel and List;
-- same-scope Panel/List composition;
+- Provider root context reaching Panel and Stack;
+- same-scope Panel/Stack composition;
 - explicit child-scope relationships;
-- additional Lists leaving the primary action target unchanged;
-- shared field effects across Lists;
+- additional Stacks leaving the primary action target unchanged;
+- shared field effects across Stacks;
 - portal/theme/focus behavior with Dashlets;
 - package exports and one complete public example.
 
 ## Implementation readiness
 
 No unresolved Picodash launch-contract question blocks its later integration phase. Implementation
-remains sequenced after stable Nexus, DashPanel, and DashList releases. Facade conformance must still
+remains sequenced after stable Nexus, DashPanel, and DashStack releases. Facade conformance must still
 produce package artifacts, catalog integrity, the four public examples, and the focused integration
 evidence above.
 
@@ -480,6 +480,6 @@ evidence above.
 - [Shared UI target reference](ui.md)
 - [Nexus target reference](nexus.md)
 - [DashPanel target reference](dashpanel.md)
-- [DashList target reference](dashlist.md)
+- [DashStack target reference](dashstack.md)
 - [Component catalog target reference](catalog.md)
 - [Roadmap](../ROADMAP.md)

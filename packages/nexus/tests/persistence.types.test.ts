@@ -71,7 +71,7 @@ test('external metadata persistence preserves persistent result and capability t
   expectTypeOf(nexus.persistence).toEqualTypeOf<PicodashPersistence>()
   expectTypeOf(nexus.setValue(nexus.fields.value, 2)).toEqualTypeOf<PersistentTransactionResult>()
   expectTypeOf(
-    nexus.scope('scope').setDashListRootOrder(['item']),
+    nexus.scope('scope').setDashStackRootOrder(['item']),
   ).toEqualTypeOf<PersistentTransactionResult>()
   expectTypeOf(nexus.metadataRecovery).toMatchTypeOf<{
     replaceScope: (...args: never[]) => unknown
@@ -107,7 +107,7 @@ test('persistence recovery and serialized metadata contracts are public', () => 
     { readonly ok: true; readonly erased: boolean } | { readonly ok: false }
   >()
   expectTypeOf<SerializedDurableScopeMetadata>().toMatchTypeOf<{
-    readonly dashList?: object
+    readonly dashStack?: object
     readonly dashPanel?: object
   }>()
 })

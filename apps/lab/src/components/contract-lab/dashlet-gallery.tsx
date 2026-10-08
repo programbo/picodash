@@ -9,7 +9,7 @@ import {
   type PicodashDensity,
 } from '@picodash/ui'
 import {
-  DashList,
+  DashStack,
   DashGroup,
   SearchDashlet,
   TextDashlet,
@@ -32,7 +32,7 @@ import {
   TimeDashlet,
   DateTimeDashlet,
   DateRangeDashlet,
-} from '@picodash/dashlist'
+} from '@picodash/dashstack'
 import { GalleryCharts } from './gallery-charts'
 import { ContractLab } from './contract-lab'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
@@ -529,7 +529,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
             </div>
           </header>
           <div className="rounded-xl bg-(--picodash-color-surface) py-2">
-            <DashList
+            <DashStack
               nexus={nexus}
               id="gallery-controls"
               aria-label="Dashlet gallery"
@@ -575,7 +575,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
               >
                 {samples.map((sample) => sample.additional)}
               </DashGroup>
-            </DashList>
+            </DashStack>
             <GalleryCharts nexus={nexus} />
           </div>
         </div>

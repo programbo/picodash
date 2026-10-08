@@ -34,8 +34,8 @@ describe('package-private declarative Nexus integration host', () => {
     const host = createDeclarativeStandaloneIntegrationHost(nexus)
     const root = createDeclarativeEntityToken()
     const child = createDeclarativeEntityToken()
-    host.mountEntity({ token: child, nexus: nexus.scope('child'), kind: 'dashList', parent: root })
-    host.mountRoot({ token: root, nexus: nexus.scope('root'), kind: 'dashList' })
+    host.mountEntity({ token: child, nexus: nexus.scope('child'), kind: 'dashStack', parent: root })
+    host.mountRoot({ token: root, nexus: nexus.scope('root'), kind: 'dashStack' })
     expect(() => nexus.destroy()).toThrow()
     host.unmountRoot(root)
     host.unmountEntity(child)
@@ -47,37 +47,37 @@ describe('package-private declarative Nexus integration host', () => {
     const host = createDeclarativeStandaloneIntegrationHost(nexus)
     const root = createDeclarativeEntityToken()
     const child = createDeclarativeEntityToken()
-    host.mountEntity({ token: child, nexus: nexus.scope('child'), kind: 'dashList', parent: root })
-    host.mountRoot({ token: root, nexus: nexus.scope('root'), kind: 'dashList' })
+    host.mountEntity({ token: child, nexus: nexus.scope('child'), kind: 'dashStack', parent: root })
+    host.mountRoot({ token: root, nexus: nexus.scope('root'), kind: 'dashStack' })
     host.unmountRoot(root)
     host.unmountEntity(child)
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('rejects a same-scope nested standalone DashList as a duplicate entity', () => {
+  it('rejects a same-scope nested standalone DashStack as a duplicate entity', () => {
     const nexus = makeNexus()
     const host = createDeclarativeStandaloneIntegrationHost(nexus)
     const root = createDeclarativeEntityToken()
     const child = createDeclarativeEntityToken()
-    host.mountEntity({ token: child, nexus: nexus.scope('same'), kind: 'dashList', parent: root })
+    host.mountEntity({ token: child, nexus: nexus.scope('same'), kind: 'dashStack', parent: root })
     expectContract(
-      () => host.mountRoot({ token: root, nexus: nexus.scope('same'), kind: 'dashList' }),
+      () => host.mountRoot({ token: root, nexus: nexus.scope('same'), kind: 'dashStack' }),
       'duplicate-entity',
-      { scopeId: 'same', entityKind: 'dashList' },
+      { scopeId: 'same', entityKind: 'dashStack' },
     )
     host.unmountRoot(root)
     host.unmountEntity(child)
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('rejects a direct DashPanel child of the standalone DashList host', () => {
+  it('rejects a direct DashPanel child of the standalone DashStack host', () => {
     const nexus = makeNexus()
     const host = createDeclarativeStandaloneIntegrationHost(nexus)
     const root = createDeclarativeEntityToken()
     const child = createDeclarativeEntityToken()
     host.mountEntity({ token: child, nexus: nexus.scope('panel'), kind: 'dashPanel', parent: root })
     expectContract(
-      () => host.mountRoot({ token: root, nexus: nexus.scope('root'), kind: 'dashList' }),
+      () => host.mountRoot({ token: root, nexus: nexus.scope('root'), kind: 'dashStack' }),
       'invalid-integration-handle',
       { role: 'host', reason: 'wrong-kind' },
     )
@@ -95,16 +95,16 @@ describe('package-private declarative Nexus integration host', () => {
     host.mountEntity({
       token: child,
       nexus: second.scope('foreign'),
-      kind: 'dashList',
+      kind: 'dashStack',
       parent: root,
     })
     expectContract(
-      () => host.mountRoot({ token: root, nexus: first.scope('root'), kind: 'dashList' }),
+      () => host.mountRoot({ token: root, nexus: first.scope('root'), kind: 'dashStack' }),
       'invalid-integration-handle',
       { role: 'host', reason: 'foreign-root' },
     )
     host.unmountEntity(child)
-    host.mountRoot({ token: root, nexus: first.scope('root'), kind: 'dashList' })
+    host.mountRoot({ token: root, nexus: first.scope('root'), kind: 'dashStack' })
     host.unmountRoot(root)
     expect(() => first.destroy()).not.toThrow()
     expect(() => second.destroy()).not.toThrow()
@@ -116,7 +116,7 @@ describe('package-private declarative Nexus integration host', () => {
     const parent = createDeclarativeEntityToken()
     const child = createDeclarativeEntityToken()
 
-    host.mountEntity({ token: child, nexus: nexus.scope('child'), kind: 'dashList', parent })
+    host.mountEntity({ token: child, nexus: nexus.scope('child'), kind: 'dashStack', parent })
     host.mountProvider()
     host.mountEntity({ token: parent, nexus: nexus.scope('parent'), kind: 'dashPanel' })
 
@@ -132,7 +132,7 @@ describe('package-private declarative Nexus integration host', () => {
     const child = createDeclarativeEntityToken()
     host.mountProvider()
     host.mountEntity({ token: parent, nexus: nexus.scope('parent'), kind: 'dashPanel' })
-    host.mountEntity({ token: child, nexus: nexus.scope('child'), kind: 'dashList', parent })
+    host.mountEntity({ token: child, nexus: nexus.scope('child'), kind: 'dashStack', parent })
     host.unmountEntity(parent)
     host.unmountEntity(child)
     host.unmountEntity(child)
@@ -151,7 +151,7 @@ describe('package-private declarative Nexus integration host', () => {
     host.mountEntity({
       token: sameScopeList,
       nexus: nexus.scope('shared'),
-      kind: 'dashList',
+      kind: 'dashStack',
       parent: panel,
     })
     host.unmountEntity(panel)
@@ -167,7 +167,7 @@ describe('package-private declarative Nexus integration host', () => {
     const grandchild = createDeclarativeEntityToken()
     host.mountProvider()
     host.mountEntity({ token: parent, nexus: nexus.scope('parent'), kind: 'dashPanel' })
-    host.mountEntity({ token: child, nexus: nexus.scope('child'), kind: 'dashList', parent })
+    host.mountEntity({ token: child, nexus: nexus.scope('child'), kind: 'dashStack', parent })
     host.mountEntity({
       token: grandchild,
       nexus: nexus.scope('grandchild'),
@@ -184,12 +184,12 @@ describe('package-private declarative Nexus integration host', () => {
     const nexus = makeNexus()
     const host = createDeclarativeIntegrationHost(nexus)
     const first = createDeclarativeEntityToken()
-    host.mountEntity({ token: first, nexus: nexus.scope('strict'), kind: 'dashList' })
+    host.mountEntity({ token: first, nexus: nexus.scope('strict'), kind: 'dashStack' })
     host.mountProvider()
     host.unmountProvider()
 
     const second = createDeclarativeEntityToken()
-    host.mountEntity({ token: second, nexus: nexus.scope('strict'), kind: 'dashList' })
+    host.mountEntity({ token: second, nexus: nexus.scope('strict'), kind: 'dashStack' })
     host.mountProvider()
     host.unmountProvider()
     expect(() => nexus.destroy()).not.toThrow()
@@ -201,9 +201,9 @@ describe('package-private declarative Nexus integration host', () => {
     const first = createDeclarativeEntityToken()
     const duplicate = createDeclarativeEntityToken()
     host.mountProvider()
-    host.mountEntity({ token: first, nexus: nexus.scope('same'), kind: 'dashList' })
+    host.mountEntity({ token: first, nexus: nexus.scope('same'), kind: 'dashStack' })
     expect(() =>
-      host.mountEntity({ token: duplicate, nexus: nexus.scope('same'), kind: 'dashList' }),
+      host.mountEntity({ token: duplicate, nexus: nexus.scope('same'), kind: 'dashStack' }),
     ).toThrowError(/duplicate-entity/)
     host.unmountProvider()
     expect(() => nexus.destroy()).not.toThrow()
@@ -216,7 +216,7 @@ describe('package-private declarative Nexus integration host', () => {
     host.mountEntity({
       token: createDeclarativeEntityToken(),
       nexus: second.scope('foreign'),
-      kind: 'dashList',
+      kind: 'dashStack',
     })
     expectContract(() => host.mountProvider(), 'invalid-integration-handle')
     expect(() => first.destroy()).not.toThrow()
@@ -235,10 +235,14 @@ describe('package-private declarative Nexus integration host', () => {
     host.mountEntity({
       token: firstChild,
       nexus: nexus.scope('child'),
-      kind: 'dashList',
+      kind: 'dashStack',
       parent: firstParent,
     })
-    host.mountEntity({ token: secondParent, nexus: nexus.scope('second-parent'), kind: 'dashList' })
+    host.mountEntity({
+      token: secondParent,
+      nexus: nexus.scope('second-parent'),
+      kind: 'dashStack',
+    })
     expect(() =>
       host.mountEntity({
         token: secondChild,
@@ -255,7 +259,7 @@ describe('package-private declarative Nexus integration host', () => {
     const nexus = makeNexus()
     const host = createDeclarativeIntegrationHost(nexus)
     const token = createDeclarativeEntityToken()
-    host.mountEntity({ token, nexus: nexus.scope('queued'), kind: 'dashList' })
+    host.mountEntity({ token, nexus: nexus.scope('queued'), kind: 'dashStack' })
     expect(() => nexus.destroy()).not.toThrow()
   })
 
@@ -266,7 +270,7 @@ describe('package-private declarative Nexus integration host', () => {
     second.mountEntity({
       token: createDeclarativeEntityToken(),
       nexus: nexus.scope('retry'),
-      kind: 'dashList',
+      kind: 'dashStack',
     })
     first.mountProvider()
     expectContract(() => second.mountProvider(), 'duplicate-provider')
@@ -280,7 +284,7 @@ describe('package-private declarative Nexus integration host', () => {
     const nexus = makeNexus()
     const provider = acquireProviderLease(nexus)
     const parent = acquireEntityLease(nexus.scope('parent'), { kind: 'dashPanel', host: provider })
-    const child = acquireEntityLease(nexus.scope('child'), { kind: 'dashList', host: parent })
+    const child = acquireEntityLease(nexus.scope('child'), { kind: 'dashStack', host: parent })
     const relationship = acquireRelationshipLease(parent, child)
     relationship.release()
     child.release()

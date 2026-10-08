@@ -16,7 +16,7 @@ between Summary and Details. Display independently reads back the accepted inter
 
 The activity preview consumes the selected source and detail level through public Nexus selectors.
 Its records are explicitly samples, not a claim of live transport. The existing Web Storage driver
-saves both choices along with the original values. Workspace actions confirms reset of this List's
+saves both choices along with the original values. Workspace actions confirms reset of this Stack's
 bound values. Choices have Nexus validators; the Bridge discloses and allowlists these two fields
 alongside the original three, only in development. Production continues to refuse Bridge operation.
 
@@ -32,7 +32,7 @@ The owner approved this retained scope on 2026-09-17.
 | -------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Text, Number, Switch, Display                                        | Keep              | Exact editing, an on/off setting, and independent readback are demonstrated in M4/M5 and the shared review example.                                                                                                |
 | Slider                                                               | Simplify and keep | Quick adjustment complements exact numeric entry. The example uses one formatted value instead of duplicating the numeric output and a second trailing output. Its focusable thumb now includes the visible label. |
-| Select                                                               | Keep              | A compact source selector preserves space while offering several named choices. Its popup and keyboard behavior are exercised in the actual List.                                                                  |
+| Select                                                               | Keep              | A compact source selector preserves space while offering several named choices. Its popup and keyboard behavior are exercised in the actual Stack.                                                                 |
 | Segmented                                                            | Keep              | Two frequently switched views remain visible and require one action. Keyboard arrow navigation changes the same canonical field as pointer selection.                                                              |
 | Checkbox, RadioGroup, Combobox, CheckboxGroup, MultiSelect, Search   | Defer             | Additional choice and search variants have no retained consumer beyond the demonstrated switch, source selector, and small visible choice set.                                                                     |
 | Range, Meter, Progress, Status                                       | Defer             | Compound ranges and monitoring readouts need a consumer with real state meaning; sample transport progress would not establish that need.                                                                          |
@@ -59,7 +59,7 @@ The focused binding and long reordering browser journeys pass. The mobile geomet
 checks that the Slider thumb clears its description; the track now reserves the thumb's height.
 Theme and phone captures are retained under `output/playwright/m4/m7-*.png`.
 
-Verification on 2026-09-17: DashList `release:check` passed (254 tests, build, package artifacts,
+Verification on 2026-09-17: DashStack `release:check` passed (254 tests, build, package artifacts,
 and pack inspection); workspace `vp check` and artifact/motion policy checks passed. The Lab
 production build passed. An isolated browser loaded the tailnet production URL, reached ready
 state, changed source/detail choices, observed preview changes, and retained those choices after

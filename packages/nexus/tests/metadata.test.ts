@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test'
 import { fc, test as property } from '@fast-check/vitest'
 import {
-  decodeDashListMetadataRecord,
+  decodeDashStackMetadataRecord,
   decodeDurableScopeMetadata,
-  encodeDashListMetadataRecord,
+  encodeDashStackMetadataRecord,
   encodeDurableScopeMetadata,
-  normalizeDashListMetadataRecord,
+  normalizeDashStackMetadataRecord,
   normalizeDashPanelLayoutRecord,
   normalizeDurableScopeMetadata,
 } from '../src/metadata.ts'
@@ -121,8 +121,8 @@ describe('Nexus built-in metadata codec', () => {
   })
 
   it('round-trips maps through duplicate-checked entry arrays and sorts deterministically', () => {
-    const normalized = normalizeDashListMetadataRecord(listRecord(['a', 'b']))
-    const encoded = encodeDashListMetadataRecord(normalized)
+    const normalized = normalizeDashStackMetadataRecord(listRecord(['a', 'b']))
+    const encoded = encodeDashStackMetadataRecord(normalized)
     expect(encoded.groupOrders).toEqual([
       ['group-a', ['c']],
       ['group-b', ['b', 'a']],
@@ -135,30 +135,30 @@ describe('Nexus built-in metadata codec', () => {
     expect(Object.isFrozen(encoded.groupOrders)).toBe(true)
     expect(Object.isFrozen(encoded.groupOrders[0])).toBe(true)
     expect(Object.isFrozen(encoded.groupOrders[0]![1])).toBe(true)
-    const decoded = decodeDashListMetadataRecord(encoded)
+    const decoded = decodeDashStackMetadataRecord(encoded)
     expect([...decoded.groupOrders.entries()]).toEqual([...normalized.groupOrders.entries()])
     expect([...decoded.collapseOverrides.entries()]).toEqual([
       ...normalized.collapseOverrides.entries(),
     ])
-    expect(JSON.stringify(encodeDashListMetadataRecord(decoded))).toBe(JSON.stringify(encoded))
+    expect(JSON.stringify(encodeDashStackMetadataRecord(decoded))).toBe(JSON.stringify(encoded))
   })
 
   it('rejects duplicate serialized keys and malformed identifiers', () => {
-    const encoded = encodeDashListMetadataRecord(normalizeDashListMetadataRecord(listRecord()))
+    const encoded = encodeDashStackMetadataRecord(normalizeDashStackMetadataRecord(listRecord()))
     expect(() =>
-      decodeDashListMetadataRecord({
+      decodeDashStackMetadataRecord({
         ...encoded,
         groupOrders: [...encoded.groupOrders, ['group-a', ['x']]],
       }),
     ).toThrow()
     expect(() =>
-      normalizeDashListMetadataRecord({
+      normalizeDashStackMetadataRecord({
         ...listRecord(),
         groupOrders: new Map([[' ', ['x']]]),
       }),
     ).toThrow()
     expect(() =>
-      decodeDashListMetadataRecord({
+      decodeDashStackMetadataRecord({
         ...encoded,
         collapseOverrides: [['\u0000', true]],
       }),
@@ -170,7 +170,7 @@ describe('Nexus built-in metadata codec', () => {
     const groupOrder = ['child']
     const groups = new Map([['group', groupOrder]])
     const collapses = new Map([['group', true]])
-    const normalized = normalizeDashListMetadataRecord({
+    const normalized = normalizeDashStackMetadataRecord({
       rootOrder,
       groupOrders: groups,
       collapseOverrides: collapses,
@@ -208,7 +208,7 @@ describe('Nexus built-in metadata codec', () => {
     '\u009f',
   ])('rejects invalid identifier %j', (id) => {
     expect(() =>
-      normalizeDashListMetadataRecord({
+      normalizeDashStackMetadataRecord({
         ...listRecord(),
         groupOrders: new Map([[id, ['child']]]),
       }),
@@ -219,7 +219,7 @@ describe('Nexus built-in metadata codec', () => {
     'allows punctuation identifier %s',
     (id) => {
       expect(() =>
-        normalizeDashListMetadataRecord({
+        normalizeDashStackMetadataRecord({
           ...listRecord(),
           groupOrders: new Map([[id, ['child']]]),
         }),
@@ -230,15 +230,15 @@ describe('Nexus built-in metadata codec', () => {
   it('rejects hostile object descriptors and sparse arrays at the JSON boundary', () => {
     const accessor: Record<string, unknown> = {}
     Object.defineProperty(accessor, 'groupOrders', { enumerable: true, get: () => new Map() })
-    expect(() => normalizeDashListMetadataRecord(accessor)).toThrow()
+    expect(() => normalizeDashStackMetadataRecord(accessor)).toThrow()
     expect(() =>
-      normalizeDashListMetadataRecord({
+      normalizeDashStackMetadataRecord({
         ...listRecord(),
         rootOrder: Object.assign([], { extra: true }),
       }),
     ).toThrow()
     expect(() =>
-      normalizeDashListMetadataRecord({
+      normalizeDashStackMetadataRecord({
         ...listRecord(),
         rootOrder: Object.assign([], { [Symbol('private')]: 'x' }),
       }),
@@ -246,7 +246,7 @@ describe('Nexus built-in metadata codec', () => {
     const hidden = ['child']
     Object.defineProperty(hidden, '0', { enumerable: false, value: 'child' })
     expect(() =>
-      normalizeDashListMetadataRecord({
+      normalizeDashStackMetadataRecord({
         ...listRecord(),
         rootOrder: hidden,
       }),
@@ -256,7 +256,7 @@ describe('Nexus built-in metadata codec', () => {
   it('requires own metadata members and ignores inherited optional members', () => {
     const previousGroupOrders = Object.getOwnPropertyDescriptor(Object.prototype, 'groupOrders')
     const previousRootOrder = Object.getOwnPropertyDescriptor(Object.prototype, 'rootOrder')
-    const previousDashList = Object.getOwnPropertyDescriptor(Object.prototype, 'dashList')
+    const previousDashStack = Object.getOwnPropertyDescriptor(Object.prototype, 'dashStack')
     try {
       Object.defineProperty(Object.prototype, 'groupOrders', {
         configurable: true,
@@ -268,14 +268,14 @@ describe('Nexus built-in metadata codec', () => {
         enumerable: false,
         value: ['inherited'],
       })
-      expect(() => normalizeDashListMetadataRecord({ collapseOverrides: new Map() })).toThrow()
-      const normalized = normalizeDashListMetadataRecord({
+      expect(() => normalizeDashStackMetadataRecord({ collapseOverrides: new Map() })).toThrow()
+      const normalized = normalizeDashStackMetadataRecord({
         groupOrders: new Map(),
         collapseOverrides: new Map(),
       })
       expect(normalized.rootOrder).toBeUndefined()
 
-      Object.defineProperty(Object.prototype, 'dashList', {
+      Object.defineProperty(Object.prototype, 'dashStack', {
         configurable: true,
         enumerable: false,
         value: { groupOrders: new Map(), collapseOverrides: new Map() },
@@ -288,8 +288,8 @@ describe('Nexus built-in metadata codec', () => {
       else delete (Object.prototype as Record<string, unknown>).groupOrders
       if (previousRootOrder) Object.defineProperty(Object.prototype, 'rootOrder', previousRootOrder)
       else delete (Object.prototype as Record<string, unknown>).rootOrder
-      if (previousDashList) Object.defineProperty(Object.prototype, 'dashList', previousDashList)
-      else delete (Object.prototype as Record<string, unknown>).dashList
+      if (previousDashStack) Object.defineProperty(Object.prototype, 'dashStack', previousDashStack)
+      else delete (Object.prototype as Record<string, unknown>).dashStack
     }
   })
 
@@ -300,12 +300,12 @@ describe('Nexus built-in metadata codec', () => {
       }
     }
     expect(() =>
-      normalizeDashListMetadataRecord({
+      normalizeDashStackMetadataRecord({
         groupOrders: new HostileMap(),
         collapseOverrides: new Map(),
       }),
     ).toThrow('Invalid Nexus metadata record.')
-    const encoded = encodeDashListMetadataRecord(normalizeDashListMetadataRecord(listRecord()))
+    const encoded = encodeDashStackMetadataRecord(normalizeDashStackMetadataRecord(listRecord()))
     const hostileTuple = new Proxy(encoded.groupOrders[0]!, {
       get(target, property, receiver) {
         if (property === 'length') throw new Error('PRIVATE_TUPLE_LENGTH_FAILURE')
@@ -313,7 +313,7 @@ describe('Nexus built-in metadata codec', () => {
       },
     })
     expect(() =>
-      decodeDashListMetadataRecord({
+      decodeDashStackMetadataRecord({
         ...encoded,
         groupOrders: [hostileTuple],
       }),
@@ -321,7 +321,7 @@ describe('Nexus built-in metadata codec', () => {
     const revokedRoot = Proxy.revocable(['child'], {})
     revokedRoot.revoke()
     expect(() =>
-      normalizeDashListMetadataRecord({
+      normalizeDashStackMetadataRecord({
         ...listRecord(),
         rootOrder: revokedRoot.proxy,
       }),
@@ -329,7 +329,7 @@ describe('Nexus built-in metadata codec', () => {
     const revokedMap = Proxy.revocable(encoded.groupOrders, {})
     revokedMap.revoke()
     expect(() =>
-      decodeDashListMetadataRecord({
+      decodeDashStackMetadataRecord({
         ...encoded,
         groupOrders: revokedMap.proxy,
       }),
@@ -337,13 +337,13 @@ describe('Nexus built-in metadata codec', () => {
     const revokedTuple = Proxy.revocable(encoded.groupOrders[0]!, {})
     revokedTuple.revoke()
     expect(() =>
-      decodeDashListMetadataRecord({
+      decodeDashStackMetadataRecord({
         ...encoded,
         groupOrders: [revokedTuple.proxy],
       }),
     ).toThrow('Invalid Nexus metadata record.')
     expect(() =>
-      normalizeDashListMetadataRecord({
+      normalizeDashStackMetadataRecord({
         groupOrders: new Proxy(new Map(), {
           getPrototypeOf() {
             throw new Error('PRIVATE_PROXY_FAILURE')
@@ -353,7 +353,7 @@ describe('Nexus built-in metadata codec', () => {
       }),
     ).toThrow('Invalid Nexus metadata record.')
     expect(() =>
-      normalizeDashListMetadataRecord(
+      normalizeDashStackMetadataRecord(
         new Proxy(listRecord(), {
           getOwnPropertyDescriptor() {
             throw new Error('PRIVATE_REFLECTION_FAILURE')
@@ -362,7 +362,7 @@ describe('Nexus built-in metadata codec', () => {
       ),
     ).toThrow('Invalid Nexus metadata record.')
     expect(() =>
-      normalizeDashListMetadataRecord(
+      normalizeDashStackMetadataRecord(
         new Proxy(listRecord(), {
           get(target, property, receiver) {
             if (property === 'groupOrders') throw new Error('PRIVATE_GET_FAILURE')
@@ -378,7 +378,7 @@ describe('Nexus built-in metadata codec', () => {
       },
     })
     expect(() =>
-      normalizeDashListMetadataRecord({
+      normalizeDashStackMetadataRecord({
         ...listRecord(),
         rootOrder: hostileIds,
       }),
@@ -388,18 +388,18 @@ describe('Nexus built-in metadata codec', () => {
   it('omits empty product domains and excludes UI-only fields', () => {
     expect(
       normalizeDurableScopeMetadata({
-        dashList: { groupOrders: new Map(), collapseOverrides: new Map() },
+        dashStack: { groupOrders: new Map(), collapseOverrides: new Map() },
         dashPanel: undefined,
       }),
     ).toBeUndefined()
     expect(
       normalizeDurableScopeMetadata({
-        dashList: { rootOrder: [], groupOrders: new Map(), collapseOverrides: new Map() },
+        dashStack: { rootOrder: [], groupOrders: new Map(), collapseOverrides: new Map() },
         dashPanel: undefined,
       }),
     ).toBeUndefined()
     const scope = normalizeDurableScopeMetadata({
-      dashList: undefined,
+      dashStack: undefined,
       dashPanel: {
         placement: placements[2],
         preferredPosition: { x: 1, y: 2 },
@@ -408,7 +408,7 @@ describe('Nexus built-in metadata codec', () => {
     expect(scope.dashPanel).toBeDefined()
     expect(() =>
       normalizeDurableScopeMetadata({
-        dashList: undefined,
+        dashStack: undefined,
         dashPanel: {
           placement: placements[2],
           preferredPosition: { x: 1, y: 2 },
@@ -419,10 +419,28 @@ describe('Nexus built-in metadata codec', () => {
     ).toThrow()
   })
 
+  it('uses only the DashStack metadata identity across encoding and decoding', () => {
+    const record = normalizeDashStackMetadataRecord(listRecord(['a']))
+    const encoded = encodeDurableScopeMetadata({ dashStack: record })!
+    expect(Object.keys(encoded)).toEqual(['dashStack'])
+    expect(decodeDurableScopeMetadata(encoded)?.dashStack?.rootOrder).toEqual(['a'])
+    expect(() => decodeDurableScopeMetadata({ dashList: encoded.dashStack })).toThrow(
+      'Invalid Nexus metadata record.',
+    )
+    expect(() => decodeDurableScopeMetadata({ ...encoded, dashList: encoded.dashStack })).toThrow(
+      'Invalid Nexus metadata record.',
+    )
+    expect(() => normalizeDurableScopeMetadata({ dashList: record })).toThrow(
+      'Invalid Nexus metadata record.',
+    )
+  })
+
   it('validates a complete scope atomically', () => {
     expect(() =>
       decodeDurableScopeMetadata({
-        dashList: encodeDashListMetadataRecord(normalizeDashListMetadataRecord(listRecord(['a']))),
+        dashStack: encodeDashStackMetadataRecord(
+          normalizeDashStackMetadataRecord(listRecord(['a'])),
+        ),
         dashPanel: {
           placement: { mode: 'fixed', disposition: { kind: 'free' } },
           preferredPosition: { x: 0, y: 0 },
@@ -434,12 +452,12 @@ describe('Nexus built-in metadata codec', () => {
   property.prop([
     fc.uniqueArray(fc.stringMatching(/^[a-z][a-z0-9_-]{0,5}$/), { minLength: 1, maxLength: 5 }),
   ])('round-trips deterministic list records', (ids) => {
-    const record = normalizeDashListMetadataRecord({
+    const record = normalizeDashStackMetadataRecord({
       rootOrder: ids,
       groupOrders: new Map([['group', ids]]),
       collapseOverrides: new Map([['group', true]]),
     })
-    const encoded = encodeDurableScopeMetadata({ dashList: record })!
+    const encoded = encodeDurableScopeMetadata({ dashStack: record })!
     const decoded = decodeDurableScopeMetadata(encoded)!
     expect(JSON.stringify(encodeDurableScopeMetadata(decoded))).toBe(JSON.stringify(encoded))
   })

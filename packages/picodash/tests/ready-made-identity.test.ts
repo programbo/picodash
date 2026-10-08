@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test'
-import * as dashlist from '@picodash/dashlist'
+import * as dashstack from '@picodash/dashstack'
 import * as facade from '../src/index.ts'
 
 describe('@picodash/picodash ready-made exports', () => {
@@ -28,6 +28,6 @@ describe('@picodash/picodash ready-made exports', () => {
       'DateRangeDashlet',
       'ColorDashlet',
     ] as const
-    for (const name of names) expect(facade[name]).toBe(dashlist[name])
+    for (const name of names) expect(facade[name]).toBe(dashstack[name])
   })
 })

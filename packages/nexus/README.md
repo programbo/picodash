@@ -26,7 +26,7 @@ dogfooding. Broader runtime inspection and later product-owned UX remain unfinis
   contract.
 - `@picodash/nexus/react`: explicit Nexus selector subscriptions and `shallowEqual`.
 - `@picodash/nexus/integration`: supported advanced context and declarative lease protocol for
-  DashPanel, DashList, and other declarative product integrations.
+  DashPanel, DashStack, and other declarative product integrations.
 
 The root entry is framework-independent and must load without React. React is required only for the
 React-facing entries.

@@ -194,7 +194,7 @@ h2 {
 }
 
 .alpha-panel-demo [data-picodash-panel],
-.alpha-list-demo [data-picodash-dashlist] {
+.alpha-list-demo [data-picodash-dashstack] {
   max-width: 100%;
   min-width: 0;
   padding: 1rem;
@@ -209,7 +209,7 @@ h2 {
   font-size: 0.9rem;
 }
 
-.alpha-list-demo [data-picodash-dashlist-list],
+.alpha-list-demo [data-picodash-dashstack-list],
 .alpha-list-demo [data-picodash-dashgroup-list] {
   gap: 0.75rem;
 }

@@ -3,7 +3,7 @@ export {
   acquireEntityLease,
   acquireProviderLease,
   acquireRelationshipLease,
-  acquireDashListNodeLease,
+  acquireDashStackNodeLease,
 } from './integration-leases.js'
 
 export type {
@@ -17,19 +17,19 @@ export type {
   ProviderLease,
   RelationshipLease,
   NexusEntityKind,
-  AcquireDashListNodeOptions,
-  DashListNodeLease,
-  InvalidDashListNodeOptionsReason,
+  AcquireDashStackNodeOptions,
+  DashStackNodeLease,
+  InvalidDashStackNodeOptionsReason,
 } from './integration-leases.js'
 
 export type {
-  DashListPruneEffect,
-  DashListPruneCandidate,
-  DashListPruneReview,
-  DashListPruneSelection,
-  RootDashListPruneOptions,
+  DashStackPruneEffect,
+  DashStackPruneCandidate,
+  DashStackPruneReview,
+  DashStackPruneSelection,
+  RootDashStackPruneOptions,
   InvalidPruneOptionsReason,
-  PicodashDashListPrunePlan,
+  PicodashDashStackPrunePlan,
 } from './kernel/index.js'
 
 export {

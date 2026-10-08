@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import {
-  DashList,
+  DashStack,
   DashGroup,
   Dashlet,
-  DashListResetValuesItem,
-  DashListResetListItem,
+  DashStackResetValuesItem,
+  DashStackResetStackItem,
   DisplayDashlet,
   NumberDashlet,
   SwitchDashlet,
   TextDashlet,
-} from '@picodash/dashlist'
+} from '@picodash/dashstack'
 import { ActionMenu, Button, PicodashThemeProvider, type PicodashThemeOption } from '@picodash/ui'
 import type {
   PicodashDevBridgeDisclosure,
@@ -165,14 +165,14 @@ function ValueBindingContent({
           {saveMessage}
         </p>
         <p className="mb-5 text-sm text-(--picodash-color-text-muted)">
-          Both Lists share three fields. Edit either List or apply the example values to see them
+          Both Stacks share three fields. Edit either Stack or apply the example values to see them
           stay in sync. Clearing a name or entering an interval outside 1–60 keeps the last valid
           value. Valid values survive refresh; invalid drafts do not. Collapse Workspace settings to
           focus on the readout, or use a row’s reorder handle to put frequently used controls first.
-          Each List saves its own arrangement.
+          Each Stack saves its own arrangement.
         </p>
         <div className="grid min-w-0 gap-6 xl:grid-cols-2">
-          <DashList
+          <DashStack
             nexus={nexus}
             id="binding-ready-made"
             title="Ready-made Dashlets"
@@ -206,14 +206,14 @@ function ValueBindingContent({
               field={nexus.fields.interval}
               formatValue={(value) => `${value} seconds`}
             />
-            <Dashlet id="actions" label="List actions" pin="end">
-              <ActionMenu label="List actions">
-                <DashListResetValuesItem />
-                <DashListResetListItem />
+            <Dashlet id="actions" label="Stack actions" pin="end">
+              <ActionMenu label="Stack actions">
+                <DashStackResetValuesItem />
+                <DashStackResetStackItem />
               </ActionMenu>
             </Dashlet>
-          </DashList>
-          <DashList
+          </DashStack>
+          <DashStack
             nexus={nexus}
             id="binding-composed"
             title="Composed controls"
@@ -221,13 +221,13 @@ function ValueBindingContent({
             reorderable
           >
             {renderComposedValueBindings({ nexus, disabled })}
-            <Dashlet id="actions" label="List actions" pin="end">
-              <ActionMenu label="List actions">
-                <DashListResetValuesItem />
-                <DashListResetListItem />
+            <Dashlet id="actions" label="Stack actions" pin="end">
+              <ActionMenu label="Stack actions">
+                <DashStackResetValuesItem />
+                <DashStackResetStackItem />
               </ActionMenu>
             </Dashlet>
-          </DashList>
+          </DashStack>
         </div>
         <CuratedDashlets nexus={nexus} disabled={disabled} />
         <ReorderLab nexus={nexus} />

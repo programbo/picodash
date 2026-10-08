@@ -1,12 +1,12 @@
 # Picodash
 
 Picodash is a React package family for adding configurable controls, readouts, visualizations, and
-tool panels to an existing application. Use the panel and list products independently, or combine
+tool panels to an existing application. Use the panel and stack products independently, or combine
 them through the Picodash facade when an application needs both.
 
 ## Project status
 
-> Contract: Initial Nexus, UI, DashPanel, DashList, and Picodash targets accepted
+> Contract: Initial Nexus, UI, DashPanel, DashStack, and Picodash targets accepted
 >
 > Implementation: Working prototypes
 >
@@ -19,15 +19,15 @@ are disabled until the contribution workflow reopens.
 
 ## Products and supporting foundations
 
-| Package               | What it provides                                                                  |
-| --------------------- | --------------------------------------------------------------------------------- |
-| `@picodash/nexus`     | Typed state, valid changes, saved UI preferences, persistence, and import/export. |
-| `@picodash/dashpanel` | A movable Panel shell with configurable docking and durable layout.               |
-| `@picodash/dashlist`  | Ordered, groupable Dashlet composition with typed bindings and durable ordering.  |
-| `@picodash/picodash`  | The integrated facade for applications that need DashPanel and DashList together. |
-| `@picodash/ui`        | Shared theme, density, tokens, and generic accessible UI primitives.              |
+| Package               | What it provides                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| `@picodash/nexus`     | Typed state, valid changes, saved UI preferences, persistence, and import/export.  |
+| `@picodash/dashpanel` | A movable Panel shell with configurable docking and durable layout.                |
+| `@picodash/dashstack` | Ordered, groupable Dashlet composition with typed bindings and durable ordering.   |
+| `@picodash/picodash`  | The integrated facade for applications that need DashPanel and DashStack together. |
+| `@picodash/ui`        | Shared theme, density, tokens, and generic accessible UI primitives.               |
 
-Nexus, DashPanel, and DashList are planned as loosely independent products. UI is their shared
+Nexus, DashPanel, and DashStack are planned as loosely independent products. UI is their shared
 presentation foundation, not a fourth product. Nexus and UI are dogfooded by the two UI products;
 Picodash integration follows after all three products are stable.
 
@@ -40,7 +40,8 @@ Picodash integration follows after all three products are stable.
 - [Nexus target API](docs/reference/nexus.md)
 - [Shared UI target reference](docs/reference/ui.md)
 - [DashPanel target reference](docs/reference/dashpanel.md)
-- [DashList target reference](docs/reference/dashlist.md)
+- [DashStack naming decision](docs/adr/0007-dashstack-name-and-public-identity.md)
+- [DashStack target reference](docs/reference/dashstack.md)
 - [Picodash target reference](docs/reference/picodash.md)
 - [Component catalog target reference](docs/reference/catalog.md)
 - [Contract and implementation status rules](docs/reference/document-status.md)
@@ -57,7 +58,7 @@ an immutable organizational view of that same authority; it does not create a se
 or restrict field access.
 
 `DashPanelProvider` consumes a root Nexus for durable layout; each `DashPanel` supplies its scoped
-view to descendants. Standalone DashList accepts a root or scoped Nexus and establishes the resolved
+view to descendants. Standalone DashStack accepts a root or scoped Nexus and establishes the resolved
 scope for its Dashlets. The integrated Picodash facade composes both products over one compatible
 Nexus contract.
 
@@ -69,18 +70,18 @@ Color theme and density are separate axes: `light | dark | system | CustomTheme`
 `regular | compact`. The Picodash stylesheet aggregates the owning foundation styles once; it does
 not add integrated theme names or publish the website's example themes.
 
-DashList exports `useDashListActions(scopeId?)` plus standard action-menu items for expand,
+DashStack exports `useDashStackActions(scopeId?)` plus standard action-menu items for expand,
 collapse, and the two reset domains. Standalone headers and Picodash menus compose those same
-exports; DashPanel does not copy List behavior. Headless execution distinguishes a command that did
+exports; DashPanel does not copy Stack behavior. Headless execution distinguishes a command that did
 not run from an executed Nexus transaction result.
 
-Picodash reexports the initial DashList-owned ready-made Dashlets without facade wrappers and owns
+Picodash reexports the initial DashStack-owned ready-made Dashlets without facade wrappers and owns
 no additional component family at launch. Future dependency-heavy families use separate optional
 packages rather than enlarging the core facade dependency contract.
 
 Its optional document actions export or import one current-scope JSON document through Nexus-owned
-plans. DashList owns the browser dialog, clipboard, and file workflow. Initial Picodash reuses that
-primary-List workflow without implicitly aggregating additional Lists; any future multi-target
+plans. DashStack owns the browser dialog, clipboard, and file workflow. Initial Picodash reuses that
+primary-Stack workflow without implicitly aggregating additional Stacks; any future multi-target
 document UI requires a separate Picodash contract.
 
 ## Workspace
@@ -88,7 +89,7 @@ document UI requires a separate Picodash contract.
 - `packages/nexus`: framework-independent Nexus prototype.
 - `packages/ui`: shared theme, density, token, and generic accessible UI foundation.
 - `packages/dashpanel`: standalone DashPanel prototype.
-- `packages/dashlist`: standalone DashList prototype.
+- `packages/dashstack`: standalone DashStack prototype.
 - `packages/picodash`: integrated facade prototype.
 - `apps/web`: production Next.js evaluation site; `/` is its only public route.
 - `apps/lab`: local Contract Lab and checked-in audit report viewer.

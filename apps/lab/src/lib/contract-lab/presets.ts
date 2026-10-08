@@ -28,7 +28,7 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Standalone ready-made and composed Dashlets share text, number, and boolean fields. Edit either List, apply example values, and compare focus, disabled, and invalid states across themes.',
+      'Standalone ready-made and composed Dashlets share text, number, and boolean fields. Edit either Stack, apply example values, and compare focus, disabled, and invalid states across themes.',
     id: 'interaction',
     implementation: 'Partial',
     label: 'Value binding',
@@ -42,14 +42,14 @@ export const CONTRACT_LAB_PRESETS = [
   },
   {
     description:
-      'Shared UI AlertDialog behavior is available; Panel/List portal coordination and stacked overlay journeys remain planned.',
+      'Shared UI AlertDialog behavior is available; Panel/Stack portal coordination and stacked overlay journeys remain planned.',
     id: 'overlays',
     implementation: 'Partial',
     label: 'Overlays',
   },
   {
     description:
-      'Nexus document capture and restore plans are available; DashList-owned import, export, repair, and reset actions remain planned.',
+      'Nexus document capture and restore plans are available; DashStack-owned import, export, repair, and reset actions remain planned.',
     id: 'documents',
     implementation: 'Partial',
     label: 'Documents',

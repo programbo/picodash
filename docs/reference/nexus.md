@@ -18,11 +18,11 @@ capability and product-owned UX contracts remain intentionally unfinished.
 
 ## Package surfaces
 
-| Surface                       | Contract | Implementation | Purpose                                                                                                    |
-| ----------------------------- | -------- | -------------- | ---------------------------------------------------------------------------------------------------------- |
-| `@picodash/nexus`             | Accepted | Partial        | Framework-independent Nexus implementation                                                                 |
-| `@picodash/nexus/react`       | Accepted | Verified       | Contextual Nexus hooks/selectors plus explicit selector and equality helpers                               |
-| `@picodash/nexus/integration` | Accepted | Partial        | Provider/entity/relationship leases plus Provider-hosted and opted-in standalone DashList React boundaries |
+| Surface                       | Contract | Implementation | Purpose                                                                                                     |
+| ----------------------------- | -------- | -------------- | ----------------------------------------------------------------------------------------------------------- |
+| `@picodash/nexus`             | Accepted | Partial        | Framework-independent Nexus implementation                                                                  |
+| `@picodash/nexus/react`       | Accepted | Verified       | Contextual Nexus hooks/selectors plus explicit selector and equality helpers                                |
+| `@picodash/nexus/integration` | Accepted | Partial        | Provider/entity/relationship leases plus Provider-hosted and opted-in standalone DashStack React boundaries |
 
 The root entry loads without React. React is an optional package peer and is required only when the
 `/react` or `/integration` entry is imported. The core bundle does not import React-specific Zustand
@@ -413,7 +413,7 @@ editing a binding does not create durable scope metadata. Only a durable overrid
 hydration creates a `scopes` entry.
 
 `DurableScopeMetadata` contains Nexus-owned, validated, versioned JSON records for the built-in
-`dashPanel` and `dashList` metadata domains. Nexus does not import either UI package; those packages
+`dashPanel` and `dashStack` metadata domains. Nexus does not import either UI package; those packages
 own their public behavior types and translate through the integration entry. The alpha Nexus has no
 arbitrary metadata bag or runtime metadata-schema registration. Application-specific data belongs in
 declared fields.
@@ -421,7 +421,7 @@ declared fields.
 ### Built-in metadata payload status
 
 ```ts
-type DashListMetadataRecord = {
+type DashStackMetadataRecord = {
   rootOrder?: readonly string[]
   groupOrders: ReadonlyMap<string, readonly string[]>
   collapseOverrides: ReadonlyMap<string, boolean>
@@ -467,14 +467,14 @@ type DashPanelLayoutRecord = {
 }
 
 type DurableScopeMetadata = {
-  dashList?: DashListMetadataRecord
+  dashStack?: DashStackMetadataRecord
   dashPanel?: DashPanelLayoutRecord
 }
 ```
 
 | Record                    | Contract | Implementation | Notes                                            |
 | ------------------------- | -------- | -------------- | ------------------------------------------------ |
-| DashList order/collapse   | Accepted | Partial        | Overrides only; containment remains declarative. |
+| DashStack order/collapse  | Accepted | Partial        | Overrides only; containment remains declarative. |
 | DashPanel layout override | Accepted | Partial        | Settled placement plus preferred free position.  |
 
 Empty product records are omitted. The Nexus metadata codec validates complete records atomically,
@@ -711,7 +711,7 @@ receiver scope. Adapter `targetScopeIds` contains the complete sorted selected s
 Successful aggregate reset preserves the configured `Result`, reports only changed fields, and
 keeps `changedScopeIds` empty. Empty and already-default selections perform no write or
 notification, and rejection is atomic. The Nexus does not discard drafts: dirty bindings anywhere
-on a changed shared field retain their input and become stale. DashList composes targeted draft
+on a changed shared field retain their input and become stale. DashStack composes targeted draft
 discard separately after successful canonical reset.
 
 `inspectRegisteredValueReset` uses the same active binding registry, descendant graph, field
@@ -1020,7 +1020,7 @@ canonical value; dirty bindings become stale. Confirmation UX belongs to the app
 | Invariant                            | Contract | Implementation | Behavior                                      |
 | ------------------------------------ | -------- | -------------- | --------------------------------------------- |
 | `providerId` defaults to `default`   | Accepted | Verified       | Duplicate active ID on one root throws.       |
-| One entity of each kind per scope    | Accepted | Verified       | One DashPanel and one DashList may coexist.   |
+| One entity of each kind per scope    | Accepted | Verified       | One DashPanel and one DashStack may coexist.  |
 | One active host affinity per scope   | Accepted | Verified       | Provider/standalone host conflicts throw.     |
 | Declarative parent-child edge        | Accepted | Verified       | Exists only while its boundary lease is live. |
 | One active parent and no cycles      | Accepted | Verified       | Conflicting graph acquisition throws.         |
@@ -1036,32 +1036,32 @@ survives lease release; host affinity ends when the final entity leaves the scop
 interface RootMetadataCommands<Result extends CoreTransactionResult = CoreTransactionResult> {
   setDashPanelLayout(scopeId: string, layout: DashPanelLayoutRecord): Result
   resetDashPanelLayout(scopeId: string): Result
-  setDashListRootOrder(scopeId: string, order: readonly string[]): Result
-  removeDashListRootOrder(scopeId: string): Result
-  setDashListGroupOrder(scopeId: string, groupId: string, order: readonly string[]): Result
-  removeDashListGroupOrder(scopeId: string, groupId: string): Result
-  setDashListCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result
-  removeDashListCollapseOverride(scopeId: string, nodeId: string): Result
-  updateDashListCollapseOverrides(
+  setDashStackRootOrder(scopeId: string, order: readonly string[]): Result
+  removeDashStackRootOrder(scopeId: string): Result
+  setDashStackGroupOrder(scopeId: string, groupId: string, order: readonly string[]): Result
+  removeDashStackGroupOrder(scopeId: string, groupId: string): Result
+  setDashStackCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result
+  removeDashStackCollapseOverride(scopeId: string, nodeId: string): Result
+  updateDashStackCollapseOverrides(
     scopeId: string,
     updates: readonly (readonly [nodeId: string, collapsed: boolean | null])[],
   ): Result
-  resetDashListMetadata(scopeId: string): Result
+  resetDashStackMetadata(scopeId: string): Result
 }
 
 interface ScopedMetadataCommands<Result extends CoreTransactionResult = CoreTransactionResult> {
   setDashPanelLayout(layout: DashPanelLayoutRecord): Result
   resetDashPanelLayout(): Result
-  setDashListRootOrder(order: readonly string[]): Result
-  removeDashListRootOrder(): Result
-  setDashListGroupOrder(groupId: string, order: readonly string[]): Result
-  removeDashListGroupOrder(groupId: string): Result
-  setDashListCollapseOverride(nodeId: string, collapsed: boolean): Result
-  removeDashListCollapseOverride(nodeId: string): Result
-  updateDashListCollapseOverrides(
+  setDashStackRootOrder(order: readonly string[]): Result
+  removeDashStackRootOrder(): Result
+  setDashStackGroupOrder(groupId: string, order: readonly string[]): Result
+  removeDashStackGroupOrder(groupId: string): Result
+  setDashStackCollapseOverride(nodeId: string, collapsed: boolean): Result
+  removeDashStackCollapseOverride(nodeId: string): Result
+  updateDashStackCollapseOverrides(
     updates: readonly (readonly [nodeId: string, collapsed: boolean | null])[],
   ): Result
-  resetDashListMetadata(): Result
+  resetDashStackMetadata(): Result
 }
 
 type InvalidDestroyOptionsReason =
@@ -1090,7 +1090,7 @@ no rejected value, key, or property descriptor.
 
 | Additional API       | Contract | Implementation | Notes                                                                                     |
 | -------------------- | -------- | -------------- | ----------------------------------------------------------------------------------------- |
-| `createPrunePlan()`  | Accepted | Partial        | Nexus review and executable plans are implemented; DashList dogfood remains pending.      |
+| `createPrunePlan()`  | Accepted | Partial        | Nexus review and executable plans are implemented; DashStack dogfood remains pending.     |
 | `executePrunePlan()` | Accepted | Partial        | Explicit node selection or known inventory; Nexus lifecycle/plan evidence is implemented. |
 | `renameScope()`      | Deferred | —              | Use schema migration before activation.                                                   |
 
@@ -1106,12 +1106,12 @@ returns `invalid_metadata` without mutation. A metadata-only change returns `cha
 the affected scope in sorted `changedScopeIds`; a no-op returns both arrays empty. Root and affected
 scoped subscribers are each notified once after commit; unrelated scoped subscribers are not.
 
-`updateDashListCollapseOverrides` validates the complete readonly tuple array before applying any
+`updateDashStackCollapseOverrides` validates the complete readonly tuple array before applying any
 entry. Each node ID may occur once; a boolean stores an explicit collapse override and `null`
 removes it. Entries apply in array order, while root order, group orders, unrelated collapse
 overrides, and dormant node metadata remain unchanged. The whole batch is one metadata transaction:
 malformed IDs, tuple shapes, value types, or duplicate IDs return `invalid_metadata` without
-mutation, and an empty or semantic no-op batch succeeds without notification. Empty DashList and
+mutation, and an empty or semantic no-op batch succeeds without notification. Empty DashStack and
 scope records are normalized away exactly like the individual metadata commands.
 
 `destroyScope` clears durable metadata and ephemeral interaction but not canonical values,
@@ -1123,18 +1123,18 @@ declarative defaults without persisting an empty record; a later durable operati
 
 > Implementation: Verified for the alpha slice — [scope metadata and destruction tests](../../packages/nexus/tests/scope-metadata.test.ts) and [integration traversal tests](../../packages/nexus/tests/integration.test.ts).
 
-Scoped prune-plan creation targets that view's DashList metadata; root creation requires `scopeId`.
-`DASHLIST-NODE-LEASE-1` supplies active presence through committed, release-only
-`acquireDashListNodeLease(scopedStore, { nodeId })` handles from `@picodash/nexus/integration`.
-Identity is `(scopeId, nodeId)`; duplicate active identities throw `duplicate-dash-list-node`.
-Exact option failures throw `invalid-dash-list-node-options`. The lease has no kind, containment,
+Scoped prune-plan creation targets that view's DashStack metadata; root creation requires `scopeId`.
+`DASHSTACK-NODE-LEASE-1` supplies active presence through committed, release-only
+`acquireDashStackNodeLease(scopedStore, { nodeId })` handles from `@picodash/nexus/integration`.
+Identity is `(scopeId, nodeId)`; duplicate active identities throw `duplicate-dash-stack-node`.
+Exact option failures throw `invalid-dash-stack-node-options`. The lease has no kind, containment,
 entity dependency, query API, snapshot state, or persistence representation.
 
 `createPrunePlan()` supports three exact modes: `review`; `explicit` with duplicate-free,
 disjoint `removeNodeIds` and `keepNodeIds` that exactly partition current candidates; and
 `inventory` with authoritative `knownNodeIds` that must include every active node. Root options
 also require `scopeId`; scoped operations infer their scope. Review returns an immutable
-`DashListPruneReview`; classified modes return an opaque `PicodashDashListPrunePlan`.
+`DashStackPruneReview`; classified modes return an opaque `PicodashDashStackPrunePlan`.
 
 Candidates are metadata-referenced IDs from root order, group-order owners and entries, and collapse
 overrides, excluding active nodes. Candidate effects identify
@@ -1143,13 +1143,13 @@ removed group's saved child order explicit. Invalid exact records, modes, ID arr
 inventories throw `invalid-prune-options` with only a safe reason.
 
 Executable plans are root-owned and single-use. Misuse throws `invalid-prune-plan` with only
-`wrong-kind | foreign-root | consumed`. Target DashList metadata or active-membership changes return
+`wrong-kind | foreign-root | consumed`. Target DashStack metadata or active-membership changes return
 the safe `stale_plan` issue; unrelated values, bindings, relationships, and other scopes do not.
 Execution removes only the classified metadata references and prunes empty records. It never changes
 canonical values, drafts, bindings, relationships, active leases, or another scope.
 
-DashList presents `resetRegisteredValues()` as `Reset values…` and `resetDashListMetadata()` as
-`Reset list…`. These remain separate actions: the former composes canonical registered-value reset
+DashStack presents `resetRegisteredValues()` as `Reset values…` and `resetDashStackMetadata()` as
+`Reset stack…`. These remain separate actions: the former composes canonical registered-value reset
 with targeted draft discard after success, while the latter resets order and group-collapse
 overrides without changing values.
 
@@ -1863,11 +1863,11 @@ can use them.
 
 ## Declarative integration surface
 
-`@picodash/nexus/integration` is a supported low-level entry for DashPanel, DashList, and authors of
+`@picodash/nexus/integration` is a supported low-level entry for DashPanel, DashStack, and authors of
 another declarative UI product. Ordinary applications use the root and React entries instead.
 
 ```ts
-type NexusEntityKind = 'dashPanel' | 'dashList'
+type NexusEntityKind = 'dashPanel' | 'dashStack'
 
 type EntityLeaseOptions =
   | {
@@ -1875,7 +1875,7 @@ type EntityLeaseOptions =
       readonly host: ProviderLease | EntityLease
     }
   | {
-      readonly kind: 'dashList'
+      readonly kind: 'dashStack'
       readonly host?: ProviderLease | EntityLease
     }
 
@@ -1921,13 +1921,13 @@ The returned objects are frozen, opaque, nominal mount generations. Their only c
 operation is `release()`; callers never supply or reconstruct a lease ID. `providerId` defaults to
 `default`. Provider acquisition accepts only a root Nexus, and entity acquisition accepts only a
 scoped Nexus. A Provider-hosted root entity supplies its `ProviderLease`; a nested entity supplies
-the nearest `EntityLease`. Only a standalone root DashList may omit `host`, in which case Nexus owns
+the nearest `EntityLease`. Only a standalone root DashStack may omit `host`, in which case Nexus owns
 a private standalone-host generation. Every DashPanel resolves transitively to a Provider
 generation.
 
 Entity options are validated as an exact own-key data record before any host handle is examined.
 The deterministic validation order is non-null, non-array object; no unknown own string or symbol
-key beyond `kind` and `host`; no accessor for either known key; exact `dashPanel | dashList` kind;
+key beyond `kind` and `host`; no accessor for either known key; exact `dashPanel | dashStack` kind;
 then the required presence of `host` for `dashPanel`. Failure throws `invalid-entity-options` with
 exactly `{ reason: InvalidEntityOptionsReason }`. A present host is then validated as a handle, so an
 invalid, foreign, released, or wrong-kind host remains `invalid-integration-handle`. No failure
@@ -1972,39 +1972,39 @@ active descendant traversal. It never appears on a root, scoped view, snapshot, 
 envelope, or diagnostic.
 
 > Contract: Accepted
-> Implementation: Partial — [integration runtime tests](../../packages/nexus/tests/integration.test.ts), [declarative integration tests](../../packages/nexus/tests/declarative-integration.test.ts), [integration React tests](../../packages/nexus/tests/integration-react.test.tsx), [integration type tests](../../packages/nexus/tests/integration.types.test.ts), and [package artifact checks](../../packages/nexus/tests/package-artifacts.mjs). Provider-hosted and opted-in standalone DashList boundaries are implemented; broader runtime inspection remains planned.
+> Implementation: Partial — [integration runtime tests](../../packages/nexus/tests/integration.test.ts), [declarative integration tests](../../packages/nexus/tests/declarative-integration.test.ts), [integration React tests](../../packages/nexus/tests/integration-react.test.tsx), [integration type tests](../../packages/nexus/tests/integration.types.test.ts), and [package artifact checks](../../packages/nexus/tests/package-artifacts.mjs). Provider-hosted and opted-in standalone DashStack boundaries are implemented; broader runtime inspection remains planned.
 
-### Active DashList orientation override
+### Active DashStack orientation override
 
 > Contract: Accepted
 > Implementation: Planned
 
 `@picodash/nexus/integration` exposes one narrow runtime channel for Picodash to coordinate a
-settled Panel dock with a DashList rail without coupling either UI package to the other:
+settled Panel dock with a DashStack rail without coupling either UI package to the other:
 
 ```ts
-type DashListOrientationOverride = 'horizontal' | 'vertical'
+type DashStackOrientationOverride = 'horizontal' | 'vertical'
 
-interface DashListOrientationOverrideLease {
+interface DashStackOrientationOverrideLease {
   readonly scopeId: string
-  readonly orientation: DashListOrientationOverride
-  update(orientation: DashListOrientationOverride): void
+  readonly orientation: DashStackOrientationOverride
+  update(orientation: DashStackOrientationOverride): void
   release(): void
 }
 
-declare function acquireDashListOrientationOverrideLease(
+declare function acquireDashStackOrientationOverrideLease(
   rootStore: RootNexus,
   options: {
     scopeId: string
-    orientation: DashListOrientationOverride
+    orientation: DashStackOrientationOverride
   },
-): DashListOrientationOverrideLease
+): DashStackOrientationOverrideLease
 
-declare function getDashListOrientationOverride(
+declare function getDashStackOrientationOverride(
   scopedStore: ScopedNexus,
-): DashListOrientationOverride | undefined
+): DashStackOrientationOverride | undefined
 
-declare function subscribeDashListOrientationOverride(
+declare function subscribeDashStackOrientationOverride(
   scopedStore: ScopedNexus,
   listener: () => void,
 ): () => void
@@ -2013,36 +2013,36 @@ declare function subscribeDashListOrientationOverride(
 The API has these rules:
 
 - It exists only on the integration entry. Ordinary applications use the public
-  `DashList.orientation` prop; the initial Nexus API has no application command for setting this
+  `DashStack.orientation` prop; the initial Nexus API has no application command for setting this
   override and therefore no precedence problem between competing application and Picodash writers.
 - Picodash acquires the lease only after its declarative integration commits and only while it has a
   concrete derived orientation. `full/center-left` and `full/center-right` derive `vertical`;
   `full/center-top` and `full/center-bottom` derive `horizontal`. Corner, free, and snapped
-  dispositions hold no lease, so the declared DashList orientation or its default applies.
+  dispositions hold no lease, so the declared DashStack orientation or its default applies.
 - One root may hold at most one live orientation-override lease for a scope. A duplicate acquisition
   throws a contract error even when both leases propose the same value.
 - `update()` changes a live lease atomically. An unchanged value is a no-op without notification.
   Updating a released, foreign, or superseded lease throws a contract error.
 - `release()` is idempotent. Its first call clears the active override and notifies that scope's
-  channel once. The DashList then resolves its declared orientation or default.
+  channel once. The DashStack then resolves its declared orientation or default.
 - Acquisition validates root ownership and scope-ID syntax but does not require an already active
-  DashList. This removes React effect-order dependence when integrated Panel and List descendants
+  DashStack. This removes React effect-order dependence when integrated Panel and Stack descendants
   commit. The lease creates no Provider, entity, relationship, host affinity, binding, durable
   scope, or metadata record. Like every live integration lease, it prevents root destruction until
   release.
-- `getDashListOrientationOverride()` and `subscribeDashListOrientationOverride()` form an
+- `getDashStackOrientationOverride()` and `subscribeDashStackOrientationOverride()` form an
   external-store channel scoped to exactly one view. The listener receives no state argument and
   reads the latest value with the getter. Subscription teardown is idempotent.
 - The runtime value is absent from `RootNexus.getState()` and `ScopedNexus.getState()`. It does not
-  notify canonical-value, durable-metadata, or binding-interaction subscribers. DashList composes
+  notify canonical-value, durable-metadata, or binding-interaction subscribers. DashStack composes
   the getter and subscription internally; the foundational public component exposes no Nexus hook
   for this implementation channel.
-- The value never enters `DashListMetadataRecord`, persistence, export, import, or migration. A
+- The value never enters `DashStackMetadataRecord`, persistence, export, import, or migration. A
   future durable user orientation preference requires a separate product contract.
 
-`DashListOrientationOverride` and DashList's public `DashListOrientation` are intentionally
+`DashStackOrientationOverride` and DashStack's public `DashStackOrientation` are intentionally
 structurally compatible literal unions. Nexus defines its integration type without importing the
-DashList package.
+DashStack package.
 
 ## React boundaries and hooks
 
@@ -2066,17 +2066,20 @@ type PicodashNexusEntityBoundaryProps<
   children: ReactNode
   nexus: ScopedNexus<Fields, Result>
 }> &
-  ({ kind: 'dashPanel'; allowStandalone?: never } | { kind: 'dashList'; allowStandalone?: boolean })
+  (
+    | { kind: 'dashPanel'; allowStandalone?: never }
+    | { kind: 'dashStack'; allowStandalone?: boolean }
+  )
 ```
 
 `PicodashNexusProviderBoundary` resets inherited root and scope ancestry. An entity boundary always
 requires a scoped Nexus. With inherited context it uses the nearest host, regardless of
 `allowStandalone`; a different scope acquires the ordinary hosted relationship. Without context,
 an unopted boundary (or any DashPanel boundary) throws `missing-nexus-context` with exactly
-`{ required: 'root-or-scoped' }`. A rootless DashList opts into a private standalone host only when
+`{ required: 'root-or-scoped' }`. A rootless DashStack opts into a private standalone host only when
 `allowStandalone: true`; `false` and omission preserve the missing-context error. The standalone
 host is constructed without leases, provides frozen root/scoped context during render, and mounts
-the root DashList plus queued descendants only after commit. It releases descendants deepest-first
+the root DashStack plus queued descendants only after commit. It releases descendants deepest-first
 and leaves child declarations retryable if activation fails. A direct DashPanel child of the
 standalone host fails with `invalid-integration-handle` `{ role: 'host', reason: 'wrong-kind' }`.
 
@@ -2123,10 +2126,10 @@ The current package remains useful evidence, but these prototype surfaces do not
 | Per-Panel `panelId`/`scopeId` Nexus options | Replace with root identity plus canonical scoped views. |
 | Standard Schema passed through `validate`   | Move to the dedicated `schema` stage.                   |
 | `allowUnset` and unset field outputs        | Replace with explicit JSON optional values.             |
-| Presentation compatibility exports          | Move presentation ownership to DashList/Dashlets.       |
+| Presentation compatibility exports          | Move presentation ownership to DashStack/Dashlets.      |
 | `PicodashPanel*` document functions/types   | Replace with the typed `documents` capability.          |
 | Filename, MIME, and JSON/YAML codec helpers | Move to consuming products or a dedicated codec entry.  |
-| Public item/order implementation helpers    | Move behind Nexus integration or DashList ownership.    |
+| Public item/order implementation helpers    | Move behind Nexus integration or DashStack ownership.   |
 | Standalone diagnostic channel construction  | Replace with the root `diagnostics` namespace.          |
 | Hook-generated React state/reducer adapters | Defer; keep the manual adapter contract authoritative.  |
 | Imperative registration and deregistration  | Replace with committed declarative leases.              |

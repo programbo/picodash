@@ -15,7 +15,7 @@
 - Bloom and quality use compatible built-in Dashlets.
 - Atmosphere is one compound `Dashlet` with three field bindings, one ordering boundary, and one
   reset boundary.
-- The compound body uses `@picodash/dashlist/dashlet` for accepted semantic anatomy and
+- The compound body uses `@picodash/dashstack/dashlet` for accepted semantic anatomy and
   `@picodash/picodash/ui` only where a lower-level interactive primitive is needed.
 
 ## Exposure and UX

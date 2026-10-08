@@ -159,7 +159,7 @@ describe('@picodash/nexus/react explicit selectors', () => {
     const view = mountSelector(scoped, (state) => state.values)
     const initialRenders = view.renders
     act(() => {
-      scoped.setDashListRootOrder(['a', 'b'])
+      scoped.setDashStackRootOrder(['a', 'b'])
     })
     expect(view.renders).toBe(initialRenders)
     expect(view.output).toMatchObject({ children: ['{"count":0,"label":"initial"}'] })
@@ -178,7 +178,7 @@ describe('@picodash/nexus/react explicit selectors', () => {
     const callsAfterMount = selectorCalls
     const rendersAfterMount = view.renders
     act(() => {
-      scopeB.setDashListRootOrder(['b-item'])
+      scopeB.setDashStackRootOrder(['b-item'])
     })
     expect(selectorCalls).toBe(callsAfterMount)
     expect(view.renders).toBe(rendersAfterMount)

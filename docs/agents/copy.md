@@ -12,9 +12,9 @@ uncertainty, or enable action. Delete decorative text.
 - Lead with the product, intended user, and concrete outcome. Explain architecture afterward and
   only when it clarifies a visible benefit or constraint.
 - Preserve the distinct product lenses: Nexus defines state meaning and valid change; DashPanel
-  determines where UI lives; DashList determines how Dashlets are organized and operated; Picodash
+  determines where UI lives; DashStack determines how Dashlets are organized and operated; Picodash
   integrates them.
-- Use specific nouns and verbs: Panel, List, Dashlet, typed field, move, dock, reorder, bind,
+- Use specific nouns and verbs: Panel, Stack, Dashlet, typed field, move, dock, reorder, bind,
   validate, persist, inspect.
 - Explain unfamiliar terms through observable behavior when first introduced.
 - Begin component and API documentation with one factual purpose sentence.
@@ -24,5 +24,5 @@ Avoid generic claims such as “powerful,” “seamless,” “modern,” or �
 metaphors or vague words such as “surface,” “journey,” “experience,” “ceremony,” or “specimen” in
 place of concrete behavior.
 
-Preserve the exact names `Picodash`, `DashPanel`, `DashList`, `Dashlet`, `Nexus`, and the
+Preserve the exact names `Picodash`, `DashPanel`, `DashStack`, `Dashlet`, `Nexus`, and the
 `@picodash` package scope. Picodash has a lowercase `d`.

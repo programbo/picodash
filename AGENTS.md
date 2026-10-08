@@ -24,9 +24,10 @@ them. Re-read the routes when the task expands into another package.
   [`docs/reference/dashpanel-contract-decisions.md`](docs/reference/dashpanel-contract-decisions.md),
   [`docs/reference/dashpanel.md`](docs/reference/dashpanel.md), and
   [`docs/adr/0004-dashpanel-launcher-item-identity.md`](docs/adr/0004-dashpanel-launcher-item-identity.md).
-- DashList or Dashlet behavior or docs: [`docs/agents/dashlist.md`](docs/agents/dashlist.md),
-  [`docs/reference/dashlist.md`](docs/reference/dashlist.md), and
-  [`docs/adr/0006-dashlist-responsive-measurement.md`](docs/adr/0006-dashlist-responsive-measurement.md).
+- DashStack or Dashlet behavior or docs: [`docs/agents/dashstack.md`](docs/agents/dashstack.md),
+  [`docs/reference/dashstack.md`](docs/reference/dashstack.md), and
+  [`docs/adr/0006-dashstack-responsive-measurement.md`](docs/adr/0006-dashstack-responsive-measurement.md), and
+  [`docs/adr/0007-dashstack-name-and-public-identity.md`](docs/adr/0007-dashstack-name-and-public-identity.md).
 - Picodash or cross-product integration: [`docs/agents/picodash.md`](docs/agents/picodash.md) and
   [`docs/reference/picodash.md`](docs/reference/picodash.md).
 - Product copy, examples, or package READMEs: the matching package route,
@@ -62,7 +63,7 @@ constraint and revise the decision explicitly. Current code remains prototype ev
 implicit compatibility requirement. Prefer clean pre-v1 breaks over aliases unless compatibility
 is explicitly required.
 
-Implementation follows the accepted Nexus, shared UI, DashPanel, DashList, and Picodash roadmap.
+Implementation follows the accepted Nexus, shared UI, DashPanel, DashStack, and Picodash roadmap.
 Do not skip ahead through private cross-package APIs. A higher product may reveal a foundation gap,
 but it must not solve that gap through a private bypass.
 
@@ -76,48 +77,48 @@ before changing product behavior or public copy.
 
 Picodash Nexus is the typed state hub behind settings panels, inspectors, and control dashboards.
 It can own application values or adapt an existing synchronous state store while providing one
-contract for typed fields, valid atomic changes, drafts, scoped Panel and List preferences,
+contract for typed fields, valid atomic changes, drafts, scoped Panel and Stack preferences,
 persistence, repair, documents, and diagnostics.
 
 Nexus is independently useful and renders no UI. It owns state meaning and valid changes, not
-Panel placement, List composition, authentication, or authorization.
+Panel placement, Stack composition, authentication, or authorization.
 
 ### `@picodash/ui`
 
-UI is the shared presentation foundation that lets DashPanel and DashList look and behave
+UI is the shared presentation foundation that lets DashPanel and DashStack look and behave
 consistently without duplicating theme, density, overlay, token, and generic accessibility work.
 It exists so product packages can concentrate on their distinct behavior while applications can
 provide one coherent visual contract.
 
 UI supports the products; it is not a separately marketed control-interface product and owns no
-Nexus, Panel, List, Dashlet, placement, ordering, or persistence behavior.
+Nexus, Panel, Stack, Dashlet, placement, ordering, or persistence behavior.
 
 ### `@picodash/dashpanel`
 
 DashPanel is a standalone React panel shell for adding movable, dockable, dismissible arbitrary UI
 without rebuilding window management, boundaries, portals, accessible actions, adaptive modal
 presentation, and durable placement. Its decisions should make application-owned tools, previews,
-and readouts reliable wherever they are placed—not assume that their content is a DashList.
+and readouts reliable wherever they are placed—not assume that their content is a DashStack.
 
 DashPanel determines where UI lives. It owns Panel hosting and placement behavior, not the
 content's form, ordering, field bindings, or application-value model.
 
-### `@picodash/dashlist`
+### `@picodash/dashstack`
 
-DashList is a standalone React composition system for ordered, groupable controls, readouts,
+DashStack is a standalone React composition system for ordered, groupable controls, readouts,
 visualizations, previews, and actions backed by typed Nexus fields. It saves applications from
 rebuilding binding drafts, accessible reordering, grouping, collapse behavior, durable user order,
 and the relationship between canonical values and compound controls.
 
-DashList determines how Dashlets are organized and operated. It owns List and Dashlet composition,
+DashStack determines how Dashlets are organized and operated. It owns Stack and Dashlet composition,
 not floating placement, Panel hosting, portals, routing, or application transport.
 
 ### `@picodash/picodash`
 
-Picodash is the integrated control and monitoring interface built from Nexus, DashPanel, DashList,
+Picodash is the integrated control and monitoring interface built from Nexus, DashPanel, DashStack,
 and UI. It lets a developer or coding agent add configurable controls, live readouts,
 visualizations, previews, and actions to an existing application without inventing the state,
-Panel, and List infrastructure separately.
+Panel, and Stack infrastructure separately.
 
 Picodash is an integration facade, not a monolithic Dashboard component or application framework.
 Applications retain routing, transport, authentication, authorization, exposure policy, and JSX
@@ -135,17 +136,17 @@ preserve Nexus validation, disclosure, generation, and security boundaries.
 
 ## Concurrent Nexus-consumer dogfooding
 
-Treat Dev Bridge, DashPanel, and DashList as three concurrent consumers of the public Nexus
+Treat Dev Bridge, DashPanel, and DashStack as three concurrent consumers of the public Nexus
 contract. Improvements discovered by one consumer must strengthen the shared public contract when
 the need is general; they must not create consumer-specific private access.
 
-When developing DashPanel or DashList:
+When developing DashPanel or DashStack:
 
 1. Use Dev Bridge in the Contract Lab whenever the behavior can be observed through disclosed
    Nexus state, mutation results, diagnostics, or browser-visible effects.
 2. Keep the other UI consumer in mind when changing Nexus contracts. A convenience that only fits
    one package is not automatically a Nexus abstraction.
-3. If missing or awkward Dev Bridge behavior makes the DashPanel or DashList task harder to inspect,
+3. If missing or awkward Dev Bridge behavior makes the DashPanel or DashStack task harder to inspect,
    automate, or verify, prioritize the smallest safe Dev Bridge improvement before continuing the
    product workaround.
 4. Exercise the new Bridge capability against a real public Nexus consumer before relying on it.
@@ -164,14 +165,14 @@ use as many ephemeral loopback ports as its relay and browser broker require.
 - `@picodash/ui` owns product-neutral theme, density, tokens, structural CSS, overlays, and generic
   accessible primitives used unchanged by both UI products.
 - `@picodash/dashpanel` owns Panel and Provider composition, placement, hosting, and Panel actions.
-- `@picodash/dashlist` owns Lists, groups, Dashlets, bindings, ordering, collapse, List actions,
-  unbound DashList controls, and package-owned catalog entries.
+- `@picodash/dashstack` owns Stacks, groups, Dashlets, bindings, ordering, collapse, Stack actions,
+  unbound DashStack controls, and package-owned catalog entries.
 - `@picodash/picodash` integrates and explicitly reexports stable foundation contracts. A component
-  belongs here only when it necessarily coordinates DashPanel and DashList behavior.
+  belongs here only when it necessarily coordinates DashPanel and DashStack behavior.
 - `@picodash/dev-bridge` consumes public Nexus behavior for local agent tooling. Nexus never depends
   on it.
 
-DashPanel and DashList depend on compatible Nexus and UI foundations, not on one another. Do not
+DashPanel and DashStack depend on compatible Nexus and UI foundations, not on one another. Do not
 use blanket exports or cross-package source imports. Generated `dist/` output is never edited
 directly. The exact accepted entrypoints and component surfaces live in the matching target
 references and must be read before package work.
@@ -180,9 +181,9 @@ references and must be read before package work.
 
 1. Complete Nexus contracts and reach a useful Nexus alpha.
 2. Establish the shared UI foundation needed by both UI products.
-3. Dogfood Nexus, UI, and Dev Bridge independently through DashPanel and DashList.
+3. Dogfood Nexus, UI, and Dev Bridge independently through DashPanel and DashStack.
 4. Feed consumer findings back into their owning foundations before stability.
-5. Stabilize DashPanel and DashList against their own release gates.
+5. Stabilize DashPanel and DashStack against their own release gates.
 6. Build Picodash integration after the three products are stable.
 
 A vertical slice stays within the product currently being developed. A small cross-package smoke
@@ -232,7 +233,7 @@ server.
 - `packages/dev-bridge`: private authenticated loopback Nexus inspection bridge.
 - `packages/ui`: shared theme, density, token, and generic accessible UI foundation.
 - `packages/dashpanel`: standalone DashPanel prototype.
-- `packages/dashlist`: standalone DashList prototype.
+- `packages/dashstack`: standalone DashStack prototype.
 - `packages/picodash`: integrated facade prototype.
 - `apps/web`: production Next.js evaluation website; `/` is the only public route.
 - `apps/lab`: Contract Lab at `/lab` plus checked-in audit report rendering.

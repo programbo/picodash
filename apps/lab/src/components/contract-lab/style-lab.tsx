@@ -8,7 +8,7 @@ import {
   ColorDashlet,
   ComboboxDashlet,
   DashGroup,
-  DashList,
+  DashStack,
   DashPanel,
   DateDashlet,
   DateRangeDashlet,
@@ -82,7 +82,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
         }}
         data-style-lab-panel="basics-readout"
       >
-        <DashList aria-label="Basics and readout Dashlets" reorderable>
+        <DashStack aria-label="Basics and readout Dashlets" reorderable>
           <SearchDashlet
             id="style-lab-search"
             field={nexus.fields.search}
@@ -167,7 +167,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
               ]}
             />
           </DashGroup>
-        </DashList>
+        </DashStack>
       </DashPanel>
 
       <DashPanel
@@ -184,7 +184,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
         }}
         data-style-lab-panel="choices-temporal"
       >
-        <DashList aria-label="Choices and temporal Dashlets" reorderable>
+        <DashStack aria-label="Choices and temporal Dashlets" reorderable>
           <ColorDashlet
             id="style-lab-color"
             field={nexus.fields.color}
@@ -271,7 +271,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
               locale="en-AU"
             />
           </DashGroup>
-        </DashList>
+        </DashStack>
       </DashPanel>
     </PicodashProvider>
   )

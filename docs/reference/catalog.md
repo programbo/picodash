@@ -8,7 +8,7 @@ does not register components or participate in application runtime.
 
 > Contract: Accepted
 > Implementation: Partial
-> Evidence: `@picodash/dashlist/catalog` ships with package-artifact and conformance checks;
+> Evidence: `@picodash/dashstack/catalog` ships with package-artifact and conformance checks;
 > DashPanel publication and Picodash aggregation remain planned.
 
 ## Audience and purpose
@@ -40,11 +40,11 @@ interface PicodashComponentCatalog {
 
 interface PicodashCatalogEntry {
   readonly id: string
-  readonly owner: '@picodash/dashpanel' | '@picodash/dashlist' | '@picodash/picodash'
+  readonly owner: '@picodash/dashpanel' | '@picodash/dashstack' | '@picodash/picodash'
   readonly entrypoint: string
   readonly exportName: string
   readonly kind:
-    'provider' | 'panel' | 'list' | 'group' | 'dashlet' | 'anatomy' | 'action-composition'
+    'provider' | 'panel' | 'stack' | 'group' | 'dashlet' | 'anatomy' | 'action-composition'
   readonly summary: string
   readonly capabilities: readonly string[]
   readonly field: {
@@ -74,8 +74,8 @@ Picodash facade merely to describe their exports.
 ## Entry ownership
 
 - DashPanel publishes one entry for every Accepted public React component it owns.
-- DashList publishes one entry for every Accepted public React component it owns, including each
-  stable ready-made Dashlet in the inventory defined by the [DashList reference](dashlist.md#stable-ready-made-inventory).
+- DashStack publishes one entry for every Accepted public React component it owns, including each
+  stable ready-made Dashlet in the inventory defined by the [DashStack reference](dashstack.md#stable-ready-made-inventory).
 - Picodash publishes its `PicodashProvider` entry, combines the exact foundation entry objects, and
   records facade import paths in `reexports`.
 - A facade reexport never becomes a copied entry or changes the entry's `owner`.
@@ -127,7 +127,7 @@ inspect in build tools and avoids creating a second component authority.
 The accepted catalog entrypoints are:
 
 - `@picodash/dashpanel/catalog`;
-- `@picodash/dashlist/catalog`; and
+- `@picodash/dashstack/catalog`; and
 - `@picodash/picodash/catalog`.
 
 Each entrypoint exports the same predictable names:
@@ -163,13 +163,13 @@ Catalog checks do not repeat component behavior or prop-type tests.
 ## Related documents
 
 - [DashPanel target reference](dashpanel.md)
-- [DashList target reference](dashlist.md)
+- [DashStack target reference](dashstack.md)
 - [Picodash target reference](picodash.md)
 - [Contract conformance](contract-conformance.md)
 
 ## M7 recovery admission
 
-The DashList catalog advertises the seven retained ready-made candidates selected in the
+The DashStack catalog advertises the seven retained ready-made candidates selected in the
 [M7 ledger](../internal/m7-dashlet-curation.md). The fifteen deferred prototype controls remain
 available for evaluation in the package but are omitted from the stable catalog. The schema does
 not change: removing premature stable entries changes admission, not metadata structure.

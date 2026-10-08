@@ -406,7 +406,7 @@ describe('Nexus document namespace integration', () => {
       scopes: [],
     }
     const transient = nexus.scope('transient')
-    const lease = acquireEntityLease(transient, { kind: 'dashList' })
+    const lease = acquireEntityLease(transient, { kind: 'dashStack' })
     const analysis = nexus.documents.analyzeImport(scopeDocument, {
       targetScopeId: 'transient',
     })

@@ -8,7 +8,7 @@ pre-release clean replacement.
 
 ## Context
 
-DashPanel and DashList are independent products, but both need the same theme resolution, density,
+DashPanel and DashStack are independent products, but both need the same theme resolution, density,
 semantic tokens, accessible chrome, and header composition. Making either product depend on the
 other would violate their independent package boundaries. Importing source files across sibling
 packages would hide that dependency from package manifests and published artifacts.
@@ -33,19 +33,19 @@ owns:
 
 A component belongs in `@picodash/ui` only when all of these rules hold:
 
-1. DashPanel and DashList both use the same public behavior.
-2. Its semantics do not mention Panel, List, Dashlet, Nexus, scope, placement, ordering, or another
+1. DashPanel and DashStack both use the same public behavior.
+2. Its semantics do not mention Panel, Stack, Dashlet, Nexus, scope, placement, ordering, or another
    product concept.
 3. Its accessibility, theme, and interaction contract should remain identical for every consumer.
 4. It owns no product state, product commands, registration, persistence, or domain policy.
 
-`@picodash/nexus` has no UI dependency. DashPanel and DashList may each depend on Nexus and UI, but
+`@picodash/nexus` has no UI dependency. DashPanel and DashStack may each depend on Nexus and UI, but
 not on one another. `@picodash/picodash` depends on the foundations and reexports shared UI where
 the facade promises that convenience.
 
 Product-specific UI remains with its product. DashPanel owns placement, drag surfaces, collapse,
-close, and Panel actions. DashList owns Dashlets, groups, bindings, ordering, List resets, and
-Dashlet-oriented unbound controls. `@picodash/dashlist/ui` therefore remains a product surface; it
+close, and Panel actions. DashStack owns Dashlets, groups, bindings, ordering, Stack resets, and
+Dashlet-oriented unbound controls. `@picodash/dashstack/ui` therefore remains a product surface; it
 is not replaced by the shared package.
 
 The pre-release migration is a clean rename and ownership move. The target does not retain an
@@ -54,7 +54,7 @@ The pre-release migration is a clean rename and ownership move. The target does 
 ## Consequences
 
 - UI is a supporting foundation, not a fourth independently marketed product.
-- DashPanel-only and DashList-only consumers receive the same theme and shared chrome contracts
+- DashPanel-only and DashStack-only consumers receive the same theme and shared chrome contracts
   without installing the other product.
 - Shared components have an explicit dependency and release boundary instead of cross-package
   source imports.
@@ -68,8 +68,8 @@ The pre-release migration is a clean rename and ownership move. The target does 
 
 ## Rejected alternatives
 
-- **Import DashPanel source from DashList:** creates an undeclared build and publication dependency.
-- **Make DashList depend on DashPanel:** breaks the accepted independent-product model.
+- **Import DashPanel source from DashStack:** creates an undeclared build and publication dependency.
+- **Make DashStack depend on DashPanel:** breaks the accepted independent-product model.
 - **Create a one-component DashHeader package:** adds a public package without a durable ownership
   boundary.
 - **Keep theme and shared components in separate foundations:** divides theme-aware UI ownership and

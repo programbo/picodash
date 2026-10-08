@@ -117,8 +117,8 @@ the Lab is already stopped, a new start performs stale-lock recovery as describe
 
 Implemented baseline: Nexus relay, browser connector, typed HTTP client, CLI, and Contract Lab
 dogfood (discover, inspect, set, wait, and reload-generation rejection). The same journey now proves
-Bridge writes through single and compound DashList bindings, UI input observed by Bridge, stale
-draft behavior after an external write, confirmed DashList-owned overwrite observed through
+Bridge writes through single and compound DashStack bindings, UI input observed by Bridge, stale
+draft behavior after an external write, confirmed DashStack-owned overwrite observed through
 inspect/wait, identified Nexus migration with a projected disclosed value, quarantined metadata
 diagnostics, public metadata replacement, and a live Nexus session retained while DashPanel hides
 and reopens. The same browser journey also creates and executes a value-free Nexus document export
@@ -145,7 +145,7 @@ through its accessible disclosure control, waits for the primary session sequenc
 rediscovers the current generation, and inspects the already disclosed
 `contract-lab-standalone-list` scope for the durable `standalone-group` collapse override. The
 journey does not write metadata through Bridge or expand disclosure. Deterministic collapse,
-reorder, and reset behavior remains owned by the focused DashList and Nexus tests.
+reorder, and reset behavior remains owned by the focused DashStack and Nexus tests.
 
 MCP stdio parity is a follow-on only if the CLI proves useful. Bridge persistence, reset, and other
 dangerous extensions remain deferred; they require preview, explicit confirmation, idempotency, and

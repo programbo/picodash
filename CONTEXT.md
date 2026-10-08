@@ -6,8 +6,8 @@ Picodash ships three foundational products and one integrated product:
 
 - `@picodash/nexus`: the typed state hub for configurable controls, readouts, and dashboards.
 - `@picodash/dashpanel`: the standalone draggable, dockable panel shell.
-- `@picodash/dashlist`: standalone list, group, and Dashlet composition primitives.
-- `@picodash/picodash`: the integrated facade combining DashPanel and DashList.
+- `@picodash/dashstack`: standalone vertical Stack, group, and Dashlet composition primitives.
+- `@picodash/picodash`: the integrated facade combining DashPanel and DashStack.
 
 `@picodash/ui` is the supporting theme, density, token, and generic accessible UI foundation. The
 former `@picodash/theme` package was retired in the pre-release clean replacement.
@@ -31,22 +31,24 @@ A transient drawer or sheet projection of a Panel that preserves the Panel's ord
 preference.
 _Avoid_: Mobile mode, responsive placement, docked sheet
 
-**DashList**
-An ordered, groupable collection of registered Dashlets associated with one Nexus scope.
+**DashStack**
+An ordered, groupable composition of registered Dashlets associated with one Nexus scope,
+arranged vertically in normal presentation.
+The canonical name is recorded in [ADR 0007](docs/adr/0007-dashstack-name-and-public-identity.md).
 _Avoid_: Panel, field registry, schema-generated form
 
-**Primary DashList**
-The DashList that shares a Panel's Nexus scope. A Panel has at most one primary DashList, while
-additional DashLists occupy explicitly identified child scopes.
-_Avoid_: First List, default List, only List
+**Primary DashStack**
+The DashStack that shares a Panel's Nexus scope. A Panel has at most one primary DashStack, while
+additional DashStacks occupy explicitly identified child scopes.
+_Avoid_: First Stack, default Stack, only Stack
 
 **DashGroup**
-A declarative DashList container with one stable node identity, optional collapse, and one
+A declarative DashStack container with one stable node identity, optional collapse, and one
 immediate-child ordering container. It is not a Nexus scope.
-_Avoid_: Scope, nested List, Dashlet group
+_Avoid_: Scope, nested Stack, Dashlet group
 
 **Dashlet**
-A registered leaf in a DashList that presents a control, readout, visualization, preview, action,
+A registered leaf in a DashStack that presents a control, readout, visualization, preview, action,
 or compound composition.
 _Avoid_: Panel, widget, tweak
 
@@ -55,9 +57,9 @@ One Dashlet that composes multiple elements and may bind several fields while re
 identity, ordering boundary, focus boundary, and standard issue region.
 _Avoid_: Dashlet group, mini-dashboard, nested Panel
 
-**List behavior action**
-An operation whose target and effect belong to one active DashList scope, such as expanding groups
-or resetting List-owned state. Its presentation may be shared without transferring behavior to
+**Stack behavior action**
+An operation whose target and effect belong to one active DashStack scope, such as expanding groups
+or resetting Stack-owned state. Its presentation may be shared without transferring behavior to
 DashPanel or Picodash.
 _Avoid_: Panel action, menu item
 

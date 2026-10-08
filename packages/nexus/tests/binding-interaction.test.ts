@@ -749,7 +749,7 @@ describe('binding interaction commands', () => {
         nestedError = error
       }
     })
-    nexus.setDashListRootOrder('unrelated', ['node'])
+    nexus.setDashStackRootOrder('unrelated', ['node'])
     expect(nestedError).toEqual(expect.objectContaining({ code: 'reentrant-write' }))
     unsubscribe()
     expect(scope.executeRepair(failed.repair)).toMatchObject({ ok: true })

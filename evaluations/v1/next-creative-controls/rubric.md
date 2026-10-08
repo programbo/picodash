@@ -14,7 +14,7 @@
 ## Manual review — 40 points
 
 - State ownership is unambiguous; no duplicated state or synchronization effects: 10
-- Public DashList `/dashlet` and Picodash `/ui` composition surfaces are used without internal or
+- Public DashStack `/dashlet` and Picodash `/ui` composition surfaces are used without internal or
   rejected facade imports: 8
 - Panel placement is unobtrusive and does not shift the canvas: 6
 - Labels, target sizes, focus, contrast, and reduced motion meet WCAG 2.2 AA intent: 8

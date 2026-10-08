@@ -18,13 +18,13 @@ source of truth.
 
 ## Package purpose
 
-DashPanel renders arbitrary React content in a host-coordinated Panel without requiring DashList.
+DashPanel renders arbitrary React content in a host-coordinated Panel without requiring DashStack.
 It owns Panel composition, placement, portals, accessible actions, transient host runtime, and the
 translation between Panel behavior and Nexus-owned durable layout records.
 
 Nexus owns durable layout data and scope identity. `@picodash/ui` owns shared theme and density
 contracts, semantic tokens, and product-neutral primitives. DashPanel does not own application
-values, DashList composition, routing, authorization, or permanent component removal.
+values, DashStack composition, routing, authorization, or permanent component removal.
 
 ## Target composition
 
@@ -238,7 +238,7 @@ state.
 > Implementation: Partial
 
 - One active DashPanel is permitted per scope.
-- A Panel and one primary DashList may share a scope.
+- A Panel and one primary DashStack may share a scope.
 - A Panel resolving a different scope from its nearest scoped context registers an active
   declarative parent-child relationship.
 - Nexus entity and relationship leases follow committed React lifecycle.
@@ -522,10 +522,10 @@ allocation, the Panel body scrolls while its header and reveal affordance remain
   resolves the overlap unless a future reviewed contract introduces a different explicit tiling
   rule.
 
-Picodash defines a reviewed exception for integrated DashList rails. A corner rail's orientation
+Picodash defines a reviewed exception for integrated DashStack rails. A corner rail's orientation
 selects an effective edge, perpendicular rails may bound one another at their inner edges, and three
 rail occupants on one edge receive the standard thirds accommodation. This coordination belongs to
-the Picodash facade and does not make standalone DashPanel depend on DashList or change ordinary
+the Picodash facade and does not make standalone DashPanel depend on DashStack or change ordinary
 non-rail allocation.
 
 ## Boundaries, insets, and portals
@@ -629,7 +629,7 @@ Responsive behavior is geometry-derived rather than breakpoint-driven:
   preferred position;
 - a free Panel keeps its intrinsic height while it fits; dragging its header downward may reduce
   the resolved height to the remaining boundary space instead of forcing the header upward;
-- the Panel never reduces below its measured shell minimum; a root DashList contributes its
+- the Panel never reduces below its measured shell minimum; a root DashStack contributes its
   `start` and `end` bands to that minimum while its automatic band owns overflow scrolling;
 - changing boundary, inset, zoom, or viewport during an active movement cancels the interaction and
   writes no stale result;
@@ -645,7 +645,7 @@ back into the settled layout.
 
 Overflowing ordinary content scrolls within the Panel body, with the shared vertical
 [`scroll-fade` recipe](ui.md#scroll-overflow-feedback) indicating content above or below. A root
-DashList owns its automatic-band scrollport instead; the Panel header and pinned bands remain
+DashStack owns its automatic-band scrollport instead; the Panel header and pinned bands remain
 unfaded. Content that fits is not faded.
 Scrolling inside the Panel or completing a scroll-mask animation does not trigger intrinsic shell
 measurement; ancestor or viewport scrolling still updates placement geometry.
@@ -681,7 +681,7 @@ type DashPanelPresentation =
 The host selects `presentation` from its own viewport, route, or application policy. DashPanel has
 no product breakpoint and never changes presentation automatically. Drawer and sheet are transient
 projections: they do not change the durable placement or preferred coordinates, and returning to
-`panel` restores the same desktop layout input. DashList content continues to respond to its actual
+`panel` restores the same desktop layout input. DashStack content continues to respond to its actual
 container width independently.
 
 While a drawer or sheet is active:
@@ -776,7 +776,7 @@ unmount its JSX. Omitting the callback omits the permanent-removal action.
 ## Action menu
 
 The built-in DashPanel menu contains only Panel-owned placement and layout-reset actions. Value
-reset, group expansion, copy, import, export, and disclosure policy belong to DashList, Nexus, or
+reset, group expansion, copy, import, export, and disclosure policy belong to DashStack, Nexus, or
 integrated Picodash composition.
 
 | Configuration                      | Contract | Behavior                                              |
@@ -914,7 +914,7 @@ containment without creating a layout override.
 Valid intrinsic CSS width values are supported. For example, `width="fit-content"` or a selector
 setting `--picodash-panel-width: fit-content` lets the browser derive width from arbitrary content,
 subject to the effective boundary. DashPanel does not measure content and convert that result into
-a stored numeric preference. This avoids making responsive children or DashList's container-based
+a stored numeric preference. This avoids making responsive children or DashStack's container-based
 layout into a circular persistence input.
 
 `full-top` and `full-bottom` docks own the available inline span, so the preferred width is dormant
@@ -947,7 +947,7 @@ UI implementation as the target while still giving a DashPanel-only consumer a c
 
 Before the shared-consumption conformance row becomes Verified, a check must prove that every
 consumed public variable is documented and every documented variable is consumed or deliberately
-inherited. DashList maintains its own complete dependency table by the same rule.
+inherited. DashStack maintains its own complete dependency table by the same rule.
 
 The prototype's copied shared recipe is removed during migration. DashPanel imports
 `@picodash/ui/style.css`, defines only `--picodash-panel-*` public tokens in its own stylesheet, and

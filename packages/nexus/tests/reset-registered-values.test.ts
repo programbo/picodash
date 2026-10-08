@@ -117,7 +117,7 @@ describe('registered value reset', () => {
     })
     const provider = acquireProviderLease(nexus)
     const parent = acquireEntityLease(nexus.scope('parent'), { kind: 'dashPanel', host: provider })
-    const child = acquireEntityLease(nexus.scope('child'), { kind: 'dashList', host: provider })
+    const child = acquireEntityLease(nexus.scope('child'), { kind: 'dashStack', host: provider })
     const edgeA = acquireRelationshipLease(parent, child)
     const edgeB = acquireRelationshipLease(parent, child)
     const parentBinding = acquireBindingLease(nexus.scope('parent'), {

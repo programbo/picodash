@@ -20,7 +20,7 @@ test('uses a synchronous whole-record adapter and public Picodash surfaces', asy
   const packageJson = JSON.parse(await readFile('package.json', 'utf8'))
   const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies }
   assert.ok(dependencies['@picodash/picodash'], 'add @picodash/picodash')
-  assert.ok(dependencies['@picodash/dashlist'], 'add @picodash/dashlist for public anatomy')
+  assert.ok(dependencies['@picodash/dashstack'], 'add @picodash/dashstack for public anatomy')
   assert.ok(dependencies['@picodash/nexus'], 'add @picodash/nexus')
 
   const source = await sourceText('app')
@@ -29,9 +29,9 @@ test('uses a synchronous whole-record adapter and public Picodash surfaces', asy
   assert.match(source, /\bsubscribe\s*[:(]/)
   assert.match(source, /\bsetValues\s*[:(]/)
   assert.match(source, /@picodash\/picodash\/style\.css/)
-  assert.match(source, /@picodash\/dashlist\/dashlet/)
+  assert.match(source, /@picodash\/dashstack\/dashlet/)
   assert.match(source, /\bfields\s*=\s*\{\{/s, 'Feature rollout must bind multiple fields')
-  assert.doesNotMatch(source, /@picodash\/(?:dashlist|picodash|nexus)\/src/)
+  assert.doesNotMatch(source, /@picodash\/(?:dashstack|picodash|nexus)\/src/)
   assert.doesNotMatch(source, /@picodash\/picodash\/dashlet/)
 })
 

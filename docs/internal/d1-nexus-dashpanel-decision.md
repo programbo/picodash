@@ -33,7 +33,7 @@ This does not classify unexercised implementation or tests as necessary product 
 ## Deferred capabilities and rejected alternative
 
 Documents, application-authored migrations, advanced repair or stale-overwrite plans, external
-store adaptation, and DashList value/binding behavior are not justified by the DashPanel slice.
+store adaptation, and DashStack value/binding behavior are not justified by the DashPanel slice.
 Their existing contracts are not removed or globally approved by D1. Reassess them only in their
 owning milestones when a supported workflow needs them.
 
@@ -41,9 +41,9 @@ Reject replacing Nexus or introducing a separate application-owned layout store 
 the exercised public composition delivers durable layout, reset, and cleanup without a demonstrated
 benefit from another state authority. No new ownership or package-boundary contract is introduced.
 
-## DashList proof obligation
+## DashStack proof obligation
 
 M4 establishes basic standalone value binding. M5 must prove visible invalid drafts with valid
 canonical values, all-or-nothing multi-field writes, confirmed reset to defaults, and persistence
 through refresh, using both ready-made and composed controls. D2 then decides Nexus fitness for
-DashList data. D1 does not remain open while that separate evidence is gathered.
+DashStack data. D1 does not remain open while that separate evidence is gathered.

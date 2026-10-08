@@ -20,7 +20,7 @@ assert.deepEqual(manifest.exports, {
   './package.json': './package.json',
 })
 assert.deepEqual(manifest.dependencies, {
-  '@picodash/dashlist': 'workspace:*',
+  '@picodash/dashstack': 'workspace:*',
   '@picodash/dashpanel': 'workspace:*',
   '@picodash/nexus': 'workspace:*',
   '@picodash/ui': 'workspace:*',
@@ -61,7 +61,7 @@ assert.deepEqual(
     'ActionSubmenu',
     'DashGroup',
     'DashHeader',
-    'DashList',
+    'DashStack',
     'DashPanel',
     'Dashlet',
     'CheckboxDashlet',
@@ -133,7 +133,7 @@ for (const name of [
   'PicodashProviderProps',
   'PicodashDockPosition',
   'DashPanel',
-  'DashList',
+  'DashStack',
   'DashGroup',
   'Dashlet',
   'CheckboxDashletProps',
@@ -188,7 +188,7 @@ const css = await readFile(path.join(packageRoot, 'style.css'), 'utf8')
 assert.equal((css.match(/@import/g) ?? []).length, 3)
 assert.match(css, /@picodash\/ui\/style\.css/)
 assert.match(css, /@picodash\/dashpanel\/style\.css/)
-assert.match(css, /@picodash\/dashlist\/style\.css/)
+assert.match(css, /@picodash\/dashstack\/style\.css/)
 assert.doesNotMatch(css, /@picodash\/theme/)
 
 const packed = spawnSync('bun', ['pm', 'pack', '--dry-run'], {

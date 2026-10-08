@@ -113,7 +113,7 @@ transient and is never written to Nexus.
 
 A free Panel keeps its preferred intrinsic height while it fits. When its header is dragged toward
 the boundary bottom, the Panel's resolved height reduces to the remaining space instead of moving
-the header back up. It never shrinks below the shell's measured minimum. For a root DashList, that
+the header back up. It never shrinks below the shell's measured minimum. For a root DashStack, that
 minimum includes the `start` and `end` pin bands; only the automatic band becomes a scrollport.
 
 Contraction is a temporary boundary constraint, not a new preferred height. Releasing a Hybrid
@@ -122,7 +122,7 @@ allocation, and aligns its bottom with the target. A short Panel does not stretc
 allocation. Intrinsic and minimum measurements exclude the Panel's visual dock-animation scale.
 
 The scrolling content uses shared UI's vertical `scroll-fade` recipe. The Panel body owns it for
-ordinary content; a root DashList applies it only to its automatic band. Headers and pinned start
+ordinary content; a root DashStack applies it only to its automatic band. Headers and pinned start
 and end content remain unfaded. See [shared scroll feedback](ui.md#scroll-overflow-feedback).
 
 Settled intrinsic height changes, including Panel and DashGroup disclosure, use Motion with the

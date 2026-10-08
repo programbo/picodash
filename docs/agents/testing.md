@@ -5,7 +5,7 @@ reference before changing tests. One contract has one primary test owner; verify
 layer that can faithfully observe the behavior.
 
 - Nexus pure, type, reducer, serialization, and model tests own state invariants.
-- DashPanel and DashList component tests own React wiring, semantic DOM, ARIA, and deterministic
+- DashPanel and DashStack component tests own React wiring, semantic DOM, ARIA, and deterministic
   events.
 - Pure product tests own geometry, ordering, reconciliation, and graph algorithms.
 - Dev Bridge protocol tests own authentication, validation, fencing, sequencing, and status/error

@@ -48,7 +48,7 @@ describe('external-owned metadata persistence', () => {
       [
         'panel',
         {
-          dashList: { rootOrder: ['saved'], groupOrders: [], collapseOverrides: [] },
+          dashStack: { rootOrder: ['saved'], groupOrders: [], collapseOverrides: [] },
         },
       ],
     ])
@@ -63,7 +63,7 @@ describe('external-owned metadata persistence', () => {
     })
 
     expect(nexus.getState().values).toEqual({ value: 41 })
-    expect(nexus.scope('panel').getState().scope?.dashList?.rootOrder).toEqual(['saved'])
+    expect(nexus.scope('panel').getState().scope?.dashStack?.rootOrder).toEqual(['saved'])
     expect(adapter.writes).toHaveLength(0)
     expect('persistence' in nexus).toBe(false)
     nexus.destroy()
@@ -78,7 +78,7 @@ describe('external-owned metadata persistence', () => {
       fields,
       adapter: adapter as unknown as PicodashValueAdapter<{ value: number }>,
       initialEnvelope: externalEnvelope([
-        ['panel', { dashList: { rootOrder: 'invalid' } } as never],
+        ['panel', { dashStack: { rootOrder: 'invalid' } } as never],
       ]),
     })
     expect(nexus.metadataRecovery.getState().quarantinedScopes.has('panel')).toBe(true)
@@ -113,7 +113,7 @@ describe('external-owned metadata persistence', () => {
               [
                 'migrated',
                 {
-                  dashList: { rootOrder: ['from-v1'], groupOrders: [], collapseOverrides: [] },
+                  dashStack: { rootOrder: ['from-v1'], groupOrders: [], collapseOverrides: [] },
                 },
               ],
             ],
@@ -123,7 +123,7 @@ describe('external-owned metadata persistence', () => {
     })
     expect(observedValues).toEqual({})
     expect(nexus.getState().values).toEqual({ value: 12 })
-    expect(nexus.scope('migrated').getState().scope?.dashList?.rootOrder).toEqual(['from-v1'])
+    expect(nexus.scope('migrated').getState().scope?.dashStack?.rootOrder).toEqual(['from-v1'])
     expect(adapter.writes).toHaveLength(0)
     nexus.destroy()
   })
@@ -159,7 +159,7 @@ describe('external-owned metadata persistence', () => {
       code: 'adapter_unhealthy',
     })
 
-    expect(nexus.setDashListRootOrder('panel', ['one'])).toEqual({
+    expect(nexus.setDashStackRootOrder('panel', ['one'])).toEqual({
       ok: true,
       changedFields: [],
       changedScopeIds: ['panel'],
@@ -215,7 +215,7 @@ describe('external-owned metadata persistence', () => {
         scopes: [
           [
             'panel',
-            { dashList: { rootOrder: ['imported'], groupOrders: [], collapseOverrides: [] } },
+            { dashStack: { rootOrder: ['imported'], groupOrders: [], collapseOverrides: [] } },
           ],
         ],
       },
@@ -246,7 +246,7 @@ describe('external-owned metadata persistence', () => {
         scopes: [
           [
             'panel',
-            { dashList: { rootOrder: ['pending'], groupOrders: [], collapseOverrides: [] } },
+            { dashStack: { rootOrder: ['pending'], groupOrders: [], collapseOverrides: [] } },
           ],
         ],
       },
@@ -262,7 +262,7 @@ describe('external-owned metadata persistence', () => {
       persistence: 'pending',
     })
     expect(nexus.getState().values).toEqual({ value: 6 })
-    expect(nexus.scope('panel').getState().scope?.dashList?.rootOrder).toEqual(['pending'])
+    expect(nexus.scope('panel').getState().scope?.dashStack?.rootOrder).toEqual(['pending'])
     expect(adapter.writes).toHaveLength(1)
     expect(driver.inspect('state')).toBeNull()
     nexus.destroy({ discardUnpersisted: true })
@@ -270,11 +270,11 @@ describe('external-owned metadata persistence', () => {
 
   it('reloads and erases metadata conflicts without writing adapter values', () => {
     const { nexus, adapter, driver } = createExternalPersistentNexus()
-    expect(nexus.setDashListRootOrder('panel', ['local'])).toMatchObject({ persistence: 'saved' })
+    expect(nexus.setDashStackRootOrder('panel', ['local'])).toMatchObject({ persistence: 'saved' })
     const foreign = JSON.parse(driver.inspect('state') as string)
     foreign.revision += 1
     foreign.writerId = 'foreign'
-    foreign.scopes[0][1].dashList.rootOrder = ['durable']
+    foreign.scopes[0][1].dashStack.rootOrder = ['durable']
     driver.foreignWrite('state', JSON.stringify(foreign))
     expect(nexus.persistence.getState().status).toBe('conflict')
 
@@ -286,16 +286,16 @@ describe('external-owned metadata persistence', () => {
       changedScopeIds: ['panel'],
       persistence: 'unchanged',
     })
-    expect(nexus.scope('panel').getState().scope?.dashList?.rootOrder).toEqual(['durable'])
+    expect(nexus.scope('panel').getState().scope?.dashStack?.rootOrder).toEqual(['durable'])
     expect(nexus.getState().values).toEqual({ value: 8 })
     expect(adapter.writes).toHaveLength(0)
 
     const nextForeign = JSON.parse(driver.inspect('state') as string)
     nextForeign.revision += 1
     nextForeign.writerId = 'foreign-reconcile'
-    nextForeign.scopes[0][1].dashList.rootOrder = ['durable-reconcile']
+    nextForeign.scopes[0][1].dashStack.rootOrder = ['durable-reconcile']
     driver.foreignWrite('state', JSON.stringify(nextForeign))
-    expect(nexus.setDashListRootOrder('panel', ['local-reconcile'])).toMatchObject({
+    expect(nexus.setDashStackRootOrder('panel', ['local-reconcile'])).toMatchObject({
       persistence: 'pending',
     })
     const reconcile = nexus.persistence.createConflictResolutionPlan({
@@ -307,7 +307,7 @@ describe('external-owned metadata persistence', () => {
       changedFields: [],
       persistence: 'saved',
     })
-    expect(nexus.scope('panel').getState().scope?.dashList?.rootOrder).toEqual(['local-reconcile'])
+    expect(nexus.scope('panel').getState().scope?.dashStack?.rootOrder).toEqual(['local-reconcile'])
     expect(adapter.writes).toHaveLength(0)
 
     const erase = nexus.persistence.createErasePlan()
@@ -317,7 +317,7 @@ describe('external-owned metadata persistence', () => {
     })
     expect(adapter.writes).toHaveLength(0)
     expect(nexus.getState().values).toEqual({ value: 8 })
-    expect(nexus.scope('panel').getState().scope?.dashList?.rootOrder).toEqual(['local-reconcile'])
+    expect(nexus.scope('panel').getState().scope?.dashStack?.rootOrder).toEqual(['local-reconcile'])
     nexus.destroy({ discardUnpersisted: true })
   })
 

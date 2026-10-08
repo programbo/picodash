@@ -12,7 +12,7 @@ real browser UI. It is an adapter and consumer, not a privileged debugger or sec
 authority. Make it easier to discover, inspect, mutate, wait, and diagnose only within an
 application's explicit disclosure and write policies.
 
-If Bridge friction makes DashPanel or DashList development harder to inspect, automate, or verify,
+If Bridge friction makes DashPanel or DashStack development harder to inspect, automate, or verify,
 prioritize the smallest safe Bridge improvement before adding a product workaround. Dogfood that
 improvement against a real browser Nexus consumer and feed general Nexus gaps back into Nexus.
 

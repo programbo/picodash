@@ -58,7 +58,7 @@ describe('Nexus-owned alpha persistence', () => {
         values: { defaultFieldPolicy: 'omit', fields: { count: 'include' } },
       },
     })
-    nexus.setDashListRootOrder('scope', ['item'])
+    nexus.setDashStackRootOrder('scope', ['item'])
     const raw = persistence.inspect('state')!
     expect(raw).toContain('count')
     expect(raw).not.toContain('secret')
@@ -68,7 +68,7 @@ describe('Nexus-owned alpha persistence', () => {
       [
         'scope',
         {
-          dashList: {
+          dashStack: {
             rootOrder: ['item'],
             groupOrders: [],
             collapseOverrides: [],
@@ -951,7 +951,7 @@ describe('Nexus-owned alpha persistence', () => {
   it('keeps hydrated scope maps and nested metadata maps deeply immutable', () => {
     const persistence = createMemoryPersistence()
     const source = createPicodashNexus(makeConfig(persistence))
-    source.setDashListRootOrder('scope', ['item'])
+    source.setDashStackRootOrder('scope', ['item'])
     const raw = persistence.inspect('state') as string
     source.destroy()
     const hydrated = createPicodashNexus({
@@ -965,7 +965,7 @@ describe('Nexus-owned alpha persistence', () => {
     const scopes = hydrated.getState().scopes as unknown as Map<string, unknown>
     expect(() => Map.prototype.set.call(scopes, 'other', {})).toThrow()
     const metadata = hydrated.getState().scopes.get('scope')!
-    const groupOrders = (metadata as any).dashList.groupOrders as Map<string, unknown>
+    const groupOrders = (metadata as any).dashStack.groupOrders as Map<string, unknown>
     expect(() => Map.prototype.clear.call(groupOrders)).toThrow()
     expect(hydrated.getState().scopes.get('scope')).toBe(metadata)
     hydrated.destroy()
@@ -982,11 +982,11 @@ describe('Nexus-owned alpha persistence', () => {
       scopes: new Map([
         [
           'z',
-          { dashList: { rootOrder: ['z'], groupOrders: new Map(), collapseOverrides: new Map() } },
+          { dashStack: { rootOrder: ['z'], groupOrders: new Map(), collapseOverrides: new Map() } },
         ],
         [
           'a',
-          { dashList: { rootOrder: ['a'], groupOrders: new Map(), collapseOverrides: new Map() } },
+          { dashStack: { rootOrder: ['a'], groupOrders: new Map(), collapseOverrides: new Map() } },
         ],
       ]),
       includeField: () => true,
@@ -1000,11 +1000,11 @@ describe('Nexus-owned alpha persistence', () => {
       scopes: new Map([
         [
           'a',
-          { dashList: { rootOrder: ['a'], groupOrders: new Map(), collapseOverrides: new Map() } },
+          { dashStack: { rootOrder: ['a'], groupOrders: new Map(), collapseOverrides: new Map() } },
         ],
         [
           'z',
-          { dashList: { rootOrder: ['z'], groupOrders: new Map(), collapseOverrides: new Map() } },
+          { dashStack: { rootOrder: ['z'], groupOrders: new Map(), collapseOverrides: new Map() } },
         ],
       ]),
       includeField: () => true,
@@ -1285,7 +1285,7 @@ describe('Nexus-owned alpha persistence', () => {
       writerId: 'quarantine-source',
       valueOwner: 'nexus',
       values: { count: 1, secret: 'hidden' },
-      scopes: [['scope', { dashList: { invalid: true } }]],
+      scopes: [['scope', { dashStack: { invalid: true } }]],
     } as const
     const nexus = createPicodashNexus({ ...makeConfig(persistence), initialEnvelope } as never)
     persistence.failNext('write')
@@ -1293,7 +1293,7 @@ describe('Nexus-owned alpha persistence', () => {
     const foreign = JSON.parse(persistence.inspect('state') as string)
     foreign.revision += 1
     foreign.writerId = 'foreign-quarantine'
-    foreign.scopes[0][1].dashList.invalid = 'foreign'
+    foreign.scopes[0][1].dashStack.invalid = 'foreign'
     persistence.foreignWrite('state', JSON.stringify(foreign))
     const plan = nexus.persistence.createConflictResolutionPlan({
       mode: 'reconcile',

@@ -49,10 +49,10 @@ export function ContractLabSpecimenHost({
           {preset.id === 'composition'
             ? 'Ready-made Dashlets'
             : preset.id === 'interaction'
-              ? 'Standalone DashList binding'
+              ? 'Standalone DashStack binding'
               : preset.id === 'placement'
                 ? 'DashPanel placement'
-                : 'Primary Panel and List'}
+                : 'Primary Panel and Stack'}
         </h1>
       </header>
       <p className="text-muted-foreground relative z-10 max-w-2xl p-5 text-sm leading-6 sm:p-7">

@@ -7,15 +7,15 @@ reconciled with this decision and linked from the conformance matrix.
 
 ## Context
 
-DashPanel, DashList, and Picodash must be useful as separate products without creating incompatible
+DashPanel, DashStack, and Picodash must be useful as separate products without creating incompatible
 state models:
 
 - DashPanel needs durable placement and layout metadata plus transient host coordination.
-- DashList needs canonical values, bindings, groups, order, and collapse metadata.
+- DashStack needs canonical values, bindings, groups, order, and collapse metadata.
 - Picodash needs both products to share one coherent value authority and scope graph.
 - Applications may let Picodash own values or connect an existing application store.
 
-The prototype evolved around per-Panel Nexuses, private Provider runtime state, and separate Panel/List
+The prototype evolved around per-Panel Nexuses, private Provider runtime state, and separate Panel/Stack
 identities. Sharing one prototype Nexus across several entities creates registry and persistence
 collisions. Giving every Panel an independent public Nexus would also make Provider-level
 coordination and integrated composition harder to explain.
@@ -48,13 +48,13 @@ boundaries, visibility, activation, and z-order.
 DashPanel does not accept an independent public Nexus. It resolves a scoped view from its Provider
 using its `id`.
 
-A standalone DashList accepts a root or scoped Nexus. Its `id` and supplied scope must agree. Under
-a Provider or another Nexus context, DashList normally receives only an `id`; an id-less primary
-DashList may inherit the nearest scope. DashList supplies the resolved scoped context to its
+A standalone DashStack accepts a root or scoped Nexus. Its `id` and supplied scope must agree. Under
+a Provider or another Nexus context, DashStack normally receives only an `id`; an id-less primary
+DashStack may inherit the nearest scope. DashStack supplies the resolved scoped context to its
 descendants.
 
-Any DashPanel or DashList that changes the nearest scope registers a parent-child relationship.
-Resolving the same scope creates no edge. One active DashPanel and one active DashList may share a
+Any DashPanel or DashStack that changes the nearest scope registers a parent-child relationship.
+Resolving the same scope creates no edge. One active DashPanel and one active DashStack may share a
 scope; duplicate active entities of the same kind are contract errors.
 
 ## State ownership
@@ -64,12 +64,12 @@ The root Nexus owns:
 - immutable field definitions and nominally root-owned handles;
 - complete canonical JSON values;
 - synchronous parsing, validation, and atomic transactions;
-- durable Panel layout, DashList order, and collapse overrides;
+- durable Panel layout, DashStack order, and collapse overrides;
 - active registration indexes and scope relationships;
 - Nexus-owned persistence or one root external-value adapter;
 - import, export, diagnostics, and recovery state.
 
-Nexus defines the validated JSON persistence records for built-in Panel and List metadata without
+Nexus defines the validated JSON persistence records for built-in Panel and Stack metadata without
 importing either UI package. The UI packages retain ownership of public placement, component, and
 behavior types and translate through the versioned Nexus integration surface. Arbitrary runtime
 metadata extensions are outside the alpha contract.
@@ -100,7 +100,7 @@ persistence disclosure policies are separate.
 ## React and package boundaries
 
 `@picodash/nexus` remains framework-independent. `@picodash/nexus/react` owns the shared context,
-hooks, and selector behavior used by both UI products. DashPanel and DashList consume the same peer
+hooks, and selector behavior used by both UI products. DashPanel and DashStack consume the same peer
 Nexus package; neither UI package depends on the other. `@picodash/picodash` is the integrated
 facade.
 
@@ -111,7 +111,7 @@ equality.
 ## Consequences
 
 - Nexus is independently useful and can be dogfooded before the UI products stabilize.
-- DashPanel and DashList remain loosely independent consumers of one shared state contract.
+- DashPanel and DashStack remain loosely independent consumers of one shared state contract.
 - A scope organizes durable metadata and operation attribution but is not an authorization boundary.
 - Passing any scoped Nexus to code grants access to the entire trusted root value set.
 - Multiple Providers may share a root only with unique Provider IDs and disjoint active scopes.

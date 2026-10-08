@@ -12,7 +12,7 @@
 
 - Service health is one compound Dashlet because its metrics, state, progress, and history form one
   semantic monitoring unit.
-- It uses accepted anatomy from `@picodash/dashlist/dashlet`, accessible primitives from the public
+- It uses accepted anatomy from `@picodash/dashstack/dashlet`, accessible primitives from the public
   UI surface, and ordinary semantic HTML/SVG rather than depending on experimental helper families.
 - The sparkline or equivalent streaming visual uses semantic data-color tokens and has an
   accessible name plus current-value text.

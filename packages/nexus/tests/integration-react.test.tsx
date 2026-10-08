@@ -55,7 +55,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
         nexus,
         children: createElement(PicodashNexusEntityBoundary, {
           nexus: nexus.scope('settings'),
-          kind: 'dashList',
+          kind: 'dashStack',
           children: createElement(Probe),
         }),
       }),
@@ -65,7 +65,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('opts a rootless DashList boundary into standalone hosting', () => {
+  it('opts a rootless DashStack boundary into standalone hosting', () => {
     const nexus = makeNexus()
     function Probe() {
       const root = usePicodashRootNexus()
@@ -76,7 +76,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
     const renderer = render(
       createElement(PicodashNexusEntityBoundary, {
         nexus: nexus.scope('standalone'),
-        kind: 'dashList',
+        kind: 'dashStack',
         allowStandalone: true,
         children: createElement(Probe),
       }),
@@ -100,11 +100,11 @@ describe('Nexus React boundaries and contextual hooks', () => {
     const renderer = render(
       createElement(PicodashNexusEntityBoundary, {
         nexus: nexus.scope('root'),
-        kind: 'dashList',
+        kind: 'dashStack',
         allowStandalone: true,
         children: createElement(PicodashNexusEntityBoundary, {
           nexus: nexus.scope('child'),
-          kind: 'dashList',
+          kind: 'dashStack',
           children: createElement(Probe),
         }),
       }),
@@ -122,17 +122,17 @@ describe('Nexus React boundaries and contextual hooks', () => {
         render(
           createElement(PicodashNexusEntityBoundary, {
             nexus: nexus.scope('same'),
-            kind: 'dashList',
+            kind: 'dashStack',
             allowStandalone: true,
             children: createElement(PicodashNexusEntityBoundary, {
               nexus: nexus.scope('same'),
-              kind: 'dashList',
+              kind: 'dashStack',
               children: null,
             }),
           }),
         ),
       'duplicate-entity',
-      { scopeId: 'same', entityKind: 'dashList' },
+      { scopeId: 'same', entityKind: 'dashStack' },
     )
     expect(() => nexus.destroy()).not.toThrow()
   })
@@ -144,7 +144,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
         nexus,
         children: createElement(PicodashNexusEntityBoundary, {
           nexus: nexus.scope('provided'),
-          kind: 'dashList',
+          kind: 'dashStack',
           allowStandalone: true,
           children: null,
         }),
@@ -160,7 +160,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
     const standalone = render(
       createElement(PicodashNexusEntityBoundary, {
         nexus: nexus.scope('shared'),
-        kind: 'dashList',
+        kind: 'dashStack',
         allowStandalone: true,
         children: null,
       }),
@@ -185,14 +185,14 @@ describe('Nexus React boundaries and contextual hooks', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('rejects a direct DashPanel child under standalone DashList with exact context', () => {
+  it('rejects a direct DashPanel child under standalone DashStack with exact context', () => {
     const nexus = makeNexus()
     expectContract(
       () =>
         render(
           createElement(PicodashNexusEntityBoundary, {
             nexus: nexus.scope('root'),
-            kind: 'dashList',
+            kind: 'dashStack',
             allowStandalone: true,
             children: createElement(PicodashNexusEntityBoundary, {
               nexus: nexus.scope('panel'),
@@ -215,11 +215,11 @@ describe('Nexus React boundaries and contextual hooks', () => {
         render(
           createElement(PicodashNexusEntityBoundary, {
             nexus: first.scope('root'),
-            kind: 'dashList',
+            kind: 'dashStack',
             allowStandalone: true,
             children: createElement(PicodashNexusEntityBoundary, {
               nexus: second.scope('foreign'),
-              kind: 'dashList',
+              kind: 'dashStack',
               children: null,
             }),
           }),
@@ -275,7 +275,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
         nexus,
         children: createElement(PicodashNexusEntityBoundary, {
           nexus: nexus.scope('settings'),
-          kind: 'dashList',
+          kind: 'dashStack',
           children: [
             createElement(RootProbe, { key: 'root' }),
             createElement(ScopeProbe, { key: 'scope' }),
@@ -286,7 +286,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
     const initialRootRenders = rootRenders
     const initialScopeRenders = scopeRenders
     act(() => {
-      nexus.scope('settings').setDashListRootOrder(['one'])
+      nexus.scope('settings').setDashStackRootOrder(['one'])
     })
     expect(rootRenders).toBe(initialRootRenders)
     expect(scopeRenders).toBe(initialScopeRenders)
@@ -329,7 +329,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
         render(
           createElement(PicodashNexusEntityBoundary, {
             nexus: nexus.scope('outside'),
-            kind: 'dashList',
+            kind: 'dashStack',
             children: null,
           }),
         ),
@@ -355,7 +355,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
             providerId: 'nested',
             children: createElement(PicodashNexusEntityBoundary, {
               nexus: nexus.scope('inner'),
-              kind: 'dashList',
+              kind: 'dashStack',
               children: createElement(Probe),
             }),
           }),
@@ -376,7 +376,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
           nexus: first,
           children: createElement(PicodashNexusEntityBoundary, {
             nexus: second.scope('foreign'),
-            kind: 'dashList',
+            kind: 'dashStack',
             children: null,
           }),
         }),
@@ -399,7 +399,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
             kind: 'dashPanel',
             children: createElement(PicodashNexusEntityBoundary, {
               nexus: nexus.scope('child'),
-              kind: 'dashList',
+              kind: 'dashStack',
               children: null,
             }),
           }),
@@ -419,11 +419,11 @@ describe('Nexus React boundaries and contextual hooks', () => {
         null,
         createElement(PicodashNexusEntityBoundary, {
           nexus: nexus.scope('strict-root'),
-          kind: 'dashList',
+          kind: 'dashStack',
           allowStandalone: true,
           children: createElement(PicodashNexusEntityBoundary, {
             nexus: nexus.scope('strict-child'),
-            kind: 'dashList',
+            kind: 'dashStack',
             children: null,
           }),
         }),
@@ -441,7 +441,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
         nexus,
         children: createElement(PicodashNexusEntityBoundary, {
           nexus: nexus.scope('server'),
-          kind: 'dashList',
+          kind: 'dashStack',
           children: createElement(ServerProbe),
         }),
       }),
@@ -455,7 +455,7 @@ describe('Nexus React boundaries and contextual hooks', () => {
     const html = renderToStaticMarkup(
       createElement(PicodashNexusEntityBoundary, {
         nexus: nexus.scope('server-standalone'),
-        kind: 'dashList',
+        kind: 'dashStack',
         allowStandalone: true,
         children: createElement(ServerProbe),
       }),

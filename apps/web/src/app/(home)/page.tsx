@@ -10,12 +10,12 @@ export default function HomePage() {
         <h1 id="hero-title">{heroTitle}</h1>
         <p className="hero-intro">
           Picodash provides Nexus, a typed state hub for validated application values and saved
-          interface preferences, plus standalone DashPanel and DashList packages for React apps.
+          interface preferences, plus standalone DashPanel and DashStack packages for React apps.
         </p>
         <p className="hero-expectation">
-          The current alpha supports provider-hosted Panel shells and Nexus-scoped List composition.
-          Placement, field bindings, ready-made Dashlets, and integrated Picodash workflows are
-          still under development.
+          The current alpha supports provider-hosted Panel shells and Nexus-scoped Stack
+          composition. Placement, field bindings, ready-made Dashlets, and integrated Picodash
+          workflows are still under development.
         </p>
         <nav className="hero-actions" aria-label="Homepage actions">
           <a className="action-link action-link-primary" href="#current-alphas">
@@ -41,7 +41,8 @@ export default function HomePage() {
             scope and theme context.
           </p>
           <p>
-            DashList composes named Dashlets and one level of groups against a root or scoped Nexus.
+            DashStack composes named Dashlets and one level of groups against a root or scoped
+            Nexus.
           </p>
         </div>
         <AlphaProducts />

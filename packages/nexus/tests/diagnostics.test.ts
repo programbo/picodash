@@ -106,12 +106,12 @@ describe('Nexus core diagnostics', () => {
       { kind: 'subscriber', surface: 'scope', scopeId: 'second' },
     ])
     firstUnsubscribe()
-    nexus.setDashListRootOrder('first', ['item'])
+    nexus.setDashStackRootOrder('first', ['item'])
     expect(entries(nexus).map(([, diagnostic]) => diagnostic.identity)).toEqual([
       { kind: 'subscriber', surface: 'scope', scopeId: 'second' },
     ])
     secondUnsubscribe()
-    nexus.setDashListRootOrder('second', ['item'])
+    nexus.setDashStackRootOrder('second', ['item'])
     expect(entries(nexus)).toEqual([])
   })
 
@@ -139,7 +139,7 @@ describe('Nexus core diagnostics', () => {
       secondCalls: 1,
     })
 
-    nexus.setDashListRootOrder('first', ['item'])
+    nexus.setDashStackRootOrder('first', ['item'])
     expect({ rootCalls, firstCalls, secondCalls }).toEqual({
       rootCalls: 2,
       firstCalls: 2,

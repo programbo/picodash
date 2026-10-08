@@ -31,7 +31,7 @@ describe('Nexus integration types', () => {
     expectTypeOf<InvalidBindingHandleReason>().toEqualTypeOf<
       'foreign-root' | 'released' | 'superseded' | 'wrong-kind'
     >()
-    expectTypeOf<NexusEntityKind>().toEqualTypeOf<'dashPanel' | 'dashList'>()
+    expectTypeOf<NexusEntityKind>().toEqualTypeOf<'dashPanel' | 'dashStack'>()
     expectTypeOf<InvalidDestroyOptionsReason>().toEqualTypeOf<
       | 'not-object'
       | 'unknown-key'
@@ -56,7 +56,7 @@ describe('Nexus integration types', () => {
       .toEqualTypeOf<NexusBindingMode>()
     expectTypeOf<EntityLeaseOptions>().toEqualTypeOf<
       | { readonly kind: 'dashPanel'; readonly host: ProviderLease | EntityLease }
-      | { readonly kind: 'dashList'; readonly host?: ProviderLease | EntityLease }
+      | { readonly kind: 'dashStack'; readonly host?: ProviderLease | EntityLease }
     >()
   })
 
@@ -70,7 +70,7 @@ describe('Nexus integration types', () => {
     })
     expectTypeOf(acquireProviderLease(nexus)).toEqualTypeOf<ProviderLease>()
     expectTypeOf(
-      acquireEntityLease(nexus.scope('scope'), { kind: 'dashList' }),
+      acquireEntityLease(nexus.scope('scope'), { kind: 'dashStack' }),
     ).toEqualTypeOf<EntityLease>()
     const binding = acquireBindingLease(nexus.scope('scope'), {
       itemId: 'item',
@@ -110,7 +110,7 @@ describe('Nexus integration types', () => {
       // @ts-expect-error Scoped Nexuses do not expose root destruction.
       scoped.destroy({ discardUnpersisted: true })
       // @ts-expect-error Entity leases require a scoped Nexus, not a root Nexus.
-      acquireEntityLease(nexus, { kind: 'dashList' })
+      acquireEntityLease(nexus, { kind: 'dashStack' })
       // @ts-expect-error DashPanel leases require a host.
       acquireEntityLease(nexus.scope('scope'), { kind: 'dashPanel' })
       // @ts-expect-error Relationship leases accept EntityLease values only.
@@ -159,18 +159,18 @@ describe('Nexus integration types', () => {
     const scoped = nexus.scope('scope')
     const entityProps: PicodashNexusEntityBoundaryProps = {
       nexus: scoped,
-      kind: 'dashList',
+      kind: 'dashStack',
       children: null,
     }
     const standaloneEntityProps: PicodashNexusEntityBoundaryProps = {
       nexus: scoped,
-      kind: 'dashList',
+      kind: 'dashStack',
       allowStandalone: true,
       children: null,
     }
     const explicitFalseEntityProps: PicodashNexusEntityBoundaryProps = {
       nexus: scoped,
-      kind: 'dashList',
+      kind: 'dashStack',
       allowStandalone: false,
       children: null,
     }
@@ -189,7 +189,7 @@ describe('Nexus integration types', () => {
         kind: 'dashPanel',
         children: null,
       }
-      // @ts-expect-error Standalone opt-in is only valid for DashList boundaries.
+      // @ts-expect-error Standalone opt-in is only valid for DashStack boundaries.
       const invalidPanelOptIn: PicodashNexusEntityBoundaryProps = {
         nexus: scoped,
         kind: 'dashPanel',
@@ -199,7 +199,7 @@ describe('Nexus integration types', () => {
       const invalidRootStandalone: PicodashNexusEntityBoundaryProps = {
         // @ts-expect-error Entity boundaries require a scoped Nexus.
         nexus,
-        kind: 'dashList',
+        kind: 'dashStack',
         allowStandalone: true,
         children: null,
       }

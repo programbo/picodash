@@ -14,7 +14,7 @@ test('reorders the long control desk with glass drag surfaces and fixed pin lane
   await page.getByRole('button', { name: /^Value binding:/ }).click()
   const desk = page.getByRole('list', { name: 'Workspace control desk', exact: true })
   await desk.scrollIntoViewIfNeeded()
-  const lane = (name: string) => desk.locator(`:scope > [data-picodash-dashlist-band="${name}"]`)
+  const lane = (name: string) => desk.locator(`:scope > [data-picodash-dashstack-band="${name}"]`)
   const ids = (name: string) =>
     lane(name)
       .locator(':scope > [role="listitem"]')

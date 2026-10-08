@@ -16,7 +16,7 @@ export {
   ColorDashlet,
   ComboboxDashlet,
   DashGroup,
-  DashList,
+  DashStack,
   Dashlet,
   DateDashlet,
   DateRangeDashlet,
@@ -36,7 +36,7 @@ export {
   SwitchDashlet,
   TextDashlet,
   TimeDashlet,
-} from '@picodash/dashlist'
+} from '@picodash/dashstack'
 export { createPicodashNexus } from '@picodash/nexus'
 export { usePicodashNexusSelector } from '@picodash/nexus/react'
 
@@ -54,7 +54,7 @@ export type {
   DashPanelPlacementOptions,
   DashPanelPresentation,
 } from '@picodash/dashpanel'
-export type { DashListProps, DashGroupProps, DashletProps } from '@picodash/dashlist'
+export type { DashStackProps, DashGroupProps, DashletProps } from '@picodash/dashstack'
 export type {
   CheckboxDashletProps,
   CheckboxGroupDashletProps,
@@ -80,7 +80,7 @@ export type {
   SwitchDashletProps,
   TextDashletProps,
   TimeDashletProps,
-} from '@picodash/dashlist'
+} from '@picodash/dashstack'
 export type {
   DashHeaderProps,
   DashHeaderSlots,

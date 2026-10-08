@@ -1,0 +1,539 @@
+'use client'
+
+import {
+  ActionMenuItem,
+  ActionMenuSeparator,
+  ActionSubmenu,
+  type ActionMenuItemProps,
+} from '@picodash/ui'
+import type {
+  CoreTransactionResult,
+  PicodashFieldDefinitions,
+  PersistentTransactionResult,
+  RootNexus,
+  ScopedNexus,
+} from '@picodash/nexus'
+import { usePicodashNexus } from '@picodash/nexus/react'
+import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from 'react'
+
+export type DashStackActionAvailability = 'unavailable' | 'disabled' | 'enabled'
+export type DashStackActionNexusResult = CoreTransactionResult | PersistentTransactionResult
+export type DashStackActionExecutionResult =
+  | { readonly status: 'not_executed'; readonly availability: 'unavailable' | 'disabled' }
+  | { readonly status: 'executed'; readonly result: DashStackActionNexusResult }
+
+export interface DashStackActionController {
+  readonly availability: DashStackActionAvailability
+  execute(): DashStackActionExecutionResult
+}
+
+export interface DashStackActions {
+  readonly expandAll: DashStackActionController
+  readonly collapseAll: DashStackActionController
+  readonly resetValues: DashStackActionController
+  readonly resetStack: DashStackActionController
+}
+
+export type DashStackActionProps = Readonly<{ scopeId?: string }>
+
+type GroupRecord = Readonly<{
+  readonly id: string
+  readonly collapsible: boolean
+  readonly defaultCollapsed: boolean
+}>
+
+type BindingRecord = Readonly<{
+  readonly itemId: string
+  readonly key: string
+  readonly discardInput: () => void
+  readonly dirty: boolean
+}>
+type BindingInputRecord = Omit<BindingRecord, 'itemId'>
+
+export type DashStackActionSnapshot = Readonly<{
+  readonly groups: readonly GroupRecord[]
+  readonly bindings: readonly BindingRecord[]
+  readonly scope: ReturnType<ScopedNexus<PicodashFieldDefinitions>['getState']>['scope']
+  readonly announcement: string
+  readonly announcementSequence: number
+}>
+
+export type DashStackActionRegistry = Readonly<{
+  readonly scopeId: string
+  readonly nexus: ScopedNexus<PicodashFieldDefinitions>
+  readonly announce: (message: string) => void
+  readonly activate: () => void
+  readonly subscribe: (listener: () => void) => () => void
+  readonly getSnapshot: () => DashStackActionSnapshot
+  readonly registerGroup: (record: GroupRecord) => () => void
+  readonly registerBindings: (itemId: string, bindings: readonly BindingInputRecord[]) => () => void
+  readonly snapshot: () => DashStackActionSnapshot
+  readonly dispose: () => void
+}>
+
+export const DashStackActionRegistryContext = createContext<DashStackActionRegistry | null>(null)
+const registriesByRoot = new WeakMap<object, Map<string, DashStackActionRegistry>>()
+const activeRegistries = new WeakSet<DashStackActionRegistry>()
+type RegistryHub = Readonly<{
+  readonly subscribe: (listener: () => void) => () => void
+  readonly getSnapshot: () => DashStackActionSnapshot
+  readonly notify: () => void
+}>
+const hubsByRoot = new WeakMap<object, RegistryHub>()
+
+function hubForRoot(root: object): RegistryHub {
+  const current = hubsByRoot.get(root)
+  if (current) return current
+  const listeners = new Set<() => void>()
+  let snapshot: DashStackActionSnapshot = {
+    groups: [],
+    bindings: [],
+    scope: undefined,
+    announcement: '',
+    announcementSequence: 0,
+  }
+  const hub: RegistryHub = {
+    subscribe(listener) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    getSnapshot() {
+      return snapshot
+    },
+    notify() {
+      snapshot = { ...snapshot }
+      for (const listener of listeners) listener()
+    },
+  }
+  hubsByRoot.set(root, hub)
+  return hub
+}
+
+function createRegistry(
+  nexus: ScopedNexus<PicodashFieldDefinitions>,
+  scopeId: string,
+): DashStackActionRegistry {
+  const groups = new Map<string, GroupRecord>()
+  const bindings = new Map<string, readonly BindingRecord[]>()
+  const listeners = new Set<() => void>()
+  let revision = 0
+  let active = false
+  let announcement = ''
+  let announcementSequence = 0
+  let unsubscribeNexus: (() => void) | undefined
+  const root = nexus.root
+  const hub = hubForRoot(root)
+  let cachedSnapshot: DashStackActionSnapshot
+  const buildSnapshot = (): DashStackActionSnapshot => ({
+    groups: [...groups.values()],
+    bindings: [...bindings.values()].flat(),
+    scope: nexus.getState().scope,
+    announcement,
+    announcementSequence,
+  })
+  const notify = () => {
+    revision += 1
+    cachedSnapshot = buildSnapshot()
+    for (const listener of listeners) listener()
+  }
+  cachedSnapshot = buildSnapshot()
+  const snapshot = (): DashStackActionSnapshot => cachedSnapshot
+  const registry: DashStackActionRegistry = {
+    scopeId,
+    nexus,
+    announce(message) {
+      if (message === '' && announcement === '') return
+      announcement = message
+      announcementSequence += 1
+      notify()
+    },
+    activate() {
+      if (active) return
+      active = true
+      activeRegistries.add(registry)
+      const byScope = registriesByRoot.get(root) ?? new Map<string, DashStackActionRegistry>()
+      byScope.set(scopeId, registry)
+      registriesByRoot.set(root, byScope)
+      unsubscribeNexus = nexus.subscribe(notify)
+      notify()
+      hub.notify()
+    },
+    subscribe(listener) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    getSnapshot() {
+      void revision
+      return snapshot()
+    },
+    registerGroup(record) {
+      groups.set(record.id, record)
+      notify()
+      return () => {
+        if (groups.get(record.id) === record) {
+          groups.delete(record.id)
+          notify()
+        }
+      }
+    },
+    registerBindings(itemId, next) {
+      const registered = next.map((binding) => Object.freeze({ ...binding, itemId }))
+      bindings.set(itemId, registered)
+      notify()
+      return () => {
+        if (bindings.get(itemId) === registered) {
+          bindings.delete(itemId)
+          notify()
+        }
+      }
+    },
+    snapshot,
+    dispose() {
+      if (!active) return
+      active = false
+      activeRegistries.delete(registry)
+      unsubscribeNexus?.()
+      unsubscribeNexus = undefined
+      groups.clear()
+      bindings.clear()
+      notify()
+      const byScope = registriesByRoot.get(root)
+      if (byScope?.get(scopeId) === registry) byScope.delete(scopeId)
+      hub.notify()
+    },
+  }
+  return registry
+}
+
+export function createDashStackActionRegistry(
+  nexus: ScopedNexus<PicodashFieldDefinitions>,
+  scopeId: string,
+): DashStackActionRegistry {
+  return createRegistry(nexus, scopeId)
+}
+
+function registryForScope(
+  nexus: RootNexus<PicodashFieldDefinitions> | ScopedNexus<PicodashFieldDefinitions>,
+  scopeId: string | undefined,
+  nearest: DashStackActionRegistry | null,
+): DashStackActionRegistry | null {
+  if (scopeId === undefined) return nearest
+  if (nearest?.scopeId === scopeId) return nearest
+  const root = nexus.kind === 'root' ? nexus : nexus.root
+  return registriesByRoot.get(root)?.get(scopeId) ?? null
+}
+
+const noopSubscribe = () => () => undefined
+const emptySnapshot: DashStackActionSnapshot = {
+  groups: [],
+  bindings: [],
+  scope: undefined,
+  announcement: '',
+  announcementSequence: 0,
+}
+
+function availabilityFor(snapshot: DashStackActionSnapshot, kind: 'expand' | 'collapse') {
+  const groups = snapshot.groups.filter((group) => group.collapsible)
+  if (!groups.length) return 'unavailable' as const
+  const desired = kind === 'expand' ? false : true
+  return groups.some(
+    (group) =>
+      (snapshot.scope?.dashStack?.collapseOverrides.get(group.id) ?? group.defaultCollapsed) !==
+      desired,
+  )
+    ? ('enabled' as const)
+    : ('disabled' as const)
+}
+
+function resetStackAvailability(snapshot: DashStackActionSnapshot) {
+  const list = snapshot.scope?.dashStack
+  return list &&
+    (list.rootOrder !== undefined || list.groupOrders.size > 0 || list.collapseOverrides.size > 0)
+    ? ('enabled' as const)
+    : ('disabled' as const)
+}
+
+export function dashStackResetValuesFingerprint(registry: DashStackActionRegistry): string {
+  if (!activeRegistries.has(registry)) return 'unavailable'
+  const snapshot = registry.snapshot()
+  const inspection = registry.nexus.inspectRegisteredValueReset()
+  return JSON.stringify([
+    inspection.registeredFields,
+    inspection.changedFields,
+    snapshot.bindings
+      .filter((binding) => binding.dirty)
+      .map((binding) => [binding.itemId, binding.key]),
+  ])
+}
+
+function resetStackFingerprint(registry: DashStackActionRegistry): string {
+  if (!activeRegistries.has(registry)) return 'unavailable'
+  const snapshot = registry.snapshot()
+  const list = snapshot.scope?.dashStack
+  return JSON.stringify([
+    list?.rootOrder ?? null,
+    [...(list?.groupOrders ?? [])].sort(([left], [right]) => left.localeCompare(right)),
+    [...(list?.collapseOverrides ?? [])].sort(([left], [right]) => left.localeCompare(right)),
+  ])
+}
+
+function resetValuesAvailability(
+  registry: DashStackActionRegistry,
+  snapshot: DashStackActionSnapshot,
+) {
+  const inspection = registry.nexus.inspectRegisteredValueReset()
+  const hasDirtyDraft = snapshot.bindings.some((binding) => binding.dirty)
+  if (!inspection.registeredFields.length && !hasDirtyDraft) return 'unavailable' as const
+  return inspection.changedFields.length || hasDirtyDraft
+    ? ('enabled' as const)
+    : ('disabled' as const)
+}
+
+function currentAvailability(
+  registry: DashStackActionRegistry | null,
+  scopeId: string | undefined,
+  kind: 'expand' | 'collapse' | 'resetValues' | 'resetStack',
+) {
+  if (!registry || (scopeId !== undefined && scopeId !== registry.scopeId))
+    return 'unavailable' as const
+  if (!activeRegistries.has(registry)) return 'unavailable' as const
+  const snapshot = registry.snapshot()
+  if (kind === 'expand' || kind === 'collapse') return availabilityFor(snapshot, kind)
+  return kind === 'resetValues'
+    ? resetValuesAvailability(registry, snapshot)
+    : resetStackAvailability(snapshot)
+}
+
+function executeAction(
+  registry: DashStackActionRegistry | null,
+  scopeId: string | undefined,
+  kind: 'expand' | 'collapse' | 'resetValues' | 'resetStack',
+): DashStackActionExecutionResult {
+  const availability = currentAvailability(registry, scopeId, kind)
+  if (availability !== 'enabled') return { status: 'not_executed', availability }
+  const snapshot = registry!.snapshot()
+  if (kind === 'expand' || kind === 'collapse') {
+    const desired = kind === 'expand' ? false : true
+    const updates = snapshot.groups
+      .filter((group) => group.collapsible)
+      .flatMap((group) => {
+        const effective =
+          snapshot.scope?.dashStack?.collapseOverrides.get(group.id) ?? group.defaultCollapsed
+        if (effective === desired) return []
+        return [[group.id, desired === group.defaultCollapsed ? null : desired] as const]
+      })
+    const result = registry!.nexus.updateDashStackCollapseOverrides(updates)
+    if (!result.ok)
+      registry!.announce(`${kind === 'expand' ? 'Expand all' : 'Collapse all'} was rejected.`)
+    return { status: 'executed', result }
+  }
+  if (kind === 'resetStack') {
+    const result = registry!.nexus.resetDashStackMetadata()
+    if (!result.ok) registry!.announce('Reset stack was rejected.')
+    return { status: 'executed', result }
+  }
+  const result = registry!.nexus.resetRegisteredValues()
+  if (result.ok) {
+    for (const binding of snapshot.bindings) if (binding.dirty) binding.discardInput()
+  } else registry!.announce('Reset values was rejected.')
+  return { status: 'executed', result }
+}
+
+export function useDashStackActions(scopeId?: string): DashStackActions {
+  // Preserve the public hook contract: calling actions without Nexus context is an error.
+  const nexus = usePicodashNexus()
+  const registry = registryForScope(nexus, scopeId, useContext(DashStackActionRegistryContext))
+  const root = nexus.kind === 'root' ? nexus : nexus.root
+  const hub = scopeId === undefined ? null : hubForRoot(root)
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      const unsubscribeRegistry = registry?.subscribe(listener) ?? noopSubscribe()
+      const unsubscribeHub = hub?.subscribe(listener) ?? noopSubscribe()
+      return () => {
+        unsubscribeRegistry()
+        unsubscribeHub()
+      }
+    },
+    [hub, registry],
+  )
+  const selected = useSyncExternalStore(
+    subscribe,
+    registry?.getSnapshot ?? (hub ? hub.getSnapshot : () => emptySnapshot),
+    registry?.getSnapshot ?? (hub ? hub.getSnapshot : () => emptySnapshot),
+  )
+  void selected
+  const executeExpand = useCallback(
+    () => executeAction(registry, scopeId, 'expand'),
+    [registry, scopeId],
+  )
+  const executeCollapse = useCallback(
+    () => executeAction(registry, scopeId, 'collapse'),
+    [registry, scopeId],
+  )
+  const executeResetValues = useCallback(
+    () => executeAction(registry, scopeId, 'resetValues'),
+    [registry, scopeId],
+  )
+  const executeResetStack = useCallback(
+    () => executeAction(registry, scopeId, 'resetStack'),
+    [registry, scopeId],
+  )
+  const expandAvailability = currentAvailability(registry, scopeId, 'expand')
+  const collapseAvailability = currentAvailability(registry, scopeId, 'collapse')
+  const resetValuesAvailabilitySnapshot = currentAvailability(registry, scopeId, 'resetValues')
+  const resetStackAvailabilitySnapshot = currentAvailability(registry, scopeId, 'resetStack')
+  const expandAll = useMemo(
+    () => ({
+      availability: expandAvailability,
+      execute: executeExpand,
+    }),
+    [executeExpand, expandAvailability],
+  )
+  const collapseAll = useMemo(
+    () => ({
+      availability: collapseAvailability,
+      execute: executeCollapse,
+    }),
+    [executeCollapse, collapseAvailability],
+  )
+  const resetValues = useMemo(
+    () => ({
+      availability: resetValuesAvailabilitySnapshot,
+      execute: executeResetValues,
+    }),
+    [executeResetValues, resetValuesAvailabilitySnapshot],
+  )
+  const resetStack = useMemo(
+    () => ({
+      availability: resetStackAvailabilitySnapshot,
+      execute: executeResetStack,
+    }),
+    [executeResetStack, resetStackAvailabilitySnapshot],
+  )
+  return useMemo(
+    () => ({ expandAll, collapseAll, resetValues, resetStack }),
+    [collapseAll, expandAll, resetStack, resetValues],
+  )
+}
+
+function actionItemProps(
+  action: DashStackActionController,
+  label: string,
+  confirmation?: ActionMenuItemProps['confirmation'],
+): ActionMenuItemProps {
+  return {
+    label,
+    isDisabled: action.availability !== 'enabled',
+    confirmation,
+    onAction: () => {
+      void action.execute()
+    },
+  }
+}
+
+export function DashStackExpandAllItem(props: DashStackActionProps) {
+  const action = useDashStackActions(props.scopeId).expandAll
+  return <ActionMenuItem {...actionItemProps(action, 'Expand all')} />
+}
+
+export function DashStackCollapseAllItem(props: DashStackActionProps) {
+  const action = useDashStackActions(props.scopeId).collapseAll
+  return <ActionMenuItem {...actionItemProps(action, 'Collapse all')} />
+}
+
+const resetValuesConfirmation = {
+  title: 'Reset values and drafts?',
+  description:
+    'This resets values registered by the current Stack and discards their drafts. Shared canonical fields change in other Stacks; order and collapse metadata remain unchanged.',
+  actionLabel: 'Reset values',
+} as const
+const resetStackConfirmation = {
+  title: 'Reset this Stack?',
+  description:
+    'This removes the current Stack order and collapse overrides. Values and drafts remain unchanged.',
+  actionLabel: 'Reset stack',
+} as const
+
+function useResetConfirmationGuard(scopeId: string | undefined, kind: 'values' | 'list') {
+  const nexus = usePicodashNexus()
+  const registry = registryForScope(nexus, scopeId, useContext(DashStackActionRegistryContext))
+  const fingerprint = registry
+    ? kind === 'values'
+      ? dashStackResetValuesFingerprint(registry)
+      : resetStackFingerprint(registry)
+    : 'unavailable'
+  return useMemo(
+    () => ({
+      fingerprint,
+      getFingerprint: () =>
+        registry
+          ? kind === 'values'
+            ? dashStackResetValuesFingerprint(registry)
+            : resetStackFingerprint(registry)
+          : 'unavailable',
+      subscribe: registry?.subscribe ?? noopSubscribe,
+    }),
+    [fingerprint, kind, registry],
+  )
+}
+
+export function executeDashStackActionIfCurrent(
+  action: DashStackActionController,
+  guard: NonNullable<ActionMenuItemProps['confirmation']>['guard'],
+): void {
+  if (guard && guard.getFingerprint() === guard.fingerprint) void action.execute()
+}
+
+export function DashStackResetValuesItem(props: DashStackActionProps) {
+  const action = useDashStackActions(props.scopeId).resetValues
+  const guard = useResetConfirmationGuard(props.scopeId, 'values')
+  return (
+    <ActionMenuItem
+      {...actionItemProps(action, 'Reset values…', { ...resetValuesConfirmation, guard })}
+      onAction={() => executeDashStackActionIfCurrent(action, guard)}
+      variant="destructive"
+    />
+  )
+}
+
+export function DashStackResetStackItem(props: DashStackActionProps) {
+  const action = useDashStackActions(props.scopeId).resetStack
+  const guard = useResetConfirmationGuard(props.scopeId, 'list')
+  return (
+    <ActionMenuItem
+      {...actionItemProps(action, 'Reset stack…', { ...resetStackConfirmation, guard })}
+      onAction={() => executeDashStackActionIfCurrent(action, guard)}
+      variant="destructive"
+    />
+  )
+}
+
+export function DashStackResetSubmenu(props: DashStackActionProps) {
+  const actions = useDashStackActions(props.scopeId)
+  if (
+    actions.resetValues.availability !== 'enabled' &&
+    actions.resetStack.availability !== 'enabled'
+  )
+    return null
+  return (
+    <ActionSubmenu label="Reset">
+      <DashStackResetValuesItem scopeId={props.scopeId} />
+      <DashStackResetStackItem scopeId={props.scopeId} />
+    </ActionSubmenu>
+  )
+}
+
+export function DashStackActionItems(props: DashStackActionProps) {
+  const actions = useDashStackActions(props.scopeId)
+  const hasGroups = actions.expandAll.availability !== 'unavailable'
+  const hasReset =
+    actions.resetValues.availability === 'enabled' || actions.resetStack.availability === 'enabled'
+  return (
+    <>
+      {hasGroups ? <DashStackExpandAllItem scopeId={props.scopeId} /> : null}
+      {hasGroups ? <DashStackCollapseAllItem scopeId={props.scopeId} /> : null}
+      {hasGroups && hasReset ? <ActionMenuSeparator /> : null}
+      {hasReset ? <DashStackResetSubmenu scopeId={props.scopeId} /> : null}
+    </>
+  )
+}

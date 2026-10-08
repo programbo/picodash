@@ -19,7 +19,7 @@
       "name": "@picodash/lab",
       "version": "0.0.0",
       "dependencies": {
-        "@picodash/dashlist": "workspace:*",
+        "@picodash/dashstack": "workspace:*",
         "@picodash/dashpanel": "workspace:*",
         "@picodash/dev-bridge": "workspace:*",
         "@picodash/nexus": "workspace:*",
@@ -45,7 +45,7 @@
       "name": "@picodash/web",
       "version": "0.0.0",
       "dependencies": {
-        "@picodash/dashlist": "workspace:*",
+        "@picodash/dashstack": "workspace:*",
         "@picodash/dashpanel": "workspace:*",
         "@picodash/nexus": "workspace:*",
         "@picodash/ui": "workspace:*",
@@ -64,8 +64,8 @@
         "typescript": "catalog:",
       },
     },
-    "packages/dashlist": {
-      "name": "@picodash/dashlist",
+    "packages/dashstack": {
+      "name": "@picodash/dashstack",
       "version": "0.0.0",
       "dependencies": {
         "@internationalized/date": "catalog:",
@@ -161,7 +161,7 @@
       "name": "@picodash/picodash",
       "version": "0.0.0",
       "dependencies": {
-        "@picodash/dashlist": "workspace:*",
+        "@picodash/dashstack": "workspace:*",
         "@picodash/dashpanel": "workspace:*",
         "@picodash/nexus": "workspace:*",
         "@picodash/ui": "workspace:*",
@@ -468,7 +468,7 @@
 
     "@oxlint/plugins": ["@oxlint/plugins@1.79.0", "", {}, "sha512-S0uyoxakDINJ4DPgqxGlEEvrdSMeQb7Z2lKVjxoY2gwsbZbfg2Xr8Klfeo5ZeraHmmdBCELFUHkSe6KEmBpMvg=="],
 
-    "@picodash/dashlist": ["@picodash/dashlist@workspace:packages/dashlist"],
+    "@picodash/dashstack": ["@picodash/dashstack@workspace:packages/dashstack"],
 
     "@picodash/dashpanel": ["@picodash/dashpanel@workspace:packages/dashpanel"],
 

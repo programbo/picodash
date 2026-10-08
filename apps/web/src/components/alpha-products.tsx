@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createPicodashNexus } from '@picodash/nexus'
 import { DashHeader } from '@picodash/ui'
 import { DashPanel, DashPanelProvider } from '@picodash/dashpanel'
-import { DashGroup, Dashlet, DashList } from '@picodash/dashlist'
+import { DashGroup, Dashlet, DashStack } from '@picodash/dashstack'
 
 export function AlphaProducts() {
   const [panelNexus] = useState(() => createPicodashNexus({ valueOwner: 'nexus', fields: {} }))
@@ -32,15 +32,15 @@ export function AlphaProducts() {
         </div>
       </article>
 
-      <article className="alpha-product-card" data-alpha-product="dashlist">
+      <article className="alpha-product-card" data-alpha-product="dashstack">
         <div className="alpha-product-demo alpha-list-demo">
-          <DashList nexus={listNexus} id="alpha-list" title="DashList" headingLevel={2}>
+          <DashStack nexus={listNexus} id="alpha-list" title="DashStack" headingLevel={2}>
             <DashGroup id="alpha-group" label="First group">
               <Dashlet id="alpha-dashlet" label="Named Dashlet">
-                <p>Dashlet content is composed directly in the List.</p>
+                <p>Dashlet content is composed directly in the Stack.</p>
               </Dashlet>
             </DashGroup>
-          </DashList>
+          </DashStack>
         </div>
       </article>
     </div>

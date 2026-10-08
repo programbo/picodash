@@ -6,7 +6,7 @@ export type BindingPlanRegistryRecord = {
   consumed: boolean
 }
 
-export type DashListPrunePlanRegistryRecord = {
+export type DashStackPrunePlanRegistryRecord = {
   readonly root: object
   readonly scopeId: string
   readonly fingerprint: string
@@ -33,7 +33,7 @@ export type DocumentPlanRegistryRecord = {
 }
 
 const registry = new WeakMap<object, BindingPlanRegistryRecord>()
-const pruneRegistry = new WeakMap<object, DashListPrunePlanRegistryRecord>()
+const pruneRegistry = new WeakMap<object, DashStackPrunePlanRegistryRecord>()
 const persistenceRegistry = new WeakMap<object, PersistencePlanRegistryRecord>()
 const documentRegistry = new WeakMap<object, DocumentPlanRegistryRecord>()
 
@@ -45,14 +45,16 @@ export function bindingPlanRecord(plan: object): BindingPlanRegistryRecord | und
   return registry.get(plan)
 }
 
-export function registerDashListPrunePlan(
+export function registerDashStackPrunePlan(
   plan: object,
-  record: DashListPrunePlanRegistryRecord,
+  record: DashStackPrunePlanRegistryRecord,
 ): void {
   pruneRegistry.set(plan, record)
 }
 
-export function dashListPrunePlanRecord(plan: object): DashListPrunePlanRegistryRecord | undefined {
+export function dashStackPrunePlanRecord(
+  plan: object,
+): DashStackPrunePlanRegistryRecord | undefined {
   return pruneRegistry.get(plan)
 }
 

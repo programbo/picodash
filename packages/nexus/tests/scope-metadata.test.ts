@@ -19,9 +19,9 @@ describe('Nexus scoped views and metadata commands', () => {
       fields: { value: { defaultValue: 1 } },
     })
     const rootSnapshot = nexus.getState()
-    nexus.setDashListRootOrder('root', ['a'])
-    nexus.setDashListRootOrder('child', ['b'])
-    nexus.setDashListRootOrder('grandchild', ['c'])
+    nexus.setDashStackRootOrder('root', ['a'])
+    nexus.setDashStackRootOrder('child', ['b'])
+    nexus.setDashStackRootOrder('grandchild', ['c'])
     const beforeValues = nexus.getState().values
     expect(nexus.destroyScope('root')).toEqual({
       ok: true,
@@ -49,7 +49,7 @@ describe('Nexus scoped views and metadata commands', () => {
       valueOwner: 'nexus',
       fields: { value: { defaultValue: 1 } },
     })
-    nexus.setDashListRootOrder('keep', ['item'])
+    nexus.setDashStackRootOrder('keep', ['item'])
     const before = nexus.getState()
     for (const [hostile, reason] of [
       [null, 'not-object'],
@@ -131,8 +131,8 @@ describe('Nexus scoped views and metadata commands', () => {
     const first = nexus.scope('first')
     const second = nexus.scope('second')
     const unrelated = nexus.scope('unrelated')
-    nexus.setDashListRootOrder('first', ['a'])
-    nexus.setDashListRootOrder('second', ['b'])
+    nexus.setDashStackRootOrder('first', ['a'])
+    nexus.setDashStackRootOrder('second', ['b'])
     const seen: string[] = []
     nexus.subscribe(() => seen.push(`root:${nexus.getState().scopes.size}`))
     first.subscribe(() => seen.push(`first:${first.getState().scope === undefined}`))
@@ -151,7 +151,7 @@ describe('Nexus scoped views and metadata commands', () => {
       valueOwner: 'nexus',
       fields: { value: { defaultValue: 1 } },
     })
-    nexus.setDashListRootOrder('first', ['a'])
+    nexus.setDashStackRootOrder('first', ['a'])
     let reentrant: PicodashContractError | undefined
     nexus.subscribe(() => {
       try {
@@ -171,13 +171,13 @@ describe('Nexus scoped views and metadata commands', () => {
       fields: { value: { defaultValue: 1 } },
     })
     for (const scopeId of ['a', 'b', 'c', 'unrelated'])
-      nexus.setDashListRootOrder(scopeId, [scopeId])
+      nexus.setDashStackRootOrder(scopeId, [scopeId])
     const provider = acquireProviderLease(nexus)
     const entities = new Map<string, ReturnType<typeof acquireEntityLease>>()
     for (const scopeId of ['a', 'b', 'c'])
       entities.set(
         scopeId,
-        acquireEntityLease(nexus.scope(scopeId), { kind: 'dashList', host: provider }),
+        acquireEntityLease(nexus.scope(scopeId), { kind: 'dashStack', host: provider }),
       )
     const ab = acquireRelationshipLease(entities.get('a')!, entities.get('b')!)
     const bc = acquireRelationshipLease(entities.get('b')!, entities.get('c')!)
@@ -283,22 +283,22 @@ describe('Nexus scoped views and metadata commands', () => {
       changedFields: [],
       changedScopeIds: [],
     })
-    expect(scoped.setDashListRootOrder([])).toEqual({
+    expect(scoped.setDashStackRootOrder([])).toEqual({
       ok: true,
       changedFields: [],
       changedScopeIds: [],
     })
-    expect(scoped.setDashListGroupOrder('group', ['a', 'b'])).toEqual({
+    expect(scoped.setDashStackGroupOrder('group', ['a', 'b'])).toEqual({
       ok: true,
       changedFields: [],
       changedScopeIds: ['settings'],
     })
-    expect(scoped.setDashListCollapseOverride('group', true)).toEqual({
+    expect(scoped.setDashStackCollapseOverride('group', true)).toEqual({
       ok: true,
       changedFields: [],
       changedScopeIds: ['settings'],
     })
-    expect(scoped.resetDashListMetadata()).toEqual({
+    expect(scoped.resetDashStackMetadata()).toEqual({
       ok: true,
       changedFields: [],
       changedScopeIds: ['settings'],
@@ -309,27 +309,27 @@ describe('Nexus scoped views and metadata commands', () => {
       changedScopeIds: ['settings'],
     })
     expect(nexus.getState().scopes.size).toBe(0)
-    const invalid = scoped.setDashListGroupOrder('bad', [''])
+    const invalid = scoped.setDashStackGroupOrder('bad', [''])
     expect(invalid.ok).toBe(false)
     expect(nexus.getState().scopes.size).toBe(0)
   })
 
-  it('updates DashList collapse overrides as one validated batch', () => {
+  it('updates DashStack collapse overrides as one validated batch', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',
       fields: { value: { defaultValue: 1 } },
     })
     const scoped = nexus.scope('batch')
     scoped.setDashPanelLayout(panel)
-    scoped.setDashListRootOrder(['root'])
-    scoped.setDashListGroupOrder('group', ['a', 'b'])
-    scoped.setDashListCollapseOverride('dormant', true)
+    scoped.setDashStackRootOrder(['root'])
+    scoped.setDashStackGroupOrder('group', ['a', 'b'])
+    scoped.setDashStackCollapseOverride('dormant', true)
     let rootCalls = 0
     let scopedCalls = 0
     nexus.subscribe(() => rootCalls++)
     scoped.subscribe(() => scopedCalls++)
     expect(
-      scoped.updateDashListCollapseOverrides([
+      scoped.updateDashStackCollapseOverrides([
         ['group', true],
         ['dormant', null],
         ['new', false],
@@ -341,22 +341,22 @@ describe('Nexus scoped views and metadata commands', () => {
     })
     expect(rootCalls).toBe(1)
     expect(scopedCalls).toBe(1)
-    const dashList = scoped.getState().scope?.dashList
-    expect(dashList?.rootOrder).toEqual(['root'])
-    expect([...dashList!.groupOrders.entries()]).toEqual([['group', ['a', 'b']]])
-    expect([...dashList!.collapseOverrides.entries()]).toEqual([
+    const dashStack = scoped.getState().scope?.dashStack
+    expect(dashStack?.rootOrder).toEqual(['root'])
+    expect([...dashStack!.groupOrders.entries()]).toEqual([['group', ['a', 'b']]])
+    expect([...dashStack!.collapseOverrides.entries()]).toEqual([
       ['group', true],
       ['new', false],
     ])
     const after = scoped.getState()
 
     expect(
-      scoped.updateDashListCollapseOverrides([
+      scoped.updateDashStackCollapseOverrides([
         ['group', true],
         ['new', false],
       ]),
     ).toEqual({ ok: true, changedFields: [], changedScopeIds: [] })
-    expect(scoped.updateDashListCollapseOverrides([])).toEqual({
+    expect(scoped.updateDashStackCollapseOverrides([])).toEqual({
       ok: true,
       changedFields: [],
       changedScopeIds: [],
@@ -365,17 +365,17 @@ describe('Nexus scoped views and metadata commands', () => {
     expect(scopedCalls).toBe(1)
     expect(scoped.getState()).toBe(after) // semantic no-ops leave the snapshot stable
 
-    expect(nexus.updateDashListCollapseOverrides('root-batch', [['root', true]])).toEqual({
+    expect(nexus.updateDashStackCollapseOverrides('root-batch', [['root', true]])).toEqual({
       ok: true,
       changedFields: [],
       changedScopeIds: ['root-batch'],
     })
     expect([
-      ...(nexus.scope('root-batch').getState().scope?.dashList?.collapseOverrides ?? new Map()),
+      ...(nexus.scope('root-batch').getState().scope?.dashStack?.collapseOverrides ?? new Map()),
     ]).toEqual([['root', true]])
     const rootCallsAfterBatch = rootCalls
 
-    const malformed = scoped.updateDashListCollapseOverrides([
+    const malformed = scoped.updateDashStackCollapseOverrides([
       ['valid', true],
       ['bad', 1],
     ] as never)
@@ -385,7 +385,7 @@ describe('Nexus scoped views and metadata commands', () => {
     expect(scopedCalls).toBe(1)
 
     const duplicateBefore = scoped.getState()
-    const duplicate = scoped.updateDashListCollapseOverrides([
+    const duplicate = scoped.updateDashStackCollapseOverrides([
       ['same', true],
       ['same', null],
     ] as never)
@@ -404,13 +404,13 @@ describe('Nexus scoped views and metadata commands', () => {
         return collapsedReads === 1
       },
     })
-    expect(scoped.updateDashListCollapseOverrides([changingTuple])).toEqual({
+    expect(scoped.updateDashStackCollapseOverrides([changingTuple])).toEqual({
       ok: true,
       changedFields: [],
       changedScopeIds: ['batch'],
     })
     expect(collapsedReads).toBe(1)
-    expect(scoped.getState().scope?.dashList?.collapseOverrides.get('captured')).toBe(true)
+    expect(scoped.getState().scope?.dashStack?.collapseOverrides.get('captured')).toBe(true)
   })
 
   property.prop([fc.array(fc.constantFrom('a', 'b', 'c'), { maxLength: 6 })])(
@@ -424,18 +424,18 @@ describe('Nexus scoped views and metadata commands', () => {
       const updates = [...new Set(ids)].map(
         (nodeId, index) => [nodeId, index % 2 === 0 ? true : null] as const,
       )
-      const result = scoped.updateDashListCollapseOverrides(updates)
+      const result = scoped.updateDashStackCollapseOverrides(updates)
       expect(result.ok).toBe(true)
       const expected = new Map<string, boolean>()
       updates.forEach(([nodeId, collapsed]) => {
         if (collapsed === null) expected.delete(nodeId)
         else expected.set(nodeId, collapsed)
       })
-      const actual = scoped.getState().scope?.dashList?.collapseOverrides
+      const actual = scoped.getState().scope?.dashStack?.collapseOverrides
       expect([...(actual ?? new Map()).entries()]).toEqual(
         [...expected.entries()].sort(([left], [right]) => left.localeCompare(right)),
       )
-      expect(scoped.getState().scope?.dashList === undefined).toBe(expected.size === 0)
+      expect(scoped.getState().scope?.dashStack === undefined).toBe(expected.size === 0)
       nexus.destroy()
     },
   )
@@ -469,7 +469,7 @@ describe('Nexus scoped views and metadata commands', () => {
 
     const before = nexus.getState()
     for (const hostile of [new Map(), 'abc', { length: 0 }, Object.create(null)]) {
-      const result = nexus.setDashListRootOrder('first', hostile as never)
+      const result = nexus.setDashStackRootOrder('first', hostile as never)
       expect(result.ok).toBe(false)
       expect(result.ok ? [] : result.error.issues[0]?.path).toEqual(['scopes', 'first'])
       expect(nexus.getState()).toBe(before)
@@ -510,46 +510,46 @@ describe('Nexus scoped views and metadata commands', () => {
       expect(panelSet).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       expect(nexus.getState().scopes.get('scoped')?.dashPanel).toEqual(panel)
       const rootSet = rootApi
-        ? nexus.setDashListRootOrder(scope, ['one', 'two'])
-        : scoped.setDashListRootOrder(['one', 'two'])
+        ? nexus.setDashStackRootOrder(scope, ['one', 'two'])
+        : scoped.setDashStackRootOrder(['one', 'two'])
       expect(rootSet).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       const groupSet = rootApi
-        ? nexus.setDashListGroupOrder(scope, 'group', ['child'])
-        : scoped.setDashListGroupOrder('group', ['child'])
+        ? nexus.setDashStackGroupOrder(scope, 'group', ['child'])
+        : scoped.setDashStackGroupOrder('group', ['child'])
       expect(groupSet).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       const collapseSet = rootApi
-        ? nexus.setDashListCollapseOverride(scope, 'group', true)
-        : scoped.setDashListCollapseOverride('group', true)
+        ? nexus.setDashStackCollapseOverride(scope, 'group', true)
+        : scoped.setDashStackCollapseOverride('group', true)
       expect(collapseSet).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       const listReset = rootApi
-        ? nexus.resetDashListMetadata(scope)
-        : scoped.resetDashListMetadata()
+        ? nexus.resetDashStackMetadata(scope)
+        : scoped.resetDashStackMetadata()
       expect(listReset).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       const rootReadd = rootApi
-        ? nexus.setDashListRootOrder(scope, ['one'])
-        : scoped.setDashListRootOrder(['one'])
+        ? nexus.setDashStackRootOrder(scope, ['one'])
+        : scoped.setDashStackRootOrder(['one'])
       expect(rootReadd).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       const groupReadd = rootApi
-        ? nexus.setDashListGroupOrder(scope, 'group', ['child'])
-        : scoped.setDashListGroupOrder('group', ['child'])
+        ? nexus.setDashStackGroupOrder(scope, 'group', ['child'])
+        : scoped.setDashStackGroupOrder('group', ['child'])
       expect(groupReadd).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       const collapseReadd = rootApi
-        ? nexus.setDashListCollapseOverride(scope, 'group', true)
-        : scoped.setDashListCollapseOverride('group', true)
+        ? nexus.setDashStackCollapseOverride(scope, 'group', true)
+        : scoped.setDashStackCollapseOverride('group', true)
       expect(collapseReadd).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       const panelReset = rootApi ? nexus.resetDashPanelLayout(scope) : scoped.resetDashPanelLayout()
       expect(panelReset).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       const rootRemove = rootApi
-        ? nexus.removeDashListRootOrder(scope)
-        : scoped.removeDashListRootOrder()
+        ? nexus.removeDashStackRootOrder(scope)
+        : scoped.removeDashStackRootOrder()
       expect(rootRemove).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       const groupRemove = rootApi
-        ? nexus.removeDashListGroupOrder(scope, 'group')
-        : scoped.removeDashListGroupOrder('group')
+        ? nexus.removeDashStackGroupOrder(scope, 'group')
+        : scoped.removeDashStackGroupOrder('group')
       expect(groupRemove).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       const collapseRemove = rootApi
-        ? nexus.removeDashListCollapseOverride(scope, 'group')
-        : scoped.removeDashListCollapseOverride('group')
+        ? nexus.removeDashStackCollapseOverride(scope, 'group')
+        : scoped.removeDashStackCollapseOverride('group')
       expect(collapseRemove).toEqual({ ok: true, changedFields: [], changedScopeIds: ['scoped'] })
       expect(nexus.getState().scopes.size).toBe(0)
       void api
@@ -636,17 +636,17 @@ describe('Nexus scoped views and metadata commands', () => {
     const secret = 'PRIVATE_SENTINEL'
     type Target = {
       setDashPanelLayout: (layout: unknown) => unknown
-      setDashListRootOrder: (order: unknown) => unknown
-      setDashListGroupOrder: (id: string, order: unknown) => unknown
-      setDashListCollapseOverride: (id: string, value: unknown) => unknown
+      setDashStackRootOrder: (order: unknown) => unknown
+      setDashStackGroupOrder: (id: string, order: unknown) => unknown
+      setDashStackCollapseOverride: (id: string, value: unknown) => unknown
     }
     const cases: Array<[string, (target: Target) => unknown]> = [
       ['panel', (target) => target.setDashPanelLayout({ bad: secret } as never)],
-      ['root-order', (target) => target.setDashListRootOrder(new Map() as never)],
-      ['group-id', (target) => target.setDashListGroupOrder('', ['x'])],
-      ['group-order', (target) => target.setDashListGroupOrder('group', new Map() as never)],
-      ['collapse-node', (target) => target.setDashListCollapseOverride('', true)],
-      ['collapse-value', (target) => target.setDashListCollapseOverride('node', 1 as never)],
+      ['root-order', (target) => target.setDashStackRootOrder(new Map() as never)],
+      ['group-id', (target) => target.setDashStackGroupOrder('', ['x'])],
+      ['group-order', (target) => target.setDashStackGroupOrder('group', new Map() as never)],
+      ['collapse-node', (target) => target.setDashStackCollapseOverride('', true)],
+      ['collapse-value', (target) => target.setDashStackCollapseOverride('node', 1 as never)],
     ]
     for (const [label, invoke] of cases) {
       const nexus = createPicodashNexus({
@@ -730,9 +730,9 @@ describe('Nexus scoped views and metadata commands', () => {
         id,
         {
           panel: metadata.dashPanel !== undefined,
-          root: metadata.dashList?.rootOrder,
-          groups: [...(metadata.dashList?.groupOrders ?? new Map()).entries()],
-          collapse: [...(metadata.dashList?.collapseOverrides ?? new Map()).entries()],
+          root: metadata.dashStack?.rootOrder,
+          groups: [...(metadata.dashStack?.groupOrders ?? new Map()).entries()],
+          collapse: [...(metadata.dashStack?.collapseOverrides ?? new Map()).entries()],
         },
       ])
     const modelProjection = () =>
@@ -755,7 +755,7 @@ describe('Nexus scoped views and metadata commands', () => {
       const beforeNotifications = { ...notifications }
       const state = ensure(command.scope)
       const api = command.api ? nexus : views.get(command.scope)!
-      let result: ReturnType<typeof nexus.setDashListRootOrder> | undefined
+      let result: ReturnType<typeof nexus.setDashStackRootOrder> | undefined
       if (command.operation === 'panel-set') {
         result =
           api === nexus
@@ -773,52 +773,52 @@ describe('Nexus scoped views and metadata commands', () => {
       if (command.operation === 'root-set') {
         result =
           api === nexus
-            ? nexus.setDashListRootOrder(command.scope, command.order)
-            : views.get(command.scope)!.setDashListRootOrder(command.order)
+            ? nexus.setDashStackRootOrder(command.scope, command.order)
+            : views.get(command.scope)!.setDashStackRootOrder(command.order)
         if (command.order.length) state.root = command.order
         else state.root = undefined
       }
       if (command.operation === 'root-remove') {
         result =
           api === nexus
-            ? nexus.removeDashListRootOrder(command.scope)
-            : views.get(command.scope)!.removeDashListRootOrder()
+            ? nexus.removeDashStackRootOrder(command.scope)
+            : views.get(command.scope)!.removeDashStackRootOrder()
         state.root = undefined
       }
       if (command.operation === 'group-set') {
         result =
           api === nexus
-            ? nexus.setDashListGroupOrder(command.scope, 'group', command.order)
-            : views.get(command.scope)!.setDashListGroupOrder('group', command.order)
+            ? nexus.setDashStackGroupOrder(command.scope, 'group', command.order)
+            : views.get(command.scope)!.setDashStackGroupOrder('group', command.order)
         if (command.order.length) state.groups.set('group', command.order)
         else state.groups.delete('group')
       }
       if (command.operation === 'group-remove') {
         result =
           api === nexus
-            ? nexus.removeDashListGroupOrder(command.scope, 'group')
-            : views.get(command.scope)!.removeDashListGroupOrder('group')
+            ? nexus.removeDashStackGroupOrder(command.scope, 'group')
+            : views.get(command.scope)!.removeDashStackGroupOrder('group')
         state.groups.delete('group')
       }
       if (command.operation === 'collapse-set') {
         result =
           api === nexus
-            ? nexus.setDashListCollapseOverride(command.scope, 'group', command.collapsed)
-            : views.get(command.scope)!.setDashListCollapseOverride('group', command.collapsed)
+            ? nexus.setDashStackCollapseOverride(command.scope, 'group', command.collapsed)
+            : views.get(command.scope)!.setDashStackCollapseOverride('group', command.collapsed)
         state.collapse.set('group', command.collapsed)
       }
       if (command.operation === 'collapse-remove') {
         result =
           api === nexus
-            ? nexus.removeDashListCollapseOverride(command.scope, 'group')
-            : views.get(command.scope)!.removeDashListCollapseOverride('group')
+            ? nexus.removeDashStackCollapseOverride(command.scope, 'group')
+            : views.get(command.scope)!.removeDashStackCollapseOverride('group')
         state.collapse.delete('group')
       }
       if (command.operation === 'list-reset') {
         result =
           api === nexus
-            ? nexus.resetDashListMetadata(command.scope)
-            : views.get(command.scope)!.resetDashListMetadata()
+            ? nexus.resetDashStackMetadata(command.scope)
+            : views.get(command.scope)!.resetDashStackMetadata()
         state.root = undefined
         state.groups.clear()
         state.collapse.clear()

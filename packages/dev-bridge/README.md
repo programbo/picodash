@@ -31,7 +31,7 @@ arguments. The bridge does not add Nexus behavior or change Nexus persistence se
 
 The implemented baseline is Nexus relay/browser/client/CLI plus Contract Lab dogfood. The Lab now
 uses the existing inspect/set/wait surface to verify bound Dashlets, retained Panel lifecycle, and
-DashList stale-draft overwrite confirmation without exposing transient UI plans through the Bridge.
+DashStack stale-draft overwrite confirmation without exposing transient UI plans through the Bridge.
 The same disclosed session now dogfoods an identified Nexus migration, safe quarantined-metadata
 diagnostics, and public metadata replacement without exposing raw quarantine payloads. It also
 captures a value-free Nexus document export plan, mutates the disclosed metric through Bridge, and

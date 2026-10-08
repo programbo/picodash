@@ -1,6 +1,6 @@
 # Shared UI target reference
 
-The shared UI foundation gives DashPanel and DashList one theme system and one set of generic,
+The shared UI foundation gives DashPanel and DashStack one theme system and one set of generic,
 accessible presentation primitives without making either product depend on the other.
 
 ## Status
@@ -26,27 +26,27 @@ accessible presentation primitives without making either product depend on the o
 
 ## Package purpose
 
-`@picodash/ui` owns presentation contracts that must behave identically in DashPanel and DashList.
+`@picodash/ui` owns presentation contracts that must behave identically in DashPanel and DashStack.
 It is a supporting foundation for the package family, not another independently positioned product
 or a home for miscellaneous reusable code.
 
-| Package               | Direct foundations                 |
-| --------------------- | ---------------------------------- |
-| `@picodash/nexus`     | None                               |
-| `@picodash/ui`        | None; it does not import Nexus     |
-| `@picodash/dashpanel` | Nexus and UI                       |
-| `@picodash/dashlist`  | Nexus and UI                       |
-| `@picodash/picodash`  | Nexus, UI, DashPanel, and DashList |
+| Package               | Direct foundations                  |
+| --------------------- | ----------------------------------- |
+| `@picodash/nexus`     | None                                |
+| `@picodash/ui`        | None; it does not import Nexus      |
+| `@picodash/dashpanel` | Nexus and UI                        |
+| `@picodash/dashstack` | Nexus and UI                        |
+| `@picodash/picodash`  | Nexus, UI, DashPanel, and DashStack |
 
-Nexus remains framework-independent and never imports UI. DashPanel and DashList may each consume
+Nexus remains framework-independent and never imports UI. DashPanel and DashStack may each consume
 Nexus and UI, but never one another. Picodash is the integrated facade above those foundations.
 
 ## Admission rules
 
 A public component or presentation contract belongs here only when:
 
-1. at least DashPanel and DashList use it without product-specific behavior;
-2. its semantics do not mention Panel, List, Dashlet, Nexus, scope, placement, or ordering;
+1. at least DashPanel and DashStack use it without product-specific behavior;
+2. its semantics do not mention Panel, Stack, Dashlet, Nexus, scope, placement, or ordering;
 3. its accessibility, theme, and interaction behavior should be identical for every consumer; and
 4. it owns no product state, commands, registration, persistence, or domain policy.
 
@@ -101,8 +101,8 @@ The initial inventory deliberately excludes `LinkButton`, raw dropdown component
 `Dialog`, `Badge`, `Card`, `Input`, `InputGroup`, `Label`, `Meter`, `ProgressBar`, `ScrollArea`,
 `Select`, `Separator`, `Slider`, `Switch`, `Tabs`, `Textarea`, `Toggle`, `ToggleGroup`, and
 `Toolbar`. They remain product-owned, package-private, or prototype candidates until both
-foundational products demonstrate the same product-neutral contract. DashList's Draft anatomy
-`Toolbar` remains available from DashList; exclusion here does not remove it.
+foundational products demonstrate the same product-neutral contract. DashStack's Draft anatomy
+`Toolbar` remains available from DashStack; exclusion here does not remove it.
 
 ## Public prop-type policy
 
@@ -232,7 +232,7 @@ an unsafe narrowing before React Aria could consume it.
   defaults; active parent-overlay layers and z-index calculations remain private.
 
 Product Providers compose both shared Providers internally. A standalone application may also use
-either shared Provider without Nexus, DashPanel, or DashList. Neither shared Provider imports or
+either shared Provider without Nexus, DashPanel, or DashStack. Neither shared Provider imports or
 subscribes to Nexus.
 
 Each detached overlay root repeats the resolved theme and density attributes. The shared portal
@@ -289,8 +289,8 @@ type PopoverProps = Omit<ReactAriaPopoverProps, 'UNSTABLE_portalContainer'> &
 - The active parent layer, exact expression, resolver, hook, and context remain package-private.
   Consumers cannot calculate or propagate Picodash overlay ordering themselves.
 
-DashList choice controls use this shared composition with a DashList-owned structural class.
-`Popover` is not added to DashList's ready-made inventory or catalog.
+DashStack choice controls use this shared composition with a DashStack-owned structural class.
+`Popover` is not added to DashStack's ready-made inventory or catalog.
 
 ## Button
 
@@ -606,7 +606,7 @@ consumer need may add an explicit positioning prop later without exposing the un
 
 The prototype's root-context `ActionSubmenu`, Lucide-constructor-only icon props, `disabled` alias,
 and destructive confirmation tuple are replaced during migration. Product-owned ready-made actions
-remain in DashPanel or DashList and compose these shared primitives.
+remain in DashPanel or DashStack and compose these shared primitives.
 
 ## Tooltip
 
@@ -686,7 +686,7 @@ root-owned trigger ref or React Aria's unstable portal prop.
   default to 500 and 0 milliseconds. It owns no theme, portal, layer, Product Provider, or Nexus
   state.
 - Omitted Provider timing props inherit from the nearest `TooltipProvider`. A per-instance value on
-  `Tooltip` takes precedence. DashPanel, DashList, and Picodash Providers do not expose duplicate
+  `Tooltip` takes precedence. DashPanel, DashStack, and Picodash Providers do not expose duplicate
   timing props or reset an enclosing Tooltip context.
 - `Tooltip` works without `TooltipProvider` and owns `isOpen`, `defaultOpen`, `onOpenChange`,
   `delay`, and `closeDelay`.
@@ -721,16 +721,16 @@ UI does not own:
 - Nexus values, scopes, bindings, persistence, documents, or selectors;
 - Panel placement, drag surfaces, collapse, close, visibility, Panel portal ownership, or Panel
   actions;
-- List nodes, groups, Dashlets, ordering, disclosure, resets, or field presentation;
+- Stack nodes, groups, Dashlets, ordering, disclosure, resets, or field presentation;
 - ready-made Dashlets or Dashlet-oriented unbound controls;
 - Picodash aggregate behavior or integration policy.
 
-`@picodash/dashlist/ui` remains the DashList-owned surface for unbound controls that carry Dashlet
+`@picodash/dashstack/ui` remains the DashStack-owned surface for unbound controls that carry Dashlet
 presentation semantics. Shared UI is not a replacement name for that surface.
 
 Generic action-menu primitives render caller-owned actions, submenus, separators, availability,
 status announcements, and dangerous-operation confirmations. They do not discover targets or own
-Panel/List commands. DashPanel and DashList supply their behavior and may explicitly reexport the
+Panel/Stack commands. DashPanel and DashStack supply their behavior and may explicitly reexport the
 generic primitives alongside product-owned action components.
 
 The target owner of modal confirmation primitives is `@picodash/ui`. The canonical confirmation
@@ -740,10 +740,10 @@ reexport the same components from `@picodash/picodash/ui`; that convenience path
 ownership. Product packages own only the confirmation copy, effect analysis, and commands composed
 inside those primitives.
 
-The prototype currently has duplicated AlertDialog implementations under DashPanel and DashList.
-Those copies are reachable through `@picodash/dashpanel/ui` and `@picodash/dashlist/ui`, while
-`@picodash/picodash/ui` currently reexports the DashList copy. During migration, DashPanel `/ui` is
-removed, AlertDialog leaves DashList `/ui`, and the retained DashList entrypoint narrows to its
+The prototype currently has duplicated AlertDialog implementations under DashPanel and DashStack.
+Those copies are reachable through `@picodash/dashpanel/ui` and `@picodash/dashstack/ui`, while
+`@picodash/picodash/ui` currently reexports the DashStack copy. During migration, DashPanel `/ui` is
+removed, AlertDialog leaves DashStack `/ui`, and the retained DashStack entrypoint narrows to its
 accepted unbound-control inventory. The existing exports are migration evidence, not the target
 ownership model.
 
@@ -754,7 +754,7 @@ ownership model.
 > Implementation: Verified
 
 `DashHeader` lays out header content supplied by its caller. It does not decide what a header means
-or operate Panel or List state.
+or operate Panel or Stack state.
 
 The initial API is slot-only with fixed semantic positions:
 
@@ -783,7 +783,7 @@ type DashHeaderProps = Omit<ComponentPropsWithRef<'div'>, 'children'> & {
 }
 ```
 
-- The root is a neutral `div`, not an HTML `header`. The title heading and owning Panel or List
+- The root is a neutral `div`, not an HTML `header`. The title heading and owning Panel or Stack
   supply semantics without risking inappropriate or repeated banner landmarks.
 - `slots` is required. Its keys are `leading`, `title`, `actions`, and `trailing` in that DOM order;
   every individual value remains optional.
@@ -803,17 +803,17 @@ type DashHeaderProps = Omit<ComponentPropsWithRef<'div'>, 'children'> & {
   consumer need defines their contracts.
 
 DashPanel supplies any grab surface, collapse control, title, menu, and close control through these
-slots and retains all associated behavior. DashList may supply a title and List behavior menu. The
+slots and retains all associated behavior. DashStack may supply a title and Stack behavior menu. The
 shared component never starts dragging, toggles state, closes a Panel, or executes an action.
 
 The slots are the complete content of the shared primitive; DashHeader has no implicit default
-elements. DashPanel and DashList create their own default slot nodes internally from their
+elements. DashPanel and DashStack create their own default slot nodes internally from their
 domain-level props. Neither product initially exposes a generic `headerSlots` override. If a future
 product contract admits one, an omitted value retains the product default, `null` removes an
 optional default, and a node replaces that position. Additive customization uses an explicit
 domain API, such as action-menu composition, rather than implicit slot appending.
 
-DashPanel and DashList explicitly reexport `DashHeader`, `DashHeaderProps`, and `DashHeaderSlots`
+DashPanel and DashStack explicitly reexport `DashHeader`, `DashHeaderProps`, and `DashHeaderSlots`
 for consumer convenience. They must not blanket-export all of `@picodash/ui`.
 
 The implementation and type evidence is in [dash-header.test.tsx](../../packages/ui/tests/dash-header.test.tsx)
@@ -843,10 +843,10 @@ DOM ancestry.
 The target CSS dependency order is:
 
 1. `@picodash/ui/style.css` for shared recipes, tokens, and UI-owned structure;
-2. the consuming product's `style.css` for Panel- or List-owned structure;
+2. the consuming product's `style.css` for Panel- or Stack-owned structure;
 3. the host's named-theme overrides and deliberate customization.
 
-`@picodash/ui/style.css` defines every shared token exactly once. DashPanel and DashList import that
+`@picodash/ui/style.css` defines every shared token exactly once. DashPanel and DashStack import that
 foundation before their own structural styles and never copy or redefine its recipes.
 
 ### Token ownership and compatibility
@@ -854,7 +854,7 @@ foundation before their own structural styles and never copy or redefine its rec
 - Public shared tokens use `--picodash-*` and describe product-neutral color, spacing, typography,
   control geometry, icon, radius, opacity, border, elevation, motion, blur, or layer roles.
 - Public product tokens include their owning domain noun: `--picodash-panel-*`,
-  `--picodash-list-*`, or `--picodash-dashlet-*`.
+  `--picodash-stack-*`, or `--picodash-dashlet-*`.
 - Private derived values and component formulas use `--_picodash-*`. They are neither documented
   customization points nor compatibility promises.
 - Raw CSS variables are the framework-independent public contract. Tailwind aliases such as
@@ -867,10 +867,10 @@ foundation before their own structural styles and never copy or redefine its rec
   shared defaults unless the host deliberately overrides them. A host that wants only a partial
   local restyle may override a built-in light or dark selector instead.
 - Shared elevation uses the generic `--picodash-shadow-elevated`; the prototype name
-  `--picodash-shadow-panel` is retired because Lists also use that role for dragged rows and groups.
+  `--picodash-shadow-panel` is retired because Stacks also use that role for dragged rows and groups.
 - The prototype's viewer shadow and viewer layer are not shared tokens. They are excluded from the
   initial public inventory with the deferred viewer Dashlet. A future accepted viewer uses the
-  shared overlay and elevation contracts unless evidence justifies a DashList-owned customization
+  shared overlay and elevation contracts unless evidence justifies a DashStack-owned customization
   token. The Dashlet field minimum becomes `--picodash-dashlet-field-min-height`, while
   `--picodash-panel-width` remains DashPanel-owned.
 - Raised, drag, tooltip, popover, menu, and dialog layers remain shared generic roles.
@@ -961,7 +961,7 @@ static check does not prove that an animation looks or feels correct.
 UI supplies a shared vertical mask adapted from shadcn's
 [`scroll-fade`](https://ui.shadcn.com/docs/utils/scroll-fade), bundled in `@picodash/ui/style.css`.
 Product packages attach the internal structural marker to the actual scrolling element, not its
-shell: the DashPanel body or the root DashList automatic band. No extra consumer stylesheet,
+shell: the DashPanel body or the root DashStack automatic band. No extra consumer stylesheet,
 dependency, or scroll listener is required.
 
 At the scroll start, only the bottom fades. Between the ends, both fade; at the scroll end, only
@@ -986,7 +986,7 @@ One static artifact suite verifies that:
 - private `--_picodash-*` names do not appear as public customization guidance; and
 - product stylesheets do not redefine shared recipes.
 
-The final packaging review must prove that a standalone DashPanel or DashList installation receives
+The final packaging review must prove that a standalone DashPanel or DashStack installation receives
 all required shared styles through documented imports and does not depend on Picodash facade CSS.
 
 ## Public surfaces
@@ -1010,7 +1010,7 @@ while UI primitives remain documented through this reference and their TypeScrip
 
 - `@picodash/ui` exports the complete accepted inventory and every named public type defined in this
   reference.
-- `@picodash/dashpanel` and `@picodash/dashlist` each reexport `DashHeader`, `ActionMenu`,
+- `@picodash/dashpanel` and `@picodash/dashstack` each reexport `DashHeader`, `ActionMenu`,
   `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`, and their public types, including
   `ActionMenuConfirmation`. These are the shared identities used by each product's header and
   action-composition APIs.
@@ -1018,7 +1018,7 @@ while UI primitives remain documented through this reference and their TypeScrip
   because their implementations use them. Consumers needing those generic primitives import them
   from `@picodash/ui`.
 - `@picodash/picodash` reexports the same header and ActionMenu identities needed by its integrated
-  Panel and List APIs. `@picodash/picodash/ui` explicitly mirrors the complete `@picodash/ui`
+  Panel and Stack APIs. `@picodash/picodash/ui` explicitly mirrors the complete `@picodash/ui`
   inventory as a facade convenience.
 - No package uses `export *` to create these promises. Every reexport is named, and each reexported
   type is identical to the UI-owned type rather than a facade wrapper.
@@ -1037,5 +1037,5 @@ Conformance work must still record:
 
 - [ADR 0003: Shared UI foundation](../adr/0003-shared-ui-foundation.md)
 - [DashPanel target reference](dashpanel.md)
-- [DashList target reference](dashlist.md)
+- [DashStack target reference](dashstack.md)
 - [Picodash target reference](picodash.md)

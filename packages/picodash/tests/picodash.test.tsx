@@ -8,7 +8,7 @@ import {
 } from '../../../test/dom-renderer.ts'
 import { createPicodashNexus } from '@picodash/nexus'
 import { usePicodashScope } from '@picodash/nexus/react'
-import { DashPanel, DashList, Dashlet, PicodashProvider } from '../src/index.ts'
+import { DashPanel, DashStack, Dashlet, PicodashProvider } from '../src/index.ts'
 
 function render(element: ReactElement): DomTestRenderer {
   let renderer!: DomTestRenderer
@@ -22,7 +22,7 @@ const makeNexus = () =>
   createPicodashNexus({ valueOwner: 'nexus', fields: { value: { defaultValue: 0 } } })
 
 describe('@picodash/picodash facade alpha', () => {
-  it('composes Provider, Panel, id-less primary List, and Dashlet in one Panel scope', () => {
+  it('composes Provider, Panel, id-less primary Stack, and Dashlet in one Panel scope', () => {
     const nexus = makeNexus()
     const container = document.createElement('div')
     document.body.append(container)
@@ -39,7 +39,7 @@ describe('@picodash/picodash facade alpha', () => {
             DashPanel,
             { id: 'settings', title: 'Settings' },
             createElement(
-              DashList,
+              DashStack,
               null,
               createElement(Dashlet, {
                 id: 'value',
@@ -52,7 +52,7 @@ describe('@picodash/picodash facade alpha', () => {
       )
     })
     expect(document.body.querySelector('[data-picodash-panel]')).toBeTruthy()
-    expect(document.body.querySelector('[data-picodash-dashlist]')).toBeTruthy()
+    expect(document.body.querySelector('[data-picodash-dashstack]')).toBeTruthy()
     expect(document.body.querySelector('[data-picodash-dashlet="value"]')).toBeTruthy()
     expect(document.body.querySelector('output')?.getAttribute('data-scope')).toBe('settings')
     act(() => root.unmount())

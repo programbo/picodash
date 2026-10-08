@@ -3,7 +3,7 @@ import { fc, test as property } from '@fast-check/vitest'
 import { createPicodashNexus, PicodashContractError } from '../src/index.ts'
 import {
   acquireBindingLease,
-  acquireDashListNodeLease,
+  acquireDashStackNodeLease,
   acquireEntityLease,
   acquireProviderLease,
   acquireRelationshipLease,
@@ -83,7 +83,7 @@ describe('Nexus declarative integration leases', () => {
     const nexus = makeNexus()
     const provider = acquireProviderLease(nexus)
     const forged = { root: nexus, scopeId: 'PRIVATE_SENTINEL' } as never
-    const error = failure(() => acquireEntityLease(forged, { kind: 'dashList', host: provider }))
+    const error = failure(() => acquireEntityLease(forged, { kind: 'dashStack', host: provider }))
     expect(error.code).toBe('invalid-integration-handle')
     expect(error.context).toEqual({ role: 'host', reason: 'wrong-kind' })
     expect(JSON.stringify(error)).not.toContain('PRIVATE_SENTINEL')
@@ -124,7 +124,7 @@ describe('Nexus declarative integration leases', () => {
     const provider = acquireProviderLease(nexus, guardedOptions({ providerId: 'locked-provider' }))
     const entity = acquireEntityLease(
       scoped,
-      guardedOptions({ kind: 'dashList' as const, host: provider }),
+      guardedOptions({ kind: 'dashStack' as const, host: provider }),
     )
     const binding = acquireBindingLease(
       scoped,
@@ -134,7 +134,7 @@ describe('Nexus declarative integration leases', () => {
         mode: 'input' as const,
       }),
     )
-    const node = acquireDashListNodeLease(scoped, guardedOptions({ nodeId: 'locked-node' }))
+    const node = acquireDashStackNodeLease(scoped, guardedOptions({ nodeId: 'locked-node' }))
 
     expect(nestedErrors).toEqual([
       'reentrant-write',
@@ -158,11 +158,11 @@ describe('Nexus declarative integration leases', () => {
     const foreign = acquireProviderLease(second)
     const outerEntity = acquireEntityLease(first.scope('outer'), { kind: 'dashPanel', host: outer })
     const nestedEntity = acquireEntityLease(first.scope('nested'), {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: nested,
     })
     const foreignEntity = acquireEntityLease(second.scope('foreign'), {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: foreign,
     })
     expect(failure(() => acquireRelationshipLease(outerEntity, nestedEntity)).context).toEqual({
@@ -185,7 +185,7 @@ describe('Nexus declarative integration leases', () => {
     const first = acquireProviderLease(nexus)
     first.release()
     const second = acquireProviderLease(nexus)
-    const entity = acquireEntityLease(nexus.scope('strict'), { kind: 'dashList', host: second })
+    const entity = acquireEntityLease(nexus.scope('strict'), { kind: 'dashStack', host: second })
     entity.release()
     entity.release()
     second.release()
@@ -206,7 +206,7 @@ describe('Nexus declarative integration leases', () => {
       expect(error.context).toEqual({ reason })
     }
     const provider = acquireProviderLease(nexus)
-    const standalone = acquireEntityLease(nexus.scope('standalone'), { kind: 'dashList' })
+    const standalone = acquireEntityLease(nexus.scope('standalone'), { kind: 'dashStack' })
     expect(
       failure(() =>
         acquireEntityLease(nexus.scope('standalone'), { kind: 'dashPanel', host: provider }),
@@ -214,11 +214,11 @@ describe('Nexus declarative integration leases', () => {
     ).toEqual({ scopeId: 'standalone' })
     standalone.release()
     const panel = acquireEntityLease(nexus.scope('panel'), { kind: 'dashPanel', host: provider })
-    const list = acquireEntityLease(nexus.scope('list'), { kind: 'dashList', host: panel })
+    const list = acquireEntityLease(nexus.scope('list'), { kind: 'dashStack', host: panel })
     expect(failure(() => provider.release()).context).toEqual({ leaseKind: 'provider' })
     expect(
       failure(() =>
-        acquireEntityLease(nexus.scope('other'), { kind: 'dashList', host: {} as never }),
+        acquireEntityLease(nexus.scope('other'), { kind: 'dashStack', host: {} as never }),
       ).context,
     ).toEqual({
       role: 'host',
@@ -241,7 +241,7 @@ describe('Nexus declarative integration leases', () => {
     expect(
       failure(() =>
         acquireEntityLease(first.scope('released-host'), {
-          kind: 'dashList',
+          kind: 'dashStack',
           host: releasedProvider,
         }),
       ).context,
@@ -250,7 +250,7 @@ describe('Nexus declarative integration leases', () => {
     expect(
       failure(() =>
         acquireEntityLease(first.scope('foreign-host'), {
-          kind: 'dashList',
+          kind: 'dashStack',
           host: foreignProvider,
         }),
       ).context,
@@ -261,7 +261,7 @@ describe('Nexus declarative integration leases', () => {
       host: provider,
     })
     const child = acquireEntityLease(first.scope('child-taxonomy'), {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: provider,
     })
     expect(failure(() => acquireRelationshipLease(provider as never, child)).context).toEqual({
@@ -287,7 +287,7 @@ describe('Nexus declarative integration leases', () => {
       reason: 'wrong-kind',
     })
     const childReleased = acquireEntityLease(first.scope('child-released'), {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: provider,
     })
     childReleased.release()
@@ -308,13 +308,13 @@ describe('Nexus declarative integration leases', () => {
     const nexus = makeNexus()
     const provider = acquireProviderLease(nexus)
     const parent = acquireEntityLease(nexus.scope('a'), { kind: 'dashPanel', host: provider })
-    const middle = acquireEntityLease(nexus.scope('b'), { kind: 'dashList', host: parent })
-    const leaf = acquireEntityLease(nexus.scope('c'), { kind: 'dashList', host: parent })
+    const middle = acquireEntityLease(nexus.scope('b'), { kind: 'dashStack', host: parent })
+    const leaf = acquireEntityLease(nexus.scope('c'), { kind: 'dashStack', host: parent })
     const firstEdge = acquireRelationshipLease(parent, middle)
     const secondEdge = acquireRelationshipLease(middle, leaf)
     let model = createNexusScopeModel({ value: 1 })
     for (const scopeId of ['a', 'b', 'c']) {
-      nexus.setDashListRootOrder(scopeId, [scopeId])
+      nexus.setDashStackRootOrder(scopeId, [scopeId])
       model = model.setMetadata(scopeId)
     }
     let modelState = model.state
@@ -338,7 +338,7 @@ describe('Nexus declarative integration leases', () => {
     const nexus = makeNexus()
     const provider = acquireProviderLease(nexus)
     const parent = acquireEntityLease(nexus.scope('parent'), { kind: 'dashPanel', host: provider })
-    const child = acquireEntityLease(nexus.scope('child'), { kind: 'dashList', host: parent })
+    const child = acquireEntityLease(nexus.scope('child'), { kind: 'dashStack', host: parent })
     expect(
       failure(() =>
         acquireEntityLease(nexus.scope('parent'), { kind: 'dashPanel', host: provider }),
@@ -347,7 +347,7 @@ describe('Nexus declarative integration leases', () => {
     const otherProvider = acquireProviderLease(nexus, { providerId: 'other' })
     expect(
       failure(() =>
-        acquireEntityLease(nexus.scope('parent'), { kind: 'dashList', host: otherProvider }),
+        acquireEntityLease(nexus.scope('parent'), { kind: 'dashStack', host: otherProvider }),
       ).code,
     ).toBe('scope-host-conflict')
     otherProvider.release()
@@ -366,7 +366,7 @@ describe('Nexus declarative integration leases', () => {
     const nexus = makeNexus()
     const provider = acquireProviderLease(nexus)
     const host = acquireEntityLease(nexus.scope('host'), { kind: 'dashPanel', host: provider })
-    const hosted = acquireEntityLease(nexus.scope('hosted'), { kind: 'dashList', host })
+    const hosted = acquireEntityLease(nexus.scope('hosted'), { kind: 'dashStack', host })
     expect(failure(() => host.release()).context).toEqual({ leaseKind: 'entity' })
     hosted.release()
     host.release()
@@ -381,7 +381,7 @@ describe('Nexus declarative integration leases', () => {
       host: provider,
     })
     const parentList = acquireEntityLease(nexus.scope('parent'), {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: provider,
     })
     const childPanel = acquireEntityLease(nexus.scope('child'), {
@@ -389,7 +389,7 @@ describe('Nexus declarative integration leases', () => {
       host: provider,
     })
     const childList = acquireEntityLease(nexus.scope('child'), {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: provider,
     })
     const first = acquireRelationshipLease(parentPanel, childPanel)
@@ -405,7 +405,7 @@ describe('Nexus declarative integration leases', () => {
       childScopeId: 'child',
     })
     const grandchild = acquireEntityLease(nexus.scope('grandchild'), {
-      kind: 'dashList',
+      kind: 'dashStack',
       host: provider,
     })
     const down = acquireRelationshipLease(childPanel, grandchild)
@@ -431,14 +431,14 @@ describe('Nexus declarative integration leases', () => {
     const nexus = makeNexus()
     const provider = acquireProviderLease(nexus)
     const parent = acquireEntityLease(nexus.scope('parent'), { kind: 'dashPanel', host: provider })
-    const child = acquireEntityLease(nexus.scope('child'), { kind: 'dashList', host: parent })
+    const child = acquireEntityLease(nexus.scope('child'), { kind: 'dashStack', host: parent })
     const edge = acquireRelationshipLease(parent, child)
     const secondEdge = acquireRelationshipLease(parent, child)
     nexus.setDashPanelLayout('parent', {
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 1, y: 2 },
     })
-    nexus.setDashListRootOrder('child', ['item'])
+    nexus.setDashStackRootOrder('child', ['item'])
     const valueRef = nexus.getState().values
     expect(nexus.destroyScope('parent', { includeDescendants: true })).toEqual({
       ok: true,
@@ -452,7 +452,7 @@ describe('Nexus declarative integration leases', () => {
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 3, y: 4 },
     })
-    nexus.setDashListRootOrder('child', ['item'])
+    nexus.setDashStackRootOrder('child', ['item'])
     expect(nexus.destroyScope('parent', { includeDescendants: true })).toEqual({
       ok: true,
       changedFields: [],
@@ -502,7 +502,7 @@ describe('Nexus declarative integration leases', () => {
     for (const scopeId of ['a', 'b', 'c'])
       entities.set(
         scopeId,
-        acquireEntityLease(nexus.scope(scopeId), { kind: 'dashList', host: provider }),
+        acquireEntityLease(nexus.scope(scopeId), { kind: 'dashStack', host: provider }),
       )
     let modelState = createNexusScopeModel({ value: 1 }).state
     const productionLeases = new Map<number, RelationshipLease[]>()
@@ -524,11 +524,11 @@ describe('Nexus declarative integration leases', () => {
       const command = commands[index]!
       if (command.kind === 'set') {
         const had = modelState.durableScopeIds.has(command.scope)
-        const result = nexus.setDashListRootOrder(command.scope, [command.scope])
+        const result = nexus.setDashStackRootOrder(command.scope, [command.scope])
         expect(result.ok ? result.changedScopeIds : []).toEqual(had ? [] : [command.scope])
         modelState = setNexusScopeMetadata(modelState, command.scope)
       } else if (command.kind === 'remove') {
-        nexus.removeDashListRootOrder(command.scope)
+        nexus.removeDashStackRootOrder(command.scope)
         modelState = clearNexusScopeMetadata(modelState, command.scope)
       } else if (command.kind === 'destroy') {
         const before = new Set(modelState.durableScopeIds)

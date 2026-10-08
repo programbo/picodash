@@ -1,7 +1,7 @@
 # Releasing Picodash
 
 The current prototype publishable set is `@picodash/nexus`, `@picodash/ui`,
-`@picodash/dashpanel`, `@picodash/dashlist`, and `@picodash/picodash`. `@picodash/ui` is the sole
+`@picodash/dashpanel`, `@picodash/dashstack`, and `@picodash/picodash`. `@picodash/ui` is the sole
 shared theme authority; do not publish a second theme package or retain an alias unless a later
 compatibility decision explicitly requires it. The repository root remains private.
 

@@ -82,7 +82,7 @@ It is non-authoritative.
 
 ## Unresolved dependencies
 
-- `@picodash/dashlist` must own future ordering and presentation capabilities after Nexus/DashList
+- `@picodash/dashstack` must own future ordering and presentation capabilities after Nexus/DashStack
   boundary alignment; the deleted Nexus prototype modules are not migration targets.
 - Nexus integration lease protocol is implemented and verified; binding leases and orientation overrides remain unresolved later slices.
 - Root lifecycle teardown is implemented for kernel state, integration lease refusal, diagnostics, manual adapter subscriptions, and Nexus-owned persistence ownership/subscriptions; other capability resources remain unresolved later slices.

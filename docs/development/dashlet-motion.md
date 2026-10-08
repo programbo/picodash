@@ -43,7 +43,7 @@ active chip/group animation before continuing.
 
 ## Evidence
 
-- DashList: 262 tests pass, including reversal, immediate hidden/inert state, immediate chip
+- DashStack: 262 tests pass, including reversal, immediate hidden/inert state, immediate chip
   removal, reduced-motion cancellation, keyboard suppression, and cleanup.
 - Package formatting, lint, types, repository motion policy, and Lab production build pass.
 - Live Contract Lab: observed the segmented indicator moving from the previous option while the
