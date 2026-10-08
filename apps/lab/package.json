@@ -16,6 +16,7 @@
     "test:dev-host": "node --test scripts/dev-host.test.mjs"
   },
   "dependencies": {
+    "@internationalized/date": "catalog:",
     "@picodash/dashpanel": "workspace:*",
     "@picodash/dashstack": "workspace:*",
     "@picodash/dev-bridge": "workspace:*",

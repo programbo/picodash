@@ -617,3 +617,29 @@ stylesheet tests passed.
 The divider now mixes 30% theme text into the field background for stronger dark-mode contrast.
 Live dark/light screenshots confirmed the one-pixel line and unchanged geometry; the Lab build,
 format check, and seven stylesheet tests passed.
+
+### Linked gallery values, 2026-10-08
+
+The Lab gallery demonstrates application-owned composition through public Nexus fields, Dashlet
+bindings, and unbound DashStack controls. RadioGroup, Combobox, Select, and Segmented bind to
+`choice`; CheckboxGroup and MultiSelect bind to `selections`. Numeric range and slider values live
+in one `numeric` field so narrowing the range clamps the slider in one update. Meter derives the
+range width in the fixed 0–100 domain; Progress derives the slider position within that range.
+A collapsed range displays the fixed value and determinate 0% Progress until reopened.
+
+Date and Time project one timestamp in Australia/Perth. DateTime edits that same timestamp.
+DateRange includes both endpoint days; moving the window clamps the date while preserving time.
+Clearing the timestamp clears both projections; clearing the range removes the bounds. Validation
+rejects programmatic writes outside the numeric or temporal window. These are example rules, not
+a new Nexus computed-field or dependency API.
+
+The nine [gallery model tests](../../apps/lab/src/components/contract-lab/gallery-model.test.ts)
+pass, covering shared source values, atomic clamping, computed endpoints, collapsed ranges,
+timezone projections, clearing, and rejected writes without mutation. Run them with
+`vp test apps/lab/src/components/contract-lab/gallery-model.test.ts`. Scoped formatting, lint,
+and type checks and the Lab production build pass. Live browser checks cover bidirectional
+choice/selection updates, slider bounds and normalized progress, collapsed-range recovery,
+date/time projection and date-window clamping, calendar bounds, Compact rendering, read-only
+date rejection, and disabled controls. No browser errors were recorded. Dev Bridge remains
+disabled in this production Lab; canonical transactions are verified through the public Nexus
+API in the model tests. This pass does not claim physical touch or the full browser suite.

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { createPicodashNexus } from '@picodash/nexus'
 import {
   PicodashThemeProvider,
   Button,
@@ -14,12 +13,8 @@ import {
   SearchDashlet,
   TextDashlet,
   NumberDashlet,
-  SliderDashlet,
   SwitchDashlet,
-  RangeDashlet,
   DisplayDashlet,
-  MeterDashlet,
-  ProgressDashlet,
   StatusDashlet,
   ColorDashlet,
   RadioGroupDashlet,
@@ -28,19 +23,20 @@ import {
   SegmentedDashlet,
   CheckboxGroupDashlet,
   MultiSelectDashlet,
-  DateDashlet,
-  TimeDashlet,
-  DateTimeDashlet,
-  DateRangeDashlet,
 } from '@picodash/dashstack'
 import { GalleryCharts } from './gallery-charts'
 import { ContractLab } from './contract-lab'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
+import { styleLabBridgeDisclosure, styleLabBridgePermissions } from './style-lab-model'
+
+import { createGalleryNexus } from './gallery-model'
 import {
-  styleLabFields,
-  styleLabBridgeDisclosure,
-  styleLabBridgePermissions,
-} from './style-lab-model'
+  LinkedSlider,
+  LinkedRange,
+  ComputedReadout,
+  LinkedTemporal,
+  type GallerySampleProps as SampleProps,
+} from './gallery-linked-controls'
 
 const temporalSamples = new Set([
   'DateDashlet',
@@ -49,14 +45,6 @@ const temporalSamples = new Set([
   'DateRangeDashlet',
 ])
 
-type SampleProps = {
-  readonly id: string
-  readonly label: string
-  readonly layout: 'inline' | 'block'
-  readonly disabled?: boolean
-  readonly readOnly?: boolean
-  readonly description?: string
-}
 export function DashletLab() {
   const [view, setView] = useState<'loading' | 'gallery' | 'contracts'>('loading')
   useEffect(() => {
@@ -86,25 +74,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
   const [readOnly, setReadOnly] = useState(false)
   const [disabled, setDisabled] = useState(false)
   const [reorderable, setReorderable] = useState(true)
-  const nexus = useMemo(
-    () =>
-      createPicodashNexus({
-        valueOwner: 'nexus',
-        nexusId: 'dashlet-gallery',
-        schemaVersion: 1,
-        fields: {
-          ...styleLabFields,
-          notes: { defaultValue: 'A quiet workspace.\nA second line to check spacing.' },
-          requiredText: {
-            defaultValue: 'Studio',
-            validate: (value: string) =>
-              value.trim() ? [] : [{ message: 'Enter a workspace name.' }],
-          },
-          structured: { defaultValue: { connected: true, refreshSeconds: 30 } },
-        },
-      }),
-    [],
-  )
+  const nexus = useMemo(createGalleryNexus, [])
   const samples: readonly {
     name: string
     readout: boolean
@@ -179,32 +149,17 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
     },
     {
       name: 'SliderDashlet',
+      readout: false,
+      render: (props) => <LinkedSlider key={props.id} {...props} nexus={nexus} />,
       additional: (
-        <SliderDashlet
-          readOnly={readOnly}
-          disabled={disabled}
+        <LinkedSlider
           id="unmarked"
           label="With marks"
-          marks={[
-            { value: 0, label: '0%' },
-            { value: 50, label: '50%' },
-            { value: 100, label: '100%' },
-          ]}
-          formatValue={(value) => `${value}%`}
-          field={nexus.fields.slider}
-          min={0}
-          max={100}
-        />
-      ),
-      readout: false,
-      render: (props: SampleProps) => (
-        <SliderDashlet
-          key={props.id}
-          {...props}
-          field={nexus.fields.slider}
-          min={0}
-          max={100}
-          formatValue={(value) => `${value}%`}
+          layout="inline"
+          nexus={nexus}
+          marks
+          readOnly={readOnly}
+          disabled={disabled}
         />
       ),
     },
@@ -218,16 +173,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
     {
       name: 'RangeDashlet',
       readout: false,
-      render: (props: SampleProps) => (
-        <RangeDashlet
-          key={props.id}
-          {...props}
-          field={nexus.fields.range}
-          min={0}
-          max={100}
-          formatValue={({ start, end }) => `${start}–${end}`}
-        />
-      ),
+      render: (props) => <LinkedRange key={props.id} {...props} nexus={nexus} />,
     },
     {
       name: 'DisplayDashlet',
@@ -247,29 +193,13 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
     {
       name: 'MeterDashlet',
       readout: true,
-      render: (props: SampleProps) => (
-        <MeterDashlet
-          key={props.id}
-          {...props}
-          field={nexus.fields.meter}
-          min={0}
-          max={100}
-          formatValue={(value) => `${value}%`}
-        />
-      ),
+      render: (props) => <ComputedReadout key={props.id} {...props} nexus={nexus} kind="meter" />,
     },
     {
       name: 'ProgressDashlet',
       readout: true,
-      render: (props: SampleProps) => (
-        <ProgressDashlet
-          key={props.id}
-          {...props}
-          field={nexus.fields.progress}
-          min={0}
-          max={100}
-          formatValue={(value) => `${value}%`}
-        />
+      render: (props) => (
+        <ComputedReadout key={props.id} {...props} nexus={nexus} kind="progress" />
       ),
     },
     {
@@ -312,7 +242,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
           disabled={disabled}
           id="vertical"
           label="Vertical"
-          field={nexus.fields.radioGroup}
+          field={nexus.fields.choice}
           options={['Option A', 'Option B', 'Option C']}
           orientation="vertical"
         />
@@ -322,7 +252,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
         <RadioGroupDashlet
           key={props.id}
           {...props}
-          field={nexus.fields.radioGroup}
+          field={nexus.fields.choice}
           options={['Option A', 'Option B', 'Option C']}
           orientation="vertical"
         />
@@ -335,7 +265,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
         <ComboboxDashlet
           key={props.id}
           {...props}
-          field={nexus.fields.combobox}
+          field={nexus.fields.choice}
           options={['Option A', 'Option B', 'Option C']}
           placeholder="Select an option"
         />
@@ -349,7 +279,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
           disabled={disabled}
           id="disabled-option"
           label="Disabled option"
-          field={nexus.fields.select}
+          field={nexus.fields.choice}
           options={['Option A', 'Option B', { value: 'Option C', disabled: true }]}
         />
       ),
@@ -358,7 +288,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
         <SelectDashlet
           key={props.id}
           {...props}
-          field={nexus.fields.select}
+          field={nexus.fields.choice}
           options={['Option A', 'Option B', 'Option C']}
         />
       ),
@@ -370,7 +300,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
         <SegmentedDashlet
           key={props.id}
           {...props}
-          field={nexus.fields.segmented}
+          field={nexus.fields.choice}
           options={['Option A', 'Option B', 'Option C']}
         />
       ),
@@ -382,7 +312,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
         <CheckboxGroupDashlet
           key={props.id}
           {...props}
-          field={nexus.fields.checkboxGroup}
+          field={nexus.fields.selections}
           options={['Option A', 'Option B', 'Option C']}
         />
       ),
@@ -394,7 +324,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
         <MultiSelectDashlet
           key={props.id}
           {...props}
-          field={nexus.fields.multiSelect}
+          field={nexus.fields.selections}
           options={['Option A', 'Option B', 'Option C']}
           placeholder="Select options"
         />
@@ -403,67 +333,46 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
     {
       name: 'DateDashlet',
       readout: false,
-      render: (props: SampleProps) => (
-        <DateDashlet key={props.id} {...props} field={nexus.fields.date} locale="en-AU" />
-      ),
+      render: (props) => <LinkedTemporal key={props.id} {...props} nexus={nexus} kind="date" />,
     },
     {
       name: 'TimeDashlet',
+      readout: false,
+      render: (props) => <LinkedTemporal key={props.id} {...props} nexus={nexus} kind="time" />,
       additional: (
-        <TimeDashlet
-          readOnly={readOnly}
-          disabled={disabled}
+        <LinkedTemporal
           id="seconds"
           label="12-hour / seconds"
-          field={nexus.fields.time}
-          locale="en-AU"
-          hourCycle={12}
-          granularity="second"
-        />
-      ),
-      readout: false,
-      render: (props: SampleProps) => (
-        <TimeDashlet
-          key={props.id}
-          {...props}
-          field={nexus.fields.time}
-          locale="en-AU"
-          hourCycle={24}
+          layout="inline"
+          nexus={nexus}
+          kind="time"
+          seconds
+          readOnly={readOnly}
+          disabled={disabled}
         />
       ),
     },
     {
       name: 'DateTimeDashlet',
+      readout: false,
+      render: (props) => <LinkedTemporal key={props.id} {...props} nexus={nexus} kind="dateTime" />,
       additional: (
-        <DateTimeDashlet
-          readOnly={readOnly}
-          disabled={disabled}
+        <LinkedTemporal
           id="hidden-zone"
           label="Without time zone"
-          field={nexus.fields.dateTime}
-          timeZone="Australia/Perth"
-          locale="en-AU"
+          layout="inline"
+          nexus={nexus}
+          kind="dateTime"
           hideTimeZone
-        />
-      ),
-      readout: false,
-      render: (props: SampleProps) => (
-        <DateTimeDashlet
-          key={props.id}
-          {...props}
-          field={nexus.fields.dateTime}
-          timeZone="Australia/Perth"
-          locale="en-AU"
-          hourCycle={24}
+          readOnly={readOnly}
+          disabled={disabled}
         />
       ),
     },
     {
       name: 'DateRangeDashlet',
       readout: false,
-      render: (props: SampleProps) => (
-        <DateRangeDashlet key={props.id} {...props} field={nexus.fields.dateRange} locale="en-AU" />
-      ),
+      render: (props) => <LinkedTemporal key={props.id} {...props} nexus={nexus} kind="range" />,
     },
   ]
 
