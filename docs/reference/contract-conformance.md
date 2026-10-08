@@ -742,3 +742,10 @@ with no horizontal overflow or browser errors. RTL and physical touch were not e
 The follow-up extends each outer chamfer across the full thumb width, removing the bottom shelf
 and restoring a point at the flat inner edge. Regular and compact dark rendering were checked in
 the live Lab; seven stylesheet tests and both package/Lab builds passed without browser errors.
+
+Range thumb translation now places the flat inner edge on the track value, shifting the hit area
+and focus ring together. The painted thumb scales about that inner bottom corner. Live geometry
+checks in regular and compact density put both inner edges within 0.01 CSS px of their track values;
+focus used the opposing edge origins at 1.25 scale, and hover used 1.15 scale. Pointer dragging and
+both keyboard endpoints remained functional. Seven stylesheet tests and package/Lab builds passed;
+no browser errors were recorded.
