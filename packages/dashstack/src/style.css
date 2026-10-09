@@ -2372,14 +2372,16 @@
 .picodash-dashstack-target-slider [data-picodash-target-track] {
   position: relative;
   margin-inline: var(--picodash-space-1);
-  padding-block-start: calc(var(--picodash-control-height-md) + var(--picodash-space-3));
+  --_picodash-target-thumb-rise: calc(max(44px, var(--picodash-control-height-md)) / 2);
+  --_picodash-target-label-lift: 0px;
+  padding-block-start: var(--picodash-space-2);
 }
 .picodash-dashstack-target-slider .picodash-dashstack-slider-track {
   margin-inline: 0;
+  margin-block-start: var(--_picodash-target-thumb-rise);
 }
 [data-picodash-target-label-slot] {
-  position: absolute;
-  inset-block-start: var(--picodash-space-2);
+  position: relative;
   inline-size: min(100%, var(--_picodash-target-label-width));
   inset-inline-start: clamp(
     0px,
@@ -2392,38 +2394,71 @@
 }
 /* Reserve the scaled width so even an endpoint label remains inside the track. */
 [data-picodash-target-label-slot] > .picodash-dashstack-field {
-  inline-size: calc(100% / 1.06);
+  inline-size: calc(100% / 1.15);
+  font-size: var(--picodash-font-size-sm);
+  line-height: var(--picodash-line-height-normal);
+  border-block-end: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-accent);
+  border-end-start-radius: var(--picodash-radius-control);
+  border-end-end-radius: var(--picodash-radius-control);
   transform-origin: center bottom;
   transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
 }
 [data-picodash-target-label-slot] input {
   text-align: end;
+  padding-block: var(--picodash-space-0-5);
+  border-block-end: 0;
+}
+[data-picodash-target-label-slot] [data-picodash-number-shell][data-unit] {
+  border-block-end: 0;
+}
+@media (pointer: fine) {
+  .picodash-dashstack-target-slider [data-picodash-target-track] {
+    --_picodash-target-thumb-rise: calc(var(--picodash-control-height-xs) / 2);
+    /* The thumb scales from its bottom edge; lift the attached field by the same amount. */
+    --_picodash-target-label-lift: calc(
+      (var(--picodash-control-height-xs) / 2 + var(--picodash-space-1) + var(--picodash-space-0-5)) *
+        0.25
+    );
+  }
+  [data-picodash-target-label-slot] input {
+    min-block-size: 0;
+  }
 }
 [data-picodash-target-track]:has(
-    [data-picodash-dashstack-slider-thumb]:is([data-dragging], [data-focus-visible])
+    [data-picodash-dashstack-slider-thumb]:is([data-dragging], [data-focus-visible]),
+    [data-picodash-target-label-slot]:focus-within
   )
   > [data-picodash-target-label-slot]
   > .picodash-dashstack-field {
-  transform: translateY(calc(-1 * var(--picodash-space-1))) scale(1.06);
+  transform: translateY(calc(-1 * var(--_picodash-target-label-lift))) scale(1.15);
 }
 .picodash-dashstack-target-slider [data-picodash-dashstack-slider-thumb]::before {
   transform-origin: center bottom;
   transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
 }
-.picodash-dashstack-target-slider
+[data-picodash-target-track]:has(
+    [data-picodash-target-label-slot]:focus-within,
+    [data-picodash-dashstack-slider-thumb]:is([data-dragging], [data-focus-visible])
+  )
   .picodash-dashstack-slider:not([data-disabled])
-  [data-picodash-dashstack-slider-thumb]:is([data-dragging], [data-focus-visible])::before {
+  [data-picodash-dashstack-slider-thumb]::before {
   transform: scale(1.25);
 }
 @media (hover: hover) and (pointer: fine) {
-  [data-picodash-target-track]:has([data-picodash-dashstack-slider-thumb][data-hovered])
+  [data-picodash-target-track]:has(
+      [data-picodash-dashstack-slider-thumb][data-hovered],
+      [data-picodash-target-label-slot]:hover
+    )
     > [data-picodash-target-label-slot]
     > .picodash-dashstack-field {
-    transform: translateY(calc(-1 * var(--picodash-space-1))) scale(1.06);
+    transform: translateY(calc(-1 * var(--_picodash-target-label-lift))) scale(1.15);
   }
-  .picodash-dashstack-target-slider
+  [data-picodash-target-track]:has(
+      [data-picodash-target-label-slot]:hover,
+      [data-picodash-dashstack-slider-thumb][data-hovered]
+    )
     .picodash-dashstack-slider:not([data-disabled])
-    [data-picodash-dashstack-slider-thumb][data-hovered]::before {
+    [data-picodash-dashstack-slider-thumb]::before {
     transform: scale(1.25);
   }
 }
