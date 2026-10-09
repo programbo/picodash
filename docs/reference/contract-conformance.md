@@ -1181,3 +1181,10 @@ edges meet at minimum/maximum through hover scaling (within 0.02px rounding); ce
 centred. Label bottom and thumb top remain joined. Browser errors are empty. The firmer detent
 spring settles a 24px transition in about 110ms in the recorded browser run, within 0.5px at 76ms.
 Keyboard entry into Off still works. Owned browser sessions were closed and their processes exited.
+
+Snapshot .22 (`186734df358bc1b8a533e856d001932a8a789ebf`) passes the complete release gate,
+including all 306 DashStack tests. The isolated consumer passes install, repeat/frozen reinstall,
+.21 update/rollback, types, component interaction and Vite/Next CSS builds. The rebuilt Lab serves
+the new controls; live Home-to-Off and editable target-at-minimum checks pass, with the calculated
+10px origin, no horizontal overflow or browser errors. Snapshot recommendation is updated only
+after these checks. Consumer application adoption remains owned by Maz.
