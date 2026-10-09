@@ -92,6 +92,46 @@ const stableReadyMade = [
     ['string-or-number'],
   ],
   ['DisplayDashlet', 'Renders the current value of a field as a readout.', ['read'], ['json']],
+  ['CheckboxDashlet', 'Binds a boolean field to a checkbox control.', ['edit'], ['boolean']],
+  ['RadioGroupDashlet', 'Binds one choice field to a radio group.', ['edit'], ['string-or-number']],
+  [
+    'ComboboxDashlet',
+    'Binds one choice field to a searchable combobox.',
+    ['edit'],
+    ['string-or-number'],
+  ],
+  [
+    'CheckboxGroupDashlet',
+    'Binds one field containing multiple choices to checkboxes.',
+    ['edit'],
+    ['json'],
+  ],
+  [
+    'MultiSelectDashlet',
+    'Binds one field containing multiple choices to a multiselect.',
+    ['edit'],
+    ['json'],
+  ],
+  ['SearchDashlet', 'Binds a string field to a search editor.', ['edit'], ['string']],
+  ['RangeDashlet', 'Binds one range object field to a two-thumb slider.', ['edit'], ['json']],
+  ['MeterDashlet', 'Renders a bounded numeric field as a meter.', ['read'], ['number']],
+  ['ProgressDashlet', 'Renders a numeric field as determinate progress.', ['read'], ['number']],
+  [
+    'StatusDashlet',
+    'Renders a field through an explicit status option map.',
+    ['read'],
+    ['string-or-number'],
+  ],
+  ['DateDashlet', 'Binds an ISO date field to a date editor.', ['edit'], ['string']],
+  ['TimeDashlet', 'Binds an ISO time field to a time editor.', ['edit'], ['string']],
+  ['DateTimeDashlet', 'Binds an RFC 3339 field to a date-time editor.', ['edit'], ['string']],
+  [
+    'DateRangeDashlet',
+    'Binds one date-range object field to a date-range editor.',
+    ['edit'],
+    ['json'],
+  ],
+  ['ColorDashlet', 'Binds a CSS color field to a color editor.', ['edit'], ['string']],
 ] as const
 
 const entries: PicodashCatalogEntry[] = [

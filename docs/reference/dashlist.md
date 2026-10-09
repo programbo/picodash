@@ -749,26 +749,28 @@ are defined in the [component catalog reference](catalog.md). Draft anatomy help
 
 ### Stable ready-made inventory
 
-> Contract: Revised (M7 recovery scope; owner-approved 2026-09-17)
+> Contract: Accepted
 > Implementation: Partial
-> Evidence: The standalone Value binding browser journey exercises the seven retained candidates
-> across themes, validation, disabled/read-only states, choice previews, reset, and persistence.
-> Package tests continue to cover the wider prototype implementation. Code presence is not
-> release acceptance; see the [M7 disposition ledger](../internal/m7-dashlet-curation.md).
+> Evidence: `packages/dashlist/tests/ready-made*.test.tsx`,
+> `packages/dashlist/tests/*-controls*.test.tsx`, and
+> `packages/dashlist/tests/package-artifacts.mjs` cover all 22 root components, their public prop
+> types across JSX, aliases, generic wrappers, unannotated `createElement` field binding, and
+> unspecialized `ComponentProps`, plus the root/catalog boundary and required package artifacts.
+> Broader DashList stabilization remains Partial.
 
-The retained ready-made set for recovery is `TextDashlet`, `NumberDashlet`, `SliderDashlet`,
-`SwitchDashlet`, `SelectDashlet`, `SegmentedDashlet`, and `DisplayDashlet`. They cover exact editing,
-quick numeric adjustment, on/off state, compact choice, visible small choice sets, and readback.
+The accepted stable `@picodash/dashlist` root exports are:
 
-Checkbox, RadioGroup, Combobox, CheckboxGroup, MultiSelect, Search, Range, Meter, Progress, Status,
-Date, Time, DateTime, DateRange, and Color are deferred from stable promotion. Their existing root
-exports remain prototype implementation for evaluation, but are excluded from the stable catalog.
-They require a demonstrated consumer workflow and owner approval before promotion. This revises
-the earlier blanket stable claim for all 22 implementations; it does not delete working code merely
-to reduce a count. M7 received owner approval on 2026-09-17; remaining UI fixes continue in M8.
+- `TextDashlet`, `NumberDashlet`, `SliderDashlet`, `SwitchDashlet`, `SelectDashlet`,
+  `SegmentedDashlet`, `DisplayDashlet`;
+- `CheckboxDashlet`, `RadioGroupDashlet`, `ComboboxDashlet`, `CheckboxGroupDashlet`,
+  `MultiSelectDashlet`, `SearchDashlet`;
+- `RangeDashlet`, `MeterDashlet`, `ProgressDashlet`, `StatusDashlet`;
+- `DateDashlet`, `TimeDashlet`, `DateTimeDashlet`, `DateRangeDashlet`, and `ColorDashlet`.
 
-Each ready-made component composes public Dashlet anatomy, Nexus handles, and UI primitives without
-a privileged registration or binding path.
+This set covers scalar values, choices, compound values, temporal values, and readouts without
+making optional chart, media, or file dependencies part of the base product. Each ready-made component composes the same public
+Dashlet shell, anatomy, Nexus handles, and UI primitives available to application authors. It does
+not use a privileged registration or binding path.
 
 Tables, trees, tabs, accordions, dialogs, menus, skeletons, alerts, toolbars, and similar pieces
 remain UI primitives, Dashlet anatomy, or recipes unless they gain a distinct Nexus contract.

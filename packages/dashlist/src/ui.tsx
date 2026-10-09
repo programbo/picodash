@@ -303,7 +303,6 @@ export function Slider({
             inputRef={inputRef}
             data-picodash-dashlist-slider-thumb
             aria-label={props['aria-label']}
-            aria-labelledby={props['aria-labelledby']}
             aria-describedby={readOnlyDescription.describedBy}
             isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
             aria-errormessage={props['aria-errormessage']}

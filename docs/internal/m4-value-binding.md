@@ -1,8 +1,6 @@
 # M4: standalone DashList value binding
 
 The owner approved M4 after hands-on use on 2026-09-09, reporting that it works nicely.
-On 2026-09-17, after the production Lab was made available on the tailnet, the owner explicitly
-reconfirmed sign-off on M4 functionality. This reconfirmation does not close M7 inventory curation.
 M5 subsequently extends this baseline with persistence and reset; see [its evidence record](m5-dashlist-data.md).
 This is the recovery project's M4, not Phase 4 Picodash integration.
 
