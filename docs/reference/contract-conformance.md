@@ -1039,3 +1039,7 @@ and the runtime invalid-node-id diagnostic exposed by consumer integration.
 Pointer verification also exercises the visible result text: its pointer-down is isolated from the
 interactive track, so clicking No match preserves target 2.37 (the initial in-track version moved
 it to 5). The full-message hover title remains available. This final correction changes no layout.
+
+Snapshot .16 (`88a982797e9730621320e250a656c9b6138f9dec`) passes the package release gate and
+isolated consumer install/repeat/frozen, .15 update/rollback, recipe type checks, interactions and
+Vite/Next CSS builds. The Lab is rebuilt and restarted from that source.
