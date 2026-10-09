@@ -125,14 +125,14 @@ describe('DashPanel portal ownership', () => {
       width: 200,
       height: 100,
     } as DOMRect
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary) return boundaryRect
-        if (this.hasAttribute('data-picodash-panel'))
-          return { top: 0, right: 80, bottom: 240, left: 0, width: 80, height: 240 } as DOMRect
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary) return boundaryRect
+      if (this.hasAttribute('data-picodash-panel'))
+        return { top: 0, right: 80, bottom: 240, left: 0, width: 80, height: 240 } as DOMRect
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -177,29 +177,29 @@ describe('DashPanel portal ownership', () => {
     )
     vi.stubGlobal('requestAnimationFrame', requestAnimationFrame)
     vi.stubGlobal('cancelAnimationFrame', vi.fn())
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return {
-            top: 0,
-            right: boundaryLeft + boundaryWidth,
-            bottom: 200,
-            left: boundaryLeft,
-            width: boundaryWidth,
-            height: 200,
-          } as DOMRect
-        if (this.hasAttribute('data-picodash-panel'))
-          return {
-            top: 0,
-            right: panelWidth,
-            bottom: 40,
-            left: 0,
-            width: panelWidth,
-            height: 40,
-          } as DOMRect
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return {
+          top: 0,
+          right: boundaryLeft + boundaryWidth,
+          bottom: 200,
+          left: boundaryLeft,
+          width: boundaryWidth,
+          height: 200,
+        } as DOMRect
+      if (this.hasAttribute('data-picodash-panel'))
+        return {
+          top: 0,
+          right: panelWidth,
+          bottom: 40,
+          left: 0,
+          width: panelWidth,
+          height: 40,
+        } as DOMRect
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -243,25 +243,25 @@ describe('DashPanel portal ownership', () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const left = Number.parseFloat(this.style.left) || 0
-          const top = Number.parseFloat(this.style.top) || 0
-          return {
-            top,
-            right: left + 80,
-            bottom: top + 40,
-            left,
-            width: 80,
-            height: 40,
-          } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const left = Number.parseFloat(this.style.left) || 0
+        const top = Number.parseFloat(this.style.top) || 0
+        return {
+          top,
+          right: left + 80,
+          bottom: top + 40,
+          left,
+          width: 80,
+          height: 40,
+        } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -360,32 +360,32 @@ describe('DashPanel portal ownership', () => {
         takeRecords = vi.fn(() => [])
       },
     )
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return {
-            top: 0,
-            right: boundaryWidth,
-            bottom: 200,
-            left: 0,
-            width: boundaryWidth,
-            height: 200,
-          } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const left = Number.parseFloat(this.style.left) || 0
-          const top = Number.parseFloat(this.style.top) || 0
-          return {
-            top,
-            right: left + 80,
-            bottom: top + 40,
-            left,
-            width: 80,
-            height: 40,
-          } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return {
+          top: 0,
+          right: boundaryWidth,
+          bottom: 200,
+          left: 0,
+          width: boundaryWidth,
+          height: 200,
+        } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const left = Number.parseFloat(this.style.left) || 0
+        const top = Number.parseFloat(this.style.top) || 0
+        return {
+          top,
+          right: left + 80,
+          bottom: top + 40,
+          left,
+          width: 80,
+          height: 40,
+        } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -628,24 +628,24 @@ describe('DashPanel portal ownership', () => {
       return frames.size
     })
     vi.stubGlobal('cancelAnimationFrame', vi.fn())
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundaryA)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this === boundaryB)
-          return {
-            top: 0,
-            right: 700,
-            bottom: 200,
-            left: 400,
-            width: 300,
-            height: 200,
-          } as DOMRect
-        if (this.hasAttribute('data-picodash-panel'))
-          return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundaryA)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this === boundaryB)
+        return {
+          top: 0,
+          right: 700,
+          bottom: 200,
+          left: 400,
+          width: 300,
+          height: 200,
+        } as DOMRect
+      if (this.hasAttribute('data-picodash-panel'))
+        return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     const fixedLeft = {
       placement: {
         mode: 'fixed' as const,
@@ -702,25 +702,25 @@ describe('DashPanel portal ownership', () => {
       return frames.size
     })
     vi.stubGlobal('cancelAnimationFrame', vi.fn())
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundaryA || this === boundaryB)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const left = Number.parseFloat(this.style.left) || 0
-          const top = Number.parseFloat(this.style.top) || 0
-          return {
-            top,
-            right: left + 80,
-            bottom: top + 40,
-            left,
-            width: 80,
-            height: 40,
-          } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundaryA || this === boundaryB)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const left = Number.parseFloat(this.style.left) || 0
+        const top = Number.parseFloat(this.style.top) || 0
+        return {
+          top,
+          right: left + 80,
+          bottom: top + 40,
+          left,
+          width: 80,
+          height: 40,
+        } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} portalContainer={portal}>
         <DashPanel
@@ -778,25 +778,25 @@ describe('DashPanel portal ownership', () => {
         disconnect = vi.fn()
       },
     )
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return {
-            top: 0,
-            right: boundaryWidth,
-            bottom: 200,
-            left: 0,
-            width: boundaryWidth,
-            height: 200,
-          } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const declaredCap = Number.parseFloat(this.style.maxInlineSize)
-          const width = Number.isFinite(declaredCap) ? Math.min(180, declaredCap) : 180
-          return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return {
+          top: 0,
+          right: boundaryWidth,
+          bottom: 200,
+          left: 0,
+          width: boundaryWidth,
+          height: 200,
+        } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const declaredCap = Number.parseFloat(this.style.maxInlineSize)
+        const width = Number.isFinite(declaredCap) ? Math.min(180, declaredCap) : 180
+        return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel id="inspector" title="Inspector" />
@@ -859,13 +859,13 @@ describe('DashPanel portal ownership', () => {
       }),
     }
     vi.stubGlobal('visualViewport', visualViewport)
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this.hasAttribute('data-picodash-panel'))
-          return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this.hasAttribute('data-picodash-panel'))
+        return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} portalContainer={portal}>
         <DashPanel
@@ -956,23 +956,23 @@ describe('DashPanel portal ownership', () => {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     })
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this.hasAttribute('data-picodash-panel')) {
-          const left = Number.parseFloat(this.style.left) || 0
-          const top = Number.parseFloat(this.style.top) || 0
-          return {
-            top,
-            right: left + 80,
-            bottom: top + 40,
-            left,
-            width: 80,
-            height: 40,
-          } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this.hasAttribute('data-picodash-panel')) {
+        const left = Number.parseFloat(this.style.left) || 0
+        const top = Number.parseFloat(this.style.top) || 0
+        return {
+          top,
+          right: left + 80,
+          bottom: top + 40,
+          left,
+          width: 80,
+          height: 40,
+        } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     function FreeControl() {
       const controller = useDashPanel()
       return (
@@ -1018,17 +1018,17 @@ describe('DashPanel portal ownership', () => {
     const portal = document.createElement('div')
     const firstBoundary = document.createElement('div')
     const secondBoundary = document.createElement('div')
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === firstBoundary)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this === secondBoundary)
-          return { top: 50, right: 350, bottom: 250, left: 50, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel'))
-          return { top: 8, right: 88, bottom: 48, left: 8, width: 80, height: 40 } as DOMRect
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === firstBoundary)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this === secondBoundary)
+        return { top: 50, right: 350, bottom: 250, left: 50, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel'))
+        return { top: 8, right: 88, bottom: 48, left: 8, width: 80, height: 40 } as DOMRect
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     const provider = (boundary: HTMLElement) => (
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel id="inspector" title="Inspector" />
@@ -1062,25 +1062,25 @@ describe('DashPanel portal ownership', () => {
     const scoped = nexus.scope('inspector')
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const left = Number.parseFloat(this.style.left) || 0
-          const top = Number.parseFloat(this.style.top) || 0
-          return {
-            top,
-            right: left + 80,
-            bottom: top + 40,
-            left,
-            width: 80,
-            height: 40,
-          } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const left = Number.parseFloat(this.style.left) || 0
+        const top = Number.parseFloat(this.style.top) || 0
+        return {
+          top,
+          right: left + 80,
+          bottom: top + 40,
+          left,
+          width: 80,
+          height: 40,
+        } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -1139,25 +1139,25 @@ describe('DashPanel portal ownership', () => {
       placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
       preferredPosition: { x: 30, y: 30 },
     })
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const left = Number.parseFloat(this.style.left) || 0
-          const top = Number.parseFloat(this.style.top) || 0
-          return {
-            top,
-            right: left + 80,
-            bottom: top + 40,
-            left,
-            width: 80,
-            height: 40,
-          } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const left = Number.parseFloat(this.style.left) || 0
+        const top = Number.parseFloat(this.style.top) || 0
+        return {
+          top,
+          right: left + 80,
+          bottom: top + 40,
+          left,
+          width: 80,
+          height: 40,
+        } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -1205,15 +1205,15 @@ describe('DashPanel portal ownership', () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 100, bottom: 100, left: 0, width: 100, height: 100 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel'))
-          return { top: 0, right: 100, bottom: 40, left: 60, width: 40, height: 40 } as DOMRect
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 100, bottom: 100, left: 0, width: 100, height: 100 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel'))
+        return { top: 0, right: 100, bottom: 40, left: 60, width: 40, height: 40 } as DOMRect
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -1263,20 +1263,20 @@ describe('DashPanel portal ownership', () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const declaredWidth = Number.parseFloat(this.style.inlineSize)
-          const declaredHeight = Number.parseFloat(this.style.blockSize)
-          const width = Number.isFinite(declaredWidth) ? declaredWidth : 80
-          const height = Number.isFinite(declaredHeight) ? declaredHeight : 40
-          return { top: 0, right: width, bottom: height, left: 0, width, height } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const declaredWidth = Number.parseFloat(this.style.inlineSize)
+        const declaredHeight = Number.parseFloat(this.style.blockSize)
+        const width = Number.isFinite(declaredWidth) ? declaredWidth : 80
+        const height = Number.isFinite(declaredHeight) ? declaredHeight : 40
+        return { top: 0, right: width, bottom: height, left: 0, width, height } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -1341,25 +1341,25 @@ describe('DashPanel portal ownership', () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const left = Number.parseFloat(this.style.left) || 0
-          const top = Number.parseFloat(this.style.top) || 0
-          return {
-            top,
-            right: left + 80,
-            bottom: top + 40,
-            left,
-            width: 80,
-            height: 40,
-          } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const left = Number.parseFloat(this.style.left) || 0
+        const top = Number.parseFloat(this.style.top) || 0
+        return {
+          top,
+          right: left + 80,
+          bottom: top + 40,
+          left,
+          width: 80,
+          height: 40,
+        } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -1405,25 +1405,25 @@ describe('DashPanel portal ownership', () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const left = Number.parseFloat(this.style.left) || 0
-          const top = Number.parseFloat(this.style.top) || 0
-          return {
-            top,
-            right: left + 80,
-            bottom: top + 40,
-            left,
-            width: 80,
-            height: 40,
-          } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const left = Number.parseFloat(this.style.left) || 0
+        const top = Number.parseFloat(this.style.top) || 0
+        return {
+          top,
+          right: left + 80,
+          bottom: top + 40,
+          left,
+          width: 80,
+          height: 40,
+        } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     const freeLayout = (preferredPosition: { x: number; y: number }) => ({
       placement: { mode: 'floating' as const, disposition: { kind: 'free' as const } },
       preferredPosition,
@@ -1487,15 +1487,15 @@ describe('DashPanel portal ownership', () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 300, bottom: 300, left: 0, width: 300, height: 300 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel'))
-          return { top: 0, right: 80, bottom: 240, left: 0, width: 80, height: 240 } as DOMRect
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 300, bottom: 300, left: 0, width: 300, height: 300 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel'))
+        return { top: 0, right: 80, bottom: 240, left: 0, width: 80, height: 240 } as DOMRect
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -1555,17 +1555,17 @@ describe('DashPanel portal ownership', () => {
         disconnect = vi.fn()
       },
     )
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const width = this.textContent?.includes('Corner') ? cornerWidth : 80
-          return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const width = this.textContent?.includes('Corner') ? cornerWidth : 80
+        return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -1616,37 +1616,37 @@ describe('DashPanel portal ownership', () => {
     const portal = document.createElement('div')
     shadowRoot.append(portal)
     const boundary = document.createElement('div')
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel')) {
-          const configuredWidth = Number.parseFloat(
-            this.style.getPropertyValue('--picodash-panel-width'),
-          )
-          const inheritedWidth = Number.parseFloat(
-            this.closest<HTMLElement>('[data-picodash-theme]')?.style.getPropertyValue(
-              '--picodash-panel-width',
-            ) ?? '',
-          )
-          const root = this.getRootNode()
-          const hostWidth =
-            root instanceof ShadowRoot
-              ? Number.parseFloat(
-                  (root.host as HTMLElement).style.getPropertyValue('--picodash-panel-width'),
-                )
-              : 0
-          const preferredWidth =
-            configuredWidth ||
-            inheritedWidth ||
-            hostWidth ||
-            (this.textContent?.includes('Wide content') ? 140 : 80)
-          const width = this.hidden ? 0 : preferredWidth
-          return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
-        }
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel')) {
+        const configuredWidth = Number.parseFloat(
+          this.style.getPropertyValue('--picodash-panel-width'),
+        )
+        const inheritedWidth = Number.parseFloat(
+          this.closest<HTMLElement>('[data-picodash-theme]')?.style.getPropertyValue(
+            '--picodash-panel-width',
+          ) ?? '',
+        )
+        const root = this.getRootNode()
+        const hostWidth =
+          root instanceof ShadowRoot
+            ? Number.parseFloat(
+                (root.host as HTMLElement).style.getPropertyValue('--picodash-panel-width'),
+              )
+            : 0
+        const preferredWidth =
+          configuredWidth ||
+          inheritedWidth ||
+          hostWidth ||
+          (this.textContent?.includes('Wide content') ? 140 : 80)
+        const width = this.hidden ? 0 : preferredWidth
+        return { top: 0, right: width, bottom: 40, left: 0, width, height: 40 } as DOMRect
+      }
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel id="corner" title="Corner" defaultVisible={false} />
@@ -1756,15 +1756,15 @@ describe('DashPanel portal ownership', () => {
     const nexus = makeNexus()
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        if (this === boundary)
-          return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
-        if (this.hasAttribute('data-picodash-panel'))
-          return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
-        return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (this === boundary)
+        return { top: 0, right: 300, bottom: 200, left: 0, width: 300, height: 200 } as DOMRect
+      if (this.hasAttribute('data-picodash-panel'))
+        return { top: 0, right: 80, bottom: 40, left: 0, width: 80, height: 40 } as DOMRect
+      return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect
+    })
     await render(
       <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
         <DashPanel
@@ -1831,14 +1831,14 @@ describe('DashPanel portal ownership', () => {
         return this.hasAttribute('data-picodash-panel') ? this.parentElement?.parentElement : null
       },
     })
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
-      function (this: HTMLElement) {
-        return this.hasAttribute('data-picodash-panel')
-          ? rect
-          : (hostRects.get(this) ??
-              ({ top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect))
-      },
-    )
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.hasAttribute('data-picodash-panel')
+        ? rect
+        : (hostRects.get(this) ??
+            ({ top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 } as DOMRect))
+    })
     const panel = (portal: HTMLElement) => (
       <DashPanelProvider nexus={nexus} portalContainer={portal}>
         <DashPanel id="inspector" title="Inspector" />

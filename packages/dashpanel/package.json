@@ -34,6 +34,7 @@
     "@types/react-dom": "catalog:",
     "react": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {

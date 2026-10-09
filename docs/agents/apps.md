@@ -11,6 +11,10 @@ read the testing instructions and every product reference exercised by the journ
 - Applications own routing, transport, authentication, authorization, exposure policy, and which
   Panels and Dashlets are mounted.
 
+Keep `install.globalStore = false` in the root `bunfig.toml`. Turbopack rejects dependency
+symlinks that point outside its repository filesystem root. After a Next.js upgrade, remove
+stale generated `.next` directories if a build cannot resolve its internal PostCSS transform.
+
 ## Ports and lifecycle
 
 Reserve the worktree's Hermes range with `bun run port:reserve` and release it with

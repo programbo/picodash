@@ -97,7 +97,9 @@ document UI requires a separate Picodash contract.
 
 ## Development
 
-The repository uses Bun and Vite+ (`vp`).
+The repository uses Bun 1.4.2 and Vite+ 1.0 (`vp`). Development and CI require
+Node.js `^22.18.0 || ^24.11.0 || >=26.0.0`. The workspace disables Bun's global virtual
+store so Next.js can resolve dependencies within the repository filesystem root.
 
 ```bash
 bun install
