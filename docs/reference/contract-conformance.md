@@ -908,3 +908,8 @@ constrains the actual Panel boundary, tabs within its overflowing Stack, refresh
 asserts that focus remains inside the visible scrollport. This regression failed before the fix
 and passes after it; all 195 DashPanel tests also pass. Phone-sized Chromium inspection remains
 separate from real touch-device and software-keyboard acceptance.
+
+Snapshot .10 (`af789e8bcf0465f41905b4d5597fa11b337d7056`) contains this correction. Its release
+gate and isolated consumer checks pass, including installed guides/examples, repeat/frozen
+installation, .9 update/rollback, component interactions and Vite/Next CSS builds. Maz owns
+independent adoption and verification in the planetary designer.
