@@ -997,3 +997,8 @@ valid layout returns when the canonical value becomes representable again.
 The focused TargetNumber component test independently accepts literal 2.9 at step 0.1 with no min,
 min 0, or min 1.5, while actual 3.425 remains independent. No floating-point tolerance was added;
 the consumer's original numeric warning is not reproduced without its exact canonical value.
+
+Snapshot .14 (`3261039ad52a92e2d2b75ded8f4bee2727d6015e`) passes package release checks and
+isolated consumption, including installed recipe compilation, repeat/frozen installation,
+.13 update/rollback, component interactions and Vite/Next CSS builds. The source change is limited
+to warning layout; numeric acceptance is unchanged. The Lab is rebuilt from that source.
